@@ -397,8 +397,36 @@ import {
  * seated pays different yields, and a Devotion seat's draws move. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v236 (branch `decks`; batch DS6, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Scientific Orders.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · 30 Scientific Orders and 2 shared Orders that Scientific holds with
+ *     Magisterial have new text (`docs/plans/deck-simplification-2026-11-10.md`).
+ *     The charters' texts start with the keyword "Charter.";
+ *   · two new Tier 0 Orders are dealt: The Scribes (+1 science in every town)
+ *     and The Apprentices (5 science for each building finished). They change
+ *     what a Scientific seat's first hands can draw;
+ *   · 16 rows have a new or shorter effect. Among them: The Almanac no longer
+ *     makes Libraries cheaper, The Forward Plans opens the University in any
+ *     town, The Strategikon counts only an Academy, and Illuminated Treatises
+ *     pays each building on its own;
+ *   · the rows the charters open change too. Casting's two traits are each a
+ *     plain +2 strength, the Grenadier is +1 for each charter technology known,
+ *     the Bimaristan no longer heals units, and the Aldine Press no longer pays
+ *     its trade routes. Niter Beds are removed, so Chemistry opens no work;
+ *   · six shapes that no row uses now are removed: the `buildingCost` rule,
+ *     the `townCitizensHere` combat count, the `families` of the `nearLearning`
+ *     condition, the `standingTurns` of the `hasEmpireBuilding` scope, and the
+ *     improvement fields `besideImprovement` and `suppliesResource`.
+ *
+ * **A v235 save is refused and does not replay.** A logged game with one of these cards
+ * seated pays different yields, a save with Niter Beds on the board names a work
+ * that no longer exists, and a Scientific seat's draws move. The branch migrates
+ * nothing, for the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 235;
+export const SCHEMA_VERSION = 236;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

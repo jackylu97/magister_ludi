@@ -1080,28 +1080,13 @@
           "effects": [
             {
               "kind": "combatLine",
-              "amount": 1,
+              "amount": 2,
               "side": "both",
               "when": {
                 "test": "always"
               },
               "class": {
                 "line": "spearman"
-              }
-            },
-            {
-              "kind": "combatLine",
-              "amount": 1,
-              "side": "both",
-              "when": {
-                "test": "always"
-              },
-              "class": {
-                "line": "spearman"
-              },
-              "scaled": {
-                "count": "townCitizensHere",
-                "per": 4
               }
             }
           ]
@@ -1112,21 +1097,10 @@
           "effects": [
             {
               "kind": "combatLine",
-              "amount": 1,
+              "amount": 2,
               "side": "both",
               "when": {
                 "test": "always"
-              },
-              "class": {
-                "line": "chariot"
-              }
-            },
-            {
-              "kind": "combatLine",
-              "amount": 5,
-              "side": "attack",
-              "when": {
-                "test": "targetBelowHalf"
               },
               "class": {
                 "line": "chariot"
@@ -1339,17 +1313,6 @@
           "name": "Grenadier",
           "line": "warrior",
           "effects": [
-            {
-              "kind": "combatLine",
-              "amount": 1,
-              "side": "both",
-              "when": {
-                "test": "always"
-              },
-              "class": {
-                "line": "warrior"
-              }
-            },
             {
               "kind": "combatLine",
               "amount": 1,

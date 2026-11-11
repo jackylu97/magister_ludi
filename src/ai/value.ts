@@ -3644,26 +3644,6 @@ function ruleRewriteValue(
       const bonus = -share / (1 + share);
       return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
     }
-    case 'buildingCost': {
-      // **A cheaper building is hammers saved** (batch R1, The Almanac). For a
-      // named building, the saving is the share of its price, once in each of
-      // this empire's towns that does not hold it yet, as a lump. A town that
-      // holds one, a card's grant included (`townHoldsBuilding`), saves
-      // nothing. A row that names no building is read as `unitCost` reads a
-      // cost cut: as the production bonus it equals.
-      if (effect.building !== undefined) {
-        const id = effect.building;
-        const price = buildingProductionCost(id, ctx.state, ctx.playerId);
-        let towns = 0;
-        for (const city of ctx.state.cities) {
-          if (city.ownerId === ctx.playerId && !townHoldsBuilding(ctx.state, city, id)) towns += 1;
-        }
-        return explainLump({ production: -share * price * towns }, ctx).total;
-      }
-      if (share <= -1) return ctx.ai.score.unknownEffect;
-      const bonus = -share / (1 + share);
-      return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
-    }
     case 'charterTechCost':
     case 'charterPremium':
       // **The beakers it saves on the charter technologies this seat will
@@ -6333,7 +6313,7 @@ function worksForecast(id: ImprovementId, ctx: ValueContext): number {
  * **The work rows a technology opens, priced as the works the towns would
  * lay**: what one work yields (`explainYields` of the row's own yields), plus
  * `score.scientific.workGift` for each gift that is not a yield (a Qanat's
- * water for the farms beside it, Niter Beds' niter), times the works forecast.
+ * water for the farms beside it), times the works forecast.
  */
 export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
@@ -6344,7 +6324,7 @@ export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
     const parts: ValueTerm[] = [];
     const yields = explainYields(bagOfTileYield(readTileYield(row.yields)), ctx);
     if (yields.terms.length > 0) parts.push(nest('what one work yields', yields));
-    const gifts = (row.watersBeside === true ? 1 : 0) + (row.suppliesResource !== undefined ? 1 : 0);
+    const gifts = row.watersBeside === true ? 1 : 0;
     if (gifts > 0) {
       parts.push({
         label: `${gifts} gift${gifts === 1 ? '' : 's'} that is not a yield × ${ctx.ai.score.scientific.workGift}`,
@@ -6562,13 +6542,13 @@ function openRows(ctx: ValueContext): readonly OpenRow[] {
 }
 
 /**
- * **The points a Scientific scaled strength line is worth** (the Hoplite and
- * Grenadier traits, The Proving Ground). The scale's count is read as the
- * Scientific counts are read (`scientificCountAhead`). The Hoplite's citizens
- * are those of this seat's mean town, at the share of fights fought in one's
- * own town (`score.scientific.inOwnTown`). Batch DT6 adds the wonders and the
+ * **The points a Scientific scaled strength line is worth** (the Grenadier
+ * trait, The Proving Ground). The scale's count is read as the Scientific
+ * counts are read (`scientificCountAhead`). Batch DT6 adds the wonders and the
  * beliefs a seat holds, which are not Scientific but are read the same way. The
  * scale's cap holds. A line with any other scale, or none, answers its own amount.
+ * (The Hoplite's count of the citizens of the town a unit stands in went in
+ * batch DS6, with its knob.)
  */
 function scientificLinePoints(
   effect: Extract<CardEffect, { kind: 'combatLine' }>,
@@ -6579,9 +6559,6 @@ function scientificLinePoints(
   const per = scale.per > 0 ? scale.per : 1;
   let helpings: number;
   switch (scale.count) {
-    case 'townCitizensHere':
-      helpings = Math.floor(meanPopulation(ctx) / per) * ctx.ai.score.scientific.inOwnTown;
-      break;
     case 'charterTechsKnown':
     case 'techLead': {
       const ahead = scientificCountAhead(scale.count, ctx);

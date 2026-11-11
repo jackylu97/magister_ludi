@@ -63,7 +63,13 @@ import { describe, expect, it } from 'vitest';
 
 import { type Game } from '../../../src/sim/game';
 import { getTileAt, raiseImprovement, razeImprovement } from '../../../src/sim/map';
-import { buildingProductionCost, explainBuildingCost, refreshCityDerived } from '../../../src/sim/cities';
+import {
+  buildingProductionCost,
+  explainBuildingCost,
+  realiseItem,
+  refreshCityDerived,
+} from '../../../src/sim/cities';
+import { windfallPayout } from '../../../src/sim/statecraft/evaluator';
 import { explainPurchaseCost } from '../../../src/sim/purchase';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
@@ -178,9 +184,10 @@ describe('the rows', () => {
     // S5 moved The Assay to common.json and added six cards. S6 added eleven.
     // S7 added nine. S8 added ten and dealt The Second Seat. S9 added nine.
     // R3 added two (The Kept Secret and The Curators of Works) and retired
-    // The Prize Essay, which stays in the file for saves.
-    expect(DECK).toHaveLength(105);
-    expect(new Set(DECK).size).toBe(105);
+    // The Prize Essay, which stays in the file for saves. DS6 added The
+    // Scribes and The Apprentices.
+    expect(DECK).toHaveLength(107);
+    expect(new Set(DECK).size).toBe(107);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -197,7 +204,7 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with six, nineteen, seventeen, twelve and twelve current rows', () => {
+  it('fills the five tiers with eight, nineteen, seventeen, twelve and twelve current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
@@ -214,11 +221,11 @@ describe('the rows', () => {
     // DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired twelve: one
     // in Tier 0, three in Tier I, three in Tier II, four in Tier III and one in
     // Tier IV. It moved The Almanac and The Bronze-Founders' Charter from Tier
-    // 0 to Tier I.
+    // 0 to Tier I. DS6 added The Scribes and The Apprentices to Tier 0.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([6, 19, 17, 12, 12]);
+    expect(perBand).toEqual([8, 19, 17, 12, 12]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -231,8 +238,9 @@ describe('the rows', () => {
     // them a commission, and dealt The Second Seat: 57 became 68, and no
     // deferred row is left in the deck. S9 added nine live rows, one of them
     // a commission: 68 became 77. R3 retired The Prize Essay and added two
-    // live rows: 77 became 78. DS1 retired twelve: 78 became 66.
-    expect(LIVE).toHaveLength(66);
+    // live rows: 77 became 78. DS1 retired twelve: 78 became 66. DS6 added
+    // two: 66 became 68.
+    expect(LIVE).toHaveLength(68);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
@@ -491,12 +499,12 @@ function countsTable(header: string): Map<string, number[]> {
 const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
 
 /**
- * A charter's text, as the sheet and the data write it. Devotion batch DS5
- * gave the shared The Schoolmen's Charter the new form, which begins with the
- * keyword "Charter."; this deck's own charters take it in their own batch.
+ * A charter's text, as the sheet and the data write it: it begins with the
+ * keyword "Charter.". Devotion batch DS5 gave the shared The Schoolmen's
+ * Charter that form, and batch DS6 gave it to this deck's thirteen charters.
+ * Until then they began "Drafting this opens".
  */
-const isCharterText = (text: string): boolean =>
-  text.startsWith('Drafting this opens ') || text.startsWith('Charter. ');
+const isCharterText = (text: string): boolean => text.startsWith('Charter. ');
 
 /**
  * The checks every sheet row with a data row shares, in either table: the
@@ -917,36 +925,21 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 describe('what the live rows do on a board', () => {
-  it('The Almanac: a Library costs 25% less production with the card seated', () => {
-    // Batch R1. The user saw Libraries cost more with the card seated. The
-    // row was a −25% production bonus, which slows the build. It is now a
-    // cost rule, so the price itself falls.
+  it('The Almanac: a Library keeps its price and its pace with the card seated (DS6)', () => {
+    // Batch R1 made the Library discount a cost rule, and batch DS6 removed
+    // that half of the card: a Library costs what it always cost, in
+    // production and in gold, and the town builds it as fast as before.
     const g = game();
     const city = found(g.state, 0);
     const toward = { kind: 'building', id: 'library' } as const;
-    const without = buildingProductionCost('library', g.state, 0);
-    const monument = buildingProductionCost('monument', g.state, 0);
+    const without = explainBuildingCost('library', g.state, 0);
     const rate = foldCity(g.state, city, [], toward).production;
     const gold = explainPurchaseCost(g.state, 0, city.id, toward, 'gold')!.total;
     slot(g.state, 0, 'scientificTheAlmanac');
-    const seated = buildingProductionCost('library', g.state, 0);
-    expect(seated).toBeLessThan(without);
-    expect(seated).toBe(Math.floor((without * 75) / 100));
-    // The price list says why, in one line.
-    const lines = explainBuildingCost('library', g.state, 0);
-    expect(lines[lines.length - 1]).toEqual({
-      source: 'Cards -25%',
-      amount: seated - without,
-    });
-    // The town works on a Library as fast as before: the card no longer
-    // slows the build.
+    expect(explainBuildingCost('library', g.state, 0)).toEqual(without);
+    expect(buildingProductionCost('library', g.state, 0)).toBe(buildingProductionCost('library', g.state, 1));
     expect(foldCity(g.state, city, [], toward).production).toBe(rate);
-    // The gold price is the production cost converted, so it falls too.
-    expect(explainPurchaseCost(g.state, 0, city.id, toward, 'gold')!.total).toBeLessThan(gold);
-    // Other buildings keep their price.
-    expect(buildingProductionCost('monument', g.state, 0)).toBe(monument);
-    // And another empire's Libraries keep theirs.
-    expect(buildingProductionCost('library', g.state, 1)).toBe(without);
+    expect(explainPurchaseCost(g.state, 0, city.id, toward, 'gold')!.total).toBe(gold);
   });
 
   it('The Almanac: a Library town gains +2 production', () => {
@@ -969,7 +962,7 @@ describe('what the live rows do on a board', () => {
     expect(named()).toEqual([]);
   });
 
-  it('The Scribes’ Hall: a Library town pays by its own citizens, not the realm’s', () => {
+  it('The Scribes’ Hall: a Library town pays science by its own citizens, and no culture (DS6)', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library');
@@ -979,7 +972,8 @@ describe('what the live rows do on a board', () => {
     slot(g.state, 0, 'scientificTheScribesHall');
     const after = foldCity(g.state, city);
     expect(after.science).toBe(before.science + 3);
-    expect(after.culture).toBe(before.culture + 4);
+    // Batch DS6 cut the +1 culture for every three citizens.
+    expect(after.culture).toBe(before.culture);
   });
 
   // --- D2d, the age stamp ----------------------------------------------------
@@ -987,7 +981,10 @@ describe('what the live rows do on a board', () => {
   // These rows read `City.buildingTurns`, `Tile.improvedOn` and the scopes that
   // read them. Each test checks both sides of the threshold, "not yet, and
   // then yes", because a test that only checked the paying side would also
-  // pass if the scope admitted everything.
+  // pass if the scope admitted everything. Batch DS6 took the age out of The
+  // Old Academy and Enduring Institutions, so their tests here now check that
+  // no age is asked; the retired The Long Study and The Long Inheritance
+  // still read it.
 
   it('The Long Study: a young Library pays nothing, an old one pays, and a very old one pays twice', () => {
     const g = game();
@@ -1026,60 +1023,50 @@ describe('what the live rows do on a board', () => {
     expect(renown()).toHaveLength(2);
   });
 
-  it('The Old Academy: an old Academy pays on its hex, and a young one does not', () => {
+  it('The Old Academy: an Academy pays on its hex the turn it is laid, with no age to wait for (DS6)', () => {
+    // Batch DS6 removed the twenty- and forty-turn thresholds: one flat
+    // +3 food and +3 production, however old the Academy is.
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     const ctx = () => yieldContextFor(g.state, 0);
     g.state.turn = 6;
     raiseImprovement(tile, 'academy', g.state.turn);
-    slot(g.state, 0, 'theOldAcademy');
     const paid = () =>
       explainTileYield(tile, ctx()).filter((line) =>
         line.source.startsWith('Order · The Old Academy'),
       );
     expect(paid()).toEqual([]);
-
-    g.state.turn = 26;
+    slot(g.state, 0, 'theOldAcademy');
     expect(paid()).toHaveLength(1);
     expect(paid()[0]!.food).toBe(3);
     expect(paid()[0]!.production).toBe(3);
-
-    // At forty the second clause joins the first. `explainTileYield` folds rows
-    // of one source together, so the two clauses read as one labelled entry,
-    // and the "+6 of each" is still their sum (rule 5).
+    // Forty turns on, it pays the same.
     g.state.turn = 46;
-    const old = paid();
-    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(6);
-    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(6);
-
-    // An Academy raised again on the same ground is a new Academy: the stamp
-    // belongs to the work.
+    expect(paid().reduce((sum, line) => sum + line.food, 0)).toBe(3);
+    // Another work is not an Academy.
     razeImprovement(tile);
-    raiseImprovement(tile, 'academy', g.state.turn);
+    raiseImprovement(tile, 'landmark', g.state.turn);
     expect(paid()).toEqual([]);
   });
 
-  it('Enduring Institutions: the oldest empire building is the one that admits the town', () => {
-    // Batch S7 brought the row to the sheet's text: +25% production, and no
-    // happiness. `scientificCards.test.ts` checks the card in full.
+  it('Enduring Institutions: +20% production in a town with an empire building, of any age (DS6)', () => {
+    // Batch S7 brought the row to the sheet's text, and batch DS6 removed the
+    // twenty-turn age and lowered the share from 25% to 20%.
+    // `scientificCards.test.ts` checks the card in full.
     const g = game();
     const city = found(g.state, 0);
-    g.state.turn = 4;
-    addBuilding(g.state, city, 'forum');
     slot(g.state, 0, 'enduringInstitutions');
     const share = () =>
       explainCardPercentYields(g.state, city).filter((line) => line.card === 'enduringInstitutions');
     expect(share()).toEqual([]);
-
-    g.state.turn = 24;
+    g.state.turn = 4;
+    addBuilding(g.state, city, 'forum');
     bumpRevision(g.state);
     expect(share()).toHaveLength(1);
     expect(share()[0]!.yield).toBe('production');
-    expect(share()[0]!.percent).toBe(25);
-
-    // A second empire building raised this turn does not make the town's
-    // institutions young again: the reading is the oldest one.
+    expect(share()[0]!.percent).toBe(20);
+    // A second empire building pays nothing more: the town is admitted once.
     addBuilding(g.state, city, 'caravanserai');
     bumpRevision(g.state);
     expect(share()).toHaveLength(1);
@@ -1120,6 +1107,117 @@ describe('what the live rows do on a board', () => {
     raiseImprovement(tile, 'landmark', 2);
     bumpRevision(g.state);
     expect(toward('building', 'forum')).toEqual([]);
+  });
+});
+
+// --- batch DS6 -------------------------------------------------------------------
+
+/**
+ * **Batch DS6** (`docs/plans/deck-simplification-2026-11-10.md`, the Scientific
+ * table and the two shared rows Scientific holds with Magisterial): the two
+ * new Tier 0 cards, and the shared rows whose effect changed.
+ */
+describe('batch DS6: the new and changed cards', () => {
+  it('The Scribes pays +1 science in every town, with no condition', () => {
+    const def = orderDef('theScribes' as OrderId);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'civic']);
+    expect(def.effects).toEqual([{ kind: 'pays', where: 'city', science: 1 }]);
+    expect(orderIsDealt('theScribes' as OrderId)).toBe(true);
+    const g = game();
+    const city = found(g.state, 0);
+    const paid = () =>
+      explainCity(g.state, city)
+        .lines.filter((line) => line.source.startsWith('Order · The Scribes'))
+        .reduce((sum, line) => sum + line.science, 0);
+    expect(paid()).toBe(0);
+    const before = foldCity(g.state, city).science;
+    slot(g.state, 0, 'theScribes' as OrderId);
+    expect(paid()).toBe(1);
+    // The town's percentages multiply the new flat point too, so the fold
+    // rises by at least the point.
+    expect(foldCity(g.state, city).science).toBeGreaterThanOrEqual(before + 1);
+  });
+
+  it('The Apprentices pays 5 science for each building finished, built or bought, and nothing for a unit', () => {
+    const def = orderDef('theApprentices' as OrderId);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
+    expect(orderIsDealt('theApprentices' as OrderId)).toBe(true);
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    slot(g.state, 0, 'theApprentices' as OrderId);
+    // The `buildingCompletion` occasion fires in `realiseItem` for every
+    // building, so the payout is the same whatever the building is.
+    expect(windfallPayout(g.state, 0, 'buildingCompletion', 0, 0, { building: 'monument' }).grants).toEqual([
+      expect.objectContaining({ yield: 'science', amount: 5 }),
+    ]);
+    expect(windfallPayout(g.state, 0, 'unitCompletion', 0, 0, {}).grants).toEqual([]);
+    const before = player.sciencePool;
+    realiseItem(g.state, city, { kind: 'building', id: 'monument' });
+    expect(player.sciencePool).toBe(before + 5);
+    // A bought building is realised through the same routine, so it pays too.
+    realiseItem(g.state, city, { kind: 'building', id: 'shrine' }, { bought: 'gold' });
+    expect(player.sciencePool).toBe(before + 10);
+  });
+
+  it('Illuminated Treatises: a Library pays culture and a Monument pays science, each without the other', () => {
+    // Batch DS6 changed the card: it asked for both buildings in one town.
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'illuminatedTreatises' as OrderId);
+    const paid = () => {
+      const lines = explainCity(g.state, city).lines.filter((line) =>
+        line.source.startsWith('Order · Illuminated Treatises'),
+      );
+      return {
+        science: lines.reduce((sum, line) => sum + line.science, 0),
+        culture: lines.reduce((sum, line) => sum + line.culture, 0),
+      };
+    };
+    expect(paid()).toEqual({ science: 0, culture: 0 });
+    city.buildings.push('library');
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(paid()).toEqual({ science: 0, culture: 1 });
+    city.buildings.splice(city.buildings.indexOf('library'), 1);
+    city.buildings.push('monument');
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(paid()).toEqual({ science: 1, culture: 0 });
+    city.buildings.push('library');
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(paid()).toEqual({ science: 1, culture: 1 });
+  });
+
+  it('The House of Wisdom keeps only its +30% toward wonders in a town working an Academy', () => {
+    // Batch DS6 cut the +3 culture on each Academy and the +1 renown.
+    const def = orderDef('commonTheHouseOfWisdom' as OrderId);
+    expect(def.effects).toEqual([
+      {
+        kind: 'productionBonus',
+        category: 'wonder',
+        percent: 30,
+        scope: { test: 'workingImprovement', improvements: ['academy'] },
+      },
+    ]);
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    tile.terrain = 'grassland';
+    tile.hills = false;
+    tile.feature = 'none';
+    raiseImprovement(tile, 'academy', g.state.turn);
+    city.workedTiles = [{ col: tile.col, row: tile.row }];
+    slot(g.state, 0, 'commonTheHouseOfWisdom' as OrderId);
+    const toward = cardProduction(g.state, city, 'wonder', undefined, 'pyramids' as BuildingId).filter(
+      (line) => line.card === 'commonTheHouseOfWisdom',
+    );
+    expect(toward.map((line) => line.percent)).toEqual([30]);
+    expect(
+      explainTileYield(tile, yieldContextFor(g.state, 0)).filter((line) => line.source.includes('House of Wisdom')),
+    ).toEqual([]);
+    expect(explainRenown(g.state, 0).filter((line) => line.source.includes('House of Wisdom'))).toEqual([]);
   });
 });
 

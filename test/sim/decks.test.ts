@@ -664,8 +664,10 @@ describe('the schema, as landed', () => {
     // Caravan are new Commerce rows at Tier 0.
     // **And batch DS5** (the same spec): two more. The Household Gods and The
     // First Offering are new Devotion rows at Tier 0.
-    expect(live).toBe(475);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(475);
+    // **And batch DS6** (the same spec): two more. The Scribes and The
+    // Apprentices are new Scientific rows at Tier 0.
+    expect(live).toBe(477);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(477);
   });
 
   /**
@@ -1152,7 +1154,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(235);
+    expect(SCHEMA_VERSION).toBe(236);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

@@ -651,6 +651,6 @@ describe("the clock as a register", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(235);
+    expect(SCHEMA_VERSION).toBe(236);
   });
 });

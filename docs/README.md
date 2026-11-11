@@ -669,6 +669,28 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     the first on-draft grant of faith (`onDraft` `windfall`, `yield: 'faith'`);
   - held The Votive Lamp and The Pilgrim Staff: the game keeps no count of
     every building a town finishes, and has no moment at which faith is spent.
+- **Batch DS6** (Scientific's rows of the same spec):
+  - removed the `buildingCost` card rule and its line in `explainBuildingCost`,
+    because The Almanac no longer makes Libraries cheaper;
+  - removed the `townCitizensHere` combat count and the bots'
+    `score.scientific.inOwnTown` knob, because Casting's Hoplite is a plain +2
+    strength. The Maryannu is a plain +2 too, and the Grenadier is +1 for each
+    charter technology known, with no flat point;
+  - removed the `families` field of the `nearLearning` combat condition, so
+    The Strategikon counts only an Academy, and the `standingTurns` field of
+    the `hasEmpireBuilding` town scope, with `oldestEmpireBuildingAge`;
+  - removed Niter Beds and the two improvement fields only they used,
+    `besideImprovement` and `suppliesResource`, with the copies they supplied
+    in `cities.ts`. Niter now comes only from a mined seam, and Chemistry opens
+    no work;
+  - the Bimaristan no longer heals units, and the Aldine Press no longer pays
+    its trade routes. Printing still gives +1 trade route;
+  - dealt two new Tier 0 cards: The Scribes (+1 science in every town) and The
+    Apprentices, a `buildingCompletion` rider of 5 science. That occasion fires
+    in `realiseItem` for every building a town gains through it: built,
+    bought, granted by a completion or a commission, wonders and the Magnum
+    Opus included. The science banks at once and settles at the next research
+    step, as The Consecration Feast's does.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,

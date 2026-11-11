@@ -1646,25 +1646,12 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   if (def.onePerTown === true) {
     clauses.push({ text: 'A city may hold only one, counted over every hex inside its borders.' });
   }
-  // **The Scientific batch S5 rows' own rules** (the Qanat and Niter Beds),
-  // read off the row like the rules above, so a later row with the same field
-  // says the same thing.
-  if (def.besideImprovement !== undefined && def.besideImprovement.length > 0) {
-    const names = def.besideImprovement.map((work) => withArticle(improvementDef(work).name));
-    clauses.push({
-      text: `Can only be built next to ${eitherWords(names)} inside your borders. It keeps working if that improvement is removed later.`,
-    });
-  }
+  // **The Scientific batch S5 row's own rule** (the Qanat), read off the row
+  // like the rules above, so a later row with the same field says the same
+  // thing.
   if (def.watersBeside === true) {
     clauses.push({
       text: 'Your farms on the hexes next to it count as having fresh water, for every rule that asks whether a farm has it. It waters only your own farms, and only while it stands.',
-    });
-  }
-  if (def.suppliesResource !== undefined) {
-    const resource = def.suppliesResource;
-    const name = resourceDef(resource).name;
-    clauses.push({
-      text: `Supplies your empire with a copy of ${ref('resource', resource, name)} while it stands inside your borders, with no seam needed on the hex. The copy counts only once your empire can see ${name}.`,
     });
   }
   if (def.copiesNeighbours === true) {

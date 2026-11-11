@@ -151,7 +151,8 @@ const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 0,
     rarity: 'common',
     type: 'civic',
-    text: '+1 renown a turn for each science building you have, favouring great scholars.',
+    // Batch DS6 changed the card from +1 to +2.
+    text: '+2 scholar renown each turn for each science building.',
   },
   {
     id: 'theWarManuals',
@@ -193,14 +194,16 @@ const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 2,
     rarity: 'uncommon',
     type: 'economic',
-    text: 'A town with an empire building at least twenty turns old gains +25% production.',
+    // Batch DS6 removed the age and lowered the share.
+    text: 'Towns with an empire building gain +20% production.',
   },
   {
     id: 'theQuietFaculties',
     band: 2,
     rarity: 'rare',
     type: 'economic',
-    text: 'Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly.',
+    // Batch DS6 removed the slower military units.
+    text: 'Towns working an Academy gain +25% food and +20% production.',
   },
   {
     id: 'theRollOfScholars',
@@ -266,7 +269,7 @@ describe('the register', () => {
 
   it('prints each card in plain words through the describers', () => {
     expect(said('theRoyalTutors')).toEqual([
-      '+1 renown per turn in every city, per building there that supplies science, favouring scholars',
+      '+2 renown per turn in every city, per building there that supplies science, favouring scholars',
     ]);
     expect(said('theWarManuals')).toEqual([
       'newly created military units in every city with a Library gain +2 combat strength',
@@ -282,13 +285,10 @@ describe('the register', () => {
     expect(said('theFreeCities')).toEqual([
       'while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders',
     ]);
-    expect(said('enduringInstitutions')).toEqual([
-      '+25% production in every city holding an empire building that has stood at least 20 turns',
-    ]);
+    expect(said('enduringInstitutions')).toEqual(['+20% production in every city holding an empire building']);
     expect(said('theQuietFaculties')).toEqual([
       '+25% food in every city working an Academy',
       '+20% production in every city working an Academy',
-      '-25% production toward military units, in every city working an Academy',
     ]);
     expect(said('theRollOfScholars')).toEqual([
       '+4% production per great scholar you have gained this game (at most +28% production)',
@@ -310,7 +310,8 @@ describe('the register', () => {
 // --- Tier 0 ----------------------------------------------------------------------
 
 describe('Tier 0', () => {
-  it('The Royal Tutors: one renown a turn for each science building in each town, favouring scholars', () => {
+  it('The Royal Tutors: two renown a turn for each science building in each town, favouring scholars', () => {
+    // Batch DS6 changed the card from +1 to +2 a building.
     const state = bench();
     const capital = town(state, 0, 4, 5);
     const other = town(state, 0, 12, 5);
@@ -323,18 +324,18 @@ describe('Tier 0', () => {
     raise(state, capital, 'monument');
     expect(tutors()).toEqual([]);
     raise(state, capital, 'library');
-    expect(tutors().map((line) => line.amount)).toEqual([1]);
+    expect(tutors().map((line) => line.amount)).toEqual([2]);
     expect(tutors()[0]!.family).toBe('scholar');
     expect(tutors()[0]!.perTurn).toBe(true);
     // A University is a second science building in the same town, and a
     // Library in another town is a third: the trickle counts every town.
     raise(state, capital, 'university');
     raise(state, other, 'library');
-    expect(tutors().reduce((sum, line) => sum + line.amount, 0)).toBe(3);
+    expect(tutors().reduce((sum, line) => sum + line.amount, 0)).toBe(6);
     // A rival's Library pays this seat nothing.
     const rival = town(state, 1, 4, 10);
     raise(state, rival, 'library');
-    expect(tutors().reduce((sum, line) => sum + line.amount, 0)).toBe(3);
+    expect(tutors().reduce((sum, line) => sum + line.amount, 0)).toBe(6);
   });
 
   it('The War Manuals: a military unit gained in a Library town starts two stronger, and nothing else does', () => {
@@ -434,26 +435,28 @@ describe('Tier I', () => {
 // --- Tier II ---------------------------------------------------------------------
 
 describe('Tier II', () => {
-  it('Enduring Institutions: +25% production once the oldest empire building has stood twenty turns, and no happiness', () => {
+  it('Enduring Institutions: +20% production in a town with an empire building, at once, and no happiness', () => {
+    // Batch DS6 removed the twenty-turn age and lowered the share from 25%.
     const state = bench();
     const city = town(state, 0, 4, 5);
-    state.turn = 4;
-    raise(state, city, 'forum');
     slot(state, 0, 'enduringInstitutions');
     expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(0);
-    state.turn = 24;
-    bumpRevision(state);
-    expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(25);
-    // A second house raised this turn does not make the town's institutions
-    // young again: the reading is the oldest one, and it pays once.
+    // An ordinary building is not an empire building.
+    raise(state, city, 'granary');
+    expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(0);
+    state.turn = 4;
+    raise(state, city, 'forum');
+    expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(20);
+    // A second house pays nothing more: the town is admitted once.
     raise(state, city, 'caravanserai');
-    expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(25);
+    expect(percentOn(state, city, 'enduringInstitutions', 'production')).toBe(20);
     // The happiness is gone (the themes doc's ruling: civic life is not
     // Scientific's).
     expect(cardHappiness(state, 0).filter((line) => line.card === 'enduringInstitutions')).toEqual([]);
   });
 
-  it('The Quiet Faculties: a town working an Academy grows and builds faster, and trains soldiers slower', () => {
+  it('The Quiet Faculties: a town working an Academy grows and builds faster, and trains soldiers as fast as before', () => {
+    // Batch DS6 removed the drawback, the 25% slower military units.
     const state = bench();
     const city = town(state, 0, 4, 5);
     const tile = at(state, city.col + 1, city.row);
@@ -468,7 +471,7 @@ describe('Tier II', () => {
     bumpRevision(state);
     expect(percentOn(state, city, 'theQuietFaculties', 'food')).toBe(25);
     expect(percentOn(state, city, 'theQuietFaculties', 'production')).toBe(20);
-    expect(toward(state, city, 'theQuietFaculties', 'unit', 'warrior')).toBe(-25);
+    expect(toward(state, city, 'theQuietFaculties', 'unit', 'warrior')).toBe(0);
     expect(toward(state, city, 'theQuietFaculties', 'unit', 'worker')).toBe(0);
     // Another great person's work is not an Academy.
     razeImprovement(tile);

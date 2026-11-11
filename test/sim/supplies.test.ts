@@ -259,7 +259,8 @@ describe('the rows that counted science buildings', () => {
     expect(townPays(state, city, 'theCommonTables', 'food')).toBe(2 * here);
     seat(state, 'theRoyalTutors' as OrderId);
     const tutors = cardRenownLines(state, 0).find((line) => line.card === 'theRoyalTutors');
-    expect(tutors?.amount).toBe(here);
+    // Two renown a building since batch DS6 changed The Royal Tutors.
+    expect(tutors?.amount).toBe(2 * here);
     bear(state, 'maimonides');
     const happiness = cardHappiness(state, 0).find((line) => line.card === 'maimonides');
     expect(happiness?.amount).toBe(here);

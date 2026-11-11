@@ -1331,24 +1331,18 @@ export interface AiConfig {
       traitLine: number;
       /**
        * **Works of a charter's new row that each town is assumed to lay**
-       * (the Qanat and the Niter Beds). A row that may stand once in each town
-       * (the Physic Garden) counts one a town, whatever this says.
+       * (the Qanat). A row that may stand once in each town (the Physic
+       * Garden) counts one a town, whatever this says.
        */
       worksPerTown: number;
       /**
        * **Points a turn for each such work whose gift is not a yield**: the
-       * Qanat's water for the farms beside it, the Niter Beds' niter.
+       * Qanat's water for the farms beside it.
        */
       workGift: number;
       /**
-       * **The share of a unit's fights that it fights from or in its own
-       * town**: the Hoplite's line that counts the citizens of the town the
-       * unit stands in.
-       */
-      inOwnTown: number;
-      /**
-       * **The share of fights within reach of a great general, a great scholar
-       * or an Academy** (The Strategikon's `nearLearning` line).
+       * **The share of fights within reach of an Academy** (The Strategikon's
+       * `nearLearning` line).
        */
       nearLearning: number;
       /**

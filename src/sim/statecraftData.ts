@@ -1296,21 +1296,10 @@ export type CityScope =
    * did not choose. A town holding two counts once — it is a predicate, and
    * `CountKind`'s `empireBuildings` is what pays per house.
    */
-  | {
-      test: 'hasEmpireBuilding';
-      /**
-       * **And that house has stood at least this many turns** — Enduring
-       * Institutions', and The Long Inheritance's second helping.
-       *
-       * `hasBuilding.standingTurns`' field one class over and the same reading,
-       * asked of whichever of the town's empire buildings is **oldest**: a town
-       * that raised its Forum forty turns ago and its Bourse last turn is a town
-       * with an institution that has stood forty turns, which is what "a city
-       * with an empire building at least twenty turns old" says. A boolean still,
-       * so a town holding two admits once.
-       */
-      standingTurns?: number;
-    }
+  // There was a `standingTurns` field on this test (the oldest empire building
+  // had stood that many turns). Enduring Institutions was its only row, and
+  // batch DS6 removed its age condition, so the field went with it.
+  | { test: 'hasEmpireBuilding' }
   | { test: 'all'; of: CityScope[] }
   /**
    * **Any one of these** holds — the Stable's pasture *or* camp.
@@ -1744,21 +1733,22 @@ export type CombatCondition =
    */
   | { test: 'vsFewerTechs' }
   /**
-   * **This side's piece stands within `hexes` of one of this empire's great
-   * people of these families, or of one of its works of the named row**
-   * (Scientific batch S9, The Strategikon: "within two hexes of your great
-   * general, your great scholar or your Academy"; the triage's readings 11 and
-   * 44).
+   * **This side's piece stands within `hexes` of one of this empire's works of
+   * the named row** (Scientific batch S9, The Strategikon; since batch DS6,
+   * "within two hexes of an Academy"; the triage's readings 11 and 44).
    *
    * It reads the hex the piece stands on: the contested hex for a defender,
-   * and its own hex for an attacker. Only this empire's
-   * own count (reading 11). A great person counts while it stands unspent on
-   * the board. A work counts on a hex inside this empire's borders, through
+   * and its own hex for an attacker. Only this empire's own works count
+   * (reading 11). A work counts on a hex inside this empire's borders, through
    * `workIsRow`, so a great person's work that The Studium Generale lets stand
    * in for an Academy counts too. The line stacks with the general's aura
    * (reading 44): the aura is its own line in `planCombat`.
+   *
+   * Until batch DS6 the row also named great-person families, and a great
+   * general or great scholar standing near counted too. The Strategikon was
+   * the only row, and its new text names the Academy alone, so that field went.
    */
-  | { test: 'nearLearning'; hexes: number; families: Family[]; improvement: ImprovementId }
+  | { test: 'nearLearning'; hexes: number; improvement: ImprovementId }
   /**
    * **This side's piece stands on a hex carrying a great-person work**
    * (Magisterial batch MG9, The Custodians; the triage's reading 30).
@@ -1844,15 +1834,9 @@ export type CombatScaleCount =
    * the attacker's side; the defender's side counts nothing.
    */
   | 'attacksOnTarget'
-  /**
-   * **The citizens of the town the piece stands in**, when that town is its own
-   * empire's (Scientific batch S1, the Hoplite trait; the triage's reading 26).
-   *
-   * Read off the piece's own hex in attack and in defence: a defender stands
-   * on the contested hex, and an attacker strikes from its own. A piece outside
-   * its own towns counts nothing, so the line pays only in a town.
-   */
-  | 'townCitizensHere'
+  // There was a `townCitizensHere` count here (the citizens of the town the
+  // piece stands in). The Hoplite trait was its only row, and batch DS6 made
+  // that trait a plain +2 strength, so the count went with it.
   /**
    * **Charter technologies this empire knows** (Scientific batch S1, the
    * Grenadier trait; the triage's reading 27). The same reading as
@@ -4045,19 +4029,9 @@ export type CardRule =
    * `class` names the units; a row that names no class reaches every unit.
    */
   | 'unitCost'
-  /**
-   * **What a building costs this empire to build** (batch R1, The Almanac:
-   * Libraries 25% cheaper). The building twin of `unitCost`. A negative
-   * percentage is cheaper. It is a line of `explainBuildingCost`, so the
-   * printed price, the hammers a town must bank and the gold price all
-   * follow it. The row's `building` names the building; a row that names
-   * none reaches every building.
-   *
-   * It is not a `productionBonus`. A production bonus changes how fast a
-   * town builds, and the price stays the same. A negative production bonus
-   * makes a build slower, which is the opposite of "costs less".
-   */
-  | 'buildingCost'
+  // There was a `buildingCost` rule here (what a building costs this empire to
+  // build). The Almanac's cheaper Libraries was its only row, and batch DS6
+  // removed that half of the card, so the rule went with it.
   /**
    * **What a charter technology costs this empire in research** (Scientific
    * batch S0, The Commonplace Book: 15% less). A negative percentage is
@@ -7366,9 +7340,9 @@ interface CardRulePercentEffect {
    */
   class?: UnitFilter;
   /**
-   * **Which building the rule is about** (batch R1, The Almanac's Libraries; batch
-   * DT8, The Opera del Duomo's Magnum Opus). Read by `buildingCost` and
-   * `goldContribution`. Absent reaches every building.
+   * **Which building the rule is about** (batch DT8, The Opera del Duomo's Magnum
+   * Opus). Read by `goldContribution`. Absent reaches every building. (Batch R1's
+   * `buildingCost` rule, The Almanac's Libraries, read it too until batch DS6.)
    */
   building?: BuildingId;
   /**

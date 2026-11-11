@@ -276,22 +276,26 @@ describe('what reaches a piece', () => {
 
 // --- the traits in a fight -----------------------------------------------------
 
-describe('the Hoplite (reading 26)', () => {
-  it('adds one, and one more for every four citizens of its own town, attacking from it', () => {
+describe('the Hoplite (reading 26; a plain +2 since batch DS6)', () => {
+  it('adds two, in a town or in the field, whatever the town’s size', () => {
+    // Batch DS6 removed the point for every four citizens of the unit's own
+    // town: the trait is one flat line of +2.
+    expect(techDef('casting').traits![0]!.effects).toEqual([
+      { kind: 'combatLine', amount: 2, side: 'both', when: { test: 'always' }, class: { line: 'spearman' } },
+    ]);
     const state = flat();
     learn(state, 0, 'casting');
     const town = foundCityAt(state, 0, at(state, 4, 4));
     town.population = 9;
     const inTown = createUnit(state, 0, 'spearman', 4, 4);
     createUnit(state, 1, 'warrior', 5, 4);
-    expect(lines(state, inTown, 5, 4, 'attacker', 'Casting · Hoplite')).toBe(1 + 2);
-    // Out in the field it is the flat point alone.
+    expect(lines(state, inTown, 5, 4, 'attacker', 'Casting · Hoplite')).toBe(2);
     const afield = createUnit(state, 0, 'pikeman', 4, 8);
     createUnit(state, 1, 'warrior', 5, 8);
-    expect(lines(state, afield, 5, 8, 'attacker', 'Casting · Hoplite')).toBe(1);
+    expect(lines(state, afield, 5, 8, 'attacker', 'Casting · Hoplite')).toBe(2);
   });
 
-  it('counts its own town defending too, once the walls are down', () => {
+  it('adds two defending too', () => {
     const state = flat();
     learn(state, 0, 'casting');
     const town = foundCityAt(state, 0, at(state, 4, 4));
@@ -299,56 +303,50 @@ describe('the Hoplite (reading 26)', () => {
     town.hp = 1;
     createUnit(state, 0, 'phalanx', 4, 4);
     const rival = createUnit(state, 1, 'warrior', 5, 4);
-    expect(lines(state, rival, 4, 4, 'defender', 'Casting · Hoplite')).toBe(1 + 3);
-  });
-
-  it('counts no town but its own empire’s', () => {
-    const state = flat();
-    learn(state, 0, 'casting');
-    const town = foundCityAt(state, 0, at(state, 4, 4));
-    town.population = 12;
-    const spear = createUnit(state, 0, 'spearman', 4, 4);
-    createUnit(state, 1, 'warrior', 5, 4);
-    town.ownerId = 1;
-    expect(lines(state, spear, 5, 4, 'attacker', 'Casting · Hoplite')).toBe(1);
+    expect(lines(state, rival, 4, 4, 'defender', 'Casting · Hoplite')).toBe(2);
   });
 });
 
-describe('the Maryannu', () => {
-  it('adds one, and five more attacking a unit below half health', () => {
+describe('the Maryannu (a plain +2 since batch DS6)', () => {
+  it('adds two attacking, whether or not the target is wounded', () => {
+    // Batch DS6 removed the +5 against a unit below half health.
+    expect(techDef('casting').traits![1]!.effects).toEqual([
+      { kind: 'combatLine', amount: 2, side: 'both', when: { test: 'always' }, class: { line: 'chariot' } },
+    ]);
     const state = flat();
     learn(state, 0, 'casting');
     const rider = createUnit(state, 0, 'horseman', 4, 4);
     const fresh = createUnit(state, 1, 'warrior', 5, 4);
-    expect(lines(state, rider, 5, 4, 'attacker', 'Casting · Maryannu')).toBe(1);
+    expect(lines(state, rider, 5, 4, 'attacker', 'Casting · Maryannu')).toBe(2);
     fresh.hp = 30;
-    expect(lines(state, rider, 5, 4, 'attacker', 'Casting · Maryannu')).toBe(1 + 5);
+    expect(lines(state, rider, 5, 4, 'attacker', 'Casting · Maryannu')).toBe(2);
   });
 
-  it('pays the five only in attack, where the wounded unit is the one struck', () => {
+  it('adds two defending, too', () => {
     const state = flat();
     learn(state, 0, 'casting');
     const rider = createUnit(state, 0, 'chariot', 4, 4);
     rider.hp = 30;
     const rival = createUnit(state, 1, 'warrior', 5, 4);
-    expect(lines(state, rival, 4, 4, 'defender', 'Casting · Maryannu')).toBe(1);
+    expect(lines(state, rival, 4, 4, 'defender', 'Casting · Maryannu')).toBe(2);
   });
 });
 
 describe('the Grenadier (reading 27)', () => {
-  it('adds one, and one more for each charter technology the empire knows', () => {
+  it('adds one for each charter technology the empire knows, with no flat point since batch DS6', () => {
     const state = flat();
     const sword = createUnit(state, 0, 'swordsman', 4, 4);
     createUnit(state, 1, 'warrior', 5, 4);
     expect(lines(state, sword, 5, 4, 'attacker', 'Grenadier')).toBe(0);
     learn(state, 0, 'chemistry');
-    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1 + 1);
+    // Chemistry is itself a charter technology, so it counts.
+    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1);
     // A charter drafted and not researched does not count.
     playerById(state, 0)!.charteredTechs.push('herbals', 'optics');
     bumpRevision(state);
-    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1 + 1);
+    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1);
     learn(state, 0, 'herbals', 'optics');
-    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1 + 3);
+    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(3);
     // A spearman is not of the line.
     const spear = createUnit(state, 0, 'spearman', 4, 6);
     createUnit(state, 1, 'warrior', 5, 6);
@@ -359,8 +357,10 @@ describe('the Grenadier (reading 27)', () => {
     const state = flat();
     learn(state, 0, 'chemistry', 'casting', 'mechanics');
     const sword = createUnit(state, 0, 'longswordsman', 4, 4);
-    const scaled = techDef('chemistry').traits![0]!.effects[1]!;
-    if (scaled.kind !== 'combatLine') throw new Error('the Grenadier’s second effect is its scale');
+    // Batch DS6 left the scale as the trait's only effect.
+    expect(techDef('chemistry').traits![0]!.effects).toHaveLength(1);
+    const scaled = techDef('chemistry').traits![0]!.effects[0]!;
+    if (scaled.kind !== 'combatLine') throw new Error('the Grenadier’s effect is its scale');
     const amount = combatLineAmount(
       state,
       {
@@ -431,14 +431,14 @@ function unitFull(type: 'archer' | 'crossbowman'): number {
 describe('the charters', () => {
   const DEALT: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
 
-  it('deals the three whose gift is whole, and the Alchemists’ once Niter Beds are built', () => {
+  it('deals the three whose gift is whole, and the Alchemists’ too', () => {
     for (const id of DEALT) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
       expect(orderDef(id).text, id).toBeTruthy();
     }
-    // Batch S5 built Niter Beds, so the Alchemists' Charter is dealt too
-    // (`scientificLand.test.ts`).
+    // Batch S5 built Niter Beds, so the Alchemists' Charter was dealt too.
+    // Batch DS6 removed Niter Beds, and the Grenadier is now its whole gift.
     expect(orderIsDealt('theAlchemistsCharter')).toBe(true);
     expect(orderDef('theAlchemistsCharter').deferred).toBeUndefined();
     // Every charter technology but these four still gives no trait.
@@ -475,9 +475,8 @@ describe('the charters', () => {
       'once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade',
       'units of the Archer line may move after attacking',
     ]);
-    expect(said('theBronzeFoundersCharter')).toContain(
-      '+1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in',
-    );
+    expect(said('theBronzeFoundersCharter')).toContain('+2 combat strength for units of the Spearman line');
+    expect(said('theBronzeFoundersCharter')).toContain('+2 combat strength for units of the War Chariot line');
     // The technology says the same of itself, without the lead.
     expect(describeCard('navalGunnery' as never).map((clause) => clause.text)).toEqual([
       'the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade',

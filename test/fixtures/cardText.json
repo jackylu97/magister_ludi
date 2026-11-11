@@ -7788,10 +7788,6 @@
   ],
   "scientificTheAlmanac": [
    {
-    "raw": "[[building:library|Libraries]] cost 25% less production",
-    "text": "Libraries cost 25% less production"
-   },
-   {
     "raw": "+2 production in every city with a [[building:library|Library]]",
     "text": "+2 production in every city with a Library"
    }
@@ -7800,10 +7796,6 @@
    {
     "raw": "+1 science in every city with a [[building:library|Library]] per 4 citizens there",
     "text": "+1 science in every city with a Library per 4 citizens there"
-   },
-   {
-    "raw": "+1 culture in every city with a [[building:library|Library]] per 3 citizens there",
-    "text": "+1 culture in every city with a Library per 3 citizens there"
    }
   ],
   "theCelestialRites": [
@@ -7912,12 +7904,8 @@
   ],
   "theOldAcademy": [
    {
-    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]] that has stood at least 20 turns",
-    "text": "+3 food, +3 production on every hex with an Academy that has stood at least 20 turns"
-   },
-   {
-    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]] that has stood at least 40 turns",
-    "text": "+3 food, +3 production on every hex with an Academy that has stood at least 40 turns"
+    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]]",
+    "text": "+3 food, +3 production on every hex with an Academy"
    }
   ],
   "learnedCommissions": [
@@ -8019,8 +8007,8 @@
   ],
   "enduringInstitutions": [
    {
-    "raw": "+25% production in every city holding an empire building that has stood at least 20 turns",
-    "text": "+25% production in every city holding an empire building that has stood at least 20 turns"
+    "raw": "+20% production in every city holding an empire building",
+    "text": "+20% production in every city holding an empire building"
    }
   ],
   "thePatentRolls": [
@@ -8048,10 +8036,6 @@
    {
     "raw": "+20% production in every city working an [[improvement:academy|Academy]]",
     "text": "+20% production in every city working an Academy"
-   },
-   {
-    "raw": "-25% production toward military units, in every city working an [[improvement:academy|Academy]]",
-    "text": "-25% production toward military units, in every city working an Academy"
    }
   ],
   "theMechanistsCharter": [
@@ -8086,12 +8070,8 @@
     "text": "once you know Chemistry, the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade"
    },
    {
-    "raw": "+1 combat strength for units of the Warrior line, +1 more per charter technology you know",
-    "text": "+1 combat strength for units of the Warrior line, +1 more per charter technology you know"
-   },
-   {
-    "raw": "once you know [[tech:chemistry|Chemistry]], your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
-    "text": "once you know Chemistry, your workers may build the Niter Beds: beside your farm or pasture; they supply one copy of Niter"
+    "raw": "+1 combat strength for units of the Warrior line per charter technology you know",
+    "text": "+1 combat strength for units of the Warrior line per charter technology you know"
    }
   ],
   "theSecondSeat": [
@@ -8167,20 +8147,16 @@
     "text": "once you know Casting, the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade"
    },
    {
-    "raw": "+1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in",
-    "text": "+1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in"
+    "raw": "+2 combat strength for units of the Spearman line",
+    "text": "+2 combat strength for units of the Spearman line"
    },
    {
     "raw": "once you know [[tech:casting|Casting]], the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade",
     "text": "once you know Casting, the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade"
    },
    {
-    "raw": "+1 combat strength for units of the War Chariot line",
-    "text": "+1 combat strength for units of the War Chariot line"
-   },
-   {
-    "raw": "+5 combat strength for units of the War Chariot line against units below half strength",
-    "text": "+5 combat strength for units of the War Chariot line against units below half strength"
+    "raw": "+2 combat strength for units of the War Chariot line",
+    "text": "+2 combat strength for units of the War Chariot line"
    }
   ],
   "theSurveyorsCharter": [
@@ -8229,8 +8205,8 @@
     "text": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know [[tech:medicine|Medicine]], you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
-    "text": "once you know Medicine, you may build the Bimaristan: +25% food in every city with a Bimaristan; all units: +10 healing per turn inside your territory"
+    "raw": "once you know [[tech:medicine|Medicine]], you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]",
+    "text": "once you know Medicine, you may build the Bimaristan: +25% food in every city with a Bimaristan"
    }
   ],
   "thePrintersCharter": [
@@ -8239,8 +8215,8 @@
     "text": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know [[tech:printing|Printing]], you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
-    "text": "once you know Printing, you may build the Aldine Press: +2 culture; +2 science, +2 culture on every trade route sent from every city with an Aldine Press"
+    "raw": "once you know [[tech:printing|Printing]], you may build the [[building:aldinePress|Aldine Press]]: +2 culture",
+    "text": "once you know Printing, you may build the Aldine Press: +2 culture"
    },
    {
     "raw": "once you know [[tech:printing|Printing]], +1 trade route",
@@ -8481,8 +8457,8 @@
   ],
   "theRoyalTutors": [
    {
-    "raw": "+1 renown per turn in every city, per building there that [[concept:supplies|supplies]] science, favouring scholars",
-    "text": "+1 renown per turn in every city, per building there that supplies science, favouring scholars"
+    "raw": "+2 renown per turn in every city, per building there that [[concept:supplies|supplies]] science, favouring scholars",
+    "text": "+2 renown per turn in every city, per building there that supplies science, favouring scholars"
    }
   ],
   "theWarManuals": [
@@ -8547,8 +8523,8 @@
   ],
   "theForwardPlans": [
    {
-    "raw": "unlocks the [[building:university|University]] in any city with a [[building:library|Library]] that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars",
-    "text": "unlocks the University in any city with a Library that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:university|University]] — +1 science for every citizen; +2 renown per turn, favouring scholars",
+    "text": "unlocks the University — +1 science for every citizen; +2 renown per turn, favouring scholars"
    }
   ],
   "theDedications": [
@@ -8605,10 +8581,6 @@
    {
     "raw": "every city with a [[building:university|University]]: +6 city defence",
     "text": "every city with a University: +6 city defence"
-   },
-   {
-    "raw": "every city raising the Magnum Opus: +12 city defence",
-    "text": "every city raising the Magnum Opus: +12 city defence"
    }
   ],
   "theLynxEyedAcademy": [
@@ -8633,8 +8605,8 @@
   ],
   "theStrategikon": [
    {
-    "raw": "+4 combat strength while within 2 hexes of your great general, your great scholar or your [[improvement:academy|Academy]]",
-    "text": "+4 combat strength while within 2 hexes of your great general, your great scholar or your Academy"
+    "raw": "+4 combat strength while within 2 hexes of your [[improvement:academy|Academy]]",
+    "text": "+4 combat strength while within 2 hexes of your Academy"
    }
   ],
   "theArmouryPatterns": [
@@ -8681,10 +8653,6 @@
   ],
   "theBreachingBatteries": [
    {
-    "raw": "+5 combat strength for siege units against cities",
-    "text": "+5 combat strength for siege units against cities"
-   },
-   {
     "raw": "each blow your siege units land on a city building the [[building:theMagnumOpus|Magnum Opus]] removes 5% of the production banked toward it",
     "text": "each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it"
    }
@@ -8709,6 +8677,18 @@
    {
     "raw": "+1 happiness in every city per public work standing there",
     "text": "+1 happiness in every city per public work standing there"
+   }
+  ],
+  "theScribes": [
+   {
+    "raw": "+1 science in every city",
+    "text": "+1 science in every city"
+   }
+  ],
+  "theApprentices": [
+   {
+    "raw": "completing a building grants +5 science",
+    "text": "completing a building grants +5 science"
    }
   ],
   "magisterialMasterMasons": [
@@ -10064,19 +10044,15 @@
   ],
   "illuminatedTreatises": [
    {
-    "raw": "+1 science, +1 culture in every city with a [[building:library|Library]] with a [[building:monument|Monument]]",
-    "text": "+1 science, +1 culture in every city with a Library with a Monument"
+    "raw": "+1 culture in every city with a [[building:library|Library]]",
+    "text": "+1 culture in every city with a Library"
+   },
+   {
+    "raw": "+1 science in every city with a [[building:monument|Monument]]",
+    "text": "+1 science in every city with a Monument"
    }
   ],
   "commonTheHouseOfWisdom": [
-   {
-    "raw": "+3 culture on every hex with an [[improvement:academy|Academy]]",
-    "text": "+3 culture on every hex with an Academy"
-   },
-   {
-    "raw": "+1 renown per turn in every city working an [[improvement:academy|Academy]]",
-    "text": "+1 renown per turn in every city working an Academy"
-   },
    {
     "raw": "+30% production toward wonders, in every city working an [[improvement:academy|Academy]]",
     "text": "+30% production toward wonders, in every city working an Academy"
@@ -11625,20 +11601,11 @@
     "text": "+2 culture per empire building you hold"
    }
   ],
-  "aldinePress": [
-   {
-    "raw": "+2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
-    "text": "+2 science, +2 culture on every trade route sent from every city with an Aldine Press"
-   }
-  ],
+  "aldinePress": [],
   "bimaristan": [
    {
     "raw": "+25% food in every city with a [[building:bimaristan|Bimaristan]]",
     "text": "+25% food in every city with a Bimaristan"
-   },
-   {
-    "raw": "all units: +10 healing per turn inside your territory",
-    "text": "all units: +10 healing per turn inside your territory"
    }
   ],
   "tophane": [

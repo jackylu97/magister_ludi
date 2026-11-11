@@ -100,7 +100,6 @@ import {
   improvementCountsAs,
   improvementDef,
   improvementForResource,
-  improvementsSupplying,
   isGreatPersonWork,
 } from './improvementData';
 import {
@@ -206,7 +205,7 @@ import {
 // Dominion batch D8, from the evaluator for the same reason: the rule that
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
-import { cardBehaviorRule, cardBuildingCostLines, cardUnitCostLines } from './statecraft/evaluator';
+import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
 // Batch DT16, from the evaluator for the same reason: whose hexes read the works
 // around them, for `refreshRingDerived`.
 import { cardHexLinesReadWorksBeside, lawIsCut } from './statecraft/evaluator';
@@ -725,10 +724,7 @@ function ownCopies(
   playerId: number,
   resourceId: ResourceId,
 ): number {
-  // **A work that supplies the resource with no seam under it** (Scientific
-  // batch S5, Niter Beds) is not a deposit, so no law about deposits reaches
-  // it: its copies are added after every share below.
-  if (swept.copies === 0) return swept.supplied;
+  if (swept.copies === 0) return 0;
   const kind = resourceDef(resourceId).kind;
   if (kind === 'strategic') {
     // **One more copy for each deposit a named work stands on** (Scientific
@@ -744,8 +740,8 @@ function ownCopies(
     );
     const ground = swept.copies + extra;
     const percent = cardAmplifier(state, playerId, 'strategicCopies');
-    if (percent === 0) return ground + swept.supplied;
-    return Math.max(0, Math.floor((ground * (100 + percent)) / 100)) + swept.supplied;
+    if (percent === 0) return ground;
+    return Math.max(0, Math.floor((ground * (100 + percent)) / 100));
   }
   // **A flat step per deposit that carries a mine** — Royal Assays (batch C8).
   // Luxury rows only, which is the card's own word, and a flat rather than a
@@ -753,10 +749,10 @@ function ownCopies(
   // again on three seams is not one more from each. Here rather than inside the
   // memo for `resourceCopies`' stated reason, which is the same reason Strategic
   // Exports is here.
-  if (kind !== 'luxury' || swept.mined === 0) return swept.copies + swept.supplied;
+  if (kind !== 'luxury' || swept.mined === 0) return swept.copies;
   const extra = cardAmplifierFlat(state, playerId, 'luxuryMineCopies');
-  if (extra === 0) return swept.copies + swept.supplied;
-  return Math.max(0, swept.copies + Math.floor(extra) * swept.mined) + swept.supplied;
+  if (extra === 0) return swept.copies;
+  return Math.max(0, swept.copies + Math.floor(extra) * swept.mined);
 }
 
 /**
@@ -1163,13 +1159,6 @@ interface SweptCopies {
    */
   mined: number;
   /**
-   * **Copies a work supplies with no seam under it** (Scientific batch S5,
-   * Niter Beds; the triage's reading 31): one for each such work on this
-   * empire's ground that the empire can see the resource of. Kept apart from
-   * `copies` because no law about deposits reaches it.
-   */
-  supplied: number;
-  /**
    * **The opened deposits that carry a work**, as tile indices in map order
    * (Scientific batch S5, The School of Mines). A fact about the board, kept so
    * the law can ask which work stands on each one outside the memo.
@@ -1178,9 +1167,10 @@ interface SweptCopies {
 }
 
 /**
- * **The hexes that can matter to each resource**, as tile indices in map order: a
- * seam of it, or a work that supplies it. Any other hex is one `sweepOwnCopies` and
- * `sweepHoldings` would look at and pass over.
+ * **The hexes that can matter to each resource**, as tile indices in map order:
+ * the seams of it. Any other hex is one `sweepOwnCopies` and `sweepHoldings` would
+ * look at and pass over. (Until batch DS6 a work that supplied a resource with no
+ * seam, Niter Beds, was listed here too.)
  *
  * A clock tick asks for the copies of about thirty resources from each of six seats,
  * and each ask used to walk the whole board to find its handful of hexes. This is
@@ -1196,11 +1186,9 @@ function resourceSites(state: GameState): ResourceSites {
     for (let index = 0; index < tiles.length; index++) {
       const tile = tiles[index]!;
       const seam = tile.resource;
-      if (seam !== undefined) (sites.byResource[seam] ??= []).push(index);
-      const here = tile.improvement;
-      const supplies = here === undefined ? undefined : improvementDef(here).suppliesResource;
-      if (supplies !== undefined && supplies !== seam) (sites.byResource[supplies] ??= []).push(index);
-      if (seam !== undefined || supplies !== undefined) sites.all.push(index);
+      if (seam === undefined) continue;
+      (sites.byResource[seam] ??= []).push(index);
+      sites.all.push(index);
     }
     return sites;
   });
@@ -1220,53 +1208,24 @@ function sweepOwnCopies(
 ): SweptCopies {
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
-  // The rows that supply this resource with no seam (Niter Beds), asked once.
-  const suppliers = improvementsSupplying(resourceId);
   let copies = 0;
   let mined = 0;
-  let supplied = 0;
   const withWork: number[] = [];
   for (const index of resourceSites(state).byResource[resourceId] ?? []) {
     const tile = tiles[index]!;
-    const seam = tile.resource === resourceId;
-    const here = tile.improvement;
-    const supplier = here !== undefined && suppliers.length > 0 && suppliers.includes(here);
-    if (!seam && !supplier) continue;
+    if (tile.resource !== resourceId) continue;
     if (owner.at(index) !== playerId) continue;
     // **The tile's own quantity**, not one per tile (batch R3). A seam is worth
     // what it rolled, which is the dial that decides how large an army it feeds.
-    if (seam && openedResource(state, tile, playerId) !== null) {
-      copies += tileCopies(tile);
-      // Through the predicate, never a name, so a later row that stands in for
-      // a mine counts as one here exactly as it does everywhere else.
-      if (here !== undefined && improvementCountsAs(here, 'mine')) mined += 1;
-      if (here !== undefined) withWork.push(index);
-      continue;
-    }
-    // **A work that supplies it** (Scientific batch S5, Niter Beds): one copy,
-    // through the one reading the holdings sweep asks too.
-    if (supplier && suppliedResource(state, tile, playerId) === resourceId) supplied += 1;
+    if (openedResource(state, tile, playerId) === null) continue;
+    copies += tileCopies(tile);
+    // Through the predicate, never a name, so a later row that stands in for
+    // a mine counts as one here exactly as it does everywhere else.
+    const here = tile.improvement;
+    if (here !== undefined && improvementCountsAs(here, 'mine')) mined += 1;
+    if (here !== undefined) withWork.push(index);
   }
-  return { copies, mined, supplied, withWork };
-}
-
-/**
- * **The resource a work on this hex supplies to this empire with no seam
- * under it**, or `null` (Scientific batch S5, Niter Beds; the triage's reading
- * 31). The work's own row names it (`ImprovementDef.suppliesResource`), and
- * the empire must be able to see the resource, the reveal clause
- * `openedResource` opens with. Whose ground the hex is, is the caller's
- * question: every caller walks hexes it has already found to be the
- * empire's. A pillaged work is gone from the hex, so it supplies nothing.
- */
-function suppliedResource(state: GameState, tile: Tile, playerId: number): ResourceId | null {
-  const here = tile.improvement;
-  if (here === undefined) return null;
-  const supplied = improvementDef(here).suppliesResource;
-  if (supplied === undefined) return null;
-  const player = playerById(state, playerId);
-  if (!player || !resourceIsVisibleTo(supplied, player.techsResearched)) return null;
-  return supplied;
+  return { copies, mined, withWork };
 }
 
 /**
@@ -1346,7 +1305,7 @@ export function controlledHoldings(
     // nothing to this figure. It only adds copies to a deposit already opened,
     // so it never decides whether a kind is held at all.
     const mine = ownCopies(
-      { copies: swept.opened.get(id) ?? 0, mined: 0, supplied: 0, withWork: [] },
+      { copies: swept.opened.get(id) ?? 0, mined: 0, withWork: [] },
       state,
       playerId,
       id,
@@ -1388,17 +1347,7 @@ function sweepHoldings(
     if (owner.at(index) !== playerId) continue;
     const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
-    if (holding === null) {
-      // **A work that supplies a resource with no seam under it** (Scientific
-      // batch S5, Niter Beds): one copy, held through the work, through the
-      // one reading the copies sweep asks too.
-      const supplied = suppliedResource(state, tile, playerId);
-      if (supplied === null || resourceDef(supplied).kind !== kind) continue;
-      opened.set(supplied, (opened.get(supplied) ?? 0) + 1);
-      if (held.get(supplied)?.via === 'improvement') continue;
-      held.set(supplied, { id: supplied, via: 'improvement', improvement: tile.improvement ?? null });
-      continue;
-    }
+    if (holding === null) continue;
     if (resourceDef(holding.id).kind !== kind) continue;
     // The tile's own quantity, exactly as `countResourceCopies` counts it — the
     // two are the same arithmetic and the kind is dropped from this list when
@@ -1482,10 +1431,9 @@ export function cityResources(
   return slateMemo(state, 'economy', `cityResources:${kind}`, key, () => {
     const held = new Set<ResourceId>();
     for (const tile of ownedTiles(state, city)) {
-      // A seam the town opens, or a work in its borders that supplies a
-      // resource with no seam (Scientific batch S5, Niter Beds).
-      const id = openedResource(state, tile, city.ownerId)?.id ?? suppliedResource(state, tile, city.ownerId);
-      if (id === null || resourceDef(id).kind !== kind) continue;
+      // A seam the town opens.
+      const id = openedResource(state, tile, city.ownerId)?.id;
+      if (id === undefined || resourceDef(id).kind !== kind) continue;
       held.add(id);
     }
     const lentAway = lentCopiesAwayBy(state, city.ownerId);
@@ -4000,12 +3948,10 @@ function uniqueCostFactor(cities: number): number {
  *   4. **the row's own premium**, for a row with `costPercent` only (the
  *      Mouseion, Scientific batch S4): that share of the figure the lines
  *      above come to.
- *   5. **the empire's law**, for an empire whose cards carry a `buildingCost`
- *      rule that reaches this row (batch R1, The Almanac's cheaper
- *      Libraries): the rows summed, as one line, floored once and never below
- *      one hammer. `explainUnitCost`'s `unitCost` line one table over.
  *
- * A prototype's surcharge (Scientific batch S9) comes after all of these.
+ * A prototype's surcharge (Scientific batch S9) comes after all of these. (A
+ * card's cost rule on one building, The Almanac's, was a fifth line from batch
+ * R1 until batch DS6 removed it.)
  *
  * **It takes a player now** (2026-09-07, item dd), and that is the reversal of a
  * statement this docblock used to make: "nothing an empire does changes what a
@@ -4072,15 +4018,10 @@ export function explainBuildingCost(
     running += amount;
   }
   if (state !== undefined && playerId !== undefined) {
-    // **The empire's law** (batch R1, The Almanac): one line for every
-    // `buildingCost` row that reaches this building, summed and floored once,
-    // never below one hammer. A purchase is priced off this fold, so it follows.
-    const law = foldCardRulePercent(cardBuildingCostLines(state, playerId, id));
-    if (law !== 0 && running > 0) {
-      const ruled = Math.max(1, Math.floor((running * (100 + law)) / 100));
-      lines.push({ source: `Cards ${law > 0 ? '+' : ''}${law}%`, amount: ruled - running });
-      running = ruled;
-    }
+    // Batch R1 added a line here for a card's cost rule on one building (The
+    // Almanac's cheaper Libraries). Batch DS6 removed The Almanac's cost cut,
+    // the only such row, so the line and its rule went with it.
+    //
     // **A prototype** (Scientific batch S9, The Prototype Works; the triage's
     // reading 48): a row of the research under way, built before its
     // technology is known, costs the card's share more. Last, on everything

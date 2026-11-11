@@ -19,7 +19,7 @@
  *     the page, and the describer marks the technology on the card;
  *   - the Mouseion prints its cost premium as its own line;
  *   - the Aqueduct names Surveying as its early way in;
- *   - the Qanat and Niter Beds say what their row fields do.
+ *   - the Qanat says what its row field does (Niter Beds went in batch DS6).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -27,7 +27,6 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData';
 import { buildingProductionCost, explainBuildingCost } from '../../src/sim/cities';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
-import { resourceDef } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
 import { playerById } from '../../src/sim/state';
 import { describeCard } from '../../src/sim/statecraft';
@@ -219,9 +218,9 @@ describe('the pages that name a charter technology link to it', () => {
     }
     // Eight buildings (the Specularium, the Mouseion, the Bimaristan, the
     // Scriptorium, the Aldine Press, the Tophane, the Bastion, and since batch
-    // R2c Scholasticism's Cathedral School) and three improvements (the
-    // Physic Garden, the Qanat and Niter Beds).
-    expect(linked).toBe(11);
+    // R2c Scholasticism's Cathedral School) and two improvements (the Physic
+    // Garden and the Qanat). Niter Beds made a third until batch DS6.
+    expect(linked).toBe(10);
   });
 
   it('on its charter card, in the describer’s words and in the book’s charter note', () => {
@@ -279,29 +278,21 @@ describe('the rows the charter technologies open', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it('says what the Qanat and Niter Beds do, read off their row fields', () => {
+  it('says what the Qanat does, read off its row field', () => {
     let said = 0;
     for (const id of IMPROVEMENT_IDS) {
       const def = improvementDef(id);
       const texts = entryOf(compendiumId('improvement', id)).clauses.map((clause) => clause.text);
       const has = (part: string): boolean => texts.some((text) => text.includes(part));
       expect(has('count as having fresh water'), id).toBe(def.watersBeside === true);
-      if (def.suppliesResource !== undefined) {
-        const resource = def.suppliesResource;
-        expect(has(`a copy of [[resource:${resource}|${resourceDef(resource).name}]]`), id).toBe(true);
-        said += 1;
-      }
-      if (def.besideImprovement !== undefined) {
-        for (const work of def.besideImprovement) {
-          expect(has(improvementDef(work).name), `${id} → ${work}`).toBe(true);
-        }
-        expect(has('Can only be built next to'), id).toBe(true);
-        said += 1;
-      }
+      // Niter Beds' neighbour and niter went with the row in batch DS6, so no
+      // page says either.
+      expect(has('Can only be built next to'), id).toBe(false);
+      expect(has('with no seam needed on the hex'), id).toBe(false);
       if (def.watersBeside === true) said += 1;
     }
-    // The Qanat's water, and Niter Beds' neighbour and niter.
-    expect(said).toBe(3);
+    // The Qanat's water.
+    expect(said).toBe(1);
   });
 });
 

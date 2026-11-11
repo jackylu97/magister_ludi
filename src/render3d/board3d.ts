@@ -810,13 +810,12 @@ const DRAWN_IMPROVEMENT_PROPS: Partial<
   // reads as a hedged garden, until the art pass draws one. It is on the parts
   // shelf of `flair.html` (`src/flairGallery/cityStage.ts`).
   physicGarden: fenceRing,
-  // **The Qanat and Niter Beds** (Scientific batch S5, the Surveyors' and the
-  // Alchemists' Charters). Placeholder art from existing sculpts, until the art
-  // pass draws their own: the Qanat is the mine's shaft head in stone, the
-  // mouth of a well, and Niter Beds are the farm's furrows in a pale earth.
-  // Both are on the parts shelf of `flair.html` (`src/flairGallery/cityStage.ts`).
+  // **The Qanat** (Scientific batch S5, the Surveyors' Charter). Placeholder
+  // art from an existing sculpt, until the art pass draws its own: the mine's
+  // shaft head in stone, the mouth of a well. It is on the parts shelf of
+  // `flair.html` (`src/flairGallery/cityStage.ts`). Niter Beds stood here
+  // until batch DS6 removed the row.
   qanat: mineHead,
-  niterBeds: furrowRows,
 };
 
 /**

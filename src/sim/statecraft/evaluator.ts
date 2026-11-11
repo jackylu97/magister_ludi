@@ -2396,27 +2396,6 @@ function worksHolding(state: GameState, city: City, on: TileCondition): number {
 }
 
 /**
- * **How old is the oldest of this town's single great houses**, or `undefined`
- * where it holds none or none of them carries a stamp.
- *
- * `hasEmpireBuilding`'s age reading, and the *oldest* rather than the newest
- * because that is what the printed clause says: "a city with an empire building
- * at least twenty turns old" is admitted by the Forum raised forty turns ago
- * whatever went up beside it since. `buildingAge`'s one subtraction, asked of
- * each house on the shelf.
- */
-function oldestEmpireBuildingAge(state: GameState, city: City): number | undefined {
-  let oldest: number | undefined;
-  for (const id of city.buildings) {
-    if (!isEmpireBuilding(id)) continue;
-    const age = buildingAge(state, city, id);
-    if (age === undefined) continue;
-    if (oldest === undefined || age > oldest) oldest = age;
-  }
-  return oldest;
-}
-
-/**
  * **The town The Two Capitals would add** (batch DT17): this empire's largest town
  * besides its capital, by citizens. On a tie the first in `state.cities` order
  * wins, which is the older town. `undefined` for a seat with fewer than two towns.
@@ -2671,13 +2650,6 @@ export function cityScopeAdmits(
     case 'notHasWonder':
       return !city.buildings.some((id) => isWonder(id));
     case 'hasEmpireBuilding': {
-      // **The oldest house on the shelf**, where the row names a term: a town is
-      // admitted by the Forum that has stood forty turns whatever went up beside
-      // it last turn. See `oldestEmpireBuildingAge`.
-      if (scope.standingTurns !== undefined) {
-        const age = oldestEmpireBuildingAge(state, city);
-        return age !== undefined && age >= scope.standingTurns;
-      }
       // The marker and **not** `oneOfAKind`, which is that marker *or* a wonder:
       // the Opus declares itself an empire building and a marvel does not, and a
       // card that said "an empire building" and quietly admitted every town with
@@ -3016,9 +2988,7 @@ function scopeNote(scope?: CityScope): string | null {
     case 'notHasWonder':
       return 'holds no wonder';
     case 'hasEmpireBuilding':
-      return scope.standingTurns === undefined
-        ? 'holds an empire building'
-        : `holds an empire building, ${scope.standingTurns}+ turns`;
+      return 'holds an empire building';
     case 'hasBuildingYielding':
       // "Supplies", the game's one word for this test (batch R2d).
       return scope.wonder === true
@@ -7565,26 +7535,6 @@ export function cardUnitCostLines(
 }
 
 /**
- * **The percentages this empire's law puts on the cost of one building**
- * (batch R1, The Almanac's cheaper Libraries): the `buildingCost` rule's rows
- * that name this building, or name none. `cardUnitCostLines`' twin for
- * buildings. Read by `explainBuildingCost` (`cities.ts`) as one line.
- */
-export function cardBuildingCostLines(
-  state: GameState,
-  playerId: number,
-  id: BuildingId,
-): CardRuleLine[] {
-  const list: CardRuleLine[] = [];
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
-    if (effect.rule !== 'buildingCost' || effect.percent === 0) continue;
-    if (effect.building !== undefined && effect.building !== id) continue;
-    list.push({ card, source, percent: effect.percent });
-  }
-  return list;
-}
-
-/**
  * **Does a `techPrice` row reach this technology?** (batch DT8, The Court of Rudolf
  * II.) A charter technology is never reached, because the build plan's S8 leaves
  * it to the charter rules. Each narrowing the row names must pass, and a row that
@@ -8483,20 +8433,14 @@ function besideGreatGeneral(state: GameState, unit: Unit): boolean {
 /**
  * **Is this piece within reach of its empire's learning?** The `nearLearning`
  * combat condition (Scientific batch S9, The Strategikon). Measured from the
- * hex the piece stands on, with `wrappedDistance`, as the general's aura is.
+ * hex the piece stands on, as the general's aura is.
  *
- * Two things count, both the piece's own empire's only (the triage's reading
- * 11):
- *
- *   - a great person of one of the row's families, standing unspent on the
- *     board, read as `besideGreatGeneral` reads one (the `greatWork` marker and
- *     the person's family);
- *   - a work of the row's `improvement` on a hex inside the empire's borders,
- *     asked through `workIsRow`, so a great person's work that The Studium
- *     Generale lets stand in for an Academy counts too.
- *
- * The people are asked first, because there are few of them; the hexes in
- * reach are walked only when no person is near.
+ * A work of the row's `improvement` counts on a hex inside the piece's own
+ * empire's borders (the triage's reading 11), asked through `workIsRow`, so a
+ * great person's work that The Studium Generale lets stand in for an Academy
+ * counts too. Batch DS6 removed the second thing that counted, a great person
+ * of a named family standing near, because The Strategikon's new text names
+ * the Academy alone.
  */
 function nearLearning(
   state: GameState,
@@ -8507,16 +8451,6 @@ function nearLearning(
   if (!from) return false;
   const eye = tileHex(from);
   const reach = Math.max(0, Math.floor(when.hexes));
-  for (const other of state.units) {
-    if (other.ownerId !== unit.ownerId || other.id === unit.id) continue;
-    if (unitDef(other.type).greatWork !== true) continue;
-    const person = other.person;
-    if (person === undefined || !isGreatPersonId(person)) continue;
-    if (!when.families.includes(greatPersonDef(person).family)) continue;
-    const stands = getTileAt(state.map, other.col, other.row);
-    if (!stands) continue;
-    if (wrappedDistance(state.map, eye, tileHex(stands)) <= reach) return true;
-  }
   const standsIn = worksStandInFor(state, unit.ownerId);
   for (const tile of mapRange(state.map, eye, reach)) {
     if (tile.improvement === undefined) continue;
@@ -8736,14 +8670,6 @@ function combatScaleCount(
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
-    case 'townCitizensHere': {
-      // The Hoplite (Scientific batch S1, reading 26). The piece's own hex in
-      // both postures: a defender stands on the contested hex, and an attacker
-      // strikes from its own (the comparison's imagined copy stands where it
-      // is imagined). Only a town of the piece's own empire counts.
-      const here = cityAt(state, unit.col, unit.row);
-      return here !== undefined && here.ownerId === unit.ownerId ? here.population : 0;
-    }
     case 'charterTechsKnown':
       // The Grenadier (Scientific batch S1). The ledger count's own reading,
       // asked of a fight.

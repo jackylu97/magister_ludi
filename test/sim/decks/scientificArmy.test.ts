@@ -259,9 +259,8 @@ describe('the rows', () => {
 
   it('says what each new shape does in plain words', () => {
     expect(said('theFieldRefits')).toEqual(['each time research upgrades one of your units, it heals fully']);
-    expect(said('theStrategikon')).toEqual([
-      '+4 combat strength while within 2 hexes of your great general, your great scholar or your Academy',
-    ]);
+    // Batch DS6 left The Strategikon with the Academy alone.
+    expect(said('theStrategikon')).toEqual(['+4 combat strength while within 2 hexes of your Academy']);
     expect(said('theArmouryPatterns')).toEqual(['+25% production toward units of the newest age you know']);
     expect(said('theModelArmy')).toEqual([
       'research upgrades your units even when you lack the strategic resource the new unit needs',
@@ -273,8 +272,8 @@ describe('the rows', () => {
     expect(said('theClosedBook')).toEqual([
       'if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns',
     ]);
+    // Batch DS6 cut the +5 strength against cities.
     expect(said('theBreachingBatteries')).toEqual([
-      '+5 combat strength for siege units against cities',
       'each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it',
     ]);
     expect(said('scientificTheSoldierScholars')).toEqual([
@@ -364,27 +363,19 @@ describe('The Armoury Patterns (reading 43)', () => {
 });
 
 describe('The Strategikon (readings 11 and 44)', () => {
-  it('adds +4 within two hexes of the seat’s own great general, beside the aura', () => {
+  it('counts no great general or great scholar since batch DS6, and the general’s aura is its own line', () => {
+    // Batch DS6: "within two hexes of an Academy". A great person standing
+    // near adds nothing to the card, and the general's aura still pays.
     const state = bench();
     slot(state, 0, 'theStrategikon');
     const warrior = createUnit(state, 0, 'warrior', 6, 6);
     createUnit(state, 1, 'warrior', 7, 6);
     expect(lines(state, warrior, 7, 6, 'attacker', 'The Strategikon')).toBe(0);
     person(state, 0, 4, 6, 'hannibal');
-    expect(lines(state, warrior, 7, 6, 'attacker', 'The Strategikon')).toBe(4);
-    // The general's own aura is its own line, and the two stack.
-    expect(lines(state, warrior, 7, 6, 'attacker', 'Great general')).toBeGreaterThan(0);
-  });
-
-  it('counts a great scholar, and only the seat’s own', () => {
-    const state = bench();
-    slot(state, 0, 'theStrategikon');
-    const warrior = createUnit(state, 0, 'warrior', 6, 6);
-    createUnit(state, 1, 'warrior', 7, 6);
-    person(state, 1, 5, 6, 'imhotep');
     expect(lines(state, warrior, 7, 6, 'attacker', 'The Strategikon')).toBe(0);
+    expect(lines(state, warrior, 7, 6, 'attacker', 'Great general')).toBeGreaterThan(0);
     person(state, 0, 6, 5, 'imhotep');
-    expect(lines(state, warrior, 7, 6, 'attacker', 'The Strategikon')).toBe(4);
+    expect(lines(state, warrior, 7, 6, 'attacker', 'The Strategikon')).toBe(0);
   });
 
   it('counts an Academy inside the seat’s own borders, in defence too, and not a rival’s', () => {
@@ -437,13 +428,14 @@ describe('The Soldier-Scholars (reading 9)', () => {
 // --- the Opus ------------------------------------------------------------------------
 
 describe('The Breaching Batteries (reading 52)', () => {
-  it('gives siege units +5 against a city, and each blow takes 5% of the banked Opus', () => {
+  it('gives siege units no strength since batch DS6, and each blow takes 5% of the banked Opus', () => {
     const state = bench();
     slot(state, 0, 'theBreachingBatteries');
     town(state, 0, 2, 2);
     const target = town(state, 1, 8, 4, 6);
     const catapult = createUnit(state, 0, 'catapult', 6, 4);
-    expect(lines(state, catapult, 8, 4, 'attacker', 'The Breaching Batteries')).toBe(5);
+    // Batch DS6 cut the +5 strength against cities: the card is the blow alone.
+    expect(lines(state, catapult, 8, 4, 'attacker', 'The Breaching Batteries')).toBe(0);
     // A town not raising the Opus loses nothing.
     target.queue = [{ kind: 'building', id: 'granary' }];
     target.hammerBasket = 400;

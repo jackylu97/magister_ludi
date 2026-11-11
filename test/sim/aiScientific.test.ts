@@ -413,22 +413,16 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(scoreEffects(book, ctx)).toBeGreaterThan(0);
   });
 
-  it('prices The Almanac’s cheaper Libraries by the hammers saved in towns without one (R1)', () => {
-    // Batch R1 made the discount a cost rule (`buildingCost`). It is worth a
-    // quarter of a Library's price once in each town that has none yet, as a
-    // lump, and nothing in a town that has one.
-    const { state, player, cities } = board(2, 20);
-    const [rule] = orderDef('scientificTheAlmanac' as OrderId).effects;
-    expect(rule).toMatchObject({ kind: 'rulePercent', rule: 'buildingCost', building: 'library' });
-    let ctx = valueContext(state, player);
-    const price = buildingProductionCost('library', state, 0);
-    expect(scoreEffects([rule!], ctx)).toBe(explainLump({ production: 0.25 * price * 2 }, ctx).total);
-    expect(scoreEffects([rule!], ctx)).toBeGreaterThan(0);
-    cities[0]!.buildings.push('library');
-    cities[1]!.buildings.push('library');
-    bumpRevision(state);
-    ctx = valueContext(state, player);
-    expect(scoreEffects([rule!], ctx)).toBe(0);
+  it('prices The Almanac as its Library line alone, with no cost rule left (DS6)', () => {
+    // Batch R1 made the Library discount a cost rule (`buildingCost`). Batch
+    // DS6 removed that half of the card, and the rule with it: the card is
+    // its +2 production in each town with a Library, a finite price.
+    const { state, player } = board(2, 20);
+    const effects = orderDef('scientificTheAlmanac' as OrderId).effects;
+    expect(effects).toEqual([
+      { kind: 'pays', where: 'city', scope: { test: 'hasBuilding', building: 'library' }, production: 2 },
+    ]);
+    expect(Number.isFinite(scoreEffects(effects, valueContext(state, player)))).toBe(true);
   });
 
   it('prices The Translation Movement by the beakers it saves on the gap', () => {
@@ -814,8 +808,8 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     const { state, player } = board(1, 20);
     const ctx = valueContext(state, player);
     // The Soldier-Scholars' strength line, the third condition priced here, was
-    // cut in batch DS2 with its condition. The Hoplite's line below still reads
-    // the `inOwnTown` share.
+    // cut in batch DS2 with its condition. Batch DS6 left The Strategikon's
+    // condition with the Academy alone; its share is the same knob.
     const strategikon = orderDef('theStrategikon' as OrderId).effects[0]!;
     expect(scoreEffects([strategikon], ctx)).toBe(strength(ctx, 4) * 1 * SCIENTIFIC.nearLearning);
     // The Edge of the Sword: nothing with nobody met, then the share of the
@@ -837,13 +831,15 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(lead).toBeGreaterThan(0);
     const points = Math.min(1 * ((lead + SCIENTIFIC.countForecast.techLead) / 1), 8);
     expect(scoreEffects([proving], ctx)).toBe(strength(ctx, points) * 1 * 1);
-    // The Hoplite's line: +1 for each four citizens of the town it stands in,
-    // at the share of fights fought in one's own town.
-    const hoplite = techDef('casting' as TechId).traits![0]!.effects[1]!;
+    // The Hoplite's line counted the citizens of the town it stood in until
+    // batch DS6 made it a plain +2, which is priced at its amount whatever the
+    // town's size.
+    const hoplite = techDef('casting' as TechId).traits![0]!.effects;
+    expect(hoplite).toHaveLength(1);
     cities[0]!.population = 9;
     bumpRevision(state);
     const big = valueContext(state, player);
-    expect(scoreEffects([hoplite], big)).toBe(strength(big, 1 * (2 * SCIENTIFIC.inOwnTown)) * 1 * 1);
+    expect(scoreEffects(hoplite, big)).toBe(strength(big, 2) * 1 * 1);
   });
 
   it('prices The Great Catalogue per charter technology, and The Great Designs at its share', () => {

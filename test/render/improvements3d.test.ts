@@ -139,8 +139,9 @@ describe('the improvement prop registry', () => {
       const gate = improvementDef(id).requiresTech;
       return gate !== undefined && techDef(gate).charter === true;
     });
-    // The Physic Garden (batch S4), and the Qanat and Niter Beds (batch S5).
-    expect(charterRows).toEqual(expect.arrayContaining(['physicGarden', 'qanat', 'niterBeds']));
+    // The Physic Garden (batch S4), and the Qanat (batch S5). Batch DS6
+    // removed Niter Beds.
+    expect(charterRows).toEqual(expect.arrayContaining(['physicGarden', 'qanat']));
     for (const id of charterRows) expect(shelf, id).toContain(`'${id}'`);
   });
 

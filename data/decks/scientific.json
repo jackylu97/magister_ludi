@@ -8,9 +8,8 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "A year is a book; we learned to read ahead.",
-      "text": "Libraries cost 25% less production and give +2 production.",
+      "text": "Libraries give +2 production.",
       "effects": [
-        { "kind": "rulePercent", "rule": "buildingCost", "building": "library", "percent": -25 },
         {
           "kind": "pays",
           "where": "city",
@@ -27,7 +26,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every hand that can write is a hand that can teach.",
-      "text": "Cities with a Library gain +1 science per four citizens and +1 culture per three citizens.",
+      "text": "Towns with a Library gain +1 science for every four citizens.",
       "effects": [
         {
           "kind": "pays",
@@ -38,17 +37,6 @@
           "count": "population",
           "within": "city",
           "per": 4,
-          "scope": { "test": "hasBuilding", "building": "library" }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "population",
-          "within": "city",
-          "per": 3,
           "scope": { "test": "hasBuilding", "building": "library" }
         }
       ]
@@ -208,7 +196,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Sand, fire, and a second look at everything.",
-      "text": "Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required.",
+      "text": "Charter. Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens.",
       "charter": { "unlocks": { "tech": "optics" } },
       "effects": []
     },
@@ -257,33 +245,14 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Ivy is the proof of teaching.",
-      "text": "An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each.",
+      "text": "Academies gain +3 food and +3 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "food": 3,
           "production": 3,
-          "on": {
-            "test": "all",
-            "of": [
-              { "test": "improvement", "improvement": "academy" },
-              { "test": "standingSince", "turns": 20 }
-            ]
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "hex",
-          "food": 3,
-          "production": 3,
-          "on": {
-            "test": "all",
-            "of": [
-              { "test": "improvement", "improvement": "academy" },
-              { "test": "standingSince", "turns": 40 }
-            ]
-          }
+          "on": { "test": "improvement", "improvement": "academy" }
         }
       ]
     },
@@ -527,13 +496,13 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
-      "text": "A town with an empire building at least twenty turns old gains +25% production.",
+      "text": "Towns with an empire building gain +20% production.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 25,
-          "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
+          "percent": 20,
+          "scope": { "test": "hasEmpireBuilding" }
         }
       ]
     },
@@ -584,7 +553,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "Quiet halls, full barns, and very few drums.",
-      "text": "Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly.",
+      "text": "Towns working an Academy gain +25% food and +20% production.",
       "effects": [
         {
           "kind": "percentYields",
@@ -597,13 +566,6 @@
           "yield": "production",
           "percent": 20,
           "scope": { "test": "workingImprovement", "improvements": ["academy"] }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "class": { "category": "military" },
-          "percent": -25,
-          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
         }
       ]
     },
@@ -615,7 +577,7 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Every lever is an argument.",
-      "text": "Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required.",
+      "text": "Charter. Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots.",
       "charter": { "unlocks": { "tech": "mechanics" } },
       "effects": []
     },
@@ -627,7 +589,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Turn one thing into another and call it a trade.",
-      "text": "Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required.",
+      "text": "Charter. Opens Chemistry: your warrior line gains +1 strength for each charter technology you know.",
       "charter": { "unlocks": { "tech": "chemistry" } },
       "effects": []
     },
@@ -787,7 +749,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A walled garden, and a book for every bed in it.",
-      "text": "Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required.",
+      "text": "Charter. Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness.",
       "charter": { "unlocks": { "tech": "herbals" } },
       "effects": []
     },
@@ -799,7 +761,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The guild keeps the mould, and the city keeps the guild.",
-      "text": "Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required.",
+      "text": "Charter. Opens Casting: your spear and chariot lines gain +2 strength for good.",
       "charter": { "unlocks": { "tech": "casting" } },
       "effects": []
     },
@@ -811,7 +773,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Chain, rod and level, and the land agrees to be measured.",
-      "text": "Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required.",
+      "text": "Charter. Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it.",
       "charter": { "unlocks": { "tech": "surveying" } },
       "effects": []
     },
@@ -823,7 +785,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "A shelf in order is a city in order.",
-      "text": "Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required.",
+      "text": "Charter. Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold.",
       "charter": { "unlocks": { "tech": "cataloguing" } },
       "effects": []
     },
@@ -847,7 +809,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The mill by the river turns rags into records.",
-      "text": "Drafting this opens Papermaking for research. Knowing it lets you build the Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. No chair required.",
+      "text": "Charter. Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy.",
       "charter": { "unlocks": { "tech": "papermaking" } },
       "effects": []
     },
@@ -859,7 +821,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "A house of healing, open to every traveller.",
-      "text": "Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required.",
+      "text": "Charter. Opens Medicine, which unlocks the Bimaristan: +25% food in its town.",
       "charter": { "unlocks": { "tech": "medicine" } },
       "effects": []
     },
@@ -871,7 +833,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Small books, carried in a merchant's pocket.",
-      "text": "Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required.",
+      "text": "Charter. Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route.",
       "charter": { "unlocks": { "tech": "printing" } },
       "effects": []
     },
@@ -883,7 +845,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The foundry by the arsenal never lets its fires go out.",
-      "text": "Drafting this opens Gunfounding for research. Knowing it lets you build the Tophane, an empire building: military units gained in its town start with +4 strength, and it builds them 25% faster. No chair required.",
+      "text": "Charter. Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength.",
       "charter": { "unlocks": { "tech": "gunfounding" } },
       "effects": []
     },
@@ -895,7 +857,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The engineers draw the walls before the masons lay them.",
-      "text": "Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required.",
+      "text": "Charter. Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points.",
       "charter": { "unlocks": { "tech": "militaryArchitecture" } },
       "effects": []
     },
@@ -907,7 +869,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Oars for the calm, and guns for the battle.",
-      "text": "Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required.",
+      "text": "Charter. Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port.",
       "charter": { "unlocks": { "tech": "navalGunnery" } },
       "effects": []
     },
@@ -1148,7 +1110,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Endow the chair, and the chair outlives the vizier.",
-      "text": "Academies produce half again of everything they make.",
+      "text": "Academies yield 50% more.",
       "effects": [
         {
           "kind": "pays",
@@ -1257,7 +1219,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every night is written down, and the book is never finished.",
-      "text": "While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each.",
+      "text": "Gains +1 culture and +1 production each time you complete a technology.",
       "effects": [
         {
           "kind": "pays",
@@ -1296,7 +1258,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A hard problem solved makes a name, and a name draws students.",
-      "text": "Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost.",
+      "text": "Completing a technology grants scholar renown equal to a twentieth of its cost.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1341,7 +1303,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "The crown pays for the first result, and the scholars know it.",
-      "text": "Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair.",
+      "text": "Goal: complete a charter technology. Reward: a great scholar and 100 culture.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "counted", "occasion": "charterTechCompleted", "count": 1 }],
@@ -1432,11 +1394,11 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The prince's tutors keep a list of the brightest pupils in the realm.",
-      "text": "+1 renown a turn for each science building you have, favouring great scholars.",
+      "text": "+2 scholar renown each turn for each science building.",
       "effects": [
         {
           "kind": "renown",
-          "amount": 1,
+          "amount": 2,
           "count": "buildingsSupplying",
           "voice": "science",
           "within": "city",
@@ -1644,14 +1606,8 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Plan the lecture halls now, and the masters will come.",
-      "text": "You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship.",
-      "effects": [
-        {
-          "kind": "unlocksBuilding",
-          "building": "university",
-          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 30 }
-        }
-      ]
+      "text": "You may build Universities before you know Scholarship.",
+      "effects": [{ "kind": "unlocksBuilding", "building": "university" }]
     },
     "theDedications": {
       "name": "The Dedications",
@@ -1802,19 +1758,13 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The students keep the books, and the gate.",
-      "text": "Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more.",
+      "text": "Towns with a University gain +6 defence.",
       "effects": [
         {
           "kind": "cityStat",
           "stat": "defense",
           "amount": 6,
           "scope": { "test": "hasBuilding", "building": "university" }
-        },
-        {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 12,
-          "scope": { "test": "raisingOpus" }
         }
       ]
     },
@@ -1826,7 +1776,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Sharp eyes find sharp minds.",
-      "text": "Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair.",
+      "text": "Goal: hold four Academies. Reward: a great scholar, and 300 production in each town with an Academy.",
       "commission": {
         "goals": [{ "kind": "reached", "figure": "academyHexes", "count": 4 }],
         "reward": [
@@ -1861,7 +1811,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The general reads the old campaigns, and the scholars read the ground.",
-      "text": "Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy.",
+      "text": "Your units gain +4 strength within two hexes of an Academy.",
       "effects": [
         {
           "kind": "combatLine",
@@ -1870,7 +1820,6 @@
           "when": {
             "test": "nearLearning",
             "hexes": 2,
-            "families": ["general", "scholar"],
             "improvement": "academy"
           }
         }
@@ -1908,7 +1857,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "The great work needs a great instrument, and the instrument comes first.",
-      "text": "Commission. Complete Alchemy while this is seated. Reward: production toward the Magnum Opus equal to a tenth of its cost. Then it leaves its chair. Not dealt to a seat that knows Alchemy.",
+      "text": "Goal: complete Alchemy. Reward: a tenth of the Magnum Opus.",
       "notDealtKnowing": "alchemy",
       "commission": {
         "goals": [{ "kind": "counted", "occasion": "techCompleted", "count": 1, "tech": "alchemy" }],
@@ -1924,7 +1873,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "The stone is laid before the last plan is drawn.",
-      "text": "You may begin the Magnum Opus before any empire knows Alchemy, once you have put half of Alchemy's cost into researching it. It cannot be finished until you know Alchemy, and your rod of beads must still be full to begin it.",
+      "text": "You may begin the Magnum Opus once Alchemy is half researched.",
       "effects": [{ "kind": "rule", "rule": "opusEarly", "percent": 50 }]
     },
     "theClosedBook": {
@@ -1946,15 +1895,8 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The gunners aim at the scaffolding, not at the walls.",
-      "text": "Your siege units gain +5 strength against cities. Each hit they land on a city building the Magnum Opus removes 5% of the production banked toward it.",
+      "text": "Each hit your siege units land on a city removes 5% of its Magnum Opus progress.",
       "effects": [
-        {
-          "kind": "combatLine",
-          "amount": 5,
-          "side": "attack",
-          "class": { "modelClass": "siege" },
-          "when": { "test": "vsCity" }
-        },
         { "kind": "rule", "rule": "opusBreach", "percent": 5, "class": { "modelClass": "siege" } }
       ]
     },
@@ -2017,6 +1959,34 @@
           "within": "city",
           "to": "happiness",
           "amount": 1
+        }
+      ]
+    },
+    "theScribes": {
+      "name": "The Scribes",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Every town keeps a clerk who can count, and a clerk who can count can learn.",
+      "text": "+1 science in every town.",
+      "effects": [{ "kind": "pays", "where": "city", "science": 1 }]
+    },
+    "theApprentices": {
+      "name": "The Apprentices",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The boy who carries the stones learns how the arch stands.",
+      "text": "Finishing a building grants 5 science.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "grant": { "yield": "science", "amount": 5 }
         }
       ]
     }

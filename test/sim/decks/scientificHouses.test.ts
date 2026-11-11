@@ -156,7 +156,8 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 1,
     rarity: 'rare',
     type: 'civic',
-    text: 'You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship.',
+    // Batch DS6 removed the Library's thirty turns.
+    text: 'You may build Universities before you know Scholarship.',
   },
   {
     id: 'theDedications',
@@ -219,14 +220,16 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 4,
     rarity: 'common',
     type: 'military',
-    text: 'Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more.',
+    // Batch DS6 removed the +12 for the town raising the Opus.
+    text: 'Towns with a University gain +6 defence.',
   },
   {
     id: 'theLynxEyedAcademy',
     band: 4,
     rarity: 'rare',
     type: 'wildcard',
-    text: 'Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair.',
+    // Batch DS6 reworded it; the goal and the reward did not change.
+    text: 'Goal: hold four Academies. Reward: a great scholar, and 300 production in each town with an Academy.',
   },
 ];
 
@@ -251,9 +254,7 @@ describe('the rows', () => {
   });
 
   it('prints each card in plain words through the describers', () => {
-    expect(said('theForwardPlans')[0]).toMatch(
-      /^unlocks the University in any city with a Library that has stood at least 30 turns/,
-    );
+    expect(said('theForwardPlans')[0]).toMatch(/^unlocks the University — /);
     expect(said('theDedications')).toEqual([
       "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population",
     ]);
@@ -278,10 +279,7 @@ describe('the rows', () => {
     expect(said('theHumanists')).toEqual([
       '50% of the science in every city with a University is gained again as culture',
     ]);
-    expect(said('theWallsOfLearning')).toEqual([
-      'every city with a University: +6 city defence',
-      'every city raising the Magnum Opus: +12 city defence',
-    ]);
+    expect(said('theWallsOfLearning')).toEqual(['every city with a University: +6 city defence']);
     expect(said('theLynxEyedAcademy')).toEqual([
       'Commission. Goal: hold 4 Academies inside your borders, while this card is seated',
       'Reward: a great scholar to call, and +300 production in every city with an Academy',
@@ -497,35 +495,30 @@ describe('the great houses', () => {
     expect(cardLimitLifts(state, 0, 'granary')).toEqual([]);
   });
 
-  it('The Forward Plans: a University early, only in a town whose Library has stood thirty turns', () => {
+  it('The Forward Plans: a University early in any town with a Library, with no age to wait for (DS6)', () => {
+    // Batch DS6 removed the thirty turns the Library had to stand. The
+    // University still needs a Library in its own town, as its row says.
     const state = bench();
     state.turn = 1;
     const a = town(state, 0, 4, 5);
     const b = town(state, 0, 12, 5);
     learnFor(state, 0, 'library');
     raise(state, a, 'library');
-    state.turn = 20;
-    raise(state, b, 'library');
     expect(isUnlocked(state, 0, 'building', 'university')).toBe(false);
+    expect(buildError(state, 0, 'building', 'university', a)).toMatch(/Scholarship/);
     slot(state, 0, 'theForwardPlans');
-    // Not yet thirty turns anywhere.
-    state.turn = 25;
-    bumpRevision(state);
-    expect(isUnlocked(state, 0, 'building', 'university')).toBe(false);
-    const words = 'University needs Scholarship; until then your Order opens it only in a city with a Library that has stood at least 30 turns';
-    expect(buildError(state, 0, 'building', 'university', a)).toBe(words);
-    // Thirty turns in the first town, eleven in the second.
-    state.turn = 31;
-    bumpRevision(state);
+    // A Library raised this very turn is enough.
     expect(isUnlocked(state, 0, 'building', 'university')).toBe(true);
     expect(isUnlocked(state, 0, 'building', 'university', a)).toBe(true);
-    expect(isUnlocked(state, 0, 'building', 'university', b)).toBe(false);
     expect(buildError(state, 0, 'building', 'university', a)).toBeNull();
-    expect(buildError(state, 0, 'building', 'university', b)).toBe(words);
-    // Scholarship opens it everywhere, card or no card.
-    learnFor(state, 0, 'university');
+    // A town with no Library is refused for the Library, not for the age.
+    expect(buildError(state, 0, 'building', 'university', b)).toMatch(/Library/);
+    raise(state, b, 'library');
     expect(buildError(state, 0, 'building', 'university', b)).toBeNull();
+    // Without the card, Scholarship is the way in again.
     unseat(state, 0, 'theForwardPlans');
+    expect(buildError(state, 0, 'building', 'university', b)).toMatch(/Scholarship/);
+    learnFor(state, 0, 'university');
     expect(buildError(state, 0, 'building', 'university', b)).toBeNull();
   });
 
@@ -548,7 +541,8 @@ describe('the great houses', () => {
     ).toBe(true);
   });
 
-  it('The Walls of Learning: +6 in a University town, +12 in the town raising the Opus, and both together', () => {
+  it('The Walls of Learning: +6 in a University town, and nothing more for the town raising the Opus (DS6)', () => {
+    // Batch DS6 cut the +12 for the town raising the Magnum Opus.
     const state = bench();
     const city = town(state, 0, 4, 5);
     slot(state, 0, 'theWallsOfLearning');
@@ -561,10 +555,10 @@ describe('the great houses', () => {
     expect(walls()).toBe(6);
     city.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
     bumpRevision(state);
-    expect(walls()).toBe(18);
+    expect(walls()).toBe(6);
     city.buildings = city.buildings.filter((id) => id !== 'university');
     bumpRevision(state);
-    expect(walls()).toBe(12);
+    expect(walls()).toBe(0);
   });
 });
 

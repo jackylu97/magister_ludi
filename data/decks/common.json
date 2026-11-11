@@ -690,20 +690,19 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Gold leaf on a proof nobody can read yet.",
-      "text": "Cities with both a Library and a Monument gain +1 science and +1 culture.",
+      "text": "Libraries give +1 culture. Monuments give +1 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 1,
           "culture": 1,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "library" },
-              { "test": "hasBuilding", "building": "monument" }
-            ]
-          }
+          "scope": { "test": "hasBuilding", "building": "library" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 1,
+          "scope": { "test": "hasBuilding", "building": "monument" }
         }
       ]
     },
@@ -715,28 +714,8 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Translate everything, and argue afterwards.",
-      "text": "Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once.",
+      "text": "Towns working an Academy build wonders 30% faster.",
       "effects": [
-        {
-          "kind": "pays",
-          "where": "hex",
-          "on": {
-            "test": "improvement",
-            "improvement": "academy"
-          },
-          "culture": 3
-        },
-        {
-          "kind": "renown",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "workingImprovement",
-            "improvements": [
-              "academy"
-            ]
-          }
-        },
         {
           "kind": "productionBonus",
           "category": "wonder",

@@ -1023,27 +1023,18 @@ function workGroundWords(row: ImprovementDef): string {
     // The Qanat (Scientific batch S5): land that refuses hills is flat land.
     parts.push('on flat land');
   }
-  // Niter Beds (Scientific batch S5): the work that must stand beside it.
-  if (row.besideImprovement !== undefined && row.besideImprovement.length > 0) {
-    const names = row.besideImprovement.map((id) => improvementDef(id).name.toLowerCase()).join(' or ');
-    parts.push(`beside your ${names}`);
-  }
   if (row.onePerTown === true) parts.push('one in each city');
   return parts.join(', ');
 }
 
 /**
  * **What a worker row does beyond its yield**, for a charter's clause
- * (Scientific batch S5): the Qanat waters the farms beside it, and Niter Beds
- * supply a resource. Empty for every other row.
+ * (Scientific batch S5): the Qanat waters the farms beside it. Empty for every
+ * other row. (Niter Beds supplied a resource until batch DS6 removed the row.)
  */
 function workDoesWords(row: ImprovementDef): string {
   const parts: string[] = [];
   if (row.watersBeside === true) parts.push('your farms beside it count as having fresh water');
-  const supplied = row.suppliesResource;
-  if (supplied !== undefined) {
-    parts.push(`they supply one copy of ${ref('resource', supplied, resourceDef(supplied).name)}`);
-  }
   return parts.join('; ');
 }
 
@@ -4823,11 +4814,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // than "containing" for the reason `hasWonder` says "containing": a
       // marvel stands where it was raised, and an empire building is a thing a
       // realm chose to put in one of its towns.
-      into.qualifiers.push(
-        scope.standingTurns === undefined
-          ? 'holding an empire building'
-          : `holding an empire building ${standingWords(scope.standingTurns)}`,
-      );
+      into.qualifiers.push('holding an empire building');
       return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
@@ -5833,16 +5820,6 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
       ? `${units} cost ${-percent}% less to build and to buy`
       : `${units} cost ${percent}% more to build and to buy`;
   },
-  // Batch R1, The Almanac. "Buildings" is the word when the row names none;
-  // a row that names a building says its plural instead. Said as production,
-  // as the card says it. The gold price follows, because a building's gold
-  // price is always its production cost converted.
-  buildingCost: (percent, { building }) => {
-    const buildings = building === undefined ? 'buildings' : buildingPluralName(building);
-    return percent < 0
-      ? `${buildings} cost ${-percent}% less production`
-      : `${buildings} cost ${percent}% more production`;
-  },
   growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
   // The Burghers (Expansionist batch E10). Said as the speed, as
   // `pacificationRate` is. The row's scope follows as ", in cities of ...".
@@ -6073,19 +6050,11 @@ export function combatWhenWords(when: CombatCondition): string {
     case 'hasRank':
       return `${COMBAT_WORDS.hasRank} ${rankOrBetter(when.rank)}`;
     case 'nearLearning': {
-      // The Strategikon (Scientific batch S9): "while within 2 hexes of your
-      // great general, your great scholar or your Academy". The people and
-      // the work are alternatives, so the last is joined with "or".
+      // The Strategikon (Scientific batch S9; batch DS6 left the Academy
+      // alone): "while within 2 hexes of your Academy".
       const name = improvementDef(when.improvement).name;
-      const things = [
-        ...when.families.map((family) => `your great ${family}`),
-        `your ${ref('improvement', when.improvement, name)}`,
-      ];
-      const list =
-        things.length <= 1
-          ? (things[0] ?? '')
-          : `${things.slice(0, -1).join(', ')} or ${things[things.length - 1]}`;
-      return `${COMBAT_WORDS.nearLearning} ${when.hexes} ${when.hexes === 1 ? 'hex' : 'hexes'} of ${list}`;
+      const hexes = `${when.hexes} ${when.hexes === 1 ? 'hex' : 'hexes'}`;
+      return `${COMBAT_WORDS.nearLearning} ${hexes} of your ${ref('improvement', when.improvement, name)}`;
     }
     case 'all':
       return when.of
@@ -6130,12 +6099,6 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   attacksOnTarget: {
     one: 'attack your units have already made on the same target this turn',
     many: 'attacks your units have already made on the same target this turn',
-  },
-  // Scientific batch S1, the Hoplite. Said of the town, because only a town of
-  // your own counts and the line pays nothing outside one.
-  townCitizensHere: {
-    one: 'citizen of your city it stands in',
-    many: 'citizens of your city it stands in',
   },
   // Scientific batch S1, the Grenadier. "Know" is the word: a charter drafted
   // and not yet researched does not count.

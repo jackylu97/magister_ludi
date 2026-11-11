@@ -2307,7 +2307,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(235);
+    expect(SCHEMA_VERSION).toBe(236);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9247,9 +9247,8 @@ describe("the engine shapes", () => {
       // Garden is the second row in the game to take a share of what one town
       // earns in renown, and the first ordinary building to.
       "garden · cityRenownPercent",
-      // Scientific batch S4: the Aldine Press pays the trade routes that leave
-      // its town, the Caravanserai's shape.
-      "aldinePress · routeYield",
+      // Scientific batch S4 gave the Aldine Press the Caravanserai's shape, the
+      // trade routes that leave its town, and batch DS6 took it away again.
       "heroicEpic · cityRenownPercent",
       // Batch L2a — the leaders' unique buildings (`docs/leaders.md`). The Tambo
       // pays a caravan at both ends of the road, which is two rows of one shape
@@ -11822,9 +11821,9 @@ describe("D2b — counts and reach", () => {
     let cityCost = false;
     // **D2d's stamps.** Three scopes learned a term, one hex condition arrived
     // and the route `pays` learned one too — each is a field nobody has tested
-    // until a live row names it.
+    // until a live row names it. Batch DS6 removed `hasEmpireBuilding`'s term
+    // with Enduring Institutions' age, so two scopes keep one.
     let buildingTerm = false;
-    let empireHouseTerm = false;
     let workedWorkTerm = false;
     let hexTerm = false;
     let routeTerm = false;
@@ -11835,7 +11834,6 @@ describe("D2b — counts and reach", () => {
       const term = (scope as { standingTurns?: number }).standingTurns;
       if (term !== undefined) {
         if (test === "hasBuilding") buildingTerm = true;
-        if (test === "hasEmpireBuilding") empireHouseTerm = true;
         // The Long Inheritance reads the age of a worked Academy through
         // `workingImprovement` since Scientific batch S5. `workingGreatWork`'s
         // own term has no live row since then, and its behaviour is pinned in
@@ -11913,7 +11911,8 @@ describe("D2b — counts and reach", () => {
       "publicWorks",
       // `uniqueStrategicResources` has no live row since Scientific batch S5
       // gave The Assay a hex line. The count's own behaviour is pinned in
-      // `test/sim/decks/scientificLand.test.ts`, with Niter Beds.
+      // `test/sim/decks/scientificLand.test.ts`, with a niter seam (batch DS6
+      // removed the Niter Beds the check used to lay).
       // `distinctWorkedFeatures` has no live row since batch D3 revised The
       // Naturalists to count hills and mountains; the count's own behaviour is
       // still pinned above.
@@ -11945,14 +11944,15 @@ describe("D2b — counts and reach", () => {
     // Both stand for the batch that frees their rows, exactly as
     // `rerollsWhileSlotted` stands for the verb that will write it.
     expect(counts.has("distinctBuildingCategories")).toBe(false);
-    // **And D2d's five, every one of them named by a live row** (the age stamp).
+    // **And D2d's four left, every one of them named by a row** (the age stamp).
     // Each is a term on a question the vocabulary already asked, so the pin is
     // that a row actually writes one — a threshold nobody names is a threshold
     // nobody has tested, and the shape would sit here answering "no" forever.
+    // Batch DS6 removed the fifth, `hasEmpireBuilding`'s, with its only row,
+    // and took The Old Academy's age; the Expansionist fields still read one.
     expect(buildingTerm, "The Long Study's twenty-turn Library").toBe(true);
-    expect(empireHouseTerm, "Enduring Institutions' old great house").toBe(true);
     expect(workedWorkTerm, "The Long Inheritance's old academy").toBe(true);
-    expect(hexTerm, "The Old Academy's ivy").toBe(true);
+    expect(hexTerm, "Dark Earth's old ground").toBe(true);
     expect(routeTerm, "Established Routes' kept road").toBe(true);
   });
 });

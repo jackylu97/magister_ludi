@@ -254,8 +254,8 @@ const RANGE_MARK = '⌖';
  * together, or nothing for a trait that is all ability (the Repeating
  * Crossbow). The ability itself is on the hover card, in the describers' words.
  *
- * Only the always-on lines are summed. A conditional line (the Maryannu's +5
- * against the wounded, the Hoplite's per citizens) is part of the ability,
+ * Only the always-on lines are summed. A conditional or scaled line (the
+ * Grenadier's point for each charter technology known) is part of the ability,
  * because a number with a condition is not a bonus the piece always has.
  */
 export function traitFaceNote(trait: TechTrait): string {

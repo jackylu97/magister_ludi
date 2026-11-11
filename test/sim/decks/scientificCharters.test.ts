@@ -149,8 +149,9 @@ describe('the register', () => {
       expect(def.effects, charter).toEqual([]);
       expect(def.charter!.unlocks.tech, charter).toBe(tech);
       expect(def.charter!.unlocks.building, charter).toBeUndefined();
-      expect(def.text, charter).toMatch(new RegExp(`^Drafting this opens ${techDef(tech).name} for research\\. `));
-      expect(def.text, charter).toMatch(/ No chair required\.$/);
+      // Batch DS6 gave each the keyword form: "Charter. Opens <technology>,
+      // which unlocks the <building>: …" or "Charter. Opens <technology>: …".
+      expect(def.text, charter).toMatch(new RegExp(`^Charter\\. Opens ${techDef(tech).name}[,:] `));
     }
   });
 
@@ -368,7 +369,10 @@ describe('what each building does', () => {
     expect(explainBuildingCost('forum').some((line) => line.source.includes('%'))).toBe(false);
   });
 
-  it('Aldine Press: two culture, and two science and two culture on each route that leaves its town', () => {
+  it('Aldine Press: two culture, and nothing on the routes since batch DS6', () => {
+    // Batch DS6 cut the +2 science and +2 culture on each route that left its
+    // town. The building row carries no effects now.
+    expect(buildingDef('aldinePress').effects ?? []).toEqual([]);
     const state = bench();
     const press = town(state, 0, 4, 5);
     const far = town(state, 0, 12, 5);
@@ -377,11 +381,7 @@ describe('what each building does', () => {
     expect(townLines(state, press, 'Aldine Press', 'culture')).toBe(2);
     const from = (origin: City, to: City) =>
       cardRouteYieldLines(state, origin, to).filter((line) => line.source.includes('Aldine Press'));
-    const out = from(press, far);
-    expect(out).toHaveLength(1);
-    expect(out[0]!.science).toBe(2);
-    expect(out[0]!.culture).toBe(2);
-    // A route from the other town carries nothing from the press.
+    expect(from(press, far)).toEqual([]);
     expect(from(far, press)).toEqual([]);
   });
 
@@ -395,13 +395,13 @@ describe('what each building does', () => {
     expect(printed()[0]!.slots).toBe(1);
   });
 
-  it('Bimaristan: a quarter more food in its town, and ten more healing in your land', () => {
+  it('Bimaristan: a quarter more food in its town, and no healing since batch DS6', () => {
+    // Batch DS6 cut the ten more healing a turn for units in your land.
     const state = bench();
     const city = town(state, 0, 4, 5);
     const other = town(state, 0, 12, 5);
     learn(state, 0, 'medicine');
     const home = createUnit(state, 0, 'warrior', 5, 5);
-    const abroad = createUnit(state, 0, 'warrior', 8, 10);
     expect(cardUnitStat(state, home, 'heal')).toBe(0);
     raise(state, city, 'bimaristan');
     const food = (target: City) =>
@@ -410,8 +410,8 @@ describe('what each building does', () => {
       );
     expect(food(city).map((line) => line.percent)).toEqual([25]);
     expect(food(other)).toEqual([]);
-    expect(cardUnitStat(state, home, 'heal')).toBe(10);
-    expect(cardUnitStat(state, abroad, 'heal')).toBe(0);
+    expect(cardUnitStat(state, home, 'heal')).toBe(0);
+    expect(buildingDef('bimaristan').effects!.map((effect) => effect.kind)).toEqual(['percentYields']);
   });
 
   it('Tophane: soldiers raised in its town start four stronger, and it raises them a quarter faster', () => {

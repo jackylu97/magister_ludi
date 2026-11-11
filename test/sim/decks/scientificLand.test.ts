@@ -8,8 +8,9 @@
  *   - the Surveyors' Charter: the Aqueduct before Engineering at Engineering's
  *     price (reading 29), and the Qanat, which waters the farms beside it for
  *     every fresh-water question about a farm (reading 30);
- *   - the Alchemists' Charter: Niter Beds, built beside a farm or pasture of
- *     yours, which supply one niter while they stand (reading 31);
+ *   - the Alchemists' Charter: batch S5 gave it Niter Beds (reading 31), and
+ *     batch DS6 removed them, so Chemistry opens no work now. A niter seam is
+ *     checked in their place, for the copies and the kinds count;
  *   - The School of Mines' extra copy for an Academy on a strategic resource
  *     (reading 32);
  *   - The Studium Generale: a great person's work beside one of your Academies
@@ -39,7 +40,7 @@ import {
   resourceCopies,
 } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
-import { improvementDef } from '../../../src/sim/improvementData';
+import { IMPROVEMENT_IDS, improvementDef } from '../../../src/sim/improvementData';
 import {
   improvementGroundError,
   improvementTechError,
@@ -166,14 +167,23 @@ describe('the register', () => {
       expect(def.deferred, charter).toBeUndefined();
       expect(def.effects, charter).toEqual([]);
       expect(def.charter!.unlocks.tech, charter).toBe(tech);
-      expect(def.text, charter).toMatch(new RegExp(`^Drafting this opens ${techDef(tech).name} for research\\. `));
+      // Batch DS6 gave both the keyword form of the text.
+      expect(def.text, charter).toMatch(new RegExp(`^Charter\\. Opens ${techDef(tech).name}: `));
     }
     expect(techDef('surveying').effects).toEqual([{ kind: 'unlocksBuilding', building: 'aqueduct' }]);
     expect(improvementDef('qanat').requiresTech).toBe('surveying');
     expect(improvementDef('qanat').watersBeside).toBe(true);
-    expect(improvementDef('niterBeds').requiresTech).toBe('chemistry');
-    expect(improvementDef('niterBeds').besideImprovement).toEqual(['farm', 'pasture']);
-    expect(improvementDef('niterBeds').suppliesResource).toBe('niter');
+  });
+
+  it('opens no work on Chemistry since batch DS6, and Chemistry still does not open the Magnum Opus', () => {
+    // The Alchemists' Charter's Niter Beds went in batch DS6: no worker row
+    // asks for Chemistry, and its one gift is the Grenadier trait.
+    expect(IMPROVEMENT_IDS.filter((id) => improvementDef(id).requiresTech === 'chemistry')).toEqual([]);
+    expect((IMPROVEMENT_IDS as readonly string[]).includes('niterBeds')).toBe(false);
+    expect(techDef('chemistry').traits!.map((trait) => trait.name)).toEqual(['Grenadier']);
+    // The Opus is opened by Alchemy, which no charter row is.
+    expect(buildingDef('theMagnumOpus').worldUnlockTech).toBe('alchemy');
+    expect(techDef('chemistry').unlocks).toEqual({});
   });
 
   it('deals the eight cards, The Assay from the shared shelf, but the three batch DS1 retired', () => {
@@ -318,67 +328,43 @@ describe('the Qanat (reading 30)', () => {
   });
 });
 
-// --- Niter Beds -----------------------------------------------------------------
+// --- a niter seam ------------------------------------------------------------------
 
-describe('Niter Beds (reading 31)', () => {
-  function beds(): { state: GameState; city: City; ground: Tile; farm: Tile } {
+/**
+ * **Niter from the ground alone.** Batch S5's Niter Beds supplied one niter
+ * with no seam, and batch DS6 removed the row. These checks keep the copies
+ * and the kinds count honest on a mined niter seam, the only source left.
+ */
+describe('a niter seam, since the Niter Beds went (batch DS6)', () => {
+  function seam(): { state: GameState; city: City; ground: Tile } {
     const state = bench();
     const city = town(state, 0, 4, 5);
     const ground = at(state, 5, 5);
-    const farm = at(state, 5, 4);
-    learn(state, 0, 'chemistry');
-    return { state, city, ground, farm };
+    ground.resource = 'niter';
+    bumpRevision(state);
+    return { state, city, ground };
   }
 
-  it('need Chemistry and your farm or pasture beside them', () => {
-    const { state, ground, farm } = beds();
-    expect(improvementTechError(state, 0, 'niterBeds')).toBeNull();
-    expect(improvementGroundError(state, 0, ground, 'niterBeds')).toBe(
-      'Niter beds need your farm or pasture beside them',
-    );
-    lay(state, farm, 'farm');
-    expect(improvementGroundError(state, 0, ground, 'niterBeds')).toBeNull();
-    // A pasture serves as well as a farm.
-    razeImprovement(farm);
-    lay(state, farm, 'pasture');
-    expect(improvementGroundError(state, 0, ground, 'niterBeds')).toBeNull();
-  });
-
-  it('do not take a rival’s farm as their own', () => {
-    const { state, ground } = beds();
-    const rival = town(state, 1, 10, 5);
-    const theirs = at(state, 6, 5);
-    claimTile(state, rival, theirs);
-    lay(state, theirs, 'farm');
-    expect(improvementGroundError(state, 0, ground, 'niterBeds')).toMatch(/your farm or pasture/);
-  });
-
-  it('supply one niter while they stand, once the empire can see niter', () => {
-    const { state, ground, farm } = beds();
-    lay(state, farm, 'farm');
-    lay(state, ground, 'niterBeds');
-    // Niter is a word Natural Philosophy teaches: before it, the beds supply
-    // nothing, as a seam would not.
+  it('supplies niter only while mined and only once the empire can see niter', () => {
+    const { state, ground } = seam();
+    expect(resourceCopies(state, 0, 'niter')).toBe(0);
+    lay(state, ground, 'mine');
+    // Niter is a word Physics teaches: before it, the seam supplies nothing.
     expect(resourceCopies(state, 0, 'niter')).toBe(0);
     learn(state, 0, 'physics');
-    expect(resourceCopies(state, 0, 'niter')).toBe(1);
+    expect(resourceCopies(state, 0, 'niter')).toBeGreaterThan(0);
     expect(hasResource(state, 0, 'niter')).toBe(true);
     expect(controlledResources(state, 0, 'strategic')).toContain('niter');
-    // The farm going does not take the beds with it.
-    razeImprovement(farm);
-    bumpRevision(state);
-    expect(resourceCopies(state, 0, 'niter')).toBe(1);
-    // Pillaged, they supply nothing.
+    // Pillaged, it supplies nothing.
     razeImprovement(ground);
     bumpRevision(state);
     expect(resourceCopies(state, 0, 'niter')).toBe(0);
     expect(controlledResources(state, 0, 'strategic')).not.toContain('niter');
   });
 
-  it('are counted by the kinds of strategic resource held, a count with no live row since this batch', () => {
-    const { state, ground, farm, city } = beds();
+  it('is counted by the kinds of strategic resource held, a count with no live row', () => {
+    const { state, ground, city } = seam();
     learn(state, 0, 'physics');
-    lay(state, farm, 'farm');
     const ask = (): number =>
       countOf(
         state,
@@ -388,7 +374,7 @@ describe('Niter Beds (reading 31)', () => {
         city,
       );
     expect(ask()).toBe(0);
-    lay(state, ground, 'niterBeds');
+    lay(state, ground, 'mine');
     expect(ask()).toBe(1);
   });
 });
@@ -611,9 +597,10 @@ describe('the words', () => {
       expect.stringMatching(/^once you know Surveying, you may build the Aqueduct before Engineering: /),
       'once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water',
     ]);
-    expect(said('theAlchemistsCharter')).toContain(
-      'once you know Chemistry, your workers may build the Niter Beds: beside your farm or pasture; they supply one copy of Niter',
-    );
+    // Batch DS6: the Niter Beds clause went, and the Grenadier is one scaled line.
+    const alchemists = said('theAlchemistsCharter');
+    expect(alchemists.some((text) => text.includes('Niter'))).toBe(false);
+    expect(alchemists).toContain('+1 combat strength for units of the Warrior line per charter technology you know');
   });
 
   it('says the new cards plainly, with no struck half', () => {

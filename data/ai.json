@@ -260,7 +260,6 @@
       "traitLine": 0.3,
       "worksPerTown": 1,
       "workGift": 4,
-      "inOwnTown": 0.3,
       "nearLearning": 0.3,
       "vsFewerTechs": 0.5,
       "aheadOfMet": 0.5,

@@ -545,27 +545,6 @@ export function improvementGroundError(
       );
     }
   }
-  // **A named work beside it** (Scientific batch S5, Niter Beds: a farm or a
-  // pasture; the triage's reading 31): one of the six hexes around this one
-  // holds one of the rows, inside the builder's borders. Asked through
-  // `improvementCountsAs`, so a variant of a farm is a farm. Only the build is
-  // checked: the work stays if the farm goes later. Last, after the seam
-  // clause, because a seam that wants another work is the stronger refusal:
-  // no neighbour would make this hex right for this row.
-  const besides = def.besideImprovement;
-  if (!anywhere && besides !== undefined) {
-    const found = tileNeighbors(state.map, tile).some(
-      (next) =>
-        next.improvement !== undefined &&
-        besides.some((wanted) => improvementCountsAs(next.improvement!, wanted)) &&
-        tileOwnerPlayerId(state, next.col, next.row) === ownerId,
-    );
-    if (!found) {
-      const names = besides.map((id) => improvementDef(id).name.toLowerCase()).join(' or ');
-      const them = rowNeeds(def) === 'need' ? 'them' : 'it';
-      return `${ARow(def)} ${rowNeeds(def)} your ${names} beside ${them}`;
-    }
-  }
   return null;
 }
 

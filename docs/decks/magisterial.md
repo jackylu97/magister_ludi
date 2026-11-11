@@ -194,7 +194,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Illuminated Treatises** | common | Scientific | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
+| **Illuminated Treatises** | common | Scientific | 0 | implemented | Libraries give +1 culture. Monuments give +1 science. | Civic |
 | **The Sword of State** | common | Dominion | I | implemented | Boon. On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
 | **Garden Cities** | uncommon | Expansionist | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
 | **The Art Dealers** | common | Commerce | I | implemented | +3 gold for each card seated in your government. | Economic |
@@ -207,13 +207,15 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **Sacred Commissions** | uncommon | Devotion | II | implemented | Towns with a Holy Site build wonders 30% faster. | Economic |
 | **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
 | **Sacred Patronage** | rare | Devotion | III | implemented | You may buy a great-person draft for 750 faith. | Civic |
-| **The House of Wisdom** | uncommon | Scientific | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
+| **The House of Wisdom** | uncommon | Scientific | III | implemented | Towns working an Academy build wonders 30% faster. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |
 
 - **Travelling Players** took its new text in batch MG4 (the triage's reading 46). It counts the decks among the cards in your chairs: a card that two decks share counts for both, and the cards that belong to no deck count together as one more (reading 8). Batch DS1 retired it, so neither sheet's table lists it now.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet. The rule also lets gold reroll any hand that faith may, not only an Order hand. Commerce batch DS4 removed its surcharge on other purchases.
 - **Sacred Patronage** (batch MG8) uses the rule The Magisterium used: a great-person draft bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Batch Z2 changed its text to say the flat price. Its second clause paid 30 faith once a turn when you spent a great person by an act or a work, until Devotion batch DS5 removed it. The Devotion sheet lists the same row.
 - **Sacred Commissions** took its new text in Devotion batch DS5: +30% production toward wonders in a town with a Holy Site (it was +38%). Its 60 faith for each wonder you complete is gone.
+- **Illuminated Treatises** took its new effect in Scientific batch DS6: a Library gives +1 culture and a Monument gives +1 science, each without the other. Until then a town needed both to gain +1 science and +1 culture.
+- **The House of Wisdom** took its new text in Scientific batch DS6: +30% production toward wonders in a town working an Academy. Its +3 culture on each Academy and its +1 renown in each such town are gone.
 
 ## Retired rows
 

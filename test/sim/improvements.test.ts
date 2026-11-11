@@ -214,11 +214,10 @@ describe('the improvement table', () => {
       // The Physic Garden (Scientific batch S4): an ordinary worker row whose
       // technology, Herbals, only the Herbalists' Charter opens.
       'physicGarden',
-      // The Qanat and Niter Beds (Scientific batch S5), opened by Surveying
-      // and Chemistry, which only the Surveyors' and the Alchemists' Charters
-      // open.
+      // The Qanat (Scientific batch S5), opened by Surveying, which only the
+      // Surveyors' Charter opens. Niter Beds, opened by Chemistry, stood here
+      // until batch DS6 removed the row.
       'qanat',
-      'niterBeds',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -2170,18 +2169,17 @@ describe('explainTileYield', () => {
       const paid =
         entry!.food + entry!.production + entry!.gold +
         entry!.science + entry!.culture + entry!.faith;
-      // **Four rows pay nothing of their own, by design** (Expansionist batch
+      // **Three rows pay nothing of their own, by design** (Expansionist batch
       // E4, Scientific batch S5). A Keep pays what the hexes around it pay,
       // which a reading with no context cannot see (`expansionistWorks.test.ts`
       // reads it with one), and an outpost's worth is the ground it claims
       // (`claimsUnowned`). A Qanat's worth is the water it gives the farms
-      // beside it (`watersBeside`), and Niter Beds' is the niter they supply
-      // (`suppliesResource`); `scientificLand.test.ts` reads both.
+      // beside it (`watersBeside`); `scientificLand.test.ts` reads it. Niter
+      // Beds were a fourth until batch DS6 removed the row.
       if (
         def.copiesNeighbours === true ||
         def.claimsUnowned !== undefined ||
-        def.watersBeside === true ||
-        def.suppliesResource !== undefined
+        def.watersBeside === true
       ) {
         expect(paid, id).toBe(0);
         continue;
@@ -2965,7 +2963,7 @@ describe('improvements in the log', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(235);
+    expect(SCHEMA_VERSION).toBe(236);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

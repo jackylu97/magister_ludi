@@ -80,8 +80,8 @@ export interface UnitTraitLedger {
   /**
    * Strength, defending where it stands: the row's strength first, then one
    * line for each trait whose strength applies there. A line with a condition
-   * the piece does not meet now (the Maryannu's blow on the wounded, which is
-   * an attack) is not in the list; the trait's words say it.
+   * the piece does not meet now (an attack-only line, for one) is not in the
+   * list; the trait's words say it.
    */
   strength: UnitLedgerLine[];
   /**

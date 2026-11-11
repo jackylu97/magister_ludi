@@ -111,10 +111,10 @@ describe('the labelled lines', () => {
     const spearman = createUnit(state, 0, 'spearman', 4, 4);
     learn(state, 0, 'casting');
     const ledger = unitTraitLedger(state, spearman)!;
-    // Out in the field: the flat +1 of the Hoplite, and no citizens to count.
+    // The Hoplite's plain +2 since batch DS6, with no citizens to count.
     expect(ledger.strength).toEqual([
       { label: 'Spearman', amount: unitDef('spearman').combatStrength },
-      { label: 'Casting · Hoplite', amount: 1 },
+      { label: 'Casting · Hoplite', amount: 2 },
     ]);
     expect(ledger.range).toBeNull();
   });

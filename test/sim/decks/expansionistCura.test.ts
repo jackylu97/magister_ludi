@@ -372,7 +372,6 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
     reads: 1,
     why: 'one of a kind: the empire walk, which may not ask the law it is building',
   },
-  'statecraft/evaluator.ts › oldestEmpireBuildingAge': { reads: 1, why: 'built: an empire building\'s age' },
   'statecraft/evaluator.ts › cityScopeAdmits': {
     reads: 3,
     why: 'one of a kind: `hasWonder`, `notHasWonder` and `hasEmpireBuilding`',

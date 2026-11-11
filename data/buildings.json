@@ -2293,19 +2293,7 @@
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "route",
-          "science": 2,
-          "culture": 2,
-          "origin": {
-            "test": "hasBuilding",
-            "building": "aldinePress"
-          }
-        }
-      ],
-      "note": "A press that prints small books for travellers. Every trade route that leaves this town carries learning and song with the goods."
+      "note": "A press that prints small books for travellers. It adds culture to its town."
     },
     "bimaristan": {
       "name": "Bimaristan",
@@ -2328,15 +2316,9 @@
             "test": "hasBuilding",
             "building": "bimaristan"
           }
-        },
-        {
-          "kind": "unitStat",
-          "stat": "heal",
-          "amount": 10,
-          "where": "ownTerritory"
         }
       ],
-      "note": "A house of healing, open to all. Its town eats better, and your units mend faster inside your borders. One realm, one Bimaristan."
+      "note": "A house of healing, open to all. Its town eats better. Your empire may build only one."
     },
     "tophane": {
       "name": "Tophane",

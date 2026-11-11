@@ -146,7 +146,8 @@ describe('the register', () => {
     const deck = [...DECK_FILE_ORDERS.scientific, ...DECK_FILE_ORDERS.common];
     // Batch S1 built the line traits, batch S4 the buildings and the Physic
     // Garden, and batch S5 the Qanat and Niter Beds, so all thirteen
-    // charters' whole gifts exist and they are dealt.
+    // charters' whole gifts exist and they are dealt. Batch DS6 removed Niter
+    // Beds; the Grenadier is the Alchemists' Charter's whole gift now.
     const dealt = new Set<OrderId>([
       'theSurveyorsCharter',
       'theAlchemistsCharter',

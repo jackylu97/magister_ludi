@@ -660,7 +660,8 @@ const POSITION_READERS = new Map<string, string>([
   ['evaluator.ts#besideGreatGeneral', 'not under a reading: the combat ledger'],
   ['evaluator.ts#besideMatching', 'not under a reading: the combat ledger'],
   ['evaluator.ts#nearLearning', 'not under a reading: the combat ledger'],
-  ['evaluator.ts#combatScaleCount', 'not under a reading: the combat ledger'],
+  // `combatScaleCount` read a piece's hex for the Hoplite's town count until
+  // batch DS6 removed that count.
   ['evaluator.ts#cardUnitStat', 'not under a reading: a piece’s own stat, not a yield'],
   ['evaluator.ts#escortAt', 'not under a reading: a founding rider’s condition'],
   ['evaluator.ts#harvestEnemyHexes', 'not under a reading: a grant being paid, which announces'],
