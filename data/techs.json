@@ -255,17 +255,8 @@
           "stoneWalls"
         ]
       },
-      "effects": [
-        {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 1,
-          "count": "population",
-          "per": 4
-        }
-      ],
       "flavor": "A wall is only a promise about time.",
-      "note": "A wall is only as good as the hands on it. Every few citizens of a town of yours make its defence harder to break."
+      "note": "Your soldiers may besiege an enemy town: a town they surround cannot heal and loses health each turn. Towns may raise stone walls, and workers may build lumber mills."
     },
     "irrigation": {
       "name": "Irrigation",
@@ -329,21 +320,8 @@
           "ancestorRites"
         ]
       },
-      "effects": [
-        {
-          "kind": "windfallRider",
-          "occasion": "death",
-          "grant": {
-            "yield": "culture",
-            "amount": 4
-          }
-        }
-      ],
       "flavor": "The dead are given a metre, and stop being dead.",
-      "deferred": [
-        "Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it."
-      ],
-      "note": "When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come."
+      "note": "Renown now brings great people. Before you know this, renown still builds up, but no great person comes."
     },
     "currency": {
       "name": "Currency",
@@ -412,20 +390,8 @@
           "chartTheStars"
         ]
       },
-      "effects": [
-        {
-          "kind": "periodic",
-          "everyTurns": 15,
-          "pays": "renown",
-          "count": "buildingsOfCategories",
-          "categories": [
-            "science",
-            "faith"
-          ]
-        }
-      ],
       "flavor": "A calendar long enough to outlast the people keeping it.",
-      "note": "Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft. On the long count the realm's libraries and its shrines are read off together, and your renown grows by them."
+      "note": "You may spend faith to draw a new hand of Orders in place of the one you were offered."
     },
     "stateWorkforce": {
       "name": "State Workforce",
@@ -449,17 +415,10 @@
           "class": {
             "type": "worker"
           }
-        },
-        {
-          "kind": "purchaseRider",
-          "class": {
-            "type": "worker"
-          },
-          "percent": -25
         }
       ],
       "flavor": "A season the realm owns, taken from each in turn.",
-      "note": "Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.",
+      "note": "Every worker made from now on has an extra charge of work.",
       "columnShift": 1
     },
     "theHighTemple": {
@@ -501,7 +460,18 @@
           "warHall"
         ]
       },
-      "flavor": "A shield is only a wall if it stands beside another."
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        }
+      ],
+      "flavor": "A shield is only a wall if it stands beside another.",
+      "note": "Every worker made from now on has an extra charge of work."
     },
     "shipwrights": {
       "name": "Shipwrights",
@@ -575,23 +545,8 @@
           "workshop"
         ]
       },
-      "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "wonder",
-          "percent": 10
-        },
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "culture",
-          "amount": 2,
-          "count": "wonders"
-        }
-      ],
       "flavor": "The guild decides what a thing is worth by how long it took.",
-      "note": "The guilds put their weight behind the great works: a wonder rises faster in your cities, and every wonder your realm has raised sings a little louder."
+      "note": "Towns may build a Workshop."
     },
     "mathematics": {
       "name": "Mathematics",
@@ -629,23 +584,8 @@
           "greatWall"
         ]
       },
-      "effects": [
-        {
-          "kind": "effectAmplifier",
-          "target": "connectionYields",
-          "amount": 1
-        },
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "connected"
-          }
-        }
-      ],
       "flavor": "The message arrives before the rumour does.",
-      "note": "Every city joined to your capital pays one more gold, and a joined city is a contented one."
+      "note": "Opens the Forbidden City and the Great Wall."
     },
     "theExaminationHall": {
       "name": "The Civil Service",
@@ -663,14 +603,6 @@
       },
       "effects": [
         {
-          "kind": "happinessTierBoost",
-          "points": 5
-        },
-        {
-          "kind": "authority",
-          "amount": 5
-        },
-        {
           "kind": "pays",
           "where": "hex",
           "food": 1,
@@ -681,7 +613,7 @@
         }
       ],
       "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "A realm that is content or well governed is rewarded more generously, and the crown's authority reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.",
+      "note": "Every work a great person leaves on the land gives its town more food and production.",
       "columnShift": 1
     },
     "colonialCharters": {
@@ -700,24 +632,12 @@
       },
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "settlerCost",
-          "percent": -33
-        },
-        {
           "kind": "foundingRider",
           "building": "townCharter"
-        },
-        {
-          "kind": "pays",
-          "where": "route",
-          "crossing": "domestic",
-          "food": 1,
-          "production": 1
         }
       ],
       "flavor": "A city, written down before it is built.",
-      "note": "Settlers are trained faster, every city you found is founded with its charter already granted, and the carts that run between your own towns carry more than they did."
+      "note": "Every town you found starts with its Town Charter already built."
     },
     "theQadisCourt": {
       "name": "Divine Right",
@@ -822,20 +742,8 @@
           "clocktower"
         ]
       },
-      "effects": [
-        {
-          "kind": "periodic",
-          "everyTurns": 10,
-          "pays": "science",
-          "amount": 5,
-          "count": "buildingsOfCategories",
-          "categories": [
-            "production"
-          ]
-        }
-      ],
       "flavor": "The hour stops being a guess.",
-      "note": "The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once."
+      "note": "Opens the Water Clock of Su Song."
     },
     "engineering": {
       "name": "Engineering",
@@ -872,26 +780,8 @@
           "warElephant"
         ]
       },
-      "effects": [
-        {
-          "kind": "windfallRider",
-          "occasion": "pillage",
-          "grant": {
-            "yield": "science",
-            "amount": 15
-          }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "pillage",
-          "grant": {
-            "yield": "culture",
-            "amount": 15
-          }
-        }
-      ],
       "flavor": "Man and horse, both in iron, both surprised by it.",
-      "note": "The horse is ridden rather than driven, and a rider who tears out a field carries home what he saw there — the way the ditches ran, the songs the diggers sang."
+      "note": "Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production."
     },
     "prospecting": {
       "name": "Geomancy",
@@ -904,28 +794,8 @@
         "horology"
       ],
       "unlocks": {},
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "hex",
-          "production": 1,
-          "faith": 1,
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "mine"
-              },
-              {
-                "test": "hasResource"
-              }
-            ]
-          }
-        }
-      ],
       "flavor": "The hill is asked again, and this time it answers.",
-      "note": "Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken."
+      "note": "Every mine your towns work gives more production. Workers and scouts may also search a hill for a buried seam."
     },
     "silkRoad": {
       "name": "The Silk Road",
@@ -941,20 +811,8 @@
           "caravanserai"
         ]
       },
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "route",
-          "crossing": "international",
-          "gold": 3
-        },
-        {
-          "kind": "rule",
-          "rule": "routesImportLuxuries"
-        }
-      ],
       "flavor": "Nobody has walked it. Everything has.",
-      "note": "A caravan that ends its journey in another empire\u2019s city is paid well for the crossing, and it comes home carrying one of the fine goods that city has opened \u2014 not a seam of your own, and worth less than one, but yours for as long as the road runs."
+      "note": "Towns may build a Caravanserai, which lets your empire run more trade routes."
     },
     "banking": {
       "name": "The Counting Houses",
@@ -988,15 +846,8 @@
           "crossbowman"
         ]
       },
-      "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "roadStepCost",
-          "percent": -40
-        }
-      ],
       "flavor": "A crank is a servant that never sleeps.",
-      "note": "Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to."
+      "note": "Crossbowmen may be trained."
     },
     "theAstrolabe": {
       "name": "The Astrolabe",
@@ -1036,16 +887,10 @@
         {
           "kind": "routeRider",
           "extra": 1
-        },
-        {
-          "kind": "pays",
-          "where": "route",
-          "gold": 1,
-          "perEndpointLuxury": true
         }
       ],
       "flavor": "No one walks all of it; the cloth does.",
-      "note": "One more caravan may be on the road at once, and every caravan of yours is paid for the fine goods held at either end of its journey."
+      "note": "Your empire may run an extra trade route at once."
     },
     "feudalism": {
       "name": "Castellany",
@@ -1065,20 +910,7 @@
         ]
       },
       "flavor": "Everyone kneels to someone and calls it order.",
-      "note": "A castle may be raised, and pikemen called. Your soldiers also stand better against anything that shoots at them.",
-      "effects": [
-        {
-          "kind": "combatLine",
-          "amount": 10,
-          "when": {
-            "test": "always"
-          },
-          "side": "defend",
-          "vsClass": {
-            "ranged": true
-          }
-        }
-      ]
+      "note": "Towns may build a Castle, and pikemen may be trained."
     },
     "theHolyOffice": {
       "name": "The Holy Office",
@@ -1118,18 +950,8 @@
           "forge"
         ]
       },
-      "effects": [
-        {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "class": {
-            "modelClass": "melee"
-          }
-        }
-      ],
       "flavor": "Iron, taught patience by fire.",
-      "note": "Every soldier of the sword line marches one hex further."
+      "note": "Longswordsmen may be trained, and towns may build a Forge."
     },
     "alchemy": {
       "name": "Alchemy",
@@ -1172,26 +994,8 @@
           "printingHouse"
         ]
       },
-      "effects": [
-        {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 10,
-          "scope": {
-            "test": "connected"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "production",
-          "percent": 10,
-          "scope": {
-            "test": "connected"
-          }
-        }
-      ],
       "flavor": "One carved character, used a thousand times.",
-      "note": "A city joined to your capital reads what your presses print: it learns faster, and it builds faster."
+      "note": "Opens the Printing House, which makes the town that holds it learn and build faster."
     },
     "physics": {
       "name": "Natural Philosophy",
@@ -1682,7 +1486,7 @@
       "name": "The Long Count",
       "glyph": "📿",
       "bearer": "empire",
-      "summary": "The next age’s beads are revealed a turn early, and an Order draft may be redrawn for faith."
+      "summary": "You may spend faith to redraw an Order draft."
     },
     "oceanGoing": {
       "name": "Open Ocean",

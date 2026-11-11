@@ -64,7 +64,7 @@ interface MovementRules {
    * formed (`roadStepCost`), and `snapMovement` is what keeps every running
    * total on a whole one.
    *
-   * It is the **base**, and since Machinery (batch E) not always the price: an
+   * It is the **base**, and since batch E not always the price: an
    * empire may hold a `roadStepCost` percentage that makes a step a fifth
    * instead of a third, folded once per sweep into `MoveProfile.roadStep`. The
    * denominator every total snaps onto is fifteen for that reason, so both
@@ -574,10 +574,11 @@ interface TradeRules {
    */
   international: InternationalRouteRules;
   /**
-   * What a luxury **lent home by a foreign road** is worth, as a whole percent
-   * of what a seam this empire dug pays — The Silk Road's, at the user's own
-   * figure (2026-09-10: *"effects 50% reduced"*, `docs/flags.md` (uuu) mark 6,
-   * where `docs/playstyles.md` §7 had written the whole thing).
+   * What a luxury **lent by a foreign post** is worth, as a whole percent of
+   * what a seam this empire dug pays — The Capitulations' (Commerce batch T5).
+   * The figure is the user's own for The Silk Road's road loans (2026-09-10:
+   * *"effects 50% reduced"*, `docs/flags.md` (uuu) mark 6); those loans left
+   * the game in batch TT1 and the posts kept the share.
    *
    * **One number for every figure a luxury pays**, because it is read as the
    * copy count (`copiesFor`, `resourceEffects.ts`) rather than applied fold by
@@ -1427,22 +1428,22 @@ interface AuthorityRules {
   /**
    * Capacity the capital supplies. **Six** since 2026-09-08 (the user: "have
    * the palace give +6 starting authority. That way the player can settle 3
-   * coastal or 2 regular cities without needing monuments") — read against
-   * `foundedCity` 3 and `coastalCity` 2, which is exactly that arithmetic.
+   * coastal or 2 regular cities without needing monuments"). That sum was made
+   * when a coastal town cost less. Since batch TT1 every founded town costs
+   * `foundedCity`, so the palace covers two founded towns.
    */
   palaceCapacity: number;
   /** Capacity each age *advance* supplies. See `agesAdvanced` in `meters.ts`. */
   perAge: number;
   /** What the capital costs. Free in v1, and a number so it can stop being. */
   capital: number;
-  /** What an ordinary city the player founded costs. */
-  foundedCity: number;
-  /** What a coastal city costs instead — a discount, never an exemption. */
-  coastalCity: number;
   /**
-   * What a city taken by force costs. Dearer than either, and it outranks the
-   * coastal discount: a seized harbour is a thing you seized (Entry XIV.D.2).
+   * What a city the player founded costs, on the coast or inland. A coastal
+   * town cost less until batch TT1 (`docs/flags.md` (iiiiiii)). The user said
+   * the discount was confusing and the player could not see it.
    */
+  foundedCity: number;
+  /** What a city taken by force costs. Dearer than a founded one (Entry XIV.D.2). */
   capturedCity: number;
 }
 

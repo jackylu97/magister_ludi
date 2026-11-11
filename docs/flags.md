@@ -59,6 +59,7 @@ The user: *"there's too much authority and happiness in the game as it stands. I
 - **Readings taken without a ruling (the user may change them):**
   - Divine Right keeps its one bonus (a captured town costs 1 less authority) for now. The technology unlocks nothing else, so it needs a new unlock or leaves the tree, and the user has not said which.
   - The Quiet Hours belief is not touched here. The belief pass is a separate proposal.
+  - The Civil Service keeps one bonus for now: great-person works gain +1 food and +1 production. The user cut its authority and its happiness line by name. Its only unlock, the Examination Hall, was retired earlier, so with all three bonuses cut the technology gives nothing, and the tree's rule that every technology gives something fails. Like Divine Right, it needs a new unlock or leaves the tree, and the user has not said which. The line "The Civil Service: +1 food and +1 production on great-person works" in the Cut list above waits for that ruling.
 - **Open:** early game pacing (section 4 of the page). The user has ideas of their own and has made no determination.
 
 **(hhhhhhh) Simpler Orders and twelve reworked governments: RULED 2026-11-10; batches DS1 to DS9 and G1 in flight.**

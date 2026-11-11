@@ -143,10 +143,9 @@ import {
 import { lentCopiesAwayBy } from './deals';
 import { RULES } from './rulesData';
 import { economyStamp, slateMemo } from './slate';
-// The three route readings this module needs to answer "what is a caravan of
-// mine carrying home" — a leaf (`routes.ts`) below both this file and
-// `routeYields.ts`, which is where the pair resolution has always lived.
-import { cityPostPays, routeCities, routeIsInternational, routeIsLive } from './routes';
+// The one route reading this module needs to answer "which foreign towns lend
+// me a luxury" — a leaf (`routes.ts`) below both this file and `routeYields.ts`.
+import { cityPostPays } from './routes';
 import {
   type CityYieldKey,
   type ResourceCityScope,
@@ -280,8 +279,8 @@ function ageOf(state: GameState, playerId: number): TechAge {
  * answer (`resourceCopies`, which asks the same `openedResource` rule
  * everything else does).
  *
- * **And the whole of the borrowed copy** (The Silk Road, the user's tree pass of
- * 2026-09-10): a luxury a foreign road lends this empire counts
+ * **And the whole of the borrowed copy** (The Capitulations, Commerce batch
+ * T5): a luxury a foreign post lends this empire counts
  * `rules.trade.importedLuxuryPercent` of a time — half — and because every
  * reading in this file arrives at its figure by multiplying this number, *every*
  * effect of a borrowed luxury is halved by one multiplication rather than by
@@ -292,8 +291,8 @@ function ageOf(state: GameState, playerId: number): TechAge {
  * A borrowed copy is **exactly half of one**, with `perCopy` and the Grand
  * Bazaar's duplicates both skipped: the empire owns no tile of it (so the copy
  * count is nought and a `perCopy` row would pay nothing at all, which is a
- * different sentence from "half"), and a caravan's loan is not a second copy of
- * a seam somebody dug.
+ * different sentence from "half"), and a loan is not a second copy of a seam
+ * somebody dug.
  */
 function copiesFor(
   state: GameState,
@@ -369,8 +368,8 @@ function heldCopies(state: GameState, playerId: number, id: ResourceId): number 
 
 /**
  * **How a luxury reached this empire's hands, when it is not a seam it
- * keeps**: `'borrowed'` for a kind a road or a post lends it (The Silk Road,
- * The Capitulations), `'lent'` for a kind it now holds only through copies it
+ * keeps**: `'borrowed'` for a kind a foreign post lends it (The
+ * Capitulations), `'lent'` for a kind it now holds only through copies it
  * lent away (The Commenda, Commerce batch T5), `null` for everything it holds
  * itself. The mark is all a fold below needs: `copiesFor` turns it into the
  * share and `lineLabel` into the word.
@@ -475,7 +474,7 @@ function lineLabel(
   // **A borrowed copy says so, and never says a fraction.** The share is the
   // rule and the ledger's business is *why* the figure is what it is — "Wine ·
   // ×0.5 copies" is arithmetic showing its working, and "Wine · on loan" is the
-  // sentence a player can act on (cut the road and it goes).
+  // sentence a player can act on (lose the post and it goes).
   if (loan === 'borrowed') parts.push('on loan');
   // A kind kept only through copies lent away (The Commenda) says so in the
   // same way: the word a player can act on, never the fraction.
@@ -519,48 +518,36 @@ function lineOf(
 const IMPORTED_SHARE = Math.max(0, RULES.trade.importedLuxuryPercent) / 100;
 
 /**
- * **The luxuries this empire's foreign roads lend it**, in the resource table's
- * own order — The Silk Road's clause (`BehaviorRuleId`'s `routesImportLuxuries`).
- * Since Commerce batch T5 the foreign towns holding its paying post lend too,
- * after the roads (The Capitulations, `postsLendLuxuries`). The walk is
- * `luxuryLoans`, which keeps which loan is a road's and which a post's.
+ * **The luxuries this empire's foreign posts lend it**, in the resource table's
+ * own order — The Capitulations' clause (`BehaviorRuleId`'s `postsLendLuxuries`,
+ * Commerce batch T5). The walk is `luxuryLoans`.
  *
- * One kind per live international route, never a kind the empire already
- * controls and never the same kind twice, read off the **destination's** own
- * improved holdings (`cityResources`, the one-per-town rule every other reading
- * of "what does this town hold" asks). Derived every time it is asked, so it
- * ends the instant a route does — there is nothing written down anywhere and
- * therefore nothing to keep in step.
+ * One kind per foreign town where this empire's post pays, never a kind the
+ * empire already controls and never the same kind twice, read off the town's
+ * own improved holdings (`cityResources`, the one-per-town rule every other
+ * reading of "what does this town hold" asks). Derived every time it is asked,
+ * so it ends the instant a post stops paying — there is nothing written down
+ * anywhere and therefore nothing to keep in step.
  *
- * The routes are walked in `state.units` order and each takes the first kind the
+ * The Silk Road's foreign routes lent a luxury the same way until batch TT1
+ * (`docs/flags.md` (iiiiiii)), when that rule left the game.
+ *
+ * The towns are walked in `state.cities` order and each takes the first kind the
  * ones before it left, which is the contention rule the whole game uses (sweep
  * order decides) and the only one a replay reproduces. The **table's** order is
  * what comes back, so two empires holding the same loans read them the same way
  * round in every ledger.
  *
- * Remembered on the **revision** clock rather than the economy one: a route is a
- * fact about a *piece* — where a caravan is standing and what it is carrying —
- * and the economy half is the ground and nothing but (see "The two clocks" in
- * `slate.ts`).
- *
- * **And on the economy stamp inside it** (batch R1). The revision is raised
- * *after* a handler and *after* a phase, and this reading is asked from **inside**
- * both — `resourceTileLines` → `yieldContextFor` → `chooseCitizens`, which is
- * to say every time `refreshCityDerived` re-seats a town. So the revision alone
- * cannot see a bargain signed or lapsed, a road cut or a seam improved halfway
- * through the call that is about to read it; the shadow run found this list
- * holding a luxury a deal had already taken back (turn 97 of a bot game,
- * `["dyes","sugar"]` against a fresh `["dyes"]`). Every one of those writes
- * announces `bumpEconomy` on the line it happens (batch M3, and
- * `test/sim/slateRegister.test.ts` is what holds it true), so putting the stamp
- * **in the key** makes a moved world a miss rather than a wrong answer.
- *
- * In the key rather than in the clock, deliberately: it keeps the entry's
- * lifetime the revision's — which is the honest one, since a caravan's step
- * moves only that counter at the command's own scale — and adds the second
- * question without asking `slate.ts` for a third clock, which its own docblock
- * says is a batch. The cost is a few dead entries inside one revision, thrown
- * away whole the moment it moves.
+ * Remembered on the **revision** clock, and on the economy stamp inside the key
+ * (batch R1). The revision is raised *after* a handler and *after* a phase, and
+ * this reading is asked from **inside** both — `resourceTileLines` →
+ * `yieldContextFor` → `chooseCitizens`, which is to say every time
+ * `refreshCityDerived` re-seats a town. So the revision alone cannot see a
+ * bargain signed or lapsed, or a seam improved halfway through the call that is
+ * about to read it. Every one of those writes announces `bumpEconomy` on the
+ * line it happens (batch M3, and `test/sim/slateRegister.test.ts` is what holds
+ * it true), so putting the stamp **in the key** makes a moved world a miss
+ * rather than a wrong answer.
  */
 export function importedLuxuries(state: GameState, playerId: number): ResourceId[] {
   const key = loansKey(state, playerId);
@@ -571,76 +558,46 @@ export function importedLuxuries(state: GameState, playerId: number): ResourceId
   });
 }
 
-/** One kind lent to this empire, and what lends it: a road or a post. */
+/** One kind a foreign post lends this empire. */
 interface LuxuryLoan {
   id: ResourceId;
-  via: 'route' | 'post';
 }
 
 /**
- * The memo key for the loans walk, or `null` when this seat holds neither
- * rule and so borrows nothing. The two rules are in the key because a card
- * may be seated between two reads of one revision.
+ * The memo key for the loans walk, or `null` when this seat does not hold the
+ * rule and so borrows nothing. The rule is in the key because a card may be
+ * seated between two reads of one revision.
  */
 function loansKey(state: GameState, playerId: number): string | null {
-  const routes = cardBehaviorRule(state, playerId, 'routesImportLuxuries');
-  const posts = cardBehaviorRule(state, playerId, 'postsLendLuxuries');
-  if (!routes && !posts) return null;
-  return `${playerId}:${economyStamp(state)}:${routes ? 'r' : ''}${posts ? 'p' : ''}`;
+  if (!cardBehaviorRule(state, playerId, 'postsLendLuxuries')) return null;
+  return `${playerId}:${economyStamp(state)}:p`;
 }
 
 /**
- * **Every kind this empire borrows, in the order the walk claims them, with
- * what lends each**: `importedLuxuries`' list before it is put in table order.
+ * **Every kind this empire borrows, in the order the walk claims them**:
+ * `importedLuxuries`' list before it is put in table order.
  *
- * One walk, two halves, and a kind is claimed once:
- *
- *   · **the routes first** (The Silk Road, `routesImportLuxuries`): each live
- *     international route of this empire, in `state.units` order, takes the
- *     first kind its destination has opened;
- *   · **then the posts** (The Capitulations, `postsLendLuxuries`, Commerce
- *     batch T5; the triage's reading 22): each foreign town where this
- *     empire's post pays (`cityPostPays`), in `state.cities` order, takes the
- *     first kind it has opened.
- *
- * Never a kind the empire controls and never a kind another loan has claimed.
- * The route half is the Trade screen's `runningRouteImports` exactly, which
- * `test/ui/tradeImports.test.ts` pins: the posts come after, so they never
- * move what a road carries.
+ * Each foreign town where this empire's post pays (`cityPostPays`), in
+ * `state.cities` order, takes the first kind it has opened (The Capitulations,
+ * `postsLendLuxuries`, Commerce batch T5; the triage's reading 22). Never a kind
+ * the empire controls and never a kind another loan has claimed.
  */
 export function luxuryLoans(state: GameState, playerId: number): readonly LuxuryLoan[] {
   const key = loansKey(state, playerId);
   if (key === null) return [];
   return slateMemo(state, 'revision', 'luxuryLoans', key, () => {
-    const routes = cardBehaviorRule(state, playerId, 'routesImportLuxuries');
-    const posts = cardBehaviorRule(state, playerId, 'postsLendLuxuries');
     const held = new Set<ResourceId>(controlledResources(state, playerId, 'luxury'));
     const claimed = new Set<ResourceId>();
     const list: LuxuryLoan[] = [];
-    const claim = (town: City, via: LuxuryLoan['via']): void => {
+    for (const town of state.cities) {
+      if (town.ownerId === playerId) continue;
+      if (!cityPostPays(state, town, playerId)) continue;
       for (const id of cityResources(state, town, 'luxury')) {
         if (held.has(id) || claimed.has(id)) continue;
         claimed.add(id);
-        list.push({ id, via });
-        // **One luxury per route or post**: a caravan carries a cargo, not a
-        // manifest, and a house abroad sends one good home.
-        return;
-      }
-    };
-    if (routes) {
-      for (const unit of state.units) {
-        if (unit.ownerId !== playerId || unit.trade === undefined) continue;
-        if (!routeIsLive(state, unit)) continue;
-        const pair = routeCities(state, unit);
-        if (!pair || !routeIsInternational(pair.from, pair.to)) continue;
-        claim(pair.to, 'route');
-      }
-    }
-    if (posts) {
-      for (const town of state.cities) {
-        if (town.ownerId === playerId) continue;
-        if (!cityPostPays(state, town, playerId)) continue;
-        claim(town, 'post');
+        list.push({ id });
+        // **One luxury per post**: a house abroad sends one good home.
+        break;
       }
     }
     return list;
@@ -655,8 +612,8 @@ export function luxuryLoans(state: GameState, playerId: number): readonly Luxury
  * pays it at the same share (`meters.ts`).
  *
  * A kind the empire still controls is not here: it pays as it always did,
- * and only a per-copy line adds the share of each lent copy. A kind a road or
- * a post already lends it (`importedLuxuries`) is not here either, so a kind
+ * and only a per-copy line adds the share of each lent copy. A kind a post
+ * already lends it (`importedLuxuries`) is not here either, so a kind
  * is never held at a share twice. Empty for a seat with no such card.
  *
  * Read outside every memo, as Strategic Exports' share is: a card seated
@@ -698,9 +655,9 @@ export function lentLuxuriesKept(state: GameState, playerId: number): ResourceId
  * `copiesFor`: a luxury may be amplified by a card and may scale with copies, a
  * strategic bonus pays once however many copies are held.
  *
- * **The borrowed copies come last and carry a mark** (The Silk Road). They are
- * appended rather than merged into the first list because they are a different
- * fact about the empire — a seam it dug against a road it is running — and
+ * **The borrowed copies come last and carry a mark** (The Capitulations). They
+ * are appended rather than merged into the first list because they are a
+ * different fact about the empire — a seam it dug against a post it keeps — and
  * because `importedLuxuries` has already excluded every kind the first list
  * holds, so the two never name the same luxury and no reading has to break a
  * tie. The mark is the *only* thing every fold below has to know about them:
@@ -992,26 +949,6 @@ interface ResourceRouteLine {
   food: number;
   production: number;
   gold: number;
-}
-
-/**
- * **How many distinct luxuries the two ends of one road hold between them**, for
- * The Golden Roads' coin-per-good (`CardRouteYieldEffect.perEndpointLuxury`).
- *
- * It lives here rather than in `routeYields.ts` for that module's stated leaf
- * rule: nothing there imports `cities.ts` directly, and this file already does,
- * so the caravan reaches the city scale *through* one hop exactly as it reaches
- * the luxury evaluator below.
- *
- * The **union**, once each, and that is the ruled reading of *"a luxury in the
- * origin or destination city"*: wine at both ends of a road is one wine. Each
- * town's own list is `cityResources`' one-per-town rule, so a plantation
- * pillaged this turn stops paying the caravan and the signature together.
- */
-export function endpointLuxuryCount(state: GameState, from: City, to: City): number {
-  const held = new Set<ResourceId>(cityResources(state, from, 'luxury'));
-  for (const id of cityResources(state, to, 'luxury')) held.add(id);
-  return held.size;
 }
 
 /**

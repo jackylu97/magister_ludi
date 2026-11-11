@@ -67,11 +67,18 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   comes back if that access is lost. A row already standing in a town's queue is
   excused by the gate (so the queue stays editable) and builds out: nothing is
   dropped, and no queue stalls.
-- **Seventeen effect-carrying techs** are the exceptions to the neutral-tree
-  ruling (theme abilities otherwise live on cards and building rows). It was
-  eight until batch E gave the re-gifted nodes their own rules
-  (`docs/history/tech-gifts.md` §7), and sixteen until Castellany's deferred
-  half — arrows answered by armour — became a real strength line.
+- **Seven ordinary techs carry a rule** since batch TT1 (`docs/flags.md`
+  (iiiiiii)): Code of Laws, Bronze Panoply, State Workforce, Daughter Cities,
+  The Golden Roads, Divine Right and The Civil Service. The user ruled that an
+  unlock is obvious and a passive bonus is easy to miss, and cut the rest. Four improvement
+  renewals stay (Irrigation, Currency, The Saddle, Geomancy). The charter
+  technologies keep their own rules. Before the cut, batch E had given the
+  re-gifted nodes their own rules (`docs/history/tech-gifts.md` §7).
+- **A kept bonus is the node's headline.** It is listed first among the node's
+  gifts (`techGifts`), and the star chart prints it first on the node's face,
+  above the units and buildings (`techHeadlines`, `src/ui/techTree.ts`).
+- **The Civil Service keeps its great-person works bonus** until the user rules
+  whether it gets a new unlock or leaves the tree.
 - **Every hammer price** takes its column from the unlocking tech, never the row
   — units, buildings and wonders alike (`docs/production-costs.md`, batch P1):
   `sizeHammers[size] × columnRate ^ (column − 1)`, the row carrying a size and
@@ -82,8 +89,9 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   line, `√(cities ÷ 4)` (item dd).
 - `TechDef` may carry `paysBead` (Alchemy, `theClosingWork`); abilities ride
   `techsGrant` (`ABILITY_TECH`). `ageEntryDice` is **gone** — the dice went with
-  `Player.dice` and `BeadRules.startingDice`, and Chronology's early sight of the
-  next age's beads is the Long Count verb now, not a die.
+  `Player.dice` and `BeadRules.startingDice`. Chronology's Long Count verb is
+  the faith redraw of an Order draft; its early sight of the next age's beads
+  went with the beads (batch Q1).
 
 ## Part 2 — As built (generated; see the header for the command)
 
@@ -114,9 +122,9 @@ How to read the columns:
   a queue row that never leaves. A withdrawn row (`retired`) is not printed at
   all.
 - † on a **node's name** = the row carries a deferred half; the clause itself is
-  the † bullet under the table. Two nodes carry one today (Epic Poetry,
-  Satrapies): Code of Laws, Daughter Cities and Castellany all had theirs built
-  in batches E4a/E4b and lost the mark.
+  the † bullet under the table. No node carries one today: Code of Laws,
+  Daughter Cities and Castellany had theirs built in batches E4a/E4b, and Epic
+  Poetry's went with its rule in batch TT1.
 - A unit that cannot be raised without a seam says so — `requiresResource` reads
   *(needs improved Iron)*. The **Trader** is the one row that is neither
   hammered nor bought: R1 (the user's ruling of 2026-09-09, `docs/flags.md`
@@ -183,6 +191,12 @@ in the data's own words. The Examination Hall is renamed **The Civil Service**
 the third conversion project, and Engineering is deliberately *not* on the list —
 it kept three buildings and needed nothing.
 
+**Batch TT1** (2026-11-10, `docs/flags.md` (iiiiiii)): most of the passive
+bonuses on the nodes were cut, and the rule bullets under each age list only
+what is left. Movable Type's science and production moved onto the Printing
+House, for the town that holds it, and Bronze Panoply gained a second extra
+worker charge.
+
 **The ten chains** (`BuildingDef.requiresBuilding`, a parent standing in the same
 town): Palisade → Stone Walls → Castle · Monument → Amphitheater · Market →
 Bazaar and Bank · Harbour → Shipyard · Library → University → Observatory ·
@@ -214,9 +228,9 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Bronze Panoply | 100 | The Wheel | Phalanx *(needs improved Obsidian or Copper)*, Swordsman *(needs improved Obsidian or Copper)* | Smithy, War Hall | reveals **Iron** |
-| Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎭 |
+| Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count |
 | Currency | 100 | The Wheel | Trader *(never built — comes with a route bought in gold)* | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
-| Epic Poetry † | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
+| Epic Poetry | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
 | Code of Laws | 190 | Chronology | — | Imperial Throne ‡, *Pageants* (project) | — |
 | Irrigation | 190 | Chronology, Bronze Panoply | — | Garden | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
 | Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls | workers may build Lumbermill · Siege |
@@ -225,16 +239,14 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Chronology** — every 15 turns, 1 renown for every science or faith building
-- **Chronology** — *Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft. On the long count the realm's libraries and its shrines are read off together, and your renown grows by them.*
-- **Epic Poetry** — losing a unit grants +4 culture
-- **Epic Poetry** † Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it. — not built yet
-- **Epic Poetry** — *When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come.*
+- **Bronze Panoply** — newly created workers gain +1 charge
+- **Bronze Panoply** — *Every worker made from now on has an extra charge of work.*
+- **Chronology** — *You may spend faith to draw a new hand of Orders in place of the one you were offered.*
+- **Epic Poetry** — *Renown now brings great people. Before you know this, renown still builds up, but no great person comes.*
 - **Code of Laws** — +3 authority capacity
 - **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could.*
 - **Irrigation** — *A farm standing beside fresh water feeds its city better than it did.*
-- **Siegecraft** — every city: +1 city defence per 4 citizens
-- **Siegecraft** — *A wall is only as good as the hands on it. Every few citizens of a town of yours make its defence harder to break.*
+- **Siegecraft** — *Your soldiers may besiege an enemy town: a town they surround cannot heal and loses health each turn. Towns may raise stone walls, and workers may build lumber mills.*
 
 ### Æra III — The Age of Empire (14 nodes, 360–1150🔬)
 
@@ -259,30 +271,16 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 - **Iron Working** — *Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours.*
 - **State Workforce** — newly created workers gain +1 charge
-- **State Workforce** — workers cost −25% to buy
-- **State Workforce** — *Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.*
-- **The Silk Road** — +3 gold on every trade route that ends in another empire’s city
-- **The Silk Road** — a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own
-- **The Silk Road** — *A caravan that ends its journey in another empire’s city is paid well for the crossing, and it comes home carrying one of the fine goods that city has opened — not a seam of your own, and worth less than one, but yours for as long as the road runs.*
-- **Satrapies** — each connected city pays +1 gold
-- **Satrapies** — +1 happiness in every city joined to your capital by road
-- **Satrapies** — *Every city joined to your capital pays one more gold, and a joined city is a contented one.*
-- **The Civil Service** — +5 percentage points to the bonus your positive happiness pays
-- **The Civil Service** — +5 authority capacity
+- **State Workforce** — *Every worker made from now on has an extra charge of work.*
+- **The Silk Road** — *Towns may build a Caravanserai, which lets your empire run more trade routes.*
+- **Satrapies** — *Opens the Forbidden City and the Great Wall.*
 - **The Civil Service** — +1 food, +1 production on every hex carrying a great person's work
-- **The Civil Service** — *A realm that is content or well governed is rewarded more generously, and the crown's authority reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.*
-- **The Saddle** — pillaging grants +15 science
-- **The Saddle** — pillaging grants +15 culture
-- **The Saddle** — *The horse is ridden rather than driven, and a rider who tears out a field carries home what he saw there — the way the ditches ran, the songs the diggers sang.*
-- **Daughter Cities** — settlers cost 33% less production
+- **The Civil Service** — *Every work a great person leaves on the land gives its town more food and production.*
+- **The Saddle** — *Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production.*
 - **Daughter Cities** — new cities are founded with a Town Charter
-- **Daughter Cities** — +1 food, +1 production on every trade route between two of your own cities
-- **Daughter Cities** — *Settlers are trained faster, every city you found is founded with its charter already granted, and the carts that run between your own towns carry more than they did.*
-- **Guildhalls** — +10% production toward wonders
-- **Guildhalls** — +2 culture per wonder you hold
-- **Guildhalls** — *The guilds put their weight behind the great works: a wonder rises faster in your cities, and every wonder your realm has raised sings a little louder.*
-- **Horology** — every 10 turns, 5 science for every production building
-- **Horology** — *The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once.*
+- **Daughter Cities** — *Every town you found starts with its Town Charter already built.*
+- **Guildhalls** — *Towns may build a Workshop.*
+- **Horology** — *Opens the Water Clock of Su Song.*
 - **Theology** — *The enhancing beliefs open here: a faith may now be deepened as well as spread.*
 
 ### Æra IV — The Age of Cathedrals (15 nodes, 1960–8000🔬)
@@ -309,21 +307,14 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 - **Divine Right** — the authority a captured city costs falls by 1
 - **Divine Right** — *A city you have taken by force costs one less authority.*
-- **Geomancy** — +1 production, +1 faith on every hex with a Mine carrying a resource
-- **Geomancy** — *Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken.*
-- **Machinery** — a step along a road costs 40% less movement
-- **Machinery** — *Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to.*
+- **Geomancy** — *Every mine your towns work gives more production. Workers and scouts may also search a hill for a buried seam.*
+- **Machinery** — *Crossbowmen may be trained.*
 - **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
-- **Castellany** — +10 combat strength against ranged units
-- **Castellany** — *A castle may be raised, and pikemen called. Your soldiers also stand better against anything that shoots at them.*
-- **Steel** — melee units: +1 movement
-- **Steel** — *Every soldier of the sword line marches one hex further.*
+- **Castellany** — *Towns may build a Castle, and pikemen may be trained.*
+- **Steel** — *Longswordsmen may be trained, and towns may build a Forge.*
 - **The Golden Roads** — +1 trade route
-- **The Golden Roads** — +1 gold on every trade route you send, for each luxury in the city it left or the city it reaches
-- **The Golden Roads** — *One more caravan may be on the road at once, and every caravan of yours is paid for the fine goods held at either end of its journey.*
-- **Movable Type** — +10% science in every city joined to your capital by road
-- **Movable Type** — +10% production in every city joined to your capital by road
-- **Movable Type** — *A city joined to your capital reads what your presses print: it learns faster, and it builds faster.*
+- **The Golden Roads** — *Your empire may run an extra trade route at once.*
+- **Movable Type** — *Opens the Printing House, which makes the town that holds it learn and build faster.*
 - **Alchemy** — *Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.*
 
 ### The charter technologies
@@ -378,7 +369,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Ancestor Rites | Epic Poetry | empire | Renown now earns great-person offers. |
 | Sea Legs | Wayfinding | military | Soldiers may cross coastal water and lakes. |
 | Siege | Siegecraft | military | Surrounded enemy cities cannot heal and lose health each turn. |
-| The Long Count | Chronology | empire | The next age’s beads are revealed a turn early, and an Order draft may be redrawn for faith. |
+| The Long Count | Chronology | empire | You may spend faith to redraw an Order draft. |
 | Open Ocean | The Astrolabe | empire | Ships and embarked units may cross deep ocean. |
 | Open Borders | Writing | empire | Open-borders treaties; both empires must know Writing. |
 | Votive Offering | — | city | A city may give faith to whatever it is building: the faith the rite costs becomes production. |

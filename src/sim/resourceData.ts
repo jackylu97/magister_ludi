@@ -208,12 +208,12 @@ export type ResourceCityScope = 'owner' | CityScope;
  *
  * `roadStepCost` joined in batch R2, for horses: a strategic resource that makes
  * an empire's roads quicker to march along. It reaches the same one number
- * Machinery's card rule reaches (`MoveProfile.roadStep`, built in `moveProfile`),
+ * a card's rule reaches (`MoveProfile.roadStep`, built in `moveProfile`),
  * summed with it before the price is snapped, so two sources of a discount read
  * as one total and not as two multiplications.
  *
  * **The sign is the rule's own and it is easy to get backwards: a negative
- * percentage is a discount.** Machinery's third-to-a-fifth is −40. A resource
+ * percentage is a discount.** Interior Lines' third-to-a-fifth is −40. A resource
  * that made roads quicker writes a negative number; a positive one would slow
  * its owner's army down. Same convention as `settlerCost` and `unitUpkeep`, and
  * `test/sim/resourceBonuses.test.ts` pins the direction.

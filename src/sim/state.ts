@@ -262,8 +262,36 @@ import {
  * **A v228 save is refused and does not replay.** A logged route is priced, cancelled
  * and ended differently. The branch migrates nothing, for the reason given under v119
  * in `docs/history/schema-changelog.md`.
+ *
+ * v230 (branch `decks`; batch TT1, `docs/flags.md` (iiiiiii), the user's ruling of
+ * 2026-11-10): **less authority and happiness from the tech tree, and fewer passive
+ * bonuses on technologies.** No field joins or leaves the state. The rules that change:
+ *
+ *   · a coastal town costs as much authority as any founded town.
+ *     `rules.meters.authority.coastalCity` and the `coastalCityCost` card rule are gone;
+ *   · The Civil Service gives no authority and no earlier reward steps. It keeps its
+ *     pay on great-person works for now (a reading in the same item). The Assize Court, The Examination Court and The Post Station
+ *     give no authority. Gracia Mendes Nasi gives 5 authority, not 8;
+ *   · Satrapies gives no happiness and no gold. The Silk Road lends no luxury and pays
+ *     no gold on foreign routes, and the `routesImportLuxuries` rule is gone. The Public
+ *     Bath gives 1 happiness, not 2;
+ *   · these technology bonuses are cut: Siegecraft's town defence, Epic Poetry's
+ *     culture when a unit falls, Chronology's renown and the culture on its
+ *     plantations, State Workforce's cheaper workers, The Saddle's pay for pillaging,
+ *     Daughter Cities' cheaper settlers and its pay on home routes, Guildhalls' wonder
+ *     bonuses, Horology's science, Geomancy's extra pay on a mine with a resource, The
+ *     Golden Roads' gold for each luxury (the `perEndpointLuxury` field is gone),
+ *     Machinery's cheaper road step, Castellany's defence against ranged units and
+ *     Steel's extra movement;
+ *   · Movable Type's science and production move onto the Printing House, for the
+ *     town that holds it. Bronze Panoply gives workers an extra charge.
+ *
+ * **A v229 save is refused and does not replay.** A logged game's yields, meters, costs
+ * and moves come out differently from the first technology that changed. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 229;
+export const SCHEMA_VERSION = 230;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

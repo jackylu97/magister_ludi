@@ -21,6 +21,13 @@
  *     occasion that already paid coin and a bandage;
  *   · `CardCityStatEffect.count` — Siegecraft's walls counted in townsfolk.
  *
+ * Batch TT1 (`docs/flags.md` (iiiiiii), 2026-11-10) cut most of the passive
+ * bonuses on technologies. The Silk Road's gold and its luxury loan, Daughter
+ * Cities' home-route pay, The Saddle's pillage riders and Siegecraft's walls
+ * are gone, and so is the `routesImportLuxuries` rule. The tests of those rows
+ * now check that they are gone. `crossing` and the counted city stat are still
+ * live on other rows, and the tests below read them there.
+ *
  * The pass also added `BuildingDef.routeSlotsPerPopulation`, a route slot that
  * grew with the town. Batch TR1 (`docs/flags.md` (ggggggg), 2026-11-10) removed
  * it, and the tests of it here now test the flat figures that replaced it.
@@ -39,10 +46,10 @@ import { unitMatches } from '../../src/sim/statecraft';
 import { describeBuildingRow, describeCard, stripRefs } from '../../src/sim/statecraft';
 import { explainRouteSenderYieldBetween, explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import { explainRouteSlots, routeSlots } from '../../src/sim/trade';
-import { cardCityStat, foldCityStat } from '../../src/sim/statecraft';
+import { cardCityStat } from '../../src/sim/statecraft';
 import { improvementDef } from '../../src/sim/improvementData';
 import { orderDef } from '../../src/sim/statecraftData';
-import { importedLuxuries, resourceHappiness } from '../../src/sim/resourceEffects';
+import { importedLuxuries } from '../../src/sim/resourceEffects';
 import { bumpRevision, createUnit } from '../../src/sim/state';
 import { foundCityAt } from '../../src/sim/cities';
 import { explainHappiness } from '../../src/sim/meters';
@@ -91,69 +98,66 @@ describe('a route row may name the crossing', () => {
     return { g, from, to };
   }
 
-  it('pays The Silk Road only on the road that leaves the realm', () => {
+  it('pays a foreign-road row only on the road that leaves the realm', () => {
+    // The Funduq's grain and hammers are paid on a road abroad from the town
+    // that holds one (a leader's building, standing here by hand).
     const { g, from, to } = pair();
-    const owner = g.state.players[0]!;
-    owner.techsResearched.push('silkRoad');
-    bumpRevision(g.state);
-
-    // **Domestic**: the two towns are one empire's, so the clause is silent and
-    // the caravan's fold is the fold it always was.
+    from.buildings.push('funduq');
     to.ownerId = 0;
     bumpRevision(g.state);
     const home = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    from.buildings.splice(from.buildings.indexOf('funduq'), 1);
+    bumpRevision(g.state);
+    const homeBare = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    // **Domestic**: the clause is silent, so the Funduq changes nothing.
+    expect(home.food).toBe(homeBare.food);
+    expect(home.production).toBe(homeBare.production);
 
-    // **Abroad**: the coin lands in the *sender's* books, which is where an
-    // international route's whole worth to the seat that sent it lives.
+    // **Abroad**: the grain and hammers land in the *sender's* books.
     to.ownerId = 1;
     bumpRevision(g.state);
+    const awayBare = foldRouteYield(explainRouteSenderYieldBetween(g.state, from, to));
+    from.buildings.push('funduq');
+    bumpRevision(g.state);
     const away = foldRouteYield(explainRouteSenderYieldBetween(g.state, from, to));
-    const flat = RULES.trade.international;
-    expect(away.gold).toBe(Math.floor(flat.gold) + 3 + Math.floor((from.population + to.population) / flat.goldPerCombinedPop));
-    // And the domestic fold never saw it: the two are the same row asked twice.
-    expect(home.gold).toBe(
-      foldRouteYield(explainRouteYieldBetween(g.state, from, { ...to, ownerId: 0 })).gold,
-    );
+    expect(away.food).toBe(awayBare.food + 2);
+    expect(away.production).toBe(awayBare.production + 2);
   });
 
-  it('pays Daughter Cities only on the road that stays at home', () => {
+  it('pays a home-road row only on the road that stays at home', () => {
+    // The Tambo's grain and hammers, on a road between two of the seat's towns.
     const { g, from, to } = pair();
     to.ownerId = 0;
     bumpRevision(g.state);
     const before = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
-    g.state.players[0]!.techsResearched.push('colonialCharters');
+    from.buildings.push('tambo');
     bumpRevision(g.state);
     const after = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
     expect(after.food).toBe(before.food + 1);
     expect(after.production).toBe(before.production + 1);
 
-    // The same law, the same caravan, one border: nothing.
+    // The same building, the same caravan, one border: nothing.
     to.ownerId = 1;
     bumpRevision(g.state);
     const abroad = foldRouteYield(explainRouteSenderYieldBetween(g.state, from, to));
-    expect(abroad.food).toBe(0);
-    expect(abroad.production).toBe(0);
+    from.buildings.splice(from.buildings.indexOf('tambo'), 1);
+    bumpRevision(g.state);
+    const abroadBare = foldRouteYield(explainRouteSenderYieldBetween(g.state, from, to));
+    expect(abroad.food).toBe(abroadBare.food);
+    expect(abroad.production).toBe(abroadBare.production);
   });
 
-  it('says which roads it means, in words a first-time player has', () => {
-    const said = (id: string): string[] =>
-      describeCard(id as never).map((clause) => stripRefs(clause.text));
-    expect(said('silkRoad')).toContain(
-      '+3 gold on every trade route that ends in another empire’s city',
-    );
-    expect(said('colonialCharters')).toContain(
-      '+1 food, +1 production on every trade route between two of your own cities',
-    );
+  it('no longer pays The Silk Road or Daughter Cities on a road (batch TT1)', () => {
+    for (const id of ['silkRoad', 'colonialCharters'] as const) {
+      const routeRows = (techDef(id).effects ?? []).filter(
+        (effect) => effect.kind === 'pays' && effect.where === 'route',
+      );
+      expect(routeRows, id).toEqual([]);
+    }
   });
 });
 
-describe('a foreign road brings a luxury home', () => {
-  it('lends nothing at all without the rule', () => {
-    const g = game(5102);
-    found(g.state, 0);
-    expect(importedLuxuries(g.state, 0)).toEqual([]);
-  });
-
+describe('a foreign road brings no luxury home (batch TT1)', () => {
   /**
    * Two empires, a road between them, and one improved seam of wine in the far
    * town's ground. The caravan is teleported onto its route through the reducer
@@ -189,76 +193,28 @@ describe('a foreign road brings a luxury home', () => {
     return { state, home };
   }
 
-  it('brings one kind home, and only one the empire has not already dug', () => {
+  it('lends nothing, even with The Silk Road known and a road running abroad', () => {
     const { state } = abroad();
-    expect(importedLuxuries(state, 0)).toEqual(['wine']);
-    // The far empire lends nothing: the rule is the *sender's*, and a road it
-    // did not send is not its road.
-    expect(importedLuxuries(state, 1)).toEqual([]);
-    // Cut the road and the loan lapses with it — nothing was written down, so
-    // there is nothing to keep in step.
-    const trader = state.units.find((unit) => unit.trade !== undefined)!;
-    delete trader.trade;
-    bumpRevision(state);
     expect(importedLuxuries(state, 0)).toEqual([]);
+    expect(explainHappiness(state, 0).some((line) => line.source.includes('on loan'))).toBe(false);
   });
 
-  it('pays half of what a seam of its own would', () => {
-    const { state } = abroad();
-    const share = RULES.trade.importedLuxuryPercent / 100;
-    // **The flat every unique luxury pays**, at the share, as its own labelled
-    // line of the meter's list — never a total computed beside it (rule 5).
-    const flat = explainHappiness(state, 0).filter((line) => line.source === 'Wine \u00b7 on loan');
-    expect(flat).toHaveLength(1);
-    expect(flat[0]!.value).toBe(Math.floor(RULES.meters.happiness.perUniqueLuxury * share));
-    // Every line the loan pays says so, so a player reading the meter can see
-    // which of their contentment a cut road would take away.
-    for (const line of explainHappiness(state, 0)) {
-      if (!line.source.startsWith('Wine')) continue;
-      expect(line.source, line.source).toContain('on loan');
+  it('leaves no row in the tree that names the rule', () => {
+    // The rule left the union, so a row naming it would be a word nothing reads.
+    for (const id of TECH_IDS) {
+      expect(JSON.stringify(techDef(id).effects ?? []), id).not.toContain('routesImportLuxuries');
     }
-    // **And the row's own signature with it**: wine's extra contentment is
-    // halved by the same multiplication, because the share *is* the copy count.
-    const signature = resourceHappiness(state, 0).filter((line) => line.resource === 'wine');
-    for (const line of signature) expect(line.source).toContain('on loan');
-  });
-
-  it('is worth the share the data sets, and never a whole seam', () => {
-    // The rule is one number and it is read as the **copy count**, so the whole
-    // of "every effect halved" is that multiplication. A share of nothing would
-    // be a rule that pays nothing; a share of one would be a loan worth as much
-    // as digging.
+    // The posts' loan is the one left, and it still lends at a share.
     expect(RULES.trade.importedLuxuryPercent).toBeGreaterThan(0);
     expect(RULES.trade.importedLuxuryPercent).toBeLessThan(100);
   });
-
-  it('names the rule on the node that carries it, and nowhere else', () => {
-    const carriers = TECH_IDS.filter((id) =>
-      (techDef(id).effects ?? []).some(
-        (effect) => effect.kind === 'rule' && effect.rule === 'routesImportLuxuries',
-      ),
-    );
-    expect(carriers).toEqual(['silkRoad']);
-    expect(describeCard('silkRoad').map((clause) => stripRefs(clause.text))).toContain(
-      'a trade route ending in another empire’s city lends you one luxury resource ' +
-        'that city has improved, worth a share of your own',
-    );
-  });
 });
 
-describe('The Saddle pays for a burnt field', () => {
-  it('rides the pillage occasion with beakers and songs', () => {
-    const riders = (techDef('theCataphract').effects ?? []).filter(
-      (effect) => effect.kind === 'windfallRider',
-    );
-    expect(riders).toHaveLength(2);
-    for (const rider of riders) {
-      expect(rider.kind === 'windfallRider' && rider.occasion).toBe('pillage');
-    }
-    expect(describeCard('theCataphract').map((clause) => stripRefs(clause.text))).toEqual([
-      'pillaging grants +15 science',
-      'pillaging grants +15 culture',
-    ]);
+describe('The Saddle no longer pays for a burnt field (batch TT1)', () => {
+  it('carries no rider, and keeps its pasture bonus', () => {
+    expect(techDef('theCataphract').effects).toBeUndefined();
+    const pasture = improvementDef('pasture').upgrades ?? [];
+    expect(pasture.some((upgrade) => upgrade.tech === 'theCataphract')).toBe(true);
   });
 });
 
@@ -282,8 +238,9 @@ describe('the pass’s two new houses', () => {
     expect(said('garden')).toContain('+1 happiness per 5 citizens in this city');
     expect(said('garden')).toContain('+15% renown in this city');
     expect(said('publicBath')).toContain('+3 food');
+    // One point since batch TT1 (`docs/flags.md` (iiiiiii)), not two.
     expect(said('publicBath')).toContain(
-      '+2 happiness while this city is joined to your capital by road',
+      '+1 happiness while this city is joined to your capital by road',
     );
   });
 });
@@ -345,29 +302,24 @@ describe('route capacity is a flat figure per building (batch TR1)', () => {
 });
 
 describe('a city stat counted in citizens', () => {
-  it('puts Siegecraft\u2019s townsfolk on the walls, a helping at a time', () => {
+  it('no longer puts Siegecraft\u2019s townsfolk on the walls (batch TT1)', () => {
+    // The count stays live on The Theodosian Walls, whose behaviour is pinned in
+    // `decks/expansionistCards.test.ts`. Siegecraft carries no rule now.
     const g = game(5105);
     const town = found(g.state, 0);
     g.state.players[0]!.techsResearched.push('siegecraft');
-    town.population = 1;
-    bumpRevision(g.state);
-    const small = foldCityStat(cardCityStat(g.state, town, 'defense'));
     town.population = 8;
     bumpRevision(g.state);
-    const lines = cardCityStat(g.state, town, 'defense');
-    expect(foldCityStat(lines)).toBe(small + 2);
-    // One labelled line, and it says how many helpings it counted — a forecast
-    // that printed a bare number is the one thing rule 5 forbids in a fight.
-    const said = lines.find((line) => /Siegecraft/.test(line.source))!;
-    expect(said.source).toContain('×2');
+    expect(cardCityStat(g.state, town, 'defense').some((line) => /Siegecraft/.test(line.source))).toBe(false);
+    expect(techDef('siegecraft').effects).toBeUndefined();
     // And a row with no count still pays its flat once: the Palisade's stones
     // are a building field, and the walls of the empire's law are unchanged.
     expect(buildingDef('palisade').cityStat!.amount).toBeGreaterThan(0);
   });
 
   it('says what buys a helping, in the count\u2019s own noun', () => {
-    expect(describeCard('siegecraft').map((clause) => stripRefs(clause.text))).toContain(
-      'every city: +1 city defence per 4 citizens',
+    expect(describeCard('theTheodosianWalls').map((clause) => stripRefs(clause.text))).toContain(
+      'every city: +1 city defence per 2 citizens',
     );
   });
 });

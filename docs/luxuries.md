@@ -102,17 +102,22 @@ luxury is still not a card *class*.
 | `connectionPercent` | A percent of the empire fold's City-connections line (spices). |
 | `routeYields` | Flat yields per trade route, in the route fold (furs). |
 
-**A luxury may be held on loan.** Since the user's tree pass of 2026-09-10
-(`docs/flags.md` (uuu) mark 6) an empire holding The Silk Road is lent one
-luxury kind by every trade route of its own that ends in a foreign city — the
-destination's own improved holdings, unique kinds only, never a kind already
-controlled, one per route, lapsing with the route (`importedLuxuries`). A
-borrowed copy counts `rules.trade.importedLuxuryPercent` of a time rather than
-once, so **every** shape in the table above pays that share of itself with no
-fold in this file knowing the rule exists — the share is the copy count
-(`copiesFor`), which is also why `perCopy` and the Grand Bazaar's duplicates are
-both skipped for one: the empire owns no tile of it, and a loan is not a second
-seam. Every ledger line carries `· on loan`.
+**A luxury may be held on loan.** An empire holding The Capitulations (a
+Commerce Order, `postsLendLuxuries`) is lent one luxury kind by every foreign
+town where its trading post pays — that town's own improved holdings, unique
+kinds only, never a kind already controlled, one per town, lapsing when the
+post stops paying (`importedLuxuries`, `luxuryLoans`). A borrowed copy counts
+`rules.trade.importedLuxuryPercent` of a time rather than once, so **every**
+shape in the table above pays that share of itself with no fold in this file
+knowing the rule exists — the share is the copy count (`copiesFor`), which is
+also why `perCopy` and the Grand Bazaar's duplicates are both skipped for one:
+the empire owns no tile of it, and a loan is not a second seam. Every ledger
+line carries `· on loan`.
+
+The Silk Road lent a luxury the same way through every route that ended abroad,
+from the user's tree pass of 2026-09-10 until batch TT1 (`docs/flags.md`
+(iiiiiii)) cut that loan with the `routesImportLuxuries` rule. Each different
+luxury still gives 4 happiness.
 
 | `unitUpkeepRebate` | Per-unit maintenance relief, in upkeep's shared give-back list (salt). |
 | `renownPerCity` | Renown per city per turn, family-less by construction (lapis). |

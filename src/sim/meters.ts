@@ -47,10 +47,10 @@
  *   capacity the palace, plus a grant per age *advance*, plus whatever the
  *            empire has *built* — one line per building type that declares an
  *            `authorityCapacity` (the monument's 1, today)
- *   used     the capital free, a founded city 2, a coastal one 1, a captured
- *            one 3 — and captured outranks coastal, which is the one precedence
- *            rule in the block: a seized harbour is a thing you seized, not a
- *            thing you grew (Entry XIV.D.2).
+ *   used     the capital free, a founded city 3, a captured one 4 (Entry
+ *            XIV.D.2). A coastal town costs the same as any founded town since
+ *            batch TT1: the user said its discount was confusing and the player
+ *            could not see it (`docs/flags.md` (iiiiiii)).
  *
  * Neither meter is ever a hard cap (Entry I's first commitment). Going under
  * zero is legal, priced, and reversible; End Turn never gates on it.
@@ -81,7 +81,6 @@ import {
   capitalCityOf,
   cityTile,
   controlledHoldings,
-  isCoastalCity,
   lentCopyPercent,
   nextCityName,
 } from './cities';
@@ -122,7 +121,6 @@ import { townBuildings, townShelf } from './statecraft/evaluator';
 // Batch DT1: the founding preview's reading of the `cityCost` rows.
 import { type CityCostRows, cardProspectCityCost } from './statecraft/evaluator';
 import { eraNumeral, highestAge } from './techData';
-import { isCoastal } from './water';
 import { explainWeariness } from './weariness';
 
 const METERS = RULES.meters;
@@ -315,9 +313,8 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
       value: Math.floor((each * (100 + luxuryBoost)) / 100),
     });
   }
-  // **The luxuries a foreign road lends this empire**, at the share the rule
-  // sets (The Silk Road, the user's tree pass of 2026-09-10): the flat every
-  // luxury pays is one of the fourteen figures "every effect halved" reaches,
+  // **The luxuries a foreign post lends this empire**, at the share the rule
+  // sets (The Capitulations, Commerce batch T5): the flat every luxury pays is one of the fourteen figures "every effect halved" reaches,
   // and it is the only one that is not read through `copiesFor` — it is the
   // meter's own line rather than the row's. Said here, immediately after the
   // seams and in the same two amplifiers, so there is one arithmetic for what a
@@ -579,8 +576,7 @@ export function agesAdvanced(state: GameState, playerId: number): number {
  * 10/10" *before* the city is founded, and it does it by asking this same
  * evaluator with the site attached rather than by adding two somewhere in the
  * interface. A projection computed by a second implementation is a projection
- * that can lie, and this one even gets the coastal discount right — which is the
- * discount the settler lens has already painted the hex blue for.
+ * that can lie.
  */
 interface AuthorityProspect {
   /** Where the city would stand. */
@@ -591,7 +587,6 @@ interface AuthorityProspect {
 function cityAuthorityCost(
   name: string,
   captured: boolean,
-  coastal: boolean,
   capital: boolean,
   /**
    * The town is a **puppet** — taken and not yet annexed (`City.puppet`).
@@ -603,14 +598,13 @@ function cityAuthorityCost(
    */
   puppet = false,
   /**
-   * What a captured, a coastal and a **hill** city cost *this empire*, after
-   * whatever its Statecraft rewrote (`meterRule`). Passed in rather than looked
-   * up, because this function is deliberately free of the state — it prices a
+   * What a captured and a **hill** city cost *this empire*, after whatever its
+   * Statecraft rewrote (`meterRule`). Passed in rather than looked up, because
+   * this function is deliberately free of the state — it prices a
    * *prospective* city too, and both callers know the empire.
    */
   costs: CityCosts = {
     captured: METERS.authority.capturedCity,
-    coastal: METERS.authority.coastalCity,
     hills: METERS.authority.foundedCity,
     puppet: Math.max(0, METERS.authority.capturedCity - RULES.war.puppetAuthorityRelief),
   },
@@ -618,10 +612,9 @@ function cityAuthorityCost(
   hills = false,
 ): MeterContribution {
   const rules = METERS.authority;
-  // A **puppet** first, and then captured: that is the precedence rule, and a
-  // seized coastal city is priced as a seizure rather than as a harbour. The
-  // discount is for building a port, not for taking one (Entry XIV.D.2); the
-  // puppet's own relief is for not having digested the thing you took.
+  // A **puppet** first, and then captured: that is the precedence rule. The
+  // puppet's own relief is for not having digested the thing you took
+  // (Entry XIV.D.2).
   if (puppet) {
     return { source: `${name} · puppet`, part: 'cost', value: -costs.puppet };
   }
@@ -629,13 +622,6 @@ function cityAuthorityCost(
     return { source: `${name} · captured`, part: 'cost', value: -costs.captured };
   }
   if (capital) return { source: `${name} · capital`, part: 'cost', value: -rules.capital };
-  // **The harbour outranks the fort**, and that is the same precedence rule one
-  // rung down: a coastal hill town is priced as a port. Stated rather than
-  // stumbled into — a card that discounted both would otherwise pay twice for
-  // one town, which is the one thing this ladder of returns exists to prevent.
-  if (coastal) {
-    return { source: `${name} · coastal`, part: 'cost', value: -costs.coastal };
-  }
   if (hills) {
     return { source: `${name} · on hills`, part: 'cost', value: -costs.hills };
   }
@@ -722,14 +708,13 @@ export function explainAuthority(
     list.push({ source: line.source, part: 'gain', value: line.amount, card: line.card });
   }
 
-  // What a seized and a harbour town cost this empire, asked once for the sweep.
+  // What a seized and a hill town cost this empire, asked once for the sweep.
   const costs = cityCosts(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const line = cityAuthorityCost(
       city.name,
       city.captured,
-      isCoastalCity(state, city),
       city.id === capital?.id,
       city.puppet === true,
       costs,
@@ -789,16 +774,15 @@ function withCityCostRows(value: number, rows: CityCostRows): number {
 }
 
 /**
- * What a *seized* and a *harbour* town cost this empire, after whatever its
+ * What a *seized* and a *hill* town cost this empire, after whatever its
  * Statecraft rewrote (`meterRule`).
  *
- * Hegemony and Client Kings each *shift* the captured price by a point,
- * Thalassocracy shifts the coastal one, and `cardMeterRule` composes the shapes.
- * Hoisted into a function of its own because two readings ask it — the meter's
- * sweep over the empire's towns, and the preview of a town that does not exist
- * yet (`prospectAuthorityCost`) — and a preview that priced a coastal city with
- * a second copy of these two calls is a preview that can disagree with the
- * meter it is previewing.
+ * Hegemony and Client Kings each *shift* the captured price by a point, and
+ * `cardMeterRule` composes the shapes. Hoisted into a function of its own
+ * because two readings ask it — the meter's sweep over the empire's towns, and
+ * the preview of a town that does not exist yet (`prospectAuthorityCost`) — and
+ * a preview with a second copy of these calls is a preview that can disagree
+ * with the meter it is previewing.
  *
  * **Floored at one, and only here.** The 2026-08-28 ruling turned both
  * captured-city cards from a set into a delta, and two deltas plus an upgrade
@@ -806,7 +790,7 @@ function withCityCostRows(value: number, rows: CityCostRows): number {
  * whole meter free to a warlord who drafted twice, which is the one thing
  * Entry XIV.D.2 prices. The floor sits on this reading rather than inside
  * `cardMeterRule` because the fold is generic and its other tenants have honest
- * zeroes: Mare Nostrum's coastal towns are meant to cost nothing at all.
+ * zeroes.
  */
 function cityCosts(state: GameState, playerId: number): CityCosts {
   const rules = METERS.authority;
@@ -815,7 +799,6 @@ function cityCosts(state: GameState, playerId: number): CityCosts {
       1,
       cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
     ),
-    coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
     // **Off the ordinary founded price**, because that is what the card shifts:
     // Hill Forts prints "cities on hills cost 1 fewer authority", and one fewer
     // than what a town costs anywhere else is the only reading of it. Floored at
@@ -847,7 +830,6 @@ function cityCosts(state: GameState, playerId: number): CityCosts {
 /** What each kind of ground costs this empire in writ. See `cityCosts`. */
 interface CityCosts {
   captured: number;
-  coastal: number;
   hills: number;
   /** What a seized town that has not been annexed costs. See `cityCosts`. */
   puppet: number;
@@ -863,11 +845,6 @@ interface CityCosts {
  * through `explainFoundingCost`. It takes the capital's free ride when the
  * player has no cities at all, because the first city a player founds *is* their
  * capital.
- *
- * Note what the line is not: coastal ground does not *add* to the founded price,
- * it **replaces** it (`cityAuthorityCost`'s precedence), so a harbour is a
- * discount rather than a surcharge — which is what the settler lens has already
- * painted the hex blue for.
  */
 function prospectAuthorityCost(
   state: GameState,
@@ -877,7 +854,6 @@ function prospectAuthorityCost(
   const line = cityAuthorityCost(
     nextCityName(state, playerId),
     false,
-    isCoastal(state.map, site),
     capitalCityOf(state, playerId) === undefined,
     // A city nobody has founded yet is nobody's puppet.
     false,
@@ -905,7 +881,7 @@ export interface FoundingCost extends MeterContribution {
  * for this site, `meterRule` cards and all — and the happiness half asks
  * `ruleFactor` and `cardMeterRule` exactly as `explainHappiness`'s demand loop
  * does. A preview that added two somewhere in the interface is a preview that
- * can lie, and this one gets Thalassocracy's harbour and the Manifest of the
+ * can lie, and this one gets a hill town's discount and the Manifest of the
  * Steppe's surcharge right without knowing either card's name.
  *
  * Two things are deliberately **not** in the list (there were three until

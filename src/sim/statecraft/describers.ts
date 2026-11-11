@@ -1709,21 +1709,13 @@ function describePays(
     }
     if (!words) return;
     const whose = routeWhose(effect);
-    // **What the row is paid *for***, when it is paid more than once. The
-    // Golden Roads pays its bag per good on the road, so the sentence has to
-    // say so or a player reads a flat coin where a caravan of six is earning
-    // six. See `CardPaysEffect.perEndpointLuxury`.
-    const each =
-      effect.perEndpointLuxury === true
-        ? ', for each luxury in the city it left or the city it reaches'
-        : '';
     // **Who the coin goes to**, said only when it is not the obvious answer.
     // A caravan's line has always been paid to whoever the trade route's own fold pays,
     // and the one row shape that breaks that says so out loud — "to the city it
     // reaches" — because the whole point of the card is that somebody else gets
     // it. See `CardPaysEffect.payee`.
     const toWhom = effect.payee === 'host' ? ', paid to the city it reaches' : '';
-    out.push({ text: `${words} on ${whose}${each}${toWhom}` });
+    out.push({ text: `${words} on ${whose}${toWhom}` });
     return;
   }
 
@@ -3557,7 +3549,7 @@ function describeEffect(
       return;
     }
     case 'periodic': {
-      const what = effect.pays === 'renown' ? 'renown' : effect.pays;
+      const what = effect.pays;
       const when = `every ${Math.max(PERIODIC_FLOOR, Math.floor(effect.everyTurns))} turns`;
       if (effect.count === undefined) {
         out.push({ text: `${when}, ${signed(Math.floor(effect.amount ?? 0))} ${what}` });
@@ -7209,7 +7201,6 @@ const WRIT_UNCAPPED_WORDS: string = (() => {
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   capturedCityCost: 'the authority a captured city costs',
-  coastalCityCost: 'the authority a coastal city costs',
   hillCityCost: 'the authority a city on hills costs',
   // Said as *who is waived* rather than as a figure on the demand, because that
   // is what the rule does: the first citizens of every town are simply not
@@ -7406,15 +7397,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // because "a shore step is free" is the name of a price and not a rule.
   cityRestoresMovement: 'a unit that stops in one of your cities gets its movement back',
   freeLanding: 'your units come ashore from the water without spending movement',
-  // The Silk Road's. No figure in it (hard rule 7): the *share* a borrowed
-  // luxury pays is a number and lives in the data, and what a player needs told
-  // here is that the goods come home at all and are worth less than a seam of
-  // their own.
-  routesImportLuxuries:
-    'a trade route ending in another empire’s city lends you one luxury resource that ' +
-    'city has improved, worth a share of your own',
-  // The Capitulations (Commerce batch T5). The Silk Road's sentence, read from
-  // a post; no figure in it, for the reason above.
+  // The Capitulations (Commerce batch T5). No figure in it (hard rule 7): the
+  // *share* a borrowed luxury pays is a number and lives in the data, and what a
+  // player needs told here is that the goods come home at all and are worth less
+  // than a seam of their own.
   postsLendLuxuries:
     'each foreign city holding your trading post lends you one luxury resource it has ' +
     'improved that you lack, worth a share of your own',

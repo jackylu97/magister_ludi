@@ -42,7 +42,7 @@ import {
   routePrice,
 } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import {
   type City,
   type GameConfig,
@@ -1462,48 +1462,38 @@ describe('a road', () => {
     expect(snapMovement(1 / 3 + 1 / 3 + 1 / 3)).toBe(1);
   });
 
-  it('pays The Golden Roads a coin for every good at either end, counted once', () => {
-    // Batch E (`docs/history/tech-gifts.md` §7). The count is the **union** of the two
-    // towns' luxuries — wine at both ends of a road is one wine — and it is the
-    // one reading only this module can take, because a `CityScope` answers about
-    // one town and this question is about a pair.
+  it('pays no coin for the goods at either end under The Golden Roads (batch TT1)', () => {
+    // Batch E gave The Golden Roads a coin for every luxury at a road's two
+    // ends. Batch TT1 cut it (`docs/flags.md` (iiiiiii)); the node keeps its
+    // extra route, and the goods on a road pay its gold nothing.
     const state = bareState(20, 9);
     const from = foundCityAt(state, 0, at(state, 4, 4));
     const to = foundCityAt(state, 0, at(state, 14, 4));
+    at(state, 4, 4).resource = 'wine';
+    at(state, 14, 4).resource = 'silk';
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2.
+    bumpRevision(state);
     const gold = (): number =>
       explainRouteYieldBetween(state, from, to).reduce((sum, line) => sum + line.gold, 0);
-
     const bare = gold();
     playerById(state, 0)!.techsResearched.push('theSilkRoad');
     bumpRevision(state);
-    // No goods at either end: the row is carried and pays nothing, rather than
-    // paying its bag once for nothing in particular.
     expect(gold()).toBe(bare);
-
-    // A town standing on a seam controls it (`openedResource`'s city clause), so
-    // one luxury under each centre is two goods on the road.
-    at(state, 4, 4).resource = 'wine';
-    // A bench that pokes the board by hand is a writer and says so — the
-    // contract on `GameState.revision` since batch E2, and the thing batch M3's
-    // shadow run is able to catch (`src/sim/slate.ts`).
-    bumpRevision(state);
-    expect(gold()).toBe(bare + 1);
-    at(state, 14, 4).resource = 'silk';
-    bumpRevision(state);
-    expect(gold()).toBe(bare + 2);
-    // The same good at both ends is still one good.
-    at(state, 14, 4).resource = 'wine';
-    bumpRevision(state);
-    expect(gold()).toBe(bare + 1);
   });
 
-  it('costs a fifth once Machinery lands, and a third before it — the four readers agree', () => {
+  it('costs a fifth under Interior Lines’ road rule, and a third before it — the four readers agree', () => {
     // Batch E (`docs/history/tech-gifts.md` §7): the road fraction is an **empire fact**,
     // folded once per sweep into `MoveProfile.roadStep` off
     // `cardRulePercent(…, 'roadStepCost')` and read only where a step is priced.
     // A third is five fifteenths and a fifth is three, which is why
     // `MOVEMENT_DENOMINATOR` is fifteen — both are exact and every running total
     // still compares equal to itself.
+    //
+    // Machinery carried the rule until batch TT1 cut it (`docs/flags.md`
+    // (iiiiiii)). Interior Lines, a Dominion Order, still says the same −40%, so
+    // it is hung here on Code of Laws, a node that carries an authored array, for
+    // the length of the test (the Imperial Post block below says why in place).
     const state = bareState(16, 9);
     pave(state, 4, 2, 14);
     const warrior = createUnit(state, 0, 'warrior', 2, 4);
@@ -1513,38 +1503,46 @@ describe('a road', () => {
         .cost;
 
     expect(price()).toBe(1 / 3);
-    playerById(state, 0)!.techsResearched.push('machinery');
-    bumpRevision(state);
-    expect(price()).toBe(1 / 5);
-    expect(snapMovement(1 / 5 + 1 / 5 + 1 / 5 + 1 / 5 + 1 / 5)).toBe(1);
+    const authored = techDef('kingship').effects!;
+    const held = authored.length;
+    authored.push({ kind: 'rulePercent', rule: 'roadStepCost', percent: -40 });
+    try {
+      playerById(state, 0)!.techsResearched.push('kingship');
+      bumpRevision(state);
+      expect(price()).toBe(1 / 5);
+      expect(snapMovement(1 / 5 + 1 / 5 + 1 / 5 + 1 / 5 + 1 / 5)).toBe(1);
 
-    // **The four readers inherit it.** A two-point column walked six hexes of
-    // highway before; it walks ten now, the estimate says one turn, and the walk
-    // spends exactly what the highlight promised. Nothing here prices a road: all
-    // four go through `stepCost`.
-    const along = reachableTiles(state, warrior)
-      .filter((entry) => entry.tile.row === 4 && entry.tile.col > 2)
-      .map((entry) => entry.tile.col);
-    expect(along).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    const path = findPath(state, warrior, at(state, 12, 4))!;
-    expect(path).toHaveLength(10);
-    expect(pathTurns(state, warrior, path)).toBe(1);
-    const walk = advanceAlongPath(state, warrior, path);
-    expect(walk.steps).toBe(10);
-    expect(warrior.movesLeft).toBe(0);
+      // **The four readers inherit it.** A two-point column walked six hexes of
+      // highway before; it walks ten now, the estimate says one turn, and the walk
+      // spends exactly what the highlight promised. Nothing here prices a road: all
+      // four go through `stepCost`.
+      const along = reachableTiles(state, warrior)
+        .filter((entry) => entry.tile.row === 4 && entry.tile.col > 2)
+        .map((entry) => entry.tile.col);
+      expect(along).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+      const path = findPath(state, warrior, at(state, 12, 4))!;
+      expect(path).toHaveLength(10);
+      expect(pathTurns(state, warrior, path)).toBe(1);
+      const walk = advanceAlongPath(state, warrior, path);
+      expect(walk.steps).toBe(10);
+      expect(warrior.movesLeft).toBe(0);
 
-    // And it is the **mover's empire**, not the paving: a neighbour walking the
-    // same hexes still pays a third.
-    const stranger = createUnit(state, 1, 'warrior', 2, 5);
-    expect(
-      stepCost(
-        state.map,
-        at(state, 4, 4),
-        at(state, 5, 4),
-        moveProfile(state, stranger),
-        zocField(state, 1),
-      )!.cost,
-    ).toBe(1 / 3);
+      // And it is the **mover's empire**, not the paving: a neighbour walking the
+      // same hexes still pays a third.
+      const stranger = createUnit(state, 1, 'warrior', 2, 5);
+      expect(
+        stepCost(
+          state.map,
+          at(state, 4, 4),
+          at(state, 5, 4),
+          moveProfile(state, stranger),
+          zocField(state, 1),
+        )!.cost,
+      ).toBe(1 / 3);
+    } finally {
+      authored.splice(held);
+      bumpRevision(state);
+    }
   });
 
   it('does not lift a zone of control: the toll rides on top of the paving', () => {
@@ -2294,27 +2292,20 @@ describe('trade in the log', () => {
  */
 describe('The Imperial Post', () => {
   /**
-   * Puts Satrapies in a seat's hand, through the register rather than by name —
-   * the node is found by the amplifier it carries on what a joined city pays.
+   * Puts one node in a seat's hand.
    *
-   * It used to be found by `freeCityRoads`, and that clause is **gone from the
-   * data**: the user's tree pass of 2026-09-10 (`docs/flags.md` (uuu) mark 10)
-   * took the free roads off Satrapies as a nerf to wide, so the rule is now one
-   * of the handful `BehaviorRuleId` holds with no live row naming it. The verb
-   * that reads it is untouched and is still tested, below, by hanging the clause
-   * on a row for the length of the test.
+   * Satrapies carried two road rules in turn. The free roads (`freeCityRoads`)
+   * left it in the user's tree pass of 2026-09-10 (`docs/flags.md` (uuu) mark
+   * 10), as a nerf to wide, and the further coin for a joined town left it in
+   * batch TT1 (`docs/flags.md` (iiiiiii)). `freeCityRoads` is now one of the
+   * handful of `BehaviorRuleId`s with no live row naming it. The verb that reads
+   * it is untouched and is still tested, below, by hanging the clause on a row
+   * for the length of the test.
    */
-  function post(state: GameState, playerId: number): void {
+  function learn(state: GameState, playerId: number, id: TechId): void {
     const player = state.players[playerId]!;
-    for (const id of TECH_IDS) {
-      if (!(techDef(id).effects ?? []).some((effect) =>
-        effect.kind === 'effectAmplifier' && effect.target === 'connectionYields',
-      )) {
-        continue;
-      }
-      if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
-      bumpRevision(state);
-    }
+    if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
+    bumpRevision(state);
   }
 
   it('keeps the roads near a town, and charges the ones out in the country', () => {
@@ -2331,22 +2322,23 @@ describe('The Imperial Post', () => {
     // exactly as live as it ever was — which is the whole reason the rule is
     // kept rather than deleted with the card that used to say it.
     //
-    // Hung **in place** rather than by swapping the array: `anyCardDef`
-    // (`statecraft/evaluator.ts`) memoises the row it is first asked for, and
-    // with the workers keeping their module graph between files
+    // Hung on Code of Laws, a node that still carries an authored array of
+    // rules, and hung **in place** rather than by swapping the array:
+    // `anyCardDef` (`statecraft/evaluator.ts`) memoises the row it is first
+    // asked for, and with the workers keeping their module graph between files
     // (`vite.config.ts`, `isolate: false`) a swapped-in array would be the one
     // the memo holds for every file after this one — the Compendium's bar test
     // saw Satrapies carrying a clause it does not (2026-09-10). Pushing onto the
     // authored array and splicing it back out leaves every holder of the
-    // reference reading the row as written.
-    const def = techDef('theImperialPost');
-    const hadNone = def.effects === undefined;
-    if (def.effects === undefined) def.effects = [];
-    const authored = def.effects;
+    // reference reading the row as written. A node with no array at all would
+    // be memoised with an empty one the test could not reach, which is why
+    // Satrapies stopped being the host when batch TT1 emptied it.
+    const def = techDef('kingship');
+    const authored = def.effects!;
     const before = authored.length;
     try {
       authored.push({ kind: 'rule', rule: 'freeCityRoads' });
-      post(state, 0);
+      learn(state, 0, 'kingship');
       const posted = roadsBuiltBy(state, 0);
       // Both towns are on row 4 and the road runs between them, so the reach of
       // three hexes covers the whole of it: the empire pays nothing.
@@ -2362,7 +2354,6 @@ describe('The Imperial Post', () => {
       expect(roadsBuiltBy(state, 0)).toBe(posted + 1);
     } finally {
       authored.splice(before);
-      if (hadNone) delete def.effects;
       bumpRevision(state);
     }
   });
@@ -2382,7 +2373,10 @@ describe('The Imperial Post', () => {
     expect(techDef('theImperialPost').deferred).toBeUndefined();
   });
 
-  it('pays a further coin for every city joined to the capital', () => {
+  it('pays no further coin for a city joined to the capital (batch TT1)', () => {
+    // Satrapies' coin for each joined town was cut (`docs/flags.md` (iiiiiii)).
+    // The connection line itself still pays, and holding the node moves it by
+    // nothing.
     const { state, home, partner, trader } = tradeWorld();
     applyCommand(state, send(0, trader.id, home.id, partner.id));
     runUntil(state, () => trader.col === partner.col && trader.row === partner.row);
@@ -2391,11 +2385,10 @@ describe('The Imperial Post', () => {
     const line = (): number =>
       explainEmpireGold(state, 0).find((entry) => /City connections/.test(entry.source))?.gold ?? 0;
     const before = line();
-    post(state, 0);
-    // One connected city, one further coin — folded into the connection line's
-    // own figure rather than multiplied afterwards, which is rule 5 for a
-    // treasury and the reason there is still only one line.
-    expect(line()).toBe(before + connectedCities(state, 0).length);
+    expect(before).toBeGreaterThan(0);
+    learn(state, 0, 'theImperialPost');
+    expect(line()).toBe(before);
+    expect(techDef('theImperialPost').effects).toBeUndefined();
   });
 });
 

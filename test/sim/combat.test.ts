@@ -3213,28 +3213,45 @@ describe('the strength conditions of batch E4a', () => {
     ).toBe(false);
   });
 
-  it('Castellany answers arrows and nothing that closes', () => {
-    const state = flatState();
-    // A technology is `liveEffects`' tenth source, so the node's own card
-    // effects reach the fight the moment it is held.
-    state.players[1]!.techsResearched.push('feudalism');
-    bumpRevision(state);
-    const d = createUnit(state, 1, 'warrior', 4, 3);
-    void d;
-    const archer = createUnit(state, 0, 'archer', 3, 3);
-    const shot = forecast(state, archer.id, 4, 3);
-    const line = shot.defenderLines.find((entry) => entry.source.includes('Castellany'))!;
-    expect(line).toBeDefined();
-    // U9 doubled the node's own line with the ladder.
-    expect(line.amount).toBe(10);
-    // A piece that closes is not an arrow: `vsClass` names the *other* side, and
-    // for a defender's line that is whoever charged in.
-    const beside = neighborTiles(state.map, tileHex(at(state.map, 4, 3)))
-      .map((hex) => at(state.map, hex.col, hex.row))
-      .find((tile) => tile.col !== 3 || tile.row !== 3)!;
-    const melee = createUnit(state, 0, 'warrior', beside.col, beside.row);
-    const charge = forecast(state, melee.id, 4, 3);
-    expect(charge.defenderLines.some((entry) => entry.source.includes('Castellany'))).toBe(false);
+  it('a defender’s line against arrows answers arrows and nothing that closes', () => {
+    // Castellany carried this line until batch TT1 cut it (`docs/flags.md`
+    // (iiiiiii)). The shape (`vsClass` on a defender's line) is still the
+    // vocabulary's, so the same line is hung on Code of Laws, a node that keeps
+    // an authored array of rules, for the length of the test. A technology is
+    // `liveEffects`' tenth source, so the line reaches the fight once the node
+    // is held.
+    expect(techDef('feudalism').effects).toBeUndefined();
+    const authored = techDef('kingship').effects!;
+    const held = authored.length;
+    authored.push({
+      kind: 'combatLine',
+      amount: 10,
+      when: { test: 'always' },
+      side: 'defend',
+      vsClass: { ranged: true },
+    });
+    try {
+      const state = flatState();
+      state.players[1]!.techsResearched.push('kingship');
+      bumpRevision(state);
+      const d = createUnit(state, 1, 'warrior', 4, 3);
+      void d;
+      const archer = createUnit(state, 0, 'archer', 3, 3);
+      const shot = forecast(state, archer.id, 4, 3);
+      const line = shot.defenderLines.find((entry) => entry.source.includes('Code of Laws'))!;
+      expect(line).toBeDefined();
+      expect(line.amount).toBe(10);
+      // A piece that closes is not an arrow: `vsClass` names the *other* side, and
+      // for a defender's line that is whoever charged in.
+      const beside = neighborTiles(state.map, tileHex(at(state.map, 4, 3)))
+        .map((hex) => at(state.map, hex.col, hex.row))
+        .find((tile) => tile.col !== 3 || tile.row !== 3)!;
+      const melee = createUnit(state, 0, 'warrior', beside.col, beside.row);
+      const charge = forecast(state, melee.id, 4, 3);
+      expect(charge.defenderLines.some((entry) => entry.source.includes('Code of Laws'))).toBe(false);
+    } finally {
+      authored.splice(held);
+    }
   });
 
   it('the Statue of Zeus takes its share off a wall and off nothing else', () => {

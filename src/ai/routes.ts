@@ -64,17 +64,9 @@ import {
   type ValueContext,
   foodCarriedTerm,
 } from './value';
-import {
-  type YieldBag,
-  explainYields,
-  meterWeight,
-  meterWords,
-} from './prices';
+import { type YieldBag, explainYields } from './prices';
 
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
-import { cityResources, controlledResources } from '../sim/cities';
-import { importedLuxuries } from '../sim/resourceEffects';
-import { cardBehaviorRule } from '../sim/statecraft';
 import { connectedCities } from '../sim/roads';
 import {
   explainRouteSenderYieldBetween,
@@ -219,57 +211,11 @@ export function explainRoutePay(
       explainYields(bag, ctx),
     ),
   ];
-  const lent = importedLuxuryWorth(state, from, to, abroad, ctx);
-  if (lent) terms.push(lent);
   // The Grand Canal (batch DT18): the food a home route moves is not on either fold
   // above, because it pays neither end anything new. It decides which way to send it.
   const carried = foodCarriedTerm(from, to, ctx);
   if (carried) terms.push(carried);
   return appraise(terms);
-}
-
-/**
- * **What the luxury a foreign road would bring home is worth** — The Silk Road's
- * loan (`docs/flags.md` (uuu) mark 6), as a term of the road's own appraisal.
- *
- * W2's pattern, and here for W2's reason: a rule the *simulation* pays and the
- * appraisal cannot see is a rule the bot will not spend a slot on, so a caravan
- * that would come home carrying wine has to be worth more than one that would
- * not — otherwise the seat sends both roads to the same market and never learns
- * why the other was better.
- *
- * The figure is deliberately the **contentment alone**, at the rule's own share,
- * and not a walk of the luxury's whole signature. A signature is fourteen folds
- * over an empire's towns and pricing one per candidate pair would be an empire
- * sweep inside `pricedPairs`' sweep; the flat every unique luxury pays is the
- * half that is the same for every kind, is what a first copy is mostly worth,
- * and is one lookup. What it buys is the *ordering* — a market holding a kind
- * this empire has never dug outranks one holding nothing new — which is the
- * whole of what an appraisal is for.
- *
- * A kind the empire already controls, or one another of its roads is already
- * lending it, is worth **nothing**, exactly as the rule pays nothing for it.
- */
-function importedLuxuryWorth(
-  state: GameState,
-  from: City,
-  to: City,
-  abroad: boolean,
-  ctx: ValueContext,
-): ValueTerm | null {
-  if (!abroad) return null;
-  if (!cardBehaviorRule(state, from.ownerId, 'routesImportLuxuries')) return null;
-  const held = new Set(controlledResources(state, from.ownerId, 'luxury'));
-  for (const id of importedLuxuries(state, from.ownerId)) held.add(id);
-  const fresh = cityResources(state, to, 'luxury').find((id) => !held.has(id));
-  if (fresh === undefined) return null;
-  const each = Math.max(0, RULES.meters.happiness.perUniqueLuxury);
-  const worth = (each * TRADE.importedLuxuryPercent) / 100;
-  if (worth <= 0) return null;
-  return {
-    label: `a luxury the road brings home · ${worth} happiness × ${meterWords(ctx, 'happiness')}`,
-    value: worth * meterWeight(ctx, 'happiness'),
-  };
 }
 
 /**

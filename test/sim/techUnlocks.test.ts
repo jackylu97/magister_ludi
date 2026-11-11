@@ -71,6 +71,33 @@ describe('techGifts', () => {
     ]);
   });
 
+  it('puts the node’s own bonuses first, as its headline (batch TT1)', () => {
+    // The user's ruling (`docs/flags.md` (iiiiiii)): a kept passive bonus is the
+    // technology's headline, printed where an unlock is printed. So the
+    // renewals and the node's own rules lead the list every surface reads.
+    expect(techGifts('currency').map((gift) => gift.kind)[0]).toBe('renewal');
+    expect(techGifts('irrigation').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['renewal', 'farm'],
+      ['building', 'garden'],
+      ['improvement', 'floatingGardens'],
+    ]);
+    expect(techGifts('theCataphract').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['renewal', 'pasture'],
+      ['unit', 'horseman'],
+      ['unit', 'horseArcher'],
+      ['unit', 'warElephant'],
+    ]);
+    expect(techGifts('prospecting').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['renewal', 'mine'],
+    ]);
+    // A node's own rules come after its renewals and before everything it opens.
+    expect(techGifts('kingship').map((gift) => gift.kind)[0]).toBe('techEffect');
+    expect(techGifts('stateWorkforce').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['techEffect', 'stateWorkforce'],
+      ['building', 'publicBath'],
+    ]);
+  });
+
   it('puts units before buildings when a tech hands over both', () => {
     // Mathematics and Bronzeworking are the nodes that do; the order is the
     // reading order the node card already uses. Mathematics hands over the
@@ -103,16 +130,15 @@ describe('techGifts', () => {
       'building',
     ]);
     // And Siegecraft is where it went: the bowman, the walls, then the
-    // improvement, the siege ability with the other verbs, and the node's own
-    // written rule last of all — the walls manned by the townsfolk, which the
-    // user's tree pass of 2026-09-10 hung on this node (`docs/flags.md` (uuu)
-    // mark 15). The reading order is the same reading order, one age earlier.
+    // improvement and the siege ability with the other verbs. The walls manned
+    // by the townsfolk, the node's own rule from the user's tree pass of
+    // 2026-09-10, were cut in batch TT1 (`docs/flags.md` (iiiiiii)). The reading
+    // order is the same reading order, one age earlier.
     expect(techGifts('siegecraft').map((gift) => [gift.kind, gift.id])).toEqual([
       ['unit', 'bowman'],
       ['building', 'stoneWalls'],
       ['improvement', 'lumbermill'],
       ['ability', 'siege'],
-      ['techEffect', 'siegecraft'],
     ]);
     // Bronzeworking hands over three buildings — the barracks and the funeral
     // games from the Age I sinks, and the Walls of Uruk from the wonders — and

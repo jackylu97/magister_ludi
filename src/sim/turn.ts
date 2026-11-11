@@ -162,7 +162,7 @@ import { runWagers } from "./wagers";
 import { runCensus } from "./census";
 import { type CommissionReport, runCommissions } from "./commissions";
 import type { BeadAge } from "./beadData";
-import { runRenown, settleRenownWindfall } from "./renown";
+import { runRenown } from "./renown";
 import { advanceResearch } from "./tech";
 import { type ExploreEndReport, marchExplorers } from "./explore";
 import {
@@ -725,18 +725,12 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // Its position is the usual rules decision. **Between `advanceResearch` and
     // `statecraft`**, because a boon is a windfall and a windfall settles its
     // bucket the instant it lands: culture paid here reaches the very next
-    // phase's draft, renown reaches `renown` further down, and hammers and food
-    // land in baskets the boon settles itself. Beakers are the one voice that
+    // phase's draft, and hammers and food land in baskets the boon settles
+    // itself. Beakers are the one voice that
     // waits — `advanceResearch` has already run — which is the ordinary reading
-    // of any windfall landing after that phase.
-    //
-    // `settleRenownWindfall` is handed in rather than imported by
-    // `statecraft.ts`: renown is added in exactly one place, and that place reads
-    // the card table, so the phase that holds both passes the seam.
-    run: (state) =>
-      runPeriodicBoons(state, (game, player, amount) => {
-        settleRenownWindfall(game, player, [{ family: null, amount }]);
-      }),
+    // of any windfall landing after that phase. No boon pays renown since
+    // batch TT1, so the phase hands no renown seam in.
+    run: (state) => runPeriodicBoons(state),
   },
   {
     name: "commissions",
@@ -1282,8 +1276,8 @@ function marchOneTrader(
 
   // **A ban comes first** (batch TR2): a route abroad under The Sea Ban or The
   // Inward Roads ends wherever the cart is standing, and the cart stays idle.
-  // Announced, because The Silk Road's loans and the cards that count live
-  // routes read it, and a later reader in this resolution may ask them.
+  // Announced, because the cards that count live routes read it, and a later
+  // reader in this resolution may ask them.
   if (routeBannedAbroad(state, unit)) {
     noteEnd('ban');
     endRoute(state, unit);

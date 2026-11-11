@@ -615,14 +615,14 @@ describe('what a city founded here would cost', () => {
     expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−3 authority · −1 happiness');
   });
 
-  it('reads a harbour as the discount the rule makes it', () => {
+  it('reads a harbour at the founded price, with no discount', () => {
     const state = boardState();
     foundCityAt(state, 0, at(state, 2, 2));
     at(state, 8, 7).terrain = 'coast';
-    // Coastal *replaces* the founded price rather than adding to it, so the row
-    // has to fall to −1 rather than climb to −3.
-    // A harbour is still the discount, now 2 against 3.
-    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−2 authority · −1 happiness');
+    // A coastal town cost less until batch TT1 (`docs/flags.md` (iiiiiii)): the
+    // user ruled the discount confusing and invisible, so a harbour costs what
+    // an inland town costs.
+    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−3 authority · −1 happiness');
   });
 
   it('says the first city is free, rather than saying nothing', () => {

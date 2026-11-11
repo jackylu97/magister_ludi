@@ -1403,8 +1403,8 @@ describe('determinism', () => {
    * which gave the hashes of batch DT19c exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ab211da9:190677',
-    2026: '9dcf3380:190843',
+    11: 'c86922cf:190677',
+    2026: 'f28ac2c2:190843',
   };
 
   for (const seed of [11, 2026]) {

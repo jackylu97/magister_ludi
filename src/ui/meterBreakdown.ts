@@ -24,7 +24,7 @@
  * "demand" in the ledger is reading one game.
  *
  * Authority already prices a city as **one net line** carrying its reason
- * ("Uruk · coastal −1"), so it needs nothing here. Happiness needed one thing,
+ * ("Uruk · captured −4"), so it needs nothing here. Happiness needed one thing,
  * and it is the second fold below — see `foldCityHappiness`.
  *
  * A town writes one demand line, and since 2026-09-09 that is all it writes: the

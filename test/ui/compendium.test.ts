@@ -1197,14 +1197,10 @@ describe('a technology says its rules once', () => {
     // **Satrapies** lost its free roads and its deferred half and fits on its
     // own card again, while **Daughter Cities** gained the caravan's grain and
     // **The Silk Road** — the new node — carries three clauses on its own.
-    expect(named).toEqual([
-      'epicPoetry',
-      'theExaminationHall',
-      'colonialCharters',
-      'silkRoad',
-      'theSilkRoad',
-      'movableType',
-    ]);
+    // Batch TT1 (`docs/flags.md` (iiiiiii)) cut most of the tree's passive rules,
+    // and every node that keeps one fits on its own card, so the roster is empty.
+    // The bar, the shelf and this test stay for the next node that runs past it.
+    expect(named).toEqual([]);
     const entries = shelf('rule').entries;
     for (const id of named) {
       const entry = entries.find((row) => row.id === compendiumId('rule', id));

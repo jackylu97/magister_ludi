@@ -2857,21 +2857,21 @@ describe('escalating worker cost', () => {
     // `noSettlerEscalation` was retired with the flag rulings of 2026-09-03, so
     // the ladder itself now always climbs, for every escalating row.
     //
-    // The card is Colonial Charters, the one row that carries `settlerCost`
-    // today. This test used to grant Manifest of the Steppe, which lost its
-    // settler discount in the orders pass of 2026-09-10, so it had stopped
-    // checking anything. The settler half is pinned in `statecraft.test.ts`
-    // ("rulePercent — Colonial Charters cheapens settlers"); this is the worker
-    // half.
+    // The card is The Removal to Xianyang, the one live row that carries
+    // `settlerCost` today. This test used to grant Manifest of the Steppe, which
+    // lost its settler discount in the orders pass of 2026-09-10, and then
+    // Daughter Cities, whose discount batch TT1 cut. The settler half is pinned
+    // in `statecraft.test.ts` ("rulePercent — The Removal to Xianyang makes
+    // settlers dearer"); this is the worker half.
     const state = flatState();
     state.players[0]!.unitsBuilt.worker = 3;
     state.players[0]!.unitsBuilt.settler = 3;
     const before = unitProductionCost(state, 0, 'worker');
     const settlerBefore = unitProductionCost(state, 0, 'settler');
-    state.players[0]!.techsResearched.push('colonialCharters' as never);
+    state.players[0]!.statecraft.doctrines.push('theRemovalToXianyang' as never);
     bumpRevision(state);
-    // The card is live on this board: the settler did get cheaper.
-    expect(unitProductionCost(state, 0, 'settler')).toBeLessThan(settlerBefore);
+    // The card is live on this board: the settler did get dearer.
+    expect(unitProductionCost(state, 0, 'settler')).toBeGreaterThan(settlerBefore);
     expect(unitProductionCost(state, 0, 'worker')).toBe(before);
   });
 
@@ -3679,7 +3679,7 @@ describe('determinism with cities', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(229);
+    expect(SCHEMA_VERSION).toBe(230);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

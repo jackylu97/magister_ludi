@@ -4016,7 +4016,9 @@ export type CardRule =
   | 'unitUpkeep'
   /**
    * **What one step along a road costs a marching piece** (`roadStepCost`,
-   * `pathfind.ts`) — Machinery's *"roads at a fifth instead of a third"*.
+   * `pathfind.ts`) — Interior Lines' roads at a fifth instead of a third.
+   * Machinery's *"roads at a fifth instead of a third"* was the first row, until
+   * batch TT1 cut it (`docs/flags.md` (iiiiiii)).
    *
    * The ninth rule and the only one that is not about a city's books at all. It
    * is here rather than as an effect kind of its own because it is exactly what
@@ -4187,12 +4189,10 @@ export type CardRule =
 export type MeterRuleId =
   /** What a captured city costs in authority. `value` replaces the constant. */
   | 'capturedCityCost'
-  /** What a coastal city costs. `delta` shifts the constant. */
-  | 'coastalCityCost'
   /**
    * What a city standing **on hills** costs. `delta` shifts the constant.
    *
-   * Hill Forts' second half, and `coastalCityCost`'s twin in every respect: a
+   * Hill Forts' second half: a
    * fact about the ground a town was founded on, priced once in
    * `cityAuthorityCost` and previewed by `explainFoundingCost` through the same
    * reading, so the settler sheet cannot disagree with the meter.
@@ -4228,9 +4228,10 @@ export type MeterRuleId =
    * Marcher Lords' border forts, The Learned Chancery's institutes, The
    * Chartered Metropolis' surcharge.
    *
-   * The three rules above it price a **kind of ground** (a seizure, a harbour, a
-   * hill) and are chosen by an exclusive ladder in `cityAuthorityCost`: a
-   * captured coastal hill town is priced once, as a seizure. That ladder is the
+   * The two rules above it price a **kind of ground** (a seizure, a hill) and
+   * are chosen by an exclusive ladder in `cityAuthorityCost`: a captured hill
+   * town is priced once, as a seizure. A coastal town had its own rule until
+   * batch TT1, when the coastal discount left the game. That ladder is the
    * whole reason a card could not say *"this city costs one less authority"* of
    * anything else — a fourth arm would have had to decide where in the
    * precedence it sat, and ten rows across five decks each wanted a different
@@ -4970,40 +4971,18 @@ export type BehaviorRuleId =
    */
   | 'faithfulPeace'
   /**
-   * **A road that ends abroad brings a luxury home** — The Silk Road's, and the
-   * user's tree pass of 2026-09-10 (`docs/flags.md` (uuu), mark 6).
-   *
-   * Every live route of this empire that ends in another realm's town hands the
-   * sender **one** copy of a luxury that town holds improved, and every figure
-   * that copy pays is worth `rules.trade.importedLuxuryPercent` of what an owned
-   * seam pays — half, as the user's figure has it, where
-   * `docs/playstyles.md` §7 had written the whole.
-   *
-   * A *fact about the world* and therefore a `BehaviorRuleId`: what changes is
-   * not a verb this empire uses but what its own caravans are carrying, which is
-   * `tradersUnplunderable`' shape exactly. Read in the one module that counts
-   * luxury copies (`resourceEffects.ts`, `importedLuxuries`) so that the tenth
-   * thing a luxury pays is halved by the same multiplication as the first, and
-   * nothing else in the game learns a second word for "a luxury you hold".
-   *
-   * **Unique kinds only, and never a kind the empire already controls**: a
-   * second copy is worth what a second copy has always been worth (nothing, bar
-   * the Grand Bazaar's `luxuryDuplicates`), so a road that could only bring home
-   * a kind already dug is a road that brings home nothing. It **lapses with the
-   * route**, because it is derived from the live routes every time it is asked
-   * and there is nowhere for it to be written down.
-   */
-  | 'routesImportLuxuries'
-  /**
    * **A foreign town holding this empire's paying post lends it a luxury**:
    * The Capitulations (Commerce batch T5; the triage's reading 22).
    *
-   * `routesImportLuxuries`' loan read from posts instead of routes: each
-   * foreign town where `cityPostPays` holds lends one kind it has opened, at
-   * the same share. Read in the same walk (`luxuryLoans`,
-   * `resourceEffects.ts`), after the routes, in `state.cities` order, so a
-   * kind a route already brings or the empire already holds is never lent
-   * twice. It needs no Silk Road.
+   * Each foreign town where `cityPostPays` holds lends one kind it has opened,
+   * and every figure that copy pays is worth `rules.trade.importedLuxuryPercent`
+   * of what an owned seam pays. Read in one walk (`luxuryLoans`,
+   * `resourceEffects.ts`), in `state.cities` order, so a kind the empire already
+   * holds, or another post already lends, is never lent twice.
+   *
+   * The Silk Road's routes lent luxuries the same way until batch TT1
+   * (`docs/flags.md` (iiiiiii)). That rule, `routesImportLuxuries`, is gone, and
+   * this is the only loan left.
    */
   | 'postsLendLuxuries'
   /**
@@ -5476,7 +5455,7 @@ export type AmplifierTarget =
    *   · the card counts and Corner the Market's figure add the share of each
    *     lent copy, rounded down (`countedLuxuryCopies`, `cities.ts`);
    *   · a kind the empire now holds only through lent copies is held at the
-   *     share (`lentLuxuriesKept`, `resourceEffects.ts`), as a Silk Road loan
+   *     share (`lentLuxuriesKept`, `resourceEffects.ts`), as a post's loan
    *     is held, and the happiness meter pays it at the share (`meters.ts`);
    *   · a per-copy line pays the share for each lent copy.
    *
@@ -6709,10 +6688,9 @@ type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * **The caravan's count pays the bag** (batch GP2, the (route, count) pair).
  * Every other count says its figure with `to` and `amount`, because every other
  * count pays into a fold that carries one voice at a time; a route's line is a
- * **bag** in `RouteYieldLine` and the road's own fold multiplies bags — which is
- * what `perEndpointLuxury` has always done with a flat row. So a road counted by
- * its length says `per` and its bag, and the helpings multiply the bag exactly as
- * the luxuries at its two ends do.
+ * **bag** in `RouteYieldLine` and the road's own fold multiplies bags. So a road
+ * counted by its length says `per` and its bag, and the helpings multiply the
+ * bag.
  *
  * **The hex's count pays the bag too** (batch DT13, the (hex, count) pair; The
  * Hydraulic Empire, The Builder Kings). A hex line is a bag for the same reason.
@@ -6820,9 +6798,8 @@ export interface CardPaysEffect extends CardYieldBag {
    * *"farms gain +1 food for each adjacent mountain"* (`docs/leaders.md`).
    * `where: 'hex'` only.
    *
-   * A multiplier on this row's own bag rather than a count of its own, and it is
-   * `perEndpointLuxury`'s bargain read one ground over: the thing counted is a
-   * fact about *the hex*, and nothing in the count vocabulary can **count** a
+   * A multiplier on this row's own bag rather than a count of its own: the thing
+   * counted is a fact about *the hex*, and nothing in the count vocabulary can **count** a
    * hex's six neighbours — a `CountKind` is asked of an empire or of a town, and
    * `TileCondition` answers yes or no. Since D2a that condition can *ask* about
    * the ring (`beside`), which is a different sentence and deliberately so: a
@@ -7125,24 +7102,9 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   share?: CardRouteShare[];
   /**
-   * **Paid once for every luxury held at either end of the road** — The Golden
-   * Roads' *"+1💰 from each luxury resource in the origin or destination city"*.
-   * `where: 'route'`.
-   *
-   * A multiplier on this row's own bag rather than a count of its own, because
-   * the thing counted is a fact about *the route* and nothing else in the
-   * vocabulary can see both ends of one. Counted as the **union** of the two
-   * towns' luxuries, once each: a vineyard at both ends of a road is one wine,
-   * not two — the reading *"in the origin or destination city"* takes literally,
-   * and the one that cannot be farmed by pointing a caravan at a mirror of its
-   * own hinterland. Folded in `routeYields.ts`, the only module holding both
-   * cities.
-   */
-  perEndpointLuxury?: true;
-  /**
-   * **Which side of a border the road has to cross** — The Silk Road's coin on a
-   * caravan sent abroad, and Daughter Cities' grain on one that never leaves.
-   * `where: 'route'`.
+   * **Which side of a border the road has to cross** — The Common Road's coin on
+   * a caravan sent abroad, and Provisioning Contracts' grain on one that never
+   * leaves. `where: 'route'`.
    *
    * `origin` and `destination` ask about the two *towns*; this asks about the
    * **pair**, which is the one question neither of them can answer: a scope is a
@@ -10380,17 +10342,19 @@ interface CardSlotPositionEffect {
  * `amount` alone is the flat. With `count`, the figure is that count's answer
  * times `amount` (one by default), and the count's arguments ride on this row
  * exactly as they ride on `pays` count — so "faith equal to your empire's
- * science" is `count: 'empireYield', voice: 'science'` and The Long Count's
- * "renown equal to your science and faith buildings" is
- * `count: 'buildingsOfCategories', categories: ['science', 'faith']`. One
- * evaluator answers both, because it is the same `countOf`.
+ * science" is `count: 'empireYield', voice: 'science'`, and a boon counted by
+ * two kinds of building is `count: 'buildingsOfCategories'` with its
+ * `categories`. One evaluator answers both, because it is the same `countOf`.
  */
 export interface CardPeriodicEffect {
   kind: 'periodic';
   /** Turns between firings, before any shortener. The period floors at two. */
   everyTurns: number;
-  /** Which bank the boon lands in. `'renown'` feeds the great-person pool. */
-  pays: CityYieldKey | 'renown';
+  /**
+   * Which bank the boon lands in. `'renown'` was a bank too until batch TT1,
+   * when Chronology's renown, its only row, was cut.
+   */
+  pays: CityYieldKey;
   /** The flat figure, or what one helping of `count` pays. Default one. */
   amount?: number;
   /** …or the figure is this count's answer. See `CountKind`. */

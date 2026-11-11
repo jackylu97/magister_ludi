@@ -1771,8 +1771,26 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "One carved character, used a thousand times. Every trade route that ends here brings learning and song in with the goods.",
+      "note": "The town that holds it learns and builds faster. Every trade route that ends here also brings science and culture.",
       "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "printingHouse"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "printingHouse"
+          }
+        },
         {
           "kind": "pays",
           "where": "route",
@@ -1881,13 +1899,13 @@
       "effects": [
         {
           "kind": "happiness",
-          "amount": 2,
+          "amount": 1,
           "scope": {
             "test": "connected"
           }
         }
       ],
-      "note": "Hot water, cold water, and somewhere to argue in between — kept full by the road from the capital, and worth little to a town the road has not reached."
+      "note": "Makes its town happier, as long as the town is joined to your capital by road."
     },
     "lighthouse": {
       "name": "Lighthouse",
@@ -2718,9 +2736,8 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "authorityCapacity": 1,
       "demandRelief": 15,
-      "note": "A town asks less of you while the justices sit."
+      "note": "Citizens in this town ask for less happiness."
     },
     "plantationHouse": {
       "name": "Plantation House",
@@ -3081,7 +3098,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 1,
       "unlockedByLeader": true,
       "effects": [
         {
@@ -3098,7 +3114,7 @@
           }
         }
       ],
-      "note": "Clerks sit the examinations here. Every order your armies keep is studied as well as obeyed, and the court widens what a ruler may hold together."
+      "note": "The town that holds it gains science for each Order in your military chairs."
     },
     "postStation": {
       "name": "The Post Station",
@@ -3111,7 +3127,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 1,
       "unlockedByLeader": true,
       "effects": [
         {
@@ -3132,7 +3147,7 @@
           }
         }
       ],
-      "note": "Fresh horses, a bed and a bag of letters. It is worth a great deal to a town the road from your seat has reached, and nothing at all to one it has not."
+      "note": "The town that holds it builds faster, as long as the town is joined to your capital by road."
     },
     "hordeCamp": {
       "name": "The Horde Camp",

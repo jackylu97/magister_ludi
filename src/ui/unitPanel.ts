@@ -647,9 +647,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * Entry VIII's pre-decision delta, and the one-evaluator rule doing the work:
    * both halves are `explainAuthority`, once as things stand and once with this
    * very tile handed to it as a prospect, so the projection cannot promise a
-   * price the reducer will not charge. The coastal discount comes along for
-   * free — it is the same `isCoastal` the settler lens has already painted this
-   * hex blue for.
+   * price the reducer will not charge.
    *
    * Only shown when founding here is actually legal, which is exactly when the
    * Found City button is enabled: a projection for a site the reducer would

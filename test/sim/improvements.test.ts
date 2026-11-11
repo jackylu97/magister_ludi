@@ -127,6 +127,21 @@ function workerState(col = 5, row = 4): { state: GameState; worker: Unit } {
 }
 
 /**
+ * **Bronze Panoply in every seat's hand**, which is what names iron.
+ *
+ * The bench withholds every node whose gift is a rule, and since batch TT1
+ * (`docs/flags.md` (iiiiiii)) Bronze Panoply is one: it gives workers an extra
+ * charge. It also reveals iron, so a test about an iron seam opens it here,
+ * after its workers are made, so their charges are the bench's own.
+ */
+function revealIron(state: GameState): void {
+  for (const player of state.players) {
+    if (!player.techsResearched.includes('bronzePanoply')) player.techsResearched.push('bronzePanoply');
+  }
+  bumpRevision(state);
+}
+
+/**
  * `workerState` with **Siegecraft** in the seat's hand — the lumbermill's gate.
  *
  * The bench withholds every node whose gift is a *rule* (`improvementHelpers.ts`
@@ -825,6 +840,7 @@ describe('buildImprovement', () => {
 
       it('refuses the wrong one by name, for every improvable resource', () => {
         const { state, worker } = workerState();
+        revealIron(state);
         const tile = at(state, 5, 4);
         let checked = 0;
 
@@ -1889,6 +1905,7 @@ describe('pillage', () => {
 
   it('takes the rival\'s strategic access with it', () => {
     const state = bareState();
+    revealIron(state);
     foundCityAt(state, 1, at(state, 2, 2));
     const seam = at(state, 2, 1);
     seam.hills = true;
@@ -2294,6 +2311,13 @@ describe('improvements and the city', () => {
     seam.hills = true;
     seam.resource = 'iron';
     const worker = createUnit(state, 0, 'worker', 5, 4);
+    revealIron(state);
+    // The bench holds Steel since batch TT1 cut its rule, and its longswordsman
+    // replaces the legionary. Taken back here, so the legionary is still the
+    // rung under test.
+    const seat = state.players[0]!;
+    seat.techsResearched = seat.techsResearched.filter((id) => id !== 'steel');
+    bumpRevision(state);
 
     // The **legionary** is the iron rung since the re-cut of 2026-09-02 — the
     // Æra II swordsman asks for none — so the seam gate is read off it now.
@@ -2941,7 +2965,7 @@ describe('improvements in the log', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(229);
+    expect(SCHEMA_VERSION).toBe(230);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

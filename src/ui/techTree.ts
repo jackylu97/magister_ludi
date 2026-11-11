@@ -407,9 +407,10 @@ function giftHeading(gift: TechGift): string | null {
  *
  * **All six voices**, in the order the city panel lists them. It was the three
  * old ones for as long as a `TileYield` was three numbers, and that stopped
- * being true two reworks ago: the Long Count's plantation pays a point of
- * culture and the row printed nothing at all, on a screen whose whole remaining
- * job is to say what a technology's own yields are (`docs/flags.md` (mmm)). A
+ * being true two reworks ago: the Long Count's plantation paid a point of
+ * culture (until batch TT1 cut it) and the row printed nothing at all, on a
+ * screen whose whole remaining job is to say what a technology's own yields
+ * are (`docs/flags.md` (mmm)). A
  * hand-written subset of a six-field record is the drift `CITY_YIELD_KEYS`
  * exists to prevent one layer down; here the fix is simply to say all six.
  *
@@ -434,6 +435,52 @@ function tileYieldNote(add: TileYield): string {
 export function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
   const delta = tileYieldNote(gift.add);
   return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
+}
+
+/** One headline line on a node's face. See `techHeadlines`. */
+export interface TechHeadline {
+  /** The class the small box beside it wears (`GIFT_MARK`). */
+  mark: string;
+  /** What the box holds: the improvement's emoji, or the rule's `§`. */
+  glyph: string;
+  /**
+   * The line's words. A renewal's is the improvement's name. A rule's is one
+   * clause of `techRuleClauses`, a descriptor string that may hold keyword refs,
+   * so it is printed through `setDescriptorText`.
+   */
+  name: string;
+  /** The figures beside it (`renewalNote`), or empty for a rule. */
+  note: string;
+}
+
+/**
+ * **The bonuses a node hands over by itself, as the lines its face leads with**
+ * (batch TT1, `docs/flags.md` (iiiiiii)).
+ *
+ * The user ruled that an unlock is obvious and a passive bonus is easy to miss,
+ * cut most of the bonuses, and asked that each one kept be printed as the
+ * technology's headline, in the place an unlock is printed. So the face prints
+ * these before its traits, units and buildings: one line for each improvement
+ * renewal, worded by `renewalNote`, and one line for each clause of the node's
+ * own rules, worded by `techRuleClauses` — the describers' own sentences, never
+ * prose written here. The hover card and the Compendium lead with the same gifts
+ * because `techGifts` lists them first.
+ *
+ * Exported and pure, like the figure composers above, so the UI suite can hold
+ * the rule without a DOM.
+ */
+export function techHeadlines(id: TechId): TechHeadline[] {
+  const lines: TechHeadline[] = [];
+  for (const gift of techGifts(id)) {
+    if (gift.kind === 'renewal') {
+      lines.push({ mark: GIFT_MARK.renewal, glyph: gift.glyph, name: gift.name, note: renewalNote(gift) });
+    } else if (gift.kind === 'techEffect') {
+      for (const clause of techRuleClauses(gift.id)) {
+        lines.push({ mark: GIFT_MARK.techEffect, glyph: gift.glyph, name: clause, note: '' });
+      }
+    }
+  }
+  return lines;
 }
 
 /**
@@ -966,6 +1013,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * The small marks under a node's name: what it hands over, in at most two
    * lines and then a count.
    *
+   * **The node's own bonus leads** (batch TT1): a renewal or a rule the node
+   * hands over by itself is its headline (`techHeadlines`), printed where an
+   * unlock is printed and ahead of every unlock, because it is the line a player
+   * would otherwise miss.
+   *
    * A unit wears its own glyph — the same letter the board draws on its disc —
    * and a building wears the build mark; **both rows say what the thing costs,
    * and nothing else** (the ruling of 2026-09-09, module docblock). The
@@ -983,12 +1035,28 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const list = element('ul', 'tech-unlocks');
     // The live lists: a retired row is not a gift (`liveUnlocks`).
     const { units, buildings } = liveUnlocks(id);
-    // **A line trait comes first** (Scientific batch S10): it is the whole of
+    // **The headline first** (batch TT1): the node's own bonuses, in the
+    // describers' words. The words go through `setDescriptorText` unlinked,
+    // because the face is a button and a keyword inside it must not be a link.
+    const headlines = techHeadlines(id);
+    const shownHeadlines = headlines.slice(0, FACE_UNLOCKS);
+    for (const headline of shownHeadlines) {
+      const row = element('li', 'is-headline');
+      const mark = element('span', `tech-mark is-headline ${headline.mark}`);
+      setYieldText(mark, headline.glyph);
+      row.append(mark);
+      const name = element('span', 'tech-unlock-name');
+      setDescriptorText(name, headline.name, { linked: false });
+      row.append(name);
+      if (headline.note) row.append(element('span', 'tech-unlock-note is-headline', headline.note));
+      list.append(row);
+    }
+    // **A line trait comes next** (Scientific batch S10): it is the whole of
     // what Casting or Mechanics gives. It shows its name and its bonus where an
     // unlock shows a price, because a trait changes no price; the ability is
     // on the hover card, in the describers' words.
     const traits = techDef(id).traits ?? [];
-    const shownTraits = traits.slice(0, FACE_UNLOCKS);
+    const shownTraits = traits.slice(0, Math.max(0, FACE_UNLOCKS - shownHeadlines.length));
     for (const trait of shownTraits) {
       const row = element('li');
       row.append(element('span', 'tech-mark is-trait', unitDef(trait.line).glyph));
@@ -997,17 +1065,18 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       if (note) row.append(element('span', 'tech-unlock-note is-trait', note));
       list.append(row);
     }
-    // The face's budget, spent on traits, then units, then buildings. `more` is
-    // what the count line says and is a fact about the *whole* list, not about
-    // whichever part was reached first.
-    const budget = Math.max(0, FACE_UNLOCKS - shownTraits.length);
+    // The face's budget, spent on the headline, then traits, then units, then
+    // buildings. `more` is what the count line says and is a fact about the
+    // *whole* list, not about whichever part was reached first.
+    const budget = Math.max(0, FACE_UNLOCKS - shownHeadlines.length - shownTraits.length);
     const shownUnits = units.slice(0, budget);
     const shownBuildings = buildings.slice(0, Math.max(0, budget - shownUnits.length));
     const more =
+      headlines.length +
       traits.length +
       units.length +
       buildings.length -
-      (shownTraits.length + shownUnits.length + shownBuildings.length);
+      (shownHeadlines.length + shownTraits.length + shownUnits.length + shownBuildings.length);
 
     for (const unit of shownUnits) {
       const def = unitDef(unit);

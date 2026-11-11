@@ -519,8 +519,7 @@ export function describeWater(state: GameState, tile: Tile): string | null {
  * The **fold** of `explainFoundingCost`, per meter, and nothing else (CLAUDE.md
  * rule 5): the sim priced the lines with the same readers the meters themselves
  * use, and this only sums each half and writes it in the house voice. So a
- * harbour reads `−1 authority` because the rule discounts a coastal town, an
- * empire holding Thalassocracy reads whatever that card made it, and the very
+ * hill site reads whatever Hill Forts made it, and the very
  * first city reads `0 authority` — the capital's free ride, said out loud rather
  * than left off, because "this one is free" is the most useful thing the line
  * has to say the one time it is true.

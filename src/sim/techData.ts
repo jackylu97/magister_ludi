@@ -504,8 +504,8 @@ export type AbilityId =
  * one silhouette and a soldier is a whole shelf, and the card wants the noun it
  * would say out loud ("The augur may", "Soldiers may").
  *
- * `empire` is the honest answer for a verb nobody carries — Chronology's early
- * sight of the beads, the deep ocean opening — and it is what stops those being
+ * `empire` is the honest answer for a verb nobody carries — Chronology's faith
+ * redraw of an Order draft, the deep ocean opening — and it is what stops those being
  * filed under a piece that has nothing to do with them.
  *
  * `city` is the sixth and the only bearer that is not a piece at all: since the

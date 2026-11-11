@@ -1844,23 +1844,23 @@ describe("every hook family, end to end", () => {
     expect(after.value).toBe(-1);
   });
 
-  it("rulePercent — Colonial Charters cheapens settlers", () => {
+  it("rulePercent — The Removal to Xianyang makes settlers dearer", () => {
     // The fixture was Manifest of the Steppe until the orders pass of
     // 2026-09-10 re-themed that Doctrine to the horse (`docs/flags.md` (xxx)
-    // mark 1). The **shape** is what this arm pins, and the tree's own row is
-    // the live carrier of `settlerCost` now — a node's effects are
-    // `liveEffects`' tenth source, so the hook is read end to end either way.
+    // mark 1), and then Daughter Cities until batch TT1 cut its discount
+    // (`docs/flags.md` (iiiiiii)). The **shape** is what this arm pins, and a
+    // Scientific Doctrine is the live carrier of `settlerCost` now.
     const g = game();
     const player = g.state.players[0]!;
     player.unitsBuilt.settler = 3;
     const before = unitProductionCost(g.state, 0, "settler");
-    player.techsResearched.push("colonialCharters" as never);
+    player.statecraft.doctrines.push("theRemovalToXianyang" as never);
     bumpRevision(g.state);
     const after = unitProductionCost(g.state, 0, "settler");
-    expect(after).toBeLessThan(before);
-    // The ladder is not stopped, so the discount lands on the escalated price
+    expect(after).toBeGreaterThan(before);
+    // The ladder is not stopped, so the surcharge lands on the escalated price
     // rather than on the base one.
-    expect(after).toBe(Math.max(1, Math.floor((before * 67) / 100)));
+    expect(after).toBe(Math.floor((before * 200) / 100));
   });
 
   it("unitStat — Manifest of the Steppe puts a point of movement under a horseman", () => {
@@ -2285,7 +2285,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(229);
+    expect(SCHEMA_VERSION).toBe(230);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -4898,7 +4898,7 @@ describe("the balance pass of 2026-08-31", () => {
     expect(paid()).toEqual({ food: 0, production: 0 });
   });
 
-  it("connected — the road home is what Satrapies makes a town content about", () => {
+  it("connected — the road home is what a Public Bath makes a town content about", () => {
     // The re-cut of 2026-09-02's one new `CityScope`, and the one whose answer
     // is a fact about the *board between* two towns. It is the gold ledger's own
     // fill (`connectedCities`), so a road that stops paying coin stops paying
@@ -4926,41 +4926,45 @@ describe("the balance pass of 2026-08-31", () => {
     expect(cityScopeAdmits(g.state, second, scope)).toBe(true);
     expect(cityScopeAdmits(g.state, capital, scope)).toBe(false);
 
-    // And the technology's clause folds into `explainHappiness` like any other:
-    // one point, once, for the one town the road reaches.
-    const cheer = (): number => {
+    // Satrapies cheered a joined town until batch TT1 cut it (`docs/flags.md`
+    // (iiiiiii)). Holding the node folds nothing into `explainHappiness` now.
+    const satrapies = (): number => {
       const line = explainHappiness(g.state, 0).find((entry) =>
         entry.source.startsWith("Technology · Satrapies"),
       );
       return line?.value ?? 0;
     };
-    expect(cheer()).toBe(0);
     playerById(g.state, 0)!.techsResearched.push("theImperialPost");
     bumpRevision(g.state);
-    expect(cheer()).toBe(1);
-    // **Satrapies is the only node that cheers a joined town** since batch E:
-    // Movable Type used to say the same sentence a second time and now says a
-    // different one entirely (`docs/history/tech-gifts.md` §7 — the cheer out, two
-    // percentages in), so the scope has one reader on the tree and the stacking
-    // the worksheet once ruled deliberate has nothing to stack with.
+    expect(satrapies()).toBe(0);
+    // The Public Bath reads the same scope for the town that holds it: one point
+    // in the town the road reaches (one, not two, since batch TT1), and nothing
+    // in the capital the road is measured from.
+    const before = happinessOf(g.state, 0);
+    second.buildings.push("publicBath");
+    bumpRevision(g.state);
+    expect(happinessOf(g.state, 0)).toBe(before + 1);
+    capital.buildings.push("publicBath");
+    bumpRevision(g.state);
+    expect(happinessOf(g.state, 0)).toBe(before + 1);
+    // Movable Type's shares moved onto the Printing House, for the town that
+    // holds it: the node alone shares nothing, and the house shares in its own
+    // town whether or not the road reaches it.
     playerById(g.state, 0)!.techsResearched.push("movableType");
     bumpRevision(g.state);
-    const cheering = explainHappiness(g.state, 0).filter((entry) =>
-      /Technology · (Satrapies|Movable Type)/.test(entry.source),
-    );
-    expect(cheering.map((entry) => entry.value)).toEqual([1]);
-    // What Movable Type says instead, read off the same scope: a share of what a
-    // joined town learns and builds, and nothing at all in the capital the road
-    // is measured from.
     const shares = (city: City): { yield: string; percent: number }[] =>
       cityYieldPercents(g.state, city)
-        .filter((line) => line.source.startsWith("Technology · Movable Type"))
+        .filter((line) => /Movable Type|Printing House/.test(line.source))
         .map((line) => ({ yield: line.yield, percent: line.percent }));
-    expect(shares(second)).toEqual([
+    expect(shares(second)).toEqual([]);
+    expect(shares(capital)).toEqual([]);
+    capital.buildings.push("printingHouse");
+    bumpRevision(g.state);
+    expect(shares(capital)).toEqual([
       { yield: "science", percent: 10 },
       { yield: "production", percent: 10 },
     ]);
-    expect(shares(capital)).toEqual([]);
+    expect(shares(second)).toEqual([]);
   });
 
   it("terrainInBorders — Star-Gazers reads the borders, never the ring of six", () => {
@@ -8994,7 +8998,7 @@ describe("the engine shapes", () => {
       {
         kind: "periodic",
         everyTurns: 15,
-        pays: "renown",
+        pays: "culture",
         count: "buildingsOfCategories",
         categories: ["science", "faith"],
       },
@@ -9322,17 +9326,10 @@ describe("the engine shapes", () => {
       "tetzcotzinco · cityRenownPercent",
       "funduq · routeYield",
       "funduq · routeYield",
-      // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
-      "theLongCount · periodic",
-      "theLongCount · buildingsOfCategories",
-      // Daughter Cities' grain, the same pass (mark 11): a route row narrowed
-      // to the roads that never leave the realm (`CardPaysEffect.crossing`).
-      "colonialCharters · routeYield",
-      "horology · periodic",
-      "horology · buildingsOfCategories",
-      // And The Silk Road's coin abroad (mark 6), the crossing's other half.
-      "silkRoad · routeYield",
-      "theSilkRoad · routeYield",
+      // No technology carries one of these shapes since batch TT1
+      // (`docs/flags.md` (iiiiiii)): Chronology's and Horology's clocks, and the
+      // route pay of Daughter Cities, The Silk Road and The Golden Roads, were
+      // all cut.
     ]);
   });
 

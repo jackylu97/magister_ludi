@@ -188,7 +188,7 @@ const MOVEMENT_DENOMINATOR = 15;
  * What one step **along a road** costs an empire that has learnt nothing about
  * roads: `rules.movement.roadCostThirds` thirds of a point.
  *
- * The **base**, not the price. Since Machinery a road's fraction is a fact about
+ * The **base**, not the price. Since batch E a road's fraction is a fact about
  * the *mover's empire* (`MoveProfile.roadStep`, folded off
  * `cardRulePercent(…, 'roadStepCost')`), and `stepCost` reads the profile. This
  * constant is what a mover with no profile pays and what the discount is taken
@@ -198,7 +198,9 @@ export const roadStepCost = (RULES.movement.roadCostThirds * (MOVEMENT_DENOMINAT
 
 /**
  * The base road price with an empire's own percentage on it, snapped onto the
- * denominator — Machinery's −40 turning a third into a fifth exactly.
+ * denominator — Interior Lines' −40 turning a third into a fifth exactly.
+ * (Machinery carried the same −40 until batch TT1 cut it, `docs/flags.md`
+ * (iiiiiii).)
  *
  * The sign is `CardRule`'s own throughout: a negative percentage is a discount.
  * Clamped at the denominator's own smallest step rather than at zero, because a
@@ -242,7 +244,7 @@ export const cheapestStepCost = Math.min(
  * road price when that is cheaper still.
  *
  * The heuristic's admissibility is the whole of why it takes a mover: an empire
- * holding Machinery has an edge below the constant, and an estimate built on the
+ * under Interior Lines, or holding horses, has an edge below the constant, and an estimate built on the
  * constant would overestimate a highway and A* would stop returning the cheapest
  * route over exactly the ground that empire paved. One reading, asked once per
  * search, off a profile that was hoisted once per sweep.
@@ -480,7 +482,7 @@ export interface MoveProfile {
   ignoresWoods?: boolean;
   /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
-   * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
+   * mover's empire's own `roadStepCost` percentage on it (Interior Lines' −40, a
    * third becoming a fifth).
    *
    * **Two vocabularies feed that percentage** since batch R2: the cards' rule and
@@ -701,8 +703,8 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // never per edge. `cardRulePercent` is the one reading of a rule's percentage
   // and `foldCardRulePercent` its one fold, exactly as the settler's discount and
   // the army's payroll are read — see `MoveProfile.roadStep`.
-  // **Both vocabularies, summed once** — Machinery's card rule and, since batch
-  // R2, a strategic resource's (horses, whose whole bonus is that this empire's
+  // **Both vocabularies, summed once** — a card's rule (Interior Lines) and,
+  // since batch R2, a strategic resource's (horses, whose whole bonus is that this empire's
   // roads are quicker to march along). Summed before the price is taken, exactly
   // as `ruleFactor` sums the two halves for a city's rules, so two sources of a
   // discount read as one total rather than as two multiplications one after the

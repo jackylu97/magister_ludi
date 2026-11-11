@@ -915,8 +915,7 @@ describe('percentYields: two sums, each applied once', () => {
         const state = flatState();
         standIn(state, 0, 3);
         for (let row = 0; row < 12; row++) at(state.map, 0, row).terrain = 'coast';
-        // The capital first and inland, because the capital is free and its line
-        // says "capital" rather than "coastal" (`cityAuthorityCost`'s precedence).
+        // The capital first and inland, so the harbour is a founded town.
         const inland = foundCityAt(state, 0, at(state.map, 20, 5));
         growTerritory(state, inland);
         const harbour = foundCityAt(state, 0, at(state.map, 1, 5));
@@ -930,8 +929,10 @@ describe('percentYields: two sums, each applied once', () => {
         plant(state, inland, 21, 5, id);
         expect(resourcePercentYields(state, harbour).map((line) => line.resource)).toContain(id);
         expect(resourcePercentYields(state, inland).map((line) => line.resource)).not.toContain(id);
+        // A coastal town costs the founded price since batch TT1
+        // (`docs/flags.md` (iiiiiii)), so the writ names no coast.
         const writ = explainAuthority(state, 0);
-        expect(writ.some((line) => line.source.includes('coastal'))).toBe(true);
+        expect(writ.some((line) => line.source.includes('coastal'))).toBe(false);
       },
     );
   });

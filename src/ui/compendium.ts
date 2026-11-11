@@ -2931,7 +2931,6 @@ function meterEntries(): CompendiumEntry[] {
         { label: 'Each age you have reached supplies', figures: signedFigure(authority.perAge) },
         { label: 'Your capital costs', figures: signedFigure(-authority.capital) },
         { label: 'A city you founded costs', figures: signedFigure(-authority.foundedCity) },
-        { label: 'A coastal city you founded costs', figures: signedFigure(-authority.coastalCity) },
         { label: 'A city you captured costs', figures: signedFigure(-authority.capturedCity) },
         ...ladderRows(RULES.meters.tiers),
       ],
@@ -2940,7 +2939,7 @@ function meterEntries(): CompendiumEntry[] {
           text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. While it is positive your empire gets a percentage bonus, in the steps listed above; while it is negative it gets a penalty.',
         },
         {
-          text: 'A coastal city costs less than an inland one, but it still costs something. A city you captured always counts as captured, coastal or not.',
+          text: 'A city you founded costs the same on the coast as inland. A city you captured always counts as captured.',
         },
         ...ladderRows(RULES.meters.borderFreeze).map((entry) => ({
           text: `Authority ${entry.label.toLowerCase()}: culture toward new border hexes ${entry.figures}. An empire past its authority stops claiming ground, and cannot buy hexes with gold either.`,

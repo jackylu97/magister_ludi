@@ -40,7 +40,7 @@ export function cityDisplayName(
  *
  * `explainHappiness` / `explainAuthority` (`src/sim/meters.ts`) build each
  * ledger line's `source` as the city's name with a sim-owned suffix bolted on
- * (" · N citizens", " · the justices sit", " · capital", " · coastal",
+ * (" · N citizens", " · the justices sit", " · capital", " · on hills",
  * " · captured") — text this UI layer decorates, never re-derives. A prefix
  * match against the capital's own name, guarded to a following space or an
  * exact match so a name that happens to prefix another (`Ur` inside `Uruk`)

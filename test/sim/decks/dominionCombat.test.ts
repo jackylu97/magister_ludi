@@ -177,7 +177,7 @@ describe('Dominion D2 — a card reads a rank', () => {
 });
 
 describe('Dominion D2 — Interior Lines', () => {
-  it('makes a road step 40% cheaper, adding with Machinery’s', () => {
+  it('makes a road step 40% cheaper, and Machinery adds nothing to it', () => {
     const state = flat(false);
     foundCityAt(state, 0, at(state, 2, 2));
     const unit = createUnit(state, 0, 'warrior', 4, 4);
@@ -186,10 +186,11 @@ describe('Dominion D2 — Interior Lines', () => {
     expect(base).toBeCloseTo(1 / 3, 10);
     slot(state, 0, 'interiorLines');
     expect(moveProfile(state, unit).roadStep).toBeCloseTo(base * 0.6, 10);
-    // Machinery's −40 and the card's add to −80: a fifteenth of a move.
+    // Machinery's own −40 was cut in batch TT1 (`docs/flags.md` (iiiiiii)), so
+    // the step stays at the card's fifth.
     playerById(state, 0)!.techsResearched.push('machinery' as never);
     bumpRevision(state);
-    expect(moveProfile(state, unit).roadStep).toBeCloseTo(1 / 15, 10);
+    expect(moveProfile(state, unit).roadStep).toBeCloseTo(base * 0.6, 10);
   });
 
   it('gives +4 to an attacker that has not moved this turn, and nothing after it moves', () => {

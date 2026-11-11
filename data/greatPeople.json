@@ -1761,7 +1761,7 @@
       "legacy": [
         {
           "kind": "authority",
-          "amount": 8
+          "amount": 5
         },
         {
           "kind": "pays",

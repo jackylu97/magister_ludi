@@ -432,18 +432,24 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   `'domestic'` the destination's alone, absent rides both. It is a fact about
   the *pair* and therefore not a `CityScope` — asked through
   `routeIsInternational`, the one reading of "foreign", and refused where no far
-  end is in hand exactly as a `destination` clause is. Two live rows: **The Silk
-  Road** (+3💰 abroad) and **Daughter Cities** (+1🌾 +1⚙ at home).
-- **The Silk Road lends a luxury** (`routesImportLuxuries`, the same pass): each
-  live route of this empire that ends abroad hands the sender **one** kind the
-  destination holds improved — never a kind the empire already controls, never
-  the same kind twice, one per route, ending with the route. Derived every time
-  it is asked (`importedLuxuries`, `resourceEffects.ts`), remembered on the
-  revision clock, nothing stored. Every figure it pays is
-  `trade.importedLuxuryPercent` (50) of a dug seam's, because the share is read
-  as the **copy count** (`copiesFor`) and not applied fold by fold; the flat
-  contentment every unique luxury pays is halved beside it in `explainHappiness`.
-  Every line says `· on loan`.
+  end is in hand exactly as a `destination` clause is. The live rows are cards
+  and leaders' buildings: The Common Road and The Exchange abroad, Provisioning
+  Contracts and Market Gardens at home, the Funduq abroad and the Tambo at home.
+  The Silk Road's +3💰 abroad and Daughter Cities' +1🌾 +1⚙ at home were cut in
+  batch TT1 (`docs/flags.md` (iiiiiii)).
+- **A road abroad lends no luxury** (batch TT1). The Silk Road's loan
+  (`routesImportLuxuries`) is gone, and so are the Trade screen's loan line on a
+  card, the kind named on a running road's row and the "New luxuries" group.
+  The Silk Road still opens the Caravanserai.
+- **A foreign post lends a luxury** under The Capitulations (`postsLendLuxuries`,
+  Commerce batch T5): each foreign town where this seat's post pays lends **one**
+  kind it holds improved — never a kind the empire already controls, never the
+  same kind twice. Derived every time it is asked (`luxuryLoans`,
+  `importedLuxuries`, `resourceEffects.ts`), remembered on the revision clock,
+  nothing stored. Every figure it pays is `trade.importedLuxuryPercent` (50) of a
+  dug seam's, because the share is read as the **copy count** (`copiesFor`) and
+  not applied fold by fold; the flat contentment every unique luxury pays is
+  halved beside it in `explainHappiness`. Every line says `· on loan`.
 
 ## City connections
 

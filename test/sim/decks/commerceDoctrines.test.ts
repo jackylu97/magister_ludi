@@ -314,20 +314,22 @@ describe('The Delian League', () => {
       return { state, hill };
     }
 
-    it('takes 1 under either Doctrine and 2 under both, down to nothing', () => {
+    it('takes 1 under either Doctrine and 2 under both', () => {
       const { state, hill } = shoreHill();
-      // The ladder prices it as a port.
-      expect(townCost(state, hill)).toBe(2);
+      // The ladder prices it at the founded price. It priced a coastal town as
+      // a cheaper port until batch TT1 removed the coastal discount
+      // (`docs/flags.md` (iiiiiii)).
+      expect(townCost(state, hill)).toBe(3);
       hold(state, 'theHighlandClans');
-      expect(townCost(state, hill)).toBe(1);
+      expect(townCost(state, hill)).toBe(2);
       hold(state, 'theDelianLeague');
-      expect(townCost(state, hill)).toBe(0);
+      expect(townCost(state, hill)).toBe(1);
     });
 
     it('takes 1 under The Delian League alone', () => {
       const { state, hill } = shoreHill();
       hold(state, 'theDelianLeague');
-      expect(townCost(state, hill)).toBe(1);
+      expect(townCost(state, hill)).toBe(2);
     });
 
     it('quotes the same price on the founding preview', () => {
@@ -338,25 +340,26 @@ describe('The Delian League', () => {
       bumpRevision(state);
       const quote = () =>
         0 - explainFoundingCost(state, 0, at(state, 8, 5)).find((one) => one.meter === 'authority')!.value;
-      expect(quote()).toBe(2);
+      expect(quote()).toBe(3);
       hold(state, 'theHighlandClans');
       hold(state, 'theDelianLeague');
-      expect(quote()).toBe(0);
-      expect(townCost(state, town(state, 8, 5))).toBe(0);
+      expect(quote()).toBe(1);
+      expect(townCost(state, town(state, 8, 5))).toBe(1);
     });
 
     it('holds a row that prints a minimum to it, and adds a surcharge back', () => {
       const { state, hill } = shoreHill();
       hold(state, 'theHighlandClans');
-      // The Commanderies prints "minimum one", so from 1 its discount takes nothing.
+      // The Commanderies prints "minimum one": from 2 its discount takes 1.
       hold(state, 'theCommanderies');
       expect(townCost(state, hill)).toBe(1);
-      // Under both The Commanderies finds the town free, and a discount never charges.
+      // Under both, the two discounts with no minimum bring the town to 1, and
+      // The Commanderies' minimum keeps it there.
       hold(state, 'theDelianLeague');
-      expect(townCost(state, hill)).toBe(0);
-      // The Mandarinate's +1 cancels The Commanderies' -1, so the town stays free.
+      expect(townCost(state, hill)).toBe(1);
+      // The Mandarinate's +1 cancels The Commanderies' -1, so the town stays at 1.
       hold(state, 'theMandarinate');
-      expect(townCost(state, hill)).toBe(0);
+      expect(townCost(state, hill)).toBe(1);
     });
   });
 

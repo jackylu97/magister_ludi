@@ -390,18 +390,19 @@ describe('authority: what a city costs', () => {
     expect(authorityOf(state, 0)).toBe(WRIT.palaceCapacity - WRIT.capital - WRIT.foundedCity);
   });
 
-  it('discounts a coastal city without exempting it', () => {
+  it('charges a coastal city the same as any founded city (batch TT1)', () => {
+    // The user, 2026-11-10 (`docs/flags.md` (iiiiiii)): the coastal discount was
+    // "confusing and not visible to the player", and it left the rules.
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     makeSea(state, 11, 4);
     const port = foundCityAt(state, 0, at(state.map, 10, 4));
     expect(isCoastalCity(state, port)).toBe(true);
 
-    const line = lineFor(explainAuthority(state, 0), 'coastal');
-    expect(line).toBe(-WRIT.coastalCity);
-    // A discount, never an exemption (design ledger, Entry I.b).
-    expect(WRIT.coastalCity).toBeGreaterThan(0);
-    expect(WRIT.coastalCity).toBeLessThan(WRIT.foundedCity);
+    const entries = explainAuthority(state, 0);
+    expect(lineFor(entries, port.name)).toBe(-WRIT.foundedCity);
+    expect(entries.some((line) => line.source.includes('coastal'))).toBe(false);
+    expect(Object.keys(WRIT)).not.toContain('coastalCity');
   });
 
   it('charges a captured city more than one you grew', () => {
@@ -550,7 +551,7 @@ describe('authority: what a city costs', () => {
     );
   });
 
-  it('prices a city that does not exist yet, discount included', () => {
+  it('prices a city that does not exist yet, on the coast or inland alike', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     const before = authorityOf(state, 0);
@@ -560,11 +561,11 @@ describe('authority: what a city costs', () => {
 
     makeSea(state, 11, 8);
     const shore = at(state.map, 10, 8);
-    expect(authorityOf(state, 0, { site: shore })).toBe(before - WRIT.coastalCity);
+    expect(authorityOf(state, 0, { site: shore })).toBe(before - WRIT.foundedCity);
 
     // And the projection is exactly what founding there actually costs.
     foundCityAt(state, 0, shore);
-    expect(authorityOf(state, 0)).toBe(before - WRIT.coastalCity);
+    expect(authorityOf(state, 0)).toBe(before - WRIT.foundedCity);
   });
 
   it('gives a player’s very first city the capital’s free ride in the projection', () => {
@@ -1266,7 +1267,7 @@ describe('a captured city, end to end', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(229);
+    expect(SCHEMA_VERSION).toBe(230);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -1335,16 +1336,13 @@ describe('what founding a city here would cost', () => {
     expect(lines.every((line) => line.part === 'cost')).toBe(true);
   });
 
-  it('reads a harbour as the discount it is, never as a surcharge', () => {
+  it('reads a harbour at the founded price, with no discount and no surcharge', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     const site = coastalSite(state);
 
     const authority = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
-    expect(authority).toBe(-WRIT.coastalCity);
-    // The rule *replaces* the founded price rather than adding to it, which is
-    // the one thing a preview written from the ledger's prose would invert.
-    expect(authority).toBeGreaterThan(-WRIT.foundedCity);
+    expect(authority).toBe(-WRIT.foundedCity);
   });
 
   it('gives the very first city the capital\'s free ride', () => {
@@ -1361,7 +1359,7 @@ describe('what founding a city here would cost', () => {
     expect(lines.some((line) => line.source.includes('Palace'))).toBe(false);
   });
 
-  it('prices the coast by the base rules, and the preview says so', () => {
+  it('prices the coast as the inland, and the preview says so', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     const inland = foldMeter(
@@ -1371,15 +1369,12 @@ describe('what founding a city here would cost', () => {
     const coast = foldMeter(
       foundingCostLines(explainFoundingCost(state, 0, site), 'authority'),
     );
-    // A coastal town is cheaper to govern than an inland one, and it is the
-    // **base rules** that say so (`rules.authority.coastalCity`). Mare Nostrum
-    // carried a `coastalCityCost` clause on top of that until the orders pass of
-    // 2026-09-10 (`docs/flags.md` (xxx) mark 3), and the ruling was that it
-    // duplicated the relief every empire already has — so the Doctrine bought
-    // science with the clause and this is what is left, which is what was always
-    // doing the work. The rule itself is untouched and read where it always was;
-    // the pin on a *card* moving a founding price is Hill Forts', below.
-    expect(coast).toBeGreaterThan(inland);
+    // A coastal town cost less to govern until batch TT1, by the base rules
+    // (`rules.authority.coastalCity`). The user ruled the discount confusing and
+    // invisible (`docs/flags.md` (iiiiiii)), and it left the rules with the
+    // `coastalCityCost` card rule that could move it. The pin on a *card* moving a
+    // founding price is Hill Forts', below.
+    expect(coast).toBe(inland);
 
     // The happiness half is the citizen, and nothing else.
     // `cityHappinessDemand` — a flat surcharge on governing one more town, and

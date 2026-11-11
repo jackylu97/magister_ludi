@@ -1255,7 +1255,7 @@ function occasionLines(subject: CardImpactSubject): CardImpactLine[] {
     if (effect.kind === 'periodic') {
       const line = emptyLine(name, 'occasion');
       line.occasion = `every ${Math.max(2, Math.floor(effect.everyTurns))} turns`;
-      if (effect.count === undefined && effect.pays !== 'renown') {
+      if (effect.count === undefined) {
         line[effect.pays] = Math.floor(effect.amount ?? 0);
       } else {
         line.note = stripRefs(

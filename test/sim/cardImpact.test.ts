@@ -882,7 +882,7 @@ describe('the engine shapes stamp', () => {
         {
           kind: 'periodic',
           everyTurns: 15,
-          pays: 'renown',
+          pays: 'culture',
           count: 'buildingsOfCategories',
           categories: ['science', 'faith'],
         },
@@ -892,7 +892,7 @@ describe('the engine shapes stamp', () => {
         const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
         const occasion = lines.filter((line) => line.kind === 'occasion');
         expect(occasion).toHaveLength(1);
-        expect(occasion[0]!.note).toContain('renown');
+        expect(occasion[0]!.note).toContain('culture');
         expect(occasion[0]!.note?.includes('[[')).toBe(false);
       },
     );

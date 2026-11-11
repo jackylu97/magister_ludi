@@ -768,7 +768,9 @@ describe('the beeline’s tech riders', () => {
     // So the printed term is the reader's own appraisal multiplied by the node's
     // landing, and on this bench that landing is past the horizon: the claim is
     // that the rules *reach* the fold, which is the reader's own value inside.
-    const row = techRow(riverside(3), 'Epic Poetry');
+    // Epic Poetry was the node here until batch TT1 cut its rule; Code of Laws
+    // keeps its authority (`docs/flags.md` (iiiiiii)).
+    const row = techRow(riverside(3), 'Code of Laws');
     const rules = findTerm(row.terms, /the rules the node itself carries/);
     expect(rules).not.toBeNull();
     const read = rules!.parts === undefined ? null : foldTerms(rules!.parts.slice(0, 1));
@@ -2600,19 +2602,19 @@ describe('the engine shapes, priced', () => {
     // node by what it hands over and `score.unknownEffect` firing would mean the
     // bot beelines a node for a reason it cannot name.
     const score = valueContext(board().state, board().player).ai.score;
-    // The nodes E re-gifted, named rather than swept: a coincidence elsewhere on
-    // the tree (Epic Poetry's verse happens to price at exactly the stand-in)
-    // would otherwise make this test about arithmetic rather than about reading.
+    // The nodes that still carry rules after batch TT1 (`docs/flags.md`
+    // (iiiiiii)), named rather than swept, so the test is about reading rather
+    // than about arithmetic. The cut took Guildhalls', Horology's,
+    // Chronology's, Machinery's, Geomancy's and Movable Type's rules, left The
+    // Civil Service only its great-person works, and gave Bronze Panoply one.
     const gifted: TechId[] = [
       'kingship',
       'theExaminationHall',
-      'artisanry',
-      'horology',
-      'theLongCount',
-      'machinery',
-      'prospecting',
+      'stateWorkforce',
+      'bronzePanoply',
+      'colonialCharters',
+      'theQadisCourt',
       'theSilkRoad',
-      'movableType',
     ];
     // Every one of them has to *have* a gift to price, which is the other half
     // of the batch and cheap to say here.
@@ -2683,11 +2685,12 @@ describe('the engine shapes, priced', () => {
     }
   });
 
-  it('prices The Golden Roads by the goods as well as by the caravans', () => {
-    // `perEndpointLuxury` multiplies the bag by what the realm's shelves hold,
-    // so the same row is worth more to an empire with goods to carry — and still
-    // nothing at all to one with no caravan on the road.
-    const row: CardEffect[] = [{ kind: 'pays', where: 'route', gold: 1, perEndpointLuxury: true }];
+  it('prices a flat route row at nothing for an empire with no caravan on the road', () => {
+    // The Golden Roads' coin for each luxury at a road's ends left the game in
+    // batch TT1, with the field that counted the goods. A plain route row is
+    // still priced by the caravans the empire runs, and a realm running none
+    // gains nothing from it.
+    const row: CardEffect[] = [{ kind: 'pays', where: 'route', gold: 1 }];
     expect(priced(row)).toBe(0);
   });
 

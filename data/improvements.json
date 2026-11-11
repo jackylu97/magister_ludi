@@ -324,15 +324,6 @@
             "production": 0,
             "gold": 1
           }
-        },
-        {
-          "tech": "theLongCount",
-          "add": {
-            "food": 0,
-            "production": 0,
-            "gold": 0,
-            "culture": 1
-          }
         }
       ]
     },

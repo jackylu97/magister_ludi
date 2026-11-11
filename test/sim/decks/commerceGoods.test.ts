@@ -340,8 +340,8 @@ describe('The Capitulations', () => {
     expect(importedLuxuries(state, 0)).toEqual([]);
     seat(state, 0, CAPITULATIONS);
     expect(importedLuxuries(state, 0)).toEqual(['wine']);
-    expect(luxuryLoans(state, 0)).toEqual([{ id: 'wine', via: 'post' }]);
-    // The Silk Road's share on the meter, with the loan's own word.
+    expect(luxuryLoans(state, 0)).toEqual([{ id: 'wine' }]);
+    // The loan's share on the meter, with the loan's own word.
     const line = explainHappiness(state, 0).find((entry) => entry.source === `${resourceDef('wine').name} · on loan`);
     expect(line?.value).toBe(2);
     // Wine's own happiness line, at half.
@@ -377,7 +377,7 @@ describe('The Capitulations', () => {
     far.posts = [{ by: 0, since: state.turn - postTermTurns() }];
     bumpRevision(state);
     void partner;
-    expect(luxuryLoans(state, 0)).toEqual([{ id: 'silk', via: 'post' }]);
+    expect(luxuryLoans(state, 0)).toEqual([{ id: 'silk' }]);
   });
 });
 

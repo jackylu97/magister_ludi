@@ -110,13 +110,13 @@ function overextendTo(state: GameState, playerId: number, target: number): void 
     row += 3;
     if (row >= state.map.height) throw new Error('ran out of board to over-extend on');
   }
-  // A city costs 2 and an Assize Court supplies 1, so the cities alone can
-  // overshoot the target by one. Trimming with courts is the same board-only
-  // lever — it was the monument's until batch D cut the writ off the universal
-  // culture row (`docs/balance-turn.md` §4g).
+  // A city costs 3 and a Monument supplies 1, so the cities alone can overshoot
+  // the target by two. Trimming with monuments is a board-only lever. It was the
+  // Assize Court's until batch TT1 cut the court's writ (`docs/flags.md`
+  // (iiiiiii)); the Monument kept its point.
   for (const town of planted) {
     if (authorityOf(state, playerId) >= target) break;
-    town.buildings.push('assizeCourt');
+    town.buildings.push('monument');
     bumpRevision(state);
   }
   expect(authorityOf(state, playerId)).toBe(target);

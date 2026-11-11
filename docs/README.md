@@ -352,7 +352,8 @@ Reference: **`docs/units.md`** (the roster; generated) and
 
 - **`stepCost(from, to)` is the ONE price of a step.** Four readers — `findPath`,
   `reachableTiles`, `advanceAlongPath`, `pathTurns`. Movement is in fifteenths;
-  a road step costs a third by default, a fifth under Machinery. Zone of control
+  a road step costs a third by default, and a fifth under the Interior Lines
+  Order (`roadStepCost`). Horses take a share off it too. Zone of control
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
   forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
@@ -530,8 +531,24 @@ Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · cod
 - Ages follow columns: columns 9–12 are Æra IV. Alchemy takes all five closing
   lines as parents — the sanctioned exception to ≤2 parents.
 - `techsGrant` abilities (embark, siege, the great-person gate, the rites); a
-  `TechDef` may carry card effects and `paysBead`. Seventeen effect-carrying
-  nodes are the stated exceptions to the neutral-tree ruling.
+  `TechDef` may carry card effects and `paysBead`.
+- **Few passive bonuses on technologies** (batch TT1, `docs/flags.md`
+  (iiiiiii)). The user ruled that an unlock is obvious and a passive bonus is
+  easy to miss, and cut most of them. Seven ordinary nodes still carry a rule:
+  Code of Laws (+3 authority), Bronze Panoply and State Workforce (each gives
+  workers an extra charge), Daughter Cities (a founded town starts with a Town
+  Charter), The Golden Roads (an extra trade route), Divine Right (a captured
+  town costs 1 less authority) and The Civil Service (+1 food and +1
+  production on a great person's work). Four improvement renewals stay in
+  `data/improvements.json`: Irrigation, Currency, The Saddle and Geomancy. The
+  charter technologies keep their own rules.
+- **A kept bonus is the node's headline.** `techGifts` lists the renewals and
+  the node's own rules first, so the star chart's hover card, the Compendium
+  and `docs/tech-tree.md` lead with them. The node's face in the chart prints
+  them first too, above its units and buildings (`techHeadlines`,
+  `src/ui/techTree.ts`), worded by `renewalNote` and `techRuleClauses`.
+- **The Civil Service keeps its great-person works bonus** until the user rules
+  whether it gets a new unlock or leaves the tree, as Divine Right does.
 - **The world's age is the mean** of every living real seat's highest technology,
   floored (`worldAge`, `worldClock.ts`) — not the first seat's. Crossing gives
   the current age a public countdown.
@@ -1048,8 +1065,20 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
   (which binds improvement, city AND yield), a great person's work, the
   improvement, then a city on the seam. A resource pays only an empire that can
   name it.
-- The Silk Road **lends** a luxury: every live route ending abroad hands the
-  sender one kind the destination holds improved, at a share of a dug seam's pay.
+- **A road abroad lends no luxury** since batch TT1. The Silk Road's loan, its
+  gold on foreign routes, and the Trade screen's loan lines and "New luxuries"
+  group are gone with the `routesImportLuxuries` rule. The one loan left is The
+  Capitulations' (`postsLendLuxuries`): each foreign town holding the seat's
+  paying post lends one kind it holds improved, at
+  `rules.trade.importedLuxuryPercent` of a dug seam's pay (`luxuryLoans`,
+  `resourceEffects.ts`).
+- **The meters after batch TT1.** Every founded town costs 3 authority, on the
+  coast or inland (`rules.meters.authority.coastalCity` is gone). The Civil
+  Service, the Assize Court, The Examination Court and The Post Station give no
+  authority, and Gracia Mendes Nasi gives 5. Satrapies and The Civil Service
+  give no happiness, and the Public Bath gives 1 in its town while the town is
+  joined to the capital. Each different luxury still gives 4 happiness, and
+  both reward steps for spare happiness stay.
 
 ## Leaders
 

@@ -3679,8 +3679,8 @@ export function countOf(
       return total;
     }
     case 'buildingsOfCategories': {
-      // `buildingsOfCategory` with a list rather than a word — The Long Count's
-      // science *and* faith houses. An empty or absent list counts nothing, for
+      // `buildingsOfCategory` with a list rather than a word — al-Ma'mun's
+      // faith *and* science houses. An empty or absent list counts nothing, for
       // that count's stated reason: a question that never said which buildings
       // must not quietly answer "all of them". Over what each town holds
       // (`townBuildings`, Expansionist batch E12).
@@ -5555,8 +5555,7 @@ export interface TileLine {
   /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * farms (`CardPaysEffect.perAdjacentMountain`), carried through rather than
-   * resolved for `perEndpointLuxury`'s reason exactly: the thing counted is a
-   * fact about *the hex*, and this module has a tile only where a line is being
+   * resolved, because the thing counted is a fact about *the hex*, and this module has a tile only where a line is being
    * pushed, which is in `explainTileYield`.
    *
    * A multiplier on this line's own bag, so the breakdown still reads as one
@@ -6595,7 +6594,7 @@ export function scopedCardTileLines(
  * hex/count: The Hydraulic Empire's public works, The Builder Kings' wonders).
  *
  * Each becomes a flat row for this one town: `countOf`'s helpings multiply the
- * bag, as `perEndpointLuxury` multiplies a road's. So the rest of the hex chain
+ * bag, as a road's length multiplies a road's. So the rest of the hex chain
  * reads an ordinary line, and two towns of one empire pay the same hex row
  * differently. Nought helpings make no line. The label says the count, as a
  * counted town line's does.
@@ -9256,8 +9255,8 @@ export function cardCityStat(
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const amount = effect.amount;
     if (amount === 0) continue;
-    // **A counted line pays a helping at a time** — Siegecraft's walls by the
-    // townsfolk (`CardCityStatEffect.count`). Asked through the simulation's own
+    // **A counted line pays a helping at a time** — The Theodosian Walls'
+    // townsfolk on the walls (`CardCityStatEffect.count`). Asked through the simulation's own
     // count with this town in hand, so a card counting citizens for walls and a
     // card counting them for hammers read the same number; a row with no count
     // pays its flat once, which is every row written before the field existed.
@@ -11213,20 +11212,15 @@ function periodOf(everyTurns: number, shorten: number): number {
  * anything is banked (Entry XVIII.5), which is what makes "your boons pay more" a
  * `windfallRider` on the `periodic` occasion rather than a second rule.
  *
- * `bankRenown` is injected rather than imported, and that is the module boundary
- * doing its job: renown is added in exactly one place (`settleRenownWindfall`,
- * `renown.ts`) and that file reads *this* one, so the phase's caller — `turn.ts`,
- * which holds both — hands the seam in. A boon paying renown with no banker given
- * pays nothing, which is the honest answer for a caller that did not offer one.
+ * A boon paid renown until batch TT1 (`docs/flags.md` (iiiiiii)), through a
+ * `bankRenown` seam `turn.ts` handed in. Chronology's renown was the only row
+ * that used it, and it left with that bonus, so the seam went too.
  *
  * `realPlayers` order, then slot order, then walk order, so a replay reproduces
  * every firing in one fixed sequence. The wild is skipped for `runStatecraft`'s
  * reason: it holds no cards.
  */
-export function runPeriodicBoons(
-  state: GameState,
-  bankRenown?: (state: GameState, player: Player, amount: number) => void,
-): void {
+export function runPeriodicBoons(state: GameState): void {
   for (const player of realPlayers(state)) {
     const sc = player.statecraft;
     let shorten = 0;
@@ -11260,7 +11254,7 @@ export function runPeriodicBoons(
         const times =
           turnEffectRepeats(state, player.id, slot.card) * chairReadingsAt(state, player.id, chair);
         for (let round = 0; round < times; round++) {
-          payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect, bankRenown);
+          payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect);
         }
         slot.nextFiresTurn = state.turn + period;
         slot.firePeriod = period;
@@ -11271,7 +11265,7 @@ export function runPeriodicBoons(
       if (seated.has(card)) continue;
       const period = periodOf(effect.everyTurns, shorten);
       if (state.turn % period !== 0) continue;
-      payPeriodicBoon(state, player, card, source, effect, bankRenown);
+      payPeriodicBoon(state, player, card, source, effect);
     }
   }
 }
@@ -11292,7 +11286,6 @@ function payPeriodicBoon(
   card: CardId,
   source: string,
   effect: CardPeriodicEffect,
-  bankRenown?: (state: GameState, player: Player, amount: number) => void,
 ): void {
   const each = effect.amount ?? 1;
   let figure = Math.floor(effect.amount ?? 0);
@@ -11317,9 +11310,7 @@ function payPeriodicBoon(
     figure = helpings(countOf(state, player.id, card, probe), effect.per, effect.max) * each;
   }
   const payout = windfallPayout(state, player.id, 'periodic', figure);
-  if (effect.pays === 'renown') {
-    if (payout.amount !== 0) bankRenown?.(state, player, payout.amount);
-  } else if (payout.amount !== 0) {
+  if (payout.amount !== 0) {
     payout.grants.push({ card, source, yield: effect.pays, amount: payout.amount });
   }
   const touched = payWindfallGrants(state, player, payout);
@@ -13598,15 +13589,12 @@ export interface CardRouteLine {
   science: number;
   culture: number;
   faith: number;
-  /** The bag is paid once per luxury at either end. `CardPaysEffect`'s. */
-  perEndpointLuxury: boolean;
   /**
    * The bag is paid once per this many **hexes of the road's own length**, or
    * absent on a row that is not counted that way — Marco Polo's coin by the mile
    * (`CountKind`'s `routeLength`, batch GP2).
    *
-   * **Carried rather than resolved**, `perEndpointLuxury`'s bargain exactly: this
-   * module holds the law and the fold in `routeYields.ts` holds the two ends, and
+   * **Carried rather than resolved**: this module holds the law and the fold in `routeYields.ts` holds the two ends, and
    * only something holding both can answer how far apart they are. So the row's
    * `per` comes through as a number and the fold does the division.
    */
@@ -13688,13 +13676,10 @@ export function cardRouteYieldLines(
       science: (effect.science ?? 0) * counted,
       culture: (effect.culture ?? 0) * counted,
       faith: (effect.faith ?? 0) * counted,
-      // Carried rather than resolved: this module holds the origin and the fold
-      // in `routeYields.ts` holds both ends, and only the pair can answer "how
-      // many luxuries are on this road". See `CardPaysEffect`.
-      perEndpointLuxury: effect.perEndpointLuxury === true,
-      // The road's own length, carried the same way and for the same reason —
-      // `per` is how many hexes buy one helping, and the fold that holds both
-      // ends does the dividing. A row counted any other way carries nothing.
+      // The road's own length, carried rather than resolved: this module holds
+      // the origin and the fold in `routeYields.ts` holds both ends. `per` is
+      // how many hexes buy one helping, and the fold that holds both ends does
+      // the dividing. A row counted any other way carries nothing.
       ...(effect.basis === 'count' && effect.count === 'routeLength'
         ? { perHexes: effect.per === undefined || effect.per <= 0 ? 1 : effect.per }
         : {}),

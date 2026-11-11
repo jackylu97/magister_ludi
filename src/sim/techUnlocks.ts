@@ -103,8 +103,9 @@ export type TechGiftKind =
    * 2026-08-30).
    *
    * The eighth kind, and the first whose gift is not a row in any table: The
-   * Imperial Post hands over nothing a city may build and nothing a worker may
-   * lay, and what it hands over is nonetheless the whole reason to research it.
+   * Golden Roads hands over nothing a city may build and nothing a worker may
+   * lay, and what it hands over (an extra trade route) is nonetheless the whole
+   * reason to research it.
    * A node whose only gift were of this kind used to read as connective tissue
    * to `unlockDataProblems`; it now reads as the package it is.
    */
@@ -170,13 +171,19 @@ export type TechGift =
     });
 
 /**
- * Everything `id` hands over: units, then buildings, then projects, then the
- * improvements a worker may now lay, then the abilities it gains, then reveals,
- * then the improvement renewals, then the node's own rules, and last the
- * building lines that wake on the ground — the order a player reads them in, and
- * the order of consequence. Four of them are things to build, one is a thing a
- * worker may now do, one is a thing to look for, and the last three simply
- * happen.
+ * Everything `id` hands over: first the node's own bonuses — the improvement
+ * renewals, then the node's own rules — and then units, buildings, projects, the
+ * improvements a worker may now lay, the abilities it gains, the reveals, and
+ * last the building lines that wake on the ground.
+ *
+ * **The bonuses lead** since batch TT1 (`docs/flags.md` (iiiiiii)). The user
+ * ruled that an unlock is obvious and a passive bonus is easy to miss, cut most
+ * of the bonuses, and asked that each one kept be printed as the technology's
+ * headline, in the place an unlock is printed. Every surface that lists a
+ * node's gifts reads this list in this order (the star chart's hover card, the
+ * Compendium, `docs/tech-tree.md`), so putting the bonuses first here puts them
+ * first on all of them. The node's face in the chart prints them first too
+ * (`techHeadlines`, `techTree.ts`).
  *
  * Every list is walked as an array in table order, never as a Map, so the same
  * tech always produces the same list (hard rule 2, and this feeds a screen the
@@ -190,6 +197,44 @@ export function techGifts(id: TechId): TechGift[] {
   // 2026-09-07: "I still see stele of laws in the tech tree").
   const { units, buildings, projects } = liveUnlocks(id);
 
+  // **The node's own bonuses first** (batch TT1): the headline. See the docblock.
+  for (const improvement of IMPROVEMENT_IDS) {
+    // The same filter one gift over: a renewal of a row this reader may never
+    // lay is a promise about somebody else's fields.
+    if (improvementDef(improvement).unlockedByLeader === true) continue;
+    for (const upgrade of improvementDef(improvement).upgrades ?? []) {
+      if (upgrade.tech !== id) continue;
+      gifts.push({
+        kind: 'renewal',
+        id: improvement,
+        name: improvementDef(improvement).name,
+        glyph: improvementDef(improvement).emoji,
+        // Copied rather than handed over: the table is shared module state and
+        // a caller that summed into it would retune the game, exactly as
+        // `improvementYield` guards against.
+        add: readTileYield(upgrade.add),
+        requiresFreshwater: upgrade.requiresFreshwater,
+      });
+    }
+  }
+  // The rules the node hands over, after the renewals: they arrive without the
+  // player doing anything else, exactly as a renewal does, and they are the one
+  // gift with no row of its own anywhere. One entry for the whole node rather
+  // than one per clause, because a card is read as a card.
+  const effects = techDef(id).effects;
+  if (effects !== undefined && effects.length > 0) {
+    gifts.push({
+      kind: 'techEffect',
+      id,
+      name: techDef(id).name,
+      // The scroll: what this hands over is a *rule*, and the badge is the one
+      // place the card can say so without a sentence.
+      glyph: '§',
+      // Copied rather than handed over, like every renewal's `add`: the table
+      // is shared module state.
+      effects: [...effects],
+    });
+  }
   for (const unit of units) {
     gifts.push({ kind: 'unit', id: unit, name: unitDef(unit).name, glyph: unitDef(unit).glyph });
   }
@@ -257,43 +302,6 @@ export function techGifts(id: TechId): TechGift[] {
       id: resource,
       name: resourceDef(resource).name,
       glyph: resourceDef(resource).emoji,
-    });
-  }
-  for (const improvement of IMPROVEMENT_IDS) {
-    // The same filter one gift over: a renewal of a row this reader may never
-    // lay is a promise about somebody else's fields.
-    if (improvementDef(improvement).unlockedByLeader === true) continue;
-    for (const upgrade of improvementDef(improvement).upgrades ?? []) {
-      if (upgrade.tech !== id) continue;
-      gifts.push({
-        kind: 'renewal',
-        id: improvement,
-        name: improvementDef(improvement).name,
-        glyph: improvementDef(improvement).emoji,
-        // Copied rather than handed over: the table is shared module state and
-        // a caller that summed into it would retune the game, exactly as
-        // `improvementYield` guards against.
-        add: readTileYield(upgrade.add),
-        requiresFreshwater: upgrade.requiresFreshwater,
-      });
-    }
-  }
-  // The rules the node hands over, last: they arrive without the player doing
-  // anything else, exactly as a renewal does, and they are the one gift with no
-  // row of its own anywhere. One entry for the whole node rather than one per
-  // clause, because a card is read as a card.
-  const effects = techDef(id).effects;
-  if (effects !== undefined && effects.length > 0) {
-    gifts.push({
-      kind: 'techEffect',
-      id,
-      name: techDef(id).name,
-      // The scroll: what this hands over is a *rule*, and the badge is the one
-      // place the card can say so without a sentence.
-      glyph: '§',
-      // Copied rather than handed over, like every renewal's `add`: the table
-      // is shared module state.
-      effects: [...effects],
     });
   }
   for (const building of BUILDING_IDS) {

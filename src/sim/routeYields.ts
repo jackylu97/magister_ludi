@@ -39,7 +39,7 @@ import {
 // another file and only inside a function — the leaf claim in the docblock above
 // is about what this file imports directly, and it still holds for `cities.ts`
 // and `trade.ts` themselves.
-import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
+import { resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import {
   type RouteMode,
@@ -482,33 +482,22 @@ function cardLines(
   mode?: RouteMode,
 ): void {
   // **The one count this fold takes, and the one thing only this module can
-  // answer**: how many distinct luxuries the two ends hold between them (The
-  // Golden Roads). Hoisted before the walk and only when a row asks for it, so
-  // a game whose cards say nothing about luxuries pays for no set at all.
-  let goods = -1;
-  // **And the road's own length**, hoisted the same way and only when a row asks
-  // for it: `routeHexes` is the one reading of how far apart two towns are (see
-  // it for why it is the distance and not the walked path), and a game whose
-  // cards say nothing about the miles measures none.
+  // answer**: the road's own length, hoisted before the walk and only when a row
+  // asks for it. `routeHexes` is the one reading of how far apart two towns are
+  // (see it for why it is the distance and not the walked path), and a game
+  // whose cards say nothing about the miles measures none.
   let hexes = -1;
   for (const paid of cardRouteYieldLines(state, from, to, age, payee, mode)) {
     let helpings = 1;
     let note = paid.source;
-    if (paid.perEndpointLuxury) {
-      if (goods < 0) goods = endpointLuxuryCount(state, from, to);
-      helpings = goods;
-      note = `${paid.source} · ${helpings} luxur${helpings === 1 ? 'y' : 'ies'}`;
-      // A road between two towns holding no luxury at all carries the row and
-      // pays nothing for it — the honest zero rather than an absent line.
-      if (helpings === 0) continue;
-    } else if (paid.perHexes !== undefined) {
+    if (paid.perHexes !== undefined) {
       if (hexes < 0) hexes = routeHexes(state, from, to);
       // `helpings`' own arithmetic one module over: floored, so a road two hexes
       // short of the next helping is paid for the ones it has walked.
       helpings = Math.floor(hexes / paid.perHexes);
       note = `${paid.source} · ${hexes} hex${hexes === 1 ? '' : 'es'}`;
       // A pair close enough to be under one helping carries the row and pays
-      // nothing for it, exactly as a road with no luxuries on it does.
+      // nothing for it: the honest zero rather than an absent line.
       if (helpings === 0) continue;
     }
     lines.push(
@@ -570,8 +559,7 @@ function shares(
   for (const row of rows) {
     if (row.minHexes !== undefined) {
       if (hexes < 0) hexes = routeHexes(state, from, to);
-      // A road short of the threshold carries the row and pays nothing for it,
-      // exactly as a road with no luxuries on it does.
+      // A road short of the threshold carries the row and pays nothing for it.
       if (hexes < row.minHexes) continue;
     }
     const share = (voice: keyof typeof base): number =>

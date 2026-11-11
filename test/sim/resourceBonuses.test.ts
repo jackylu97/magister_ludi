@@ -68,7 +68,7 @@ import {
   bumpRevision,
   createUnit,
 } from '../../src/sim/state';
-import { TECH_IDS, type TechId } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { upgradeUnits } from '../../src/sim/tech';
 import { isCivilian, unitDef, unitHp, unitMaxHp } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -347,14 +347,26 @@ describe('roadStepCost on a resource row', () => {
    * Summed with the card rule and applied once, exactly as `ruleFactor` sums the
    * two vocabularies for a city's rules — so two sources of a discount read as
    * one total instead of as 0.75 × 0.60.
+   *
+   * The card rule was Machinery's −40 until batch TT1 cut it (`docs/flags.md`
+   * (iiiiiii)). Interior Lines still says the same −40, so the same line is hung
+   * on Code of Laws, a node that keeps an authored array of rules, for the
+   * length of the test.
    */
-  it('sums with Machinery rather than multiplying against it', () => {
-    withBonus('horses', [{ kind: 'rulePercent', rule: 'roadStepCost', percent: -20 }], () => {
-      const state = held('horses', 1, [...QUIET, 'machinery' as TechId]);
-      const both = moveProfile(state, marcher(state)).roadStep;
-      expect(both).toBe(roadStepCostWith(-60));
-      expect(both).not.toBe(roadStepCostWith(-20));
-    });
+  it('sums with a card rule rather than multiplying against it', () => {
+    const authored = techDef('kingship').effects!;
+    const before = authored.length;
+    authored.push({ kind: 'rulePercent', rule: 'roadStepCost', percent: -40 });
+    try {
+      withBonus('horses', [{ kind: 'rulePercent', rule: 'roadStepCost', percent: -20 }], () => {
+        const state = held('horses', 1, [...QUIET, 'kingship' as TechId]);
+        const both = moveProfile(state, marcher(state)).roadStep;
+        expect(both).toBe(roadStepCostWith(-60));
+        expect(both).not.toBe(roadStepCostWith(-20));
+      });
+    } finally {
+      authored.splice(before);
+    }
   });
 
   it('leaves an empire that holds none of it exactly where it was', () => {

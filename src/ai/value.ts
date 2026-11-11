@@ -220,7 +220,6 @@ import {
   cityResourceYields,
   empireResourceYields,
   importedLuxuries,
-  luxuryLoans,
 } from '../sim/resourceEffects';
 import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
@@ -1789,13 +1788,7 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
 
   if (effect.where === 'route') {
     // Paid on every caravan this empire is running, counted by the simulation.
-    // A row paid **per luxury at either end** (The Golden Roads) is that figure
-    // again for every good on the road, and the stand-in for "how many goods"
-    // is the empire's own luxury count: a caravan runs between two of this
-    // realm's towns, so the realm's shelf is the honest upper reading of what
-    // the pair between them holds.
     const each = valueOfYields(bagOf(effect), ctx);
-    const goods = effect.perEndpointLuxury === true ? countProbe(ctx, 'uniqueLuxuries') : 1;
     const routes = countProbe(ctx, 'tradeRoutes');
     // **The share on top of the flats** — The Silk Exchange's doubled beakers.
     // Priced exactly as the amplifier that raises a whole caravan is
@@ -1815,7 +1808,7 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
       const part = row.yield === 'all' ? 1 : 1 / ROUTE_VOICES;
       share += best * routes * (row.percent / 100) * part;
     }
-    return each * goods * routes + share;
+    return each * routes + share;
   }
 
   // The empire once, the capital once (it *is* one town — `scorePayout`'s
@@ -2748,7 +2741,6 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     case 'noFortify':
     case 'cityRestoresMovement':
     case 'freeLanding':
-    case 'routesImportLuxuries':
     case 'attackKeepsFortification':
     case 'secondAttack':
     case 'breachInOneBlow':
@@ -3986,21 +3978,19 @@ function beliefSlotWorth(amount: number, pool: ReligionBeliefPool, ctx: ValueCon
  * worth more to an empire whose next town is blocked on writ).
  *
  * `value` replaces the constant and `delta` shifts it, exactly as the shape
- * says. A rule that names a cost this empire is not paying — a coastal town's
- * writ in a landlocked realm — used to be read as the towns it *could* land in,
- * capped at the realm; since batch X2 it is read as the towns of that kind,
- * because the kinds the three rules name are three tests the scope union
- * already carries and `townsAdmitting` will answer them.
+ * says. A rule that names a cost this empire is not paying — a hill town's
+ * writ in a realm on the plain — used to be read as the towns it *could* land
+ * in, capped at the realm; since batch X2 it is read as the towns of that kind,
+ * because the kinds the two rules name are two tests the scope union already
+ * carries and `townsAdmitting` will answer them.
  */
-const METER_RULE_SCOPES: Record<'capturedCityCost' | 'coastalCityCost' | 'hillCityCost', CityScope> =
-  {
-    // Frozen at module scope for the memo's sake and not merely for tidiness: the
-    // memo is keyed on the scope **object**, so a fresh literal per call would
-    // remember nothing and ask the board again every time.
-    capturedCityCost: { test: 'captured' },
-    coastalCityCost: { test: 'coastal' },
-    hillCityCost: { test: 'onHills' },
-  };
+const METER_RULE_SCOPES: Record<'capturedCityCost' | 'hillCityCost', CityScope> = {
+  // Frozen at module scope for the memo's sake and not merely for tidiness: the
+  // memo is keyed on the scope **object**, so a fresh literal per call would
+  // remember nothing and ask the board again every time.
+  capturedCityCost: { test: 'captured' },
+  hillCityCost: { test: 'onHills' },
+};
 
 function scoreMeterRule(
   effect: Extract<CardEffect, { kind: 'meterRule' }>,
@@ -4015,19 +4005,13 @@ function scoreMeterRule(
       return change * RULES.meters.happiness.demandPerPop * ctx.cities * meterWeight(ctx, 'happiness');
     }
     case 'capturedCityCost':
-    case 'coastalCityCost':
     case 'hillCityCost': {
-      const standing =
-        rule === 'capturedCityCost'
-          ? authority.capturedCity
-          : rule === 'coastalCityCost'
-            ? authority.coastalCity
-            : authority.foundedCity;
+      const standing = rule === 'capturedCityCost' ? authority.capturedCity : authority.foundedCity;
       const after = effect.value ?? standing + (effect.delta ?? 0);
       // Writ handed back **per town of the kind**, and since batch X2 the kind is
-      // counted rather than assumed. Each of the three rules names a fact the
+      // counted rather than assumed. Each of the two rules names a fact the
       // scope union already has a test for, so the count is `townsAdmitting`'s
-      // and this arm still knows nothing about what a coast is. A realm with no
+      // and this arm still knows nothing about what a hill is. A realm with no
       // captured town is handed back no writ for captured towns, which is what
       // the rule says and the opposite of what this arm used to say.
       return (
@@ -4037,7 +4021,7 @@ function scoreMeterRule(
       );
     }
     case 'cityCost': {
-      // **What the towns a scope admits cost, rewritten** (D2b). The three arms
+      // **What the towns a scope admits cost, rewritten** (D2b). The two arms
       // above price one *kind of ground* apiece off a frozen scope; this one
       // carries its own, so the very same arithmetic reads it straight off the
       // row — a delta of writ handed back (or spent) per admitting town, at the
@@ -4330,7 +4314,6 @@ function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
     figure = Math.max(0, times) * each;
   }
   if (figure === 0) return 0;
-  if (effect.pays === 'renown') return figure * ctx.ai.weights.renown;
   return voiceWeight(ctx, effect.pays as Voice) * figure;
 }
 
@@ -4628,8 +4611,7 @@ function foldReadEngine(effect: CardEffect): boolean {
       // **The Capitulations' loans** (Commerce batch T5; read here since batch
       // T9). Each foreign town holding the seat's paying post lends it a
       // luxury at half value, and the happiness meter and the luxury yields
-      // already carry a loan (The Silk Road's), so the books see exactly what
-      // the rule adds. It is the luxury fold, read with the card and without.
+      // carry the loan, so the books see exactly what the rule adds. It is the luxury fold, read with the card and without.
       return effect.rule === 'postsLendLuxuries';
     default:
       return false;
@@ -5402,10 +5384,9 @@ function potentialTownsFor(
 function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
   // **The caravan's count pays the bag** (batch GP2, the one (`where`, `basis`)
   // pair whose helping is not said with `to`): a road's line is a bag in
-  // `RouteYieldLine` and the fold multiplies bags, which is what
-  // `perEndpointLuxury` has always done. Asked first, because `to` is absent on
-  // such a row and the stand-in below would otherwise swallow it. A hex's count
-  // pays the bag for the same reason (batch DT13).
+  // `RouteYieldLine` and the fold multiplies bags. Asked first, because `to` is
+  // absent on such a row and the stand-in below would otherwise swallow it. A
+  // hex's count pays the bag for the same reason (batch DT13).
   if ((pays.where === 'route' || pays.where === 'hex') && (pays.basis ?? 'flat') === 'count') {
     return valueOfYields(bagOf(pays), ctx);
   }
@@ -8009,18 +7990,14 @@ function postRangeWorth(ctx: ValueContext): number {
 /**
  * **The Capitulations**, read without the marginal reading: the luxuries this
  * seat's paying posts abroad would lend it. Each foreign town holding its
- * paying post lends the first kind it has opened that the seat does not hold
- * and that no route has lent, as `luxuryLoans` walks them; each kind is priced
- * at the loan's share of a luxury's happiness
- * (`rules.trade.importedLuxuryPercent`). A kind's yields are left out, so it
- * reads low.
+ * paying post lends the first kind it has opened that the seat does not hold,
+ * as `luxuryLoans` walks them; each kind is priced at the loan's share of a
+ * luxury's happiness (`rules.trade.importedLuxuryPercent`). A kind's yields are
+ * left out, so it reads low.
  */
 function postLoansWorth(ctx: ValueContext): number {
   const held = controlledResources(ctx.state, ctx.playerId, 'luxury');
   const claimed: ResourceId[] = [];
-  for (const loan of luxuryLoans(ctx.state, ctx.playerId)) {
-    if (loan.via === 'route') claimed.push(loan.id);
-  }
   let kinds = 0;
   for (const town of ctx.state.cities) {
     if (town.ownerId === ctx.playerId) continue;

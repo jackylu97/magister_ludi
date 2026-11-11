@@ -753,9 +753,10 @@ describe('the twelve legacies GP3 wired', () => {
     found(g.state, 0);
     const bare = foldMeter(explainAuthority(g.state, 0));
     bear(g.state, 0, 'graciaMendesNasi');
-    // The half GP1 shipped: eight more points of writ.
+    // The half GP1 shipped: five more points of writ (eight until batch TT1,
+    // `docs/flags.md` (iiiiiii)).
     const widened = foldMeter(explainAuthority(g.state, 0));
-    expect(widened).toBe(bare + 8);
+    expect(widened).toBe(bare + 5);
     const spare = Math.max(0, widened);
     expect(spare).toBeGreaterThan(0);
     // And the two halves GP3 wired, off that same fold: gladness a point, gold

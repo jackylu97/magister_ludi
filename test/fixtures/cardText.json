@@ -2594,8 +2594,8 @@
   ],
   "justicesCharter": [
    {
-    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — +1 authority capacity; this city’s citizens ask 15% less of you",
-    "text": "unlocks the Assize Court — +1 authority capacity; this city’s citizens ask 15% less of you"
+    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — this city’s citizens ask 15% less of you",
+    "text": "unlocks the Assize Court — this city’s citizens ask 15% less of you"
    }
   ],
   "theBannerCall": [
@@ -11835,6 +11835,14 @@
   ],
   "printingHouse": [
    {
+    "raw": "+10% science in every city with a [[building:printingHouse|Printing House]]",
+    "text": "+10% science in every city with a Printing House"
+   },
+   {
+    "raw": "+10% production in every city with a [[building:printingHouse|Printing House]]",
+    "text": "+10% production in every city with a Printing House"
+   },
+   {
     "raw": "+2 science, +2 culture on every trade route that ends in a city with a [[building:printingHouse|Printing House]]",
     "text": "+2 science, +2 culture on every trade route that ends in a city with a Printing House"
    }
@@ -11861,8 +11869,8 @@
   ],
   "publicBath": [
    {
-    "raw": "+2 happiness while this city is joined to your capital by road",
-    "text": "+2 happiness while this city is joined to your capital by road"
+    "raw": "+1 happiness while this city is joined to your capital by road",
+    "text": "+1 happiness while this city is joined to your capital by road"
    }
   ],
   "lighthouse": [],
@@ -12023,12 +12031,7 @@
     "text": "+10% science in every city with an Orrery with a mountain within 2 hexes"
    }
   ],
-  "assizeCourt": [
-   {
-    "raw": "+1 authority capacity",
-    "text": "+1 authority capacity"
-   }
-  ],
+  "assizeCourt": [],
   "plantationHouse": [],
   "relic": [],
   "heroicEpic": [
@@ -12105,20 +12108,12 @@
    {
     "raw": "+1 science per military Order you have seated",
     "text": "+1 science per military Order you have seated"
-   },
-   {
-    "raw": "+1 authority capacity",
-    "text": "+1 authority capacity"
    }
   ],
   "postStation": [
    {
     "raw": "+20% production in every city with [[building:postStation|The Post Station]] joined to your capital by road",
     "text": "+20% production in every city with The Post Station joined to your capital by road"
-   },
-   {
-    "raw": "+1 authority capacity",
-    "text": "+1 authority capacity"
    }
   ],
   "hordeCamp": [],
@@ -12841,8 +12836,8 @@
   ],
   "graciaMendesNasi": [
    {
-    "raw": "+8 authority capacity",
-    "text": "+8 authority capacity"
+    "raw": "+5 authority capacity",
+    "text": "+5 authority capacity"
    },
    {
     "raw": "+1 happiness per spare authority",
@@ -12905,25 +12900,10 @@
   "divination": [],
   "letters": [],
   "theWheel": [],
-  "siegecraft": [
-   {
-    "raw": "every city: +1 city defence per 4 citizens",
-    "text": "every city: +1 city defence per 4 citizens"
-   }
-  ],
+  "siegecraft": [],
   "irrigation": [],
   "wayfinding": [],
-  "epicPoetry": [
-   {
-    "raw": "losing a unit grants +4 culture",
-    "text": "losing a unit grants +4 culture"
-   },
-   {
-    "raw": "Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it. — not built yet",
-    "text": "Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it. — not built yet",
-    "deferred": true
-   }
-  ],
+  "epicPoetry": [],
   "currency": [],
   "kingship": [
    {
@@ -12931,57 +12911,27 @@
     "text": "+3 authority capacity"
    }
   ],
-  "theLongCount": [
-   {
-    "raw": "every 15 turns, 1 renown for every science or faith building",
-    "text": "every 15 turns, 1 renown for every science or faith building"
-   }
-  ],
+  "theLongCount": [],
   "stateWorkforce": [
    {
     "raw": "newly created workers gain +1 charge",
     "text": "newly created workers gain +1 charge"
-   },
-   {
-    "raw": "workers cost −25% to buy",
-    "text": "workers cost −25% to buy"
    }
   ],
   "theHighTemple": [],
-  "bronzePanoply": [],
+  "bronzePanoply": [
+   {
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
+   }
+  ],
   "shipwrights": [],
   "philosophy": [],
   "paperMoney": [],
-  "artisanry": [
-   {
-    "raw": "+10% production toward wonders",
-    "text": "+10% production toward wonders"
-   },
-   {
-    "raw": "+2 culture per wonder you hold",
-    "text": "+2 culture per wonder you hold"
-   }
-  ],
+  "artisanry": [],
   "mathematics": [],
-  "theImperialPost": [
-   {
-    "raw": "each connected city pays +1 gold",
-    "text": "each connected city pays +1 gold"
-   },
-   {
-    "raw": "+1 happiness in every city joined to your capital by road",
-    "text": "+1 happiness in every city joined to your capital by road"
-   }
-  ],
+  "theImperialPost": [],
   "theExaminationHall": [
-   {
-    "raw": "+5 percentage points to the bonus your positive happiness pays",
-    "text": "+5 percentage points to the bonus your positive happiness pays"
-   },
-   {
-    "raw": "+5 authority capacity",
-    "text": "+5 authority capacity"
-   },
    {
     "raw": "+1 food, +1 production on every hex carrying a great person's work",
     "text": "+1 food, +1 production on every hex carrying a great person's work"
@@ -12989,16 +12939,8 @@
   ],
   "colonialCharters": [
    {
-    "raw": "settlers cost 33% less production",
-    "text": "settlers cost 33% less production"
-   },
-   {
     "raw": "new cities are founded with a [[building:townCharter|Town Charter]]",
     "text": "new cities are founded with a Town Charter"
-   },
-   {
-    "raw": "+1 food, +1 production on every trade route between two of your own cities",
-    "text": "+1 food, +1 production on every trade route between two of your own cities"
    }
   ],
   "theQadisCourt": [
@@ -13010,81 +12952,25 @@
   "theology": [],
   "ironWorking": [],
   "education": [],
-  "horology": [
-   {
-    "raw": "every 10 turns, 5 science for every production building",
-    "text": "every 10 turns, 5 science for every production building"
-   }
-  ],
+  "horology": [],
   "engineering": [],
-  "theCataphract": [
-   {
-    "raw": "pillaging grants +15 science",
-    "text": "pillaging grants +15 science"
-   },
-   {
-    "raw": "pillaging grants +15 culture",
-    "text": "pillaging grants +15 culture"
-   }
-  ],
-  "prospecting": [
-   {
-    "raw": "+1 production, +1 faith on every hex with a [[improvement:mine|Mine]] carrying a resource",
-    "text": "+1 production, +1 faith on every hex with a Mine carrying a resource"
-   }
-  ],
-  "silkRoad": [
-   {
-    "raw": "+3 gold on every trade route that ends in another empire’s city",
-    "text": "+3 gold on every trade route that ends in another empire’s city"
-   },
-   {
-    "raw": "a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own",
-    "text": "a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own"
-   }
-  ],
+  "theCataphract": [],
+  "prospecting": [],
+  "silkRoad": [],
   "banking": [],
-  "machinery": [
-   {
-    "raw": "a step along a road costs 40% less movement",
-    "text": "a step along a road costs 40% less movement"
-   }
-  ],
+  "machinery": [],
   "theAstrolabe": [],
   "theSilkRoad": [
    {
     "raw": "+1 trade route",
     "text": "+1 trade route"
-   },
-   {
-    "raw": "+1 gold on every trade route you send, for each luxury in the city it left or the city it reaches",
-    "text": "+1 gold on every trade route you send, for each luxury in the city it left or the city it reaches"
    }
   ],
-  "feudalism": [
-   {
-    "raw": "+10 combat strength against ranged units",
-    "text": "+10 combat strength against ranged units"
-   }
-  ],
+  "feudalism": [],
   "theHolyOffice": [],
-  "steel": [
-   {
-    "raw": "melee units: +1 movement",
-    "text": "melee units: +1 movement"
-   }
-  ],
+  "steel": [],
   "alchemy": [],
-  "movableType": [
-   {
-    "raw": "+10% science in every city joined to your capital by road",
-    "text": "+10% science in every city joined to your capital by road"
-   },
-   {
-    "raw": "+10% production in every city joined to your capital by road",
-    "text": "+10% production in every city joined to your capital by road"
-   }
-  ],
+  "movableType": [],
   "physics": [],
   "militantOrders": []
  },

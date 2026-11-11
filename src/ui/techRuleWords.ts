@@ -59,6 +59,9 @@ import { describeCard, ref, stripRefs } from '../sim/statecraft';
  * (117). The two-clause nodes that fit stay under it — State Workforce and
  * Guildhalls at sixty, Daughter Cities at seventy-five.
  *
+ * Batch TT1 (`docs/flags.md` (iiiiiii)) cut most of those rules, so no ordinary
+ * node runs past the bar today. The bar stays for the next node that does.
+ *
  * A figure rather than a measured wrap because this module has no DOM and must
  * answer the same way for the book, which has no card to overflow: one bar, one
  * answer, both surfaces.

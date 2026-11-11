@@ -1,6 +1,7 @@
 import { bumpEconomy } from '../../src/sim/slate';
 import { describe, expect, it, vi } from 'vitest';
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../../src/sim/buildingData';
+import { improvementDef } from '../../src/sim/improvementData';
 import {
   foundCityAt,
   tileOwnerPlayerId,
@@ -1886,7 +1887,7 @@ describe('research in the log', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(229);
+    expect(SCHEMA_VERSION).toBe(230);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2531,8 +2532,8 @@ describe('the shape of the tree', () => {
     );
     expect(live).toEqual(expected);
     // And the lookup spans it: a tech id is a `CardId` and answers its own row.
-    expect(anyCardDef('theImperialPost').name).toBe('Satrapies');
-    expect(anyCardDef('theImperialPost').effects).toEqual(techDef('theImperialPost').effects);
+    expect(anyCardDef('kingship').name).toBe('Code of Laws');
+    expect(anyCardDef('kingship').effects).toEqual(techDef('kingship').effects);
     // The id spaces stay disjoint — no technology id is any other card's id.
     for (const id of TECH_IDS) {
       expect(isBuildingId(id), id).toBe(false);
@@ -2541,22 +2542,21 @@ describe('the shape of the tree', () => {
     void player;
   });
 
-  it('pays Epic Poetry’s verse into the nearest city when a piece falls', () => {
-    // The `death` occasion, which already existed and had no card on it. What
-    // the node buys is a `windfallRider`, read by the ordinary evaluator, paid
-    // by the ordinary seam — so the culture lands in the town nearest the body.
+  it('pays no verse for a fallen piece, now that Epic Poetry’s rider is cut', () => {
+    // Batch TT1 (`docs/flags.md` (iiiiiii)): the culture a falling unit paid
+    // through Epic Poetry left the tree. The node keeps its buildings and the
+    // great-person gate, and the `death` occasion pays nothing for it.
     const state = flatState();
-    const city = plant(state, 0, 4, 4);
-    void city;
+    plant(state, 0, 4, 4);
     const player = state.players[0]!;
-    const bare = windfallPayout(state, 0, 'death');
-    expect(bare.grants).toEqual([]);
     grant(state, 0, 'epicPoetry');
     const paid = windfallPayout(state, 0, 'death');
-    expect(paid.grants.map((entry) => [entry.yield, entry.amount])).toEqual([['culture', 4]]);
+    expect(paid.grants).toEqual([]);
     const before = player.culturePool;
     payWindfallGrants(state, player, paid, { col: 8, row: 5 });
-    expect(player.culturePool).toBeGreaterThan(before);
+    expect(player.culturePool).toBe(before);
+    expect(techDef('epicPoetry').effects).toBeUndefined();
+    expect(techDef('epicPoetry').deferred).toBeUndefined();
   });
 });
 
@@ -2590,11 +2590,14 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     expect(techDef('kingship').effects).toEqual([{ kind: 'authority', amount: 3 }]);
   });
 
-  it('gives The Civil Service the writ and the great-person works', () => {
-    // The happiness tier boost it always carried, then the two the markup added.
-    expect(kinds('theExaminationHall')).toEqual(['happinessTierBoost', 'authority', 'pays']);
-    const line = techDef('theExaminationHall').effects![2]!;
-    expect(line).toEqual({
+  it('keeps The Civil Service’s great-person works and cuts its other two rules (batch TT1)', () => {
+    // The user's ruling of 2026-11-10 (`docs/flags.md` (iiiiiii)) cut the
+    // authority and the earlier reward steps. The great-person works stay for
+    // now, a reading taken without a ruling: with all three cut the node would
+    // give nothing, and the user has not said whether it gets a new unlock or
+    // leaves the tree.
+    expect(kinds('theExaminationHall')).toEqual(['pays']);
+    expect(techDef('theExaminationHall').effects![0]).toEqual({
       kind: 'pays', where: 'hex',
       on: { test: 'greatWork' },
       food: 1,
@@ -2632,40 +2635,15 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     expect(after.plain).toEqual(before.plain);
   });
 
-  it('gives Guildhalls the wonder-builders’ bonus and the wonders’ song', () => {
-    expect(techDef('artisanry').effects).toEqual([
-      { kind: 'productionBonus', category: 'wonder', percent: 10 },
-      {
-        kind: 'pays',
-        where: 'empire',
-        basis: 'count',
-        to: 'culture',
-        amount: 2,
-        count: 'wonders',
-      },
-    ]);
+  it('takes Guildhalls’ wonder bonuses away (batch TT1)', () => {
+    expect(techDef('artisanry').effects).toBeUndefined();
+    expect(techDef('artisanry').unlocks.buildings).toEqual(['workshop']);
   });
 
-  it('gives Horology and Chronology their clocks, and the Water Clock its chime', () => {
-    expect(techDef('horology').effects).toEqual([
-      {
-        kind: 'periodic',
-        everyTurns: 10,
-        pays: 'science',
-        amount: 5,
-        count: 'buildingsOfCategories',
-        categories: ['production'],
-      },
-    ]);
-    expect(techDef('theLongCount').effects).toEqual([
-      {
-        kind: 'periodic',
-        everyTurns: 15,
-        pays: 'renown',
-        count: 'buildingsOfCategories',
-        categories: ['science', 'faith'],
-      },
-    ]);
+  it('stops Horology’s and Chronology’s clocks, and leaves the Water Clock its chime', () => {
+    // Batch TT1 cut both nodes' timed payouts. The wonder keeps its own.
+    expect(techDef('horology').effects).toBeUndefined();
+    expect(techDef('theLongCount').effects).toBeUndefined();
     // The wonder that was deferred on exactly this ("beakers and renown on a
     // fixed cadence") now carries it, and the deferral is gone with it.
     const clock = buildingDef('waterClockOfSuSong');
@@ -2677,52 +2655,49 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     ]);
   });
 
-  it('pays Chronology’s renown out of the world’s clock, through the one seam', () => {
-    // A periodic effect on anything but a chair runs on `state.turn % period`
-    // (batch A's stated rule), and renown is added in exactly one place — so the
-    // phase hands `settleRenownWindfall` in and this asks for the same thing.
+  it('pays no renown off Chronology on the world’s clock', () => {
+    // The renown Chronology paid every fifteen turns left with batch TT1. The
+    // phase still runs, and a seat holding the node is paid nothing by it.
     const state = flatState();
     const city = plant(state, 0, 4, 4);
     city.buildings.push('library', 'shrine');
     bumpRevision(state);
     grant(state, 0, 'theLongCount');
-    const paid: number[] = [];
-    const bank = (_s: GameState, _p: unknown, amount: number): void => void paid.push(amount);
-    state.turn = 14;
-    runPeriodicBoons(state, bank as never);
-    expect(paid).toEqual([]);
+    const player = state.players[0]!;
+    const before = structuredClone(player);
     state.turn = 15;
-    runPeriodicBoons(state, bank as never);
-    // Two buildings, one science and one faith, so two renown.
-    expect(paid).toEqual([2]);
+    runPeriodicBoons(state);
+    expect(player).toEqual(before);
   });
 
-  it('gives Geomancy the seam under the mine, and leaves the mine’s own line alone', () => {
-    expect(techDef('prospecting').effects).toEqual([
-      {
-        kind: 'pays', where: 'hex',
-        on: {
-          test: 'all',
-          of: [{ test: 'improvement', improvement: 'mine' }, { test: 'hasResource' }],
-        },
-        production: 1,
-        faith: 1,
-      },
+  it('keeps Geomancy’s mine bonus and cuts the extra on a seam', () => {
+    // The renewal is the improvement's row; the node's own rule is gone.
+    expect(techDef('prospecting').effects).toBeUndefined();
+    const mine = improvementDef('mine').upgrades ?? [];
+    expect(mine.filter((upgrade) => upgrade.tech === 'prospecting').map((upgrade) => upgrade.add)).toEqual([
+      { food: 0, production: 1, gold: 0 },
     ]);
   });
 
-  it('gives The Golden Roads a coin for every good at either end', () => {
-    expect(techDef('theSilkRoad').effects).toEqual([
-      { kind: 'routeRider', extra: 1 },
-      { kind: 'pays', where: 'route', gold: 1, perEndpointLuxury: true },
+  it('keeps The Golden Roads’ extra route and cuts the coin for each luxury', () => {
+    expect(techDef('theSilkRoad').effects).toEqual([{ kind: 'routeRider', extra: 1 }]);
+  });
+
+  it('moves Movable Type’s two shares onto the Printing House', () => {
+    // Batch TT1: the node opens the house, and the house carries the shares for
+    // the town that holds it.
+    expect(techDef('movableType').effects).toBeUndefined();
+    const own = { test: 'hasBuilding', building: 'printingHouse' };
+    expect((buildingDef('printingHouse').effects ?? []).slice(0, 2)).toEqual([
+      { kind: 'percentYields', yield: 'science', percent: 10, scope: own },
+      { kind: 'percentYields', yield: 'production', percent: 10, scope: own },
     ]);
   });
 
-  it('takes Movable Type’s cheer away and gives it the presses’ two shares', () => {
-    expect(techDef('movableType').effects).toEqual([
-      { kind: 'percentYields', yield: 'science', percent: 10, scope: { test: 'connected' } },
-      { kind: 'percentYields', yield: 'production', percent: 10, scope: { test: 'connected' } },
-    ]);
+  it('gives Bronze Panoply a second extra charge for workers, in State Workforce’s shape', () => {
+    const charge = { kind: 'unitStat', stat: 'charges', amount: 1, class: { type: 'worker' } };
+    expect(techDef('bronzePanoply').effects).toEqual([charge]);
+    expect(techDef('stateWorkforce').effects).toEqual([charge]);
   });
 
   it('leaves the ability register exactly where it was', () => {
@@ -2759,7 +2734,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     // them — `docs/history/tech-gifts.md` §2. The rule they describe is C1's; what E owes
     // is that the card the player reads says so.
     expect(techDef('divination').note).toMatch(/faith runs deep enough/);
-    expect(techDef('theLongCount').note).toMatch(/second reading of a draft/);
+    expect(techDef('theLongCount').note).toMatch(/spend faith to draw a new hand of Orders/);
     for (const id of TECH_IDS) {
       const note = techDef(id).note;
       if (note === undefined) continue;
