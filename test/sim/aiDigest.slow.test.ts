@@ -1111,10 +1111,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * bytes moved with the schema. Duel `6103ce8b:278474` -> `269f8ad7:313474`,
  * standard `618a7285:924458` -> `6b717173:928115`. Nothing stalled and no
  * command was refused.
+ *
+ * Re-cut for the simplification build (`b4622287`, batches TR1 to B1, schema
+ * 241). Trade routes, the Orders of all six decks, the twelve governments, the
+ * technology passives and the beliefs all changed, so every seat holds and
+ * does different things from its first offer on. Duel `269f8ad7:313474` ->
+ * `40f518d8:294143`, standard `6b717173:928115` -> `1e8bc3d3:1007901`. Nothing
+ * stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '269f8ad7:313474',
-  standard: '6b717173:928115',
+  duel: '40f518d8:294143',
+  standard: '1e8bc3d3:1007901',
 };
 
 /**
