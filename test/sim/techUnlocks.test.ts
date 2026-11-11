@@ -180,14 +180,9 @@ describe('techGifts', () => {
     // the tile; **Iron Working** buys the *label* (see `isResourceVisible`) since
     // the re-cut of 2026-09-02 moved the reveal off Bronzeworking. The gift is
     // real and the `unlocks` block does not know about it.
-    // The Courthouse joined the list in M2 (2026-09-15): the user moved it
-    // down from Divine Right to the legionary's own node, so the town a sword
-    // takes can be held in the age the sword is forged.
-    expect(techDef('ironWorking').unlocks.buildings).toEqual([
-      'terracottaArmy',
-      'statueOfZeus',
-      'courthouse',
-    ]);
+    // The Courthouse was on this list from M2 (2026-09-15) until batch TT2,
+    // which moved it to The Civil Service.
+    expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy', 'statueOfZeus']);
     // Iron's reveal moved to Bronze Panoply on 2026-09-04 (the user's ruling:
     // the swordsman needs a real window before its legionary).
     const reveals = techGifts('bronzePanoply').filter((gift) => gift.kind === 'reveal');
@@ -305,7 +300,7 @@ describe('techGifts', () => {
       'bronzePanoply',
       'ironWorking',
       'mathematics',
-      'theQadisCourt',
+      // Divine Right was the ninth. It left the tree in batch TT2.
       'movableType',
       'paperMoney',
       'banking',

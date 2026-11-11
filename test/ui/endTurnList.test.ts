@@ -192,6 +192,7 @@ describe('the words', () => {
       'greatPerson',
       'wager',
       'census',
+      'renewRites',
     ];
     for (const kind of kinds) expect(END_TURN_LABELS[kind], kind).toBeTruthy();
     expect(PAUSE_LABELS.order).toBe('You have a new Order');
@@ -267,10 +268,13 @@ describe('controls.ts', () => {
   const controls = uiSource('controls.ts');
 
   it('lists what End Turn would stop on past the same skipped units, and goes to any of it', () => {
-    expect(controls).toContain('return allBlockers(getGame().state, localPlayerId, { skippedUnitIds });');
+    // Both readings pass the same two view facts: the skip set and, since
+    // batch RT1, the turn the faith screen was last closed on.
+    const exclusions = '{\n      skippedUnitIds,\n      faithClosedOnTurn: faithClosedTurns.get(localPlayerId),\n    });';
+    expect(controls).toContain(`return allBlockers(getGame().state, localPlayerId, ${exclusions}`);
     expect(controls).toContain('goToBlocker: focusBlocker,');
-    // The label's reading is unchanged.
-    expect(controls).toContain('return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });');
+    // The label's reading takes the same exclusions.
+    expect(controls).toContain(`return firstBlocker(getGame().state, localPlayerId, ${exclusions}`);
   });
 });
 

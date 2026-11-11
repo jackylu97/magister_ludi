@@ -1676,6 +1676,44 @@ export function cityRiteTurnsLeft(state: GameState, city: City, rite?: RiteId): 
 }
 
 /**
+ * **The rites that ended in this town at the last turn change**, oldest first,
+ * each named once (batch RT1, `docs/flags.md` (jjjjjjj)). Empty when none did.
+ *
+ * A rite is live while `state.turn < expiresTurn`. So an entry with
+ * `expiresTurn === state.turn` is a rite that ran through the last turn and
+ * stopped when the turn number moved. The entry is still in `City.timed` for
+ * the whole of this turn: `pruneTimedEffects` runs inside the resolution,
+ * before `applyEndTurn` moves the turn number, so it only sweeps entries that
+ * ended a turn earlier. This reading stores nothing and counts nothing down.
+ *
+ * Three cases give an empty list:
+ *
+ *   - a rite that acts at once (`RiteDef.atOnce`: the Votive Offering and the
+ *     Restoring of the Host). Its entry is only the wait between two uses, not
+ *     a season, so its end is not news;
+ *   - a withdrawn rite, for `cityRite`'s reason;
+ *   - a town with no free place for a rite now (`ritePlacesFor`). It has
+ *     already started a rite this turn, so there is nothing to renew.
+ *
+ * The one reader is End Turn's "Renew rites" prompt (`src/ui/turnBlockers.ts`).
+ * No rule of the game reads it.
+ */
+export function ritesEndedAt(state: GameState, city: City): RiteId[] {
+  const ended: RiteId[] = [];
+  for (const entry of city.timed ?? []) {
+    if (entry.expiresTurn !== state.turn) continue;
+    if (!isRiteId(entry.card)) continue;
+    const def = riteDef(entry.card);
+    if (def.retired === true || def.atOnce !== undefined) continue;
+    if (!ended.includes(entry.card)) ended.push(entry.card);
+  }
+  // The place count reads the cards, so it is asked only when a rite ended.
+  if (ended.length === 0) return ended;
+  if (cityRites(state, city).length >= ritePlacesFor(state, city.ownerId)) return [];
+  return ended;
+}
+
+/**
  * Why this city cannot perform this rite, or `null` when it can.
  *
  * **The** gate: the city panel greys its rite rows with exactly it, so an

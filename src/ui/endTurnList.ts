@@ -67,6 +67,9 @@ export const END_TURN_LABELS: Readonly<Record<TurnBlocker['kind'], string>> = {
   // The one label that names a *reading* rather than a decision: nothing is
   // owed here but a look, and the verb says so.
   census: 'Read the census',
+  // The user's own words for the prompt (batch RT1). The player may pass it:
+  // closing the faith screen answers it.
+  renewRites: 'Renew rites',
 };
 
 /**

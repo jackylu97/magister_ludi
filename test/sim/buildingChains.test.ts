@@ -264,7 +264,8 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
     // Machinery left it in M2 (2026-09-15): the Armoury it named came back live
     // at Mathematics, and a buildable reachable from two nodes is the data bug
     // `techUnlocks.test.ts` refuses — so the row left Machinery with the cut.
-    expect([...orphaned].sort()).toEqual(['theExaminationHall']);
+    // The Civil Service left it in batch TT2: it opens the Courthouse now.
+    expect([...orphaned].sort()).toEqual([]);
   });
 });
 

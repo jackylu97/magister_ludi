@@ -1887,7 +1887,7 @@ describe('research in the log', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(239);
+    expect(SCHEMA_VERSION).toBe(240);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2254,6 +2254,9 @@ describe('the shape of the tree', () => {
       // And the one the user's tree pass of 2026-09-10 cut: Raised Fields, whose
       // slot, column, lane and prerequisite The Silk Road took over whole.
       'raisedFields',
+      // And Divine Right, which batch TT2 removed (the user, 2026-11-11:
+      // "remove it and link castellany"). Castellany now hangs off Guildhalls.
+      'theQadisCourt',
     ]) {
       expect(isTechId(id), id).toBe(false);
     }
@@ -2268,17 +2271,17 @@ describe('the shape of the tree', () => {
     expect(techDef('artisanry').name).toBe('Guildhalls');
     expect(techDef('colonialCharters').name).toBe('Daughter Cities');
     expect(techDef('prospecting').name).toBe('Geomancy');
-    expect(techDef('theQadisCourt').name).toBe('Divine Right');
     expect(techDef('education').name).toBe('Scholarship');
     expect(techDef('physics').name).toBe('Natural Philosophy');
     expect(techDef('theSilkRoad').name).toBe('The Golden Roads');
     expect(techDef('banking').name).toBe('The Counting Houses');
-    // Fifty nodes, and every one of them inside the lane budget.
-    expect(TECH_IDS.length).toBe(50);
+    // Forty-nine nodes since batch TT2 removed Divine Right, and every one of
+    // them inside the lane budget.
+    expect(TECH_IDS.length).toBe(49);
     // And thirteen charter rows beside them, off the sky (Scientific batch S0;
     // `test/sim/charterTechs.test.ts` pins the rest). Devotion batch DV2 added
     // a fourteenth, Scholasticism, for the shared The Schoolmen's Charter.
-    expect(ALL_TECH_IDS.length).toBe(64);
+    expect(ALL_TECH_IDS.length).toBe(63);
   });
 
   it('draws Æra I as the user drew it — twelve nodes, two gates, four columns', () => {
@@ -2443,7 +2446,8 @@ describe('the shape of the tree', () => {
     expect(techDef('theHighTemple').prereqs).toEqual(['epicPoetry']);
     expect(techDef('philosophy').prereqs).toEqual(['theHighTemple']);
     expect(techDef('theology').prereqs).toEqual(['philosophy']);
-    expect(techDef('theQadisCourt').prereqs).toEqual(['artisanry']);
+    // Divine Right left the tree in batch TT2, and Castellany took its parent.
+    expect(techDef('feudalism').prereqs).toEqual(['artisanry']);
     expect(techDef('theHolyOffice').prereqs).toEqual(['education']);
     // The Hall of Deeds left the tree with the re-cut and kept its row, so a
     // save that raised one replays. Nothing unlocks it and nothing may build it.
@@ -2590,26 +2594,19 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     expect(techDef('kingship').effects).toEqual([{ kind: 'authority', amount: 3 }]);
   });
 
-  it('keeps The Civil Service’s great-person works and cuts its other two rules (batch TT1)', () => {
-    // The user's ruling of 2026-11-10 (`docs/flags.md` (iiiiiii)) cut the
-    // authority and the earlier reward steps. The great-person works stay for
-    // now, a reading taken without a ruling: with all three cut the node would
-    // give nothing, and the user has not said whether it gets a new unlock or
-    // leaves the tree.
-    expect(kinds('theExaminationHall')).toEqual(['pays']);
-    expect(techDef('theExaminationHall').effects![0]).toEqual({
-      kind: 'pays', where: 'hex',
-      on: { test: 'greatWork' },
-      food: 1,
-      production: 1,
-    });
+  it('gives The Civil Service the Courthouse and no rule of its own (batch TT2)', () => {
+    // Batch TT1 cut the node's authority and its earlier reward steps
+    // (`docs/flags.md` (iiiiiii)). Batch TT2 (item (jjjjjjj)) moved the
+    // Courthouse here from Iron Working and cut the last bonus, the extra food
+    // and production on a great person's work.
+    expect(kinds('theExaminationHall')).toEqual([]);
+    expect(techDef('theExaminationHall').unlocks.buildings).toContain('courthouse');
+    expect(BUILDING_UNLOCK_TECH.get('courthouse')).toBe('theExaminationHall');
   });
 
-  it('pays The Civil Service’s line on a great person’s work and nowhere else', () => {
-    // The `greatWork` tile test reads `ImprovementDef.greatPerson` rather than a
-    // list of five names, so the day a sixth work lands it joins this clause for
-    // free. Both halves are checked: the academy pays, the farm beside it does
-    // not.
+  it('pays nothing more on a great person’s work for The Civil Service (batch TT2)', () => {
+    // The yield reading of the cut: the academy and the farm beside it give the
+    // same food and production before and after the node is learned.
     const state = flatState();
     grantPrereqs(state, 0, 'theExaminationHall');
     const work = at(state.map, 4, 4);
@@ -2630,8 +2627,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     const before = read();
     grant(state, 0, 'theExaminationHall');
     const after = read();
-    expect(after.work[0]! - before.work[0]!).toBe(1);
-    expect(after.work[1]! - before.work[1]!).toBe(1);
+    expect(after.work).toEqual(before.work);
     expect(after.plain).toEqual(before.plain);
   });
 
@@ -2694,10 +2690,13 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     ]);
   });
 
-  it('gives Bronze Panoply a second extra charge for workers, in State Workforce’s shape', () => {
+  it('gives The Wheel the second extra charge for workers, in State Workforce’s shape (batch TT2)', () => {
+    // Batch TT1 put it on Bronze Panoply. The user moved it to The Wheel on
+    // 2026-11-11 (`docs/flags.md` (jjjjjjj)): "move it to the wheel".
     const charge = { kind: 'unitStat', stat: 'charges', amount: 1, class: { type: 'worker' } };
-    expect(techDef('bronzePanoply').effects).toEqual([charge]);
+    expect(techDef('theWheel').effects).toEqual([charge]);
     expect(techDef('stateWorkforce').effects).toEqual([charge]);
+    expect(techDef('bronzePanoply').effects).toBeUndefined();
   });
 
   it('leaves the ability register exactly where it was', () => {

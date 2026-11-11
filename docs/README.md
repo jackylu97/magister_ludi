@@ -44,7 +44,8 @@ comes after a playable core and a good AI.
   purchase marks all work the same way — nothing ticks.
 - End Turn is three beats in the UI (marches → turn card → camera), timed by the
   renderer's `pendingAnimationMs()`. `firstBlocker` (`turnBlockers.ts`) is what
-  raises a prompt before the turn can end.
+  raises a prompt before the turn can end; the HUD bullet below lists the
+  passable ones (an idle trader, "Renew rites").
 
 ## The map and the starts
 
@@ -522,7 +523,7 @@ Reference: **`docs/units.md`** (the roster; generated) and
 Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · code:
 `src/sim/tech.ts`, `techData.ts`.
 
-- Fifty nodes, thirteen columns, ages 12/9/14/15. **A column IS a price** — one
+- Forty-nine nodes, thirteen columns, ages 12/9/14/14. **A column IS a price** — one
   table, 5 · 11 · 24 · 50 · 100 · 190 · 360 · 650 · 1150 · 1960 · 3250 · 5150 ·
   8000. Every figure is one fitted curve (`ln cost(n) = ln 5 + 0.8084n −
   0.01613n²`, friendly-rounded); retuning is re-fitting two constants, never
@@ -537,21 +538,23 @@ Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · cod
   `TechDef` may carry card effects and `paysBead`.
 - **Few passive bonuses on technologies** (batch TT1, `docs/flags.md`
   (iiiiiii)). The user ruled that an unlock is obvious and a passive bonus is
-  easy to miss, and cut most of them. Seven ordinary nodes still carry a rule:
-  Code of Laws (+3 authority), Bronze Panoply and State Workforce (each gives
+  easy to miss, and cut most of them. Five ordinary nodes still carry a rule:
+  Code of Laws (+3 authority), The Wheel and State Workforce (each gives
   workers an extra charge), Daughter Cities (a founded town starts with a Town
-  Charter), The Golden Roads (an extra trade route), Divine Right (a captured
-  town costs 1 less authority) and The Civil Service (+1 food and +1
-  production on a great person's work). Four improvement renewals stay in
-  `data/improvements.json`: Irrigation, Currency, The Saddle and Geomancy. The
-  charter technologies keep their own rules.
+  Charter) and The Golden Roads (an extra trade route). Four improvement
+  renewals stay in `data/improvements.json`: Irrigation, Currency, The Saddle
+  and Geomancy. The charter technologies keep their own rules.
+- **Batch TT2** (`docs/flags.md` (jjjjjjj)). Divine Right left the tree with
+  its bonus, and Castellany takes Guildhalls as its parent, so it sits in
+  column 9 and costs 1960. The Military Engineers' charter row follows it to
+  column 10. The Courthouse moved from Iron Working to The Civil Service, and
+  The Civil Service lost its great-person works bonus. The second worker charge
+  moved from Bronze Panoply to The Wheel.
 - **A kept bonus is the node's headline.** `techGifts` lists the renewals and
   the node's own rules first, so the star chart's hover card, the Compendium
   and `docs/tech-tree.md` lead with them. The node's face in the chart prints
   them first too, above its units and buildings (`techHeadlines`,
   `src/ui/techTree.ts`), worded by `renewalNote` and `techRuleClauses`.
-- **The Civil Service keeps its great-person works bonus** until the user rules
-  whether it gets a new unlock or leaves the tree, as Divine Right does.
 - **The world's age is the mean** of every living real seat's highest technology,
   floored (`worldAge`, `worldClock.ts`) — not the first seat's. Crossing gives
   the current age a public countdown.
@@ -1062,7 +1065,8 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
   the Host, one for Votive Offering, made longer by The Octave and Chichen Itza;
   `riteTurnsFor` is the figure the town is stamped with and the faith screen
-  prints. The Rite of the Sabbath (The Sabbath Laws' charter) moves the town's
+  prints. No rite renews by itself: when one ends, End Turn shows "Renew rites"
+  for one turn (batch RT1; see the HUD bullet). The Rite of the Sabbath (The Sabbath Laws' charter) moves the town's
   production into culture at step 14 of its yields (`explainProductionMoved`),
   so the town builds nothing while it runs. The faith ladder consecrates
   **automatically** when the bank covers the next rung. Its hand is drawn
@@ -1454,7 +1458,16 @@ Eight root pages, all named in `vite.config.ts` inputs:
   thing the turn is waiting on; a vermilion badge counts the rest, and hovering
   or focusing it lists everything (`allBlockers` in `ui/turnBlockers.ts`, which
   walks `firstBlocker`'s clauses in its order), each row going where a press
-  would.
+  would. The last blocker is **"Renew rites"** (batch RT1, `docs/flags.md`
+  (jjjjjjj)): a rite in one of the seat's towns ended at the last turn change
+  (`ritesEndedAt` in `religion.ts`; a rite that acts at once never counts, nor
+  a town that has started another rite). A press opens the faith screen on its
+  Rites tab with that town in view (`openRitesFor`). Closing the faith screen
+  answers it for the rest of the turn, whether or not a rite was started:
+  `controls.noteFaithScreenClosed` keeps the turn per seat, as view state, and
+  passes it as `faithClosedOnTurn`. It is true only on the turn after the rite
+  ends, so it never comes back for the same expiry. The bot passes it
+  (`answerBlocker` answers `null`), and no rite renews by itself.
   Top-left, the **empire panel** (`ui/empireDrawer.ts`): one button with the
   seat's banner, a research bar and a draft-meter bar with their turns, and a red
   dot on the banner while a card, a charter, a belief or a strategic resource

@@ -1667,6 +1667,12 @@ export interface GameControlsOptions {
    * cart standing idle" by closing the one screen that can send it.
    */
   onOpenTrade?: () => void;
+  /**
+   * Opens the faith screen on its Rites tab with this town in view. End Turn's
+   * "Renew rites" prompt (batch RT1) calls it. It only opens, for
+   * `onOpenTrade`'s reason.
+   */
+  onOpenRites?: (cityId: number) => void;
   /** Opens or closes the Statecraft screen. The `C` key and the culture chip. */
   onToggleStatecraft?: () => void;
   /**
@@ -2039,6 +2045,12 @@ export interface GameControls {
    * and the guide line. The waiting list's rows call it.
    */
   goToBlocker(blocker: TurnBlocker): void;
+  /**
+   * The faith screen was closed. End Turn's "Renew rites" prompt (batch RT1)
+   * is answered for the rest of this turn, for this seat, and the button is
+   * repainted.
+   */
+  noteFaithScreenClosed(): void;
   /** Whose seat this client is playing. */
   localPlayerId(): number;
 
@@ -2565,6 +2577,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onToggleBeads,
     onOpenTechTree,
     onOpenTrade,
+    onOpenRites,
     onOfferDiscovery,
     onToggleStatecraft,
     onToggleEmpireDrawer,
@@ -2605,6 +2618,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * `BlockerExclusions` for why this lives here and not there.
    */
   const skippedUnitIds = new Set<number>();
+  /**
+   * The turn on which each seat's player last closed the faith screen (batch
+   * RT1). It answers End Turn's "Renew rites" prompt for the rest of that turn
+   * (`BlockerExclusions.faithClosedOnTurn`). View state, like the skip set: no
+   * command, no save. A turn number rather than a flag, so a new turn needs no
+   * reset. Keyed by seat, because a hot-seat game passes the keyboard round.
+   */
+  const faithClosedTurns = new Map<number, number>();
   /**
    * Whether this seat's first-ever Statecraft draft has already been announced
    * — see `checkFirstStatecraftDraft`. Set at `refresh` from the seat's actual
@@ -7601,16 +7622,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /**
    * What End Turn would stop on. A straight read of the pure helper for the
-   * seat this client is playing, past whatever units this seat has skipped —
-   * the seat and the skip set are the only two things this module adds.
+   * seat this client is playing, past whatever units this seat has skipped and
+   * past the "Renew rites" prompt once the faith screen has been closed this
+   * turn. The seat and those two view facts are all this module adds.
    */
   function endTurnBlocker(): TurnBlocker | null {
-    return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });
+    return firstBlocker(getGame().state, localPlayerId, {
+      skippedUnitIds,
+      faithClosedOnTurn: faithClosedTurns.get(localPlayerId),
+    });
   }
 
   /** The whole list End Turn would walk, for the button's waiting list. */
   function endTurnBlockers(): TurnBlocker[] {
-    return allBlockers(getGame().state, localPlayerId, { skippedUnitIds });
+    return allBlockers(getGame().state, localPlayerId, {
+      skippedUnitIds,
+      faithClosedOnTurn: faithClosedTurns.get(localPlayerId),
+    });
+  }
+
+  /**
+   * The player closed the faith screen. Records the turn for this seat, so
+   * End Turn's "Renew rites" prompt is answered for the rest of the turn
+   * whether or not a rite was started (batch RT1), and repaints the button.
+   */
+  function noteFaithScreenClosed(): void {
+    faithClosedTurns.set(localPlayerId, getGame().state.turn);
+    repaint();
   }
 
   /**
@@ -7782,6 +7820,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // hunting for the decision.
         guide('☞ The clerks have counted the world — read the census.');
         onOfferCensus?.();
+        return;
+      }
+      case 'renewRites': {
+        // Batch RT1. The camera goes to the first town whose rite ended, and
+        // the faith screen opens on its Rites tab with that town in view. The
+        // prompt is answered when the player closes the screen
+        // (`noteFaithScreenClosed`), whether or not they start a rite.
+        const city = cityById(state, blocker.cityId);
+        if (city) panToCell({ col: city.col, row: city.row });
+        guide(
+          city
+            ? `☞ A rite has ended in ${cityDisplayName(state, city)}. Start another, or close the faith screen.`
+            : '☞ A rite has ended. Start another, or close the faith screen.',
+        );
+        onOpenRites?.(blocker.cityId);
         return;
       }
     }
@@ -8531,6 +8584,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     endTurnBlocker,
     endTurnBlockers,
     goToBlocker: focusBlocker,
+    noteFaithScreenClosed,
     setLocalPlayer,
     lens: () => manualLens,
     boardLens: () => effectiveLens().mode,
@@ -8634,6 +8688,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // Nor do unit ids — a stale skip could otherwise silence a fresh unit
       // that only happens to reuse a low id.
       skippedUnitIds.clear();
+      // A new game can be on the same turn number as the old one, so the faith
+      // screen closes recorded for the old game are dropped too (batch RT1).
+      faithClosedTurns.clear();
       localPlayerId = seatId;
       // A new table starts this at zero; a loaded save inherits whatever the
       // resumed seat's own history already crossed — see

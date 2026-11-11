@@ -63,9 +63,10 @@ with no deeds in it (Q1; it was 20, which was priced for the decks).
 
 ## The technology tree (revision 4.2, schema 54)
 
-- 50 nodes, 13 columns, ages 12/9/14/15. **A column IS a price**: one table —
-  5·11·24·50·100·190·360·650·1150·1960·3250·5150·8000. Tree 68609 (68604 of it
-  payable — the root's 5 is nobody's price); ages 269/1350/10440/56550. Every
+- 49 nodes, 13 columns, ages 12/9/14/14 (batch TT2 removed Divine Right). **A
+  column IS a price**: one table —
+  5·11·24·50·100·190·360·650·1150·1960·3250·5150·8000. Tree 65359 (65354 of it
+  payable — the root's 5 is nobody's price); ages 269/1350/10440/53300. Every
   column is **one fitted curve** (2026-09-09, item (hhh) — "fit a curve …
   starting at 5 and ending around 8000"): a log-quadratic in the chart column,
   ln cost(n) = ln 5 + 0.8084n − 0.01613n², least-squares to the user's thirteen

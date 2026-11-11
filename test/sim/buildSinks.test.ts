@@ -459,7 +459,8 @@ describe('the roster is priced by its size and its column', () => {
     expect(unitProductionCost(state, 0, 'swordsman')).toBe(46);
     expect(unitProductionCost(state, 0, 'bowman')).toBe(61);
     expect(unitProductionCost(state, 0, 'catapult')).toBe(174);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(238);
+    // 181, not 238, since batch TT2 moved Castellany from column 10 to 9.
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(181);
     expect(unitProductionCost(state, 0, 'knight')).toBe(445);
     expect(unitProductionCost(state, 0, 'trebuchet')).toBe(391);
     // A hull that shipped ahead of its node carries its own column and is

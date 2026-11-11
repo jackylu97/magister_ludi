@@ -218,13 +218,13 @@ describe('the Armoury', () => {
 });
 
 describe('the Courthouse', () => {
-  it('moved down to Iron Working — buildable in a captured town once the sword is forged, refused before', () => {
-    // The user's ruling of 2026-09-15 with M2: the row that answers for holding
-    // a conquest stands at the legionary's node (age three), not Divine Right's
-    // (age four). An unlocks edit and nothing else — the node keeps its meter
-    // rule and the lanes are untouched.
-    expect(techDef('ironWorking').unlocks.buildings).toContain('courthouse');
-    expect(techDef('theQadisCourt').unlocks.buildings ?? []).not.toContain('courthouse');
+  it('is opened by The Civil Service: buildable in a captured town once the node is known, refused before', () => {
+    // M2 (2026-09-15) moved the Courthouse from Divine Right down to Iron
+    // Working. Batch TT2 (`docs/flags.md` (jjjjjjj), the user: "yup, go with
+    // the suggestion") moved it to The Civil Service, which had no other live
+    // unlock. Divine Right has left the tree.
+    expect(techDef('theExaminationHall').unlocks.buildings).toContain('courthouse');
+    expect(techDef('ironWorking').unlocks.buildings ?? []).not.toContain('courthouse');
 
     const g = game(4205);
     const home = found(g.state, 0);
@@ -234,9 +234,9 @@ describe('the Courthouse', () => {
 
     const before = buildError(g.state, 0, 'building', 'courthouse', taken);
     expect(before).not.toBeNull();
-    expect(before).toContain(techDef('ironWorking').name);
+    expect(before).toContain(techDef('theExaminationHall').name);
 
-    learn(g.state, 0, 'ironWorking');
+    learn(g.state, 0, 'theExaminationHall');
     expect(buildError(g.state, 0, 'building', 'courthouse', taken)).toBeNull();
     // And the site rule still stands on its own: a town of your own founding is
     // no place for it, technology or no.

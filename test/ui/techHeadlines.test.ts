@@ -41,15 +41,10 @@ describe('a kept bonus is a headline line', () => {
   it('prints the rules the ruling keeps, in the describers’ words', () => {
     expect(said('kingship')).toEqual(['+3 authority capacity']);
     expect(said('stateWorkforce')).toEqual(['newly created workers gain +1 charge']);
-    expect(said('bronzePanoply')).toEqual(['newly created workers gain +1 charge']);
+    // Batch TT2 moved the second worker charge from Bronze Panoply to The Wheel.
+    expect(said('theWheel')).toEqual(['newly created workers gain +1 charge']);
     expect(said('theSilkRoad')).toEqual(['+1 trade route']);
     expect(said('colonialCharters')).toEqual(['new cities are founded with a Town Charter']);
-    // Two readings taken without a ruling: Divine Right and The Civil Service
-    // each keep one bonus until the user says what the node is for.
-    expect(said('theQadisCourt')).toEqual(['the authority a captured city costs falls by 1']);
-    expect(said('theExaminationHall')).toEqual([
-      "+1 food, +1 production on every hex carrying a great person's work",
-    ]);
   });
 
   it('is the generated wording and nothing else', () => {
@@ -76,6 +71,10 @@ describe('a kept bonus is a headline line', () => {
       'steel',
       'movableType',
       'theImperialPost',
+      // Batch TT2: The Civil Service lost its last bonus when it gained the
+      // Courthouse, and Bronze Panoply gave its worker charge to The Wheel.
+      'theExaminationHall',
+      'bronzePanoply',
     ] as const) {
       expect(techHeadlines(id), id).toEqual([]);
       expect(techDef(id).effects, id).toBeUndefined();

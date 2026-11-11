@@ -79,6 +79,12 @@
  * rather than a hex. See `firstSendableIdleTrader` for why it is the cheap half
  * of the trade gate and not `readRoutes`.
  *
+ * The last blocker is **"Renew rites"** (batch RT1): a rite in one of this
+ * seat's towns ended at the last turn change. It is passable, like the idle
+ * trader. A press opens the faith screen on its Rites tab, and closing that
+ * screen answers the prompt for the rest of the turn, whether or not the player
+ * started a rite (`BlockerExclusions.faithClosedOnTurn`).
+ *
  * The discovery blocker goes **first**, ahead of the idle unit. The order here is
  * the cost of forgetting, and forgetting a ruin is the dearest of the four: an
  * idle unit costs a turn of movement and an empty queue a turn of hammers, both
@@ -122,7 +128,7 @@
 
 import { censusBlocker } from '../sim/census';
 import { greatPersonBlocker } from '../sim/greatPeople';
-import { religionBlocker } from '../sim/religion';
+import { religionBlocker, ritesEndedAt } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
 import { wagerBlocker } from '../sim/wagers';
@@ -149,7 +155,13 @@ export type TurnBlocker =
   | { kind: 'religion' }
   | { kind: 'greatPerson' }
   | { kind: 'wager' }
-  | { kind: 'census' };
+  | { kind: 'census' }
+  /**
+   * A rite in one of this seat's towns ended at the last turn change (batch
+   * RT1). `cityId` is the first such town in `state.cities` order, so the
+   * faith screen can open with it in view.
+   */
+  | { kind: 'renewRites'; cityId: number };
 
 /**
  * Which Statecraft draft this empire owes an answer to, or `null`.
@@ -170,6 +182,13 @@ function statecraftBlockerKind(player: Player): 'order' | 'doctrine' | null {
 interface BlockerExclusions {
   /** Idle units to treat as though they were not idle, for this call only. */
   skippedUnitIds?: ReadonlySet<number>;
+  /**
+   * The turn on which this seat's player last closed the faith screen, if the
+   * interface knows one. The "Renew rites" prompt stays quiet on that turn
+   * (batch RT1). It is the skip set's kind of fact: the interface keeps it,
+   * and no save or log does.
+   */
+  faithClosedOnTurn?: number;
 }
 
 /**
@@ -356,6 +375,27 @@ function* blockersInOrder(
   // tree, and a prompt that could never be satisfied would be a locked button.
   if (player.researching === null && availableTechs(state, playerId).length > 0) {
     yield { kind: 'research' };
+  }
+
+  // **Renew rites** (batch RT1, `docs/flags.md` (jjjjjjj)). The user: "a
+  // blocking 'renew rites' message in the 'end turn' button that opens the
+  // rites menu when clicked; happens when a rite expires. disappears after
+  // closing the faith menu (player doesn't have to renew)."
+  //
+  // It is last for two reasons. The player may pass it without acting, so it
+  // waits behind everything the turn needs. And the bot reads only the first
+  // blocker and passes this one, so a bot is never kept from its units, its
+  // queues or its research by it.
+  //
+  // The rule of when a rite has ended is `ritesEndedAt` in the simulation.
+  // It is true only on the turn after the rite ends, so the prompt cannot come
+  // back for the same expiry on a later turn. Closing the faith screen
+  // answers it for the rest of this turn (`faithClosedOnTurn`).
+  if (exclusions?.faithClosedOnTurn !== state.turn) {
+    const town = state.cities.find(
+      (city) => city.ownerId === playerId && ritesEndedAt(state, city).length > 0,
+    );
+    if (town !== undefined) yield { kind: 'renewRites', cityId: town.id };
   }
 }
 

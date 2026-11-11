@@ -245,8 +245,8 @@
  *        · **4, the works-and-war line, and the root's own** — Agriculture,
  *          Stonecraft, Siegecraft, Engineering, Militant Orders.
  *        · **5, the state's ladder** — Currency, State Workforce, Satrapies,
- *          Guildhalls, Divine Right, Castellany, Movable Type. Coin, corvée,
- *          province, guild, law, castle, press.
+ *          Guildhalls, Castellany, Movable Type. Divine Right left this lane in
+ *          batch TT2, and Castellany now follows Guildhalls directly.
  *        · **6, Pottery's own lane** — one node; it hands its line to
  *          Stonecraft and Sailing at once and the drawing gives it room.
  *        · **7, the sea line** — Sailing, Wayfinding, Shipwrights, Paper
@@ -314,7 +314,6 @@ export type TechId =
   | 'artisanry'
   | 'prospecting'
   | 'philosophy'
-  | 'theQadisCourt'
   | 'theExaminationHall'
   | 'education'
   | 'theology'
@@ -627,11 +626,9 @@ interface TechDef {
    * The same vocabulary a belief, an Order, a wonder and a great person's
    * legacy are written in, read by the same evaluator (`statecraft.ts` is still
    * the only module that switches on a `CardEffect.kind`), so a node whose gift
-   * is a *rule* rather than a thing is a JSON row and not a branch. Epic
-   * Poetry's fallen-become-verse is a `windfallRider` on the death occasion;
-   * The Qadi's Court's mercy to a seized town is a `meterRule`; Colonial
-   * Charters' cheaper settlers are the `settlerCost` `rulePercent` two Orders
-   * already use.
+   * is a *rule* rather than a thing is a JSON row and not a branch. For
+   * example, Code of Laws' extra authority is an `authority` row, and the extra
+   * worker charge on The Wheel and State Workforce is a `unitStat` row.
    *
    * A node whose ratified text needs a shape the vocabulary lacks says so in
    * `deferred` and ships the halves it can — the Statecraft rule, for the

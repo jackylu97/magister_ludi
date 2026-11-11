@@ -128,6 +128,10 @@
  * second opinion about the middle game: a chart that climbs from 5 to 8000 in
  * twelve steps cannot be as flat through its middle as one that climbed to 2550.
  *
+ * Batch TT2 (2026-11-11) removed Divine Right and moved Castellany from column
+ * 10 to column 9, so Æra IV now costs 53300 and the whole tree 65359 (65354
+ * payable). The table of column prices did not change.
+ *
  * Measured, as every figure in this docblock is. On the leanest harness the
  * suite plays — the one-city seat of `endgame.slow.test.ts` — the Magnum Opus
  * opens on **t4833** against t2667 before the re-fit, and the scripted seat of

@@ -144,7 +144,7 @@ column, which is carried through every regeneration.
 | Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 46 | — | Bronze Panoply | Legionary | needs improved Obsidian or Copper |  |
 | Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 174 | — | Mathematics | Trebuchet | — |  |
 | Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 105 | — | Mathematics | Crossbowman | — |  |
-| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 238 | — | Castellany | — | — |  |
+| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 181 | — | Castellany | — | — |  |
 | Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 181 | — | Machinery | — | — |  |
 | Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | Militant Orders | — | needs improved Horses or Camels |  |
 | Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | Steel | — | needs improved Iron |  |

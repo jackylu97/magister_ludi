@@ -233,7 +233,18 @@
           "stable"
         ]
       },
-      "flavor": "Nobody expected the circle to be useful."
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        }
+      ],
+      "flavor": "Nobody expected the circle to be useful.",
+      "note": "Every worker made from now on has an extra charge of work. Chariots may be trained if you have improved horses or camels."
     },
     "siegecraft": {
       "name": "Siegecraft",
@@ -460,18 +471,8 @@
           "warHall"
         ]
       },
-      "effects": [
-        {
-          "kind": "unitStat",
-          "stat": "charges",
-          "amount": 1,
-          "class": {
-            "type": "worker"
-          }
-        }
-      ],
       "flavor": "A shield is only a wall if it stands beside another.",
-      "note": "Every worker made from now on has an extra charge of work."
+      "note": "Phalanxes and swordsmen may be trained if you have improved copper or obsidian. When you do, your spearmen become phalanxes and your warriors become swordsmen. Iron now shows on the map."
     },
     "shipwrights": {
       "name": "Shipwrights",
@@ -598,22 +599,12 @@
       ],
       "unlocks": {
         "buildings": [
-          "examinationHall"
+          "examinationHall",
+          "courthouse"
         ]
       },
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "hex",
-          "food": 1,
-          "production": 1,
-          "on": {
-            "test": "greatWork"
-          }
-        }
-      ],
       "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "Every work a great person leaves on the land gives its town more food and production.",
+      "note": "A town you have taken by force may build a Courthouse.",
       "columnShift": 1
     },
     "colonialCharters": {
@@ -638,26 +629,6 @@
       ],
       "flavor": "A city, written down before it is built.",
       "note": "Every town you found starts with its Town Charter already built."
-    },
-    "theQadisCourt": {
-      "name": "Divine Right",
-      "glyph": "⚖",
-      "age": 4,
-      "row": 5,
-      "cost": 1960,
-      "prereqs": [
-        "artisanry"
-      ],
-      "unlocks": {},
-      "effects": [
-        {
-          "kind": "meterRule",
-          "rule": "capturedCityCost",
-          "delta": -1
-        }
-      ],
-      "flavor": "The judgement is written down, and can be read back.",
-      "note": "A city you have taken by force costs one less authority."
     },
     "theology": {
       "name": "Theology",
@@ -702,12 +673,11 @@
         ],
         "buildings": [
           "terracottaArmy",
-          "statueOfZeus",
-          "courthouse"
+          "statueOfZeus"
         ]
       },
       "flavor": "Every age is named for what it kills with.",
-      "note": "Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours."
+      "note": "Legionaries and spear walls may be trained. Your phalanxes become spear walls. When you have improved iron, your swordsmen become legionaries."
     },
     "education": {
       "name": "Scholarship",
@@ -897,9 +867,9 @@
       "glyph": "🏰",
       "age": 4,
       "row": 5,
-      "cost": 3250,
+      "cost": 1960,
       "prereqs": [
-        "theQadisCourt"
+        "artisanry"
       ],
       "unlocks": {
         "units": [
@@ -1337,8 +1307,8 @@
       "name": "Military Architecture",
       "glyph": "🏯",
       "age": 4,
-      "row": 0,
-      "cost": 5150,
+      "row": 2,
+      "cost": 3250,
       "prereqs": [
         "feudalism"
       ],

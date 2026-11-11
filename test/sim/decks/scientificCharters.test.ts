@@ -434,7 +434,9 @@ describe('what each building does', () => {
 
   it('Scriptorium and Bastion: priced at their technologies’ columns', () => {
     expect(explainBuildingCost('scriptorium')[1]!.source).toMatch(/^Column 7 /);
-    expect(explainBuildingCost('bastion')[1]!.source).toMatch(/^Column 11 /);
+    // Column 10 since batch TT2 moved Castellany, the charter row's parent,
+    // from column 10 to column 9.
+    expect(explainBuildingCost('bastion')[1]!.source).toMatch(/^Column 10 /);
   });
 });
 

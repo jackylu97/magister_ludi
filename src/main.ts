@@ -4111,6 +4111,9 @@ async function boot(initial: Game | null): Promise<void> {
     // And End Turn's idle-cart blocker puts the trade sheet up, on the same
     // terms (R4): it opens, it never toggles.
     onOpenTrade: () => trade?.open(),
+    // End Turn's "Renew rites" prompt opens the faith screen on its Rites tab,
+    // with the town whose rite ended in view (batch RT1). It only opens.
+    onOpenRites: (cityId) => religion?.openRitesFor(cityId),
     onOfferDiscovery: showDiscoveryOffer,
     onToggleStatecraft: () => statecraft?.toggle(),
     // `Q` pins the empire drawer, or closes it when pinned; `L` opens the
@@ -4588,6 +4591,9 @@ async function boot(initial: Game | null): Promise<void> {
     openCity: (cityId) => controls.setOpenCity(cityId),
     onRefuse: (message) => controls.guide(`☞ ${message}`),
     onOpen: () => screens.opening('religion'),
+    // Closing the sheet answers End Turn's "Renew rites" prompt for the rest
+    // of the turn, whether or not a rite was started (batch RT1).
+    onClose: () => controls.noteFaithScreenClosed(),
   });
 
   gameDisposers.push(() => religion?.dispose());

@@ -12492,7 +12492,12 @@
   "calendar": [],
   "divination": [],
   "letters": [],
-  "theWheel": [],
+  "theWheel": [
+   {
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
+   }
+  ],
   "siegecraft": [],
   "irrigation": [],
   "wayfinding": [],
@@ -12512,34 +12517,18 @@
    }
   ],
   "theHighTemple": [],
-  "bronzePanoply": [
-   {
-    "raw": "newly created workers gain +1 charge",
-    "text": "newly created workers gain +1 charge"
-   }
-  ],
+  "bronzePanoply": [],
   "shipwrights": [],
   "philosophy": [],
   "paperMoney": [],
   "artisanry": [],
   "mathematics": [],
   "theImperialPost": [],
-  "theExaminationHall": [
-   {
-    "raw": "+1 food, +1 production on every hex carrying a great person's work",
-    "text": "+1 food, +1 production on every hex carrying a great person's work"
-   }
-  ],
+  "theExaminationHall": [],
   "colonialCharters": [
    {
     "raw": "new cities are founded with a [[building:townCharter|Town Charter]]",
     "text": "new cities are founded with a Town Charter"
-   }
-  ],
-  "theQadisCourt": [
-   {
-    "raw": "the authority a captured city costs falls by 1",
-    "text": "the authority a captured city costs falls by 1"
    }
   ],
   "theology": [],

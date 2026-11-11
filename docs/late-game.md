@@ -22,14 +22,15 @@ The mystic thread of Æra I and II (omens, pantheons, rites) returns in IV and V
 as the **occult**: the four stages of the Great Work, the homunculus, the
 philosopher's stone, the elixir, perpetual motion, the comet.
 
-## 1. What Æra IV introduces today (`data/techs.json`, age 4 — 15 nodes)
+## 1. What Æra IV introduces today (`data/techs.json`, age 4 — 14 nodes)
 
 - **Multipliers**: University (science per citizen), Bank (+20% gold where
   routes end), Printing House (routes ending here bring science and culture),
   Bourse, Mint, Bazaar (gold per luxury kind), Observatory, the Alchemical
   Society, the Garden (T5). The "increase the mult" half — already the spine.
-- **Holding what was built**: Castle, Armoury, Courthouse (captured towns
-  only), Divine Right's meter rule, the Inquisitor, the Reliquary.
+- **Holding what was built**: Castle, Armoury, the Inquisitor, the Reliquary.
+  The Courthouse (captured towns only) is an Æra III building since batch TT2,
+  at The Civil Service, and Divine Right has left the tree.
 - **The last military step**: Crossbowman, Pikeman, Longswordsman, Trebuchet,
   Knight, the Astrolabe's three hulls; The Fire Lance at Alchemy (80).
 - **The endgame**: three wonder beads (Chart the Stars, The Turning Heavens,

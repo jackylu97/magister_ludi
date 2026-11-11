@@ -918,8 +918,11 @@ describe('the idle-unit predicate', () => {
     const source = code(UI_SOURCE[key!]!);
     expect(source).toContain('firstUnitOffer(getGame().state, localPlayerId, { skippedUnitIds })');
     expect(source.match(/nextUnitOffer\(\)/g)?.length).toBe(4); // three calls + its own signature
-    // And the gate is still the narrow one: End Turn reads the blocker.
-    expect(source).toContain('firstBlocker(getGame().state, localPlayerId, { skippedUnitIds })');
+    // And the gate is still the narrow one: End Turn reads the blocker, past
+    // the skip set and, since batch RT1, the turn the faith screen was closed.
+    expect(source).toMatch(
+      /firstBlocker\(getGame\(\)\.state, localPlayerId, \{\s*skippedUnitIds,\s*faithClosedOnTurn: faithClosedTurns\.get\(localPlayerId\),\s*\}\)/,
+    );
   });
 
   it('is asked at all — controls.ts imports it from the sim', () => {

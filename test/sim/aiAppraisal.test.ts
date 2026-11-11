@@ -2605,15 +2605,14 @@ describe('the engine shapes, priced', () => {
     // The nodes that still carry rules after batch TT1 (`docs/flags.md`
     // (iiiiiii)), named rather than swept, so the test is about reading rather
     // than about arithmetic. The cut took Guildhalls', Horology's,
-    // Chronology's, Machinery's, Geomancy's and Movable Type's rules, left The
-    // Civil Service only its great-person works, and gave Bronze Panoply one.
+    // Chronology's, Machinery's, Geomancy's and Movable Type's rules. Batch TT2
+    // removed Divine Right, took The Civil Service's last rule, and moved the
+    // second worker charge from Bronze Panoply to The Wheel.
     const gifted: TechId[] = [
       'kingship',
-      'theExaminationHall',
       'stateWorkforce',
-      'bronzePanoply',
+      'theWheel',
       'colonialCharters',
-      'theQadisCourt',
       'theSilkRoad',
     ];
     // Every one of them has to *have* a gift to price, which is the other half

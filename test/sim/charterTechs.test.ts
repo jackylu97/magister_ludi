@@ -85,7 +85,9 @@ const PLACEMENT: readonly [TechId, number, TechId, number][] = [
   ['mechanics', 3, 'mathematics', 8],
   ['gunfounding', 4, 'machinery', 10],
   ['chemistry', 4, 'prospecting', 10],
-  ['militaryArchitecture', 4, 'feudalism', 11],
+  // Batch TT2: Castellany moved from column 10 to column 9 when Divine Right
+  // left the tree, so this row moved from column 11 to column 10.
+  ['militaryArchitecture', 4, 'feudalism', 10],
   ['navalGunnery', 4, 'theAstrolabe', 12],
 ];
 
@@ -135,9 +137,10 @@ describe('the register', () => {
     expect(CHARTER_TECH_IDS).toEqual(PLACEMENT.map(([id]) => id));
   });
 
-  it('keeps the sky its fifty rows, and every row in the full list', () => {
-    expect(TECH_IDS).toHaveLength(50);
-    expect(ALL_TECH_IDS).toHaveLength(64);
+  it('keeps the sky its forty-nine rows, and every row in the full list', () => {
+    // Forty-nine since batch TT2 removed Divine Right.
+    expect(TECH_IDS).toHaveLength(49);
+    expect(ALL_TECH_IDS).toHaveLength(63);
     for (const id of CHARTER_TECH_IDS) expect(TECH_IDS, id).not.toContain(id);
     expect([...TECH_IDS, ...CHARTER_TECH_IDS]).toEqual(ALL_TECH_IDS);
   });
@@ -224,7 +227,7 @@ describe('the placement (reading 19)', () => {
       { age: 4, from: 9, to: 12 },
     ]);
     const layout = techChartLayout();
-    expect(layout.cells.size).toBe(50);
+    expect(layout.cells.size).toBe(49);
     for (const id of CHARTER_TECH_IDS) expect(layout.cells.has(id), id).toBe(false);
     // No ordinary row stands behind a charter row.
     for (const id of TECH_IDS) {

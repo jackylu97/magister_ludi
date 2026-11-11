@@ -269,7 +269,9 @@ describe('the opening', () => {
     expect(stop).toContain('window.clearTimeout(id)');
     expect(stop).toContain('cancel()');
     const sheet = source('religionScreen.ts');
-    expect(sheet).toContain('onClose: () => stopMotion(),');
+    // Since batch RT1 the close also tells the page, for End Turn's "Renew
+    // rites" prompt; stopping the motion comes first.
+    expect(sheet).toContain('onClose: () => {\n      stopMotion();\n      options.onClose?.();\n    },');
     expect(sheet).toContain('onDispose: () => stopMotion(),');
   });
 });

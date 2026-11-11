@@ -488,8 +488,33 @@ import {
  *
  * **A v238 save is refused and does not replay.** The branch migrates nothing, for
  * the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v240 (branch `decks`; batches TT2 and RT1, `docs/flags.md` (jjjjjjj), the
+ * user's rulings of 2026-11-11): **three technology changes, and a prompt to
+ * renew rites.** No field joins or leaves the state. What changes:
+ *
+ *   · Divine Right (`theQadisCourt`) leaves the tree, with its one bonus (a
+ *     captured town cost one less authority). The id leaves `TechId`, so a log
+ *     that researched it is refused. Castellany now has Guildhalls as its
+ *     parent, so it moves from column 10 to column 9 and costs 1960, not 3250.
+ *     The Military Architecture charter row moves with it, from column 11 to
+ *     column 10 (3250, not 5150), and to shelf lane 2;
+ *   · the Courthouse moves from Iron Working to The Civil Service, so it costs
+ *     303 production, not 231. The Civil Service no longer pays +1 food and +1
+ *     production on a great person's work;
+ *   · the second extra worker charge moves from Bronze Panoply to The Wheel;
+ *   · End Turn can show "Renew rites" when a rite in one of the seat's towns
+ *     has just ended. This is a reading of the interface only: it asks
+ *     `ritesEndedAt` (`religion.ts`), which reads the entries already in
+ *     `City.timed`, and the interface keeps the fact that the player closed the
+ *     faith screen. No outcome turns on it.
+ *
+ * The first three move what a logged game researches, builds and pays.
+ *
+ * **A v239 save is refused and does not replay.** The branch migrates nothing, for
+ * the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 239;
+export const SCHEMA_VERSION = 240;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

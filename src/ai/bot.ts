@@ -1330,6 +1330,14 @@ function answerBlocker(
       return cityCommand(state, player, blocker.cityId, sitting);
     case 'research':
       return researchCommand(state, playerId, sitting);
+    // **Renew rites** (batch RT1) is a prompt for a human at a screen, and a
+    // player may pass it. The bot passes it without acting: `null` here sends
+    // `nextBotDecision` on to its housekeeping, and the reducer never refuses
+    // an `endTurn` for it, so a headless game cannot stall on it. It is the
+    // last blocker, so passing it never hides another from the bot. The bot
+    // starts rites through its own spending (`spendCommand`), as before.
+    case 'renewRites':
+      return null;
     default: {
       // The aliased-discriminant exhaustiveness idiom, as the reducer uses it: a
       // new blocker kind is a compile error here rather than a seat that quietly

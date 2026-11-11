@@ -207,7 +207,12 @@ describe('the shipped lanes', () => {
     // bound, so a future hand that moves a lane knows it is editing the user's
     // drawing; the annealer survives as the advisor for where a NEW node
     // should sit, never as the authority over an authored row.
-    expect(before).toBe(60);
+    //
+    // Batch TT2 removed Divine Right and gave Castellany its parent. The
+    // shipped lanes still cross once. The naive deal is 71, not 60, because it
+    // deals the rows in file order and the order of column 9 and column 10
+    // changed.
+    expect(before).toBe(71);
     expect(after).toBe(1);
     expect(after).toBeLessThan(before);
   });
@@ -352,7 +357,9 @@ describe('a column is a price', () => {
       [0, 1], [1, 4], [2, 5], [3, 2],
       [4, 4], [5, 5],
       [6, 4], [7, 5], [8, 5], [9, 5],
-      [10, 4], [11, 5], [12, 1],
+      // Batch TT2: Divine Right left column 9 and Castellany moved into it
+      // from column 10.
+      [10, 3], [11, 5], [12, 1],
     ]);
     // **Two columns hold fewer than three, and both are exceptions with a
     // reason rather than a rule that quietly stopped holding.** Column 0 is
@@ -726,7 +733,9 @@ describe('packChart', () => {
     // The measured figure, pinned: **606px** of chart under a 22px strip, where
     // the lanes drew 1032 and overran by 415. A change that moves it is a change
     // to the card face or to the deepest column, and both are worth a diff.
-    expect(Math.round(packed.height)).toBe(524);
+    // 526 since batch TT2: Castellany's card, with its two unlocks, took
+    // Divine Right's place in column 9.
+    expect(Math.round(packed.height)).toBe(526);
     expect(STRIP + packed.height).toBeLessThanOrEqual(STAGE);
     // So nothing is shrunk and nothing scrolls — the two fallbacks stay unused
     // at the size the game is actually played at.

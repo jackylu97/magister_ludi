@@ -67,18 +67,21 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   comes back if that access is lost. A row already standing in a town's queue is
   excused by the gate (so the queue stays editable) and builds out: nothing is
   dropped, and no queue stalls.
-- **Seven ordinary techs carry a rule** since batch TT1 (`docs/flags.md`
-  (iiiiiii)): Code of Laws, Bronze Panoply, State Workforce, Daughter Cities,
-  The Golden Roads, Divine Right and The Civil Service. The user ruled that an
-  unlock is obvious and a passive bonus is easy to miss, and cut the rest. Four improvement
-  renewals stay (Irrigation, Currency, The Saddle, Geomancy). The charter
-  technologies keep their own rules. Before the cut, batch E had given the
-  re-gifted nodes their own rules (`docs/history/tech-gifts.md` §7).
+- **Five ordinary techs carry a rule** since batch TT2 (`docs/flags.md`
+  (iiiiiii) and (jjjjjjj)): Code of Laws, The Wheel, State Workforce, Daughter
+  Cities and The Golden Roads. The user ruled that an unlock is obvious and a
+  passive bonus is easy to miss, and cut the rest in batch TT1. Four
+  improvement renewals stay (Irrigation, Currency, The Saddle, Geomancy). The
+  charter technologies keep their own rules. Before the cut, batch E had given
+  the re-gifted nodes their own rules (`docs/history/tech-gifts.md` §7).
 - **A kept bonus is the node's headline.** It is listed first among the node's
   gifts (`techGifts`), and the star chart prints it first on the node's face,
   above the units and buildings (`techHeadlines`, `src/ui/techTree.ts`).
-- **The Civil Service keeps its great-person works bonus** until the user rules
-  whether it gets a new unlock or leaves the tree.
+- **Batch TT2** (2026-11-11): Divine Right left the tree with its one bonus,
+  and Castellany takes Guildhalls as its parent (column 9, not 10). The
+  Courthouse moved from Iron Working to The Civil Service, which lost its
+  great-person works bonus. The second extra worker charge moved from Bronze
+  Panoply to The Wheel.
 - **Every hammer price** takes its column from the unlocking tech, never the row
   — units, buildings and wonders alike (`docs/production-costs.md`, batch P1):
   `sizeHammers[size] × columnRate ^ (column − 1)`, the row carrying a size and
@@ -106,8 +109,8 @@ Every one of the thirteen is the fitted curve of the ruling of 2026-09-09,
 rounded — `ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²` over the chart column `n`
 (the root is 0), `friendly` to the nearest 1 below 30, 5 below 300, 10 below
 2000 and 50 above (see the standing determinations; re-fit the two constants
-rather than retyping a figure). The four ages cost 269 / 1350 / 10440 / 56550🔬
-— 68609 for the whole tree, 68604 of it payable (the root's 5 is nobody's
+rather than retyping a figure). The four ages cost 269 / 1350 / 10440 / 53300🔬
+— 65359 for the whole tree, 65354 of it payable (the root's 5 is nobody's
 price). `test/sim/techDocSync.test.ts` generates every line below and fails on
 any drift — the costs, the node names, all three unlock columns and the rule
 bullets alike.
@@ -195,7 +198,8 @@ it kept three buildings and needed nothing.
 bonuses on the nodes were cut, and the rule bullets under each age list only
 what is left. Movable Type's science and production moved onto the Printing
 House, for the town that holds it, and Bronze Panoply gained a second extra
-worker charge.
+worker charge. Batch TT2 (2026-11-11) moved that charge to The Wheel, removed
+Divine Right, and moved the Courthouse to The Civil Service.
 
 **The ten chains** (`BuildingDef.requiresBuilding`, a parent standing in the same
 town): Palisade → Stone Walls → Castle · Monument → Amphitheater · Market →
@@ -222,6 +226,8 @@ Workshop → Forge · Shrine → Temple.
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
 - **Divination** — *A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough.*
+- **The Wheel** — newly created workers gain +1 charge
+- **The Wheel** — *Every worker made from now on has an extra charge of work. Chariots may be trained if you have improved horses or camels.*
 
 ### Æra II — The Age of Heroes (9 nodes, 100–190🔬)
 
@@ -239,8 +245,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Bronze Panoply** — newly created workers gain +1 charge
-- **Bronze Panoply** — *Every worker made from now on has an extra charge of work.*
+- **Bronze Panoply** — *Phalanxes and swordsmen may be trained if you have improved copper or obsidian. When you do, your spearmen become phalanxes and your warriors become swordsmen. Iron now shows on the map.*
 - **Chronology** — *You may spend faith to draw a new hand of Orders in place of the one you were offered.*
 - **Epic Poetry** — *Renown now brings great people. Before you know this, renown still builds up, but no great person comes.*
 - **Code of Laws** — +3 authority capacity
@@ -252,14 +257,14 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus**, Courthouse | — |
+| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
 | Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
 | State Workforce | 360 | Currency | — | Public Bath | — |
 | The Silk Road | 360 | Wayfinding | — | Caravanserai ‡ | — |
 | Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra**, Armoury | — |
 | Satrapies | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
 | Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
-| The Civil Service | 650 | Code of Laws | — | — | — |
+| The Civil Service | 650 | Code of Laws | — | Courthouse | — |
 | The Saddle | 650 | Iron Working | Horseman *(needs improved Horses or Camels)*, Horse Archer *(needs improved Horses or Camels)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
 | Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇ | — |
 | Engineering | 1150 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
@@ -269,13 +274,12 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Iron Working** — *Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours.*
+- **Iron Working** — *Legionaries and spear walls may be trained. Your phalanxes become spear walls. When you have improved iron, your swordsmen become legionaries.*
 - **State Workforce** — newly created workers gain +1 charge
 - **State Workforce** — *Every worker made from now on has an extra charge of work.*
 - **The Silk Road** — *Towns may build a Caravanserai, which lets your empire run more trade routes.*
 - **Satrapies** — *Opens the Forbidden City and the Great Wall.*
-- **The Civil Service** — +1 food, +1 production on every hex carrying a great person's work
-- **The Civil Service** — *Every work a great person leaves on the land gives its town more food and production.*
+- **The Civil Service** — *A town you have taken by force may build a Courthouse.*
 - **The Saddle** — *Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production.*
 - **Daughter Cities** — new cities are founded with a Town Charter
 - **Daughter Cities** — *Every town you found starts with its Town Charter already built.*
@@ -283,16 +287,15 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Horology** — *Opens the Water Clock of Su Song.*
 - **Theology** — *The enhancing beliefs open here: a faith may now be deepened as well as spread.*
 
-### Æra IV — The Age of Cathedrals (15 nodes, 1960–8000🔬)
+### Æra IV — The Age of Cathedrals (14 nodes, 1960–8000🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 1960 | Guildhalls | — | — | — |
+| Castellany | 1960 | Guildhalls | Pikeman | Castle | — |
 | Geomancy | 1960 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1960 | Horology, Engineering | Crossbowman | — | — |
 | Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse ‡ | — |
 | Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
-| Castellany | 3250 | Divine Right | Pikeman | Castle | — |
 | Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | reveals **Niter** |
 | Steel | 3250 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 3250 | Paper Money | — | — | — |
@@ -305,12 +308,10 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Divine Right** — the authority a captured city costs falls by 1
-- **Divine Right** — *A city you have taken by force costs one less authority.*
+- **Castellany** — *Towns may build a Castle, and pikemen may be trained.*
 - **Geomancy** — *Every mine your towns work gives more production. Workers and scouts may also search a hill for a buried seam.*
 - **Machinery** — *Crossbowmen may be trained.*
 - **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
-- **Castellany** — *Towns may build a Castle, and pikemen may be trained.*
 - **Steel** — *Longswordsmen may be trained, and towns may build a Forge.*
 - **The Golden Roads** — +1 trade route
 - **The Golden Roads** — *Your empire may run an extra trade route at once.*
@@ -335,7 +336,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Mechanics | III | 8 | 1150 | Mathematics | The Mechanists' Charter | — | — | — |
 | Gunfounding | IV | 10 | 3250 | Machinery | The Gunfounders' Charter | — | Tophane ‡ | — |
 | Chemistry | IV | 10 | 3250 | Geomancy | The Alchemists' Charter | — | — | — |
-| Military Architecture | IV | 11 | 5150 | Castellany | The Military Engineers' Charter | — | Bastion | — |
+| Military Architecture | IV | 10 | 3250 | Castellany | The Military Engineers' Charter | — | Bastion | — |
 | Naval Gunnery | IV | 12 | 8000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
 
 - **Herbals** — +2 happiness per hex with a Physic Garden in your borders

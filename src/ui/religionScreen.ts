@@ -174,6 +174,11 @@ interface ReligionScreenOptions {
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   onOpen?: () => void;
+  /**
+   * The sheet was closed, by ×, Escape or a press on the ground. The page
+   * uses it to answer End Turn's "Renew rites" prompt (batch RT1).
+   */
+  onClose?: () => void;
 }
 
 export function createReligionScreen(options: ReligionScreenOptions): ReligionScreen {
@@ -536,9 +541,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   /**
    * The frame (`modalShell.ts`). Opening forgets the last visit's rite mode,
    * menu and starts, and makes the Bonuses tab's next paint an opening
-   * (`onShow`); closing stops anything still moving (`onClose`); Escape on the
-   * Rites tab leaves rite mode, then an open menu, before the shell closes the
-   * sheet (`onKey`).
+   * (`onShow`); closing stops anything still moving and tells the page
+   * (`onClose`); Escape on the Rites tab leaves rite mode, then an open menu,
+   * before the shell closes the sheet (`onKey`).
    */
   const shell = createModalShell({
     overlay,
@@ -558,7 +563,10 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       bonusesOpening = true;
       fresh = true;
     },
-    onClose: () => stopMotion(),
+    onClose: () => {
+      stopMotion();
+      options.onClose?.();
+    },
     onKey: (event) => {
       if (event.key !== 'Escape') return false;
       if (faithTabFor(options.getPlayerId()) !== 'rites') return false;

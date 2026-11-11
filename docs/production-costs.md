@@ -177,10 +177,10 @@ reading for a once-per-empire row.
 | `bazaar` | Bazaar | medium | 9 | 346 |
 | `harbour` | Harbour | medium | 5 | 117 |
 | `forum` | Forum | large | 6 | 231 |
-| `courthouse` | Courthouse | large | 6 | 231 |
+| `courthouse` | Courthouse | large | 7 | 303 |
 | `shipyard` | Shipyard | medium | 7 | 202 |
 | `armoury` | Armoury | medium | 7 | 202 |
-| `castle` | Castle | large | 10 | 681 |
+| `castle` | Castle | large | 9 | 520 |
 | `forge` | Foundry | large | 10 | 681 |
 | `caravanserai` | Caravanserai | large | 6 | 231 |
 | `printingHouse` | Printing House | large | 11 | 893 |
@@ -191,7 +191,7 @@ reading for a once-per-empire row.
 | `townCharter` | Town Charter | small | 8 | 198 |
 | `bank` | Bank | large | 11 | 893 |
 | `bourse` | Bourse | large | 9 | 520 |
-| `bastion` | Bastion | large | 11 | 893 |
+| `bastion` | Bastion | large | 10 | 681 |
 | `specularium` | Specularium | medium | 5 | 117 |
 | `mouseion` | Mouseion | large | 4 | 174 |
 | `aldinePress` | Aldine Press | large | 7 | 303 |
@@ -302,7 +302,7 @@ stays whole. See `docs/trade.md`.
 | `swordsman` | Swordsman | line | 4 | 46 |
 | `catapult` | Catapult | engine | 7 | 174 |
 | `compositeBowman` | Composite Bowman | line | 7 | 105 |
-| `pikeman` | Pikeman | line | 10 | 238 |
+| `pikeman` | Pikeman | line | 9 | 181 |
 | `crossbowman` | Crossbowman | line | 9 | 181 |
 | `knight` | Knight | heavy | 11 | 445 |
 | `longswordsman` | Longswordsman | heavy | 10 | 340 |

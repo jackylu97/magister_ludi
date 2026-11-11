@@ -1104,7 +1104,6 @@ describe('The Court of Rudolf II (batch DT8)', () => {
     'steel',
     'theAstrolabe',
     'theHolyOffice',
-    'theQadisCourt',
     'theSilkRoad',
   ];
 
