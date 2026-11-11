@@ -90,7 +90,7 @@ The user: *"there's too much authority and happiness in the game as it stands. I
 The user: *"the cards require too much reading at the moment, and some of the tier 0 cards feel a bit too fancy for me currently."* After the review page, 24 comments and the governments table: *"Please ensure that an opus agent is runnign to implement work that's been finalized (the deck simplification and governments rework)"*.
 - **The spec of record** is `docs/plans/deck-simplification-2026-11-10.md`: the rules of the pass, the four keywords (Commission, Charter, Scaler, Boon), the governments table, and one table per deck of every cut, move, reword, simplify, change and new row.
 - **Readings taken without a ruling (the user may change them):**
-  - the Chiefdom's three chairs become Wildcard chairs;
+  - the Chiefdom's three chairs become Wildcard chairs. RULED 2026-11-11: the user saw that this went against the 2026-10-16 ruling (one Military, one Economic, one Wildcard) and kept the three Wildcard chairs (*"ok, this is fine"*);
   - the War Chief's kill reward is a flat 10 science and 10 culture;
   - The Curia keeps its name;
   - "change to +5" on The General Staff is +5 production, with the +2 renown kept;
