@@ -191,9 +191,9 @@ describe('Magisterial batch MG8: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
-    expect(orderDef(LAST).text).toBe(
-      'Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.',
-    );
+    // Batch DS7 gave it a shorter text. The effect is the same: it still pays
+    // at most once a turn, and only while a town builds the Opus.
+    expect(orderDef(LAST).text).toBe('Spending a great person adds 150 production to your Magnum Opus.');
     expect(orderDef(LAST).effects).toEqual([
       {
         kind: 'windfallRider',
@@ -208,8 +208,9 @@ describe('Magisterial batch MG8: the rows', () => {
     expect(orderDef(PATRONAGE).effects).toEqual([{ kind: 'rule', rule: 'buyGreatPersonWithFaith' }]);
     expect(orderDef(IMMORTALS).text).toBe('The legacies of your great people count twice.');
     expect(orderDef(IMMORTALS).effects).toEqual([{ kind: 'metaRule', rule: 'legaciesCountTwice', value: 2 }]);
+    // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GALLERY).text).toBe(
-      "Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair.",
+      'Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture.',
     );
     expect(orderDef(GALLERY).effects).toEqual([]);
     expect(orderDef(GALLERY).commission).toEqual({

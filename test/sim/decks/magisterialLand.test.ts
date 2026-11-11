@@ -172,12 +172,14 @@ describe('Magisterial batch MG9: the rows', () => {
     expect(orderDef(CUSTODIANS).effects).toEqual([
       { kind: 'combatLine', amount: 4, side: 'both', when: { test: 'standingOnWork' } },
     ]);
+    // Batch DS7 gave The Envious Eye and The Ideal City shorter texts with the
+    // same effects.
     expect(orderDef(ENVIOUS).text).toBe(
-      "When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue.",
+      'When a rival finishes a wonder you were building, your production moves to the next item.',
     );
     expect(orderDef(ENVIOUS).effects).toEqual([{ kind: 'rule', rule: 'wonderHammersMoveOn' }]);
     expect(orderDef(IDEAL).text).toBe(
-      'Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair.',
+      'Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production.',
     );
     expect(orderDef(IDEAL).effects).toEqual([]);
     const scope = { test: 'markedBy', card: IDEAL };

@@ -341,15 +341,18 @@ describe('first-of-a-kind records', () => {
     for (const record of g.state.firsts) expect(record.turn).toBe(g.state.turn);
   });
 
-  it('pays the masons for a wall built, and never for a wall bought', () => {
+  it('pays the workshops for a wall built, and never for a wall bought', () => {
+    // Master Masons asked this ledger until batch DS7 removed its "first time"
+    // clause. The retired Master Workshops still asks it, and a save may hold
+    // it, so the rule is checked on that row.
     const g = game();
-    slot(g.state, 0, 'magisterialMasterMasons');
+    slot(g.state, 0, 'theMasterWorkshops');
     const player = playerById(g.state, 0)!;
     const built = found(g.state, 0);
     const bought = found(g.state, 0);
     const basket = built.hammerBasket;
     realiseItem(g.state, built, { kind: 'building', id: 'monument' });
-    // Twenty hammers into the town that raised it.
+    // Thirty-eight hammers into the town that raised it.
     expect(built.hammerBasket).toBeGreaterThan(basket);
 
     // **A bought roof closes the ledger's door and pays nobody**, which is the
@@ -362,6 +365,36 @@ describe('first-of-a-kind records', () => {
     purchaseItemAt(g.state, player, bought, { kind: 'building', id: 'monument' }, 'gold');
     expect(bought.hammerBasket).toBe(before);
     expect(countFirsts(g.state, 0, 'buildingInCity')).toBe(2);
+  });
+
+  it('pays Master Masons 30 production for every culture building finished, built or bought', () => {
+    // Batch DS7: the card keeps one effect and asks no ledger. A culture
+    // building finished in any way pays its town, a second one of the same
+    // kind included, and any other building pays nothing.
+    const g = game();
+    slot(g.state, 0, 'magisterialMasterMasons');
+    const player = playerById(g.state, 0)!;
+    const city = found(g.state, 0);
+    city.queue = [];
+    const raised = (realise: () => void): number => {
+      const before = city.hammerBasket;
+      realise();
+      return city.hammerBasket - before;
+    };
+    expect(raised(() => realiseItem(g.state, city, { kind: 'building', id: 'monument' }))).toBe(30);
+    expect(raised(() => realiseItem(g.state, city, { kind: 'building', id: 'granary' }))).toBe(0);
+    player.gold = 100000;
+    expect(
+      raised(() => purchaseItemAt(g.state, player, city, { kind: 'building', id: 'amphitheater' }, 'gold')),
+    ).toBe(30);
+    expect(orderDef('magisterialMasterMasons' as never).effects).toEqual([
+      {
+        kind: 'windfallRider',
+        occasion: 'buildingCompletion',
+        buildingCategory: 'culture',
+        grant: { yield: 'production', amount: 30 },
+      },
+    ]);
   });
 
   it('counts the chronicle off the ledger, narrowed to one shelf', () => {

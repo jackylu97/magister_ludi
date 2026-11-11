@@ -4806,9 +4806,6 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // the town that holds it whoever raised it.
       into.qualifiers.push('containing a wonder');
       return;
-    case 'notHasWonder':
-      into.qualifiers.push('containing no wonder');
-      return;
     case 'hasEmpireBuilding':
       // The user's own name for the class (2026-09-17), and "holding" rather
       // than "containing" for the reason `hasWonder` says "containing": a

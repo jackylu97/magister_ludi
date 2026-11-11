@@ -179,9 +179,10 @@ describe('Magisterial batch MG16: the row', () => {
 
   it('carries the reworded text and the one rule', () => {
     // MG1 noted that the old text said "At the start of each turn", while the
-    // sweep runs at the end of the turn, in the borders phase.
+    // sweep runs at the end of the turn, in the borders phase. Batch DS7 gave
+    // it a shorter text with the same rule: the note says which hexes stay.
     expect(orderDef(PULL).text).toBe(
-      "Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken.",
+      'Each turn, each great-person work takes one unworked hex beside it from a rival town.',
     );
     expect(orderDef(PULL).effects).toEqual([{ kind: 'rule', rule: 'worksPullRivalHexes' }]);
   });

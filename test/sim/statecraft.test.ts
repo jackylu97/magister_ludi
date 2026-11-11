@@ -2307,7 +2307,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(236);
+    expect(SCHEMA_VERSION).toBe(237);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -11206,23 +11206,20 @@ describe("D2a — the predicates", () => {
     expect(stripRefs(cityScopeWords(scope))).toBe("every city working a great person's work");
   });
 
-  it("admits a town for the marvel standing in it, and its mirror for the want of one", () => {
+  // Its mirror, `notHasWonder`, went in batch DS7 with its last two rows.
+  it("admits a town for the marvel standing in it", () => {
     const g = game(7307);
     const city = found(g.state, 0);
     const holds: CityScope = { test: "hasWonder" };
-    const holdsNot: CityScope = { test: "notHasWonder" };
     city.buildings.length = 0;
     bumpRevision(g.state);
     expect(cityScopeAdmits(g.state, city, holds)).toBe(false);
-    expect(cityScopeAdmits(g.state, city, holdsNot)).toBe(true);
     // An ordinary building is not a marvel; the class is the data's own.
     city.buildings.push("monument" as never);
     expect(cityScopeAdmits(g.state, city, holds)).toBe(false);
     city.buildings.push("pyramids" as never);
     expect(cityScopeAdmits(g.state, city, holds)).toBe(true);
-    expect(cityScopeAdmits(g.state, city, holdsNot)).toBe(false);
     expect(stripRefs(cityScopeWords(holds))).toBe("every city containing a wonder");
-    expect(stripRefs(cityScopeWords(holdsNot))).toBe("every city containing no wonder");
   });
 
   it("names the towns keeping no rite as a member rather than as a negation", () => {
@@ -11372,7 +11369,6 @@ describe("D2a — the predicates", () => {
       "workingImprovement",
       "workingGreatWork",
       "hasWonder",
-      "notHasWonder",
     ]) {
       expect(scopes.has(test), test).toBe(true);
     }
@@ -11460,7 +11456,7 @@ describe("D2b — counts and reach", () => {
     );
   });
 
-  it("caps a share of a town's own fold at the figure the card prints", () => {
+  it("pays a share of a town's own fold with no cap", () => {
     const g = game(7405);
     const city = found(g.state, 0);
     slot(g.state, 0, "theLearnedPatron" as never);
@@ -11478,11 +11474,10 @@ describe("D2b — counts and reach", () => {
         .filter((line) => line.card === "theLearnedPatron")
         .reduce((sum, line) => sum + line.science, 0);
     expect(beakers(40)).toBe(6);
-    // **The ceiling is on the figure, not on the fold**: a town worth a hundred
-    // and twenty culture earns eighteen, and a town worth four hundred earns
-    // eighteen — never the share of a capped culture, which is a different number.
+    // Batch DS7 removed The Learned Patron's cap of 18 a town, so the share
+    // grows with the culture: 120 culture pays 18 and 400 pays 60.
     expect(beakers(120)).toBe(18);
-    expect(beakers(400)).toBe(18);
+    expect(beakers(400)).toBe(60);
     // And the scope is still what admits the town at all.
     city.buildings.length = 0;
     bumpRevision(g.state);
@@ -11812,7 +11807,8 @@ describe("D2b — counts and reach", () => {
     const counts = new Set<string>();
     let productionCount = false;
     let routeCount = false;
-    let shareCap = false;
+    // A share's ceiling went in batch DS7 with The Learned Patron's cap, its
+    // only row.
     let authorityCap = false;
     let renownScope = false;
     let purchaseScope = false;
@@ -11856,7 +11852,6 @@ describe("D2b — counts and reach", () => {
         switch (effect.kind) {
           case "pays":
             if (effect.count !== undefined) counts.add(effect.count);
-            if (effect.basis === "share" && effect.max !== undefined) shareCap = true;
             noteOn(effect.on);
             noteScope(effect.origin);
             noteScope(effect.destination);
@@ -11897,7 +11892,6 @@ describe("D2b — counts and reach", () => {
       walk(cardDef(id).effects);
     expect(productionCount, "productionBonus count/max").toBe(true);
     expect(routeCount, "routeRider count/max").toBe(true);
-    expect(shareCap, "a share's ceiling").toBe(true);
     expect(authorityCap, "a per-town writ's ceiling").toBe(true);
     expect(renownScope, "renown scope").toBe(true);
     expect(purchaseScope, "purchaseRider scope").toBe(true);

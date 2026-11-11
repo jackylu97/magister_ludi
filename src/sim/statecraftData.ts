@@ -513,6 +513,15 @@ export type CardLine =
  * resources, and neither is expressible as a word. One shape, one evaluator
  * (`cityScopeAdmits` in `statecraft.ts`) — a new scope is a member here and an
  * arm there, never a clause in the card that wanted it.
+ *
+ * **There is no `not` composite.** A negation is a named member, such as
+ * `notFreshwater`, `notCapital` or `notKeepingRite`, and it is written only when
+ * a card needs it. A `not` over `all` and `any` would let a scope say things no
+ * describer can print. "Every city that is not (coastal and keeping a rite)" is
+ * a sentence a first-time player cannot act on (hard rule 7). A named member
+ * costs one arm and one phrase, and it gives a clause a player can read. Batch
+ * D2a made this ruling on `notHasWonder`. Batch DS7 removed that member with
+ * its last two rows (The Cornerstone and The Wonder Commonwealth).
  */
 export type CityScope =
   /** The town is on the coast. `isCoastalCity`. */
@@ -1069,7 +1078,7 @@ export type CityScope =
        * towns that send none.
        *
        * The negation, and it is a field here rather than a `notRouteEndsHere`
-       * member (the form `notHasWonder` and `notKeepingRite` take) because a
+       * member (the form `notCapital` and `notKeepingRite` take) because a
        * negated route question still has to name a direction and a crossing, and
        * a second member would have carried a second copy of both. `atMost: 0` is
        * the sentence every card in the design actually writes; a row carrying
@@ -1243,31 +1252,14 @@ export type CityScope =
    */
   | { test: 'hasWonder' }
   /**
-   * **No marvel stands in this town** — The Wonder Commonwealth's other half,
-   * which pays the towns the marvels passed over.
-   *
-   * A named inverse rather than a `not` composite, and this is the batch that
-   * had to decide (D2a). The union already refuses one twice over
-   * (`notFreshwater`, `notCapital`, `populationAtMost`), and the refusal gets
-   * *stronger* now that `all` and `any` both stand: a `not` over those two
-   * would make the scope a full boolean algebra, and a full boolean algebra is
-   * a thing no describer can print — "every city that is not (coastal and
-   * keeping a rite)" is a sentence a first-time player cannot act on, which is
-   * hard rule 7 said as a type. A named member costs one arm and one phrase and
-   * buys a clause a player can read. So negations are written down one card at
-   * a time, exactly as the three before them were, and a scope nobody has asked
-   * the opposite of never grows one.
-   */
-  | { test: 'notHasWonder' }
-  /**
    * **No rite is running in this town.** The Rites Commonwealth used it for
    * its penalty until batch R1 removed the penalty (the user, 2026-10-25:
    * "remove malice"). No row names it today. It is kept because the Devotion
    * themes pass lists it among the scopes its cards may use.
    *
    * `keepingRite`'s mirror, through the same `cityRite` reading so the two
-   * halves of one card cannot both be true of one town. A named member for
-   * `notHasWonder`'s stated reason.
+   * halves of one card cannot both be true of one town. A named member, for
+   * the reason the `CityScope` docblock gives.
    */
   | { test: 'notKeepingRite' }
   /**
@@ -1313,7 +1305,8 @@ export type CityScope =
    *
    * It stays as narrow as that argument: `all` and `any`, and still no `not`,
    * because a scope system that can say anything is a query language nobody can
-   * print — the argument D2a re-ran and kept, written out on `notHasWonder`.
+   * print — the argument D2a re-ran and kept, written out in the `CityScope`
+   * docblock.
    * An empty list admits nothing, which is the honest reading of "any of
    * none" and the same answer `all` of none would give inverted.
    */
@@ -1416,8 +1409,8 @@ export type EmpireCondition =
    * Officers' quiet half, and The Pageants of Peace.
    *
    * `atWar`'s mirror and a **named member** rather than a `not` composite: this
-   * union has none and is not getting one, for the reason `CityScope`'s
-   * `notHasWonder` spells out — the moment a gate can be any boolean tree it is
+   * union has none and is not getting one, for the reason the `CityScope`
+   * docblock gives — the moment a gate can be any boolean tree it is
    * a gate nobody can print, and "while you are at peace" is a sentence a
    * player acts on where "while not (at war or …)" is not.
    *
@@ -3481,6 +3474,9 @@ export type FirstKind =
    * The town, and not the realm, because that is the sentence the cards make:
    * *"completing a culture building for the first time in a city"*. Its sibling
    * below is the same question asked of the whole empire.
+   *
+   * Since batch DS7 Master Masons asks no ledger. The retired Master Workshops
+   * still asks this one, and a save may hold it, so the kind stays.
    */
   | 'buildingInCity'
   /**
@@ -6772,19 +6768,12 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   per?: number;
   /**
-   * **The ceiling.** Two readings, disjoint by `basis` — the shape's own idiom:
+   * **The ceiling**: at `basis: 'count'` (and at `where: 'hex'` with
+   * `perNeighbour`), the most **helpings** that ever pay.
    *
-   *   · at `basis: 'count'` (and at `where: 'hex'` with `perNeighbour`), the
-   *     most **helpings** that ever pay;
-   *   · at `basis: 'share'`, the most the line ever pays at all, in whole units
-   *     of `to`, **per city** — The Learned Patron's *"at most +12 science per
-   *     city"*.
-   *
-   * A share has no helpings to cap, which is what makes the second reading a
-   * reading of this field rather than a field of its own: the two can never be
-   * asked of one row, and a ceiling is a ceiling. Applied after the floor, so a
-   * town whose culture is worth eleven and a half beakers is capped at what it
-   * actually earns rather than at what it rounded from.
+   * A `basis: 'share'` row has no cap. The field used to cap a share's figure
+   * in each town too. The Learned Patron was the only row that did, and batch
+   * DS7 removed its cap, so that reading was removed with it.
    */
   max?: number;
 

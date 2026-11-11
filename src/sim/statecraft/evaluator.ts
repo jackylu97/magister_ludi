@@ -2647,8 +2647,6 @@ export function cityScopeAdmits(
       // and a card that admits it for holding one read one shelf. A boolean, so
       // three marvels admit it once.
       return city.buildings.some((id) => isWonder(id));
-    case 'notHasWonder':
-      return !city.buildings.some((id) => isWonder(id));
     case 'hasEmpireBuilding': {
       // The marker and **not** `oneOfAKind`, which is that marker *or* a wonder:
       // the Opus declares itself an empire building and a marvel does not, and a
@@ -2985,8 +2983,6 @@ function scopeNote(scope?: CityScope): string | null {
     }
     case 'hasWonder':
       return 'holds a wonder';
-    case 'notHasWonder':
-      return 'holds no wonder';
     case 'hasEmpireBuilding':
       return 'holds an empire building';
     case 'hasBuildingYielding':
@@ -5202,14 +5198,9 @@ export function cardYieldConversions(
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.basis !== 'share' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
-    // **The ceiling, per city** — The Learned Patron's *"at most +12 science per
-    // city"*. `max`'s second reading (see the shape): a share has no helpings to
-    // cap, so the field caps the figure itself, and it is applied **after** the
-    // share is taken rather than to the fold it was taken of — a town whose
-    // culture is worth fourteen beakers is paid twelve, which is what the card
-    // says, and capping the culture first would have paid a different number.
-    const paid = effect.max === undefined ? share : Math.min(share, effect.max);
+    // A share has no cap. The Learned Patron's cap per town was the only one,
+    // and batch DS7 removed it (see `CardPaysEffect.max`).
+    const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to as CityYieldKey] = paid;

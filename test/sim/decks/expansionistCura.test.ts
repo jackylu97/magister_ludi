@@ -373,8 +373,8 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
     why: 'one of a kind: the empire walk, which may not ask the law it is building',
   },
   'statecraft/evaluator.ts › cityScopeAdmits': {
-    reads: 3,
-    why: 'one of a kind: `hasWonder`, `notHasWonder` and `hasEmpireBuilding`',
+    reads: 2,
+    why: 'one of a kind: `hasWonder` and `hasEmpireBuilding`',
   },
   'statecraft/evaluator.ts › countOf': {
     reads: 3,

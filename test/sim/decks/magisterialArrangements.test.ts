@@ -154,8 +154,9 @@ describe('Magisterial batch MG15: the rows', () => {
   });
 
   it('carries the text of the sheet and the shapes the triage names', () => {
+    // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GARDEN).text).toBe(
-      'Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair.',
+      'Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.',
     );
     expect(orderDef(GARDEN).effects).toEqual([]);
     expect(orderDef(GARDEN).commission).toEqual({

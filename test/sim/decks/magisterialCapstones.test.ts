@@ -58,7 +58,7 @@ const PRYTANEION = 'thePrytaneion' as OrderId;
 const DOMAIN = 'theMastersDomain' as OrderId;
 const PREFECTS = 'thePrefects' as OrderId;
 const WORKING_COURT = 'theWorkingCourt' as OrderId;
-const GUILD = 'magisterialTheGuildOfMasons' as OrderId;
+const CONSCRIPTION = 'dominionConscription' as OrderId;
 const ART_DEALERS = 'theArtDealers' as OrderId;
 const SITING = 'theSitingMasters' as OrderId;
 const QUARTER = 'magisterialTheQuarterOfMasters' as OrderId;
@@ -279,12 +279,15 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
   });
 
   it('doubles a loss of gold the card carries, as built', () => {
+    // Batch DS7 took The Guild of Masons' loss of gold away, so no live card
+    // carries one. The retired Conscription (-2 gold in a town building a
+    // unit) still does, and a save may hold it in the chair.
     const state = bareState(20, 10);
     const city = town(state, 5, 5);
-    city.queue = [{ kind: 'building', id: 'pyramids' as never }];
+    city.queue = [{ kind: 'unit', id: 'warrior' as never }];
     refreshCityDerived(state, city);
-    council(state, 'republic', [null, GUILD, null, null, null, VIZIER]);
-    expect(townPays(state, city, GUILD, 'gold')).toBe(-2);
+    council(state, 'republic', [null, CONSCRIPTION, null, null, null, VIZIER]);
+    expect(townPays(state, city, CONSCRIPTION, 'gold')).toBe(-2);
     expect(townPays(state, city, VIZIER, 'gold')).toBe(-2);
   });
 

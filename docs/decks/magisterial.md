@@ -5,6 +5,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Why each card is here:** `docs/plans/magisterial-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of culture and the draft, and four themes (the council, the patrons, the landscape and the monuments). Section 12 holds your comments and answers of 2026-10-25, and it outranks the sections before it. `docs/plans/magisterial-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
 - **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Batch MG4 built the cards that count your collection and the wonder commissions: Commission: The Eighth Wonder, Commission: The Roll of the Senate, Commission: The Wonder of the Age, The Universal Library and The Polymath's Study, and gave the shared Travelling Players its new text. It added two counts (the Orders you hold, and the different decks among them or among your seated cards), one commission figure (the Orders you hold) and two moments a commission counts (a wonder you complete, and the production you put into a wonder or the Magnum Opus). Batch MG5 built the cards that read the price of an Order hand: The Open Door, The Accessions Register and The Unwritten Chapter. A hand now keeps the culture you paid for it, and a reroll keeps that price. The moment you draft a card and the moment you pass on a hand both carry the price, so a card can pay a share of it. A free hand has no price. The Open Door's discount is read in one place, which every screen and bot asks for the price of the next hand. Batch MG6 built the cards that change a hand: The Wandering Muse, Officials by Merit and The Hall of Wonders. A card may now forbid the reroll of an Order hand, a card may widen a hand by a count (one card for every two wonders), and a card may hand over a great person when you draft it. Batch MG7 built the cards that read the council: The Sed Festival, The Pandects and Commission: The Golden Bull. Adopting a government is now a moment a card can pay on, a card can count the Doctrines you hold, a commission can ask for a council in order, and a commission can offer you a Doctrine. Batch MG8 built the cards about great people spent: The Last Commission, The Immortals and Commission: The Patron's Gallery, and the shared Sacred Patronage. Spending a great person, by an act or by a work, is now a moment a card can pay on. A card can pay that moment only while one of your towns builds the Magnum Opus, a card can make each legacy count twice, and a commission can count the families of the great-person works in your borders. Batch MG9 built the cards about works on the land and the wonder towns: The Landmark Bounds, The Custodians, The Envious Eye and Commission: The Ideal City. Laying a great-person work is now a moment a card can test the hex of, and a card can claim the unowned hexes beside it for your nearest city. A unit can gain strength while it stands on a great-person work, a commission can ask for one town that holds wonders and works great-person works, and a card can move the production of a lost wonder race to the town's next item. Batch MG10 built three capstones: The Grand Vizier, The Divine Proportion and The Second Sitting. The first two use shapes that already existed. A card's bonus on a great-person work that is paid for each hex beside the work is now doubled for each such hex, and a card can pay on a pass only when you paid culture for the hand. Batch MG11 built Magnificence. Culture is now a way to pay when you buy something, and a card can let it buy the wonder at the front of a city's queue, for one culture for each hammer the wonder still needs. Batch MG12 built The Mixed Constitution. A card can now let every card you hold fit every chair. Every screen and bot that asks which chair a card fits asks your council first, and when the card leaves its chair your council is seated again at once by the ordinary rule. Batch MG13 built The Universal Genius. A great person who acts while the card is seated now stays on the board, marked as having acted. It cannot act again, and it is spent when it lays its work, so its legacy comes once. The card's text changed from "arrive with two charges" to what the card does. Batch MG14 built the two boons: The Cabinet of Curiosities and The Grand Retrospective. A card can now hand over a random card of your tier from a deck you do not hold, and that card enters your collection as a drafted card does: a charter opens what it opens, its own gift on drafting is paid, and the cards that pay when you draft a card pay for it. A card can also pay yields when you draft it, counted at that moment, and a count of hexes can now name the hexes it counts. Batch MG15 built the two cards about how works stand on the hex grid: Commission: The Paradise Garden and The Processional Way. A card can now pay on a great-person work that stands in a straight line of works, a commission can count the works and tended hexes beside one of your works, and a commission's reward can claim the unowned land around that work, through the same routine The Landmark Bounds uses. Batch MG16 built The Pull of the Masters. At the end of each turn, after borders grow, each great-person work of an empire that holds the card takes one hex beside it from a rival town, if that town does not work it, and the hex joins the empire's nearest town. The card's text changed from "At the start of each turn" to "Each turn", because the hexes move at the end of the turn, when borders grow. A hex is taken only if it is close enough for that town's own borders to reach, so its owner can see it and its citizens can reach it. Each batch set its own rows to `implemented`, and since MG16 every row is.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 7 rows of this deck and 4 shared rows. It moved Civic Granaries and Commission: The Eighth Wonder from Tier 0 to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut.
+- **Batch DS7** (2026-11-11, the same spec) gave 23 rows of this deck their new, shorter text. No row is held back, and the deck has no new card. A commission's text now reads "Goal: … Reward: …", and a boon's text starts with the keyword "Boon.":
+  - **Reworded, same effect:** the seven commissions, the three boons, The Working Court, The Envious Eye, The Senate Charter, The Last Commission and The Pull of the Masters. Each keeps every rule it had. The Wonder of the Age still counts production put into the Magnum Opus. The Grand Retrospective still sends its production to your capital. The Last Commission still pays at most once a turn, and only while a town builds the Opus. The Pull of the Masters still never takes a town centre or a rival's own work.
+  - **The Senate Charter** has a text that starts with the keyword "Charter.", but the card still takes a chair. You can build the Assembly Hall, and the hall gives its bonuses, only while the card is seated. Batch DS8 decides how the card face shows the keyword.
+  - **Simplified:** Master Masons lost its +25% toward Monuments and its "first time in a town" condition. Now each culture building finished in a town grants that town 30 production (it was 20), whether the building was built, bought or granted, and a culture wonder or empire building counts. The Cornerstone lost its condition: +20% toward wonders in every town (it was +30% in a town with no wonder). The Guild of Masons lost its loss of gold, and gives +30% (it was +38%). The Laureate lost its +1 renown. The Honoured Dead lost its cap of fifteen spends (the spec marks it reworded, and its Note says the cap goes). The Learned Patron lost its cap of +18 science a town. The Wonder Commonwealth lost its +15% culture in towns with no wonder, and gives +35% production and food (it was +38%).
+  - **Changed:** The Workshop at Olympia gives +3 renown a turn for each wonder, not +2 (your comment of 2026-11-10).
+  - **The Second Reading** keeps its text and its tier. Batch DS9 deals it in Tier 0 and in Tier I.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -18,7 +24,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `add`: not in the data yet.
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch MG1 the types are in the data. A Magisterial card fits only a chair of its own type or a Wildcard chair, except while The Mixed Constitution is seated: then every card you hold fits every chair (batch MG12). A card in a Wildcard chair still counts as its own type, so the Assembly Hall of The Senate Charter counts only Wildcard cards (the triage's reading 42). The sync test checks this column for every row in the data, the shared table's included.
-- **Charters:** none. Every card takes a chair. The three boons (The Wandering Muse, The Cabinet of Curiosities and The Grand Retrospective) pay when you draft them and do nothing seated.
+- **Charters:** none. Every card takes a chair, The Senate Charter included: its text starts with the keyword "Charter." since batch DS7, but its Assembly Hall works only while the card is seated. The three boons (The Wandering Muse, The Cabinet of Curiosities and The Grand Retrospective) pay when you draft them and do nothing seated. Since batch DS7 their texts start with the keyword "Boon.".
 - **Doctrines:** 16 (4 on each of Tiers I to IV), all dealt, after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. `docs/plans/doctrines-build-triage.md` gives the batch that built each one. The reasons and pairs are in `docs/plans/magisterial-doctrines.md`.
 - **The old sheet** (61 cards, in the old format, last reviewed 2026-10-07) is in git history: `git show 7d4064dc:docs/decks/magisterial.md`.
 
@@ -53,8 +59,8 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | **The Prytaneion** | uncommon | implemented | Each town gains +1 food for each card you have seated. | Economic |
 | **The Polemarch** | common | implemented | Your units gain +2 strength for each Military card you have seated. | Military |
 | **The Court Painter** | common | implemented | Each card you draft grants 15 renown. A charter counts. | Civic |
-| **The Cornerstone** | common | implemented | Towns that hold no wonder build wonders 30% faster. | Economic |
-| **Master Masons** | common | implemented | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. | Economic |
+| **The Cornerstone** | common | implemented | Towns build wonders 20% faster. | Economic |
+| **Master Masons** | common | implemented | Finishing a culture building grants 30 production in its town. | Economic |
 | **The Temple of the Muses** | common | implemented | Culture buildings give +2 faith each. | Civic |
 | **The Second Reading** | uncommon | implemented | The first reroll of each hand is free. | Wildcard |
 
@@ -74,21 +80,21 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Nomarchs** | uncommon | implemented | +1 authority for every two cards you have seated. | Civic |
-| **Commission: The Roll of the Senate** | uncommon | implemented | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. | Wildcard |
-| **The Wandering Muse** | uncommon | implemented | On draft: gain a free great-person draft. Seated, this card does nothing. | Civic |
-| **The Workshop at Olympia** | common | implemented | +2 renown a turn for each wonder you hold. | Civic |
+| **Commission: The Roll of the Senate** | uncommon | implemented | Goal: hold ten Orders. Reward: one more Wildcard chair. | Wildcard |
+| **The Wandering Muse** | uncommon | implemented | Boon. On draft: gain a free great-person draft. | Civic |
+| **The Workshop at Olympia** | common | implemented | +3 renown a turn for each wonder you hold. | Civic |
 | **The Overseers of Works** | uncommon | implemented | Each time you gain a great person, your capital gains 100 production for each age you have reached. | Economic |
-| **The Laureate** | uncommon | implemented | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. | Civic |
+| **The Laureate** | uncommon | implemented | Towns working a great-person work gain +5 culture and +3 science. | Civic |
 | **The Landmark Bounds** | uncommon | implemented | Laying a great-person work claims every unowned hex beside it. | Economic |
-| **The Guild of Masons** | uncommon | implemented | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. | Economic |
+| **The Guild of Masons** | uncommon | implemented | +30% production toward wonders. | Economic |
 | **The Keepers of Wonders** | common | implemented | +2 happiness for each wonder you hold. | Civic |
 | **The Ceremonial Guard** | common | implemented | Towns holding a wonder gain +5 defence. | Military |
 | **The Unveiling** | uncommon | implemented | Completing a wonder deals you a free Order hand. | Wildcard |
 | **The Open Door** | uncommon | implemented | Order hands cost 15% less culture. | Wildcard |
-| **The Working Court** | rare | implemented | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. | Economic |
+| **The Working Court** | rare | implemented | Towns with a Monument gain production equal to 30% of their culture. | Economic |
 | **The Encyclopedia** | common | implemented | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. | Civic |
 | **Civic Granaries** | common | implemented | Monuments give +1 food and +1 production. | Economic |
-| **Commission: The Eighth Wonder** | uncommon | implemented | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. | Civic |
+| **Commission: The Eighth Wonder** | uncommon | implemented | Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown. | Civic |
 
 ## Tier II
 
@@ -106,19 +112,19 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Grand Vizier** | rare | implemented | The card in your first Economic chair pays its yields twice. | Wildcard |
-| **The Senate Charter** | uncommon | implemented | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. | Civic |
+| **The Senate Charter** | uncommon | implemented | Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. | Civic |
 | **The Prefects** | uncommon | implemented | +5% production for each Economic card you have seated. | Economic |
 | **The Sed Festival** | rare | implemented | Each time you adopt a government, gain a free great-person draft. | Civic |
 | **The Symposium** | uncommon | implemented | Each time you gain a great person, you are dealt a free Order hand. | Wildcard |
 | **Letters Patent** | uncommon | implemented | Your great people's acts pay 50% more. | Civic |
-| **The Honoured Dead** | uncommon | implemented | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. | Civic |
-| **Commission: The Patron's Gallery** | uncommon | implemented | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. | Wildcard |
+| **The Honoured Dead** | uncommon | implemented | Gains +2 science and +4 production in your capital each time you spend a great person. | Civic |
+| **Commission: The Patron's Gallery** | uncommon | implemented | Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture. | Wildcard |
 | **The Quarter of Masters** | common | implemented | A great-person work beside another great-person work yields its own yield again. This never stacks. | Civic |
 | **The Seven Sights** | uncommon | implemented | +5% culture and science for each wonder you hold, at most +30%. | Civic |
 | **The Golden Age** | rare | implemented | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. | Civic |
-| **The Envious Eye** | uncommon | implemented | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. | Economic |
+| **The Envious Eye** | uncommon | implemented | When a rival finishes a wonder you were building, your production moves to the next item. | Economic |
 | **The Accessions Register** | uncommon | implemented | Each card you draft grants your capital production equal to half the culture its hand cost. | Economic |
-| **The Learned Patron** | uncommon | implemented | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. | Civic |
+| **The Learned Patron** | uncommon | implemented | Towns with two culture buildings gain science equal to 15% of their culture. | Civic |
 | **The Unwritten Chapter** | common | implemented | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. | Civic |
 
 ## Tier III
@@ -138,20 +144,20 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 |---|---|---|---|---|
 | **The Mixed Constitution** | rare | implemented | Your cards fit any chair. | Wildcard |
 | **The Pandects** | uncommon | implemented | +5% science and production for each Doctrine you hold. | Civic |
-| **Commission: The Golden Bull** | uncommon | implemented | Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair. | Wildcard |
+| **Commission: The Golden Bull** | uncommon | implemented | Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer. | Wildcard |
 | **The Boule** | uncommon | implemented | +2% science and culture for each card you have seated. | Civic |
 | **The Universal Genius** | rare | implemented | Your great people may act, and then still lay their work. Each leaves one legacy. | Civic |
 | **The Roll of Masters** | uncommon | implemented | +3% science and culture for each great person you have gained this game, at most +30%. | Civic |
 | **The Divine Proportion** | rare | implemented | The bonuses your cards give great-person works are doubled. | Wildcard |
 | **The Masters' Domain** | uncommon | implemented | Worked great-person works give +3 food and +3 production. | Economic |
 | **The Garden Courts** | uncommon | implemented | Towns working at least two great-person works gain +20% culture and science. | Civic |
-| **Commission: The Paradise Garden** | rare | implemented | Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair. | Wildcard |
+| **Commission: The Paradise Garden** | rare | implemented | Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders. | Wildcard |
 | **Magnificence** | rare | implemented | You may buy a wonder you are building with culture, one culture for each hammer it still needs. | Economic |
-| **The Wonder Commonwealth** | rare | implemented | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. | Economic |
-| **Commission: The Wonder of the Age** | uncommon | implemented | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. | Wildcard |
+| **The Wonder Commonwealth** | rare | implemented | Towns holding a wonder gain +35% production and food. | Economic |
+| **Commission: The Wonder of the Age** | uncommon | implemented | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. | Wildcard |
 | **Officials by Merit** | rare | implemented | Order hands deal two extra cards. You cannot reroll Order hands. | Wildcard |
 | **The Second Sitting** | rare | implemented | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. | Wildcard |
-| **The Cabinet of Curiosities** | rare | implemented | On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing. | Wildcard |
+| **The Cabinet of Curiosities** | rare | implemented | Boon. On draft: gain a random card of your tier from a deck you do not hold. | Wildcard |
 
 Tier III has no Military card (section 8 of the themes pass). Since batch DS1, Tiers II and IV have none either. The Military cards of Tiers 0 and I and the partner deck's fill the Military chairs of the later governments.
 
@@ -172,14 +178,14 @@ Tier III has no Military card (section 8 of the themes pass). Since batch DS1, T
 |---|---|---|---|---|
 | **The Privy Council** | rare | implemented | Each of your cards that pays production pays +1 more production wherever it pays it. | Wildcard |
 | **The Immortals** | rare | implemented | The legacies of your great people count twice. | Civic |
-| **The Last Commission** | rare | implemented | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. | Economic |
+| **The Last Commission** | rare | implemented | Spending a great person adds 150 production to your Magnum Opus. | Economic |
 | **The Processional Way** | rare | implemented | Great-person works in a straight line of three or more give +3 culture and +3 science each. | Civic |
-| **The Pull of the Masters** | rare | implemented | Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken. | Economic |
-| **Commission: The Ideal City** | rare | implemented | Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair. | Wildcard |
+| **The Pull of the Masters** | rare | implemented | Each turn, each great-person work takes one unworked hex beside it from a rival town. | Economic |
+| **Commission: The Ideal City** | rare | implemented | Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production. | Wildcard |
 | **The Hall of Wonders** | rare | implemented | Order hands deal one more card for every two wonders you hold, at most two more. | Wildcard |
 | **The Universal Library** | rare | implemented | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. | Economic |
 | **The Polymath's Study** | rare | implemented | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. | Civic |
-| **The Grand Retrospective** | rare | implemented | On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing. | Civic |
+| **The Grand Retrospective** | rare | implemented | Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. | Civic |
 
 ## Shared with another deck
 

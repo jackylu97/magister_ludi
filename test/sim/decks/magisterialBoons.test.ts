@@ -169,12 +169,14 @@ describe('Magisterial batch MG14: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
+    // Batch DS7 gave both a shorter text that starts with the keyword
+    // "Boon.", with the same effect.
     expect(orderDef(CABINET).text).toBe(
-      'On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing.',
+      'Boon. On draft: gain a random card of your tier from a deck you do not hold.',
     );
     expect(orderDef(CABINET).onDraft).toEqual([{ grant: 'foreignCard' }]);
     expect(orderDef(RETROSPECTIVE).text).toBe(
-      'On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing.',
+      'Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.',
     );
     // Nine grants: three yields for each of three counts. Production goes to
     // the capital; culture and science are banked.

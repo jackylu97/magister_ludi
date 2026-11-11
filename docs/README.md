@@ -691,6 +691,18 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     bought, granted by a completion or a commission, wonders and the Magnum
     Opus included. The science banks at once and settles at the next research
     step, as The Consecration Feast's does.
+- **Batch DS7** (Magisterial's rows of the same spec):
+  - removed the town scope `notHasWonder`, because The Cornerstone and The
+    Wonder Commonwealth no longer ask for a town with no wonder. A negation
+    is still a named member and never a `not` composite (the `CityScope`
+    docblock);
+  - removed the cap that `max` put on a `pays` row with `basis: 'share'`,
+    because The Learned Patron no longer caps its science. `max` still caps
+    the helpings of a counted row;
+  - Master Masons is one `buildingCompletion` rider of 30 production on a
+    culture building, with no `first` ledger, so a culture building built,
+    bought or granted pays its town. The `buildingInCity` ledger stays: the
+    retired Master Workshops still asks it.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,

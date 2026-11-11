@@ -352,7 +352,7 @@ describe('the audit holds in the source', () => {
     // at `basis: 'share'`): the **product** is still exact and is still what this
     // audit is about, and the cap that follows it is a ceiling rather than a
     // rounding — `Math.min` of two exact figures is exact.
-    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
     // Dominion batch D6 multiplies it by the capture amplifier (Vae Victis),
     // a factor of one on every other occasion: still the exact product.

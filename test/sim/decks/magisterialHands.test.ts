@@ -163,7 +163,8 @@ describe('Magisterial batch MG6: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
-    expect(orderDef(MUSE).text).toBe('On draft: gain a free great-person draft. Seated, this card does nothing.');
+    // Batch DS7 gave it a shorter text with the keyword "Boon.", and the same effect.
+    expect(orderDef(MUSE).text).toBe('Boon. On draft: gain a free great-person draft.');
     expect(orderDef(MUSE).onDraft).toEqual([{ grant: 'greatPerson' }]);
     expect(orderDef(MUSE).effects).toEqual([]);
     expect(orderDef(OFFICIALS).text).toBe('Order hands deal two extra cards. You cannot reroll Order hands.');

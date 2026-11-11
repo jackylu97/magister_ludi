@@ -8693,12 +8693,8 @@
   ],
   "magisterialMasterMasons": [
    {
-    "raw": "+25% production toward [[building:monument|Monuments]]",
-    "text": "+25% production toward Monuments"
-   },
-   {
-    "raw": "completing a building (a culture building, the first of that kind in that city) grants +20 production",
-    "text": "completing a building (a culture building, the first of that kind in that city) grants +20 production"
+    "raw": "completing a building (a culture building) grants +30 production",
+    "text": "completing a building (a culture building) grants +30 production"
    }
   ],
   "civicGranaries": [
@@ -8952,20 +8948,12 @@
    {
     "raw": "+3 science, +5 culture in every city working a great person's work",
     "text": "+3 science, +5 culture in every city working a great person's work"
-   },
-   {
-    "raw": "+1 renown per turn in every city working a great person's work",
-    "text": "+1 renown per turn in every city working a great person's work"
    }
   ],
   "magisterialTheGuildOfMasons": [
    {
-    "raw": "+38% production toward wonders",
-    "text": "+38% production toward wonders"
-   },
-   {
-    "raw": "-2 gold in every city while it is building a wonder",
-    "text": "-2 gold in every city while it is building a wonder"
+    "raw": "+30% production toward wonders",
+    "text": "+30% production toward wonders"
    }
   ],
   "theCivicAssemblies": [
@@ -9366,12 +9354,12 @@
   ],
   "theHonouredDead": [
    {
-    "raw": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order is seated",
-    "text": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order is seated"
+    "raw": "+2 science in your capital per great person you have spent, counted while this Order is seated",
+    "text": "+2 science in your capital per great person you have spent, counted while this Order is seated"
    },
    {
-    "raw": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order is seated",
-    "text": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order is seated"
+    "raw": "+4 production in your capital per great person you have spent, counted while this Order is seated",
+    "text": "+4 production in your capital per great person you have spent, counted while this Order is seated"
    }
   ],
   "thePageantsOfPeace": [
@@ -9408,16 +9396,12 @@
   ],
   "theWonderCommonwealth": [
    {
-    "raw": "+38% production in every city containing a wonder",
-    "text": "+38% production in every city containing a wonder"
+    "raw": "+35% production in every city containing a wonder",
+    "text": "+35% production in every city containing a wonder"
    },
    {
-    "raw": "+38% food in every city containing a wonder",
-    "text": "+38% food in every city containing a wonder"
-   },
-   {
-    "raw": "+15% culture in every city containing no wonder",
-    "text": "+15% culture in every city containing no wonder"
+    "raw": "+35% food in every city containing a wonder",
+    "text": "+35% food in every city containing a wonder"
    }
   ],
   "thePrytaneion": [
@@ -9440,8 +9424,8 @@
   ],
   "theCornerstone": [
    {
-    "raw": "+30% production toward wonders, in every city containing no wonder",
-    "text": "+30% production toward wonders, in every city containing no wonder"
+    "raw": "+20% production toward wonders",
+    "text": "+20% production toward wonders"
    }
   ],
   "theRepertory": [
@@ -9464,8 +9448,8 @@
   ],
   "theWorkshopAtOlympia": [
    {
-    "raw": "+2 renown per turn per wonder you hold",
-    "text": "+2 renown per turn per wonder you hold"
+    "raw": "+3 renown per turn per wonder you hold",
+    "text": "+3 renown per turn per wonder you hold"
    }
   ],
   "theOverseersOfWorks": [

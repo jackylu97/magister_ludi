@@ -2177,7 +2177,9 @@ describe('Scutage (batch DT11)', () => {
       // Financed Industry's gain is a share, so nothing of it follows. Its loss
       // of food went in batch DS4.
       expect(offTheChairRows(orderDef('financedIndustry' as OrderId).effects, 0.5)).toEqual([]);
-      expect(offTheChairRows(orderDef('magisterialTheGuildOfMasons' as OrderId).effects, 0.5)).toEqual([]);
+      // The Guild of Masons' loss of gold went in batch DS7. The retired
+      // Conscription keeps the same -2 gold beside its percentage.
+      expect(offTheChairRows(orderDef('dominionConscription' as OrderId).effects, 0.5)).toEqual([]);
       // A row that pays and costs: half the pay, and none of the cost. The
       // Mineral Trade's old row (+2 gold, -1 production on mines and quarries),
       // which batch DS4 made a plain +1 gold, written out here.

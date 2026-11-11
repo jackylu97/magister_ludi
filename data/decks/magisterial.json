@@ -8,20 +8,13 @@
       "type": "economic",
       "line": "none",
       "flavor": "A guild is a memory of how the last wall was raised.",
-      "text": "Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there.",
+      "text": "Finishing a culture building grants 30 production in its town.",
       "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "monument",
-          "percent": 25
-        },
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "buildingCategory": "culture",
-          "first": "buildingInCity",
-          "grant": { "yield": "production", "amount": 20 }
+          "grant": { "yield": "production", "amount": 30 }
         }
       ]
     },
@@ -770,7 +763,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "A wreath is cheap, and nobody has found anything better.",
-      "text": "Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city.",
+      "text": "Towns working a great-person work gain +5 culture and +3 science.",
       "effects": [
         {
           "kind": "pays",
@@ -780,14 +773,6 @@
           },
           "culture": 5,
           "science": 3
-        },
-        {
-          "kind": "renown",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "workingGreatWork"
-          }
         }
       ]
     },
@@ -799,16 +784,8 @@
       "type": "economic",
       "line": "none",
       "flavor": "They will raise anything, and they will be paid on Fridays.",
-      "text": "Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn.",
-      "effects": [
-        { "kind": "productionBonus", "category": "wonder", "percent": 38 },
-        {
-          "kind": "pays",
-          "where": "city",
-          "gold": -2,
-          "scope": { "test": "queueHolds", "category": "wonder" }
-        }
-      ]
+      "text": "+30% production toward wonders.",
+      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 30 }]
     },
     "theCivicAssemblies": {
       "name": "The Civic Assemblies",
@@ -1033,7 +1010,7 @@
       "type": "economic",
       "line": "none",
       "flavor": "Applause is pleasant; the scaffolding it pays for is better.",
-      "text": "Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs.",
+      "text": "Towns with a Monument gain production equal to 30% of their culture.",
       "effects": [
         {
           "kind": "pays",
@@ -1397,7 +1374,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "He funds the study and reads only the dedication.",
-      "text": "Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded.",
+      "text": "Towns with two culture buildings gain science equal to 15% of their culture.",
       "effects": [
         {
           "kind": "pays",
@@ -1406,7 +1383,6 @@
           "from": "culture",
           "to": "science",
           "percent": 15,
-          "max": 18,
           "scope": {
             "test": "buildingsOfCategory",
             "category": "culture",
@@ -1492,7 +1468,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "They meet where the government sits, and nowhere else will do.",
-      "text": "Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings.",
+      "text": "Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings.",
       "effects": [
         { "kind": "unlocksBuilding", "building": "assemblyHall" },
         {
@@ -1947,7 +1923,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "The tombs are in the capital because the capital insisted.",
-      "text": "While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production.",
+      "text": "Gains +2 science and +4 production in your capital each time you spend a great person.",
       "effects": [
         {
           "kind": "pays",
@@ -1957,7 +1933,6 @@
           "amount": 2,
           "count": "tally",
           "tally": "greatPersonSpent",
-          "max": 15,
           "scope": { "test": "capital" }
         },
         {
@@ -1968,7 +1943,6 @@
           "amount": 4,
           "count": "tally",
           "tally": "greatPersonSpent",
-          "max": 15,
           "scope": { "test": "capital" }
         }
       ]
@@ -2081,7 +2055,7 @@
       "type": "economic",
       "line": "none",
       "flavor": "One more, the patron said, and meant it this time.",
-      "text": "Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.",
+      "text": "Spending a great person adds 150 production to your Magnum Opus.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -2101,25 +2075,19 @@
       "type": "economic",
       "line": "none",
       "flavor": "Some towns keep the marvels; the rest keep the memory.",
-      "text": "Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead.",
+      "text": "Towns holding a wonder gain +35% production and food.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 38,
+          "percent": 35,
           "scope": { "test": "hasWonder" }
         },
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 38,
+          "percent": 35,
           "scope": { "test": "hasWonder" }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": 15,
-          "scope": { "test": "notHasWonder" }
         }
       ]
     },
@@ -2190,15 +2158,8 @@
       "type": "economic",
       "line": "none",
       "flavor": "The first stone is laid with a speech, and the rest are laid in silence.",
-      "text": "Towns that hold no wonder build wonders 30% faster.",
-      "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "wonder",
-          "percent": 30,
-          "scope": { "test": "notHasWonder" }
-        }
-      ]
+      "text": "Towns build wonders 20% faster.",
+      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 20 }]
     },
     "theRepertory": {
       "name": "The Repertory",
@@ -2264,8 +2225,8 @@
       "type": "civic",
       "line": "none",
       "flavor": "The sculptor's shed still stands beside the temple, long after the statue went.",
-      "text": "+2 renown a turn for each wonder you hold.",
-      "effects": [{ "kind": "renown", "amount": 2, "per": "wonder" }],
+      "text": "+3 renown a turn for each wonder you hold.",
+      "effects": [{ "kind": "renown", "amount": 3, "per": "wonder" }],
       "note": "A wonder you captured counts."
     },
     "theOverseersOfWorks": {
@@ -2676,7 +2637,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "Every age adds one more marvel to the old list of seven.",
-      "text": "Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair.",
+      "text": "Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "counted", "occasion": "wonderCompleted", "count": 1 }],
@@ -2699,7 +2660,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "Every name on the roll is a voice in the house.",
-      "text": "Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair.",
+      "text": "Goal: hold ten Orders. Reward: one more Wildcard chair.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "reached", "figure": "ordersHeld", "count": 10 }],
@@ -2715,7 +2676,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "A whole generation worked on it, and thought the price was fair.",
-      "text": "Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair.",
+      "text": "Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "counted", "occasion": "wonderProduction", "count": 1500 }],
@@ -2846,7 +2807,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "The muse stays at a court for one evening, and someone there is never the same again.",
-      "text": "On draft: gain a free great-person draft. Seated, this card does nothing.",
+      "text": "Boon. On draft: gain a free great-person draft.",
       "onDraft": [{ "grant": "greatPerson" }],
       "effects": [],
       "note": "If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts."
@@ -2944,7 +2905,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The electors took their fixed seats, and everyone knew who would choose the next emperor.",
-      "text": "Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair.",
+      "text": "Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2982,7 +2943,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "A scholar's desk, a general's sword and a poet's lyre, all in one long room.",
-      "text": "Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair.",
+      "text": "Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "reached", "figure": "workFamilies", "count": 3 }],
@@ -3029,7 +2990,7 @@
       "type": "economic",
       "line": "none",
       "flavor": "The king watched the rival's dome go up, and told his masons to start on something else.",
-      "text": "When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue.",
+      "text": "When a rival finishes a wonder you were building, your production moves to the next item.",
       "effects": [{ "kind": "rule", "rule": "wonderHammersMoveOn" }],
       "note": "It counts wherever the wonder stood in the queue. If the production covers the next item, that item is finished at once. A city with nothing else in its queue gets gold back, as it would without this card."
     },
@@ -3041,7 +3002,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The streets, the squares and the monuments were all drawn on one plan.",
-      "text": "Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair.",
+      "text": "Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3, "wondersAtLeast": 2 }],
@@ -3160,7 +3121,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "Ole Worm showed his visitors a narwhal's tusk and told them plainly that no unicorn had ever worn it.",
-      "text": "On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing.",
+      "text": "Boon. On draft: gain a random card of your tier from a deck you do not hold.",
       "onDraft": [{ "grant": "foreignCard" }],
       "effects": [],
       "note": "The card comes from the cards of your current tier in the decks you do not hold. A card two decks share can come only if you hold neither deck. A card you already hold, or a card that belongs to no deck, never comes. Common cards come more often than rare ones, as in an ordinary hand, and passing on hands does not change the odds. The card counts as drafted: a charter opens what it opens, a card that gives something when drafted gives it, and cards that pay when you draft a card pay for it. It came from no hand, so a card that pays a share of a hand's price pays nothing for it. If no such card is left, you gain nothing."
@@ -3173,7 +3134,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "The exhibition hung the work of a whole reign in one long gallery, and the visitors walked through it in an afternoon.",
-      "text": "On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing.",
+      "text": "Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.",
       "onDraft": [
         { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "wonders" } },
         { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "wonders" } },
@@ -3196,7 +3157,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The Persian kings walled their gardens and filled them with water and shade, and the old word for such a garden became the word paradise.",
-      "text": "Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair.",
+      "text": "Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.",
       "effects": [],
       "commission": {
         "goals": [{ "kind": "reached", "figure": "worksBesideWork", "count": 3 }],
@@ -3232,7 +3193,7 @@
       "type": "economic",
       "line": "none",
       "flavor": "After the First Sacred War, the plain below Delphi was taken from the town of Kirrha and given to Apollo's shrine.",
-      "text": "Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken.",
+      "text": "Each turn, each great-person work takes one unworked hex beside it from a rival town.",
       "effects": [{ "kind": "rule", "rule": "worksPullRivalHexes" }],
       "note": "This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it."
     }

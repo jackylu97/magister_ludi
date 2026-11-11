@@ -7,8 +7,8 @@
  *   · Civic Granaries: +1 food and +1 production for a Monument (it was +2 of
  *     each);
  *   · The Honoured Dead: Tier II, +2 science and +4 production in the capital
- *     for each great person spent while it is seated, at most fifteen times
- *     (+30 and +60);
+ *     for each great person spent while it is seated. MG1 capped it at fifteen
+ *     spends, and batch DS7 removed the cap;
  *   · The Living Canon: +4% food and +4% production for each family whose
  *     legacy you hold, at most five (+20%), in every town. It no longer asks
  *     for three culture buildings;
@@ -153,7 +153,7 @@ describe('Magisterial batch MG1: the four cards changed in place', () => {
     expect(townPays(state, city, 'civicGranaries', 'production')).toBe(1);
   });
 
-  it('The Honoured Dead pays the capital +2 science and +4 production for each person spent while seated, at most fifteen', () => {
+  it('The Honoured Dead pays the capital +2 science and +4 production for each person spent while seated, with no cap', () => {
     const state = bareState();
     const capital = town(state, 3, 5, 3);
     const other = town(state, 8, 5, 3);
@@ -167,11 +167,15 @@ describe('Magisterial batch MG1: the four cards changed in place', () => {
     expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(4);
     // Only the capital is paid.
     expect(townPays(state, other, 'theHonouredDead', 'science')).toBe(0);
-    // Twenty in all, and the pay stops at fifteen: +30 science and +60 production.
+    // Twenty in all. Batch DS7 removed the cap of fifteen, so all twenty pay:
+    // +40 science and +80 production.
     for (let spent = 1; spent < 20; spent += 1) recordScalingOccasion(state, 0, 'greatPersonSpent');
     bumpRevision(state);
-    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(30);
-    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(60);
+    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(40);
+    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(80);
+    for (const effect of orderDef('theHonouredDead' as OrderId).effects) {
+      expect(effect.kind === 'pays' && effect.max, 'no cap').toBeUndefined();
+    }
   });
 
   it('The Living Canon pays +4% food and production for each family held, at most +20%, in a town with no culture building', () => {
@@ -251,8 +255,9 @@ describe('Magisterial batch MG1: the rows', () => {
     expect(orderDef('magisterialTheMagistersCourt' as OrderId).text).toBe(
       'Cities containing a wonder gain +25% production toward the Magnum Opus.',
     );
+    // Batch DS7 gave The Last Commission a shorter text with the same effect.
     expect(orderDef('theLastCommission' as OrderId).text).toBe(
-      'Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.',
+      'Spending a great person adds 150 production to your Magnum Opus.',
     );
     // Batch MG3 dealt The Golden Age and The Magister's Court (see below).
     // Batch MG8 dealt The Last Commission
@@ -618,7 +623,8 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
     expect(townPays(state, city, 'theRepertory', 'culture')).toBe(2);
   });
 
-  it('The Cornerstone speeds wonders by 30% in a town that holds no wonder, and in no other', () => {
+  // Batch DS7 removed the condition: it was 30% in a town that held no wonder.
+  it('The Cornerstone speeds wonders by 20% in every town, one holding a wonder included', () => {
     const state = bareState(20, 10);
     const bare = town(state, 3, 5, 3);
     const holder = town(state, 12, 5, 3);
@@ -629,13 +635,14 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
       cardProduction(state, city, category, undefined, id as never)
         .filter((line) => line.card === 'theCornerstone')
         .reduce((sum, line) => sum + line.percent, 0);
-    expect(toward(bare, 'wonder', 'greatLibrary')).toBe(30);
-    expect(toward(holder, 'wonder', 'greatLibrary')).toBe(0);
+    expect(toward(bare, 'wonder', 'greatLibrary')).toBe(20);
+    expect(toward(holder, 'wonder', 'greatLibrary')).toBe(20);
     // Wonders only.
     expect(toward(bare, 'building', 'granary')).toBe(0);
   });
 
-  it('The Workshop at Olympia pays +2 renown a turn and The Keepers of Wonders +2 happiness for each wonder held', () => {
+  // Batch DS7 raised The Workshop at Olympia from +2 to +3 renown a wonder (the user's comment of 2026-11-10).
+  it('The Workshop at Olympia pays +3 renown a turn and The Keepers of Wonders +2 happiness for each wonder held', () => {
     const state = bareState(20, 10);
     const first = town(state, 3, 5, 3);
     const second = town(state, 12, 5, 3);
@@ -649,7 +656,7 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
     bumpRevision(state);
     for (const city of [first, second]) refreshCityDerived(state, city);
     bumpRevision(state);
-    expect(renownFrom(state, 'theWorkshopAtOlympia')).toBe(6);
+    expect(renownFrom(state, 'theWorkshopAtOlympia')).toBe(9);
     expect(happinessFrom(state, 'theKeepersOfWonders')).toBe(6);
   });
 

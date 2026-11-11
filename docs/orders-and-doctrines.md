@@ -691,30 +691,30 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | Civic Granaries | 1 | ● | P | Monuments give +1 food and +1 production. |
 | The Temple of the Muses | 0 | ● | P | Culture buildings give +2 faith each. |
-| Master Masons | 0 | ● | S | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. |
+| Master Masons | 0 | ● | S | Finishing a culture building grants 30 production in its town. |
 | The Prytaneion | 0 | ◆ | E | Each town gains +1 food for each card you have seated. |
 | The Polemarch | 0 | ● | E | Your units gain +2 strength for each Military card you have seated. |
 | The Court Painter | 0 | ● | S | Each card you draft grants 15 renown. A charter counts. |
-| The Cornerstone | 0 | ● | S | Towns that hold no wonder build wonders 30% faster. |
+| The Cornerstone | 0 | ● | S | Towns build wonders 20% faster. |
 | The Second Reading | 0 | ◆ | S | The first reroll of each hand is free. |
-| Commission: The Eighth Wonder | 1 | ◆ | S | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. |
-| The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
-| The Guild of Masons | 1 | ◆ | P | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
-| The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
+| Commission: The Eighth Wonder | 1 | ◆ | S | Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown. |
+| The Laureate | 1 | ◆ | P | Towns working a great-person work gain +5 culture and +3 science. |
+| The Guild of Masons | 1 | ◆ | S | +30% production toward wonders. |
+| The Working Court | 1 | ○ | P | Towns with a Monument gain production equal to 30% of their culture. |
 | The Nomarchs | 1 | ◆ | E | +1 authority for every two cards you have seated. |
-| The Workshop at Olympia | 1 | ● | S | +2 renown a turn for each wonder you hold. |
+| The Workshop at Olympia | 1 | ● | S | +3 renown a turn for each wonder you hold. |
 | The Overseers of Works | 1 | ◆ | S | Each time you gain a great person, your capital gains 100 production for each age you have reached. |
 | The Keepers of Wonders | 1 | ● | P | +2 happiness for each wonder you hold. |
 | The Ceremonial Guard | 1 | ● | S | Towns holding a wonder gain +5 defence. |
 | The Unveiling | 1 | ◆ | S | Completing a wonder deals you a free Order hand. |
 | The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
-| Commission: The Roll of the Senate | 1 | ◆ | S | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. |
+| Commission: The Roll of the Senate | 1 | ◆ | S | Goal: hold ten Orders. Reward: one more Wildcard chair. |
 | The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
-| The Wandering Muse | 1 | ◆ | S | On draft: gain a free great-person draft. Seated, this card does nothing. |
+| The Wandering Muse | 1 | ◆ | S | Boon. On draft: gain a free great-person draft. |
 | The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
-| The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
-| The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
-| The Honoured Dead | 2 | ◆ | P | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. |
+| The Learned Patron | 2 | ◆ | P | Towns with two culture buildings gain science equal to 15% of their culture. |
+| The Senate Charter | 2 | ◆ | S | Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. |
+| The Honoured Dead | 2 | ◆ | P | Gains +2 science and +4 production in your capital each time you spend a great person. |
 | The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
 | The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
 | Letters Patent | 2 | ◆ | P | Your great people's acts pay 50% more. |
@@ -724,35 +724,35 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
 | The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
 | The Sed Festival | 2 | ○ | S | Each time you adopt a government, gain a free great-person draft. |
-| Commission: The Patron's Gallery | 2 | ◆ | S | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. |
-| The Envious Eye | 2 | ◆ | S | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. |
+| Commission: The Patron's Gallery | 2 | ◆ | S | Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture. |
+| The Envious Eye | 2 | ◆ | S | When a rival finishes a wonder you were building, your production moves to the next item. |
 | The Grand Vizier | 2 | ○ | E | The card in your first Economic chair pays its yields twice. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
-| The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
+| The Wonder Commonwealth | 3 | ○ | P | Towns holding a wonder gain +35% production and food. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
 | The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
 | The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
-| Commission: The Wonder of the Age | 3 | ◆ | S | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. |
+| Commission: The Wonder of the Age | 3 | ◆ | S | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. |
 | Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
 | The Pandects | 3 | ◆ | P | +5% science and production for each Doctrine you hold. |
-| Commission: The Golden Bull | 3 | ◆ | S | Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair. |
+| Commission: The Golden Bull | 3 | ◆ | S | Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer. |
 | The Divine Proportion | 3 | ○ | E | The bonuses your cards give great-person works are doubled. |
 | The Second Sitting | 3 | ○ | S | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. |
 | Magnificence | 3 | ○ | S | You may buy a wonder you are building with culture, one culture for each hammer it still needs. |
 | The Mixed Constitution | 3 | ○ | S | Your cards fit any chair. |
 | The Universal Genius | 3 | ○ | S | Your great people may act, and then still lay their work. Each leaves one legacy. |
-| The Cabinet of Curiosities | 3 | ○ | S | On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing. |
-| Commission: The Paradise Garden | 3 | ○ | S | Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair. |
+| The Cabinet of Curiosities | 3 | ○ | S | Boon. On draft: gain a random card of your tier from a deck you do not hold. |
+| Commission: The Paradise Garden | 3 | ○ | S | Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
 | The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
 | The Hall of Wonders | 4 | ○ | S | Order hands deal one more card for every two wonders you hold, at most two more. |
-| The Last Commission | 4 | ○ | S | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. |
+| The Last Commission | 4 | ○ | S | Spending a great person adds 150 production to your Magnum Opus. |
 | The Immortals | 4 | ○ | S | The legacies of your great people count twice. |
-| Commission: The Ideal City | 4 | ○ | S | Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair. |
-| The Grand Retrospective | 4 | ○ | S | On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing. |
+| Commission: The Ideal City | 4 | ○ | S | Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production. |
+| The Grand Retrospective | 4 | ○ | S | Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. |
 | The Processional Way | 4 | ○ | S | Great-person works in a straight line of three or more give +3 culture and +3 science each. |
-| The Pull of the Masters | 4 | ○ | S | Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken. |
+| The Pull of the Masters | 4 | ○ | S | Each turn, each great-person work takes one unworked hex beside it from a rival town. |
 
 ### Cross-type
 

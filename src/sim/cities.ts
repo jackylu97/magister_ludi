@@ -5625,8 +5625,9 @@ export function realiseItem(
     // here compares a building id against `"cathedral"`.
     const consecration = consecrateBuilding(state, city, item.id);
     const grants = payCompletionGrants(state, city, item.id);
-    // **What this town, and this realm, had never raised before** — Master
-    // Masons' guild and Learned Commissions' hall. Written here, in the one
+    // **What this town, and this realm, had never raised before** — the retired
+    // Master Workshops' guild (Master Masons asks no ledger since batch DS7)
+    // and Learned Commissions' hall. Written here, in the one
     // routine that means "the city now has the thing", and written *before* the
     // riders, because a rider asks the world what was first and never decides it
     // for itself (`markFirst` is the one writer, and

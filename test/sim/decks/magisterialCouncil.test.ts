@@ -203,8 +203,9 @@ describe('Magisterial batch MG7: the rows', () => {
         stage: 'city',
       })),
     );
+    // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(BULL).text).toBe(
-      "Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair.",
+      'Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer.',
     );
     expect(orderDef(BULL).effects).toEqual([]);
     expect(orderDef(BULL).commission).toEqual({

@@ -425,8 +425,29 @@ import {
  * seated pays different yields, a save with Niter Beds on the board names a work
  * that no longer exists, and a Scientific seat's draws move. The branch migrates
  * nothing, for the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v237 (branch `decks`; batch DS7, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Magisterial Orders.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · 23 Magisterial Orders have new text
+ *     (`docs/plans/deck-simplification-2026-11-10.md`). A commission's text reads
+ *     "Goal: … Reward: …", and a boon's text starts with the keyword "Boon.";
+ *   · 8 rows have a new or shorter effect. Master Masons grants 30 production for
+ *     each culture building finished, however it was finished, and no longer
+ *     speeds Monuments. The Cornerstone gives +20% toward wonders in every town.
+ *     The Guild of Masons gives +30% and costs no gold. The Laureate pays no
+ *     renown. The Honoured Dead and The Learned Patron have no cap. The Wonder
+ *     Commonwealth gives +35% production and food, and no culture. The Workshop
+ *     at Olympia gives +3 renown a turn for each wonder;
+ *   · two shapes that no row uses now are removed: the `notHasWonder` scope, and
+ *     the `max` cap on a `pays` row with `basis: 'share'`.
+ *
+ * **A v236 save is refused and does not replay.** A logged game with one of these
+ * cards seated pays different yields. The branch migrates nothing, for the reason
+ * given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 236;
+export const SCHEMA_VERSION = 237;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
