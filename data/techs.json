@@ -1365,73 +1365,74 @@
       "name": "Embark",
       "glyph": "⛵",
       "bearer": "civilian",
-      "summary": "Cross coastal water and lakes."
+      "summary": "Civilians and scouts cross coast and lakes"
     },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "glyph": "🌾",
       "bearer": "city",
-      "summary": "A town may keep this rite: hexes that give food give +1 more."
+      "summary": "Rite: food hexes +1 food"
     },
     "omenReading": {
       "name": "Omen Reading",
       "glyph": "🔮",
       "bearer": "city",
-      "summary": "A town may keep this rite: +1 science for each building in the town."
+      "summary": "Rite: +1 science per building"
     },
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "glyph": "🗿",
       "bearer": "city",
-      "summary": "A town may keep this rite: luxury hexes gain +1 culture, and the town’s borders grow 30% faster."
+      "summary": "Rite: luxury hexes +1 culture, borders grow 30% faster"
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "glyph": "⚔",
       "bearer": "city",
-      "summary": "A town may keep this rite: +10 defence."
+      "summary": "Rite: town +10 defence"
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "glyph": "🍷",
       "bearer": "city",
-      "summary": "A town may keep this rite: hexes with a resource give +1 gold."
+      "summary": "Rite: resource hexes +1 gold"
     },
     "ancestorRites": {
       "name": "Ancestor Rites",
       "glyph": "🕯",
       "bearer": "empire",
-      "summary": "Renown now earns great-person offers."
+      "summary": "Renown earns great people"
     },
     "militaryEmbark": {
       "name": "Sea Legs",
       "glyph": "🚣",
       "bearer": "military",
-      "summary": "Soldiers may cross coastal water and lakes."
+      "summary": "Soldiers cross coast and lakes"
     },
     "siege": {
       "name": "Siege",
       "glyph": "⛺",
       "bearer": "military",
-      "summary": "Surrounded enemy cities cannot heal and lose health each turn."
+      "summary": "Surrounded enemy cities lose health each turn and cannot heal",
+      "concept": "siege"
     },
     "theLongCount": {
       "name": "The Long Count",
       "glyph": "📿",
       "bearer": "empire",
-      "summary": "You may spend faith to redraw an Order draft."
+      "summary": "Spend faith to redraw an Order draft"
     },
     "oceanGoing": {
       "name": "Open Ocean",
       "glyph": "🌐",
       "bearer": "empire",
-      "summary": "Ships and embarked units may cross deep ocean."
+      "summary": "Ships and embarked units cross deep ocean"
     },
     "openBorders": {
       "name": "Open Borders",
       "glyph": "🛣",
       "bearer": "empire",
-      "summary": "Open-borders treaties; both empires must know Writing."
+      "summary": "Open-borders treaties"
     },
     "votiveOffering": {
       "byCard": true,

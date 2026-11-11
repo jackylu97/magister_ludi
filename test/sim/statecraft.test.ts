@@ -10228,8 +10228,10 @@ describe("the Orders balance pass of 2026-09-08", () => {
   });
 
   it("The Muses' Call — prints its two standing clauses", () => {
+    // Batch TT3 shortened the verb's line on the tree ("Renown earns great
+    // people"), and this clause prints that line.
     expect(said("musesCall")).toEqual([
-      "renown now earns great-person offers without waiting for " +
+      "renown earns great people without waiting for " +
         techDef(ABILITY_TECH.get("ancestorRites")!).name,
       "+1 production on every hex carrying a great person's work",
     ]);

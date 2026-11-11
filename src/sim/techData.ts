@@ -546,8 +546,31 @@ interface AbilityDef {
    * the verb a spade gains.
    */
   bearer?: AbilityBearer;
-  /** One line of what it lets an empire do. */
+  /**
+   * One short line of what it lets an empire do, as the star chart, its hover
+   * card and the Compendium's technology page print it beside the name.
+   *
+   * Batch TT3 (`docs/flags.md` item (kkkkkkk)) gave every line on the tree one
+   * form: the subject first, then what changes, with no "gain", "may", "now" or
+   * full stop ("Soldiers cross coast and lakes"). A rite's line starts "Rite:"
+   * ("Rite: town +10 defence"), because the heading above it names the towns
+   * and not the rite. A card that grants a tree verb early (`grantsAbility`)
+   * prints this line too, with its first letter made small.
+   */
   summary: string;
+  /**
+   * **The Compendium concept page that holds this verb's rule** (batch TT3):
+   * the id after `concept:`. The tree then prints the verb's name alone, as a
+   * keyword to that page, and no `summary` beside it. Siege is the one row: the
+   * user, 2026-11-11, *"just have it be a keyword 'siege' that's unlocked, that
+   * links to a compendium entry"*. The summary still says the rule in
+   * `docs/tech-tree.md`'s table of verbs.
+   *
+   * A string and not a checked id, because the pages are the interface's
+   * (`src/ui/compendiumText.ts`) and the simulation may not import them.
+   * `test/ui/techLines.test.ts` checks that each one names a real page.
+   */
+  concept?: string;
   /**
    * **Handed over by a card, never by a node** — the Devotion deck's two
    * card-taught rites (`grantsAbility` on a seated Order). Exempt from the
@@ -848,6 +871,14 @@ export const PROJECT_UNLOCK_TECH: ReadonlyMap<ProjectId, TechId> = invert(
  * other stale buildings — from the tech tree UX"). Every surface that *prints*
  * a node's gifts reads this; the gates (`isUnlocked`, `buildError`) read the
  * raw lists, because a retired row's refusal is its own sentence.
+ *
+ * **A building or unit that the node's own rules open early comes last on the
+ * list** (batch TT3, `docs/flags.md` item (kkkkkkk)). Surveying opens the
+ * Aqueduct before Engineering through an `unlocksBuilding` effect, because the
+ * tree's unlock lists give each building one node and Engineering already has
+ * it. To a player it is still a building the node unlocks, so the face, the
+ * hover card and the Compendium print it as one, at its price, and not as a
+ * rule. `techUnlockEffects` says which effects count.
  */
 export function liveUnlocks(id: TechId): {
   units: UnitTypeId[];
@@ -855,11 +886,51 @@ export function liveUnlocks(id: TechId): {
   projects: ProjectId[];
 } {
   const { units = [], buildings = [], projects = [] } = techDef(id).unlocks;
+  const early = techUnlockEffects(id);
+  const earlyUnits = early.flatMap((effect) => (effect.kind === 'unlocksUnit' ? [effect.unit] : []));
+  const earlyBuildings = early.flatMap((effect) =>
+    effect.kind === 'unlocksBuilding' ? [effect.building] : [],
+  );
   return {
-    units: units.filter((unit) => unitDef(unit).retired !== true),
-    buildings: buildings.filter((building) => buildingDef(building).retired !== true),
+    units: [...units, ...earlyUnits.filter((unit) => !units.includes(unit))].filter(
+      (unit) => unitDef(unit).retired !== true,
+    ),
+    buildings: [
+      ...buildings,
+      ...earlyBuildings.filter((building) => !buildings.includes(building)),
+    ].filter((building) => buildingDef(building).retired !== true),
     projects: [...projects],
   };
+}
+
+/** A node's effect that opens a building or a unit for every town of the empire. */
+type TechUnlockEffect = Extract<CardEffect, { kind: 'unlocksBuilding' | 'unlocksUnit' }>;
+
+/**
+ * The node's effects that are **unlocks** rather than rules: an `unlocksBuilding`
+ * or `unlocksUnit` effect that names no towns (batch TT3). `liveUnlocks` lists
+ * what they open, and `techRuleEffects` leaves them out, so the tree prints the
+ * thing once, as an unlock.
+ *
+ * An effect with a `scope` stays a rule, because it opens the row in some towns
+ * only, and an ordinary unlock line could not say which.
+ */
+export function techUnlockEffects(id: TechId): TechUnlockEffect[] {
+  return (techDef(id).effects ?? []).filter(
+    (effect): effect is TechUnlockEffect =>
+      (effect.kind === 'unlocksBuilding' && effect.scope === undefined) || effect.kind === 'unlocksUnit',
+  );
+}
+
+/**
+ * The node's own **rules**: its effects, less the unlocks (`techUnlockEffects`).
+ * These are what the tree prints as rule lines (`techGifts`' `techEffect` gift,
+ * `describeTechRules`). The evaluator still reads every effect on the row
+ * (`liveEffects`' tenth source): this is a reading for the printed surfaces.
+ */
+export function techRuleEffects(id: TechId): CardEffect[] {
+  const unlocks: readonly CardEffect[] = techUnlockEffects(id);
+  return (techDef(id).effects ?? []).filter((effect) => !unlocks.includes(effect));
 }
 
 /**

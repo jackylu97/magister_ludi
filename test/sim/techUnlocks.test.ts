@@ -33,6 +33,7 @@ import {
   abilityDef,
   isAbilityId,
   techDef,
+  techUnlockEffects,
 } from '../../src/sim/techData';
 import { featureDef, readTileYield } from '../../src/sim/terrainData';
 import { techGifts, unlockDataProblems } from '../../src/sim/techUnlocks';
@@ -379,8 +380,28 @@ describe('techGifts', () => {
     // Scientific batch S4 they open buildings and the Physic Garden, and a gift
     // a charter technology hands over is still a gift some node must announce.
     const seen = ALL_TECH_IDS.flatMap((id) => techGifts(id).map((gift) => `${gift.kind}:${gift.id}`));
-    const buildables = seen.filter((key) => key.startsWith('unit:') || key.startsWith('building:'));
+    // A row a node's own rule opens early (batch TT3: Surveying's Aqueduct) is
+    // listed on that node too, as an ordinary unlock, beside the node that opens
+    // it for everyone. So the one-home claim is asked of the other gifts, and
+    // the early ones are held to being on their node.
+    const early = ALL_TECH_IDS.flatMap((id) =>
+      techUnlockEffects(id).map((effect) =>
+        effect.kind === 'unlocksBuilding' ? `${id}>building:${effect.building}` : `${id}>unit:${effect.unit}`,
+      ),
+    );
+    expect(early).toContain('surveying>building:aqueduct');
+    const buildables = ALL_TECH_IDS.flatMap((id) =>
+      techGifts(id)
+        .map((gift) => `${gift.kind}:${gift.id}`)
+        .filter((key) => key.startsWith('unit:') || key.startsWith('building:'))
+        .filter((key) => !early.includes(`${id}>${key}`)),
+    );
     expect(new Set(buildables).size).toBe(buildables.length);
+    for (const pair of early) {
+      const [id, key] = pair.split('>') as [string, string];
+      expect(techGifts(id as never).map((gift) => `${gift.kind}:${gift.id}`), pair).toContain(key);
+      expect(buildables, pair).toContain(key);
+    }
 
     for (const resource of RESOURCE_IDS) {
       const gate = resourceDef(resource).requiresTech;
@@ -484,8 +505,10 @@ describe('an ability names its bearer', () => {
     // carries the who, and the Sailing cross-reference lives in the
     // Compendium rather than a one-line note. Hard rule 7 still: no figure,
     // no identifier.
+    // Batch TT3 (`docs/flags.md` (kkkkkkk)) put the subject back, so the
+    // line reads the same way as every other line on the tree.
     const summary = abilityDef('militaryEmbark').summary;
-    expect(summary).toContain('coastal water');
+    expect(summary).toBe('Soldiers cross coast and lakes');
     expect(summary).not.toMatch(/[0-9]/);
   });
 

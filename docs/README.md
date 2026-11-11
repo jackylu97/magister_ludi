@@ -555,6 +555,21 @@ Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · cod
   and `docs/tech-tree.md` lead with them. The node's face in the chart prints
   them first too, above its units and buildings (`techHeadlines`,
   `src/ui/techTree.ts`), worded by `renewalNote` and `techRuleClauses`.
+- **Every line the tree prints has one short form** (batch TT3, `docs/flags.md`
+  (kkkkkkk)): the subject first, then the figure, with no "gain", "may", "now"
+  or full stop ("Workers +1 charge", "Rite: town +10 defence").
+  - Rules: `describeTechRules` (`statecraft/describers.ts`) words a node's
+    rules through `effectLine`. An Order with the same effect keeps its
+    sentence (`describeCard`). Line traits: `describeTraitLines`.
+  - Abilities: the row's `summary` in `data/techs.json`. A verb with a
+    `concept` field prints its name alone, as a keyword to that Compendium
+    page (Siege).
+  - The words for renewals and abilities live in `src/ui/techRuleWords.ts`
+    (`renewalNote`, `abilityNote`), so the node face, the hover card and the
+    Compendium print the same words. `test/ui/techLines.test.ts` holds them.
+  - An effect that opens a building or a unit for every town
+    (`techUnlockEffects`, Surveying's Aqueduct) is listed by `liveUnlocks` as
+    an ordinary unlock, and `techRuleEffects` leaves it out of the rules.
 - **The world's age is the mean** of every living real seat's highest technology,
   floored (`worldAge`, `worldClock.ts`) — not the first seat's. Crossing gives
   the current age a public countdown.

@@ -242,7 +242,9 @@ describe('no composed yield figure reaches the DOM unprinted', () => {
     // The list is allowed to grow; it is not allowed to be empty, and these are
     // the ones that were swapped in the pass that added this.
     expect(names).toContain('cityPanel.ts');
-    expect(names).toContain('techTree.ts');
+    // `techTree.ts` left this list in batch TT3: its figure composers moved to
+    // `techRuleWords.ts`, which touches no node. It still prints through its
+    // own `element()` builder.
     expect(names).toContain('unitPanel.ts');
     expect(names.length).toBeGreaterThanOrEqual(4);
   });

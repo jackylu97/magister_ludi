@@ -362,10 +362,13 @@ describe('the rites’ texts', () => {
   });
 
   it('say the same plain thing on the tree’s rite summaries', () => {
+    // Batch TT3 (`docs/flags.md` (kkkkkkk)) made each one a short line in the
+    // tree's form: "Rite: town +10 defence".
     for (const [id, figures] of Object.entries(FIGURES)) {
       if (id === 'riteOfFasting') continue;
       const summary = abilityDef(id as never).summary;
-      expect(summary, id).toMatch(/^A town may keep this rite: /);
+      expect(summary, id).toMatch(/^Rite: /);
+      expect(summary, id).not.toMatch(/\.$/);
       for (const figure of figures) expect(summary, id).toContain(figure);
     }
   });

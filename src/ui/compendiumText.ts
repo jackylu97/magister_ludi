@@ -321,6 +321,21 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: enemy units and cities exert zone of control on the hexes next to them — moving from one hex next to an enemy to another hex next to the same enemy costs one extra movement point. The general\'s bonus reaches a short distance, applies to your military units only, and does not stack with a second general. Combat is a single attack. Hills and forests add to a defender\'s strength, and fortifying adds more each turn it stays, up to a cap; cards and wonders can add further bonuses to either side. A city takes no benefit from the ground it stands on — instead it defends with the strength of the best unit its owner could build, plus its walls. A city with every neighbouring land hex controlled by enemies is under siege — but only once the besieger has learned Siegecraft: before that technology, war is raids, and a surrounded city still heals. Under a real siege it cannot heal and loses a little health each turn, but only an attack can capture it. Once a city\'s defence is beaten down, a melee unit that kills the last defender standing in it takes the city in the same blow; a ranged unit that kills the defender leaves the city to be walked into. A melee unit that destroys the defender advances into its hex. Fighting across a shoreline has rules of its own: a melee unit cannot attack anything on water at all, and a unit crossing water cannot attack a ship, though it can still attack the shore. Archers do reduced damage to ships and siege engines do increased damage, and a ship attacking a unit crossing water takes only part of the blow back. A civilian unit alone on a hex is captured by a melee attack, except a trader, which is destroyed and its cargo taken. A camp you have seen stays on your map until you see the hex again without it.',
     ],
   ),
+  // Batch TT3: Siegecraft prints its verb as the keyword "Siege" alone, and the
+  // keyword links here (`AbilityDef.concept`). The first paragraph is the rule
+  // the keyword's hover card shows. The same rule is told in the Details of
+  // Combat and movement above.
+  written(
+    'concept',
+    'siege',
+    'Siege',
+    'cutting a city off',
+    '⛺',
+    [
+      'A city is under siege when enemy soldiers close every hex around it and the enemy has learned Siegecraft. A city under siege cannot heal and loses health each turn. Only an attack can capture it.',
+      'Details: a land hex next to the city is closed when an enemy combat unit or an enemy city stands on it or next to it. A mountain is always closed, but a city ringed only by mountains is not under siege. A water hex is closed only when an enemy ship stands on it, so a port with one clear hex of water cannot be besieged. A ship that blockades closes the water on each side of it as well. Before Siegecraft, war is raids, and a surrounded city still heals. When two empires surround a city together, each hex must be closed by an empire that knows Siegecraft. Barbarians never lay a siege.',
+    ],
+  ),
   written(
     'concept',
     'fog',

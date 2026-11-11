@@ -322,6 +322,10 @@ export {
   describeCommission,
   describeEffects,
   describeFamilyVerb,
+  // Batch TT3: the short lines the technology tree prints.
+  describeTechRules,
+  describeTraitLines,
+  effectLine,
   grantWords,
   indefinite,
   // Batch DS8: the four card keywords, in words and as marks.

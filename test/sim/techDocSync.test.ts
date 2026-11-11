@@ -31,8 +31,8 @@ import { describe, expect, it } from 'vitest';
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
 import { improvementDef } from '../../src/sim/improvementData';
 import { projectDef } from '../../src/sim/projectData';
-import { type CardId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
-import { describeCard, stripRefs } from '../../src/sim/statecraft';
+import { ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
+import { type CardClause, describeTraitLines, stripRefs } from '../../src/sim/statecraft';
 import {
   ABILITY_IDS,
   ABILITY_TECH,
@@ -49,8 +49,7 @@ import {
 import { type TechGift, techGifts } from '../../src/sim/techUnlocks';
 import { requiredResourcesOf, unitDef } from '../../src/sim/unitData';
 import { eitherResourceWords } from '../../src/sim/tech';
-import { renewalNote } from '../../src/ui/techTree';
-import { techRuleNote } from '../../src/ui/techRuleWords';
+import { renewalNote, techRuleLines, techRuleNote } from '../../src/ui/techRuleWords';
 
 /**
  * The names the ages are ruled by (Part 1, the tree pass of 2026-08-30). A local
@@ -221,10 +220,20 @@ function nodeRow(id: TechId): string {
  *
  * Refs are stripped: a keyword mark is four brackets and an id that means
  * nothing in a markdown file.
+ *
+ * Since batch TT3 the rules are the star chart's own short lines
+ * (`techRuleLines`, "Workers +1 charge"), and a line trait is its name and its
+ * short lines (`describeTraitLines`), as the Compendium prints it.
  */
 function nodeBullets(id: TechId): string[] {
   const def = techDef(id);
-  const bullets = describeCard(id as CardId).map((clause) => {
+  const lines: CardClause[] = [
+    ...techRuleLines(id),
+    ...(def.traits ?? []).flatMap((trait) =>
+      describeTraitLines(trait).map((line) => ({ ...line, text: `${trait.name}: ${line.text}` })),
+    ),
+  ];
+  const bullets = lines.map((clause) => {
     const mark = clause.deferred === true ? '†' : '—';
     return `- **${def.name}** ${mark} ${stripRefs(clause.text)}`;
   });

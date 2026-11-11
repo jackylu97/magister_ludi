@@ -226,7 +226,7 @@ Workshop → Forge · Shrine → Temple.
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
 - **Divination** — *A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough.*
-- **The Wheel** — newly created workers gain +1 charge
+- **The Wheel** — Workers +1 charge
 - **The Wheel** — *Every worker made from now on has an extra charge of work. Chariots may be trained if you have improved horses or camels.*
 
 ### Æra II — The Age of Heroes (9 nodes, 100–190🔬)
@@ -248,7 +248,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Bronze Panoply** — *Phalanxes and swordsmen may be trained if you have improved copper or obsidian. When you do, your spearmen become phalanxes and your warriors become swordsmen. Iron now shows on the map.*
 - **Chronology** — *You may spend faith to draw a new hand of Orders in place of the one you were offered.*
 - **Epic Poetry** — *Renown now brings great people. Before you know this, renown still builds up, but no great person comes.*
-- **Code of Laws** — +3 authority capacity
+- **Code of Laws** — Authority capacity +3
 - **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could.*
 - **Irrigation** — *A farm standing beside fresh water feeds its city better than it did.*
 - **Siegecraft** — *Your soldiers may besiege an enemy town: a town they surround cannot heal and loses health each turn. Towns may raise stone walls, and workers may build lumber mills.*
@@ -275,13 +275,13 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
 - **Iron Working** — *Legionaries and spear walls may be trained. Your phalanxes become spear walls. When you have improved iron, your swordsmen become legionaries.*
-- **State Workforce** — newly created workers gain +1 charge
+- **State Workforce** — Workers +1 charge
 - **State Workforce** — *Every worker made from now on has an extra charge of work.*
 - **The Silk Road** — *Towns may build a Caravanserai, which lets your empire run more trade routes.*
 - **Satrapies** — *Opens the Forbidden City and the Great Wall.*
 - **The Civil Service** — *A town you have taken by force may build a Courthouse.*
 - **The Saddle** — *Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production.*
-- **Daughter Cities** — new cities are founded with a Town Charter
+- **Daughter Cities** — New cities start with a Town Charter
 - **Daughter Cities** — *Every town you found starts with its Town Charter already built.*
 - **Guildhalls** — *Towns may build a Workshop.*
 - **Horology** — *Opens the Water Clock of Su Song.*
@@ -313,7 +313,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Machinery** — *Crossbowmen may be trained.*
 - **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
 - **Steel** — *Longswordsmen may be trained, and towns may build a Forge.*
-- **The Golden Roads** — +1 trade route
+- **The Golden Roads** — Trade routes +1
 - **The Golden Roads** — *Your empire may run an extra trade route at once.*
 - **Movable Type** — *Opens the Printing House, which makes the town that holds it learn and build faster.*
 - **Alchemy** — *Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.*
@@ -326,7 +326,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 |---|---|---|---|---|---|---|---|---|
 | Herbals | I | 2 | 24 | Pottery | The Herbalists' Charter | — | — | workers may build Physic Garden |
 | Casting | I | 3 | 50 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |
-| Surveying | II | 4 | 100 | The Wheel | The Surveyors' Charter | — | — | workers may build Qanat |
+| Surveying | II | 4 | 100 | The Wheel | The Surveyors' Charter | — | Aqueduct | workers may build Qanat |
 | Cataloguing | II | 4 | 100 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
 | Optics | II | 5 | 190 | Chronology | The Glassmakers' Charter | — | Specularium | — |
 | Medicine | III | 6 | 360 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
@@ -339,38 +339,31 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Military Architecture | IV | 10 | 3250 | Castellany | The Military Engineers' Charter | — | Bastion | — |
 | Naval Gunnery | IV | 12 | 8000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
 
-- **Herbals** — +2 happiness per hex with a Physic Garden in your borders
-- **Casting** — the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade
-- **Casting** — +2 combat strength for units of the Spearman line
-- **Casting** — the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade
-- **Casting** — +2 combat strength for units of the War Chariot line
-- **Surveying** — unlocks the Aqueduct — +15% food surplus stored toward growth; the city counts as standing beside fresh water
-- **Printing** — +1 trade route
-- **Mechanics** — the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade
-- **Mechanics** — units of the Catapult line: +1 range
-- **Mechanics** — the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade
-- **Mechanics** — units of the Archer line may move after attacking
-- **Chemistry** — the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade
-- **Chemistry** — +1 combat strength for units of the Warrior line per charter technology you know
-- **Naval Gunnery** — the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade
-- **Naval Gunnery** — +3 combat strength for units of the Gun Galley line
-- **Naval Gunnery** — units of the Gun Galley line blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing
+- **Herbals** — Physic Garden +2 happiness
+- **Casting** — Hoplite: Spearman to Pikeman +2 combat strength
+- **Casting** — Maryannu: War Chariot to Knight +2 combat strength
+- **Printing** — Trade routes +1
+- **Mechanics** — Onager: Catapult and Trebuchet +1 range
+- **Mechanics** — Repeating Crossbow: Archer to Crossbowman move after attacking
+- **Chemistry** — Grenadier: Warrior to Longswordsman +1 combat strength per charter technology you know
+- **Naval Gunnery** — Galleass: Gun Galley and Frigate +3 combat strength
+- **Naval Gunnery** — Galleass: Gun Galley and Frigate blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing
 
 ### The verbs the tree hands over
 
 | verb | node | who gains it | what it does |
 |---|---|---|---|
-| Embark | Sailing | civilian | Cross coastal water and lakes. |
-| Rite of the Harvest | Divination | city | A town may keep this rite: hexes that give food give +1 more. |
-| Omen Reading | Divination | city | A town may keep this rite: +1 science for each building in the town. |
-| Consecration of the Bounds | Stonecraft | city | A town may keep this rite: luxury hexes gain +1 culture, and the town’s borders grow 30% faster. |
-| Blessing of Arms | Bronzeworking | city | A town may keep this rite: +10 defence. |
-| Rite of Plenty | Currency | city | A town may keep this rite: hexes with a resource give +1 gold. |
-| Ancestor Rites | Epic Poetry | empire | Renown now earns great-person offers. |
-| Sea Legs | Wayfinding | military | Soldiers may cross coastal water and lakes. |
-| Siege | Siegecraft | military | Surrounded enemy cities cannot heal and lose health each turn. |
-| The Long Count | Chronology | empire | You may spend faith to redraw an Order draft. |
-| Open Ocean | The Astrolabe | empire | Ships and embarked units may cross deep ocean. |
-| Open Borders | Writing | empire | Open-borders treaties; both empires must know Writing. |
+| Embark | Sailing | civilian | Civilians and scouts cross coast and lakes |
+| Rite of the Harvest | Divination | city | Rite: food hexes +1 food |
+| Omen Reading | Divination | city | Rite: +1 science per building |
+| Consecration of the Bounds | Stonecraft | city | Rite: luxury hexes +1 culture, borders grow 30% faster |
+| Blessing of Arms | Bronzeworking | city | Rite: town +10 defence |
+| Rite of Plenty | Currency | city | Rite: resource hexes +1 gold |
+| Ancestor Rites | Epic Poetry | empire | Renown earns great people |
+| Sea Legs | Wayfinding | military | Soldiers cross coast and lakes |
+| Siege | Siegecraft | military | Surrounded enemy cities lose health each turn and cannot heal |
+| The Long Count | Chronology | empire | Spend faith to redraw an Order draft |
+| Open Ocean | The Astrolabe | empire | Ships and embarked units cross deep ocean |
+| Open Borders | Writing | empire | Open-borders treaties |
 | Votive Offering | — | city | A city may give faith to whatever it is building: the faith the rite costs becomes production. |
 | Restoring of the Host | — | city | A city may spend faith to heal every unit of yours standing in land that follows your religion. |

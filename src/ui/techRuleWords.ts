@@ -41,10 +41,31 @@
  * nothing** (`greatPersonFace.ts`'s role one system over): the only place it
  * takes a mark off is `techRuleIsNamed`, which measures a sentence's length and
  * must not count four brackets and an id a reader never sees.
+ *
+ * Short lines, one form
+ * ---------------------
+ * Batch TT3 (`docs/flags.md` item (kkkkkkk)) gave every line a technology
+ * prints one form: the subject first, then the figure, with no "gain", "may",
+ * "now" or full stop. The improvement line of batch TT1 ("Farm +1🌾 on fresh
+ * water") is the model. So:
+ *
+ *   - a rule is `describeTechRules`' short line ("Workers +1 charge"), not the
+ *     sentence an Order prints for the same effect;
+ *   - an improvement renewal and an ability are worded here, by `renewalNote`
+ *     and `abilityNote`, and the hover card and the Compendium both call them.
+ *     They moved here from `techTree.ts` so that the book can print the same
+ *     words as the card. The node face prints the renewal with the same
+ *     composer. An ability's words are its row's `summary`; a verb whose rule
+ *     is a game term prints its name alone, as a keyword to that term's page
+ *     (`abilityConcept`, Siege).
  */
 
-import { type TechId, techDef } from '../sim/techData';
-import { describeCard, ref, stripRefs } from '../sim/statecraft';
+import { type CardClause, describeTechRules, ref, stripRefs } from '../sim/statecraft';
+import { signedYield, yieldShows } from '../sim/yieldFormat';
+import { type TechId, abilityDef, isAbilityId, techDef, techRuleEffects } from '../sim/techData';
+import type { TechGift } from '../sim/techUnlocks';
+import type { TileYield } from '../sim/terrainData';
+import { HAMMER, YIELD_GLYPH } from './figures';
 
 /**
  * The two halves of the bar a node's rules must fit inside on the star chart.
@@ -87,19 +108,25 @@ function sentences(note: string): string[] {
 }
 
 /**
- * The whole of a node's generated rules, one clause each — what the Rules shelf
- * prints, and what the bar is measured against.
+ * The whole of a node's rules as short lines, with each line's struck mark —
+ * what the Compendium's charter technology page prints in full.
  *
- * `describeCard` answers for a technology because a technology **is** a card
- * (`anyCardDef`'s ninth class), so these are the same sentences an Order's face
- * is built out of, in the same vocabulary, with the same keyword marks in them.
- * A node's deferred halves come across too — they are half of what Epic Poetry
- * *is*, and the audit counted one of them against the bar.
+ * `describeTechRules` words them (batch TT3): the vocabulary an Order is
+ * described in, said in the tree's short form ("Authority capacity +3"), and
+ * with the same keyword marks in it. An effect that opens a building is not
+ * here: the tree prints that building as an unlock. A node's deferred halves
+ * come across too, and the bar counts them.
+ */
+export function techRuleLines(id: TechId): CardClause[] {
+  return describeTechRules(id).filter(({ text }) => text.length > 0);
+}
+
+/**
+ * The whole of a node's rules, one line each — what the Rules shelf prints,
+ * and what the bar is measured against. `techRuleLines` without the marks.
  */
 export function techRuleFullClauses(id: TechId): string[] {
-  return describeCard(id)
-    .map(({ text }) => text)
-    .filter((text) => text.length > 0);
+  return techRuleLines(id).map(({ text }) => text);
 }
 
 /** What a node's rule is **called** on the Rules shelf. See `TechDef.ruleName`. */
@@ -162,9 +189,69 @@ export function techRuleNote(id: TechId): string[] {
 export function techsAwaitingRuleNotes(ids: readonly TechId[]): TechId[] {
   return ids.filter((id) => {
     const def = techDef(id);
-    if ((def.effects ?? []).length === 0) return false;
+    if (techRuleEffects(id).length === 0) return false;
     return def.note === undefined || def.note.trim().length === 0;
   });
+}
+
+// --- the figures beside a renewal and an ability -------------------------------
+
+/**
+ * What a tile is paid, written as the delta it is: `+1🌾`.
+ *
+ * **All six voices**, in the order the city panel lists them, because a
+ * hand-written subset of a six-field record drifts the day a seventh row pays
+ * a new voice. Every figure goes through `signedYield`, and a voice that rounds
+ * to nothing is not printed (`yieldShows`): a delta is exact, a note is whole
+ * (batch X, `docs/flags.md` (mmm)).
+ */
+function tileYieldNote(add: TileYield): string {
+  const voices: [number, string][] = [
+    [add.food, YIELD_GLYPH.food],
+    [add.production, HAMMER],
+    [add.gold, YIELD_GLYPH.gold],
+    [add.science, YIELD_GLYPH.science],
+    [add.culture, YIELD_GLYPH.culture],
+    [add.faith, YIELD_GLYPH.faith],
+  ];
+  return voices
+    .filter(([value]) => yieldShows(value))
+    .map(([value, glyph]) => `${signedYield(value)}${glyph}`)
+    .join(' ');
+}
+
+/**
+ * What an improvement renewal adds, after the improvement's name: `+1🌾 on fresh
+ * water`. The model line of batch TT3. The node face, the hover card, the
+ * Compendium and `docs/tech-tree.md` all print it beside the name.
+ */
+export function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
+  const delta = tileYieldNote(gift.add);
+  return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
+}
+
+/**
+ * The Compendium concept page that holds an ability's rule, or `null`.
+ *
+ * A verb whose row names one (`AbilityDef.concept`, Siege) prints only its
+ * name, as a keyword to that page, and no line beside it. The user, 2026-11-11:
+ * *"just have it be a keyword 'siege' that's unlocked, that links to a
+ * compendium entry"*. A clearing has no row, so it has no page.
+ */
+export function abilityConcept(gift: TechGift & { kind: 'ability' }): string | null {
+  return isAbilityId(gift.id) ? (abilityDef(gift.id).concept ?? null) : null;
+}
+
+/**
+ * What an ability is worth, after its name. A clearing says what it banks, with
+ * `once` on the end, because that word is the whole difference between a chop
+ * and a farm. A named verb says its row's `summary` ("Soldiers cross coast and
+ * lakes"), and a verb with a concept page says nothing (`abilityConcept`).
+ */
+export function abilityNote(gift: TechGift & { kind: 'ability' }): string {
+  if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
+  if (abilityConcept(gift) !== null) return '';
+  return isAbilityId(gift.id) ? abilityDef(gift.id).summary : '';
 }
 
 /**

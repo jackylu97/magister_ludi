@@ -158,14 +158,14 @@
  */
 
 import { buildingDef, isWonder } from '../sim/buildingData';
-import { signedYield, yieldShows } from '../sim/yieldFormat';
+import { signedYield } from '../sim/yieldFormat';
 import { buildingProductionCost, unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
 import { type GameState, type Player, bankedTowardTech, hasEndedTurn } from '../sim/state';
-import { techRuleClauses } from './techRuleWords';
+import { abilityConcept, abilityNote, renewalNote, techRuleClauses } from './techRuleWords';
 import {
   availableTechs,
   dequeueResearchError,
@@ -193,10 +193,9 @@ import {
   techColumn,
 } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
-import type { TileYield } from '../sim/terrainData';
 import { isInUnitLine, unitDef } from '../sim/unitData';
 import { orderDef } from '../sim/statecraftData';
-import { describeTrait } from '../sim/statecraft/describers';
+import { describeTraitLines } from '../sim/statecraft';
 import {
   charterOpening,
   charterSealNode,
@@ -210,7 +209,7 @@ import {
 } from './charterTech';
 import { priceLineFigure, techCostFor, techPriceList } from './techPrice';
 import { wantsMotion } from './motion';
-import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
+import { HAMMER, PROJECT_GLYPHS, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
 import { keywordNode, setDescriptorText } from './keywords';
@@ -289,8 +288,13 @@ function giftEntryId(gift: TechGift): string | null {
       return `improvement:${gift.id}`;
     case 'reveal':
       return `resource:${gift.id}`;
+    // A verb whose rule is a game term links to that term's page (batch TT3,
+    // Siege). Any other verb has no page of its own.
+    case 'ability': {
+      const concept = abilityConcept(gift);
+      return concept === null ? null : `concept:${concept}`;
+    }
     case 'project':
-    case 'ability':
     // A node's own rules have no shelf of their own in the book — the node does,
     // and clicking the node you are already reading is not a link.
     case 'techEffect':
@@ -337,8 +341,8 @@ const GIFT_HEADING: Record<TechGift['kind'], string | null> = {
   // Told by the building's own entry in the Compendium instead. See above.
   buildingTileYield: null,
   // The rules the node hands over. Deliberately not "Effects": what a player
-  // gains is a change in how the world works, and `describeCard`'s own sentences
-  // are what follow the heading.
+  // gains is a change in how the world works, and the describers' short lines
+  // (`describeTechRules`, batch TT3) are what follow the heading.
   techEffect: 'Changes the rules',
 };
 
@@ -400,42 +404,9 @@ function giftHeading(gift: TechGift): string | null {
 //
 // They were closures inside `createTechTree` until that ruling. Nothing in them
 // ever read the closure; they are arithmetic over a gift, the state and a seat.
-
-/**
- * What a renewal is worth, written as the delta it is: `+1🌾`, and the
- * condition when it has one.
- *
- * **All six voices**, in the order the city panel lists them. It was the three
- * old ones for as long as a `TileYield` was three numbers, and that stopped
- * being true two reworks ago: the Long Count's plantation paid a point of
- * culture (until batch TT1 cut it) and the row printed nothing at all, on a
- * screen whose whole remaining job is to say what a technology's own yields
- * are (`docs/flags.md` (mmm)). A
- * hand-written subset of a six-field record is the drift `CITY_YIELD_KEYS`
- * exists to prevent one layer down; here the fix is simply to say all six.
- *
- * Every figure goes through `signedYield`, and a voice that rounds to nothing
- * is not printed (`yieldShows`) — a delta is exact, a note is whole (batch X).
- */
-function tileYieldNote(add: TileYield): string {
-  const voices: [number, string][] = [
-    [add.food, YIELD_GLYPH.food],
-    [add.production, HAMMER],
-    [add.gold, YIELD_GLYPH.gold],
-    [add.science, YIELD_GLYPH.science],
-    [add.culture, YIELD_GLYPH.culture],
-    [add.faith, YIELD_GLYPH.faith],
-  ];
-  return voices
-    .filter(([value]) => yieldShows(value))
-    .map(([value, glyph]) => `${signedYield(value)}${glyph}`)
-    .join(' ');
-}
-
-export function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
-  const delta = tileYieldNote(gift.add);
-  return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
-}
+// Batch TT3 moved the renewal's and the ability's words (`renewalNote`,
+// `abilityNote`) to `techRuleWords.ts`, so that the Compendium prints the same
+// words as this card.
 
 /** One headline line on a node's face. See `techHeadlines`. */
 export interface TechHeadline {
@@ -462,9 +433,10 @@ export interface TechHeadline {
  * technology's headline, in the place an unlock is printed. So the face prints
  * these before its traits, units and buildings: one line for each improvement
  * renewal, worded by `renewalNote`, and one line for each clause of the node's
- * own rules, worded by `techRuleClauses` — the describers' own sentences, never
- * prose written here. The hover card and the Compendium lead with the same gifts
- * because `techGifts` lists them first.
+ * own rules, worded by `techRuleClauses`. Since batch TT3 those are the
+ * describers' short lines ("Workers +1 charge"), never prose written here. The
+ * hover card and the Compendium lead with the same gifts because `techGifts`
+ * lists them first.
  *
  * Exported and pure, like the figure composers above, so the UI suite can hold
  * the rule without a DOM.
@@ -481,19 +453,6 @@ export function techHeadlines(id: TechId): TechHeadline[] {
     }
   }
   return lines;
-}
-
-/**
- * What an ability is worth, in the same voices — with `once` on the end,
- * because that single word is the whole difference between a chop and a farm
- * and the card would otherwise read as though the forest paid every turn.
- */
-function abilityNote(gift: TechGift & { kind: 'ability' }): string {
-  if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
-  // A verb that banks nothing prints its own summary instead — "Ancestor
-  // Rites" alone told a player nothing about great people (found in live
-  // play, 2026-09-03), and the summary is the data's own plain sentence.
-  return isAbilityId(gift.id) ? abilityDef(gift.id).summary : '';
 }
 
 /**
@@ -1327,8 +1286,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         box.append(list);
       }
       // **A node's own rules are one line each** (the playtest notes,
-      // 2026-09-03). `describeCard`'s clauses are already the sentences a player
-      // reads one at a time, so they become list items on the card's own list
+      // 2026-09-03). The rule lines (`describeTechRules`) are already the lines a
+      // player reads one at a time, so they become list items on the card's own list
       // rather than a run-on note joined with separators — which is what made
       // Daughter Cities overflow its card. Nothing else about the row changes:
       // the same mark opens each line, because each line is a rule this node
@@ -1365,6 +1324,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // card is sticky, so a pointer can reach the name and the Compendium can
       // be opened on it. A gift the book has no shelf for — a project, an
       // ability — is a plain span, because a dead link is worse than none.
+      // A verb whose rule has a concept page (Siege, batch TT3) is a keyword
+      // to that page, and it is the whole of its line.
       const entry = giftEntryId(gift);
       row.append(
         entry === null
@@ -1385,8 +1346,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   /**
    * The line traits a technology gives, on its hover card (Scientific batch
    * S10): one row per trait with the line's mark, its name and its face note,
-   * then the trait's own clauses (`describeTrait`), which name the line and
-   * the units it reaches. A trait stays through every upgrade and changes no
+   * then the trait's short lines (`describeTraitLines`, batch TT3), which name
+   * the units the line reaches and what they gain: "Spearman to Pikeman +2
+   * combat strength". A trait stays through every upgrade and changes no
    * price, so the heading says so once.
    *
    * Before the technology lands, a second list says which of this seat's
@@ -1406,7 +1368,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const note = traitFaceNote(trait);
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list.append(row);
-      for (const clause of describeTrait(trait)) {
+      for (const clause of describeTraitLines(trait)) {
         const words = element('li', 'info-card-trait-words');
         setDescriptorText(words, clause.text);
         list.append(words);

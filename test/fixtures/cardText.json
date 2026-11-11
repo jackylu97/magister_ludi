@@ -247,8 +247,8 @@
   ],
   "musesCall": [
    {
-    "raw": "renown now earns great-person offers without waiting for [[tech:epicPoetry|Epic Poetry]]",
-    "text": "renown now earns great-person offers without waiting for Epic Poetry"
+    "raw": "renown earns great people without waiting for [[tech:epicPoetry|Epic Poetry]]",
+    "text": "renown earns great people without waiting for Epic Poetry"
    },
    {
     "raw": "+1 production on every hex carrying a great person's work",

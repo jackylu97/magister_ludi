@@ -121,13 +121,18 @@ import {
   describeBuildingRow,
   describeCard,
   describeFamilyVerb,
+  describeTraitLines,
   ref,
   stripRefs,
   tileConditionWords,
 } from '../sim/statecraft';
 import {
+  abilityConcept,
+  abilityNote,
+  renewalNote,
   techRuleClauses,
   techRuleFullClauses,
+  techRuleLines,
   techRuleName,
   techRuleNote,
   techsWithNamedRules,
@@ -1837,16 +1842,11 @@ function giftWords(gift: TechGift): string {
     return `New improvement: ${gift.name} — ${figure(charges)} work ${plural(charges, 'charge')}`;
   }
   if (gift.kind === 'reveal') return `Reveals the resource ${gift.name} on the map`;
-  if (gift.kind === 'renewal') {
-    return `${gift.name} improvements you already have now add ${tileYieldFigures({
-      food: gift.add.food ?? 0,
-      production: gift.add.production ?? 0,
-      gold: gift.add.gold ?? 0,
-      science: gift.add.science,
-      culture: gift.add.culture,
-      faith: gift.add.faith,
-    })}`;
-  }
+  // **A renewal is the star chart's own line** (batch TT3, `docs/flags.md`
+  // (kkkkkkk)): the improvement, then what it adds, "Farm +1🌾 on fresh water".
+  // The node face, the hover card and this page print the same words, from the
+  // same composer (`renewalNote`).
+  if (gift.kind === 'renewal') return `${gift.name} ${renewalNote(gift)}`;
   if (gift.kind === 'buildingTileYield') {
     // **Which** hexes, said by the card's own describer (`tileConditionWords`,
     // `statecraft.ts`) rather than as "certain hexes" — the reader of a
@@ -1876,7 +1876,14 @@ function giftWords(gift: TechGift): string {
     const said = techRuleClauses(gift.id);
     return said.length > 0 ? said.join(' ') : `Changes the rules: ${gift.name}`;
   }
-  return `New ability: ${gift.name}`;
+  // **An ability, in the hover card's words** (batch TT3): its name, then its
+  // line (`abilityNote`), "New ability: Sea Legs — Soldiers cross coast and
+  // lakes". A verb whose rule is a game term is its name alone, as a keyword to
+  // that term's page (Siege).
+  const concept = abilityConcept(gift);
+  if (concept !== null) return `New ability: ${ref('concept', concept, gift.name)}`;
+  const note = abilityNote(gift);
+  return note === '' ? `New ability: ${gift.name}` : `New ability: ${gift.name} — ${note}`;
 }
 
 function techEntry(id: TechId): CompendiumEntry {
@@ -1955,10 +1962,12 @@ export function charterTechPrice(id: TechId): number {
  *   - **The price is printed** before any card (`charterTechPrice`): the
  *     column price, which since batch DS9 is the whole price. The star chart
  *     prints the lines for an empire with its cards in them.
- *   - **What knowing it gives is said in full** through `describeCard`, its
- *     rules and its line traits both, never as a named rule. The book has room
- *     for every clause, and the star chart's hover card prints a charter
- *     technology's traits in full too.
+ *   - **What knowing it gives is said in full**, its rules and its line traits
+ *     both, never as a named rule. The words are the star chart's short lines
+ *     (batch TT3): `techRuleLines` for the rules, and `describeTraitLines` for
+ *     each trait with the trait's name in front, "Hoplite: Spearman to Pikeman
+ *     +2 combat strength". A note under them says that a trait is kept through
+ *     every upgrade, as the hover card's heading does.
  *
  * What it opens (buildings and improvements) is `techGifts` in the tree's own
  * words (`giftWords`), as on every other technology's page.
@@ -1984,14 +1993,24 @@ function charterTechEntry(id: TechId): CompendiumEntry {
       .map((gift) => ({ text: giftWords(gift) })),
     // Copied into the book's own clauses, which `entryNode` prints through
     // `setDescriptorText`, as `cardClauses` does for a card.
-    ...describeCard(id)
-      .filter((entry) => entry.text.length > 0)
-      .map((entry) => ({ text: entry.text, deferred: entry.deferred })),
+    ...techRuleLines(id).map((entry) => ({ text: entry.text, deferred: entry.deferred })),
+    ...(def.traits ?? []).flatMap((trait) =>
+      describeTraitLines(trait).map((entry) => ({
+        text: `${trait.name}: ${entry.text}`,
+        deferred: entry.deferred,
+      })),
+    ),
   ];
   if (clauses.length === 1) {
     clauses.push({ text: 'Unlocks nothing by itself.' });
   }
   for (const line of techRuleNote(id)) clauses.push({ text: line, note: true });
+  if ((def.traits ?? []).length > 0) {
+    clauses.push({
+      text: 'A line trait stays with its units through every upgrade. No unit changes type or cost.',
+      note: true,
+    });
+  }
   clauses.push({
     text: 'The column price is what an ordinary technology at the same point in the tree costs. These prices leave out the cards an empire holds, which can change them.',
     note: true,

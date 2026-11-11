@@ -24,8 +24,9 @@
  *
  * There is no jsdom in this suite (`controls.test.ts`'s note), so the chart is
  * not mounted and walked. What is walked instead is the set of composers the
- * chart's DOM is built out of — `giftNote` and its three helpers, exported from
- * `techTree.ts` for this reason, plus `techRuleClauses`, `turnsToTech`,
+ * chart's DOM is built out of — `giftNote`, exported from `techTree.ts` for
+ * this reason, and the composers it calls (`renewalNote` and `abilityNote`,
+ * in `techRuleWords.ts` since batch TT3), plus `techRuleClauses`, `turnsToTech`,
  * `researchProgress` and the two production evaluators — over **every gift of
  * every technology** against a real empire. That is a stronger sweep than a
  * rendered chart would give: a rendered chart shows two unlock rows a card and

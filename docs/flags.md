@@ -19,6 +19,40 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(kkkkkkk) Shorter lines on the tech tree: RULED 2026-11-11; batch TT3 built.**
+The user: *"lets do a readability pass on the tech tree. i.e. 'workers +1 charge' instead of 'newly created workers gain 1 charge'. the rite unlock should also be shorter and more readable. the change to improvement upgrades is great, lets have the whole tech tree read the same way"*.
+- **The model** is the improvement line that batch TT1 made: the thing first, then the figure ("Farm +1 food on fresh water"). Every line a technology prints for a rule, an ability or a line trait reads that way: subject first, figure second, no "gain", "may", "now" or "newly created", no full stop.
+- **Where:** the node's face, the hover card, and the Compendium's technology page. All three print the same words.
+- **The lines** (the assistant's wording; the user, 2026-11-11: *"ok these are great"*, with two changes marked in the table):
+
+| Technology | Now | Becomes |
+|---|---|---|
+| The Wheel, State Workforce | newly created workers gain +1 charge | Workers +1 charge |
+| Code of Laws | +3 authority capacity | Authority capacity +3 |
+| The Golden Roads, Printing | +1 trade route | Trade routes +1 |
+| Daughter Cities | new cities are founded with a Town Charter | New cities start with a Town Charter |
+| Herbals | +2 happiness per hex with a Physic Garden in your borders | Physic Garden +2 happiness |
+| Surveying | (prints only its own name) | Aqueduct, as an ordinary building unlock with its price, and no rule line (the user, 2026-11-11: *"surveying should just read aqueduct as the unlock"*). The Qanat stays as its improvement unlock |
+| Blessing of Arms | A town may keep this rite: +10 defence. | Rite: town +10 defence |
+| Consecration of the Bounds | A town may keep this rite: luxury hexes gain +1 culture, and the town's borders grow 30% faster. | Rite: luxury hexes +1 culture, borders grow 30% faster |
+| Rite of the Harvest | A town may keep this rite: hexes that give food give +1 more. | Rite: food hexes +1 food |
+| Omen Reading | A town may keep this rite: +1 science for each building in the town. | Rite: +1 science per building |
+| Rite of Plenty | A town may keep this rite: hexes with a resource give +1 gold. | Rite: resource hexes +1 gold |
+| Embark | Cross coastal water and lakes. | Civilians and scouts cross coast and lakes (scouts embark too) |
+| Sea Legs | Soldiers may cross coastal water and lakes. | Soldiers cross coast and lakes |
+| Open Ocean | Ships and embarked units may cross deep ocean. | Ships and embarked units cross deep ocean |
+| Siege | Surrounded enemy cities cannot heal and lose health each turn. | Siege (the keyword alone, a link to its Compendium entry, which holds the rule). The user, 2026-11-11: *"just have it be a keyword 'siege' that's unlocked, that links to a compendium entry"* |
+| Ancestor Rites | Renown now earns great-person offers. | Renown earns great people |
+| The Long Count | You may spend faith to redraw an Order draft. | Spend faith to redraw an Order draft |
+| Open Borders | Open-borders treaties; both empires must know Writing. | Open-borders treaties (the user, 2026-11-11: *"Open borders can just read 'open-borders treaties'"*) |
+
+- **Readings taken:**
+  - "Workers +1 charge" still means only workers trained after the technology. The short line follows the user's own example.
+  - If Embark does not mean civilians only, the agent keeps the true subject and reports it.
+  - A rule sentence that an Order also prints (the worker charge, the trade route) changes on the Order too only if the same describer words build both and the Order then reads well; otherwise the technology gets its own short words. The agent reports which.
+  - Line traits (Hoplite, Onager and the others) follow the same form if their lines do not already.
+  - The two rites that cards teach (Votive Offering, Restoring of the Host) are not on the tree and do not change.
+
 **(jjjjjjj) Rulings of 2026-11-11 on the held cards, the tier-26 rule, two technologies, rites and beliefs: RULED; batches DS9, R1, TT2, RT1 and B1 are queued.**
 The user answered a numbered list of open items. Each ruling below quotes the answer.
 - **Batch R1, cards and the moments they need:**

@@ -122,6 +122,7 @@ import {
   liveUnlocks,
   techColumn,
   techDef,
+  techRuleEffects,
 } from '../techData';
 import { type ModelClass, type UnitTypeId, isUnitTypeId, unitDef, unitLine } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
@@ -1236,6 +1237,10 @@ function workDoesWords(row: ImprovementDef): string {
  * Each effect names the trait's line in its `class`, so its own clause says
  * which units it reaches ("units of the Catapult line: +1 range") and reads
  * correctly on its own.
+ *
+ * The charter card and the unit panel print these sentences. The star chart
+ * and the Compendium's technology page print the short lines of
+ * `describeTraitLines` instead (batch TT3).
  */
 export function describeTrait(trait: TechTrait, lead = ''): CardClause[] {
   const line = unitDef(trait.line).name;
@@ -1257,6 +1262,151 @@ function lineReachWords(line: UnitTypeId): string {
   if (names.length <= 1) return names[0] ?? unitDef(line).name;
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]} to ${names[names.length - 1]}`;
+}
+
+// --- the short lines a technology prints ---------------------------------------
+
+/**
+ * **A technology's own rules, as short lines** (batch TT3, `docs/flags.md` item
+ * (kkkkkkk)). The star chart's node face, its hover card and the Compendium's
+ * technology page print these, and `docs/tech-tree.md` lists them.
+ *
+ * The user asked for the whole tree to read like the improvement lines of
+ * batch TT1 ("Farm +1🌾 on fresh water"): the thing first, then the figure, with
+ * no "gain", "may", "now" or "newly created", and no full stop. So the effect an
+ * Order prints as "newly created workers gain +1 charge" prints here as
+ * "Workers +1 charge". The Order keeps its sentence, because a card face is
+ * read as a sentence and has room for one.
+ *
+ * The effects are `techRuleEffects`: an effect that opens a building or a unit
+ * is printed as an unlock and not as a rule. A struck half (`TechDef.deferred`)
+ * comes last, in the card's own words, as `describeCard` prints it.
+ */
+export function describeTechRules(id: TechId): CardClause[] {
+  const lines = describeEffectLines(techRuleEffects(id));
+  for (const missing of techDef(id).deferred ?? []) {
+    lines.push({ text: `${missing} — not built yet`, deferred: true });
+  }
+  return lines;
+}
+
+/**
+ * **A line trait, as short lines** (batch TT3): one line for each of the
+ * trait's effects, said of the units its line reaches. "Spearman to Pikeman +2
+ * combat strength", "Archer to Crossbowman move after attacking".
+ *
+ * The trait's name and the rule that it stays through every upgrade are not in
+ * the lines. The surface prints them beside the lines: the hover card under its
+ * "Line traits" heading, the Compendium as each line's label.
+ */
+export function describeTraitLines(trait: TechTrait): CardClause[] {
+  return describeEffectLines(trait.effects, lineReachWords(trait.line));
+}
+
+/**
+ * Each effect as its short line (`effectLine`). An effect with no short form
+ * prints its ordinary sentence with a capital letter, so nothing goes silent;
+ * the register in `test/ui/techLines.test.ts` fails on it, so a new rule on a
+ * technology gets its short form in the same batch.
+ *
+ * `who` replaces the subject the effect's own `class` would give.
+ */
+function describeEffectLines(effects: readonly CardEffect[], who?: string): CardClause[] {
+  const lines: CardClause[] = [];
+  for (const effect of effects) {
+    const line = effectLine(effect, who);
+    if (line !== null) {
+      lines.push({ text: line });
+      continue;
+    }
+    const said: CardClause[] = [];
+    describeEffect(effect, said);
+    for (const clause of said) lines.push({ ...clause, text: upperFirst(clause.text) });
+  }
+  return collapseClauses(lines);
+}
+
+/**
+ * **One effect as a short line**, or `null` for a shape with no short form.
+ *
+ * Each arm answers only a row that carries nothing but the fields it names
+ * (`onlyFields`). A row with one more field (a scope, a cap, a condition) is a
+ * longer rule, so it falls back to the sentence rather than losing a fact.
+ * Exported for the register test.
+ */
+export function effectLine(effect: CardEffect, who?: string): string | null {
+  const subject = (filter: UnitFilter | undefined): string =>
+    who ?? (filter === undefined ? 'All units' : upperFirst(filterWords(filter)));
+  switch (effect.kind) {
+    case 'unitStat': {
+      // The charge is still written once, when the worker is made, so the
+      // short line means only workers trained after the technology lands. The
+      // user's own example drops "newly created" (`docs/flags.md` (kkkkkkk)).
+      if (!onlyFields(effect, ['stat', 'amount', 'class']) || effect.stat === 'combatPercent') return null;
+      const noun =
+        effect.stat === 'charges'
+          ? Math.abs(effect.amount) === 1
+            ? 'charge'
+            : 'charges'
+          : STAT_WORDS[effect.stat];
+      return `${subject(effect.class)} ${signed(effect.amount)} ${noun}`;
+    }
+    case 'combatLine': {
+      if (!onlyFields(effect, ['amount', 'side', 'when', 'class', 'scaled'])) return null;
+      if (effect.side !== 'both' || effect.when.test !== 'always') return null;
+      const scale = effect.scaled
+        ? ` per ${countWords(effect.scaled.per, scaleNoun(effect.scaled))}` +
+          (effect.scaled.max === undefined ? '' : ` (at most ${signed(effect.scaled.max)})`)
+        : '';
+      return `${subject(effect.class)} ${signed(effect.amount)} combat strength${scale}`;
+    }
+    case 'rule': {
+      if (!onlyFields(effect, ['rule', 'class']) || effect.class === undefined) return null;
+      const words = LINE_RULE_WORDS[effect.rule] ?? FLAG_RULE_CLASS_WORDS[effect.rule];
+      return words === undefined ? null : words(subject(effect.class));
+    }
+    case 'authority':
+      return onlyFields(effect, ['amount']) ? `Authority capacity ${signed(effect.amount)}` : null;
+    case 'routeRider':
+      return onlyFields(effect, ['extra']) ? `Trade routes ${signed(effect.extra ?? 1)}` : null;
+    case 'foundingRider':
+      return effect.building !== undefined && onlyFields(effect, ['building'])
+        ? `New cities start with ${buildingWords(effect.building)}`
+        : null;
+    case 'pays': {
+      // Herbals: "+2 happiness per hex with a Physic Garden in your borders"
+      // reads as the improvement line does, "Physic Garden +2 happiness".
+      const tile = effect.tile;
+      const plain =
+        onlyFields(effect, ['where', 'basis', 'count', 'tile', 'to', 'amount']) &&
+        effect.where === 'empire' &&
+        effect.basis === 'count' &&
+        effect.count === 'tilesInBorders' &&
+        tile !== undefined &&
+        tile.test === 'improvement' &&
+        onlyFields(tile, ['test', 'improvement']);
+      if (!plain || tile.test !== 'improvement') return null;
+      const name = improvementDef(tile.improvement).name;
+      return `${ref('improvement', tile.improvement, name)} ${payoutWords(effect)}`;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Whether a row carries no field but `kind` and these. A short line says only
+ * what a plain row says, so any other field sends the row back to its sentence.
+ */
+function onlyFields(row: object, fields: readonly string[]): boolean {
+  return Object.entries(row).every(
+    ([key, value]) => value === undefined || key === 'kind' || fields.includes(key),
+  );
+}
+
+/** The text with its first letter made capital: a short line starts as a heading does. */
+function upperFirst(text: string): string {
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
 /**
@@ -7777,6 +7927,15 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
   // Scientific batch S1, the Galleass.
   blockades: (who) =>
     `${who} blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing`,
+};
+
+/**
+ * The class-narrowed rules a technology's short lines say without "may" (batch
+ * TT3, `effectLine`). Only a rule whose `FLAG_RULE_CLASS_WORDS` sentence has a
+ * "may" in it needs a row here. Every other rule reads the same in both forms.
+ */
+const LINE_RULE_WORDS: Partial<Record<CardFlagRuleId, (who: string) => string>> = {
+  moveAfterAttack: (who) => `${who} move after attacking`,
 };
 
 /**

@@ -14,7 +14,7 @@
  *     before any card, and those lines are the ones `explainTechCost` gives a
  *     seat that holds no card;
  *   - the page says what the technology opens and what knowing it gives, its
- *     traits included, through the describers;
+ *     traits included, in the star chart's short lines (batch TT3);
  *   - every building and improvement it opens, and its charter card, link to
  *     the page, and the describer marks the technology on the card;
  *   - the Mouseion prints its cost premium as its own line;
@@ -28,11 +28,12 @@ import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData'
 import { buildingProductionCost, explainBuildingCost } from '../../src/sim/cities';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { playerById } from '../../src/sim/state';
-import { describeCard } from '../../src/sim/statecraft';
+import { describeCard, describeTraitLines } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { explainTechCost, foldTechCost } from '../../src/sim/tech';
 import { CHARTER_TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';
+import { techRuleFullClauses } from '../../src/ui/techRuleWords';
 import {
   CHARTER_TECH_GROUP,
   type CompendiumEntry,
@@ -140,7 +141,7 @@ describe('a charter technology’s page', () => {
     }
   });
 
-  it('says what it opens, and what knowing it gives, through the describers', () => {
+  it('says what it opens, and what knowing it gives, in the star chart’s short lines', () => {
     for (const tech of CHARTER_TECH_IDS) {
       const entry = entryOf(compendiumId('tech', tech));
       const texts = entry.clauses.map((clause) => clause.text);
@@ -149,18 +150,20 @@ describe('a charter technology’s page', () => {
         if (gift.kind === 'techEffect') continue;
         expect(texts.some((text) => text.includes(gift.name)), `${tech} → ${gift.name}`).toBe(true);
       }
-      // Every clause the describer gives the technology, word for word: its
-      // own rules and its line traits.
-      const said = describeCard(tech).map((clause) => clause.text);
+      // Every rule line the star chart prints for the technology, word for
+      // word, and never as a named rule (batch TT3).
+      const said = techRuleFullClauses(tech);
       for (const text of said) expect(texts, tech).toContain(text);
-      // Every charter technology gives something: a row it opens, or a rule.
+      // Every charter technology gives something: a row it opens, a rule or a
+      // trait.
       const opens = techGifts(tech).filter((gift) => gift.kind !== 'techEffect');
-      expect(opens.length + said.length, tech).toBeGreaterThan(0);
-      for (const trait of techDef(tech).traits ?? []) {
-        expect(
-          texts.some((text) => text.includes(`gains the ${trait.name} trait`)),
-          `${tech} → ${trait.name}`,
-        ).toBe(true);
+      const traits = techDef(tech).traits ?? [];
+      expect(opens.length + said.length + traits.length, tech).toBeGreaterThan(0);
+      // Each trait's lines, with the trait's name in front.
+      for (const trait of traits) {
+        for (const line of describeTraitLines(trait)) {
+          expect(texts, `${tech} → ${trait.name}`).toContain(`${trait.name}: ${line.text}`);
+        }
       }
       // In full: never a named rule, which would point at a page the Rules
       // shelf does not have for a charter technology.

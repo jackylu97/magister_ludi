@@ -55,6 +55,7 @@ import {
   isTechId,
   liveUnlocks,
   techDef,
+  techRuleEffects,
 } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
 
@@ -158,7 +159,11 @@ export type TechGift =
       kind: 'techEffect';
       /** The node's own id — the card these effects belong to. */
       id: TechId;
-      /** The clauses, in row order. Worded by `describeCard`'s vocabulary. */
+      /**
+       * The node's rules in row order (`techRuleEffects`), without the effects
+       * that open a building or a unit. Printed as short lines by
+       * `describeTechRules`.
+       */
       effects: readonly CardEffect[];
     })
   | (TechGiftBase & {
@@ -220,9 +225,11 @@ export function techGifts(id: TechId): TechGift[] {
   // The rules the node hands over, after the renewals: they arrive without the
   // player doing anything else, exactly as a renewal does, and they are the one
   // gift with no row of its own anywhere. One entry for the whole node rather
-  // than one per clause, because a card is read as a card.
-  const effects = techDef(id).effects;
-  if (effects !== undefined && effects.length > 0) {
+  // than one per clause, because a card is read as a card. An effect that opens
+  // a building or a unit is not here: `liveUnlocks` lists what it opens, below,
+  // as an ordinary unlock (batch TT3, Surveying's Aqueduct).
+  const effects = techRuleEffects(id);
+  if (effects.length > 0) {
     gifts.push({
       kind: 'techEffect',
       id,
