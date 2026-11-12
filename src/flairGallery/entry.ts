@@ -4,7 +4,12 @@ import './style.css';
 import { element, section } from './sheet';
 
 const review = new URLSearchParams(location.search).get('review');
-if (review === 'banners') {
+if (review === 'scene') {
+  // The visual test scene (batch V1): full-window, one fixed world, every
+  // control in the URL. See `testScene.ts`.
+  document.getElementById('index')!.hidden = true;
+  void import('./testScene').then(module => module.drawTestScene(document.getElementById('sheet')!));
+} else if (review === 'banners') {
   document.body.classList.add('focused-works-review', 'focused-banners-review');
   const nav = document.getElementById('index')!;
   nav.append(element('h1', undefined, 'Leader banners'));

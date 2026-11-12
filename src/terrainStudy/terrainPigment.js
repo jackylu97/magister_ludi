@@ -1,9 +1,29 @@
+import {VIEW3D} from '../render3d/lookData';
 import {Color,Float32BufferAttribute} from 'three';
 import {centre,isWater,neighbour,baseSurfaceHeight,terrainMapWraps} from './surface.js';
 
-export const terrainColors={oasis:'#789747',floodplain:'#94a856',grassland:'#799741',plains:'#ac9b59',desert:'#d8bc86',tundra:'#929b86',snow:'#dce0db',mountain:'#969bb0',ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
-const dryColors={grassland:'#8f9f49',plains:'#bca663',desert:'#e7c385',tundra:'#a4a78b',snow:'#e8e4d7',mountain:'#aba99e',oasis:'#92a35b',floodplain:'#aab360'};
-const richColors={grassland:'#69883e',plains:'#979552',desert:'#c8ad79',tundra:'#82937f',snow:'#c6d1d7',mountain:'#859894',oasis:'#688f49',floodplain:'#83a050'};
+// Two palettes for the land. `study` is the approved study's. `soft` is the
+// visual test's (2026-11-12): lighter, dustier and closer together, toward the
+// north star (Islanders and Dorfromantik, docs/art-pass.md). The tunable
+// `visualTest.northStar` in data/view3d.json picks one when the module loads;
+// `false` gives the study's land back exactly. The water kinds are the same.
+const NORTH_STAR=VIEW3D.visualTest.northStar;
+const LAND={
+ study:{
+  base:{oasis:'#789747',floodplain:'#94a856',grassland:'#799741',plains:'#ac9b59',desert:'#d8bc86',tundra:'#929b86',snow:'#dce0db',mountain:'#969bb0'},
+  dry:{grassland:'#8f9f49',plains:'#bca663',desert:'#e7c385',tundra:'#a4a78b',snow:'#e8e4d7',mountain:'#aba99e',oasis:'#92a35b',floodplain:'#aab360'},
+  rich:{grassland:'#69883e',plains:'#979552',desert:'#c8ad79',tundra:'#82937f',snow:'#c6d1d7',mountain:'#859894',oasis:'#688f49',floodplain:'#83a050'},
+ },
+ soft:{
+  base:{oasis:'#8fae68',floodplain:'#a9bd76',grassland:'#98b26f',plains:'#cdbf84',desert:'#e6d3a4',tundra:'#a3ab98',snow:'#eaeeee',mountain:'#969bb0'},
+  dry:{grassland:'#a9b877',plains:'#d8c98f',desert:'#eedcae',tundra:'#b1b4a0',snow:'#f0efe9',mountain:'#aba99e',oasis:'#a1b676',floodplain:'#b6c383'},
+  rich:{grassland:'#86a364',plains:'#bcb277',desert:'#dcc898',tundra:'#939f93',snow:'#dfe6ea',mountain:'#859894',oasis:'#7fa462',floodplain:'#98b06c'},
+ },
+}[NORTH_STAR?'soft':'study'];
+export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
+const dryColors=LAND.dry;
+const richColors=LAND.rich;
+const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
 }]));
@@ -103,7 +123,8 @@ export function createTerrainPainter(map,mountainRanges){
   if(owner&&!isWater(owner)){
    const p=pigments[terrainKind(owner)],turn=.35+.42*Math.sin(x*.20+z*.13)+(h-.5)*.55;
    const tangent=[Math.cos(turn),Math.sin(turn)],normal=[-tangent[1],tangent[0]];
-   const add=(u,v,rx,rz,color,seed,twist=0)=>patches.push(patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color));
+   const ownerKind=terrainKind(owner);
+   const add=(u,v,rx,rz,color,seed,twist=0)=>{const one=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color);one.kind=ownerKind;patches.push(one)};
    // One broad area, a medium flank and a few small angular breaks. The
    // darker pieces touch or sit just outside the main shape's edge, so they
    // read as one irregular contour rather than uniformly scattered confetti.
@@ -129,7 +150,7 @@ export function createTerrainPainter(map,mountainRanges){
  }
  function regions(tile){
   if(cache.has(tile))return cache.get(tile);
-  const c=centre(tile),p=pigments[terrainKind(tile)],patches=[];
+  const c=centre(tile),ownKind=terrainKind(tile),p=pigments[ownKind],patches=[];
   const row=Math.floor(c.z/spacingZ);
   // Painting belongs to the landscape, not the hex. Neighbours clip the same
   // large/small shapes, in the same order, so colour continues across joins.
@@ -139,6 +160,10 @@ export function createTerrainPainter(map,mountainRanges){
    const region=translated(source,offset);
    const [left,right,top,bottom]=region.bounds;
    if(right<c.x-1||left>c.x+1||bottom<c.z-1||top>c.z+1)continue;
+   // Clean tiles (the visual test, 2026-11-12): a hex takes only strokes of
+   // its own terrain, so two terrains meet on the hex line and each hex reads
+   // as one tile, as in the north-star games.
+   if(CLEAN_TILES&&region.kind&&region.kind!==ownKind)continue;
    patches.push(region);
    }
   }

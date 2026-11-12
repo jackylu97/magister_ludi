@@ -9,11 +9,13 @@ import { sculptedTurf } from '../terrainStudy/turf.js';
 import { openLandTree, stoneCluster } from '../terrainStudy/groundDressing.js';
 import { createMountainRanges } from '../terrainStudy/mountainRanges.js';
 import { indexGeometry } from '../terrainStudy/indexGeometry.js';
-import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap } from '../terrainStudy/surface.js';
+import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap, riverStyle } from '../terrainStudy/surface.js';
 import { createPaintedFog, paintedFogMaterial, paintedFogDepth, paintedChartMaterial } from './paintedFog.js';
 import { PAINTED_CHART, paintedChartGeometry } from './paintedFogLook';
 import { PaintedRelief } from './paintedRelief';
 import { VIEW3D } from './lookData';
+import { createSeaField, RIVER } from './seaField';
+import { createOrganicRivers } from './organicRivers';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
@@ -39,7 +41,9 @@ function hash(a, b, n = 0) {
  * prop batches are left alone, since their vertex attributes are the shared
  * asset sculpt's. Exported so the register test can name the list.
  */
-export const RELEASED_AFTER_UPLOAD = ['color', 'turfWeight'];
+// The visual test version (batch V1) adds the one attribute its sea shader
+// reads and nothing else does: the sea's three numbers.
+export const RELEASED_AFTER_UPLOAD = ['color', 'turfWeight', 'paintedWater'];
 function releaseArray() { this.array = null; }
 function releaseAfterUpload(geometry) {
   for (const name of RELEASED_AFTER_UPLOAD) geometry.getAttribute(name)?.onUpload(releaseArray);
@@ -62,7 +66,19 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const sources = new Map(), instanceBases = new WeakMap();
   const chunks = new Map(), mapProps = new Map(), mapSurfaces = new Map();
   const ranges = prepared ? null : createMountainRanges(renderMap);
-  const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null : createWaterPainter(renderMap);
+  // The thinner rivers of the visual test version paint a pale line on each
+  // bank (`setRiverStyle` in `surface.js`; the worker is told the style).
+  const thinRivers = riverStyle(), riverKnobs = VIEW3D.visualTest.rivers;
+  const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null
+    : createWaterPainter(renderMap, {bank: thinRivers && !thinRivers.organic ? {color: riverKnobs.bank, inner: riverKnobs.bankInner, outer: riverKnobs.bankOuter} : null,
+      brush: VIEW3D.visualTest.sea.brushed ? {spacingX: VIEW3D.visualTest.sea.brushSpacingX, spacingZ: VIEW3D.visualTest.sea.brushSpacingZ} : null});
+  // The sea's three numbers a water vertex (switch 1 of the visual test
+  // version). Always baked, so the switch is a uniform and never a rebuild.
+  const seaKnobs = VIEW3D.visualTest.sea;
+  const seaField = prepared ? null : createSeaField(renderMap, {shoreReach: seaKnobs.shoreReach, edgeReach: seaKnobs.edgeReach, wraps: true});
+  // The organic rivers of switch 4: one painted ribbon a run, clipped onto
+  // each bank hex's ground and pushed with the water, so no draw call is added.
+  const organicRivers = !prepared && thinRivers?.organic ? createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers) : null;
   const ground = materials.ground, water = materials.water, features = materials.features;
   const terrainMaterials = new Set([...Object.values(ground), water.river]);
   const waterMaterials = new Set([ground.ocean, ground.coast, ground.lake, water.river]);
@@ -126,7 +142,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
    * bump path is re-pointed at the position below, but the stock `vUv` line is
    * still compiled in and would otherwise read a value nobody set.
    */
-  const SURFACE_DEFAULTS = {paintedReservationDistance: [0], uv: [0, 0]};
+  // `paintedWater` belongs to the visual test version (batch V1): a water
+  // vertex without it keeps its old paint.
+  const SURFACE_DEFAULTS = {paintedReservationDistance: [0], uv: [0, 0], paintedWater: [RIVER, 0, 0]};
   /**
    * The merged land's pigment `uv`, computed instead of stored (#10).
    *
@@ -310,10 +328,11 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         if (bucket === surfaces && terrainMaterials.has(source) && !waterMaterials.has(source))
           push(source, farGeometry || geometry.clone(), undefined, grade, farSurfaces);
         if (!geometry.getAttribute('position').count) { geometry.dispose(); return; }
-        if (waterMaterials.has(source)) waterPainter.paint(geometry);
+        if (waterMaterials.has(source) && !geometry.userData.pigmentBaked) waterPainter.paint(geometry, activeTile);
         const turf = source === ground.grassland ? 1 : [ground.plains, ground.oasis, ground.floodplain].includes(source) ? .65 : source === ground.tundra ? .3 : 0;
         const merge = terrainMaterials.has(source) || detailMaterials.has(source);
         geometry = normalize(geometry, cell, grade, turf, merge ? source : null);
+        if (waterMaterials.has(source)) seaField.attribute(geometry, activeTile);
         if (source === water.river && activeTile.riverEdges) {
           // The flat underlay consists of six triangular edge sectors. Keep
           // each river sector while either bank is charted, without granting
@@ -353,12 +372,16 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       }
       for (const t of tiles) {
         cell = t.row * map.width + t.col; activeTile = t;
-        const [top, skirt] = terrainMesh(t); painter.paint(top, t);
+        const [top, skirt] = terrainMesh(t);
+        // Clipped onto the hex's own ground before the painter cuts it up.
+        const riverRibbon = organicRivers?.pieces(t, top) ?? null;
+        painter.paint(top, t);
         let farTop;
         if (!isWater(t)) { const far = terrainMesh(t, { distant: true }); farTop = far[0]; far[1].dispose(); painter.paint(farTop, t); }
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
         waterDetails(t, renderMap, push, water);
+        if (riverRibbon) push(water.river, riverRibbon);
         featureDetails(t, (m, g) => push(m, g, undefined, m === features.shrub ? DECOR : [features.stone, features.reeds].includes(m) ? CLUTTER : NEVER), features, hash);
         sculptedTurf(t, (m, g) => push(m, g, undefined, CLUTTER), ground[t.terrain], hash);
         const c = centre(t);
@@ -367,10 +390,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           prop(piece.asset === 'shoulder' ? rock.shoulderGeometry : rock.geometry, assets.rangeMaterial,
             piece.x, piece.y, piece.z, piece.sx, piece.sy, piece.sz, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
         }
-        for (const r of stoneCluster(t, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
+        const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
+        for (const r of stoneCluster(t, hash, dense)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
         for (const r of shoreStones(t, renderMap, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y, c.z + r.z, r.s, r.s * .70, r.s * .85, r.angle, new T.Color('#dbe0cf'));
-        const sapling = openLandTree(t, hash);
-        if (sapling) {
+        for (let slot = 0; slot < (dense ? dense.slots : 1); slot++) {
+          const sapling = openLandTree(t, hash, slot, dense);
+          if (!sapling) continue;
           const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2;
           const tree = sapling.cypress ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = sapling.scale;
           prop(tree.geometry, tree.material, c.x + sapling.x, sapling.y - .008, c.z + sapling.z, s * (sapling.cypress ? 1.15 : 1), s * .92, s * (sapling.cypress ? 1.15 : 1), sapling.angle, new T.Color('#d7e5c5'), DECOR);

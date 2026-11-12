@@ -79,6 +79,12 @@ export class PaintedUnitKit {
       if (!geometry) throw new Error(`Could not merge painted unit ${key}`);
       geometry.name = `Painted unit ${key}`;
       geometry.userData.paintedUnitAsset = key;
+      // A hull rides a slow swell when the visual test version's idle motion
+      // is on (switch 8, `installBob` in `visualTestLook.ts`). The mark is on
+      // the geometry, so the outline shell and the ghost that borrow it move too.
+      if (embarked || navalVariants.includes(unit.type)) {
+        geometry.setAttribute('paintedBob', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count).fill(1), 1));
+      }
       geometry.computeBoundingBox();
       geometry.computeBoundingSphere();
       const model: PaintedUnitModel = {

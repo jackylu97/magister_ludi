@@ -7,6 +7,28 @@ export const RIVER_HALF_WIDTH = .075;
 const APOTHEM = Math.sqrt(3) / 2;
 const normals = Array.from({length:6}, (_,i) => [Math.cos(i*Math.PI/3), Math.sin(i*Math.PI/3)]);
 const shapes = new Map();
+
+// The river cut, as three numbers: how far the crest of each bank stands back
+// from the hex edge, how far its toe does, and the chamfer at a wet corner.
+// The approved study's values are the default. The visual test version
+// (batch V1, `src/render3d/visualTest.ts`) can ask for thinner rivers, or for
+// `organic` rivers: no cut at all, the ground joined across the river edge,
+// and the river painted on it as one smooth ribbon (`organicRivers.js`). A
+// change clears the shape cache and moves `riverStyleKey`, which the terrain
+// mesh's own cache reads, and the board must then be built again.
+const STUDY_RIVER = {crest:.125, toe:RIVER_HALF_WIDTH, corner:.065, organic:false, clearance:0};
+let river = STUDY_RIVER, riverKey = 0;
+export function setRiverStyle(style = null) {
+ const next = style ? {crest:style.crest, toe:style.toe, corner:style.corner, organic:!!style.organic, clearance:style.clearance||0} : STUDY_RIVER;
+ if (next.crest === river.crest && next.toe === river.toe && next.corner === river.corner
+  && next.organic === river.organic && next.clearance === river.clearance) return false;
+ river = next; riverKey++; shapes.clear();
+ return true;
+}
+/** The river edges the ground is cut along: none for an organic river, which is painted. */
+export function cutRiverEdges(tile) { return river.organic ? 0 : tile.riverEdges||0; }
+export function riverStyleKey() { return riverKey; }
+export function riverStyle() { return river === STUDY_RIVER ? null : {...river}; }
 // Wrapping belongs to a prepared render map, never to simulation tiles or the
 // standalone study's global state.
 const wrappingMaps = new WeakSet();
@@ -31,8 +53,8 @@ export function prepareTerrainMap(map,{wrap=false}={}) {
   for(let d=0;d<6;d++){
    const other=neighbour(tile,result,d);
    if(other&&isWater(other))shoreEdges|=1<<d;
-   if(other&&!isWater(tile)&&!isWater(other)&&!((tile.riverEdges||0)&(1<<d))
-     &&!((other.riverEdges||0)&(1<<((d+3)%6))))joinedEdges|=1<<d;
+   if(other&&!isWater(tile)&&!isWater(other)&&!(cutRiverEdges(tile)&(1<<d))
+     &&!(cutRiverEdges(other)&(1<<((d+3)%6))))joinedEdges|=1<<d;
   }
   Object.assign(tile,{shoreEdges,joinedEdges});
  }
@@ -43,8 +65,8 @@ export function prepareTerrainMap(map,{wrap=false}={}) {
   for(let d=0;d<6;d++)if(tile.joinedEdges&(1<<d)){
    const other=neighbour(tile,result,d),opposite=(d+3)%6;
    const adjacent=k=>(1<<((k+1)%6))|(1<<((k+5)%6));
-   if(((tile.riverEdges|tile.shoreEdges)&adjacent(d))
-    ||((other.riverEdges|other.shoreEdges)&adjacent(opposite)))tile.bankJoinEdges|=1<<d;
+   if(((cutRiverEdges(tile)|tile.shoreEdges)&adjacent(d))
+    ||((cutRiverEdges(other)|other.shoreEdges)&adjacent(opposite)))tile.bankJoinEdges|=1<<d;
   }
  }
  const mounds=createMapHillMounds(result,{centre,neighbour,tileShape,baseHeight:baseSurfaceHeight,wrap});
@@ -65,10 +87,10 @@ export function restoreTerrainMap({map,wrap,mounds}) {
 }
 
 export function tileShape(tile) {
- const river=tile.riverEdges||0,shore=tile.shoreEdges||0,joined=tile.joinedEdges||0,key=river|(shore<<6)|(joined<<12);
+ const riverBits=cutRiverEdges(tile),shore=tile.shoreEdges||0,joined=tile.joinedEdges||0,key=riverBits|(shore<<6)|(joined<<12);
  if(shapes.has(key))return shapes.get(key);
- const upper=normals.map((_,d)=>APOTHEM-((river&(1<<d))? .125:(shore&(1<<d))? .055:(joined&(1<<d))?0:.005));
- const lower=normals.map((_,d)=>APOTHEM-((river&(1<<d))? RIVER_HALF_WIDTH:0));
+ const upper=normals.map((_,d)=>APOTHEM-((riverBits&(1<<d))? river.crest:(shore&(1<<d))? .055:(joined&(1<<d))?0:.005));
+ const lower=normals.map((_,d)=>APOTHEM-((riverBits&(1<<d))? river.toe:0));
  const intersect=([ax,az],al,[bx,bz],bl)=>{
   const det=ax*bz-az*bx;
   return [(al*bz-az*bl)/det,(ax*bl-al*bx)/det];
@@ -78,10 +100,11 @@ export function tileShape(tile) {
   const j=(i+1)%6,angle=(i+.5)*Math.PI/3,n=[Math.cos(angle),Math.sin(angle)];
   const top=intersect(normals[i],upper[i],normals[j],upper[j]);
   const toe=intersect(normals[i],lower[i],normals[j],lower[j]);
-  const wet=((river|shore)&((1<<i)|(1<<j)))!==0;
+  const wet=((riverBits|shore)&((1<<i)|(1<<j)))!==0;
   // One large cut at a wet corner. No noise along the bank, and no rounded
   // end caps: the outline consists of deliberate, broad planar faces.
-  const cut=wet?.065:.0008;
+  const riverCorner=(riverBits&((1<<i)|(1<<j)))!==0;
+  const cut=riverCorner?river.corner:wet?.065:.0008;
   cutNormals.push(normals[i],n);
   cutUpper.push(upper[i],top[0]*n[0]+top[1]*n[1]-cut);
   cutLower.push(lower[i],toe[0]*n[0]+toe[1]*n[1]-cut*.42);
@@ -104,6 +127,10 @@ export function bankWeight(tile,x,z) {
 export function onTileTop(tile,x,z,margin=0) {
  if(isWater(tile))return false;
  const {upper,normals:planes}=tileShape(tile);
+ // An organic river is painted on joined ground, so nothing else keeps a tree
+ // or a stone off it: props stand back `clearance` from each river edge.
+ if(river.organic&&tile.riverEdges)for(let d=0;d<6;d++)
+  if((tile.riverEdges&(1<<d))&&x*normals[d][0]+z*normals[d][1]>APOTHEM-river.clearance-margin)return false;
  return planes.every(([nx,nz],i)=>x*nx+z*nz<=upper[i]-margin)
   && surfaceHeight(tile,x,z)>WATER_LEVEL+.035;
 }

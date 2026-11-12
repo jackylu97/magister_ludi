@@ -1131,10 +1131,16 @@
     }
   },
   "painted": {
-    "canvas": { "maxPixelRatio": 1.5, "pixelBudget": 4500000 },
+    "canvas": {
+      "maxPixelRatio": 1.5,
+      "pixelBudget": 4500000
+    },
     "shadows": {
       "staticMapSize": 4096,
-      "staticMapTiers": { "low": 2048, "high": 8192 },
+      "staticMapTiers": {
+        "low": 2048,
+        "high": 8192
+      },
       "lowMemoryGiB": 4,
       "counterMapSize": 2048,
       "counterCoverage": 0.1,
@@ -1145,7 +1151,11 @@
       "nearPixels": 25,
       "farPixels": 29,
       "distantCells": {
-        "groves": { "x": 2, "y": 3, "z": 2 }
+        "groves": {
+          "x": 2,
+          "y": 3,
+          "z": 2
+        }
       }
     },
     "contact": {
@@ -1179,6 +1189,188 @@
       "chartSeaMix": 0.35,
       "chartSeaRegion": 2,
       "chartSoak": 7
+    }
+  },
+  "visualTest": {
+    "northStar": true,
+    "motionFps": 24,
+    "sea": {
+      "shallow": "#a9d8d0",
+      "coast": "#73bcc0",
+      "ocean": "#4f97ad",
+      "deep": "#4f97ad",
+      "lake": "#73bcc0",
+      "shoreReach": 1.2,
+      "edgeReach": 1.5,
+      "coastRange": 0.75,
+      "deepRange": 2.6,
+      "edgeSoftness": 0.05,
+      "shelfLine": "#b7d3d6",
+      "shelfLineInset": 0.06,
+      "shelfLineWidth": 0.022,
+      "shelfLineStrength": 0,
+      "foam": "#f5f2e3",
+      "foamOffset": 3.2,
+      "foamWidth": 20,
+      "foamStrength": 0.9,
+      "foamBreak": 0.45,
+      "patch": 0.03,
+      "glint": "#dff0ec",
+      "glintStrength": 0.55,
+      "glintSpeed": 0.05,
+      "brushed": false,
+      "brushSpacingX": 2.55,
+      "brushSpacingZ": 2.15,
+      "edgeWobble": 0.62,
+      "edgeWobbleScale": 0.55,
+      "edgeFine": 0.2,
+      "edgeBand": 0.34,
+      "edgeBandTone": 0.42,
+      "sand": "#d9c9a0",
+      "waveSlope": 0.5,
+      "waveScale": 2.4,
+      "waveSpeed": 0.22,
+      "glintPower": 520,
+      "glintTilt": 0.28,
+      "sheen": 0.35
+    },
+    "rivers": {
+      "crestCut": 0.068,
+      "toeHalfWidth": 0.034,
+      "cornerCut": 0.075,
+      "bank": "#b9cdc6",
+      "bankInner": 0.027,
+      "bankOuter": 0.05
+    },
+    "borders": {
+      "holeMax": 8,
+      "fillNeighbours": 4,
+      "fillPasses": 2,
+      "tintWidth": 0.3,
+      "tintAlpha": 0.3,
+      "tintLift": 0.012,
+      "gapWidth": 0.025,
+      "gapAlpha": 0.45,
+      "ruledLift": 0.02,
+      "washWidth": 0.34,
+      "washAlpha": 0.55,
+      "inkWidth": 0.05
+    },
+    "pins": {
+      "nearPixels": 110,
+      "farPixels": 40,
+      "farScale": 0.55,
+      "improvedScale": 0.72,
+      "improvedFade": 0.55,
+      "fadeTo": "#b9b2a0"
+    },
+    "clouds": {
+      "scale": 0.085,
+      "speed": 0.012,
+      "cover": 0.62,
+      "softness": 0.13,
+      "strength": 0.45
+    },
+    "idle": {
+      "bobHeight": 0.03,
+      "bobSpeed": 1.3,
+      "bobRoll": 0.06,
+      "smokePuffs": 4,
+      "smokeAt": [
+        -0.34,
+        0.18,
+        0.35
+      ],
+      "smokeRise": 0.4,
+      "smokeSize": 0.08,
+      "smokeSpeed": 0.25,
+      "smokeDrift": 0.12,
+      "smokeColor": "#e8e4dc",
+      "flagWave": 0.035,
+      "flagSpeed": 2.2
+    },
+    "organicRivers": {
+      "smoothing": 3,
+      "step": 0.07,
+      "wander": 0.035,
+      "wanderWave": 1.6,
+      "wanderFade": 0.45,
+      "width": 0.085,
+      "widthGrow": 0.09,
+      "growLength": 10,
+      "sourceWidth": 0.3,
+      "sourceTaper": 0.6,
+      "mouthFlare": 0.9,
+      "mouthLength": 0.5,
+      "bank": "#b9ad82",
+      "bankWidth": 0.022,
+      "water": "#73bcc0",
+      "shine": "#a9d8d0",
+      "shineFrom": 0.1,
+      "shineTo": 0.42,
+      "lift": 0.006,
+      "propClearance": 0.2
+    },
+    "organicRoads": {
+      "step": 0.035,
+      "pull": 0.42,
+      "wander": 0.07,
+      "edgeShift": 0.07,
+      "forkAt": 0.45,
+      "forkPull": 0.3,
+      "bedWidth": 0.15,
+      "coreWidth": 0.112,
+      "bed": "#b3a37a",
+      "core": "#e6dab4",
+      "capSides": 14,
+      "bridgeLength": 0.34,
+      "bridgeWidth": 0.19,
+      "bridge": "#9c8462",
+      "rail": "#6f5a40",
+      "railWidth": 0.022,
+      "shoulderWidth": 0,
+      "shoulder": "#9c9566",
+      "rutOffset": 0.031,
+      "rutWidth": 0,
+      "rut": "#a08b63",
+      "crownWidth": 0,
+      "crown": "#cfbc93",
+      "edgeWander": 0.05
+    },
+    "grounding": {
+      "intensity": 0.5,
+      "radius": 0.32,
+      "tint": "#3f4f86"
+    },
+    "light": {
+      "rim": "#fff3d6",
+      "rimStrength": 0.2,
+      "rimPower": 3.2,
+      "rimInShade": 0.25,
+      "shadeDeepen": 0.9,
+      "shadeTint": [
+        0.94,
+        0.97,
+        1.08
+      ]
+    },
+    "tiles": {
+      "clean": true,
+      "width": 0.016,
+      "soft": 0.008,
+      "dark": 0.2,
+      "lipWidth": 0.05,
+      "light": 0.07
+    },
+    "props": {
+      "dense": true,
+      "slots": 2,
+      "grassChance": 0.42,
+      "plainsChance": 0.25,
+      "scaleMin": 0.25,
+      "scaleSpan": 0.13,
+      "stoneChance": 0.5,
+      "stoneScale": 1.35
     }
   }
 }

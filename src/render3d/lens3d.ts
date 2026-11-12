@@ -112,7 +112,7 @@
  * both — so it stays four buckets however large the map is.
  */
 
-import { Group, Matrix4, Quaternion, Vector3 } from 'three';
+import { Color, Group, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 
 import {
   cityAt,
@@ -142,9 +142,45 @@ import { seatSeesKind } from './sites3d';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
 import type { MaterialLibrary } from './toon';
+import { visualOn } from './visualTest';
+import { shareUniforms } from './visualTestLook';
 
 const LENS = VIEW3D.lens;
 const OVERLAY = VIEW3D.overlay;
+const PINS = VIEW3D.visualTest.pins;
+
+/**
+ * The quieter pins of the visual test version (switch 6, batch V1): the
+ * roundel's own material again, made smaller as the board zooms out by one
+ * shared uniform (`vtestPinScale`, written by the renderer from the zoom), and
+ * a second copy that mixes the print toward a faint paper colour for a pin on
+ * a hex its viewer has already improved. Faint is a colour here, never an
+ * opacity, as everywhere else in the alpha-tested atlas. Two materials for the
+ * whole board, so the switch costs at most two buckets of draws.
+ */
+const pinMaterials = new WeakMap<TileIcons, { normal: MeshBasicMaterial; faded: MeshBasicMaterial }>();
+function quietPins(icons: TileIcons): { normal: MeshBasicMaterial; faded: MeshBasicMaterial } {
+  const known = pinMaterials.get(icons);
+  if (known) return known;
+  const make = (fade: number): MeshBasicMaterial => {
+    const material = icons.standingMaterial.clone();
+    const fadeTo = new Color(PINS.fadeTo);
+    material.onBeforeCompile = shader => {
+      shareUniforms(shader, ['vtestPinScale']);
+      shader.uniforms.vtestPinFade = { value: fade };
+      shader.uniforms.vtestPinFadeTo = { value: fadeTo };
+      shader.vertexShader = `uniform float vtestPinScale;\n${shader.vertexShader}`
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed *= vtestPinScale;');
+      shader.fragmentShader = `uniform float vtestPinFade;\nuniform vec3 vtestPinFadeTo;\n${shader.fragmentShader}`
+        .replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vtestPinFadeTo, vtestPinFade);');
+    };
+    material.customProgramCacheKey = () => `vtest-pin:${fade}`;
+    return material;
+  };
+  const made = { normal: make(0), faded: make(PINS.improvedFade) };
+  pinMaterials.set(icons, made);
+  return made;
+}
 
 /** The plain board: what the renderer starts with and falls back to. */
 export const NO_LENS: LensView = {
@@ -450,7 +486,9 @@ export class LensLayer {
   ): void {
     const upright = new Quaternion();
     const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
+    const fadedDisc = disc.clone().multiplyScalar(PINS.improvedScale);
     const lift = LENS.resourceMarkerLift;
+    const quiet = visualOn('pins') ? quietPins(icons) : null;
 
     for (const tile of tiles) {
       // `reveal` does not answer the question differently — it declines to ask
@@ -463,6 +501,10 @@ export class LensLayer {
       // this layer.
       if (cityAt(state, tile.col, tile.row)) continue;
       const centre = cellCenter(tile.col, tile.row);
+      // The quieter pins (switch 6): smaller and faint on a hex this viewer has
+      // already improved, since the work standing there already says it.
+      const improved = quiet !== null && tile.improvement !== undefined
+        && state.cities.find(city => city.id === tileOwnerCityId(state, tile.col, tile.row))?.ownerId === playerId;
       // −z is up-screen and −x is left under this camera (see `atlasDecal`), so
       // subtracting both is "toward the tile's upper-left corner".
       const x = centre.x - LENS.resourceMarkerOffsetX;
@@ -486,8 +528,8 @@ export class LensLayer {
         // No ink of its own: the disc *is* the texture. The colour list still has
         // to be something — see the same note on the unit badges.
         [],
-        new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, disc),
-        { material: icons.standingMaterial },
+        new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, improved ? fadedDisc : disc),
+        { material: quiet ? (improved ? quiet.faded : quiet.normal) : icons.standingMaterial },
       );
     }
   }

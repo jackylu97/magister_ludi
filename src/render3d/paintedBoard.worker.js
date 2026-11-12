@@ -1,10 +1,13 @@
 import {buildPaintedBoard} from './paintedBoard.js';
-import {packTerrainMap} from '../terrainStudy/surface.js';
+import {packTerrainMap, setRiverStyle} from '../terrainStudy/surface.js';
 import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './paintedBoardTransfer.js';
 
-self.onmessage = ({data: {map, kit, shadows}}) => {
+self.onmessage = ({data: {map, kit, shadows, riverStyle}}) => {
   let board, resources;
   try {
+    // The worker has its own copy of the terrain modules, so the river cut the
+    // page chose (the visual test version's thinner rivers) is set here too.
+    setRiverStyle(riverStyle || null);
     const started = performance.now();
     resources = unpackPaintedKit(kit);
     let last = -1;

@@ -138,7 +138,12 @@ import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type Pa
 import type { ImprovementId } from '../sim/improvementData';
 import { PaintedCityLayer } from './paintedCities';
 import { PaintedSiteLayer } from './paintedSites';
-import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory } from './paintedGround';
+import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory, planPaintedTerritoryTint } from './paintedGround';
+import { type VisualTestState, changedSwitches, onVisualTestChange, visualBorder, visualOn } from './visualTest';
+import { VTEST_UNIFORMS, installBob, pinScaleFor, syncVisualUniforms } from './visualTestLook';
+import { PaintedSmokeLayer } from './paintedSmoke';
+// @ts-expect-error Approved terrain modules remain JavaScript.
+import { setRiverStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
 import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
@@ -242,6 +247,19 @@ export const SCENE_LAYER_NAMES = [
   'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
 ] as const;
 
+/**
+ * The river the switches ask for (`setRiverStyle` in `surface.js`): the study's
+ * cut when both river switches are off; the thinner cut of switch 2; or, with
+ * switch 4, no cut at all, because the organic river is a ribbon painted on
+ * joined ground (`organicRivers.js`). Switch 4 wins when both are on.
+ */
+function riverStyleOf(): { crest: number; toe: number; corner: number; organic: boolean; clearance?: number } | null {
+  if (visualOn('organicRivers')) return { crest: 0, toe: 0, corner: .0008, organic: true, clearance: VIEW3D.visualTest.organicRivers.propClearance };
+  if (!visualOn('rivers')) return null;
+  const rivers = VIEW3D.visualTest.rivers;
+  return { crest: rivers.crestCut, toe: rivers.toeHalfWidth, corner: rivers.cornerCut, organic: false };
+}
+
 /** GPU bytes a light's shadow target takes, from its real formats. See `paintedShadows.js`. */
 const shadowTargetBytes: (light: DirectionalLight) => number = untypedShadowTargetBytes;
 
@@ -341,6 +359,17 @@ export class Renderer3D implements MapView {
   private paintedSites: PaintedSiteLayer | null = null;
   private paintedRoads: PaintedGroundLayer | null = null;
   private paintedTerritory: PaintedGroundLayer | null = null;
+  /**
+   * The visual test version (batch V1, `visualTest.ts`): the faint band inside
+   * an empire's border (switch 3) and the smoke over its towns (switch 8).
+   * Both are empty while their switch is off.
+   */
+  private paintedTerritoryTint: PaintedGroundLayer | null = null;
+  private paintedSmoke: PaintedSmokeLayer | null = null;
+  /** Stops listening to the visual test switches. */
+  private unwatchVisualTest: () => void = () => undefined;
+  /** When the last frame drawn for motion alone was drawn. See `loop`. */
+  private lastMotionFrame = 0;
   private paintedUnits: PaintedUnitKit | null = null;
   private readonly walkerModels = new Map<number, PaintedUnitModel>();
   private readonly unitOutlines = new Map<number, MeshBasicMaterial>();
@@ -613,6 +642,12 @@ export class Renderer3D implements MapView {
 
     this.resize();
     this.applyLight();
+    // The visual test version's switches (batch V1). The river cut is in the
+    // board's geometry, so it is set before any board is built; everything
+    // else is a uniform, written now and on every change.
+    setRiverStyle(riverStyleOf());
+    syncVisualUniforms();
+    this.unwatchVisualTest = onVisualTestChange((next, previous) => this.applyVisualTest(next, previous));
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
     this.loadSprites();
@@ -647,8 +682,13 @@ export class Renderer3D implements MapView {
     this.paintedSites = new PaintedSiteLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
     this.paintedRoads = new PaintedGroundLayer('painted-roads', this.paintedLook.registerMaterial);
     this.paintedTerritory = new PaintedGroundLayer('painted-territory', this.paintedLook.registerMaterial);
+    this.paintedTerritoryTint = new PaintedGroundLayer('painted-territory-tint', this.paintedLook.registerMaterial, { tint: true });
+    this.paintedSmoke = new PaintedSmokeLayer(this.paintedLook.registerMaterial);
     this.scene.add(this.paintedSites.group, this.paintedRoads.group, this.paintedTerritory.group);
+    this.scene.add(this.paintedTerritoryTint.group, this.paintedSmoke.group);
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
+    // The pieces' outline shell rides the same swell as a ship's body (switch 8).
+    installBob(this.materials.unitOutline);
     for (const light of oldLights) this.scene.remove(light);
     this.scene.remove(this.key.target);
     this.resize();
@@ -882,6 +922,65 @@ export class Renderer3D implements MapView {
   }
 
   setDaylight(key: string): void { this.daylight = key; this.paintedLook?.setDaylight(key); this.redraw(); }
+
+  // --- the visual test version (batch V1) ------------------------------------
+
+  /**
+   * One or more visual test switches moved (`visualTest.ts`). Most are a
+   * uniform and cost the next frame nothing more. The rest rebuild one thing
+   * each: either river switch rebuilds the board (the river is in the ground's
+   * geometry), the border switch and its style rebuild the border layers, the
+   * road switch rebuilds the roads, the pin switch rebuilds the resource pins,
+   * and the idle switch rebuilds the town smoke.
+   */
+  private applyVisualTest(next: VisualTestState, previous: VisualTestState): void {
+    syncVisualUniforms(next);
+    const changed = changedSwitches(previous, next).map(def => def.key);
+    if (changed.includes('rivers') || changed.includes('organicRivers')) void this.rebuildForRivers();
+    if (changed.includes('borders') || (next.borders && next.border !== previous.border)) this.rebuildTerritory();
+    if (changed.includes('organicRoads')) this.rebuildRoads();
+    if (changed.includes('pins')) this.rebuildLens();
+    if (changed.includes('idle')) this.rebuildSmoke();
+    this.redraw();
+  }
+
+  /**
+   * Rebuilds the board for a new river cut, off the main thread, then hands
+   * every layer the state again (the painted layers keyed their caches on the
+   * old board). The camera and the game stay as they are.
+   */
+  private async rebuildForRivers(): Promise<void> {
+    if (!setRiverStyle(riverStyleOf())) return;
+    if (!this.paintedLook || !this.state) return;
+    const map = this.state.map;
+    // A second flip while this one builds aborts it (`preparePaintedMap`); the
+    // later flip's build is the one that lands.
+    try { await this.preparePaintedMap(map); } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      throw error;
+    }
+    const current = this.state;
+    if (!current || current.map !== map || !this.running) return;
+    this.rebuildBoard(map);
+    this.state = null;
+    this.setGameState(current);
+  }
+
+  /** The smoke over the towns the seat watches now (switch 8). */
+  private rebuildSmoke(): void {
+    this.paintedSmoke?.build(this.state, this.fogLevels(), this.paintedCities?.cityHeights ?? new Map(), visualOn('idle'));
+  }
+
+  /** How long the last frame took to submit, in milliseconds, on the CPU. */
+  get lastFrameMs(): number { return this.lastRenderMs; }
+
+  /**
+   * Holds the clock that moving water, clouds and pieces read at one time, or
+   * lets it run again with `null`. The visual test scene (`flair.html?review=scene`)
+   * holds it, so two screenshots of one view differ only by a switch.
+   */
+  setClock(seconds: number | null): void { this.fixedClock = seconds; this.redraw(); }
+  private fixedClock: number | null = null;
 
   /** Opt-in art review; never adds a building or changes the command log. */
   setCityWallPreview(enabled: boolean): void {
@@ -1804,7 +1903,8 @@ export class Renderer3D implements MapView {
     if (!state) {
       if (this.paintedCities) this.paintedCities.group.visible = false;
       if (this.paintedWorks) this.paintedWorks.group.visible = false;
-      for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory]) if (layer) layer.group.visible = false;
+      for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory, this.paintedTerritoryTint]) if (layer) layer.group.visible = false;
+      this.paintedSmoke?.build(null, null, new Map(), false);
       this.paintedWorksSignature = null;
       this.cityBannerAnchors.clear();
       this.invalidate();
@@ -2115,7 +2215,10 @@ export class Renderer3D implements MapView {
       // The uncharted register, once per board: the paper the diorama is set
       // down on. Registered with the painterly style first, so the page wears
       // the same grain as everything else on the table.
-      board.createChartTable(material => this.paintedLook!.registerMaterial(material));
+      // `chart` keeps the visual test version's cloud shadows off the paper.
+      board.createChartTable(material => this.paintedLook!.registerMaterial(material, { chart: true }));
+      // The cloud pattern repeats once a map width (switch 7).
+      VTEST_UNIFORMS.vtestPeriod.value = board.wrapWidth;
     } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything
@@ -2175,6 +2278,13 @@ export class Renderer3D implements MapView {
     for (const unitId of this.animations.activeUnits()) this.units.hide(unitId);
     this.units.setHoveredUnitId(this.hoveredUnitId ?? null);
     if (this.paintedLook) this.units.group.traverse(object => object.layers.set(2));
+    // A hull rides the swell (switch 8 of the visual test version), and its
+    // outline shell and x-ray ghost must ride it with the body. Each material
+    // drawing a hull learns the swell once; the switch itself is a uniform.
+    this.units.group.traverse(object => {
+      if (!(object instanceof Mesh) || !object.geometry.getAttribute('paintedBob')) return;
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) installBob(material);
+    });
     // The resting pieces are the bulk of layer 2, and this one call is every way
     // their depth map can go stale: a unit placed, taken, moved, killed,
     // embarked, hidden behind the fog or handed to another seat all arrive here.
@@ -2211,14 +2321,22 @@ export class Renderer3D implements MapView {
     const casters = this.paintedCities?.shadowKey ?? null;
     if (shadowChanged || casters !== this.citiesShadowKey) this.paintedLook?.invalidateShadows();
     this.citiesShadowKey = casters;
+    // The towns' smoke follows the towns (switch 8 of the visual test version).
+    this.rebuildSmoke();
   }
 
   private rebuildTerritory(): void {
     if (!this.state) return;
     if (this.paintedTerritory && this.paintedBoard) {
       this.territory.group.visible = false;
+      // The visual test version's border (switch 3): no line round the holes
+      // in an empire's land, and a faint band inside the line. See
+      // `territoryHoles` in `paintedGround.ts` for why the lines were inside.
+      const style = visualOn('borders') ? { ...VIEW3D.visualTest.borders, kind: visualBorder() } : null;
       this.paintedTerritory.build(this.state, this.paintedBoard.renderMap,
-        planPaintedTerritory(this.state, this.paintedBoard.renderMap), this.fogLevels(), this.shadows);
+        planPaintedTerritory(this.state, this.paintedBoard.renderMap, style), this.fogLevels(), this.shadows);
+      this.paintedTerritoryTint?.build(this.state, this.paintedBoard.renderMap,
+        style ? planPaintedTerritoryTint(this.state, this.paintedBoard.renderMap, style) : new Map(), this.fogLevels(), this.shadows);
     } else this.territory.build(this.state, this.geometry, this.materials, this.fogLevels());
     this.territorySignature = signTerritory(this.state);
   }
@@ -2325,7 +2443,7 @@ export class Renderer3D implements MapView {
     if (this.paintedRoads && this.paintedBoard) {
       this.roads.group.visible = false;
       this.paintedRoads.build(this.state, this.paintedBoard.renderMap,
-        planPaintedRoads(this.state, this.paintedBoard.renderMap), this.fogLevels(), this.shadows);
+        planPaintedRoads(this.state, this.paintedBoard.renderMap, visualOn('organicRoads') ? VIEW3D.visualTest.organicRoads : null), this.fogLevels(), this.shadows);
     } else this.roads.build(
       this.state,
       this.geometry,
@@ -3642,7 +3760,8 @@ export class Renderer3D implements MapView {
       // every field, to change a boolean — and the ground ribbons and the site
       // props were never told at all, so a game begun with shadows off kept unlit
       // roads, borders, ruins and camps after they were turned on.
-      for (const layer of [this.paintedWorks, this.paintedSites, this.paintedCities, this.paintedRoads, this.paintedTerritory])
+      for (const layer of [this.paintedWorks, this.paintedSites, this.paintedCities, this.paintedRoads, this.paintedTerritory,
+        this.paintedTerritoryTint])
         layer?.setShadows(enabled);
       // A map that was never baked with shadows on has nothing in it.
       if (enabled) this.paintedLook?.invalidateShadows();
@@ -3793,6 +3912,8 @@ export class Renderer3D implements MapView {
       // clutter (the block above only catches the ones that do) all change a
       // tile's yield the same way a farm does.
       if (this.lensView.yields) this.rebuildLens();
+      // The quieter pins fade on a hex the seat has improved (switch 6).
+      else if (this.lensView.resources && visualOn('pins')) this.rebuildLens();
     }
     // A reveal technology or a surveyed vein can change resource models without
     // changing an improvement. The same update also follows in-place fog edits.
@@ -3907,7 +4028,14 @@ export class Renderer3D implements MapView {
     // what is left over would throw that frame away.
     const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
     if (revealing) this.paintedBoard!.advanceReveal(now);
-    if (!this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !hadGlows && !panned && !fading && !revealing) return;
+    // The visual test version's motion (the sea, the clouds, the idle motion):
+    // a time uniform on geometry that is already there, so a frame drawn for it
+    // rebuilds nothing. It is drawn at `visualTest.motionFps`, not at the
+    // display's rate, because everything that moves here moves slowly.
+    const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('clouds') || visualOn('idle'))
+      && now - this.lastMotionFrame >= 1000 / Math.max(1, VIEW3D.visualTest.motionFps);
+    if (moving) this.lastMotionFrame = now;
+    if (!moving && !this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !hadGlows && !panned && !fading && !revealing) return;
 
     const refreshState = this.stateDirty;
     this.stateDirty = false;
@@ -3939,7 +4067,12 @@ export class Renderer3D implements MapView {
       // on screen instead of flashing the near one.
       this.paintedBoard?.updateDetail(pixels);
       this.paintedLook.setContactDetail(pixels);
-      this.paintedLook.updateTime(now / 1000);
+      const clock = this.fixedClock ?? now / 1000;
+      this.paintedLook.updateTime(clock);
+      // The visual test version's clock and the pins' size for this zoom
+      // (switches 1, 6, 7 and 8). Two number writes; nothing is rebuilt.
+      VTEST_UNIFORMS.vtestTime.value = clock;
+      VTEST_UNIFORMS.vtestPinScale.value = visualOn('pins') ? pinScaleFor(pixels) : 1;
       // A walk is the one thing that moves a caster on layer 2 *during* a frame
       // rather than at a seam, so it asks for the counter map itself. A pan
       // does not: nothing on that layer moved because the camera did, and
@@ -4055,13 +4188,14 @@ export class Renderer3D implements MapView {
     this.board = null; this.paintedBoard = null;
     if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
     this.reveal?.dispose(); this.reveal = null;
-    for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory]) {
+    for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory,
+      this.paintedTerritoryTint, this.paintedSmoke]) {
       if (!layer) continue;
       this.scene.remove(layer.group);
       layer.dispose();
     }
     this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
-    this.paintedRoads = null; this.paintedTerritory = null;
+    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null;
     this.paintedUnits?.dispose(); this.paintedUnits = null;
     this.paintedLook?.setBakeDetail(null);
     this.paintedLook?.dispose(); this.paintedLook = null;
@@ -4089,6 +4223,9 @@ export class Renderer3D implements MapView {
     this.paintedSites?.dispose();
     this.paintedRoads?.dispose();
     this.paintedTerritory?.dispose();
+    this.paintedTerritoryTint?.dispose();
+    this.paintedSmoke?.dispose();
+    this.unwatchVisualTest();
     this.paintedUnits?.dispose();
     for (const material of this.unitOutlines.values()) material.dispose();
     this.unitOutlines.clear();

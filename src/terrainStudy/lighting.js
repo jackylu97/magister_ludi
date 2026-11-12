@@ -5,6 +5,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Color, DataTexture, DepthTexture, UnsignedIntType, UnsignedInt248Type, DepthStencilFormat, RGBAFormat, FloatType, EquirectangularReflectionMapping, PMREMGenerator } from 'three';
 import {createDepthNormals} from './depthNormals.js';
 import {VIEW3D} from '../render3d/lookData';
+import {visualOn} from '../render3d/visualTest';
 
 function daylightEnvironment(renderer, scene) {
   // A broad sky and a muted earth hemisphere provide indirect illumination
@@ -43,7 +44,7 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
     { radius: knobs.radius, thickness: knobs.thickness, distanceExponent: knobs.distanceExponent, samples: knobs.samples },
     { radius: knobs.denoiseRadius, depthPhi: knobs.denoiseDepthPhi, normalPhi: knobs.denoiseNormalPhi });
   contact.blendIntensity = knobs.blendIntensity;
-  let contactRequested=true,contactScale=1;
+  let contactRequested=true,contactScale=1,groundedNow=false;
   const fullContact=reference||new URLSearchParams(location.search).has('fullAO');
   let depthNormals;
   if(!reference){
@@ -71,19 +72,26 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
     contact.needsSwap=false;
     output.uniforms.studyAO={value:contact.pdRenderTarget.texture};
     output.uniforms.studyAOIntensity={value:contact.blendIntensity};
+    output.uniforms.studyAOTint={value:new Color('#000000')};
     output.material.fragmentShader=output.material.fragmentShader.replace('uniform sampler2D tDiffuse;',
-      'uniform sampler2D tDiffuse;\nuniform sampler2D studyAO;\nuniform float studyAOIntensity;');
+      'uniform sampler2D tDiffuse;\nuniform sampler2D studyAO;\nuniform float studyAOIntensity;\nuniform vec3 studyAOTint;');
     output.material.fragmentShader=output.material.fragmentShader.replace(
       'gl_FragColor = texture2D( tDiffuse, vUv );',
       `gl_FragColor = texture2D( tDiffuse, vUv );
-       if(studyAOIntensity>0.0)gl_FragColor.rgb*=mix(vec3(1.0),texture2D(studyAO,vUv).rgb,studyAOIntensity);`
+       if(studyAOIntensity>0.0)gl_FragColor.rgb*=mix(vec3(1.0),mix(studyAOTint,vec3(1.0),texture2D(studyAO,vUv).rgb),studyAOIntensity);`
     );
   }
   composer.addPass(output);
   return {
     render() {
       contact.enabled=contactRequested&&contactScale>0;
-      if(fused)output.uniforms.studyAOIntensity.value=contact.enabled?contact.blendIntensity*contactScale:0;
+      // Switch 9 of the visual test version: the same contact pass, stronger and
+      // wider, with a cool tint in place of grey. No pass is added.
+      const grounded=visualOn('grounding'),ground=VIEW3D.visualTest.grounding;
+      if(grounded!==groundedNow){groundedNow=grounded;contact.updateGtaoMaterial({radius:grounded?ground.radius:knobs.radius});
+       if(fused)output.uniforms.studyAOTint.value.set(grounded?ground.tint:'#000000')}
+      const strength=grounded?ground.intensity:contact.blendIntensity;
+      if(fused)output.uniforms.studyAOIntensity.value=contact.enabled?strength*contactScale:0;
       composer.render();
     },
     resize(width, height) {
@@ -96,7 +104,7 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
     setContactDetail(pixelsPerTile) {
       // At map scale the contact radius is subpixel. Fade smoothly before
       // skipping those passes; retain full shade at play zoom.
-      const radiusPixels=knobs.radius*pixelsPerTile/Math.sqrt(3);
+      const radiusPixels=(visualOn('grounding')?VIEW3D.visualTest.grounding.radius:knobs.radius)*pixelsPerTile/Math.sqrt(3);
       const t=Math.max(0,Math.min(1,(radiusPixels-knobs.fadeStartPixels)/knobs.fadeRangePixels));
       contactScale=fullContact||!fused?1:t*t*(3-2*t);
     },

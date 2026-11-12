@@ -7,6 +7,7 @@ import { playerColor, playerSecondaryColor, signTerritory } from './cities3d';
 import { type FogLevels, levelAt } from './fog3d';
 import { terraceFarmSurface } from './terraceFarmSurface';
 import { VIEW3D } from './lookData';
+import { hashSigned } from './hash';
 import { signRoadCells } from './roads3d';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { centre, neighbour, surfaceHeight } from '../terrainStudy/surface.js';
@@ -18,7 +19,13 @@ import { marking, projectMarkings, roadRibbonPolygons } from '../terrainStudy/su
 import { TERRITORY_INSET, TERRITORY_PRIMARY_WIDTH, TERRITORY_SECONDARY_WIDTH } from '../terrainStudy/territoryPlan.js';
 
 type Point = [number, number];
-type Mark = { polygon: Point[]; color: Color; lift: number; deck?: number; bounds: { minX: number; maxX: number; minZ: number; maxZ: number } };
+/**
+ * A tint band's fade (the visual test version's border tint, switch 3): the
+ * alpha is `alpha` at distance `from` from the line through `a` along the
+ * inward `normal`, and falls to nothing at distance `to`.
+ */
+type Fade = { a: Point; normal: Point; from: number; to: number; alpha: number };
+type Mark = { polygon: Point[]; color: Color; lift: number; deck?: number; heights?: number[]; fade?: Fade; bounds: { minX: number; maxX: number; minZ: number; maxZ: number } };
 export type GroundPlan = Map<number, Mark[]>;
 const root3 = Math.sqrt(3), apothem = root3 / 2;
 const corners: Point[] = [[1, -1], [1, 1], [0, 2], [-1, 1], [-1, -1], [0, -2]];
@@ -40,17 +47,159 @@ const water = (tile: Tile): boolean => ['ocean', 'coast', 'lake'].includes(tile.
  * it — and re-checked against the live `GameState` identity, because a second
  * game's first frame must not be handed the first game's borders.
  */
-type PlanMemo = { state: GameState; signature: number; plan: GroundPlan };
+type PlanMemo = { state: GameState; signature: number; plan: GroundPlan; style?: string };
 const roadPlans = new WeakMap<GameMap, PlanMemo>();
 const territoryPlans = new WeakMap<GameMap, PlanMemo>();
-const memoised = (memo: PlanMemo | undefined, state: GameState, signature: number): GroundPlan | undefined =>
-  memo && memo.state === state && memo.signature === signature ? memo.plan : undefined;
+const tintPlans = new WeakMap<GameMap, PlanMemo>();
+const memoised = (memo: PlanMemo | undefined, state: GameState, signature: number, style?: string): GroundPlan | undefined =>
+  memo && memo.state === state && memo.signature === signature && memo.style === style ? memo.plan : undefined;
+
+/**
+ * The visual test version's border (switch 3, `docs/flags.md` item (nnnnnnn)).
+ *
+ * Why there were red lines inside an empire: they were never per-city borders
+ * or worked-hex marks. An empire's land has gaps. Each town's border grows hex
+ * by hex, and the hexes between two towns are often nobody's for a long time:
+ * holes closed on every side, and narrow bays open to the outside at one end.
+ * The old plan drew the full two-ink line round every gap, so a gap looked like
+ * a border running through the middle of the empire.
+ *
+ * The new plan draws the strong line round the empire's *outline*
+ * (`territoryRegion`): its own hexes, plus each hole of up to `holeMax` hexes,
+ * plus each unowned hex with `fillNeighbours` or more of the empire's hexes
+ * round it (asked `fillPasses` times, so a bay two hexes deep closes too). The
+ * gaps inside the outline keep a thin faint line in the seat's colour
+ * (`gapWidth`, `gapAlpha`), so the player can still see that a hex is not
+ * theirs. A hex next to another seat's land is never filled.
+ */
+export interface BorderStyle {
+  holeMax: number; fillNeighbours: number; fillPasses: number;
+  tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number;
+  /**
+   * How the line is drawn (`BorderStyleKey` in `visualTest.ts`). `drape` lays it
+   * over the relief. `ruled` and `wash` run it straight from corner to corner at
+   * the hex's own height (`borderHeight`), `ruledLift` above it. `wash` swaps
+   * the two-ink line for one thin ink line `inkWidth` wide and a watercolour
+   * band `washWidth` wide, `washAlpha` strong at the line.
+   */
+  kind?: 'drape' | 'ruled' | 'wash';
+  ruledLift?: number; washWidth?: number; washAlpha?: number; inkWidth?: number;
+}
+
+/**
+ * The height a ruled border stands at in each hex: the highest ground on the
+ * ring the line runs round, so the relief inside the hex never cuts through
+ * it. On flat land that is the land's own level; on a hill, the hill's
+ * shoulder at the line; on a mountain, its base (the peaks are props). Where
+ * two hexes along one line differ, the line ramps between them along the edge
+ * next to the higher one, so it never breaks: from the game camera a ramp
+ * reads as one ink line, where a vertical step reads as a gap.
+ */
+const borderHeights = new WeakMap<GameMap, Map<number, number>>();
+function borderHeight(prepared: GameMap, cell: number): number {
+  let known = borderHeights.get(prepared);
+  if (!known) { known = new Map(); borderHeights.set(prepared, known); }
+  const cached = known.get(cell);
+  if (cached !== undefined) return cached;
+  const tile = prepared.tiles[cell]!, ring = apothem - TERRITORY_INSET - TERRITORY_PRIMARY_WIDTH / 2;
+  let highest = -Infinity;
+  for (let k = 0; k < 24; k++) {
+    const angle = k * Math.PI / 12, face = Math.round(angle / (Math.PI / 3)) * Math.PI / 3;
+    const r = ring / Math.cos(angle - face);
+    highest = Math.max(highest, surfaceHeight(tile, Math.cos(angle) * r, Math.sin(angle) * r) as number);
+  }
+  known.set(cell, highest);
+  return highest;
+}
+
+/**
+ * The seat each hex's strong line is drawn for: its owner, or the seat whose
+ * outline closes over it (see `BorderStyle`). Pure; exported for its test.
+ */
+export function territoryRegion(owner: readonly (number | undefined)[], prepared: GameMap, style: BorderStyle): (number | undefined)[] {
+  let region = owner.slice();
+  for (const [seat, cells] of territoryHoles(owner, prepared, style.holeMax)) for (const cell of cells) region[cell] = seat;
+  for (let pass = 0; pass < style.fillPasses; pass++) {
+    const next = region.slice();
+    let changed = false;
+    for (let cell = 0; cell < region.length; cell++) {
+      if (region[cell] !== undefined) continue;
+      const tile = prepared.tiles[cell]!;
+      let seat: number | undefined, count = 0, mixed = false;
+      for (let d = 0; d < 6; d++) {
+        const other = neighbour(tile, prepared, d) as Tile | null;
+        if (!other) continue;
+        const around = region[other.row * prepared.width + other.col];
+        if (around === undefined) continue;
+        if (seat !== undefined && around !== seat) mixed = true;
+        seat = around; count++;
+      }
+      // Next to two seats is a frontier, and a frontier is never filled.
+      if (mixed || seat === undefined || count < style.fillNeighbours) continue;
+      next[cell] = seat; changed = true;
+    }
+    region = next;
+    if (!changed) break;
+  }
+  return region;
+}
+
+/** The holes in each seat's land, as cell sets. Pure; exported for its test. */
+export function territoryHoles(owner: readonly (number | undefined)[], prepared: GameMap, holeMax: number): Map<number, Set<number>> {
+  const holes = new Map<number, Set<number>>();
+  const seen = new Map<number, Set<number>>();
+  const width = prepared.width;
+  for (let cell = 0; cell < owner.length; cell++) {
+    const seat = owner[cell];
+    if (seat === undefined) continue;
+    const tile = prepared.tiles[cell]!;
+    for (let d = 0; d < 6; d++) {
+      const other = neighbour(tile, prepared, d) as Tile | null;
+      if (!other) continue;
+      const start = other.row * width + other.col;
+      if (owner[start] !== undefined) continue;
+      let visited = seen.get(seat);
+      if (!visited) { visited = new Set(); seen.set(seat, visited); }
+      if (visited.has(start)) continue;
+      // Walk the whole pocket once (a sea is one pocket, walked once a seat).
+      // It is open if it is too big, reaches the top or bottom row, or meets
+      // another seat's land.
+      const pocket = [start], queue = [start];
+      visited.add(start);
+      let closed = true;
+      while (queue.length) {
+        const at = queue.pop()!, here = prepared.tiles[at]!;
+        if (here.row === 0 || here.row === prepared.height - 1) closed = false;
+        for (let k = 0; k < 6; k++) {
+          const next = neighbour(here, prepared, k) as Tile | null;
+          if (!next) { closed = false; continue; }
+          const index = next.row * width + next.col;
+          if (owner[index] === seat) continue;
+          if (owner[index] !== undefined) { closed = false; continue; }
+          if (visited.has(index)) continue;
+          visited.add(index); pocket.push(index); queue.push(index);
+        }
+      }
+      if (!closed || pocket.length > holeMax) continue;
+      let set = holes.get(seat);
+      if (!set) { set = new Set(); holes.set(seat, set); }
+      for (const index of pocket) set.add(index);
+    }
+  }
+  return holes;
+}
 
 /** Live road facts, with each cell owning only its half-links and junction. */
-export function planPaintedRoads(state: GameState, prepared: GameMap): GroundPlan {
+export function planPaintedRoads(state: GameState, prepared: GameMap, organic: OrganicRoadStyle | null = null): GroundPlan {
   const signature = signRoadCells(state);
-  const memo = memoised(roadPlans.get(prepared), state, signature);
+  const styleKey = organic ? `organic:${JSON.stringify(organic)}` : undefined;
+  const memo = memoised(roadPlans.get(prepared), state, signature, styleKey);
   if (memo) return memo;
+  if (organic) {
+    const plan = planOrganicRoads(state, prepared, organic);
+    roadPlans.set(prepared, { state, signature, plan, style: styleKey });
+    return plan;
+  }
   const result: GroundPlan = new Map();
   for (let cell = 0; cell < state.map.tiles.length; cell++) {
     const original = state.map.tiles[cell]!, tile = prepared.tiles[cell]!;
@@ -86,15 +235,196 @@ export function planPaintedRoads(state: GameState, prepared: GameMap): GroundPla
   return result;
 }
 
+/** The organic roads' knobs: `visualTest.organicRoads` in `data/view3d.json`. */
+export interface OrganicRoadStyle {
+  step: number; pull: number; wander: number; edgeShift: number; forkAt: number; forkPull: number;
+  bedWidth: number; coreWidth: number; bed: string; core: string; capSides: number;
+  shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
+  bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
+}
+
+/**
+ * Organic roads: switch 5 of the visual test version (batch V1).
+ *
+ * The old plan drew a straight spoke from each road hex's centre to the middle
+ * of each edge toward a roaded neighbour, so a junction read as a star. This
+ * plan draws curves through the hexes a road links, and still owns only each
+ * hex's half, so the fog and the ground layer's caches work as before:
+ * - a road leaves each edge at a crossing point shared by the two hexes, moved
+ *   along the edge by a small hashed amount, and leaves it square to the edge,
+ *   so the two halves meet with the same direction and no kink;
+ * - a hex with two links draws one curve between them; one link, a road that
+ *   ends in a round cap; none, a small round patch;
+ * - a hex with three or more links draws its straightest pair as the through
+ *   road, and each other link as a branch that merges into it at a shallow
+ *   angle, heading on toward the far end: a fork, not a hub;
+ * - every curve wanders sideways a little, by a hash of its hex, and the
+ *   wander is nothing at both ends;
+ * - a link over a river edge gets a small plank bridge. The road crosses the
+ *   edge square to it, so it meets the river at a right angle.
+ * A road still reads as joined or not joined: a link is drawn exactly where the
+ * old spoke was, and nowhere else.
+ */
+function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoadStyle): GroundPlan {
+  const result: GroundPlan = new Map();
+  const width = prepared.width;
+  const bed = new Color(style.bed), core = new Color(style.core), plank = new Color(style.bridge), rail = new Color(style.rail);
+  for (let cell = 0; cell < state.map.tiles.length; cell++) {
+    const original = state.map.tiles[cell]!, tile = prepared.tiles[cell]!;
+    if (original.road === undefined || water(original)) continue;
+    const c = centre(tile) as { x: number; z: number };
+    const links: { d: number; at: Point; inward: Point; other: Tile }[] = [];
+    for (let d = 0; d < 6; d++) {
+      const other = neighbour(tile, prepared, d) as Tile | null;
+      if (!other) continue;
+      const otherCell = other.row * width + other.col, next = state.map.tiles[otherCell]!;
+      if (next.road === undefined || water(next)) continue;
+      const angle = d * Math.PI / 3, dx = Math.cos(angle), dz = Math.sin(angle);
+      // One crossing point for both hexes: the shift is a hash of the pair and
+      // runs along the edge in the lower cell's sense.
+      const shift = hashSigned(Math.min(cell, otherCell), Math.max(cell, otherCell), 911) * style.edgeShift * (cell < otherCell ? 1 : -1);
+      links.push({ d, other, inward: [-dx, -dz], at: [c.x + dx * apothem - dz * shift, c.z + dz * apothem + dx * shift] });
+    }
+    const curves: Point[][] = [], caps: Point[] = [];
+    const lean = hashSigned(tile.col, tile.row, 921) * style.wander;
+    const pull = style.pull * apothem;
+    const along = (a: { at: Point; inward: Point }, b: { at: Point; inward: Point }): Point[] =>
+      bezier(a.at, [a.at[0] + a.inward[0] * pull, a.at[1] + a.inward[1] * pull],
+        [b.at[0] + b.inward[0] * pull, b.at[1] + b.inward[1] * pull], b.at, style.step, lean);
+    if (links.length === 0) caps.push([c.x, c.z]);
+    else if (links.length === 1) {
+      // A road that ends here: into the hex, a little past its middle.
+      const link = links[0]!, end: Point = [c.x - link.inward[0] * .08, c.z - link.inward[1] * .08];
+      curves.push(bezier(link.at, [link.at[0] + link.inward[0] * pull, link.at[1] + link.inward[1] * pull], end, end, style.step, lean));
+      caps.push(end);
+    } else {
+      // The straightest pair is the through road.
+      let best: [number, number] = [0, 1], widest = -1;
+      for (let i = 0; i < links.length; i++) for (let j = i + 1; j < links.length; j++) {
+        const turn = Math.min(Math.abs(links[i]!.d - links[j]!.d), 6 - Math.abs(links[i]!.d - links[j]!.d));
+        if (turn > widest) { widest = turn; best = [i, j]; }
+      }
+      const a = links[best[0]]!, b = links[best[1]]!, main = along(a, b);
+      curves.push(main);
+      for (let i = 0; i < links.length; i++) {
+        if (i === best[0] || i === best[1]) continue;
+        const branch = links[i]!;
+        // Merge toward whichever end of the through road lies farther round.
+        const away = (end: typeof a) => Math.min(Math.abs(branch.d - end.d), 6 - Math.abs(branch.d - end.d));
+        const toB = away(b) >= away(a);
+        const s = toB ? style.forkAt : 1 - style.forkAt, at = pointOn(main, s), ahead = pointOn(main, toB ? Math.min(1, s + .05) : Math.max(0, s - .05));
+        const tx = ahead[0] - at[0], tz = ahead[1] - at[1], tl = Math.hypot(tx, tz) || 1;
+        const reach = style.forkPull;
+        curves.push(bezier(branch.at, [branch.at[0] + branch.inward[0] * pull, branch.at[1] + branch.inward[1] * pull],
+          [at[0] - tx / tl * reach, at[1] - tz / tl * reach], at, style.step, 0));
+      }
+    }
+    const marks: Mark[] = [];
+    // A worn track, built from five stacked bands: a dusty shoulder where the
+    // traffic has thinned the grass, the dark bed, the pale trodden core, two
+    // wheel ruts and a thin crown between them. Each band's edge wanders by its
+    // own amount, so the road has no ruled edge anywhere.
+    const shoulder = new Color(style.shoulder), rut = new Color(style.rut), crown = new Color(style.crown);
+    const bands: readonly [offset: number, half: number, color: Color, lift: number, wander: number, caps: boolean][] = [
+      [0, style.shoulderWidth / 2, shoulder, .0145, style.edgeWander * 1.6, true],
+      [0, style.bedWidth / 2, bed, .016, style.edgeWander, true],
+      [0, style.coreWidth / 2, core, .019, style.edgeWander * .7, true],
+      [style.rutOffset, style.rutWidth / 2, rut, .0205, style.edgeWander * .3, false],
+      [-style.rutOffset, style.rutWidth / 2, rut, .0205, style.edgeWander * .3, false],
+      [0, style.crownWidth / 2, crown, .021, style.edgeWander * .3, false],
+    ];
+    for (const [offset, half, color, lift, wander, capped] of bands) {
+      if (half <= 0) continue; // A band with no width is left out: the clean path has no shoulder, ruts or crown.
+      for (const curve of curves) for (const polygon of ribbonQuads(curve, half, offset, wander)) marks.push({ ...marking(polygon, '#ffffff', lift), color } as Mark);
+      if (capped) for (const [x, z] of caps) marks.push({ ...marking(Array.from({ length: style.capSides }, (_, i) => [x + Math.cos(i * 2 * Math.PI / style.capSides) * half, z + Math.sin(i * 2 * Math.PI / style.capSides) * half] as Point), '#ffffff', lift), color } as Mark);
+    }
+    // A plank bridge over each river edge a link crosses: this hex's half.
+    for (const link of links) {
+      if (!((tile.riverEdges ?? 0) & (1 << link.d))) continue;
+      const dx = -link.inward[0], dz = -link.inward[1], start = apothem - .20;
+      const deck = Math.max(surfaceHeight(tile, dx * start, dz * start) as number, surfaceHeight(link.other, -dx * start, -dz * start) as number);
+      const from: Point = [link.at[0] - dx * style.bridgeLength / 2, link.at[1] - dz * style.bridgeLength / 2];
+      const strip = (offset: number, half: number, color: Color, lift: number): void => {
+        const nx = -dz, nz = dx;
+        const polygon: Point[] = [[from[0] + nx * (offset - half), from[1] + nz * (offset - half)], [link.at[0] + nx * (offset - half), link.at[1] + nz * (offset - half)],
+          [link.at[0] + nx * (offset + half), link.at[1] + nz * (offset + half)], [from[0] + nx * (offset + half), from[1] + nz * (offset + half)]];
+        marks.push({ ...marking(polygon, '#ffffff', lift), color, deck } as Mark);
+      };
+      strip(0, style.bridgeWidth / 2, plank, .022);
+      for (const side of [-1, 1]) strip(side * (style.bridgeWidth / 2 - style.railWidth / 2), style.railWidth / 2, rail, .025);
+    }
+    result.set(cell, marks);
+  }
+  return result;
+}
+
+/** A cubic curve, sampled about `step` apart, pushed sideways by `lean` in its middle. */
+function bezier(p0: Point, p1: Point, p2: Point, p3: Point, step: number, lean: number): Point[] {
+  const at = (t: number): Point => {
+    const u = 1 - t;
+    return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]];
+  };
+  const rough = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) + Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) + Math.hypot(p3[0] - p2[0], p3[1] - p2[1]);
+  const count = Math.max(2, Math.ceil(rough / step));
+  const points = Array.from({ length: count + 1 }, (_, i) => at(i / count));
+  if (!lean) return points;
+  // Sideways by sin² of the way along: nothing, and no turn, at either end.
+  return points.map((p, i) => {
+    const a = points[Math.max(0, i - 1)]!, b = points[Math.min(points.length - 1, i + 1)]!;
+    const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, w = Math.sin(Math.PI * i / count) ** 2 * lean;
+    return [p[0] - dz / l * w, p[1] + dx / l * w] as Point;
+  });
+}
+
+/** The point a fraction `s` of the way along a sampled curve, by sample count. */
+function pointOn(points: readonly Point[], s: number): Point {
+  const f = Math.max(0, Math.min(1, s)) * (points.length - 1), i = Math.min(points.length - 2, Math.floor(f)), t = f - i;
+  const a = points[i]!, b = points[i + 1]!;
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+/**
+ * Quads `half` either side of a sampled curve, mitred at each sample so they
+ * join. `offset` moves the band sideways (a wheel rut). `wander` makes each
+ * edge drift in and out by that share of `half`: two slow waves read from the
+ * sample's own place, so the two edges differ and no stretch repeats. The drift
+ * fades to nothing at both ends of the curve, where the next hex's band meets it.
+ */
+function ribbonQuads(points: readonly Point[], half: number, offset = 0, wander = 0): Point[][] {
+  const last = points.length - 1;
+  const normals = points.map((_, i) => {
+    const a = points[Math.max(0, i - 1)]!, b = points[Math.min(last, i + 1)]!;
+    const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+    return [-dz / l, dx / l] as Point;
+  });
+  const drift = (p: Point, i: number, side: number): number => {
+    if (!wander) return half;
+    const fade = Math.sin(Math.PI * i / Math.max(1, last));
+    const wave = Math.sin(p[0] * 17.3 + p[1] * 9.1 + side * 2.1) * .6 + Math.sin(p[0] * 6.7 - p[1] * 21.9 + side * 5.3) * .4;
+    return half * (1 + wave * wander * fade);
+  };
+  const edges = points.map((p, i) => {
+    const n = normals[i]!, left = offset + drift(p, i, 1), right = offset - drift(p, i, -1);
+    return [[p[0] + n[0] * left, p[1] + n[1] * left] as Point, [p[0] + n[0] * right, p[1] + n[1] * right] as Point] as const;
+  });
+  const quads: Point[][] = [];
+  for (let i = 0; i < last; i++) quads.push([edges[i]![0], edges[i + 1]![0], edges[i + 1]![1], edges[i]![1]]);
+  return quads;
+}
+
 type Edge = { cell: number; owner: number; a: Point; b: Point; ka: number; kb: number; normal: Point };
 /** Integer vertex identity joins concave corners and the cylindrical wrap seam. */
-export function planPaintedTerritory(state: GameState, prepared: GameMap): GroundPlan {
+export function planPaintedTerritory(state: GameState, prepared: GameMap, style: BorderStyle | null = null): GroundPlan {
   const signature = signTerritory(state);
-  const memo = memoised(territoryPlans.get(prepared), state, signature);
+  const styleKey = style ? `outline:${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.kind ?? 'drape'}:${style.ruledLift}:${style.inkWidth}` : undefined;
+  const memo = memoised(territoryPlans.get(prepared), state, signature, styleKey);
   if (memo) return memo;
   const cityOwners = new Map(state.cities.map(city => [city.id, city.ownerId]));
   const owner = state.tileOwner.map(id => id == null ? undefined : cityOwners.get(id));
-  const edges: Edge[] = [], incoming = new Map<number, Edge>(), outgoing = new Map<number, Edge>();
+  // The seat each hex's line is drawn for. Without the visual test style this
+  // is the owner, exactly as before; with it, the outline (`territoryRegion`).
+  const region = style ? territoryRegion(owner, prepared, style) : owner;
   // The identity is a *number* rather than the string it reads as: one vertex is
   // asked for on every edge of every owned hex, and the rail joins are looked up
   // twice more each. The lattice is finite and small — two columns and three rows
@@ -105,51 +435,141 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap): Groun
     const [u, v] = corners[corner]!;
     return (seat * rows + (3 * tile.row + v! + 2)) * columns + mod(2 * tile.col + tile.row % 2 + u!, columns);
   };
-  for (let cell = 0; cell < owner.length; cell++) {
-    const seat = owner[cell]; if (seat === undefined) continue;
-    const tile = prepared.tiles[cell]!, c = centre(tile) as { x: number; z: number };
-    for (let d = 0; d < 6; d++) {
-      const other = neighbour(tile, prepared, d) as Tile | null;
-      if (other && owner[other.row * prepared.width + other.col] === seat) continue;
-      const [u, v] = corners[d]!, [uu, vv] = corners[(d + 1) % 6]!;
-      const a: Point = [c.x + u * apothem, c.z + v / 2], b: Point = [c.x + uu * apothem, c.z + vv / 2];
-      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const edge: Edge = { cell, owner: seat, a, b, ka: vertexKey(tile, d, seat), kb: vertexKey(tile, (d + 1) % 6, seat),
-        normal: [-(b[1] - a[1]) / length, (b[0] - a[0]) / length] };
-      edges.push(edge); outgoing.set(edge.ka, edge); incoming.set(edge.kb, edge);
-    }
-  }
-  const result: GroundPlan = new Map();
-  const offsets = [TERRITORY_INSET, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH] as number[];
-  const rail = (p: Point, a: Point, b: Point, distance: number): Point => {
-    const divisor = 1 + a[0] * b[0] + a[1] * b[1];
-    return [p[0] + (a[0] + b[0]) * distance / divisor, p[1] + (a[1] + b[1]) * distance / divisor];
-  };
-  for (const edge of edges) {
-    const previous = incoming.get(edge.ka)!, next = outgoing.get(edge.kb)!;
-    const a = offsets.map(d => rail(edge.a, previous.normal, edge.normal, d));
-    const b = offsets.map(d => rail(edge.b, edge.normal, next.normal, d));
-    const colors = [playerColor(state, edge.owner), playerSecondaryColor(state, edge.owner)];
-    for (let band = 0; band < 2; band++) {
-      const polygon: Point[] = [a[band]!, b[band]!, b[band + 1]!, a[band + 1]!];
-      // Concave mitres can cross into the next owned hex. Distribute by bounds,
-      // then clip; assigning a whole edge to one hex would leave a broken join.
-      const minRow = Math.max(0, Math.floor((Math.min(...polygon.map(p => p[1])) - 1) / 1.5));
-      const maxRow = Math.min(prepared.height - 1, Math.ceil((Math.max(...polygon.map(p => p[1])) + 1) / 1.5));
-      for (let row = minRow; row <= maxRow; row++) {
-        const lo = Math.floor(Math.min(...polygon.map(p => p[0])) / root3 - row % 2 / 2 - 1);
-        const hi = Math.ceil(Math.max(...polygon.map(p => p[0])) / root3 - row % 2 / 2 + 1);
-        for (let col = lo; col <= hi; col++) {
-          const canonical = mod(col, prepared.width), cell = row * prepared.width + canonical;
-          if (owner[cell] !== edge.owner) continue;
-          const shift = (canonical - col) * root3;
-          const mark = marking(polygon.map(([x, z]) => [x + shift, z]), colors[band], .013) as Mark;
-          const marks = result.get(cell) ?? []; marks.push(mark); result.set(cell, marks);
-        }
+  /** The edges of `inside`'s hexes where `outside` says the neighbour is not the same seat. */
+  const collect = (inside: readonly (number | undefined)[], open: (seat: number, other: number | null) => boolean): EdgeSet => {
+    const set: EdgeSet = { edges: [], incoming: new Map(), outgoing: new Map() };
+    for (let cell = 0; cell < inside.length; cell++) {
+      const seat = inside[cell]; if (seat === undefined) continue;
+      const tile = prepared.tiles[cell]!, c = centre(tile) as { x: number; z: number };
+      for (let d = 0; d < 6; d++) {
+        const other = neighbour(tile, prepared, d) as Tile | null;
+        if (!open(seat, other ? other.row * prepared.width + other.col : null)) continue;
+        const [u, v] = corners[d]!, [uu, vv] = corners[(d + 1) % 6]!;
+        const a: Point = [c.x + u * apothem, c.z + v / 2], b: Point = [c.x + uu * apothem, c.z + vv / 2];
+        const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const edge: Edge = { cell, owner: seat, a, b, ka: vertexKey(tile, d, seat), kb: vertexKey(tile, (d + 1) % 6, seat),
+          normal: [-(b[1] - a[1]) / length, (b[0] - a[0]) / length] };
+        set.edges.push(edge); set.outgoing.set(edge.ka, edge); set.incoming.set(edge.kb, edge);
       }
     }
+    return set;
+  };
+  const lines = collect(region, (seat, other) => other === null || region[other] !== seat);
+  const result: GroundPlan = new Map();
+  const offsets = [TERRITORY_INSET, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH] as number[];
+  const ruled = style?.kind === 'ruled' || style?.kind === 'wash';
+  const inked = style?.kind === 'wash' ? [TERRITORY_INSET, TERRITORY_INSET + (style.inkWidth ?? .03)] : offsets;
+  for (const edge of lines.edges) {
+    const previous = lines.incoming.get(edge.ka)!, next = lines.outgoing.get(edge.kb)!;
+    const a = inked.map(d => rail(edge.a, previous.normal, edge.normal, d));
+    const b = inked.map(d => rail(edge.b, edge.normal, next.normal, d));
+    const colors = style?.kind === 'wash' ? [playerColor(state, edge.owner)] : [playerColor(state, edge.owner), playerSecondaryColor(state, edge.owner)];
+    for (let band = 0; band < colors.length; band++) {
+      const polygon: Point[] = [a[band]!, b[band]!, b[band + 1]!, a[band + 1]!];
+      if (ruled) {
+        // Straight along the edge at the hexes' own heights. A ruled line is
+        // not clipped to the ground, so it belongs to its own hex only.
+        const own = borderHeight(prepared, edge.cell);
+        const ha = Math.max(own, borderHeight(prepared, previous.cell)), hb = Math.max(own, borderHeight(prepared, next.cell));
+        const mark = marking(polygon, colors[band], style!.ruledLift ?? .02) as Mark;
+        mark.deck = 0; mark.heights = [ha, hb, hb, ha];
+        const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
+        continue;
+      }
+      // Concave mitres can cross into the next owned hex. Distribute by bounds,
+      // then clip; assigning a whole edge to one hex would leave a broken join.
+      spread(prepared, polygon, region, edge.owner, result, shifted => marking(shifted, colors[band], .013) as Mark);
+    }
   }
-  territoryPlans.set(prepared, { state, signature, plan: result });
+  territoryPlans.set(prepared, { state, signature, plan: result, style: styleKey });
+  // The gaps inside an outline: an owned hex's edges toward a hex the outline
+  // closed over. Only asked for with the style, for the faint gap line.
+  const gaps = style ? collect(owner, (seat, other) => other !== null && owner[other] !== seat && region[other] === seat) : null;
+  outlines.set(result, { lines, gaps, owner, region });
+  return result;
+}
+
+type EdgeSet = { edges: Edge[]; incoming: Map<number, Edge>; outgoing: Map<number, Edge> };
+
+/** A mitred point `distance` inside a corner between two edges with these inward normals. */
+function rail(p: Point, a: Point, b: Point, distance: number): Point {
+  const divisor = 1 + a[0] * b[0] + a[1] * b[1];
+  return [p[0] + (a[0] + b[0]) * distance / divisor, p[1] + (a[1] + b[1]) * distance / divisor];
+}
+
+/**
+ * Hands one ribbon polygon to every hex of `seat` (by `inside`) whose bounds
+ * it crosses, shifted onto the canonical copy of the map. The ground layer
+ * clips each to its own hex.
+ */
+function spread(prepared: GameMap, polygon: Point[], inside: readonly (number | undefined)[], seat: number,
+  result: GroundPlan, make: (polygon: Point[], shift: number) => Mark): void {
+  const minRow = Math.max(0, Math.floor((Math.min(...polygon.map(p => p[1])) - 1) / 1.5));
+  const maxRow = Math.min(prepared.height - 1, Math.ceil((Math.max(...polygon.map(p => p[1])) + 1) / 1.5));
+  for (let row = minRow; row <= maxRow; row++) {
+    const lo = Math.floor(Math.min(...polygon.map(p => p[0])) / root3 - row % 2 / 2 - 1);
+    const hi = Math.ceil(Math.max(...polygon.map(p => p[0])) / root3 - row % 2 / 2 + 1);
+    for (let col = lo; col <= hi; col++) {
+      const canonical = mod(col, prepared.width), cell = row * prepared.width + canonical;
+      if (inside[cell] !== seat) continue;
+      const shift = (canonical - col) * root3;
+      const mark = make(polygon.map(([x, z]) => [x + shift, z]), shift);
+      const marks = result.get(cell) ?? []; marks.push(mark); result.set(cell, marks);
+    }
+  }
+}
+
+/** The edges a plan drew, and the gaps inside its outlines, for the tint layer. */
+const outlines = new WeakMap<GroundPlan, { lines: EdgeSet; gaps: EdgeSet | null; owner: (number | undefined)[]; region: (number | undefined)[] }>();
+
+/**
+ * The translucent half of the visual test version's border (switch 3), drawn by
+ * the tint layer:
+ * - a band of the seat's colour just inside the strong line, fading to nothing
+ *   over `tintWidth`, mitred like the line so it turns the corners the line does;
+ * - a thin faint line in the seat's colour round each gap inside the outline.
+ * Every mark carries a `fade` the ground layer turns into vertex alpha.
+ */
+export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, style: BorderStyle): GroundPlan {
+  const lines = planPaintedTerritory(state, prepared, style);
+  const signature = signTerritory(state);
+  const styleKey = `tint:${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.tintWidth}:${style.tintAlpha}:${style.tintLift}:${style.gapWidth}:${style.gapAlpha}:${style.kind ?? 'drape'}:${style.washWidth}:${style.washAlpha}:${style.inkWidth}:${style.ruledLift}`;
+  const memo = memoised(tintPlans.get(prepared), state, signature, styleKey);
+  if (memo) return memo;
+  const kept = outlines.get(lines);
+  const result: GroundPlan = new Map();
+  if (!kept) return result;
+  const ruled = style.kind === 'ruled' || style.kind === 'wash';
+  const band = (set: EdgeSet, inside: readonly (number | undefined)[], from: number, to: number, alpha: number, flat: boolean): void => {
+    for (const edge of set.edges) {
+      const previous = set.incoming.get(edge.ka) ?? edge, next = set.outgoing.get(edge.kb) ?? edge;
+      const polygon: Point[] = [rail(edge.a, previous.normal, edge.normal, from), rail(edge.b, edge.normal, next.normal, from),
+        rail(edge.b, edge.normal, next.normal, to), rail(edge.a, previous.normal, edge.normal, to)];
+      if (flat && ruled) {
+        // A ruled gap line, straight and level like the border it belongs to.
+        const own = borderHeight(prepared, edge.cell);
+        const ha = Math.max(own, borderHeight(prepared, previous.cell)), hb = Math.max(own, borderHeight(prepared, next.cell));
+        const mark = marking(polygon, playerColor(state, edge.owner), style.ruledLift ?? .02) as Mark;
+        mark.deck = 0; mark.heights = [ha, hb, hb, ha];
+        mark.fade = { a: edge.a, normal: edge.normal, from, to: from + 1e3, alpha };
+        const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
+        continue;
+      }
+      spread(prepared, polygon, inside, edge.owner, result, (shifted, shift) => {
+        const mark = marking(shifted, playerColor(state, edge.owner), style.tintLift) as Mark;
+        // A flat line keeps its alpha all the way across: its fade ends far away.
+        mark.fade = { a: [edge.a[0] + shift, edge.a[1]], normal: edge.normal, from, to: flat ? from + 1e3 : to, alpha };
+        return mark;
+      });
+    }
+  };
+  // The wash sits against its one thin ink line; the other styles' tint sits
+  // inside their two-ink line.
+  const wash = style.kind === 'wash';
+  const from = wash ? TERRITORY_INSET + (style.inkWidth ?? .03) : TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH;
+  band(kept.lines, kept.region, from, from + (wash ? style.washWidth ?? .2 : style.tintWidth), wash ? style.washAlpha ?? .3 : style.tintAlpha, false);
+  if (kept.gaps) band(kept.gaps, kept.owner, TERRITORY_INSET, TERRITORY_INSET + style.gapWidth, style.gapAlpha, true);
+  tintPlans.set(prepared, { state, signature, plan: result, style: styleKey });
   return result;
 }
 
@@ -171,6 +591,8 @@ function foldMarks(marks: readonly Mark[]): number {
     for (const [x, z] of mark.polygon) { mix(x * 1e6); mix(z * 1e6); }
     mix(mark.color.r * 1e6); mix(mark.color.g * 1e6); mix(mark.color.b * 1e6); mix(mark.lift * 1e6);
     mix(mark.deck === undefined ? -1 : mark.deck * 1e6);
+    if (mark.fade) for (const value of [...mark.fade.a, ...mark.fade.normal, mark.fade.from, mark.fade.to, mark.fade.alpha]) mix(value * 1e6);
+    if (mark.heights) for (const value of mark.heights) mix(value * 1e6);
     mix(0x5bf03635);
   }
   return hash >>> 0;
@@ -219,6 +641,25 @@ type GroundRecipe = { terraced: boolean; key: number; geometry: BufferGeometry |
  */
 const GROUND_INK_OFFSET = -2;
 
+/**
+ * Turns a projected tint mark's colour into colour and alpha: the alpha falls
+ * smoothly from `fade.alpha` at the line to nothing at the band's inner edge.
+ * A piece with no fade keeps full alpha.
+ */
+function fadeGeometry(piece: BufferGeometry, fade: Fade | undefined): BufferGeometry {
+  const position = piece.getAttribute('position'), color = piece.getAttribute('color');
+  const values = new Float32Array(position.count * 4);
+  for (let i = 0; i < position.count; i++) {
+    values[i * 4] = color.getX(i); values[i * 4 + 1] = color.getY(i); values[i * 4 + 2] = color.getZ(i);
+    if (!fade) { values[i * 4 + 3] = 1; continue; }
+    const distance = (position.getX(i) - fade.a[0]) * fade.normal[0] + (position.getZ(i) - fade.a[1]) * fade.normal[1];
+    const t = Math.max(0, Math.min(1, (distance - fade.from) / Math.max(1e-6, fade.to - fade.from)));
+    values[i * 4 + 3] = fade.alpha * (1 - t * t * (3 - 2 * t));
+  }
+  piece.setAttribute('color', new Float32BufferAttribute(values, 4));
+  return piece;
+}
+
 type GroundBatch = {
   parts: BufferGeometry[]; cells: number[]; starts: number[]; counts: number[];
   levels: number[]; geometry: BufferGeometry; meshes: Mesh[];
@@ -251,10 +692,19 @@ export class PaintedGroundLayer {
   private batches = new Map<string, GroundBatch>();
   private prepared?: GameMap;
   private plan?: GroundPlan;
-  constructor(name: string, register: (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown) {
+  /**
+   * `tint` makes this a layer of translucent bands (the visual test version's
+   * border tint, switch 3): each mark's `fade` becomes a vertex alpha, and the
+   * material blends and writes no depth. One extra material, and the same
+   * region batching, so the band costs a few draw calls and never one a hex.
+   */
+  private readonly tint: boolean;
+  constructor(name: string, register: (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown, options: { tint?: boolean } = {}) {
     this.group.name = name;
+    this.tint = options.tint === true;
     this.material = new MeshStandardMaterial({ color: 'white', vertexColors: true, roughness: .96, flatShading: true,
-      polygonOffset: true, polygonOffsetFactor: GROUND_INK_OFFSET, polygonOffsetUnits: GROUND_INK_OFFSET });
+      polygonOffset: true, polygonOffsetFactor: GROUND_INK_OFFSET, polygonOffsetUnits: GROUND_INK_OFFSET,
+      ...(this.tint ? { transparent: true, depthWrite: false } : {}) });
     register(this.material, { terrain: true });
     const hook = this.material.onBeforeCompile, key = this.material.customProgramCacheKey();
     this.material.onBeforeCompile = function(shader, renderer) {
@@ -289,18 +739,23 @@ export class PaintedGroundLayer {
         const terrain = (terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as BufferGeometry[];
         let pieces: BufferGeometry[] = [];
         try {
-          pieces = projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
+          pieces = this.tint
+            ? marks.flatMap(mark => (projectMarkings(terrain[0], [mark]) as BufferGeometry[]).map(piece => fadeGeometry(piece, mark.fade)))
+            : projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
           for (const mark of marks) if (mark.deck !== undefined) {
             const positions: number[] = [], colors: number[] = [];
-            // Face up, independently of the path's direction.
-            const polygon = [...mark.polygon];
-            const area = polygon.reduce((sum, p, i) => { const q = polygon[(i + 1) % polygon.length]!; return sum + p[0] * q[1] - q[0] * p[1]; }, 0);
-            if (area > 0) polygon.reverse();
-            for (let i = 1; i < polygon.length - 1; i++) for (const p of [polygon[0]!, polygon[i]!, polygon[i + 1]!]) {
-              positions.push(p[0], mark.deck + mark.lift, p[1]); colors.push(mark.color.r, mark.color.g, mark.color.b);
+            // Face up, independently of the path's direction. A ruled border
+            // (the visual test version's switch 3) gives each corner its own
+            // height; a bridge deck is level.
+            const corners = mark.polygon.map((p, i) => ({ p, y: (mark.heights?.[i] ?? mark.deck!) + mark.lift }));
+            const area = corners.reduce((sum, { p }, i) => { const q = corners[(i + 1) % corners.length]!.p; return sum + p[0] * q[1] - q[0] * p[1]; }, 0);
+            if (area > 0) corners.reverse();
+            for (let i = 1; i < corners.length - 1; i++) for (const { p, y } of [corners[0]!, corners[i]!, corners[i + 1]!]) {
+              positions.push(p[0], y, p[1]); colors.push(mark.color.r, mark.color.g, mark.color.b);
             }
             const geometry = new BufferGeometry(); geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new Float32BufferAttribute(colors, 3)); geometry.computeVertexNormals(); pieces.push(geometry);
+            geometry.setAttribute('color', new Float32BufferAttribute(colors, 3)); geometry.computeVertexNormals();
+            pieces.push(this.tint ? fadeGeometry(geometry, mark.fade) : geometry);
           }
         }
         finally { terrain.forEach(g => g.dispose()); }

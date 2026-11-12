@@ -2240,6 +2240,68 @@ interface View3DData {
   abacus: AbacusSpec;
   units: UnitStyleSpec;
   painted: PaintedSpec;
+  visualTest: VisualTestSpec;
+}
+
+/**
+ * The tunables of the visual test version (batch V1, `docs/flags.md` item
+ * (nnnnnnn)). Each block belongs to one switch in `visualTest.ts`, and
+ * `visualTestLook.ts` reads them. Colours are written out as hex strings here
+ * because this is a test version: when the user picks the looks to keep, the
+ * kept colours move into the palette.
+ */
+export interface VisualTestSpec {
+  /** Frames a second the board draws while something on it moves by itself. */
+  motionFps: number;
+  sea: {
+    shallow: string; coast: string; ocean: string; deep: string; lake: string;
+    shoreReach: number; edgeReach: number; coastRange: number; deepRange: number; edgeSoftness: number;
+    shelfLine: string; shelfLineInset: number; shelfLineWidth: number; shelfLineStrength: number;
+    foam: string; foamOffset: number; foamWidth: number; foamStrength: number; foamBreak: number;
+    patch: number; glint: string; glintStrength: number; glintSpeed: number;
+    /** The land painter's brush lattice, reused for the coast against the ocean. */
+    brushed: boolean; brushSpacingX: number; brushSpacingZ: number;
+    edgeWobble: number; edgeWobbleScale: number; edgeFine: number; edgeBand: number; edgeBandTone: number;
+    sand: string; waveSlope: number; waveScale: number; waveSpeed: number; glintPower: number; glintTilt: number; sheen: number;
+  };
+  /** The master tunable of the north-star look: `false` gives back the study's land palette, its cross-hex strokes and its sparse open land. */
+  northStar: boolean;
+  /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
+  props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number };
+  /** Switch 11: each hex reads as a tile: only its own terrain's strokes, and a fine groove with a light lip at its edge. */
+  tiles: { clean: boolean; width: number; soft: number; dark: number; lipWidth: number; light: number };
+  /** Switch 9: the contact shade pass, made stronger and wider, with a cool tint. */
+  grounding: { intensity: number; radius: number; tint: string };
+  /** Switch 10: a rim light on things that stand up, and a deeper, cooler shade. */
+  light: { rim: string; rimStrength: number; rimPower: number; rimInShade: number; shadeDeepen: number; shadeTint: number[] };
+  rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number };
+  borders: {
+    holeMax: number; fillNeighbours: number; fillPasses: number;
+    tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number;
+    /** The `ruled` and `wash` border styles. */
+    ruledLift: number; washWidth: number; washAlpha: number; inkWidth: number;
+  };
+  pins: { nearPixels: number; farPixels: number; farScale: number; improvedScale: number; improvedFade: number; fadeTo: string };
+  clouds: { scale: number; speed: number; cover: number; softness: number; strength: number };
+  idle: {
+    bobHeight: number; bobSpeed: number; bobRoll: number;
+    smokePuffs: number; smokeAt: number[]; smokeRise: number; smokeSize: number; smokeSpeed: number; smokeDrift: number; smokeColor: string;
+    flagWave: number; flagSpeed: number;
+  };
+  /** Switch 4: the painted river ribbon (`organicRivers.js`). */
+  organicRivers: {
+    smoothing: number; step: number; wander: number; wanderWave: number; wanderFade: number;
+    width: number; widthGrow: number; growLength: number; sourceWidth: number; sourceTaper: number;
+    mouthFlare: number; mouthLength: number; bank: string; bankWidth: number; water: string; shine: string;
+    shineFrom: number; shineTo: number; lift: number; propClearance: number;
+  };
+  /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
+  organicRoads: {
+    step: number; pull: number; wander: number; edgeShift: number; forkAt: number; forkPull: number;
+    bedWidth: number; coreWidth: number; bed: string; core: string; capSides: number;
+    shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
+    bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
+  };
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -2897,6 +2959,8 @@ export const VIEW3D: View3DData = {
   // `paintedLook.js`, `paintedBoard.js` and `terrainStudy/lighting.js`, and a
   // clamp here would quietly disagree with the sheet a device profile edits.
   painted: viewJson.painted,
+  // The visual test version's tunables, passed through whole. See `VisualTestSpec`.
+  visualTest: viewJson.visualTest,
 };
 
 // --- colour maths ----------------------------------------------------------

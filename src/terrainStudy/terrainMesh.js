@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE } from './surface.js';
+import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE, riverStyleKey } from './surface.js';
 import { flatWater } from './water.js';
 
 // A small library of irregular triangulations avoids concentric hex fans.
@@ -39,7 +39,7 @@ function triangulate(points) {
 const topologies=new Map();
 function topology(tile,distant=false) {
   const variant=(tile.col*3+tile.row*5)%8;
-  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}`;
+  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}:${riverStyleKey()}`;
   if(topologies.has(key))return topologies.get(key);
   const shape=tileShape(tile),points=[],toes=[];
   // Explicit vertices on the crest and toe keep river cuts straight. Sampling
