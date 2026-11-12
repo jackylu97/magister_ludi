@@ -26,7 +26,7 @@ import { SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture'
 export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
   let view: SceneView = Object.prototype.hasOwnProperty.call(SCENE_VIEWS, params.get('view') ?? '') ? params.get('view') as SceneView : 'overview';
-  let light = params.get('light') ?? 'day';
+  let light = params.get('light') ?? 'soft';
   let still = params.get('still') !== '0';
   into.style.cssText = 'position:fixed;inset:0;margin:0;padding:0;max-width:none;width:100vw;height:100vh;background:#d7cebc';
   const canvas = document.createElement('canvas');
@@ -79,7 +79,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   };
   const title = document.createElement('strong'); title.textContent = 'Visual test scene'; panel.append(title);
   row('View', select('scene-view', Object.entries(SCENE_VIEWS).map(([key, one]) => [key, one.label] as const), view, value => { view = value as SceneView; frame(); }));
-  row('Light', select('scene-light', [['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
+  row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
     value => { light = value; renderer.setDaylight(value); }));
   const hold = document.createElement('input'); hold.type = 'checkbox'; hold.id = 'scene-still'; hold.checked = still;
   hold.onchange = () => { still = hold.checked; renderer.setClock(still ? 12 : null); writeUrl(); };

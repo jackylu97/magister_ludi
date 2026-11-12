@@ -2262,7 +2262,7 @@ export interface VisualTestSpec {
     /** The land painter's brush lattice, reused for the coast against the ocean. */
     brushed: boolean; brushSpacingX: number; brushSpacingZ: number;
     edgeWobble: number; edgeWobbleScale: number; edgeFine: number; edgeBand: number; edgeBandTone: number;
-    sand: string; waveSlope: number; waveScale: number; waveSpeed: number; glintPower: number; glintTilt: number; sheen: number;
+    sand: string; beachFalloff: number; beachStrength: number; waveSlope: number; waveScale: number; waveSpeed: number; glintPower: number; glintTilt: number; sheen: number;
   };
   /** The master tunable of the north-star look: `false` gives back the study's land palette, its cross-hex strokes and its sparse open land. */
   northStar: boolean;

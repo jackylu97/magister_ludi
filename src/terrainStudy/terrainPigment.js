@@ -16,8 +16,8 @@ const LAND={
  },
  soft:{
   base:{oasis:'#8fae68',floodplain:'#a9bd76',grassland:'#98b26f',plains:'#cdbf84',desert:'#e6d3a4',tundra:'#a3ab98',snow:'#eaeeee',mountain:'#969bb0'},
-  dry:{grassland:'#a9b877',plains:'#d8c98f',desert:'#eedcae',tundra:'#b1b4a0',snow:'#f0efe9',mountain:'#aba99e',oasis:'#a1b676',floodplain:'#b6c383'},
-  rich:{grassland:'#86a364',plains:'#bcb277',desert:'#dcc898',tundra:'#939f93',snow:'#dfe6ea',mountain:'#859894',oasis:'#7fa462',floodplain:'#98b06c'},
+  dry:{grassland:'#a1b573',plains:'#d3c48a',desert:'#ead8aa',tundra:'#abb09c',snow:'#edefeb',mountain:'#a2a3a6',oasis:'#99b270',floodplain:'#b0c07d'},
+  rich:{grassland:'#8eaa69',plains:'#c4b87d',desert:'#e0cd9d',tundra:'#9aa495',snow:'#e4eaec',mountain:'#8d99a1',oasis:'#86a865',floodplain:'#a0b670'},
  },
 }[NORTH_STAR?'soft':'study'];
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};

@@ -63,6 +63,8 @@ export const VTEST_UNIFORMS = {
   vtestSeaEdge: { value: new Vector4(sea.edgeWobble, sea.edgeWobbleScale, sea.edgeFine, sea.edgeBand) },
   vtestSeaEdgeTone: { value: sea.edgeBandTone } as IUniform<number>,
   vtestSeaSand: { value: new Color(sea.sand) },
+  /** beachFalloff, beachStrength. */
+  vtestSeaBeach: { value: new Vector2(sea.beachFalloff, sea.beachStrength) },
   /** waveSlope, waveScale, waveSpeed, glintPower. */
   vtestSeaWave: { value: new Vector4(sea.waveSlope, sea.waveScale, sea.waveSpeed, sea.glintPower) },
   /** The glint's colour times its strength. */
@@ -131,7 +133,7 @@ float vtestNoise(vec2 p) {
 export const SEA_UNIFORMS: readonly UniformName[] = [
   'vtestSea', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
-  'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
+  'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
 
 /**
@@ -181,6 +183,12 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
   if (deep < 0.0) paint = vtestSeaLake;
   // The shore: the water pales toward land, and ends in one soft light line.
   paint = mix(paint, vtestSeaShallow, exp(-shore * vtestSeaFoamShape.x) * .7);
+  // A beach: wet sand shows under the last of the water, with a slow, uneven
+  // reach so the shore is not a copy of the hex line. Then one thin pale line
+  // where the water ends.
+  float reach = 1.0 + (vtestNoise(p * 1.6) - .5) * .9;
+  float sand = exp(-shore * vtestSeaBeach.x / reach);
+  paint = mix(paint, vtestSeaSand, clamp(sand * vtestSeaBeach.y, 0.0, 1.0));
   float lip = exp(-shore * vtestSeaFoamShape.y);
   paint = mix(paint, vtestSeaFoam, clamp(lip * vtestSeaFoamShape.z, 0.0, 1.0));
   // Ripples: short pale strokes, few and slow, each fading in and out.

@@ -1211,8 +1211,8 @@
       "shelfLineStrength": 0,
       "foam": "#f5f2e3",
       "foamOffset": 3.2,
-      "foamWidth": 20,
-      "foamStrength": 0.9,
+      "foamWidth": 42,
+      "foamStrength": 0.75,
       "foamBreak": 0.45,
       "patch": 0.03,
       "glint": "#dff0ec",
@@ -1226,13 +1226,15 @@
       "edgeFine": 0.2,
       "edgeBand": 0.34,
       "edgeBandTone": 0.42,
-      "sand": "#d9c9a0",
+      "sand": "#ead9ae",
       "waveSlope": 0.5,
       "waveScale": 2.4,
       "waveSpeed": 0.22,
       "glintPower": 520,
       "glintTilt": 0.28,
-      "sheen": 0.35
+      "sheen": 0.35,
+      "beachFalloff": 9.0,
+      "beachStrength": 0.95
     },
     "rivers": {
       "crestCut": 0.068,

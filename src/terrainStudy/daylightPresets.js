@@ -29,6 +29,17 @@ export const daylightPresets={
    shadow:[.30,.39,.58],shadowLift:[.006,.011,.024],desaturate:[0,.12,.55],
    faces:[.40,.64],ground:[.10,.85],castFill:.28}),
  },
+ // The north-star light (the visual test, 2026-11-12): a warm sun a little lower
+ // than day, with cast shadows that are lighter, softer and gently violet, so
+ // the flat matte tiles stay calm and things still sit on the ground.
+ soft:{
+  label:'Soft afternoon',note:'Warm light · light violet shade',sunOffset:[2.0,2.5,-1.3],
+  sun:'#ffe9c6',strength:3.3,sky:'#b7c9ee',earth:'#b1a688',fill:.75,environment:.72,
+  shadowIntensity:.58,shadowRadius:4.5,background:'#d7cebc',
+  paint:paint({sun:[1.62,1.41,1.17],water:[1.03,1.08,1.16],fill:[.56,.70,.92],fillLift:[.006,.010,.018],
+   shadow:[.44,.49,.68],shadowLift:[.008,.012,.024],desaturate:[0,.10,.40],
+   faces:[.32,.64],ground:[.08,.80],castFill:.46}),
+ },
  golden:{
   label:'Golden hour',note:'Amber light · blue-violet shade',sunOffset:[2.35,1.75,-1.4],
   sun:'#ffcd91',strength:3.6,sky:'#9aaee2',earth:'#bba17f',fill:.65,environment:.56,
