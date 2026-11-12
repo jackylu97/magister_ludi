@@ -19,6 +19,18 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
+The user: *"i want to explore ways of making the game more visually appealing, without increasing the rendering costs too significantly."* The assistant looked at 20 screenshots of a turn-80 game (`scratchpad/shots2/`) and proposed ten ideas. The user approved the first six and asked: *"Could you make a test version for me to visually inspect"*.
+1. **Sea with depth and motion** (*"yes, this is worth working on, we also need to distinguish ocean and coast tiles"*). Water is darker away from land, the hard pale ring at the coast becomes a soft foam line, and slow glints move on it. **Coast and ocean must read as two different kinds of hex at a glance**, because the rules treat them differently (embarking, Open Ocean).
+2. **Thinner rivers with banks** (*"this would be great"*). About half the width, a light bank line, slightly rounded corners. A river must still read clearly as a river on a hex edge.
+3. **One border, at the edge** (*"great"*). The strong line only where an empire's land ends, and a faint inner tint. Worked and locked hex marks are a different layer and stay.
+4. **Ground detail on flat terrain** (*"great"*). Dune ridges on desert, grass tufts on plains, drift lines on snow, painted once when the board builds.
+5. **A cleaner fog** (*"great"*). Remembered ground takes a cool, pale paper tint with a light hatch, in place of the brown wash.
+6. **Quieter pins** (*"great"*). Resource pins shrink when zoomed out, the pin fades on a hex the empire has already improved, and unit badges stay strongest.
+- **Cost rule:** no full-screen pass, no new per-frame rebuild, no new draw call per hex. Each change is a shader, a colour, a line width or something painted once.
+- **Test version:** each of the six is an option the player can switch on and off, so the two looks can be compared in the same view. Defaults are decided after the user has looked.
+- Not ruled: ideas 7 to 10 (unit silhouettes, cloud shadows, idle motion, light by age).
+
 **(mmmmmmm) Great people: cheaper to earn, odds on the Renown tab, and legacy changes: RULED 2026-11-12; batch GP1 queued.**
 The user, 2026-11-11: *"i think we need to slightly nerf some of the great people, and also make them slightly easier to earn. The renown tab should show the current percentage odds somewhere of what great people are going to be available to draft. let's make great people generally 25% faster to earn (with the same starting cost) and then start an artifact with some proposed changes (they should feel roughly similar in power for their situational use case, generally powerful great people should be nerfed)."* The proposal page is https://claude.ai/artifact/4HePmSDpo2ahSPhV4uM8qY. On 2026-11-12 the user commented on it and wrote *"ok i made comments on the great people doc, please schedule those changes for subagents"*. Reading taken: a row with no comment is approved as proposed.
 - **Renown prices.** The user's comment replaces the 25% ruling: *"on second thought, lets increase by 80% total, instead of 4 great people at 2000 renown lets make it 7"*. So `rules.renown.linear` goes from 180 to **58**; `base` 75 and `exponent` 2.65 stay. The first eight prices become 75, 134, 197, 267, 346, 436, 538, 654 (they are 75, 256, 441, 633, 834, 1046, 1270, 1508). Seven people cost 1,993 renown in all.
