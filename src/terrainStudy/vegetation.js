@@ -2,14 +2,19 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
+import {NORTH_STAR_TREES} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
 // two cypresses, three escarpments, then the limestone block. `family` is the
 // name the distance sheet calls a group of them by; it is not in the bundle,
 // which indexes by `name` alone.
+// The north-star look (the visual test, 2026-11-12) loads the round trees of
+// `build_soft_trees.py`; otherwise the study's sculpts. Each set has its own
+// prepared bundle.
+const TREES=NORTH_STAR_TREES?'soft':'sculpt';
 export const VEGETATION_SPECIES=[
- ...[0,1,2].map(i=>({name:`grove-sculpt-${i}`,evergreen:false,rock:false,family:'groves'})),
- ...[0,1].map(i=>({name:`cypress-sculpt-${i}`,evergreen:true,rock:false,family:'groves'})),
+ ...[0,1,2].map(i=>({name:`grove-${TREES}-${i}`,evergreen:false,rock:false,family:'groves'})),
+ ...[0,1].map(i=>({name:`cypress-${TREES}-${i}`,evergreen:true,rock:false,family:'groves'})),
  ...[0,1,2].map(i=>({name:`escarpment-${i}`,evergreen:false,rock:true,family:'escarpments'})),
  {name:'limestone',evergreen:false,rock:true,family:'stones'},
 ];
@@ -18,7 +23,7 @@ export const VEGETATION_SPECIES=[
 // `scripts/terrain-study/build_asset_bundle.mjs` runs it once and ships the
 // result. The runtime keeps this path as the fallback for a missing or
 // out-of-date bundle, and it is the definition the bundle is pinned against.
-export const VEGETATION_BUNDLE_VERSION='vegetation-1';
+export const VEGETATION_BUNDLE_VERSION=TREES==='soft'?'vegetation-soft-1':'vegetation-1';
 export const VEGETATION_BUNDLE_URL=`/terrain-study/asset-bundle/${VEGETATION_BUNDLE_VERSION}.bundle`;
 const BUNDLE_MAGIC='MLAB';
 
