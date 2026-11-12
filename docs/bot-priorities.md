@@ -139,6 +139,49 @@ until the tuner's first run):
 - **Retired** (the `weights.die` precedent — a live arena box that moved
   nothing): `military.huntRadius`, `score.nominalTiles`.
 
+**The threat count and the soldiers a seat can pay for** (bot pass 3, batch
+BP1; `docs/flags.md` (ooooooo) P1 and P2; the audit is
+`docs/audit/bot-pass-3-competitiveness.md` §3.1 and §3.2):
+
+- **Who counts in the threat** (`threatLevel`, `threatWeights`, `bot.ts`). A
+  piece of the wild, or of an empire at war with the seat, counts as one. A
+  peaceful neighbour's piece counts as `threat.peaceShare` (0.25) times that
+  neighbour's lean toward a war on the seat. The lean is `declarationLean`
+  (`diplomacy.ts`): the first clause of the neighbour's own declaration, its
+  marching strength against the seat's army times its appetite, over its bar,
+  from 0 to 1. The disband arm's threatened-town test reads the same weights.
+- **A floor of one defender a town.** `garrisonOwed` is at least one, and the
+  levy is at least one soldier a town. An empty town always trains its
+  defender.
+- **The soldier forecast** (`armySupport.ts`). `soldiersCarried` is the disband
+  arm's own test (`wouldDisband`) solved for the number of soldiers: how many
+  more at a given wage the net, the treasury, the soldiers already queued and
+  `solvency.supportMargin` (1 gold a turn) can pay for. The build arm refuses a
+  soldier past it (`unpaidSoldier`) unless the town is empty. Under a real
+  threat (a war with an empire, or a hostile piece within
+  `threat.underAttackRadius` (2) of a town) the line moves: the seat may train
+  past the disband line, but not past the point where its treasury would reach
+  nought within `solvency.recruitRunwayTurns`, where the disband arm lets even a
+  new unit go. A bought soldier past the line is worth nothing in the gold book.
+- **Gold is dearer while the levy waits on the income** (`armyWageRow`,
+  `wants.ts`). When the levy wants more soldiers than the gold pays for, the
+  gold book holds a row (`holding: 'army'`) toward the next soldier's wage,
+  worth that soldier's levy craving, priced at the wage over `score.lumpTurns`.
+  It moves gold's shadow price through the one mechanism, `priceOf`.
+- **A new unit is kept.** The disband arm does not let go of a unit raised in
+  the last `solvency.keepRecruitsTurns` (10) turns unless the net is under
+  nought and the treasury would reach nought within
+  `solvency.recruitRunwayTurns` (3). How old a unit is comes from the muster
+  roll (`musterRoll.ts`), a harness memory beside the state: one mark a turn of
+  the next entity id. Under a real threat the disband arm lets no piece go at
+  all until the treasury would reach nought within that same window, the line
+  the build arm trains to then; without it, seats at war trained a soldier a
+  turn and shed an old one a turn.
+- **The books are read once a turn.** A sitting reads its net gold and its
+  payroll once (`seatBooks`, `BotSitting.books`); every later reading in the
+  turn moves the net by what the payroll has done since (`netNow`). The disband
+  arm used to price every town before every decision.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

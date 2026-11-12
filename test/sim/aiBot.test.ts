@@ -1330,8 +1330,16 @@ describe('the bot module', () => {
     // seats in which chair, and how it weighs a charter's faces. It is not a
     // leaf: it and `bot.ts` call each other inside functions, and
     // `aiModuleCycles.test.ts` loads each first to prove that is safe.
+    //
+    // Twenty-four since batch BP1 (2026-11-12, bot pass 3, P2): `armySupport.ts`
+    // is the leaf that says how many soldiers a seat's gold can pay for, read
+    // the way the disband arm reads it, so the build arm, the disband arm and
+    // the want book share one forecast. `musterRoll.ts` is the third memory
+    // beside the state: it dates the units a seat raised, so the disband arm can
+    // keep a new one. It is listed in `harnessMemory.ts` with the other two.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
+      'armySupport.ts',
       'bot.ts',
       'campaign.ts',
       'chain.ts',
@@ -1343,6 +1351,7 @@ describe('the bot module', () => {
       'driver.ts',
       'ground.ts',
       'harnessMemory.ts',
+      'musterRoll.ts',
       'plan.ts',
       'prices.ts',
       'routes.ts',

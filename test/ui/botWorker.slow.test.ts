@@ -12,6 +12,15 @@
  * called (the first on turn 50), 15 papers the person put to a bot, and 18
  * refusals in the deal memory.
  *
+ * Seed 30 since batch BP1 of bot pass 3 (the threat count and the soldiers a
+ * seat can pay for): 22 towns founded, 93 attacks, 20 deals put, 3 of them
+ * accepted and 17 refused, 1 great person called, 9 papers the person put to a
+ * bot, and 17 refusals in the deal memory. On seed 26 the bots now put 32 deals
+ * in sixty turns and accept none, so the game no longer reaches an accepted
+ * deal; the page and the worker still played it to the same log and the same
+ * digests. Of seeds 26 to 37, five reach all six command kinds (27, 30, 34, 35,
+ * 37), and seed 30 has the most papers from the person among them.
+ *
  * Seed 888, used before, no longer calls a great person in sixty turns. A
  * great person needs Ancestor Rites, which the Epic Poetry technology grants.
  * On seed 888 the first seat now learns it on turn 66, so the first call comes
@@ -42,7 +51,7 @@ import { dealMemorySize } from '../../src/ai/dealMemory';
 import { rosterFor } from '../../src/ui/gameSetup';
 import { playWithBotsThinking } from './botWorkerHelpers';
 
-const CONFIG = { seed: 26, sizeName: 'standard', players: rosterFor(6), barbarians: true };
+const CONFIG = { seed: 30, sizeName: 'standard', players: rosterFor(6), barbarians: true };
 const TURNS = 60;
 const PATIENCE = 15 * 60 * 1000;
 

@@ -207,7 +207,10 @@
     "minArmy": 2,
     "disbandBelowIncome": 0,
     "graceTreasury": 40,
-    "graceTurns": 25
+    "graceTurns": 25,
+    "supportMargin": 1,
+    "keepRecruitsTurns": 10,
+    "recruitRunwayTurns": 3
   },
   "score": {
     "unknownEffect": 2,
@@ -334,7 +337,9 @@
     "techMilitaryFactor": 3,
     "armyPerSightedCamp": 0.5,
     "armyPerSightedHostile": 0.34,
-    "sightedArmyCap": 4
+    "sightedArmyCap": 4,
+    "peaceShare": 0.25,
+    "underAttackRadius": 2
   },
   "research": {
     "goalHorizon": 6,

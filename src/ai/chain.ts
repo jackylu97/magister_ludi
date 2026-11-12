@@ -1307,7 +1307,13 @@ function unitTerm(unit: UnitTypeId, ctx: ValueContext, levy: LevyReading): Value
     // the levy to answer it*, and one library otherwise.
     const short = Math.min(1, levy.wanted <= 0 ? 0 : levy.shortfall / levy.wanted);
     const full = Math.max(1, ai.threat.techMilitaryFactor);
-    const factor = ctx.threat > 0 ? Math.max(1, full * short) : 1;
+    // **A part of a column is part of the swing** (batch BP1): since a peaceful
+    // neighbour's soldier counts as a share of one (`threatLevel`), the threat
+    // is not always a whole number. One piece or more swings the whole factor,
+    // as before; a share swings that share of it, so a single neighbour's
+    // spearman at a fifth of a piece no longer triples a military node.
+    const swing = Math.max(1, full * short);
+    const factor = ctx.threat >= 1 ? swing : ctx.threat > 0 ? 1 + (swing - 1) * ctx.threat : 1;
     const parts = [...soldier.terms];
     if (factor !== 1) {
       parts.push({

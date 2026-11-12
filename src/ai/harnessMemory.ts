@@ -1,10 +1,11 @@
 /**
  * The bot memories that live beside the state rather than in it, as one value.
  *
- * Two bot memories hang off the live state object in a `WeakMap` instead of
- * being saved: the refusal memory (`dealMemory.ts`) and the war windows
- * (`warLedger.ts`). Both read the rulings in their own docblocks: they are not
- * facts about the world, so a save does not carry them.
+ * Three bot memories hang off the live state object in a `WeakMap` instead of
+ * being saved: the refusal memory (`dealMemory.ts`), the war windows
+ * (`warLedger.ts`) and the muster roll (`musterRoll.ts`, which dates the units a
+ * seat raised). Each reads the rulings in its own docblock: they are not facts
+ * about the world, so a save does not carry them.
  *
  * A second copy of the same game does not carry them either, and the bot
  * worker (`src/ui/bot.worker.ts`) drives the bots on exactly such a copy: a
@@ -21,21 +22,24 @@
  */
 
 import { type DealRefusalRecord, adoptDealMemory, copyDealMemory } from './dealMemory';
+import { type MusterMark, adoptMusterRoll, copyMusterRoll } from './musterRoll';
 import { type WarLedgerEntry, adoptWarLedger, copyWarLedger } from './warLedger';
 import type { GameState } from '../sim/state';
 
 export interface HarnessMemory {
   deals: DealRefusalRecord[];
   wars: WarLedgerEntry[];
+  muster: MusterMark[];
 }
 
 /** A copy of every harness memory this state holds. Plain data: it crosses `postMessage`. */
 export function readHarnessMemory(state: GameState): HarnessMemory {
-  return { deals: copyDealMemory(state), wars: copyWarLedger(state) };
+  return { deals: copyDealMemory(state), wars: copyWarLedger(state), muster: copyMusterRoll(state) };
 }
 
 /** Makes this state's harness memories a copy of `memory`, replacing what it held. */
 export function adoptHarnessMemory(state: GameState, memory: HarnessMemory): void {
   adoptDealMemory(state, memory.deals);
   adoptWarLedger(state, memory.wars);
+  adoptMusterRoll(state, memory.muster);
 }

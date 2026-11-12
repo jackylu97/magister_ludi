@@ -1118,10 +1118,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * does different things from its first offer on. Duel `269f8ad7:313474` ->
  * `40f518d8:294143`, standard `6b717173:928115` -> `1e8bc3d3:1007901`. Nothing
  * stalled and no command was refused.
+ *
+ * Re-cut for bot batch BP1 (`docs/flags.md` (ooooooo), P1 and P2) on top of the
+ * great people prices of 5379853b. The bots weigh a peaceful neighbour's army
+ * by its intent, plan soldiers against their income, and no longer train and
+ * disband in a loop. Duel `40f518d8:294143` -> `ceba10f8:335026`, standard
+ * `1e8bc3d3:1007901` -> `eac4bef0:1038489`. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '40f518d8:294143',
-  standard: '1e8bc3d3:1007901',
+  duel: 'ceba10f8:335026',
+  standard: 'eac4bef0:1038489',
 };
 
 /**

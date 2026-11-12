@@ -93,6 +93,8 @@ const INTEGER_LEAVES = [
   'score.lumpTurns',
   'threat.radius',
   'threat.sightedArmyCap',
+  // Batch BP1: hexes from a town, a whole number like `threat.radius`.
+  'threat.underAttackRadius',
   'research.goalHorizon',
   'wager.ageTurns',
 ];

@@ -62,6 +62,8 @@
  */
 
 import type { AiConfig } from './aiConfig';
+// The seat's books, a type only: `armySupport.ts` is a leaf this file only names.
+import type { SeatBooks } from './armySupport';
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 // **Type-only, and deliberately so.** `wants.ts` reads this module's folds at
 // runtime; this module only needs to *name* the book its context carries. The
@@ -505,6 +507,14 @@ export interface ValueContext {
    */
   cities: number;
   /**
+   * **The seat's books for the sitting** (batch BP1, `docs/flags.md`
+   * (ooooooo) P2): the net gold a turn and the army's wages, read once when the
+   * sitting opened (`seatBooks`, `bot.ts`). The disband arm, the soldier forecast
+   * (`armySupport.ts`) and this context's own gold pressure all read the net from
+   * here, so they cannot disagree inside a turn.
+   */
+  books: SeatBooks;
+  /**
    * How much dearer a coin is than the weight table says, ≥ 1.
    *
    * **The collapse lever** (design ledger Entry LIX finding 1: both seats at
@@ -526,7 +536,9 @@ export interface ValueContext {
   pressureNote: string;
   /**
    * Enemy combat pieces standing within `threat.radius` of one of this empire's
-   * towns, capped. Zero in a quiet world.
+   * towns, each counted by its owner's weight (`threatLevel`, `bot.ts`): one for
+   * the wild and for an empire at war with this one, a share for a peaceful
+   * neighbour's (batch BP1). Zero in a quiet world, and not always a whole number.
    */
   threat: number;
   /**
@@ -887,7 +899,7 @@ export function explainBuildingRow(
     // A wall is worth what a soldier's worth of strength is worth, scaled by how
     // much this empire currently minds being attacked.
     terms.push({
-      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${1 + ctx.threat} threat`,
+      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${round(1 + ctx.threat)} threat`,
       value: def.cityStat.amount * ctx.ai.weights.military * (1 + ctx.threat),
     });
   }
@@ -947,7 +959,7 @@ export function explainBuildingRow(
     terms.push({
       label:
         `${signed(hp)} town hit points — ${round(share)} of the town’s bar × ` +
-        `${round(defence)} what its defence is worth × ${1 + ctx.threat} threat`,
+        `${round(defence)} what its defence is worth × ${round(1 + ctx.threat)} threat`,
       value: share * defence * (1 + ctx.threat),
     });
   }
@@ -1165,7 +1177,7 @@ function rowCharterTerms(
     terms.push({
       label:
         `${round(heal)} mended a turn beside it — ${round(share)} of a piece × ` +
-        `${ctx.ai.weights.military} × ${ctx.ai.score.combatScale} × ${1 + ctx.threat} threat`,
+        `${ctx.ai.weights.military} × ${ctx.ai.score.combatScale} × ${round(1 + ctx.threat)} threat`,
       value: share * ctx.ai.weights.military * ctx.ai.score.combatScale * (1 + ctx.threat),
     });
   }
@@ -1491,7 +1503,7 @@ export function explainSoldier(id: UnitTypeId, ctx: ValueContext): Appraisal {
   return appraise([
     { label: `${strength} strength × ${ctx.ai.weights.military}`, value: strength * ctx.ai.weights.military },
     {
-      label: `${ctx.threat} enemy pieces near a town × ${ctx.ai.threat.militaryBonus}`,
+      label: `${round(ctx.threat)} enemy pieces near a town × ${ctx.ai.threat.militaryBonus}`,
       value: ctx.threat * ctx.ai.threat.militaryBonus,
     },
   ]);

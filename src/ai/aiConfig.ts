@@ -1124,6 +1124,28 @@ export interface AiConfig {
     graceTreasury: number;
     /** Turns of a game the grace applies for. Absolute, never a countdown. */
     graceTurns: number;
+    /**
+     * **Gold a turn the soldier forecast keeps spare** (batch BP1, P2). The build
+     * arm trains a soldier only while the seat's income and treasury can pay its
+     * wage without the disband arm letting a piece go (`armySupport`). The
+     * forecast takes this many coins a turn off the income first, so a soldier
+     * that would leave the books exactly on the disband line is not trained.
+     */
+    supportMargin: number;
+    /**
+     * **Turns a newly raised unit is kept** (batch BP1, P2). The disband arm does
+     * not let go of a unit raised within this many turns, unless the net is
+     * below nought and the treasury would run out within `recruitRunwayTurns`.
+     * This stops a seat from training a soldier one turn and disbanding it the
+     * next. How old a unit is comes from the muster roll (`musterRoll.ts`).
+     */
+    keepRecruitsTurns: number;
+    /**
+     * **The exception to `keepRecruitsTurns`**: a seat whose net is below nought
+     * and whose treasury would reach nought within this many turns may let a new
+     * unit go after all, because the creditors would take one anyway.
+     */
+    recruitRunwayTurns: number;
   };
   /** The nominal stand-ins an appraisal uses where a row states a rate. */
   score: {
@@ -1810,6 +1832,25 @@ export interface AiConfig {
     armyPerSightedCamp: number;
     armyPerSightedHostile: number;
     sightedArmyCap: number;
+    /**
+     * **How much a peaceful neighbour's soldier counts in the threat count**
+     * (batch BP1, `docs/flags.md` (ooooooo) P1). The wild's pieces and the pieces
+     * of an empire at war with this seat count as one each. A piece of an empire
+     * at peace counts as this share times that empire's lean toward a war on
+     * this seat (`declarationLean`, `diplomacy.ts`), which runs from 0 to 1.
+     * Nought makes a peaceful army count for nothing, which is what the levy's
+     * own reading (`sightedThreat`) has always done.
+     */
+    peaceShare: number;
+    /**
+     * **Hexes from a town at which a hostile piece puts the town under attack**
+     * (batch BP1, P2). A town under attack, or a war with another empire, lifts
+     * the limit on how many soldiers the seat trains past what its gold can pay
+     * for (`armySupport`). It is narrower than `radius` on purpose: the wild's
+     * pieces wander inside four hexes of some town most turns, and a limit that
+     * any passing raider lifted would not be a limit.
+     */
+    underAttackRadius: number;
   };
   /** The beeline: how far ahead a goal may sit, and what its gifts are worth. */
   research: {

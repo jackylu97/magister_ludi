@@ -815,6 +815,11 @@ describe('the wanted army reads what the seat has sighted', () => {
       piece.fortifiedTurns = 0;
     }
     for (const [col, row] of camps) state.camps.push({ col, row, foundedTurn: 0 });
+    // **A treasury that pays the levy** (batch BP1, `docs/flags.md` (ooooooo)
+    // P2). The bench used to hold no gold, and a soldier the gold cannot pay for
+    // is now refused outright (`unpaidSoldier`), which is not the claim here: the
+    // claim is what the levy's sighted appetite charges, so the books carry it.
+    state.players[0]!.gold = 500;
     recomputeAllVisibility(state);
     return state;
   }
@@ -2281,9 +2286,15 @@ describe('the wage-aware levy', () => {
   it('wants fewer spears when the treasury is broke than when it is not', () => {
     // The wage is charged at gold's shadow price, once, in `push` — so the same
     // piece on the same board costs a bleeding empire more than a solvent one.
+    // **Since batch BP1** (`docs/flags.md` (ooooooo) P2) the broke seat goes
+    // further and does not train it at all: its gold cannot pay the wage without
+    // the disband arm letting a piece go, so the row is refused with the reason
+    // (`unpaidSoldier`), where the solvent seat's row is scored as before.
     const rich = warrior(levied(1, 400));
     const broke = warrior(levied(1, 0));
-    expect(broke.score).toBeLessThan(rich.score);
+    expect(rich.rejected).toBeUndefined();
+    expect(foldTerms(rich.terms)).toBe(rich.score);
+    expect(broke.rejected).toMatch(/cannot pay its wage/);
   });
 
   it('wants more of them when a column is at the gate', () => {

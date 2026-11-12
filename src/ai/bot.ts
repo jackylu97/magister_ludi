@@ -57,9 +57,10 @@
  *     says so.** At `military.aggression` 0 — which is every persona but one —
  *     it hunts the wild, garrisons its towns and never once attacks another
  *     nation's unit or city. It does *defend* against one: a rival's column
- *     standing near a town raises the threat term like a raider's would
- *     (`threatLevel`), because declining to notice an army is not diplomacy, it
- *     is negligence. Above zero, the warmonger's arm wakes: soldiers hunt a
+ *     standing near a town raises the threat term (`threatLevel`), because
+ *     declining to notice an army is not diplomacy, it is negligence. Since
+ *     batch BP1 a column of a rival at peace counts at a share scaled by how
+ *     close that rival is to declaring, and a column at war counts in full. Above zero, the warmonger's arm wakes: soldiers hunt a
  *     rival's pieces and push at their towns with the campaign (`campaignPlan`),
  *     at exchanges loosened by the appetite (`favourableBlow`, `campaignMarch`).
  *
@@ -147,7 +148,21 @@ import {
   reslotDecision,
   slottingDecision,
 } from './council';
-import { diplomacyDecision, explainWarScore } from './diplomacy';
+import { declarationLean, diplomacyDecision, explainWarScore } from './diplomacy';
+// What the seat's gold can pay for, read the way the disband arm reads it
+// (batch BP1, P2), and the muster roll that dates the units it raised.
+import {
+  type ArmySupport,
+  type SeatBooks,
+  armySupport,
+  headedIntoArrears,
+  limitedSoldier,
+  netNow,
+  payrollOf,
+  realThreat,
+  soldiersCarried,
+} from './armySupport';
+import { markMusterTurn, raisedWithin } from './musterRoll';
 import { type TileContextField, tileContextField } from './ground';
 import {
   type Appraisal,
@@ -437,7 +452,16 @@ function aiFor(player: Player): AiConfig {
  * — a context that outlived its loop would appraise against a treasury the state
  * has moved past.
  */
-export function valueContext(state: GameState, player: Player): ValueContext {
+export function valueContext(
+  state: GameState,
+  player: Player,
+  /**
+   * The seat's books for its sitting, when a sitting has already read them
+   * (`seatBooks`, batch BP1). Without them the context reads its own, which is
+   * what every caller outside a sitting gets.
+   */
+  books?: SeatBooks,
+): ValueContext {
   const ai = aiFor(player);
   // One reading of the empire's books for the whole context — the pressure, the
   // wage cover and both saving rates come out of it, and asking three times
@@ -447,7 +471,10 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // build delay is priced off, and the busiest one the great work would be
   // raised in (`townProduction`, batch 5).
   const hammers = townProduction(state, player.id);
-  const netGold = rates.goldPerTurn ?? 0;
+  // The net comes from the sitting's books (batch BP1), so the context, the
+  // disband arm and the soldier forecast read one figure for the whole turn.
+  const ledger = books ?? readSeatBooks(state, player.id, rates.goldPerTurn ?? 0);
+  const netGold = netNow(state, player.id, ledger);
   const pressure = goldPressure(state, player, netGold);
   const age = highestAge(player.techsResearched);
   // **The prior**: the context as it read before the book existed, with each
@@ -462,6 +489,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     playerId: player.id,
     age,
     cities: countCities(state, player.id),
+    books: ledger,
     goldPressure: pressure.value,
     pressureNote: pressure.note,
     threat: threatLevel(state, player),
@@ -552,11 +580,18 @@ export function valueContext(state: GameState, player: Player): ValueContext {
       happiness: meters.notes.happiness,
     },
   };
+  // **What the seat's gold can pay for** (batch BP1, P2), read once for the
+  // book: the purse's soldier rows are limited by it, and the wage row that
+  // makes gold dearer when the levy wants soldiers the income cannot pay for is
+  // read off it.
+  const army = armySupport(state, player, ai, ledger);
   const book = wantBook(state, player, constrained, {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
-    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, staked),
+    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, staked, army),
+    army,
+    recruit: () => recruitFor(state, player, staked),
     // **The draft plan's two readings** (batch 6): the clock the meter fills at,
     // and what one Order is worth to this empire. The card is appraised at the
     // **prior**, like every other row of the book — a hand priced at the culture
@@ -691,6 +726,19 @@ export interface BotSitting {
    * town went first.
    */
   levyWeighed: Set<number>;
+  /**
+   * **The seat's books for this turn** (batch BP1, `docs/flags.md` (ooooooo)
+   * P2): the net gold a turn and the army's wages, read once when the sitting
+   * first asks (`seatBooks`) and then shared by the context, the disband arm and
+   * the soldier forecast. The disband arm used to price every town in the
+   * empire before every decision to read one number, which the audit measured
+   * at 13.4% of a late turn. Later readings in the turn move the net by what the
+   * wages have done since (`netNow`), so a unit disbanded or bought still
+   * counts.
+   */
+  books: SeatBooks | null;
+  /** How many times this sitting has read its books. One, by construction; the tests count it. */
+  booksRead: number;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -703,6 +751,8 @@ export function botSitting(playerId: number): BotSitting {
     reasked: new Map<number, number>(),
     called: new Set<number>(),
     levyWeighed: new Set<number>(),
+    books: null,
+    booksRead: 0,
   };
 }
 
@@ -715,8 +765,28 @@ export function botSitting(playerId: number): BotSitting {
  */
 export function seatContext(state: GameState, player: Player, sitting?: BotSitting): ValueContext {
   if (sitting === undefined || sitting.playerId !== player.id) return valueContext(state, player);
-  if (sitting.ctx === null) sitting.ctx = valueContext(state, player);
+  if (sitting.ctx === null) sitting.ctx = valueContext(state, player, seatBooks(state, player, sitting));
   return sitting.ctx;
+}
+
+/**
+ * **The seat's books for its sitting**: read once, then kept (batch BP1, P2).
+ * A caller with no sitting (a test, a puppet's pick) reads fresh books.
+ */
+function seatBooks(state: GameState, player: Player, sitting?: BotSitting): SeatBooks {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own !== null && own.books !== null) return own.books;
+  const books = readSeatBooks(state, player.id, netGoldPerTurn(state, player.id));
+  if (own !== null) {
+    own.books = books;
+    own.booksRead += 1;
+  }
+  return books;
+}
+
+/** The books as they read now: the net a turn, as given, and the army's wages. */
+function readSeatBooks(state: GameState, playerId: number, net: number): SeatBooks {
+  return { net, payroll: payrollOf(state, playerId) };
 }
 
 /**
@@ -883,6 +953,14 @@ function garrisonWorth(
   city: City,
   id: UnitTypeId,
   ctx: ValueContext,
+  /**
+   * What the seat's gold can pay for (batch BP1, P2). A soldier bought that the
+   * gold cannot pay for is worth nothing, by the build arm's own rule
+   * (`unpaidSoldier`). The row stays in the book at that worth, so the price of
+   * a coin does not jump when the forecast changes: batch X13's reason for
+   * keeping the garrison a term rather than a door.
+   */
+  army?: ArmySupport,
 ): Appraisal | null {
   const def = unitDef(id);
   if (!isFieldSoldier(def)) return null;
@@ -892,6 +970,9 @@ function garrisonWorth(
   const short = wanted <= 0 ? 0 : Math.max(0, Math.min(1, (wanted - held) / wanted));
   const soldier = explainSoldier(id, ctx);
   const levy = levyReading(ctx);
+  // The town's own floor first: a town short of its garrison buys its defender
+  // whatever the books say, as the build arm trains it (`unpaidSoldier`).
+  const unpaid = army === undefined || short > 0 ? null : wageRefusal(id, army, ctx.ai);
   return appraise([
     nest('what this soldier is worth', soldier),
     {
@@ -911,7 +992,37 @@ function garrisonWorth(
       // readers of the same charge; one is the old unit slope.
       value: -soldier.total * levy.standing * ctx.ai.military.levySurplusSlope,
     },
+    ...(unpaid === null ? [] : [{ label: `× 0: ${unpaid}`, value: 0, op: 'mul' as const }]),
   ]);
+}
+
+/**
+ * **The soldier this seat would raise next**, for the want book's wage row
+ * (batch BP1, P2): the strongest field soldier its capital could start today,
+ * with what it is worth (`explainSoldier`) and the wage it would draw. `null`
+ * for a seat with no capital or no soldier it can raise.
+ *
+ * Asked of the capital alone, which is a bound on compute: the book asks it
+ * once, and a roster walk through `buildError` in every town would be a walk of
+ * the whole roster per town to name one row. Ties go to roster order.
+ */
+function recruitFor(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): { name: string; wage: number; worth: Appraisal } | null {
+  const capital = capitalCityOf(state, player.id);
+  if (capital === undefined) return null;
+  let best: { id: UnitTypeId; strength: number } | null = null;
+  for (const id of UNIT_TYPE_IDS) {
+    if (!limitedSoldier(id)) continue;
+    if (buildError(state, player.id, 'unit', id, capital) !== null) continue;
+    const def = unitDef(id);
+    const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
+    if (best === null || strength > best.strength) best = { id, strength };
+  }
+  if (best === null) return null;
+  return { name: unitDef(best.id).name, wage: unitUpkeep(best.id), worth: explainSoldier(best.id, ctx) };
 }
 
 /**
@@ -925,6 +1036,9 @@ function garrisonWorth(
  * the places the real books are — the four `explainEmpireGold` lines, the debt
  * percentage, the meters' staging. There is one set of books and the bot reads
  * them.
+ *
+ * **Asked once a sitting** (batch BP1): `seatBooks` is its one caller, and it
+ * keeps the answer on the sitting for the rest of the seat's turn.
  */
 function netGoldPerTurn(state: GameState, playerId: number): number {
   return readEmpireRates(state, playerId).goldPerTurn ?? 0;
@@ -1039,29 +1153,64 @@ function goldReserveFor(state: GameState, player: Player): number {
 // the charge and its reading went.
 
 /**
- * How many enemy combat pieces are standing within `threat.radius` of one of
- * this empire's towns.
+ * The combat pieces standing within `threat.radius` of one of this empire's
+ * towns, **each counted by its owner's weight** (`threatWeights`).
  *
  * The omniscient reading, like every other search in this file, and it is the
  * creed's second clause said out loud rather than a new cheat: the successor is
  * a fog-honest read (`citySightings`), and the whole of what would change is
  * this function.
  *
- * "Enemy" is *anybody else's soldier* — the wild's raiders and a rival nation's
- * column both. The bot still never attacks a nation (the creed's fourth clause),
- * but declining to *defend* against one would be a bot that watched an army walk
- * up to its capital and started a library.
+ * **Who counts, and how much** (batch BP1, `docs/flags.md` (ooooooo) P1). This
+ * used to count anybody else's soldier as one. The audit found that by turn 150
+ * a seat counted 11 to 35 pieces of peaceful neighbours against 3.5 to 5 of the
+ * wild, and every seat armed against every other
+ * (`docs/audit/bot-pass-3-competitiveness.md` §3.1). Now the wild's pieces and
+ * the pieces of an empire at war with this one count as one each, and a
+ * peaceful neighbour's count at `threat.peaceShare` times that neighbour's lean
+ * toward a war on this seat. The bot still defends against a neighbour that
+ * looks ready to strike, which is why the share is not nought: a seat that
+ * ignored an army walking up to its capital until the war was declared would be
+ * too late. Each town keeps its one defender whatever this reads
+ * (`garrisonOwed`).
  */
 function threatLevel(state: GameState, player: Player): number {
   const ai = aiFor(player);
-  let threats = 0;
+  const weights = threatWeights(state, player);
+  let threat = 0;
   for (const unit of state.units) {
-    if (unit.ownerId === player.id) continue;
+    const weight = weights[unit.ownerId] ?? 1;
+    if (weight <= 0) continue;
     if (!isCombatant(unitDef(unit.type))) continue;
     if (nearOwnCity(state, player, unit.col, unit.row, ai.threat.radius) === null) continue;
-    threats += 1;
+    threat += weight;
   }
-  return threats;
+  return threat;
+}
+
+/**
+ * **What one combat piece of each seat counts for in this seat's threat**,
+ * indexed by seat id (batch BP1, P1): nothing for its own, one for the wild and
+ * for an empire at war with it, and `threat.peaceShare` times the neighbour's
+ * lean toward a war on this seat (`declarationLean`, `diplomacy.ts`) for an
+ * empire at peace. The readers count a piece whose owner has no seat at all as
+ * one, as the old count did: it is not a peaceful neighbour.
+ *
+ * Kept on the revision clock, `townsAreHeld`'s bargain: the threat count and the
+ * disband arm's threatened-town test both ask it, and the lean reads the
+ * neighbour's army and this seat's, which an accepted command can move.
+ */
+function threatWeights(state: GameState, player: Player): readonly number[] {
+  return slateMemo(state, 'revision', 'botThreatWeights', String(player.id), () => {
+    const share = Math.max(0, aiFor(player).threat.peaceShare);
+    const weights: number[] = [];
+    for (const other of state.players) {
+      if (other.id === player.id || other.eliminated) weights[other.id] = 0;
+      else if (atWar(state, player.id, other.id)) weights[other.id] = 1;
+      else weights[other.id] = share === 0 ? 0 : share * declarationLean(state, other, player);
+    }
+    return weights;
+  });
 }
 
 /**
@@ -1228,6 +1377,10 @@ export function nextBotDecision(
   // to act with, and a seat that has ended its turn has said so.
   if (player.barbarian || player.eliminated) return null;
   if (hasEndedTurn(state, playerId)) return null;
+  // The muster roll's mark for this turn (batch BP1): the first decision of a
+  // turn writes down the next entity id, so the disband arm can tell a unit
+  // raised in the last few turns from an old one. See `musterRoll.ts`.
+  markMusterTurn(state);
 
   const blocker = firstBlocker(state, playerId);
   // **An offer outranks a purse.** The four drafts are decisions the reducer is
@@ -1240,7 +1393,7 @@ export function nextBotDecision(
   // **Arrears outrank appetite.** A seat whose treasury has gone under is not in
   // a position to buy anything, and the one thing it can do about it that does
   // not need a turn to pay off is stop paying a wage. See `disbandCommand`.
-  const cut = disbandCommand(state, player);
+  const cut = disbandCommand(state, player, sitting);
   if (cut !== null) return cut;
 
   const purchase = spendCommand(state, player, sitting);
@@ -2519,14 +2672,43 @@ function sameItem(a: QueueItem, b: QueueItem): boolean {
  * **Monotone**, which is what keeps the driver's loop finite: every accepted
  * disband removes a piece, so the empire cannot be asked to let the same one go
  * twice.
+ *
+ * **Batch BP1** (`docs/flags.md` (ooooooo) P2) adds two things:
+ *
+ *   - **the books are the sitting's.** The net is read once when the seat's
+ *     turn opens (`seatBooks`) and moved by what the wages have done since
+ *     (`netNow`), so a piece let go this turn counts at once. It used to price
+ *     every town in the empire before every decision.
+ *   - **a new unit is kept.** A unit raised within `solvency.keepRecruitsTurns`
+ *     turns (the muster roll, `raisedWithin`) is not let go, unless the net is
+ *     below nought and the treasury would reach nought within
+ *     `solvency.recruitRunwayTurns` turns. The build arm no longer trains a
+ *     soldier the seat cannot pay for (`armySupport`), so this guard catches
+ *     what the forecast could not see coming.
+ *   - **under a real threat, nothing goes until the treasury runs out.** At war
+ *     or with a town under attack the build arm trains to the line where the
+ *     treasury would reach nought within `recruitRunwayTurns` turns, so this arm
+ *     reads that line too. Measured on the second after set: without it, seats
+ *     at war trained a soldier a turn and shed an old one a turn (8,170 hammers
+ *     let go on seed 2; 1,175 with it).
  */
-function disbandCommand(state: GameState, player: Player): BotDecision | null {
+function disbandCommand(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
   const ai = aiFor(player);
-  const net = netGoldPerTurn(state, player.id);
+  const net = netNow(state, player.id, seatBooks(state, player, sitting));
   if (net >= ai.solvency.disbandBelowIncome) return null;
   const runway = Math.max(0, ai.solvency.runwayTurns);
   if (!headedIntoArrears(player.gold, net, ai)) return null;
   if (countSoldiers(state, player.id) <= Math.max(0, ai.solvency.minArmy)) return null;
+  const keepTurns = Math.max(0, ai.solvency.keepRecruitsTurns);
+  const runningOut = net < 0 && player.gold + net * Math.max(0, ai.solvency.recruitRunwayTurns) < 0;
+  // **Under a real threat the army is kept until the treasury runs out** (batch
+  // BP1). The build arm trains past the disband line while the seat is at war or
+  // a town is under attack (`soldiersCarried`), so letting a piece go at that
+  // same line would undo what the build arm has just decided it needs. Both arms
+  // read the same line under a threat: the treasury reaching nought within
+  // `solvency.recruitRunwayTurns` turns. Asked only past the two early returns
+  // above, so a solvent seat never pays for the sweep.
+  if (!runningOut && realThreat(state, player, ai) !== null) return null;
 
   const candidates: BotCandidate[] = [];
   let worst: Unit | null = null;
@@ -2549,6 +2731,16 @@ function disbandCommand(state: GameState, player: Player): BotDecision | null {
     }
     if (!isRedundant(state, player, unit)) {
       candidates.push(refused(unitLabel(unit), 'it is the last thing holding its town, or its town is threatened'));
+      continue;
+    }
+    if (!runningOut && raisedWithin(state, unit, keepTurns)) {
+      candidates.push(
+        refused(
+          unitLabel(unit),
+          `it was raised within the last ${keepTurns} turns, and the treasury will not run out within ` +
+            `${ai.solvency.recruitRunwayTurns} turns`,
+        ),
+      );
       continue;
     }
     const def = unitDef(unit.type);
@@ -2590,27 +2782,8 @@ function disbandCommand(state: GameState, player: Player): BotDecision | null {
   };
 }
 
-/**
- * Will this treasury fall under the arrears bar within `solvency.runwayTurns`
- * turns at the present net rate? A treasury already under the bar answers yes.
- *
- * The rate is read as it stands, with no guess about income to come. That is
- * the reading `goldPressure` uses, and the bot has no memory between calls to
- * read a trend from. A positive rate counts as nothing, so with a zero runway
- * this is exactly the old arrears test.
- *
- * Why the disband arm needs it (2026-10-26). The price of gold changes what the
- * bot builds next, but it cannot cut a bill the empire already pays. In the
- * long bot game a Dominion seat lost three things in four turns: a luxury deal
- * ran out (salt, which took a coin off each soldier's wage), it was dealt The
- * Debased Coin for a missed wager, and its archers upgraded to a dearer piece.
- * It then ran at −26 to −40 gold a turn for nine turns on a treasury of 85 to
- * 344 coins, and nothing acted until the treasury was under 40.
- */
-function headedIntoArrears(gold: number, net: number, ai: AiConfig): boolean {
-  const turns = Math.max(0, ai.solvency.runwayTurns);
-  return gold + Math.min(0, net) * turns < ai.solvency.arrearsTreasury;
-}
+// `headedIntoArrears` moved to `armySupport.ts` (batch BP1), where the soldier
+// forecast solves the same test for the number of soldiers a seat can pay for.
 
 /**
  * May this piece be let go without leaving a town open?
@@ -2823,17 +2996,32 @@ function retireCommand(state: GameState, player: Player, sitting?: BotSitting): 
   };
 }
 
-/** Is anybody else's soldier standing within `threat.radius` of this town? */
+/**
+ * Is this town threatened: do the combat pieces within `threat.radius` of it
+ * count for at least one hostile piece, by `threatWeights`?
+ *
+ * One piece of the wild, or of an empire at war with this seat, is enough. A
+ * peaceful neighbour's pieces count by their weight, so only an army of a
+ * neighbour that leans toward a war on this seat makes the town threatened
+ * (batch BP1, P1). This is the guard that keeps a garrison home in the disband
+ * and retire arms.
+ */
 function cityIsThreatened(state: GameState, player: Player, city: City): boolean {
   const tile = getTileAt(state.map, city.col, city.row);
   if (!tile) return false;
   const here = tileHex(tile);
+  const weights = threatWeights(state, player);
+  const radius = aiFor(player).threat.radius;
+  let threat = 0;
   for (const unit of state.units) {
-    if (unit.ownerId === player.id) continue;
+    const weight = weights[unit.ownerId] ?? 1;
+    if (weight <= 0) continue;
     if (!isCombatant(unitDef(unit.type))) continue;
     const at = getTileAt(state.map, unit.col, unit.row);
     if (!at) continue;
-    if (wrappedDistance(state.map, here, tileHex(at)) <= aiFor(player).threat.radius) return true;
+    if (wrappedDistance(state.map, here, tileHex(at)) > radius) continue;
+    threat += weight;
+    if (threat >= 1) return true;
   }
   return false;
 }
@@ -4185,16 +4373,38 @@ function productionTable(
   // times over in a bleeding empire and the comparison refuses it by itself. A
   // threshold on top of arithmetic that already says the same thing is the audit's
   // finding 2 said twice, and it was the last of them.
-  let best = candidates[0]!;
+  //
+  // **One limit came back, for soldiers only** (batch BP1, `docs/flags.md`
+  // (ooooooo) P2), and it is not a threshold on the price: it is the disband
+  // arm's own test, solved for the number of soldiers (`armySupport.ts`). A
+  // soldier the seat cannot pay for is a soldier the disband arm lets go, and the
+  // audit found seats training one a turn and disbanding one a turn. So such a
+  // soldier cannot win the table. It still prints, with the reason. If every row
+  // is refused the town builds the best of them anyway, the puppet's escape
+  // hatch above, because a town must always have something to build.
+  const support = armySupport(state, player, ctx.ai, ctx.books, city);
   for (const candidate of candidates) {
+    const refusal = unpaidSoldier(state, player, city, candidate.item, support, ctx.ai);
+    if (refusal !== null) candidate.refused = refusal;
+  }
+  const open = candidates.filter((candidate) => candidate.refused === undefined);
+  const pool = open.length > 0 ? open : candidates;
+  let best = pool[0]!;
+  for (const candidate of pool) {
     if (candidate.score > best.score) best = candidate;
   }
-  const rows: BotCandidate[] = candidates.map((candidate) => ({
-    label: itemName(candidate.item),
-    score: candidate.score,
-    chosen: candidate === best,
-    terms: candidate.terms,
-  }));
+  // A refused row prints as every refused row does: no score and no terms, and
+  // the reason (`aiDecision.test.ts` holds the shape).
+  const rows: BotCandidate[] = candidates.map((candidate) =>
+    candidate.refused !== undefined && candidate !== best
+      ? refused(itemName(candidate.item), candidate.refused)
+      : {
+          label: itemName(candidate.item),
+          score: candidate.score,
+          chosen: candidate === best,
+          terms: candidate.terms,
+        },
+  );
   // **The whole table in its own order**, for the one caller that needs more
   // than the winner: a town holding The Vizier's Hall may not be left with a
   // one-row queue (batch S2), so the blocker's answer has to name the runner-up
@@ -4203,10 +4413,60 @@ function productionTable(
   // describing a different table from the queue it sent. Ties keep the roster's
   // own order, which is `candidates`' order and therefore a fact a replay
   // reproduces.
-  const ranked = [...candidates]
+  const ranked = [...pool]
     .sort((a, b) => b.score - a.score)
     .map((candidate) => candidate.item);
   return { best: best.item, ranked, candidates: rows };
+}
+
+/**
+ * **Why this soldier may not be trained, or `null`** (batch BP1, P2): the seat's
+ * gold cannot pay its wage without the disband arm letting a piece go
+ * (`soldiersCarried` under one).
+ *
+ * What moves or lifts the limit:
+ *
+ *   - **a real threat** (`realThreat`): a war with another empire, or a hostile
+ *     piece within `threat.underAttackRadius` of a town. The seat may then train
+ *     past the disband line, but not past the point where its treasury would run
+ *     out within `solvency.recruitRunwayTurns` turns (`soldiersCarried`);
+ *   - **an empty town**: a town short of the garrison it is owed trains its
+ *     defender whatever the books say. The disband arm never takes a town's last
+ *     garrison (`isRedundant`), so this piece cannot be the one let go, and each
+ *     town keeps its floor of one defender;
+ *   - **a piece with no wage**, which the forecast never limits.
+ */
+function unpaidSoldier(
+  state: GameState,
+  player: Player,
+  city: City,
+  item: QueueItem,
+  support: ArmySupport,
+  ai: AiConfig,
+): string | null {
+  if (item.kind !== 'unit' || !limitedSoldier(item.id)) return null;
+  if (garrisonAt(state, player.id, city) < garrisonOwed(ai, city)) return null;
+  return wageRefusal(item.id, support, ai);
+}
+
+/**
+ * `unpaidSoldier` without the town: the refusal for a soldier of this row whose
+ * wage the seat's gold cannot pay, or `null`. The gold book asks it once per row
+ * and town, after it has read the town's garrison itself.
+ */
+function wageRefusal(id: UnitTypeId, support: ArmySupport, ai: AiConfig): string | null {
+  if (!limitedSoldier(id)) return null;
+  const wage = unitUpkeep(id);
+  const carried = soldiersCarried(support, wage, ai);
+  if (carried >= 1) return null;
+  return (
+    `the treasury cannot pay its wage of ${wage} gold a turn: at ${round1(support.net)} a turn, ` +
+    `${round1(support.queued)} more for the soldiers already queued and ${round1(support.margin)} kept spare, ` +
+    `with ${support.treasury} in hand, ` +
+    (support.threat === null
+      ? 'the disband arm would let a piece go'
+      : `the treasury would run out within ${ai.solvency.recruitRunwayTurns} turns, even with ${support.threat}`)
+  );
 }
 
 /**
@@ -4383,6 +4643,13 @@ interface BuildCandidate {
   upkeep: number;
   /** The arithmetic `score` folds from. See `decision.ts`. */
   terms: ValueTerm[];
+  /**
+   * Why this row may not win the table, when it may not (batch BP1): today only
+   * a soldier the seat's gold cannot pay for (`unpaidSoldier`). Set by
+   * `productionTable` after the scoring, so the score is still the fold of the
+   * terms.
+   */
+  refused?: string;
 }
 
 /**

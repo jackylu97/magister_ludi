@@ -81,7 +81,7 @@
  * the warscore itself stays an exact mirror; see that function for why.
  */
 
-import { type AiConfig } from './aiConfig';
+import { type AiConfig, aiConfigFor } from './aiConfig';
 import { campaignRoad, fieldSoldiersOf, garrisonAt, strikeForce } from './campaign';
 import { readDealRefusal } from './dealMemory';
 import { readWarExchange } from './warLedger';
@@ -1515,6 +1515,78 @@ function nearestTownTo(
 // --- a war this seat could start --------------------------------------------
 
 /**
+ * **The bar a seat declares at, and its appetite**: the parts of the
+ * declaration's first clause that are facts about the declaring seat. Shared by
+ * `explainDeclaration` and `declarationLean`, so the two cannot disagree.
+ *
+ * **The second war is asked for a different advantage** (the 2026-09-15
+ * ruling). A war already on is an army already pointed somewhere, and the ratio
+ * cannot see it: the same soldiers cleared the bar against the first neighbour
+ * and clear it again against the second. The multiple is a fact about this
+ * empire rather than about the target, so it is read once here.
+ */
+function declarationBar(
+  state: GameState,
+  player: Player,
+  ai: AiConfig,
+): { bar: number; fighting: number; threshold: number; appetite: number } {
+  const warlike = ai.military.aggression > 0;
+  const bar = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
+  const fighting = warsAgainst(state, player.id);
+  const threshold = fighting > 0 ? bar * Math.max(1, ai.war.secondWarMultiple) : bar;
+  const appetite = 1 + Math.max(0, ai.military.aggression);
+  return { bar, fighting, threshold, appetite };
+}
+
+/**
+ * **The target's army, as a declaration reads it.**
+ *
+ * **The dogpile** (the 2026-09-15 ruling): a target two empires are already
+ * fighting is not a cheaper target, it is the same target. So its strength
+ * reads as what it raised rather than as what is left standing, and its other
+ * wars buy the declaring seat nothing.
+ */
+function targetStrength(state: GameState, enemy: Player, ai: AiConfig): { theirs: number; piled: boolean } {
+  const standing = armyStrength(state, enemy.id);
+  const piled = warsAgainst(state, enemy.id) >= Math.max(1, ai.war.dogpileSeats);
+  return { theirs: piled ? Math.max(standing, raisedStrength(enemy)) : standing, piled };
+}
+
+/**
+ * **How close `rival` stands to declaring war on `target`**, from 0 to 1
+ * (batch BP1, `docs/flags.md` (ooooooo) P1).
+ *
+ * It is the first clause of the rival's own declaration (`explainDeclaration`),
+ * read with the rival's own sheet: the strength it could march, against the
+ * target's army, times its appetite for a fight, over the bar it declares at. A
+ * lean of 1 means the ratio already clears the bar. A tall or zealot neighbour,
+ * whose bar cannot be reached, leans at very nearly nothing, and a warmonger with
+ * an army as big as the target's leans at 1.
+ *
+ * `threatLevel` (`bot.ts`) counts a peaceful neighbour's soldiers near a town at
+ * `threat.peaceShare` times this. The audit found every seat arming against
+ * every peaceful neighbour it had met (`docs/audit/bot-pass-3-competitiveness.md`
+ * §3.1), and this is the reading of a neighbour's intent the ruling asked for.
+ *
+ * What it leaves out, and why: the declaration's other clauses (a town in reach,
+ * a strike force with something that shoots, a road, the cost at the other end,
+ * the target's ground and its unrest) each need a search or a ring walk, and the
+ * threat count is asked once a sitting for every neighbour. The ratio is the
+ * clause that says how big the danger is; the others say whether the war can
+ * start this turn. A person's seat has no persona and is read with the base
+ * sheet, the balanced seat's bar.
+ */
+export function declarationLean(state: GameState, rival: Player, target: Player): number {
+  const ai = aiConfigFor(rival.persona, rival.id);
+  const { threshold, appetite } = declarationBar(state, rival, ai);
+  if (!(threshold > 0)) return 1;
+  const mine = fieldedStrength(strikeForce(state, rival, ai));
+  const { theirs } = targetStrength(state, target, ai);
+  const score = (mine / Math.max(1, theirs)) * appetite;
+  return Math.min(1, Math.max(0, score / threshold));
+}
+
+/**
  * The declaration, or `null` — the policy the ruling asked for (section 8):
  * *"declare when army advantage × aggression clears a threshold and a target
  * city is in reach"*, with the two clauses §13.1 added after the user found the
@@ -1605,16 +1677,7 @@ export function explainDeclaration(
   threshold: number;
 } {
   const ai = ctx.ai;
-  const warlike = ai.military.aggression > 0;
-  const bar = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
-  // **The second war is asked for a different advantage** (the 2026-09-15
-  // ruling). A war already on is an army already pointed somewhere, and the
-  // ratio cannot see it: the same soldiers cleared the bar against the first
-  // neighbour and clear it again against the second. The multiple is a fact
-  // about this empire rather than about the target, so it is read once here.
-  const fighting = warsAgainst(state, player.id);
-  const threshold = fighting > 0 ? bar * Math.max(1, ai.war.secondWarMultiple) : bar;
-  const appetite = 1 + Math.max(0, ai.military.aggression);
+  const { bar, fighting, threshold, appetite } = declarationBar(state, player, ai);
   // One reading for the whole table: what this empire could send is a fact about
   // *this* empire, not about which neighbour it is looking at.
   const force = strikeForce(state, player, ai);
@@ -1646,13 +1709,7 @@ export function explainDeclaration(
       rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
       continue;
     }
-    const standing = armyStrength(state, enemy.id);
-    // **The dogpile** (the same ruling): a target two empires are already
-    // fighting is not a cheaper target, it is the same target — so its strength
-    // reads as what it raised rather than as what is left standing, and its
-    // other wars buy this seat nothing.
-    const piled = warsAgainst(state, enemy.id) >= Math.max(1, ai.war.dogpileSeats);
-    const theirs = piled ? Math.max(standing, raisedStrength(enemy)) : standing;
+    const { theirs, piled } = targetStrength(state, enemy, ai);
     const ratio = mine / Math.max(1, theirs);
     const reach = nearestTownInReach(state, player, enemy, ai);
     const lines: ValueTerm[] = [

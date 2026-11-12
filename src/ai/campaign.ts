@@ -142,11 +142,18 @@ export function garrisonAt(state: GameState, playerId: number, city: City): numb
  *
  * The one reading of the figure, so the strike force's count of what comes off
  * the top, the levy's empty-town term and the guards that keep a piece home all
- * owe a town in unrest the same soldier. Floored at nothing, as the old reading
- * was.
+ * owe a town in unrest the same soldier.
+ *
+ * **Floored at one** (batch BP1, `docs/flags.md` (ooooooo) P1: *"each town keeps
+ * a floor of one defender"*). The threat count no longer arms a seat against its
+ * peaceful neighbours, so this floor is what keeps every town held: the build arm
+ * pays a town standing empty `threat.garrisonValue`, the soldier forecast never
+ * refuses a town its first defender, and the disband arm never takes it. The
+ * bounds sheet already keeps `military.garrisonPerCity` at one or more; the
+ * floor here holds for a persona or a tuning sheet that goes under it.
  */
 export function garrisonOwed(ai: AiConfig, city: City): number {
-  const ordinary = Math.max(0, ai.military.garrisonPerCity);
+  const ordinary = Math.max(1, ai.military.garrisonPerCity);
   if (city.unrest === undefined) return ordinary;
   return Math.max(ordinary, ai.military.unrestGarrison);
 }
@@ -269,7 +276,10 @@ export function levyReading(ctx: ValueContext): LevyReading {
   let towns = 0;
   for (const city of ctx.state.cities) if (city.ownerId === ctx.playerId) towns += 1;
   const sighted = sightedArmyWanted(ctx);
-  const wanted = towns * ai.military.armyPerCity + ctx.threat * ai.threat.extraArmyPerThreat + sighted.extra;
+  // The standing army is at least one soldier a town (batch BP1's floor; see
+  // `garrisonOwed`), whatever `military.armyPerCity` a sheet sets.
+  const standing = towns * Math.max(1, ai.military.armyPerCity);
+  const wanted = standing + ctx.threat * ai.threat.extraArmyPerThreat + sighted.extra;
   const held = fieldSoldiersOf(ctx.state, ctx.playerId).length;
   return {
     wanted,

@@ -867,6 +867,20 @@ describe('nobody rebuilds the town’s list', () => {
         );
         continue;
       }
+      if (path.endsWith('/musterRoll.ts')) {
+        // **The third exception, since batch BP1** (`docs/flags.md` (ooooooo)
+        // P2), and the same kind of thing again: the first entity id handed out
+        // on each turn, which is what *happened* rather than a reading of the
+        // board. A revision would erase the roll on the next command, and the
+        // disband arm could no longer tell a unit raised last turn from an old
+        // one. It is listed in `harnessMemory.ts` with the other two.
+        expect(`${path} says what it keys on`).toBe(
+          /nextEntityId/.test(text) && /turn/.test(text)
+            ? `${path} says what it keys on`
+            : `${path} says nothing about what it keys on`,
+        );
+        continue;
+      }
       // One of the two clocks. `townFolds.ts` moved to the economy clock in batch P1.
       expect(`${path} keys on a clock`).toBe(
         /revision|economyStamp/.test(text) ? `${path} keys on a clock` : `${path} keys on something else`,

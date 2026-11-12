@@ -93,6 +93,9 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
+// The soldier forecast (batch BP1): how many soldiers the seat's gold can pay
+// for, read the way the disband arm reads it. A leaf with no edge back here.
+import { type ArmySupport, soldiersCarried } from './armySupport';
 import {
   type ExpansionChain,
   chainCompression,
@@ -317,8 +320,11 @@ export interface Want {
    * A hold row is how "spend nothing below 150" stopped being a knob: the spend
    * arm buys the best want whose worth per coin beats the best hold row's, and
    * an empire whose wages are dear or whose next want is close simply holds.
+   *
+   * `'army'` is the third kind (batch BP1): coins held toward the wage of a
+   * soldier the levy wants and the gold cannot pay for (`armyWageRow`).
    */
-  holding?: 'wages' | 'saving';
+  holding?: 'wages' | 'saving' | 'army';
 }
 
 /** Every want this empire has, by bank. Iterated as arrays, in build order. */
@@ -394,6 +400,18 @@ export interface WantInputs {
    * against the same one.
    */
   levy: LevyReading;
+  /**
+   * **What the seat's gold can pay for** (batch BP1, `docs/flags.md` (ooooooo)
+   * P2): the soldier forecast's inputs (`armySupport.ts`), read once for the
+   * book. The wage row (`armyWageRow`) is read off it.
+   */
+  army: ArmySupport;
+  /**
+   * **The soldier this seat would raise next**, with its worth and its wage
+   * (`recruitFor`, `bot.ts`), or `null`. A function, because only the wage row
+   * asks it and only when the levy is short, and the answer walks the roster.
+   */
+  recruit: () => { name: string; wage: number; worth: Appraisal } | null;
 }
 
 /** What the levy wants, what it holds, and the sentence that says why. */
@@ -549,6 +567,8 @@ function purchasingPlan(
 
   const reserve = wageReserveRow(ctx, inputs.wageReserve);
   if (reserve !== null) wants.push(reserve);
+  const army = armyWageRow(ctx, inputs);
+  if (army !== null) wants.push(army);
   // The purse, credit included (`purseOf`, Commerce batch T9), so a want the
   // credit already reaches is not also a row the seat saves toward.
   for (const row of savingRows(wants, ctx, purseOf(state, player, 'gold'), inputs.goldRate)) {
@@ -995,6 +1015,66 @@ function wageReserveRow(ctx: ValueContext, reserve: number): Want | null {
     terms,
     outOfReach: false,
     holding: 'wages',
+  };
+}
+
+/**
+ * **The wage of a soldier the gold cannot pay for, as a want** (batch BP1,
+ * `docs/flags.md` (ooooooo) P2). The user: *"the bot should plan ahead about how
+ * many soldiers its able to support, and put greater weight on gold when it's
+ * needed for soldiers"*.
+ *
+ * The levy says how many soldiers this seat wants (`levyReading`), and the
+ * forecast says how many more its gold can pay for (`soldiersCarried`). When the
+ * levy wants more than the gold pays for, one more coin a turn of income is what
+ * the next soldier is waiting for. So this row holds coins toward that soldier's
+ * wage, and its worth is what that soldier would be worth to the levy: the
+ * soldier's own worth (`explainSoldier`) less the share of the levy the gold
+ * already pays for, the build arm's own charge (`military.levySurplusSlope`).
+ *
+ * It is a hold row, like the wage cover above it, and it reaches the rest of the
+ * bot through the one mechanism that moves the worth of gold: the shadow price
+ * is the best worth per coin in this book (`priceOf`). Its price is the wage
+ * over `score.lumpTurns` turns, the exchange rate between a coin once and a coin
+ * a turn, so its worth per coin a turn is the soldier's worth over its wage.
+ * The band (`priorities.priceBandHigh`) is what keeps that from running away.
+ * The spend arm reads it as a bar as well: a seat whose levy is waiting on its
+ * income holds its coins, and the treasury it keeps is part of what the
+ * forecast lets it pay for.
+ *
+ * No row when the levy is met, when the gold pays for all of it, or when the
+ * seat has no soldier it could raise.
+ */
+function armyWageRow(ctx: ValueContext, inputs: WantInputs): Want | null {
+  const levy = inputs.levy;
+  if (levy.wanted <= levy.held) return null;
+  const recruit = inputs.recruit();
+  if (recruit === null || recruit.wage <= 0) return null;
+  const carried = soldiersCarried(inputs.army, recruit.wage, ctx.ai);
+  const paid = Math.max(0, levy.held + Math.max(-levy.held, carried));
+  if (paid >= levy.wanted) return null;
+  const share = Math.max(0, 1 - (paid / levy.wanted) * ctx.ai.military.levySurplusSlope);
+  if (share <= 0 || recruit.worth.total <= 0) return null;
+  const terms: ValueTerm[] = [
+    nest(`what a ${recruit.name} is worth`, recruit.worth),
+    {
+      label:
+        `× ${round(share)}: the levy wants ${round(levy.wanted)} soldiers and the gold pays for ` +
+        `${round(paid)} (${round(inputs.army.net)} gold a turn, ${inputs.army.treasury} in hand)`,
+      value: share,
+      op: 'mul',
+    },
+  ];
+  const lump = Math.max(1, ctx.ai.score.lumpTurns);
+  return {
+    label: `the wage of a ${recruit.name} the levy wants and the gold cannot pay: ${recruit.wage} gold a turn`,
+    currency: 'gold',
+    price: recruit.wage * lump,
+    worth: foldTerms(terms),
+    delay: 0,
+    terms,
+    outOfReach: false,
+    holding: 'army',
   };
 }
 
