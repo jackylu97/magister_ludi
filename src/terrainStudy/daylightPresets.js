@@ -38,7 +38,7 @@ export const daylightPresets={
   shadowIntensity:.58,shadowRadius:4.5,background:'#d7cebc',
   paint:paint({sun:[1.62,1.41,1.17],water:[1.03,1.08,1.16],fill:[.56,.70,.92],fillLift:[.006,.010,.018],
    shadow:[.44,.49,.68],shadowLift:[.008,.012,.024],desaturate:[0,.10,.40],
-   faces:[.32,.64],ground:[.08,.80],castFill:.46}),
+   faces:[.32,.64],ground:[-.14,.72],middle:[-.65,.06],castFill:.46}),
  },
  golden:{
   label:'Golden hour',note:'Amber light · blue-violet shade',sunOffset:[2.35,1.75,-1.4],
