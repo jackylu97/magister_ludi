@@ -422,7 +422,7 @@ describe('The Last Commission', () => {
 // --- The Immortals ---------------------------------------------------------------
 
 describe('The Immortals (reading 22)', () => {
-  /** A board whose seat has spent Copernicus: +2 science in every city. */
+  /** A board whose seat has spent Copernicus: +4 science in every city (batch GP1 of 2026-11-12). */
   function honoured(): { state: GameState; player: Player; capital: City } {
     const made = board();
     made.player.legacies.push({ id: 'copernicus' as GreatPersonId, age: 1 });
@@ -440,10 +440,10 @@ describe('The Immortals (reading 22)', () => {
   it('reads each live legacy twice, the second time under the card’s name', () => {
     const { state, capital } = honoured();
     const other = town(state, 12, 5);
-    expect(legacyScience(state, capital)).toBe(2);
-    seat(state, IMMORTALS);
     expect(legacyScience(state, capital)).toBe(4);
-    expect(legacyScience(state, other)).toBe(4);
+    seat(state, IMMORTALS);
+    expect(legacyScience(state, capital)).toBe(8);
+    expect(legacyScience(state, other)).toBe(8);
     const sources = liveEffects(state, 0)
       .filter((entry) => entry.card === 'copernicus')
       .map((entry) => entry.source);
@@ -454,7 +454,7 @@ describe('The Immortals (reading 22)', () => {
     const { state, player, capital } = honoured();
     player.statecraft.orders.push(IMMORTALS);
     bumpRevision(state);
-    expect(legacyScience(state, capital)).toBe(2);
+    expect(legacyScience(state, capital)).toBe(4);
     seat(state, IMMORTALS);
     player.legacies[0]!.revoked = true;
     bumpRevision(state);

@@ -1775,15 +1775,13 @@ interface UpkeepRules {
  * empire's faster trickle from becoming a faster *rate* of great people: it buys
  * the same names sooner and then pays more for each.
  *
- * **Why the linear term is so much larger than the base**, where culture's is
- * half of it: B4's finding (`docs/flags.md` item (hhh)). What an empire must bank
- * to reach its Nth person is a *sum* of rungs and therefore quadratic in N, so
- * the count a given pile of renown buys goes as one over the square root of the
- * linear term — B4 multiplied both rungs of the old ladder by three and got half
- * the arrivals, not a third. A true third is **nine** times the old step (25 × 9
- * = 225), which is this figure; the ruled `base` of 75 then makes the first rung
- * cheap and the exponent adds the tail back. The rungs and the measurement that
- * confirmed them are `docs/great-people.md`.
+ * **The linear term sets the rate.** The renown an empire banks to reach its
+ * Nth person is a sum of prices, so it grows with the square of N, and the
+ * linear term sets how fast. It was 225 after batch B4 (`docs/flags.md` item
+ * (hhh)), 180 after the user's cut of 2026-09-15, and is 58 since batch GP1
+ * (item (mmmmmmm)): the user asked for seven great people at about 2,000 renown
+ * in all, where 180 bought four. The prices and the old measurement are in
+ * `docs/great-people.md`.
  */
 interface RenownRules {
   /** What the first great person costs — the ladder's floor. */

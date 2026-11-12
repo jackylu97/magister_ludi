@@ -101,7 +101,7 @@ const RENOWN_PER_SPECIALIST = RULES.cities.guilds.renownPerSpecialist;
  * the hover wants to see both, because between them they are the whole answer to
  * "where did this turn's renown come from".
  */
-interface RenownLine {
+export interface RenownLine {
   /** "Library at Ur", "Wonder · The Oracle", "Triumph · The Third Hearth". */
   source: string;
   /** Which family this fed. The bias in `Player.renownByFamily`. */
@@ -130,13 +130,45 @@ interface RenownLine {
  * where the stamp matches `state.turn`. They are already banked by the time
  * anything reads this (a triumph settles the instant it is earned, Entry XVIII),
  * which is exactly what `perTurn: false` says.
+ *
+ * The list is `explainRenownByTown`'s with the town marks taken off, so the two
+ * cannot disagree about a line.
  */
 export function explainRenown(state: GameState, playerId: number): RenownLine[] {
+  return explainRenownByTown(state, playerId).map((entry) => entry.line);
+}
+
+/** One line of `explainRenown`, and the town it belongs to. */
+export interface RenownTownLine {
+  /** The town whose buildings or specialists paid it. `null` for the realm's own lines. */
+  cityId: number | null;
+  line: RenownLine;
+}
+
+/**
+ * `explainRenown`'s list, with each line marked with the town it came from.
+ *
+ * The Renown tab prints one line for each town and opens it to show the town's
+ * sources (batch GP1 of 2026-11-12, `docs/flags.md` item (mmmmmmm)). It needs
+ * to know which town a line belongs to. The source string names the town, but
+ * a screen that parsed the words would break the day a label changed, so the
+ * walk marks the line as it pushes it.
+ *
+ * A town's lines are its buildings, its card shares and its specialists. The
+ * card lines, the luxuries, the empire shares and this turn's Triumphs belong
+ * to no town and carry `null`.
+ */
+export function explainRenownByTown(state: GameState, playerId: number): RenownTownLine[] {
+  const marked: RenownTownLine[] = [];
   const lines: RenownLine[] = [];
+  const push = (cityId: number | null, line: RenownLine): void => {
+    lines.push(line);
+    marked.push({ cityId, line });
+  };
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const shares = cardCityRenownShares(state, city);
-    for (const line of explainCityRenown(city, shares, townShelf(state, city))) lines.push(line);
+    for (const line of explainCityRenown(city, shares, townShelf(state, city))) push(city.id, line);
     // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
     // than inside `explainCityRenown`, and the separation is load-bearing: that
     // list is what fills this town's guild bar, and a specialist feeding the bar
@@ -144,7 +176,7 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
     // pool and its family's record — which is the design's whole point, the
     // specialist system paying into the great-person system.
     for (const line of citySpecialistYields(city)) {
-      lines.push({
+      push(city.id, {
         source: `${city.name} · ${line.source}`,
         family: line.family,
         amount: RENOWN_PER_SPECIALIST * line.count,
@@ -153,7 +185,7 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
     }
   }
   for (const line of cardRenownLines(state, playerId)) {
-    lines.push({ source: line.source, family: line.family, amount: line.amount, perTurn: true });
+    push(null, { source: line.source, family: line.family, amount: line.amount, perTurn: true });
   }
   // And what the empire's **luxuries** pay — lapis lazuli's Æra III, the user's
   // ruling of 2026-09-03. Beside the card lines because it is the same kind of
@@ -163,7 +195,7 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   // Every such line names **no family** by construction, so the pool grows and
   // the feed record that weights the draw does not — see `resourceRenown`.
   for (const line of resourceRenown(state, playerId)) {
-    lines.push({ source: line.source, family: null, amount: line.amount, perTurn: true });
+    push(null, { source: line.source, family: null, amount: line.amount, perTurn: true });
   }
   // **And the share of the whole trickle** — Cult of Heroes' fifteen percent
   // (batch B2). Last of the recurring half and taken over the fold of
@@ -184,21 +216,21 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
     for (const share of shares) {
       const amount = (base * share.percent) / 100;
       if (amount === 0) continue;
-      lines.push({ source: share.source, family: null, amount, perTurn: true });
+      push(null, { source: share.source, family: null, amount, perTurn: true });
     }
   }
   const player = state.players[playerId];
   for (const earned of player?.triumphs ?? []) {
     if (earned.turn !== state.turn) continue;
     const def = triumphDef(earned.id);
-    lines.push({
+    push(null, {
       source: `Triumph · ${def.name}`,
       family: def.family ?? null,
       amount: def.pays,
       perTurn: false,
     });
   }
-  return lines;
+  return marked;
 }
 
 /**
@@ -335,7 +367,7 @@ export function renownPerTurn(state: GameState, playerId: number): number {
  * recruited person is *consumed* by its act or its work and therefore cannot be
  * counted (see `Player.greatPeopleRecruited`). Escalating by recruits rather
  * than by turns is what keeps a wide empire's faster trickle from becoming a
- * faster *rate*; why the linear term is three times the base is `RenownRules`.
+ * faster *rate*; the history of the linear term is on `RenownRules`.
  *
  * **The Peregrini's discount comes off after the ladder's arithmetic** (batch DT16,
  * `Player.personDiscount`), and the whole is floored once, so a fraction is not

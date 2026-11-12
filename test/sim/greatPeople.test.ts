@@ -97,8 +97,10 @@ import {
   cardAuthority,
   explainCardCityYields,
   cardCombatLines,
+  cardCombatPercent,
   explainCardEmpireYields,
   cardProduction,
+  cardUnitStat,
   describeCard,
   foldCardYields,
   liveEffects,
@@ -1006,8 +1008,8 @@ describe('the legacies this pass built', () => {
     createUnit(g.state, 0, 'worker', city.col, city.row);
     // The other seat's army is the other seat's.
     createUnit(g.state, 1, 'warrior', city.col, city.row);
-    // Ten a soldier since batch GP1 (it was two).
-    expect(empire(g.state, 0).culture).toBe(before + 20);
+    // Four a soldier since batch GP1 of 2026-11-12 (it was ten).
+    expect(empire(g.state, 0).culture).toBe(before + 8);
   });
 
   it('Shen Kuo is paid for the strategic seams the empire has opened', () => {
@@ -1099,9 +1101,48 @@ describe('the legacies this pass built', () => {
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
     city.captured = true;
-    // Halved by the user's hand edits to `docs/great-people.md` (2026-09-14).
-    expect(fight(g.state, unit, tile, 'defend')).toBe(3);
-    expect(fight(g.state, unit, tile, 'attack')).toBe(3);
+    // Six since batch GP1 of 2026-11-12 (it was three).
+    expect(fight(g.state, unit, tile, 'defend')).toBe(6);
+    expect(fight(g.state, unit, tile, 'attack')).toBe(6);
+  });
+
+  /**
+   * **Subutai and Tomoe Gozen pay flat points, not a percentage** (batch GP1
+   * of 2026-11-12, `docs/flags.md` item (mmmmmmm)). The user: *"+2 combat
+   * strength instead of percentage"* and *"+3 combat strength for both"*. Each
+   * is a `combatLine` narrowed by a `UnitFilter`, the shape Archimedes and
+   * the line traits in `data/techs.json` use.
+   */
+  it('Subutai gives mounted units two flat points and a step, and nobody else', () => {
+    const g = game(152);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'subutai');
+    const horse = createUnit(g.state, 0, 'horseman', city.col, city.row);
+    const foot = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, city.col, city.row);
+    expect(fight(g.state, horse, tile, 'attack')).toBe(2);
+    expect(fight(g.state, horse, tile, 'defend')).toBe(2);
+    expect(fight(g.state, foot, tile, 'attack')).toBe(0);
+    // No percentage is left on the row.
+    expect(cardCombatPercent(g.state, horse)).toBe(0);
+    // The movement half is unchanged.
+    expect(cardUnitStat(g.state, horse, 'movement')).toBe(1);
+    expect(cardUnitStat(g.state, foot, 'movement')).toBe(0);
+  });
+
+  it('Tomoe Gozen gives mounted and ranged units three flat points each', () => {
+    const g = game(153);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'tomoeGozen');
+    const horse = createUnit(g.state, 0, 'horseman', city.col, city.row);
+    const bow = createUnit(g.state, 0, 'archer', city.col, city.row);
+    const foot = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, city.col, city.row);
+    expect(fight(g.state, horse, tile, 'attack')).toBe(3);
+    expect(fight(g.state, bow, tile, 'defend')).toBe(3);
+    expect(fight(g.state, foot, tile, 'attack')).toBe(0);
+    expect(cardCombatPercent(g.state, horse)).toBe(0);
+    expect(cardCombatPercent(g.state, bow)).toBe(0);
   });
 
   it('Tycho Brahe reads the sky off the ground, and wants both halves of it', () => {
@@ -1179,12 +1220,11 @@ describe('the legacies this pass built', () => {
     const mine = g.state.units.find((unit) => unit.ownerId === 0)!;
     const tile = getTileAt(g.state.map, mine.col + 1, mine.row)!;
 
-    // Against a warrior the line is silent; against a horseman it pays 3, and
-    // it pays it whichever posture this piece is in — `side: 'both'`.
+    // Against a warrior the line is silent. Against a horseman it pays 5 in
+    // either posture (`side: 'both'`). Five since batch GP1 of 2026-11-12.
     expect(fight(g.state, mine, tile, 'attack', 'warrior')).toBe(0);
-    // Halved by the user's hand edits to `docs/great-people.md` (2026-09-14).
-    expect(fight(g.state, mine, tile, 'attack', 'horseman')).toBe(3);
-    expect(fight(g.state, mine, tile, 'defend', 'horseman')).toBe(3);
+    expect(fight(g.state, mine, tile, 'attack', 'horseman')).toBe(5);
+    expect(fight(g.state, mine, tile, 'defend', 'horseman')).toBe(5);
     // A town has no silhouette, so a `vsClass` line does not fire at walls.
     expect(fight(g.state, mine, tile, 'attack', undefined)).toBe(0);
   });
@@ -1221,7 +1261,7 @@ describe('the legacies this pass built', () => {
     expect(printed('simaQian')).toEqual([
       '+1 culture in every city per age that has closed',
     ]);
-    expect(printed('murasakiShikibu')).toEqual(['+10 culture per melee unit in the field']);
+    expect(printed('murasakiShikibu')).toEqual(['+4 culture per melee unit in the field']);
     expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
     // The generals' strength lines were halved by the user's hand edits to
     // `docs/great-people.md` (2026-09-14) — the words are unchanged, the
@@ -1236,7 +1276,7 @@ describe('the legacies this pass built', () => {
       '+2 combat strength on the coast',
     ]);
     expect(printed('janZizka')).toEqual(['+5 combat strength when defending while fortified']);
-    expect(printed('elCid')).toEqual(['+3 combat strength in a city you captured']);
+    expect(printed('elCid')).toEqual(['+6 combat strength in a city you captured']);
     expect(printed('assurIdi')).toEqual(['+1 gold in every city but your capital']);
     expect(printed('amenhotepSonOfHapu')).toEqual([
       '+15% production toward wonders, in your capital',
@@ -1277,27 +1317,42 @@ describe('the legacies this pass built', () => {
     // A city-scoped count paid in the town it counts in — and, since batch L1
     // (§1b), a legacy that says how many towns those are.
     expect(printed('aryabhata')).toEqual([
-      '+2 faith in every city per building there that supplies science',
+      '+1 faith in every city per building there that supplies science',
     ]);
     // The malice re-read per town rather than once for the realm.
     expect(printed('hemiunu')).toEqual([
-      '+10% production toward wonders',
+      '+25% production toward wonders',
       '-2 happiness in every city while it is building a wonder',
     ]);
     // The building half is built now, so the row says both and one of its two
     // deferred sentences is gone (the timed unhappiness is the one that stays).
-    // Thirty off since batch GP1 (it was twenty).
-    expect(printed('crassus')[0]).toBe('all units and buildings cost −30% to buy');
+    // Twenty off since batch GP1 of 2026-11-12 (it was thirty).
+    expect(printed('crassus')[0]).toBe('all units and buildings cost −20% to buy');
     // The timed half is built now too, so both of Crassus' clauses are real and
     // nothing on his row is deferred.
     expect(printed('crassus')).toEqual([
-      'all units and buildings cost −30% to buy',
+      'all units and buildings cost −20% to buy',
       'buying anything costs your empire -1 happiness for 10 turns',
     ]);
-    expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
+    expect(printed('jakobFugger')).toContain('all units and buildings cost −10% to buy');
     // And the other side of a fight, which `combatLine` could not say until
     // `vsClass` existed.
-    expect(printed('lautaro')).toEqual(['+3 combat strength against mounted units']);
+    expect(printed('lautaro')).toEqual(['+5 combat strength against mounted units']);
+    // Batch GP1 of 2026-11-12: the rows that changed shape say so in words.
+    expect(printed('zhangHeng')).toEqual([
+      '+1 gold per building in your cities that supplies science',
+    ]);
+    expect(printed('maimonides')).toEqual([
+      '+1 happiness per 2 buildings in your cities that supply science',
+    ]);
+    expect(printed('subutai')).toEqual([
+      'mounted units: +1 movement',
+      '+2 combat strength for mounted units',
+    ]);
+    expect(printed('tomoeGozen')).toEqual([
+      '+3 combat strength for mounted units',
+      '+3 combat strength for ranged units',
+    ]);
   });
 
   // --- batch GP1 ------------------------------------------------------------
@@ -1387,7 +1442,7 @@ describe('the legacies this pass built', () => {
     expect(fullMovement(unit, g.state)).toBe(base);
   });
 
-  it('Beukelszoon doubles a fishing boat, ground and works alike', () => {
+  it('Beukelszoon doubles the works on a fishing boat, and not the ground under it', () => {
     const g = game(1031);
     const city = found(g.state, 0);
     const tile = g.state.map.tiles.find(
@@ -1397,7 +1452,6 @@ describe('the legacies this pass built', () => {
     water.terrain = 'coast';
     water.feature = 'none';
     claimTile(g.state, city, water);
-    water.improvement = 'fishingBoats';
     const food = (): number => {
       let sum = 0;
       for (const entry of explainTileYield(water, yieldContextFor(g.state, 0))) {
@@ -1406,12 +1460,15 @@ describe('the legacies this pass built', () => {
       }
       return sum;
     };
+    const ground = food();
+    water.improvement = 'fishingBoats';
     const plain = food();
-    expect(plain).toBeGreaterThan(0);
+    const works = plain - ground;
+    expect(works).toBeGreaterThan(0);
     bear(g.state, 0, 'willemBeukelszoon');
-    // Both halves of the hex: `basePercent` reaches the ground under it and
-    // `percent` reaches the works on it, so the whole tile pays twice.
-    expect(food()).toBe(plain * 2);
+    // Batch GP1 of 2026-11-12 took the ground doubling (`basePercent`) away.
+    // Only `percent` is left, and it reaches the works on the hex alone.
+    expect(food()).toBe(ground + works * 2);
   });
 
   it('Maimonides counts the science buildings of the whole realm', () => {
@@ -1421,12 +1478,14 @@ describe('the legacies this pass built', () => {
     const before = happinessOf(g.state, 0);
     city.buildings.push('library');
     bumpRevision(g.state);
-    expect(happinessOf(g.state, 0)).toBe(before + 1);
+    // One per two buildings since batch GP1 of 2026-11-12, so one Library pays
+    // nothing yet.
+    expect(happinessOf(g.state, 0)).toBe(before);
     const colony = foundCityAt(g.state, 0, getTileAt(g.state.map, city.col + 4, city.row)!)!;
     const withColony = happinessOf(g.state, 0);
     colony.buildings.push('library');
     bumpRevision(g.state);
-    // A city-scoped count, summed across the empire's towns by `cardHappiness`.
+    // The count is the realm's, so the colony's Library makes the second one.
     expect(happinessOf(g.state, 0)).toBe(withColony + 1);
   });
 
@@ -1666,8 +1725,9 @@ describe('the one-row shapes, built generically', () => {
   });
 
   /**
-   * **Spartacus, wired** (batch GP3) on GP2's `vsWiderEmpire`: three points
-   * against a realm holding more towns than yours.
+   * **Spartacus, wired** (batch GP3) on GP2's `vsWiderEmpire`: five points
+   * against a realm holding more towns than yours (three until batch GP1 of
+   * 2026-11-12).
    *
    * **Attack only**, and deliberately: the row he carried before the pass was
    * `side: 'attack'` on `strongerTarget`, the user's re-cut changed *who* the
@@ -1695,11 +1755,10 @@ describe('the one-row shapes, built generically', () => {
     // One town each: nobody is wider, so the line is silent on both postures.
     expect(against('attack')).toBe(0);
     expect(against('defend')).toBe(0);
-    // A second town for them, and the blow carries three — the figure the
-    // user's hand edits to `docs/great-people.md` (2026-09-14) set.
+    // A second town for them, and the blow carries five.
     g.state.cities.push({ ...theirs, id: theirs.id + 500, name: 'Second' });
     bumpRevision(g.state);
-    expect(against('attack')).toBe(3);
+    expect(against('attack')).toBe(5);
     // The posture is the row's own: standing your ground pays nothing.
     expect(against('defend')).toBe(0);
   });
@@ -1842,18 +1901,20 @@ describe('the one-row shapes, built generically', () => {
     expect(paid).toBe(3);
   });
 
-  it('Mimar Sinan hurries a Temple and a Cathedral, and nothing else', () => {
+  it('Mimar Sinan pays a town with a Temple, and hurries no building', () => {
     const g = game(227);
     const city = found(g.state, 0);
     bear(g.state, 0, 'mimarSinan');
-    const temple = cardProduction(g.state, city, 'building', undefined, 'temple');
-    expect(temple.reduce((sum, line) => sum + line.percent, 0)).toBe(30);
-    // The cathedral half was his deferred clause and is a second row of the
-    // same shape (batch E4a) — a `productionBonus` naming one building, which
-    // is what "cathedrals also cost less" always was.
-    const cathedral = cardProduction(g.state, city, 'building', undefined, 'cathedral');
-    expect(cathedral.reduce((sum, line) => sum + line.percent, 0)).toBe(30);
-    expect(cardProduction(g.state, city, 'building', undefined, 'granary')).toHaveLength(0);
+    // Batch GP1 of 2026-11-12 took away the two build bonuses (Temples and
+    // Cathedrals). The town line is all that is left.
+    expect(cardProduction(g.state, city, 'building', undefined, 'temple')).toHaveLength(0);
+    expect(cardProduction(g.state, city, 'building', undefined, 'cathedral')).toHaveLength(0);
+    const paid = () => foldCardYields(explainCardCityYields(g.state, city));
+    expect(paid().production).toBe(0);
+    city.buildings.push('temple');
+    bumpRevision(g.state);
+    expect(paid().production).toBe(2);
+    expect(paid().culture).toBe(2);
   });
 
   it('Yi Sun-sin stands with the fleet and with nobody on land', () => {
@@ -1895,19 +1956,21 @@ describe('the one-row shapes, built generically', () => {
     expect(unitById(g.state, unit.id)!.hp).toBe(1);
   });
 
-  it('Leonardo doubles what an act pays, through the same seam', () => {
+  it('Leonardo adds half again to what an act pays, through the same seam', () => {
     const plain = game(231);
     found(plain.state, 0);
-    const doubled = game(231);
-    found(doubled.state, 0);
-    bear(doubled.state, 0, 'leonardo');
+    const raised = game(231);
+    found(raised.state, 0);
+    bear(raised.state, 0, 'leonardo');
     const spend = (g: ReturnType<typeof game>): number => {
       const piece = call(g.state, 0, 'kushim');
       const before = g.state.players[0]!.gold;
       applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: piece.id });
       return g.state.players[0]!.gold - before;
     };
-    expect(spend(doubled)).toBe(spend(plain) * 2);
+    // +50% since batch GP1 of 2026-11-12 (it was +100%). The act's figure is
+    // composed once and floored once.
+    expect(spend(raised)).toBe(Math.floor(spend(plain) * 1.5));
   });
 
   /**

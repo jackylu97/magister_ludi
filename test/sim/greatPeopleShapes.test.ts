@@ -663,7 +663,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(lines[0]!.faith).toBe(buildingDef('temple').faith);
   });
 
-  it('Aristotle takes half again off every house that supplies science', () => {
+  it('Aristotle takes a quarter again off every house that supplies science', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library', 'monument');
@@ -671,17 +671,18 @@ describe('the twelve legacies GP3 wired', () => {
     bear(g.state, 0, 'aristotle');
     const lines = buildingShare(g.state, city);
     expect(lines).toHaveLength(1);
-    // Half again of what the Library pays *this town*, **its per-citizen line
-    // included** — which is the shape's own claim and the reason the figure is
-    // not simply half the row — and nothing of the Monument's song: the
-    // selector is the voice a row **pays**, not the shelf it sits on.
+    // A quarter again of what the Library pays *this town* (a half until batch
+    // GP1 of 2026-11-12), **its per-citizen line included**. That is the
+    // shape's own claim and the reason the figure is not simply a quarter of
+    // the row. Nothing of the Monument's song: the selector is the voice a row
+    // **pays**, not the shelf it sits on.
     const library = buildingDef('library');
     const paid = library.science + (library.sciencePerPop ?? 0) * city.population;
-    expect(lines[0]!.science).toBeCloseTo(paid / 2, 6);
+    expect(lines[0]!.science).toBeCloseTo(paid / 4, 6);
     expect(lines[0]!.culture ?? 0).toBe(0);
   });
 
-  it('al-Jazarī doubles the houses that supply work', () => {
+  it('al-Jazarī raises the houses that supply work by two fifths', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('workshop', 'monument');
@@ -689,7 +690,8 @@ describe('the twelve legacies GP3 wired', () => {
     bear(g.state, 0, 'alJazari');
     const lines = buildingShare(g.state, city);
     expect(lines).toHaveLength(1);
-    expect(lines[0]!.production).toBe(buildingDef('workshop').production);
+    // +40% since batch GP1 of 2026-11-12 (it was +100%).
+    expect(lines[0]!.production).toBeCloseTo(buildingDef('workshop').production * 0.4, 6);
   });
 
   it('Dürer keeps his song per marvel and takes half again off the marvels', () => {
@@ -753,20 +755,20 @@ describe('the twelve legacies GP3 wired', () => {
     found(g.state, 0);
     const bare = foldMeter(explainAuthority(g.state, 0));
     bear(g.state, 0, 'graciaMendesNasi');
-    // The half GP1 shipped: five more points of writ (eight until batch TT1,
-    // `docs/flags.md` (iiiiiii)).
+    // Three more points of writ since batch GP1 of 2026-11-12 (five before it,
+    // and eight until batch TT1, `docs/flags.md` (iiiiiii)).
     const widened = foldMeter(explainAuthority(g.state, 0));
-    expect(widened).toBe(bare + 5);
+    expect(widened).toBe(bare + 3);
     const spare = Math.max(0, widened);
     expect(spare).toBeGreaterThan(0);
-    // And the two halves GP3 wired, off that same fold: gladness a point, gold
-    // ten. The count cannot feed the meter it reads, which is why neither of
-    // these pays authority.
+    // And the two halves GP3 wired, off that same fold: happiness a point, and
+    // gold five (ten until batch GP1 of 2026-11-12). The count cannot feed the
+    // meter it reads, which is why neither of these pays authority.
     const glad = cardHappiness(g.state, 0)
       .filter((line) => String(line.card) === 'graciaMendesNasi')
       .reduce((sum, line) => sum + line.amount, 0);
     expect(glad).toBe(spare);
-    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(spare * 10);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(spare * 5);
   });
 
   it('Cosimo is paid a song for every hundred the treasury has let go', () => {

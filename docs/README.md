@@ -1185,11 +1185,18 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
 
 - **Called, never built or bought.** Renown is one pool, banked in exactly one
   place (`settleRenownWindfall`) and explained as one list. The ladder is
-  `floor(75 + 180n + n^2.65)` — the draft ladder's arithmetic, one currency over.
+  `floor(75 + 58n + n^2.65)` — the draft ladder's arithmetic, one currency over.
+  The linear term is 58 since batch GP1 of 2026-11-12 (it was 180).
 - The draw is **weighted and never restricted**: every name of the age is in the
   bag, each family weighted by its share of where the empire's renown came from.
   Names are world-shared and consumed on the pick. The draw spills
   `[age, previous…, next…]`. A spent roster banks rather than blocks.
+- **The Renown tab** (batch GP1 of 2026-11-12): the renown figure's hover card
+  and the Reliquary show each family's chance for the next offer
+  (`greatPersonOdds`, worked out from `greatPersonBag`, the bag the draw reads)
+  and the ages in the bag. The renown ledger prints one line for each town
+  (`explainRenownByTown`, `src/ui/renownTab.ts`); on the Reliquary the line
+  opens to the town's sources.
 - A person arrives with **one charge** and two verbs: the **act** pays now
   (aged by `actPerTech`, or quoted in turns of the empire's own rate), the
   **work** plants an improvement for good and **opens the seam it covers**.
@@ -1276,7 +1283,8 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
 - **The meters after batch TT1.** Every founded town costs 3 authority, on the
   coast or inland (`rules.meters.authority.coastalCity` is gone). The Civil
   Service, the Assize Court, The Examination Court and The Post Station give no
-  authority, and Gracia Mendes Nasi gives 5. Satrapies and The Civil Service
+  authority, and Gracia Mendes Nasi gives 3 (5 after TT1, 3 since batch GP1
+  of 2026-11-12). Satrapies and The Civil Service
   give no happiness, and the Public Bath gives 1 in its town while the town is
   joined to the capital. Each different luxury still gives 4 happiness, and
   both reward steps for spare happiness stay.

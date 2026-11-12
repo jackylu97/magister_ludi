@@ -334,12 +334,12 @@ describe('great people', () => {
     player.greatPeopleByFamily = { scholar: 4 };
     bumpRevision(state);
     expect(renownThreshold(state, player)).toBe(rung(4));
-    expect(renownThreshold(state, player)).toBe(834);
+    expect(renownThreshold(state, player)).toBe(346);
     slot(state, 0, 'theRoyalReaders');
-    // Four scholars and nobody else: two steps, so 441 instead of 834 (the
-    // themes doc's own figure).
+    // Four scholars and nobody else: two steps, so 197 instead of 346 (the
+    // ladder of batch GP1, linear 58).
     expect(renownThreshold(state, player)).toBe(rung(2));
-    expect(renownThreshold(state, player)).toBe(441);
+    expect(renownThreshold(state, player)).toBe(197);
     // A general is still a whole step: two generals and two scholars are three.
     player.greatPeopleByFamily = { general: 2, scholar: 2 };
     bumpRevision(state);

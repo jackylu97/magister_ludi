@@ -57,6 +57,16 @@
  * all under a law that opens nothing, so the ordinary empire sees the screen it
  * always saw.
  *
+ * The renown section
+ * ------------------
+ * Batch GP1 of 2026-11-12 (`docs/flags.md` item (mmmmmmm)) adds a section under
+ * the pile: the pool against the next price, the odds of the next offer, and
+ * this turn's renown with one line for each town. The renown figure on the top
+ * bar opens this sheet, so this is where a player's "Renown tab" lives. A town's
+ * line opens to its sources here, because the hover card cannot be clicked. The
+ * readings are `renownTab.ts`'s. The sheet now scrolls when the pile and the
+ * section do not fit.
+ *
  * What is deliberately **not** here: the lifetime "has produced" tally. It is
  * phase 2 and it needs a schema field (`docs/history/doctrine-ideas.md`), and a dash
  * standing in for it would be a number the screen does not have, printed as
@@ -81,12 +91,20 @@ import {
   greatPersonPurchaseError,
   greatPersonPurchaseOpen,
 } from '../sim/greatPeople';
-import { YIELD_GLYPH } from './figures';
+import { YIELD_GLYPH, figure, signedMeterFigure } from './figures';
 import { setYieldText } from './yieldMark';
 import { cardStampNode, landCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
+import { renownThreshold } from '../sim/renown';
+import {
+  type RenownLedgerRow,
+  foldRenownLedger,
+  renownLedgerRows,
+  renownOddsNode,
+  renownOddsReading,
+} from './renownTab';
 
 /**
  * One card in the roll: the face, plus the one fact the face itself cannot
@@ -465,6 +483,13 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     return fresh;
   }
 
+  /**
+   * The towns whose renown line is open, by city id. A fact about this
+   * conversation, like `at`: the sheet redraws on every arrow and refresh, and
+   * a line the player opened should stay open.
+   */
+  const openTowns = new Set<number>();
+
   function draw(flip: boolean): void {
     const state = options.getState();
     const playerId = options.getPlayerId();
@@ -478,6 +503,9 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     if (roll.length === 0) {
       at = 0;
       body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));
+      // The odds matter most before anybody is called, so the renown section
+      // is drawn on the empty screen too.
+      drawRenown();
       // **The calls are drawn on an empty screen too**, and that is the case
       // that matters most: an empire that has just adopted The Commonwealth has
       // no legacies yet and its whole signature clause lives on this rail.
@@ -530,7 +558,92 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     const count = element('p', 'rel-count', reliquaryCount(at, roll.length));
     count.setAttribute('aria-live', 'polite');
     body.append(count);
+    drawRenown();
     drawCalls();
+  }
+
+  /**
+   * The renown section, under the pile: the pool against the next price, the
+   * odds of the next offer, and this turn's renown with one line for each town
+   * (batch GP1 of 2026-11-12, `docs/flags.md` item (mmmmmmm)).
+   *
+   * A town's line is a `<details>`: it opens to the town's own sources. The
+   * figures are `renownTab.ts`'s readings, and the total under the double rule
+   * is the fold of the rows' lines (rule 5).
+   */
+  function drawRenown(): void {
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    const player = playerById(state, playerId);
+    if (!player) return;
+    const section = element('section', 'rel-renown');
+    section.setAttribute('aria-label', 'Renown');
+
+    section.append(element('p', 'eyebrow rel-renown-heading', 'the next great person'));
+    const pool = element('div', 'rel-renown-pool');
+    pool.append(element('span', 'rel-renown-pool-label', 'Renown'));
+    pool.append(
+      element(
+        'span',
+        'rel-renown-pool-figure',
+        `${figure(player.renownPool)} of ${figure(renownThreshold(state, player))}`,
+      ),
+    );
+    section.append(pool);
+    const odds = renownOddsReading(state, playerId);
+    if (odds !== null) section.append(renownOddsNode(odds));
+
+    section.append(element('p', 'eyebrow rel-renown-heading', 'renown this turn'));
+    const rows = renownLedgerRows(state, playerId);
+    if (rows.length === 0) {
+      section.append(
+        element('p', 'rel-renown-empty', 'Nothing yet. Libraries, wonders and Triumphs pay renown.'),
+      );
+    } else {
+      const list = element('ul', 'rel-ledger');
+      for (const row of rows) list.append(drawLedgerRow(row));
+      section.append(list);
+      const total = element('div', 'rel-ledger-total ledger-total');
+      total.append(element('span', 'rel-ledger-source', 'This turn'));
+      total.append(element('span', 'rel-ledger-value', signedMeterFigure(foldRenownLedger(rows))));
+      section.append(total);
+    }
+    body.append(section);
+  }
+
+  /** One row of the ledger: a town that opens to its sources, or a line of its own. */
+  function drawLedgerRow(row: RenownLedgerRow): HTMLElement {
+    const item = element('li', 'rel-ledger-row');
+    const head = (into: HTMLElement): void => {
+      into.append(element('span', 'rel-ledger-source', row.source));
+      into.append(element('span', 'rel-ledger-value', signedMeterFigure(row.amount)));
+    };
+    const cityId = row.cityId;
+    if (cityId === undefined) {
+      const line = element('div', 'rel-ledger-line');
+      head(line);
+      item.append(line);
+      return item;
+    }
+    const fold = element('details', 'rel-ledger-town');
+    fold.open = openTowns.has(cityId);
+    fold.addEventListener('toggle', () => {
+      if (fold.open) openTowns.add(cityId);
+      else openTowns.delete(cityId);
+    });
+    const summary = element('summary', 'rel-ledger-line');
+    head(summary);
+    fold.append(summary);
+    const sources = element('ul', 'rel-ledger-sources');
+    for (const line of row.lines) {
+      const source = element('li', 'rel-ledger-line');
+      source.append(element('span', 'rel-ledger-source', line.source));
+      source.append(element('span', 'rel-ledger-value', signedMeterFigure(line.amount)));
+      sources.append(source);
+    }
+    fold.append(sources);
+    item.append(fold);
+    return item;
   }
 
   /**

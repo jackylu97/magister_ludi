@@ -116,7 +116,8 @@ import {
 import { nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { greatPersonBlocker } from '../sim/greatPeople';
 import { explainNextRung, nextRungWords } from '../sim/religion';
-import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
+import { renownPerTurn, renownThreshold } from '../sim/renown';
+import { foldRenownLedger, renownLedgerRows, renownOddsNode, renownOddsReading } from './renownTab';
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
@@ -1066,7 +1067,11 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    *                  trickle and this turn's lumps together, folding to the
    *                  total under the double rule. The lines are the simulation's
    *                  own sentences ("Library at Ur", "Triumph · The Third
-   *                  Hearth"); nothing here composes a second one.
+   *                  Hearth"); nothing here composes a second one. Since batch
+   *                  GP1 of 2026-11-12 a town's lines print as one line with
+   *                  the town's name (`renownLedgerRows`); the Reliquary opens
+   *                  it to the town's sources. Under it, the odds of the next
+   *                  offer (`renownOddsReading`).
    *   the checklist  every row of `TRIUMPH`, in table order, with what it pays
    *                  and how often it may be had. Struck through where this
    *                  empire has already had it, and fainter still where the row
@@ -1113,26 +1118,36 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       }
     }
 
-    const lines = explainRenown(state, playerId);
-    if (lines.length === 0) {
+    // One line for each town, then the lines that belong to no town (batch GP1
+    // of 2026-11-12). The total is the fold of the rows' lines.
+    const rows = renownLedgerRows(state, playerId);
+    if (rows.length === 0) {
       box.append(
         element('p', 'hint', 'Nothing yet. Libraries, wonders and Triumphs pay renown.'),
       );
     } else {
       const list = element('ul', 'meter-lines ledger');
-      for (const line of lines) list.append(meterLine(line.source, line.amount, false));
+      for (const row of rows) list.append(meterLine(row.source, row.amount, true));
       box.append(list);
       const total = element('div', 'meter-total ledger-total');
       total.append(element('span', 'meter-line-source', 'This turn'));
-      total.append(element('span', 'meter-line-value', figure(foldRenown(lines))));
+      total.append(element('span', 'meter-line-value', signedMeterFigure(foldRenownLedger(rows))));
       box.append(total);
     }
 
-    // The door, said once and only where it leads somewhere: an empire that has
-    // spent nobody opens an empty sheet, and a hint pointing at one is a hint
-    // that teaches the wrong thing on the turn a player first reads it.
-    if (onOpenReliquary && player && player.legacies.length > 0) {
-      box.append(element('p', 'hint', '☞ Click for the Reliquary — every legacy still in force.'));
+    // The odds of the next offer, from the draw's own weights.
+    const odds = renownOddsReading(state, playerId);
+    if (odds !== null) {
+      box.append(element('p', 'eyebrow renown-heading', 'the next great person'));
+      box.append(renownOddsNode(odds));
+    }
+
+    // The door. Since batch GP1 the sheet always has something on it (the
+    // odds and each town's sources), so the hint no longer waits for a legacy.
+    if (onOpenReliquary && player) {
+      box.append(
+        element('p', 'hint', '☞ Click for the Reliquary: each town\'s sources, and every legacy in force.'),
+      );
     }
 
     box.append(element('p', 'eyebrow renown-heading', 'triumphs'));

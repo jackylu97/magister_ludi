@@ -725,9 +725,10 @@ describe('every refusal, and each leaves the state byte-identical', () => {
   });
 
   it('takes a card\'s discount off a **building** too, as one labelled line', () => {
-    // Crassus: "units and buildings cost −30% to buy" (−30% originally, −20%
+    // Crassus: "units and buildings cost −20% to buy" (−30% originally, −20%
     // between the great-people pass of 2026-09-03 and the user's buff of
-    // 2026-09-09, batch GP1). The unit half has had a rider hook since the
+    // 2026-09-09, −30% again until batch GP1 of 2026-11-12). The unit half has
+    // had a rider hook since the
     // wonders pass; the building half was the deferred sentence on his row until
     // 2026-08-28. Asserted through the price, because the price is the fold of
     // the printed lines and nothing else.
@@ -740,7 +741,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const cut = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
     expect(cut.lines).toHaveLength(bare.lines.length + 1);
-    expect(cut.total).toBe(Math.floor((bare.total * 70) / 100));
+    expect(cut.total).toBe(Math.floor((bare.total * 80) / 100));
     expect(cut.lines[cut.lines.length - 1]!.source).toContain('Crassus');
     // Rule 5 holds: the fold is still the price.
     expect(cut.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(cut.total);

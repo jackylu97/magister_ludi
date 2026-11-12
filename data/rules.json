@@ -395,7 +395,7 @@
   },
   "renown": {
     "base": 75,
-    "linear": 180,
+    "linear": 58,
     "exponent": 2.65
   },
   "greatPeople": {

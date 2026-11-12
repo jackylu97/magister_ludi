@@ -11890,8 +11890,8 @@
   ],
   "sinLeqiUnninni": [
    {
-    "raw": "+30% production toward [[building:amphitheater|Amphitheaters]]",
-    "text": "+30% production toward Amphitheaters"
+    "raw": "+50% production toward [[building:amphitheater|Amphitheaters]]",
+    "text": "+50% production toward Amphitheaters"
    }
   ],
   "ilimilku": [
@@ -11988,14 +11988,14 @@
   ],
   "aristotle": [
    {
-    "raw": "your buildings that [[concept:supplies|supply]] science pay +50%",
-    "text": "your buildings that supply science pay +50%"
+    "raw": "your buildings that [[concept:supplies|supply]] science pay +25%",
+    "text": "your buildings that supply science pay +25%"
    }
   ],
   "hemiunu": [
    {
-    "raw": "+10% production toward wonders",
-    "text": "+10% production toward wonders"
+    "raw": "+25% production toward wonders",
+    "text": "+25% production toward wonders"
    },
    {
     "raw": "-2 happiness in every city while it is building a wonder",
@@ -12030,8 +12030,8 @@
   ],
   "zhangHeng": [
    {
-    "raw": "+1 science in every city with a [[building:library|Library]]",
-    "text": "+1 science in every city with a Library"
+    "raw": "+1 gold per building in your cities that [[concept:supplies|supplies]] science",
+    "text": "+1 gold per building in your cities that supplies science"
    }
   ],
   "eratosthenes": [
@@ -12110,8 +12110,8 @@
   ],
   "crassus": [
    {
-    "raw": "all units and buildings cost −30% to buy",
-    "text": "all units and buildings cost −30% to buy"
+    "raw": "all units and buildings cost −20% to buy",
+    "text": "all units and buildings cost −20% to buy"
    },
    {
     "raw": "buying anything costs your empire -1 happiness for 10 turns",
@@ -12166,8 +12166,8 @@
   ],
   "spartacus": [
    {
-    "raw": "+3 combat strength when attacking an empire with more cities than you",
-    "text": "+3 combat strength when attacking an empire with more cities than you"
+    "raw": "+5 combat strength when attacking an empire with more cities than you",
+    "text": "+5 combat strength when attacking an empire with more cities than you"
    }
   ],
   "ibnSina": [
@@ -12188,14 +12188,14 @@
   ],
   "maimonides": [
    {
-    "raw": "+1 happiness per building in your cities that [[concept:supplies|supplies]] science",
-    "text": "+1 happiness per building in your cities that supplies science"
+    "raw": "+1 happiness per 2 buildings in your cities that [[concept:supplies|supply]] science",
+    "text": "+1 happiness per 2 buildings in your cities that supply science"
    }
   ],
   "rogerBacon": [
    {
-    "raw": "completing a technology grants +30% food in every city; +30% production in every city for 3 turns",
-    "text": "completing a technology grants +30% food in every city; +30% production in every city for 3 turns"
+    "raw": "completing a technology grants +15% food in every city; +15% production in every city for 3 turns",
+    "text": "completing a technology grants +15% food in every city; +15% production in every city for 3 turns"
    }
   ],
   "shenKuo": [
@@ -12206,14 +12206,14 @@
   ],
   "aryabhata": [
    {
-    "raw": "+2 faith in every city per building there that [[concept:supplies|supplies]] science",
-    "text": "+2 faith in every city per building there that supplies science"
+    "raw": "+1 faith in every city per building there that [[concept:supplies|supplies]] science",
+    "text": "+1 faith in every city per building there that supplies science"
    }
   ],
   "murasakiShikibu": [
    {
-    "raw": "+10 culture per melee unit in the field",
-    "text": "+10 culture per melee unit in the field"
+    "raw": "+4 culture per melee unit in the field",
+    "text": "+4 culture per melee unit in the field"
    }
   ],
   "snorriSturluson": [
@@ -12244,8 +12244,8 @@
   ],
   "alJazari": [
    {
-    "raw": "your buildings that [[concept:supplies|supply]] production pay +100%, counted after every other bonus on them",
-    "text": "your buildings that supply production pay +100%, counted after every other bonus on them"
+    "raw": "your buildings that [[concept:supplies|supply]] production pay +40%, counted after every other bonus on them",
+    "text": "your buildings that supply production pay +40%, counted after every other bonus on them"
    }
   ],
   "suSong": [
@@ -12290,18 +12290,18 @@
     "text": "mounted units: +1 movement"
    },
    {
-    "raw": "+25% combat strength for mounted units",
-    "text": "+25% combat strength for mounted units"
+    "raw": "+2 combat strength for mounted units",
+    "text": "+2 combat strength for mounted units"
    }
   ],
   "tomoeGozen": [
    {
-    "raw": "+15% combat strength for mounted units",
-    "text": "+15% combat strength for mounted units"
+    "raw": "+3 combat strength for mounted units",
+    "text": "+3 combat strength for mounted units"
    },
    {
-    "raw": "+15% combat strength for ranged units",
-    "text": "+15% combat strength for ranged units"
+    "raw": "+3 combat strength for ranged units",
+    "text": "+3 combat strength for ranged units"
    }
   ],
   "janZizka": [
@@ -12312,28 +12312,20 @@
   ],
   "elCid": [
    {
-    "raw": "+3 combat strength in a city you captured",
-    "text": "+3 combat strength in a city you captured"
+    "raw": "+6 combat strength in a city you captured",
+    "text": "+6 combat strength in a city you captured"
    }
   ],
   "mimarSinan": [
    {
     "raw": "+2 production, +2 culture in every city with a [[building:temple|Temple]]",
     "text": "+2 production, +2 culture in every city with a Temple"
-   },
-   {
-    "raw": "+30% production toward [[building:temple|Temples]]",
-    "text": "+30% production toward Temples"
-   },
-   {
-    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
-    "text": "+30% production toward Cathedrals"
    }
   ],
   "paracelsus": [
    {
-    "raw": "+25% science in every city",
-    "text": "+25% science in every city"
+    "raw": "+15% science in every city",
+    "text": "+15% science in every city"
    },
    {
     "raw": "-1 happiness in every city",
@@ -12354,8 +12346,8 @@
   ],
   "copernicus": [
    {
-    "raw": "+2 science in every city",
-    "text": "+2 science in every city"
+    "raw": "+4 science in every city",
+    "text": "+4 science in every city"
    }
   ],
   "christineDePizan": [
@@ -12392,42 +12384,38 @@
   ],
   "leonardo": [
    {
-    "raw": "+30% production toward wonders",
-    "text": "+30% production toward wonders"
+    "raw": "+20% production toward wonders",
+    "text": "+20% production toward wonders"
    },
    {
-    "raw": "a great person's act pays +100%",
-    "text": "a great person's act pays +100%"
+    "raw": "a great person's act pays +50%",
+    "text": "a great person's act pays +50%"
    }
   ],
   "taqiAlDin": [
    {
-    "raw": "+15% science in your capital",
-    "text": "+15% science in your capital"
-   },
-   {
-    "raw": "+15% science in every capital city beside a mountain",
-    "text": "+15% science in every capital city beside a mountain"
+    "raw": "+20% science in your capital",
+    "text": "+20% science in your capital"
    }
   ],
   "vaucanson": [
    {
-    "raw": "newly created workers gain +1 charge",
-    "text": "newly created workers gain +1 charge"
+    "raw": "newly created workers gain +2 charges",
+    "text": "newly created workers gain +2 charges"
    }
   ],
   "jakobFugger": [
    {
-    "raw": "+30% gold in every city",
-    "text": "+30% gold in every city"
+    "raw": "+20% gold in every city",
+    "text": "+20% gold in every city"
    },
    {
     "raw": "-1 authority capacity per 3 cities you hold",
     "text": "-1 authority capacity per 3 cities you hold"
    },
    {
-    "raw": "all units and buildings cost −20% to buy",
-    "text": "all units and buildings cost −20% to buy"
+    "raw": "all units and buildings cost −10% to buy",
+    "text": "all units and buildings cost −10% to buy"
    }
   ],
   "zhengHe": [
@@ -12444,24 +12432,20 @@
    {
     "raw": "the works on every hex with a [[improvement:fishingBoats|Fishing Boat]] pay +100%",
     "text": "the works on every hex with a Fishing Boat pay +100%"
-   },
-   {
-    "raw": "the ground of every hex with a [[improvement:fishingBoats|Fishing Boat]] pays double",
-    "text": "the ground of every hex with a Fishing Boat pays double"
    }
   ],
   "graciaMendesNasi": [
    {
-    "raw": "+5 authority capacity",
-    "text": "+5 authority capacity"
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
    },
    {
     "raw": "+1 happiness per spare authority",
     "text": "+1 happiness per spare authority"
    },
    {
-    "raw": "+10 gold per spare authority",
-    "text": "+10 gold per spare authority"
+    "raw": "+5 gold per spare authority",
+    "text": "+5 gold per spare authority"
    }
   ],
   "cosimoDeMedici": [
@@ -12498,8 +12482,8 @@
   ],
   "lautaro": [
    {
-    "raw": "+3 combat strength against mounted units",
-    "text": "+3 combat strength against mounted units"
+    "raw": "+5 combat strength against mounted units",
+    "text": "+5 combat strength against mounted units"
    }
   ]
  },

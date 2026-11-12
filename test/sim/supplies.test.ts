@@ -21,6 +21,7 @@ import {
   describeEffects,
   explainBuildingPackage,
   explainCardCityYields,
+  explainCardEmpireYields,
   foldBuildingPackage,
   stripRefs,
 } from '../../src/sim/statecraft';
@@ -242,10 +243,12 @@ describe('the rows that counted science buildings', () => {
     const rows: CardEffect[] = [
       ...greatPersonDef('maimonides').legacy,
       ...greatPersonDef('aryabhata').legacy,
+      // Zhang Heng joined the count with batch GP1 of 2026-11-12.
+      ...greatPersonDef('zhangHeng').legacy,
       ...orderDef('theRoyalTutors' as OrderId).effects,
       ...orderDef('theCommonTables' as OrderId).effects,
     ];
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     for (const effect of rows) {
       expect('count' in effect && effect.count).toBe('buildingsSupplying');
       expect('voice' in effect && effect.voice).toBe('science');
@@ -259,19 +262,46 @@ describe('the rows that counted science buildings', () => {
     const { state, city } = town('library');
     bear(state, 'aryabhata');
     const base = suppliers(state, city, 'science');
-    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(2 * base);
+    // One faith a building since batch GP1 of 2026-11-12 (it was two).
+    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(base);
     city.buildings.push('examinationCourt');
     bumpRevision(state);
-    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(2 * (base + 1));
+    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(base + 1);
     // A Temple pays no science by its row; a card that puts science on it
     // makes it supply science.
     city.buildings.push('temple');
     bumpRevision(state);
-    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(2 * (base + 1));
+    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(base + 1);
     seat(state, CARD_B, [
       { kind: 'pays', where: 'city', science: 1, scope: { test: 'hasBuilding', building: 'temple' } },
     ]);
-    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(2 * (base + 2));
+    expect(townPays(state, city, 'aryabhata', 'faith')).toBe(base + 2);
+  });
+
+  it('Zhang Heng pays the treasury a coin for each building in the realm that supplies science', () => {
+    // Batch GP1 of 2026-11-12: "+1 gold for each of your buildings that
+    // supplies science". The shape is Maimonides' empire count with gold as
+    // the voice it pays, so the coin lands once in the treasury rather than in
+    // a town's fold.
+    const { state, city } = town('library', 'examinationCourt');
+    const gold = (): number =>
+      explainCardEmpireYields(state, 0)
+        .filter((line) => line.card === 'zhangHeng')
+        .reduce((sum, line) => sum + line.gold, 0);
+    expect(gold()).toBe(0);
+    bear(state, 'zhangHeng');
+    const here = suppliers(state, city, 'science');
+    expect(here).toBeGreaterThanOrEqual(2);
+    expect(gold()).toBe(here);
+    // A building that supplies no science adds nothing.
+    city.buildings.push('granary');
+    bumpRevision(state);
+    expect(gold()).toBe(here);
+    // No town line: the gold is the realm's, not the Library town's.
+    expect(townPays(state, city, 'zhangHeng', 'science')).toBe(0);
+    expect(
+      explainCardCityYields(state, city).filter((line) => line.card === 'zhangHeng'),
+    ).toHaveLength(0);
   });
 
   it('The Common Tables and The Royal Tutors read the town’s count, and Maimonides the realm’s', () => {
@@ -286,7 +316,9 @@ describe('the rows that counted science buildings', () => {
     expect(tutors?.amount).toBe(2 * here);
     bear(state, 'maimonides');
     const happiness = cardHappiness(state, 0).find((line) => line.card === 'maimonides');
-    expect(happiness?.amount).toBe(here);
+    // One per two buildings since batch GP1 of 2026-11-12: the count takes a
+    // `per`, and a part helping pays nothing.
+    expect(happiness?.amount).toBe(Math.floor(here / 2));
   });
 });
 

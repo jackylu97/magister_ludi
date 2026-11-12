@@ -289,6 +289,149 @@ export function greatPersonWeights(
 }
 
 /**
+ * What the next great-person draw deals from: the hand size, the family a card
+ * narrows it to, the names in the bag and the weight of each.
+ *
+ * The draw (`drawGreatPersonOffer`) and the Renown tab's odds
+ * (`greatPersonOdds`) both read this, so the odds cannot drift from the draw.
+ * It reads the state and changes nothing.
+ *
+ * **A Court of Merchants narrows an unnarrowed hand** (batch C3, ruled in
+ * `docs/flags.md` item (pppppp)). It is asked only when the caller named no
+ * family of its own, so the Academy's scholar draft (a hand somebody bought as
+ * scholars) is untouched, and so is a reroll that deals a narrowed hand again.
+ *
+ * **And it falls back rather than locking.** If the family has nobody left
+ * uncalled, the ordinary weighted hand is dealt instead of an empty one. The
+ * draw is weighted rather than restricted so that a spent roster banks rather
+ * than blocks, and a card that could empty one family and then deal nothing
+ * would take that away. It is checked against the pool rather than against a
+ * roster count, so it asks the question `greatPersonPool` answers, the spill
+ * included.
+ */
+export interface GreatPersonBag {
+  /** The offer size `offerSize` gives, before the bag caps it. */
+  size: number;
+  /** How many names the draw will deal: the size, capped by the bag. */
+  wanted: number;
+  /** The family the hand is narrowed to, or `undefined` for the whole roster. */
+  family?: Family;
+  /** The names in the bag, in draw order (`greatPersonPool`). */
+  candidates: GreatPersonId[];
+  /** Each candidate's weight, parallel to `candidates` (`greatPersonWeights`). */
+  weights: number[];
+}
+
+export function greatPersonBag(state: GameState, player: Player, family?: Family): GreatPersonBag {
+  const size = offerSize(state, player.id, 'greatPerson');
+  const narrowed = family !== undefined ? family : narrowingFamily(state, player, size);
+  const candidates = greatPersonPool(state, player, size, narrowed);
+  const weights = greatPersonWeights(player, candidates);
+  const wanted = Math.min(Math.max(0, Math.floor(size)), candidates.length);
+  return narrowed === undefined
+    ? { size, wanted, candidates, weights }
+    : { size, wanted, family: narrowed, candidates, weights };
+}
+
+/**
+ * The odds of the next great-person offer, for the Renown tab (batch GP1 of
+ * 2026-11-12, `docs/flags.md` item (mmmmmmm)).
+ */
+export interface GreatPersonOdds {
+  /** How many names the next offer deals. Zero when the roster is spent. */
+  wanted: number;
+  /** The family a card narrows the hand to, if any. */
+  family?: Family;
+  /** The roster age this empire draws from first. */
+  age: number;
+  /** The unclaimed names of that age that the draw may deal. */
+  ageLeft: number;
+  /** The ages whose names are in the bag, in the order the draw walks them. */
+  ages: number[];
+  /**
+   * For each family in `FAMILIES` order: the names of that family in the bag,
+   * and the chance that a name in the offer is of that family (0 to 1).
+   */
+  families: { family: Family; names: number; chance: number }[];
+}
+
+/**
+ * **The chance that a name in the next offer comes from each family**, worked
+ * out exactly from the draw's own bag and weights (`greatPersonBag`).
+ *
+ * The draw takes `wanted` names one at a time, without replacement, each with
+ * a chance equal to its weight over the weight left in the bag. The chance
+ * here is the expected share of the hand: the expected number of a family's
+ * names in the offer, divided by the offer's size. For a hand of one it is the
+ * family's share of the bag's weight. For a larger hand, a family with few
+ * names left gets less than its weight share, because a name that is taken
+ * cannot be drawn again. A family with no name in the bag has no chance.
+ *
+ * The walk groups names with the same family and weight, because the draw
+ * cannot tell them apart. A state is how many names of each group the hand
+ * has taken, and there are few such states.
+ */
+export function greatPersonOdds(state: GameState, player: Player): GreatPersonOdds {
+  const bag = greatPersonBag(state, player);
+  const age = rosterAgeOf(player);
+  const ageOf = (id: GreatPersonId): number => greatPersonDef(id).age;
+  const ages = spillOrder(age).filter((walked) => bag.candidates.some((id) => ageOf(id) === walked));
+  const ageLeft = bag.candidates.filter((id) => ageOf(id) === age).length;
+
+  // The groups: one for each (family, weight), in the order the bag shows them.
+  const groups: { family: Family; weight: number; count: number }[] = [];
+  bag.candidates.forEach((id, at) => {
+    const family = greatPersonDef(id).family;
+    const weight = bag.weights[at]!;
+    const group = groups.find((one) => one.family === family && one.weight === weight);
+    if (group) group.count += 1;
+    else groups.push({ family, weight, count: 1 });
+  });
+
+  // Walk the draw one pick at a time. Each state is how many names of each
+  // group the hand has taken so far, and the chance of reaching that state.
+  const expected = groups.map(() => 0);
+  let layer: { taken: number[]; chance: number }[] = [{ taken: groups.map(() => 0), chance: 1 }];
+  for (let pick = 0; pick < bag.wanted; pick++) {
+    const next: { taken: number[]; chance: number }[] = [];
+    for (const here of layer) {
+      let total = 0;
+      groups.forEach((group, at) => {
+        total += (group.count - here.taken[at]!) * group.weight;
+      });
+      // The draw's own guard: a bag with no weight left deals nothing more.
+      if (total <= 0) continue;
+      groups.forEach((group, at) => {
+        const left = group.count - here.taken[at]!;
+        if (left <= 0 || group.weight <= 0) return;
+        const chance = (here.chance * left * group.weight) / total;
+        expected[at] = expected[at]! + chance;
+        const taken = [...here.taken];
+        taken[at] = taken[at]! + 1;
+        const same = next.find((one) => one.taken.every((n, i) => n === taken[i]));
+        if (same) same.chance += chance;
+        else next.push({ taken, chance });
+      });
+    }
+    layer = next;
+  }
+
+  const families = FAMILIES.map((family) => {
+    let names = 0;
+    let share = 0;
+    groups.forEach((group, at) => {
+      if (group.family !== family) return;
+      names += group.count;
+      share += expected[at]!;
+    });
+    return { family, names, chance: bag.wanted > 0 ? share / bag.wanted : 0 };
+  });
+  const odds: GreatPersonOdds = { wanted: bag.wanted, age, ageLeft, ages, families };
+  if (bag.family !== undefined) odds.family = bag.family;
+  return odds;
+}
+
+/**
  * Deals one great-person offer: `offerSize` names from the (spilled) pool,
  * without replacement, weighted by the feed.
  *
@@ -322,24 +465,14 @@ export function drawGreatPersonOffer(
   player: Player,
   family?: Family,
 ): GreatPersonOffer {
-  const size = offerSize(state, player.id, 'greatPerson');
-  // **A Court of Merchants narrows an unnarrowed hand** (batch C3, ruled in
-  // `docs/flags.md` item (pppppp)). Asked only when the caller named no family
-  // of its own, so the Academy's scholar draft — a hand somebody bought *as
-  // scholars* — is untouched, and so is a reroll redealing a narrowed hand as
-  // what it was dealt as.
-  //
-  // **And it falls back rather than locking.** A family with nobody left
-  // uncalled deals the ordinary weighted hand instead of an empty one, which is
-  // the whole of the ruling: the reason the draw is weighted rather than
-  // restricted is that a spent roster banks rather than blocks, and a card that
-  // could empty one family and then deal nothing would have taken that away.
-  // Checked against the pool rather than against a roster count so it asks the
-  // same question `greatPersonPool` answers — the spill included.
-  const narrowed = family !== undefined ? family : narrowingFamily(state, player, size);
-  const remaining = greatPersonPool(state, player, size, narrowed);
-  const weights = greatPersonWeights(player, remaining);
-  const wanted = Math.min(Math.max(0, Math.floor(size)), remaining.length);
+  // The bag, its weights and the hand size come from `greatPersonBag`, which
+  // the Renown tab's odds read too (`greatPersonOdds`), so the odds a player is
+  // shown are this draw's own.
+  const bag = greatPersonBag(state, player, family);
+  const narrowed = bag.family;
+  const remaining = [...bag.candidates];
+  const weights = [...bag.weights];
+  const wanted = bag.wanted;
   const options: GreatPersonId[] = [];
 
   for (let taken = 0; taken < wanted; taken++) {

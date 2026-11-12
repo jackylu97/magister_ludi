@@ -18949,6 +18949,214 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
+/* --- the renown section ----------------------------------------------------
+   Batch GP1 of 2026-11-12 (`docs/flags.md` item (mmmmmmm)): under the pile, the
+   pool against the next price, the odds of the next offer, and this turn's
+   renown with one line for each town. A town's line is a `<details>` that opens
+   to its sources. Figures are in the tabular mono, words in the interface face,
+   and the total wears the ledger's double rule (`.ledger-total`). */
+.rel-renown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 24rem;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+.rel-renown-heading {
+  margin: 4px 0 0;
+}
+
+.rel-renown-pool {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--face-ui);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rel-renown-pool-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.rel-renown-empty {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.rel-ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rel-ledger > li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.rel-ledger-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  font-family: var(--face-ui);
+  font-size: 0.78rem;
+  color: var(--ink);
+}
+
+.rel-ledger-source {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rel-ledger-value {
+  flex: none;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* A town's line opens to its sources. The marker sits before the name, in the
+   soft ink, the way the city panel's folds draw theirs. */
+.rel-ledger-town > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.rel-ledger-town > summary::-webkit-details-marker {
+  display: none;
+}
+
+.rel-ledger-town > summary .rel-ledger-source::before {
+  content: '▸ ';
+  font-size: 0.7em;
+  color: var(--ink-soft);
+}
+
+.rel-ledger-town[open] > summary .rel-ledger-source::before {
+  content: '▾ ';
+}
+
+.rel-ledger-town > summary:hover .rel-ledger-source,
+.rel-ledger-town > summary:focus-visible .rel-ledger-source {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rel-ledger-sources {
+  margin: 0 0 4px 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.rel-ledger-sources .rel-ledger-line {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.rel-ledger-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ink);
+  font-family: var(--face-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* --- the odds of the next great person -------------------------------------
+   Shared by the renown hover card on the top bar and the Reliquary's renown
+   section (`renownOddsNode`, `src/ui/renownTab.ts`). One row a family: the
+   name, a bar in ink, and the whole percent in the tabular mono. A family the
+   draw cannot deal is drawn in the soft ink at nought. The bar's track is the
+   empire bar's (`.empire-bar`). */
+.renown-odds {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.renown-odds-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.renown-odds-row {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) 3.2em;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.renown-odds-row.is-none {
+  color: var(--ink-soft);
+}
+
+.renown-odds-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(29, 26, 32, 0.15);
+}
+
+.renown-odds-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+}
+
+.renown-odds-figure {
+  text-align: right;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.renown-odds-bag {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.renown-odds-num {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+#reliquary-overlay .renown-odds-row {
+  font-size: 0.78rem;
+}
+
+#reliquary-overlay .renown-odds-bag {
+  font-size: 0.72rem;
+}
+
 /* --- the revoked decorator ------------------------------------------------
    **History, not deletion** (`LegacyRecord.revoked` — the record stays in spend
    order and only `liveEffects` stops reading it). So the card stays in the pile,

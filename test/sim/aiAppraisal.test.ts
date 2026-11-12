@@ -3101,6 +3101,25 @@ describe('the whole deck, priced (batch H2)', () => {
     ]);
   });
 
+  /**
+   * **The two rows batch GP1 of 2026-11-12 changed in shape still price**:
+   * Zhang Heng's gold for each building that supplies science (the count
+   * Maimonides uses, paid as gold), and Subutai's flat strength line for
+   * mounted units (a `combatLine` where a percentage was).
+   */
+  it('prices Zhang Heng by the science buildings and Subutai by the flat line', () => {
+    const { state, player, city } = board();
+    const zhang = (): number => scoreEffects(greatPersonDef('zhangHeng').legacy, valueContext(state, player));
+    const before = zhang();
+    city.buildings.push('library');
+    bumpRevision(state);
+    const after = zhang();
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeGreaterThanOrEqual(before);
+    const line = greatPersonDef('subutai').legacy.find((effect) => effect.kind === 'combatLine')!;
+    expect(scoreEffects([line], valueContext(state, player))).toBeGreaterThan(0);
+  });
+
   it('prices a rate conversion out of the books it converts', () => {
     // The Tithe: a coin per point of faith a turn. The books are the very
     // reading `collectYields` hands the evaluator, so nothing is estimated.

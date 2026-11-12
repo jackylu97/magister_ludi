@@ -42,17 +42,25 @@ each one rather than earning them at a faster rate. Filling the threshold spends
 it (the overflow carries) and opens an offer of names —
 `rules.offers.greatPerson` wide, widened again by any rider.
 
-The three figures are `rules.renown` — **base 75 · linear 180 · exponent 2.65** (the user, 2026-09-15: the tiers scaled down by a fifth; they were 225 and 2.8) —
-and they are the knob the whole rate turns on. The **first eight rungs**, and
-what an empire must have banked in total to stand on each:
+The three figures are `rules.renown`: **base 75 · linear 58 · exponent 2.65**.
+They set the whole rate.
+- 2026-09-15: the user scaled the tiers down by a fifth (linear 225 → 180,
+  exponent 2.8 → 2.65).
+- 2026-11-12, batch GP1 (`docs/flags.md` item (mmmmmmm)): linear 180 → 58. The
+  user: *"instead of 4 great people at 2000 renown lets make it 7"*. The first
+  price stays 75.
+
+The **first eight prices**, and the renown an empire must have banked in all to
+recruit each one:
 
 | Person | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th |
 |---|---|---|---|---|---|---|---|---|
-| Threshold | 75 | 301 | 531 | 771 | 1023 | 1290 | 1575 | 1882 |
-| Banked in all | 75 | 376 | 907 | 1678 | 2701 | 3991 | 5566 | 7448 |
+| Threshold | 75 | 134 | 197 | 267 | 346 | 436 | 538 | 654 |
+| Banked in all | 75 | 209 | 406 | 673 | 1019 | 1455 | 1993 | 2647 |
 
-Why the linear term is three times the base where culture's is half of it is B4's
-finding, and the arithmetic is in *The rate, measured*.
+The linear term was three times the base after batch B4. *The rate, measured*
+below gives B4's arithmetic and measurement, made at linear 225. Those games are
+older than the cuts to 180 and to 58, so they do not describe the current rate.
 
 **The draw** is weighted and never restricted. Every name of the age is in the
 bag; each family's weight is a base thousand plus that family's share of what the
@@ -62,6 +70,19 @@ consumed on the pick, resolved by log order — `chooseGreatPerson` is the
 reducer's one refusal that mutates, redrawing when another empire has already
 taken the name. A roster spent to the last name banks the renown rather than
 blocking the recruitment.
+
+**The odds** are on the Renown tab: the renown figure's hover card on the top
+bar, and the Reliquary it opens (batch GP1 of 2026-11-12).
+- For each family, the chance in whole percent that a name in the next offer
+  comes from it. `greatPersonOdds` works it out exactly from `greatPersonBag`,
+  the bag, weights and hand size the draw itself reads. A family with no name
+  left shows 0.
+- Which ages' names are in the bag, and how many unclaimed names the empire's
+  own age has left.
+- The renown ledger prints one line for each town (`explainRenownByTown`,
+  `src/ui/renownTab.ts`). On the Reliquary a town's line opens to its sources.
+  Lines that belong to no town (cards, legacies, luxuries, Triumphs) keep
+  their own lines, and the total is the fold of every line.
 
 **The spill** keeps a short age pool honest: the draw walks
 `[the empire's age, the ages before it, the ages after it]`, so an early empire
@@ -222,13 +243,15 @@ blank for the balance pass.
 | `offerPriceFaith` | 750 | The same out of the faith bank, under Sacred Patronage. The price is flat: it does not rise. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
 | `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |
-| `renown.linear` | 180 | What each person already recruited adds to the next one’s price, straight. |  |
+| `renown.linear` | 58 | What each person already recruited adds to the next one’s price, straight. |  |
 | `renown.exponent` | 2.65 | The power the recruit count is raised to and added on top — culture’s own. |  |
 
 ## The roster
 
 78 names across four ages and five families — the roster as the great-person
-pass of 2026-09-09 left it (`docs/flags.md` (lll)). Eight further rows are
+pass of 2026-09-09 left it (`docs/flags.md` (lll)). Batch GP1 (2026-11-12,
+`docs/flags.md` (mmmmmmm)) changed 25 legacies; the Legacy column prints them
+as they are now. Eight further rows are
 **retired** (`GreatPersonDef.retired`): out of every draw, kept in the data so a
 save holding one of their legacies still loads, and out of the tables below,
 which are the live roster and nothing else. Tier is the row's own and is
@@ -249,7 +272,7 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Kidinnu | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +15% science in your capital |  |
 | Enheduanna | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture in every city with a Shrine |  |
 | Homer | Artist | ● defining | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel | read as each work's own voice (fold-in assumption) |
-| Sin-lēqi-unninni | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +30% production toward Amphitheaters |  |
+| Sin-lēqi-unninni | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +50% production toward Amphitheaters |  |
 | Ilimilku | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 production, +1 culture in every coastal city |  |
 | Amenhotep son of Hapu | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% production toward wonders, in your capital |  |
 | Bezalel | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production in every city with a Temple |  |
@@ -268,12 +291,12 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Person | Family | Tier | Act | Work | Legacy | Notes |
 |---|---|---|---|---|---|---|
 | Epicurus | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | -15% happiness demanded per citizen, in every city of 10 or more citizens | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
-| Aristotle | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | your buildings that supply science pay +50% | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
-| Hemiunu | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +10% production toward wonders · -2 happiness in every city while it is building a wonder |  |
+| Aristotle | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | your buildings that supply science pay +25% | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
+| Hemiunu | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +25% production toward wonders · -2 happiness in every city while it is building a wonder |  |
 | Ptahhotep | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 authority capacity per 2 Libraries |  |
 | Archimedes | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | siege units: +1 movement · +3 combat strength for siege units |  |
 | Hypatia | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +10% science in every city · lost the first turn your happiness goes negative |  |
-| Zhang Heng | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science in every city with a Library |  |
+| Zhang Heng | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 gold per building in your cities that supplies science |  |
 | Eratosthenes | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science per 80 hexes you have revealed |  |
 | Qu Yuan | Artist | ● defining | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +10% culture in every city · -5 happiness in your capital |  |
 | Phidias | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture per wonder you hold |  |
@@ -284,12 +307,12 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Zhang Qian | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold per 80 hexes you have revealed |  |
 | Nanaivandak | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | each connected city pays +2 gold |  |
 | Hippalus | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold on every hex with a Fishing Boat |  |
-| Crassus | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | all units and buildings cost −30% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
+| Crassus | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | all units and buildings cost −20% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
 | Pytheas | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | trader units: +1 sight · your trade units cannot be attacked or plundered |  |
-| Hannibal | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength outside your territory · -4 combat strength inside your territory |  |
+| Hannibal | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength when attacking outside your territory · -4 combat strength when defending inside your territory |  |
 | Gaius Marius | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | all units: +1 movement inside your territory | proposed name (fold-in 2026-09-09) — yours to change |
-| Boudica | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength inside your territory · lost when the age it was earned in closes |  |
-| Spartacus | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against an empire with more cities than you |  |
+| Boudica | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength when defending inside your territory · lost when the age it was earned in closes |  |
+| Spartacus | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength when attacking an empire with more cities than you |  |
 | Ibn Sīnā | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 happiness in every city |  |
 
 ### Æra IV — The Age of Cathedrals
@@ -299,24 +322,24 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Person | Family | Tier | Act | Work | Legacy | Notes |
 |---|---|---|---|---|---|---|
 | al-Khwārizmī | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +10% faith in every city with a University · you may buy buildings that supply science with faith |  |
-| Maimonides | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 happiness per building in your cities that supplies science | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
-| Roger Bacon | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | completing a technology grants +30% food in every city; +30% production in every city for 3 turns | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
-| Āryabhaṭa | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 faith in every city per building there that supplies science |  |
-| Murasaki Shikibu | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +10 culture per melee unit in the field |  |
+| Maimonides | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 happiness per 2 buildings in your cities that supply science | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
+| Roger Bacon | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | completing a technology grants +15% food in every city; +15% production in every city for 3 turns | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
+| Āryabhaṭa | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 faith in every city per building there that supplies science |  |
+| Murasaki Shikibu | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +4 culture per melee unit in the field |  |
 | Rūmī | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | your Temples pay +100%, counted after every other bonus on them |  |
 | Sei Shōnagon | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +5% culture in every city per unique luxury there |  |
-| al-Jazarī | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | your buildings that supply production pay +100%, counted after every other bonus on them |  |
+| al-Jazarī | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | your buildings that supply production pay +40%, counted after every other bonus on them |  |
 | Su Song | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production, +1 science on every hex with a Mine, in every city with a Workshop |  |
 | Villard de Honnecourt | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% production toward wonders |  |
 | Benjamin of Tudela | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold, +1 culture on every hex carrying a great person's work |  |
 | Ibn Baṭṭūṭa | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +5% culture per other empire you trade with |  |
 | Marco Polo | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per 5 hexes between the two cities |  |
 | Francesco Datini | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold on every hex carrying a resource, in every city with a Bank |  |
-| Subutai | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | mounted units: +1 movement · +25% combat strength for mounted units |  |
-| Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
-| Jan Žižka | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength while fortified |  |
-| El Cid | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength in a city you captured |  |
-| Mimar Sinan | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +2 production, +2 culture in every city with a Temple · +30% production toward Temples · +30% production toward Cathedrals |  |
+| Subutai | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | mounted units: +1 movement · +2 combat strength for mounted units |  |
+| Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength for mounted units · +3 combat strength for ranged units |  |
+| Jan Žižka | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength when defending while fortified |  |
+| El Cid | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +6 combat strength in a city you captured |  |
+| Mimar Sinan | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +2 production, +2 culture in every city with a Temple |  |
 
 ### Æra V — The Magister
 
@@ -324,25 +347,25 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 
 | Person | Family | Tier | Act | Work | Legacy | Notes |
 |---|---|---|---|---|---|---|
-| Paracelsus | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +25% science in every city · -1 happiness in every city |  |
+| Paracelsus | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +15% science in every city · -1 happiness in every city |  |
 | Tycho Brahe | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science on every hill hex beside a mountain |  |
 | John Dee | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 card in every offer of every kind |  |
-| Copernicus | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science in every city |  |
+| Copernicus | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +4 science in every city |  |
 | Christine de Pizan | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture in your capital · +1 authority capacity |  |
 | Dürer | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 culture per wonder you hold · your wonders pay +50% |  |
 | Bashō | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture on every forest or jungle hex |  |
 | Sor Juana | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 science, +1 culture on every hex carrying a resource, in every city with a University |  |
-| Leonardo | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +30% production toward wonders · a great person's act pays +100% |  |
-| Taqī al-Dīn | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% science in your capital · +15% science in every capital city beside a mountain |  |
-| Vaucanson | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | newly created worker units gain +1 charge |  |
-| Jakob Fugger | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | +30% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −20% to buy |  |
-| Willem Beukelszoon | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | the works on every hex with a Fishing Boat pay +100% · the ground of every hex with a Fishing Boat pays double | proposed name (fold-in 2026-09-09) — yours to change |
-| Gracia Mendes Nasi | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +5 authority capacity · +1 happiness per spare authority · +10 gold per spare authority |  |
+| Leonardo | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +20% production toward wonders · a great person's act pays +50% |  |
+| Taqī al-Dīn | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +20% science in your capital |  |
+| Vaucanson | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | newly created workers gain +2 charges |  |
+| Jakob Fugger | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | +20% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −10% to buy |  |
+| Willem Beukelszoon | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | the works on every hex with a Fishing Boat pay +100% | proposed name (fold-in 2026-09-09) — yours to change |
+| Gracia Mendes Nasi | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +3 authority capacity · +1 happiness per spare authority · +5 gold per spare authority |  |
 | Cosimo de' Medici | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 culture per 100 gold you have spent buying |  |
 | Gustavus Adolphus | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for ranged units · siege units: +1 movement |  |
-| Nzinga of Ndongo | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength in forest · +5 combat strength in jungle |  |
+| Nzinga of Ndongo | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength when defending in forest · +5 combat strength when defending in jungle |  |
 | Yi Sun-sin | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength for ships |  |
-| Lautaro | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against mounted units |  |
+| Lautaro | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength against mounted units |  |
 
 ## Extension rules
 

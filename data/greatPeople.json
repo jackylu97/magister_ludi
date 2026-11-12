@@ -168,7 +168,7 @@
         {
           "kind": "productionBonus",
           "category": "building",
-          "percent": 30,
+          "percent": 50,
           "building": "amphitheater"
         }
       ]
@@ -449,7 +449,7 @@
         {
           "kind": "buildingYieldPercent",
           "pays": "science",
-          "percent": 50
+          "percent": 25
         }
       ]
     },
@@ -464,7 +464,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 10
+          "percent": 25
         },
         {
           "kind": "happiness",
@@ -553,12 +553,12 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "city",
-          "science": 1,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "library"
-          }
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "science"
         }
       ]
     },
@@ -821,7 +821,7 @@
           "kind": "purchaseRider",
           "class": {},
           "on": "all",
-          "percent": -30
+          "percent": -20
         },
         {
           "kind": "windfallRider",
@@ -960,7 +960,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 5,
           "side": "attack",
           "when": {
             "test": "vsWiderEmpire"
@@ -1021,7 +1021,8 @@
           "to": "happiness",
           "amount": 1,
           "count": "buildingsSupplying",
-          "voice": "science"
+          "voice": "science",
+          "per": 2
         }
       ]
     },
@@ -1043,12 +1044,12 @@
                 {
                   "kind": "percentYields",
                   "yield": "food",
-                  "percent": 30
+                  "percent": 15
                 },
                 {
                   "kind": "percentYields",
                   "yield": "production",
-                  "percent": 30
+                  "percent": 15
                 }
               ]
             }
@@ -1088,7 +1089,7 @@
           "where": "city",
           "basis": "count",
           "to": "faith",
-          "amount": 2,
+          "amount": 1,
           "count": "buildingsSupplying",
           "voice": "science",
           "within": "city"
@@ -1108,7 +1109,7 @@
           "where": "empire",
           "basis": "count",
           "to": "culture",
-          "amount": 10,
+          "amount": 4,
           "count": "unitsInField",
           "class": {
             "modelClass": "melee"
@@ -1194,7 +1195,7 @@
         {
           "kind": "buildingYieldPercent",
           "pays": "production",
-          "percent": 100,
+          "percent": 40,
           "appliedLast": true
         }
       ]
@@ -1333,9 +1334,12 @@
           }
         },
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": 25,
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
           "class": {
             "modelClass": "mounted"
           }
@@ -1351,17 +1355,23 @@
       "kernel": "The Heike.",
       "legacy": [
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": 15,
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
           "class": {
             "modelClass": "mounted"
           }
         },
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": 15,
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
           "class": {
             "ranged": true
           }
@@ -1396,7 +1406,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "capturedCity"
           },
@@ -1421,18 +1431,6 @@
             "test": "hasBuilding",
             "building": "temple"
           }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 30,
-          "building": "temple"
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 30,
-          "building": "cathedral"
         }
       ]
     },
@@ -1447,7 +1445,7 @@
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 25,
+          "percent": 15,
           "stage": "empire"
         },
         {
@@ -1509,7 +1507,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "science": 2
+          "science": 4
         }
       ]
     },
@@ -1614,12 +1612,12 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 30
+          "percent": 20
         },
         {
           "kind": "effectAmplifier",
           "target": "greatPersonAct",
-          "percent": 100
+          "percent": 50
         }
       ]
     },
@@ -1634,25 +1632,9 @@
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 15,
+          "percent": 20,
           "scope": {
             "test": "trueCapital"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 15,
-          "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "trueCapital"
-              },
-              {
-                "test": "mountainAdjacent"
-              }
-            ]
           }
         }
       ]
@@ -1668,7 +1650,7 @@
         {
           "kind": "unitStat",
           "stat": "charges",
-          "amount": 1,
+          "amount": 2,
           "class": {
             "type": "worker"
           }
@@ -1686,7 +1668,7 @@
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 30,
+          "percent": 20,
           "stage": "empire"
         },
         {
@@ -1702,7 +1684,7 @@
           "kind": "purchaseRider",
           "class": {},
           "on": "all",
-          "percent": -20
+          "percent": -10
         }
       ]
     },
@@ -1743,7 +1725,6 @@
           "kind": "pays",
           "where": "hex",
           "percent": 100,
-          "basePercent": 100,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
@@ -1761,7 +1742,7 @@
       "legacy": [
         {
           "kind": "authority",
-          "amount": 5
+          "amount": 3
         },
         {
           "kind": "pays",
@@ -1777,7 +1758,7 @@
           "basis": "count",
           "count": "authoritySurplus",
           "to": "gold",
-          "amount": 10
+          "amount": 5
         }
       ]
     },
@@ -1885,7 +1866,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 5,
           "when": {
             "test": "always"
           },

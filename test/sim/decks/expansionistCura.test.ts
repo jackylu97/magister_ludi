@@ -432,7 +432,7 @@ const MOVED_READERS: Record<string, string> = {
   'religion.ts › placeRelicError': 'the cathedral a relic is kept in',
   'religion.ts › explainPressure': 'the temple',
   'religion.ts › templeShare': 'the temple',
-  'renown.ts › explainRenown': 'the renown',
+  'renown.ts › explainRenownByTown': 'the renown',
   'resourceEffects.ts › matchingBuildings': 'a luxury that pays per building of a category',
   // `explainRouteYieldBetween`'s body since Commerce batch T3, which gave it a
   // label argument for The Return Leg's copy.
