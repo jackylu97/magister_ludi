@@ -376,7 +376,9 @@ describe('a stand-in price for each shape of D11 to D15, off its own knob (D16)'
   it('prices Rally to the Standard by the soldiers gained, beside a general', () => {
     const effect = orderDef('rallyToTheStandard' as OrderId).effects[0]!;
     const { state, player, cities } = board(1, 20);
-    player.unitsBuilt = { warrior: 4, worker: 3 };
+    // The record of every unit gained (batch BP2). `unitsBuilt` never counts
+    // a soldier, so a real seat's rally read nought before.
+    player.unitsGained = { warrior: 4, worker: 3 };
     bumpRevision(state);
     expect(scoreEffects([effect], valueContext(state, player))).toBe(0);
     const piece = createUnit(state, 0, 'greatPerson', cities[0]!.col + 1, cities[0]!.row);

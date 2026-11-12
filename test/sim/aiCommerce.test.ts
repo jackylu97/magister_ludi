@@ -483,8 +483,9 @@ describe('Mercenary Contracts', () => {
     const { state, player } = board([6]);
     const [gold, faith] = effectsOf(MERCENARIES);
     expect(scoreEffects([gold!], valueContext(state, player))).toBe(0);
-    // Twenty military units gained over forty turns.
-    player.unitsBuilt = { warrior: 20 };
+    // Twenty military units gained over forty turns, on the record of every
+    // unit gained (batch BP2; `unitsBuilt` counts only settlers and workers).
+    player.unitsGained = { warrior: 20 };
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const rate = 20 / state.turn;

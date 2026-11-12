@@ -293,19 +293,8 @@ export function slotOrderError(
   const sc = player.statecraft;
   if (!isOrderId(cardId)) return `"${String(cardId)}" is not a known Order`;
   if (!holdsOrder(sc, cardId)) return `${player.name} does not hold ${orderDef(cardId).name}`;
-  // **A charter is never seated** (D1a, `CharterSpec`): its grant was written
-  // on the pick, and a chair spent on it would be a chair spent on nothing.
-  if (isCharter(cardId)) return `${orderDef(cardId).name} is a charter and never sits in a chair`;
-  // **A Boon is never seated either** (batch DS8): it pays once, when it is
-  // drafted, and a chair spent on it would be a chair spent on nothing. The
-  // refusal keeps the game true to the keyword's rule, and it keeps a held
-  // Boon out of every chair the council screen, the bots and the End Turn
-  // pause offer, since all three ask this gate.
-  if (isBoon(cardId)) return `${orderDef(cardId).name} is a Boon and never sits in a chair`;
-  // A fulfilled commission has paid its reward and has nothing left to do.
-  if (commissionFulfilledTurn(sc, cardId) !== undefined) {
-    return `${orderDef(cardId).name} is fulfilled and never sits in a chair again`;
-  }
+  const never = neverSeatedError(sc, cardId);
+  if (never !== null) return never;
   if (!Number.isInteger(slotIndex)) {
     return `slotOrder needs an integer slotIndex, got ${String(slotIndex)}`;
   }
@@ -326,6 +315,36 @@ export function slotOrderError(
   if (malice !== null) return maliceChairRefusal(index, malice);
   const chair = layout[index]!;
   if (!chairFitFor(state, playerId)(cardId, chair)) return chairMisfitRefusal(cardId, index, chair);
+  return null;
+}
+
+/**
+ * **Why a held Order can never take any chair**, or `null` when it may take
+ * one. The part of `slotOrderError` that reads only the card, so a caller can
+ * ask it without naming a chair.
+ *
+ * Three cards never sit:
+ *
+ *   · **a charter** (D1a, `CharterSpec`): its grant was written on the pick,
+ *     and a chair spent on it would be a chair spent on nothing;
+ *   · **a Boon** (batch DS8): it pays once, when it is drafted. The refusal
+ *     keeps the game true to the keyword's rule, and it keeps a held Boon out
+ *     of every chair the council screen, the bots and the End Turn pause
+ *     offer, since all three ask this gate;
+ *   · **a fulfilled commission**: it has paid its reward and has nothing left
+ *     to do.
+ *
+ * The bots ask this when they choose a card for a chair, when they count the
+ * cards that could fill a chair, and when they lay out a new government's
+ * chairs (bot pass 3, batch BP2). It is the reducer's own rule, so the bots
+ * never name a card the command would refuse.
+ */
+export function neverSeatedError(sc: PlayerStatecraft, cardId: OrderId): string | null {
+  if (isCharter(cardId)) return `${orderDef(cardId).name} is a charter and never sits in a chair`;
+  if (isBoon(cardId)) return `${orderDef(cardId).name} is a Boon and never sits in a chair`;
+  if (commissionFulfilledTurn(sc, cardId) !== undefined) {
+    return `${orderDef(cardId).name} is fulfilled and never sits in a chair again`;
+  }
   return null;
 }
 

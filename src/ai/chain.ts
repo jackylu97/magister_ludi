@@ -213,6 +213,7 @@ import {
   explainTechEffects,
   explainTechTraits,
   explainTechWorks,
+  expectedGreatPersonWorth,
   techCostFor,
 } from './value';
 import {
@@ -241,9 +242,10 @@ import {
 import { authorityOf, happinessOf } from '../sim/meters';
 import { type ResourceEffect, ageLabel, resourceDef } from '../sim/resourceData';
 import { type ProjectId, projectDef } from '../sim/projectData';
-import { type City, type GameState, type Player, realPlayers } from '../sim/state';
-import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
-import { type TechAge, type TechId, techDef } from '../sim/techData';
+import { renownPerTurn, renownThreshold } from '../sim/renown';
+import { type City, type GameState, type Player, playerById, realPlayers } from '../sim/state';
+import { buildError, gatingTech, hasAbility, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
+import { type AbilityId, type TechAge, type TechId, techDef } from '../sim/techData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
 import { round } from './decision';
 import { seatName } from '../sim/leaderData';
@@ -989,7 +991,12 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
       copies: buildingCopies(ctx, building, folds),
     });
   }
-  const abilities = (unlocks.abilities ?? []).length;
+  // **The great-person gate is priced by what it releases** (bot pass 3, batch
+  // BP2; `docs/flags.md` (ooooooo) P3). Every other ability is the flat
+  // `research.abilityValue`. The gate is found by its ability id, the marker
+  // the sim's own seam asks (`settleRenownWindfall`), never by a tech's name.
+  const gate = (unlocks.abilities ?? []).includes(GREAT_PERSON_GATE);
+  const abilities = (unlocks.abilities ?? []).length - (gate ? 1 : 0);
   const flat: ValueTerm[] = [];
   // **A conversion project is worth what the conversion pays** (batch X12): the
   // node's gift used to be a count times `research.projectValue`, a flat ten a
@@ -1006,10 +1013,13 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
       ),
     );
   }
-  flat.push({
-    label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
-    value: abilities * ai.research.abilityValue,
-  });
+  if (abilities > 0 || !gate) {
+    flat.push({
+      label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
+      value: abilities * ai.research.abilityValue,
+    });
+  }
+  if (gate) flat.push(greatPersonGateTerm(ctx));
   const undiscounted: ValueTerm[] = [];
   // **A node that pays a bead** (`TechDef.paysBead`) — the research half of the
   // win-condition templates (batch 5). Nothing in the bot priced this clause
@@ -1064,6 +1074,73 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
     }
   }
   return { units, buildings, flat, undiscounted };
+}
+
+/**
+ * The ability that lets renown call great people. Until a seat holds it, its
+ * renown banks and no great person comes (`settleRenownWindfall`, `renown.ts`).
+ */
+const GREAT_PERSON_GATE: AbilityId = 'ancestorRites';
+
+/** A bound on the ladder walk below, far past any bank a game reaches. */
+const GATE_LADDER_STEPS = 64;
+
+/**
+ * **What the great-person gate is worth to this seat** (bot pass 3, batch BP2;
+ * `docs/flags.md` (ooooooo) P3; `docs/audit/bot-pass-3-competitiveness.md`
+ * fault 3).
+ *
+ * Renown banks from the first turn, but no great person comes until the seat
+ * holds the gate. The audit found 20 of 47 seats without it at turn 150, with
+ * renown banked for 79 great people, because the gate was worth the same flat
+ * `research.abilityValue` as embarking.
+ *
+ * So the gate is priced by the great people it would release: the renown the
+ * seat has banked plus `research.greatPersonTurns` turns of its renown income
+ * (`renownPerTurn`), walked up the sim's own price ladder (`renownThreshold`,
+ * asked one rung at a time on a copy of the player with more people called).
+ * The count is multiplied by the bot's price for a great person, the price its
+ * offer arm puts on a name (`expectedGreatPersonWorth`, `value.ts`). The flat
+ * ability value is the floor, so a seat with no great person in reach values
+ * the gate as before. A seat that already holds the gate through a card gains
+ * nothing from the technology, and reads only the floor.
+ */
+function greatPersonGateTerm(ctx: ValueContext): ValueTerm {
+  const floor = ctx.ai.research.abilityValue;
+  const state = ctx.state;
+  const player = playerById(state, ctx.playerId);
+  if (player === undefined || hasAbility(state, ctx.playerId, GREAT_PERSON_GATE)) {
+    return { label: 'the great-person gate, already open', value: floor };
+  }
+  const turns = Math.max(0, Math.floor(ctx.ai.research.greatPersonTurns));
+  const income = Math.max(0, renownPerTurn(state, ctx.playerId));
+  let left = Math.max(0, player.renownPool) + income * turns;
+  let called = 0;
+  for (; called < GATE_LADDER_STEPS; called++) {
+    const cost = renownThreshold(state, {
+      ...player,
+      greatPeopleRecruited: player.greatPeopleRecruited + called,
+    });
+    if (cost <= 0 || cost > left) break;
+    left -= cost;
+  }
+  const why =
+    `${Math.round(player.renownPool)} renown banked and ${round(income)} a turn for ${turns} turns ` +
+    `would call ${called} great ${called === 1 ? 'person' : 'people'}`;
+  if (called === 0) return { label: `the great-person gate, at the flat ability value (${why})`, value: floor };
+  const each = expectedGreatPersonWorth(ctx);
+  const parts: ValueTerm[] = [
+    { label: `${called} great ${called === 1 ? 'person' : 'people'}`, value: called },
+    nest('× what the bot expects one to be worth', each, 'mul'),
+  ];
+  const worth = foldTerms(parts);
+  if (worth <= floor) {
+    return {
+      label: `the great-person gate, at the flat ability value (${why}, worth ${round(worth)})`,
+      value: floor,
+    };
+  }
+  return { label: `the great-person gate: ${why}`, value: worth, parts };
 }
 
 /**

@@ -1125,10 +1125,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * disband in a loop. Duel `40f518d8:294143` -> `ceba10f8:335026`, standard
  * `1e8bc3d3:1007901` -> `eac4bef0:1038489`. Nothing stalled and no command was
  * refused.
+ *
+ * Re-cut for bot batch BP2 (`docs/flags.md` (ooooooo): B9, B5 and P3, schema
+ * 242). The bots read a real count of the units they raise, never name a card
+ * that cannot sit, and value the great-person technology by the renown they
+ * hold. Duel `ceba10f8:335026` -> `87a4f27f:348377`, standard
+ * `eac4bef0:1038489` -> `36c397f5:1062622`. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ceba10f8:335026',
-  standard: 'eac4bef0:1038489',
+  duel: '87a4f27f:348377',
+  standard: '36c397f5:1062622',
 };
 
 /**

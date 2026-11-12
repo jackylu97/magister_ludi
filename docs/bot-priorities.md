@@ -182,6 +182,46 @@ BP1; `docs/flags.md` (ooooooo) P1 and P2; the audit is
   turn moves the net by what the payroll has done since (`netNow`). The disband
   arm used to price every town before every decision.
 
+**Units raised, cards that never sit, and the great-person gate** (bot pass 3,
+batch BP2; `docs/flags.md` (ooooooo) B9, B5 and P3; the audits are
+`docs/audit/bot-pass-3-card-values.md` faults 5 and 9 and
+`docs/audit/bot-pass-3-competitiveness.md` fault 3):
+
+- **The record of units raised** (B9). `Player.unitsGained` (schema 242) counts
+  each unit `realiseItem` brings into being, by type: trained, bought, granted
+  or levied. It is the moment the `unitGained` tally counts. Every bot reading
+  of a unit pace reads it through `unitsGainedMatching` (`value.ts`): the
+  `unitCompletion` and `completion` riders, the `unitTrained`, `unitGained` and
+  `militaryGained` counts, the rally, the timed stamp and the levied share. The
+  warscore's losses (`soldiersLost`) and the dogpile's raised strength
+  (`raisedStrength`, both `diplomacy.ts`) read it too. These used to read
+  `Player.unitsBuilt`, which counts only the settler and the worker because it
+  sets their price, so every military pace read close to nought. No price
+  reads `unitsGained`, and `unitsBuilt` is unchanged. The `unitTrained` count
+  reads a little high: the tally leaves out bought units and conscripts, and
+  the board keeps no count of either.
+- **Only cards that can sit are named for a chair** (B5). A Boon, a charter
+  and a fulfilled commission never take a chair. The reducer refuses them with
+  `neverSeatedError` (`statecraft/council.ts`), the card half of
+  `slotOrderError`. The bot asks the same function (`seatableOrders`,
+  `council.ts`): the re-seat arm's bench, the scarcity count of the slot and
+  re-seat arms, and `adoptionTable`'s fill of a new government's chairs all
+  leave such cards out. `isSeatable` (`value.ts`) asks it too.
+- **The great-person gate is priced by what it releases** (P3). Every
+  technology ability is worth the flat `research.abilityValue` (20), except the
+  one that lets renown call great people (`ancestorRites`, found by its
+  ability id). That one is worth the great people the seat's banked renown and
+  `research.greatPersonTurns` (30) turns of its renown income would call,
+  walked up the sim's price ladder (`renownThreshold`), times the bot's price
+  for a great person. That price is the offer arm's (`explainGreatPerson`,
+  `bot.ts`: the act or the work, plus the legacy), averaged over the names the
+  next offer can deal at the draw's own odds (`greatPersonBag`), with the act
+  in place of the work, which only `bot.ts` can read
+  (`expectedGreatPersonWorth`, `value.ts`). The flat value is the floor
+  (`greatPersonGateTerm`, `chain.ts`). A card that grants a great person still
+  prices it at the renown it costs, which is far lower; that is not changed
+  here.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

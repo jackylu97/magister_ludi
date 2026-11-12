@@ -126,6 +126,16 @@ function seat(state: GameState, playerId: number): Player {
   return player;
 }
 
+/**
+ * A seat's record of every unit gained (`Player.unitsGained`), which the
+ * warscore's losses proxy reads since batch BP2. It read `unitsBuilt` before,
+ * which counts only settlers and workers in a real game.
+ */
+function gained(state: GameState, playerId: number): NonNullable<Player['unitsGained']> {
+  const player = seat(state, playerId);
+  return (player.unitsGained ??= {});
+}
+
 /** A seat's own diplomatic decision, asked directly. */
 function abroad(state: GameState, playerId: number) {
   const player = seat(state, playerId);
@@ -151,10 +161,10 @@ function declareTable(state: GameState, playerId: number): string {
 function raise(state: GameState, playerId: number, count: number, col: number, row: number): void {
   for (let index = 0; index < count; index++) {
     createUnit(state, playerId, 'warrior', col + index, row);
-    // The escalation counter the warscore's losses proxy reads. Raised here
-    // because these pieces were conjured rather than built.
-    const player = seat(state, playerId);
-    player.unitsBuilt.warrior = (player.unitsBuilt.warrior ?? 0) + 1;
+    // The record of units gained that the warscore's losses proxy reads.
+    // Raised here because these pieces were conjured rather than built.
+    const record = gained(state, playerId);
+    record.warrior = (record.warrior ?? 0) + 1;
   }
 }
 
@@ -188,7 +198,7 @@ describe('the warscore', () => {
     raise(state, 0, 4, 5, 5);
     raise(state, 1, 1, 13, 5);
     // Seat 1 has raised three soldiers it no longer has: a losing war.
-    seat(state, 1).unitsBuilt.warrior = 4;
+    gained(state, 1).warrior = 4;
 
     const ai = aiConfigFor(undefined);
     const ours = explainWarScore(state, seat(state, 0), seat(state, 1), ai);
@@ -249,7 +259,7 @@ describe('declaring a war', () => {
     raise(state, 0, 5, 5, 5);
     if (bow) {
       createUnit(state, 0, 'archer', 5, 6);
-      seat(state, 0).unitsBuilt.archer = (seat(state, 0).unitsBuilt.archer ?? 0) + 1;
+      gained(state, 0).archer = (gained(state, 0).archer ?? 0) + 1;
     }
     raise(state, 1, 1, 11, 5);
     if (persona !== undefined) seat(state, 0).persona = persona;
@@ -440,7 +450,7 @@ describe('declaring a war', () => {
     foundCityAt(state, 1, at(state.map, 14, 5));
     raise(state, 0, 10, 4, 5);
     createUnit(state, 0, 'archer', 4, 6);
-    seat(state, 0).unitsBuilt.archer = 1;
+    gained(state, 0).archer = 1;
     raise(state, 1, 2, 13, 5);
     // The roster says five to one, which is over the balanced bar of 4.5.
     expect(armyStrength(state, 0) / armyStrength(state, 1)).toBeGreaterThan(4.5);
@@ -458,7 +468,7 @@ describe('declaring a war', () => {
     foundCityAt(state, 1, at(state.map, 14, 5));
     raise(state, 0, 10, 4, 5);
     createUnit(state, 0, 'archer', 4, 6);
-    seat(state, 0).unitsBuilt.archer = 1;
+    gained(state, 0).archer = 1;
     raise(state, 1, 2, 13, 5);
     const decision = abroad(state, 0);
     expect(decision?.command).toMatchObject({ type: 'declareWar', playerId: 0, targetId: 1 });
@@ -477,7 +487,7 @@ describe('declaring a war', () => {
     foundCityAt(state, 2, at(state.map, 4, 9));
     raise(state, 0, 5, 5, 5);
     createUnit(state, 0, 'archer', 5, 6);
-    seat(state, 0).unitsBuilt.archer = 1;
+    gained(state, 0).archer = 1;
     // Their armies are big enough that the score lands between the two bars.
     raise(state, 1, 4, 11, 5);
     raise(state, 2, 4, 5, 9);
@@ -501,11 +511,11 @@ describe('declaring a war', () => {
     foundCityAt(state, 1, at(state.map, 12, 5));
     raise(state, 0, 5, 5, 5);
     createUnit(state, 0, 'archer', 5, 6);
-    seat(state, 0).unitsBuilt.archer = 1;
+    gained(state, 0).archer = 1;
     raise(state, 1, 1, 11, 5);
     seat(state, 0).persona = 'warmonger';
     // One warrior standing, twelve raised: the two wars already on took the rest.
-    seat(state, 1).unitsBuilt.warrior = 12;
+    gained(state, 1).warrior = 12;
     openWar(state, 1, 2);
     openWar(state, 1, 3);
     const decision = abroad(state, 0);
@@ -554,7 +564,7 @@ describe('suing for peace, and signing one', () => {
     openWar(state, 0, 1);
     raise(state, 1, 8, 11, 5);
     // Ours were raised and are gone: the losses proxy.
-    seat(state, 0).unitsBuilt.warrior = 6;
+    gained(state, 0).warrior = 6;
     raise(state, 0, 1, 5, 5);
     return state;
   }
@@ -573,7 +583,7 @@ describe('suing for peace, and signing one', () => {
     seat(state, 0).gold = 400;
     bumpRevision(state);
     // Deepen the rout past `war.tributeFloor`.
-    seat(state, 0).unitsBuilt.warrior = 20;
+    gained(state, 0).warrior = 20;
     raise(state, 1, 10, 11, 6);
     const decision = abroad(state, 0);
     const command = decision!.command as { type: string; give?: { gold?: number } };
@@ -628,8 +638,9 @@ describe('suing for peace, and signing one', () => {
   it('sues once the war has cost it more than it has taken and the army is gone', () => {
     const state = evenWar();
     // Nine pieces lost to their one: the warscore is nowhere near the floor —
-    // `soldiersLost` reads `unitsBuilt` and nothing here was built — so the
-    // exchange is the only thing that could be speaking.
+    // `soldiersLost` reads `unitsGained` against the pieces standing, and every
+    // piece raised here still stands — so the exchange is the only thing that
+    // could be speaking.
     seat(state, 0).unitsLost += 9;
     seat(state, 0).unitsKilled += 1;
     expect(explainWarScore(state, seat(state, 0), seat(state, 1), aiConfigFor(undefined)).total).
@@ -687,7 +698,7 @@ describe('suing for peace, and signing one', () => {
     foundCityAt(state, 1, at(state.map, 12, 5));
     openWar(state, 0, 1);
     raise(state, 0, 12, 5, 5);
-    seat(state, 1).unitsBuilt.warrior = 9;
+    gained(state, 1).warrior = 9;
     raise(state, 1, 1, 11, 5);
     setPeaceOffer(state, 1, 0, true);
     seat(state, 0).persona = 'warmonger';

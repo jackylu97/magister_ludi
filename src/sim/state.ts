@@ -539,8 +539,23 @@ import {
  *
  * **A v240 save is refused and does not replay.** The branch migrates nothing, for
  * the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v242 (branch `decks`; bot pass 3, batch BP2, `docs/flags.md` (ooooooo) B9):
+ * **a record of every unit gained.** One field joins the player:
+ * `Player.unitsGained`, the units of each type that `realiseItem` has brought
+ * into being (trained, bought, granted free or levied). It is written beside
+ * the `unitGained` tally and only ever raised. It is optional and absent until
+ * the first unit, so a new game's players are unchanged.
+ *
+ * No rule reads it, so no outcome of a logged game moves. The bots read it for
+ * how fast a seat raises units, in place of `unitsBuilt`, which counts only
+ * the settler and the worker. A bot game therefore plays differently from
+ * v241.
+ *
+ * **A v241 save is refused and does not replay.** The branch migrates nothing, for
+ * the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 241;
+export const SCHEMA_VERSION = 242;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -914,6 +929,30 @@ export interface Player {
    * standing around would price the fourth city like the first.
    */
   unitsBuilt: Partial<Record<UnitTypeId, number>>;
+  /**
+   * **How many units of each type this player has ever gained**, keyed by
+   * `UnitTypeId` (bot pass 3, batch BP2; `docs/flags.md` (ooooooo) B9).
+   *
+   * One for each unit `realiseItem` (`cities.ts`) brings into being: trained,
+   * bought, granted free, or levied as a conscript. This is the moment the
+   * `unitGained` tally counts, so the two agree. A unit taken from another
+   * empire, a great person and the units a player starts with do not pass
+   * through `realiseItem`, so they do not count.
+   *
+   * It is not `unitsBuilt`. That field counts only the types that carry an
+   * escalation ladder (the settler and the worker), and only the ones paid
+   * for, because it sets their price. No price reads this field. The bots read
+   * it for how fast a seat raises units of a kind (a card that pays when a
+   * soldier is trained, the warscore's losses), which `unitsBuilt` cannot
+   * answer: it never counts a soldier.
+   *
+   * Stored, because a unit that has died, been disbanded or founded a town is
+   * gone from the board. Written only in `realiseItem`, and only ever raised.
+   * Absent until the first unit, and a type never gained has no key, so a
+   * player that has gained nothing serialises as it did before the field
+   * existed.
+   */
+  unitsGained?: Partial<Record<UnitTypeId, number>>;
   /**
    * How many tiles this player has ever bought with gold (`purchaseTile`).
    *

@@ -58,7 +58,7 @@
  * strength", and the state carries no register of losses to difference against
  * `declaredTurn` — a bot is a pure function of the board (`bot.ts`' creed) and
  * has no memory between calls. So the losses are read off the two facts the
- * board does carry: **soldiers raised and no longer standing** (`unitsBuilt`
+ * board does carry: **soldiers raised and no longer standing** (`unitsGained`
  * against what is on the map) and **towns standing in somebody's hands that were
  * taken by force** (`City.captured`). Both are lifetime readings rather than
  * war-scoped ones, and in a two-empire war they say very nearly the right thing;
@@ -210,15 +210,18 @@ export function armyStrength(state: GameState, playerId: number): number {
 /**
  * Soldiers this empire raised that are no longer standing — the losses proxy.
  *
- * `Player.unitsBuilt` is the escalation ladder's own counter (raised in
- * `realiseItem`, never for a free unit), so this reads *built or bought, minus
+ * `Player.unitsGained` is the sim's record of every unit `realiseItem` brought
+ * into being (trained, bought, granted or levied), so this reads *raised, minus
  * alive*. It counts a piece the creditors took and a piece an enemy killed the
- * same way, and it misses the free ones an empire opened with — which is why it
+ * same way, and it misses the units an empire opened with — which is why it
  * is called a proxy in the module docblock and not a casualty list.
+ *
+ * Until batch BP2 this read `Player.unitsBuilt`, which counts only the settler
+ * and the worker (it sets their price), so it read nought for every soldier.
  */
 function soldiersLost(state: GameState, player: Player): number {
   let raised = 0;
-  for (const [type, count] of Object.entries(player.unitsBuilt)) {
+  for (const [type, count] of Object.entries(player.unitsGained ?? {})) {
     if (!isCombatant(unitDef(type as UnitTypeId))) continue;
     raised += count ?? 0;
   }
@@ -259,17 +262,17 @@ function fieldedStrength(force: { soldiers: Unit[]; spare: number }): number {
  * **What this empire raised**, in strength — the dogpile's reading of a target.
  *
  * `soldiersLost`' twin from the other end: that one counts the pieces
- * `Player.unitsBuilt` says were raised and are no longer standing, this one
- * prices *everything* the ladder ever counted. It is a lifetime proxy with a
+ * `Player.unitsGained` says were raised and are no longer standing, this one
+ * prices *everything* the record ever counted. It is a lifetime proxy with a
  * lifetime proxy's faults (it never forgets a piece the creditors took, and it
- * misses the free ones an empire opened with), and it is used in exactly one
+ * misses the units an empire opened with), and it is used in exactly one
  * place: a target three empires are already fighting is not cheap because its
  * army is thin — it is the same target it was before they started, and this is
  * the only figure on the board that remembers what that was.
  */
 function raisedStrength(player: Player): number {
   let strength = 0;
-  for (const [type, count] of Object.entries(player.unitsBuilt)) {
+  for (const [type, count] of Object.entries(player.unitsGained ?? {})) {
     const def = unitDef(type as UnitTypeId);
     if (!isCombatant(def)) continue;
     strength += def.combatStrength * (count ?? 0);

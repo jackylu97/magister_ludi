@@ -5810,6 +5810,14 @@ export function realiseItem(
   // routine brings into being counts, bought, free and conscripted ones
   // included (the user's ruling that conscripts count as gained).
   recordScalingOccasion(state, city.ownerId, 'unitGained');
+  // The player's own record of the same moment, by type (`Player.unitsGained`,
+  // batch BP2). The tally above counts only while a card that watches it sits;
+  // this counts every unit, so the bots can read how fast a seat raises units.
+  const gainer = playerById(state, city.ownerId);
+  if (gainer) {
+    const gained = (gainer.unitsGained ??= {});
+    gained[item.id] = (gained[item.id] ?? 0) + 1;
+  }
   // **A land military unit gained** (Dominion batch D12, The Gathering Host;
   // the triage's reading 20): the same moment narrowed to the land military
   // category, so a ship, a worker or a settler does not count. A levied

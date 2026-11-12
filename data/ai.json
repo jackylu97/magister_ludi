@@ -344,6 +344,7 @@
   "research": {
     "goalHorizon": 6,
     "abilityValue": 20,
+    "greatPersonTurns": 30,
     "strandWeight": 0.35,
     "ageEntryValue": 0,
     "doorValue": 0

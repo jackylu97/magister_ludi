@@ -1859,6 +1859,21 @@ export interface AiConfig {
     /** What one unlocked ability (embarkation) is worth. */
     abilityValue: number;
     /**
+     * **How many turns of renown income the great-person gate is priced on**
+     * (bot pass 3, batch BP2; `docs/flags.md` (ooooooo) P3).
+     *
+     * The ability that lets renown call great people (`ancestorRites`) is
+     * worth the great people the seat would call in this many turns once it
+     * holds it: its banked renown plus this many turns of its renown income,
+     * walked up the price ladder (`renownThreshold`). Each person is priced as
+     * the bot's offer arm prices a name, its act and its legacy, averaged over
+     * the next offer's bag (`expectedGreatPersonWorth`, `value.ts`).
+     * `abilityValue` stays the floor, so a seat with no great person in reach
+     * values the gate as it always did (`greatPersonGateTerm`, `chain.ts`).
+     * Nought counts only the renown banked now.
+     */
+    greatPersonTurns: number;
+    /**
      * **What changing its mind leaves behind**, as a share of the beakers it
      * would strand — batch S2, schema 111, `docs/flags.md` (www).
      *

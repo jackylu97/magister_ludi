@@ -74,6 +74,7 @@ import {
   expectedHandBags,
   heldReligions,
   isSlotted,
+  neverSeatedError,
   sealRemaining,
   sealTurnsFor,
   slotOrderError,
@@ -134,11 +135,14 @@ export function slottingDecision(
   // Mixed Constitution sits, every card fits every chair.
   const fit = chairFitFor(state, player.id);
   // How many held cards each office could take. Asked once for the whole table
-  // rather than per pair, and it is the *scarcity* the placement sorts on.
+  // rather than per pair, and it is the *scarcity* the placement sorts on. A
+  // card that can never sit (a Boon, a charter, a met commission) is not
+  // counted, since it could fill no chair (batch BP2).
+  const seatable = seatableOrders(player);
   const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
-    fits.set(type, sc.orders.filter((id) => fit(id, type)).length);
+    fits.set(type, seatable.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
   let best: { cardId: OrderId; slot: number; row: number; score: number } | null = null;
@@ -257,7 +261,10 @@ function slotPairTerms(
  * Constitution, Magisterial batch MG12). `slotOrderError` cannot be asked of
  * an occupied chair — it refuses on the occupant before it ever looks at the
  * fit — so the honest reading is the predicate underneath it, and the slotting
- * that follows is held to the whole gate as always.
+ * that follows is held to the whole gate as always. The gate's card half,
+ * `neverSeatedError`, needs no chair, so the bench is only the cards it admits
+ * (`seatableOrders`, batch BP2): a Boon, a charter or a met commission is
+ * never named for a chair it cannot take.
  *
  * What the re-seating that follows The Mixed Constitution's unslot costs is in
  * the card's own price (Magisterial batch MG17, `widerFitWorth` in
@@ -276,10 +283,13 @@ export function reslotDecision(
   const ctx = seatContext(state, player, sitting);
   const layout = slotTypesOf(sc);
   const fit = chairFitFor(state, player.id);
+  // Only the cards that may sit, for the scarcity count and for the bench
+  // (batch BP2). See `seatableOrders`.
+  const seatable = seatableOrders(player);
   const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
-    fits.set(type, sc.orders.filter((id) => fit(id, type)).length);
+    fits.set(type, seatable.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
   let best: { cardId: OrderId; slot: number; row: number; gain: number } | null = null;
@@ -310,7 +320,7 @@ export function reslotDecision(
     // The fit the bench card is held to once this chair is empty, which is
     // narrower when the card leaving is the one that widened it (MG12).
     const fitHere = chairFitWithout(state, player.id, slot);
-    for (const ownedId of sc.orders) {
+    for (const ownedId of seatable) {
       if (isSlotted(sc, ownedId)) continue;
       if (!fitHere(ownedId, type)) continue;
       const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
@@ -402,6 +412,24 @@ function moveToCountedChair(
 }
 
 /**
+ * **The held Orders that may take a chair**, in the order the seat holds them
+ * (bot pass 3, batch BP2; `docs/flags.md` (ooooooo) B5).
+ *
+ * A Boon, a charter and a fulfilled commission never sit. The reducer refuses
+ * them with `neverSeatedError`, the card half of `slotOrderError`, and this
+ * asks the same function, so the bot holds no second copy of the rule. The
+ * re-seat arm used to name such a card as the one that should take a chair:
+ * it emptied the chair, the slot arm could not seat the card, and the old card
+ * went straight back (35 of 302 logged unseatings in the audit, one seat every
+ * five turns for 80 turns). The scarcity counts and a new government's chairs
+ * counted them too.
+ */
+function seatableOrders(player: Player): OrderId[] {
+  const sc = player.statecraft;
+  return sc.orders.filter((id) => neverSeatedError(sc, id) === null);
+}
+
+/**
  * Has this empire sealed a slot **this very turn**? A derived reading, never a
  * flag: a card slotted now carries `sealedUntil = turn + sealTurnsFor`, so a
  * slot whose seal has its full length left is a slot somebody has just filled.
@@ -455,6 +483,9 @@ export function adoptionTable(
   // batch MG12): while The Mixed Constitution sits, every card fits every
   // chair of the new government too.
   const fit = chairFitFor(state, player.id);
+  // The cards that may sit (batch BP2): a Boon, a charter or a met commission
+  // fills no chair of the new government either. See `seatableOrders`.
+  const seatable = seatableOrders(player);
   const candidates: BotCandidate[] = [];
   let index = 0;
   let bestScore = -Infinity;
@@ -470,14 +501,14 @@ export function adoptionTable(
       .map((type, at) => ({
         type,
         at,
-        fits: player.statecraft.orders.filter((id) => fit(id, type)).length,
+        fits: seatable.filter((id) => fit(id, type)).length,
       }))
       .sort((a, b) => a.fits - b.fits || a.at - b.at);
     const spent = new Set<OrderId>();
     const slotTerms: ValueTerm[] = [];
     for (const office of offices) {
       let take: { id: OrderId; worth: number } | null = null;
-      for (const ownedId of player.statecraft.orders) {
+      for (const ownedId of seatable) {
         if (spent.has(ownedId)) continue;
         if (!fit(ownedId, office.type)) continue;
         const worth = scoreCard(player, ownedId, ctx);

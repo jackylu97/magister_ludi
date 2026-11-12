@@ -96,6 +96,8 @@ const INTEGER_LEAVES = [
   // Batch BP1: hexes from a town, a whole number like `threat.radius`.
   'threat.underAttackRadius',
   'research.goalHorizon',
+  // Batch BP2: turns of renown income, a whole number of turns.
+  'research.greatPersonTurns',
   'wager.ageTurns',
 ];
 

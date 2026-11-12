@@ -439,6 +439,8 @@ export {
   maliceAt,
   maliceChairFor,
   maliceChairRefusal,
+  // Bot pass 3, batch BP2: the card half of `slotOrderError`.
+  neverSeatedError,
   orderAtSlotPosition,
   orderFitsSlotFor,
   refitSlots,

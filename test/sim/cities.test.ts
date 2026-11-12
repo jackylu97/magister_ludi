@@ -3680,7 +3680,9 @@ describe('determinism with cities', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(241);
+    // 242 since batch BP2 (bot pass 3): `Player.unitsGained` joins the state,
+    // a record the bots read; no rule reads it.
+    expect(SCHEMA_VERSION).toBe(242);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

@@ -197,7 +197,7 @@ import {
 } from '../sim/greatPeopleData';
 // Magisterial batch MG17: what an act pays, read through the act's own seams,
 // so the act this bot prices and the act the reducer banks are one figure.
-import { actGainOf, agedActFactor } from '../sim/greatPeople';
+import { actGainOf, agedActFactor, greatPersonBag } from '../sim/greatPeople';
 import { holdsRank, rankStrength } from '../sim/ranks';
 import {
   cityHoldsPost,
@@ -285,7 +285,13 @@ import {
   offerSize,
   rarityFirstOdds,
 } from '../sim/statecraft/draft';
-import { chairFitFor, chairFitWithout, ghostSeatUnderDoctrine, maliceAt } from '../sim/statecraft/council';
+import {
+  chairFitFor,
+  chairFitWithout,
+  ghostSeatUnderDoctrine,
+  maliceAt,
+  neverSeatedError,
+} from '../sim/statecraft/council';
 import {
   type GroundFacts,
   // Batch G1: the kinds a tier-26 government raises, so its price reads them.
@@ -360,7 +366,6 @@ import {
   doctrineDef,
   governmentDef,
   governmentsAtTier,
-  isBoon,
   isCharter,
   isDoctrineId,
   isOrderId,
@@ -2871,13 +2876,12 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return tempo.growths / turns;
     case 'buildingCompletion':
       return tempo.buildings / turns;
-    case 'unitCompletion': {
-      let built = 0;
-      for (const count of Object.values(player?.unitsBuilt ?? {})) built += count ?? 0;
-      return built / turns;
-    }
+    case 'unitCompletion':
+      // The riders pay for every unit gained, a conscript included, which is
+      // what `Player.unitsGained` counts (batch BP2).
+      return unitsGainedMatching(ctx) / turns;
     case 'completion':
-      return (tempo.buildings + unitsBuiltBy(ctx)) / turns;
+      return (tempo.buildings + unitsGainedMatching(ctx)) / turns;
     case 'found':
       // Towns standing over turns played. It over-counts a captured town and
       // under-counts an empire that has lost one; the settled record of what
@@ -3084,15 +3088,6 @@ function afterNextDraftCost(ctx: ValueContext): number {
  */
 function unreadOccasion(_occasion: never): number {
   return 0;
-}
-
-/** Pieces this empire has ever completed, off its own escalation record. */
-function unitsBuiltBy(ctx: ValueContext): number {
-  let built = 0;
-  for (const count of Object.values(ctx.state.players[ctx.playerId]?.unitsBuilt ?? {})) {
-    built += count ?? 0;
-  }
-  return built;
 }
 
 /** The cheapest thing the gold book is saving for, or `null` for an empty book. */
@@ -5607,10 +5602,14 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'goldSpent':
       return player.goldSpent;
     case 'unitTrained':
+      // Every unit gained (batch BP2). The tally leaves out a bought piece and
+      // a conscript, and the board keeps no count of either, so this is a
+      // little high for a seat that buys or levies many.
+      return unitsGainedMatching(ctx);
     case 'unitGained':
-      return unitsBuiltBy(ctx);
+      return unitsGainedMatching(ctx);
     case 'militaryGained':
-      return unitsBuiltMatching(ctx, { category: 'military' });
+      return unitsGainedMatching(ctx, { category: 'military' });
     case 'campCleared':
       return player.campsCleared;
     case 'cityCaptured':
@@ -5676,16 +5675,27 @@ function unreadTally(_occasion: never): number | null {
   return null;
 }
 
-/** Units this seat has completed whose type the filter admits. */
-function unitsBuiltMatching(ctx: ValueContext, filter?: UnitFilter): number {
-  let built = 0;
-  const player = ctx.state.players[ctx.playerId];
+/**
+ * **Units this seat has ever gained whose type the filter admits**, every unit
+ * when there is no filter (batch BP2, `docs/flags.md` (ooooooo) B9).
+ *
+ * Read off `Player.unitsGained`, the sim's record of every unit `realiseItem`
+ * brings into being: trained, bought, granted or levied. Every pace the bot
+ * reads for units (a rider on a unit gained, a Scaler's count, the rally, the
+ * timed stamp, the levied share) reads this. The bot used to read
+ * `Player.unitsBuilt`, which counts only the settler and the worker because it
+ * sets their price, so every military pace read close to nought.
+ */
+export function unitsGainedMatching(ctx: ValueContext, filter?: UnitFilter): number {
+  const gained = ctx.state.players[ctx.playerId]?.unitsGained;
+  if (gained === undefined) return 0;
+  let total = 0;
   for (const type of UNIT_TYPE_IDS) {
-    const count = player?.unitsBuilt[type] ?? 0;
+    const count = gained[type] ?? 0;
     if (count === 0 || !unitMatches(type, filter)) continue;
-    built += count;
+    total += count;
   }
-  return built;
+  return total;
 }
 
 /**
@@ -6007,7 +6017,7 @@ function generalsInField(ctx: ValueContext): number {
  */
 function rallyWorth(filter: UnitFilter | undefined, ctx: ValueContext): number {
   if (generalsInField(ctx) === 0) return 0;
-  const rate = unitsBuiltMatching(ctx, filter) / Math.max(1, ctx.state.turn);
+  const rate = unitsGainedMatching(ctx, filter) / Math.max(1, ctx.state.turn);
   const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
   return rate * ctx.ai.score.dominion.rallyToGeneral * piece;
 }
@@ -8039,7 +8049,7 @@ function routeRiderHelpings(
  * **A timed effect a stamp hangs on each unit it reaches** (Commerce batch T6,
  * Mercenary Contracts: no upkeep for twenty turns; priced in batch T9), as the
  * units costing less. The units the stamp reaches a turn are the seat's units
- * of the stamp's class gained over the turns played (`unitsBuiltMatching`),
+ * of the stamp's class gained over the turns played (`unitsGainedMatching`),
  * times `reach` (the bought share and the levied share). Each is waived a
  * wage of the seat's age (`rules.upkeep.goldPerUnitAge`, the price of a unit
  * of its age, `unitUpkeep`) for the effect's turns, so the gold a turn saved
@@ -8059,7 +8069,7 @@ function timedStampWorth(
   if (turns === 0) return 0;
   const waives = timed.effects.some((held) => held.kind === 'upkeepRebate' && held.free === true);
   if (!waives) return 0;
-  const rate = unitsBuiltMatching(ctx, effect.class) / Math.max(1, ctx.state.turn);
+  const rate = unitsGainedMatching(ctx, effect.class) / Math.max(1, ctx.state.turn);
   const wage = Math.max(1, ctx.age) * RULES.upkeep.goldPerUnitAge;
   return costOfUpkeep(rate * reach * turns * wage, ctx);
 }
@@ -8446,13 +8456,15 @@ function leviedArmyShare(levied: true | LevyUse, ctx: ValueContext): number {
 /**
  * **The share of new soldiers that levies raise**: what a stamp narrowed to
  * levied pieces reaches (The Trained Bands). The levied soldier rate against
- * that rate plus the pieces this seat completes a turn (`unitsBuiltBy`).
+ * that rate plus the soldiers this seat gains a turn (`unitsGainedMatching`,
+ * land military units only, batch BP2). The record counts the conscripts this
+ * seat has levied already, so a seat that levies often reads a little low.
  */
 function leviedRecruitShare(levied: true | LevyUse, ctx: ValueContext): number {
   const levies = leviedSoldierRate(levied, levyOutlook(ctx));
   if (levies <= 0) return 0;
-  const built = unitsBuiltBy(ctx) / Math.max(1, ctx.state.turn);
-  return levies / (levies + built);
+  const soldiers = unitsGainedMatching(ctx, { category: 'military' }) / Math.max(1, ctx.state.turn);
+  return levies / (levies + soldiers);
 }
 
 /**
@@ -11105,6 +11117,61 @@ function actThenWorkWorth(ctx: ValueContext): number {
 }
 
 /**
+ * **What the bot expects its next great person to be worth**, per turn (bot
+ * pass 3, batch BP2; `docs/flags.md` (ooooooo) P3).
+ *
+ * The bot prices a name on an offer as the act its family would perform or the
+ * work it would lay, whichever is worth more, plus the legacy it leaves
+ * (`explainGreatPerson`, `bot.ts`). Before the offer is dealt the name is not
+ * known, so this is the mean of that price over the names the next offer can
+ * deal, each weighted by its chance in the draw (`greatPersonBag`, the draw's
+ * own bag and weights). The act is read at the capital, where a called person
+ * arrives (`explainActFor`), and the legacy through `explainEffects`, as the
+ * offer arm reads them. The work is left out: it is read by `rankWorkSites`,
+ * which lives in `bot.ts`, and the act is the least a person is worth, since
+ * the bot only lays a work that is worth more.
+ *
+ * The great-person gate (`greatPersonGateTerm`, `chain.ts`) multiplies this by
+ * the people the seat would call. Nothing when the roster is spent. Remembered
+ * for the sitting.
+ */
+const NEXT_PERSON_MEMO = new WeakMap<ValueContext, Appraisal>();
+export function expectedGreatPersonWorth(ctx: ValueContext): Appraisal {
+  return onContext(NEXT_PERSON_MEMO, ctx, () => {
+    const player = playerById(ctx.state, ctx.playerId);
+    if (player === undefined) return appraise([]);
+    const bag = greatPersonBag(ctx.state, player);
+    let weight = 0;
+    for (const share of bag.weights) weight += share;
+    if (bag.candidates.length === 0 || weight <= 0) {
+      return appraise([{ label: 'nobody is left on the roster to call', value: 0 }]);
+    }
+    const capital = capitalCityOf(ctx.state, ctx.playerId);
+    const here = capital === undefined ? null : { col: capital.col, row: capital.row };
+    // One act a family, asked once: every name of a family acts alike.
+    const acts = new Map<Family, number>();
+    let act = 0;
+    let legacy = 0;
+    for (let index = 0; index < bag.candidates.length; index++) {
+      const def = greatPersonDef(bag.candidates[index]!);
+      const share = (bag.weights[index] ?? 0) / weight;
+      let familyAct = acts.get(def.family);
+      if (familyAct === undefined) {
+        familyAct = explainActFor(ctx.state, player, ctx, def.family, here)?.total ?? 0;
+        acts.set(def.family, familyAct);
+      }
+      act += share * familyAct;
+      legacy += share * explainEffects(def.legacy, ctx).total;
+    }
+    const names = bag.candidates.length;
+    return appraise([
+      { label: `the act its family would perform, over the ${names} names the next offer can deal`, value: act },
+      { label: 'the legacy it leaves, over the same names and odds', value: legacy },
+    ]);
+  });
+}
+
+/**
  * **The Peregrini's discount** (`workCheapensPerson`, batch DT16): the renown the
  * next great person costs less, times how often this seat calls a person after
  * laying a work (`personRate`, `workLaidShare`), at `weights.renown`. Nothing for a
@@ -11143,8 +11210,9 @@ function seatableWorth(id: OrderId, ctx: ValueContext): number | null {
  */
 function isSeatable(id: OrderId, ctx: ValueContext): boolean {
   const sc = statecraftOf(ctx.state, ctx.playerId);
-  if (sc === undefined || isCharter(id) || isBoon(id)) return false;
-  if (commissionFulfilledTurn(sc, id) !== undefined) return false;
+  // The reducer's own rule for a card that never sits (a charter, a Boon, a
+  // met commission), so the two cannot disagree (batch BP2).
+  if (sc === undefined || neverSeatedError(sc, id) !== null) return false;
   return !orderDef(id).effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair');
 }
 
