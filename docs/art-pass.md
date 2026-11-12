@@ -37,6 +37,22 @@ world, replayed as that order believed it happened.
   (The thesis, below) and the occult thread of `docs/late-game.md` section 0. What
   is new is that it now governs the **world** as well as the interface.
 
+**The north star for the look** (the user, 2026-11-12, after a page of nine
+reference games, https://claude.ai/artifact/DXjzfp97EDXGrRMKNwCswh: *"think of
+an art style similar to a well-polished indie game"*, then *"these are great
+references! i like your recommendations, lets use islanders and dorfromantik as
+the inspiration"*):
+- **Islanders and Dorfromantik** set the surfaces: hexes as tiles, flat matte
+  colour with a soft grain, a narrow palette, dense small props, and water that
+  is drawn and quiet. Water is the quietest surface on the board.
+- **The light** may be finer than theirs: a warm sun, soft shadows and contact
+  shade, as in Tiny Glade. This is the part of "realism" that fits.
+- **Pieces** follow Bad North and Northgard: quiet ground, loud pieces, oversized
+  buildings.
+- **Not the target:** realistic surfaces. A sea with a swell and sun glints was
+  tried and rejected the same day (*"the sea feels very out of place
+  aesthetically"*).
+
 **Three things the picture must be at once.**
 1. **A living diorama.** A made model of a world, with small things that move
    without the player: animals, carts, smoke, birds, weather.
