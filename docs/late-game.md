@@ -22,6 +22,11 @@ The mystic thread of Æra I and II (omens, pantheons, rites) returns in IV and V
 as the **occult**: the four stages of the Great Work, the homunculus, the
 philosopher's stone, the elixir, perpetual motion, the comet.
 
+The fiction that ties this arc to the look of the whole game is stated in
+`docs/art-pass.md`, "The direction, as the user stated it on 2026-11-12": the
+player is a Renaissance magistrate, Æra I to IV replay the past as the order
+believed it, and Æra V goes past their own time.
+
 ## 1. What Æra IV introduces today (`data/techs.json`, age 4 — 14 nodes)
 
 - **Multipliers**: University (science per citizen), Bank (+20% gold where

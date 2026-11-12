@@ -6,6 +6,100 @@ hermetic not spooky; **light theme wins**; the flourish set), Entry X (the namin
 `docs/design-specimen.html` (the type ramp and palette). Nothing here is scheduled until
 the Revisions section says so.
 
+## The direction, as the user stated it on 2026-11-12
+
+This section is the current statement of the art direction. Where an older
+section below disagrees with it, this section wins, and the older text is marked.
+
+**The user's words:**
+- *"i want the game to feel like a living diorama, it feels polished and alive
+  and visually interesting, but it still reads simply and somewhat like a board
+  game (magister-ludi, game of kings)."*
+- *"I think the current sets of assets could use more diversity, but it overall
+  could feel more living and fantastical."*
+- *"I want the game to feel as if it were a fantastical game from the POV of
+  renaissance magistrates. ... (there's a fifth age i was planning to build in a
+  renaissance-punk fashion) but overall we could stand to make the game more
+  occult, mythologized, fantastical."*
+
+**The fiction in one sentence.** The player is a magistrate of a learned order in
+the late Renaissance, and the map on the table is the Game: the history of the
+world, replayed as that order believed it happened.
+
+- That belief is where the myth comes from. A Renaissance scholar's ancient world
+  had giants, Atlantis, Prester John, the Nine Worthies, sea monsters on every
+  chart and a lost wisdom handed down from Hermes Trismegistus. The game can be
+  fantastical and still be history, because it is their history.
+- For four ages the magistrates replay the past. In the fifth, the Game reaches
+  their own time and goes past it, into what they dreamed of building. That is
+  the renaissance-punk age; its contents are `docs/late-game.md` section 3.
+- This is the same fiction as "a court magister playing the game of the world"
+  (The thesis, below) and the occult thread of `docs/late-game.md` section 0. What
+  is new is that it now governs the **world** as well as the interface.
+
+**Three things the picture must be at once.**
+1. **A living diorama.** A made model of a world, with small things that move
+   without the player: animals, carts, smoke, birds, weather.
+2. **A board game.** Hexes are tiles, units are figurines on bases, and the table
+   is part of the scene. It must read at a glance.
+3. **Mythologized and occult.** The wild, the unknown, wonders, omens and the
+   Great Work are drawn as the magistrates imagined them.
+
+**The rule that keeps it readable: three layers, three loudnesses** (the
+assistant's proposal; the user has not ruled on it).
+
+| Layer | What is in it | How it looks |
+|---|---|---|
+| The board | terrain, water, trees, rocks | calm, soft colours, almost no motion |
+| The life | animals, carts, smoke, birds, weather, marginal monsters | small, slow, low contrast; may move in steps like stop-motion |
+| The game | units, cities, borders, badges | the only strong colours and the only sharp motion |
+
+**How each system reads through the magistrate's eyes** (proposals; ▢ = the
+user has not ruled):
+
+| System | Today | Direction |
+|---|---|---|
+| The map | a painted diorama on a vellum table | ▢ a mappa mundi on a study table: the four winds at the corners, a zodiac band at the edge |
+| The unknown | parchment with a hex grid and drawn marginalia | ▢ the drawings are true until seen: serpents and monstrous peoples that give way to real ground as it is explored; a newly seen hex rises from the drawing like a pop-up book |
+| The wild | barbarian camps | ▢ lairs and monstrous peoples from a bestiary |
+| The ages | Æra I to V with names | ▢ the stages of the Great Work, each with its own metal and colour (the four stage names are already proposed for Æra IV's projects in `docs/late-game.md` section 2) |
+| The tech tree | a star chart (shipped) | ▢ constellations and a sigil for each technology |
+| Orders and Doctrines | tarot cards with drawn emblems (shipped) | ▢ pages of an emblem book; the council as seats under the planets |
+| Great people | historical figures; the Reliquary (shipped) | ▢ Worthies, each leaving a relic |
+| Wonders | buildings with no model of their own | ▢ oversized landmarks, as engravers imagined them (W3 below) |
+| Religion | beliefs, rites, the Omen Reading rite | ▢ omens seen on the map: a comet, an eclipse, a flight of birds (the Comet is `docs/late-game.md` section 3) |
+| The endgame | the Magnum Opus and the beads | ▢ the Work is built in view, and the board changes as it completes |
+
+**How deep the myth goes** (▢; the assistant recommends the first two levels for
+Æra I to IV and the third only in Æra V):
+1. Dressing only: pictures, names, sigils, flavour lines.
+2. Mythic things with small rules: omens, lairs, natural marvels.
+3. Real strangeness as a system: automata, golems, the homunculus.
+
+**Standing limits.**
+- **Rule text stays plain.** The user's ruling of 2026-09-17 removed the period
+  voice from the game's words (CLAUDE.md, Writing). The theme lives in pictures,
+  names, sigils and lines labelled Flavour. Section I below is superseded.
+- **A symbol never replaces a readable icon.** An alchemical or planetary sign is
+  ornament beside the plain icon.
+- **Drawing cost** (`docs/flags.md` (nnnnnnn)): no full-screen pass, nothing
+  rebuilt each frame, no draw call for each hex. Life is drawn in batches, moved
+  in the shader, and shown only near the camera.
+- **Method:** visual changes are built and judged in the fixed test scene first,
+  and wired into the game after the user has finished iterating
+  (`docs/flags.md` (nnnnnnn)).
+
+**In hand, 2026-11-12** (`docs/flags.md` (nnnnnnn)): the sea with coast set
+against ocean and a brushed edge between them, thinner and more organic rivers,
+organic roads, one border at the edge of an empire (three line styles to
+compare), quieter pins, cloud shadows, idle motion, grounding shade, coloured
+light. Dropped after a look: ground detail patterns and a cooler fog. Deferred:
+light by age. Parked: unit silhouettes.
+
+**Asset diversity the user asked for** (not scheduled): trees by climate; rocks,
+bushes and reeds; houses by culture; city growth in stages (W1 below);
+improvements by resource; taller peaks with snow.
+
 ## Where we stand
 
 Two things are settled and this doc does not reopen them:
@@ -13,8 +107,14 @@ Two things are settled and this doc does not reopen them:
 - **The two-layer fiction** (Entry VII). The *world* is innocent — the warm sage/wheat toon
   diorama, no textures, no board flourishes. The *interface* is the magister's apparatus:
   ink, parchment, gilt, engraved type, the instruments through which the world is read.
+  **✎ 2026-11-12:** the interface half stands. The world half is revised by the
+  direction above: the world is no longer bare. It is the Game's model of the
+  world, and it may be alive and mythologized inside the three-layer rule.
 - **The register**: hermetic, cabinet-of-curiosities, courtly. Never grimdark. Mechanics
   keep plain names; ceremony copy carries the theme.
+  **✎ 2026-11-12:** "more occult, mythologized, fantastical" (the user) pushes
+  further along this same register. "Never grimdark" stands. Ceremony copy no
+  longer carries the theme (see the next mark); pictures and names do.
 
 What has actually shipped of that programme: the chart-table fog (Terra Incognita draws
 itself in), the star-chart tech tree, tarot Statecraft cards with drawn emblems, the
@@ -45,6 +145,12 @@ overrides anything here.
 ---
 
 ## I. Voice — what the game says
+
+**✎ Superseded.** The user's ruling of 2026-09-17 removed the period voice from
+everything the game says (CLAUDE.md, Writing: *"lets just axe that entirely"*).
+V1's Chamberlain and Annalist registers are not to be built. The Instrument
+register (plain, tabular) and the Epigram (a line labelled Flavour) are what
+remains. V2 (years, not turns) went with the Annalist.
 
 **V1. A voice guide, and a copy audit against it.** `docs/voice.md`, four registers, each
 with three example lines and a "never" list:
@@ -145,6 +251,13 @@ Entry VII's rule holds: no textures, no hatching, no candle, no dust, no seasons
 world *may* do is draw more of the story as **objects**, which is what Civ's board has
 always done best.
 
+**✎ 2026-11-12:** this rule is loosened by the direction at the top. The board
+is now the painted board, with paper grain and four lights (`morning`, `day`,
+`golden`, `dusk`), and the user has approved trials of cloud shadows, idle motion
+and grounding shade. The world may also hold a life layer and mythic things.
+"Draw the story as objects" still holds and is where most of the new work sits:
+W1 (cities that age) and W3 (marvels) are now central, not optional.
+
 **W1. Cities that age.** Today a city is `min(pop, houseCap)` houses and a flag, in every
 age. Give the sculpt tiers: Æra I huts; Æra II walls when a palisade stands and a shrine
 silhouette when one does; Æra III a temple or ziggurat when a temple stands; the
@@ -207,9 +320,29 @@ Board textures or woodcut hatching on terrain · candle flicker, dust, vignette 
 · seasons or time of day · a dark theme (tested, lost) · flavour text that carries rules ·
 renaming mechanics (the naming bible is ratified).
 
+**✎ 2026-11-12, the list as it stands now:**
+- **Still refused:** blackletter · a dark theme · flavour text that carries rules
+  · renaming mechanics · candle flicker and dust · period voice in rule text or
+  messages (2026-09-17) · any full-screen effect (blur, bloom; the cost rule).
+- **Refused after a trial on 2026-11-12:** patterns painted on flat ground (dune
+  ridges, grass tufts, drift lines) and a cool hatched fog. The user: *"the
+  ground details look bad and so does the cleaner fog"*.
+- **No longer refused:** time of day (four lights shipped; light that changes
+  with the age is deferred, not refused) · a vignette (shipped on the city view)
+  · weather and seasons as part of the life layer (▢, not yet proposed in
+  detail).
+
 ## Revisions
 
 *(yours — edit away; ✎ marks what changed)*
+
+**✎ 2026-11-12 — the direction restated; the world may live.** The user asked
+for a living diorama that still reads like a board game, seen as a fantastical
+game from the point of view of Renaissance magistrates, and for more of the
+occult and the mythologized. The new section at the top states it. Marks in
+"Where we stand", section I, section IV and the refused list show what it
+changes. The system table and the depth of the myth are the assistant's
+proposals and carry ▢ until the user rules.
 
 **✎ 2026-08-27 — the badge icons are Tabler's now, and there are ten of them.** The nine
 hand-drawn unit badges under `public/sprites/icons/` were replaced with **Tabler Icons**
