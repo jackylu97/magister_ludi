@@ -24,6 +24,7 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
 - **Approved** (the user's word on each is *"great"* unless quoted):
   - **P1** The threat count reads only empires at war and barbarians at full weight; a peaceful neighbour's soldiers count at a small share scaled by that neighbour's intent; each town keeps a floor of one defender.
   - **P2** No build-then-disband loop: the build choice reads upkeep as the disband choice does, a unit trained in the last 10 turns is not disbanded unless gold is below zero and falling, and the empire's gold is read once a turn. The user adds: *"the bot should plan ahead about how many soldiers its able to support, and put greater weight on gold when it's needed for soldiers. there should be mechanisms in place for dynamically updating yield values based on game factors right?"* So: the bot forecasts how many soldiers its income can pay for and does not train past that, and the worth of gold rises when upkeep needs it (the want book in `src/ai/wants.ts` already moves the worth of a coin; extend that mechanism, do not add a second one).
+  - **P3** (the user, 2026-11-12: *"P3 approved. you're good to make those changes."*) The Epic Poetry ability is valued by the great people the seat's banked renown and renown income would call in the next 30 turns, times the bot's price for a great person, in place of the flat ability value. The renown weight itself (B11) stays held.
   - **P5** Camps ranked by what they cost the seat and what clearing pays, with a force sized to the camp.
   - **P6** A worker priced by the improvements waiting; each cause of idle workers fixed.
   - **P7** Measured again after P1; the settler's price looked at only if towns at turn 50 are still under 4.
@@ -37,8 +38,7 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - **B9, B10, B12** as proposed on the page.
 - **Held:**
   - **P4** wonders (*"defer for later, once we tune the bot parameters"*). **P10** the endgame (*"defer"*). **B11** the renown weight (*"hold off, we'll do a parameter pass later"*).
-  - **P3** (Epic Poetry valued by waiting renown) has no comment. It is not a parameter, but it shares B11's subject; it waits for the user's word.
-- **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
+- **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 + P3 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
 
 **(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
 The user: *"i want to explore ways of making the game more visually appealing, without increasing the rendering costs too significantly."* The assistant looked at 20 screenshots of a turn-80 game (`scratchpad/shots2/`) and proposed ten ideas. The user approved the first six and asked: *"Could you make a test version for me to visually inspect"*.
