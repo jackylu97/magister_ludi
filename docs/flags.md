@@ -19,6 +19,43 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(mmmmmmm) Great people: cheaper to earn, odds on the Renown tab, and legacy changes: RULED 2026-11-12; batch GP1 queued.**
+The user, 2026-11-11: *"i think we need to slightly nerf some of the great people, and also make them slightly easier to earn. The renown tab should show the current percentage odds somewhere of what great people are going to be available to draft. let's make great people generally 25% faster to earn (with the same starting cost) and then start an artifact with some proposed changes (they should feel roughly similar in power for their situational use case, generally powerful great people should be nerfed)."* The proposal page is https://claude.ai/artifact/4HePmSDpo2ahSPhV4uM8qY. On 2026-11-12 the user commented on it and wrote *"ok i made comments on the great people doc, please schedule those changes for subagents"*. Reading taken: a row with no comment is approved as proposed.
+- **Renown prices.** The user's comment replaces the 25% ruling: *"on second thought, lets increase by 80% total, instead of 4 great people at 2000 renown lets make it 7"*. So `rules.renown.linear` goes from 180 to **58**; `base` 75 and `exponent` 2.65 stay. The first eight prices become 75, 134, 197, 267, 346, 436, 538, 654 (they are 75, 256, 441, 633, 834, 1046, 1270, 1508). Seven people cost 1,993 renown in all.
+- **The Renown tab.** It shows, for the next offer, the chance in percent that a name comes from each family, from the draw's own weights, and which age's names are in the bag (the user: *"this is great"*). The renown breakdown is collapsed to one line for each city (*"we can collapse the full renown breakdown per city (i.e. tenochtitlan: +13)"*). Reading taken: a city's line can be opened to show its sources, and sources that belong to no city (Triumphs, cards, luxuries) keep their own lines.
+- **Legacy changes** (the "now" text is in `docs/great-people.md`):
+
+| Person | Legacy becomes | Source |
+|---|---|---|
+| Aristotle | your buildings that supply science pay +25% | proposal |
+| Hemiunu | +25% production toward wonders; the drawback stays | proposal |
+| Zhang Heng | +1 gold for each of your buildings that supplies science | the user: *"let's revise: +1 gold on every building that supplies science"* |
+| Eratosthenes | no change (+1 science per 80 hexes revealed) | the user: *"this is too strong, keep at 80"* |
+| Zhang Qian | no change (+2 gold per 80 hexes revealed) | the user: *"keep at 80"* |
+| Crassus | all units and buildings cost 20% less to buy; the drawback stays | proposal |
+| Spartacus | +5 combat strength against an empire with more cities than you | proposal |
+| Roger Bacon | completing a technology grants +15% food and +15% production in every city for 3 turns | proposal |
+| Maimonides | +1 happiness per 2 buildings in your cities that supply science | proposal |
+| Āryabhaṭa | +1 faith in every city per building there that supplies science | proposal |
+| Murasaki Shikibu | +4 culture per melee unit in the field | proposal |
+| al-Jazarī | your buildings that supply production pay +40%, counted after every other bonus | proposal |
+| Mimar Sinan | +2 production, +2 culture in every city with a Temple (the two build bonuses go) | proposal |
+| Subutai | mounted units: +1 movement and +2 combat strength (a flat figure, no percentage) | the user: *"+2 combat strenght instead of percentage"* |
+| Tomoe Gozen | +3 combat strength for mounted units and +3 for ranged units (flat, no percentage) | the user: *"revise: +3 combat strength for both (instead of a percentage)"* |
+| El Cid | +6 combat strength in a city you captured | proposal |
+| Paracelsus | +15% science in every city; the drawback stays | proposal |
+| Copernicus | +4 science in every city | proposal |
+| Leonardo | +20% production toward wonders; a great person's act pays +50% | proposal |
+| Taqī al-Dīn | +20% science in your capital (the mountain line goes) | proposal |
+| Vaucanson | newly created workers gain +2 charges | proposal |
+| Jakob Fugger | +20% gold in every city; the authority drawback stays; all units and buildings cost 10% less to buy | proposal |
+| Willem Beukelszoon | the works on every Fishing Boat hex pay +100% (the ground doubling goes) | proposal |
+| Gracia Mendes Nasi | +3 authority capacity; +1 happiness and +5 gold per spare authority | proposal |
+| Lautaro | +5 combat strength against mounted units | proposal |
+| Sin-lēqi-unninni | +50% production toward Amphitheaters | proposal |
+
+- Acts and works do not change. If a row needs an effect shape the game does not have, the agent holds that row back and reports it.
+
 **(lllllll) The worker's menu and the improvement preview: RULED 2026-11-11; batch W1 built.**
 The user: *"workers action menu should not show improvements that haven't been unlocked (i.e. charter improvements). also, please have the tooltip show the proper yields, i think the preview yields for an improvement dont factor religious beliefs or orders"*. And on the tech hover card's "may" headings above abilities (for example "Workers and settlers may"), to the recommendation to remove them: *"yeah i agree"*.
 - **The worker's menu** lists an improvement only if the empire has unlocked it. An improvement whose technology the empire does not know is not listed at all, whether that technology is a charter technology (Qanat, Physic Garden) or an ordinary one. Reading taken: this covers every locked improvement, not only charter ones. An improvement that is unlocked but cannot be built on this hex prints as it does today.
