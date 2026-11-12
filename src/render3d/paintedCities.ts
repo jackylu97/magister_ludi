@@ -17,7 +17,19 @@ import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
-type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower';
+type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
+  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk';
+
+/**
+ * The north-star look (the visual test, 2026-11-12; docs/art-pass.md): a town
+ * raises monuments where it raised a small spire or dome. A shrine is an
+ * obelisk, a temple a ziggurat, a wonder one of the three in turn, and the
+ * capital keeps the magistrates' armillary sphere. Larger than the pieces they
+ * replace, so a landmark reads as one at play zoom. Off, or with the models
+ * not loaded, the study's pieces stand as before.
+ */
+const MONUMENTS = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.monuments : null;
+const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-armillary'] as const;
 type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower'>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
 interface PaintedCityAnchor { x: number; y: number; z: number }
@@ -341,12 +353,15 @@ export class PaintedCityLayer {
       const name = look.tier === 1 && this.assets.house ? 'house' : look.tier >= 3 && i % 3 === 1 ? 'city-dome' : i % 3 === 2 ? 'city-loggia' : 'city-house';
       building('house', name, x, z, scale * [1, 1.08, 1.14][look.tier - 1]!, yaw);
     }
-    if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', 'city-spire', -.33, -.52, .38);
-    if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', 'city-dome', .34, -.50, .48);
+    const grand = MONUMENTS && this.assets['monument-obelisk'] && this.assets['monument-ziggurat'] && this.assets['monument-armillary'] ? MONUMENTS : null;
+    if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
+    if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);
+    if (grand && look.capital) building('wonder', 'monument-armillary', grand.capitalAt[0]!, grand.capitalAt[1]!, grand.capital);
     for (let i = 0; i < look.wonders; i++) {
       const [x, z] = wonderSlots[i % wonderSlots.length]!;
       const storey = Math.floor(i / wonderSlots.length);
-      building('wonder', 'city-spire', x, z, .25, 0, storey ? height(x, z) + .010 + storey * .285 : undefined);
+      if (grand && !storey) building('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!, x, z, grand.wonder);
+      else building('wonder', 'city-spire', x, z, .25, 0, storey ? height(x, z) + .010 + storey * .285 : undefined);
     }
     if ((look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls) {
       const shape = tileShape(tile) as { normals: [number, number][]; upper: number[] };

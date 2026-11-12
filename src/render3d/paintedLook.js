@@ -50,7 +50,7 @@ const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=
 // want it after their own download, so all five requests are in flight at once.
 const assetRequests=[
  loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
- loadSettlementAssets({register(){}},grainRequests[0],{names:['city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
+ loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk']:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
 const grains=await Promise.allSettled(grainRequests);

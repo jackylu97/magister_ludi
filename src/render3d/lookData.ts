@@ -2266,6 +2266,8 @@ export interface VisualTestSpec {
   };
   /** The master tunable of the north-star look: `false` gives back the study's land palette, its cross-hex strokes and its sparse open land. */
   northStar: boolean;
+  /** The sizes of the monuments a town raises under the north-star look, and where the capital's armillary stands. */
+  monuments: { shrine: number; temple: number; wonder: number; capital: number; capitalAt: number[] };
   /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
   props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number };
   /** Switch 11: each hex reads as a tile: only its own terrain's strokes, and a fine groove with a light lip at its edge. */

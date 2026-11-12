@@ -123,11 +123,12 @@ export function createSceneFixture() {
   // Three towns: a large walled capital, a small town and a middling one.
   const capital = foundCityAt(state, 0, tile(3, 7));
   capital.population = 9;
-  capital.buildings.push('palisade' as never);
+  capital.buildings.push('palisade' as never, 'shrine' as never, 'temple' as never, 'pyramids' as never, 'stonehenge' as never);
   const hamlet = foundCityAt(state, 0, tile(9, 11));
   hamlet.population = 2;
   const east = foundCityAt(state, 1, tile(15, 6));
   east.population = 5;
+  east.buildings.push('shrine' as never, 'greatLighthouse' as never);
   // The west owns cols 0 to 11 from row 5 down to row 13, with one unowned
   // hex inside; the east owns cols 12 to 18 from row 3 to row 12. They meet
   // along the line between cols 11 and 12, and the west's north border runs

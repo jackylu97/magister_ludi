@@ -1373,6 +1373,16 @@
       "scaleSpan": 0.13,
       "stoneChance": 0.5,
       "stoneScale": 1.35
+    },
+    "monuments": {
+      "shrine": 0.72,
+      "temple": 0.6,
+      "wonder": 0.85,
+      "capital": 0.9,
+      "capitalAt": [
+        0.6,
+        0.12
+      ]
     }
   }
 }
