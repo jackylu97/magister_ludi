@@ -29,8 +29,10 @@ const LAND={
  },
 }[NORTH_STAR?(VIEW3D.visualTest.land==='deep'?'deep':VIEW3D.visualTest.land==='study'?'study':'soft'):'study'];
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
-const dryColors=LAND.dry;
-const richColors=LAND.rich;
+// The desert's two stroke tones stand further from its ground (the user, 2026-11-13: "more distinction in the desert tile colors"): the light one paler and yellower, the deep one a redder ochre. Set in `visualTest.paint.desert`; absent, the palette's own.
+const DESERT=NORTH_STAR?VIEW3D.visualTest.paint.desert:null;
+const dryColors=DESERT?{...LAND.dry,desert:DESERT.dry}:LAND.dry;
+const richColors=DESERT?{...LAND.rich,desert:DESERT.rich}:LAND.rich;
 const PAINT=NORTH_STAR?VIEW3D.visualTest.paint:null;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
 const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;

@@ -1595,8 +1595,8 @@
       "span": 0.42
     },
     "grade": {
-      "contrast": 0.3,
-      "saturation": 1.1,
+      "contrast": 0.24,
+      "saturation": 1.04,
       "warm": 0.035,
       "haze": "#f1e2c8",
       "hazeStrength": 0.16,
@@ -1659,6 +1659,10 @@
       "tongues": 0,
       "reach": 1.2,
       "spread": 1,
+      "desert": {
+        "dry": "#f1d59c",
+        "rich": "#bd9a66"
+      },
       "layers": 2,
       "crease": 0.5,
       "brush": 0
