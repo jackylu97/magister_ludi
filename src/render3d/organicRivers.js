@@ -80,6 +80,18 @@ export function createOrganicRivers(map, knobs) {
   for (let pass = 0; pass < knobs.smoothing; pass++) line = cutCorners(line, path.closed);
   const samples = resample(line, knobs.step, path.closed);
   if (samples.length < 2) continue;
+  // The hex edges turn 60 degrees at every corner, so a rounded chain still
+  // zigzags at one fixed rhythm. Relaxing the samples, with both ends held,
+  // takes most of that rhythm out and leaves a line that flows; the slow
+  // wander below then gives it bends of its own (2026-11-12).
+  for (let pass = 0; pass < (knobs.straighten ?? 0); pass++) {
+   const next = samples.map((p, i) => {
+    if (!path.closed && (i === 0 || i === samples.length - 1)) return p;
+    const a = samples[(i - 1 + samples.length) % samples.length], b = samples[(i + 1) % samples.length];
+    return {...p, x: .25 * a.x + .5 * p.x + .25 * b.x, z: .25 * a.z + .5 * p.z + .25 * b.z};
+   });
+   for (let i = 0; i < samples.length; i++) { samples[i].x = next[i].x; samples[i].z = next[i].z; }
+  }
   const length = samples.at(-1).s;
   const start = path.start, end = path.end;
   const source = !path.closed && start.edges.length === 1 && !start.water;
@@ -94,9 +106,9 @@ export function createOrganicRivers(map, knobs) {
    // others run nearly straight, and a second makes the river swell and narrow.
    const uneven = knobs.uneven ?? 0;
    const reachOf = 1 - uneven + uneven * 2 * (.5 + .5 * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 2.7) + phase2 * 1.7));
-   const wander = knobs.wander * fade * reachOf * (Math.sin(s * Math.PI * 2 / knobs.wanderWave + phase) * .65
-    + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .53) + phase2) * .35);
-   samples[i].swell = 1 + (knobs.widthVary ?? 0) * fade * (Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.9) + phase * 2.3) * .6 + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .71) + phase2 * .7) * .4);
+   const wander = knobs.wander * fade * reachOf * (Math.sin(s * Math.PI * 2 / knobs.wanderWave + phase) * .8
+    + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .47) + phase2) * .2);
+   samples[i].swell = 1 + (knobs.widthVary ?? 0) * fade * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.6) + phase * 2.3);
    // The sand beside the water is wide in places and thin in others, each side by its own wave.
    samples[i].sand = [1, -1].map(way => knobs.bankWidth * (1 + (knobs.sandVary ?? 0) * fade * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.3) + phase * way + way)));
    samples[i].x += normals[i][0] * wander; samples[i].z += normals[i][1] * wander;
@@ -109,6 +121,16 @@ export function createOrganicRivers(map, knobs) {
    samples[i].half = w / 2;
   }
   const bent = normalsOf(samples, path.closed);
+  // A stream is wider on a bend. The turn is read over a few samples each way and smoothed, so the width changes slowly.
+  if (knobs.bendSwell) {
+   const reach = 4, last = samples.length - 1;
+   let turn = samples.map((_, i) => {
+    const a = bent[Math.max(0, i - reach)], b = bent[Math.min(last, i + reach)];
+    return Math.abs(a[0] * b[1] - a[1] * b[0]);
+   });
+   for (let pass = 0; pass < 6; pass++) turn = turn.map((_, i) => .25 * turn[Math.max(0, i - 1)] + .5 * turn[i] + .25 * turn[Math.min(last, i + 1)]);
+   for (let i = 0; i < samples.length; i++) samples[i].half *= 1 + knobs.bendSwell * Math.min(1, turn[i] * 2.2);
+  }
   const band = (inner, outer, color, lift) => {
    for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
     const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];

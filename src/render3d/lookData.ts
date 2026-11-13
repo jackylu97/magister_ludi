@@ -2350,6 +2350,8 @@ export interface VisualTestSpec {
     detail: boolean; patchShare: number; detailEvery: number; lily: string; lilySize: number; reedHeight: number;
     /** `uneven` makes some stretches wind hard and others run straight (0 to 1); `widthVary` makes the river swell and narrow; `sandVary` makes the sand beside the water wide in places and thin in others. */
     uneven: number; widthVary: number; sandVary: number;
+    /** `straighten` is how many passes relax the hex edges' zigzag out of the line; `bendSwell` is how much wider the river is on a bend. */
+    straighten: number; bendSwell: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
