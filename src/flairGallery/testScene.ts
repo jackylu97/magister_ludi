@@ -45,6 +45,9 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     + 'font:12px/1.5 system-ui,sans-serif;color:#2a2620;border:1px solid #2a2620;max-width:260px';
   into.append(canvas, panel);
   const renderer = new Renderer3D(canvas, { painted: true, minFrustum: 1.4 });
+  // `mirror=0` leaves out, and `mirror=all` reflects the whole scene and not only the pieces. It is the sea's mirror pass (`seaMirror.ts`), to compare its cost and its look.
+  renderer.mirrorOn = params.get('mirror') !== '0';
+  renderer.mirrorAll = params.get('mirror') === 'all';
   const age = Number(params.get('age'));
   const state = createSceneFixture(age === 1 || age === 2 ? age : undefined);
   let disposed = false, ready = false;

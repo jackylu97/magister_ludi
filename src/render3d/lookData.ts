@@ -2386,14 +2386,17 @@ export interface VisualTestSpec {
        * screen (`x`, `y` from the bottom left; `width`, `height` as shares of
        * the screen): a glow of `strength` and `color`, and short level strokes
        * of light (`stroke…`: how many, their length and rows to a hex unit at the zoom where a hex unit is `strokePixels` pixels,
-       * their thickness, drift, flicker, strength and colour).
+       * their thickness, drift, flicker, strength and colour). `river` is how
+       * much of the road a river takes.
        */
       sun: {
         calmColor: string; deepen: number; cloud: number; cloudScale: number; cloudSquash: number; cloudFrom: number; cloudTo: number; cloudDrift: number;
         skyColor: string; sky: number; skyFrom: number; near: number; nearTo: number;
         x: number; y: number; width: number; height: number; strength: number; color: string;
-        strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string;
+        strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string; river: number;
       };
+      /** The sea as a mirror (`seaMirror.ts`): whether it is drawn, what reflects (`pieces`: ships, pieces and towns; `all`: the whole scene), the picture's size as a share of the screen, how much of it shows on the water and how dark, and its ripple and upward smear as shares of the picture. */
+      mirror: { on: boolean; what: string; scale: number; strength: number; tone: number; ripple: number; smear: number };
       pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
       swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */

@@ -146,6 +146,7 @@ import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
 import { PaintedFlowLayer } from './paintedFlow';
+import { SeaMirror } from './seaMirror';
 // @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
 import { bakeSeaDistances } from './seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
@@ -387,6 +388,11 @@ export class Renderer3D implements MapView {
   private paintedFlow: PaintedFlowLayer | null = null;
   /** The sea's distances for the board in place, as a texture (`seaDistances.js`); null without a free coast. */
   private seaDistances: Texture | null = null;
+  /** The sea as a mirror (`seaMirror.ts`): made on the first frame that wants it. `mirrorOn` is the scene page's switch. */
+  private seaMirror: SeaMirror | null = null;
+  mirrorOn = true;
+  /** The scene page's `mirror=all`: the whole scene reflects, whatever the data says. */
+  mirrorAll = false;
   /** Stops listening to the visual test switches. */
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
@@ -4144,6 +4150,18 @@ export class Renderer3D implements MapView {
       this.paintedLook.updateDynamicShadows(this.view.target, this.view.shadowRadius, this.view.groundReach);
       this.renderer.info.autoReset = false;
       this.renderer.info.reset();
+      // The mirror's picture first, so the water can read it in this frame. Its draws count in the frame's totals.
+      if (this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5) {
+        this.seaMirror ??= new SeaMirror();
+        // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
+        // only ships, pieces and towns reflect, which is most of what shows and a small part of the cost.
+        const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
+          this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
+        const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [this.board?.group, this.roads.group,
+          this.improvements.group, this.sites.group, this.paintedWorks?.group, this.paintedSites?.group, this.paintedRoads?.group,
+          this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group];
+        this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground]);
+      } else this.seaMirror?.off();
       this.paintedLook.render();
     } else this.renderer.render(this.scene, this.view.camera);
     this.lastDrawCalls = this.renderer.info.render.calls;

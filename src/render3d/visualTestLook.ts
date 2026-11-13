@@ -17,7 +17,7 @@
  * rule 4). The patterns hash world coordinates in the shader.
  */
 
-import { Color, DataTexture, Texture, Vector2, Vector3, Vector4, type IUniform, type Material, type WebGLProgramParametersWithUniforms } from 'three';
+import { Color, DataTexture, Matrix4, Texture, Vector2, Vector3, Vector4, type IUniform, type Material, type WebGLProgramParametersWithUniforms } from 'three';
 
 import { VIEW3D } from './lookData';
 import { type VisualTestState, visualTest } from './visualTest';
@@ -26,7 +26,7 @@ const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
-const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open, sun = open.sun;
+const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open, sun = open.sun, mirror = open.mirror;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
 export const VTEST_UNIFORMS = {
@@ -76,6 +76,10 @@ export const VTEST_UNIFORMS = {
   vtestSeaCalm: { value: new Color(VT.coast.open.sun.calmColor) },
   vtestSeaSunStroke: { value: new Color(VT.coast.open.sun.strokeColor) },
   vtestViewport: { value: new Vector2(1, 1) },
+  /** The mirror's picture, the matrix from a world point to its place in it, and 1 while this frame has one (`seaMirror.ts`). */
+  vtestMirrorMap: { value: new DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1) } as IUniform<Texture>,
+  vtestMirrorMatrix: { value: new Matrix4() },
+  vtestMirrorOn: { value: 0 } as IUniform<number>,
   vtestSeaShallow: { value: new Color(sea.shallow) },
   vtestSeaCoast: { value: new Color(sea.coast) },
   vtestSeaOcean: { value: new Color(sea.ocean) },
@@ -139,7 +143,7 @@ export function shareUniforms(shader: WebGLProgramParametersWithUniforms, names:
 export function declareUniforms(names: readonly UniformName[]): string {
   return names.map((name) => {
     const value = VTEST_UNIFORMS[name].value as unknown;
-    const type = value instanceof Texture ? 'sampler2D' : value instanceof Color ? 'vec3' : value instanceof Vector4 ? 'vec4'
+    const type = value instanceof Texture ? 'sampler2D' : value instanceof Matrix4 ? 'mat4' : value instanceof Color ? 'vec3' : value instanceof Vector4 ? 'vec4'
       : value instanceof Vector3 ? 'vec3' : value instanceof Vector2 ? 'vec2' : 'float';
     return `uniform ${type} ${name};`;
   }).join('\n');
@@ -159,7 +163,7 @@ float vtestNoise(vec2 p) {
 // --- 1. the sea --------------------------------------------------------------
 
 export const SEA_UNIFORMS: readonly UniformName[] = [
-  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaSunGlare', 'vtestSeaSky', 'vtestSeaCalm', 'vtestSeaSunStroke', 'vtestViewport', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
+  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestMirrorMap', 'vtestMirrorMatrix', 'vtestMirrorOn', 'vtestSeaSunGlare', 'vtestSeaSky', 'vtestSeaCalm', 'vtestSeaSunStroke', 'vtestViewport', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
   'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
@@ -183,9 +187,9 @@ export const SEA_UNIFORMS: readonly UniformName[] = [
  * time is `studyTime`, the clock the old water already read.
  */
 export const SEA_GLSL = {
-  vertexHead: 'attribute vec3 paintedWater;\nvarying vec3 vPaintedWater;\n',
-  vertex: 'vPaintedWater = paintedWater;\n',
-  fragmentHead: `varying vec3 vPaintedWater;\n${declareUniforms(SEA_UNIFORMS)}\n${NOISE}
+  vertexHead: 'attribute vec3 paintedWater;\nvarying vec3 vPaintedWater;\nuniform mat4 vtestMirrorMatrix;\nvarying vec4 vMirror;\n',
+  vertex: 'vPaintedWater = paintedWater;\nvMirror = vtestMirrorMatrix * modelMatrix * vec4(position, 1.0);\n',
+  fragmentHead: `varying vec3 vPaintedWater;\nvarying vec4 vMirror;\n${declareUniforms(SEA_UNIFORMS.filter(name => name !== 'vtestMirrorMatrix'))}\n${NOISE}
 // What the lighting stage needs from the paint stage: the wave's normal in
 // world space, and 1 on open sea (0 on a river, which keeps its old paint).
 vec3 vtestSeaNormal = vec3(0.0, 1.0, 0.0);
@@ -193,6 +197,8 @@ float vtestSeaMask = 0.0;
 float vtestSeaGlitter = 0.0;
 // How much of the swell's own shading the lighting stage keeps. Pattern 5 keeps little: a smooth surface with glints on it.
 float vtestSeaSheen = 1.0;
+// What the water mirrors at this point, and how much of it shows (seaMirror.ts).
+vec4 vtestSeaMirror = vec4(0.0);
 float vtestSwell(vec2 p, float time) {
   float s = vtestSeaWave.y, v = vtestSeaWave.z;
   return vtestNoise(p * s + vec2(time * v, time * v * .6)) * .55
@@ -231,6 +237,32 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
   float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
   float ripple = step(.80, pick) * stroke * life * smoothstep(.25, .6, shore);
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x);
+  return paint;
+}
+
+// The sun's road on calm water: a soft warm glow, and on it short level strokes
+// of light, many at the middle and few at the edge, each coming and going.
+// The glare is 1 at the middle of the road and falls to 0 away from it.
+float vtestSunGlare() {
+  vec2 screen = gl_FragCoord.xy / vtestViewport;
+  vec2 from = (screen - vec2(${sun.x.toFixed(3)}, ${sun.y.toFixed(3)})) / vec2(${sun.width.toFixed(3)}, ${sun.height.toFixed(3)});
+  return exp(-dot(from, from));
+}
+vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float glow) {
+  paint = mix(paint, vtestSeaSunGlare, glare * ${sun.strength.toFixed(3)} * wet * glow);
+  // The strokes lie on the water, but their size follows the zoom in steps of two, so they are a few pixels thick at any distance and never turn into grain.
+  float grain = exp2(floor(log2((fwidth(p.x) + 1e-5) * ${sun.strokePixels.toFixed(1)}) + .5));
+  vec2 sg = p / grain * vec2(${sun.strokeLength.toFixed(3)}, ${sun.strokeRows.toFixed(3)});
+  float srow = floor(sg.y);
+  sg.x += vtestHash(vec2(srow, 3.0)) * 7.0 + time * ${sun.strokeDrift.toFixed(3)} * (vtestHash(vec2(srow, 9.0)) - .5);
+  vec2 sc = vec2(floor(sg.x), srow), sf = fract(sg) - .5;
+  float pick = vtestHash(sc + 31.7);
+  // Longer and closer together at the middle of the road, so they nearly join there.
+  float long_ = (.14 + .26 * vtestHash(sc + 5.3)) * (.7 + .9 * glare);
+  float shape = 1.0 - smoothstep(.75, 1.0, length(sf / vec2(long_, .5 * ${sun.strokeFill.toFixed(3)})));
+  float alive = .5 + .5 * sin(time * ${sun.strokeFlicker.toFixed(3)} + pick * 50.0);
+  float lit = step(1.0 - glare * glare * ${sun.strokes.toFixed(3)}, pick * .999) * shape * smoothstep(.15, .6, alive);
+  paint = mix(paint, vtestSeaSunStroke, lit * wet * ${sun.strokeStrength.toFixed(3)});
   return paint;
 }
 
@@ -379,30 +411,23 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     float wet = smoothstep(sandEdge, sandEdge + .03, reach);
     paint = mix(paint, vtestSeaSky, smoothstep(${sun.skyFrom.toFixed(3)}, 1.0, screen.y) * ${sun.sky.toFixed(3)} * wet);
     paint *= 1.0 - (1.0 - smoothstep(0.0, ${sun.nearTo.toFixed(3)}, screen.y)) * ${sun.near.toFixed(3)} * wet;
-    vec2 from = (screen - vec2(${sun.x.toFixed(3)}, ${sun.y.toFixed(3)})) / vec2(${sun.width.toFixed(3)}, ${sun.height.toFixed(3)});
-    float glare = exp(-dot(from, from));
-    // A soft warm glow, and on it the sun's road: short level strokes of light,
-    // many at the middle and few at the edge, each coming and going.
-    paint = mix(paint, vtestSeaSunGlare, glare * ${sun.strength.toFixed(3)} * wet);
-    // The strokes lie on the water, but their size follows the zoom in steps of two, so they are a few pixels thick at any distance and never turn into grain.
-    float grain = exp2(floor(log2((fwidth(p.x) + 1e-5) * ${sun.strokePixels.toFixed(1)}) + .5));
-    vec2 sg = p / grain * vec2(${sun.strokeLength.toFixed(3)}, ${sun.strokeRows.toFixed(3)});
-    float srow = floor(sg.y);
-    sg.x += vtestHash(vec2(srow, 3.0)) * 7.0 + time * ${sun.strokeDrift.toFixed(3)} * (vtestHash(vec2(srow, 9.0)) - .5);
-    vec2 sc = vec2(floor(sg.x), srow), sf = fract(sg) - .5;
-    float pick = vtestHash(sc + 31.7);
-    // Longer and closer together at the middle of the road, so they nearly join there.
-    float long_ = (.14 + .26 * vtestHash(sc + 5.3)) * (.7 + .9 * glare);
-    float shape = 1.0 - smoothstep(.75, 1.0, length(sf / vec2(long_, .5 * ${sun.strokeFill.toFixed(3)})));
-    float alive = .5 + .5 * sin(time * ${sun.strokeFlicker.toFixed(3)} + pick * 50.0);
-    float lit = step(1.0 - glare * glare * ${sun.strokes.toFixed(3)}, pick * .999) * shape * smoothstep(.15, .6, alive);
-    paint = mix(paint, vtestSeaSunStroke, lit * wet * ${sun.strokeStrength.toFixed(3)});
+    float glare = vtestSunGlare();
+    paint = vtestSunRoad(paint, p, time, glare, wet, 1.0);
+    // What stands beside the water, upside down (seaMirror.ts): read from the
+    // mirror's picture at this point's own place in it, with a small ripple,
+    // and laid over the lit water in the lighting stage.
+    if (vtestMirrorOn > .5) {
+      vec2 at = vMirror.xy / vMirror.w + vec2(sin(p.y * 38.0 + time * 1.3) * ${mirror.ripple.toFixed(4)}, 0.0);
+      vec4 seen = texture2D(vtestMirrorMap, at) * .5 + texture2D(vtestMirrorMap, at + vec2(0.0, ${mirror.smear.toFixed(4)})) * .25 + texture2D(vtestMirrorMap, at - vec2(0.0, ${mirror.smear.toFixed(4)})) * .25;
+      vtestSeaMirror = vec4(seen.rgb, seen.a * ${mirror.strength.toFixed(3)} * wet);
+      vtestSeaMask = 1.0; vtestSeaSheen = 0.0;
+    }
   }
   return paint;
 }
 `,
   /** After `#include <color_fragment>`, with `p` the world xz and `studyTime` the clock. */
-  fragment: `if (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n`,
+  fragment: `if (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n// A river keeps its own paint, and takes the strokes of the sun's road where it runs under it: a wider road, since a river is thin, and no glow, which greys its blue.\nelse if (vtestSea > .5 && vtestSeaFieldOn > .5 && vtestSeaPattern > 4.5) diffuseColor.rgb = vtestSunRoad(diffuseColor.rgb, p, studyTime, sqrt(vtestSunGlare()), ${sun.river.toFixed(3)}, 0.0);\n`,
 };
 
 // --- 7. cloud shadows ----------------------------------------------------------
@@ -569,6 +594,7 @@ export const SEA_LIGHT_GLSL = `if (vtestSea > .5 && vtestSeaMask > .5) {
   float seaGlint = pow(max(dot(seaN, seaAim), 0.0), vtestSeaWave.w);
   outgoingLight *= 1.0 + (dot(seaN, seaL) - dot(seaUp, seaL)) * vtestSeaSun.y * vtestSeaSheen;
   outgoingLight += vtestSeaSpec * seaGlint * vtestSeaGlitter * (.25 + .75 * visible);
+  outgoingLight = mix(outgoingLight, vtestSeaMirror.rgb * ${mirror.tone.toFixed(3)}, clamp(vtestSeaMirror.a, 0.0, 1.0));
 }
 `;
 

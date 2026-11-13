@@ -1389,7 +1389,17 @@
           "strokeDrift": 0.05,
           "strokeFlicker": 1.2,
           "strokeStrength": 0.9,
-          "strokeColor": "#fff3d6"
+          "strokeColor": "#fff3d6",
+          "river": 1
+        },
+        "mirror": {
+          "on": true,
+          "what": "pieces",
+          "scale": 0.5,
+          "strength": 0.55,
+          "tone": 0.85,
+          "ripple": 0.0015,
+          "smear": 0.004
         },
         "cellScale": 1.05,
         "cellWarp": 0.7,
