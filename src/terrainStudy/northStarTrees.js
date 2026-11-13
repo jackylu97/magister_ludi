@@ -14,3 +14,9 @@ export const NORTH_STAR_ROCK = NORTH_STAR_TREES ? [.82, .74, .6] : null;
 // linear light, lifted by half. `null` leaves the stone as it was. A constant
 // here and not in the look sheet, for the reason given above.
 export const NORTH_STAR_MOUNTAIN_ROCK = NORTH_STAR_TREES ? [.83, .69, .5] : null;
+// Which mountain models the renderer loads. `true` is the crags of
+// `scripts/terrain-study/build_crag_mountains.py` (the user, 2026-11-13: broad
+// rock that steps up through level shelves, with the ground's green or snow on
+// the shelves). `false` gives back the study's escarpments. The crags come only
+// with the round trees, because each set of models has its own prepared bundle.
+export const NORTH_STAR_CRAGS = NORTH_STAR_TREES && true;

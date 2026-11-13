@@ -40,6 +40,9 @@ export const SCENE_VIEWS = {
   rivers: { col: 13, row: 8, zoom: 3.4, label: 'River: sources, join, mouth' },
   roads: { col: 10, row: 8, zoom: 3.4, label: 'Roads: junction, bend, crossing' },
   hillsBorder: { col: 6, row: 5, zoom: 3.4, label: 'Hills and mountains with a border' },
+  mountains: { col: 7, row: 4, zoom: 9, label: 'The mountain range, closer' },
+  mountainDesert: { col: 5, row: 10, zoom: 3.4, label: 'One mountain in the desert' },
+  mountainSnow: { col: 5, row: 2, zoom: 3.4, label: 'One mountain in the snow, one on tundra' },
   city: { col: 3, row: 7, zoom: 3.6, label: 'Towns' },
   town: { col: 3, row: 7, zoom: 9, label: 'The capital, close' },
   townEast: { col: 15, row: 6, zoom: 9, label: 'The eastern town, close' },
@@ -99,6 +102,8 @@ export function createSceneFixture(age?: number) {
   // Open grass for the examples of rich hexes.
   paint([15, 17], [1, 3], 'grassland');
   for (const [col, row] of [[6, 4], [7, 4], [7, 3]] as const) tile(col, row).terrain = 'mountain';
+  // Mountains that stand alone, to judge one model against desert, snow and tundra.
+  for (const [col, row] of [[5, 10], [4, 1], [6, 2]] as const) tile(col, row).terrain = 'mountain';
   for (let row = 5; row <= 7; row++) for (let col = 4; col <= 9; col++) if (!(col === 4 && row === 7)) tile(col, row).hills = true;
   for (let row = 5; row <= 7; row++) for (let col = 0; col <= 2; col++) tile(col, row).feature = 'forest';
   for (let row = 12; row <= 13; row++) for (let col = 15; col <= 17; col++) tile(col, row).feature = 'jungle';

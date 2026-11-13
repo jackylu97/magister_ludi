@@ -2,7 +2,7 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
-import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK} from './northStarTrees.js';
+import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
 // two cypresses, three escarpments, then the limestone block. `family` is the
@@ -12,10 +12,14 @@ import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_RO
 // `build_soft_trees.py`; otherwise the study's sculpts. Each set has its own
 // prepared bundle.
 const TREES=NORTH_STAR_TREES?'soft':'sculpt';
+// The mountains are the crags of `build_crag_mountains.py` or the study's
+// escarpments (`NORTH_STAR_CRAGS`). The kit still calls the three of them
+// `escarpments`, so nothing that reads the kit changes.
+const RANGE=CRAGS?'crag':'escarpment';
 export const VEGETATION_SPECIES=[
  ...[0,1,2].map(i=>({name:`grove-${TREES}-${i}`,evergreen:false,rock:false,family:'groves'})),
  ...[0,1].map(i=>({name:`cypress-${TREES}-${i}`,evergreen:true,rock:false,family:'groves'})),
- ...[0,1,2].map(i=>({name:`escarpment-${i}`,evergreen:false,rock:true,family:'escarpments'})),
+ ...[0,1,2].map(i=>({name:`${RANGE}-${i}`,evergreen:false,rock:true,family:'escarpments'})),
  {name:'limestone',evergreen:false,rock:true,family:'stones'},
 ];
 
@@ -23,7 +27,7 @@ export const VEGETATION_SPECIES=[
 // `scripts/terrain-study/build_asset_bundle.mjs` runs it once and ships the
 // result. The runtime keeps this path as the fallback for a missing or
 // out-of-date bundle, and it is the definition the bundle is pinned against.
-export const VEGETATION_BUNDLE_VERSION=TREES==='soft'?'vegetation-soft-1':'vegetation-1';
+export const VEGETATION_BUNDLE_VERSION=CRAGS?'vegetation-soft-crag-1':TREES==='soft'?'vegetation-soft-1':'vegetation-1';
 export const VEGETATION_BUNDLE_URL=`/terrain-study/asset-bundle/${VEGETATION_BUNDLE_VERSION}.bundle`;
 const BUNDLE_MAGIC='MLAB';
 
@@ -34,7 +38,7 @@ const BUNDLE_MAGIC='MLAB';
  * temporary; only the returned geometry survives.
  */
 export function bakeVegetationScene(scene,{name,evergreen=false}){
- const parts=[],temporary=new Set();
+ const parts=[],saddle=[],temporary=new Set();
  try {
   scene.updateMatrixWorld(true);
   scene.traverse(object=>{
@@ -52,14 +56,20 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
     uv[i*2]=(p.getX(i)+p.getZ(i)*.61)*.45;uv[i*2+1]=(p.getY(i)+p.getZ(i)*.37)*.45;
    }
    for(const key of Object.keys(geometry.attributes))if(!['position','normal'].includes(key))geometry.deleteAttribute(key);
-   geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('canopyWeight',new T.Float32BufferAttribute(new Float32Array(p.count).fill(foliage?1:0),1));parts.push(geometry);
+   geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('canopyWeight',new T.Float32BufferAttribute(new Float32Array(p.count).fill(foliage?1:0),1));
+   // A crag file holds two models: the mountain, and the saddle that joins two
+   // peaks, which its author names `Saddle...`.
+   (name.startsWith('crag')&&object.name.startsWith('Saddle')?saddle:parts).push(geometry);
   });
   const geometry=mergeGeometries(parts);
   if(!geometry)throw new Error(`Cannot merge vegetation asset ${name}`);
   try {
    // Reuse the main fracture blocks for low shoulders, omitting the tiny
    // rubble already sculpted around the full summit asset.
-   const shoulderParts=name.startsWith('escarpment')?parts.filter(g=>{g.computeBoundingBox();return g.boundingBox.max.y-g.boundingBox.min.y>.62}):[];
+   // A crag brings its own shoulder (the saddle). A crag file with no saddle in
+   // it falls back to the escarpments' rule, so a mountain always has one.
+   const range=name.startsWith('escarpment')||name.startsWith('crag');
+   const shoulderParts=saddle.length?saddle:range?parts.filter(g=>{g.computeBoundingBox();return g.boundingBox.max.y-g.boundingBox.min.y>.62}):[];
    const shoulderGeometry=shoulderParts.length?mergeGeometries(shoulderParts):null;
    return {geometry,shoulderGeometry};
   }catch(error){geometry.dispose();throw error}
@@ -80,6 +90,13 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
  }
 }
 
+// How a crag takes the ground's colour. A face counts as a shelf if its normal
+// points up at least `level` and it lies between `above` and `below` of the
+// model's height (the lowest block is the mountain's footing and stays rock, as the summit does);
+// `green` is how far it goes to the ground's colour. Faces under `apron` of the
+// height are the slope at the foot, which goes `foot` of the way.
+const CRAG_SHELF={level:.9,above:.25,below:.82,green:.94,apron:.035,foot:.8};
+
 /**
  * The two whole-kit passes: the range-foot weight the mountain pigment shader
  * mixes on, and the weld. Both depend only on the baked geometry, so the build
@@ -94,7 +111,11 @@ export function finishVegetation({broadleaves,cypresses,escarpments,limestone},{
    const y=(p.getY(i)+p.getY(i+1)+p.getY(i+2))/(3*height);
    const x=(p.getX(i)+p.getX(i+1)+p.getX(i+2))/3,z=(p.getZ(i)+p.getZ(i+1)+p.getZ(i+2))/3;
    const cut=(shoulder?.32:.19)+.055*Math.sin(x*9+z*6),up=n.getY(i)>.24;
-   const weight=Math.max(geometry===limestone.geometry?.46:0,y<cut?(shoulder?.90:.74):y<(shoulder?.62:.38)&&up?(shoulder?.68:.49):0);
+   // A crag takes the ground's colour on its level shelves and on the low
+   // apron at its foot. Its walls and its summit stay rock.
+   const crag=CRAGS&&geometry!==limestone.geometry;
+   const weight=crag?(n.getY(i)>CRAG_SHELF.level&&y>CRAG_SHELF.above&&y<CRAG_SHELF.below?CRAG_SHELF.green:y<CRAG_SHELF.apron?CRAG_SHELF.foot:0)
+    :Math.max(geometry===limestone.geometry?.46:0,y<cut?(shoulder?.90:.74):y<(shoulder?.62:.38)&&up?(shoulder?.68:.49):0);
    weights.fill(weight,i,i+3);
   }
   geometry.setAttribute('rangeFoot',new T.BufferAttribute(weights,1));
