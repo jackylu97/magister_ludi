@@ -2376,6 +2376,8 @@ export interface VisualTestSpec {
      * bend, how often a line breaks, speed).
      */
     open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number;
+      /** Pattern 5: how far south of a shore the water mirrors the land, how strongly, and in what tone; and the sun's glints, everywhere (`base`) and in their loose groups (`groups`), and how much of the swell's own shading stays (`sheen`). */
+      reflect: { reach: number; strength: number; color: string }; sun: { base: number; groups: number; sheen: number };
       pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
       swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */
