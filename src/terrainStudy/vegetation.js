@@ -59,6 +59,9 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
    geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('canopyWeight',new T.Float32BufferAttribute(new Float32Array(p.count).fill(foliage?1:0),1));
    // A crag file holds two models: the mountain, and the saddle that joins two
    // peaks, which its author names `Saddle...`.
+   // Some parts of a crag keep the colour their author gave them on every
+   // terrain (`CRAG_OWN`); `rangeKeep` tells the mountain's shader which.
+   if(name.startsWith('crag'))geometry.setAttribute('rangeKeep',new T.Float32BufferAttribute(new Float32Array(p.count).fill(CRAG_OWN.some(own=>object.material.name.startsWith(own))?1:0),1));
    (name.startsWith('crag')&&object.name.startsWith('Saddle')?saddle:parts).push(geometry);
   });
   const geometry=mergeGeometries(parts);
@@ -95,7 +98,11 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
 // model's height (the lowest block is the mountain's footing and stays rock, as the summit does);
 // `green` is how far it goes to the ground's colour. Faces under `apron` of the
 // height are the slope at the foot, which goes `foot` of the way.
-const CRAG_SHELF={level:.9,above:.25,below:.82,green:.94,apron:.035,foot:.8};
+const CRAG_SHELF={level:.9,above:.25,below:.82,green:.8,apron:.035,foot:.8};
+// The materials of a crag that keep their own colour on every terrain: the
+// snow on a summit, the shrubs and small trees on the ledges, and the scree at
+// the foot. The names are `build_crag_mountains.py`'s.
+const CRAG_OWN=['snow','leaf','pine','bark','scree'];
 
 /**
  * The two whole-kit passes: the range-foot weight the mountain pigment shader
@@ -315,16 +322,18 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
   const rockMaterial=new T.MeshStandardMaterial({color:'white',vertexColors:true,roughness:.9,flatShading:true,bumpMap:mineralGrain,bumpScale:.006});
   const rangeMaterial=rockMaterial.clone();
   rangeMaterial.onBeforeCompile=shader=>{
-    shader.vertexShader='attribute float rangeFoot;\n'+shader.vertexShader;
+    shader.vertexShader='attribute float rangeFoot;\n'+(CRAGS?'attribute float rangeKeep;\n':'')+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <color_vertex>',`#include <color_vertex>
       #ifdef USE_INSTANCING_COLOR
-      vec3 stonePigment=vColor.xyz/max(instanceColor,vec3(.001))${NORTH_STAR_ROCK?`*vec3(${NORTH_STAR_ROCK.map(v=>v.toFixed(3)).join(',')})`:''};
+      vec3 ownPigment=vColor.xyz/max(instanceColor,vec3(.001));
+      vec3 stonePigment=ownPigment${NORTH_STAR_ROCK?`*vec3(${NORTH_STAR_ROCK.map(v=>v.toFixed(3)).join(',')})`:''};
       ${MOUNTAIN_ROCK?`stonePigment=vec3(dot(stonePigment,vec3(.3333)))*vec3(${MOUNTAIN_ROCK.map(v=>v.toFixed(3)).join(',')});`:''}
       vColor.xyz=mix(stonePigment,instanceColor,rangeFoot);
+      ${CRAGS?'vColor.xyz=mix(vColor.xyz,ownPigment,rangeKeep);':''}
       #endif
     `);
   };
-  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v2'+(NORTH_STAR_ROCK?NORTH_STAR_ROCK.join():'')+(MOUNTAIN_ROCK?MOUNTAIN_ROCK.join():'');
+  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v2'+(CRAGS?'keep':'')+(NORTH_STAR_ROCK?NORTH_STAR_ROCK.join():'')+(MOUNTAIN_ROCK?MOUNTAIN_ROCK.join():'');
   foliageMaterial.onBeforeCompile=shader=>{
     shader.uniforms.groveTime=time;
     shader.vertexShader='uniform float groveTime; attribute float canopyWeight;\n'+shader.vertexShader;

@@ -239,6 +239,8 @@ export function planPaintedRoads(state: GameState, prepared: GameMap, organic: O
 
 /** The organic roads' knobs: `visualTest.organicRoads` in `data/view3d.json`. */
 export interface OrganicRoadStyle {
+  /** How far a raised road's side runs out for each unit it falls. Absent, the side spans `raisedShoulder` over `raisedHeight`. */
+  sideRun?: number;
   step: number; pull: number; wander: number; edgeShift: number; forkAt: number; forkPull: number;
   bedWidth: number; coreWidth: number; bed: string; core: string; capSides: number;
   shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
@@ -399,7 +401,8 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
         // side's face lie in one plane, so its two triangles take the same
         // light and the side shows no saw-tooth (the user, 2026-11-12:
         // "smoothing the triangles along the lateral side of the roads").
-        const run = wide / Math.max(.001, top - foot);
+        // `sideRun` sets the slope outright: how far a side runs out for each unit it falls. A small number gives a near wall, so a road's ramp over a hill has a thin base (the user, 2026-11-13).
+        const run = style.sideRun ?? wide / Math.max(.001, top - foot);
         const falls = [1, -1].map((side) => {
           let fall = curve.map((_, k) => {
             let t = Math.max(top - foot, line[k]! + top - ground[k]! - foot);

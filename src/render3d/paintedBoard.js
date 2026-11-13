@@ -73,7 +73,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null
     : createWaterPainter(renderMap, {bank: thinRivers && !thinRivers.organic ? {color: riverKnobs.bank, inner: riverKnobs.bankInner, outer: riverKnobs.bankOuter} : null,
       river: thinRivers && !thinRivers.organic && VIEW3D.visualTest.northStar && riverKnobs.water ? {channel: riverKnobs.water, light: riverKnobs.light} : null,
-      brush: VIEW3D.visualTest.sea.brushed ? {spacingX: VIEW3D.visualTest.sea.brushSpacingX, spacingZ: VIEW3D.visualTest.sea.brushSpacingZ} : null});
+      brush: VIEW3D.visualTest.sea.brushed ? {spacingX: VIEW3D.visualTest.sea.brushSpacingX, spacingZ: VIEW3D.visualTest.sea.brushSpacingZ, tones: VIEW3D.visualTest.sea.brushTones ?? null} : null});
   // The sea's three numbers a water vertex (switch 1 of the visual test
   // version). Always baked, so the switch is a uniform and never a rebuild.
   const seaKnobs = VIEW3D.visualTest.sea;

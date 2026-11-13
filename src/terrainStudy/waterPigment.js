@@ -79,6 +79,8 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null,river:rive
  // assigning a visible fan of triangles to each game tile.
  for(let row=-1;row<=Math.ceil(map.height*1.5/4.9);row++)for(let col=-1;col<=Math.ceil(map.width*Math.sqrt(3)/6.3);col++){
   const h=hash(col,row,1),k=hash(col,row,2),x=(col+.5)*6.3+(h-.5)*1.9,z=(row+.5)*4.9+(k-.5)*1.4;
+  // The sea painted as the land is (`seaBrush.tones`) has strokes of the land's size and none of these large fields or glints.
+  if(seaBrush?.tones)continue;
   if(h>.20)add(brush(x,z,2.8+h*1.9,.82+k*1.25,.06+(h-.5)*.25,h>.60?palette.light:palette.deep,0,k));
   // Two unequal short, tapered strokes give open water a calm surface scale.
   if(k>.36)for(let i=0;i<2;i++)add(brush(x-.8+i*.38,z+.8+i*.09,.19+h*.28-i*.07,.006+i*.002,.015,palette.glint,5,h));
@@ -88,7 +90,7 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null,river:rive
  const coasts=coastPaths(map);
  const shelfWidth=([x,z])=>.37+.045*Math.sin(x*.65+z*.32)+.025*Math.cos(z*.8-x*.24);
  const shallowWidth=([x,z])=>.145+.018*Math.sin(x*.65+z*.32);
- for(const path of coasts){
+ for(const path of seaBrush?.tones?[]:coasts){
   for(const [width,color,layer]of [[shelfWidth,palette.shelf,1],[shallowWidth,path.lake?palette.lakeShelf:palette.shallow,2],[.012,palette.lip,4]]){
    const ribbon=ribbonPolygons(path.points,-.035,width,path.closed);
    for(const points of ribbon.polygons)add(polygon(points,color,layer));
@@ -119,7 +121,10 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null,river:rive
  for(const mouth of riverMouths(rivers)){
   add(polygon(mouth.points,mouth.water==='lake'?palette.lakeShelf:palette.shallow,8));
  }
- if(seaBrush)for(const stroke of seaStrokes(map,seaBrush)){const region=polygon(stroke.points,null,10);region.kind=stroke.kind;add(region)}
+ if(seaBrush)for(const stroke of seaStrokes(map,seaBrush)){
+  const tone=stroke.tone===undefined?null:palette.body.clone().multiplyScalar(stroke.tone===1?seaBrush.tones[0]:stroke.tone===2?seaBrush.tones[1]:1);
+  const region=polygon(stroke.points,tone,10);region.kind=stroke.kind;add(region);
+ }
  function regions(bounds){
   const found=new Map(),[x0,x1,z0,z1]=bounds;
   for(let z=Math.floor(z0/bucketSize);z<=Math.floor(z1/bucketSize);z++)for(let x=Math.floor(x0/bucketSize);x<=Math.floor(x1/bucketSize);x++)for(const p of buckets.get(`${x}:${z}`)||[]){
@@ -153,7 +158,7 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null,river:rive
       remaining=inside;if(remaining.length<3)break;
      }
      // A sea stroke changes which kind of water the fragment is, not its paint.
-     if(remaining.length>=3)next.push(p.kind===undefined?{points:remaining,color:p.color,kind:f.kind}:{points:remaining,color:f.color,kind:p.kind});
+     if(remaining.length>=3)next.push(p.kind===undefined?{points:remaining,color:p.color,kind:f.kind}:{points:remaining,color:p.color??f.color,kind:p.kind});
     }
     fragments=next;
    }
@@ -185,7 +190,7 @@ const strokeOutlines=[
  [[-1,-.8],[.68,-.6],[1,.1],[.14,1],[-.6,.57]],
  [[-1,-.33],[-.35,-.8],[1,-.45],[.48,.45],[-.76,.93]],
 ];
-function seaStrokes(map,{spacingX,spacingZ}){
+function seaStrokes(map,{spacingX,spacingZ,tones=null}){
  const width=map.width,wraps=terrainMapWraps(map);
  const tileAt=(x,z)=>{
   const row=Math.round(z/1.5);let nearest=null,distance=Infinity;
@@ -208,23 +213,26 @@ function seaStrokes(map,{spacingX,spacingZ}){
   if(kind<0)continue;
   const turn=.35+.42*Math.sin(x*.20+z*.13)+(h-.5)*.55,tangent=[Math.cos(turn),Math.sin(turn)],normal=[-tangent[1],tangent[0]];
   const length=1.18+h*.42,breadth=.40+k*.16,group=[];
-  const add=(u,v,rx,rz,seed,twist=0)=>{
+  // `tone` is the land painter's own choice for the same stroke: 1 its deeper tone, 2 its lighter one, 0 the ground's.
+  const add=(u,v,rx,rz,seed,twist=0,tone=1)=>{
    const cx=x+tangent[0]*u+normal[0]*v,cz=z+tangent[1]*u+normal[1]*v,angle=turn+twist,s=Math.sin(angle),c=Math.cos(angle);
    const outline=strokeOutlines[Math.min(3,Math.floor(seed*4))];
-   group.push(outline.map(([a,b])=>{const px=(a+b*.18*(seed-.5))*rx,pz=b*rz;return [cx+px*c-pz*s,cz+px*s+pz*c]}));
+   const points=outline.map(([a,b])=>{const px=(a+b*.18*(seed-.5))*rx,pz=b*rz;return [cx+px*c-pz*s,cz+px*s+pz*c]});points.tone=tone;
+   group.push(points);
   };
   add(0,0,length,breadth,h);
-  add(.18,-.66,.62+k*.16,.24+h*.06,k,-.18);
+  add(.18,-.66,.62+k*.16,.24+h*.06,k,-.18,2);
   add(-length*.44,breadth*.64,.27+h*.12,.13+k*.07,k,.22);
-  add(length*.20,breadth*.65,.16+k*.07,.09+h*.03,1-k,.40);
+  add(length*.20,breadth*.65,.16+k*.07,.09+h*.03,1-k,.40,0);
   add(length*.72,breadth*.61,.15+k*.10,.09+h*.04,1-h,-.35);
   for(let i=0;i<3+Math.floor(h*3);i++){
    const a=hash(col*17+i+41,row*23-19,8),b=hash(col*31-i-13,row*11+71,8);
-   add((a*2-1)*length*1.12,(i%2?1:-1)*(breadth+.10+b*.26),.06+a*.14,.025+b*.035,b,(a-.5)*.48);
+   add((a*2-1)*length*1.12,(i%2?1:-1)*(breadth+.10+b*.26),.06+a*.14,.025+b*.035,b,(a-.5)*.48,i%3===0?2:1);
   }
   for(const points of group){
    const cx=points.reduce((n,p)=>n+p[0],0)/points.length,cz=points.reduce((n,p)=>n+p[1],0)/points.length;
-   if([...points,[cx,cz]].some(([px,pz])=>{const other=kindAt(px,pz);return other>=0&&other!==kind}))strokes.push({points,kind});
+   // With `tones`, every stroke is kept and carries its tone, so the water is painted as the land is. Without, only the strokes that cross from one kind of water to the other are kept, for their kind alone.
+   if(tones||[...points,[cx,cz]].some(([px,pz])=>{const other=kindAt(px,pz);return other>=0&&other!==kind}))strokes.push({points,kind,tone:tones?points.tone:undefined});
   }
  }
  return strokes;

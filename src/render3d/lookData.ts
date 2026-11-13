@@ -2256,6 +2256,8 @@ export interface VisualTestSpec {
   sea: {
     /** `bands` is the coast after A Short Hike: sand, a lapping foam line, crisp shallows, then coast and ocean in a crisp step. `soft` is the earlier look. */
     style: string;
+    /** With `brushed`, the sea is painted with the land's strokes at the land's size: the tone of a deeper stroke and of a lighter one, against 1 for the plain water. Absent, only strokes across the coast and ocean edge are laid. */
+    brushTones?: number[];
     /** The banded coast's numbers, in hex units from the shore: the sand's width and how much it varies; the foam line's width, the share left out, and how far and how fast it laps; where the shallows end, and their drawn line; how far each step wanders; the drawn line at the step from coast to ocean; and where the ocean deepens again. */
     bands: { sand: number; sandVary: number; foam: number; foamGaps: number; lap: number; lapSpeed: number; shallows: number; shallowsWander: number; line: number; lineStrength: number; wander: number; stepLine: number; stepLineStrength: number; deepAt: number };
     shallow: string; coast: string; ocean: string; deep: string; lake: string;
