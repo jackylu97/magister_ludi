@@ -74,6 +74,7 @@ export function createOrganicRivers(map, knobs) {
   polygons.push({points, color, lift, land, bounds: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)]});
  };
 
+ const runs = [];
  for (const path of network.paths) {
   // [x, z, width] at each corner, so the corner cutting carries the width too.
   let line = path.points.map(p => [p[0], p[1], widthAt(nodes.get(nodeKey(p)) ?? path.start)]);
@@ -120,6 +121,38 @@ export function createOrganicRivers(map, knobs) {
    if (!path.closed && end.water) w *= 1 + knobs.mouthFlare * (1 - smooth(0, knobs.mouthLength, length - s));
    samples[i].half = w / 2;
   }
+  runs.push({path, samples, length, start, end, source, sink, phase, phase2});
+ }
+
+ // A stream joins a river at a shallow angle, a little way downstream, and not
+ // head on at a hex corner. At each corner where three runs meet, the smaller
+ // of the two that flow in is bent toward the way the water leaves, so its end
+ // lies on the outflow's own line (2026-11-12).
+ if (knobs.joinDown) for (const node of network.nodes) {
+  if (node.edges.length !== 3) continue;
+  const here = runs.filter(run => !run.path.closed && (run.start === node || run.end === node));
+  if (here.length !== 3) continue;
+  const far = run => run.start === node ? run.end : run.start;
+  const out = here.find(run => (steps.get(far(run)) ?? 0) < (steps.get(node) ?? 0));
+  const flowsIn = here.filter(run => run !== out);
+  if (!out || flowsIn.length !== 2) continue;
+  const leaving = out.start === node ? out.samples : [...out.samples].reverse();
+  const target = leaving[Math.min(leaving.length - 1, Math.round(knobs.joinDown / knobs.step))];
+  const dx = target.x - leaving[0].x, dz = target.z - leaving[0].z;
+  // The stream is the inflow that arrives across the outflow's line; the other one is the river running through.
+  const along = run => {
+   const list = run.end === node ? [...run.samples].reverse() : run.samples, back = list[Math.min(list.length - 1, Math.round(.5 / knobs.step))];
+   const ux = list[0].x - back.x, uz = list[0].z - back.z;
+   return (ux * dx + uz * dz) / ((Math.hypot(ux, uz) || 1) * (Math.hypot(dx, dz) || 1));
+  };
+  const stream = along(flowsIn[0]) <= along(flowsIn[1]) ? flowsIn[0] : flowsIn[1];
+  const arriving = stream.end === node ? [...stream.samples].reverse() : stream.samples;
+  arriving.forEach((p, i) => { const w = 1 - smooth(0, knobs.joinReach, i * knobs.step); p.x += dx * w; p.z += dz * w; });
+  stream.joins = stream.end === node ? 'end' : 'start';
+ }
+
+ for (const run of runs) {
+  const {path, samples, length, start, end, source, sink, phase, phase2} = run;
   let bent = normalsOf(samples, path.closed);
   // Two banks that differ (2026-11-12, choice B of the river talk). A stream's
   // banks are not parallel: each has its own shape, the outside of a bend is
@@ -161,13 +194,19 @@ export function createOrganicRivers(map, knobs) {
    // and shaded faces. The banks are real, sloped ground: they go into the
    // land's batch and take the sun as the hills do. The rise fades to nothing
    // at both ends of a run, where a junction's disc or the sea takes over.
-   const rise = samples.map(({s}) => path.closed ? knobs.bankHeight : knobs.bankHeight * smooth(0, knobs.bankFade, s) * smooth(0, knobs.bankFade, length - s));
+   const fadeAt = which => run.joins === which ? knobs.bankFade * 2.2 : knobs.bankFade;
+   const rise = samples.map(({s}) => path.closed ? knobs.bankHeight : knobs.bankHeight * smooth(0, fadeAt('start'), s) * smooth(0, fadeAt('end'), length - s));
    for (const way of [1, -1]) for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
     const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];
     const at = (p, n, d) => [p.x + n[0] * d * way, p.z + n[1] * d * way];
     const wa = a.sand[way > 0 ? 0 : 1], wb = b.sand[way > 0 ? 0 : 1], slope = knobs.bankSlope, ha = knobs.lift + rise[i], hb = knobs.lift + rise[j];
     add([at(a, na, a.half - .004), at(b, nb, b.half - .004), at(b, nb, b.half + wb), at(a, na, a.half + wa)], colors.bank, [knobs.lift * .5, knobs.lift * .5, hb, ha], true);
     add([at(a, na, a.half + wa), at(b, nb, b.half + wb), at(b, nb, b.half + wb + slope), at(a, na, a.half + wa + slope)], null, [ha, hb, knobs.lift * .5, knobs.lift * .5], true);
+    // An old sand bar grows green: small patches of the hex's own ground on the widest sand.
+    if (knobs.barGreen && wa > knobs.bankWidth * 1.45 && rise[i] > knobs.bankHeight * .8 && hashUnit(Math.round(a.x * 40), Math.round(a.z * 40), 1520 + way) < knobs.barGreen) {
+     const [cx, cz] = at(a, na, a.half + wa * (.55 + hashUnit(Math.round(a.x * 40), Math.round(a.z * 40), 1530) * .3)), r = wa * (.2 + hashUnit(Math.round(a.x * 40), Math.round(a.z * 40), 1540) * .14);
+     add(Array.from({length: 7}, (_, q) => [cx + Math.cos(q * Math.PI * 2 / 7) * r * 1.5, cz + Math.sin(q * Math.PI * 2 / 7) * r]), null, knobs.lift + knobs.bankHeight + .004, true);
+    }
    }
   } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
@@ -203,6 +242,28 @@ export function createOrganicRivers(map, knobs) {
      }
     }
    }
+  }
+  // Where a stream joins, its water runs through the river's sand bank into the
+  // river: the last stretch is laid again above the bank's height, so the
+  // bank is open there.
+  if (run.joins) {
+   const over = knobs.lift + knobs.bankHeight + .004, at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
+   for (let i = 0; i < samples.length - 1; i++) {
+    const fromEnd = run.joins === 'end' ? length - samples[i].s : samples[i + 1].s;
+    if (fromEnd > knobs.joinDown + .12) continue;
+    const a = samples[i], b = samples[i + 1];
+    add([at(a, bent[i], -a.half), at(b, bent[i + 1], -b.half), at(b, bent[i + 1], b.half), at(a, bent[i], a.half)], colors.water, over);
+    if (knobs.deep) add([at(a, bent[i], -a.half * knobs.deepShare), at(b, bent[i + 1], -b.half * knobs.deepShare), at(b, bent[i + 1], b.half * knobs.deepShare), at(a, bent[i], a.half * knobs.deepShare)], new Color(knobs.deep), over + .0015);
+   }
+  }
+  // A spring: a river that starts on open land rises from a small round pool with stones beside it, and does not just stop.
+  if (knobs.springSize) for (const [is, p] of [[source, samples[0]], [sink, samples.at(-1)]]) {
+   if (!is) continue;
+   const ring = radius => Array.from({length: 12}, (_, q) => [p.x + Math.cos(q * Math.PI / 6) * radius, p.z + Math.sin(q * Math.PI / 6) * radius * .85]);
+   add(ring(knobs.springSize + knobs.bankWidth * .7), colors.bank, knobs.lift);
+   add(ring(knobs.springSize), colors.water, knobs.lift * 1.5);
+   if (knobs.deep) add(ring(knobs.springSize * .55), new Color(knobs.deep), knobs.lift * 1.65);
+   for (let q = 0; q < 3; q++) spots.push({kind: 'stone', x: p.x + Math.cos(q * 2.3 + phase) * (knobs.springSize + knobs.bankWidth), z: p.z + Math.sin(q * 2.3 + phase) * (knobs.springSize + knobs.bankWidth) * .85, seed: (phase * .16 + q * .31) % 1});
   }
   if (knobs.shallows) {
    // A paler band along each bank, as the sea has at its shore, in place of

@@ -2354,6 +2354,8 @@ export interface VisualTestSpec {
     straighten: number; bendSwell: number;
     /** Two banks that differ: `bankVary` is each bank's own wave; `barPinch` narrows the inside of a bend and `barWidth` widens its sand into a bar; `deep` is the darker middle, `deepShare` of the width. */
     bankVary: number; barPinch: number; barWidth: number; deep: string; deepShare: number;
+    /** `barGreen` is the share of wide sand that grows green patches; a stream joins a river `joinDown` units downstream of the hex corner, bent over its last `joinReach` units; a river that starts on land rises from a pool `springSize` across. */
+    barGreen: number; joinDown: number; joinReach: number; springSize: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
