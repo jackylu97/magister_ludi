@@ -1,4 +1,5 @@
 import {centre,neighbour,isWater,onTileTop,surfaceHeight,tileShape,terrainMapWraps} from './surface.js';
+import {NORTH_STAR_CRAGS} from './northStarTrees.js';
 
 const hash=(x,z,s)=>{let n=Math.imul(x+37,374761393)^Math.imul(z-19,668265263)^Math.imul(s+1,1274126177);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296};
 const mountain=t=>t?.terrain==='mountain';
@@ -74,7 +75,10 @@ export function createMountainRanges(map){
   for(let d=0;d<6;d++)if(tile.joinedEdges&(1<<d)){
    const n=neighbour(tile,map,d);if(n&&(mountain(n)||n.hills)&&n.feature!=='oasis')connected.push({tile:n,d});
   }
-  const angle=connected.length?-connected[0].d*Math.PI/3+(h(2)-.5)*.7:h(2)*Math.PI*2;
+  // A crag is modelled to be seen from the south (its sheer face is in front),
+  // as the hills' cliffs are, so it is turned only a little. An escarpment
+  // turns toward its first neighbour, or anywhere when it stands alone.
+  const angle=NORTH_STAR_CRAGS?(h(2)-.5)*.9:connected.length?-connected[0].d*Math.PI/3+(h(2)-.5)*.7:h(2)*Math.PI*2;
   add(tile,{kind:'summit',x:c.x,z:c.z,sx:.92,sz:.90,sy:1.0+h(3)*.38,angle,variant:Math.floor(h(4)*3),biome:biomes.get(tile)},[tile,...connected.map(n=>n.tile)]);
   for(const {tile:n,d}of connected){
    const nc=localCentre(n,c.x),a=d*Math.PI/3,dx=nc.x-c.x,dz=nc.z-c.z;

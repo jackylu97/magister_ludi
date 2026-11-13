@@ -49,7 +49,7 @@ PINE=material('pine',(.045,.17,.11))
 BARK=material('bark',(.30,.17,.08))
 LEAVES=[material('leaf'+str(i),(.22+i*.023,.36+i*.018,.10+i*.012)) for i in range(4)]
 
-def mass(name,centre,radius,profile,seed,sides=7,turn=0.,stretch=1.,bevel=.045,tilt=(0,0),lean=(0,0),apron=0.,rough=.14,ragged=.05,pigment=1,cap='ledge',snow=None):
+def mass(name,centre,radius,profile,seed,sides=7,turn=0.,stretch=1.,bevel=.045,tilt=(0,0),lean=(0,0),apron=0.,rough=.14,ragged=.05,pigment=1,cap='ledge',snow=None,stone=None):
  """One block of rock: an uneven ring of walls under a level cap.
 
  `profile` is a list of (height, width) pairs from the foot up; width is a
@@ -60,7 +60,8 @@ def mass(name,centre,radius,profile,seed,sides=7,turn=0.,stretch=1.,bevel=.045,t
  fall by `ragged`, so a wall breaks into a few large uneven facets and no two
  blocks match. `cap` is 'ledge' for a cap that may carry green and 'rock' for
  a bare one. Above the height `snow`, the cap and the faces that are not too
- steep are snow.
+ steep are snow; the line moves up or down a little from face to face, so
+ its lower edge is uneven. `stone` gives the block another material.
  """
  rng=random.Random(seed);cx,cy=centre
  angles=[turn+(i+rng.uniform(-.28,.28))*math.tau/sides for i in range(sides)]
@@ -91,10 +92,10 @@ def mass(name,centre,radius,profile,seed,sides=7,turn=0.,stretch=1.,bevel=.045,t
  faces.append(tuple(range((len(rings)-1)*n,len(rings)*n)))
  mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update()
  obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj)
- for m in (STONE[pigment],LEDGE,SNOW):obj.data.materials.append(m)
+ for m in (stone or STONE[pigment],LEDGE,SNOW):obj.data.materials.append(m)
  for p in obj.data.polygons:
   p.use_smooth=False;last=p.index==len(obj.data.polygons)-1
-  if snow is not None and p.center.z>snow and (last or p.normal.z>.2):p.material_index=2
+  if snow is not None and (p.center.z>snow-.12 if last else p.center.z>snow+rng.uniform(-.16,.16) and p.normal.z>.2):p.material_index=2
   elif last and cap=='ledge':p.material_index=1
  return obj
 
@@ -125,19 +126,14 @@ def pine(name,pos,height,seed,stand=1.):
  faces=[(i,(i+1)%5,5+(i+1)%5,5+i) for i in range(5)]+[(5+i,5+(i+1)%5,10) for i in range(5)]
  return solid(name,verts,faces,PINE)
 
-def stone(name,pos,size,seed,stand=1.):
- """One piece of scree: eight facets, low and uneven, partly in the ground."""
- rng=random.Random(seed);turn=rng.uniform(0,math.tau);verts=[]
- for i in range(4):
-  a=turn+i*math.tau/4+rng.uniform(-.3,.3);k=size*rng.uniform(.75,1.25)
-  verts.append((pos[0]+math.cos(a)*k,pos[1]+math.sin(a)*k,pos[2]+size*rng.uniform(.05,.3)*stand))
- verts.append((pos[0]+rng.uniform(-.3,.3)*size,pos[1]+rng.uniform(-.3,.3)*size,pos[2]+size*rng.uniform(.7,1.)*stand))
- verts.append((pos[0],pos[1],pos[2]-size*.5*stand))
- faces=[(i,(i+1)%4,4) for i in range(4)]+[((i+1)%4,i,5) for i in range(4)]
- return solid(name,verts,faces,SCREE)
+def boulder(name,pos,size,seed,stand=1.):
+ """One block of scree: a small block of rock that lies at the foot, partly in the ground."""
+ x,y,z=pos;rng=random.Random(seed)
+ return mass(name,(x,y),size,[(z-.03,1),(z+size*.55*stand,.94),(z+size*.95*stand,.62)],seed,sides=4,turn=rng.uniform(0,math.tau),
+  stretch=rng.uniform(.85,1.2),bevel=size*.16,tilt=(rng.uniform(-.25,.25),rng.uniform(-.25,.25)),rough=.22,ragged=0,cap='rock',stone=SCREE)
 
 def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.):
- """Stand shrubs and small trees on the ledges of the rock, and scree at its foot.
+ """Stand shrubs and small trees on the ledges of the rock, and blocks of scree at its foot.
 
  Looks straight down on the blocks whose names start with `prefix`. A place
  is a ledge if it is level and lies in the band of heights the loader turns
@@ -168,6 +164,8 @@ def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.):
  for _ in range(6000):
   if not (shrubs or pines or rounds):break
   r=math.sqrt(rng.random())*.74;a=rng.uniform(0,math.tau);x,y=math.cos(a)*r,math.sin(a)*r
+  # Most stand on the side the board is seen from, where they show.
+  if y>.2 and rng.random()<.75:continue
   if (pines or rounds) and free(x,y,.06):
    loc=ledge(x,y,.07)
    if loc is not None:
@@ -187,19 +185,20 @@ def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.):
  heap=[]
  for _ in range(4000):
   if not scree:break
-  r=rng.uniform(.45,.84);a=rng.uniform(0,math.tau);x,y=math.cos(a)*r,math.sin(a)*r
-  # Scree lies in small heaps: most stones fall beside one already there.
-  if heap and rng.random()<.7:
-   hx,hy=rng.choice(heap);d=rng.uniform(.07,.13);x,y=hx+math.cos(a)*d,hy+math.sin(a)*d
-   if x*x+y*y>.84**2:continue
+  r=rng.uniform(.5,.8);a=rng.uniform(0,math.tau);x,y=math.cos(a)*r,math.sin(a)*r
+  # The blocks lie on the side the board is seen from, and some in pairs.
+  if heap and rng.random()<.4:
+   hx,hy=rng.choice(heap);d=rng.uniform(.14,.2);x,y=hx+math.cos(a)*d,hy+math.sin(a)*d
+   if x*x+y*y>.8**2:continue
+  if y>.3:continue
   loc,normal=look(x,y)
   # On the open ground just clear of the rock, on the apron, or on the bare footing.
   if loc is not None and (loc.z>top*.24 or (loc.z>.05 and normal.z<.9)):continue
   if loc is None and look(x*.93,y*.93)[0] is None and look(x*.86,y*.86)[0] is None:continue
-  size=rng.uniform(.04,.085)
+  size=rng.uniform(.075,.12)
   if not free(x,y,size):continue
   count+=1;scree-=1;placed.append((x,y,size));heap.append((x,y))
-  stone(prefix+'Scree'+str(count),(x,y,loc.z if loc is not None else 0),size,seed*43+count,stand)
+  boulder(prefix+'Scree'+str(count),(x,y,loc.z if loc is not None else 0),size,seed*43+count,stand)
 
 def export(name):
  bpy.context.view_layer.update()
@@ -234,46 +233,53 @@ def saddle(seed,block):
  # footing with one block of rock on it.
  mass('SaddleBase',(0,0),.78,[(0,1),(.3,.93),(.6,.84)],seed,sides=8,apron=.06,stretch=1.05,pigment=0,bevel=.05,ragged=.08)
  mass('SaddleBlock',block,.50,[(.3,1),(.95,.84),(1.45,.6)],seed+1,sides=6,turn=seed*.37,stretch=1.25,pigment=2,bevel=.05,tilt=(.1,.06),ragged=.1,cap='rock')
- scatter('Saddle',seed,2,0,0,2,stand=2.6)
+ scatter('Saddle',seed,2,0,0,1,stand=2.6)
 
+# The board is seen from the south, which is -y here, and a mountain is set down
+# facing that way (`createMountainRanges` turns a crag only a little). So each
+# model is composed for that view. The summit is a group of two or three
+# leaning blocks of different heights that stand into one another, with a
+# cleft where they meet. They rise near the front of a low sloping skirt, so
+# the front is one tall broken face. Behind and beside them are a green terrace, a
+# ramp and a shoulder at different heights.
 # Heights: the foot is 0 and the tallest summit 1.62, a little under the old
-# models' tallest block (1.64). The board is seen from above, so a wall leans
-# in and stands tall. Each block sits toward one side of the block under it:
-# that side is one high cliff, and the other side steps down in ledges.
+# models' tallest block (1.64).
 def crag0():
- # The horn: one sharp leaning summit over a high cliff, and a stepped prow
- # that runs down from it on the other side.
- mass('CragBase',(0,0),.78,[(0,1),(.16,.95),(.32,.88)],11,sides=8,apron=.06,pigment=0,tilt=(.03,-.02),cap='rock')
- mass('CragStepA',(.08,.05),.64,[(.15,1),(.45,.9),(.72,.78)],12,sides=7,turn=.5,stretch=1.06,pigment=1,tilt=(-.04,.03))
- mass('CragPeak',(.17,.10),.50,[(.5,1),(.85,.8),(1.12,.56)],15,sides=6,turn=.3,lean=(.06,.03),tilt=(.08,.05),pigment=2,snow=.96)
- mass('CragHorn',(.24,.13),.34,[(.9,1),(1.2,.72),(1.45,.44),(1.62,.2)],17,sides=5,turn=.8,bevel=.03,lean=(.07,.04),tilt=(.2,.1),rough=.2,pigment=3,cap='rock',snow=1.2)
- mass('CragProwA',(-.33,-.20),.31,[(.2,1),(.58,.88),(.90,.64)],13,sides=6,pigment=2,tilt=(.08,.06))
- mass('CragProwB',(-.52,-.33),.21,[(.1,1),(.4,.9),(.56,.78)],16,sides=5,turn=.4,pigment=1,tilt=(-.06,.05))
- scatter('Crag',1,7,3,1,14)
+ # The great crag: the summit stands over a sheer face at the front right,
+ # and a long green ramp climbs to it from the left.
+ mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],11,sides=8,apron=.07,pigment=0,cap='rock')
+ mass('CragTerrace',(-.16,.26),.52,[(.02,1),(.34,.93),(.5,.86)],12,sides=7,turn=.5,stretch=1.15,pigment=1,tilt=(-.03,.03))
+ mass('CragRamp',(-.36,-.10),.32,[(.02,1),(.42,.94),(.70,.86)],13,sides=6,stretch=1.25,pigment=1,lean=(.06,0),tilt=(.34,0),ragged=.07)
+ mass('CragPeakA',(.26,-.16),.37,[(.02,1),(.7,.9),(1.2,.6),(1.62,.22)],15,sides=6,turn=.3,bevel=.03,lean=(.04,-.05),tilt=(.2,-.1),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.2)
+ mass('CragPeakB',(.02,-.06),.35,[(.02,1),(.55,.92),(.92,.7),(1.2,.36)],16,sides=5,turn=.9,bevel=.03,lean=(-.04,-.03),tilt=(-.2,.05),rough=.2,ragged=.1,pigment=2,cap='rock',snow=1.1)
+ mass('CragPeakC',(.46,.04),.27,[(.02,1),(.55,.9),(.8,.72),(.98,.44)],17,sides=5,turn=.2,bevel=.03,lean=(.05,.03),tilt=(.15,.1),rough=.18,pigment=2,cap='rock')
+ mass('CragShoulder',(-.10,-.46),.2,[(.02,1),(.36,.9),(.52,.78)],18,sides=5,turn=.4,pigment=1,tilt=(-.06,.05))
+ scatter('Crag',1,6,3,1,4)
  saddle(21,(-.08,.05))
 
 def crag1():
- # The twin: two summits, one lower, with a deep notch between them.
- mass('CragBase',(0,0),.78,[(0,1),(.16,.95),(.32,.88)],31,sides=8,apron=.06,stretch=1.08,pigment=0,tilt=(-.02,.03),cap='rock')
- mass('CragStepA',(0,.03),.60,[(.15,1),(.42,.92),(.62,.84)],32,sides=8,turn=.3,stretch=1.25,pigment=1,tilt=(.03,.03))
- mass('CragPeak',(-.34,.06),.38,[(.45,1),(.9,.8),(1.22,.58)],34,sides=6,lean=(-.03,.02),tilt=(.06,-.08),pigment=2,snow=1.05)
- mass('CragHorn',(-.37,.09),.27,[(1.0,1),(1.3,.72),(1.6,.3)],37,sides=5,turn=.4,bevel=.03,lean=(-.04,.02),tilt=(-.28,.12),rough=.18,pigment=3,cap='rock',snow=1.25)
- mass('CragPeakB',(.37,-.02),.34,[(.45,1),(.86,.8),(1.16,.52),(1.36,.26)],35,sides=6,turn=.5,bevel=.03,lean=(.05,.02),tilt=(.2,.1),rough=.16,pigment=3,cap='rock',snow=1.08)
- mass('CragLedge',(.02,-.46),.25,[(.15,1),(.42,.9),(.56,.78)],36,sides=5,turn=.2,pigment=1,tilt=(.04,-.06))
- scatter('Crag',2,7,3,1,14)
+ # The twin: two summits that lean apart, one lower, with a deep cleft
+ # between them down to a green floor.
+ mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],31,sides=8,apron=.07,stretch=1.08,pigment=0,cap='rock')
+ mass('CragTerrace',(0,.08),.56,[(.02,1),(.34,.93),(.5,.86)],32,sides=7,turn=.3,stretch=1.25,pigment=1,tilt=(.03,.03))
+ mass('CragPeakA',(-.34,-.12),.34,[(.02,1),(.7,.9),(1.2,.6),(1.6,.22)],34,sides=6,bevel=.03,lean=(-.06,-.04),tilt=(-.2,-.08),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.22)
+ mass('CragPeakA2',(-.44,.14),.29,[(.02,1),(.65,.9),(1.0,.68),(1.22,.4)],37,sides=5,turn=.4,bevel=.03,lean=(-.04,.03),tilt=(-.15,.1),rough=.18,pigment=2,cap='rock')
+ mass('CragPeakB',(.34,-.08),.34,[(.02,1),(.6,.9),(1.05,.64),(1.36,.32)],35,sides=6,turn=.5,bevel=.03,lean=(.07,-.03),tilt=(.2,-.05),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.12)
+ mass('CragPeakB2',(.46,.16),.26,[(.02,1),(.55,.9),(.8,.7),(.96,.46)],38,sides=5,turn=.1,bevel=.03,lean=(.04,.03),tilt=(.12,.1),rough=.18,pigment=2,cap='rock')
+ mass('CragShoulder',(.02,-.44),.22,[(.02,1),(.36,.9),(.52,.78)],36,sides=5,turn=.2,pigment=1,tilt=(.04,-.06))
+ scatter('Crag',2,6,3,1,4)
  saddle(41,(.08,-.04))
 
 def crag2():
- # The buttress: one long block that leans out over its foot. Its top is a
- # green ramp that climbs to the foot of the summit.
- mass('CragBase',(0,0),.78,[(0,1),(.18,.95),(.34,.88)],51,sides=8,apron=.06,stretch=1.08,pigment=0,tilt=(.02,.02),cap='rock')
- mass('CragStepA',(-.03,.0),.64,[(.15,1),(.34,.94),(.52,.86)],58,sides=7,turn=.6,stretch=1.1,pigment=1,tilt=(.03,-.03))
- mass('CragWedge',(-.05,.02),.48,[(.35,1),(.62,.96),(.9,.9)],52,sides=7,turn=.1,stretch=1.28,pigment=1,lean=(.13,0),tilt=(.24,0),ragged=.07)
- mass('CragPeak',(.12,.03),.36,[(.55,1),(1.0,.84),(1.34,.6)],54,sides=6,turn=.9,stretch=1.08,lean=(.07,.01),tilt=(.16,.04),pigment=2,cap='rock',snow=1.12)
- mass('CragHorn',(.19,.04),.25,[(1.05,1),(1.38,.72),(1.62,.28)],57,sides=5,turn=.2,bevel=.03,lean=(.05,.01),tilt=(.2,-.1),rough=.18,pigment=3,cap='rock',snow=1.26)
- mass('CragSpur',(-.10,-.46),.27,[(.2,1),(.6,.88),(.8,.68)],55,sides=6,turn=.5,pigment=2,tilt=(.07,-.05))
- mass('CragLedge',(-.34,.44),.25,[(.15,1),(.46,.9),(.6,.78)],56,sides=5,turn=.1,pigment=1,tilt=(-.08,-.06))
- scatter('Crag',3,7,3,1,14)
+ # The leaning stack: three blocks step up from the left to a summit that
+ # leans out over a sheer drop on the right.
+ mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],51,sides=8,apron=.07,stretch=1.08,pigment=0,cap='rock')
+ mass('CragTerrace',(-.10,.20),.54,[(.02,1),(.34,.93),(.48,.86)],58,sides=7,turn=.6,stretch=1.2,pigment=1,tilt=(.03,-.03))
+ mass('CragPeakA',(.06,-.10),.40,[(.02,1),(.65,.88),(1.2,.64),(1.62,.24)],54,sides=6,turn=.9,stretch=1.15,bevel=.03,lean=(.36,-.04),tilt=(.25,-.05),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.25)
+ mass('CragPeakB',(-.20,.02),.36,[(.02,1),(.55,.9),(.92,.7),(1.18,.42)],57,sides=5,turn=.2,bevel=.03,lean=(.16,0),tilt=(.3,0),rough=.18,ragged=.08,pigment=2)
+ mass('CragPeakC',(-.46,-.06),.27,[(.02,1),(.4,.92),(.62,.8),(.78,.6)],55,sides=5,turn=.5,lean=(.08,0),tilt=(.3,0),pigment=1)
+ mass('CragShoulder',(.42,-.36),.20,[(.02,1),(.34,.9),(.5,.8)],56,sides=5,turn=.1,pigment=1,tilt=(-.08,-.06))
+ scatter('Crag',3,6,3,1,4)
  saddle(61,(.04,.06))
 
 for variant,build in enumerate([crag0,crag1,crag2]):
