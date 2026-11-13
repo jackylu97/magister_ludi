@@ -264,10 +264,12 @@ vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float 
   vec2 sc = vec2(floor(sg.x), srow), sf = fract(sg) - .5;
   float pick = vtestHash(sc + 31.7);
   // Longer and closer together at the middle of the road, so they nearly join there.
-  float long_ = (.14 + .26 * vtestHash(sc + 5.3)) * (.7 + .9 * glare);
+  // Never longer than its own cell, or the next cell would cut it off.
+  float long_ = min(.46, (.14 + .26 * vtestHash(sc + 5.3)) * (.7 + .9 * glare));
   float shape = 1.0 - smoothstep(.75, 1.0, length(sf / vec2(long_, .5 * ${sun.strokeFill.toFixed(3)})));
   float alive = .5 + .5 * sin(time * ${sun.strokeFlicker.toFixed(3)} + pick * 50.0);
-  float lit = step(1.0 - glare * glare * ${sun.strokes.toFixed(3)}, pick * .999) * shape * smoothstep(.15, .6, alive);
+  // A stroke comes in gradually as the road reaches it. A hard switch made strokes pop in and out while the board was panned.
+  float lit = smoothstep(0.0, .12, pick - (1.0 - glare * glare * ${sun.strokes.toFixed(3)})) * shape * smoothstep(.15, .6, alive);
   // Not every stroke is as bright as the next.
   lit *= .55 + .45 * vtestHash(sc + 11.9);
   vtestSunLit = lit * wet;
@@ -280,14 +282,16 @@ vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float 
   vec2 gg = p / grain * ${sun.glintCells.toFixed(3)};
   vec2 gc = floor(gg), gf = fract(gg) - .5;
   float gpick = vtestHash(gc + 71.3);
-  gf -= (vec2(vtestHash(gc + 2.7), vtestHash(gc + 8.1)) - .5) * .5;
+  // The glint moves a little inside its cell and is faded to nothing before the cell's edge, so a ray is never cut off by the next cell.
+  float inside = (1.0 - smoothstep(.34, .5, abs(gf.x))) * (1.0 - smoothstep(.34, .5, abs(gf.y)));
+  gf -= (vec2(vtestHash(gc + 2.7), vtestHash(gc + 8.1)) - .5) * .3;
   float pulse = pow(.5 + .5 * sin(time * ${sun.glintSpeed.toFixed(3)} * (.6 + .8 * vtestHash(gc + 4.4)) + gpick * 60.0), 4.0);
   float size = ${sun.glintSize.toFixed(3)} * (.6 + .6 * vtestHash(gc + 6.6)) * (.45 + .55 * pulse);
   vec2 ga = abs(gf) / size;
   float core = exp(-dot(ga, ga) * 30.0);
   float halo = exp(-dot(ga, ga) * 2.2) * ${sun.glintHalo.toFixed(3)};
   float rays = exp(-ga.y * 22.0) * exp(-ga.x * 1.6) + exp(-ga.x * 22.0) * exp(-ga.y * 2.4) * ${sun.glintUp.toFixed(3)};
-  float flare = step(1.0 - glare * glare * ${sun.glints.toFixed(3)}, gpick * .999) * pulse * clamp(core + halo + rays, 0.0, 1.0);
+  float flare = smoothstep(0.0, .1, gpick - (1.0 - glare * glare * ${sun.glints.toFixed(3)})) * inside * pulse * clamp(core + halo + rays, 0.0, 1.0);
   vtestSunLit = max(vtestSunLit, flare * wet);
   paint = mix(paint, vtestSeaSunStroke, flare * wet);
   return paint;

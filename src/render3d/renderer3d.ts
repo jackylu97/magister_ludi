@@ -4154,11 +4154,11 @@ export class Renderer3D implements MapView {
       if (this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5) {
         this.seaMirror ??= new SeaMirror();
         // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
-        // only ships, pieces and towns reflect, which is most of what shows and a small part of the cost.
+        // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
         const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
           this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
         const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [this.board?.group, this.roads.group,
-          this.improvements.group, this.sites.group, this.paintedWorks?.group, this.paintedSites?.group, this.paintedRoads?.group,
+          this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
           this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group];
         this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground]);
       } else this.seaMirror?.off();
