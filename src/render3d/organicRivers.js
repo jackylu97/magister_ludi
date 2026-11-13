@@ -167,6 +167,8 @@ export function createOrganicRivers(map, knobs) {
     }
     coming[0].x = leaving[0].x; coming[0].z = leaving[0].z;
     node.at = [leaving[0].x, leaving[0].z];
+    // The two runs are one river here, so their bands run on through the corner.
+    through[through.end === node ? 'throughEnd' : 'throughStart'] = true; out[out.start === node ? 'throughStart' : 'throughEnd'] = true;
    }
   }
   const target = leaving[Math.min(leaving.length - 1, Math.round(knobs.joinDown / knobs.step))];
@@ -181,6 +183,8 @@ export function createOrganicRivers(map, knobs) {
   const arriving = stream.end === node ? [...stream.samples].reverse() : stream.samples;
   arriving.forEach((p, i) => { const w = 1 - smooth(0, knobs.joinReach, i * knobs.step); p.x += dx * w; p.z += dz * w; });
   stream.joins = stream.end === node ? 'end' : 'start';
+  // How wide the river is where the stream meets it: the stream's own water stops at the river's shallows.
+  stream.joinHalf = target.w ? target.w / 2 : knobs.width;
  }
 
  for (const run of runs) {
@@ -216,13 +220,15 @@ export function createOrganicRivers(map, knobs) {
   // and show as stray lines and wedges (the user's close picture, 2026-11-13).
   // So near a meeting a run lays only its plain water: no banks, no shallows,
   // no deep middle. `clear` is how far from each end that holds.
-  const clearOf = (which, node) => path.closed ? 0 : run.joins === which ? knobs.joinDown + .1 : node.edges.length >= 3 ? knobs.junctionClear : 0;
+  const clearOf = (which, node) => path.closed || run[which === 'start' ? 'throughStart' : 'throughEnd'] ? 0 : run.joins === which ? knobs.joinDown + .1 : node.edges.length >= 3 ? knobs.junctionClear : 0;
   const clearStart = clearOf('start', start), clearEnd = clearOf('end', end);
   const meets = (a, b) => Math.min(a.s, b.s) < clearStart || length - Math.max(a.s, b.s) < clearEnd;
+  // Toward a meeting the inner bands narrow smoothly to nothing. A band that stopped square left a block of colour (the user, 2026-11-13).
+  for (const p of samples) p.m = (clearStart ? smooth(clearStart * .35, clearStart * 1.6, p.s) : 1) * (clearEnd ? smooth(clearEnd * .35, clearEnd * 1.6, length - p.s) : 1);
   const band = (inner, outer, color, lift, plainNearMeetings = false) => {
    for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
     const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];
-    if (plainNearMeetings && !path.closed && meets(a, b)) continue;
+    if (plainNearMeetings && a.m <= 0 && b.m <= 0) continue;
     const at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
     add([at(a, na, inner(a)), at(b, nb, inner(b)), at(b, nb, outer(b)), at(a, na, outer(a))], color, lift);
    }
@@ -253,7 +259,7 @@ export function createOrganicRivers(map, knobs) {
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
   band(p => -p.half, p => p.half, colors.water, knobs.lift * 1.5);
   // The deep middle: a darker run down the centre, which gives the river a dark value to sit on.
-  if (knobs.deep) band(p => -p.half * knobs.deepShare, p => p.half * knobs.deepShare, new Color(knobs.deep), knobs.lift * 1.65, true);
+  if (knobs.deep) band(p => -p.half * knobs.deepShare * p.m, p => p.half * knobs.deepShare * p.m, new Color(knobs.deep), knobs.lift * 1.65, true);
   if (knobs.detail) {
    const h = (i, salt) => hashUnit(Math.round(samples[i].x * 40), Math.round(samples[i].z * 40), salt);
    const at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
@@ -265,6 +271,16 @@ export function createOrganicRivers(map, knobs) {
     for (let k = i; k < Math.min(samples.length - ends - 1, i + run); k++) {
      const a = samples[k], b = samples[k + 1];
      add([at(a, bent[k], a.half * from), at(b, bent[k + 1], b.half * from), at(b, bent[k + 1], b.half * to), at(a, bent[k], a.half * to)], colors.shine, knobs.lift * 1.8);
+    }
+   }
+   // Trees and bushes keep to the river: small groups stand back from the rim, more of them outside a bend.
+   const grove = Math.max(3, Math.round(knobs.treeEvery / knobs.step));
+   for (let i = ends + Math.floor(h(1, 1550) * grove); i < samples.length - ends; i += grove) {
+    if (h(i, 1551) > knobs.treeShare) continue;
+    const a = samples[i], n = bent[i], way = h(i, 1552) > .5 ? 1 : -1, count = 1 + Math.floor(h(i, 1553) * 2.6);
+    for (let j = 0; j < count; j++) {
+     const out = a.half + knobs.cutBank + .07 + h(i, 1560 + j) * .16, along = (h(i, 1570 + j) - .5) * .3;
+     spots.push({kind: 'tree', x: a.x + n[0] * way * out - n[1] * along, z: a.z + n[1] * way * out + n[0] * along, seed: h(i, 1580 + j)});
     }
    }
    const every = Math.max(2, Math.round(knobs.detailEvery / knobs.step));
@@ -292,7 +308,8 @@ export function createOrganicRivers(map, knobs) {
    const over = knobs.lift * 2.3, at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
    for (let i = 0; i < samples.length - 1; i++) {
     const fromEnd = run.joins === 'end' ? length - samples[i].s : samples[i + 1].s;
-    if (fromEnd > knobs.joinDown + .12) continue;
+    // From the river's shallows outward: the stream covers the river's pale edge at its mouth and stops where the river's plain water starts.
+    if (fromEnd > knobs.joinDown + .12 || fromEnd < run.joinHalf * .8) continue;
     const a = samples[i], b = samples[i + 1];
     add([at(a, bent[i], -a.half), at(b, bent[i + 1], -b.half), at(b, bent[i + 1], b.half), at(a, bent[i], a.half)], colors.water, over);
    }
@@ -309,12 +326,23 @@ export function createOrganicRivers(map, knobs) {
   if (knobs.shallows) {
    // A paler band along each bank, as the sea has at its shore, in place of
    // the stripe down the middle.
-   for (const way of [1, -1]) band(p => way * p.half * knobs.shallows, p => way * p.half, colors.shine, knobs.lift * 2, true);
+   for (const way of [1, -1]) band(p => way * p.half * (1 - (1 - knobs.shallows) * p.m), p => way * p.half, colors.shine, knobs.lift * 2, true);
+   // A drawn foam line at the waterline, as in A Short Hike: thin, white and broken, so it reads as a hand's line and not an outline.
+   if (knobs.foam) {
+    const foam = new Color(knobs.foam);
+    for (const way of [1, -1]) for (let i = 0; i < samples.length - 1; i++) {
+     const a = samples[i], b = samples[i + 1];
+     if (a.m < 1 || b.m < 1 || hashUnit(Math.round(a.x * 40) + way, Math.round(a.z * 40), 1610 + Math.floor(i / 3)) < knobs.foamGaps) continue;
+     const at = (p, n, d) => [p.x + n[0] * d * way, p.z + n[1] * d * way];
+     add([at(a, bent[i], a.half - knobs.foamWidth), at(b, bent[i + 1], b.half - knobs.foamWidth), at(b, bent[i + 1], b.half + .002), at(a, bent[i], a.half + .002)], foam, knobs.lift * 2.45);
+    }
+   }
   } else band(p => side * p.half * knobs.shineFrom, p => side * p.half * knobs.shineTo, colors.shine, knobs.lift * 2);
  }
  // A disc of each colour at every junction, so the branches merge.
  for (const node of network.nodes) {
-  if (node.edges.length < 3) continue;
+  // Only where no river runs through in one curve; there the runs' own water already meets.
+  if (node.edges.length < 3 || node.at) continue;
   const half = widthAt(node) / 2;
   for (const [radius, color, lift] of [[half * 1.15, colors.water, knobs.lift * 2.3]])
    add(Array.from({length: 14}, (_, i) => [(node.at ?? node.point)[0] + Math.cos(i * Math.PI / 7) * radius, (node.at ?? node.point)[1] + Math.sin(i * Math.PI / 7) * radius]), color, lift);
@@ -339,6 +367,25 @@ export function createOrganicRivers(map, knobs) {
  return {
   polygonCount: polygons.length,
   carve,
+  /** The trees that keep to the river on one hex: `{x, y, z, seed}` in the hex's own coordinates. */
+  trees(tile) { return placed(tile, 'tree'); },
+  /**
+   * Where the water moves: a point every few samples of every run, with the
+   * way the water flows there and the river's half width. The flow layer
+   * (`paintedFlow.ts`) sets a glint at each. World coordinates.
+   */
+  flow() {
+   const list = [];
+   for (const run of runs) {
+    const {samples, start, end, path} = run, down = (steps.get(end) ?? 0) <= (steps.get(start) ?? 0) ? 1 : -1;
+    for (let i = 2; i < samples.length - 2; i += 2) {
+     const a = samples[i - 1], b = samples[i + 1], l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+     if (!path.closed && (samples[i].m ?? 1) < .5) continue;
+     list.push({x: samples[i].x, z: samples[i].z, dx: (b.x - a.x) / l * down, dz: (b.z - a.z) / l * down, half: samples[i].half, seed: hashUnit(Math.round(samples[i].x * 40), Math.round(samples[i].z * 40), 1600)});
+    }
+   }
+   return list;
+  },
   /** The stones on one hex's river banks: `{x, y, z, seed}` in the hex's own coordinates. */
   stones(tile) { return placed(tile, 'stone'); },
   /** The reeds at the water's edge on one hex, as one geometry in world coordinates; null if none. */

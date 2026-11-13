@@ -394,6 +394,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           const reeds = organicRivers.reeds(t);
           if (reeds) push(features.reeds, reeds, undefined, CLUTTER);
           const at = centre(t);
+          for (const tree of organicRivers.trees(t)) {
+            // Clear of the channel itself, and on land that can carry a tree.
+            if (!['grassland', 'plains', 'tundra'].includes(t.terrain) || (t.feature && t.feature !== 'none') || t.terrain === 'mountain') continue;
+            const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2 + Math.floor(tree.seed * 3);
+            const kind = tree.seed > .82 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = .2 + tree.seed * .12;
+            prop(kind.geometry, kind.material, at.x + tree.x, tree.y - .008, at.z + tree.z, s, s * .92, s, tree.seed * 6.28, new T.Color('#cfe6b4'), DECOR);
+          }
           for (const stone of organicRivers.stones(t)) {
             const s = .08 + stone.seed * .07;
             prop(assets.limestone.geometry, assets.limestone.material, at.x + stone.x, stone.y - .006, at.z + stone.z, s, s * .6, s * .85, stone.seed * 6.28, new T.Color('#dbe0cf'));

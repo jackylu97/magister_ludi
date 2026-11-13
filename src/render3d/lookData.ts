@@ -2360,6 +2360,12 @@ export interface VisualTestSpec {
     barGreen: number; joinDown: number; joinReach: number; springSize: number;
     /** Near a meeting of runs each run lays plain water only, for `junctionClear` units; the ground there is cut as a round pool `junctionPool` times the river's half width. */
     junctionClear: number; junctionPool: number;
+    /** A thin white line at the waterline, `foamWidth` wide, with the share `foamGaps` of it left out. */
+    foam: string; foamWidth: number; foamGaps: number;
+    /** Trees keep to the river: a group every `treeEvery` units with chance `treeShare`. */
+    treeEvery: number; treeShare: number;
+    /** Moving water: pale glints that travel downstream. Sizes in hex units, `width` as a share of the river's half width, `speed` in trips a second. */
+    flow: { length: number; width: number; travel: number; speed: number; lift: number; color: string };
     /** The true cut: the ground drops `cutDepth` under the water and rises in a straight slope over `cutBank` beside it. 0 depth is no cut. */
     cutDepth: number; cutBank: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
