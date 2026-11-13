@@ -395,7 +395,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           if (reeds) push(features.reeds, reeds, undefined, CLUTTER);
           const at = centre(t);
           for (const stone of organicRivers.stones(t)) {
-            const s = .05 + stone.seed * .05;
+            const s = .08 + stone.seed * .07;
             prop(assets.limestone.geometry, assets.limestone.material, at.x + stone.x, stone.y - .006, at.z + stone.z, s, s * .6, s * .85, stone.seed * 6.28, new T.Color('#dbe0cf'));
           }
         }

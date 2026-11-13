@@ -120,6 +120,8 @@ export function createSceneFixture(age?: number) {
   };
   riverBetween(t => t.row <= 8, t => t.row >= 9, t => t.col >= 9 && t.col <= 18);
   riverBetween(t => t.col <= 13, t => t.col >= 14, t => t.row >= 4 && t.row <= 8);
+  // A short stream that rises on open grass and joins the branch, so a spring shows against green.
+  riverBetween(t => t.row <= 4, t => t.row >= 5, t => t.col >= 14 && t.col <= 16);
 
   // Resources, then the improvements that work them. Set by hand: this is a
   // picture, so the rules a worker would be held to are not asked.

@@ -198,6 +198,8 @@ export function createOrganicRivers(map, knobs) {
    const rise = samples.map(({s}) => path.closed ? knobs.bankHeight : knobs.bankHeight * smooth(0, fadeAt('start'), s) * smooth(0, fadeAt('end'), length - s));
    for (const way of [1, -1]) for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
     const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];
+    // A joining stream's last stretch lies inside the river's own bank, so it lays no sand of its own there.
+    if (run.joins && (run.joins === 'end' ? length - a.s : b.s) < knobs.joinDown * .95) continue;
     const at = (p, n, d) => [p.x + n[0] * d * way, p.z + n[1] * d * way];
     const wa = a.sand[way > 0 ? 0 : 1], wb = b.sand[way > 0 ? 0 : 1], slope = knobs.bankSlope, ha = knobs.lift + rise[i], hb = knobs.lift + rise[j];
     add([at(a, na, a.half - .004), at(b, nb, b.half - .004), at(b, nb, b.half + wb), at(a, na, a.half + wa)], colors.bank, [knobs.lift * .5, knobs.lift * .5, hb, ha], true);
