@@ -1331,6 +1331,31 @@
       "wet": 0.03,
       "sandOver": 0.012,
       "sandLift": 0.005,
+      "field": {
+        "texels": 10,
+        "shoreReach": 1.6,
+        "shelfReach": 3,
+        "mouthReach": 2,
+        "mouthBack": 0.3,
+        "mouthOut": 0.75,
+        "mouthTaper": -0.1
+      },
+      "shelf": {
+        "step": 0.25,
+        "relax": 60,
+        "relaxLength": 30,
+        "wander": 0.16,
+        "wanderWave": 6.1,
+        "shift": 0,
+        "deepOut": 1.7,
+        "deepWander": 0.5
+      },
+      "mouth": {
+        "plume": 0.13,
+        "wander": 0.07,
+        "round": 0.16,
+        "gap": 0.24
+      },
       "bands": {
         "sand": 0.035,
         "sandVary": 0.5,

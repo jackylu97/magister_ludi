@@ -131,7 +131,7 @@ export function terrainMesh(tile,{distant=false}={}){
   if(isWater(tile)){
     const empty=new T.BufferGeometry();
     empty.setAttribute('position',new T.Float32BufferAttribute([],3));empty.computeVertexNormals();
-    return [tile.coast?coastWater(tile):flatWater(tile),empty];
+    return [flatWater(tile),empty];
   }
   const {points,toes,indices}=topology(tile,distant),v=[],colors=[];
   for(const [x,z] of points){
@@ -200,31 +200,5 @@ export function coastApron(tile){
   geometry.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(v.length).fill(.985),3));
   geometry.computeVertexNormals();
   geometry.userData.plateVertexCount=v.length/3;
-  return geometry;
-}
-
-/**
- * The water sheet of a hex beside a free coast. The sea's paint reads the
- * distance to the waterline at each vertex (`seaField.ts`), so the sheet has
- * rows of vertices that run beside the line, close together near it, and a
- * coarse grid over the open water.
- */
-export function coastWater(tile){
-  const c=centre(tile),shape=tileShape(OPEN_HEX),points=[];
-  for(const [x,z] of shape.top)points.push([x,z]);
-  const put=pointSet(points);
-  for(let row=-5;row<=5;row++)for(let col=-5;col<=5;col++){
-    const x=col*.24+(row%2)*.12,z=row*.21;
-    if(!shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.05))continue;
-    if(coastAt(tile,x,z).edge>-.85)continue;
-    put(x,z);
-  }
-  coastRows(tile,shape,put,[.05,0,-.04,-.1,-.2,-.34,-.52,-.74].map(offset=>()=>offset));
-  const indices=triangulate(points),v=[];
-  for(const k of indices)v.push(points[k][0]+c.x,WATER_LEVEL,points[k][1]+c.z);
-  const geometry=new T.BufferGeometry();
-  geometry.setAttribute('position',new T.Float32BufferAttribute(v,3));
-  geometry.computeVertexNormals();
-  geometry.userData.seaSheet=true;
   return geometry;
 }

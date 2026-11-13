@@ -146,6 +146,8 @@ import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
 import { PaintedFlowLayer } from './paintedFlow';
+// @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
+import { bakeSeaDistances } from './seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { setRiverStyle, setCoastStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
@@ -383,6 +385,8 @@ export class Renderer3D implements MapView {
   private paintedRichness: PaintedRichnessLayer | null = null;
   /** Glints that travel down the rivers (the visual test version). */
   private paintedFlow: PaintedFlowLayer | null = null;
+  /** The sea's distances for the board in place, as a texture (`seaDistances.js`); null without a free coast. */
+  private seaDistances: Texture | null = null;
   /** Stops listening to the visual test switches. */
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
@@ -989,6 +993,23 @@ export class Renderer3D implements MapView {
     this.rebuildBoard(map);
     this.state = null;
     this.setGameState(current);
+  }
+
+  /**
+   * The sea's distances for the board in place (`seaDistances.js`): made for a
+   * board with a free coast, and dropped for any other, where the sea's paint
+   * reads the numbers on its own vertices as before.
+   */
+  private bakeSeaDistances(): void {
+    this.seaDistances?.dispose();
+    this.seaDistances = null;
+    VTEST_UNIFORMS.vtestSeaFieldOn.value = 0;
+    if (!this.paintedBoard || !coastStyleOf()) return;
+    const baked = bakeSeaDistances(this.paintedBoard.renderMap, VIEW3D.visualTest.coast, visualOn('organicRivers') ? VIEW3D.visualTest.organicRivers : null);
+    this.seaDistances = baked.texture;
+    VTEST_UNIFORMS.vtestSeaField.value = baked.texture;
+    VTEST_UNIFORMS.vtestSeaFieldShape.value.set(baked.originX, baked.originZ, 1 / baked.period, 1 / baked.spanZ);
+    VTEST_UNIFORMS.vtestSeaFieldOn.value = 1;
   }
 
   /**
@@ -2254,6 +2275,7 @@ export class Renderer3D implements MapView {
       board.createChartTable(material => this.paintedLook!.registerMaterial(material, { chart: true }));
       // The cloud pattern repeats once a map width (switch 7).
       VTEST_UNIFORMS.vtestPeriod.value = board.wrapWidth;
+      this.bakeSeaDistances();
     } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything

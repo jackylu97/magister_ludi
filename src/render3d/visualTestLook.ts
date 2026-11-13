@@ -17,7 +17,7 @@
  * rule 4). The patterns hash world coordinates in the shader.
  */
 
-import { Color, Vector2, Vector3, Vector4, type IUniform, type Material, type WebGLProgramParametersWithUniforms } from 'three';
+import { Color, DataTexture, Texture, Vector2, Vector3, Vector4, type IUniform, type Material, type WebGLProgramParametersWithUniforms } from 'three';
 
 import { VIEW3D } from './lookData';
 import { type VisualTestState, visualTest } from './visualTest';
@@ -26,6 +26,7 @@ const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
+const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
 export const VTEST_UNIFORMS = {
@@ -55,6 +56,18 @@ export const VTEST_UNIFORMS = {
   /** The board's wrap period in world units, so the cloud pattern repeats exactly once a map width. */
   vtestPeriod: { value: 0 } as IUniform<number>,
 
+  /**
+   * The sea's distances as a picture of the map (`seaDistances.js`): to the
+   * waterline, to the line between coast and ocean, and to the nearest river
+   * mouth. The renderer sets it for each board that has a free coast.
+   */
+  vtestSeaField: { value: new DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1) } as IUniform<Texture>,
+  /** 1 while `vtestSeaField` holds a board's distances. */
+  vtestSeaFieldOn: { value: 0 } as IUniform<number>,
+  /** The picture's west edge and north edge in world units, then one over its width and one over its depth. */
+  vtestSeaFieldShape: { value: new Vector4(0, 0, 1, 1) },
+  /** The river's water, which the sea takes at a river mouth. */
+  vtestSeaMouth: { value: new Color(VT.organicRivers.water) },
   vtestSeaShallow: { value: new Color(sea.shallow) },
   vtestSeaCoast: { value: new Color(sea.coast) },
   vtestSeaOcean: { value: new Color(sea.ocean) },
@@ -118,7 +131,7 @@ export function shareUniforms(shader: WebGLProgramParametersWithUniforms, names:
 export function declareUniforms(names: readonly UniformName[]): string {
   return names.map((name) => {
     const value = VTEST_UNIFORMS[name].value as unknown;
-    const type = value instanceof Color ? 'vec3' : value instanceof Vector4 ? 'vec4'
+    const type = value instanceof Texture ? 'sampler2D' : value instanceof Color ? 'vec3' : value instanceof Vector4 ? 'vec4'
       : value instanceof Vector3 ? 'vec3' : value instanceof Vector2 ? 'vec2' : 'float';
     return `uniform ${type} ${name};`;
   }).join('\n');
@@ -138,7 +151,7 @@ float vtestNoise(vec2 p) {
 // --- 1. the sea --------------------------------------------------------------
 
 export const SEA_UNIFORMS: readonly UniformName[] = [
-  'vtestSea', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
+  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
   'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
@@ -220,22 +233,48 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
 vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float shore = max(water.x, 0.0), deep = water.z;
   float slow = vtestNoise(p * 1.7) - .5, fine = vtestNoise(p * 4.3 + 3.7) - .5;
-  float wobble = (vtestNoise(p * .45) - .5) * 1.0 + (vtestNoise(p * 1.3 + 4.1) - .5) * .25;
-  float t = clamp((deep - .55 + wobble) / max(vtestSeaShape.y, 1e-3), 0.0, 1.0);
-  float width = fwidth(t) * 1.2 + 1e-4;
-  vec3 paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(.30 - width, .30 + width, t));
-  paint = mix(paint, vtestSeaDeep, smoothstep(${bands.deepAt.toFixed(3)} - width, ${bands.deepAt.toFixed(3)} + width, t));
-  // The drawn line on the coast side of the step.
-  float drawn = (1.0 - smoothstep(0.0, width * 2.0, abs(t - .30 + ${bands.stepLine.toFixed(4)}) - ${bands.stepLine.toFixed(4)} * .5));
-  paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
+  vec3 paint;
+  float mouth = 9.0;
+  if (vtestSeaFieldOn > .5) {
+    // A free coast: the distances come from the picture of the map, so every
+    // band's edge is a smooth curve (seaDistances.js). Coast and ocean meet on
+    // the smooth line between their hexes, with a small slow wander.
+    vec4 field = texture2D(vtestSeaField, (p - vtestSeaFieldShape.xy) * vtestSeaFieldShape.zw);
+    shore = max(field.r, 0.0);
+    mouth = field.b;
+    float shelf = field.g + (vtestNoise(p * .45) - .5) * ${shelfBands.wander.toFixed(3)};
+    float width = fwidth(shelf) * 1.2 + 1e-4;
+    paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(-width, width, shelf));
+    paint = mix(paint, vtestSeaDeep, smoothstep(-width, width, shelf - ${shelfBands.deepOut.toFixed(3)} - (vtestNoise(p * .31 + 5.0) - .5) * ${shelfBands.deepWander.toFixed(3)}));
+    float drawn = 1.0 - smoothstep(0.0, width * 2.0, abs(shelf + ${bands.stepLine.toFixed(4)}) - ${bands.stepLine.toFixed(4)} * .5);
+    paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
+  } else {
+    float wobble = (vtestNoise(p * .45) - .5) * 1.0 + (vtestNoise(p * 1.3 + 4.1) - .5) * .25;
+    float t = clamp((deep - .55 + wobble) / max(vtestSeaShape.y, 1e-3), 0.0, 1.0);
+    float width = fwidth(t) * 1.2 + 1e-4;
+    paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(.30 - width, .30 + width, t));
+    paint = mix(paint, vtestSeaDeep, smoothstep(${bands.deepAt.toFixed(3)} - width, ${bands.deepAt.toFixed(3)} + width, t));
+    // The drawn line on the coast side of the step.
+    float drawn = (1.0 - smoothstep(0.0, width * 2.0, abs(t - .30 + ${bands.stepLine.toFixed(4)}) - ${bands.stepLine.toFixed(4)} * .5));
+    paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
+  }
   if (deep < 0.0) paint = vtestSeaLake;
   float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
   float soft = fwidth(shore) * 1.2 + 1e-4;
   // Shallows, with a pale drawn line at their outer edge.
   // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
   float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
-  float shallows = 1.0 - smoothstep(${bands.shallows.toFixed(3)} - soft, ${bands.shallows.toFixed(3)} + soft, outer);
-  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(outer - ${bands.shallows.toFixed(3)}) - ${bands.line.toFixed(4)});
+  // At a river mouth the river's channel runs out through the shallows to the
+  // open water. The channel is joined to the open water with a rounded corner,
+  // so the shallows and their drawn line turn in along it and meet the river's
+  // own banks. Neither the foam line nor the painted sand crosses the mouth.
+  float channel = ${mouthBands.plume.toFixed(3)} - mouth - (vtestNoise(p * 2.3 + 7.0) - .5) * ${mouthBands.wander.toFixed(3)};
+  float beyond = outer - ${bands.shallows.toFixed(3)};
+  float blend = max(${mouthBands.round.toFixed(3)} - abs(beyond - channel), 0.0) / ${mouthBands.round.toFixed(3)};
+  float deepWater = max(beyond, channel) + blend * blend * ${mouthBands.round.toFixed(3)} * .25;
+  float clear = smoothstep(${mouthBands.gap.toFixed(3)} - .04, ${mouthBands.gap.toFixed(3)} + .04, mouth);
+  float shallows = 1.0 - smoothstep(-soft, soft, deepWater);
+  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(deepWater) - ${bands.line.toFixed(4)});
   paint = mix(paint, vtestSeaShallow, shallows);
   paint = mix(paint, vtestSeaFoam, rim * ${bands.lineStrength.toFixed(3)});
   // The waterline laps in and out, each stretch of shore in its own time.
@@ -246,8 +285,8 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   // A second, fainter line a little further out, left by the last wave.
   float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);
   trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
-  paint = mix(paint, vtestSeaFoam, max(foam, trail * .6));
-  paint = mix(paint, vtestSeaSand, 1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach));
+  paint = mix(paint, vtestSeaFoam, max(foam, trail * .6) * clear);
+  paint = mix(paint, vtestSeaSand, (1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach)) * clear);
   // Ripples: short pale strokes, few and slow, each fading in and out.
   vec2 q = p + vec2(time * vtestSeaGlintShape.y, time * vtestSeaGlintShape.y * .3);
   vec2 g = q * vec2(1.25, 3.1);

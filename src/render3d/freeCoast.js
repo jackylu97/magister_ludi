@@ -25,7 +25,10 @@ import {hashUnit} from './hash';
  * Built once with the board. Rendering only: every wander is a hash of
  * coordinates, and the hex a thing stands on is still the hex the rules use.
  */
-export function createFreeCoast(map, knobs, mouths = []) {
+export function createFreeCoast(map, knobs, mouths = [], inside = tile => !isWater(tile)) {
+ // `inside` says which hexes the line goes round: the land, for the waterline.
+ // The sea's paint asks for a second line with it, round everything that is
+ // not ocean, so coast and ocean meet on a smooth line too (`seaDistances.js`).
  const period = terrainMapWraps(map) ? Math.sqrt(3) * map.width : 0;
  const keyOf = (x, z) => {
   if (period) { x = ((x % period) + period) % period; if (Math.min(x, period - x) < 1e-4) x = 0; }
@@ -37,11 +40,11 @@ export function createFreeCoast(map, knobs, mouths = []) {
  // coast join head to tail.
  const edges = [], starts = new Map(), ended = new Set();
  for (const tile of map.tiles) {
-  if (isWater(tile)) continue;
+  if (!inside(tile)) continue;
   const c = centre(tile);
   for (let d = 0; d < 6; d++) {
    const other = neighbour(tile, map, d);
-   if (!other || !isWater(other)) continue;
+   if (!other || inside(other)) continue;
    const a = (d - .5) * Math.PI / 3, b = (d + .5) * Math.PI / 3;
    const edge = {ax: c.x + Math.cos(a), az: c.z + Math.sin(a), bx: c.x + Math.cos(b), bz: c.z + Math.sin(b)};
    edge.from = keyOf(edge.ax, edge.az); edge.to = keyOf(edge.bx, edge.bz);
@@ -257,7 +260,7 @@ export function createFreeCoast(map, knobs, mouths = []) {
   return (isWater(tile) ? 1 : -1) * Math.sqrt(best);
  }
 
- return {carve, sand: sandOn, distance, lineCount: lines.length, pieceCount: pieces.length, stride: COAST_STRIDE};
+ return {carve, sand: sandOn, distance, near, period, lineCount: lines.length, pieceCount: pieces.length, stride: COAST_STRIDE};
 }
 
 function smooth(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / Math.max(1e-6, b - a))); return t * t * (3 - 2 * t); }

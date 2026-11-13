@@ -4,7 +4,7 @@
  * along it, and two hexes that share a shore edge agree on the ground there.
  */
 import { describe, expect, it } from 'vitest';
-import type { BufferGeometry } from 'three';
+import { DataUtils, type BufferGeometry } from 'three';
 
 import type { GameMap } from '../../src/sim/map';
 import { createMap } from '../../src/sim/map';
@@ -12,10 +12,14 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { RIVER, createSeaField } from '../../src/render3d/seaField';
 // @ts-expect-error The coast module is JavaScript, like the terrain modules it feeds.
 import { createFreeCoast } from '../../src/render3d/freeCoast.js';
+// @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
+import { bakeSeaDistances } from '../../src/render3d/seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { prepareTerrainMap, baseSurfaceHeight, coastApronHeight, coastAt, isWater, neighbour, onTileTop, WATER_LEVEL, LAND_LEVEL } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
-import { terrainMesh, coastApron, coastWater } from '../../src/terrainStudy/terrainMesh.js';
+import { terrainMesh, coastApron } from '../../src/terrainStudy/terrainMesh.js';
+// @ts-expect-error Approved terrain modules remain JavaScript.
+import { flatWater } from '../../src/terrainStudy/water.js';
 
 const WIDTH = 8, HEIGHT = 7, KNOBS = VIEW3D.visualTest.coast;
 type Tile = GameMap['tiles'][number] & { coast?: { segments: Float32Array; under: number } };
@@ -156,7 +160,8 @@ describe('a free coastline', () => {
     expect(field.sample(land as never, x, z)[0]).toBeCloseTo(field.sample(sea as never, x, z)[0], 3);
     // The land hex's own sheet takes the sea's numbers; any other water on it is a river's.
     // (An odd row stands half a hex out to sea here, so the waterline crosses it.)
-    const sheet = coastWater(tile(3, 3)) as BufferGeometry;
+    const sheet = flatWater(tile(3, 3)) as BufferGeometry;
+    sheet.userData.seaSheet = true;
     field.attribute(sheet, tile(3, 3) as never);
     const painted = sheet.getAttribute('paintedWater');
     let sea0 = 0;
@@ -181,5 +186,49 @@ describe('a free coastline', () => {
     expect(low).toBeLessThan(WATER_LEVEL);
     expect(coast.sand(tile(1, 1), terrainMesh(tile(1, 1))[0])).toBeNull();
     expect(coast.sand(sea, coastApron(sea))).not.toBeNull();
+  });
+});
+
+describe('the sea\'s distances as a picture of the map', () => {
+  // Land in the west, two columns of coast, then ocean.
+  const map = createMap({ width: 10, height: 7, terrain: 'grassland' });
+  for (const t of map.tiles) if (t.col >= 4) t.terrain = t.col >= 6 && t.col <= 8 ? 'ocean' : 'coast';
+  const prepared = prepareTerrainMap(map, { wrap: true }) as GameMap;
+  const baked = bakeSeaDistances(prepared, KNOBS, null) as { texture: { image: { data: Uint16Array } }; width: number; height: number; originX: number; originZ: number; period: number; spanZ: number };
+  /** The three distances at the grid point nearest a hex's centre. */
+  const at = (col: number, row: number): [number, number, number] => {
+    const [x, z] = centreOf({ col, row });
+    const i = Math.min(baked.width - 1, Math.floor((x - baked.originX) / baked.period * baked.width)), j = Math.floor((z - baked.originZ) / baked.spanZ * baked.height);
+    const k = (j * baked.width + i) * 4, data = baked.texture.image.data;
+    return [DataUtils.fromHalfFloat(data[k]!), DataUtils.fromHalfFloat(data[k + 1]!), DataUtils.fromHalfFloat(data[k + 2]!)];
+  };
+
+  it('is positive on the water and negative on the land', () => {
+    expect(at(2, 3)[0]).toBeLessThan(-.5);
+    expect(at(5, 3)[0]).toBeGreaterThan(.5);
+    expect(at(7, 3)[0]).toBeCloseTo(KNOBS.field.shoreReach, 2);
+  });
+
+  it('is positive on the ocean and negative on the coast and the land, by the second line', () => {
+    expect(at(7, 3)[1]).toBeGreaterThan(.3);
+    expect(at(4, 3)[1]).toBeLessThan(-.3);
+    expect(at(1, 3)[1]).toBeLessThan(-.3);
+  });
+
+  it('changes by less than a grid step from one grid point to the next, so a band\'s edge is smooth', () => {
+    const data = baked.texture.image.data, step = baked.period / baked.width;
+    let worst = 0;
+    for (let j = 0; j < baked.height; j++) for (let i = 0; i < baked.width - 1; i++) for (const channel of [0, 1]) {
+      // Only over the board: past its top and bottom rows the lines end, and there is no water to paint.
+      const z = baked.originZ + (j + .5) / baked.height * baked.spanZ;
+      if (z < -.9 || z > 6 * 1.5 + .9) continue;
+      const a = DataUtils.fromHalfFloat(data[(j * baked.width + i) * 4 + channel]!), b = DataUtils.fromHalfFloat(data[(j * baked.width + i + 1) * 4 + channel]!);
+      worst = Math.max(worst, Math.abs(a - b));
+    }
+    expect(worst).toBeLessThan(step * 1.6);
+  });
+
+  it('reads far from any river where the map has none', () => {
+    expect(at(5, 3)[2]).toBeCloseTo(KNOBS.field.mouthReach, 2);
   });
 });

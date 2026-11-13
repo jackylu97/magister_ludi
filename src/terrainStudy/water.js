@@ -1,6 +1,5 @@
 import * as T from 'three';
 import {centre,isWater,neighbour,tileShape,cutRiverEdges,WATER_LEVEL,LAND_LEVEL,BANK_TOE} from './surface.js';
-import {coastWater} from './terrainMesh.js';
 
 // Water is a level sheet under each cut land tile. The bank geometry defines
 // its visible outline, so joins need no overlapping discs or bulging ribbons.
@@ -17,8 +16,11 @@ export function flatWater(tile) {
 export function waterDetails(tile,map,push,materials){
  // An organic river (the visual test version) is painted on joined ground, so
  // only a cut river edge or a shore needs the water sheet under the land.
- // Beside a free coast the sheet carries the sea's distances, so it is the fine one.
- if(!isWater(tile)&&(cutRiverEdges(tile)||tile.shoreEdges))push(materials.river,tile.coast?coastWater(tile):flatWater(tile));
+ if(!isWater(tile)&&(cutRiverEdges(tile)||tile.shoreEdges)){
+  // Beside a free coast this sheet is open sea out to the waterline, and is marked so (`seaField.ts`).
+  const sheet=flatWater(tile);if(tile.coast)sheet.userData.seaSheet=true;
+  push(materials.river,sheet);
+ }
 }
 
 // Sparse half-submerged shelves give the water a tangible tabletop edge.

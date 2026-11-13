@@ -2359,6 +2359,12 @@ export interface VisualTestSpec {
     free: boolean; smoothing: number; step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number;
     beach: number; beachVary: number; beachWave: number; under: number; mouthInset: number; mouthReach: number;
     sand: string; wetSand: string; wet: number; sandOver: number; sandLift: number;
+    /** The sea's distances as a picture of the map (`seaDistances.js`): grid points to a hex unit, and how far each distance is measured. A river's outflow runs from `mouthBack` up the river to `mouthOut` out to sea, and `mouthTaper` narrows its far end, or widens it when negative. */
+    field: { texels: number; shoreReach: number; shelfReach: number; mouthReach: number; mouthBack: number; mouthOut: number; mouthTaper: number };
+    /** The smooth line between coast and ocean hexes: its own `relax`, `relaxLength`, `wander`, `wanderWave` and `shift`; how far the colour step wanders in the paint (`wander` again); and how far out the ocean deepens (`deepOut`, `deepWander`). */
+    shelf: { step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number; deepOut: number; deepWander: number };
+    /** A river mouth: the half width of the channel that runs out along the outflow, how round the corner is where it joins the open water (`round`), how much its edge wanders, and how far the foam line and the sand stay back. */
+    mouth: { plume: number; wander: number; round: number; gap: number };
     bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };
   };
   /** Switch 4: the painted river ribbon (`organicRivers.js`). */
