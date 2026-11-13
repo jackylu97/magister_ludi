@@ -2323,7 +2323,7 @@ export interface VisualTestSpec {
   miniature: { focus: number; blur: number };
   /** Switch 10: a rim light on things that stand up, and a deeper, cooler shade. */
   light: { rim: string; rimStrength: number; rimPower: number; rimInShade: number; shadeDeepen: number; shadeTint: number[] };
-  rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number };
+  rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number; /** The edge river's two water colours under the north-star look. */ water: string; light: string };
   borders: {
     holeMax: number; fillNeighbours: number; fillPasses: number;
     tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number;
@@ -2352,6 +2352,8 @@ export interface VisualTestSpec {
     uneven: number; widthVary: number; sandVary: number;
     /** `straighten` is how many passes relax the hex edges' zigzag out of the line; `bendSwell` is how much wider the river is on a bend. */
     straighten: number; bendSwell: number;
+    /** Two banks that differ: `bankVary` is each bank's own wave; `barPinch` narrows the inside of a bend and `barWidth` widens its sand into a bar; `deep` is the darker middle, `deepShare` of the width. */
+    bankVary: number; barPinch: number; barWidth: number; deep: string; deepShare: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */

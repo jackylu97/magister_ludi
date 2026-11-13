@@ -48,7 +48,10 @@ function split(points,[nx,nz,limit]){
 // are the land painter's shapes at the land's sizes, owned by the hex under
 // each stroke's centre, so the two kinds of water swap whole patches across
 // the hex line instead of meeting on it, and never blend into a gradient.
-export function createWaterPainter(map,{bank=null,brush:seaBrush=null}={}){
+// `river` is optional: {channel, light}, two colours for the river's water in
+// place of the study's blues (the visual test's edge river, 2026-11-12).
+export function createWaterPainter(map,{bank=null,brush:seaBrush=null,river:riverInk=null}={}){
+ const channelInk=riverInk?new Color(riverInk.channel):palette.channel,lightInk=riverInk?new Color(riverInk.light):palette.river;
  const buckets=new Map(),bucketSize=3;
  const bankColor=bank?new Color(bank.color):null;
  const period=terrainMapWraps(map)?Math.sqrt(3)*map.width:0;
@@ -94,11 +97,11 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null}={}){
  const rivers=riverPaths(map),junctions=new Map();
  for(const path of rivers.paths){
   const {points,side,closed}=path;
-  for(const p of ribbonPolygons(points,-.24,.24,closed).polygons)add(polygon(p,palette.channel,6));
+  for(const p of ribbonPolygons(points,-.24,.24,closed).polygons)add(polygon(p,channelInk,6));
   // The light occupies a readable part of one bank. Its inner and outer
   // contours are continuous mitered paths, so bends share their actual joins.
   const ribbon=ribbonPolygons(points,side*.010,side*.13,closed);
-  for(const p of ribbon.polygons)add(polygon(p,palette.river,7));
+  for(const p of ribbon.polygons)add(polygon(p,lightInk,7));
   if(bankColor)for(const s of [1,-1])for(const p of ribbonPolygons(points,s*bank.inner,s*bank.outer,closed).polygons)add(polygon(p,bankColor,9));
   if(!closed)for(const [node,i]of [[path.start,0],[path.end,points.length-1]]){
    if(node.edges.length<3)continue;
@@ -110,8 +113,8 @@ export function createWaterPainter(map,{bank=null,brush:seaBrush=null}={}){
  // letting three independently capped strips cross or leave pinholes.
  for(const [node,points]of junctions){
   const [x,z]=node.point;
-  add(polygon(Array.from({length:6},(_,i)=>[x+Math.cos(i*Math.PI/3)*.28,z+Math.sin(i*Math.PI/3)*.28]),palette.channel,6));
-  add(polygon(points,palette.river,7));
+  add(polygon(Array.from({length:6},(_,i)=>[x+Math.cos(i*Math.PI/3)*.28,z+Math.sin(i*Math.PI/3)*.28]),channelInk,6));
+  add(polygon(points,lightInk,7));
  }
  for(const mouth of riverMouths(rivers)){
   add(polygon(mouth.points,mouth.water==='lake'?palette.lakeShelf:palette.shallow,8));

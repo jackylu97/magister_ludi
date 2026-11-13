@@ -120,16 +120,32 @@ export function createOrganicRivers(map, knobs) {
    if (!path.closed && end.water) w *= 1 + knobs.mouthFlare * (1 - smooth(0, knobs.mouthLength, length - s));
    samples[i].half = w / 2;
   }
-  const bent = normalsOf(samples, path.closed);
-  // A stream is wider on a bend. The turn is read over a few samples each way and smoothed, so the width changes slowly.
-  if (knobs.bendSwell) {
+  let bent = normalsOf(samples, path.closed);
+  // Two banks that differ (2026-11-12, choice B of the river talk). A stream's
+  // banks are not parallel: each has its own shape, the outside of a bend is
+  // cut wide, and the inside of a bend silts up into a sand bar. The two bank
+  // distances are worked out first; the centre line then moves to the middle
+  // between them, so everything after this still reads one half width.
+  if (knobs.bendSwell || knobs.bankVary) {
    const reach = 4, last = samples.length - 1;
    let turn = samples.map((_, i) => {
     const a = bent[Math.max(0, i - reach)], b = bent[Math.min(last, i + reach)];
-    return Math.abs(a[0] * b[1] - a[1] * b[0]);
+    return a[0] * b[1] - a[1] * b[0];
    });
    for (let pass = 0; pass < 6; pass++) turn = turn.map((_, i) => .25 * turn[Math.max(0, i - 1)] + .5 * turn[i] + .25 * turn[Math.min(last, i + 1)]);
-   for (let i = 0; i < samples.length; i++) samples[i].half *= 1 + knobs.bendSwell * Math.min(1, turn[i] * 2.2);
+   for (let i = 0; i < samples.length; i++) {
+    const p = samples[i], s = p.s, bend = Math.min(1, Math.abs(turn[i]) * 2.2), inner = turn[i] > 0 ? 1 : -1;
+    const fade = path.closed ? 1 : smooth(0, knobs.wanderFade, s) * smooth(0, knobs.wanderFade, length - s);
+    const sides = [1, -1].map(way => {
+     const own = (knobs.bankVary ?? 0) * fade * (Math.sin(s * 6.2832 / .93 + phase * (way > 0 ? 1.3 : 2.9)) * .6 + Math.sin(s * 6.2832 / .41 + phase2 * (way > 0 ? 2.1 : .6)) * .4);
+     const bent = way === inner ? 1 - (knobs.barPinch ?? 0) * bend : 1 + (knobs.bendSwell ?? 0) * bend;
+     if (way === inner) p.sand[way > 0 ? 0 : 1] *= 1 + (knobs.barWidth ?? 0) * bend;
+     return p.half * Math.max(.45, (1 + own) * bent);
+    });
+    const shift = (sides[0] - sides[1]) / 2;
+    p.x += bent[i][0] * shift; p.z += bent[i][1] * shift; p.half = (sides[0] + sides[1]) / 2;
+   }
+   bent = normalsOf(samples, path.closed);
   }
   const band = (inner, outer, color, lift) => {
    for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
@@ -156,6 +172,8 @@ export function createOrganicRivers(map, knobs) {
   } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
   band(p => -p.half, p => p.half, colors.water, knobs.lift * 1.5);
+  // The deep middle: a darker run down the centre, which gives the river a dark value to sit on.
+  if (knobs.deep) band(p => -p.half * knobs.deepShare, p => p.half * knobs.deepShare, new Color(knobs.deep), knobs.lift * 1.65);
   if (knobs.detail) {
    const h = (i, salt) => hashUnit(Math.round(samples[i].x * 40), Math.round(samples[i].z * 40), salt);
    const at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
