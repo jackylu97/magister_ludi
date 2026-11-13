@@ -998,6 +998,21 @@ interface YieldRowLayout {
 }
 
 /** The printed diameter of one voice disc, in world units. See `yieldRowLayout`. */
+/**
+ * The yield of each of `tiles` as `playerId`'s empire sees it: the same
+ * reading the yields lens prints, with one context a city built lazily. The
+ * richness layer (`paintedRichness.ts`) asks here, so the board's scenery and
+ * the lens can never disagree, and no second module passes a yield context.
+ */
+export function seenTileYields(state: GameState, playerId: number, tiles: readonly Tile[]): ReturnType<typeof foldTile>[] {
+  const contexts = new Map<number | 'wild', TileYieldContext | undefined>();
+  return tiles.map((tile) => {
+    const cityId = tileOwnerCityId(state, tile.col, tile.row) ?? 'wild';
+    if (!contexts.has(cityId)) contexts.set(cityId, tileContextAt(state, playerId, tile));
+    return foldTile(tile, contexts.get(cityId));
+  });
+}
+
 export function yieldDiscWidth(): number {
   return LENS.glyphSize * LENS.yieldDiscRadius * 2;
 }

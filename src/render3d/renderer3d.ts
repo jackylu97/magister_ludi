@@ -144,6 +144,7 @@ import { VTEST_UNIFORMS, installBob, pinScaleFor, syncVisualUniforms } from './v
 import { PaintedSmokeLayer } from './paintedSmoke';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
+import { PaintedRichnessLayer } from './paintedRichness';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { setRiverStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
@@ -372,6 +373,8 @@ export class Renderer3D implements MapView {
   private paintedSails: PaintedSailsLayer | null = null;
   /** A few flocks of birds over the board (the visual test version). */
   private paintedBirds: PaintedBirdsLayer | null = null;
+  /** Scenery and motes on rich hexes (the visual test version). */
+  private paintedRichness: PaintedRichnessLayer | null = null;
   /** Stops listening to the visual test switches. */
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
@@ -695,6 +698,7 @@ export class Renderer3D implements MapView {
     this.paintedSails = new PaintedSailsLayer((this.paintedLook.workAssets as unknown as Record<string, ConstructorParameters<typeof PaintedSailsLayer>[0]>)['ns-windmill-sails'], this.paintedLook.registerMaterial);
     this.scene.add(this.paintedSails.group);
     if (VIEW3D.visualTest.northStar) { this.paintedBirds = new PaintedBirdsLayer(this.paintedLook.registerMaterial); this.scene.add(this.paintedBirds.group); }
+    if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.scene.add(this.paintedRichness.group); }
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
@@ -2408,6 +2412,7 @@ export class Renderer3D implements MapView {
     this.paintedWorks.group.visible = true;
     this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
     this.paintedBirds?.build(this.state.map.width, this.state.map.height);
+    this.paintedRichness?.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width, this.shadows);
     this.paintedSails?.build(this.paintedWorks.placements, (cell) => (levels ? levels[cell] ?? 0 : -1), Math.sqrt(3) * this.state.map.width, this.shadows);
     // Bake when the set of drawn props changed, read off the entries the layer
     // just drew (which already leave out uncharted ground, town hexes, cleared
@@ -4200,13 +4205,13 @@ export class Renderer3D implements MapView {
     if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
     this.reveal?.dispose(); this.reveal = null;
     for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory,
-      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails, this.paintedBirds]) {
+      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails, this.paintedBirds, this.paintedRichness]) {
       if (!layer) continue;
       this.scene.remove(layer.group);
       layer.dispose();
     }
     this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
-    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null; this.paintedBirds = null;
+    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null; this.paintedBirds = null; this.paintedRichness = null;
     this.paintedUnits?.dispose(); this.paintedUnits = null;
     this.paintedLook?.setBakeDetail(null);
     this.paintedLook?.dispose(); this.paintedLook = null;
@@ -4238,6 +4243,7 @@ export class Renderer3D implements MapView {
     this.paintedSmoke?.dispose();
     this.paintedSails?.dispose();
     this.paintedBirds?.dispose();
+    this.paintedRichness?.dispose();
     this.unwatchVisualTest();
     this.paintedUnits?.dispose();
     for (const material of this.unitOutlines.values()) material.dispose();

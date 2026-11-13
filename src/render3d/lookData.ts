@@ -2311,6 +2311,8 @@ export interface VisualTestSpec {
   grounding: { intensity: number; radius: number; tint: string };
   /** A few small flocks of pale birds that cross the board. Sizes and height in hex units, speed in hex units a second, flap in radians a second. */
   birds: { flocks: number; flockSize: number; size: number; height: number; speed: number; flap: number; color: string };
+  /** Yields on the board: a hex shows scenery by its strongest yield in three steps (`steps` are the yields each step starts at), and motes of light on the third. */
+  richness: { on: boolean; steps: { food: number[]; production: number[]; gold: number[] }; size: number; radius: number; motes: number; moteSize: number; moteRise: number; moteSpeed: number; colors: { food: string; production: string; gold: string } };
   /** Edge smoothing on the painted board: the sample count of the scene's render target. 0 is off. */
   smoothing: number;
   /** Switch 12: things that stand up are darker at the foot and lighter at the top. `span` is the height in world units over which the tone changes. */

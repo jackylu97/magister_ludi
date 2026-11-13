@@ -217,7 +217,29 @@ def windmill_sails():
  ]:
   block(spar,spar_size,TIMBER,.002);block(sail,sail_size,CANVAS,.002)
 
+# Scenery for rich hexes (docs/flags.md (nnnnnnn), "Yields on the board"):
+# what a hex shows as its food, production or gold rises.
+AWNING=pigment('NS awning red','c8553d')
+def sheaf():
+ # Three bound stooks of grain.
+ for x,y,s in [(-.07,.02,1.0),(.06,.04,.9),(0,-.06,.82)]:
+  cone(x,y,0,.055*s,.17*s,STRAW,7,.012*s);cone(x,y,.15*s,.03*s,.05*s,STRAW_DEEP,7)
+def logs():
+ # A stack of three logs and a cut block of stone.
+ for y,z in [(-.045,.04),(.045,.04),(0,.115)]:
+  tube([(-.15,y,z),(.15,y,z)],[.04,.04],TIMBER,7)
+  for x in [-.151,.151]:tube([(x-.002,y,z),(x+.002,y,z)],[.03,.03],STRAW,7)
+ block((.24,0,.05),(.11,.13,.10),CUT,.012)
+def stall():
+ # A market stall: a counter with goods under a striped awning.
+ block((0,0,.06),(.26,.14,.12),TIMBER,.01)
+ for x in [-.08,0,.08]:block((x,-.01,.135),(.05,.06,.03),GILT_NS,.006)
+ for x in [-.125,.125]:
+  for y in [-.07,.07]:block((x,y,.15),(.016,.016,.30),TIMBER,.003)
+ for i in range(5):block((-.12+i*.06,0,.31),(.06,.20,.022),AWNING if i%2==0 else WALL,.004)
+
 for name,author in [
+ ('ns-sheaf',sheaf),('ns-logs',logs),('ns-stall',stall),
  ('ns-windmill',windmill),('ns-windmill-sails',windmill_sails),
  ('ns-house-1a',house_1a),('ns-house-1b',house_1b),('ns-house-1c',house_1c),
  ('ns-house-2a',house_2a),('ns-house-2b',house_2b),('ns-house-2c',house_2c),

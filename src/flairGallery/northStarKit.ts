@@ -21,7 +21,7 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = [
   ['Houses, middle ages', (NORTH_STAR_HOUSES as string[]).slice(3, 6)],
   ['Houses, late ages', (NORTH_STAR_HOUSES as string[]).slice(6, 9)],
   ['Hall and monuments', ['ns-hall', 'monument-obelisk', 'monument-ziggurat', 'monument-armillary']],
-  ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails']],
+  ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails', 'ns-sheaf', 'ns-logs', 'ns-stall']],
 ];
 
 export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {

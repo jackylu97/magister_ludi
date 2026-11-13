@@ -1305,16 +1305,16 @@
       "sourceTaper": 0.6,
       "mouthFlare": 0.9,
       "mouthLength": 0.5,
-      "bank": "#9a8a5c",
+      "bank": "#7d7350",
       "bankWidth": 0.03,
       "modelled": true,
       "bankHeight": 0.05,
       "bankSlope": 0.1,
       "bankFade": 0.22,
       "bankGround": 0.94,
-      "water": "#4f97ad",
-      "shine": "#73bcc0",
-      "shallows": 0.6,
+      "water": "#8fcfbe",
+      "shine": "#b9e6d4",
+      "shallows": 0.8,
       "shineFrom": 0.1,
       "shineTo": 0.42,
       "lift": 0.006,
@@ -1357,6 +1357,25 @@
       "tint": "#3b3f7e"
     },
     "smoothing": 4,
+    "richness": {
+      "on": true,
+      "steps": {
+        "food": [3, 4, 5],
+        "production": [2, 3, 4],
+        "gold": [2, 3, 4]
+      },
+      "size": 0.26,
+      "radius": 0.6,
+      "motes": 4,
+      "moteSize": 0.02,
+      "moteRise": 0.5,
+      "moteSpeed": 0.3,
+      "colors": {
+        "food": "#f6f3a4",
+        "production": "#ffb46a",
+        "gold": "#ffe680"
+      }
+    },
     "birds": {
       "flocks": 3,
       "flockSize": 3,
