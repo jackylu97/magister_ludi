@@ -1132,10 +1132,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * hold. Duel `ceba10f8:335026` -> `87a4f27f:348377`, standard
  * `eac4bef0:1038489` -> `36c397f5:1062622`. Nothing stalled and no command was
  * refused.
+ *
+ * Re-cut for bot batch BP3 (`docs/flags.md` (ooooooo), the B8 ruling with B3 and
+ * B4). The bots price a card on offer, in a chair or in a new council by its
+ * stamp, the empire's books read with the card in place, and keep their own
+ * readings only for what a stamp cannot see. They look for a better arrangement
+ * of their chairs once a seal's length rather than every turn. No rule changed;
+ * the batch BPS speed fix (`9e5e0b44`) moved neither pin, and both pins matched
+ * on the untouched tree before this batch. Duel `87a4f27f:348377` ->
+ * `8daf613b:326673`, standard `36c397f5:1062622` -> `35a1f543:1051740`. Nothing
+ * stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '87a4f27f:348377',
-  standard: '36c397f5:1062622',
+  duel: '8daf613b:326673',
+  standard: '35a1f543:1051740',
 };
 
 /**

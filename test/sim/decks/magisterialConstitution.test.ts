@@ -577,7 +577,11 @@ describe('the register of chair writers', () => {
     expect(council.match(/chairFitFor\(state, player\.id\)/g)).toHaveLength(3);
     expect(code(SOURCES['../../../src/ai/bot.ts']!)).not.toMatch(/chairFitFor\(state, player\.id\)/);
     expect(council).toContain('chairFitWithout(state, player.id, slot)');
-    expect(code(SOURCES['../../../src/ai/value.ts']!)).toContain('chairFor(sc, id, chairFitFor(state, playerId))');
+    // Since bot batch BP3 the bots price a card on the stamp's own two boards, so
+    // the fit a priced card is seated by is the stamp's (`ghostPair`, checked
+    // just below), and the bot keeps no chair rule of its own.
+    expect(code(SOURCES['../../../src/ai/value.ts']!)).toContain('cardImpactWorlds(state, playerId, subject)');
+    expect(code(SOURCES['../../../src/ai/value.ts']!)).not.toMatch(/\bchairFor\(/);
     const impact = code(SOURCES['../../../src/sim/cardImpact.ts']!);
     expect(impact).toContain('const fit = chairFitFor(state, player.id);');
     expect(impact).toContain('councilRefit(without, player.id)');

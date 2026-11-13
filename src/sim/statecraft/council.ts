@@ -970,9 +970,9 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
  * resized by the Doctrine's own `slotRider` rows, and its malices seated again in them.
  * Writes nothing.
  *
- * For the two scratch boards that price a Doctrine (`ghostPair` in
- * `cardImpact.ts`, `deckPair` in `value.ts`), through `ghostSeatUnderDoctrine`
- * below. Without it, a ghost holding The
+ * For the scratch board that prices a Doctrine (`ghostPair` in
+ * `cardImpact.ts`, which the bots read too since bot batch BP3), through
+ * `ghostSeatUnderDoctrine` below. Without it, a ghost holding The
  * Arthashastra would read its "last Wildcard chair" one chair too early, and
  * would claim to double a card that the real command leaves where it sits. Added
  * chairs go on the end and taken ones come off the end, as `refitSlots` does, and
@@ -1009,9 +1009,9 @@ export function ghostCouncilUnderDoctrine(
 
 /**
  * **A seat's ghost with or without one Doctrine**, and which side of the pair the
- * ghost is. The two scratch boards that price a Doctrine ask it (`ghostPair` in
- * `cardImpact.ts`, `deckPair` in `value.ts`), so the card stamp and the bots
- * build the same ghost.
+ * ghost is. The scratch board that prices a Doctrine asks it (`ghostPair` in
+ * `cardImpact.ts`), and since bot batch BP3 the bots price a card on that very
+ * board (`cardImpactWorlds`), so the card stamp and the bots read one ghost.
  *
  *   - A Doctrine the seat holds: the ghost gives it up, so the ghost is the board
  *     `without` it and the real board is the board with it.

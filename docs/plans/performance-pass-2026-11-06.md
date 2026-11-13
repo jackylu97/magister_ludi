@@ -672,3 +672,65 @@ These are not done. Each is a question or a small saving.
 - `test/sim/aiDigest.slow.test.ts`: passed on both boards.
 - Both two-deck games: the same digests at turns 20 to 120 and at turn 130, on every run of this batch.
 - The core tier, the build and the slow tier were not run. They are the orchestrator's gate.
+
+## Bot batch BP3: a card's stamp is its pay now, 2026-11-13
+
+The ruling is `docs/flags.md` (ooooooo), B8, with B3 and B4 under it: where the sim can stamp a card on a copy of the seat's state (`explainCardImpact`), the bot takes that figure as the card's pay now, and keeps its own readings only for what a stamp cannot see. This batch changes the bots' decisions on purpose, so the pins move. No rule of the game changed. Branch `decks` at `9e5e0b44`.
+
+### What the bot reads now
+
+- **The stamp's two boards.** `cardImpactWorlds` (`src/sim/cardImpact.ts`) hands out the pair `explainCardImpact` diffs: the card in the first empty chair that fits it, or in a chair added at the end, and never in the chair of a card it would push out (fault B4). A seated card is read with its chair emptied.
+- **The books on both boards.** `explainCardStamp` (`src/ai/value.ts`) reads the six voices of the empire's headline (`readEmpire`), renown a turn and the two meters on each board, weighs the difference at the seat's prices, and adds the hammer premium. The books used to be `foldEmpireRates` plus the cards' empire lines staged apart, which parted from the stamp by a floor; the headline is the sum the stamp folds, so the two now agree to the last digit.
+- **What a stamp cannot see.** `explainBeyondStamp` prices, effect by effect: the promise half of an effect the books show (the walk less the same walk on `todayContext`, a context with no tech chains and `ValueContext.today` set), and the whole walk of an effect the books cannot show (riders, combat lines, rules of play, unlocks). `stampSight` is the classification, an exhaustive switch, so a new shape stops the build until it is classed. Seven shapes split their own way (`ownBeyond`).
+- **Where the stamp is read.** A decision about one card is stamped: an Order, Doctrine or pantheon offer, the pantheon's free redeal, a chair to fill, a better arrangement, a new government's chairs. An estimate over a whole pool is walked as before: the draft plan's best card and the pass's rung of pity (`CardReading`). A card the walk cannot read at all (`hasFoldReadEngine`) is stamped in both, as `deckMargin` stamped it before. Boons, charters, met commissions, governments and follower or enhancer beliefs are walked.
+- **The memo.** One reading of a card's two boards is kept on the slate's economy clock (`botCardStamp`), and the real board's books beside it (`botBooks`). Both boards are `state` or a shallow copy of it with one seat's council, pantheon or Doctrines changed, so a reading is a function of what `state` holds, and every write to that moves the economy clock. The shadow run (`test/vitest.shadow.config.ts`) passed on `aiCardStamp`, `aiSittingMemos`, `aiWants`, `aiBot`, `aiMagisterial` and `readings`.
+- **The arrangement is looked at once a seal's length.** `reslotDecision` looks for a swap on one turn in five (the seal), a different turn for each seat (`isReseatTurn`). A chair no bench card fits is not priced. Empty chairs and a chair that counts twice are still filled on any turn.
+
+### What it costs
+
+Measured on the six-seat two-deck game, seeds 999 and 42, turns 101 to 120. A CPU profile of each tree gives the share of a late turn spent in the books of a card's two boards (`deckReading`); on the earlier tree that is the engine margin (`deckMargin`).
+
+| Seed | Before (`9e5e0b44`) | This batch | Of which: re-seat, chair fill, offers, new council, draft plan |
+|---|---:|---:|---|
+| 999 | 5.6% | 16.1% | 5.0%, 4.0%, 1.6%, 1.1%, 4.4% |
+| 42 | 2.1% | 11.4% | 3.9%, 2.6%, 2.4%, 0.8%, 1.8% |
+
+So the batch adds about a tenth of a late turn. The rest of the change in seconds a turn is play: the bots now give about a quarter more commands late and field more units (seed 999 at turn 120: 390 units against 321).
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 1.82 | 2.39 | 1.10 | 1.63 |
+| CPU seconds a turn | 2.05 | 2.65 | 1.25 | 1.85 |
+| Commands a turn | 126 | 159 | 71 | 100 |
+
+The two trees were played in one process, a turn on each in turn, so both saw the same load. The machine was loaded by other runs, so read the change, not the figure.
+
+Two designs were measured and dropped:
+
+- **A stamp for every card on every decision.** The draft plan alone prices the whole shelf, forty or more cards a seat, and a stamp costs 3 to 35 ms at turn 100. That was 4.4 s a turn for seed 999 at turn 100, more than the whole turn.
+- **Stamps in every chair arm, every turn.** Seed 999, turns 111 to 120: 1.25 s a turn became 3.52 s. The re-seat arm stamped every held card each turn, 30 to 50 stamps for a seat of 19 towns, at about 20 ms each.
+
+### Pins at BP3
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `3f51010e:815245` | `0ff7b045:839485` | `96af7c06:864179` | `4b0a867a:922428` | `9cf5d91c:988430` | `1ff9ccb6:1076099` |
+| Two decks, seed 42 | `13c84b0d:816820` | `471755fd:833668` | `6b57650d:855656` | `ac4db8a1:887694` | `5f52146b:946936` | `de277fa3:1012049` |
+
+At turn 130 the two games are `92c372b2:1097639` and `b64a3718:1065413`. `test/sim/aiDigest.slow.test.ts` pins duel `8daf613b:326673` and standard `35a1f543:1051740`. Before the batch, the untouched tree gave the BPS pins above at every turn and both digest pins.
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **A count of the empire's own yield, asked in every town.** Bills of Exchange counts the empire's gold a turn (`count: 'empireYield'`) on a line each town reads, and each ask folds the whole empire again (`countOf`), so a reading of that seat costs the square of its towns. It slows that seat's stamps about four times. A memo scoped to one pure reading of the empire would remove it; that is a change in the sim's readings, so it is left for a speed batch.
+- **The re-seat arm and the chair fill are most of the cost** (about 9% of a late turn on seed 999). Looking once in two seals' lengths would halve the re-seat part; seating by the walk would remove it and part the seat logic from the draft.
+- **The pool estimates still walk.** The culture price (the draft plan's best card) and the pass still read percentages at the nominal helping (fault B3).
+- **The growth of a counted percentage** is priced at the nominal helping, as before.
+- **Follower and enhancer beliefs and governments are not stamped.** The first is fault B7 (bot batch BP5); a government's stamp is the whole adoption, which `adoptionTable` prices as two terms.
+
+### Checks
+
+- `test/sim/aiCardStamp.test.ts` (new, core): the bot's stamp equals the sim's stamp for every card on offer on a played board; a stamped card is its stamp and what the books cannot show; an engine in a full council takes a chair of its own; a Boon, a charter, a government and a follower belief are walked; a stamp is re-read after a write.
+- `test/sim/aiCardStamp.slow.test.ts` (new, slow): the digest's six seats on the duel board, all six decks, positions at turns 40, 80 and 120. It checks that the bot's stamp equals `explainCardImpact`'s fold for every card it stamps; that a card of lines the books show, with no promise, is priced at its stamp; that each effect read as unseen, lent alone to its card's row, leaves the books where they were; and that each shape read as on the books moves them on some card. Each of three broken versions failed it: percentages read as unseen (check 3), combat lines read as on the books (check 4), and the books read without the happiness meter (check 1).
+- A scratch run of the same checks on eleven more positions (both seeds, both trees, turns 40 to 120): 9,000 stamps, no difference from the sim's stamp, no unseen effect with a footprint.

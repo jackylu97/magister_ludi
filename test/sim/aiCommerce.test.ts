@@ -37,7 +37,7 @@ import { type ValueTerm, appraise, foldTerms } from '../../src/ai/decision';
 import { counterTerms } from '../../src/ai/diplomacy';
 import {
   type ValueContext,
-  deckMargin,
+  explainCardStamp,
   explainCommission,
   explainCountStep,
   explainCounted,
@@ -588,12 +588,12 @@ describe('the luxury cards read by the books', () => {
     const { state, player } = board([6]);
     const theirs = rivalTown(state, 6);
     giveLuxury(state, theirs, 26, 4, 'wine');
-    expect(deckMargin(valueContext(state, player), CAPITULATIONS)?.total ?? 0).toBe(0);
+    expect(explainCardStamp(valueContext(state, player), CAPITULATIONS)?.total ?? 0).toBe(0);
     expect(scoreEffects(effectsOf(CAPITULATIONS), valueContext(state, player))).toBe(0);
     theirs.posts = [{ by: 0, since: state.turn - 20 }];
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    expect(deckMargin(ctx, CAPITULATIONS)!.total).toBeGreaterThan(0);
+    expect(explainCardStamp(ctx, CAPITULATIONS)!.total).toBeGreaterThan(0);
     // The plain walk, for a row the margin has no pair for: one kind lent at
     // the loan's share of a luxury's happiness.
     const share = RULES.trade.importedLuxuryPercent / 100;

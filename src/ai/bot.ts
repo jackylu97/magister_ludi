@@ -597,7 +597,8 @@ export function valueContext(
     // **prior**, like every other row of the book — a hand priced at the culture
     // price it is itself about to set would be the fixed point batch 1 refused.
     cultureRate: rates.culturePerTurn ?? 0,
-    cardWorth: (id) => explainCard(player, id, staked),
+    // A whole pool, so walked rather than stamped (bot batch BP3, `CardReading`).
+    cardWorth: (id) => explainCard(player, id, staked, 'walk'),
     // **The levy the faith book charges a bought soldier against** (batch X3),
     // read at the prior for `soldierWorth`'s reason: the book is what sets the
     // live price, so every row in it is appraised before that price exists.

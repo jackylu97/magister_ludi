@@ -43,7 +43,7 @@ export type YieldBag = Partial<Record<Voice, number>>;
  *
  * The lifetime is the sitting. A context is one seat's book for one decision, and
  * every reading kept on it was read off the board as it stood when the context was
- * built (`MARGIN_MEMO`, `value.ts`). A kept value would be wrong only if a caller
+ * built (`SCOPE_MEMO`, `scopeReach.ts`). A kept value would be wrong only if a caller
  * kept the context past a change to the board, and an arm that needs a later board
  * builds a new context. The `WeakMap` lets the value go with the context.
  *

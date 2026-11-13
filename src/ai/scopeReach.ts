@@ -69,7 +69,7 @@ function townHoldingOn(copies: Map<number, City>, city: City, id: BuildingId): C
 /**
  * **What one sitting has already worked out about a scope.**
  *
- * `MARGIN_MEMO`'s bargain exactly (see it in `value.ts`): keyed weakly on the `ValueContext`,
+ * Keyed weakly on the `ValueContext` (`onContext`, `prices.ts`),
  * which is one seat's book for one decision, and inside that on **the scope
  * object itself** — a `CityScope` in a data row is parsed once at load and every
  * appraisal of that row hands the same object back, so identity is the row's own
@@ -349,7 +349,11 @@ export function realmTownsAdmitting(ctx: ValueContext, scope?: CityScope): numbe
   // The wonder idiom, and the one promise a realm can keep — see above. A realm
   // whose chains promise less than a whole town still reads the one town that
   // would raise the row, so the idiom is a floor rather than a fallback.
-  if (towns < 1 && scopePromisesABuilding(scope)) towns = Math.min(1, citiesOf(ctx.state, ctx.playerId).length);
+  // Not on a context that reads the board as it is today (bot batch BP3,
+  // `ValueContext.today`): that context counts no promise at all.
+  if (towns < 1 && ctx.today !== true && scopePromisesABuilding(scope)) {
+    towns = Math.min(1, citiesOf(ctx.state, ctx.playerId).length);
+  }
   memo.set(scope, towns);
   return towns;
 }
@@ -481,7 +485,9 @@ export function groundOfHexLine(
     }
   }
   if (admitted > 0) return { hexes: onAdmitted, over: 1 };
-  return towns.length === 0 || !scopePromisesABuilding(effect.scope)
+  // A context that reads the board as it is today counts no promise (bot batch
+  // BP3, `ValueContext.today`).
+  return towns.length === 0 || ctx.today === true || !scopePromisesABuilding(effect.scope)
     ? { hexes: [], over: 1 }
     : { hexes: everywhere, over: towns.length };
 }

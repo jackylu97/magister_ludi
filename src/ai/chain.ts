@@ -947,7 +947,7 @@ interface NodeGifts {
  * folded once and every goal that passes through multiplies them by a different
  * `delayTerm`.
  *
- * `MARGIN_MEMO`'s bargain exactly (`value.ts`), and its lifetime for its reason:
+ * `SCOPE_MEMO`'s bargain exactly (`scopeReach.ts`), and its lifetime for its reason:
  * keyed weakly on the `ValueContext`, which is one seat's sitting, and every
  * reading below is a function of that context and the board it was opened on. A
  * new context is a new opinion about a new board and gets a fresh table. The

@@ -37,7 +37,10 @@ import {
 } from './decision';
 import { delayTerm } from './prices';
 import {
+  type CardReading,
   type ValueContext,
+  // Bot batch BP3: the chair a stamped Order is read in on its stamp's board.
+  cardStampChair,
   explainCardEffects,
   onDraftWorth,
   // Batch DT11: what a card already pays with no chair, under Scutage.
@@ -212,15 +215,21 @@ function slotPairTerms(
 ): ValueTerm[] {
   const scarcity = Math.max(1, fits);
   const terms: ValueTerm[] = [nest('what the card is worth', explainCard(player, cardId, ctx))];
-  const benched = orderPaysOffItsChair(cardId, ctx);
+  // **A stamped card is read in a chair already** (bot batch BP3): its stamp is
+  // the books with it seated against the books with it held and not seated. So
+  // what it pays with no chair under Scutage is already out of that figure, and
+  // the chair it is read in is the one its stamp put it in.
+  const stampChair = cardStampChair(ctx, cardId);
+  const benched = stampChair === null ? orderPaysOffItsChair(cardId, ctx) : 0;
   if (benched !== 0) terms.push({ label: 'what it pays with no chair', value: -benched });
   terms.push({
     label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
     value: scarcity,
     op: 'div',
   });
-  const again = chairReadingsAt(ctx.state, player.id, slot) - 1;
-  if (again > 0) {
+  const readsNow = stampChair === null ? 1 : chairReadingsAt(ctx.state, player.id, stampChair);
+  const again = chairReadingsAt(ctx.state, player.id, slot) - readsNow;
+  if (again !== 0) {
     terms.push({ label: 'what this chair reads again', value: again * orderReadAgain(cardId, ctx) });
   }
   return terms;
@@ -272,6 +281,15 @@ function slotPairTerms(
  * would seat in the same chairs. A bench card takes its chair only when it is
  * worth more than that, so the bot does not lose the cards only the wide fit
  * seated for a card worth less than they are.
+ *
+ * **The swap is looked for once a seal's length, not every turn** (bot batch
+ * BP3). Every card here is priced by its stamp, one sweep of the empire's towns
+ * a card, and a seat holding thirty cards would pay thirty sweeps a turn to learn
+ * on most turns that nothing beats what sits. A card seated now cannot leave its
+ * chair for a seal's length anyway, so the arrangement is looked at on one turn
+ * in each seal's length, a different turn for each seat (`isReseatTurn`). A chair
+ * left empty is filled on any turn (`slottingDecision`), and so is a chair that
+ * counts twice (`moveToCountedChair`).
  */
 export function reslotDecision(
   state: GameState,
@@ -292,6 +310,7 @@ export function reslotDecision(
     fits.set(type, seatable.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
+  if (!isReseatTurn(state, player)) return moveToCountedChair(state, player, ctx, layout, fits, rows);
   let best: { cardId: OrderId; slot: number; row: number; gain: number } | null = null;
 
   for (let slot = 0; slot < layout.length; slot++) {
@@ -309,6 +328,23 @@ export function reslotDecision(
       });
       continue;
     }
+    // The fit the bench card is held to once this chair is empty, which is
+    // narrower when the card leaving is the one that widened it (MG12).
+    const fitHere = chairFitWithout(state, player.id, slot);
+    const challengers = seatable.filter((ownedId) => !isSlotted(sc, ownedId) && fitHere(ownedId, type));
+    // **A chair no bench card fits is not priced** (bot batch BP3): nothing could
+    // take it, so the seated card's price would decide nothing, and a price is
+    // a stamp, one sweep of the empire's towns.
+    if (challengers.length === 0) {
+      rows.push({
+        label: `${cardName(seated.card)} keeps slot ${slot + 1} (${SLOT_WORDS[type]})`,
+        score: 0,
+        chosen: false,
+        terms: [],
+        rejected: 'no card on the bench fits this chair',
+      });
+      continue;
+    }
     const sittingTerms = slotPairTerms(player, ctx, seated.card, slot, type, fits.get(type) ?? 1);
     const sittingScore = foldTerms(sittingTerms);
     rows.push({
@@ -317,12 +353,7 @@ export function reslotDecision(
       chosen: false,
       terms: sittingTerms,
     });
-    // The fit the bench card is held to once this chair is empty, which is
-    // narrower when the card leaving is the one that widened it (MG12).
-    const fitHere = chairFitWithout(state, player.id, slot);
-    for (const ownedId of seatable) {
-      if (isSlotted(sc, ownedId)) continue;
-      if (!fitHere(ownedId, type)) continue;
+    for (const ownedId of challengers) {
       const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
       const score = foldTerms(terms);
       rows.push({
@@ -427,6 +458,19 @@ function moveToCountedChair(
 function seatableOrders(player: Player): OrderId[] {
   const sc = player.statecraft;
   return sc.orders.filter((id) => neverSeatedError(sc, id) === null);
+}
+
+/**
+ * **Is this the seat's turn to look for a better arrangement?** One turn in each
+ * seal's length (`sealTurnsFor`), offset by the seat's id so the six seats do not
+ * all look on the same turn. Derived from the turn and nothing stored, as
+ * `sealedThisTurn` is. A council with no seal looks every turn. See
+ * `reslotDecision`.
+ */
+function isReseatTurn(state: GameState, player: Player): boolean {
+  const every = sealTurnsFor(state, player.id);
+  if (every <= 1) return true;
+  return (state.turn + player.id) % every === 0;
 }
 
 /**
@@ -666,7 +710,8 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   const score = (id: OrderId): number => {
     const held = scored.get(id);
     if (held !== undefined) return held;
-    const fresh = scoreCard(player, id, ctx);
+    // A whole pool, so walked rather than stamped (bot batch BP3, `CardReading`).
+    const fresh = scoreCard(player, id, ctx, 'walk');
     scored.set(id, fresh);
     return fresh;
   };
@@ -951,16 +996,31 @@ function pickCard(
  * the draw itself deals from, and a bot that took the dominion card because it
  * already holds four dominion cards is the same bot with an identity the old
  * term was reaching for. Same knob, same weight (`score.synergyBonus`), one
- * cheaper reading. Deferred, as before: the successor is a real valuation of
- * what the card would pay *this* empire on *this* board, which needs the
- * evaluators in `statecraft.ts` to answer hypothetically.
+ * cheaper reading.
+ *
+ * **What the card would pay this empire on this board** is no longer deferred
+ * (bot batch BP3): the effects term is the card's stamp, the sim's own reading of
+ * the empire's books with the card in place, plus what a stamp cannot see
+ * (`explainCardEffects`, `CardReading`).
  */
-export function scoreCard(player: Player, id: CardId, ctx: ValueContext): number {
-  return explainCard(player, id, ctx).total;
+export function scoreCard(
+  player: Player,
+  id: CardId,
+  ctx: ValueContext,
+  reading: CardReading = 'stamp',
+): number {
+  return explainCard(player, id, ctx, reading).total;
 }
 
-/** `scoreCard`'s arithmetic, labelled. See `decision.ts`. */
-export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
+/**
+ * `scoreCard`'s arithmetic, labelled. See `decision.ts`.
+ *
+ * **Stamped unless a caller says otherwise** (bot batch BP3): an offer, a chair
+ * and a council are decisions about this card, and the bot takes the card's
+ * stamp as its pay now (`explainCardEffects`). A caller that prices a whole pool
+ * asks for the walk (`CardReading`).
+ */
+export function explainCard(player: Player, id: CardId, ctx: ValueContext, reading: CardReading = 'stamp') {
   const def = anyCardDef(id);
   // The card is handed to the reader, not only its effects: a growing card's
   // count is a fact about *this holding* (`CountKind`'s `tally`), so an
@@ -971,7 +1031,7 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   // deck or on the shelves is priced by the difference the board itself reads
   // (`V(deck ∪ card) − V(deck)`), and every other row by the same walk as ever.
   const terms: ValueTerm[] = [
-    nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx)),
+    nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx, reading)),
   ];
   // What drafting it hands over (Dominion batch D5): a card whose whole text
   // is a unit on the draft has no effects to price. A card the seat already

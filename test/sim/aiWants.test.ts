@@ -45,7 +45,7 @@ import { createBotStepper } from '../../src/ai/stepper';
 import { type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { incumbentGoal, racePays, raceTerm } from '../../src/ai/chain';
 import {
-  deckMargin,
+  explainCardStamp,
   explainBuildingRow,
   explainCardEffects,
   explainEffects,
@@ -94,7 +94,7 @@ import {
   riteError,
 } from '../../src/sim/religion';
 import { improvementForResource, improvementYield, workForFamily } from '../../src/sim/improvementData';
-import { eligibleFor, expectedHandBags, slotTypesOf } from '../../src/sim/statecraft';
+import { eligibleFor, expectedHandBags, sealTurnsFor, slotTypesOf } from '../../src/sim/statecraft';
 import { stockStandardDecks } from './statecraftHelpers';
 import { CONFIG, partFoldFailures } from './aiWantsHelpers';
 
@@ -1718,10 +1718,19 @@ describe('batch 8 — the arrangement, improved once a turn', () => {
     return [ranked[0]!, ranked[ranked.length - 1]!];
   }
 
+  /**
+   * **The turns one look takes** (bot batch BP3): the arrangement is looked at
+   * once a seal's length, a different turn for each seat (`reslotDecision`), so a
+   * seal's length of turns holds exactly one look for every seat.
+   */
+  function sealLength(): number {
+    return sealTurnsFor(createGame(CONFIG).state, 0);
+  }
+
   it('swaps the better card in exactly once, and stays silent the other way round', () => {
     const [a, b] = twoThatFit();
-    const forward = playArrangement(a, b, 1);
-    const backward = playArrangement(b, a, 1);
+    const forward = playArrangement(a, b, sealLength());
+    const backward = playArrangement(b, a, sealLength());
     // One of the two arrangements is the wrong way round and exactly one is.
     expect(forward.length + backward.length).toBe(1);
     const moved = forward.length === 1 ? forward[0]! : backward[0]!;
@@ -1741,8 +1750,8 @@ describe('batch 8 — the arrangement, improved once a turn', () => {
     // that moved in is sealed (the gate refuses), and the card that came out is
     // not strictly better than the one that displaced it (the fold refuses).
     const [a, b] = twoThatFit();
-    const forward = playArrangement(a, b, 2);
-    const backward = playArrangement(b, a, 2);
+    const forward = playArrangement(a, b, 2 * sealLength());
+    const backward = playArrangement(b, a, 2 * sealLength());
     expect(forward.length + backward.length).toBe(1);
   });
 });
@@ -2092,7 +2101,7 @@ describe('the marginal draft reading', () => {
     // and the food amplifier offered into an empty wildcard chair.
     const { state, player } = deckBench(['terracedHillsides'] as OrderId[]);
     const ctx = valueContext(state, player);
-    const margin = deckMargin(ctx, 'theHarvestHome' as never)!;
+    const margin = explainCardStamp(ctx, 'theHarvestHome' as never)!;
     expect(margin).not.toBeNull();
 
     // Now play the card for real — the same chair the reading chose, which is the
@@ -2165,7 +2174,7 @@ describe('the marginal draft reading', () => {
       refreshCityDerived(bare.state, city);
     }
     const empty = valueContext(bare.state, bare.player);
-    expect(deckMargin(empty, engine)!.total).toBe(0);
+    expect(explainCardStamp(empty, engine)!.total).toBe(0);
     const bareEngine = explainCard(bare.player, engine, empty).total;
     for (const flat of flats) {
       expect(bareEngine, flat).toBeLessThan(explainCard(bare.player, flat, empty).total);
@@ -2176,7 +2185,7 @@ describe('the marginal draft reading', () => {
     const shelves = ['library', 'granary', 'monument'] as const;
     const bare = deckBench([]);
     const without = valueContext(bare.state, bare.player);
-    expect(deckMargin(without, 'theScriveners' as never)!.total).toBe(0);
+    expect(explainCardStamp(without, 'theScriveners' as never)!.total).toBe(0);
 
     const stocked = deckBench([]);
     for (const city of stocked.state.cities) {
@@ -2185,7 +2194,7 @@ describe('the marginal draft reading', () => {
       refreshCityDerived(stocked.state, city);
     }
     const with_ = valueContext(stocked.state, stocked.player);
-    const margin = deckMargin(with_, 'theScriveners' as never)!;
+    const margin = explainCardStamp(with_, 'theScriveners' as never)!;
     // Half of what the science shelves pay, through the town's own staged fold —
     // and it is a *reading*, so it folds out of its own printed terms exactly.
     expect(margin.total).toBeGreaterThan(0);
@@ -2262,7 +2271,7 @@ describe('the marginal draft reading', () => {
     // swapped out of its chair for anything at all.
     const { state, player } = deckBench(['terracedHillsides', 'theHarvestHome'] as OrderId[]);
     const ctx = valueContext(state, player);
-    const seated = deckMargin(ctx, 'theHarvestHome' as never)!;
+    const seated = explainCardStamp(ctx, 'theHarvestHome' as never)!;
     expect(seated.total).toBeGreaterThan(0);
   });
 

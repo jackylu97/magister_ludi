@@ -1533,9 +1533,9 @@ export interface AiConfig {
      *
      *   · The Return Leg (`homeRoutesPayOrigin`) is what the seat's home
      *     routes pay their destinations, read off the route fold;
-     *   · The Commenda and The Capitulations are read by the marginal reading
-     *     (`deckMargin`), the seat's books with the card and without it, as
-     *     The Casa da Índia is;
+     *   · The Commenda and The Capitulations are read by the card's stamp
+     *     (`explainCardStamp`), the seat's books with the card and without it,
+     *     as The Casa da Índia is;
      *   · The Art Dealers' moment (`cardDrafted`) comes at the seat's pace of
      *     drafting: its culture a turn over the price of its next draft;
      *   · Land Speculation's rider pays a share of what the seat's hex wants

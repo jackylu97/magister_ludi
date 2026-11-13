@@ -119,7 +119,7 @@ import { atWarWithAnybody, fieldSoldiersOf, garrisonAt, garrisonOwed } from './c
 // The town's and the empire's published readings, remembered on
 // the economy clock. The bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do. See `readings.ts`.
-import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
+import { readCity, readEmpire } from '../sim/readings';
 import {
   buildingProductionCost,
   bestOfClassFor,
@@ -129,7 +129,6 @@ import {
   channelSurplus,
   cityResources,
   controlledResources,
-  emptyCityYields,
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
@@ -154,12 +153,6 @@ import { foldCity } from '../sim/yields/town';
 // handed the hex's own fold, and the fold is the town's — see
 // `workedHexesAdmitting`.
 import { cityContext, foldTile, yieldContextFor } from '../sim/yields/hex';
-import {
-  explainEmpireCardYields,
-  explainEmpireIncomeShares,
-  foldEmpireLines,
-  stageEmpireFold,
-} from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
 import {
   type Tile,
@@ -237,7 +230,19 @@ import {
   riteCostFor,
   ritesDisplacedBy,
 } from '../sim/religion';
-import { LIVE_RITE_IDS, type ReligionBeliefPool, type RiteId, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
+import {
+  LIVE_RITE_IDS,
+  type ReligionBeliefPool,
+  type RiteId,
+  beliefDef,
+  beliefPoolOf,
+  isBeliefId,
+  riteDef,
+} from '../sim/religionData';
+// Bot batch BP3: a card is priced on its stamp's own two boards, and the books
+// read on them are remembered on the economy clock.
+import { type CardImpactSubject, cardImpactWorlds } from '../sim/cardImpact';
+import { slateMemo } from '../sim/slate';
 // Devotion batch DV9: a faith purchase's price and gate, asked as the want book
 // asks them, so the bot and the bank agree about what faith may buy.
 import { explainPurchaseCost, purchaseGate } from '../sim/purchase';
@@ -288,7 +293,6 @@ import {
 import {
   chairFitFor,
   chairFitWithout,
-  ghostSeatUnderDoctrine,
   maliceAt,
   neverSeatedError,
 } from '../sim/statecraft/council';
@@ -306,6 +310,9 @@ import {
   oneOfAKind,
   tradePartnerSeats,
   surplusRowReaches,
+  // Bot batch BP3: a growth rule's surplus that a card moves into production is
+  // on the books, so the stamp holds it.
+  surplusMoverFor,
   townBuildings,
   townHoldsBuilding,
   townShelf,
@@ -798,6 +805,18 @@ export interface ValueContext {
    * standing per appraisal.
    */
   wager: WagerLean | null;
+  /**
+   * **Read the board as it is today, with no promise** (bot batch BP3). Set only
+   * on the copy `todayContext` makes, which also has no tech chains. Under it the
+   * readings that would count a shelf, a town or a count still to come count
+   * nothing for them: the chains' promised buildings, a wonder's town, the
+   * potential half of a counted line, a stand-in for cards held later.
+   *
+   * Its one use is to split the walk of an effect the books already show into
+   * the part a card's stamp holds and the growth the bot still prices
+   * (`beyondTheStamp`). Absent everywhere else, so no other reading moves.
+   */
+  today?: true;
 }
 
 // The prices that every reading below is built on live in `prices.ts`.
@@ -2456,12 +2475,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // channel computes it, into production. Priced as that production less
       // the food it no longer stores, so a seat that wants growth more than
       // hammers prices the card below nothing.
-      let moved = 0;
-      for (const city of citiesOf(ctx.state, ctx.playerId)) {
-        if (!surplusRowReaches(ctx.state, city, effect, city.queue[0])) continue;
-        moved += Math.max(0, channelSurplus(ctx.state, city));
-      }
-      return moved * (voiceWeight(ctx, 'production') - voiceWeight(ctx, 'food'));
+      return surplusMoved(effect, ctx) * (voiceWeight(ctx, 'production') - voiceWeight(ctx, 'food'));
     }
     case 'harvest': {
       // **What the army abroad would bring home each turn** (Dominion batch D7,
@@ -4047,8 +4061,11 @@ function scoreMeterRule(
       // The Sovereign Writ (Expansionist batch E5): the writ's bonus past its
       // top rung. What that is worth is the authority this empire would hold
       // past ten points, which is the plan's arithmetic and not a card's. The
-      // stand-in, named.
-      return ctx.ai.score.unknownEffect;
+      // stand-in, named. It is a promise while the writ is under its top rung, so
+      // a context that reads the board as it is today leaves it out (bot batch
+      // BP3, `ValueContext.today`); the card's stamp holds the bonus past the
+      // rung when there is one.
+      return ctx.today === true ? 0 : ctx.ai.score.unknownEffect;
     default:
       return unreadMeterRule(rule, ctx);
   }
@@ -4288,18 +4305,26 @@ function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
   return voiceWeight(ctx, effect.pays as Voice) * figure;
 }
 
-// --- the marginal reading: what a card does to the deck it would join --------
+// --- the stamp's books: what a card changes about a turn ---------------------
 
 /**
  * **The whole of what this empire makes in a turn**, in the nine channels an
  * appraisal in this file knows how to weigh — batch F2's `V`
  * (`docs/fewer-things-plan.md`, row F2).
  *
- * Six of them are the simulation's own per-turn books (`foldEmpireRates`, the
- * same fold the top bar prints and the resolution banks), and the other three are
- * the standing readings the card arms already weigh: what the empire earns in
- * renown a turn, and where its two meters stand. Nothing is estimated and no
- * stand-in appears anywhere in it — this is the board's own answer.
+ * Six of them are the empire's own per-turn books: every town's total plus the
+ * fold of the empire's own lines (`readEmpire`, the headline the top bar prints
+ * and the turn banks). The other three are the standing readings the card arms
+ * already weigh: what the empire earns in renown a turn, and where its two meters
+ * stand. Nothing is estimated and no stand-in appears anywhere in it.
+ *
+ * **The headline, not the base rate** (bot batch BP3). This read
+ * `foldEmpireRates` and added the cards' empire lines to it, staged on their own.
+ * The stage floors once over the whole fold, so two halves staged apart could
+ * part from the turn's books by a coin or a beaker, and the bot's price of a card
+ * then parted from the card's stamp. The headline is the very sum
+ * `explainCardImpact` folds, so the two now agree to the last digit
+ * (`test/sim/aiCardStamp.slow.test.ts`).
  */
 interface DeckReading {
   food: number;
@@ -4313,73 +4338,20 @@ interface DeckReading {
   authority: number;
 }
 
-/** The nine channels, read off one board. Five empire sweeps; see `deckMargin`. */
+/** The nine channels, read off one board. See `stampReadingOf`. */
 function deckReading(state: GameState, playerId: number): DeckReading {
-  const rates = marginRates(state, playerId);
+  const books = readEmpire(state, playerId).totals;
   return {
-    food: rates.food,
-    production: rates.production,
-    gold: rates.gold,
-    science: rates.science,
-    culture: rates.culture,
-    faith: rates.faith,
+    food: books.food,
+    production: books.production,
+    gold: books.gold,
+    science: books.science,
+    culture: books.culture,
+    faith: books.faith,
     renown: renownPerTurn(state, playerId),
     happiness: happinessOf(state, playerId),
     authority: authorityOf(state, playerId),
   };
-}
-
-/**
- * **The whole of what an empire banks in a turn, for the margin** — batch H2's
- * answer to the audit's finding 5.
- *
- * `foldEmpireRates` is the **base** reading by construction: it is the input a
- * `pays` rate is handed, so it stops one line short of the truth and must —
- * the empire-scale card lines are computed *from* it, and folding them back in
- * would be a card feeding itself. The sender's foreign routes and the treasury's
- * own four lines are already in it (`foldEmpireRates`, `cities.ts`), so the one thing
- * missing from `V` is `explainEmpireCardYields`.
- *
- * That one omission was the whole of the margin's hole: the founder trickle, The
- * Great Litany's culture, every empire-scoped `pays` count payout. (Apostles was
- * the built case until batch B1, an amplifier on a trickle that pays
- * `where: 'empire'`, and its margin read exactly zero.)
- *
- * It is a reading built **here** rather than a term added to `foldEmpireRates`,
- * deliberately: that function has one meaning in the simulation (*the base rate a
- * conversion reads*) and a bot that wanted a different question asks a different
- * question. Batch H1 is in `cities.ts` at the same time; if the base reading ever
- * grows these terms of its own, this function collapses to it.
- */
-function marginRates(state: GameState, playerId: number): Record<Voice, number> {
-  const rates = readEmpireRates(state, playerId);
-  const reading: Record<Voice, number> = {
-    food: rates.foodPerTurn ?? 0,
-    production: rates.productionPerTurn ?? 0,
-    gold: rates.goldPerTurn ?? 0,
-    science: rates.sciencePerTurn ?? 0,
-    culture: rates.culturePerTurn ?? 0,
-    faith: rates.faithPerTurn ?? 0,
-  };
-  // **Staged, as the resolution banks them** (batch H19, the empire stage
-  // ruling): an empire's additive lines fold before its meters multiply them, so
-  // a card paying three beakers into a realm ten points up is banking 3.3 and a
-  // margin reading the row's own figure would price the deck's whole empire half
-  // low. `stageEmpireFold` is the simulation's one multiplication, asked here of
-  // the cards' fold alone because the base reading above already carries the
-  // standing half of it — staging is linear, so the two halves staged apart sum
-  // to the fold `collectYields` banks.
-  const cards = emptyCityYields();
-  for (const line of explainEmpireCardYields(state, playerId)) {
-    for (const voice of VOICES) cards[voice] += line[voice];
-  }
-  const staged = stageEmpireFold(cards, readEmpirePercents(state, playerId));
-  for (const voice of VOICES) reading[voice] += staged[voice];
-  // The base reading carries the law's share of its half, and this is the share of
-  // the cards' half (batch DT19c, The Contented City).
-  const shares = foldEmpireLines(explainEmpireIncomeShares(state, playerId, cards));
-  for (const voice of VOICES) reading[voice] += shares[voice];
-  return reading;
 }
 
 /**
@@ -4422,71 +4394,109 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
 }
 
 /**
- * **The two boards a margin is the difference of** — this empire with the card in
- * its deck, and the same empire without it — or `null` when there is no honest
- * pair to read.
+ * **Which card this is to the stamp**, or `null` for a card the bot does not
+ * stamp (bot batch BP3, `docs/flags.md` (ooooooo), the B8 ruling).
  *
- * The pair is taken from whichever side the empire is actually standing on, which
- * is what makes the reading the same question for a card in a chair and a card on
- * the table:
+ * Three classes are stamped:
  *
- *   · a card **not** held is placed, and `without` is the board as it stands;
- *   · a card **already slotted** has its chair emptied instead, and `with` is the
- *     board as it stands. That is not a nicety: the arm that improves an
- *     arrangement (`reslotDecision`, `council.ts`) appraises the sitting card
- *     against the challenger in one table, and a sitting card that answered
- *     "nothing, because it is already played" would be swapped out of its chair
- *     for anything at all.
+ *   · an **Order** that may take a chair. A Boon, a charter and a commission
+ *     already met never sit (`neverSeatedError`, the card half of the slot
+ *     command's gate), so a stamp that seated one would read a council the
+ *     game can never hold. The ruling keeps the bot's own reading for them;
+ *   · a **Doctrine**, held for the rest of the game on the ghost the command
+ *     would leave (`ghostSeatUnderDoctrine`);
+ *   · a **pantheon god**, which is the seat's own.
  *
- * Both scratch boards are **shallow** clones, and every layer of them is shared
- * but the one that changes: the players array, the one player, its
- * `PlayerStatecraft`, and the slots. That is safe because every reading
- * `deckReading` takes is a pure fold — `foldCity`, `explainEmpireGold`,
- * `explainRenown` and the two meters mutate nothing — and it is what makes the
- * marginal reading affordable at all. The evaluator's own memo (`liveReading`,
- * `statecraft.ts`) is a `WeakMap` on the **state object**, so a scratch board is
- * a key of its own: it builds its list once, answers off it, and is collected
- * with it, and no reading of it can reach the real board's slate.
- *
- * **Which chair the card would take** is the placement the bot itself would make
- * (`slottingDecision`, `council.ts`): the first empty chair whose flavour admits it,
- * and — when every chair that admits it is full — the chair of the worst card it
- * would have to bench, which is `replacementCost`'s reading in `wants.ts` said
- * about a *fitting* chair rather than about the whole government. A card no chair
- * admits is a card this empire cannot play, and the pair is `null`.
- *
- * A **Doctrine** is not slotted at all: it is adopted, and `liveEffects` reads it
- * off `PlayerStatecraft.doctrines`, so the scratch simply holds one more. Beliefs,
- * technologies and every other card class answer `null` — the hypothetical would
- * be a different verb each time, and none of them carries an engine shape today.
+ * A follower or enhancer belief is not stamped: it pays in the towns that
+ * follow the faith, and which towns the price should read is the open fault B7
+ * (bot batch BP5). A government is not stamped either: its stamp is the whole
+ * adoption, the council re-seated with it, and `adoptionTable` (`council.ts`)
+ * prices the signature and the new chairs as two terms of its own.
  */
-function deckPair(
-  state: GameState,
-  playerId: number,
-  id: CardId,
-): { with: GameState; without: GameState } | null {
-  const sc = statecraftOf(state, playerId);
-  const player = playerById(state, playerId);
-  if (sc === undefined || player === undefined) return null;
-  if (isDoctrineId(id)) {
-    // The ghost the card stamp prices a Doctrine on too (`ghostSeatUnderDoctrine`),
-    // with the chairs the command would leave and the malices in them.
-    const ghost = ghostSeatUnderDoctrine(player, id, state.turn);
-    const board = rewritten(state, playerId, ghost.seat.statecraft, ghost.seat.malices);
-    return ghost.side === 'with' ? { with: board, without: state } : { with: state, without: board };
+function stampSubject(id: CardId, ctx: ValueContext): CardImpactSubject | null {
+  if (isOrderId(id)) {
+    const sc = statecraftOf(ctx.state, ctx.playerId);
+    if (sc === undefined || neverSeatedError(sc, id) !== null) return null;
+    return { kind: 'order', id };
   }
-  if (!isOrderId(id)) return null;
-  const seated = sc.slots.findIndex((slot) => slot !== null && slot.card === id);
-  if (seated >= 0) {
-    const slots = [...sc.slots];
-    slots[seated] = null;
-    return { with: state, without: rewritten(state, playerId, { ...sc, slots }) };
-  }
-  const chair = chairFor(sc, id, chairFitFor(state, playerId));
-  if (chair === null) return null;
-  const slots = [...sc.slots];
-  slots[chair] = { card: id, sealedUntil: state.turn };
-  return { with: rewritten(state, playerId, { ...sc, slots }), without: state };
+  if (isDoctrineId(id)) return { kind: 'doctrine', id };
+  if (isBeliefId(id) && beliefPoolOf(id) === null) return { kind: 'belief', id };
+  return null;
+}
+
+/**
+ * The empire's books on the two boards of one card's stamp, and the chair an
+ * Order takes there. See `explainCardStamp`.
+ */
+interface StampReading {
+  before: DeckReading;
+  after: DeckReading;
+  chair?: number;
+}
+
+/**
+ * **The books on the stamp's two boards**, remembered on the economy clock.
+ *
+ * The two boards are the simulation's own (`cardImpactWorlds`, `cardImpact.ts`):
+ * the card in the first empty chair that fits it, or in a chair added at the end
+ * of the council, and never in the chair of a card it would push out (fault B4
+ * of the audit). A seated card is read the other way round, with its chair
+ * emptied and the council re-seated as the unslot command would leave it.
+ *
+ * **Why the economy clock cannot go stale here.** Each board is `state` itself
+ * or a shallow copy of it with one seat's council, pantheon or Doctrines changed.
+ * So both readings are functions of what `state` holds, and of nothing else:
+ * the towns, the ground, the law, the banks and the pieces that the slate's
+ * tenants fold. Every write to any of that moves the economy clock where it
+ * happens, and every command that changes a council or a pantheon is an
+ * economy command (`COMMAND_CLOCKS`, `commands.ts`). A reading taken under one
+ * stamp of that clock is therefore the reading any later ask under the same
+ * stamp would take. The shadow check (`setSlateShadow`) recomputes every hit
+ * and fails on a difference; `test/sim/aiCardStamp.test.ts` runs a bot game
+ * under it.
+ *
+ * The weights are not in the memo. A reading is weighed by the context that
+ * asks for it, so the want book's prior and the seat's live prices share one
+ * reading of the boards.
+ */
+function stampReadingOf(ctx: ValueContext, id: CardId): StampReading | null {
+  const subject = stampSubject(id, ctx);
+  if (subject === null) return null;
+  const state = ctx.state;
+  const playerId = ctx.playerId;
+  return slateMemo(state, 'economy', 'botCardStamp', `${playerId}:${id}`, () => {
+    const worlds = cardImpactWorlds(state, playerId, subject);
+    if (worlds === null) return null;
+    const reading: StampReading = {
+      before: booksOf(worlds.without, state, playerId),
+      after: booksOf(worlds.with, state, playerId),
+    };
+    if (worlds.chair !== undefined) reading.chair = worlds.chair;
+    return reading;
+  });
+}
+
+/**
+ * The nine channels of one board. The real board's are remembered on the
+ * economy clock, because every stamp on it reads them; a ghost board is read
+ * once and dropped with the stamp that built it.
+ */
+function booksOf(board: GameState, real: GameState, playerId: number): DeckReading {
+  if (board !== real) return deckReading(board, playerId);
+  return slateMemo(real, 'economy', 'botBooks', String(playerId), () => deckReading(real, playerId));
+}
+
+/**
+ * **The chair a stamped Order takes on its stamp's board**, or `null` for a card
+ * the bot prices with its own readings. The seat logic (`slotPairTerms`,
+ * `council.ts`) asks it because a stamp already counts the chair it reads the
+ * card in: a seated card is read in its own chair, and a chair that reads a card
+ * twice is in that card's stamp.
+ */
+export function cardStampChair(ctx: ValueContext, id: CardId): number | null {
+  const reading = stampReadingOf(ctx, id);
+  if (reading === null) return null;
+  return reading.chair ?? null;
 }
 
 /** One seat's Statecraft, replaced, on a board that shares everything else. */
@@ -4503,49 +4513,10 @@ function rewritten(
 }
 
 /**
- * The chair this Order would take, or `null` when none admits it.
- *
- * The bench, when every fitting chair is full, is chosen by the card's **plain**
- * reading — its effects alone, with no synergy and no margin of its own — and
- * that is not merely thrift: `explainCard` is what asks for this, so ranking the
- * benched cards by `explainCard` would be a recursion with no floor.
- *
- * `fit` is the one the seat's council grants (`chairFitFor`, Magisterial batch
- * MG12), so a card The Mixed Constitution lets sit anywhere is priced into any
- * chair.
- */
-function chairFor(sc: PlayerStatecraft, id: OrderId, fit: ChairFit): number | null {
-  const layout = slotTypesOf(sc);
-  let worst: { chair: number; score: number } | null = null;
-  for (let index = 0; index < sc.slots.length; index++) {
-    const type = layout[index];
-    if (type === undefined || !fit(id, type)) continue;
-    const seated = sc.slots[index];
-    if (!seated) return index;
-    if (!isOrderId(seated.card)) continue;
-    const score = plainOrderScore(seated.card);
-    if (worst === null || score < worst.score) worst = { chair: index, score };
-  }
-  return worst === null ? null : worst.chair;
-}
-
-/**
- * A benched card's rank, and nothing else it is used for — the count of what its
- * row prints, weighted by nothing at all.
- *
- * A deliberately crude ordering, because what it decides is only *which* full
- * chair the hypothetical takes when several would do. Anything richer would have
- * to be an appraisal, and an appraisal is the thing calling this.
- */
-function plainOrderScore(id: OrderId): number {
-  let score = 0;
-  for (const effect of orderDef(id).effects) score += Object.keys(effect).length;
-  return score;
-}
-
-/**
- * **The shapes whose worth the empire fold can actually see** — the register
- * batch F2 turns on, and the whole of what changes.
+ * **The shapes the bot's own walk cannot read at all**: the register batch F2
+ * turns on. A card that carries one is priced by its stamp (`explainCardStamp`)
+ * even where the bot otherwise walks its effects, as when it prices a whole pool
+ * for the draft plan (see `CardReading`).
  *
  * Each of the four multiplies something that is already on the board and is
  * therefore worth what the board makes it worth, never what a row alone says:
@@ -4596,9 +4567,10 @@ function foldReadEngine(effect: CardEffect): boolean {
  * happiness) and, since batch H2, the roads' own coin: `connectionYields` is folded into
  * `explainEmpireGold`'s connection line, which is inside `goldPerTurn`, so the
  * fold reads it exactly. No Order or Doctrine carries that one today — the two
- * live rows are a technology's and a great person's, and `deckPair` answers
- * `null` for both — so it moves no board; it is here because the register is a
- * statement about *where a figure lives*, not about which rows happen to use it.
+ * live rows are a technology's and a great person's, and neither class is
+ * stamped (`stampSubject`), so it moves no board; it is here because the
+ * register is a statement about *where a figure lives*, not about which rows
+ * happen to use it.
  *
  * `riteDuration` and `greatPersonAct` do not: the first moves the turn a blessing
  * is stamped to expire on, which is not a rate and never appears in a reading of
@@ -4627,83 +4599,80 @@ export function hasFoldReadEngine(effects: readonly CardEffect[]): boolean {
 }
 
 /**
- * **`V(deck ∪ card) − V(deck)`**, asked of the board itself — batch F2's whole
- * arithmetic, and the answer to the debt batch A and batch F both wrote down:
- * *an engine appraised alone multiplies a deck this reading cannot see*.
+ * **What a card pays now, read on the empire's books with the card in place**
+ * (bot batch BP3, `docs/flags.md` (ooooooo), the B8 ruling), or `null` for a
+ * card the bot does not stamp (`stampSubject`) or that the stamp has no pair for.
  *
- * Two readings of the nine channels, one with the card in the chair it would
- * take and one without it, differenced channel by channel and weighed exactly as
- * every flat card arm weighs the same channels. That is the whole of it: no
- * stand-in, no nominal helping, no guess at how many towns a line reaches — the
- * simulation's own folds answer, with this empire's own buildings, hexes,
- * caravans and slotted cards underneath them.
+ * The user asked whether the bot's card prices could be worked out by the
+ * simulation itself, and the ruling taken from that is this reading: where the
+ * sim can stamp a card on a copy of the seat's state, the bot takes that figure
+ * as the card's pay now. The two boards are the card stamp's own
+ * (`cardImpactWorlds`), and the figure is the difference between the nine
+ * channels this file weighs (`deckReading`): the six voices of the empire's
+ * books, renown a turn, and the two meters. So a percentage is read off the
+ * yield it multiplies (fault B3), an engine in a full council is read in a chair
+ * of its own and benches nothing (fault B4), and a route's ends, a line paid per
+ * neighbour and a share of unimproved hexes are read where the rules pay them
+ * (fault B8). A card shape added tomorrow is read the same way the day it lands.
  *
- * `null` when there is no honest reading: a card no chair admits, a Doctrine
- * already taken, a class of card that is not played into the deck at all.
+ * The six voices and the two meters are exactly the stamp's fold
+ * (`foldCardImpact` of `explainCardImpact`); `test/sim/aiCardStamp.slow.test.ts`
+ * holds the two equal over recorded positions. Renown is the one channel the
+ * card's face does not print, and it is read here on the same two boards.
  *
- * **What it costs**, and why that is affordable: two `deckReading`s. `valueContext`
- * asks for a card's worth once per row of the government's live pool (the draft
- * plan's `expectedBestOrder`) and the slotting arm asks once per held card per
- * chair — so the answer is remembered for the life of the context that asked for
- * it (`MARGIN_MEMO`), which is one seat's sitting. Only the rows that carry one of
- * the four shapes ever ask at all, and a live pool holds a handful of them.
+ * The hammer premium is added on the hammers the books found, as for every
+ * other candidate that raises production (`hammerTerm`): the production channel
+ * has already paid the table's weight, and the premium is the difference.
  */
-export function deckMargin(ctx: ValueContext, id: CardId): Appraisal | null {
-  const memo = marginMemo(ctx);
-  const held = memo.get(id);
-  if (held !== undefined) return held;
-  const answer = readDeckMargin(ctx, id);
-  memo.set(id, answer);
-  return answer;
-}
-
-function readDeckMargin(ctx: ValueContext, id: CardId): Appraisal | null {
-  const pair = deckPair(ctx.state, ctx.playerId, id);
-  if (pair === null) return null;
-  const before = deckReading(pair.without, ctx.playerId);
-  const after = deckReading(pair.with, ctx.playerId);
-  const terms = readingTerms(before, after, ctx);
-  // **The hammer premium, on the hammers the fold actually found** — the same
-  // door every other production-raising candidate walks through (batch 6), so a
-  // card that shortens the engines this empire is raising is credited for it
-  // here exactly as a mine is. It is the difference from the table and not the
-  // whole price, because the production channel above has already paid the table.
-  const hammers = hammerTerm(after.production - before.production, ctx);
+export function explainCardStamp(ctx: ValueContext, id: CardId): Appraisal | null {
+  const reading = stampReadingOf(ctx, id);
+  if (reading === null) return null;
+  const terms = readingTerms(reading.before, reading.after, ctx);
+  const hammers = hammerTerm(reading.after.production - reading.before.production, ctx);
   if (hammers !== null) terms.push(hammers);
   return appraise(terms);
 }
 
 /**
- * **A card's effects, priced by the deck it would join where the fold can see
- * them** — the one door batch F2 adds, and `explainCard`'s (`council.ts`) only change.
+ * **How a card is read: by its stamp, or by the bot's own walk of its effects**
+ * (bot batch BP3).
  *
- * A row carrying one of the four shapes `foldReadEngine` names is worth
- * `V(deck ∪ card) − V(deck)` and nothing else: the isolated walk is not consulted
- * for it at all, because every clause of such a row is a *multiplier* on something
- * the board already has, and a multiplier read off the row alone is a number about
- * nothing. Every other row keeps the walk it has always had, exactly, which is
- * what makes a board where no engine is offered byte-identical.
+ *   · `'stamp'`: a decision about this card: an offer the seat is answering, a
+ *     chair it is filling, a council it is choosing. A card the bot stamps
+ *     (`stampSubject`) is its stamp plus what a stamp cannot see
+ *     (`explainBeyondStamp`).
+ *   · `'walk'`: an estimate over a whole pool: the draft plan's expected best
+ *     card and the pass's rung of pity, which price every card the decks could
+ *     still deal. A stamp costs one sweep of the empire's towns, and a pool is
+ *     forty cards or more, so the walk prices these as it always did. The one
+ *     exception is a card the walk cannot read at all (`hasFoldReadEngine`),
+ *     which is stamped in both readings, as it was before this batch.
  *
- * **The stated cut**: a row that mixed an engine with a shape the per-turn books
- * cannot carry — a combat line, an offer rider — would lose that half, because the
- * margin is the whole card's. No Order in the table mixes at all (the fourteen
- * engine rows carry one clause each), and the one Doctrine that does (the Grand
- * Bazaar: two luxury amplifiers and a count of luxuries paid in gold) is read
- * whole by the fold anyway. A future row that mixed the two would want splitting,
- * and this is where it would be split.
+ * `docs/plans/performance-pass-2026-11-06.md`, "Bot batch BP3", has the cost.
+ */
+export type CardReading = 'stamp' | 'walk';
+
+/**
+ * **A card's effects, in the one currency**: its stamp and what a stamp cannot
+ * see where the card is stamped, and the bot's walk of its effects elsewhere.
+ * See `CardReading` for which reading a caller gets.
  *
- * Falls back to the walk whenever there is no honest pair to difference — a card
- * no chair of this government admits, a class of card that is not played into a
- * deck (see `deckPair`).
+ * A stamped card is the sum of two terms: what it pays now (`explainCardStamp`)
+ * and what the stamp cannot see (`explainBeyondStamp`). A card the bot does not
+ * stamp, or one the stamp has no pair for, is walked (`explainEffects`).
+ *
+ * A commission's reward and a technology charter's technology are added after
+ * either reading. Both are one-time lumps on a forecast, which a stamp of a
+ * turn's books cannot see.
  */
 export function explainCardEffects(
   id: CardId,
   effects: readonly CardEffect[],
   ctx: ValueContext,
+  reading: CardReading = 'walk',
 ): Appraisal {
-  const own = hasFoldReadEngine(effects)
-    ? (deckMargin(ctx, id) ?? explainEffects(effects, ctx, id))
-    : explainEffects(effects, ctx, id);
+  const stamped = reading === 'stamp' || hasFoldReadEngine(effects) ? explainStampFirst(id, effects, ctx) : null;
+  const own = stamped ?? explainEffects(effects, ctx, id);
   // **A commission is priced as its reward** (Dominion batch D16). Its row
   // usually carries no effects, so without this term every commission was
   // worth nothing to a bot. A card that is not a commission returns its own
@@ -4722,19 +4691,552 @@ export function explainCardEffects(
 }
 
 /**
- * The remembered margins of one context.
- *
- * Keyed on the `ValueContext` object rather than on the state, which is the
- * sitting's own bargain said once more (batch 6): a context is one seat's book
- * for one turn, everything hanging off it was read at the moment it was built,
- * and an arm that needs a board the turn has moved past re-reads *the state*
- * rather than the book. A margin is a reading of the same board the rest of the
- * book was read off, so it belongs to the same sitting and dies with it.
+ * The stamp and what it cannot see, as two terms, or `null` when the card is
+ * not stamped. See `explainCardEffects`.
  */
-const MARGIN_MEMO = new WeakMap<ValueContext, Map<CardId, Appraisal | null>>();
+function explainStampFirst(id: CardId, effects: readonly CardEffect[], ctx: ValueContext): Appraisal | null {
+  const stamp = explainCardStamp(ctx, id);
+  if (stamp === null) return null;
+  const terms: ValueTerm[] = [nest('what it pays now, on the empire’s books with the card in place', stamp)];
+  const beyond = explainBeyondStamp(effects, ctx, id);
+  if (beyond.terms.length > 0) terms.push(nest('what the books cannot show', beyond));
+  return appraise(terms);
+}
 
-function marginMemo(ctx: ValueContext): Map<CardId, Appraisal | null> {
-  return onContext(MARGIN_MEMO, ctx, () => new Map<CardId, Appraisal | null>());
+/**
+ * **What a stamp cannot see, in the bot's own readings** (bot batch BP3).
+ *
+ * The ruling keeps the bot's readings for four things only: the rates of moments
+ * still to come, growth, one-time lumps, and cards that cannot be seated. This
+ * is the first two, effect by effect; the lumps are `explainCommission`,
+ * `explainCharter` and `onDraftWorth`, and the cards that cannot sit are walked
+ * whole (`stampSubject`).
+ *
+ * Each effect gets one of three answers from `beyondTheStamp`:
+ *
+ *   · **the stamp sees all of it**: a line on the books now, with no promise in
+ *     the bot's reading of it. No term;
+ *   · **the stamp sees its pay now, and the bot reads its growth**: the towns
+ *     and shelves the tech chains promise, the counts still to come, a stand-in
+ *     for later cards. The term is the bot's walk of the effect less the same walk
+ *     on a context that reads the board as it is today (`todayContext`), so the
+ *     part the stamp already holds is never priced twice;
+ *   · **the stamp sees none of it**: a rider, a combat line, a rule of play, an
+ *     unlock, a chair still empty. The term is the bot's walk of the effect.
+ *
+ * `test/sim/aiCardStamp.slow.test.ts` checks the split: a card the bot reads as
+ * wholly unseen must leave the books where they were, and a card of lines the
+ * books show must cost exactly its stamp.
+ */
+export function explainBeyondStamp(
+  effects: readonly CardEffect[],
+  ctx: ValueContext,
+  card?: CardId,
+): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const effect of effects) {
+    const term = beyondTheStamp(effect, ctx, card);
+    if (term !== null && term.value !== 0) terms.push(term);
+  }
+  return appraise(terms);
+}
+
+/**
+ * **How much of one effect the stamp can see**: the classification behind
+ * `explainBeyondStamp`.
+ *
+ *   · `'books'`: it pays the empire's books now, and the stamp holds all of
+ *     that; only a promise in the bot's walk of it is left to price;
+ *   · `'none'`: the stamp cannot see it at all;
+ *   · `'own'`: a shape whose split is its own (`beyondTheStamp` reads it).
+ *
+ * The switch is on an aliased discriminant and ends in a `never`, as
+ * `scoreEffect` does, so a shape added to `CardEffect` stops this compiling
+ * until somebody says how much of it the books carry. That is the decision a new
+ * shape needs, and the slow check is what holds the answer to the books.
+ */
+export type StampSight = 'books' | 'none' | 'own';
+
+/**
+ * Exported for `test/sim/aiCardStamp.slow.test.ts`, which holds each answer to
+ * the books: an effect read as `'none'` must leave them where they were.
+ */
+export function stampSight(effect: CardEffect): StampSight {
+  const kind = effect.kind;
+  switch (kind) {
+    // --- the books: yields, meters and renown a turn, now -------------------
+    case 'pays':
+    case 'percentYields':
+    case 'productionBonus':
+    case 'happiness':
+    case 'authority':
+    case 'happinessTierBoost':
+    case 'renown':
+    case 'upkeepRebate':
+    case 'upkeepSurcharge':
+    case 'cardYieldAmplifier':
+    case 'buildingYieldPercent':
+    case 'cityRenownPercent':
+    case 'cardTypeAmplifier':
+    case 'productionToCulture':
+    case 'workAge':
+      return 'books';
+    case 'rulePercent':
+      // A share of the food surplus is growth, which no turn's books show, unless
+      // a card moves that surplus into production (see `ownBeyond`).
+      if (effect.rule === 'growthSurplus') return 'own';
+      return rulePercentInBooks(effect.rule) ? 'books' : 'none';
+    case 'meterRule':
+      return meterRuleInBooks(effect.rule) ? 'books' : 'none';
+    case 'effectAmplifier':
+      return amplifierInBooks(effect.target) ? 'books' : 'none';
+    case 'rule':
+      return flagRuleSight(effect);
+    // --- split their own way (see `beyondTheStamp`) -------------------------
+    case 'surplusToProduction':
+    case 'slotPosition':
+    case 'conditionRule':
+    case 'metaRule':
+    case 'slotRider':
+      return 'own';
+    // --- nothing the books carry: moments, pieces, rules of play, unlocks ---
+    case 'combatLine':
+    case 'unitStat':
+    case 'unitStamp':
+    case 'windfallRider':
+    case 'foundingRider':
+    case 'offerRider':
+    case 'routeRider':
+    case 'cityStat':
+    case 'periodicMuster':
+    case 'drill':
+    case 'harvest':
+    case 'levy':
+    case 'landfall':
+    case 'unlocksBuilding':
+    case 'unlocksUnit':
+    case 'unlocksImprovement':
+    case 'worksBeyond':
+    case 'encroach':
+    case 'migration':
+    case 'pantheonSlots':
+    case 'purchaseRider':
+    case 'projectRider':
+    case 'pressureRule':
+    case 'pressure':
+    case 'periodic':
+    case 'periodShorten':
+    case 'beadPerOccasion':
+    case 'grantsAbility':
+      return 'none';
+    default:
+      return unreadSight(kind);
+  }
+}
+
+/** `kind` is `never`: a member added to `CardEffect` stops this compiling. */
+function unreadSight(_kind: never): StampSight {
+  return 'none';
+}
+
+/**
+ * The part of one effect a stamp cannot see, as a term, or `null` when the
+ * stamp sees all of it. See `explainBeyondStamp` and `stampSight`.
+ */
+function beyondTheStamp(effect: CardEffect, ctx: ValueContext, card?: CardId): ValueTerm | null {
+  const label = effect.kind === 'pays' ? paysWord(effect) : effect.kind;
+  switch (stampSight(effect)) {
+    case 'books': {
+      // The promise half of the bot's walk: the walk less the walk of today.
+      const later = walkOne(effect, ctx, card) - walkOne(effect, todayContext(ctx), card);
+      return later === 0 ? null : { label: `${label}: what the towns are expected to add`, value: later };
+    }
+    case 'none':
+      return { label: `${label}: what the books cannot show`, value: walkOne(effect, ctx, card) };
+    case 'own':
+      return ownBeyond(effect, ctx, card, label);
+  }
+}
+
+/**
+ * The bot's walk of one effect, as `explainEffects` prices it inside a card.
+ */
+function walkOne(effect: CardEffect, ctx: ValueContext, card?: CardId): number {
+  return explainEffects([effect], ctx, card).total;
+}
+
+/** The walk of a list, less what the books show. See `explainBeyondStamp`. */
+function beyondTotal(effects: readonly CardEffect[], ctx: ValueContext, card?: CardId): number {
+  return explainBeyondStamp(effects, ctx, card).total;
+}
+
+/**
+ * The four shapes that split their own way:
+ *
+ *   · **a surplus moved into production** (The Laws of Lord Shang): the books
+ *     carry the production it adds, and not the growth the food would have
+ *     bought, so the growth lost is the term;
+ *   · **a chair read again** (`slotPosition`): a chair that counts the card in it
+ *     twice is in that card's stamp, so what is left is the second reading of
+ *     the part the books cannot show. A new chair of its own (`whole`, The
+ *     Arthashastra) is empty when the card is drafted, so it is read whole;
+ *   · **a gated clause**: its clauses, read the same way, while the gate is open;
+ *   · **a rule of Statecraft** (`metaRule`): the sources it reads again, read the
+ *     same way. A seal's length and a turn's repeats are not on the books at
+ *     all, and The Age of Reason reads riders and tallies still to come;
+ *   · **a share of the food surplus** (`rulePercent` `growthSurplus`). It is growth,
+ *     which no turn's books show, so the walk prices it, except in a town whose
+ *     surplus a card moves into production (The Laws of Lord Shang): there the
+ *     share is production on the books and the stamp holds it. So the term is
+ *     the walk less the share of the surplus that is moved;
+ *   · **a chair opened or closed** (`slotRider`). A Doctrine's stamp is the
+ *     council as its command would lay it out, so a chair it closes takes its
+ *     card off the books and the stamp holds that loss (Scutage). A chair it opens
+ *     is empty until a later card fills it, so that is a promise and the walk's
+ *     stand-in is the term. An Order's stamp lays out no chair at all, so its
+ *     rider is read whole;
+ *   · **The Mixed Constitution** (`cardsFitAnyChair`), read by direction. Not
+ *     seated, its stamp seats it and moves no other card, so the wider fit is a
+ *     promise the books cannot show, and the walk is the term. Seated, its stamp
+ *     is its chair emptied and the council re-seated by the plain fit, so the
+ *     books already lose the cards only the wide fit seats. The term is then what
+ *     the walk prices beyond that: the cards the wide fit would seat that are not
+ *     seated yet.
+ */
+function ownBeyond(effect: CardEffect, ctx: ValueContext, card: CardId | undefined, label: string): ValueTerm | null {
+  let value = 0;
+  if (effect.kind === 'surplusToProduction') {
+    value = -surplusMoved(effect, ctx) * voiceWeight(ctx, 'food');
+  } else if (effect.kind === 'slotPosition') {
+    if (effect.whole === true) return { label: `${label}: a chair still to fill`, value: walkOne(effect, ctx, card) };
+    const holder = playerById(ctx.state, ctx.playerId);
+    const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
+    if (seated === null || effect.factor === 1) return null;
+    const inner = orderDef(seated).effects.filter(
+      (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
+    );
+    value = (effect.factor - 1) * beyondTotal(inner, ctx, seated);
+  } else if (effect.kind === 'conditionRule') {
+    value = conditionIsLive(effect.when, ctx) ? beyondTotal(effect.then, ctx, card) : 0;
+  } else if (effect.kind === 'metaRule') {
+    value = metaRuleBeyond(effect, ctx);
+  } else if (effect.kind === 'rulePercent' && effect.rule === 'growthSurplus') {
+    value = walkOne(effect, ctx, card) * (1 - surplusMovedShare(ctx));
+  } else if (effect.kind === 'slotRider') {
+    const closes = (effect.extra ?? 1) < 0 && card !== undefined && isDoctrineId(card);
+    value = closes ? 0 : walkOne(effect, ctx, card);
+  } else if (effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair') {
+    value = walkOne(effect, ctx, card);
+    const sc = statecraftOf(ctx.state, ctx.playerId);
+    if (card !== undefined && isOrderId(card) && sc !== undefined && isSlotted(sc, card)) {
+      value = Math.max(0, value - (explainCardStamp(ctx, card)?.total ?? 0));
+    }
+  }
+  return value === 0 ? null : { label: `${label}: what the books cannot show`, value };
+}
+
+/**
+ * **A rule of Statecraft**, less what the books show. The three that read a
+ * source again (the gods, the legacies, the other governments of the tier) are
+ * that source's own split; the rest are wholly unseen.
+ */
+function metaRuleBeyond(effect: Extract<CardEffect, { kind: 'metaRule' }>, ctx: ValueContext): number {
+  const rule = effect.rule;
+  switch (rule) {
+    case 'godsCountTwice':
+      return godsAgainWorth(effect.value, ctx, beyondTotal);
+    case 'legaciesCountTwice':
+      // The legacies held are their own split, and the ones still to come are
+      // read whole, at the roster's mean (`immortalsWorth`'s second half).
+      return immortalsWorth(effect.value, ctx, beyondTotal);
+    case 'governmentsOfTier':
+      return otherGovernmentsWorth(ctx, beyondTotal);
+    case 'techCountsTwice':
+    case 'sealTurns':
+    case 'turnEffectRepeats':
+      return walkOne(effect, ctx);
+    default:
+      return unreadMetaRule(rule);
+  }
+}
+
+/** `rule` is `never`: a member added to `MetaRuleId` stops this compiling. */
+function unreadMetaRule(_rule: never): number {
+  return 0;
+}
+
+/**
+ * **The context that reads the board as it is today**: no tech chain, so no
+ * shelf is promised; no forecast of a count still to come; no town counted for
+ * a row it has not raised. Used only to take the promise half out of the walk
+ * of an effect the books already show (`beyondTheStamp`).
+ *
+ * Remembered on the context it is made from, so its own memos live as long as
+ * that context does, and the walk asks it once a card.
+ */
+const TODAY_MEMO = new WeakMap<ValueContext, ValueContext>();
+
+function todayContext(ctx: ValueContext): ValueContext {
+  if (ctx.today === true) return ctx;
+  return onContext(TODAY_MEMO, ctx, () => ({ ...ctx, chains: [], today: true }));
+}
+
+/**
+ * A reading of a list of effects, in the one currency: the walk
+ * (`walkLines`), or the walk less what the books show (`beyondTotal`). The
+ * three rules that read a source again take one, so a stamp's split reaches the
+ * gods, the legacies and the governments they read.
+ */
+type LinesReading = (lines: readonly CardEffect[], ctx: ValueContext, card?: CardId) => number;
+
+/** The walk of a list of effects. See `LinesReading`. */
+const walkLines: LinesReading = (lines, ctx, card) => explainEffects(lines, ctx, card).total;
+
+/**
+ * **The food surplus a surplus row moves into production a turn**, off the board
+ * as it stands: each town whose front row the row reaches, its surplus as the
+ * growth channel computes it. The Laws of Lord Shang's price reads it, and so does
+ * the growth the stamp cannot see.
+ */
+function surplusMoved(effect: Extract<CardEffect, { kind: 'surplusToProduction' }>, ctx: ValueContext): number {
+  let moved = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (!surplusRowReaches(ctx.state, city, effect, city.queue[0])) continue;
+    moved += Math.max(0, channelSurplus(ctx.state, city));
+  }
+  return moved;
+}
+
+/**
+ * **The share of this seat's food surplus that a card moves into production now**,
+ * town by town as step 14 moves it (`surplusMoverFor`, the growth channel's own
+ * surplus). Nought for a seat with no such card.
+ */
+function surplusMovedShare(ctx: ValueContext): number {
+  let moved = 0;
+  let all = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const surplus = Math.max(0, channelSurplus(ctx.state, city));
+    all += surplus;
+    if (surplusMoverFor(ctx.state, city, city.queue[0]) !== null) moved += surplus;
+  }
+  return all <= 0 ? 0 : moved / all;
+}
+
+/**
+ * **Does the empire's books carry what this rewritten rule changes?** The army's
+ * wages and the citizens' demand are lines on the books now. Every other rule
+ * changes a price, a pace, a range or a cost still to be paid, which no turn's
+ * books show.
+ */
+function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['rule']): boolean {
+  switch (rule) {
+    case 'unitUpkeep':
+    case 'happinessDemand':
+      return true;
+    case 'roadStepCost':
+    case 'growthSurplus':
+    case 'guildInflow':
+    case 'growthCarryover':
+    case 'settlerCost':
+    case 'tilePurchase':
+    case 'borderCulture':
+    case 'borderCost':
+    case 'seaRouteRange':
+    case 'routeRange':
+    case 'rerollCost':
+    case 'faithContribution':
+    case 'goldContribution':
+    case 'techPrice':
+    case 'riteCost':
+    case 'pacificationRate':
+    case 'campMuster':
+    case 'unitLossWeariness':
+    case 'townLossWeariness':
+    case 'unitCost':
+    case 'charterTechCost':
+    case 'charterPremium':
+    case 'gapTechCost':
+    case 'scholarLadderStep':
+    case 'greatPersonCost':
+    case 'draftCost':
+      return false;
+    default:
+      return unreadBooksRule(rule);
+  }
+}
+
+/**
+ * **Does the authority or happiness meter show what this meter rule changes,
+ * now?** A town's writ price and a citizen's demand do. A border that keeps
+ * growing and a piece that costs no writ do not.
+ */
+function meterRuleInBooks(rule: Extract<CardEffect, { kind: 'meterRule' }>['rule']): boolean {
+  switch (rule) {
+    case 'freeCitizens':
+    case 'capturedCityCost':
+    case 'hillCityCost':
+    case 'cityCost':
+    case 'writUncapped':
+      return true;
+    case 'borderFreezeExempt':
+    case 'authorityUnitProductionExempt':
+      return false;
+    default:
+      return unreadBooksRule(rule);
+  }
+}
+
+/**
+ * **Does the empire's books carry the figure this amplifier raises?** A route's
+ * pay, the roads' coin and the luxuries' happiness and yields do. An act, a
+ * rite's length, copies of a seam, riders, raids, a general's aura and the
+ * renown a Triumph awards once do not.
+ */
+function amplifierInBooks(target: Extract<CardEffect, { kind: 'effectAmplifier' }>['target']): boolean {
+  switch (target) {
+    case 'routeYields':
+    case 'connectionYields':
+    case 'luxuryHappiness':
+    case 'luxuryDuplicates':
+    case 'lentLuxuryCopies':
+      return true;
+    case 'triumphRenown':
+    case 'greatPersonAct':
+    case 'riteDuration':
+    case 'strategicCopies':
+    case 'luxuryMineCopies':
+    case 'depositWorkCopies':
+    case 'captureRewards':
+    case 'pillageRewards':
+    case 'generalAura':
+      return false;
+    default:
+      return unreadBooksRule(target);
+  }
+}
+
+/** A member added to one of the three unions above stops this compiling. */
+function unreadBooksRule(_rule: never): boolean {
+  return false;
+}
+
+/**
+ * **How much of a flag rule the stamp can see.** Most rules are rules of play: a
+ * move, a purchase, a verb, a piece that may do something. The books show none
+ * of that. The rules that do land on the books now are the ones that change what
+ * a hex, a town, a route or a card already pays.
+ *
+ * The Mixed Constitution splits its own way (`ownBeyond`).
+ */
+function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSight {
+  const rule = effect.rule;
+  switch (rule) {
+    case 'fieldsTended':
+    case 'holdsBuilding':
+    case 'tendedCountsImproved':
+    case 'secondCapital':
+    case 'homeRoutesPayOrigin':
+    case 'postsLendLuxuries':
+    case 'followerBeliefsPayAbroad':
+    case 'collectionPays':
+      return 'books';
+    case 'cardsFitAnyChair':
+      return 'own';
+    case 'borders':
+    case 'ignored':
+    case 'noFounding':
+    case 'noExperience':
+    case 'rallyToGeneral':
+    case 'garrisonWorks':
+    case 'shoreRaid':
+    case 'opusSiege':
+    case 'tendedWorksFree':
+    case 'trainedSettlerCostsCitizen':
+    case 'moveAfterAttack':
+    case 'blockades':
+    case 'upgradeHeals':
+    case 'upgradeIgnoresResource':
+    case 'upgradeStrength':
+    case 'opusBreach':
+    case 'opusEarly':
+    case 'closedBook':
+    case 'prototypes':
+    case 'worksCountAs':
+    case 'everyWorkIsAcademy':
+    case 'postsWaiveRouteRange':
+    case 'buysOnCredit':
+    case 'routesCarrySurplus':
+    case 'faithBuysBuildings':
+    case 'followersShareSight':
+    case 'chargePrice':
+    case 'apostlesPlantHolySites':
+    case 'opusInterdict':
+    case 'faithfulKillsConvert':
+    case 'twoRites':
+    case 'noOrderReroll':
+    case 'wonderHammersMoveOn':
+    case 'cultureBuysWonders':
+    case 'actThenWork':
+    case 'worksPullRivalHexes':
+    case 'thirdCardForeign':
+    case 'rareWeight':
+    case 'workCheapensPerson':
+    case 'noForeignRoutes':
+    case 'noLuxuryLending':
+    case 'buysOnlyInScope':
+    case 'faithfulPeace':
+    case 'freeChop':
+    case 'buyGreatPersonWithGold':
+    case 'buyGreatPersonWithFaith':
+    case 'buyScholarDraftWithFaith':
+    case 'faithBuysScienceBuildings':
+    case 'pacifyOnCapture':
+    case 'doubleOverflow':
+    case 'unitJumpsQueue':
+    case 'rerollOffers':
+    case 'capitalBuysWithoutLimit':
+    case 'buysWithoutResources':
+    case 'goldBuysWonders':
+    case 'goldBuysRedraw':
+    case 'goldBuysFrozenTiles':
+    case 'buildsEverywhere':
+    case 'wonderTownBuysWithoutLimit':
+    case 'boughtUnitsCountAsTrained':
+    case 'campClaimsGround':
+    case 'faithBuysUnits':
+    case 'faithBuysWonders':
+    case 'barbarianKillsConvert':
+    case 'freeCityRoads':
+    case 'freePillage':
+    case 'tradersUnplunderable':
+    case 'foreignTradersUnplunderable':
+    case 'barbariansPassive':
+    case 'noCampClearing':
+    case 'noHealAbroad':
+    case 'moveAfterKill':
+    case 'noFortify':
+    case 'cityRestoresMovement':
+    case 'freeLanding':
+    case 'attackKeepsFortification':
+    case 'secondAttack':
+    case 'breachInOneBlow':
+    case 'woodsWalk':
+    case 'farmChainsWater':
+    case 'siegeScreened':
+    case 'freshwater':
+    case 'pacified':
+    case 'workMountains':
+    case 'widerReach':
+      return 'none';
+    default:
+      return unreadFlagSight(rule);
+  }
+}
+
+/** `rule` is `never`: a member added to `CardFlagRuleId` stops this compiling. */
+function unreadFlagSight(_rule: never): StampSight {
+  return 'none';
 }
 
 // --- counted effects, at the delay discount ---------------------------------
@@ -5061,6 +5563,9 @@ function realizedCount(
  * towns would be raising, and the multiplication prints as a part of the term.
  */
 function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] {
+  // A context that reads the board as it is today counts nothing still to come
+  // (bot batch BP3, `ValueContext.today`).
+  if (ctx.today === true) return [];
   if (effect.count === 'tally') {
     const occasion = effect.tally;
     if (occasion === 'goldPurchase') {
@@ -7263,6 +7768,9 @@ function workAgeWorth(effect: Extract<CardEffect, { kind: 'workAge' }>, ctx: Val
   if (factor === factorNow) return 0;
   const altered: GroundFacts = { ...ground, workAgeFactor: factor };
   const now = liveLinesGain(ground, altered, 'standingSince', ctx);
+  // The stand-in for cards held later is a promise, so a context that reads the
+  // board as it is today leaves it out (bot batch BP3, `ValueContext.today`).
+  if (ctx.today === true) return now;
   const knob = ctx.ai.score.expansionist.workAge;
   return now + knob * (factor - factorNow) * ageOfWorks(ctx);
 }
@@ -7355,6 +7863,8 @@ function fieldsTendedWorth(rows: readonly ImprovementId[] | undefined, ctx: Valu
   if (others.length > 0) without.tendedFields = others;
   const withRows: GroundFacts = { ...ground, tendedFields: [...others, ...rows] };
   const now = liveLinesGain(without, withRows, 'tended', ctx);
+  // The stand-in for cards held later is a promise (bot batch BP3, `ValueContext.today`).
+  if (ctx.today === true) return now;
   const works = tilesInBordersWhere(ctx, { test: 'anyImprovement', improvements: [...rows] });
   return now + ctx.ai.score.expansionist.fieldsTended * works;
 }
@@ -7394,11 +7904,16 @@ function heldBuildingWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: V
       later += 1;
     }
   }
-  const towns = joined + ctx.ai.score.expansionist.heldLater * later;
-  if (towns <= 0) return 0;
   const def = buildingDef(id);
   const bag: YieldBag = {};
   for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+  // **On a context that reads the board as it is today** (bot batch BP3,
+  // `ValueContext.today`): the yields of the copies held now, and no town still
+  // to be joined. That is the part a card's stamp holds, so what is left over is
+  // the towns joined later and what the row does beyond its yields.
+  if (ctx.today === true) return joined * valueOfYields(bag, ctx);
+  const towns = joined + ctx.ai.score.expansionist.heldLater * later;
+  if (towns <= 0) return 0;
   const each = valueOfYields(bag, ctx) + explainBuildingRow(id, ctx, undefined, false).total;
   return each * towns;
 }
@@ -9325,7 +9840,9 @@ function explainFrontRow(effect: CardPaysEffect, ctx: ValueContext): Appraisal {
     effect.max === undefined
       ? FRONT_ROW_MEAN_TENTHS / per
       : Math.min(FRONT_ROW_MEAN_TENTHS / per, Math.max(0, effect.max));
-  const promised = others * share * mean;
+  // Nothing promised on a context that reads the board as it is today (bot batch
+  // BP3, `ValueContext.today`).
+  const promised = ctx.today === true ? 0 : others * share * mean;
   // One town's helping: the row read as though it paid once, so the scope's
   // town count is not taken a second time.
   const payout = scorePayout({ ...effect, where: 'empire' }, ctx);
@@ -10838,10 +11355,10 @@ const YES_OR_NO_KINDS: readonly CardEffect['kind'][] = [
 ];
 
 /** A legacy's lines that pay again when read again. */
-function legacyAgain(id: string, ctx: ValueContext): number {
+function legacyAgain(id: string, ctx: ValueContext, read: LinesReading = walkLines): number {
   if (!isGreatPersonId(id)) return 0;
   const lines = greatPersonDef(id).legacy.filter((effect) => !YES_OR_NO_KINDS.includes(effect.kind));
-  return lines.length === 0 ? 0 : explainEffects(lines, ctx).total;
+  return lines.length === 0 ? 0 : read(lines, ctx);
 }
 
 /** The mean of `legacyAgain` over the names the roster deals. Remembered for the sitting. */
@@ -10863,7 +11380,7 @@ function meanRosterLegacy(ctx: ValueContext): number {
  * horizon (`personRate`) add theirs too, at the roster's mean legacy, from
  * the middle of the horizon on average.
  */
-function immortalsWorth(value: number, ctx: ValueContext): number {
+function immortalsWorth(value: number, ctx: ValueContext, read: LinesReading = walkLines): number {
   const extra = Math.max(0, Math.floor(value) - 1);
   if (extra === 0) return 0;
   const player = playerById(ctx.state, ctx.playerId);
@@ -10871,7 +11388,7 @@ function immortalsWorth(value: number, ctx: ValueContext): number {
   let held = 0;
   for (const legacy of player.legacies) {
     if (legacy.revoked === true) continue;
-    held += legacyAgain(legacy.id, ctx);
+    held += legacyAgain(legacy.id, ctx, read);
   }
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const later = (personRate(ctx) * horizon * meanRosterLegacy(ctx)) / 2;
@@ -10946,7 +11463,7 @@ function countedChairWorth(factor: number, ctx: ValueContext): number {
  * once (`GOD_READS_ONCE`, the evaluator's own list). A god not yet held is not
  * priced, so a seat with no god reads nothing.
  */
-function godsAgainWorth(value: number, ctx: ValueContext): number {
+function godsAgainWorth(value: number, ctx: ValueContext, read: LinesReading = walkLines): number {
   const extra = Math.max(0, Math.floor(value) - 1);
   const player = playerById(ctx.state, ctx.playerId);
   if (extra === 0 || player === undefined) return 0;
@@ -10957,7 +11474,7 @@ function godsAgainWorth(value: number, ctx: ValueContext): number {
       (effect) =>
         !YES_OR_NO_KINDS.includes(effect.kind) && !GOD_READS_ONCE.includes(effect.kind),
     );
-    if (lines.length > 0) again += explainEffects(lines, ctx).total;
+    if (lines.length > 0) again += read(lines, ctx);
   }
   return extra * again;
 }
@@ -10968,14 +11485,14 @@ function godsAgainWorth(value: number, ctx: ValueContext): number {
  * unlike a second reading, because the seat does not already have them. No chairs,
  * as the walk reads none (`GOVERNMENT_READ_NOT_AT_ALL`, the evaluator's own list).
  */
-function otherGovernmentsWorth(ctx: ValueContext): number {
+function otherGovernmentsWorth(ctx: ValueContext, read: LinesReading = walkLines): number {
   const sc = statecraftOf(ctx.state, ctx.playerId);
   if (sc === undefined) return 0;
   let worth = 0;
   for (const id of governmentsAtTier(governmentDef(sc.government).tier)) {
     if (id === sc.government) continue;
     const lines = governmentDef(id).effects.filter((effect) => !GOVERNMENT_READ_NOT_AT_ALL.includes(effect.kind));
-    if (lines.length > 0) worth += explainEffects(lines, ctx).total;
+    if (lines.length > 0) worth += read(lines, ctx);
   }
   return worth;
 }

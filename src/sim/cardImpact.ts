@@ -310,6 +310,47 @@ export function hasPerTurnImpact(lines: readonly CardImpactLine[]): boolean {
 }
 
 /**
+ * The two boards a card's stamp compares: the empire without the card and the
+ * empire with it. One of the two is always `state` itself. See `ghostPair`.
+ *
+ * `chair` is set for an Order only. It is the chair the card sits in on the
+ * board with it: its own chair when it is seated, otherwise the first empty
+ * chair that fits it, otherwise a chair added at the end of the council.
+ */
+export interface CardImpactWorlds {
+  without: GameState;
+  with: GameState;
+  chair?: number;
+}
+
+/**
+ * **The stamp's two boards, for a reader that folds them itself** (bot batch
+ * BP3, `docs/flags.md` (ooooooo), the B8 ruling).
+ *
+ * The bot prices a card by what the card changes in the empire's books, and
+ * the user's ruling is that it reads this on the stamp's own boards. This
+ * hands out the pair `explainCardImpact` diffs, so the bot and the card's face
+ * put the card in the same chair and re-seat the council in the same way. The
+ * bot then reads the books on both boards with the folds it already weighs,
+ * and the slow check in `test/sim/aiCardStamp.slow.test.ts` holds that reading
+ * equal to this file's own fold of the stamp.
+ *
+ * Pure, as `explainCardImpact` is: both boards are shallow copies, and nothing
+ * in `state` is changed. `null` where the stamp has no pair either: an id that
+ * names nothing, the government already adopted, or a follower or enhancer
+ * belief for a seat with no religion.
+ */
+export function cardImpactWorlds(
+  state: GameState,
+  playerId: number,
+  subject: CardImpactSubject,
+): CardImpactWorlds | null {
+  const player = playerById(state, playerId);
+  if (!player) return null;
+  return ghostPair(state, player, subject);
+}
+
+/**
  * The two worlds the stamp is the difference between: the realm **without** the
  * card, and the realm **with** it.
  *
@@ -329,22 +370,26 @@ export function hasPerTurnImpact(lines: readonly CardImpactLine[]): boolean {
  * `null` for a card this module cannot place — an id that names nothing, or a
  * charter the empire has already sworn (adoption is not a thing that can be
  * undone, so there is no *without* to read).
+ *
+ * For an Order the pair also names the chair the card sits in on the board with
+ * it (`CardImpactWorlds.chair`), because the bot asks whether that chair reads
+ * a card twice (bot batch BP3).
  */
 function ghostPair(
   state: GameState,
   player: Player,
   subject: CardImpactSubject,
-): { without: GameState; with: GameState } | null {
+): CardImpactWorlds | null {
   const sc = player.statecraft;
   const swap = (seat: Player): GameState => ({
     ...state,
     players: state.players.map((other) => (other.id === seat.id ? seat : other)),
   });
-  const forward = (seat: Player): { without: GameState; with: GameState } => ({
+  const forward = (seat: Player): CardImpactWorlds => ({
     without: state,
     with: swap(seat),
   });
-  const backward = (seat: Player): { without: GameState; with: GameState } => ({
+  const backward = (seat: Player): CardImpactWorlds => ({
     without: swap(seat),
     with: state,
   });
@@ -365,11 +410,12 @@ function ghostPair(
         // (Magisterial batch MG12, The Mixed Constitution): the ghost is the
         // council the unslot command would leave, cards moved or returned.
         const refit = councilRefit(without, player.id);
-        if (refit === null) return { without, with: state };
-        return backward({ ...player, statecraft: { ...sc, slots: refit.slots } });
+        if (refit === null) return { without, with: state, chair: at };
+        return { ...backward({ ...player, statecraft: { ...sc, slots: refit.slots } }), chair: at };
       }
       const orders = held ? sc.orders : [...sc.orders, subject.id];
       let slots = sc.slots;
+      let chair = slots.length;
       if (at < 0) {
         // The first office that is empty and admits it. A hand with no such
         // office gets one appended, and that is the deliberate reading: the
@@ -388,10 +434,11 @@ function ghostPair(
             break;
           }
         }
+        if (free >= 0) chair = free;
         slots =
           free >= 0 ? slots.map((slot, index) => (index === free ? entry : slot)) : [...slots, entry];
       }
-      return forward({ ...player, statecraft: { ...sc, orders, slots } });
+      return { ...forward({ ...player, statecraft: { ...sc, orders, slots } }), chair };
     }
     case 'doctrine': {
       // The ghost the bots price a Doctrine on too (`ghostSeatUnderDoctrine`). Its

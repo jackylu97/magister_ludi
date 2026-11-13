@@ -31,6 +31,7 @@ import {
 } from '../../src/sim/statecraftData';
 import { ABILITY_TECH } from '../../src/sim/techData';
 import { createGame, forgetBuiltGames } from './newGameHelpers';
+import { discardSlates } from '../../src/sim/slate';
 
 /**
  * The bench, generated once a seed and handed out as a private copy.
@@ -364,14 +365,21 @@ export function stockDoctrines(
  * shapes stay in the engine (the triage's reading 9), so their tests stay too, on
  * a row that borrows the old effects. Call the restore after each test, or the
  * next test reads the borrowed row.
+ *
+ * The swap announces itself to the slate (`discardSlates`) both ways, because
+ * a reading remembered on a board's clock was taken off the row as it was, and
+ * the board's clock does not move when a row does (bot batch BP3: the bot's card
+ * stamp is such a reading).
  */
 export function lendDoctrineEffects(id: DoctrineId, effects: readonly CardEffect[]): () => void {
   forgetBuiltGames();
   const def = doctrineDef(id);
   const before = def.effects;
   def.effects = [...effects];
+  discardSlates();
   return () => {
     def.effects = before;
+    discardSlates();
     forgetBuiltGames();
   };
 }

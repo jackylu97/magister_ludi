@@ -202,6 +202,11 @@ const AI_SOURCES = import.meta.glob('../../src/ai/*.ts', {
   import: 'default',
 }) as Record<string, string>;
 
+/** The empire's own lines, read as text, for the margin's claim (bot batch BP3). */
+const SIM_LINES_SOURCE = Object.values(
+  import.meta.glob('../../src/sim/yields/empire.ts', { eager: true, query: '?raw', import: 'default' }),
+)[0] as string;
+
 // --- the delay discount, computed off the sheet ------------------------------
 
 /**
@@ -1130,6 +1135,13 @@ describe('the delay discount', () => {
     expect(explainCounted(effect, valueContext(bare.state, bare.player)).total).toBeLessThan(
       appraisal.total,
     );
+    // **Read on the board as it is today** (bot batch BP3, `ValueContext.today`):
+    // the two monuments standing, and no promise of the four to come. A card's
+    // stamp holds the first part, so the second is the growth the bot prices
+    // beside it.
+    const today = explainCounted(effect, { ...ctx, chains: [], today: true });
+    expect(today.total).toBeCloseTo(2 * pays.value, 10);
+    expect(labelsOf(today.terms)).not.toMatch(/more the towns could raise/);
   });
 
   it('ranks a growing card by its own counter, not by a nominal guess', () => {
@@ -1137,6 +1149,9 @@ describe('the delay discount', () => {
     const { state, player } = towns(1);
     const empty = explainCard(player, id, valueContext(state, player)).total;
     player.statecraft.tallies = [{ card: id, count: 12 }];
+    // A hand-made write announces itself, as a command's does: the card's stamp is
+    // remembered on the board's clock (bot batch BP3).
+    bumpRevision(state);
     const deep = explainCard(player, id, valueContext(state, player)).total;
     // The same row, the same board, twelve occasions apart — and until the
     // counted-card ruling the two numbers were equal.
@@ -3277,9 +3292,16 @@ describe('the whole deck, priced (batch H2)', () => {
     // construction, and the bot's `V` no longer does.
     expect(Array.isArray(lines)).toBe(true);
     expect(Number.isFinite(before)).toBe(true);
+    // Since bot batch BP3 the bot's books are the empire's headline (`readEmpire`),
+    // the sum a card's stamp folds: every town's total and every line of
+    // `explainEmpireLines`, the cards' empire payouts among them.
     const source = AI_SOURCES['../../src/ai/value.ts']!;
-    expect(source).toContain('function marginRates(');
-    expect(source.slice(source.indexOf('function marginRates('))).toContain(
+    expect(source).toContain('function deckReading(');
+    expect(source.slice(source.indexOf('function deckReading('))).toContain(
+      'readEmpire(state, playerId).totals',
+    );
+    const empire = SIM_LINES_SOURCE;
+    expect(empire.slice(empire.indexOf('export function explainEmpireLines('))).toContain(
       'explainEmpireCardYields',
     );
   });
