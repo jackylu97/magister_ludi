@@ -1646,6 +1646,11 @@
     "paper": {
       "terrain": 3.6
     },
+    "paint": {
+      "blend": 0.5,
+      "strokes": 2,
+      "dabs": 4
+    },
     "hills": {
       "terraced": true,
       "cap": 0.8,
@@ -1657,23 +1662,28 @@
       "fill": 0.38,
       "smooth": true,
       "soft": {
-        "height": 1,
+        "height": 1.1,
         "heightVary": 0.3,
         "round": 1,
         "steepAt": 0.3,
         "uneven": 0.16,
         "jitter": 0.04,
-        "rough": 0,
+        "rough": 0.02,
         "bump": 0.05,
         "size": 1.22,
-        "lean": 0.62,
-        "profile": [[0.92, 0.06], [0.78, 0.5], [0.66, 0.9], [0.4, 0.98], [0.16, 1]],
+        "lean": 0.66,
+        "profile": [[0.92, 0.06], [0.8, 0.46], [0.68, 0.86], [0.42, 0.97], [0.16, 1]],
+        "cliffSpread": 1.1,
         "bands": 0,
         "cliffs": {
-          "at": 0.2,
-          "rock": "#b3aea2",
-          "tint": 0.12,
-          "vary": 0.07
+          "at": 0.21,
+          "rock": "#c4b59c",
+          "tint": 0.1,
+          "vary": 0.1,
+          "boulders": 3,
+          "boulderSize": 0.11,
+          "shrubs": 2,
+          "shrubSize": 0.13
         },
         "grit": 0,
         "facetVary": 0,

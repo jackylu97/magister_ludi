@@ -478,6 +478,27 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
             piece.x, piece.y, piece.z, piece.sx, piece.sy, piece.sz, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
         }
         const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
+        // A rocky hill (2026-11-13): boulders lie at the foot of a cliff, and low shrubs stand on the green top.
+        // Both are found by sampling the hill's own surface, so they follow whatever shape the hill has.
+        const rocky = VIEW3D.visualTest.northStar && VIEW3D.visualTest.hills.smooth ? VIEW3D.visualTest.hills.soft.cliffs : null;
+        if (rocky && t.hills && !isWater(t) && t.terrain !== 'mountain') {
+          let boulders = 0, shrubs = 0;
+          for (let i = 0; i < 40 && (boulders < rocky.boulders || shrubs < rocky.shrubs); i++) {
+            const a = hash(t.col, t.row, 1700 + i) * 6.28, d = Math.sqrt(hash(t.col, t.row, 1750 + i)) * .78, x = Math.cos(a) * d, z = Math.sin(a) * d;
+            if (!onTileTop(t, x, z, .08)) continue;
+            const here = surfaceHeight(t, x, z), flat = surfaceHeight(t, 0, 0) * 0 + .12;
+            let above = 0, below = 0;
+            for (let k = 0; k < 6; k++) { const other = surfaceHeight(t, x + Math.cos(k * 1.047) * .09, z + Math.sin(k * 1.047) * .09) - here; above = Math.max(above, other); below = Math.min(below, other); }
+            const seed = hash(t.col, t.row, 1800 + i);
+            if (boulders < rocky.boulders && above > .05 && here < flat + .03) {
+              const s = rocky.boulderSize * (.6 + seed * .9); boulders++;
+              prop(assets.limestone.geometry, assets.limestone.material, c.x + x, here - .006, c.z + z, s, s * (.55 + seed * .4), s * .85, seed * 6.28, new T.Color(rocky.rock).multiplyScalar(.92 + seed * .12));
+            } else if (shrubs < rocky.shrubs && here > flat + .07 && above < .02 && below > -.03) {
+              const s = rocky.shrubSize * (.7 + seed * .7), tree = assets.broadleaves[Math.floor(seed * 3) % 3]; shrubs++;
+              prop(tree.geometry, tree.material, c.x + x, here - s * .32, c.z + z, s * 1.25, s * .7, s * 1.25, seed * 6.28, new T.Color('#c9dfae'), DECOR);
+            }
+          }
+        }
         for (const r of stoneCluster(t, hash, dense)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
         for (const r of shoreStones(t, renderMap, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y, c.z + r.z, r.s, r.s * .70, r.s * .85, r.angle, new T.Color('#dbe0cf'));
         for (let slot = 0; slot < (dense ? (dense.groves ? dense.groveSize + 1 : dense.slots) : 1); slot++) {

@@ -31,6 +31,7 @@ const LAND={
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
 const dryColors=LAND.dry;
 const richColors=LAND.rich;
+const PAINT=NORTH_STAR?VIEW3D.visualTest.paint:null;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
 const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;
 const ROCK=new Color(SOFT_HILL?.cliffs?.rock??'#a9a79c');
@@ -86,6 +87,7 @@ export function createTerrainPainter(map,mountainRanges){
  const cache=new WeakMap(),groups=new Map();
  const period=terrainMapWraps(map)?Math.sqrt(3)*map.width:0;
  const shifted=new WeakMap();
+ const mixed=new WeakMap();
  function translated(region,offset){
   if(!offset)return region;
   if(!shifted.has(region))shifted.set(region,new Map());
@@ -150,10 +152,17 @@ export function createTerrainPainter(map,mountainRanges){
    if(k>.40)add(-length*.65,-width*1.27,.12+h*.06,.07+k*.04,p.rich,1-k,.32);
    // A finer register of strokes: narrow dashes, short wedges and tiny cuts
    // near the larger brush edges. Their alignment follows the same gesture.
-   for(let i=0;i<3+Math.floor(h*3);i++){
+   // More of them, and a second, lighter set, make the ground read as brushed paint (the user, 2026-11-13: "have the texture feel a bit more painterly").
+   for(let i=0;i<Math.round((3+Math.floor(h*3))*(PAINT?PAINT.strokes:1));i++){
     const a=hash(col*17+i+41,row*23-19),b=hash(col*31-i-13,row*11+71);
     const u=(a*2-1)*length*1.12,v=(i%2?1:-1)*(width+.10+b*.26);
     add(u,v,.06+a*.14,.025+b*.035,i%3===0?p.dry:p.rich,b,(a-.5)*.48);
+   }
+   for(let i=0;i<(PAINT?PAINT.dabs:0);i++){
+    // Broad soft dabs inside the big shape, in a tone between the ground's and its lighter or deeper one.
+    const a=hash(col*13+i+97,row*29-7),b=hash(col*37-i-5,row*19+113);
+    const tone=p.base.clone().lerp(i%2?p.dry:p.rich,.55);
+    add((a*2-1)*length*.8,(b*2-1)*width*.7,.16+a*.2,.07+b*.07,tone,a*b,(b-.5)*.7);
    }
   }
   patches.forEach((p,i)=>{p.order=[row,col,i]});
@@ -175,6 +184,16 @@ export function createTerrainPainter(map,mountainRanges){
    // its own terrain, so two terrains meet on the hex line and each hex reads
    // as one tile, as in the north-star games.
    if(CLEAN_TILES&&region.kind&&region.kind!==ownKind)continue;
+   // A stroke that comes over from another terrain is mixed part of the way
+   // toward this hex's own ground (the user, 2026-11-13: "I'd rather it blend
+   // a little more"). The neighbour does the same with this terrain's strokes,
+   // so two terrains meet through two half tones and not on one hard edge.
+   if(PAINT&&PAINT.blend&&region.kind&&region.kind!==ownKind){
+    if(!mixed.has(region))mixed.set(region,new Map());
+    const tones=mixed.get(region);
+    if(!tones.has(ownKind))tones.set(ownKind,{...region,color:region.color.clone().lerp(p.base,PAINT.blend)});
+    patches.push(tones.get(ownKind));continue;
+   }
    patches.push(region);
    }
   }

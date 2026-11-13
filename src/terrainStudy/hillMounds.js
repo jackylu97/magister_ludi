@@ -89,12 +89,15 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    // A low rounded mound: rings of the outline, each smaller and higher than
    // the last, so the side rises in a few gentle facets to a small top.
    // The top is not over the middle: each ring is set a little further to one side, so one flank is long and gentle and the other short and steeper, as on a real hill.
-   const leanX=(r(salt+18)-.5)*2*rx*SOFT.lean,leanZ=(r(salt+19)-.5)*2*rz*SOFT.lean;
+   // The lean always has its full length, so every hill has a cliff, and it points toward the south of the board, give or take, so the cliff faces the camera and is not hidden behind its own hill. The hill's own turn is taken out first.
+   const facing=Math.PI/2+(r(salt+18)-.5)*2*SOFT.cliffSpread-angle-turn;
+   const leanX=Math.cos(facing)*rx*SOFT.lean,leanZ=Math.sin(facing)*rz*SOFT.lean;
    SOFT_PROFILE.forEach(([scale,share],ring)=>rim.forEach(([x,z],j)=>{
     // Each point of each ring sits a little higher or lower and nearer or further than its ring, so the facets differ like worn ground.
     // Bumps (the user, 2026-11-13: "a bit more bumpy"): each ring rises and falls round the hill in the same slow waves, so the hill has a few broad spurs and hollows that run from top to foot. (With each ring in its own place, the waves twisted into a whorl.) Only the height moves, so no facet folds over.
     const round=j/rim.length*Math.PI*2,wave=Math.sin(round*2+r(salt+90)*6.28)*.6+Math.sin(round*3+r(salt+110)*6.28)*.4;
-    const rough=1+SOFT.rough*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.bump*(wave*.7+(r(salt+200+ring*31+j)-.5)*.6*SOFT.grit)*Math.min(1,share*4);
+    // The rings of the cliff's own band stray sideways, so the rock face is broken and not one smooth wall.
+    const rough=1+(share>.08&&share<.97?SOFT.rough:0)*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.bump*(wave*.7+(r(salt+200+ring*31+j)-.5)*.6*SOFT.grit)*Math.min(1,share*4);
     const [px,pz]=locate(x*scale*rough+leanX*(1-scale),z*scale*rough+leanZ*(1-scale));
     vertices.push([px*fit,topBase+height*share*lift,pz*fit]);
    }));
