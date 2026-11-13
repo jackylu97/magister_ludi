@@ -241,7 +241,9 @@ export function createTerrainPainter(map,mountainRanges){
    for(const {polygon,color}of fragments)for(let j=1;j<polygon.length-1;j++){
     const [a,b,c]=[polygon[0],polygon[j],polygon[j+1]];
     if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-10)continue;
-    const shade=1-(1-TERRACE_SIDE)*slope;
+    // A hill's facets are not all one tone: each is a little lighter or darker than the slope alone gives, by a hash of where it lies, and a nearly level facet is lifted a little, as a crown catches the light.
+    const facet=softHill?hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*37),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*37)):0;
+    const shade=(1-(1-TERRACE_SIDE)*slope)*(softHill?1+(facet-.5)*2*SOFT_HILL.facetVary+(1-slope)*SOFT_HILL.crown:1);
     for(const v of [a,b,c]){
      positions.push(v[0],v[1],v[2]);colors.push(color.r*shade,color.g*shade,color.b*shade);
      outputNormals.push(normals.getX(i),normals.getY(i),normals.getZ(i));
