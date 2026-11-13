@@ -1,10 +1,13 @@
 import * as T from 'three';
 import {daylightPresets} from './daylightPresets.js';
 import {LIGHT_GLSL,LIGHT_UNIFORMS,SEA_LIGHT_GLSL,shareUniforms} from '../render3d/visualTestLook';
+import {VIEW3D} from '../render3d/lookData';
 
 // Preserve the same geometry, texture inputs and actual cast-shadow map in
 // both treatments. Painted shading uses three colour families, independent
 // of exposure and physical specular response.
+// The paper's tooth on the ground (the user, 2026-11-13: make the paper-like texture "slightly more pronounced for the terrain"). Things that stand on the ground keep the plain amount.
+const TERRAIN_PAPER=VIEW3D.visualTest.northStar?VIEW3D.visualTest.paper.terrain:1;
 export function createPainterlyStyle(renderer,lighting,grain) {
  const materials=new Set(),paperAmount={value:.28};let painted=true;
  const uniforms={};
@@ -84,7 +87,7 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      float paper=texture2D(paintGrain,paperUv).r;
      float adjacent=texture2D(paintGrain,paperUv+vec2(.0012,.0007)).r;
      float tooth=clamp((paper-adjacent)*3.8+(paper-.5)*.24,-.18,.18);
-     vec3 outgoingLight=mix(castPaint,facePaint,visible)*(1.0+tooth*paintPaperAmount*${water?'.35':'1.0'});
+     vec3 outgoingLight=mix(castPaint,facePaint,visible)*(1.0+tooth*paintPaperAmount*${water?'.35':terrain?TERRAIN_PAPER.toFixed(2):'1.0'});
      ${terrain||water?'':LIGHT_GLSL.rim}
      ${water?SEA_LIGHT_GLSL:''}
      // A gentle highlight shoulder preserves amber hues on pale sand/stone
@@ -96,7 +99,7 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      }
    `);
   };
-  material.customProgramCacheKey=()=>`${baseKey}:painted-v10:${water}:${terrain}:${painted}`;
+  material.customProgramCacheKey=()=>`${baseKey}:painted-v11:${water}:${terrain}:${painted}`;
   return material;
  }
  function setPainted(value){

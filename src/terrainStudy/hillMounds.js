@@ -72,7 +72,8 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   // An irregular, slightly tilted plateau produces a broad top plane. The
   // lower shoulders remain distinct instead of becoming little pyramids.
   const capX=TERRACE?TERRACE.cap:options.capX??(.46+r(salt+11)*.16),capZ=TERRACE?TERRACE.cap:options.capZ??(.27+r(salt+12)*.16);
-  if(TERRACE)height*=SOFT?SOFT.height:TERRACE.height;
+  // Soft hills differ in height from one to the next, so a range has high and low ground.
+  if(TERRACE)height*=SOFT?SOFT.height*(1+SOFT.heightVary*(r(salt+21)-.5)*2):TERRACE.height;
   if(SOFT){
    // A low rounded mound: rings of the outline, each smaller and higher than
    // the last, so the side rises in a few gentle facets to a small top.

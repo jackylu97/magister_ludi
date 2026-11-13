@@ -1643,6 +1643,9 @@
       "forestTrees": 9,
       "forestShade": 0.8
     },
+    "paper": {
+      "terrain": 3.6
+    },
     "hills": {
       "terraced": true,
       "cap": 0.8,
@@ -1654,15 +1657,16 @@
       "fill": 0.38,
       "smooth": true,
       "soft": {
-        "height": 0.92,
+        "height": 1,
+        "heightVary": 0.3,
         "round": 1,
-        "steepAt": 0.22,
-        "uneven": 0.2,
-        "jitter": 0.09,
-        "rough": 0.1,
+        "steepAt": 0.2,
+        "uneven": 0.16,
+        "jitter": 0.04,
+        "rough": 0.025,
         "lean": 0.42,
         "profile": [[0.86, 0.1], [0.7, 0.42], [0.52, 0.76], [0.34, 0.94], [0.14, 1]],
-        "side": 0.84
+        "side": 0.7
       }
     },
     "monuments": {
