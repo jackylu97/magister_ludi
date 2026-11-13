@@ -2348,6 +2348,8 @@ export interface VisualTestSpec {
     shallows: number;
     /** Small things along the river: patches of the paler tone on the water, and every `detailEvery` units a reed tuft, a bank stone or a few lily pads. */
     detail: boolean; patchShare: number; detailEvery: number; lily: string; lilySize: number; reedHeight: number;
+    /** `uneven` makes some stretches wind hard and others run straight (0 to 1); `widthVary` makes the river swell and narrow; `sandVary` makes the sand beside the water wide in places and thin in others. */
+    uneven: number; widthVary: number; sandVary: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */

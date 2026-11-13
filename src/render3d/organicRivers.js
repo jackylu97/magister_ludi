@@ -90,11 +90,18 @@ export function createOrganicRivers(map, knobs) {
   for (let i = 0; i < samples.length; i++) {
    const {s} = samples[i];
    const fade = path.closed ? 1 : smooth(0, knobs.wanderFade, s) * smooth(0, knobs.wanderFade, length - s);
-   const wander = knobs.wander * fade * (Math.sin(s * Math.PI * 2 / knobs.wanderWave + phase) * .65
+   // Uneven (2026-11-12): a slow wave makes some stretches wind hard and
+   // others run nearly straight, and a second makes the river swell and narrow.
+   const uneven = knobs.uneven ?? 0;
+   const reachOf = 1 - uneven + uneven * 2 * (.5 + .5 * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 2.7) + phase2 * 1.7));
+   const wander = knobs.wander * fade * reachOf * (Math.sin(s * Math.PI * 2 / knobs.wanderWave + phase) * .65
     + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .53) + phase2) * .35);
+   samples[i].swell = 1 + (knobs.widthVary ?? 0) * fade * (Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.9) + phase * 2.3) * .6 + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .71) + phase2 * .7) * .4);
+   // The sand beside the water is wide in places and thin in others, each side by its own wave.
+   samples[i].sand = [1, -1].map(way => knobs.bankWidth * (1 + (knobs.sandVary ?? 0) * fade * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.3) + phase * way + way)));
    samples[i].x += normals[i][0] * wander; samples[i].z += normals[i][1] * wander;
    // A spring starts thin; a mouth opens wide where the river meets the water.
-   let w = samples[i].w;
+   let w = samples[i].w * (samples[i].swell ?? 1);
    if (source) w *= knobs.sourceWidth + (1 - knobs.sourceWidth) * smooth(0, knobs.sourceTaper, s);
    if (sink) w *= knobs.sourceWidth + (1 - knobs.sourceWidth) * smooth(0, knobs.sourceTaper, length - s);
    if (!path.closed && start.water) w *= 1 + knobs.mouthFlare * (1 - smooth(0, knobs.mouthLength, s));
@@ -120,9 +127,9 @@ export function createOrganicRivers(map, knobs) {
    for (const way of [1, -1]) for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
     const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];
     const at = (p, n, d) => [p.x + n[0] * d * way, p.z + n[1] * d * way];
-    const wall = knobs.bankWidth, slope = knobs.bankSlope, ha = knobs.lift + rise[i], hb = knobs.lift + rise[j];
-    add([at(a, na, a.half - .004), at(b, nb, b.half - .004), at(b, nb, b.half + wall), at(a, na, a.half + wall)], colors.bank, [knobs.lift * .5, knobs.lift * .5, hb, ha], true);
-    add([at(a, na, a.half + wall), at(b, nb, b.half + wall), at(b, nb, b.half + wall + slope), at(a, na, a.half + wall + slope)], null, [ha, hb, knobs.lift * .5, knobs.lift * .5], true);
+    const wa = a.sand[way > 0 ? 0 : 1], wb = b.sand[way > 0 ? 0 : 1], slope = knobs.bankSlope, ha = knobs.lift + rise[i], hb = knobs.lift + rise[j];
+    add([at(a, na, a.half - .004), at(b, nb, b.half - .004), at(b, nb, b.half + wb), at(a, na, a.half + wa)], colors.bank, [knobs.lift * .5, knobs.lift * .5, hb, ha], true);
+    add([at(a, na, a.half + wa), at(b, nb, b.half + wb), at(b, nb, b.half + wb + slope), at(a, na, a.half + wa + slope)], null, [ha, hb, knobs.lift * .5, knobs.lift * .5], true);
    }
   } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
