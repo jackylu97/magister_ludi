@@ -21,13 +21,13 @@ const LAND={
  },
  // `deep` (2026-11-12, second look at the reference games): their ground is a
  // mid-dark, saturated green, so pale walls, roads and fields stand out on it.
- // `visualTest.land` picks `soft` or `deep`.
+ // `visualTest.land` picks `soft`, `deep`, or `study` for the approved study's own colours.
  deep:{
   base:{oasis:'#78a352',floodplain:'#93b05a',grassland:'#7fa24a',plains:'#c2ab5c',desert:'#e3c98c',tundra:'#94a08a',snow:'#eaeeee',mountain:'#7f8794'},
   dry:{grassland:'#93ad52',plains:'#cdb564',desert:'#ecd297',tundra:'#a0a890',snow:'#edefeb',mountain:'#8f9199',oasis:'#86aa58',floodplain:'#a2b862'},
   rich:{grassland:'#6c9343',plains:'#b09f52',desert:'#d6bb80',tundra:'#86957f',snow:'#e4eaec',mountain:'#6f7f88',oasis:'#6b9a4c',floodplain:'#84a552'},
  },
-}[NORTH_STAR?(VIEW3D.visualTest.land==='deep'?'deep':'soft'):'study'];
+}[NORTH_STAR?(VIEW3D.visualTest.land==='deep'?'deep':VIEW3D.visualTest.land==='study'?'study':'soft'):'study'];
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
 const dryColors=LAND.dry;
 const richColors=LAND.rich;
