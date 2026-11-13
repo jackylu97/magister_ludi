@@ -1483,19 +1483,29 @@ export function traceMarkerPaper(
     // `0.22`; sides falling to a waist at `+0.05` before curving to a point at
     // `+1.0`, the tip that sets the shape's own outer reach (see
     // `markerPaperExtent`).
-    const w = radius * 0.92;
-    const topY = cy - radius * 0.86;
-    const waistY = cy + radius * 0.05;
+    // The visual test's shield (2026-11-13, `visualTest.pins.shield`): taller
+    // than it is wide, with shoulders that run down past the middle and a real
+    // point, so it reads as a shield and not as a box. The first shape was
+    // nearly square with a very small point. Its reach is still `radius`.
+    const tall = VIEW3D.visualTest.northStar && VIEW3D.visualTest.pins.shield;
+    const w = radius * (tall ? 0.8 : 0.92);
+    const topY = cy - radius * (tall ? 0.98 : 0.86);
+    const waistY = cy + radius * (tall ? 0.18 : 0.05);
     const tipY = cy + radius;
-    const corner = radius * 0.22;
+    const corner = radius * (tall ? 0.16 : 0.22);
     context.moveTo(cx - w + corner, topY);
     context.lineTo(cx + w - corner, topY);
     context.quadraticCurveTo(cx + w, topY, cx + w, topY + corner);
     context.lineTo(cx + w, waistY);
-    context.quadraticCurveTo(cx + w, waistY + radius * 0.3, cx + w * 0.55, waistY + radius * 0.42);
-    context.quadraticCurveTo(cx + w * 0.15, tipY - radius * 0.1, cx, tipY);
-    context.quadraticCurveTo(cx - w * 0.15, tipY - radius * 0.1, cx - w * 0.55, waistY + radius * 0.42);
-    context.quadraticCurveTo(cx - w, waistY + radius * 0.3, cx - w, waistY);
+    if (tall) {
+      context.quadraticCurveTo(cx + w, waistY + radius * 0.42, cx, tipY);
+      context.quadraticCurveTo(cx - w, waistY + radius * 0.42, cx - w, waistY);
+    } else {
+      context.quadraticCurveTo(cx + w, waistY + radius * 0.3, cx + w * 0.55, waistY + radius * 0.42);
+      context.quadraticCurveTo(cx + w * 0.15, tipY - radius * 0.1, cx, tipY);
+      context.quadraticCurveTo(cx - w * 0.15, tipY - radius * 0.1, cx - w * 0.55, waistY + radius * 0.42);
+      context.quadraticCurveTo(cx - w, waistY + radius * 0.3, cx - w, waistY);
+    }
     context.lineTo(cx - w, topY + corner);
     context.quadraticCurveTo(cx - w, topY, cx - w + corner, topY);
     context.closePath();
@@ -1621,11 +1631,17 @@ function drawResourceCell(
   // so there is no per-mark lookup left to get wrong. The inset is
   // `RESOURCE_MARK_SCALE`, which reconciles a 24-unit drawing's reach with the
   // roundel's rim exactly as `YIELD_MARK_SCALE` does one set over.
+  // The visual test's pins (2026-11-13): every mark stands a little back from
+  // its rim, and a mark on the shield is smaller again and set a little above
+  // the middle, because the shield narrows to its point.
+  const pinMarks = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.pins : null;
+  const onShield = !!pinMarks?.shield && ICONS.resourceKinds[resourceDef(id).kind].shape === 'shield';
+  const markScale = pinMarks ? pinMarks.markScale * (onShield ? pinMarks.shieldMarkScale : 1) : 1;
   paintMarkPaths(
     context,
     mark,
-    center,
-    Math.max(1, RESOURCE_MARK_SCALE * ICONS.iconScale * layout.cell),
+    onShield ? { ...center, y: center.y - pinMarks!.shieldMarkLift * layout.cell } : center,
+    Math.max(1, RESOURCE_MARK_SCALE * ICONS.iconScale * layout.cell * markScale),
     ICONS.inkColor,
     RESOURCE_MARK_BOX,
     RESOURCE_MARK_STROKE,

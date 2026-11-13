@@ -31,8 +31,10 @@ const LAND={
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
 // The desert's two stroke tones stand further from its ground (the user, 2026-11-13: "more distinction in the desert tile colors"): the light one paler and yellower, the deep one a redder ochre. Set in `visualTest.paint.desert`; absent, the palette's own.
 const DESERT=NORTH_STAR?VIEW3D.visualTest.paint.desert:null;
-const dryColors=DESERT?{...LAND.dry,desert:DESERT.dry}:LAND.dry;
-const richColors=DESERT?{...LAND.rich,desert:DESERT.rich}:LAND.rich;
+// The grassland's two stroke tones can be set the same way, to stand nearer its ground (`visualTest.paint.grassland`).
+const GRASS=NORTH_STAR?VIEW3D.visualTest.paint.grassland:null;
+const dryColors={...LAND.dry,...(DESERT?{desert:DESERT.dry}:{}),...(GRASS?{grassland:GRASS.dry}:{})};
+const richColors={...LAND.rich,...(DESERT?{desert:DESERT.rich}:{}),...(GRASS?{grassland:GRASS.rich}:{})};
 const PAINT=NORTH_STAR?VIEW3D.visualTest.paint:null;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
 const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;

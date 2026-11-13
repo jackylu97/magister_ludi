@@ -681,7 +681,7 @@
       "strategic": {
         "shape": "shield",
         "rimColor": "crimson",
-        "rimWidth": 0.032
+        "rimWidth": 0.046
       }
     },
     "sitePaper": {
@@ -1284,14 +1284,19 @@
       "farScale": 0.55,
       "improvedScale": 0.72,
       "improvedFade": 0.55,
-      "fadeTo": "#b9b2a0"
+      "fadeTo": "#b9b2a0",
+      "onTop": true,
+      "shield": true,
+      "markScale": 0.92,
+      "shieldMarkScale": 0.84,
+      "shieldMarkLift": 0.03
     },
     "clouds": {
-      "scale": 0.085,
-      "speed": 0.012,
-      "cover": 0.62,
-      "softness": 0.13,
-      "strength": 0.45
+      "scale": 0.2,
+      "speed": 0.05,
+      "cover": 0.66,
+      "softness": 0.17,
+      "strength": 0.2
     },
     "idle": {
       "bobHeight": 0.03,
@@ -1660,8 +1665,12 @@
       "reach": 1.2,
       "spread": 1,
       "desert": {
-        "dry": "#f1d59c",
-        "rich": "#bd9a66"
+        "dry": "#eccc91",
+        "rich": "#c3a470"
+      },
+      "grassland": {
+        "dry": "#879c46",
+        "rich": "#6f8d3f"
       },
       "layers": 2,
       "crease": 0.5,

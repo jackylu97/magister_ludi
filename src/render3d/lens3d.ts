@@ -164,6 +164,10 @@ function quietPins(icons: TileIcons): { normal: MeshBasicMaterial; faded: MeshBa
   if (known) return known;
   const make = (fade: number): MeshBasicMaterial => {
     const material = icons.standingMaterial.clone();
+    // A pin is a readout, so nothing in the scene hides it (the user,
+    // 2026-11-13: pins "sometimes are hidden by trees"). It skips the depth
+    // test and is drawn after the board's solid things.
+    if (PINS.onTop) { material.depthTest = false; material.depthWrite = false; material.transparent = true; }
     const fadeTo = new Color(PINS.fadeTo);
     material.onBeforeCompile = shader => {
       shareUniforms(shader, ['vtestPinScale']);
