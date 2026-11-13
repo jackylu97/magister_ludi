@@ -41,6 +41,14 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    const b=rim[(j+1)%rim.length];
    return [[a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]];
   });
+  // And an uneven one: two slow waves round the outline push it in and out, so no two hills are the same blob.
+  if(SOFT){
+   const lobes=r(salt+16)*6.28,lobes3=r(salt+17)*6.28;
+   rim=rim.map(([x,z])=>{
+    const angle=Math.atan2(z/rz,x/rx),swell=1+SOFT.uneven*(Math.sin(angle*2+lobes)*.6+Math.sin(angle*3+lobes3)*.4);
+    return [x*swell,z*swell];
+   });
+  }
   const sides=rim.length;
   const footprint=rim.map(([x,z])=>locate(x,z));
   // Fit the whole footprint inside the actual river/coast cuts. Overlapping
@@ -67,8 +75,10 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   if(SOFT){
    // A low rounded mound: rings of the outline, each smaller and higher than
    // the last, so the side rises in a few gentle facets to a small top.
+   // The top is not over the middle: each ring is set a little further to one side, so one flank is long and gentle and the other short and steeper, as on a real hill.
+   const leanX=(r(salt+18)-.5)*2*rx*SOFT.lean,leanZ=(r(salt+19)-.5)*2*rz*SOFT.lean;
    for(const [scale,share]of SOFT.profile)for(const [x,z]of rim){
-    const [px,pz]=locate(x*scale,z*scale);
+    const [px,pz]=locate(x*scale+leanX*(1-scale),z*scale+leanZ*(1-scale));
     vertices.push([px*fit,topBase+height*share,pz*fit]);
    }
    for(let ring=0;ring<SOFT.profile.length;ring++)for(let j=0;j<sides;j++){

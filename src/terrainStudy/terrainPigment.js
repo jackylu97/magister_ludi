@@ -32,6 +32,7 @@ export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#
 const dryColors=LAND.dry;
 const richColors=LAND.rich;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
+const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;
 const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?(VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft.side:VIEW3D.visualTest.hills.side):0;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
@@ -211,7 +212,9 @@ export function createTerrainPainter(map,mountainRanges){
    const moundKind=i>=plateCount?moundPigments[moundIndex]?.kind:null;
    // A terrace's side face takes one darker tone; its flat top takes the ground's.
    const steep=TERRACE_SIDE&&moundKind&&normals.getY(i)<.9;
-   let fragments=[{polygon:triangle,color:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base}];
+   // A soft hill has no one side face: each facet takes more of the darker tone the steeper it is, so the hill shades off into the ground.
+   const slopeTone=SOFT_HILL&&moundKind?pigments[moundKind].base.clone().lerp(pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE),Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt))):null;
+   let fragments=[{polygon:triangle,color:slopeTone??(moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
    // The established hill shapes read through their lighting planes. Leave
    // them intact instead of fragmenting every slope with more painted cuts.
    for(const p of i<plateCount?patches:[]){
