@@ -44,8 +44,9 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   // And an uneven one: two slow waves round the outline push it in and out, so no two hills are the same blob.
   if(SOFT){
    const lobes=r(salt+16)*6.28,lobes3=r(salt+17)*6.28;
-   rim=rim.map(([x,z])=>{
-    const angle=Math.atan2(z/rz,x/rx),swell=1+SOFT.uneven*(Math.sin(angle*2+lobes)*.6+Math.sin(angle*3+lobes3)*.4);
+   rim=rim.map(([x,z],j)=>{
+    // Each point of the outline is also moved in or out on its own, so the foot is not a smooth curve.
+    const angle=Math.atan2(z/rz,x/rx),swell=1+SOFT.uneven*(Math.sin(angle*2+lobes)*.6+Math.sin(angle*3+lobes3)*.4)+SOFT.jitter*(r(salt+40+j)-.5)*2;
     return [x*swell,z*swell];
    });
   }
@@ -77,10 +78,12 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    // the last, so the side rises in a few gentle facets to a small top.
    // The top is not over the middle: each ring is set a little further to one side, so one flank is long and gentle and the other short and steeper, as on a real hill.
    const leanX=(r(salt+18)-.5)*2*rx*SOFT.lean,leanZ=(r(salt+19)-.5)*2*rz*SOFT.lean;
-   for(const [scale,share]of SOFT.profile)for(const [x,z]of rim){
-    const [px,pz]=locate(x*scale+leanX*(1-scale),z*scale+leanZ*(1-scale));
-    vertices.push([px*fit,topBase+height*share,pz*fit]);
-   }
+   SOFT.profile.forEach(([scale,share],ring)=>rim.forEach(([x,z],j)=>{
+    // Each point of each ring sits a little higher or lower and nearer or further than its ring, so the facets differ like worn ground.
+    const rough=1+SOFT.rough*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.rough*(r(salt+200+ring*31+j)-.5)*2;
+    const [px,pz]=locate(x*scale*rough+leanX*(1-scale),z*scale*rough+leanZ*(1-scale));
+    vertices.push([px*fit,topBase+height*share*lift,pz*fit]);
+   }));
    for(let ring=0;ring<SOFT.profile.length;ring++)for(let j=0;j<sides;j++){
     const k=(j+1)%sides,low=ring*sides,high=low+sides;
     indices.push(low+j,low+k,high+j,low+k,high+k,high+j);

@@ -1619,7 +1619,7 @@
       ]
     },
     "tiles": {
-      "clean": true,
+      "clean": false,
       "width": 0.016,
       "soft": 0.008,
       "dark": 0.11,
@@ -1657,7 +1657,9 @@
         "height": 0.92,
         "round": 1,
         "steepAt": 0.22,
-        "uneven": 0.13,
+        "uneven": 0.2,
+        "jitter": 0.09,
+        "rough": 0.1,
         "lean": 0.42,
         "profile": [[0.86, 0.1], [0.7, 0.42], [0.52, 0.76], [0.34, 0.94], [0.14, 1]],
         "side": 0.84

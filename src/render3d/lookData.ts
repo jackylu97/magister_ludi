@@ -2307,8 +2307,8 @@ export interface VisualTestSpec {
   /** Which land palette the north-star look uses: `soft` or `deep` (darker, more saturated ground). */
   land: string;
   /** Hills as flat terraces with a darker side face. `cap` is how wide the flat top is against the foot, `upper` the size of the second terrace, `side` the tone of the side face. */
-  /** With `smooth`, a hill is a low rounded mound (`soft`): its height against the old hill's, the passes that round its outline, how uneven the outline is, how far the top leans to one side, the rings of its profile (each a share of the outline's size and of the height), how dark its steepest facets are, and the slope (`steepAt`, one less the facet's upward lean) at which a facet is fully that dark. */
-  hills: { terraced: boolean; cap: number; height: number; upper: number; upperFrom: number; side: number; flanks: boolean; fill: number; smooth: boolean; soft: { height: number; round: number; steepAt: number; uneven: number; lean: number; profile: number[][]; side: number } };
+  /** With `smooth`, a hill is a low rounded mound (`soft`): its height against the old hill's, the passes that round its outline, how uneven the outline is (`uneven` in slow waves, `jitter` point by point), how far each point of a ring strays from its ring (`rough`), how far the top leans to one side, the rings of its profile (each a share of the outline's size and of the height), how dark its steepest facets are, and the slope (`steepAt`, one less the facet's upward lean) at which a facet is fully that dark. */
+  hills: { terraced: boolean; cap: number; height: number; upper: number; upperFrom: number; side: number; flanks: boolean; fill: number; smooth: boolean; soft: { height: number; round: number; steepAt: number; uneven: number; jitter: number; rough: number; lean: number; profile: number[][]; side: number } };
 
   /** Switch 11: each hex reads as a tile: only its own terrain's strokes, and a fine groove with a light lip at its edge. */
   tiles: { clean: boolean; width: number; soft: number; dark: number; lipWidth: number; light: number };

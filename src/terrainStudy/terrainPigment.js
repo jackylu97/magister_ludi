@@ -212,12 +212,16 @@ export function createTerrainPainter(map,mountainRanges){
    const moundKind=i>=plateCount?moundPigments[moundIndex]?.kind:null;
    // A terrace's side face takes one darker tone; its flat top takes the ground's.
    const steep=TERRACE_SIDE&&moundKind&&normals.getY(i)<.9;
-   // A soft hill has no one side face: each facet takes more of the darker tone the steeper it is, so the hill shades off into the ground.
-   const slopeTone=SOFT_HILL&&moundKind?pigments[moundKind].base.clone().lerp(pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE),Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt))):null;
-   let fragments=[{polygon:triangle,color:slopeTone??(moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
-   // The established hill shapes read through their lighting planes. Leave
-   // them intact instead of fragmenting every slope with more painted cuts.
-   for(const p of i<plateCount?patches:[]){
+   // A soft hill has no one side face. It carries the ground's own strokes
+   // (the user, 2026-11-13: the hills "need to inherit the ground's texture"),
+   // and each facet is then darkened by how steep it is, so the hill shades
+   // off into the ground.
+   const softHill=SOFT_HILL&&moundKind;
+   const slope=softHill?Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt)):0;
+   let fragments=[{polygon:triangle,color:softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base}];
+   // The terraced hill shapes read through their lighting planes, and are left
+   // intact instead of being fragmented with more painted cuts.
+   for(const p of i<plateCount||softHill?patches:[]){
     if(bounds[1]<p.bounds[0]||bounds[0]>p.bounds[1]||bounds[3]<p.bounds[2]||bounds[2]>p.bounds[3])continue;
     const next=[];
     for(const f of fragments){
@@ -237,8 +241,9 @@ export function createTerrainPainter(map,mountainRanges){
    for(const {polygon,color}of fragments)for(let j=1;j<polygon.length-1;j++){
     const [a,b,c]=[polygon[0],polygon[j],polygon[j+1]];
     if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-10)continue;
+    const shade=1-(1-TERRACE_SIDE)*slope;
     for(const v of [a,b,c]){
-     positions.push(v[0],v[1],v[2]);colors.push(color.r,color.g,color.b);
+     positions.push(v[0],v[1],v[2]);colors.push(color.r*shade,color.g*shade,color.b*shade);
      outputNormals.push(normals.getX(i),normals.getY(i),normals.getZ(i));
     }
    }
