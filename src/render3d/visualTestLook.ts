@@ -26,6 +26,8 @@ const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
+// The tone of the study's plain water (`body` in `waterPigment.js`, #4b7db6), which a baked stroke is measured against.
+const BODY_TONE = (c => .2126 * c.r + .7152 * c.g + .0722 * c.b)(new Color('#4b7db6'));
 const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open, sun = open.sun, mirror = open.mirror;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
@@ -196,6 +198,8 @@ vec3 vtestSeaNormal = vec3(0.0, 1.0, 0.0);
 float vtestSeaMask = 0.0;
 float vtestSeaGlitter = 0.0;
 // How much of the swell's own shading the lighting stage keeps. Pattern 5 keeps little: a smooth surface with glints on it.
+// The water's baked paint, before the sea's own colours replace it.
+vec3 vtestSeaBase = vec3(1.0);
 float vtestSeaSheen = 1.0;
 // 1 where a stroke of the sun's road is lit at this point. The mirror's picture gives way to it: the light is on the surface.
 float vtestSunLit = 0.0;
@@ -324,6 +328,8 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     cq = p * ${open.scale.toFixed(3)} + vec2(time * ${open.drift.toFixed(4)}, time * ${(open.drift * .4).toFixed(4)});
     cn = vtestSeaContour(cq);
     float shelf = field.g + (vtestNoise(p * .45) - .5) * ${shelfBands.wander.toFixed(3)} + (cn - .5) * ${open.shelfFine.toFixed(3)};
+    // With the sea's brush strokes on (sea.brushed), coast and ocean swap whole painted patches across their edge, as two kinds of land do (the user, 2026-11-13). water.y is then the stroke's own kind: above zero for ocean.
+    ${sea.brushed ? 'shelf = water.y;' : ''}
     float width = fwidth(shelf) * 1.2 + 1e-4;
     paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(-width, width, shelf));
     free = 1.0;
@@ -433,6 +439,11 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float life = smoothstep(.2, 1.0, .5 + .5 * sin(time * .5 + pick * 60.0));
   float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
   float ripple = step(.80, pick) * stroke * life * smoothstep(${(bands.shallows + .1).toFixed(3)}, ${(bands.shallows + .4).toFixed(3)}, shore);
+  // Painted water (the user, 2026-11-13): the open water takes the light and dark of the study's own brush strokes, which the board bakes on the water as it does on the land. vtestSeaBase is that baked paint; its tone against the study's plain water is made stronger and laid on the sea's colour, outside the band at the shore.
+  if (free > .5) {
+    float tone = dot(vtestSeaBase, vec3(.2126, .7152, .0722)) / ${BODY_TONE.toFixed(4)};
+    paint *= 1.0 + clamp((tone - 1.0) * ${open.strokes.toFixed(2)}, -.3, .3) * (1.0 - shallows);
+  }
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x * mix(1.0, vtestSeaPattern > 4.5 ? 0.0 : ${open.ripples.toFixed(3)}, free));
   if (free > .5 && vtestSeaPattern > 4.5) {
     // 5, the sun. A mirror's picture belongs to the eye and not to the ground,
@@ -458,7 +469,7 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
 }
 `,
   /** After `#include <color_fragment>`, with `p` the world xz and `studyTime` the clock. */
-  fragment: `if (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n// A river keeps its own paint, and takes the strokes of the sun's road where it runs under it: a wider road, since a river is thin, and no glow, which greys its blue.\nelse if (vtestSea > .5 && vtestSeaFieldOn > .5 && vtestSeaPattern > 4.5) diffuseColor.rgb = vtestSunRoad(diffuseColor.rgb, p, studyTime, sqrt(vtestSunGlare()), ${sun.river.toFixed(3)}, 0.0);\n`,
+  fragment: `vtestSeaBase = diffuseColor.rgb;\nif (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n// A river keeps its own paint, and takes the strokes of the sun's road where it runs under it: a wider road, since a river is thin, and no glow, which greys its blue.\nelse if (vtestSea > .5 && vtestSeaFieldOn > .5 && vtestSeaPattern > 4.5) diffuseColor.rgb = vtestSunRoad(diffuseColor.rgb, p, studyTime, sqrt(vtestSunGlare()), ${sun.river.toFixed(3)}, 0.0);\n`,
 };
 
 // --- 7. cloud shadows ----------------------------------------------------------

@@ -2383,7 +2383,7 @@ export interface VisualTestSpec {
      * outline (`patch…`), 4 long swell lines (`swell…`: rows to a hex unit,
      * bend, how often a line breaks, speed).
      */
-    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number;
+    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number; strokes: number;
       /**
        * Pattern 5, calm water under the sun. `calmColor` and `deepen` make the
        * open water a deeper, quieter blue. `cloud…` are the clouds it mirrors:

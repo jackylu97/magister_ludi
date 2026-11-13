@@ -1488,8 +1488,8 @@ export function traceMarkerPaper(
     // point, so it reads as a shield and not as a box. The first shape was
     // nearly square with a very small point. Its reach is still `radius`.
     const tall = VIEW3D.visualTest.northStar && VIEW3D.visualTest.pins.shield;
-    const w = radius * (tall ? 0.8 : 0.92);
-    const topY = cy - radius * (tall ? 0.98 : 0.86);
+    const w = radius * (tall ? 0.86 : 0.92);
+    const topY = cy - radius * (tall ? 0.9 : 0.86);
     const waistY = cy + radius * (tall ? 0.18 : 0.05);
     const tipY = cy + radius;
     const corner = radius * (tall ? 0.16 : 0.22);
