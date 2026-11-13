@@ -1622,9 +1622,9 @@
       "clean": false,
       "width": 0.016,
       "soft": 0.008,
-      "dark": 0.11,
+      "dark": 0,
       "lipWidth": 0.05,
-      "light": 0.04
+      "light": 0
     },
     "props": {
       "dense": true,
@@ -1649,7 +1649,10 @@
     "paint": {
       "blend": 0.5,
       "strokes": 2,
-      "dabs": 4
+      "dabs": 4,
+      "halo": 1.16,
+      "tongues": 3,
+      "brush": 0.11
     },
     "hills": {
       "terraced": true,
@@ -1669,7 +1672,7 @@
         "uneven": 0.16,
         "jitter": 0.04,
         "rough": 0.02,
-        "bump": 0.05,
+        "bump": 0.13,
         "size": 1.22,
         "lean": 0.66,
         "profile": [[0.92, 0.06], [0.8, 0.46], [0.68, 0.86], [0.42, 0.97], [0.16, 1]],

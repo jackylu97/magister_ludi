@@ -137,7 +137,10 @@ export function createTerrainPainter(map,mountainRanges){
    const p=pigments[terrainKind(owner)],turn=.35+.42*Math.sin(x*.20+z*.13)+(h-.5)*.55;
    const tangent=[Math.cos(turn),Math.sin(turn)],normal=[-tangent[1],tangent[0]];
    const ownerKind=terrainKind(owner);
-   const add=(u,v,rx,rz,color,seed,twist=0)=>{const one=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color);one.kind=ownerKind;patches.push(one)};
+   const add=(u,v,rx,rz,color,seed,twist=0)=>{
+    // A broad stroke is laid twice (the user, 2026-11-13: strokes should "look more painted instead of vector art"): first a larger, slightly turned shape in a tone half way to the ground's, then the stroke itself. The edge then steps through a half tone and is not one clean cut.
+    if(PAINT&&PAINT.halo&&rx>.2){const under=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist+.14,rx*PAINT.halo,rz*PAINT.halo,(seed+.37)%1,p.base.clone().lerp(color,.5));under.kind=ownerKind;patches.push(under)}
+    const one=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color);one.kind=ownerKind;patches.push(one)};
    // One broad area, a medium flank and a few small angular breaks. The
    // darker pieces touch or sit just outside the main shape's edge, so they
    // read as one irregular contour rather than uniformly scattered confetti.
@@ -174,6 +177,30 @@ export function createTerrainPainter(map,mountainRanges){
   const row=Math.floor(c.z/spacingZ);
   // Painting belongs to the landscape, not the hex. Neighbours clip the same
   // large/small shapes, in the same order, so colour continues across joins.
+  // Tongues across a terrain edge (the user, 2026-11-13: "between terrains
+  // there's not a rigid cutoff"). Each hex is filled with its own ground, so
+  // two terrains would meet on the straight hex line. Along such an edge a few
+  // strokes in each terrain's own colour reach into the other, each over a
+  // larger half-tone shape. Both hexes work out the same strokes from the
+  // edge's own place, and each keeps the part that lies on it. They go down
+  // first, so the hex's own strokes paint over them here and there.
+  if(PAINT&&PAINT.tongues)for(let d=0;d<6;d++){
+   const other=neighbour(tile,map,d);
+   if(!other||isWater(other))continue;
+   const otherKind=terrainKind(other);
+   if(otherKind===ownKind)continue;
+   const a=d*Math.PI/3,nx=Math.cos(a),nz=Math.sin(a),mx=c.x+nx*Math.sqrt(3)/2,mz=c.z+nz*Math.sqrt(3)/2;
+   const ex=Math.round(mx*16),ez=Math.round(mz*16),q=pigments[otherKind];
+   for(let k=0;k<PAINT.tongues;k++){
+    const h1=hash(ex+k*7,ez-k*13),h2=hash(ex-k*11,ez+k*5),h3=hash(ex+k*3+91,ez+k*17);
+    // Strokes that lean out from this hex are the neighbour's to draw as its own colour; here only the ones that come in show.
+    const along=(k+.5)/PAINT.tongues-.5+(h1-.5)*.2,inward=-(.02+h2*.12),turn=a+Math.PI/2+(h3-.5)*.5;
+    const px=mx-nz*along+nx*inward,pz=mz+nx*along+nz*inward,rx=.24+h2*.14,rz=.14+h3*.1;
+    const under=patch(px,pz,turn+.2,rx*1.3,rz*1.35,h1,p.base.clone().lerp(q.base,.5)),over=patch(px,pz,turn,rx,rz,h3,q.base);
+    under.kind=over.kind=ownKind;under.order=over.order=[-1,d,k];
+    patches.push(under,over);
+   }
+  }
   for(const offset of period?[-period,0,period]:[0]){
    const col=Math.floor((c.x-offset)/spacingX);
    for(let r=row-2;r<=row+2;r++)for(let q=col-2;q<=col+2;q++)for(const source of brushGroup(q,r)){

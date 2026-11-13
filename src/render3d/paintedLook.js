@@ -14,6 +14,12 @@ import {NORTH_STAR_TOWN_ASSETS,NORTH_STAR_WORK_ASSETS} from '../terrainStudy/nor
 import {VIEW3D} from './lookData';
 import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,VTEST_UNIFORMS,shareUniforms,installClouds} from './visualTestLook';
 
+// Brush marks on the ground (the user, 2026-11-13: the strokes should "look
+// more painted instead of vector art"). The two grain textures are read
+// stretched out along one slanted direction, at two sizes, so every fill
+// carries long faint streaks, as paint dragged by a brush does.
+const BRUSH=VIEW3D.visualTest.northStar?VIEW3D.visualTest.paint.brush:0;
+const BRUSH_GLSL=BRUSH?` vec2 brushAlong=vec2(p.x*.94+p.y*.34,p.y*.94-p.x*.34); float brush=texture2D(studyFlock,vec2(brushAlong.x*.42,brushAlong.y*.055)).r+texture2D(studyMineral,vec2(brushAlong.x*1.1+.37,brushAlong.y*.12)).r-1.0; diffuseColor.rgb*=1.0+brush*${BRUSH.toFixed(3)};`:'';
 export async function createPaintedLook(renderer,scene,camera,key='golden') {
  const resources=new Set();
  const own=resource=>{resources.add(resource);return resource};
@@ -83,13 +89,13 @@ const flockUniform={value:flockTexture};
 for(const [kind,m]of Object.entries(ground)){const water=['coast','ocean','lake'].includes(kind);m.onBeforeCompile=shader=>{shader.uniforms.studyTime=clockUniform;shader.uniforms.studyMineral=mineralUniform;shader.uniforms.studyFlock=flockUniform;if(water)shareUniforms(shader,SEA_UNIFORMS);else shareUniforms(shader,TILE_UNIFORMS);shader.vertexShader='varying vec3 studyPosition;\n'+(water?SEA_GLSL.vertexHead:'attribute float turfWeight; varying float vTurfWeight;\n')+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nstudyPosition=position;'+(water?SEA_GLSL.vertex:'vTurfWeight=turfWeight;'));shader.fragmentShader='varying vec3 studyPosition; uniform float studyTime; uniform sampler2D studyMineral; uniform sampler2D studyFlock;\n'+(water?SEA_GLSL.fragmentHead:'varying float vTurfWeight;\n'+TILE_GLSL.head)+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
  vec2 p=studyPosition.xz;
  float patches=sin(p.x*8.0+sin(p.y*5.0))*sin(p.y*7.0);
- ${water?'':'float mineral=texture2D(studyMineral,p*.32).r; float flock=texture2D(studyFlock,p*.55).r; diffuseColor.rgb *= .95 + mineral*.065 + patches*.012 + (flock-.5)*.19*vTurfWeight;'}
+ ${water?'':'float mineral=texture2D(studyMineral,p*.32).r; float flock=texture2D(studyFlock,p*.55).r; diffuseColor.rgb *= .95 + mineral*.065 + patches*.012 + (flock-.5)*.19*vTurfWeight;'+BRUSH_GLSL}
  ${water?'':TILE_GLSL.fragment}
  ${water?`float wave=sin(p.y*24.0+p.x*3.0+sin(p.x*2.0)+studyTime*.35);
  float streak=step(.93,wave)*step(.3,sin(p.x*4.0+p.y));
  diffuseColor.rgb *= 1.0+(vtestSea>.5?0.0:streak*.045) + sin(p.x*1.4+p.y*.65)*sin(p.y*1.6)*.008;
  ${SEA_GLSL.fragment}`:''}
- `)};m.customProgramCacheKey=()=>water?'study-water-v3:vtest-v27':'study-land-v3:tiles'}
+ `)};m.customProgramCacheKey=()=>water?'study-water-v3:vtest-v27':'study-land-v4:tiles'}
 
 const mergedLand=mat('#ffffff'),mergedWater=mat('#ffffff'),mergedDetails=mat('#ffffff');
 for(const [m,source]of [[mergedLand,ground.grassland],[mergedWater,ground.ocean]]){m.vertexColors=true;m.onBeforeCompile=source.onBeforeCompile;m.customProgramCacheKey=source.customProgramCacheKey}
