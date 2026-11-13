@@ -2370,8 +2370,14 @@ export interface VisualTestSpec {
      * of the loose shapes; `levels` are the three noise values their outlines
      * run on; `light` and `dark` are the two tones inside them, `line` and
      * `lineWidth` their outline; `ripples` is how much of the old pale dashes stays.
+     * `pattern` picks the open water's pattern: 1 the contour shapes, 2 a net
+     * of cells (`cell…`: size, warp, speed, tone), 3 soft patches with no
+     * outline (`patch…`), 4 long swell lines (`swell…`: rows to a hex unit,
+     * bend, how often a line breaks, speed).
      */
-    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number };
+    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number;
+      pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
+      swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */
     rocks: { share: number; most: number; near: number; far: number; size: number; sizeVary: number; ring: number; ringWidth: number };
     /** A river mouth: the half width of the channel that runs out along the outflow, how round the corner is where it joins the open water (`round`), how much its edge wanders, and how far the foam line and the sand stay back. */

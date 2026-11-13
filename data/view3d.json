@@ -1359,7 +1359,18 @@
         "dark": 0.94,
         "line": 0.4,
         "lineWidth": 0.011,
-        "ripples": 0.35
+        "ripples": 0.35,
+        "pattern": 4,
+        "cellScale": 1.05,
+        "cellWarp": 0.7,
+        "cellSpeed": 0.22,
+        "cellTone": 0.35,
+        "patchLight": 0.22,
+        "patchDark": 0.9,
+        "swellRows": 2.4,
+        "swellBend": 2.2,
+        "swellBreak": 0.8,
+        "swellSpeed": 0.05
       },
       "rocks": {
         "share": 0.3,

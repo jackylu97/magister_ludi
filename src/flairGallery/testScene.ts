@@ -1,5 +1,6 @@
 import { VIEW3D } from '../render3d/lookData';
 import { Renderer3D } from '../render3d/renderer3d';
+import { VTEST_UNIFORMS } from '../render3d/visualTestLook';
 import { NO_LENS } from '../render3d/lens3d';
 import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
@@ -31,6 +32,9 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   let view: SceneView = Object.prototype.hasOwnProperty.call(SCENE_VIEWS, params.get('view') ?? '') ? params.get('view') as SceneView : 'overview';
   let light = params.get('light') ?? 'soft';
   let still = params.get('still') !== '0';
+  // `sea=1..4` picks the open water's pattern (`visualTest.coast.open.pattern`), to compare them.
+  const pattern = Number(params.get('sea'));
+  if (pattern >= 1 && pattern <= 4) VTEST_UNIFORMS.vtestSeaPattern.value = pattern;
   into.style.cssText = 'position:fixed;inset:0;margin:0;padding:0;max-width:none;width:100vw;height:100vh;background:#d7cebc';
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block';

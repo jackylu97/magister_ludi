@@ -68,6 +68,8 @@ export const VTEST_UNIFORMS = {
   vtestSeaFieldShape: { value: new Vector4(0, 0, 1, 1) },
   /** The river's water, which the sea takes at a river mouth. */
   vtestSeaMouth: { value: new Color(VT.organicRivers.water) },
+  /** Which pattern the open water of a free coast carries: 1 contours, 2 cells, 3 soft patches, 4 swell lines. The scene page's `sea=` option sets it. */
+  vtestSeaPattern: { value: VT.coast.open.pattern } as IUniform<number>,
   vtestSeaShallow: { value: new Color(sea.shallow) },
   vtestSeaCoast: { value: new Color(sea.coast) },
   vtestSeaOcean: { value: new Color(sea.ocean) },
@@ -151,7 +153,7 @@ float vtestNoise(vec2 p) {
 // --- 1. the sea --------------------------------------------------------------
 
 export const SEA_UNIFORMS: readonly UniformName[] = [
-  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
+  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
   'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
@@ -270,17 +272,48 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   // They are the level lines of a slow noise. The distance to a level is the
   // difference in value over the noise's slope, so a line keeps one width.
   if (free > .5) {
-    float slope = length(vec2(vtestSeaContour(cq + vec2(.03, 0.0)) - cn, vtestSeaContour(cq + vec2(0.0, .03)) - cn)) / .03 * ${open.scale.toFixed(3)};
     float pixel = fwidth(p.x) + fwidth(p.y) + 1e-4;
     vec3 line = mix(paint, vtestSeaShallow, ${open.line.toFixed(3)});
     vec3 light = mix(paint, vtestSeaShallow, ${open.light.toFixed(3)}), dark = paint * ${open.dark.toFixed(3)};
-    float d1 = (cn - ${open.levels[0]!.toFixed(3)}) / max(slope, .05), d2 = (cn - ${open.levels[1]!.toFixed(3)}) / max(slope, .05), d3 = (cn - ${open.levels[2]!.toFixed(3)}) / max(slope, .05);
-    paint = mix(paint, light, smoothstep(-pixel, pixel, d1));
-    paint = mix(paint, dark, smoothstep(-pixel, pixel, d2));
-    paint = mix(paint, light, smoothstep(-pixel, pixel, d3));
-    float drawn = max(max(1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d1)), 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d2))),
-      1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d3)));
-    paint = mix(paint, line, drawn);
+    if (vtestSeaPattern < 1.5) {
+      // 1. Contours: the level lines of a slow noise, with a tone between them.
+      float slope = length(vec2(vtestSeaContour(cq + vec2(.03, 0.0)) - cn, vtestSeaContour(cq + vec2(0.0, .03)) - cn)) / .03 * ${open.scale.toFixed(3)};
+      float d1 = (cn - ${open.levels[0]!.toFixed(3)}) / max(slope, .05), d2 = (cn - ${open.levels[1]!.toFixed(3)}) / max(slope, .05), d3 = (cn - ${open.levels[2]!.toFixed(3)}) / max(slope, .05);
+      paint = mix(paint, light, smoothstep(-pixel, pixel, d1));
+      paint = mix(paint, dark, smoothstep(-pixel, pixel, d2));
+      paint = mix(paint, light, smoothstep(-pixel, pixel, d3));
+      float drawn = max(max(1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d1)), 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d2))),
+        1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d3)));
+      paint = mix(paint, line, drawn);
+    } else if (vtestSeaPattern < 2.5) {
+      // 2. Cells: a net of thin pale lines, as light makes on shallow water. Each
+      // cell has a point that moves slowly; a line runs where two points are equally near.
+      vec2 g = p * ${open.cellScale.toFixed(3)} + (vec2(vtestNoise(p * .9), vtestNoise(p * .9 + 7.3)) - .5) * ${open.cellWarp.toFixed(3)};
+      vec2 ci = floor(g), cf = fract(g);
+      float f1 = 9.0, f2 = 9.0, id = 0.0;
+      for (int cy = -1; cy <= 1; cy++) for (int cx = -1; cx <= 1; cx++) {
+        vec2 o = vec2(float(cx), float(cy));
+        vec2 h = vec2(vtestHash(ci + o), vtestHash(ci + o + 17.3));
+        h = .5 + .36 * sin(time * ${open.cellSpeed.toFixed(3)} + 6.2832 * h);
+        float d = length(o + h - cf);
+        if (d < f1) { f2 = f1; f1 = d; id = vtestHash(ci + o + 3.1); } else if (d < f2) f2 = d;
+      }
+      float edge = (f2 - f1) / ${open.cellScale.toFixed(3)} * .5;
+      paint = mix(paint, id > .5 ? light : dark, ${open.cellTone.toFixed(3)});
+      paint = mix(paint, line, 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, edge));
+    } else if (vtestSeaPattern < 3.5) {
+      // 3. Soft patches, after Islanders: broad lighter and darker areas with no outline.
+      paint = mix(paint, mix(paint, vtestSeaShallow, ${open.patchLight.toFixed(3)}), smoothstep(.50, .72, cn));
+      paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn));
+    } else {
+      // 4. Swell: long thin pale lines that lie one way, bend a little, break, and travel slowly.
+      vec2 sq = vec2(p.x * .96 + p.y * .28, p.y * .96 - p.x * .28);
+      float sv = sq.y * ${open.swellRows.toFixed(3)} + (vtestNoise(sq * vec2(.45, .8)) - .5) * ${open.swellBend.toFixed(3)} - time * ${open.swellSpeed.toFixed(3)};
+      float row = floor(sv), across = abs(fract(sv) - .5) / ${open.swellRows.toFixed(3)};
+      float gate = vtestNoise(vec2(sq.x * ${open.swellBreak.toFixed(3)} + row * 13.7, row * .37));
+      float stroke = (1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, across)) * smoothstep(.50, .58, gate);
+      paint = mix(paint, line, stroke);
+    }
   }
   float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
   float soft = fwidth(shore) * 1.2 + 1e-4;
