@@ -38,6 +38,7 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - **B9, B10, B12** as proposed on the page.
 - **Held:**
   - **P4** wonders (*"defer for later, once we tune the bot parameters"*). **P10** the endgame (*"defer"*). **B11** the renown weight (*"hold off, we'll do a parameter pass later"*).
+- **Slow bot turns first, 2026-11-13** (the user: *"fix the slow bot turns please"*). Before BP3, one batch (BPS) measures a six-seat bot game's late turns on this branch, finds what makes them slow, and fixes it. It is a speed fix only: the bots decide the same, and no rule changes. The method, the earlier numbers and the pins are in `docs/plans/performance-pass-2026-11-06.md`; the batch adds its own measurements and findings to that file.
 - **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 + P3 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
 
 **(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
