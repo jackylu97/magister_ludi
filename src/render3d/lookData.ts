@@ -2309,6 +2309,10 @@ export interface VisualTestSpec {
   tiles: { clean: boolean; width: number; soft: number; dark: number; lipWidth: number; light: number };
   /** Switch 9: the contact shade pass, made stronger and wider, with a cool tint. */
   grounding: { intensity: number; radius: number; tint: string };
+  /** A few small flocks of pale birds that cross the board. Sizes and height in hex units, speed in hex units a second, flap in radians a second. */
+  birds: { flocks: number; flockSize: number; size: number; height: number; speed: number; flap: number; color: string };
+  /** Edge smoothing on the painted board: the sample count of the scene's render target. 0 is off. */
+  smoothing: number;
   /** Switch 12: things that stand up are darker at the foot and lighter at the top. `span` is the height in world units over which the tone changes. */
   gradient: { foot: number; top: number; span: number };
   /** Switch 13: a final colour grade in the output step: contrast, saturation, warm highlights with cool shadows, a haze toward the top of the screen, a vignette. */

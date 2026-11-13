@@ -22,6 +22,14 @@ The mine and the quarry reach below the ground line, so they can sit into a
 hill with no plinth.
 """
 
+# Wider chamfers (2026-11-12): the reference games' models catch a thin light
+# on every edge. A chamfer is never more than three tenths of a block's
+# thinnest side, so small pieces keep their shape.
+_plain_block=block
+BEVEL_SCALE=2.4
+def block(p,s,m=CREAM,bevel=.015):
+ return _plain_block(p,s,m,min(bevel*BEVEL_SCALE,min(s)*.3) if bevel else 0)
+
 WALL=pigment('NS pale wall','f0e5c9')
 MUD=pigment('NS mud wall','dcc091')
 STONE=pigment('NS footing stone','c4b99d')

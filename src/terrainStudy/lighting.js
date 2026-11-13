@@ -2,7 +2,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Color, DataTexture, DepthTexture, UnsignedIntType, UnsignedInt248Type, DepthStencilFormat, RGBAFormat, FloatType, EquirectangularReflectionMapping, PMREMGenerator } from 'three';
+import { WebGLRenderTarget, HalfFloatType, Vector2, Color, DataTexture, DepthTexture, UnsignedIntType, UnsignedInt248Type, DepthStencilFormat, RGBAFormat, FloatType, EquirectangularReflectionMapping, PMREMGenerator } from 'three';
 import {createDepthNormals} from './depthNormals.js';
 import {VIEW3D} from '../render3d/lookData';
 import {visualOn} from '../render3d/visualTest';
@@ -31,7 +31,15 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
   const reference=new URLSearchParams(location.search).has('reference');
   const fused=!reference&&!new URLSearchParams(location.search).has('nofuse');
   const environment=daylightEnvironment(renderer,scene);
-  const composer = new EffectComposer(renderer);
+  // Edge smoothing (the visual test, 2026-11-12): the scene is drawn into the
+  // composer's target, which three makes with no multisampling, so the canvas's
+  // own smoothing never applied to the painted board. `visualTest.smoothing` is
+  // the sample count; 0 gives the plain target back.
+  const smoothing=VIEW3D.visualTest.northStar?Math.min(VIEW3D.visualTest.smoothing,renderer.capabilities.maxSamples):0;
+  const size=renderer.getDrawingBufferSize(new Vector2());
+  const composer = smoothing>0
+    ?new EffectComposer(renderer,new WebGLRenderTarget(Math.max(1,size.width),Math.max(1,size.height),{type:HalfFloatType,samples:smoothing}))
+    :new EffectComposer(renderer);
   // Production unit ghosts need the visible-body stencil in the scene target,
   // including when AO is off. The standalone terrain study has no such pass.
   if(unitStencil)for(const target of [composer.renderTarget1,composer.renderTarget2])target.stencilBuffer=true;

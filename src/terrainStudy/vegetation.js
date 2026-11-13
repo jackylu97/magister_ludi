@@ -316,12 +316,12 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
       #ifdef USE_INSTANCING
       vec3 root=instanceMatrix[3].xyz;
       float bend=smoothstep(.35,1.5,position.y);
-      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*.012;
-      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*.006;
+      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*${NORTH_STAR_TREES?'.045':'.012'};
+      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*${NORTH_STAR_TREES?'.028':'.006'};
       #endif
     `);
   };
-  foliageMaterial.customProgramCacheKey=()=> 'sculpted-grove-breeze-v2';
+  foliageMaterial.customProgramCacheKey=()=> 'sculpted-grove-breeze-v3';
   const outputs=new Set();
   const materialFor=rock=>rock?rockMaterial:foliageMaterial;
   async function species(name,evergreen=false,rock=false) {

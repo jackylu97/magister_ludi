@@ -1280,9 +1280,9 @@
       "bobRoll": 0.06,
       "smokePuffs": 4,
       "smokeAt": [
-        -0.34,
-        0.18,
-        0.35
+        0.1,
+        -0.52,
+        0.8
       ],
       "smokeRise": 0.4,
       "smokeSize": 0.08,
@@ -1344,6 +1344,16 @@
       "intensity": 0.72,
       "radius": 0.4,
       "tint": "#3b3f7e"
+    },
+    "smoothing": 4,
+    "birds": {
+      "flocks": 3,
+      "flockSize": 3,
+      "size": 0.085,
+      "height": 1.4,
+      "speed": 0.55,
+      "flap": 8.0,
+      "color": "#fbf6ea"
     },
     "gradient": {
       "foot": 0.8,

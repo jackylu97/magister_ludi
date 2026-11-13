@@ -12,7 +12,7 @@ import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
 import {NORTH_STAR_TOWN_ASSETS,NORTH_STAR_WORK_ASSETS} from '../terrainStudy/northStarAssets.js';
 import {VIEW3D} from './lookData';
-import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,shareUniforms,installClouds} from './visualTestLook';
+import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,VTEST_UNIFORMS,shareUniforms,installClouds} from './visualTestLook';
 
 export async function createPaintedLook(renderer,scene,camera,key='golden') {
  const resources=new Set();
@@ -50,7 +50,9 @@ const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=
 // Both asset batches want only the mineral/flocking grain for a bump map, and
 // want it after their own download, so all five requests are in flight at once.
 const assetRequests=[
- loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
+ // The trees' breeze reads the visual test's clock under the north-star look,
+ // so they sway with the other idle motion. The study's value stays at rest.
+ loadVegetation(VIEW3D.visualTest.northStar?VTEST_UNIFORMS.vtestTime:{value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
  loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk',...NORTH_STAR_TOWN_ASSETS,...NORTH_STAR_WORK_ASSETS]:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
