@@ -2308,6 +2308,8 @@ export interface VisualTestSpec {
   land: string;
   /** Hills as flat terraces with a darker side face. `cap` is how wide the flat top is against the foot, `upper` the size of the second terrace, `side` the tone of the side face. */
   /** How strongly the paper's tooth shows on the ground, against 1 for everything that stands on it (`painterly.js`). */
+  /** Mountains in the hills' language: how much broader and lower a mountain's pieces stand. The rock's colour is `NORTH_STAR_MOUNTAIN_ROCK` in `northStarTrees.js`. */
+  mountains: { wide: number; tall: number };
   paper: { terrain: number };
   /** The ground's paint: how far a stroke from another terrain is mixed toward the hex's own ground (`blend`), how many times more fine strokes each brush group has (`strokes`), how many broad half-tone dabs it adds (`dabs`), how much larger the half-tone shape under each broad stroke is (`halo`, 0 for none), how many strokes reach across each edge between two terrains from each side (`tongues`), and how strong the long brush streaks are on every fill (`brush`). */
   paint: { blend: number; strokes: number; dabs: number; halo: number; tongues: number; brush: number };

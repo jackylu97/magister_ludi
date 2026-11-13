@@ -472,10 +472,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         featureDetails(t, (m, g) => push(m, g, undefined, m === features.shrub ? DECOR : [features.stone, features.reeds].includes(m) ? CLUTTER : NEVER), features, hash);
         sculptedTurf(t, (m, g) => push(m, g, undefined, CLUTTER), ground[t.terrain], hash);
         const c = centre(t);
+        // A mountain is broader and a little lower than the study's shard, so it reads as a mass of rock (`visualTest.mountains`).
+        const massif = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.mountains : {wide: 1, tall: 1};
         for (const piece of ranges.pieces.get(t) || []) {
           const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant];
           prop(piece.asset === 'shoulder' ? rock.shoulderGeometry : rock.geometry, assets.rangeMaterial,
-            piece.x, piece.y, piece.z, piece.sx, piece.sy, piece.sz, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
+            piece.x, piece.y, piece.z, piece.sx * massif.wide, piece.sy * massif.tall, piece.sz * massif.wide, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
         }
         const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
         // A rocky hill (2026-11-13): boulders lie at the foot of a cliff, and low shrubs stand on the green top.

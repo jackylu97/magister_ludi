@@ -8,3 +8,9 @@ export const NORTH_STAR_TREES = true;
 // The tint of mountain rock under the same look: the stone's own lilac times
 // this, which gives a warm slate. `null` leaves the stone as authored.
 export const NORTH_STAR_ROCK = NORTH_STAR_TREES ? [.82, .74, .6] : null;
+// Mountains in the hills' language (the user, 2026-11-13): the mountain's rock
+// keeps its own light and dark and takes this colour in place of its lilac. It
+// is the hills' cliff rock (`visualTest.hills.soft.cliffs.rock`, #c4b59c) in
+// linear light, lifted by half. `null` leaves the stone as it was. A constant
+// here and not in the look sheet, for the reason given above.
+export const NORTH_STAR_MOUNTAIN_ROCK = NORTH_STAR_TREES ? [.83, .69, .5] : null;

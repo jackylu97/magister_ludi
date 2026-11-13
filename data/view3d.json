@@ -1643,6 +1643,10 @@
       "forestTrees": 9,
       "forestShade": 0.8
     },
+    "mountains": {
+      "wide": 1.22,
+      "tall": 0.82
+    },
     "paper": {
       "terrain": 3.6
     },
