@@ -146,6 +146,30 @@ export function surfaceHeight(tile,x,z){
  return moundSurfaceHeight(hillMounds(tile),x,z,baseSurfaceHeight(tile,x,z));
 }
 
+// The cut of a free river (the visual test, 2026-11-13). A hex near an organic
+// river carries `riverCarve`: {depth, bank, key, segments}, where `segments` is
+// a flat list of eight numbers a piece of the river's line, in the hex's own
+// coordinates: x, z, half width and depth share at each end. The ground drops
+// by `depth` under the water and rises in a straight slope over `bank` beside
+// it. The board sets it when it is built (`paintedBoard.js`); the terrain mesh
+// adds vertices along it (`terrainMesh.js`).
+/** How far a point is from the water's edge (negative in the water), and the depth share there. */
+export function riverCarveAt(tile,x,z){
+ const carve=tile.riverCarve;if(!carve)return null;
+ const s=carve.segments;let edge=Infinity,share=0;
+ for(let i=0;i<s.length;i+=8){
+  const ax=s[i],az=s[i+1],bx=s[i+4],bz=s[i+5],dx=bx-ax,dz=bz-az,l=dx*dx+dz*dz;
+  const t=l>1e-12?Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l)):0;
+  const e=Math.hypot(x-ax-dx*t,z-az-dz*t)-(s[i+2]+(s[i+6]-s[i+2])*t);
+  if(e<edge){edge=e;share=s[i+3]+(s[i+7]-s[i+3])*t}
+ }
+ return {edge,share};
+}
+function riverCut(tile,x,z){
+ const at=riverCarveAt(tile,x,z);if(!at)return 0;
+ return tile.riverCarve.depth*at.share*Math.max(0,Math.min(1,1-at.edge/tile.riverCarve.bank));
+}
+
 export function baseSurfaceHeight(tile,x,z){
  if(isWater(tile))return WATER_LEVEL;
  const {upper,normals:planes}=tileShape(tile);
@@ -159,5 +183,5 @@ export function baseSurfaceHeight(tile,x,z){
   const r=Math.hypot((x+.1*Math.sin(z*6))/.55,z/.43),t=Math.max(0,Math.min(1,(r-.65)/.65));
   height=.008+(LAND_LEVEL-.008)*t*t*(3-2*t);
  }
- return BANK_TOE+(height-BANK_TOE)*bankWeight(tile,x,z);
+ return BANK_TOE+(height-BANK_TOE)*bankWeight(tile,x,z)-riverCut(tile,x,z);
 }

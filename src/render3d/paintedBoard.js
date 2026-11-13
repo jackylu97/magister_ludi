@@ -80,6 +80,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // The organic rivers of switch 4: one painted ribbon a run, clipped onto
   // each bank hex's ground and pushed with the water, so no draw call is added.
   const organicRivers = !prepared && thinRivers?.organic ? createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers) : null;
+  // The free river's cut: each hex near the river is told the river's line
+  // before any ground is meshed, so the ground drops to the water there.
+  if (organicRivers) for (const tile of renderMap.tiles) { const carve = organicRivers.carve(tile); if (carve) tile.riverCarve = carve; else delete tile.riverCarve; }
   const ground = materials.ground, water = materials.water, features = materials.features;
   const terrainMaterials = new Set([...Object.values(ground), water.river]);
   const waterMaterials = new Set([ground.ocean, ground.coast, ground.lake, water.river]);

@@ -1,7 +1,7 @@
 import {BufferGeometry, Color, Float32BufferAttribute} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {riverPaths} from '../terrainStudy/waterContours.js';
-import {centre, onTileTop, surfaceHeight, terrainMapWraps} from '../terrainStudy/surface.js';
+import {centre, surfaceHeight, terrainMapWraps, tileShape, isWater} from '../terrainStudy/surface.js';
 import {terrainColors} from '../terrainStudy/terrainPigment.js';
 import {surfacePatch} from '../terrainStudy/surfacePatch.js';
 import {hashUnit} from './hash';
@@ -297,6 +297,7 @@ export function createOrganicRivers(map, knobs) {
 
  return {
   polygonCount: polygons.length,
+  carve,
   /** The stones on one hex's river banks: `{x, y, z, seed}` in the hex's own coordinates. */
   stones(tile) { return placed(tile, 'stone'); },
   /** The reeds at the water's edge on one hex, as one geometry in world coordinates; null if none. */
@@ -345,6 +346,35 @@ export function createOrganicRivers(map, knobs) {
   },
  };
 
+ function inHex(tile, x, z) { const shape = tileShape(tile); return shape.normals.every(([nx, nz], i) => x * nx + z * nz <= shape.upper[i] - .01); }
+
+ /**
+  * The pieces of the river's line near one hex, for the cut in the ground
+  * (`riverCarve` in `surface.js`): null when no river comes near. The depth
+  * fades out toward a source, so a spring is a shallow pool.
+  */
+ function carve(tile) {
+  if (!knobs.cutDepth || isWater(tile)) return null;
+  const c = centre(tile), out = [];
+  for (const run of runs) {
+   const {samples, length, source, sink, path} = run;
+   const share = s => (source ? smooth(0, .35, s) * .7 + .3 : 1) * (sink ? smooth(0, .35, length - s) * .7 + .3 : 1);
+   for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
+    const a = samples[i], b = samples[(i + 1) % samples.length];
+    for (const shift of period ? [0, period, -period] : [0]) {
+     const ax = a.x + shift - c.x, az = a.z - c.z;
+     if (Math.abs(ax) > 1.3 || Math.abs(az) > 1.3) continue;
+     out.push(ax, az, a.half, share(a.s), b.x + shift - c.x, b.z - c.z, b.half, share(b.s));
+     break;
+    }
+   }
+  }
+  if (!out.length) return null;
+  let key = out.length;
+  for (let i = 0; i < out.length; i += 5) key = (Math.imul(key, 31) + Math.round(out[i] * 1e4)) | 0;
+  return {depth: knobs.cutDepth, bank: knobs.cutBank, key, segments: Float32Array.from(out)};
+ }
+
  /** The spots of one kind that stand on a hex, in its own coordinates, with the ground's height. */
  function placed(tile, kind) {
   if (!spots.length || (!tile.riverEdges && !nearRiver(tile))) return [];
@@ -353,7 +383,7 @@ export function createOrganicRivers(map, knobs) {
    if (spot.kind !== kind) continue;
    for (const shift of period ? [0, period, -period] : [0]) {
     const x = spot.x + shift - c.x, z = spot.z - c.z;
-    if (Math.abs(x) > 1.1 || Math.abs(z) > 1.1 || !onTileTop(tile, x, z, .01)) continue;
+    if (Math.abs(x) > 1.1 || Math.abs(z) > 1.1 || isWater(tile) || !inHex(tile, x, z)) continue;
     found.push({x, z, y: surfaceHeight(tile, x, z), seed: spot.seed});
     break;
    }

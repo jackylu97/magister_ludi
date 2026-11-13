@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE, riverStyleKey } from './surface.js';
+import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE, riverStyleKey, riverCarveAt } from './surface.js';
 import { flatWater } from './water.js';
 
 // A small library of irregular triangulations avoids concentric hex fans.
@@ -39,7 +39,9 @@ function triangulate(points) {
 const topologies=new Map();
 function topology(tile,distant=false) {
   const variant=(tile.col*3+tile.row*5)%8;
-  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}:${riverStyleKey()}`;
+  // A hex with a carved river has its own vertices, so it shares its topology with no other hex.
+  const carve=tile.riverCarve;
+  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}:${riverStyleKey()}${carve?`:${tile.col},${tile.row},${carve.key}`:''}`;
   if(topologies.has(key))return topologies.get(key);
   const shape=tileShape(tile),points=[],toes=[];
   // Explicit vertices on the crest and toe keep river cuts straight. Sampling
@@ -54,7 +56,34 @@ function topology(tile,distant=false) {
   for(let row=-extent;row<=extent;row++)for(let col=-extent;col<=extent;col++){
     const x=col*spacing+(row%2)*spacing*.5+.025*Math.sin(col*13+row*17+variant*8);
     const z=row*spacing+.025*Math.sin(col*21+row*11+variant*3);
-    if(shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.035))points.push([x,z]);
+    if(!shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.035))continue;
+    // The grid stands clear of a carved channel, whose own vertices follow.
+    if(carve&&riverCarveAt(tile,x,z).edge<carve.bank+.05)continue;
+    points.push([x,z]);
+  }
+  if(carve){
+    // Vertices along the channel: its middle, the water's two edges and the two
+    // rims, at each piece's start. And one wherever one of those five lines
+    // crosses the hex's outline, so the neighbour, which adds the same point,
+    // meets this hex with no gap.
+    const seen=new Set(),s=carve.segments,outline=shape.top;
+    const put=(x,z)=>{const k=`${Math.round(x*2e4)}:${Math.round(z*2e4)}`;if(!seen.has(k)){seen.add(k);points.push([x,z])}};
+    const inside=(x,z)=>shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.004);
+    for(let i=0;i<s.length;i+=8){
+      const ax=s[i],az=s[i+1],bx=s[i+4],bz=s[i+5],l=Math.hypot(bx-ax,bz-az)||1,nx=-(bz-az)/l,nz=(bx-ax)/l;
+      for(const side of [0,1,-1,2,-2]){
+        const oa=side===0?0:Math.sign(side)*(s[i+2]+(Math.abs(side)===2?carve.bank:0)),ob=side===0?0:Math.sign(side)*(s[i+6]+(Math.abs(side)===2?carve.bank:0));
+        const px=ax+nx*oa,pz=az+nz*oa,qx=bx+nx*ob,qz=bz+nz*ob;
+        if(inside(px,pz))put(px,pz);
+        if(i+8>=s.length&&inside(qx,qz))put(qx,qz);
+        for(let e=0;e<outline.length;e++){
+          const [cx,cz]=outline[e],[dx,dz]=outline[(e+1)%outline.length];
+          const rx=qx-px,rz=qz-pz,sx=dx-cx,sz=dz-cz,den=rx*sz-rz*sx;if(Math.abs(den)<1e-12)continue;
+          const t=((cx-px)*sz-(cz-pz)*sx)/den,u=((cx-px)*rz-(cz-pz)*rx)/den;
+          if(t>=0&&t<=1&&u>1e-4&&u<1-1e-4)put(cx+sx*u,cz+sz*u);
+        }
+      }
+    }
   }
   const result={points,toes,indices:triangulate(points)};
   topologies.set(key,result);return result;
