@@ -197,6 +197,8 @@ float vtestSeaMask = 0.0;
 float vtestSeaGlitter = 0.0;
 // How much of the swell's own shading the lighting stage keeps. Pattern 5 keeps little: a smooth surface with glints on it.
 float vtestSeaSheen = 1.0;
+// 1 where a stroke of the sun's road is lit at this point. The mirror's picture gives way to it: the light is on the surface.
+float vtestSunLit = 0.0;
 // What the water mirrors at this point, and how much of it shows (seaMirror.ts).
 vec4 vtestSeaMirror = vec4(0.0);
 float vtestSwell(vec2 p, float time) {
@@ -246,10 +248,14 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
 float vtestSunGlare() {
   vec2 screen = gl_FragCoord.xy / vtestViewport;
   vec2 from = (screen - vec2(${sun.x.toFixed(3)}, ${sun.y.toFixed(3)})) / vec2(${sun.width.toFixed(3)}, ${sun.height.toFixed(3)});
+  // The road is wider near the eye, at the bottom of the screen, and narrower far off.
+  from.x /= mix(1.0 + ${sun.spread.toFixed(3)}, 1.0 - ${sun.spread.toFixed(3)}, screen.y);
   return exp(-dot(from, from));
 }
 vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float glow) {
-  paint = mix(paint, vtestSeaSunGlare, glare * ${sun.strength.toFixed(3)} * wet * glow);
+  // The glow lifts the water's own blue and adds a trace of the sun's tone. Mixing toward the warm tone alone turned the blue grey.
+  paint *= 1.0 + glare * ${sun.strength.toFixed(3)} * wet * glow;
+  paint = mix(paint, vtestSeaSunGlare, glare * glare * ${sun.warm.toFixed(3)} * wet * glow);
   // The strokes lie on the water, but their size follows the zoom in steps of two, so they are a few pixels thick at any distance and never turn into grain.
   float grain = exp2(floor(log2((fwidth(p.x) + 1e-5) * ${sun.strokePixels.toFixed(1)}) + .5));
   vec2 sg = p / grain * vec2(${sun.strokeLength.toFixed(3)}, ${sun.strokeRows.toFixed(3)});
@@ -262,6 +268,9 @@ vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float 
   float shape = 1.0 - smoothstep(.75, 1.0, length(sf / vec2(long_, .5 * ${sun.strokeFill.toFixed(3)})));
   float alive = .5 + .5 * sin(time * ${sun.strokeFlicker.toFixed(3)} + pick * 50.0);
   float lit = step(1.0 - glare * glare * ${sun.strokes.toFixed(3)}, pick * .999) * shape * smoothstep(.15, .6, alive);
+  // Not every stroke is as bright as the next.
+  lit *= .55 + .45 * vtestHash(sc + 11.9);
+  vtestSunLit = lit * wet;
   paint = mix(paint, vtestSeaSunStroke, lit * wet * ${sun.strokeStrength.toFixed(3)});
   return paint;
 }
@@ -419,7 +428,7 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     if (vtestMirrorOn > .5) {
       vec2 at = vMirror.xy / vMirror.w + vec2(sin(p.y * 38.0 + time * 1.3) * ${mirror.ripple.toFixed(4)}, 0.0);
       vec4 seen = texture2D(vtestMirrorMap, at) * .5 + texture2D(vtestMirrorMap, at + vec2(0.0, ${mirror.smear.toFixed(4)})) * .25 + texture2D(vtestMirrorMap, at - vec2(0.0, ${mirror.smear.toFixed(4)})) * .25;
-      vtestSeaMirror = vec4(seen.rgb, seen.a * ${mirror.strength.toFixed(3)} * wet);
+      vtestSeaMirror = vec4(seen.rgb, seen.a * ${mirror.strength.toFixed(3)} * wet * (1.0 - vtestSunLit));
       vtestSeaMask = 1.0; vtestSeaSheen = 0.0;
     }
   }
