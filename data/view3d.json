@@ -1447,6 +1447,7 @@
       "bigHouse": 0.85
     },
     "works": {
+      "newMine": false,
       "mineSize": 1.0,
       "mineAt": [0, 0],
       "quarrySize": 0.92,
@@ -1459,6 +1460,18 @@
       "stripAt": 0.27,
       "angleJitter": 0.1,
       "fields": ["#e8d080", "#b5c471", "#cfa877", "#efe0a6", "#a2bb62"],
+      "fieldSets": [
+        ["#9cbd5e", "#b9cf74", "#86ab52", "#cfd98a", "#a6c466"],
+        ["#9cbd5e", "#b9cf74", "#86ab52", "#cfd98a", "#a6c466"],
+        ["#ecc95c", "#f2dc8e", "#e0b04a", "#f0d273", "#d9bd62"],
+        ["#e9a24a", "#f0c46a", "#dd8a3c", "#f3d58a", "#e6b25a"],
+        ["#cf7f58", "#e3a862", "#c26c50", "#ecc57c", "#d9946a"]
+      ],
+      "windmillShare": 0.4,
+      "windmillSize": 0.5,
+      "windmillYaw": 0.3,
+      "windmillHub": [0, 0.5, 0.165],
+      "sailSpeed": 0.9,
       "yard": "#d8c79c"
     }
   }

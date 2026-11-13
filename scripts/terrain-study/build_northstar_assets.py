@@ -13,6 +13,9 @@ nothing: `visualTest.northStar` in data/view3d.json picks which set is drawn.
 - ns-mine: a dark tunnel mouth with a timber frame in a round rock.
 - ns-quarry: pale stone cut in square steps, with a crane.
 - ns-barn, ns-haystack: the farm's building and its stacks.
+- ns-windmill, ns-windmill-sails: a tower mill for some farms. The sails are a
+  separate model, flat in the X-Z plane round the origin, so the renderer can
+  turn them about their hub (`visualTest.works.windmillHub`).
 
 A door faces -Y here, which is toward the camera on the board.
 The mine and the quarry reach below the ground line, so they can sit into a
@@ -187,7 +190,27 @@ def haystack():
  rock((0,0,.05),(.12,.12,.13),STRAW,21,1,.06)
  cone(0,0,.13,.085,.08,STRAW_DEEP,8)
 
+CANVAS=pigment('NS sail canvas','f6edd6')
+def windmill():
+ # A round tower that narrows upward, under a tiled cap. The hub is at (0,-.15,.50).
+ cylinder((0,0,.02),.17,.04,STONE,10)
+ tube([(0,0,.04),(0,0,.30),(0,0,.47)],[.145,.115,.098],WALL,10)
+ cone(0,0,.47,.135,.17,TILE,10)
+ block((0,-.139,.10),(.07,.02,.14),DOOR,.004)
+ block((0,-.112,.33),(.045,.02,.055),DOOR,.003)
+ tube([(0,-.06,.50),(0,-.16,.50)],[.022,.022],TIMBER,6)
+def windmill_sails():
+ block((0,0,0),(.06,.035,.06),TIMBER,.006)
+ for spar,spar_size,sail,sail_size in [
+  ((0,0,.17),(.018,.016,.34),(.05,0,.215),(.08,.010,.24)),
+  ((.17,0,0),(.34,.016,.018),(.215,0,-.05),(.24,.010,.08)),
+  ((0,0,-.17),(.018,.016,.34),(-.05,0,-.215),(.08,.010,.24)),
+  ((-.17,0,0),(.34,.016,.018),(-.215,0,.05),(.24,.010,.08)),
+ ]:
+  block(spar,spar_size,TIMBER,.002);block(sail,sail_size,CANVAS,.002)
+
 for name,author in [
+ ('ns-windmill',windmill),('ns-windmill-sails',windmill_sails),
  ('ns-house-1a',house_1a),('ns-house-1b',house_1b),('ns-house-1c',house_1c),
  ('ns-house-2a',house_2a),('ns-house-2b',house_2b),('ns-house-2c',house_2c),
  ('ns-house-3a',house_3a),('ns-house-3b',house_3b),('ns-house-3c',house_3c),

@@ -2286,10 +2286,16 @@ export interface VisualTestSpec {
   };
   /** The mine, the quarry and the farm under the north-star look (`northStarWorks.js`). Sizes are in hex units. */
   works: {
+    /** `false` draws the study's mine (the user, 2026-11-12: the new one "sticks up like a mound"). */
+    newMine: boolean;
     mineSize: number; mineAt: number[]; quarrySize: number; quarryAt: number[];
     barnSize: number; haystackSize: number; haystacks: number;
     /** The fields: how far they reach toward the hex edge, the gap between two, where the strips divide, and their colours. */
     fieldInset: number; fieldGap: number; stripAt: number; angleJitter: number; fields: string[]; yard: string;
+    /** A farm takes one of these colour sets, so some farms are mostly green and some gold, orange or red. A set listed twice is twice as likely. */
+    fieldSets: string[][];
+    /** The share of farms that have a windmill in place of the barn, its footprint, its turn toward the camera, the hub's place in the model, and the sails' speed in radians a second. */
+    windmillShare: number; windmillSize: number; windmillYaw: number; windmillHub: number[]; sailSpeed: number;
   };
   /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
   props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number;

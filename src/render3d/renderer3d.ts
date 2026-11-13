@@ -142,6 +142,7 @@ import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory, planPainted
 import { type VisualTestState, changedSwitches, onVisualTestChange, visualBorder, visualOn } from './visualTest';
 import { VTEST_UNIFORMS, installBob, pinScaleFor, syncVisualUniforms } from './visualTestLook';
 import { PaintedSmokeLayer } from './paintedSmoke';
+import { PaintedSailsLayer } from './paintedSails';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { setRiverStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
@@ -366,6 +367,8 @@ export class Renderer3D implements MapView {
    */
   private paintedTerritoryTint: PaintedGroundLayer | null = null;
   private paintedSmoke: PaintedSmokeLayer | null = null;
+  /** The turning sails of the farms' windmills (the visual test version). */
+  private paintedSails: PaintedSailsLayer | null = null;
   /** Stops listening to the visual test switches. */
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
@@ -686,6 +689,8 @@ export class Renderer3D implements MapView {
     this.paintedSmoke = new PaintedSmokeLayer(this.paintedLook.registerMaterial);
     this.scene.add(this.paintedSites.group, this.paintedRoads.group, this.paintedTerritory.group);
     this.scene.add(this.paintedTerritoryTint.group, this.paintedSmoke.group);
+    this.paintedSails = new PaintedSailsLayer((this.paintedLook.workAssets as unknown as Record<string, ConstructorParameters<typeof PaintedSailsLayer>[0]>)['ns-windmill-sails'], this.paintedLook.registerMaterial);
+    this.scene.add(this.paintedSails.group);
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
@@ -2398,6 +2403,7 @@ export class Renderer3D implements MapView {
     if (terrainChanged) this.paintedTerrainRevision++;
     this.paintedWorks.group.visible = true;
     this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
+    this.paintedSails?.build(this.paintedWorks.placements, (cell) => (levels ? levels[cell] ?? 0 : -1), Math.sqrt(3) * this.state.map.width, this.shadows);
     // Bake when the set of drawn props changed, read off the entries the layer
     // just drew (which already leave out uncharted ground, town hexes, cleared
     // scenery and resources this seat cannot name). `signPaintedWorks` moves
@@ -4189,13 +4195,13 @@ export class Renderer3D implements MapView {
     if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
     this.reveal?.dispose(); this.reveal = null;
     for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory,
-      this.paintedTerritoryTint, this.paintedSmoke]) {
+      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails]) {
       if (!layer) continue;
       this.scene.remove(layer.group);
       layer.dispose();
     }
     this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
-    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null;
+    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null;
     this.paintedUnits?.dispose(); this.paintedUnits = null;
     this.paintedLook?.setBakeDetail(null);
     this.paintedLook?.dispose(); this.paintedLook = null;
@@ -4225,6 +4231,7 @@ export class Renderer3D implements MapView {
     this.paintedTerritory?.dispose();
     this.paintedTerritoryTint?.dispose();
     this.paintedSmoke?.dispose();
+    this.paintedSails?.dispose();
     this.unwatchVisualTest();
     this.paintedUnits?.dispose();
     for (const material of this.unitOutlines.values()) material.dispose();

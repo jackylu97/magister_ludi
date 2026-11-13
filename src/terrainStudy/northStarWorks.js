@@ -78,16 +78,26 @@ export function northStarWork(works,{tile,entry,top,assets,patch,building,put,he
   }
   return false;
  };
- if(improvement==='mine')return sunk('ns-mine',works.mineAt,works.mineSize);
+ if(improvement==='mine')return works.newMine?sunk('ns-mine',works.mineAt,works.mineSize):false;
  if(improvement==='quarry')return sunk('ns-quarry',works.quarryAt,works.quarrySize);
  if(improvement!=='farm')return false;
  const plan=northStarFarmPlan(tile,works),h=n=>hash(tile.col,tile.row,n);
  // Flat colour only: no rows, no strokes. Neighbouring plots never share a colour.
- const first=Math.floor(h(5)*works.fields.length);
- for(const [i,field]of plan.fields.entries())patch(field,works.fields[(first+i)%works.fields.length],.007);
+ // A farm takes one colour set, so one farm is mostly green and the next gold or red.
+ const colours=works.fieldSets?.length?works.fieldSets[Math.floor(h(6)*works.fieldSets.length)]:works.fields;
+ const first=Math.floor(h(5)*colours.length);
+ for(const [i,field]of plan.fields.entries())patch(field,colours[(first+i)%colours.length],.007);
  if(!plan.yard)return true;
  patch(plan.yard,works.yard,.007);
  const [mx,mz]=middle(plan.yard),ca=Math.cos(plan.angle),sa=Math.sin(plan.angle);
+ // Some farms have a tower mill in place of the barn. Its sails are a separate
+ // layer (`paintedSails.ts`), which finds the mill by this placement.
+ if(assets['ns-windmill']&&h(7)<works.windmillShare){
+  const mill=assets['ns-windmill'];mill.computeBoundingBox();
+  const span=mill.boundingBox.getSize(new T.Vector3());
+  building('ns-windmill',mx,mz,works.windmillSize/Math.max(span.x,span.z),works.windmillYaw*(h(8)>.5?1:-1));
+  return true;
+ }
  const barn=assets['ns-barn'];barn.computeBoundingBox();
  const size=barn.boundingBox.getSize(new T.Vector3());
  building('ns-barn',mx,mz,works.barnSize/Math.max(size.x,size.z),-plan.angle);
