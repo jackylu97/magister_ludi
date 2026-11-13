@@ -397,9 +397,21 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           for (const tree of organicRivers.trees(t)) {
             // Clear of the channel itself, and on land that can carry a tree.
             if (!['grassland', 'plains', 'tundra'].includes(t.terrain) || (t.feature && t.feature !== 'none') || t.terrain === 'mountain') continue;
+            // Not on a bridge: where a road crosses this river edge, the bank stays open. A road laid after the board is built is not known here.
+            let atBridge = false;
+            if (t.road !== undefined) for (let d = 0; d < 6 && !atBridge; d++) {
+              if (!((t.riverEdges || 0) & (1 << d)) || neighbour(t, renderMap, d)?.road === undefined) continue;
+              atBridge = Math.hypot(tree.x - Math.cos(d * Math.PI / 3) * .866, tree.z - Math.sin(d * Math.PI / 3) * .866) < .45;
+            }
+            if (atBridge) continue;
             const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2 + Math.floor(tree.seed * 3);
-            const kind = tree.seed > .82 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = .2 + tree.seed * .12;
+            // From a bush to a full tree: most are middling, a few are large.
+            const kind = tree.seed > .86 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = .12 + Math.pow((tree.seed * 7.31) % 1, 1.7) * .26;
             prop(kind.geometry, kind.material, at.x + tree.x, tree.y - .008, at.z + tree.z, s, s * .92, s, tree.seed * 6.28, new T.Color('#cfe6b4'), DECOR);
+          }
+          for (const rock of organicRivers.rocks(t)) {
+            const s = rock.size * 2.4;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + rock.x, rock.y - .004, at.z + rock.z, s, s * .75, s * .9, rock.seed * 6.28, new T.Color('#d2d8cc'));
           }
           for (const stone of organicRivers.stones(t)) {
             const s = .08 + stone.seed * .07;

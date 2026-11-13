@@ -118,7 +118,12 @@ export function createOrganicRivers(map, knobs) {
    const wander = knobs.meander
     ? reachWide * fade * reachOf * (Math.sin(swing + phase) * .7 + Math.sin(swing * .43 + phase2) * .32 + Math.sin(swing * 1.9 + phase * 3) * .1)
     : knobs.wander * fade * reachOf * (Math.sin(s * Math.PI * 2 / knobs.wanderWave + phase) * .8 + Math.sin(s * Math.PI * 2 / (knobs.wanderWave * .47) + phase2) * .2);
-   samples[i].swell = 1 + (knobs.widthVary ?? 0) * fade * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.6) + phase * 2.3);
+   // Pools and narrows (the user, 2026-11-13: "can you make the river wider and
+   // narrower in areas too"). Two waves that never line up make the width
+   // uneven, and a third opens an occasional wide pool.
+   const vary = (knobs.widthVary ?? 0) * fade;
+   samples[i].swell = Math.max(.5, 1 + vary * (Math.sin(s * 6.2832 / 1.9 + phase * 2.3) * .75 + Math.sin(s * 6.2832 / .83 + phase2 * 1.9) * .45)
+    + vary * (knobs.poolSwell ?? 0) * Math.pow(Math.max(0, Math.sin(s * 6.2832 / 3.1 + phase * 4.1)), 4));
    // The sand beside the water is wide in places and thin in others, each side by its own wave.
    samples[i].sand = [1, -1].map(way => knobs.bankWidth * (1 + (knobs.sandVary ?? 0) * fade * Math.sin(s * Math.PI * 2 / (knobs.wanderWave * 1.3) + phase * way + way)));
    samples[i].x += normals[i][0] * wander; samples[i].z += normals[i][1] * wander;
@@ -273,14 +278,45 @@ export function createOrganicRivers(map, knobs) {
      add([at(a, bent[k], a.half * from), at(b, bent[k + 1], b.half * from), at(b, bent[k + 1], b.half * to), at(a, bent[k], a.half * to)], colors.shine, knobs.lift * 1.8);
     }
    }
-   // Trees and bushes keep to the river: small groups stand back from the rim, more of them outside a bend.
+   // Trees keep to the river in bunches (2026-11-13): a slow wave along the run
+   // sets how thick they stand, so a dense grove is followed by open bank. A
+   // bunch keeps mostly to one side, and its trees differ in size, down to bushes.
    const grove = Math.max(3, Math.round(knobs.treeEvery / knobs.step));
    for (let i = ends + Math.floor(h(1, 1550) * grove); i < samples.length - ends; i += grove) {
-    if (h(i, 1551) > knobs.treeShare) continue;
-    const a = samples[i], n = bent[i], way = h(i, 1552) > .5 ? 1 : -1, count = 1 + Math.floor(h(i, 1553) * 2.6);
+    const a = samples[i], n = bent[i], thick = .5 + .5 * Math.sin(a.s * 6.2832 / knobs.treeWave + phase * 5);
+    if (h(i, 1551) > knobs.treeShare * (.12 + 1.9 * thick * thick)) continue;
+    const side = hashUnit(Math.round(start.point[0] * 16) + Math.floor(a.s / 1.3), Math.round(start.point[1] * 16), 1552) > .5 ? 1 : -1;
+    const count = 1 + Math.floor(h(i, 1553) * (1.5 + 4.5 * thick));
     for (let j = 0; j < count; j++) {
-     const out = a.half + knobs.cutBank + .07 + h(i, 1560 + j) * .16, along = (h(i, 1570 + j) - .5) * .3;
+     const way = h(i, 1555 + j) < .82 ? side : -side;
+     const out = a.half + knobs.cutBank + .06 + Math.pow(h(i, 1560 + j), 1.6) * .3, along = (h(i, 1570 + j) - .5) * .42;
      spots.push({kind: 'tree', x: a.x + n[0] * way * out - n[1] * along, z: a.z + n[1] * way * out + n[0] * along, seed: h(i, 1580 + j)});
+    }
+   }
+   // Rocks in the stream, each with white water round it; and white streaks where the river runs narrow and fast.
+   const rocky = Math.max(3, Math.round(knobs.rockEvery / knobs.step)), white = new Color(knobs.foam ?? '#ffffff');
+   const flowsDown = (steps.get(end) ?? 0) <= (steps.get(start) ?? 0) ? 1 : -1;
+   for (let i = ends + Math.floor(h(2, 1620) * rocky); i < samples.length - ends; i += rocky) {
+    const a = samples[i], n = bent[i], tx = n[1] * flowsDown, tz = -n[0] * flowsDown;
+    if (a.m < 1) continue;
+    if (h(i, 1621) < knobs.rockShare && a.half > .035) {
+     const off = (h(i, 1622) - .5) * a.half * .9, cx = a.x + n[0] * off, cz = a.z + n[1] * off, r = .022 + h(i, 1623) * .018;
+     spots.push({kind: 'rock', x: cx, z: cz, seed: h(i, 1624), size: r});
+     // A crescent of foam on the side the water comes from, and two short trails behind.
+     const arc = Array.from({length: 7}, (_, q) => { const t = (q / 6 - .5) * 2.4; return [cx - tx * Math.cos(t) * r * 1.9 + n[0] * Math.sin(t) * r * 1.9, cz - tz * Math.cos(t) * r * 1.9 + n[1] * Math.sin(t) * r * 1.9]; });
+     const inner = arc.map(([x, z]) => [cx + (x - cx) * .62, cz + (z - cz) * .62]).reverse();
+     add([...arc, ...inner], white, knobs.lift * 2.5);
+     for (const sideways of [1, -1]) {
+      const bx = cx + n[0] * sideways * r * 1.5 + tx * r, bz = cz + n[1] * sideways * r * 1.5 + tz * r, len = r * (2.5 + h(i, 1625) * 2), w = .004;
+      add([[bx - n[0] * w, bz - n[1] * w], [bx + tx * len, bz + tz * len], [bx + n[0] * w, bz + n[1] * w]], white, knobs.lift * 2.5);
+     }
+    }
+    if ((a.swell ?? 1) < knobs.rapidsBelow) {
+     for (let q = 0; q < 3; q++) {
+      const off = (h(i, 1630 + q) - .5) * a.half * 1.5, along = (h(i, 1640 + q) - .5) * .1, len = .03 + h(i, 1650 + q) * .04, w = .0045;
+      const bx = a.x + n[0] * off + tx * along, bz = a.z + n[1] * off + tz * along;
+      add([[bx - n[0] * w, bz - n[1] * w], [bx + tx * len, bz + tz * len], [bx + n[0] * w, bz + n[1] * w], [bx - tx * len * .3, bz - tz * len * .3]], white, knobs.lift * 2.5);
+     }
     }
    }
    const every = Math.max(2, Math.round(knobs.detailEvery / knobs.step));
@@ -369,6 +405,8 @@ export function createOrganicRivers(map, knobs) {
   carve,
   /** The trees that keep to the river on one hex: `{x, y, z, seed}` in the hex's own coordinates. */
   trees(tile) { return placed(tile, 'tree'); },
+  /** The rocks that stand in the stream on one hex: `{x, y, z, seed, size}`. */
+  rocks(tile) { return placed(tile, 'rock'); },
   /**
    * Where the water moves: a point every few samples of every run, with the
    * way the water flows there and the river's half width. The flow layer
@@ -483,7 +521,7 @@ export function createOrganicRivers(map, knobs) {
    for (const shift of period ? [0, period, -period] : [0]) {
     const x = spot.x + shift - c.x, z = spot.z - c.z;
     if (Math.abs(x) > 1.1 || Math.abs(z) > 1.1 || isWater(tile) || !inHex(tile, x, z)) continue;
-    found.push({x, z, y: surfaceHeight(tile, x, z), seed: spot.seed});
+    found.push({x, z, y: surfaceHeight(tile, x, z), seed: spot.seed, size: spot.size});
     break;
    }
   }

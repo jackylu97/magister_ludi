@@ -2363,7 +2363,9 @@ export interface VisualTestSpec {
     /** A thin white line at the waterline, `foamWidth` wide, with the share `foamGaps` of it left out. */
     foam: string; foamWidth: number; foamGaps: number;
     /** Trees keep to the river: a group every `treeEvery` units with chance `treeShare`. */
-    treeEvery: number; treeShare: number;
+    treeEvery: number; treeShare: number; /** The length of the slow wave that makes groves and open bank. */ treeWave: number;
+    /** `poolSwell` opens an occasional wide pool; below the width share `rapidsBelow` the water shows white streaks; a rock stands in the stream every `rockEvery` units with chance `rockShare`. */
+    poolSwell: number; rapidsBelow: number; rockEvery: number; rockShare: number;
     /** Moving water: pale glints that travel downstream. Sizes in hex units, `width` as a share of the river's half width, `speed` in trips a second. */
     flow: { length: number; width: number; travel: number; speed: number; lift: number; color: string };
     /** The true cut: the ground drops `cutDepth` under the water and rises in a straight slope over `cutBank` beside it. 0 depth is no cut. */
