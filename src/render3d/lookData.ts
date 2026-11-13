@@ -2376,8 +2376,16 @@ export interface VisualTestSpec {
      * bend, how often a line breaks, speed).
      */
     open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number;
-      /** Pattern 5: how far south of a shore the water mirrors the land, how strongly, and in what tone; and the sun's glints, everywhere (`base`) and in their loose groups (`groups`), and how much of the swell's own shading stays (`sheen`). */
-      reflect: { reach: number; strength: number; color: string }; sun: { base: number; groups: number; sheen: number };
+      /**
+       * Pattern 5, calm water under the sun. The glare's place on the screen
+       * (`x`, `y`, from the bottom left), its size as a share of the screen,
+       * its strength, the extra at its `core`, and its colour. `sky` and
+       * `skyColor` are the paler tone toward the top of the screen, from
+       * `skyFrom` up; `near` darkens the water toward the bottom, up to
+       * `nearTo`. `patches` is how much of pattern 3's soft patches stays.
+       * `bands` breaks the glare into faint long level bands (`bandLength` along, `bandRows` to a hex unit across).
+       */
+      sun: { x: number; y: number; width: number; height: number; strength: number; core: number; color: string; sky: number; skyFrom: number; skyColor: string; near: number; nearTo: number; patches: number; bands: number; bandLength: number; bandRows: number };
       pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
       swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */

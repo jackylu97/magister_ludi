@@ -4133,6 +4133,7 @@ export class Renderer3D implements MapView {
       // The visual test version's clock and the pins' size for this zoom
       // (switches 1, 6, 7 and 8). Two number writes; nothing is rebuilt.
       VTEST_UNIFORMS.vtestTime.value = clock;
+      this.renderer.getDrawingBufferSize(VTEST_UNIFORMS.vtestViewport.value);
       VTEST_UNIFORMS.vtestPinScale.value = visualOn('pins') ? pinScaleFor(pixels) : 1;
       // A walk is the one thing that moves a caster on layer 2 *during* a frame
       // rather than at a seam, so it asks for the counter map itself. A pan

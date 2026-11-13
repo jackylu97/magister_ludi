@@ -26,7 +26,7 @@ const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
-const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open, reflect = open.reflect, sun = open.sun;
+const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open, sun = open.sun;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
 export const VTEST_UNIFORMS = {
@@ -68,10 +68,12 @@ export const VTEST_UNIFORMS = {
   vtestSeaFieldShape: { value: new Vector4(0, 0, 1, 1) },
   /** The river's water, which the sea takes at a river mouth. */
   vtestSeaMouth: { value: new Color(VT.organicRivers.water) },
-  /** Which pattern the open water of a free coast carries: 1 contours, 2 cells, 3 soft patches, 4 swell lines, 5 soft patches with the sun's glints and the land's reflection. The scene page's `sea=` option sets it. */
+  /** Which pattern the open water of a free coast carries: 1 contours, 2 cells, 3 soft patches, 4 swell lines, 5 calm water with the sun's glare. The scene page's `sea=` option sets it. */
   vtestSeaPattern: { value: VT.coast.open.pattern } as IUniform<number>,
-  /** The tone the water takes where it mirrors the land (pattern 5). */
-  vtestSeaReflect: { value: new Color(VT.coast.open.reflect.color) },
+  /** Pattern 5: the sun's glare on calm water, the sky's tone far from the eye, and the size of the picture in pixels (the renderer writes it each frame). */
+  vtestSeaSunGlare: { value: new Color(VT.coast.open.sun.color) },
+  vtestSeaSky: { value: new Color(VT.coast.open.sun.skyColor) },
+  vtestViewport: { value: new Vector2(1, 1) },
   vtestSeaShallow: { value: new Color(sea.shallow) },
   vtestSeaCoast: { value: new Color(sea.coast) },
   vtestSeaOcean: { value: new Color(sea.ocean) },
@@ -155,7 +157,7 @@ float vtestNoise(vec2 p) {
 // --- 1. the sea --------------------------------------------------------------
 
 export const SEA_UNIFORMS: readonly UniformName[] = [
-  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaReflect', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
+  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaSunGlare', 'vtestSeaSky', 'vtestViewport', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
   'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
@@ -307,9 +309,10 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
       paint = mix(paint, line, 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, edge));
     } else if (vtestSeaPattern < 3.5 || vtestSeaPattern > 4.5) {
       // 3. Soft patches, after Islanders: broad lighter and darker areas with no outline.
-      // 5 is the same patches, read as the sky's reflection, with the sun and the land added below.
-      paint = mix(paint, mix(paint, vtestSeaShallow, ${open.patchLight.toFixed(3)}), smoothstep(.50, .72, cn));
-      paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn));
+      // 5 is the same patches, much fainter, under the sun's glare (added at the end).
+      float calm = vtestSeaPattern > 4.5 ? ${sun.patches.toFixed(3)} : 1.0;
+      paint = mix(paint, mix(paint, vtestSeaShallow, ${open.patchLight.toFixed(3)}), smoothstep(.50, .72, cn) * calm);
+      paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn) * calm);
     } else {
       // 4. Swell: long thin pale lines that lie one way, bend a little, break, and travel slowly.
       vec2 sq = vec2(p.x * .96 + p.y * .28, p.y * .96 - p.x * .28);
@@ -340,26 +343,6 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(deepWater) - ${bands.line.toFixed(4)});
   paint = mix(paint, vtestSeaShallow, shallows);
   paint = mix(paint, vtestSeaFoam, rim * ${bands.lineStrength.toFixed(3)});
-  if (free > .5 && vtestSeaPattern > 4.5) {
-    // 5. A little faked realism. The land's reflection: the camera looks north,
-    // so the water just south of a shore mirrors it. The picture of the map
-    // says how near the land is to the north; the reflection is a darker,
-    // greener tone, broken into short level strokes that shimmer.
-    vec2 north = vec2(sin(p.y * 31.0 + time * 1.3) * .012, -${reflect.reach.toFixed(3)});
-    float far = texture2D(vtestSeaField, (p + north - vtestSeaFieldShape.xy) * vtestSeaFieldShape.zw).r;
-    float near = texture2D(vtestSeaField, (p + north * .5 - vtestSeaFieldShape.xy) * vtestSeaFieldShape.zw).r;
-    float mirror = clamp(max(-far, -near * 2.0) / ${reflect.reach.toFixed(3)}, 0.0, 1.0) * step(0.0, shore);
-    mirror *= .72 + .28 * step(0.0, sin(p.y * 70.0 + sin(p.x * 9.0) * 1.5 + time * 1.1));
-    paint = mix(paint, vtestSeaReflect, mirror * ${reflect.strength.toFixed(3)});
-    // The sun: the lighting stage flashes each small facet of a slow swell that
-    // tilts the right way (SEA_LIGHT_GLSL). The glints come in loose groups.
-    float sw = vtestSwell(p, time);
-    vec2 tilt = vec2(vtestSwell(p + vec2(.04, 0.0), time) - sw, vtestSwell(p + vec2(0.0, .04), time) - sw) / .04 * vtestSeaWave.x;
-    vtestSeaNormal = normalize(vec3(-tilt.x, 1.0, -tilt.y));
-    vtestSeaMask = 1.0;
-    vtestSeaSheen = ${sun.sheen.toFixed(3)};
-    vtestSeaGlitter = step(0.0, shore) * (${sun.base.toFixed(3)} + ${sun.groups.toFixed(3)} * smoothstep(.45, .7, vtestNoise(p * .5 + vec2(time * .03, 0.0))));
-  }
   // The waterline laps in and out, each stretch of shore in its own time.
   float lap = sin(time * ${bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${bands.lap.toFixed(4)};
   float sandEdge = ${bands.sand.toFixed(3)} * (1.0 + slow * ${bands.sandVary.toFixed(3)}) + lap;
@@ -380,6 +363,23 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
   float ripple = step(.80, pick) * stroke * life * smoothstep(${(bands.shallows + .1).toFixed(3)}, ${(bands.shallows + .4).toFixed(3)}, shore);
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x * mix(1.0, vtestSeaPattern > 4.5 ? 0.0 : ${open.ripples.toFixed(3)}, free));
+  if (free > .5 && vtestSeaPattern > 4.5) {
+    // 5. Calm water under the sun (the user's reference picture, 2026-11-13).
+    // Calm water is a mirror of the sky: paler far from the eye and deeper
+    // near it, with one broad soft glare where it mirrors the sun. A mirror's
+    // picture belongs to the eye and not to the ground, so both are placed on
+    // the screen: the glare stays where it is while the board moves under it.
+    vec2 screen = gl_FragCoord.xy / vtestViewport;
+    paint = mix(paint, vtestSeaSky, smoothstep(${sun.skyFrom.toFixed(3)}, 1.0, screen.y) * ${sun.sky.toFixed(3)});
+    paint *= 1.0 - (1.0 - smoothstep(0.0, ${sun.nearTo.toFixed(3)}, screen.y)) * ${sun.near.toFixed(3)};
+    vec2 from = (screen - vec2(${sun.x.toFixed(3)}, ${sun.y.toFixed(3)})) / vec2(${sun.width.toFixed(3)}, ${sun.height.toFixed(3)});
+    float glare = exp(-dot(from, from));
+    // The glare is not one even patch: faint long level bands, where the calm water is not quite flat, carry more or less of it.
+    float band = smoothstep(.2, .85, vtestNoise(vec2(p.x * ${sun.bandLength.toFixed(3)} + time * .02, p.y * ${sun.bandRows.toFixed(3)})));
+    glare *= mix(1.0 - ${sun.bands.toFixed(3)}, 1.0 + ${sun.bands.toFixed(3)}, band);
+    // Mixed toward the sun's warm tone, not added: added light on blue water comes out white.
+    paint = mix(paint, vtestSeaSunGlare, clamp(glare * ${sun.strength.toFixed(3)} + glare * glare * glare * ${sun.core.toFixed(3)}, 0.0, .85));
+  }
   return paint;
 }
 `,

@@ -1361,15 +1361,23 @@
         "lineWidth": 0.011,
         "ripples": 0.35,
         "pattern": 5,
-        "reflect": {
-          "reach": 0.3,
-          "strength": 0.45,
-          "color": "#2f7f86"
-        },
         "sun": {
-          "base": 0.9,
-          "groups": 3,
-          "sheen": 0.12
+          "x": 0.62,
+          "y": 0.7,
+          "width": 0.42,
+          "height": 0.3,
+          "strength": 0.3,
+          "core": 0.3,
+          "color": "#ffe4b8",
+          "sky": 0.16,
+          "skyFrom": 0.25,
+          "skyColor": "#a9d4ee",
+          "near": 0.24,
+          "nearTo": 0.45,
+          "patches": 0.3,
+          "bands": 0.6,
+          "bandLength": 0.16,
+          "bandRows": 3.2
         },
         "cellScale": 1.05,
         "cellWarp": 0.7,
