@@ -197,7 +197,9 @@ describe('the organic roads (switch 5)', () => {
   });
 
   it('lays a plank bridge on both banks of a river it crosses, and none elsewhere', () => {
-    const decks = (cell: number): number => (plan.get(cell) ?? []).filter((mark) => mark.deck !== undefined).length;
+    // A raised road is free geometry too, so a bridge is told by its plank and rail colours.
+    const timber = new Set([VIEW3D.visualTest.organicRoads.bridge, VIEW3D.visualTest.organicRoads.rail].map((hex) => hex.replace('#', '').toLowerCase()));
+    const decks = (cell: number): number => (plan.get(cell) ?? []).filter((mark) => mark.deck !== undefined && timber.has(mark.color.getHexString())).length;
     expect(decks(19)).toBeGreaterThan(0);
     expect(decks(20)).toBeGreaterThan(0);
     expect(decks(18)).toBe(0);
