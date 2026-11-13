@@ -194,8 +194,8 @@ export function createTerrainPainter(map,mountainRanges){
    for(let k=0;k<PAINT.tongues;k++){
     const h1=hash(ex+k*7,ez-k*13),h2=hash(ex-k*11,ez+k*5),h3=hash(ex+k*3+91,ez+k*17);
     // Strokes that lean out from this hex are the neighbour's to draw as its own colour; here only the ones that come in show.
-    const along=(k+.5)/PAINT.tongues-.5+(h1-.5)*.2,inward=-(.02+h2*.12),turn=a+Math.PI/2+(h3-.5)*.5;
-    const px=mx-nz*along+nx*inward,pz=mz+nx*along+nz*inward,rx=.24+h2*.14,rz=.14+h3*.1;
+    const along=(k+.5)/PAINT.tongues-.5+(h1-.5)*.2,reach=PAINT.reach??1,inward=-(.02+h2*.12)*reach,turn=a+Math.PI/2+(h3-.5)*.5;
+    const px=mx-nz*along+nx*inward,pz=mz+nx*along+nz*inward,rx=(.24+h2*.14)*reach,rz=(.14+h3*.1)*reach;
     const under=patch(px,pz,turn+.2,rx*1.3,rz*1.35,h1,p.base.clone().lerp(q.base,.5)),over=patch(px,pz,turn,rx,rz,h3,q.base);
     under.kind=over.kind=ownKind;under.order=over.order=[-1,d,k];
     patches.push(under,over);

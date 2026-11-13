@@ -1648,14 +1648,15 @@
       "tall": 0.82
     },
     "paper": {
-      "terrain": 1
+      "terrain": 3.6
     },
     "paint": {
-      "blend": 0,
+      "blend": 0.3,
       "strokes": 1,
       "dabs": 0,
       "halo": 0,
-      "tongues": 0,
+      "tongues": 4,
+      "reach": 1.5,
       "brush": 0
     },
     "hills": {
