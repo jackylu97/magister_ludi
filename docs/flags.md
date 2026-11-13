@@ -76,6 +76,13 @@ The user: *"i want to explore ways of making the game more visually appealing, w
     - A town fills its hex: the wall, the ground patch, the houses and the monuments grow until the town reaches close to the hex edge. The garrison's place in the middle stays clear.
     - The pole and flag that stand in the middle of a town are not drawn. The town's banner over the board and the border still show the owner.
     - Houses, mines, quarries and farms get new models in the style of the round trees and the monuments: simple, full shapes, matte colour, few details, readable at play zoom. A Fable agent builds them; the assistant judges the pictures.
+  - **Terrain against the reference games, 2026-11-12** (the user, after the assistant's comparison with screenshots of Islanders and Dorfromantik: *"ok, lets try and make these changes"*). Test scene only, each with its own number or switch under `visualTest`:
+    - A deeper, more saturated land palette (`visualTest.land: "deep"`; `"soft"` gives the earlier one back).
+    - Trees on open land stand in small groves with empty meadow between them, and forests are denser and darker.
+    - Hills are two or three flat terraces with a darker side face, in place of low mounds with many lit facets.
+    - Mountains take a warm slate colour that belongs to the palette.
+    - The hex line is fainter.
+    - Not yet: land with a thick side face everywhere, and a clearer difference between desert and unexplored paper.
 
 **(mmmmmmm) Great people: cheaper to earn, odds on the Renown tab, and legacy changes: RULED 2026-11-12; batch GP1 queued.**
 The user, 2026-11-11: *"i think we need to slightly nerf some of the great people, and also make them slightly easier to earn. The renown tab should show the current percentage odds somewhere of what great people are going to be available to draft. let's make great people generally 25% faster to earn (with the same starting cost) and then start an artifact with some proposed changes (they should feel roughly similar in power for their situational use case, generally powerful great people should be nerfed)."* The proposal page is https://claude.ai/artifact/4HePmSDpo2ahSPhV4uM8qY. On 2026-11-12 the user commented on it and wrote *"ok i made comments on the great people doc, please schedule those changes for subagents"*. Reading taken: a row with no comment is approved as proposed.
