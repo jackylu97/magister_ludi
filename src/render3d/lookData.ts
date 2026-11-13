@@ -2377,15 +2377,23 @@ export interface VisualTestSpec {
      */
     open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number;
       /**
-       * Pattern 5, calm water under the sun. The glare's place on the screen
-       * (`x`, `y`, from the bottom left), its size as a share of the screen,
-       * its strength, the extra at its `core`, and its colour. `sky` and
-       * `skyColor` are the paler tone toward the top of the screen, from
-       * `skyFrom` up; `near` darkens the water toward the bottom, up to
-       * `nearTo`. `patches` is how much of pattern 3's soft patches stays.
-       * `bands` breaks the glare into faint long level bands (`bandLength` along, `bandRows` to a hex unit across).
+       * Pattern 5, calm water under the sun. `calmColor` and `deepen` make the
+       * open water a deeper, quieter blue. `cloud…` are the clouds it mirrors:
+       * strength, size, how much longer they are than deep, the noise values
+       * their soft edge runs between, and their drift. `sky`, `skyColor` and
+       * `skyFrom` pale the water toward the top of the screen; `near` and
+       * `nearTo` deepen it toward the bottom. The sun's road is placed on the
+       * screen (`x`, `y` from the bottom left; `width`, `height` as shares of
+       * the screen): a glow of `strength` and `color`, and short level strokes
+       * of light (`stroke…`: how many, their length and rows to a hex unit at the zoom where a hex unit is `strokePixels` pixels,
+       * their thickness, drift, flicker, strength and colour).
        */
-      sun: { x: number; y: number; width: number; height: number; strength: number; core: number; color: string; sky: number; skyFrom: number; skyColor: string; near: number; nearTo: number; patches: number; bands: number; bandLength: number; bandRows: number };
+      sun: {
+        calmColor: string; deepen: number; cloud: number; cloudScale: number; cloudSquash: number; cloudFrom: number; cloudTo: number; cloudDrift: number;
+        skyColor: string; sky: number; skyFrom: number; near: number; nearTo: number;
+        x: number; y: number; width: number; height: number; strength: number; color: string;
+        strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string;
+      };
       pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
       swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */

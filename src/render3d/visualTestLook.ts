@@ -73,6 +73,8 @@ export const VTEST_UNIFORMS = {
   /** Pattern 5: the sun's glare on calm water, the sky's tone far from the eye, and the size of the picture in pixels (the renderer writes it each frame). */
   vtestSeaSunGlare: { value: new Color(VT.coast.open.sun.color) },
   vtestSeaSky: { value: new Color(VT.coast.open.sun.skyColor) },
+  vtestSeaCalm: { value: new Color(VT.coast.open.sun.calmColor) },
+  vtestSeaSunStroke: { value: new Color(VT.coast.open.sun.strokeColor) },
   vtestViewport: { value: new Vector2(1, 1) },
   vtestSeaShallow: { value: new Color(sea.shallow) },
   vtestSeaCoast: { value: new Color(sea.coast) },
@@ -157,7 +159,7 @@ float vtestNoise(vec2 p) {
 // --- 1. the sea --------------------------------------------------------------
 
 export const SEA_UNIFORMS: readonly UniformName[] = [
-  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaSunGlare', 'vtestSeaSky', 'vtestViewport', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
+  'vtestSea', 'vtestSeaField', 'vtestSeaFieldOn', 'vtestSeaFieldShape', 'vtestSeaMouth', 'vtestSeaPattern', 'vtestSeaSunGlare', 'vtestSeaSky', 'vtestSeaCalm', 'vtestSeaSunStroke', 'vtestViewport', 'vtestSeaShallow', 'vtestSeaCoast', 'vtestSeaOcean', 'vtestSeaDeep', 'vtestSeaLake',
   'vtestSeaShelfLine', 'vtestSeaFoam', 'vtestSeaGlint', 'vtestSeaShape', 'vtestSeaShelf', 'vtestSeaFoamShape',
   'vtestSeaGlintShape', 'vtestSeaEdge', 'vtestSeaEdgeTone', 'vtestSeaSand', 'vtestSeaBeach', 'vtestSeaWave', 'vtestSeaSpec', 'vtestSeaSun',
 ];
@@ -307,12 +309,18 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
       float edge = (f2 - f1) / ${open.cellScale.toFixed(3)} * .5;
       paint = mix(paint, id > .5 ? light : dark, ${open.cellTone.toFixed(3)});
       paint = mix(paint, line, 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, edge));
-    } else if (vtestSeaPattern < 3.5 || vtestSeaPattern > 4.5) {
+    } else if (vtestSeaPattern < 3.5) {
       // 3. Soft patches, after Islanders: broad lighter and darker areas with no outline.
-      // 5 is the same patches, much fainter, under the sun's glare (added at the end).
-      float calm = vtestSeaPattern > 4.5 ? ${sun.patches.toFixed(3)} : 1.0;
-      paint = mix(paint, mix(paint, vtestSeaShallow, ${open.patchLight.toFixed(3)}), smoothstep(.50, .72, cn) * calm);
-      paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn) * calm);
+      paint = mix(paint, mix(paint, vtestSeaShallow, ${open.patchLight.toFixed(3)}), smoothstep(.50, .72, cn));
+      paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn));
+    } else if (vtestSeaPattern > 4.5) {
+      // 5. Calm water (the user's reference pictures, 2026-11-13): a deeper,
+      // quieter blue, which mirrors the sky. Clouds show in it as broad pale
+      // shapes with soft edges, longer from side to side than they are deep.
+      paint = mix(paint, vtestSeaCalm, ${sun.deepen.toFixed(3)});
+      vec2 sky = vec2(p.x * ${sun.cloudScale.toFixed(3)}, p.y * ${(sun.cloudScale * sun.cloudSquash).toFixed(3)}) + vec2(time * ${sun.cloudDrift.toFixed(4)}, 0.0);
+      float cloud = vtestNoise(sky) * .65 + vtestNoise(sky * 2.1 + 4.7) * .35;
+      paint = mix(paint, vtestSeaSky, smoothstep(${sun.cloudFrom.toFixed(3)}, ${sun.cloudTo.toFixed(3)}, cloud) * ${sun.cloud.toFixed(3)});
     } else {
       // 4. Swell: long thin pale lines that lie one way, bend a little, break, and travel slowly.
       vec2 sq = vec2(p.x * .96 + p.y * .28, p.y * .96 - p.x * .28);
@@ -364,21 +372,31 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float ripple = step(.80, pick) * stroke * life * smoothstep(${(bands.shallows + .1).toFixed(3)}, ${(bands.shallows + .4).toFixed(3)}, shore);
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x * mix(1.0, vtestSeaPattern > 4.5 ? 0.0 : ${open.ripples.toFixed(3)}, free));
   if (free > .5 && vtestSeaPattern > 4.5) {
-    // 5. Calm water under the sun (the user's reference picture, 2026-11-13).
-    // Calm water is a mirror of the sky: paler far from the eye and deeper
-    // near it, with one broad soft glare where it mirrors the sun. A mirror's
-    // picture belongs to the eye and not to the ground, so both are placed on
-    // the screen: the glare stays where it is while the board moves under it.
+    // 5, the sun. A mirror's picture belongs to the eye and not to the ground,
+    // so the sun's road is placed on the screen and stays there while the
+    // board moves under it. Calm water is deeper near the eye and paler far off.
     vec2 screen = gl_FragCoord.xy / vtestViewport;
-    paint = mix(paint, vtestSeaSky, smoothstep(${sun.skyFrom.toFixed(3)}, 1.0, screen.y) * ${sun.sky.toFixed(3)});
-    paint *= 1.0 - (1.0 - smoothstep(0.0, ${sun.nearTo.toFixed(3)}, screen.y)) * ${sun.near.toFixed(3)};
+    float wet = smoothstep(sandEdge, sandEdge + .03, reach);
+    paint = mix(paint, vtestSeaSky, smoothstep(${sun.skyFrom.toFixed(3)}, 1.0, screen.y) * ${sun.sky.toFixed(3)} * wet);
+    paint *= 1.0 - (1.0 - smoothstep(0.0, ${sun.nearTo.toFixed(3)}, screen.y)) * ${sun.near.toFixed(3)} * wet;
     vec2 from = (screen - vec2(${sun.x.toFixed(3)}, ${sun.y.toFixed(3)})) / vec2(${sun.width.toFixed(3)}, ${sun.height.toFixed(3)});
     float glare = exp(-dot(from, from));
-    // The glare is not one even patch: faint long level bands, where the calm water is not quite flat, carry more or less of it.
-    float band = smoothstep(.2, .85, vtestNoise(vec2(p.x * ${sun.bandLength.toFixed(3)} + time * .02, p.y * ${sun.bandRows.toFixed(3)})));
-    glare *= mix(1.0 - ${sun.bands.toFixed(3)}, 1.0 + ${sun.bands.toFixed(3)}, band);
-    // Mixed toward the sun's warm tone, not added: added light on blue water comes out white.
-    paint = mix(paint, vtestSeaSunGlare, clamp(glare * ${sun.strength.toFixed(3)} + glare * glare * glare * ${sun.core.toFixed(3)}, 0.0, .85));
+    // A soft warm glow, and on it the sun's road: short level strokes of light,
+    // many at the middle and few at the edge, each coming and going.
+    paint = mix(paint, vtestSeaSunGlare, glare * ${sun.strength.toFixed(3)} * wet);
+    // The strokes lie on the water, but their size follows the zoom in steps of two, so they are a few pixels thick at any distance and never turn into grain.
+    float grain = exp2(floor(log2((fwidth(p.x) + 1e-5) * ${sun.strokePixels.toFixed(1)}) + .5));
+    vec2 sg = p / grain * vec2(${sun.strokeLength.toFixed(3)}, ${sun.strokeRows.toFixed(3)});
+    float srow = floor(sg.y);
+    sg.x += vtestHash(vec2(srow, 3.0)) * 7.0 + time * ${sun.strokeDrift.toFixed(3)} * (vtestHash(vec2(srow, 9.0)) - .5);
+    vec2 sc = vec2(floor(sg.x), srow), sf = fract(sg) - .5;
+    float pick = vtestHash(sc + 31.7);
+    // Longer and closer together at the middle of the road, so they nearly join there.
+    float long_ = (.14 + .26 * vtestHash(sc + 5.3)) * (.7 + .9 * glare);
+    float shape = 1.0 - smoothstep(.75, 1.0, length(sf / vec2(long_, .5 * ${sun.strokeFill.toFixed(3)})));
+    float alive = .5 + .5 * sin(time * ${sun.strokeFlicker.toFixed(3)} + pick * 50.0);
+    float lit = step(1.0 - glare * glare * ${sun.strokes.toFixed(3)}, pick * .999) * shape * smoothstep(.15, .6, alive);
+    paint = mix(paint, vtestSeaSunStroke, lit * wet * ${sun.strokeStrength.toFixed(3)});
   }
   return paint;
 }
