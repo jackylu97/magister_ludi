@@ -2387,13 +2387,17 @@ export interface VisualTestSpec {
        * the screen): a glow that lifts the water's own colour by `strength` and adds `warm` of `color`, wider toward the bottom of the screen by `spread`, and short level strokes
        * of light (`stroke…`: how many, their length and rows to a hex unit at the zoom where a hex unit is `strokePixels` pixels,
        * their thickness, drift, flicker, strength and colour). `river` is how
-       * much of the road a river takes.
+       * much of the road a river takes. `glint…` are the few points that
+       * flare: how many, how many cells to a hex unit they are picked from,
+       * their size, how fast they swell and fade, the halo's strength, and how
+       * strong the upright rays are beside the level ones.
        */
       sun: {
         calmColor: string; deepen: number; cloud: number; cloudScale: number; cloudSquash: number; cloudFrom: number; cloudTo: number; cloudDrift: number;
         skyColor: string; sky: number; skyFrom: number; near: number; nearTo: number;
         x: number; y: number; width: number; height: number; strength: number; warm: number; color: string; spread: number;
         strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string; river: number;
+        glints: number; glintCells: number; glintSize: number; glintSpeed: number; glintHalo: number; glintUp: number;
       };
       /** The sea as a mirror (`seaMirror.ts`): whether it is drawn, what reflects (`pieces`: ships, pieces and towns; `all`: the whole scene), the picture's size as a share of the screen, how much of it shows on the water and how dark, and its ripple and upward smear as shares of the picture. */
       mirror: { on: boolean; what: string; scale: number; strength: number; tone: number; ripple: number; smear: number };

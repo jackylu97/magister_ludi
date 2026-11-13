@@ -272,6 +272,24 @@ vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float 
   lit *= .55 + .45 * vtestHash(sc + 11.9);
   vtestSunLit = lit * wet;
   paint = mix(paint, vtestSeaSunStroke, lit * wet * ${sun.strokeStrength.toFixed(3)});
+  // Glints (the user, 2026-11-13: fewer sparkles, and those that do sparkle
+  // shimmer more, in the shape of bloom, with light that goes up and down as
+  // well as sideways). A few points on the road flare: a bright core, a soft
+  // halo, and four thin rays, two level and two upright. Each one swells and
+  // fades in its own time.
+  vec2 gg = p / grain * ${sun.glintCells.toFixed(3)};
+  vec2 gc = floor(gg), gf = fract(gg) - .5;
+  float gpick = vtestHash(gc + 71.3);
+  gf -= (vec2(vtestHash(gc + 2.7), vtestHash(gc + 8.1)) - .5) * .5;
+  float pulse = pow(.5 + .5 * sin(time * ${sun.glintSpeed.toFixed(3)} * (.6 + .8 * vtestHash(gc + 4.4)) + gpick * 60.0), 4.0);
+  float size = ${sun.glintSize.toFixed(3)} * (.6 + .6 * vtestHash(gc + 6.6)) * (.45 + .55 * pulse);
+  vec2 ga = abs(gf) / size;
+  float core = exp(-dot(ga, ga) * 30.0);
+  float halo = exp(-dot(ga, ga) * 2.2) * ${sun.glintHalo.toFixed(3)};
+  float rays = exp(-ga.y * 22.0) * exp(-ga.x * 1.6) + exp(-ga.x * 22.0) * exp(-ga.y * 2.4) * ${sun.glintUp.toFixed(3)};
+  float flare = step(1.0 - glare * glare * ${sun.glints.toFixed(3)}, gpick * .999) * pulse * clamp(core + halo + rays, 0.0, 1.0);
+  vtestSunLit = max(vtestSunLit, flare * wet);
+  paint = mix(paint, vtestSeaSunStroke, flare * wet);
   return paint;
 }
 
