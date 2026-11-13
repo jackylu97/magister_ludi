@@ -24,6 +24,8 @@ import { type VisualTestState, visualTest } from './visualTest';
 
 const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
+// A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
+const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
 export const VTEST_UNIFORMS = {
@@ -222,27 +224,27 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float t = clamp((deep - .55 + wobble) / max(vtestSeaShape.y, 1e-3), 0.0, 1.0);
   float width = fwidth(t) * 1.2 + 1e-4;
   vec3 paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(.30 - width, .30 + width, t));
-  paint = mix(paint, vtestSeaDeep, smoothstep(${sea.bands.deepAt.toFixed(3)} - width, ${sea.bands.deepAt.toFixed(3)} + width, t));
+  paint = mix(paint, vtestSeaDeep, smoothstep(${bands.deepAt.toFixed(3)} - width, ${bands.deepAt.toFixed(3)} + width, t));
   // The drawn line on the coast side of the step.
-  float drawn = (1.0 - smoothstep(0.0, width * 2.0, abs(t - .30 + ${sea.bands.stepLine.toFixed(4)}) - ${sea.bands.stepLine.toFixed(4)} * .5));
-  paint = mix(paint, vtestSeaShelfLine, drawn * ${sea.bands.stepLineStrength.toFixed(3)});
+  float drawn = (1.0 - smoothstep(0.0, width * 2.0, abs(t - .30 + ${bands.stepLine.toFixed(4)}) - ${bands.stepLine.toFixed(4)} * .5));
+  paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
   if (deep < 0.0) paint = vtestSeaLake;
-  float reach = shore + slow * ${sea.bands.wander.toFixed(3)} + fine * ${(sea.bands.wander * .3).toFixed(3)};
+  float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
   float soft = fwidth(shore) * 1.2 + 1e-4;
   // Shallows, with a pale drawn line at their outer edge.
   // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
-  float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${sea.bands.shallowsWander.toFixed(3)};
-  float shallows = 1.0 - smoothstep(${sea.bands.shallows.toFixed(3)} - soft, ${sea.bands.shallows.toFixed(3)} + soft, outer);
-  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(outer - ${sea.bands.shallows.toFixed(3)}) - ${sea.bands.line.toFixed(4)});
+  float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
+  float shallows = 1.0 - smoothstep(${bands.shallows.toFixed(3)} - soft, ${bands.shallows.toFixed(3)} + soft, outer);
+  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(outer - ${bands.shallows.toFixed(3)}) - ${bands.line.toFixed(4)});
   paint = mix(paint, vtestSeaShallow, shallows);
-  paint = mix(paint, vtestSeaFoam, rim * ${sea.bands.lineStrength.toFixed(3)});
+  paint = mix(paint, vtestSeaFoam, rim * ${bands.lineStrength.toFixed(3)});
   // The waterline laps in and out, each stretch of shore in its own time.
-  float lap = sin(time * ${sea.bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${sea.bands.lap.toFixed(4)};
-  float sandEdge = ${sea.bands.sand.toFixed(3)} * (1.0 + slow * ${sea.bands.sandVary.toFixed(3)}) + lap;
-  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${sea.bands.foam.toFixed(4)} * .5) - ${sea.bands.foam.toFixed(4)} * .5);
-  foam *= step(${sea.bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
+  float lap = sin(time * ${bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${bands.lap.toFixed(4)};
+  float sandEdge = ${bands.sand.toFixed(3)} * (1.0 + slow * ${bands.sandVary.toFixed(3)}) + lap;
+  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * .5) - ${bands.foam.toFixed(4)} * .5);
+  foam *= step(${bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
   // A second, fainter line a little further out, left by the last wave.
-  float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${sea.bands.foam.toFixed(4)} * 4.0) - ${sea.bands.foam.toFixed(4)} * .3);
+  float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);
   trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
   paint = mix(paint, vtestSeaFoam, max(foam, trail * .6));
   paint = mix(paint, vtestSeaSand, 1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach));
@@ -254,7 +256,7 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   f.x += (vtestHash(cell + 7.0) - .5) * .5;
   float life = smoothstep(.2, 1.0, .5 + .5 * sin(time * .5 + pick * 60.0));
   float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
-  float ripple = step(.80, pick) * stroke * life * smoothstep(${(sea.bands.shallows + .1).toFixed(3)}, ${(sea.bands.shallows + .4).toFixed(3)}, shore);
+  float ripple = step(.80, pick) * stroke * life * smoothstep(${(bands.shallows + .1).toFixed(3)}, ${(bands.shallows + .4).toFixed(3)}, shore);
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x);
   return paint;
 }

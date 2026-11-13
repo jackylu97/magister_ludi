@@ -58,7 +58,8 @@ export interface VisualSwitchDef {
 }
 
 export const VISUAL_SWITCHES: readonly VisualSwitchDef[] = [
-  { id: 1, key: 'sea', label: 'Sea with depth and motion', rebuild: 'none' },
+  // The sea switch carries the free coastline (`freeCoast.js`), which is in the board's geometry.
+  { id: 1, key: 'sea', label: 'Sea in bands, with a free coastline', rebuild: 'board' },
   { id: 2, key: 'rivers', label: 'Thinner rivers with banks', rebuild: 'board' },
   { id: 3, key: 'borders', label: 'One border at the edge', rebuild: 'borders' },
   { id: 4, key: 'organicRivers', label: 'Organic rivers', rebuild: 'board' },

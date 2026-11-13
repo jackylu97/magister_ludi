@@ -147,7 +147,7 @@ import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
 import { PaintedFlowLayer } from './paintedFlow';
 // @ts-expect-error Approved terrain modules remain JavaScript.
-import { setRiverStyle } from '../terrainStudy/surface.js';
+import { setRiverStyle, setCoastStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
 import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
@@ -250,6 +250,11 @@ export const SCENE_LAYER_NAMES = [
   'units', 'cities', 'tints', 'territory', 'roads', 'improvements', 'sites',
   'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
 ] as const;
+
+/** A free coastline is part of the new sea: the sea switch, and `coast.free` in the data (`freeCoast.js`). */
+function coastStyleOf(): boolean {
+  return visualOn('sea') && VIEW3D.visualTest.coast.free;
+}
 
 /**
  * The river the switches ask for (`setRiverStyle` in `surface.js`): the study's
@@ -658,6 +663,7 @@ export class Renderer3D implements MapView {
     // board's geometry, so it is set before any board is built; everything
     // else is a uniform, written now and on every change.
     setRiverStyle(riverStyleOf());
+    setCoastStyle(coastStyleOf());
     syncVisualUniforms();
     this.unwatchVisualTest = onVisualTestChange((next, previous) => this.applyVisualTest(next, previous));
     this.loop = this.loop.bind(this);
@@ -953,7 +959,7 @@ export class Renderer3D implements MapView {
   private applyVisualTest(next: VisualTestState, previous: VisualTestState): void {
     syncVisualUniforms(next);
     const changed = changedSwitches(previous, next).map(def => def.key);
-    if (changed.includes('rivers') || changed.includes('organicRivers')) void this.rebuildForRivers();
+    if (changed.includes('rivers') || changed.includes('organicRivers') || changed.includes('sea')) void this.rebuildForRivers();
     if (changed.includes('borders') || (next.borders && next.border !== previous.border)) this.rebuildTerritory();
     if (changed.includes('organicRoads')) this.rebuildRoads();
     if (changed.includes('pins')) this.rebuildLens();
@@ -967,7 +973,9 @@ export class Renderer3D implements MapView {
    * old board). The camera and the game stay as they are.
    */
   private async rebuildForRivers(): Promise<void> {
-    if (!setRiverStyle(riverStyleOf())) return;
+    // Both are set before the test, so one flip of each still builds once.
+    const river = setRiverStyle(riverStyleOf()), coast = setCoastStyle(coastStyleOf());
+    if (!river && !coast) return;
     if (!this.paintedLook || !this.state) return;
     const map = this.state.map;
     // A second flip while this one builds aborts it (`preparePaintedMap`); the

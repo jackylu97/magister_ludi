@@ -29,6 +29,12 @@ export function setRiverStyle(style = null) {
 export function cutRiverEdges(tile) { return river.organic ? 0 : tile.riverEdges||0; }
 export function riverStyleKey() { return riverKey; }
 export function riverStyle() { return river === STUDY_RIVER ? null : {...river}; }
+// A free coast (the visual test, 2026-11-13): whether the board that is built
+// next gives its shore one smooth line (`freeCoast.js`). Like the river style,
+// the page sets it and tells the worker.
+let freeCoast = false;
+export function setCoastStyle(free) { free = !!free; if (free === freeCoast) return false; freeCoast = free; return true; }
+export function coastStyle() { return freeCoast; }
 // Wrapping belongs to a prepared render map, never to simulation tiles or the
 // standalone study's global state.
 const wrappingMaps = new WeakSet();
@@ -86,8 +92,16 @@ export function restoreTerrainMap({map,wrap,mounds}) {
  return map;
 }
 
+/** The edges where this hex's ground runs on into the next hex with no bank: land joins, and every shore edge of a free coast. */
+export function joinedEdgesOf(tile){return tile.coast?(tile.joinedEdges||0)|(tile.shoreEdges||0):tile.joinedEdges||0}
+/** The edges that keep a bank wall beside a join. A free coast has no bank, so none. */
+export function bankJoinEdgesOf(tile){return tile.coast?0:tile.bankJoinEdges||0}
+/** The outline of a water hex that carries a free coast's ground: a plain hex, joined on every side. */
+export const OPEN_HEX={joinedEdges:63};
+
 export function tileShape(tile) {
- const riverBits=cutRiverEdges(tile),shore=tile.shoreEdges||0,joined=tile.joinedEdges||0,key=riverBits|(shore<<6)|(joined<<12);
+ // A free coast (`tile.coast`) has no bank along a shore edge: the ground runs on and slopes under the water.
+ const riverBits=cutRiverEdges(tile),shore=tile.coast?0:tile.shoreEdges||0,joined=joinedEdgesOf(tile),key=riverBits|(shore<<6)|(joined<<12);
  if(shapes.has(key))return shapes.get(key);
  const upper=normals.map((_,d)=>APOTHEM-((riverBits&(1<<d))? river.crest:(shore&(1<<d))? .055:(joined&(1<<d))?0:.005));
  const lower=normals.map((_,d)=>APOTHEM-((riverBits&(1<<d))? river.toe:0));
@@ -131,6 +145,8 @@ export function onTileTop(tile,x,z,margin=0) {
  // or a stone off it: props stand back `clearance` from each river edge.
  if(river.organic&&tile.riverEdges)for(let d=0;d<6;d++)
   if((tile.riverEdges&(1<<d))&&x*normals[d][0]+z*normals[d][1]>APOTHEM-river.clearance-margin)return false;
+ // Nothing stands on a free coast's beach.
+ if(tile.coast){const at=coastAt(tile,x,z);if(at.edge<at.beach+margin)return false}
  return planes.every(([nx,nz],i)=>x*nx+z*nz<=upper[i]-margin)
   && surfaceHeight(tile,x,z)>WATER_LEVEL+.035;
 }
@@ -170,8 +186,42 @@ function riverCut(tile,x,z){
  return tile.riverCarve.depth*at.share*Math.max(0,Math.min(1,1-at.edge/tile.riverCarve.bank));
 }
 
+// A free coast (the visual test, 2026-11-13). A hex beside the shore carries
+// `coast`: {under, key, segments}. `segments` is a flat list of ten numbers a
+// piece of the waterline, in the hex's own coordinates: x, z, the unit normal
+// that points to the land, and the beach's width, at each end. The ground is at
+// the water's level on the line, rises in one straight slope over the beach's
+// width, and goes on down the same slope under the water to `under` below it.
+// The board sets it when it is built (`freeCoast.js`); the terrain mesh adds
+// vertices along it (`terrainMesh.js`). A water hex carries it too, because the
+// line fills a corner of sea as often as it rounds a corner of land.
+export const COAST_STRIDE=10;
+/** How far a point is from the waterline (negative in the water), and the beach's width there. */
+export function coastAt(tile,x,z){
+ const coast=tile.coast;if(!coast)return null;
+ const s=coast.segments;let best=Infinity,edge=0,beach=0;
+ for(let i=0;i<s.length;i+=COAST_STRIDE){
+  const ax=s[i],az=s[i+1],dx=s[i+5]-ax,dz=s[i+6]-az,l=dx*dx+dz*dz;
+  const t=l>1e-12?Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l)):0;
+  const px=x-ax-dx*t,pz=z-az-dz*t,d=px*px+pz*pz;
+  if(d<best){
+   best=d;
+   const nx=s[i+2]+(s[i+7]-s[i+2])*t,nz=s[i+3]+(s[i+8]-s[i+3])*t;
+   edge=(px*nx+pz*nz>=0?1:-1)*Math.sqrt(d);beach=s[i+4]+(s[i+9]-s[i+4])*t;
+  }
+ }
+ return {edge,beach};
+}
+function coastGround(tile,x,z,base){
+ const at=coastAt(tile,x,z);if(!at||at.edge>=at.beach)return base;
+ return Math.max(WATER_LEVEL-tile.coast.under,WATER_LEVEL+(base-WATER_LEVEL)*at.edge/at.beach);
+}
+/** The ground a free coast lays in a water hex, which is under the water over most of it. */
+export function coastApronHeight(tile,x,z){return coastGround(tile,x,z,LAND_LEVEL)}
+
 export function baseSurfaceHeight(tile,x,z){
- if(isWater(tile))return WATER_LEVEL;
+ // On a water hex a thing stands on the water, or on the beach where the coast's ground is above it.
+ if(isWater(tile))return tile.coast?Math.max(WATER_LEVEL,coastGround(tile,x,z,LAND_LEVEL)):WATER_LEVEL;
  const {upper,normals:planes}=tileShape(tile);
  const edge=Math.min(...planes.map(([nx,nz],i)=>upper[i]-x*nx-z*nz));
  const c=centre(tile),u=c.x+x,v=c.z+z;
@@ -183,5 +233,6 @@ export function baseSurfaceHeight(tile,x,z){
   const r=Math.hypot((x+.1*Math.sin(z*6))/.55,z/.43),t=Math.max(0,Math.min(1,(r-.65)/.65));
   height=.008+(LAND_LEVEL-.008)*t*t*(3-2*t);
  }
- return BANK_TOE+(height-BANK_TOE)*bankWeight(tile,x,z)-riverCut(tile,x,z);
+ const ground=BANK_TOE+(height-BANK_TOE)*bankWeight(tile,x,z)-riverCut(tile,x,z);
+ return tile.coast?coastGround(tile,x,z,ground):ground;
 }

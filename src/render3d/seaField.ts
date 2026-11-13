@@ -93,6 +93,11 @@ function edgeOf(tile: SeaTile, d: number): Segment {
   return [c.x + Math.cos(a), c.z + Math.sin(a), c.x + Math.cos(b), c.z + Math.sin(b)];
 }
 
+/** A free coast's waterline (`freeCoast.js`): the distance to it, positive on the water. */
+export interface FreeCoastField {
+  distance(tile: SeaTile, x: number, z: number, reach: number): number;
+}
+
 export interface SeaField {
   /** The three numbers for a point on the water sheet of `tile`. */
   sample(tile: SeaTile, x: number, z: number): [number, number, number];
@@ -105,8 +110,9 @@ export interface SeaField {
  * segments near the seam are then filed again one period to each side, so a
  * distance is measured across the seam as it is anywhere else.
  */
-export function createSeaField(map: SeaMap, options: { shoreReach: number; edgeReach: number; wraps: boolean }): SeaField {
+export function createSeaField(map: SeaMap, options: { shoreReach: number; edgeReach: number; wraps: boolean; coast?: FreeCoastField | null; cutRivers?: boolean }): SeaField {
   const { shoreReach, edgeReach, wraps } = options;
+  const coast = options.coast ?? null, cutRivers = options.cutRivers ?? true;
   const period = ROOT3 * map.width;
   const shores = new SegmentGrid(), edges = new SegmentGrid(), rivers = new SegmentGrid();
   const file = (grid: SegmentGrid, segment: Segment, reach: number): void => {
@@ -172,7 +178,30 @@ export function createSeaField(map: SeaMap, options: { shoreReach: number; edgeR
     return w * own + Math.max(0, u) * p.value + Math.max(0, v) * q.value;
   }
 
+  /** With a free coast, the water under a land hex is open sea out to the waterline: is the water nearest this point a lake? */
+  function besideLake(tile: SeaTile, x: number, z: number): boolean {
+    const c = centreOf(tile);
+    const d = ((Math.round(Math.atan2(z - c.z, x - c.x) / (Math.PI / 3)) % 6) + 6) % 6;
+    for (const turn of [0, 1, 5, 2, 4, 3]) {
+      const other = neighbour(tile, map, (d + turn) % 6);
+      if (isWater(other)) return other!.terrain === 'lake';
+    }
+    return false;
+  }
+
   function sample(tile: SeaTile, x: number, z: number): [number, number, number] {
+    if (coast) {
+      // The shore is the free waterline, on the water of a land hex as on a water hex.
+      const shore = coast.distance(tile, x, z, shoreReach);
+      if (!isWater(tile)) {
+        if (cutRivers && rivers.distance(x, z, shoreReach) < Math.abs(shore)) return [RIVER, -edgeReach, 0];
+        return [shore, -edgeReach, besideLake(tile, x, z) ? LAKE : deepAt(tile, x, z)];
+      }
+      let edge = -edgeReach;
+      if (tile.terrain === 'ocean') edge = edges.distance(x, z, edgeReach);
+      else if (tile.terrain === 'coast') edge = -edges.distance(x, z, edgeReach);
+      return [shore, edge, deepAt(tile, x, z)];
+    }
     if (!isWater(tile)) {
       const shore = shores.distance(x, z, shoreReach);
       const river = rivers.distance(x, z, shoreReach);
@@ -191,7 +220,10 @@ export function createSeaField(map: SeaMap, options: { shoreReach: number; edgeR
     attribute(geometry, tile) {
       const position = geometry.getAttribute('position');
       const values = new Float32Array(position.count * 3);
-      for (let i = 0; i < position.count; i++) values.set(sample(tile, position.getX(i), position.getZ(i)), i * 3);
+      // With a free coast, the only sea on a land hex is its own water sheet
+      // (`coastWater` marks it). Any other water there is a river's, and keeps the river's paint.
+      const river = !!coast && !isWater(tile) && !geometry.userData.seaSheet;
+      for (let i = 0; i < position.count; i++) values.set(river ? [RIVER, -edgeReach, 0] : sample(tile, position.getX(i), position.getZ(i)), i * 3);
       // The water painter's brushed coast-to-ocean edge, where it marked the
       // fragments: a fragment's kind decides which side of the edge it is on,
       // so the colours swap at the stroke's outline and not on the hex line.

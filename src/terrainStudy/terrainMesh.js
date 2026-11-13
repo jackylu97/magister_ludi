@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE, riverStyleKey, riverCarveAt } from './surface.js';
+import { centre, isWater, baseSurfaceHeight, hillMounds, tileShape, BANK_TOE, WATER_LEVEL, LAND_LEVEL, riverStyleKey, riverCarveAt, coastAt, coastApronHeight, joinedEdgesOf, bankJoinEdgesOf, OPEN_HEX, COAST_STRIDE } from './surface.js';
 import { flatWater } from './water.js';
 
 // A small library of irregular triangulations avoids concentric hex fans.
@@ -36,14 +36,46 @@ function triangulate(points) {
     return area>0?[a,c,b]:[a,b,c];
   });
 }
+/**
+ * The vertices a free coast adds to a hex (`tile.coast`, `surface.js`): rows of
+ * points that run beside the waterline, each `offsets` gives one row as a
+ * distance to the land side, in beach widths (`beach`) or in hex units. And one
+ * point wherever a row crosses the hex's outline, so the next hex, which adds
+ * the same point, meets this one with no gap.
+ */
+function coastRows(tile,shape,put,offsets){
+  const s=tile.coast.segments,outline=shape.top;
+  const inside=(x,z)=>shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.004);
+  for(let i=0;i<s.length;i+=COAST_STRIDE)for(const offset of offsets){
+    const oa=offset(s[i+4]),ob=offset(s[i+9]);
+    const px=s[i]+s[i+2]*oa,pz=s[i+1]+s[i+3]*oa,qx=s[i+5]+s[i+7]*ob,qz=s[i+6]+s[i+8]*ob;
+    if(inside(px,pz))put(px,pz);
+    if(inside(qx,qz))put(qx,qz);
+    for(let e=0;e<outline.length;e++){
+      const [cx,cz]=outline[e],[dx,dz]=outline[(e+1)%outline.length];
+      const rx=qx-px,rz=qz-pz,sx=dx-cx,sz=dz-cz,den=rx*sz-rz*sx;if(Math.abs(den)<1e-12)continue;
+      const t=((cx-px)*sz-(cz-pz)*sx)/den,u=((cx-px)*rz-(cz-pz)*rx)/den;
+      if(t>=0&&t<=1&&u>1e-4&&u<1-1e-4)put(cx+sx*u,cz+sz*u);
+    }
+  }
+}
+const pointSet=points=>{
+  const seen=new Set();
+  return (x,z)=>{const k=`${Math.round(x*2e4)}:${Math.round(z*2e4)}`;if(!seen.has(k)){seen.add(k);points.push([x,z])}};
+};
+/** The ground's rows: the crest of the beach, the waterline, and where the slope ends under the water. */
+const groundRows=tile=>{
+  const under=tile.coast.under/(LAND_LEVEL-WATER_LEVEL);
+  return [beach=>beach,()=>0,beach=>-beach*under];
+};
 const topologies=new Map();
-function topology(tile,distant=false) {
+function topology(tile,distant=false,apron=false) {
   const variant=(tile.col*3+tile.row*5)%8;
-  // A hex with a carved river has its own vertices, so it shares its topology with no other hex.
-  const carve=tile.riverCarve;
-  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}:${riverStyleKey()}${carve?`:${tile.col},${tile.row},${carve.key}`:''}`;
+  // A hex with a carved river or a free coast has its own vertices, so it shares its topology with no other hex.
+  const carve=tile.riverCarve,coast=tile.coast;
+  const key=`${tile.riverEdges||0}:${tile.shoreEdges||0}:${tile.joinedEdges||0}:${variant}:${distant}:${riverStyleKey()}${carve?`:${tile.col},${tile.row},${carve.key}`:''}${coast?`:c${tile.col},${tile.row},${coast.key},${apron}`:''}`;
   if(topologies.has(key))return topologies.get(key);
-  const shape=tileShape(tile),points=[],toes=[];
+  const shape=tileShape(apron?OPEN_HEX:tile),points=[],toes=[];
   // Explicit vertices on the crest and toe keep river cuts straight. Sampling
   // an unaligned grid at the waterline used to produce a serrated bank.
   for(let side=0;side<shape.top.length;side++)for(let j=0;j<2;j++){
@@ -59,8 +91,11 @@ function topology(tile,distant=false) {
     if(!shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.035))continue;
     // The grid stands clear of a carved channel, whose own vertices follow.
     if(carve&&riverCarveAt(tile,x,z).edge<carve.bank+.05)continue;
+    // And clear of a free coast's beach, whose rows follow.
+    if(coast){const at=coastAt(tile,x,z);if(at.edge<at.beach+.05)continue}
     points.push([x,z]);
   }
+  if(coast)coastRows(tile,shape,pointSet(points),groundRows(tile));
   if(carve){
     // Vertices along the channel: its middle, the water's two edges and the two
     // rims, at each piece's start. And one wherever one of those five lines
@@ -96,7 +131,7 @@ export function terrainMesh(tile,{distant=false}={}){
   if(isWater(tile)){
     const empty=new T.BufferGeometry();
     empty.setAttribute('position',new T.Float32BufferAttribute([],3));empty.computeVertexNormals();
-    return [flatWater(tile),empty];
+    return [tile.coast?coastWater(tile):flatWater(tile),empty];
   }
   const {points,toes,indices}=topology(tile,distant),v=[],colors=[];
   for(const [x,z] of points){
@@ -132,8 +167,8 @@ export function terrainMesh(tile,{distant=false}={}){
   for(let i=0;i<toes.length;i++){
     const plane=(Math.floor(i/2)+1)%12;
     // Interior land joins need neither a visible skirt nor a shadow caster.
-    if(plane%2===0&&((tile.joinedEdges||0)&(1<<(plane/2)))
-      &&!((tile.bankJoinEdges||0)&(1<<(plane/2))))continue;
+    if(plane%2===0&&(joinedEdgesOf(tile)&(1<<(plane/2)))
+      &&!(bankJoinEdgesOf(tile)&(1<<(plane/2))))continue;
     const next=(i+1)%toes.length;
     const a=v.slice(i*3,i*3+3),b=v.slice(next*3,next*3+3);
     const la=[toes[i][0]+c.x,BANK_TOE,toes[i][1]+c.z];
@@ -143,4 +178,53 @@ export function terrainMesh(tile,{distant=false}={}){
   }
   const skirt=new T.BufferGeometry();skirt.setAttribute('position',new T.Float32BufferAttribute(sides,3));skirt.computeVertexNormals();
   return [top,skirt];
+}
+
+/**
+ * The ground a free coast lays in a water hex: the beach, and any land above
+ * it, where the waterline runs outside the land hexes. Only the faces that
+ * reach above the water are kept. Empty when the hex has no coast.
+ */
+export function coastApron(tile){
+  const geometry=new T.BufferGeometry(),v=[];
+  if(tile.coast){
+    const c=centre(tile),{points,indices}=topology(tile,false,true);
+    const y=points.map(([x,z])=>coastApronHeight(tile,x,z));
+    for(let i=0;i<indices.length;i+=3){
+      const face=[indices[i],indices[i+1],indices[i+2]];
+      if(face.every(k=>y[k]<=WATER_LEVEL-.004))continue;
+      for(const k of face)v.push(points[k][0]+c.x,y[k],points[k][1]+c.z);
+    }
+  }
+  geometry.setAttribute('position',new T.Float32BufferAttribute(v,3));
+  geometry.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(v.length).fill(.985),3));
+  geometry.computeVertexNormals();
+  geometry.userData.plateVertexCount=v.length/3;
+  return geometry;
+}
+
+/**
+ * The water sheet of a hex beside a free coast. The sea's paint reads the
+ * distance to the waterline at each vertex (`seaField.ts`), so the sheet has
+ * rows of vertices that run beside the line, close together near it, and a
+ * coarse grid over the open water.
+ */
+export function coastWater(tile){
+  const c=centre(tile),shape=tileShape(OPEN_HEX),points=[];
+  for(const [x,z] of shape.top)points.push([x,z]);
+  const put=pointSet(points);
+  for(let row=-5;row<=5;row++)for(let col=-5;col<=5;col++){
+    const x=col*.24+(row%2)*.12,z=row*.21;
+    if(!shape.normals.every(([nx,nz],i)=>x*nx+z*nz<shape.upper[i]-.05))continue;
+    if(coastAt(tile,x,z).edge>-.85)continue;
+    put(x,z);
+  }
+  coastRows(tile,shape,put,[.05,0,-.04,-.1,-.2,-.34,-.52,-.74].map(offset=>()=>offset));
+  const indices=triangulate(points),v=[];
+  for(const k of indices)v.push(points[k][0]+c.x,WATER_LEVEL,points[k][1]+c.z);
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(v,3));
+  geometry.computeVertexNormals();
+  geometry.userData.seaSheet=true;
+  return geometry;
 }

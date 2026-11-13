@@ -194,7 +194,8 @@ export function createTerrainPainter(map,mountainRanges){
   for(const p of patches)if(p.planes.every(([nx,nz,l])=>x*nx+z*nz<=l))out.copy(p.color);
   return out;
  }
- function paint(geometry,tile){
+ // `creased` is false for ground that lies outside the hex whose paint it takes: the land a free coast lays in a water hex.
+ function paint(geometry,tile,creased=true){
   if(isWater(tile))return;
   const source=geometry.attributes.position,normals=geometry.attributes.normal;
   const {base,patches}=regions(tile),positions=[],colors=[],outputNormals=[];
@@ -247,7 +248,7 @@ export function createTerrainPainter(map,mountainRanges){
   // The chunk builder normally multiplies vertex colour by biome material.
   // These are already final linear pigments; do not apply that tint twice.
   geometry.userData.pigmentBaked=true;
-  creases(geometry,tile);
+  if(creased)creases(geometry,tile);
  }
  function creases(geometry,tile){
   const c=centre(tile),positions=[],colors=[],color=new Color();

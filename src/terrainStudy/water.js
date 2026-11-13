@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {centre,isWater,neighbour,tileShape,cutRiverEdges,WATER_LEVEL,LAND_LEVEL,BANK_TOE} from './surface.js';
+import {coastWater} from './terrainMesh.js';
 
 // Water is a level sheet under each cut land tile. The bank geometry defines
 // its visible outline, so joins need no overlapping discs or bulging ribbons.
@@ -16,13 +17,15 @@ export function flatWater(tile) {
 export function waterDetails(tile,map,push,materials){
  // An organic river (the visual test version) is painted on joined ground, so
  // only a cut river edge or a shore needs the water sheet under the land.
- if(!isWater(tile)&&(cutRiverEdges(tile)||tile.shoreEdges))push(materials.river,flatWater(tile));
+ // Beside a free coast the sheet carries the sea's distances, so it is the fine one.
+ if(!isWater(tile)&&(cutRiverEdges(tile)||tile.shoreEdges))push(materials.river,tile.coast?coastWater(tile):flatWater(tile));
 }
 
 // Sparse half-submerged shelves give the water a tangible tabletop edge.
 // Rivers remain clear; these use the existing instanced limestone asset.
 export function shoreStones(tile,map,hash){
- if(isWater(tile)||!tile.shoreEdges||hash(tile.col,tile.row,1400)>.32)return [];
+ // The shelves stood against the bank a free coast does not have.
+ if(isWater(tile)||tile.coast||!tile.shoreEdges||hash(tile.col,tile.row,1400)>.32)return [];
  const edges=Array.from({length:6},(_,d)=>d).filter(d=>isWater(neighbour(tile,map,d)||{}));
  if(!edges.length)return [];
  const d=edges[Math.floor(hash(tile.col,tile.row,1401)*edges.length)],angle=d*Math.PI/3;

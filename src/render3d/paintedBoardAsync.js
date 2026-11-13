@@ -1,5 +1,5 @@
 import {buildPaintedBoard} from './paintedBoard.js';
-import {restoreTerrainMap, riverStyle} from '../terrainStudy/surface.js';
+import {restoreTerrainMap, riverStyle, coastStyle} from '../terrainStudy/surface.js';
 import {packPaintedKit, unpackPaintedBatches} from './paintedBoardTransfer.js';
 
 /** One worker per build: abort/timeout terminates CPU work and releases buffers. */
@@ -36,7 +36,7 @@ export async function buildPaintedBoardAsync(map, assets, materials, shadows, {s
       else if (data.type === 'complete') finish(null, data);
     };
     // Input is cloned, never transferred: live prop assets must stay attached.
-    try { worker.postMessage({map, kit, shadows, riverStyle: riverStyle()}); } catch (error) { finish(error); }
+    try { worker.postMessage({map, kit, shadows, riverStyle: riverStyle(), coastStyle: coastStyle()}); } catch (error) { finish(error); }
   });
   if (signal?.aborted) throw new DOMException('Board build cancelled', 'AbortError');
   const hydrateStart = performance.now();

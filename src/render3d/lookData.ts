@@ -2341,6 +2341,26 @@ export interface VisualTestSpec {
     smokePuffs: number; smokeAt: number[]; smokeRise: number; smokeSize: number; smokeSpeed: number; smokeDrift: number; smokeColor: string;
     flagWave: number; flagSpeed: number;
   };
+  /**
+   * A free coastline (`freeCoast.js`; `docs/flags.md`, "A free coastline"). With
+   * `free`, and the sea switch on, the shore is one smooth line and not the hex
+   * outline. `smoothing`, `step` and `relax` shape the line, and a loop shorter than
+   * `relaxLength` is relaxed less, so a small island keeps its size; `wander` and
+   * `wanderWave` are its slow sideways drift; `shift` sets the whole line out
+   * to sea. `beach` is the width of the sand slope and `beachVary`, `beachWave`
+   * make it uneven; `under` is how far the slope goes on below the water.
+   * At a river mouth the line bends in to the river's end and `mouthInset`
+   * past it, over `mouthReach` to each side. `wet` is the width of the
+   * darker sand at the water, `sandOver` how far the sand runs past the top of
+   * the slope, and `sandLift` its height above the ground. `bands` replaces
+   * those of the sea's `bands` that a smooth shore needs smaller.
+   */
+  coast: {
+    free: boolean; smoothing: number; step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number;
+    beach: number; beachVary: number; beachWave: number; under: number; mouthInset: number; mouthReach: number;
+    sand: string; wetSand: string; wet: number; sandOver: number; sandLift: number;
+    bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };
+  };
   /** Switch 4: the painted river ribbon (`organicRivers.js`). */
   organicRivers: {
     smoothing: number; step: number; wander: number; wanderWave: number; wanderFade: number;

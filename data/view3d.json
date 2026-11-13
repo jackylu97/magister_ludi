@@ -1311,6 +1311,33 @@
       "flagWave": 0.035,
       "flagSpeed": 2.2
     },
+    "coast": {
+      "free": true,
+      "smoothing": 3,
+      "step": 0.07,
+      "relax": 14,
+      "relaxLength": 16,
+      "wander": 0.09,
+      "wanderWave": 4.3,
+      "shift": 0.03,
+      "beach": 0.17,
+      "beachVary": 0.4,
+      "beachWave": 3.3,
+      "under": 0.03,
+      "mouthInset": 0.2,
+      "mouthReach": 0.6,
+      "sand": "#ecdcae",
+      "wetSand": "#d9c690",
+      "wet": 0.03,
+      "sandOver": 0.012,
+      "sandLift": 0.005,
+      "bands": {
+        "sand": 0.035,
+        "sandVary": 0.5,
+        "wander": 0.035,
+        "lap": 0.022
+      }
+    },
     "organicRivers": {
       "smoothing": 3,
       "step": 0.07,

@@ -34,6 +34,9 @@ import { neighbour } from '../terrainStudy/surface.js';
 export const SCENE_VIEWS = {
   overview: { col: 12, row: 9, zoom: 1, label: 'Overview' },
   coast: { col: 19, row: 8, zoom: 3.2, label: 'Coast and ocean' },
+  shore: { col: 19, row: 4, zoom: 5.5, label: 'The shore, close: a hill, a wood and an island' },
+  lake: { col: 5, row: 13, zoom: 5, label: 'The lake' },
+  port: { col: 18, row: 15, zoom: 5.5, label: 'A town and a farm on the shore' },
   rivers: { col: 13, row: 8, zoom: 3.4, label: 'River: sources, join, mouth' },
   roads: { col: 10, row: 8, zoom: 3.4, label: 'Roads: junction, bend, crossing' },
   hillsBorder: { col: 6, row: 5, zoom: 3.4, label: 'Hills and mountains with a border' },
@@ -101,6 +104,9 @@ export function createSceneFixture(age?: number) {
   for (let row = 12; row <= 13; row++) for (let col = 15; col <= 17; col++) tile(col, row).feature = 'jungle';
   for (let row = 3; row <= 4; row++) for (let col = 10; col <= 12; col++) tile(col, row).feature = 'forest';
   tile(17, 11).hills = true;
+  // On the shore: a hill and a wood beside the sea, and an island of one hex.
+  tile(18, 5).hills = true; tile(18, 3).feature = 'forest';
+  tile(20, 4).terrain = 'grassland';
   tile(2, 10).feature = 'oasis';
   tile(10, 9).feature = 'floodplain'; tile(11, 9).feature = 'floodplain';
 
@@ -138,6 +144,8 @@ export function createSceneFixture(age?: number) {
     [16, 8, 'manufactory'], [18, 5, 'customsHouse'], [5, 14, 'floatingGardens'],
     // A group of farms beside a mine and the quarry, for the `works` view.
     [15, 10, 'farm'], [16, 10, 'farm'], [15, 11, 'farm'], [17, 11, 'mine'], [16, 9, 'quarry'],
+    // A farm on the shore, for the `port` view.
+    [18, 16, 'farm'],
   ];
   for (const [col, row, id] of works) tile(col, row).improvement = id;
 
@@ -156,6 +164,9 @@ export function createSceneFixture(age?: number) {
   const east = foundCityAt(state, 1, tile(15, 6));
   east.population = 5;
   east.buildings.push('shrine' as never, 'greatLighthouse' as never);
+  // A fourth town on the shore, to show a town wall beside a free coastline.
+  const port = foundCityAt(state, 1, tile(18, 15));
+  port.population = 4;
   // The west owns cols 0 to 11 from row 5 down to row 13, with one unowned
   // hex inside; the east owns cols 12 to 18 from row 3 to row 12. They meet
   // along the line between cols 11 and 12, and the west's north border runs
@@ -165,6 +176,7 @@ export function createSceneFixture(age?: number) {
     const cell = t.row * WIDTH + t.col;
     if (t.col <= 11 && t.row >= 5 && t.row <= 13) state.tileOwner[cell] = t.row >= 10 && t.col >= 7 ? hamlet.id : capital.id;
     else if (t.col >= 12 && t.col <= 18 && t.row >= 3 && t.row <= 12) state.tileOwner[cell] = east.id;
+    else if (t.col >= 17 && t.col <= 18 && t.row >= 14 && t.row <= 16) state.tileOwner[cell] = port.id;
   }
   state.tileOwner[8 * WIDTH + 7] = null;
 

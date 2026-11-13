@@ -403,6 +403,8 @@ export function createOrganicRivers(map, knobs) {
  return {
   polygonCount: polygons.length,
   carve,
+  /** The hex corners where a river reaches the sea or a lake. A free coast comes in to meet each (`freeCoast.js`). */
+  mouths: network.nodes.filter(node => node.water).map(node => node.point),
   /** The trees that keep to the river on one hex: `{x, y, z, seed}` in the hex's own coordinates. */
   trees(tile) { return placed(tile, 'tree'); },
   /** The rocks that stand in the stream on one hex: `{x, y, z, seed, size}`. */
