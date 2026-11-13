@@ -122,7 +122,11 @@ export function createOrganicRivers(map, knobs) {
   } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
   band(p => -p.half, p => p.half, colors.water, knobs.lift * 1.5);
-  band(p => side * p.half * knobs.shineFrom, p => side * p.half * knobs.shineTo, colors.shine, knobs.lift * 2);
+  if (knobs.shallows) {
+   // A paler band along each bank, as the sea has at its shore, in place of
+   // the stripe down the middle.
+   for (const way of [1, -1]) band(p => way * p.half * knobs.shallows, p => way * p.half, colors.shine, knobs.lift * 2);
+  } else band(p => side * p.half * knobs.shineFrom, p => side * p.half * knobs.shineTo, colors.shine, knobs.lift * 2);
  }
  // A disc of each colour at every junction, so the branches merge.
  for (const node of network.nodes) {

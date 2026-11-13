@@ -339,16 +339,55 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
       // A road with a form (2026-11-12): a flat top that stands above the
       // ground, and a sloped shoulder each side in the bed's darker colour, so
       // the road has a lit side and a shaded side like a low causeway.
-      const top = style.raisedHeight, foot = .012, half = style.coreWidth / 2, wide = style.raisedShoulder;
-      for (const curve of curves) {
-        for (const side of [1, -1]) for (const polygon of ribbonQuads(curve, wide / 2, side * (half + wide / 2), 0))
-          marks.push({ ...marking(polygon, '#ffffff', foot), color: bed, lifts: side > 0 ? [foot, foot, top, top] : [top, top, foot, foot] } as Mark);
-        for (const polygon of ribbonQuads(curve, half + .002, 0, 0)) marks.push({ ...marking(polygon, '#ffffff', top + .001), color: core } as Mark);
-      }
+      // The road is its own geometry with its own height (the user,
+      // 2026-11-12: "can't we give the road a geometry and place it along the
+      // hill?"). Along each curve the height is a taut line that never goes
+      // below the ground, so the road climbs a terrace as one ramp and does
+      // not step. Its sides reach down to the ground wherever it stands above.
+      const top = style.raisedHeight, foot = .006, half = style.coreWidth / 2, wide = style.raisedShoulder;
+      const groundAt = (p: Point): number => surfaceHeight(tile, p[0] - c.x, p[1] - c.z) as number;
+      // A crossing point belongs to two hexes, so both must read one height there.
+      const edgeHeight = new Map<Point, number>();
+      for (const link of links) edgeHeight.set(link.at, Math.max(groundAt(link.at),
+        surfaceHeight(link.other, link.at[0] - (centre(link.other) as { x: number }).x - Math.round((link.at[0] - (centre(link.other) as { x: number }).x) / (root3 * width)) * root3 * width, link.at[1] - (centre(link.other) as { z: number }).z) as number));
+      const quad = (polygon: Point[], heights: number[], color: Color): void => { marks.push({ ...marking(polygon, '#ffffff', 0), color, deck: 0, heights } as Mark); };
+      let through: { points: Point[]; heights: number[] } | null = null;
+      curves.forEach((curve, index) => {
+        const last = curve.length - 1, ground = curve.map(groundAt), line = [...ground];
+        line[0] = edgeHeight.get(curve[0]!) ?? ground[0]!;
+        // A branch ends on the through road, at the through road's own height.
+        let end = edgeHeight.get(curve[last]!) ?? ground[last]!;
+        if (index > 0 && through && !edgeHeight.has(curve[last]!)) {
+          let near = 0, best = Infinity;
+          through.points.forEach((p, k) => { const d = Math.hypot(p[0] - curve[last]![0], p[1] - curve[last]![1]); if (d < best) { best = d; near = k; } });
+          end = through.heights[near]!;
+        }
+        line[last] = end;
+        for (let pass = 0; pass < 240; pass++) {
+          for (let k = 1; k < last; k++) line[k] = Math.max(ground[k]!, (line[k - 1]! + line[k + 1]!) / 2);
+          for (let k = last - 1; k > 0; k--) line[k] = Math.max(ground[k]!, (line[k - 1]! + line[k + 1]!) / 2);
+        }
+        if (index === 0) through = { points: curve, heights: line };
+        const normal = curve.map((_, k) => {
+          const a = curve[Math.max(0, k - 1)]!, b = curve[Math.min(last, k + 1)]!, dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+          return [-dz / l, dx / l] as Point;
+        });
+        const at = (k: number, across: number): Point => [curve[k]![0] + normal[k]![0] * across, curve[k]![1] + normal[k]![1] * across];
+        // A side is wider where the road stands higher, so a ramp has a slope and not a wall.
+        const reach = (k: number): number => half + wide + Math.max(0, line[k]! - ground[k]!) * .9;
+        const footOf = (k: number, side: number): number => Math.min(line[k]! + top, groundAt(at(k, side * reach(k))) + foot);
+        for (let k = 0; k < last; k++) {
+          const ha = line[k]! + top, hb = line[k + 1]! + top;
+          quad([at(k, half), at(k + 1, half), at(k + 1, -half), at(k, -half)], [ha, hb, hb, ha], core);
+          for (const side of [1, -1]) quad([at(k, side * reach(k)), at(k + 1, side * reach(k + 1)), at(k + 1, side * half), at(k, side * half)],
+            [footOf(k, side), footOf(k + 1, side), hb, ha], bed);
+        }
+      });
       const disc = (x: number, z: number, radius: number): Point[] => Array.from({ length: style.capSides }, (_, i) => [x + Math.cos(i * 2 * Math.PI / style.capSides) * radius, z + Math.sin(i * 2 * Math.PI / style.capSides) * radius] as Point);
       for (const [x, z] of caps) {
+        const level = groundAt([x, z]);
         marks.push({ ...marking(disc(x, z, half + wide), '#ffffff', foot), color: bed } as Mark);
-        marks.push({ ...marking(disc(x, z, half), '#ffffff', top + .001), color: core } as Mark);
+        marks.push({ ...marking(disc(x, z, half), '#ffffff', 0), color: core, deck: level + top } as Mark);
       }
     } else
     for (const [offset, half, color, lift, wander, capped] of bands) {

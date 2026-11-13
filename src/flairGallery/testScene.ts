@@ -1,3 +1,4 @@
+import { VIEW3D } from '../render3d/lookData';
 import { Renderer3D } from '../render3d/renderer3d';
 import { NO_LENS } from '../render3d/lens3d';
 import {
@@ -39,7 +40,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   panel.style.cssText = 'position:absolute;top:8px;left:8px;z-index:2;background:rgba(244,238,224,.94);padding:8px 10px;'
     + 'font:12px/1.5 system-ui,sans-serif;color:#2a2620;border:1px solid #2a2620;max-width:260px';
   into.append(canvas, panel);
-  const renderer = new Renderer3D(canvas, { painted: true });
+  const renderer = new Renderer3D(canvas, { painted: true, minFrustum: 1.4 });
   const age = Number(params.get('age'));
   const state = createSceneFixture(age === 1 || age === 2 ? age : undefined);
   let disposed = false, ready = false;
@@ -62,7 +63,12 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
       renderer.zoomBy(1.75, canvas.clientWidth / 2, canvas.clientHeight / 2);
     } else {
       renderer.focusOpening({ col: target.col, row: target.row });
-      renderer.zoomBy(target.zoom, canvas.clientWidth / 2, canvas.clientHeight / 2);
+      // The scene's camera comes closer than the game's, so a view names its
+      // own distance: out to the far limit, then in to the game's closest zoom,
+      // or closer still for the views of one town.
+      const far = VIEW3D.camera.maxFrustum, near = target.zoom >= 9 ? 2.6 : VIEW3D.camera.minFrustum;
+      renderer.zoomBy(1e-6, canvas.clientWidth / 2, canvas.clientHeight / 2);
+      renderer.zoomBy(far / near, canvas.clientWidth / 2, canvas.clientHeight / 2);
     }
     writeUrl();
   };

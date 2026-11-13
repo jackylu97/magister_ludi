@@ -2342,6 +2342,8 @@ export interface VisualTestSpec {
     mouthFlare: number; mouthLength: number; bank: string; bankWidth: number; water: string; shine: string;
     shineFrom: number; shineTo: number; lift: number; propClearance: number;
     /** Modelled banks: the ground rises `bankHeight` over `bankSlope` to a rim and drops to the water over `bankWidth`. `bankFade` is the length at a run's end where the rise fades out; `bankGround` deepens the slope's ground colour. */
+    /** Where the paler band along each bank starts, as a share of the half width. 0 keeps the old stripe down the middle. */
+    shallows: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
