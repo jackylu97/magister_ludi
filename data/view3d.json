@@ -820,7 +820,7 @@
         "color": "bone",
         "shade": -0.12,
         "size": 0.68,
-        "jitter": 0.04,
+        "jitter": 0.07,
         "gilt": "gilt"
       },
       "manufactory": {
@@ -1350,7 +1350,7 @@
       },
       "open": {
         "shelfFine": 1.3,
-        "scallop": 0.16,
+        "scallop": 0.09,
         "scallopScale": 2.4,
         "scale": 0.55,
         "drift": 0.012,
@@ -1441,8 +1441,8 @@
         "sandVary": 0.5,
         "wander": 0.035,
         "lap": 0.022,
-        "shallows": 0.36,
-        "shallowsWander": 0.3
+        "shallows": 0.2,
+        "shallowsWander": 0.16
       }
     },
     "organicRivers": {
@@ -1652,7 +1652,7 @@
       "height": 0.85,
       "upper": 0.52,
       "upperFrom": 0.5,
-      "side": 0.74,
+      "side": 0.844,
       "flanks": false,
       "fill": 0.38,
       "smooth": true,
@@ -1660,13 +1660,23 @@
         "height": 1,
         "heightVary": 0.3,
         "round": 1,
-        "steepAt": 0.26,
+        "steepAt": 0.3,
         "uneven": 0.16,
         "jitter": 0.04,
-        "rough": 0.025,
-        "lean": 0.42,
-        "profile": [[0.95, 0.025], [0.86, 0.1], [0.73, 0.32], [0.58, 0.63], [0.42, 0.87], [0.25, 0.98], [0.1, 1]],
-        "facetVary": 0.05,
+        "rough": 0,
+        "bump": 0.05,
+        "size": 1.22,
+        "lean": 0.62,
+        "profile": [[0.92, 0.06], [0.78, 0.5], [0.66, 0.9], [0.4, 0.98], [0.16, 1]],
+        "bands": 0,
+        "cliffs": {
+          "at": 0.2,
+          "rock": "#b3aea2",
+          "tint": 0.12,
+          "vary": 0.07
+        },
+        "grit": 0,
+        "facetVary": 0,
         "crown": 0.04,
         "side": 0.7
       }

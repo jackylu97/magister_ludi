@@ -33,6 +33,7 @@ const dryColors=LAND.dry;
 const richColors=LAND.rich;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
 const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;
+const ROCK=new Color(SOFT_HILL?.cliffs?.rock??'#a9a79c');
 const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?(VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft.side:VIEW3D.visualTest.hills.side):0;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
@@ -217,11 +218,16 @@ export function createTerrainPainter(map,mountainRanges){
    // and each facet is then darkened by how steep it is, so the hill shades
    // off into the ground.
    const softHill=SOFT_HILL&&moundKind;
-   const slope=softHill?Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt)):0;
-   let fragments=[{polygon:triangle,color:softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base}];
+   // The slope's tone comes in a few even steps, as the reference games shade a smooth hill, and not as one tone for each small facet.
+   const steepness=softHill?Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt)):0;
+   const slope=softHill&&SOFT_HILL.bands?Math.round(steepness*SOFT_HILL.bands)/SOFT_HILL.bands:steepness;
+   // A steep facet of a rocky hill is bare rock (the user, 2026-11-13: the green "lies on top of them in a layer rather than being coated in green color"). It takes the rock's tone, a little of the ground's, and its own small difference, and no strokes.
+   const cliff=softHill&&SOFT_HILL.cliffs&&1-normals.getY(i)>SOFT_HILL.cliffs.at;
+   const rock=cliff?ROCK.clone().lerp(pigments[moundKind].base,SOFT_HILL.cliffs.tint).multiplyScalar(1+(hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*41),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*41))-.5)*2*SOFT_HILL.cliffs.vary):null;
+   let fragments=[{polygon:triangle,color:rock??(softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
    // The terraced hill shapes read through their lighting planes, and are left
    // intact instead of being fragmented with more painted cuts.
-   for(const p of i<plateCount||softHill?patches:[]){
+   for(const p of i<plateCount||(softHill&&!cliff)?patches:[]){
     if(bounds[1]<p.bounds[0]||bounds[0]>p.bounds[1]||bounds[3]<p.bounds[2]||bounds[2]>p.bounds[3])continue;
     const next=[];
     for(const f of fragments){
@@ -243,7 +249,7 @@ export function createTerrainPainter(map,mountainRanges){
     if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-10)continue;
     // A hill's facets are not all one tone: each is a little lighter or darker than the slope alone gives, by a hash of where it lies, and a nearly level facet is lifted a little, as a crown catches the light.
     const facet=softHill?hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*37),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*37)):0;
-    const shade=(1-(1-TERRACE_SIDE)*slope)*(softHill?1+(facet-.5)*2*SOFT_HILL.facetVary+(1-slope)*SOFT_HILL.crown:1);
+    const shade=cliff?1:(1-(1-TERRACE_SIDE)*slope)*(softHill?1+(facet-.5)*2*SOFT_HILL.facetVary+(1-slope)*SOFT_HILL.crown:1);
     for(const v of [a,b,c]){
      positions.push(v[0],v[1],v[2]);colors.push(color.r*shade,color.g*shade,color.b*shade);
      outputNormals.push(normals.getX(i),normals.getY(i),normals.getZ(i));

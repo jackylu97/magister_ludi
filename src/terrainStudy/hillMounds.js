@@ -7,6 +7,15 @@ import {VIEW3D} from '../render3d/lookData';
 const TERRACE=VIEW3D.visualTest.northStar&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills:null;
 // A soft hill (the user, 2026-11-13: the terraces are "too chunky and unnatural"): a low rounded mound in place of the steps.
 const SOFT=TERRACE&&TERRACE.smooth?TERRACE.soft:null;
+// The hill's profile, as rings from the foot to the top: each a share of the
+// outline's size and of the height. A list in the data is used as it is. A
+// number asks for that many rings on one smooth curve, flat at the foot and
+// flat at the top, so the facets are too small to read as triangles (the user,
+// 2026-11-13: "the triangles make them look crumpled").
+const SOFT_PROFILE=!SOFT?[]:Array.isArray(SOFT.profile)?SOFT.profile:Array.from({length:SOFT.profile},(_,k)=>{
+ const t=(k+1)/(SOFT.profile+.6);
+ return [1-t,Math.sin(t*Math.PI/2)**2];
+});
 function random(col,row,salt){
  let n=Math.imul(col+31,73856093)^Math.imul(row+17,19349663)^Math.imul(salt+1,83492791);
  n=Math.imul(n^(n>>>13),1274126177);
@@ -26,6 +35,8 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
  return layout.map(([cx,cz,rx,rz,height],i)=>{
   const salt=20+i*20,angle=(r(salt)-.5)*1.1+(i===1?.8:0),a=Math.cos(angle),b=Math.sin(angle);
   rx*=.90+r(salt+1)*.20;rz*=.86+r(salt+2)*.28;height*=.82+r(salt+3)*.36;
+  // Soft hills are broader (the user, 2026-11-13: "generally larger"). The fit below still keeps each inside its own ground.
+  if(SOFT){rx*=SOFT.size;rz*=SOFT.size}
   const locate=(x,z)=>{
    const u=cx+x*a-z*b,v=cz+x*b+z*a;
    return [u*ca-v*sa,u*sa+v*ca];
@@ -79,17 +90,19 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    // the last, so the side rises in a few gentle facets to a small top.
    // The top is not over the middle: each ring is set a little further to one side, so one flank is long and gentle and the other short and steeper, as on a real hill.
    const leanX=(r(salt+18)-.5)*2*rx*SOFT.lean,leanZ=(r(salt+19)-.5)*2*rz*SOFT.lean;
-   SOFT.profile.forEach(([scale,share],ring)=>rim.forEach(([x,z],j)=>{
+   SOFT_PROFILE.forEach(([scale,share],ring)=>rim.forEach(([x,z],j)=>{
     // Each point of each ring sits a little higher or lower and nearer or further than its ring, so the facets differ like worn ground.
-    const rough=1+SOFT.rough*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.rough*(r(salt+200+ring*31+j)-.5)*2;
+    // Bumps (the user, 2026-11-13: "a bit more bumpy"): each ring rises and falls round the hill in the same slow waves, so the hill has a few broad spurs and hollows that run from top to foot. (With each ring in its own place, the waves twisted into a whorl.) Only the height moves, so no facet folds over.
+    const round=j/rim.length*Math.PI*2,wave=Math.sin(round*2+r(salt+90)*6.28)*.6+Math.sin(round*3+r(salt+110)*6.28)*.4;
+    const rough=1+SOFT.rough*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.bump*(wave*.7+(r(salt+200+ring*31+j)-.5)*.6*SOFT.grit)*Math.min(1,share*4);
     const [px,pz]=locate(x*scale*rough+leanX*(1-scale),z*scale*rough+leanZ*(1-scale));
     vertices.push([px*fit,topBase+height*share*lift,pz*fit]);
    }));
-   for(let ring=0;ring<SOFT.profile.length;ring++)for(let j=0;j<sides;j++){
+   for(let ring=0;ring<SOFT_PROFILE.length;ring++)for(let j=0;j<sides;j++){
     const k=(j+1)%sides,low=ring*sides,high=low+sides;
     indices.push(low+j,low+k,high+j,low+k,high+k,high+j);
    }
-   const top=SOFT.profile.length*sides;
+   const top=SOFT_PROFILE.length*sides;
    for(let j=1;j<sides-1;j++)indices.push(top,top+j,top+j+1);
   }else{
   for(const [x,z]of rim){
