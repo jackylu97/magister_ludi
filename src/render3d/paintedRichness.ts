@@ -66,6 +66,13 @@ export class PaintedRichnessLayer {
   private readonly moteMaterial: MeshBasicMaterial;
   private moteGeometry: IcosahedronGeometry | null = null;
   private meshes: InstancedMesh[] = [];
+  /**
+   * Hexes that show a stated kind and step whatever their yield, by cell. Only
+   * the visual test scene sets this, to put one example of every step side by
+   * side (the user, 2026-11-12: "please add some tiles with examples of all
+   * first/second/third step tiles"). The game never does.
+   */
+  showcase: ReadonlyMap<number, { kind: Kind; step: number }> | null = null;
 
   constructor(private readonly assets: Assets) {
     this.group.name = 'painted-richness';
@@ -90,7 +97,7 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
     if (!RICH.on) return;
     const cities = new Set(state.cities.map((city) => city.row * state.map.width + city.col));
     const watched = state.map.tiles.filter((tile, cell) => !WATER.has(tile.terrain) && tile.terrain !== 'mountain' && !cities.has(cell)
-      && levelAt(levels, state.map, tile.col, tile.row) === VISIBLE);
+      && (this.showcase?.has(cell) || levelAt(levels, state.map, tile.col, tile.row) === VISIBLE));
     const yields = seenTileYields(state, seat, watched);
     const places: Record<Kind, Matrix4[]> = { food: [], production: [], gold: [] };
     const motes: { x: number; y: number; z: number; kind: Kind; seed: [number, number] }[] = [];
@@ -104,7 +111,7 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
       fit[kind] = RICH.size / Math.max(span.x, span.z);
     }
     watched.forEach((original, index) => {
-      const rich = richestKind(yields[index]!);
+      const rich = this.showcase?.get(original.row * state.map.width + original.col) ?? richestKind(yields[index]!);
       if (!rich || fit[rich.kind] === undefined) return;
       const tile = prepared.tiles[original.row * state.map.width + original.col];
       if (!tile) return;

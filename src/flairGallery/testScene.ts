@@ -5,7 +5,7 @@ import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from '../render3d/visualTest';
 import type { LensView } from '../ui/mapView';
-import { SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture';
+import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture';
 
 /**
  * The visual test scene: `flair.html?review=scene`. The user, 2026-11-12: "for
@@ -133,6 +133,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   renderer.setDaylight(light);
   renderer.setClock(still ? 12 : null);
   renderer.setFogSeat(0);
+  renderer.setRichnessShowcase(new Map(SCENE_RICHNESS.map(([col, row, kind, step]) => [row * state.map.width + col, { kind, step }])));
   renderer.setGameState(state);
   const resourceCells = state.map.tiles.filter(tile => tile.resource).map(tile => ({ col: tile.col, row: tile.row }));
   renderer.setLens({ ...NO_LENS, resources: true, resourceCells, playerId: 0 } as LensView);

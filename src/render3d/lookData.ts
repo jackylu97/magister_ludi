@@ -2346,6 +2346,8 @@ export interface VisualTestSpec {
     /** Modelled banks: the ground rises `bankHeight` over `bankSlope` to a rim and drops to the water over `bankWidth`. `bankFade` is the length at a run's end where the rise fades out; `bankGround` deepens the slope's ground colour. */
     /** Where the paler band along each bank starts, as a share of the half width. 0 keeps the old stripe down the middle. */
     shallows: number;
+    /** Small things along the river: patches of the paler tone on the water, and every `detailEvery` units a reed tuft, a bank stone or a few lily pads. */
+    detail: boolean; patchShare: number; detailEvery: number; lily: string; lilySize: number; reedHeight: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
   };
   /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
@@ -2355,6 +2357,7 @@ export interface VisualTestSpec {
     shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
     bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
     raised: boolean; raisedHeight: number; raisedShoulder: number; bridgeHeight: number; railHeight: number;
+    slabSteps: number; slabShade: number; kerbSteps: number; kerbGaps: number; kerbSize: number; kerbHeight: number; kerb: string;
   };
 }
 

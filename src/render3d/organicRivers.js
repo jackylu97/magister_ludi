@@ -1,7 +1,7 @@
-import {Color} from 'three';
+import {BufferGeometry, Color, Float32BufferAttribute} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {riverPaths} from '../terrainStudy/waterContours.js';
-import {centre, terrainMapWraps} from '../terrainStudy/surface.js';
+import {centre, onTileTop, surfaceHeight, terrainMapWraps} from '../terrainStudy/surface.js';
 import {terrainColors} from '../terrainStudy/terrainPigment.js';
 import {surfacePatch} from '../terrainStudy/surfacePatch.js';
 import {hashUnit} from './hash';
@@ -63,7 +63,12 @@ export function createOrganicRivers(map, knobs) {
  }
  const widthAt = node => knobs.width + knobs.widthGrow * Math.min(1, upstream.get(node) / knobs.growLength);
 
- const polygons = [], colors = {bank: new Color(knobs.bank), water: new Color(knobs.water), shine: new Color(knobs.shine)};
+ const polygons = [], colors = {bank: new Color(knobs.bank), water: new Color(knobs.water), shine: new Color(knobs.shine), lily: new Color(knobs.lily ?? '#8fbf6a')};
+ // Small things along the river (2026-11-12, after a second look at
+ // Dorfromantik's water): stones on the bank, reeds at the water's edge, and
+ // lily pads on the water. `spots` are world points; the board asks for the
+ // ones on each hex.
+ const spots = [];
  const add = (points, color, lift, land = false) => {
   const xs = points.map(p => p[0]), zs = points.map(p => p[1]);
   polygons.push({points, color, lift, land, bounds: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)]});
@@ -122,6 +127,36 @@ export function createOrganicRivers(map, knobs) {
   } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
   band(p => -p.half, p => p.half, colors.water, knobs.lift * 1.5);
+  if (knobs.detail) {
+   const h = (i, salt) => hashUnit(Math.round(samples[i].x * 40), Math.round(samples[i].z * 40), salt);
+   const at = (p, n, d) => [p.x + n[0] * d, p.z + n[1] * d];
+   const ends = Math.ceil(.3 / knobs.step);
+   // Their water is a patchwork of two close tones: short patches of the paler tone, each over part of the width.
+   for (let i = ends; i < samples.length - ends - 4; i += 2) {
+    if (h(i, 1401) > knobs.patchShare) continue;
+    const from = (h(i, 1402) * 1.5 - 1) * .9, to = Math.min(.92, from + .45 + h(i, 1403) * .6), run = 2 + Math.floor(h(i, 1404) * 3);
+    for (let k = i; k < Math.min(samples.length - ends - 1, i + run); k++) {
+     const a = samples[k], b = samples[k + 1];
+     add([at(a, bent[k], a.half * from), at(b, bent[k + 1], b.half * from), at(b, bent[k + 1], b.half * to), at(a, bent[k], a.half * to)], colors.shine, knobs.lift * 1.8);
+    }
+   }
+   const every = Math.max(2, Math.round(knobs.detailEvery / knobs.step));
+   for (let i = ends + Math.floor(h(0, 1410) * every); i < samples.length - ends; i += every) {
+    const a = samples[i], n = bent[i], way = h(i, 1411) > .5 ? 1 : -1, pick = h(i, 1412);
+    if (pick < .34) {
+     for (let j = 0; j < 3; j++) spots.push({kind: 'reed', x: a.x + n[0] * way * (a.half * .95) + (h(i, 1420 + j) - .5) * .09, z: a.z + n[1] * way * (a.half * .95) + (h(i, 1430 + j) - .5) * .09, seed: h(i, 1440 + j)});
+    } else if (pick < .62) {
+     spots.push({kind: 'stone', x: a.x + n[0] * way * (a.half + knobs.bankWidth * 1.4), z: a.z + n[1] * way * (a.half + knobs.bankWidth * 1.4), seed: h(i, 1450)});
+    } else {
+     // Two or three lily pads near one bank.
+     for (let j = 0; j < 2 + Math.floor(h(i, 1460) * 2); j++) {
+      const cx = a.x + n[0] * way * a.half * (.35 + h(i, 1470 + j) * .35) + (h(i, 1480 + j) - .5) * .08, cz = a.z + n[1] * way * a.half * (.35 + h(i, 1470 + j) * .35) + (h(i, 1490 + j) - .5) * .08;
+      const r = knobs.lilySize * (.7 + h(i, 1500 + j) * .6);
+      add(Array.from({length: 7}, (_, q) => [cx + Math.cos(q * Math.PI * 2 / 7) * r, cz + Math.sin(q * Math.PI * 2 / 7) * r]), colors.lily, knobs.lift * 2.6);
+     }
+    }
+   }
+  }
   if (knobs.shallows) {
    // A paler band along each bank, as the sea has at its shore, in place of
    // the stripe down the middle.
@@ -154,6 +189,27 @@ export function createOrganicRivers(map, knobs) {
 
  return {
   polygonCount: polygons.length,
+  /** The stones on one hex's river banks: `{x, y, z, seed}` in the hex's own coordinates. */
+  stones(tile) { return placed(tile, 'stone'); },
+  /** The reeds at the water's edge on one hex, as one geometry in world coordinates; null if none. */
+  reeds(tile) {
+   const list = placed(tile, 'reed');
+   if (!list.length) return null;
+   const c = centre(tile), positions = [];
+   for (const reed of list) {
+    // A tuft: four thin blades that lean a little apart.
+    for (let b = 0; b < 4; b++) {
+     const turn = reed.seed * 6.28 + b * 1.7, lean = .018 + b * .006, tall = knobs.reedHeight * (.7 + ((reed.seed * 7 + b * .37) % 1) * .5), w = .007;
+     const bx = c.x + reed.x + Math.cos(turn) * .012, bz = c.z + reed.z + Math.sin(turn) * .012, tip = [bx + Math.cos(turn) * lean, reed.y + tall, bz + Math.sin(turn) * lean];
+     const base = [0, 1, 2].map(q => [bx + Math.cos(turn + q * 2.094) * w, reed.y, bz + Math.sin(turn + q * 2.094) * w]);
+     for (let q = 0; q < 3; q++) positions.push(...base[q], ...tip, ...base[(q + 1) % 3]);
+    }
+   }
+   const geometry = new BufferGeometry();
+   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+   geometry.computeVertexNormals();
+   return geometry;
+  },
   /** The ribbon pieces lying on one hex, clipped to its ground; null if none. */
   pieces(tile, top) {
    if (!tile.riverEdges && !nearRiver(tile)) return null;
@@ -180,6 +236,22 @@ export function createOrganicRivers(map, knobs) {
    return merged;
   },
  };
+
+ /** The spots of one kind that stand on a hex, in its own coordinates, with the ground's height. */
+ function placed(tile, kind) {
+  if (!spots.length || (!tile.riverEdges && !nearRiver(tile))) return [];
+  const c = centre(tile), found = [];
+  for (const spot of spots) {
+   if (spot.kind !== kind) continue;
+   for (const shift of period ? [0, period, -period] : [0]) {
+    const x = spot.x + shift - c.x, z = spot.z - c.z;
+    if (Math.abs(x) > 1.1 || Math.abs(z) > 1.1 || !onTileTop(tile, x, z, .01)) continue;
+    found.push({x, z, y: surfaceHeight(tile, x, z), seed: spot.seed});
+    break;
+   }
+  }
+  return found;
+ }
 
  /** A corner of a junction or a mouth can reach a hex with no river edge of its own. */
  function nearRiver(tile) {

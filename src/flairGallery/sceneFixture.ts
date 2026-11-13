@@ -42,12 +42,22 @@ export const SCENE_VIEWS = {
   townEast: { col: 15, row: 6, zoom: 9, label: 'The eastern town, close' },
   hamlet: { col: 9, row: 11, zoom: 9, label: 'The hamlet, close' },
   works: { col: 15, row: 10, zoom: 3.6, label: 'Farms, a mine and a quarry' },
+  yields: { col: 16, row: 2, zoom: 3.6, label: 'Rich hexes: food, production, gold in three steps' },
   units: { col: 15, row: 13, zoom: 3.4, label: 'Pieces and a ship' },
   fog: { col: 9, row: 15, zoom: 2.4, label: 'Visible, remembered, uncharted' },
 } as const;
 export type SceneView = keyof typeof SCENE_VIEWS;
 
 const WIDTH = 26, HEIGHT = 18;
+
+/**
+ * Examples of rich hexes for the `yields` view: a row for each kind (food,
+ * production, gold from the top) and a column for each step (1, 2, 3 from the
+ * left). The scene hands these to the renderer, which shows them whatever the
+ * hexes really yield (`Renderer3D.setRichnessShowcase`).
+ */
+export const SCENE_RICHNESS: readonly [col: number, row: number, kind: 'food' | 'production' | 'gold', step: number][] =
+  (['food', 'production', 'gold'] as const).flatMap((kind, r) => [1, 2, 3].map((step) => [14 + step, 1 + r, kind, step] as [number, number, 'food' | 'production' | 'gold', number]));
 
 /**
  * The scene's world. A fixture, never a saved game.
@@ -83,6 +93,8 @@ export function createSceneFixture(age?: number) {
   paint([9, 12], [9, 10], 'desert');
   paint([13, 18], [9, 11], 'plains');
   paint([0, 18], [15, 17], 'plains');
+  // Open grass for the examples of rich hexes.
+  paint([15, 17], [1, 3], 'grassland');
   for (const [col, row] of [[6, 4], [7, 4], [7, 3]] as const) tile(col, row).terrain = 'mountain';
   for (let row = 5; row <= 7; row++) for (let col = 4; col <= 9; col++) if (!(col === 4 && row === 7)) tile(col, row).hills = true;
   for (let row = 5; row <= 7; row++) for (let col = 0; col <= 2; col++) tile(col, row).feature = 'forest';

@@ -386,6 +386,14 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           const banks = riverRibbon.userData.banks; delete riverRibbon.userData.banks;
           push(water.river, riverRibbon);
           if (banks) push(ground.desert, banks);
+          // Small things along the river: reeds at the water's edge and stones on the bank.
+          const reeds = organicRivers.reeds(t);
+          if (reeds) push(features.reeds, reeds, undefined, CLUTTER);
+          const at = centre(t);
+          for (const stone of organicRivers.stones(t)) {
+            const s = .05 + stone.seed * .05;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + stone.x, stone.y - .006, at.z + stone.z, s, s * .6, s * .85, stone.seed * 6.28, new T.Color('#dbe0cf'));
+          }
         }
         featureDetails(t, (m, g) => push(m, g, undefined, m === features.shrub ? DECOR : [features.stone, features.reeds].includes(m) ? CLUTTER : NEVER), features, hash);
         sculptedTurf(t, (m, g) => push(m, g, undefined, CLUTTER), ground[t.terrain], hash);

@@ -698,7 +698,7 @@ export class Renderer3D implements MapView {
     this.paintedSails = new PaintedSailsLayer((this.paintedLook.workAssets as unknown as Record<string, ConstructorParameters<typeof PaintedSailsLayer>[0]>)['ns-windmill-sails'], this.paintedLook.registerMaterial);
     this.scene.add(this.paintedSails.group);
     if (VIEW3D.visualTest.northStar) { this.paintedBirds = new PaintedBirdsLayer(this.paintedLook.registerMaterial); this.scene.add(this.paintedBirds.group); }
-    if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.scene.add(this.paintedRichness.group); }
+    if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.paintedRichness.showcase = this.richnessShowcase; this.scene.add(this.paintedRichness.group); }
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
@@ -978,6 +978,16 @@ export class Renderer3D implements MapView {
     this.state = null;
     this.setGameState(current);
   }
+
+  /**
+   * The visual test scene's examples of rich hexes: each cell shows the stated
+   * kind and step whatever its yield. Call it before the first state is set.
+   */
+  setRichnessShowcase(examples: ReadonlyMap<number, { kind: 'food' | 'production' | 'gold'; step: number }> | null): void {
+    this.richnessShowcase = examples;
+    if (this.paintedRichness) this.paintedRichness.showcase = examples;
+  }
+  private richnessShowcase: ReadonlyMap<number, { kind: 'food' | 'production' | 'gold'; step: number }> | null = null;
 
   /** The smoke over the towns the seat watches now (switch 8). */
   private rebuildSmoke(): void {

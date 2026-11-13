@@ -7,7 +7,7 @@ import { playerColor, playerSecondaryColor, signTerritory } from './cities3d';
 import { type FogLevels, levelAt } from './fog3d';
 import { terraceFarmSurface } from './terraceFarmSurface';
 import { VIEW3D } from './lookData';
-import { hashSigned } from './hash';
+import { hashSigned, hashUnit } from './hash';
 import { signRoadCells } from './roads3d';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { centre, neighbour, surfaceHeight } from '../terrainStudy/surface.js';
@@ -245,6 +245,8 @@ export interface OrganicRoadStyle {
   bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
   /** A road with a 3D form: a flat top `raisedHeight` above the ground, with a sloped shoulder `raisedShoulder` wide on each side. The bridge is a deck `bridgeHeight` up with side faces and rails `railHeight` tall. */
   raised: boolean; raisedHeight: number; raisedShoulder: number; bridgeHeight: number; railHeight: number;
+  /** Paving and kerbs on a raised road: the top changes tone every `slabSteps` samples by `slabShade`; a kerb stone stands on each edge every `kerbSteps` samples, less the share `kerbGaps`. */
+  slabSteps: number; slabShade: number; kerbSteps: number; kerbGaps: number; kerbSize: number; kerbHeight: number; kerb: string;
 }
 
 /**
@@ -363,6 +365,7 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
         }
         edgeHeight.set(link.at, Math.max(groundAt(link.at), otherAt(link.at), Math.min(here, there)));
       }
+      const coreDeep = core.clone().multiplyScalar(style.slabShade), kerb = new Color(style.kerb), kerbSide = kerb.clone().multiplyScalar(.8);
       const quad = (polygon: Point[], heights: number[], color: Color, tints?: Color[]): void => { marks.push({ ...marking(polygon, '#ffffff', 0), color, deck: 0, heights, ...(tints ? { tints } : {}) } as Mark); };
       // A side grades from the bed's earth at the road's edge to the hex's own ground at its foot, so a ramp reads as a grassy bank.
       const turf = new Color((terrainColors as Record<string, string>)[tile.terrain] ?? style.bed).multiplyScalar(.9);
@@ -413,9 +416,22 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
         const footOf = (k: number, side: number): number => line[k]! + top - fallOf(k, side);
         for (let k = 0; k < last; k++) {
           const ha = line[k]! + top, hb = line[k + 1]! + top;
-          quad([at(k, half), at(k + 1, half), at(k + 1, -half), at(k, -half)], [ha, hb, hb, ha], core);
+          // Paving: the top changes between two close tones every few steps, so the road reads as laid slabs.
+          const slab = Math.floor(k / Math.max(1, style.slabSteps)), tone = hashUnit(tile.col * 31 + index, tile.row * 17 + slab, 931) > .5 ? core : coreDeep;
+          quad([at(k, half), at(k + 1, half), at(k + 1, -half), at(k, -half)], [ha, hb, hb, ha], tone);
           for (const side of [1, -1]) quad([at(k, side * reach(k, side)), at(k + 1, side * reach(k + 1, side)), at(k + 1, side * half), at(k, side * half)],
             [footOf(k, side), footOf(k + 1, side), hb, ha], bed, [turf, turf, bed, bed]);
+        }
+        // Kerb stones: a small pale stone on each edge every few steps, set a little into the road.
+        const every = Math.max(2, style.kerbSteps);
+        for (let k = Math.floor(every / 2); k < last; k += every) for (const side of [1, -1]) {
+          if (hashUnit(tile.col * 13 + k, tile.row * 7 + index, side > 0 ? 941 : 942) < style.kerbGaps) continue;
+          const a = curve[Math.max(0, k - 1)]!, b = curve[Math.min(last, k + 1)]!, dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+          const tx = dx / l * style.kerbSize / 2, tz = dz / l * style.kerbSize / 2, out = at(k, side * (half + style.kerbSize * .55)), inn = at(k, side * (half - style.kerbSize * .25));
+          const low = line[k]! + top - .004, high = line[k]! + top + style.kerbHeight;
+          const p0: Point = [inn[0] - tx, inn[1] - tz], p1: Point = [inn[0] + tx, inn[1] + tz], p2: Point = [out[0] + tx, out[1] + tz], p3: Point = [out[0] - tx, out[1] - tz];
+          quad([p0, p1, p2, p3], [high, high, high, high], kerb);
+          for (const [p, q] of [[p0, p1], [p1, p2], [p2, p3], [p3, p0]] as const) { quad([p, q, q, p], [low, low, high, high], kerbSide); quad([q, p, p, q], [low, low, high, high], kerbSide); }
         }
       });
       const disc = (x: number, z: number, radius: number): Point[] => Array.from({ length: style.capSides }, (_, i) => [x + Math.cos(i * 2 * Math.PI / style.capSides) * radius, z + Math.sin(i * 2 * Math.PI / style.capSides) * radius] as Point);
