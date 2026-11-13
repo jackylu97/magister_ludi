@@ -374,6 +374,17 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
       warn(`[ai] seat ${playerId}: the reducer refused ${command.type} — ${result.error}`, command);
     }
 
+    // **A seat that fell during its own turn** (bot batch BP4). Its last town
+    // or its last piece went in one of its own commands, and elimination marks
+    // its turn ended at once (`updateElimination`). Its turn is over, so there
+    // is nothing to send: an End Turn now would be refused three times and
+    // warned about. The stepper stops the same seat at the same point. Found in
+    // the six-seat duel digest, where seat 1 falls on turn 115.
+    if (hasEndedTurn(game.state, playerId)) {
+      report.ended = true;
+      return report;
+    }
+
     const ended = dispatch(game, { type: 'endTurn', playerId });
     options.attempt?.({ type: 'endTurn', playerId }, ended);
     if (ended.ok) {

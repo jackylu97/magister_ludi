@@ -485,10 +485,10 @@ describe('The Psalter', () => {
     keep(state, towns[1]!, 'riteOfTheHarvest');
     const ctx = valueContext(state, player);
     // One season kept, over ten turns; half the towns are devout; the devout
-    // town has six citizens.
+    // town has six citizens. Each firing in full, times the rate (bot batch BP4).
     const rate = Math.max(1 / 10, TALLY.riteStarted / HORIZON) * (1 / 2);
     const [science] = effectsOf(PSALTER);
-    expect(scoreEffects([science!], ctx)).toBeCloseTo(rate * explainLump({ science: 5 * 6 }, ctx).total, 10);
+    expect(scoreEffects([science!], ctx)).toBeCloseTo(rate * valueOfYields({ science: 5 * 6 }, ctx), 10);
   });
 
   it('pays nothing to a seat that knows no season', () => {
@@ -569,10 +569,9 @@ describe('The Parishes', () => {
       explainCountStep('followingCities', 1, ctx).total + explainCountStep('followingPop', 1, ctx).total;
     const devout = counted + valueOfYields({ culture: 1, faith: 1 }, ctx);
     const founding = ctx.cities / state.turn;
-    expect(scoreEffects(effectsOf(PARISHES), ctx)).toBeCloseTo(
-      (founding * devout * DEVOTION.parishTurns) / LUMP,
-      10,
-    );
+    // The turns sooner it follows, in full, times the pace of founding: the
+    // lump exchange is no longer taken on a rider (bot batch BP4).
+    expect(scoreEffects(effectsOf(PARISHES), ctx)).toBeCloseTo(founding * devout * DEVOTION.parishTurns, 10);
     // Linear in the knob.
     expect(scoreEffects(effectsOf(PARISHES), withKnob(ctx, 'parishTurns', 2 * DEVOTION.parishTurns))).toBeCloseTo(
       2 * scoreEffects(effectsOf(PARISHES), ctx),
@@ -642,9 +641,9 @@ describe('the conversion moment', () => {
     const ctx = valueContext(state, player);
     const [science] = effectsOf(MASS_BAPTISMS);
     // One town abroad follows, over a faith twenty turns old; the town it
-    // could turn next has five citizens.
+    // could turn next has five citizens. Each firing in full (bot batch BP4).
     expect(scoreEffects([science!], ctx)).toBeCloseTo(
-      conversionRate(1, 20) * explainLump({ science: 20 * 5 }, ctx).total,
+      conversionRate(1, 20) * valueOfYields({ science: 20 * 5 }, ctx),
       10,
     );
   });
@@ -664,7 +663,9 @@ describe('the conversion moment', () => {
       explainCountStep('followingPop', 5, ctx).total +
       explainCountStep('followingForeignPop', 5, ctx).total;
     expect(each).toBeGreaterThan(0);
-    expect(scoreEffects(effectsOf(PENTECOST), ctx)).toBeCloseTo(conversionRate(1, 20) * 1 * each, 10);
+    // The lump's lasting gain is a reading a turn, so one firing in full is that
+    // reading at the lump exchange read the other way (bot batch BP4).
+    expect(scoreEffects(effectsOf(PENTECOST), ctx)).toBeCloseTo(conversionRate(1, 20) * 1 * each * LUMP, 10);
   });
 
   it('prices Pentecost at nothing when no town within its range could turn', () => {

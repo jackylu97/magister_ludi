@@ -168,6 +168,10 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
 
   function step(): BotStep | null {
     if (run !== null && run.finished) run = null;
+    // **A seat that fell during its own turn** (bot batch BP4): elimination
+    // marked its turn ended, so its run is over and nothing more is sent, as
+    // `driveSeat` stops at the same point.
+    if (run !== null && hasEndedTurn(game.state, run.playerId)) run = null;
     if (run === null) {
       const playerId = nextSeat();
       if (playerId === null) return null;

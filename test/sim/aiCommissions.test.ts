@@ -32,7 +32,7 @@ import {
   explainEffects,
   scoreEffects,
 } from '../../src/ai/value';
-import { explainLump } from '../../src/ai/prices';
+import { explainLump, valueOfYields } from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { foundCityAt } from '../../src/sim/cities';
@@ -344,17 +344,23 @@ describe('a stand-in price for each shape of D11 to D15, off its own knob (D16)'
     };
     const { state, player } = board(1, 20);
     const quiet = valueContext(state, player);
-    // At peace and with no threat nobody raids, so the share is of nothing.
+    // A seat that has never raided raids at its own record, which is nothing,
+    // so the share is of nothing (bot batch BP4: this bot gives no pillage order).
     expect(scoreEffects([effect], quiet)).toBe(0);
-    const tense: ValueContext = { ...quiet, threat: 3 };
-    const plunder = explainLump({ gold: RULES.improvements.pillageGold }, tense).total;
-    const rate = 3 / HORIZON;
-    expect(scoreEffects([effect], tense)).toBe(0.5 * plunder * rate * DOMINION.pillageRewards);
+    // A seat with a record of six hexes pillaged raids at that pace: the record
+    // over the turns played and the prior's, with no default behind it.
+    player.hexesPillaged = 6;
+    bumpRevision(state);
+    const raider = valueContext(state, player);
+    // One raid's plunder in full, since the rate makes it a rate (bot batch BP4).
+    const plunder = valueOfYields({ gold: RULES.improvements.pillageGold }, raider);
+    const rate = 6 / (state.turn + aiJson.score.commission.priorTurns);
+    expect(scoreEffects([effect], raider)).toBeCloseTo(0.5 * plunder * rate * DOMINION.pillageRewards, 10);
     const twice = withAiTuning(doubled('pillageRewards'), () => {
       const ctx = valueContext(state, player);
-      return scoreEffects([effect], { ...ctx, threat: 3 });
+      return scoreEffects([effect], ctx);
     });
-    expect(twice).toBe(2 * scoreEffects([effect], tense));
+    expect(twice).toBeCloseTo(2 * scoreEffects([effect], raider), 10);
   });
 
   it('prices The Marshalate’s flat step while a general stands in the field', () => {
@@ -443,7 +449,9 @@ describe('a stand-in price for each shape of D11 to D15, off its own knob (D16)'
     state.wars.push({ a: 0, b: 1, declaredTurn: 10 });
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const plunder = explainLump({ gold: RULES.improvements.pillageGold }, ctx).total;
+    // A raid's plunder in full: the warships' raids a turn make it a rate (bot
+    // batch BP4).
+    const plunder = valueOfYields({ gold: RULES.improvements.pillageGold }, ctx);
     expect(scoreEffects([effect], ctx)).toBe(2 * DOMINION.shoreRaid * plunder);
   });
 

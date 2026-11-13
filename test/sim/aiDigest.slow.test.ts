@@ -1142,10 +1142,22 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * on the untouched tree before this batch. Duel `87a4f27f:348377` ->
  * `8daf613b:326673`, standard `36c397f5:1062622` -> `35a1f543:1051740`. Nothing
  * stalled and no command was refused.
+ *
+ * Re-cut for bot batch BP4 (`docs/flags.md` (ooooooo), B2, with the user's
+ * addition that the bonuses for killing follow the bot's inclination to go to
+ * war). The bots price a windfall rider at the full value of one firing times
+ * its rate, read the kill and capture rates from the seat's war plans and its
+ * recent fighting, and read a building's pace over the recent window too. No
+ * rule changed; both pins matched on the untouched tree before this batch. The
+ * new play first met a seat that falls during its own turn (seat 1 of the duel,
+ * turn 115), and both bot loops now end such a seat quietly, which changes no
+ * state. Duel `8daf613b:326673` -> `2d4e0b89:352098`, standard
+ * `35a1f543:1051740` -> `a098571d:1017275`. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '8daf613b:326673',
-  standard: '35a1f543:1051740',
+  duel: '2d4e0b89:352098',
+  standard: 'a098571d:1017275',
 };
 
 /**

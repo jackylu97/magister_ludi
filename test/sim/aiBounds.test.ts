@@ -98,6 +98,8 @@ const INTEGER_LEAVES = [
   'research.goalHorizon',
   // Batch BP2: turns of renown income, a whole number of turns.
   'research.greatPersonTurns',
+  // Batch BP4: the turns back a seat's recent pace is read over.
+  'score.recentTurns',
   'wager.ageTurns',
 ];
 

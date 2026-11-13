@@ -289,7 +289,8 @@ describe('a line each town counts for itself is summed once', () => {
 
 describe('a completion rider fires at the pace of its own rows', () => {
   const GOLD = { yield: 'gold', amount: 40 } as const;
-  const worth = (ctx: ValueContext): number => explainLump({ gold: 40 }, ctx).total;
+  // One firing in full: a rider at its rate takes no lump exchange (bot batch BP4).
+  const worth = (ctx: ValueContext): number => valueOfYields({ gold: 40 }, ctx);
   /** `occasionForecastRate('wonderCompleted')` for a seat that has finished `done` wonders. */
   const wonderRate = (done: number, turn: number): number =>
     (done + ((aiJson.score.tallyForecast.wonderCompleted * PRIOR_SHARE) / HORIZON) * PRIOR_TURNS) /
@@ -763,9 +764,11 @@ describe('The Apostolic Camera', () => {
     // Holding it, each town turned also pays the two gold above. A lump of this size turns
     // the other of the two towns wholly, so one town for each lump. The moment's rate is
     // the table's three towns over the horizon, for a religion founded this turn with no
-    // town turned: 3 / horizon over the prior's turns, over the same turns.
+    // town turned: 3 / horizon over the prior's turns, over the same turns. A town turned
+    // pays a turn for the rest of the game, so one firing in full is that reading at the
+    // lump exchange read the other way (bot batch BP4).
     const rate = aiJson.score.tallyForecast.foreignCityConverted / HORIZON;
-    expect(scoreEffects([rider], ctx) - plain).toBeCloseTo(rate * 2 * voiceWeight(ctx, 'gold'), 8);
+    expect(scoreEffects([rider], ctx) - plain).toBeCloseTo(rate * 2 * voiceWeight(ctx, 'gold') * LUMP, 8);
   });
 });
 
@@ -800,9 +803,11 @@ describe('The Martyr’s Crown', () => {
     // Thirty pressure in converts, against a town of four whose majority is three citizens.
     const converts = Math.floor(30 / RULES.religion.pressurePerConvert);
     const share = Math.min(1, converts / 3);
-    // Three deaths over the horizon, by the table. Under the Camera a town turned also pays
-    // two gold, so that is what the card adds beside the trickle.
-    const deaths = aiJson.score.tallyForecast.unitLost / HORIZON;
-    expect(scoreEffects(row, ctx) - plain).toBeCloseTo(deaths * share * 2 * voiceWeight(ctx, 'gold'), 8);
+    // The deaths a turn are the seat's own record, none lost, held up by the table's three
+    // over the horizon (bot batch BP4). Under the Camera a town turned also pays two gold,
+    // so that is what the card adds beside the trickle, for the rest of the game: one
+    // firing in full is that reading at the lump exchange read the other way.
+    const deaths = Math.max(player.unitsLost / state.turn, aiJson.score.tallyForecast.unitLost / HORIZON);
+    expect(scoreEffects(row, ctx) - plain).toBeCloseTo(deaths * share * 2 * voiceWeight(ctx, 'gold') * LUMP, 8);
   });
 });

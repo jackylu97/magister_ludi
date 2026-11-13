@@ -76,6 +76,15 @@ export function lossInWindow(loss: WarLoss, turn: number): boolean {
   return turn - loss.turn < WEARINESS.windowTurns;
 }
 
+/**
+ * **How many turns a war loss counts for**: the rule's window. A pure reading
+ * for the bot (bot batch BP4), which reads a seat's recent fighting off this
+ * list and so may not look further back than the records are kept.
+ */
+export function lossTurnsCounted(): number {
+  return WEARINESS.windowTurns;
+}
+
 /** The points of weariness one loss of this kind is worth. */
 function lossPoints(kind: WarLossKind): number {
   return kind === 'town' ? WEARINESS.townLoss : WEARINESS.unitLoss;

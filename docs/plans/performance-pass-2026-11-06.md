@@ -734,3 +734,87 @@ These are not done.
 - `test/sim/aiCardStamp.test.ts` (new, core): the bot's stamp equals the sim's stamp for every card on offer on a played board; a stamped card is its stamp and what the books cannot show; an engine in a full council takes a chair of its own; a Boon, a charter, a government and a follower belief are walked; a stamp is re-read after a write.
 - `test/sim/aiCardStamp.slow.test.ts` (new, slow): the digest's six seats on the duel board, all six decks, positions at turns 40, 80 and 120. It checks that the bot's stamp equals `explainCardImpact`'s fold for every card it stamps; that a card of lines the books show, with no promise, is priced at its stamp; that each effect read as unseen, lent alone to its card's row, leaves the books where they were; and that each shape read as on the books moves them on some card. Each of three broken versions failed it: percentages read as unseen (check 3), combat lines read as on the books (check 4), and the books read without the happiness meter (check 1).
 - A scratch run of the same checks on eleven more positions (both seeds, both trees, turns 40 to 120): 9,000 stamps, no difference from the sim's stamp, no unseen effect with a footprint.
+
+## Bot batch BP4: riders at full value, and rates from the seat's war plans, 2026-11-13
+
+The ruling is `docs/flags.md` (ooooooo), B2: riders are priced at full value times the rate, with the seat's own recent rates. The user added: *"the bonuses towards killing should probably factor in the bot's inclination to go to war"*. The fault and its evidence are fault 2 of `docs/audit/bot-pass-3-card-values.md`. This batch changes the bots' decisions on purpose, so the pins move. No rule of the game changed. Branch `decks` at `d782ae32`.
+
+### What the bot reads now
+
+- **One firing at full value, times the rate** (`scoreWindfallRider`, `value.ts`). The grant no longer goes through the lump exchange, which priced every rider at a twentieth of its pay. `windfallGrantWorth` returns a firing in two parts: what it pays in full (`once`), and the stand-ins (`flat`), which keep their figure. A grant that lasts (a mark, a hex claimed, a town turned) is a reading a turn, so its full value is that reading times `score.lumpTurns`. The founding rider, The Planted Towns, a raid's plunder and a hex bought read the same way. A single firing set beside a rate (the pass in a draft, a hex bought) still takes the exchange.
+- **The war moments read the seat's war plans and its fighting** (`ValueContext.warOutlook`, built once a context by `warOutlook` in `bot.ts`, on the revision clock). The plans: at war or not, the seat's largest lean toward a war (`declarationLean`, with its own sheet), and the soldiers spare of its garrisons (`strikeForce`). The fighting: the war-loss list the game keeps for weariness (`Player.warLosses`), over the last 20 turns. A kill is the wild at the seat's own record, plus the intent times the kill pace at war. A capture is the intent times the town pace at war. A death is the seat's own record, or its recent losses when higher. A raid is the seat's own record of hexes pillaged, which is nothing for a bot, because the bot gives no pillage order. None of these reads the threat any more.
+- **The narrowings on a rider**: a kill of the wild (`vsBarbarians`), a rider for one kind of piece (`class`, Letters of Marque's ships), and a once-a-turn limit (`oncePerTurn`, `oncePerTurns`).
+- **A building finished** reads the recent window too, off the towns' age stamps, leaving out a founding gift and what a town held before it was taken.
+- **New knobs** in `data/ai.json`: `score.recentTurns` (20), `score.warPace.killsPerSoldier` (0.02), `score.warPace.leanShare` (0.25), `score.warPace.townsPerKill` (0.02). Each has a row in `data/ai.bounds.json`, and the arena panel shows them with no page edit. `docs/bot-priorities.md` has the readings in full.
+- **A seat that falls during its own turn** (`driver.ts`, `stepper.ts`). The new play met one: seat 1 of the six-seat duel lost its last piece in one of its own commands on turn 115, and both bot loops then sent an End Turn the reducer refused three times. Both loops now end such a seat quietly. No state changes, because the refused End Turns changed nothing.
+
+### The rates, against the real pace
+
+Six seats, two decks each, standard map, seeds 999 and 42. At every tenth turn from 30 to 120, the bot's rate for each moment is read through a rider that pays one gold, and set against the real count over the next 20 turns. The real counts are diffs of the seat's records (kills, losses, captures, technologies, units gained) and of each town's citizens and buildings.
+
+| Moment, a turn | Before | After | Real |
+|---|---:|---:|---:|
+| A kill | 0.10 | 0.41 | 0.46 |
+| A kill, for a seat at war (35 samples) | 0.10 | 0.80 | 0.72 |
+| A death | 0.05 | 0.17 | 0.27 |
+| A building finished | 0.23 | 0.55 | 0.85 |
+| A capture, for a seat at war | the threat over 60 turns | 0.012 | 0.011 |
+
+That is 120 samples of a seat at a turn, over both seeds, played on this batch's tree. The warmonger of seed 999 reads 1.20 kills a turn against 1.36 real. The whole-game records still read low late for growth (0.42 of real), units gained (0.49) and technologies (0.80), because an empire grows past its average. The game keeps no recent record of those three.
+
+### What it costs
+
+The war outlook costs about 0.7 ms a seat to read on a turn-100 board, once a context, against more than a second for the whole context. The rider readings are memos on the context. So the code's own cost is too small to measure in a turn; the change in seconds a turn is play.
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 4.52 | 5.16 | 2.84 | 2.22 |
+| CPU seconds a turn | 4.28 | 4.60 | 2.77 | 2.34 |
+| Commands a turn | 159 | 173 | 100 | 96 |
+
+The two trees were played in one process, a turn on each in turn, and the two seeds ran at once, so the load was high: read the change, not the figure. Turns 121 to 130 of seed 999 cost 9.47 s a turn after against 4.21 s before, with fewer commands (172 against 194). A profile of turns 112 to 130 on each tree, timing every decision, puts the rise in the council's decisions (`draft`), which BP3's stamps price: 124 of them against 100, and each costs about what it did beside a piece's order. The seats draft more, because they make more culture, and hold more cards: at turn 120, seat 5 holds 31 Orders in 11 chairs against 20 in 8.
+
+### Turn 100, over six seeds
+
+The same game to turn 100 on seeds 1, 7, 42, 999, 2026 and 31337, totals over the six seats:
+
+| | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 267 | 1,272 | 6,679 | 6,736 | 2,481 | 4,585 | 2,723 | 974 |
+| After | 261 | 1,383 | 6,957 | 5,975 | 2,082 | 4,264 | 2,747 | 925 |
+| Change | −2% | +9% | +4% | −11% | −16% | −7% | +1% | −5% |
+
+The spread between seeds is wide: production rose 17% and 33% on seeds 1 and 7 and fell 23%, 30% and 40% on seeds 999, 42 and 31337. More seats adopt the War Chief at the fourth tier: its two kill riders now read 50 to 100 points, against a whole signature of 20 to 60 for the Council of Elders (seed 42, turn 40). On seed 42 at turn 60, four seats hold the War Chief after, against two before.
+
+### Pins at BP4
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `3f51010e:815245` | `48374022:839086` | `db7e2b96:868721` | `4804348c:906474` | `12790131:982357` | `966a3b88:1058596` |
+| Two decks, seed 42 | `8d45741a:817019` | `4d044c5c:833336` | `1f335fce:852101` | `64dfeff7:879537` | `71956417:925065` | `30f52932:982685` |
+
+At turn 130 the two games are `aeac812d:1115767` and `203cd835:1020266`. `test/sim/aiDigest.slow.test.ts` pins duel `2d4e0b89:352098` and standard `a098571d:1017275`. Before the batch, the untouched tree gave the BP3 pins above at every turn, at turn 130, and both digest pins.
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **The same fault in three rules.** `growthCarryover` and the `tilePurchase` rule (`ruleRewriteValue`) and The Wildwood Compact's saved charges (`tendedWorksFreeWorth`) price a rate times a lump through the exchange, as the riders did. They are rules, not riders, so they were left.
+- **A grant scaled by the fallen piece's strength** (`fromOccasion: 'strength'`: The Bards' Praise, Songs of the Fallen, Rites of Blood) is read at its bare amount, because the bot forecasts no strength for a kill or a death. Code reading, not measured.
+- **Growth, units gained and technologies** read at half to four fifths of their real pace (the table above). The game keeps no recent record of them.
+- **A great person gained or acting** is still read at one in `score.lumpTurns` turns (0.05), against 0.08 to 0.14 real late (seed 999 and 42, turns 80 to 120).
+- **The stand-ins** in a grant (a heal, a pressure lump on a moment the bot does not read) keep their old figure for each firing.
+- **The economy at turn 100** moved down a little on average and widely by seed (above). Whether that is weaker play or the spread of six games needs more seeds.
+- **The late council decisions** cost more because the seats hold more cards (above). Looking at the arrangement less often, which BP3 already noted, would help.
+- **A seat that falls during its own turn as the last seat to act** would leave the turn unresolved: elimination marks its turn ended, but only an End Turn resolves the world. Code reading; no game met it.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- `test/sim/aiRiderRates.test.ts` (new, core): a kill reads the wild at the seat's record and rivals at its army's pace times its intent; a seat that will not go to war reads near the wild's half alone, and its army fights once it is attacked; the recent fighting is read off the war losses inside the window only; a capture follows the kills at war and reads no threat; a death reads the record or the recent losses; a ship's rider reads nothing with no ship; the once-a-turn limits cap the rate; a building's pace leaves out a founding gift and a taken town's past.
+- `test/sim/aiDriverEliminated.test.ts`: a new case for a seat that falls during its own turn, in both loops. It failed with the two guards taken out.
+- The rider tests that priced a firing through the lump exchange now price it in full: `aiAppraisal`, `aiCommerce`, `aiCommissions` (Harry the Border now reads the seat's record of raids), `aiDevotion`, `aiExpansionist`, `aiMagisterial`, `aiPrices` (The Martyr's Crown now reads the seat's record of losses) and `aiScientific`. `aiBounds` lists the new whole-number knob.
+- Every core test that reads the source of a changed file or prices a rider: 164 files.
+- The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers` and `botWorker` passed. `botWorker` moves to seed 26: on seed 30 the bots no longer call a great person in sixty turns, though the page and the worker still played it to the same log and the same digests.
+- The shadow check (`test/vitest.shadow.config.ts`) passed on `aiRiderRates`, `aiSittingMemos`, `aiDriverEliminated` and `readings`. It fails on `aiWar.test.ts` at `botThreatWeights` on the untouched tree too: that test writes `state.wars` without announcing it. Not this batch's.
+- The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.

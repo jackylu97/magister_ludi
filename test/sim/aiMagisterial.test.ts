@@ -417,7 +417,8 @@ describe('the moments', () => {
     const reach = player.statecraft.drafts + draftsAheadOf(state, player);
     const tiers = GOVERNMENT_TIERS.filter((rung) => rung > player.statecraft.drafts && rung <= reach).length;
     expect(tiers).toBeGreaterThan(0);
-    const person = lumpOfPoints(renownThreshold(state, player) * aiJson.weights.renown, ctx).total;
+    // The person in full, times the ladder's pace (bot batch BP4).
+    const person = renownThreshold(state, player) * aiJson.weights.renown;
     expect(scoreEffects(effectsOf(SED_FESTIVAL), ctx)).toBeCloseTo((tiers / HORIZON) * person, 10);
   });
 
@@ -489,7 +490,8 @@ describe('the moments', () => {
     const ctx = valueContext(state, player);
     const pace = personRateOf(state, player);
     expect(pace).toBeGreaterThan(0);
-    const lump = explainLump({ production: 150 }, ctx).total;
+    // Each firing in full, times the pace (bot batch BP4).
+    const lump = valueOfYields({ production: 150 }, ctx);
     expect(scoreEffects(effectsOf(LAST_COMMISSION), ctx)).toBeCloseTo(pace * lump, 10);
     // A person standing now is one more moment over the horizon.
     const person = LIVE_GREAT_PERSON_IDS[0]!;
@@ -497,7 +499,7 @@ describe('the moments', () => {
     bumpRevision(state);
     const standing = valueContext(state, player);
     expect(scoreEffects(effectsOf(LAST_COMMISSION), standing)).toBeCloseTo(
-      (personRateOf(state, player) + 1 / HORIZON) * explainLump({ production: 150 }, standing).total,
+      (personRateOf(state, player) + 1 / HORIZON) * valueOfYields({ production: 150 }, standing),
       10,
     );
   });
@@ -518,9 +520,10 @@ describe('the moments', () => {
     expect(culture).toBeGreaterThan(0);
     const price = nextDraftCost(state, player);
     const after = draftCostFor(state, player, player.statecraft.drafts + 1);
-    const science = explainLump({ science: Math.floor(0.5 * price) }, ctx).total;
+    // Each firing in full, times the pace of drafting (bot batch BP4).
+    const science = valueOfYields({ science: Math.floor(0.5 * price) }, ctx);
     expect(scoreEffects(effectsOf(UNWRITTEN_CHAPTER), ctx)).toBeCloseTo((culture / after / 2) * science, 10);
-    const production = explainLump({ production: Math.floor(0.5 * price) }, ctx).total;
+    const production = valueOfYields({ production: Math.floor(0.5 * price) }, ctx);
     expect(scoreEffects(effectsOf(ACCESSIONS_REGISTER), ctx)).toBeCloseTo((culture / after) * production, 10);
   });
 
@@ -529,7 +532,8 @@ describe('the moments', () => {
     const ctx = valueContext(state, player);
     const culture = Math.max(0, foldEmpireRates(state, 0).culturePerTurn ?? 0);
     const after = draftCostFor(state, player, player.statecraft.drafts + 1);
-    const hand = explainLump({ culture: nextDraftCost(state, player) }, ctx).total;
+    // The hand's culture in full, times the pace of passing (bot batch BP4).
+    const hand = valueOfYields({ culture: nextDraftCost(state, player) }, ctx);
     expect(scoreEffects(effectsOf(SECOND_SITTING), ctx)).toBeCloseTo((culture / after / 2) * hand, 10);
   });
 });
@@ -819,10 +823,15 @@ describe('the grants', () => {
       }
     }
     expect(sites).toBeGreaterThan(0);
-    // A seat that has called nobody lays a work with half its people.
+    // A seat that has called nobody lays a work with half its people. The land
+    // pays a turn for the rest of the game, so one firing in full is that reading
+    // at the lump exchange read the other way (bot batch BP4).
     const rate = personRateOf(state, player) / 2;
     expect(rate).toBeGreaterThan(0);
-    expect(scoreEffects(effectsOf(LANDMARK_BOUNDS), ctx)).toBeCloseTo(rate * (worth / sites), 8);
+    expect(scoreEffects(effectsOf(LANDMARK_BOUNDS), ctx)).toBeCloseTo(
+      rate * (worth / sites) * aiJson.score.lumpTurns,
+      8,
+    );
   });
 });
 

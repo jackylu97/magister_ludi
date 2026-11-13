@@ -222,6 +222,59 @@ batch BP2; `docs/flags.md` (ooooooo) B9, B5 and P3; the audits are
   prices it at the renown it costs, which is far lower; that is not changed
   here.
 
+**Riders at full value, and rates from the seat's war plans** (bot pass 3,
+batch BP4; `docs/flags.md` (ooooooo) B2; the audit is
+`docs/audit/bot-pass-3-card-values.md` fault 2):
+
+- **A rider is its moment's rate times one firing at full value**
+  (`scoreWindfallRider`, `value.ts`). A rider that fires r times a turn and pays
+  L each time pays r × L a turn, so no lump exchange is taken. Before, the grant
+  also went through `explainLump` (÷ `score.lumpTurns`), and every rider read a
+  twentieth of its pay. `windfallGrantWorth` returns a firing in two parts:
+  `once`, what it pays in full, and `flat`, the stand-ins for what the bot does
+  not price, which keep their figure. A grant that lasts (a mark, a hex
+  claimed, a town turned) is a reading a turn, so its `once` is that reading
+  times `score.lumpTurns`. The founding rider (`scoreFoundingRider`), its
+  mirror The Planted Towns (`settlerCitizenCost`), a raid's plunder
+  (`pillagePlunderWorth`) and a hex bought (`hexRiderWorth`) read the same way.
+  A single firing set beside a rate (the pass in a draft, `passRiderTerms`; a
+  hex bought, `hexPurchaseRiderTerm`) still takes the lump exchange.
+- **The war moments read the seat's war plans and its fighting**
+  (`ValueContext.warOutlook`, built by `warOutlook` in `bot.ts`, once a
+  context). The plans: at war with an empire, or the seat's largest lean toward
+  a war (`declarationLean`, its own sheet), and the soldiers spare of its
+  garrisons (`strikeForce`). The fighting: the war-loss list the game keeps for
+  weariness (`Player.warLosses`), read over the last `score.recentTurns` (20)
+  turns and never past the rule's window.
+  - The intent is 1 at war, and at peace the lean times
+    `score.warPace.leanShare` (0.25).
+  - A kill is the wild at the seat's own record (`Player.enemiesKilled` less
+    `unitsKilled` over the turns played, never below the table's
+    `barbarianKill` over the horizon), plus the intent times the kill pace at
+    war: the rival pieces killed in the window a turn, never below
+    `score.warPace.killsPerSoldier` (0.02) for each spare soldier.
+  - A capture, and the unrest and razing that follow one, is the intent times
+    the towns taken in the window a turn, never below the kill pace at war
+    times `score.warPace.townsPerKill` (0.02).
+  - A declaration and a peace are the intent over the horizon.
+  - A death is the seat's own record of losses, or its losses to rivals in the
+    window when higher.
+  - A raid is the seat's own record of hexes pillaged. This bot gives no
+    pillage order, so a raid rider reads nothing for a seat that has not raided.
+  - None of them reads `ValueContext.threat`, which is danger at the seat's
+    towns and not its own fighting.
+- **The narrowings on a rider's moment** (`riderOccasionRate`, `capRate`).
+  `vsBarbarians` reads the wild's half of the kill rate. `class` reads the share
+  of the seat's combat pieces the filter admits for a kill, a raid or a death,
+  and the units gained that match it for a unit finished. `oncePerTurn` and
+  `oncePerTurns` cap the rate at one firing in that many turns.
+- **A building finished reads the recent window too** (`buildingPace`, and
+  `finishedRowRate` for a rider that names rows): the larger of the pace over
+  the whole game and the pace over the last `score.recentTurns` turns, read off
+  each town's age stamps (`City.buildingTurns`). A stamp on the founding turn
+  (a gift of the founding) and a stamp from before the town was last taken do
+  not count.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

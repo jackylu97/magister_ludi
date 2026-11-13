@@ -2966,7 +2966,8 @@ describe('the whole deck, priced (batch H2)', () => {
   it('prices a windfall rider as the occasion’s own frequency times its grant', () => {
     // **The 43-row family.** A technology completed is an occasion this board
     // keeps the record of — technologies held over turns played — so the price
-    // is that rate times what the rider hands over, through `explainLump`.
+    // is that rate times what the rider hands over, in full: a firing r times a
+    // turn of a grant L pays r × L a turn, with no lump exchange (bot batch BP4).
     const { state, player } = board();
     state.turn = 40;
     player.techsResearched.push('agriculture' as TechId, 'mining' as TechId);
@@ -2976,8 +2977,8 @@ describe('the whole deck, priced (batch H2)', () => {
       { kind: 'windfallRider', occasion: 'tech', grant: { yield: 'culture', amount: 40 } },
     ];
     const rate = player.techsResearched.length / state.turn;
-    const lump = (40 * ctx.prices.culture) / ctx.ai.score.lumpTurns;
-    expect(scoreEffects(rider, ctx)).toBe(lump * rate);
+    const each = 40 * ctx.prices.culture;
+    expect(scoreEffects(rider, ctx)).toBe(each * rate);
     // An occasion the board shows nothing of is worth nothing, and says so by
     // arithmetic: a seat that has charted no ruin is paid nothing for claiming one.
     expect(ctx.sighted.camps).toBe(0);
@@ -2996,7 +2997,7 @@ describe('the whole deck, priced (batch H2)', () => {
         [{ kind: 'windfallRider', occasion: 'tilePurchase', grant: { yield: 'gold', amount: 5 } }],
         ctx,
       ),
-    ).toBeCloseTo(((5 * ctx.prices.gold) / ctx.ai.score.lumpTurns) * ((fallback * prior) / (state.turn + prior)), 10);
+    ).toBeCloseTo(5 * ctx.prices.gold * ((fallback * prior) / (state.turn + prior)), 10);
   });
 
   it('multiplies a rider by the era and by the chairs it fills', () => {
@@ -3027,8 +3028,8 @@ describe('the whole deck, priced (batch H2)', () => {
 
   it('prices a rank earned off the seat’s own record of ranks (Dominion batch D1)', () => {
     // `unitCompletion`'s reading one moment over: ranks earned over turns
-    // played, through `explainLump`. A seat whose units have earned no rank is
-    // paid nothing for one.
+    // played, times the grant in full (bot batch BP4). A seat whose units have
+    // earned no rank is paid nothing for one.
     const { state, player } = board();
     state.turn = 40;
     bumpRevision(state);
@@ -3039,8 +3040,8 @@ describe('the whole deck, priced (batch H2)', () => {
     player.ranksEarned = 10;
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const lump = (15 * ctx.prices.culture) / ctx.ai.score.lumpTurns;
-    expect(scoreEffects(rider, ctx)).toBe(lump * (10 / 40));
+    const each = 15 * ctx.prices.culture;
+    expect(scoreEffects(rider, ctx)).toBe(each * (10 / 40));
   });
 
   it('prices a drill as strength paid in instalments (Dominion batch D1)', () => {

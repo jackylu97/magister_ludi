@@ -1204,6 +1204,54 @@ export interface AiConfig {
      */
     lumpTurns: number;
     /**
+     * **How many turns back the bot reads a seat's recent pace** (bot batch BP4,
+     * `docs/flags.md` (ooooooo) B2). A rider is priced at the rate its moment
+     * comes round, and a pace over the whole game reads low late, when the
+     * empire is bigger than its average. So the bot also reads the last this
+     * many turns: the buildings stamped in that span (`City.buildingTurns`),
+     * and the war losses the game keeps (`Player.warLosses`). The war records
+     * are kept only for the weariness window, so that reading never looks
+     * further back than the window does.
+     */
+    recentTurns: number;
+    /**
+     * **How often a seat at war kills and takes towns** (bot batch BP4,
+     * `docs/flags.md` (ooooooo) B2, with the user's addition: *"the bonuses
+     * towards killing should probably factor in the bot's inclination to go to
+     * war"*). A kill or a capture rider is priced at a rate read from the seat's
+     * war plans and its recent fighting (`occasionRate`, `value.ts`). These
+     * knobs set what the board cannot say: how a seat's army turns into kills
+     * at war, how much a lean toward war is worth while the seat is at peace,
+     * and how many kills it takes to take a town. Measured on the six-seat
+     * game with two decks a seat, seeds 999 and 42, turns 30 to 140.
+     */
+    warPace: {
+      /**
+       * **Rival pieces a seat kills a turn at war, for each soldier spare of
+       * its garrisons** (`strikeForce`). The floor of the kill pace at war: a
+       * war just begun has no kills in the window yet. Measured: 0.49 a turn
+       * read against 0.45 real over 25 seat-turns at war.
+       */
+      killsPerSoldier: number;
+      /**
+       * **The share of its lean toward a war that a seat at peace is read as
+       * being at war.** The lean (`declarationLean`, `diplomacy.ts`) is 1 when
+       * the army ratio clears the seat's bar, but a war still needs a town in
+       * reach, a strike force and a road, so most leaning seats stay at peace.
+       * Measured: at a quarter of the lean, a seat at peace is read at about
+       * the rival kills it really makes.
+       */
+      leanShare: number;
+      /**
+       * **Towns a seat takes for each rival piece it kills.** A capture's pace
+       * is read off the kill pace at war, because a town falls to the same army
+       * that kills. Measured: one town for 45 rival kills by the warmonger of
+       * seed 999, and few towns taken by any bot (the competitiveness audit: 11
+       * towns in 77 wars).
+       */
+      townsPerKill: number;
+    };
+    /**
      * **What a growing card is assumed still to watch happen**, per occasion —
      * the potential half of a `tally` count (`CountKind`'s `tally`).
      *

@@ -220,6 +220,12 @@
     "combatScale": 7.5,
     "patienceTurns": 10,
     "lumpTurns": 20,
+    "recentTurns": 20,
+    "warPace": {
+      "killsPerSoldier": 0.02,
+      "leanShare": 0.25,
+      "townsPerKill": 0.02
+    },
     "tallyForecast": {
       "barbarianKill": 6,
       "wonderAnywhere": 8,

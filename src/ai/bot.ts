@@ -132,6 +132,7 @@ import {
   musterHex,
   musteredNear,
   standingsNear,
+  strikeForce,
 } from './campaign';
 // The bot's council and its offers (batch S5): how a seat answers an Order,
 // Doctrine, belief or discovery offer, seats its cards and weighs a charter.
@@ -190,6 +191,7 @@ import {
 import { NO_ROUTES, explainRoutePay, routeOutlook } from './routes';
 import {
   type ValueContext,
+  type WarOutlook,
   explainBuildingRow,
   explainEffects,
   explainProjectRow,
@@ -385,6 +387,7 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 import { sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
+import { lossTurnsCounted } from '../sim/weariness';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
 import { appraiseWagers, wagerLeanOf } from './wager';
@@ -497,6 +500,10 @@ export function valueContext(
     // board through the fog grid, and the wanted-army arithmetic asks for the
     // answer once per candidate row of every town.
     sighted: sightedThreat(state, player),
+    // The seat's war plans and recent fighting (batch BP4), read once for the
+    // whole decision: the kill and capture riders of every card priced in it
+    // read their rates off this.
+    warOutlook: warOutlook(state, player),
     // A god held and no religion founded: the one window in which the road to a
     // prophet is the most valuable thing on the chart. It closes itself.
     faithAppetite:
@@ -1211,6 +1218,69 @@ function threatWeights(state: GameState, player: Player): readonly number[] {
       else weights[other.id] = share === 0 ? 0 : share * declarationLean(state, other, player);
     }
     return weights;
+  });
+}
+
+/**
+ * **This seat's war plans and its recent fighting** (bot batch BP4,
+ * `docs/flags.md` (ooooooo) B2). The user asked that the bonuses for killing
+ * follow the bot's inclination to go to war, so the kill and capture riders read
+ * their rates off this (`occasionRate`, `value.ts`) and not off one figure for
+ * every seat.
+ *
+ *   · **The plans**: whether the seat is at war with another empire now, and
+ *     otherwise its largest lean toward a war on a rival (`declarationLean`, the
+ *     first clause of its own declaration, read with its own sheet). A tall or
+ *     zealot seat, whose bar cannot be reached, leans at nearly nothing.
+ *   · **The army it would march**: the soldiers spare of the garrisons its towns
+ *     are owed (`strikeForce`), the force the declaration itself reads.
+ *   · **The fighting**: the war losses the game keeps for war weariness
+ *     (`Player.warLosses`). Each record names who destroyed or took the piece or
+ *     town, so this seat's kills and captures are the records on the other seats'
+ *     lists, and its own losses are the records on its list. Read over the last
+ *     `score.recentTurns` turns, never more than the weariness window the records
+ *     are kept for, and never more than the turns played.
+ *
+ * Kept on the revision clock, `threatWeights`' bargain: the lean reads both
+ * armies, and an accepted command can move either.
+ */
+function warOutlook(state: GameState, player: Player): WarOutlook {
+  return slateMemo(state, 'revision', 'botWarOutlook', String(player.id), () => {
+    const ai = aiFor(player);
+    const atWar = atWarWithAnybody(state, player.id);
+    let lean = 0;
+    if (!atWar) {
+      for (const other of realPlayers(state)) {
+        if (other.id === player.id || other.eliminated) continue;
+        lean = Math.max(lean, declarationLean(state, player, other));
+      }
+    }
+    const span = Math.max(
+      1,
+      Math.min(Math.floor(ai.score.recentTurns), lossTurnsCounted(), Math.max(1, state.turn)),
+    );
+    let kills = 0;
+    let towns = 0;
+    let losses = 0;
+    for (const other of realPlayers(state)) {
+      for (const loss of other.warLosses ?? []) {
+        if (state.turn - loss.turn >= span) continue;
+        if (other.id === player.id) {
+          if (loss.kind === 'unit') losses += 1;
+        } else if (loss.by === player.id) {
+          if (loss.kind === 'town') towns += 1;
+          else kills += 1;
+        }
+      }
+    }
+    return {
+      atWar,
+      lean,
+      spare: strikeForce(state, player, ai).spare,
+      kills: kills / span,
+      towns: towns / span,
+      losses: losses / span,
+    };
   });
 }
 

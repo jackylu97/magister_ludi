@@ -70,6 +70,45 @@ describe('a seat knocked out earlier in the same pass', () => {
     expect(game.state.turn).toBe(2);
   });
 
+  it('ends quietly when it falls during its own turn, in both loops (bot batch BP4)', () => {
+    // The six-seat duel digest met this on turn 115 after batch BP4: seat 1's
+    // last piece fell in one of its own commands, elimination marked its turn
+    // ended, and the driver then sent an End Turn the reducer refused.
+    const stub = () => {
+      let knocked = false;
+      return (state: GameState, playerId: number): Command | null => {
+        if (playerId === 1 && !knocked) {
+          knocked = true;
+          knockOutSeatOne(state);
+        }
+        return null;
+      };
+    };
+    const viaDriver = threeSeats();
+    const driverWarnings: string[] = [];
+    const reports = driveBots(viaDriver, { decide: stub(), warn: (message) => driverWarnings.push(message) });
+    expect(viaDriver.state.players[1]!.eliminated).toBe(true);
+    expect(reports.map((report) => report.playerId)).toEqual([0, 1, 2]);
+    expect(reports.every((report) => report.ended && report.refused === 0)).toBe(true);
+    expect(driverWarnings).toEqual([]);
+    expect(viaDriver.state.turn).toBe(2);
+
+    const viaStepper = threeSeats();
+    const stepperWarnings: string[] = [];
+    const stepperDecide = stub();
+    const stepper = createBotStepper(viaStepper, {
+      decide: (state, playerId) => {
+        stepperDecide(state, playerId);
+        return null;
+      },
+      warn: (message) => stepperWarnings.push(message),
+    });
+    stepper.playTurn();
+    expect(stepperWarnings).toEqual([]);
+    expect(stepper.stalled()).toBe(false);
+    expect(snapshotState(viaStepper.state)).toBe(snapshotState(viaDriver.state));
+  });
+
   it('is skipped by the stepper too, so the two loops reach the same board', () => {
     const viaDriver = threeSeats();
     const viaStepper = threeSeats();

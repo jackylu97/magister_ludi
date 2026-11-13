@@ -567,6 +567,13 @@ export interface ValueContext {
    */
   sighted: { camps: number; hostiles: number };
   /**
+   * **This seat's war plans and its recent fighting** (bot batch BP4), read
+   * once for the context in `warOutlook` (`bot.ts`). The kill, capture and
+   * death riders are priced at rates read from it (`occasionRate`), so a seat
+   * that plans a war prices the bonuses for killing above a seat that does not.
+   */
+  warOutlook: WarOutlook;
+  /**
    * 1 while this empire holds a god and has founded no religion, 0 otherwise —
    * the one window in which the road to a prophet is the most valuable thing on
    * the chart. `threat`'s sibling: a fact about the world that swings one term
@@ -817,6 +824,33 @@ export interface ValueContext {
    * (`beyondTheStamp`). Absent everywhere else, so no other reading moves.
    */
   today?: true;
+}
+
+/**
+ * **What a seat's war plans and recent fighting say** (bot batch BP4,
+ * `docs/flags.md` (ooooooo) B2). Every field is read off the board or off the
+ * records the game already keeps; nothing here is stored.
+ *
+ * The plans are two readings: whether the seat is at war with another empire
+ * now, and how close it stands to declaring one (`declarationLean`, read with
+ * its own sheet). The fighting is the war-loss list the game keeps for war
+ * weariness (`Player.warLosses`): each record names the empire that destroyed
+ * or took the piece or town, so the pieces and towns this seat took inside the
+ * window are a count of records on the other seats' lists.
+ */
+export interface WarOutlook {
+  /** At war with another empire now. The wild does not count. */
+  atWar: boolean;
+  /** The largest lean toward a war on a rival, 0 to 1. Read only at peace. */
+  lean: number;
+  /** Soldiers spare of the garrisons its towns are owed (`strikeForce`). */
+  spare: number;
+  /** Rival pieces it destroyed or took in the recent window, a turn. */
+  kills: number;
+  /** Towns it took from rivals in the recent window, a turn. */
+  towns: number;
+  /** Its own pieces rivals destroyed or took in the recent window, a turn. */
+  losses: number;
 }
 
 // The prices that every reading below is built on live in `prices.ts`.
@@ -2821,6 +2855,11 @@ interface BoardTempo {
   growths: number;
   /** Shelves standing across the realm. */
   buildings: number;
+  /**
+   * Of those, the ones put up in the recent window (`recentWindow`), read off
+   * each town's age stamps (`City.buildingTurns`). Bot batch BP4.
+   */
+  recentBuildings: number;
   /** What its citizens demand in contentment (`happinessDemand`, per town). */
   demand: number;
 }
@@ -2830,11 +2869,14 @@ function boardTempo(ctx: ValueContext): BoardTempo {
   return onContext(TEMPO_MEMO, ctx, () => {
     let growths = 0;
     let buildings = 0;
+    let recentBuildings = 0;
     let demand = 0;
+    const span = recentWindow(ctx);
     for (const city of ctx.state.cities) {
       if (city.ownerId !== ctx.playerId) continue;
       growths += Math.max(0, city.population - 1);
       buildings += city.buildings.length;
+      recentBuildings += stampedSince(city, city.buildings, span, ctx.state.turn);
       demand += happinessDemand(city.population);
     }
     const owner = tileOwnerField(ctx.state);
@@ -2848,8 +2890,133 @@ function boardTempo(ctx: ValueContext): BoardTempo {
       if (!isExploredBy(ctx.state, ctx.playerId, tile.col, tile.row)) continue;
       discoveries += 1;
     }
-    return { discoveries, canopy, growths, buildings, demand };
+    return { discoveries, canopy, growths, buildings, recentBuildings, demand };
   });
+}
+
+/**
+ * **The turns back a recent pace is read over** (bot batch BP4):
+ * `score.recentTurns`, and never more than the turns played.
+ */
+function recentWindow(ctx: ValueContext): number {
+  return Math.max(1, Math.min(Math.floor(ctx.ai.score.recentTurns), ctx.state.turn));
+}
+
+/**
+ * How many of these buildings of a town went up in the last `span` turns, by
+ * the town's age stamps (`City.buildingTurns`), in its present owner's hands.
+ *
+ * Only a stamp after the founding turn counts, because a building a town is
+ * founded with is a gift of the founding and not a building finished. Only a
+ * stamp after the town's last capture counts (`City.capturedOn`), because a
+ * town keeps its stamps when it is taken, and what its old owner built is not
+ * this seat's pace. A building with no stamp is not counted.
+ */
+function stampedSince(city: City, ids: readonly BuildingId[], span: number, turn: number): number {
+  const stamps = city.buildingTurns;
+  if (stamps === undefined) return 0;
+  const after = Math.max(city.foundedTurn, city.capturedOn ?? city.foundedTurn);
+  let count = 0;
+  for (const id of ids) {
+    const at = stamps[id];
+    if (at !== undefined && at > after && turn - at < span) count += 1;
+  }
+  return count;
+}
+
+/**
+ * **Buildings this seat finishes a turn** (bot batch BP4): the pace over the
+ * whole game, or over the recent window when that runs higher. An empire raises
+ * more buildings as it grows, so its whole-game pace reads low late. Measured on
+ * the six-seat game, seeds 999 and 42, at turn 100: 1.35 to 2.7 buildings a
+ * turn real, 0.3 to 1.2 read over the whole game.
+ */
+function buildingPace(ctx: ValueContext): number {
+  const tempo = boardTempo(ctx);
+  return Math.max(tempo.buildings / Math.max(1, ctx.state.turn), tempo.recentBuildings / recentWindow(ctx));
+}
+
+/**
+ * **How often this seat's war comes round, by its plans and its fighting** (bot
+ * batch BP4, `docs/flags.md` (ooooooo) B2, with the user's addition that the
+ * bonuses for killing follow the bot's inclination to go to war). Read off
+ * `ValueContext.warOutlook`.
+ *
+ *   · **Intent**: 1 at war with another empire; at peace, the seat's lean
+ *     toward a war times `score.warPace.leanShare`.
+ *   · **Kills a turn at war**: the rival pieces it killed or took in the recent
+ *     window, a turn, and never below `score.warPace.killsPerSoldier` for each
+ *     soldier spare of its garrisons, because a war just begun has no kills in
+ *     the window yet and a bigger army kills more.
+ *   · **Towns a turn at war**: the towns it took in the window, a turn, and
+ *     never below the kill pace at war times `score.warPace.townsPerKill`.
+ */
+function warIntent(ctx: ValueContext): number {
+  const war = ctx.warOutlook;
+  if (war.atWar) return 1;
+  return Math.max(0, Math.min(1, war.lean * ctx.ai.score.warPace.leanShare));
+}
+
+/** Rival pieces this seat kills a turn while at war. See `warIntent`. */
+function killsAtWar(ctx: ValueContext): number {
+  const war = ctx.warOutlook;
+  return Math.max(war.kills, war.spare * Math.max(0, ctx.ai.score.warPace.killsPerSoldier));
+}
+
+/** Towns this seat takes a turn while at war. See `warIntent`. */
+function townsAtWar(ctx: ValueContext): number {
+  return Math.max(ctx.warOutlook.towns, killsAtWar(ctx) * Math.max(0, ctx.ai.score.warPace.townsPerKill));
+}
+
+/**
+ * Pieces of the wild this seat kills a turn: its own record over the turns
+ * played (`Player.enemiesKilled` less `unitsKilled`), as the other riders read
+ * a record, and never below the forecast table's `barbarianKill` over the
+ * horizon, the figure every seat read before batch BP4. See `recordPace`.
+ */
+function wildKillRate(ctx: ValueContext): number {
+  return recordPace('barbarianKill', ctx);
+}
+
+/**
+ * **A seat's own record of an occasion, a turn** (bot batch BP4): the record
+ * over the turns played, and never below the forecast table's figure for the
+ * occasion over the horizon. A record over the whole game reads low late, when
+ * the empire and its army are bigger than their average, so this reading takes
+ * no smoothing toward the table: measured on the six-seat game, the smoothed
+ * record read the wild's kills at 0.24 a turn against 0.40 real, and the plain
+ * record at 0.29. The table's figure is the floor for a young seat.
+ */
+function recordPace(occasion: TallyOccasion, ctx: ValueContext): number {
+  const record = occasionRecord(occasion, ctx) ?? 0;
+  const floor =
+    (ctx.ai.score.tallyForecast[occasion] ?? 0) / Math.max(1, ctx.ai.priorities.horizonTurns);
+  return Math.max(Math.max(0, record) / Math.max(1, ctx.state.turn), floor);
+}
+
+/**
+ * **The share of this seat's combat pieces that a rider's unit filter admits**
+ * (bot batch BP4): a kill, a pillage or a death that names the piece that did it
+ * (`CardWindfallRiderEffect.class`) fires only for that piece, so the rate is
+ * narrowed to the share of the army that could be it. Letters of Marque pays for
+ * a kill by a ship, and a seat with no warship reads nothing. Read off the board
+ * as it stands. Remembered for the context, by the filter.
+ */
+const CLASS_SHARE_MEMO = new WeakMap<ValueContext, Map<UnitFilter, number>>();
+function classShare(filter: UnitFilter, ctx: ValueContext): number {
+  const held = onContext(CLASS_SHARE_MEMO, ctx, () => new Map<UnitFilter, number>());
+  const found = held.get(filter);
+  if (found !== undefined) return found;
+  let pieces = 0;
+  let admitted = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || !isCombatant(unitDef(unit.type))) continue;
+    pieces += 1;
+    if (unitMatches(unit.type, filter)) admitted += 1;
+  }
+  const share = pieces === 0 ? 0 : admitted / pieces;
+  held.set(filter, share);
+  return share;
 }
 
 /**
@@ -2867,12 +3034,31 @@ function boardTempo(ctx: ValueContext): BoardTempo {
  * has sighted, all read as "these get answered over a planning horizon". That is
  * crude and is written down as crude; it is not a forecast dressed as a fact.
  *
- * Three families answer nothing, each for a stated reason: the war occasions
- * ride `ValueContext.threat`, so they are worth nothing in a quiet world and
- * something the turn a column arrives; the survey pair is worth nothing because
- * **the vein layer is shelved** (`veins.share` is 0 — no board has a seam); and
- * and a rite is a town's verb this bot now says, so it is the tempo the rules
- * allow — a town keeps one for its blessing's length (batch H12).
+ * Two families answer nothing, each for a stated reason: the survey pair is
+ * worth nothing because **the vein layer is shelved** (`veins.share` is 0, so
+ * no board has a seam); and a rite is a town's verb this bot now says, so it is
+ * the tempo the rules allow: a town keeps one for its blessing's length (batch
+ * H12).
+ *
+ * **The war moments read the seat's war plans and its fighting** (bot batch
+ * BP4, `docs/flags.md` (ooooooo) B2). They used to read `ValueContext.threat`,
+ * which counts enemy pieces near this seat's towns: a reading of danger, and not
+ * of how often this seat kills or takes a town. A kill is now a kill of the wild
+ * at the seat's own record, plus its kill pace at war times its intent
+ * (`warIntent`); a capture, and the unrest and razing that follow one, is its
+ * town pace at war times its intent; a declaration and a peace are about one war
+ * over the horizon at full intent. A death is the seat's own record, or its
+ * recent losses to rivals when they run higher. A raid is the seat's own record
+ * of hexes pillaged, because this bot gives no pillage order and a rider on a
+ * raid is a price for a habit the seat does not have. Measured on the six-seat
+ * game with two decks a seat, seeds 999 and 42, each tenth turn from 30 to 120
+ * against the next 20 turns: kills read 0.41 a turn against 0.46 real (0.10
+ * before), 0.80 against 0.72 for a seat at war; deaths 0.17 against 0.27 (0.05
+ * before).
+ *
+ * **A building finished** reads the recent window as well as the whole game
+ * (`buildingPace`), since batch BP4: 0.55 a turn against 0.85 real, and 0.23
+ * before, on the same samples.
  *
  * Since Devotion batch DV9 the rite's moment is read off the seasons the seat's
  * towns keep now rather than off the rules' ceiling, because the bots say few
@@ -2884,18 +3070,17 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
   const turns = Math.max(1, ctx.state.turn);
   const player = ctx.state.players[ctx.playerId];
   const tempo = boardTempo(ctx);
-  const war = ctx.threat / horizon;
   switch (occasion) {
     case 'growth':
       return tempo.growths / turns;
     case 'buildingCompletion':
-      return tempo.buildings / turns;
+      return buildingPace(ctx);
     case 'unitCompletion':
       // The riders pay for every unit gained, a conscript included, which is
       // what `Player.unitsGained` counts (batch BP2).
       return unitsGainedMatching(ctx) / turns;
     case 'completion':
-      return (tempo.buildings + unitsGainedMatching(ctx)) / turns;
+      return buildingPace(ctx) + unitsGainedMatching(ctx) / turns;
     case 'found':
       // Towns standing over turns played. It over-counts a captured town and
       // under-counts an empire that has lost one; the settled record of what
@@ -2914,16 +3099,23 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
     case 'camp':
       return ctx.sighted.camps / horizon;
     case 'kill':
-      // The forecast table's own figure, which is stated as *occasions expected
-      // over the horizon* — so it is a rate by division and by nothing else.
-      return (ctx.ai.score.tallyForecast.barbarianKill ?? 0) / horizon;
+      // The wild at the seat's own record, and rivals at its kill pace at war
+      // times its intent (bot batch BP4). See `warIntent`.
+      return wildKillRate(ctx) + warIntent(ctx) * killsAtWar(ctx);
     case 'death':
-      return (ctx.ai.score.tallyForecast.unitLost ?? 0) / horizon;
+      // The seat's own record of pieces lost, or its losses to rivals in the
+      // recent window when they run higher (bot batch BP4).
+      return Math.max(recordPace('unitLost', ctx), ctx.warOutlook.losses);
     case 'capture':
+      return warIntent(ctx) * townsAtWar(ctx);
     case 'pillage':
     case 'pillageTrader':
+      // The seat's own record of hexes pillaged (bot batch BP4). This bot gives
+      // no pillage order, so the record is what it really does.
+      return occasionForecastRate('hexPillaged', ctx);
     case 'declareWar':
-      return war;
+      // About one war over the horizon at full intent (bot batch BP4).
+      return warIntent(ctx) / horizon;
     case 'purchase': {
       // What the purse turns over, against the cheapest thing it is saving for.
       const cheapest = cheapestWantPrice(ctx);
@@ -2987,12 +3179,12 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
     case 'pacified':
       // **A town leaves unrest about as often as one is taken** (Dominion batch
       // D4): almost every town in unrest is a capture, so the rate is the
-      // capture's own reading, the threat over the horizon.
-      return war;
+      // capture's own reading.
+      return warIntent(ctx) * townsAtWar(ctx);
     case 'raze':
       // Dominion batch D5. Razing a captured town is war's business, so it is
       // read at the capture's rate.
-      return war;
+      return warIntent(ctx) * townsAtWar(ctx);
     case 'draftPassed': {
       // Dominion batch D5. A pass is one of the two answers to a draft, so the
       // rate is half the seat's drafting tempo: the culture it makes each turn
@@ -3007,8 +3199,8 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return 1 / Math.max(1, ctx.ai.score.lumpTurns);
     case 'peace':
       // Dominion batch D6. A war ends about as often as one is fought, so a
-      // peace is read at the capture's rate, the threat over the horizon.
-      return war;
+      // peace is read at the declaration's rate (bot batch BP4).
+      return warIntent(ctx) / horizon;
     case 'commissionMet':
       // Dominion batch D11, The Ovation. The rate at which this seat meets
       // commissions: its own record, with a cautious default (batch D16).
@@ -3120,12 +3312,20 @@ function cheapestWantPrice(ctx: ValueContext): number | null {
  * batch H2 is not merely an exhaustiveness check.
  *
  * Three multiplications, each of them a reading rather than a guess: how often
- * the occasion comes round (`occasionRate`, off the board's own record), what
- * one firing hands over (`windfallGrantWorth`, through `explainLump` — a
- * windfall is a gift paid once and this file has one exchange rate for that),
- * and the row's own multipliers (`perAge`, `perSlottedOrder`), which are the
- * evaluator's own and are read off the board exactly as `windfallPayout` reads
- * them.
+ * the occasion comes round (`occasionRate`, off the board's own record and,
+ * for the war moments, off the seat's war plans), what one firing hands over
+ * (`windfallGrantWorth`), and the row's own multipliers (`perAge`,
+ * `perSlottedOrder`), which are the evaluator's own and are read off the board
+ * exactly as `windfallPayout` reads them.
+ *
+ * **Each firing is priced at its full value** (bot batch BP4, `docs/flags.md`
+ * (ooooooo) B2). A rider that fires r times a turn and pays L each time pays
+ * r × L a turn, which is already a rate, as a periodic boon is priced
+ * (`periodicWorth`). Until BP4 the grant also went through the lump exchange
+ * (`explainLump`, ÷ `score.lumpTurns`), so every rider was priced at a
+ * twentieth of what it pays: the audit measured a median of 1/55 of the real
+ * pay over ten riders. A stand-in in the grant (a heal, a pressure lump the bot
+ * cannot price) keeps its figure for each firing, because it prices nothing.
  *
  * **The `percent` half is the one thing here that is not read**: it scales *the
  * occasion's own payout*, and what a chop or a camp pays is composed inside
@@ -3133,11 +3333,20 @@ function cheapestWantPrice(ctx: ValueContext): number | null {
  * scaled by the share, so The Woodwrights' doubled chop still sorts above a
  * fifty-percent one.
  *
- * The three narrowing flags (`vsBarbarians`, `capturedWonder`, `atPopulation`)
- * are deliberately **not** discounted for. Two of them narrow an occasion whose
- * rate is already the narrow one — this bot's kills are the wild's, by the
- * forecast the rate comes off — and the third fires once in the life of every
- * town, which the growth rate over-counts and the horizon discounts back.
+ * **The narrowings the rate reads** (bot batch BP4), because a price twenty
+ * times larger makes each one matter:
+ *
+ *   · `vsBarbarians` reads the wild's half of the kill rate alone;
+ *   · `class` reads the share of the seat's combat pieces the filter admits
+ *     for a kill, a raid or a death (`classShare`), and the units gained that
+ *     match it for a unit finished;
+ *   · `oncePerTurn` and `oncePerTurns` cap the rate at one firing in that many
+ *     turns, as the card's own stamp caps it.
+ *
+ * Two narrowing flags are deliberately **not** discounted for:
+ * `capturedWonder` narrows a capture whose rate is already small, and
+ * `atPopulation` fires once in the life of every town, which the growth rate
+ * over-counts and the horizon discounts back.
  */
 function scoreWindfallRider(
   effect: Extract<CardEffect, { kind: 'windfallRider' }>,
@@ -3155,11 +3364,11 @@ function scoreWindfallRider(
     effect.occasion === 'tilePurchase' &&
     (effect.on !== undefined || effect.grant?.fromOccasion !== undefined)
   ) {
-    const rate = occasionRate('tilePurchase', ctx);
+    const rate = capRate(effect, occasionRate('tilePurchase', ctx));
     return rate <= 0 ? 0 : rate * tilePurchaseFiringWorth(effect, ctx);
   }
-  let rate = finishedRowRate(effect, ctx) ?? occasionRate(effect.occasion, ctx);
-  // **A family is one of five**, and unlike the three flags above it really does
+  let rate = finishedRowRate(effect, ctx) ?? riderOccasionRate(effect, ctx);
+  // **A family is one of five**, and unlike the flags above it really does
   // narrow a rate the forecast gives whole: a great person is called and spent
   // whatever family they belong to, so a rider written on the artists fires on a
   // fifth of those moments. Read off the roster rather than as a constant, so a
@@ -3185,22 +3394,62 @@ function scoreWindfallRider(
   // Sitting's `paidHand`) narrows nothing here: the pass's rate is already
   // read off the hands the seat buys with culture (`draftPassed`), and a
   // free hand is not among them.
+  rate = capRate(effect, rate);
   if (rate <= 0) return 0;
   let each = 0;
   if (effect.percent !== undefined) {
     each += (effect.percent / 100) * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }
   if (effect.grant !== undefined) {
-    each += windfallGrantWorth(effect.grant, ctx, effect.occasion, effect.inTown);
+    each += firingPoints(windfallGrantWorth(effect.grant, ctx, effect.occasion, effect.inTown));
   }
   if (each === 0) return 0;
   if (effect.perAge === true) each *= Math.max(1, ctx.age);
   if (effect.perSlottedOrder === true) each *= slottedOrderCount(ctx);
-  // A windfall is a **gift paid once**, and this file converts one into a rate
-  // in exactly one place (`explainLump`'s `score.lumpTurns`). Charging it here
-  // and again in the grant would be the bot paying twice for one purse, so the
-  // grant is already the per-turn figure and this is the frequency alone.
+  // The full value of one firing times how often it fires: a rate, with no
+  // lump exchange (bot batch BP4).
   return each * rate;
+}
+
+/**
+ * **The rate of a rider's moment, narrowed by who did it** (bot batch BP4).
+ * `occasionRate` is the rate for the whole seat; a rider that asks for a kill
+ * of the wild (`vsBarbarians`), or for a moment made by one kind of piece
+ * (`class`), fires on part of it. See `scoreWindfallRider`.
+ */
+function riderOccasionRate(
+  effect: Extract<CardEffect, { kind: 'windfallRider' }>,
+  ctx: ValueContext,
+): number {
+  const occasion = effect.occasion;
+  if (occasion === 'kill' && effect.vsBarbarians === true) {
+    const wild = wildKillRate(ctx);
+    return effect.class === undefined ? wild : wild * classShare(effect.class, ctx);
+  }
+  if (effect.class !== undefined) {
+    if (occasion === 'unitCompletion' || occasion === 'completion') {
+      // A building finished names no piece, so only the units gained count.
+      return unitsGainedMatching(ctx, effect.class) / Math.max(1, ctx.state.turn);
+    }
+    if (occasion === 'kill' || occasion === 'pillage' || occasion === 'death') {
+      return occasionRate(occasion, ctx) * classShare(effect.class, ctx);
+    }
+  }
+  return occasionRate(occasion, ctx);
+}
+
+/**
+ * A rider's rate, never above the card's own limit: one firing a turn under
+ * `oncePerTurn` (Field Academies), one in that many turns under `oncePerTurns`
+ * (The New Code). Bot batch BP4.
+ */
+function capRate(effect: Extract<CardEffect, { kind: 'windfallRider' }>, rate: number): number {
+  let capped = rate;
+  if (effect.oncePerTurn === true) capped = Math.min(capped, 1);
+  if (effect.oncePerTurns !== undefined && effect.oncePerTurns > 0) {
+    capped = Math.min(capped, 1 / effect.oncePerTurns);
+  }
+  return capped;
 }
 
 /**
@@ -3216,7 +3465,8 @@ function scoreWindfallRider(
  *
  * What a town rebuilds or loses moves the record a little either way, as the board's
  * other records do. A `first` rider is not narrowed further, because a standing row
- * was the first of its kind in its town.
+ * was the first of its kind in its town. Since bot batch BP4 the rows put up in the
+ * recent window count too, when their pace runs higher (`buildingPace`'s reason).
  */
 const FINISHED_ROW_MEMO = new WeakMap<
   ValueContext,
@@ -3238,14 +3488,21 @@ function finishedRowRate(
   const held = memo.get(effect);
   if (held !== undefined) return held;
   const passes = (id: BuildingId): boolean => tests.some((one) => buildingPassesTest(id, one));
+  const span = recentWindow(ctx);
   let standing = 0;
+  let recent = 0;
   for (const city of citiesOf(ctx.state, ctx.playerId)) {
-    for (const id of city.buildings) if (passes(id)) standing += 1;
+    const passing = city.buildings.filter(passes);
+    standing += passing.length;
+    recent += stampedSince(city, passing, span, ctx.state.turn);
   }
   let open = 0;
   for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns;
+  // The recent window as well as the whole game (bot batch BP4), as
+  // `buildingPace` reads every building.
   const rate = Math.max(
     standing / Math.max(1, ctx.state.turn),
+    recent / span,
     open / Math.max(1, ctx.ai.priorities.horizonTurns),
   );
   memo.set(effect, rate);
@@ -3333,21 +3590,28 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
 }
 
 /**
- * **What one firing of a rider's grant is worth**, as a per-turn figure.
+ * **What one firing of a rider's grant is worth**, in two parts (bot batch
+ * BP4): what it pays in full, once (`once`), and the stand-ins for what the bot
+ * does not price (`flat`).
  *
- * Every voice-shaped grant goes through `explainLump`, which is this file's one
- * exchange rate between a purse and a rate — so a card paying twenty culture on
- * a death and a card paying a culture a turn are compared by one number rather
- * than by two opinions. A grant quoted **in turns of a rate** (The Lyceum's
- * extra turn of culture) reads the empire's own books for the rate, which is
- * `windfallPayout`'s own reading.
+ * `once` is the points a one-time grant is worth before any lump exchange: a
+ * voice-shaped grant at the voice's price (`explainYields`), a piece at what a
+ * piece is worth, a blessing for all its turns. A grant that lasts (a mark on
+ * the land, a hex claimed, a town turned) is priced by its reading a turn, and
+ * its `once` is that reading times `score.lumpTurns`: the bot's one exchange
+ * between a stock and a flow, read the other way. A grant quoted **in turns of
+ * a rate** (The Lyceum's extra turn of culture) reads the empire's own books
+ * for the rate, which is `windfallPayout`'s own reading.
  *
- * Three keys are named and unread, each for a stated reason: a **heal** is a
- * fraction of a piece and no piece is named; **healAll** is the same sentence
- * over an army whose composition is not this appraisal's subject; and a
- * **timed** grant is priced as its own effects, scaled by how much of a lump the
- * blessing's length is — which is a real reading and the one place the timed
- * half is not a stand-in.
+ * `flat` holds the stand-ins (`score.unknownEffect`): a **heal** is a fraction
+ * of a piece and no piece is named; **healAll** is the same sentence over an
+ * army whose composition is not this appraisal's subject; a pressure lump on
+ * a moment the bot does not read is the same. A stand-in prices nothing, so no
+ * exchange converts it.
+ *
+ * A rider at a rate reads `once + flat` for each firing (`firingPoints`). One
+ * firing set beside a rate, the pass in a draft, reads `once ÷ lumpTurns +
+ * flat` (`firingPerTurn`), which is what every reader read before BP4.
  */
 function windfallGrantWorth(
   grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
@@ -3367,8 +3631,10 @@ function windfallGrantWorth(
    * (`occasionMeasureForecast`).
    */
   inTown?: true | CityScope,
-): number {
-  let worth = 0;
+): FiringWorth {
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+  let once = 0;
+  let flat = 0;
   if (grant.yield !== undefined && grant.amount !== undefined) {
     const bag: YieldBag = {};
     const measure =
@@ -3409,68 +3675,64 @@ function windfallGrantWorth(
     // A grant scaled by each town's own citizens (Scientific batch S6, The
     // Journeymen; priced in batch S13) is read at this seat's mean town.
     const people = grant.fromTownPopulation === true ? meanPopulation(ctx) : 1;
-    worth += explainLump(bag, ctx).total * towns * counted * people;
+    once += explainYields(bag, ctx).total * towns * counted * people;
   }
   // **Scientific batch S13**: a great person handed over (S8, The Invitations)
   // and renown scaled by the technology's folded price (S6, The Scholars'
   // Fame). See `scientificGrantWorth`.
-  worth += scientificGrantWorth(grant, ctx);
-  if (grant.heal !== undefined) worth += ctx.ai.score.unknownEffect;
-  if (grant.healAll === true) worth += ctx.ai.score.unknownEffect;
+  once += scientificGrantWorth(grant, ctx);
+  if (grant.heal !== undefined) flat += ctx.ai.score.unknownEffect;
+  if (grant.healAll === true) flat += ctx.ai.score.unknownEffect;
   // **Dominion batch D3's four pillage extras**, each read close to the heal
   // above. A full heal is one piece made whole, which `healAll` already prices
   // as the stand-in. A strike is a blow on enemy walls, priced as military
   // strength at the share of the raider it strikes with. Unrest in a rival
   // town and the spread to the works beside the hex are real and hard to
   // forecast, so each is the stand-in, as `pressure` below is.
-  if (grant.healFull === true) worth += ctx.ai.score.unknownEffect;
+  if (grant.healFull === true) flat += ctx.ai.score.unknownEffect;
   if (grant.strike !== undefined) {
-    worth += (grant.strike.percent / 100) * ctx.ai.weights.military * (1 + ctx.threat);
+    flat += (grant.strike.percent / 100) * ctx.ai.weights.military * (1 + ctx.threat);
   }
-  if (grant.unrestBeside === true) worth += ctx.ai.score.unknownEffect;
-  if (grant.pillageBeside === true) worth += ctx.ai.score.unknownEffect;
+  if (grant.unrestBeside === true) flat += ctx.ai.score.unknownEffect;
+  if (grant.pillageBeside === true) flat += ctx.ai.score.unknownEffect;
   // Dominion batch D8, The Soldiers' Share: the heal around the hex is the
   // stand-in, as `healAll` is. The rank is priced at nothing, as every rank a
   // card gives is (the D1 follow-up: the bot gives nothing for a rank).
-  if ((grant.healWithin ?? 0) > 0) worth += ctx.ai.score.unknownEffect;
+  if ((grant.healWithin ?? 0) > 0) flat += ctx.ai.score.unknownEffect;
   // Dominion batch D8, The Scourge of God: the effects hung on one unit,
   // priced as a timed grant's are and shared out over the army, because a
   // strength line is priced for every unit and this one reaches one.
   if (grant.actorTimed !== undefined) {
     const turns = Math.max(0, grant.actorTimed.turns);
     const army = Math.max(1, countProbe(ctx, 'unitsInField'));
-    worth +=
-      (scoreEffects(grant.actorTimed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns))) /
-      army;
+    once += (scoreEffects(grant.actorTimed.effects, ctx) * turns) / army;
   }
   if (grant.unit !== undefined) {
     // `explainBuildingRow`'s own reading of a gifted piece, so a wonder's spear
-    // and a card's spear are worth the same thing — divided into a rate for the
-    // reason every other half of this grant is. Since Dominion batch D5 a unit
+    // and a card's spear are worth the same thing. Since Dominion batch D5 a unit
     // can be raised in every town a scope admits, one unit for each.
     const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
-    worth +=
-      (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
-      Math.max(1, ctx.ai.score.lumpTurns);
+    once += units * ctx.ai.weights.military * ctx.ai.score.combatScale;
   }
   // Dominion batch D5: science toward a technology the empire lacks, which is
   // real and hard to price, so it is the stand-in.
-  if (grant.towardFallenTech !== undefined) worth += ctx.ai.score.unknownEffect;
+  if (grant.towardFallenTech !== undefined) flat += ctx.ai.score.unknownEffect;
   // **A free Order hand** (Dominion batch D5's The New Code; The Unveiling,
   // The Symposium and The Second Sitting of the Magisterial deck; priced in
   // batch MG17): what a hand is worth to this seat, the culture it would
-  // otherwise pay for one. See `handWorth`.
-  if (grant.freeDraft === true) worth += handWorth(ctx);
+  // otherwise pay for one, which `handWorth` reads as a lump. See `handWorth`.
+  if (grant.freeDraft === true) once += handWorth(ctx) * lumpTurns;
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
-    worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
+    once += scoreEffects(grant.timed.effects, ctx) * turns;
   }
   if (grant.mark !== undefined) {
     // **A lasting mark on a town's land** (Expansionist batch E3): what the mark
     // pays each turn on the hexes an average town of this empire would have
     // marked now. A mark pays for the rest of the game, so it is priced as a
-    // rate rather than through `explainLump`; that it keeps paying past the
-    // horizon is left out, the same rough price a building's yield gets.
+    // rate, and its `once` is that rate at the lump exchange read the other
+    // way; that it keeps paying past the horizon is left out, the same rough
+    // price a building's yield gets.
     const rule = RULES.improvements.hexMarks[grant.mark];
     const owner = tileOwnerField(ctx.state);
     let hexes = 0;
@@ -3484,16 +3746,16 @@ function windfallGrantWorth(
     for (const voice of VOICES) {
       if (pays[voice] !== 0) bag[voice] = pays[voice] * perTown;
     }
-    worth += valueOfYields(bag, ctx);
+    once += valueOfYields(bag, ctx) * lumpTurns;
   }
   // **A lasting mark on the six hexes around the moment's hex** (Expansionist
   // batch E9, The Marl Pits; priced in batch E13). A rate, as `mark` above is.
   // See `markBesideWorth`.
-  if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
+  if (grant.markBeside !== undefined) once += markBesideWorth(grant.markBeside, ctx) * lumpTurns;
   // **The unowned hexes beside the moment's hex** (Magisterial batch MG9, The
   // Landmark Bounds; priced in batch MG17): the land a claim takes, as a
   // rate, as `mark` above is. See `claimBesideWorth`.
-  if (grant.claimBeside === true) worth += claimBesideWorth(ctx);
+  if (grant.claimBeside === true) once += claimBesideWorth(ctx) * lumpTurns;
   // **Citizens in the town the moment names** (Expansionist batch E10,
   // Veteran Colonies; priced in batch E13): the food that grows them, as a
   // lump, as a commission's citizens are priced. The moment is a soldier
@@ -3505,7 +3767,7 @@ function windfallGrantWorth(
   // A grant to every town (batch DT13, The Censors) pays once for each town.
   if (grant.citizens !== undefined && grant.citizens > 0) {
     const towns = grant.toEveryTown === undefined ? 1 : everyTownCount(ctx, grant.toEveryTown);
-    worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total * towns;
+    once += explainYields({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total * towns;
   }
   if (grant.pressure !== undefined) {
     // **A lump of faith pressed on somebody else's towns** — The Crusade's.
@@ -3518,10 +3780,38 @@ function windfallGrantWorth(
     // **Two lumps are priced since Devotion batch DV9**: the one a founding
     // presses on the new town (The Parishes) and the one a conversion presses
     // around the town that turned (Pentecost). See `pressureGrantWorth`. Every
-    // other lump keeps the stand-in.
-    worth += pressureGrantWorth(grant, occasion, ctx);
+    // other lump keeps the stand-in. A priced lump is a reading a turn, so its
+    // `once` is that reading at the lump exchange read the other way.
+    const pressed = pressureGrantWorth(grant, occasion, ctx);
+    if (pressesPriced(occasion)) once += pressed * lumpTurns;
+    else flat += pressed;
   }
-  return worth;
+  return { once, flat };
+}
+
+/**
+ * **One firing of a grant, in its two parts** (bot batch BP4). See
+ * `windfallGrantWorth`.
+ */
+interface FiringWorth {
+  /** What the firing pays in full, once, before any lump exchange. */
+  once: number;
+  /** The stand-ins for what the bot does not price, for each firing. */
+  flat: number;
+}
+
+/** One firing at full value, for a rider priced at its rate. */
+function firingPoints(worth: FiringWorth): number {
+  return worth.once + worth.flat;
+}
+
+/**
+ * One firing as a per-turn figure, for a single firing set beside a rate (the
+ * pass in a draft): the full value through the lump exchange, and the
+ * stand-ins as they are.
+ */
+function firingPerTurn(worth: FiringWorth, ctx: ValueContext): number {
+  return worth.once / Math.max(1, ctx.ai.score.lumpTurns) + worth.flat;
 }
 
 /**
@@ -4082,8 +4372,16 @@ function unreadMeterRule(_rule: never, ctx: ValueContext): number {
  * A citizen is the growth channel's own reading (a citizen is worth what the
  * ground it works pays, and this file's cheapest honest statement of that is the
  * threshold it did not have to grow through); a building is the charter's
- * reading one shape over; a road home is the connection line it opens. All three
- * are lumps, and the founding rate is `occasionRate`'s.
+ * reading one shape over; a road home is the connection line it opens. The
+ * founding rate is `occasionRate`'s.
+ *
+ * **Each founding at its full value** (bot batch BP4, the windfall riders' fault
+ * B2 on this rider): the citizens' food in full, and the building and the road,
+ * which pay a turn for as long as the town stands, at that reading times
+ * `score.lumpTurns`, the bot's one exchange between a stock and a flow read the
+ * other way. Times the rate, that is a rate. Until BP4 the citizens went through
+ * the lump exchange and the building and road were read as one turn of pay, so
+ * the rider was priced at a twentieth of what it pays.
  */
 function scoreFoundingRider(
   effect: Extract<CardEffect, { kind: 'foundingRider' }>,
@@ -4091,20 +4389,21 @@ function scoreFoundingRider(
 ): number {
   const rate = occasionRate('found', ctx);
   if (rate <= 0) return 0;
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
   let each = 0;
   if (effect.population !== undefined) {
-    each += explainLump({ food: effect.population * growthThreshold(ctx) }, ctx).total;
+    each += explainYields({ food: effect.population * growthThreshold(ctx) }, ctx).total;
   }
   if (effect.building !== undefined) {
     const def = buildingDef(effect.building);
     const bag: YieldBag = {};
     for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
-    each += valueOfYields(bag, ctx) + explainBuildingRow(effect.building, ctx).total;
+    each += (valueOfYields(bag, ctx) + explainBuildingRow(effect.building, ctx).total) * lumpTurns;
   }
   if (effect.roads === true) {
     // A town joined to the realm by road pays the connection line every turn,
     // quoted per head of the pair it joins (`rules.trade.connectionPerPop`).
-    each += RULES.trade.connectionPerPop * voiceWeight(ctx, 'gold');
+    each += RULES.trade.connectionPerPop * voiceWeight(ctx, 'gold') * lumpTurns;
   }
   if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
     // The Great Colonies (Expansionist batch E2): the citizens a new town
@@ -4115,7 +4414,7 @@ function scoreFoundingRider(
       if (city.ownerId === ctx.playerId) largest = Math.max(largest, city.population);
     }
     const extra = Math.max(0, Math.floor(largest / effect.fromLargest) - 1);
-    if (extra > 0) each += explainLump({ food: extra * growthThreshold(ctx) }, ctx).total;
+    if (extra > 0) each += explainYields({ food: extra * growthThreshold(ctx) }, ctx).total;
   }
   return each * rate;
 }
@@ -6579,8 +6878,12 @@ function meanWorkedHex(ctx: ValueContext): number {
 /**
  * **What one raid pays this seat**: the base plunder (`improvements.
  * pillageGold`) and the grants of every pillage rider on its seated Orders,
- * each at the rider arm's own reading (a lump through `explainLump`). A
- * rider's `percent` scales the base plunder, as `windfallPayout` scales it.
+ * each at the rider arm's own reading. A rider's `percent` scales the base
+ * plunder, as `windfallPayout` scales it.
+ *
+ * In full, with no lump exchange (bot batch BP4): both readers multiply it by a
+ * number of raids a turn, which makes it a rate, as a rider at its rate is
+ * (`scoreWindfallRider`).
  */
 function pillagePlunderWorth(ctx: ValueContext): number {
   let share = 1;
@@ -6588,9 +6891,9 @@ function pillagePlunderWorth(ctx: ValueContext): number {
   for (const held of slottedOrderEffects(ctx)) {
     if (held.kind !== 'windfallRider' || held.occasion !== 'pillage') continue;
     share += (held.percent ?? 0) / 100;
-    if (held.grant !== undefined) grants += windfallGrantWorth(held.grant, ctx);
+    if (held.grant !== undefined) grants += firingPoints(windfallGrantWorth(held.grant, ctx));
   }
-  const base = explainLump({ gold: RULES.improvements.pillageGold }, ctx).total;
+  const base = explainYields({ gold: RULES.improvements.pillageGold }, ctx).total;
   return base * share + grants;
 }
 
@@ -6607,7 +6910,8 @@ function enemiesOf(ctx: ValueContext): number[] {
 /**
  * **The Longships**: each warship of this seat raids at the end of a turn of
  * war, so the price is its warships, times the share that find an enemy work
- * on the shore (`score.dominion.shoreRaid`), times what one raid pays.
+ * on the shore (`score.dominion.shoreRaid`), times what one raid pays. That is
+ * raids a turn times the plunder in full (`pillagePlunderWorth`, bot batch BP4).
  * Nothing at peace, as War Feeds Itself's harvest is worth nothing at peace.
  */
 function shoreRaidWorth(ctx: ValueContext): number {
@@ -7548,13 +7852,15 @@ function scholarStepWorth(share: number, ctx: ValueContext): number {
  * priced as a commission's great person is, at the renown the next one costs;
  * and renown scaled by the folded price of the technology just completed (The
  * Scholars' Fame), at the price of what the seat researches now
- * (`researchCostNow`). Both are lumps.
+ * (`researchCostNow`). Both are paid once, and are read in full: the renown
+ * at `weights.renown`, with no lump exchange, because `windfallGrantWorth`
+ * returns what one firing pays in full (bot batch BP4).
  *
- * A flat renown grant is a lump too, since batch DT4. The Kitabkhana's whole text
- * is such a grant, so a price of nothing would mean a bot never takes it. The same
- * reading now prices The Court Painter's renown and Up Through the Ranks'. A
- * renown grant scaled by another measure (Looted Art, The Champion's Portion) keeps
- * the reading it had.
+ * A flat renown grant is paid once too, since batch DT4. The Kitabkhana's whole
+ * text is such a grant, so a price of nothing would mean a bot never takes it.
+ * The same reading now prices The Court Painter's renown and Up Through the
+ * Ranks'. A renown grant scaled by another measure (Looted Art, The Champion's
+ * Portion) keeps the reading it had.
  */
 function scientificGrantWorth(
   grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
@@ -7564,13 +7870,13 @@ function scientificGrantWorth(
   if (grant.greatPerson !== undefined) {
     const player = playerById(ctx.state, ctx.playerId);
     const renown = player === undefined ? 0 : renownThreshold(ctx.state, player);
-    worth += lumpOfPoints(renown * ctx.ai.weights.renown, ctx).total;
+    worth += renown * ctx.ai.weights.renown;
   }
   if (grant.renown !== undefined && grant.fromOccasion === 'techCost') {
-    worth += lumpOfPoints(grant.renown * researchCostNow(ctx) * ctx.ai.weights.renown, ctx).total;
+    worth += grant.renown * researchCostNow(ctx) * ctx.ai.weights.renown;
   }
   if (grant.renown !== undefined && grant.fromOccasion === undefined) {
-    worth += lumpOfPoints(grant.renown * ctx.ai.weights.renown, ctx).total;
+    worth += grant.renown * ctx.ai.weights.renown;
   }
   return worth;
 }
@@ -7812,12 +8118,13 @@ function tendedWorksFreeWorth(ctx: ValueContext): number {
  * **The Planted Towns** (`trainedSettlerCostsCitizen`): a citizen for each settler
  * trained, at the founding rate. It is the same rate and the same price of a citizen
  * as the row's `foundingRider` (`scoreFoundingRider`), so the card's two clauses are
- * read in one currency. Written so a seat that founds nothing reads 0 and not -0.
+ * read in one currency: the citizen's food in full since bot batch BP4. Written so a
+ * seat that founds nothing reads 0 and not -0.
  */
 function settlerCitizenCost(ctx: ValueContext): number {
   const rate = occasionRate('found', ctx);
   if (rate <= 0) return 0;
-  return 0 - rate * explainLump({ food: growthThreshold(ctx) }, ctx).total;
+  return 0 - rate * explainYields({ food: growthThreshold(ctx) }, ctx).total;
 }
 
 /**
@@ -8154,8 +8461,8 @@ function hexPasses(tile: Tile, on: TileCondition, ctx: ValueContext): boolean {
 }
 
 /**
- * **What one firing of a hex-bought rider pays on one hex at one price**, as a
- * per-turn figure (a lump through `explainLump`). The rider's tile test is the
+ * **What one firing of a hex-bought rider pays on one hex at one price**, in
+ * full, with no lump exchange (bot batch BP4). The rider's tile test is the
  * simulation's (`hexPasses`); the grant is composed in `windfallPayout`'s
  * order: a share of the price (`fromOccasion: 'gold'`), the row's ceiling, the
  * rounding down (`whole`), then the era and the council. Only a yield grant is
@@ -8182,7 +8489,7 @@ function hexRiderWorth(
   if (figure === 0) return 0;
   const bag: YieldBag = {};
   bag[grant.yield as Voice] = figure;
-  return explainLump(bag, ctx).total;
+  return explainYields(bag, ctx).total;
 }
 
 /**
@@ -8277,7 +8584,11 @@ export function hexPurchaseRiderTerm(
     worth += hexRiderWorth(effect, tile, price, ctx);
   }
   if (worth === 0) return null;
-  return { label: `what this seat’s cards pay once when it buys (${tile.col},${tile.row})`, value: worth };
+  // One purchase pays once, beside a hex that pays a turn: the lump exchange.
+  return {
+    label: `what this seat’s cards pay once when it buys (${tile.col},${tile.row})`,
+    value: worth / Math.max(1, ctx.ai.score.lumpTurns),
+  };
 }
 
 /**
@@ -10122,6 +10433,15 @@ function pressureGrantWorth(
   if (occasion === 'townConverted') return conversionLumpWorth(lump, ctx);
   if (occasion === 'death') return fallenLumpWorth(lump, ctx);
   return ctx.ai.score.unknownEffect;
+}
+
+/**
+ * Whether `pressureGrantWorth` prices a lump on this moment, rather than
+ * standing in for it (bot batch BP4, `windfallGrantWorth`'s two parts). Its
+ * three priced moments, and no other.
+ */
+function pressesPriced(occasion: WindfallOccasion | undefined): boolean {
+  return occasion === 'found' || occasion === 'townConverted' || occasion === 'death';
 }
 
 /**
@@ -12066,7 +12386,9 @@ function magisterialGoalForecast(
  * seat paid for (`paidHand`, The Second Sitting) pays nothing for a free one;
  * a yield scaled by the hand's price (The Unwritten Chapter's science) is the
  * share of this price, capped and rounded down as the row says, as a lump; any
- * other grant is its ordinary price (`windfallGrantWorth`).
+ * other grant is its ordinary price (`windfallGrantWorth`). A pass is one
+ * firing set beside the price of a card, which is a rate, so each grant goes
+ * through the lump exchange (`firingPerTurn`).
  *
  * A free hand (`freeDraft`) is not priced here. It is dealt at once, and what
  * it is worth is the expected best of the hand, which is the card appraisal
@@ -12099,9 +12421,9 @@ export function passRiderTerms(
       void _measure;
       void _max;
       void _whole;
-      worth = explainLump(bag, ctx).total + windfallGrantWorth(others, ctx, 'draftPassed') * times;
+      worth = explainLump(bag, ctx).total + firingPerTurn(windfallGrantWorth(others, ctx, 'draftPassed'), ctx) * times;
     } else {
-      worth = windfallGrantWorth(rest, ctx, 'draftPassed') * times;
+      worth = firingPerTurn(windfallGrantWorth(rest, ctx, 'draftPassed'), ctx) * times;
     }
     if (worth !== 0) terms.push({ label: `+ what ${source} pays when the hand is passed`, value: worth });
   }

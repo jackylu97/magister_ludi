@@ -275,7 +275,10 @@ describe('a price for each Expansionist shape of E9 to E12 (E13)', () => {
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const owned = ownedTiles(state, city).length;
-    const firing = valueOfYields({ food: 2 * (EXPANSIONIST.markBesideRing / owned) }, ctx);
+    // A mark pays a turn for the rest of the game, so one firing in full is that
+    // reading at the lump exchange read the other way (bot batch BP4).
+    const firing =
+      valueOfYields({ food: 2 * (EXPANSIONIST.markBesideRing / owned) }, ctx) * aiJson.score.lumpTurns;
     const rate = 1 / HORIZON;
     const pits = orderDef('theMarlPits' as OrderId).effects;
     expect(scoreEffects([pits[0]!], ctx)).toBe(firing * rate);
@@ -352,9 +355,10 @@ describe('the levy cards and the retired soldier read nought without a levy card
     // A soldier retired: this seat holds no army over what it wants and no
     // levy that raises one, so it forecasts no retirement (`retireRate`).
     expect(scoreEffects(rider('disband'), ctx)).toBe(0);
-    // Growth is: five growths in each of two towns, over twenty turns.
-    const lump = explainLump({ food: 1 * growthFood(6) }, ctx).total;
-    expect(scoreEffects(rider('growth'), ctx)).toBe(lump * (10 / 20));
+    // Growth is: five growths in each of two towns, over twenty turns. Each
+    // firing is the citizen's food in full (bot batch BP4).
+    const each = valueOfYields({ food: 1 * growthFood(6) }, ctx);
+    expect(scoreEffects(rider('growth'), ctx)).toBe(each * (10 / 20));
   });
 });
 
@@ -474,7 +478,8 @@ describe('the land’s Doctrines (batch DT12)', () => {
     const { state, player } = board(2, 40);
     const cost: CardEffect[] = [{ kind: 'rule', rule: 'trainedSettlerCostsCitizen' }];
     const ctx = valueContext(state, player);
-    const citizen = explainLump({ food: growthFood(6) }, ctx).total;
+    // The citizen's food in full, as the founding rider prices one (bot batch BP4).
+    const citizen = valueOfYields({ food: growthFood(6) }, ctx);
     expect(citizen).toBeGreaterThan(0);
     expect(scoreEffects(cost, ctx)).toBeCloseTo(-(2 / 40) * citizen, 8);
   });
@@ -567,7 +572,8 @@ describe('town counts on a hex, and the census (batch DT13)', () => {
     const { state, player } = board(3, 40);
     const rider = rowOf('theCensors');
     const ctx = valueContext(state, player);
-    const citizen = explainLump({ food: growthFood(6) }, ctx).total;
+    // Each firing in full, times the calendar's rate (bot batch BP4).
+    const citizen = valueOfYields({ food: growthFood(6) }, ctx);
     const rate = 2 / (RULES.census.min + RULES.census.max);
     expect(scoreEffects([rider], ctx)).toBeCloseTo(rate * citizen * 3, 8);
   });

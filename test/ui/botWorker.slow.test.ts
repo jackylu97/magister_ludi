@@ -12,6 +12,15 @@
  * called (the first on turn 50), 15 papers the person put to a bot, and 18
  * refusals in the deal memory.
  *
+ * Seed 26 again since bot batch BP4 (riders priced at full value, and the
+ * kill and capture rates read from each seat's war plans): 28 towns founded,
+ * 85 attacks, 45 deals put, 2 of them accepted and 43 refused, 3 great people
+ * called, 31 papers the person put to a bot, and 40 refusals in the deal
+ * memory. Seed 30 no longer calls a great person in sixty turns; the page and
+ * the worker still played it to the same log and the same digests. Of seeds 26
+ * to 45, eight reach all six command kinds (26, 27, 31, 35, 36, 39, 43 and 45),
+ * and seed 26 calls the most great people among them.
+ *
  * Seed 30 since batch BP1 of bot pass 3 (the threat count and the soldiers a
  * seat can pay for): 22 towns founded, 93 attacks, 20 deals put, 3 of them
  * accepted and 17 refused, 1 great person called, 9 papers the person put to a
@@ -51,7 +60,7 @@ import { dealMemorySize } from '../../src/ai/dealMemory';
 import { rosterFor } from '../../src/ui/gameSetup';
 import { playWithBotsThinking } from './botWorkerHelpers';
 
-const CONFIG = { seed: 30, sizeName: 'standard', players: rosterFor(6), barbarians: true };
+const CONFIG = { seed: 26, sizeName: 'standard', players: rosterFor(6), barbarians: true };
 const TURNS = 60;
 const PATIENCE = 15 * 60 * 1000;
 

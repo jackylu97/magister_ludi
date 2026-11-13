@@ -46,7 +46,6 @@ import {
   delayDiscount,
   explainLump,
   explainYields,
-  lumpOfPoints,
   valueOfYields,
   voiceWeight,
 } from '../../src/ai/prices';
@@ -897,15 +896,16 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     const rider = (grant: Record<string, unknown>): CardEffect[] => [
       { kind: 'windfallRider', occasion: 'tech', grant } as CardEffect,
     ];
+    // Each grant in full, times the rate: a rider takes no lump exchange (bot batch BP4).
     const next = renownThreshold(state, player) * ctx.ai.weights.renown;
-    expect(scoreEffects(rider({ greatPerson: 'scholar' }), ctx)).toBe(lumpOfPoints(next, ctx).total * rate);
+    expect(scoreEffects(rider({ greatPerson: 'scholar' }), ctx)).toBe(next * rate);
     const cost = techCostFor(ctx, 'bronzeWorking' as TechId);
     expect(
       scoreEffects(rider({ renown: 0.05, renownFamily: 'scholar', fromOccasion: 'techCost' }), ctx),
-    ).toBe(lumpOfPoints(0.05 * cost * ctx.ai.weights.renown, ctx).total * rate);
+    ).toBe(0.05 * cost * ctx.ai.weights.renown * rate);
     const journeymen = orderDef('theJourneymen' as OrderId).effects;
     expect(scoreEffects(journeymen, ctx)).toBe(
-      explainLump({ production: 3 }, ctx).total * 2 * 1 * 6 * rate,
+      valueOfYields({ production: 3 }, ctx) * 2 * 1 * 6 * rate,
     );
   });
 });

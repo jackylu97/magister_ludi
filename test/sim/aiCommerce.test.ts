@@ -304,14 +304,15 @@ describe('The Fondaci', () => {
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const rate = 1 / HORIZON + smoothed(1, COMMERCE.postsOverHorizon / HORIZON, state.turn);
-    // The grant reads the citizens of the town the next post is established in.
+    // The grant reads the citizens of the town the next post is established in,
+    // and each firing is priced in full, times the rate (bot batch BP4).
     const [science, culture] = effectsOf(FONDACI);
     expect(scoreEffects([science!], ctx)).toBeCloseTo(
-      rate * explainLump({ science: 20 * theirs.population }, ctx).total,
+      rate * valueOfYields({ science: 20 * theirs.population }, ctx),
       10,
     );
     expect(scoreEffects([culture!], ctx)).toBeCloseTo(
-      rate * explainLump({ culture: 20 * theirs.population }, ctx).total,
+      rate * valueOfYields({ culture: 20 * theirs.population }, ctx),
       10,
     );
   });
@@ -322,7 +323,7 @@ describe('The Fondaci', () => {
     const rate = smoothed(0, COMMERCE.postsOverHorizon / HORIZON, state.turn);
     const [science] = effectsOf(FONDACI);
     expect(scoreEffects([science!], ctx)).toBeCloseTo(
-      rate * explainLump({ science: 20 * 6 }, ctx).total,
+      rate * valueOfYields({ science: 20 * 6 }, ctx),
       10,
     );
   });
@@ -349,7 +350,7 @@ describe('the card-drafted moment', () => {
       grant: { yield: 'gold', amount: 15 },
     };
     const price = scoreEffects([rider], ctx);
-    expect(price).toBeCloseTo(rate * explainLump({ gold: 15 }, ctx).total, 10);
+    expect(price).toBeCloseTo(rate * valueOfYields({ gold: 15 }, ctx), 10);
     expect(price).toBeGreaterThan(0);
   });
 });
@@ -437,7 +438,8 @@ describe('Land Speculation', () => {
     const ctx: ValueContext = { ...base, wants: { ...base.wants, gold: [] } };
     const owned = ownedTiles(state, towns[0]!).length;
     const price = RULES.cities.tilePurchase.ringBase[0]!;
-    const each = explainLump({ culture: Math.floor(0.5 * price) }, ctx).total;
+    // One firing in full, with no lump exchange (bot batch BP4).
+    const each = valueOfYields({ culture: Math.floor(0.5 * price) }, ctx);
     // The four bought, with the table's cautious default for the prior's turns.
     const prior = aiJson.score.commission.priorTurns;
     const fallback =
