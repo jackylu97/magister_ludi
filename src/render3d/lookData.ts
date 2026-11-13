@@ -2344,7 +2344,7 @@ export interface VisualTestSpec {
     ruledLift: number; washWidth: number; washAlpha: number; inkWidth: number;
   };
   /** Also: `onTop` draws every pin over the scene; `shield` gives the strategic pin its taller shield; `markScale` sets every resource mark back from its rim, and `shieldMarkScale`, `shieldMarkLift` place the mark on the shield. */
-  pins: { nearPixels: number; farPixels: number; farScale: number; improvedScale: number; improvedFade: number; fadeTo: string; onTop: boolean; shield: boolean; markScale: number; shieldMarkScale: number; shieldMarkLift: number };
+  pins: { nearPixels: number; farPixels: number; farScale: number; improvedScale: number; improvedFade: number; fadeTo: string; onTop: boolean; smooth: boolean; badgeTrim: number; shield: boolean; markScale: number; shieldMarkScale: number; shieldMarkLift: number };
   clouds: { scale: number; speed: number; cover: number; softness: number; strength: number };
   idle: {
     bobHeight: number; bobSpeed: number; bobRoll: number;

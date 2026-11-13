@@ -180,6 +180,7 @@ import {
   badgeCenterY,
   badgeDiameter,
   hpBarY,
+  badgeRimInnerFraction,
 } from './badges3d';
 import {
   type BoardGeometry,
@@ -1436,11 +1437,37 @@ export class UnitLayer {
         geometry.badgeRim,
         [rimColor],
         new Matrix4().compose(front, faceCamera, size),
-        // The rim travels with its disc: same draw order, so the two halves of
-        // one badge can never end up on opposite sides of a ring.
-        { overlay: true, opacity: 1, order: RENDER_ORDER.badge },
+        // The rim is drawn just before its disc, always. With the same draw
+        // order the two were sorted by distance, bucket against bucket, so on
+        // some pieces the disc's paper covered the inner part of the rim and
+        // on others it did not: thin rims and thick rims on one board (the
+        // user, 2026-11-13: "some of the banner strokes are thick while others
+        // are thin"). Still inside the badge's own step, so no ring comes between.
+        { overlay: true, opacity: 1, order: RENDER_ORDER.badge - (VIEW3D.visualTest.northStar ? .4 : 0) },
       ),
     );
+    // Both of a seat's colours (the user, 2026-11-13: unit icons "should have
+    // both leader colors"): a second, thinner ring in the seat's trim, just
+    // inside the rim. It is the rim's own ring, made smaller, a second nudge
+    // toward the camera. The wild has one colour and gets no second ring.
+    const second = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.pins.badgeTrim : 0;
+    if (second > 0 && !wild) {
+      // Its outer edge meets the part of the rim that shows: the disc's paper covers `paperOverlap` of the rim's width from the inside.
+      const inner = 1 - (1 - badgeRimInnerFraction()) * (1 - BADGE.paperOverlap);
+      const trimSize = new Vector3(badgeDiameter() * inner, badgeDiameter() * inner, 1);
+      const nearer = anchor
+        .clone()
+        .addScaledVector(new Vector3(0, 0, 1).applyQuaternion(faceCamera), RIM_NUDGE * 2);
+      slots.push(
+        collector.add(
+          geometry.badgeTrim,
+          [unitTrimColor(state, unit)],
+          new Matrix4().compose(nearer, faceCamera, trimSize),
+          // After the disc, so the paper never covers it.
+          { overlay: true, opacity: 1, order: RENDER_ORDER.badge + .4 },
+        ),
+      );
+    }
   }
 
   /**

@@ -904,7 +904,9 @@ describe('badges in the units layer', () => {
     expect(disc.renderOrder).toBe(RENDER_ORDER.badge);
     // Both halves of one badge travel together, or a ring could land between
     // the parchment and the ring of player colour around it.
-    expect(rim.renderOrder).toBe(RENDER_ORDER.badge);
+    // The rim is drawn just before its disc, inside the badge's own step, so the disc's paper covers the same part of the rim on every piece.
+    expect(rim.renderOrder).toBeLessThan(RENDER_ORDER.badge);
+    expect(rim.renderOrder).toBeGreaterThan(RENDER_ORDER.badge - 1);
     // A backing and a fill, both over the disc they are stacked on — and the
     // fill above its own backing, which is its own number (see `RENDER_ORDER`).
     expect(bars).toHaveLength(2);

@@ -535,7 +535,7 @@
       "warElephant": "warElephant"
     },
     "selectedRimShade": 0.3,
-    "atlasCell": 128,
+    "atlasCell": 256,
     "atlasColumns": 4,
     "iconScale": 0.66,
     "alphaTest": 0.5,
@@ -1287,6 +1287,8 @@
       "improvedFade": 0.55,
       "fadeTo": "#b9b2a0",
       "onTop": true,
+      "smooth": true,
+      "badgeTrim": 0.07,
       "shield": true,
       "markScale": 0.92,
       "shieldMarkScale": 0.84,

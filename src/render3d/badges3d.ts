@@ -2467,6 +2467,7 @@ export class TileIcons {
       map: texture,
       transparent: false,
       alphaTest: ICONS.alphaTest,
+      alphaToCoverage: !!VIEW3D.visualTest.northStar && VIEW3D.visualTest.pins.smooth,
       // The camera is fixed in front of every marker, but a quad that vanished
       // because it ended up back-facing is a costly bug — `UnitBadges` makes the
       // same trade for the same reason.
@@ -2758,6 +2759,10 @@ export class UnitBadges {
     return new MeshBasicMaterial({
       map,
       ...badgeDiscFlags(),
+      // The cutout's edge is smoothed by the frame's multisampling (the user,
+      // 2026-11-13: "i can see individual pixels"). An alpha test alone gives a
+      // hard, stepped edge; alpha to coverage lets each sample decide.
+      alphaToCoverage: !!VIEW3D.visualTest.northStar && VIEW3D.visualTest.pins.smooth,
       // The camera is fixed in front of every badge, but a quad that vanished
       // because it ended up back-facing is a costly bug for two pixels of save.
       side: DoubleSide,

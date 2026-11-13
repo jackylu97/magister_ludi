@@ -391,6 +391,9 @@ export class Renderer3D implements MapView {
   /** The sea as a mirror (`seaMirror.ts`): made on the first frame that wants it. `mirrorOn` is the scene page's switch. */
   private seaMirror: SeaMirror | null = null;
   mirrorOn = true;
+  /** The board's meshes that stay out of the mirror, and the board they were listed for. */
+  private mirrorBoardHidden: Object3D[] = [];
+  private mirrorBoardFor: unknown = null;
   /** The scene page's `mirror=all`: the whole scene reflects, whatever the data says. */
   mirrorAll = false;
   /** Stops listening to the visual test switches. */
@@ -4157,7 +4160,16 @@ export class Renderer3D implements MapView {
         // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
         const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
           this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
-        const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [this.board?.group, this.roads.group,
+        // Of the board itself only the stones reflect, so the rocks off the coast have a reflection (the user, 2026-11-13) and the ground costs nothing. The list is made once for each board.
+        if (this.mirrorBoardFor !== this.board) {
+          this.mirrorBoardFor = this.board;
+          this.mirrorBoardHidden = [];
+          this.board?.group.traverse(object => {
+            const mesh = object as { isMesh?: boolean; userData: { paintedFamily?: string } };
+            if (mesh.isMesh && !/^limestone$/.test(mesh.userData.paintedFamily ?? '')) this.mirrorBoardHidden.push(object);
+          });
+        }
+        const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
           this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
           this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group];
         this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground]);

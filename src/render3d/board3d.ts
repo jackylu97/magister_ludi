@@ -1160,6 +1160,8 @@ export class BoardGeometry {
    */
   readonly badgeIcons: Record<BadgeClass, BufferGeometry>;
   readonly badgeRim: BufferGeometry;
+  /** The second ring of a unit's badge, in the seat's trim: thinner than the rim and drawn just inside it (`visualTest.pins.badgeTrim` is its width as a share of its own radius). */
+  readonly badgeTrim: BufferGeometry;
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
   readonly houseRoof: BufferGeometry;
@@ -1417,6 +1419,7 @@ export class BoardGeometry {
     this.pieces = buildUnitPieces();
     this.badgeIcons = buildBadgeQuads();
     this.badgeRim = discRing(badgeRimInnerFraction(), VIEW3D.badges.rimSegments);
+    this.badgeTrim = discRing(1 - Math.max(.01, VIEW3D.visualTest.pins.badgeTrim), VIEW3D.badges.rimSegments * 2);
     this.houseBody = cityHouseBody(CITY.house);
     this.houseRoof = cityHouseRoof(CITY.house);
     this.houseGableRoof = cityGableRoof({ ...CITY.house, ...CITY.gable });
@@ -1516,6 +1519,7 @@ export class BoardGeometry {
     for (const piece of Object.values(this.pieces)) piece.geometry.dispose();
     for (const quad of Object.values(this.badgeIcons)) quad.dispose();
     this.badgeRim.dispose();
+    this.badgeTrim.dispose();
     this.houseBody.dispose();
     this.houseRoof.dispose();
     this.houseGableRoof.dispose();
