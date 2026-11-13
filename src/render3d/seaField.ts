@@ -222,7 +222,8 @@ export function createSeaField(map: SeaMap, options: { shoreReach: number; edgeR
       const values = new Float32Array(position.count * 3);
       // With a free coast, the only sea on a land hex is its own water sheet
       // (`coastWater` marks it). Any other water there is a river's, and keeps the river's paint.
-      const river = !!coast && !isWater(tile) && !geometry.userData.seaSheet;
+      // So does a piece that carries its own colour, such as the foam ring round a rock (`keepPaint`).
+      const river = !!geometry.userData.keepPaint || (!!coast && !isWater(tile) && !geometry.userData.seaSheet);
       for (let i = 0; i < position.count; i++) values.set(river ? [RIVER, -edgeReach, 0] : sample(tile, position.getX(i), position.getZ(i)), i * 3);
       // The water painter's brushed coast-to-ocean edge, where it marked the
       // fragments: a fragment's kind decides which side of the edge it is on,

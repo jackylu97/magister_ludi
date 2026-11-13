@@ -2361,8 +2361,19 @@ export interface VisualTestSpec {
     sand: string; wetSand: string; wet: number; sandOver: number; sandLift: number;
     /** The sea's distances as a picture of the map (`seaDistances.js`): grid points to a hex unit, and how far each distance is measured. A river's outflow runs from `mouthBack` up the river to `mouthOut` out to sea, and `mouthTaper` narrows its far end, or widens it when negative. */
     field: { texels: number; shoreReach: number; shelfReach: number; mouthReach: number; mouthBack: number; mouthOut: number; mouthTaper: number };
-    /** The smooth line between coast and ocean hexes: its own `relax`, `relaxLength`, `wander`, `wanderWave` and `shift`; how far the colour step wanders in the paint (`wander` again); and how far out the ocean deepens (`deepOut`, `deepWander`). */
-    shelf: { step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number; deepOut: number; deepWander: number };
+    /** The smooth line between coast and ocean hexes: its own `relax`, `relaxLength`, `wander`, `wanderWave` and `shift`; and how far the colour step wanders in the paint (`wander` again). */
+    shelf: { step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number };
+    /**
+     * The open sea after A Short Hike: `shelfFine` is how far the edge between
+     * coast and ocean leans on the open water's shapes; `scallop` and `scallopScale` make
+     * the band at the shore uneven; `scale` and `drift` are the size and speed
+     * of the loose shapes; `levels` are the three noise values their outlines
+     * run on; `light` and `dark` are the two tones inside them, `line` and
+     * `lineWidth` their outline; `ripples` is how much of the old pale dashes stays.
+     */
+    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number };
+    /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */
+    rocks: { share: number; most: number; near: number; far: number; size: number; sizeVary: number; ring: number; ringWidth: number };
     /** A river mouth: the half width of the channel that runs out along the outflow, how round the corner is where it joins the open water (`round`), how much its edge wanders, and how far the foam line and the sand stay back. */
     mouth: { plume: number; wander: number; round: number; gap: number };
     bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };

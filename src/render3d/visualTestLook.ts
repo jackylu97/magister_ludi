@@ -26,7 +26,7 @@ const VT = VIEW3D.visualTest;
 const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
-const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth;
+const shelfBands = VT.coast.shelf, mouthBands = VT.coast.mouth, open = VT.coast.open;
 
 /** The shared uniforms. One object for every program, so a write reaches all of them. */
 export const VTEST_UNIFORMS = {
@@ -230,11 +230,15 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
 // blue. Every edge is a crisp step, and two slow noises make each step wander,
 // so none of them copies the hex line. Coast and ocean meet in a step with a
 // drawn pale line on the coast side, which keeps the two kinds of hex apart.
+float vtestSeaContour(vec2 q) {
+  return vtestNoise(q) * .62 + vtestNoise(q * 2.3 + vec2(5.2, 1.3)) * .38;
+}
 vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float shore = max(water.x, 0.0), deep = water.z;
   float slow = vtestNoise(p * 1.7) - .5, fine = vtestNoise(p * 4.3 + 3.7) - .5;
   vec3 paint;
-  float mouth = 9.0;
+  float mouth = 9.0, free = 0.0, cn = 0.0;
+  vec2 cq = vec2(0.0);
   if (vtestSeaFieldOn > .5) {
     // A free coast: the distances come from the picture of the map, so every
     // band's edge is a smooth curve (seaDistances.js). Coast and ocean meet on
@@ -242,12 +246,14 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     vec4 field = texture2D(vtestSeaField, (p - vtestSeaFieldShape.xy) * vtestSeaFieldShape.zw);
     shore = max(field.r, 0.0);
     mouth = field.b;
-    float shelf = field.g + (vtestNoise(p * .45) - .5) * ${shelfBands.wander.toFixed(3)};
+    // One loose edge between the coast's blue and the ocean's, with no drawn line and no second step (after A Short Hike).
+    // The edge leans on the same noise as the open water's shapes, so it runs along them and not across them.
+    cq = p * ${open.scale.toFixed(3)} + vec2(time * ${open.drift.toFixed(4)}, time * ${(open.drift * .4).toFixed(4)});
+    cn = vtestSeaContour(cq);
+    float shelf = field.g + (vtestNoise(p * .45) - .5) * ${shelfBands.wander.toFixed(3)} + (cn - .5) * ${open.shelfFine.toFixed(3)};
     float width = fwidth(shelf) * 1.2 + 1e-4;
     paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(-width, width, shelf));
-    paint = mix(paint, vtestSeaDeep, smoothstep(-width, width, shelf - ${shelfBands.deepOut.toFixed(3)} - (vtestNoise(p * .31 + 5.0) - .5) * ${shelfBands.deepWander.toFixed(3)}));
-    float drawn = 1.0 - smoothstep(0.0, width * 2.0, abs(shelf + ${bands.stepLine.toFixed(4)}) - ${bands.stepLine.toFixed(4)} * .5);
-    paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
+    free = 1.0;
   } else {
     float wobble = (vtestNoise(p * .45) - .5) * 1.0 + (vtestNoise(p * 1.3 + 4.1) - .5) * .25;
     float t = clamp((deep - .55 + wobble) / max(vtestSeaShape.y, 1e-3), 0.0, 1.0);
@@ -259,11 +265,30 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     paint = mix(paint, vtestSeaShelfLine, drawn * ${bands.stepLineStrength.toFixed(3)});
   }
   if (deep < 0.0) paint = vtestSeaLake;
+  // The open water (after A Short Hike): large loose shapes in close blues,
+  // each with a thin lighter outline, that drift slowly and follow nothing.
+  // They are the level lines of a slow noise. The distance to a level is the
+  // difference in value over the noise's slope, so a line keeps one width.
+  if (free > .5) {
+    float slope = length(vec2(vtestSeaContour(cq + vec2(.03, 0.0)) - cn, vtestSeaContour(cq + vec2(0.0, .03)) - cn)) / .03 * ${open.scale.toFixed(3)};
+    float pixel = fwidth(p.x) + fwidth(p.y) + 1e-4;
+    vec3 line = mix(paint, vtestSeaShallow, ${open.line.toFixed(3)});
+    vec3 light = mix(paint, vtestSeaShallow, ${open.light.toFixed(3)}), dark = paint * ${open.dark.toFixed(3)};
+    float d1 = (cn - ${open.levels[0]!.toFixed(3)}) / max(slope, .05), d2 = (cn - ${open.levels[1]!.toFixed(3)}) / max(slope, .05), d3 = (cn - ${open.levels[2]!.toFixed(3)}) / max(slope, .05);
+    paint = mix(paint, light, smoothstep(-pixel, pixel, d1));
+    paint = mix(paint, dark, smoothstep(-pixel, pixel, d2));
+    paint = mix(paint, light, smoothstep(-pixel, pixel, d3));
+    float drawn = max(max(1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d1)), 1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d2))),
+      1.0 - smoothstep(${open.lineWidth.toFixed(4)} - pixel, ${open.lineWidth.toFixed(4)} + pixel, abs(d3)));
+    paint = mix(paint, line, drawn);
+  }
   float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
   float soft = fwidth(shore) * 1.2 + 1e-4;
   // Shallows, with a pale drawn line at their outer edge.
   // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
   float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
+  // With a free coast the band at the shore is the only band, so its width is uneven at a second, smaller size.
+  outer += free * (vtestNoise(p * ${open.scallopScale.toFixed(3)} + 2.0) - .5) * ${open.scallop.toFixed(3)};
   // At a river mouth the river's channel runs out through the shallows to the
   // open water. The channel is joined to the open water with a rounded corner,
   // so the shallows and their drawn line turn in along it and meet the river's
@@ -296,7 +321,7 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float life = smoothstep(.2, 1.0, .5 + .5 * sin(time * .5 + pick * 60.0));
   float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
   float ripple = step(.80, pick) * stroke * life * smoothstep(${(bands.shallows + .1).toFixed(3)}, ${(bands.shallows + .4).toFixed(3)}, shore);
-  paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x);
+  paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x * mix(1.0, ${open.ripples.toFixed(3)}, free));
   return paint;
 }
 `,

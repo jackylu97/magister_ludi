@@ -89,7 +89,7 @@ for(const [kind,m]of Object.entries(ground)){const water=['coast','ocean','lake'
  float streak=step(.93,wave)*step(.3,sin(p.x*4.0+p.y));
  diffuseColor.rgb *= 1.0+(vtestSea>.5?0.0:streak*.045) + sin(p.x*1.4+p.y*.65)*sin(p.y*1.6)*.008;
  ${SEA_GLSL.fragment}`:''}
- `)};m.customProgramCacheKey=()=>water?'study-water-v3:vtest-v10':'study-land-v3:tiles'}
+ `)};m.customProgramCacheKey=()=>water?'study-water-v3:vtest-v12':'study-land-v3:tiles'}
 
 const mergedLand=mat('#ffffff'),mergedWater=mat('#ffffff'),mergedDetails=mat('#ffffff');
 for(const [m,source]of [[mergedLand,ground.grassland],[mergedWater,ground.ocean]]){m.vertexColors=true;m.onBeforeCompile=source.onBeforeCompile;m.customProgramCacheKey=source.customProgramCacheKey}

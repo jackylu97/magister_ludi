@@ -1,4 +1,4 @@
-import {Color} from 'three';
+import {BufferGeometry, Color, Float32BufferAttribute} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {centre, isWater, neighbour, terrainMapWraps, coastAt, COAST_STRIDE, LAND_LEVEL, WATER_LEVEL} from '../terrainStudy/surface.js';
 import {surfacePatch} from '../terrainStudy/surfacePatch.js';
@@ -260,7 +260,54 @@ export function createFreeCoast(map, knobs, mouths = [], inside = tile => !isWat
   return (isWater(tile) ? 1 : -1) * Math.sqrt(best);
  }
 
- return {carve, sand: sandOn, distance, near, period, lineCount: lines.length, pieceCount: pieces.length, stride: COAST_STRIDE};
+ const foam = new Color(knobs.foam ?? '#f6fcf7');
+ /**
+  * The rocks that stand off the coast on one water hex (after A Short Hike and
+  * Islanders, where rocks in the water break the shoreline): `{x, z, size,
+  * seed}` in the hex's own coordinates. They keep clear of the hex's middle,
+  * where a ship stands.
+  */
+ function rocksOn(tile) {
+  const rocks = knobs.rocks;
+  if (!tile.coast || !isWater(tile) || tile.terrain === 'lake' || hashUnit(tile.col, tile.row, 1600) > rocks.share) return [];
+  const found = [], count = 1 + Math.floor(hashUnit(tile.col, tile.row, 1601) * rocks.most);
+  for (let i = 0; i < 12 && found.length < count; i++) {
+   const a = hashUnit(tile.col, tile.row, 1610 + i) * Math.PI * 2, r = .4 + hashUnit(tile.col, tile.row, 1630 + i) * .42;
+   const x = Math.cos(a) * r, z = Math.sin(a) * r, edge = -coastAt(tile, x, z).edge;
+   if (edge < rocks.near || edge > rocks.far) continue;
+   const seed = hashUnit(tile.col, tile.row, 1650 + i);
+   if (found.some(other => Math.hypot(other.x - x, other.z - z) < .2)) continue;
+   found.push({x, z, seed, size: rocks.size * (1 - rocks.sizeVary * .5 + rocks.sizeVary * seed)});
+  }
+  return found;
+ }
+ /** A flat, uneven ring of foam on the water round a rock, in world coordinates. It keeps its own colour (`seaField.ts`). */
+ function foamRing(x, z, size, seed) {
+  const rocks = knobs.rocks, positions = [], colors = [], steps = 14;
+  const rim = k => {
+   const a = k / steps * Math.PI * 2, wobble = 1 + .16 * Math.sin(a * 3 + seed * 20) + .08 * Math.sin(a * 5 + seed * 7);
+   const inner = size * rocks.ring * wobble, outer = inner + rocks.ringWidth * (.6 + .8 * Math.abs(Math.sin(a * 2 + seed * 11)));
+   return [[x + Math.cos(a) * inner, z + Math.sin(a) * inner], [x + Math.cos(a) * outer, z + Math.sin(a) * outer]];
+  };
+  for (let k = 0; k < steps; k++) {
+   const [a0, a1] = rim(k), [b0, b1] = rim(k + 1);
+   for (const [px, pz] of [a0, b0, a1, a1, b0, b1]) { positions.push(px, WATER_LEVEL + .003, pz); colors.push(foam.r, foam.g, foam.b); }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+  // The ring may come out facing down; the water's material draws one side.
+  if (geometry.getAttribute('normal').getY(0) < 0) {
+   const p = geometry.getAttribute('position');
+   for (let i = 0; i < p.count; i += 3) { const [bx, by, bz] = [p.getX(i + 1), p.getY(i + 1), p.getZ(i + 1)]; p.setXYZ(i + 1, p.getX(i + 2), p.getY(i + 2), p.getZ(i + 2)); p.setXYZ(i + 2, bx, by, bz); }
+   geometry.computeVertexNormals();
+  }
+  geometry.userData.pigmentBaked = true; geometry.userData.keepPaint = true;
+  return geometry;
+ }
+
+ return {carve, sand: sandOn, rocks: rocksOn, foamRing, distance, near, period, lineCount: lines.length, pieceCount: pieces.length, stride: COAST_STRIDE};
 }
 
 function smooth(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / Math.max(1e-6, b - a))); return t * t * (3 - 2 * t); }

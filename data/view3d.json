@@ -1346,9 +1346,30 @@
         "relaxLength": 30,
         "wander": 0.16,
         "wanderWave": 6.1,
-        "shift": 0,
-        "deepOut": 1.7,
-        "deepWander": 0.5
+        "shift": 0
+      },
+      "open": {
+        "shelfFine": 1.3,
+        "scallop": 0.16,
+        "scallopScale": 2.4,
+        "scale": 0.55,
+        "drift": 0.012,
+        "levels": [0.47, 0.58, 0.7],
+        "light": 0.11,
+        "dark": 0.94,
+        "line": 0.4,
+        "lineWidth": 0.011,
+        "ripples": 0.35
+      },
+      "rocks": {
+        "share": 0.3,
+        "most": 3,
+        "near": 0.16,
+        "far": 0.5,
+        "size": 0.16,
+        "sizeVary": 0.6,
+        "ring": 0.56,
+        "ringWidth": 0.05
       },
       "mouth": {
         "plume": 0.13,
@@ -1360,7 +1381,9 @@
         "sand": 0.035,
         "sandVary": 0.5,
         "wander": 0.035,
-        "lap": 0.022
+        "lap": 0.022,
+        "shallows": 0.36,
+        "shallowsWander": 0.3
       }
     },
     "organicRivers": {

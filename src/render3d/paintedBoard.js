@@ -427,6 +427,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
             if (sand) push(ground.desert, sand);
           }
           apron.dispose();
+          // Rocks off the coast, each with a ring of foam on the water.
+          const at = centre(t);
+          for (const rock of freeCoast.rocks(t)) {
+            const s = rock.size * 2.4;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + rock.x, .04 - s * .06, at.z + rock.z, s, s * (.7 + rock.seed * .5), s * .9, rock.seed * 6.28, new T.Color('#b9b3a6'));
+            push(water.river, freeCoast.foamRing(at.x + rock.x, at.z + rock.z, s, rock.seed), undefined, CLUTTER);
+          }
         }
         waterDetails(t, renderMap, push, water);
         if (riverRibbon) {
