@@ -44,6 +44,10 @@ export const VTEST_UNIFORMS = {
   /** rimInShade, shadeDeepen. */
   vtestShade: { value: new Vector2(rimLight.rimInShade, rimLight.shadeDeepen) },
   vtestShadeTint: { value: new Vector3(...rimLight.shadeTint) },
+  /** Switch 12. 1 while things that stand up take a tone by height. */
+  vtestGradient: { value: 1 } as IUniform<number>,
+  /** foot, top, span. */
+  vtestGradientShape: { value: new Vector3(VT.gradient.foot, VT.gradient.top, VT.gradient.span) },
   /** The resource pins' size, from the zoom. Written by the renderer when the zoom changes. */
   vtestPinScale: { value: 1 } as IUniform<number>,
   /** The board's wrap period in world units, so the cloud pattern repeats exactly once a map width. */
@@ -99,6 +103,7 @@ export function syncVisualUniforms(state: VisualTestState = visualTest()): void 
   VTEST_UNIFORMS.vtestIdle.value = state.idle ? 1 : 0;
   VTEST_UNIFORMS.vtestLight.value = state.light ? 1 : 0;
   VTEST_UNIFORMS.vtestTiles.value = state.tiles ? 1 : 0;
+  VTEST_UNIFORMS.vtestGradient.value = state.gradient ? 1 : 0;
 }
 syncVisualUniforms();
 
@@ -325,7 +330,7 @@ export function pinScaleFor(pixelsPerHex: number): number {
 
 // --- 10. rim light and a deeper cool shade -----------------------------------
 
-export const LIGHT_UNIFORMS: readonly UniformName[] = ['vtestLight', 'vtestRim', 'vtestShade', 'vtestShadeTint'];
+export const LIGHT_UNIFORMS: readonly UniformName[] = ['vtestLight', 'vtestRim', 'vtestShade', 'vtestShadeTint', 'vtestGradient', 'vtestGradientShape'];
 
 /**
  * Two small terms in the painterly shading (`painterly.js` splices them in):
@@ -339,6 +344,12 @@ export const LIGHT_UNIFORMS: readonly UniformName[] = ['vtestLight', 'vtestRim',
  */
 export const LIGHT_GLSL = {
   head: declareUniforms(LIGHT_UNIFORMS),
+  /**
+   * Switch 12, before the pigment is read: a thing is darker at its foot and
+   * lighter at its top, as in the reference games. `paintFoot` is the world
+   * height of the thing's own origin.
+   */
+  gradient: 'if (vtestGradient > .5) diffuseColor.rgb *= mix(vtestGradientShape.x, vtestGradientShape.y, smoothstep(0.0, vtestGradientShape.z, paintPosition.y - paintFoot));\n',
   /** After `shadowPaint` is computed. */
   shade: 'if (vtestLight > .5) shadowPaint *= vtestShade.y * vtestShadeTint;\n',
   /** After `outgoingLight` is composed; `light` is the sun term, `visible` the cast shadow. */

@@ -81,6 +81,44 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
        if(studyAOIntensity>0.0)gl_FragColor.rgb*=mix(vec3(1.0),mix(studyAOTint,vec3(1.0),texture2D(studyAO,vUv).rgb),studyAOIntensity);`
     );
   }
+  // Switches 13 and 14 of the visual test version live in the output step, so
+  // neither adds a pass: a blur that grows toward the top and bottom of the
+  // screen (the miniature look), and a final colour grade.
+  const grade=VIEW3D.visualTest.grade,mini=VIEW3D.visualTest.miniature;
+  Object.assign(output.uniforms,{vtestGradeOn:{value:0},vtestMiniOn:{value:0},
+    vtestGrade:{value:[grade.contrast,grade.saturation,grade.warm,grade.vignette]},
+    vtestHaze:{value:[...new Color(grade.haze).convertLinearToSRGB().toArray(),grade.hazeStrength]},
+    vtestMini:{value:[mini.focus,mini.blur]},vtestTexel:{value:[0,0]}});
+  output.material.fragmentShader=output.material.fragmentShader.replace('uniform sampler2D tDiffuse;',
+    'uniform sampler2D tDiffuse;\nuniform float vtestGradeOn;\nuniform float vtestMiniOn;\nuniform vec4 vtestGrade;\nuniform vec4 vtestHaze;\nuniform vec2 vtestMini;\nuniform vec2 vtestTexel;');
+  output.material.fragmentShader=output.material.fragmentShader.replace(
+    'gl_FragColor = texture2D( tDiffuse, vUv );',
+    `gl_FragColor = texture2D( tDiffuse, vUv );
+     if(vtestMiniOn>.5){
+      float away=smoothstep(vtestMini.x,1.0,abs(vUv.y-.5)*2.0);
+      if(away>0.0){
+       vec2 texel=vtestMini.y*away*vtestTexel;
+       vec4 sum=gl_FragColor;
+       for(int i=0;i<12;i++){
+        float a=float(i)*2.39996,r=sqrt((float(i)+.5)/12.0);
+        sum+=texture2D(tDiffuse,vUv+vec2(cos(a),sin(a))*r*texel);
+       }
+       gl_FragColor=sum/13.0;
+      }
+     }`);
+  const end=output.material.fragmentShader.lastIndexOf('}');
+  output.material.fragmentShader=output.material.fragmentShader.slice(0,end)+`
+     if(vtestGradeOn>.5){
+      vec3 c=clamp(gl_FragColor.rgb,0.0,1.0);
+      c=mix(c,c*c*(3.0-2.0*c),vtestGrade.x);
+      float l=dot(c,vec3(.2126,.7152,.0722));
+      c=mix(vec3(l),c,vtestGrade.y);
+      c+=(l-.5)*vec3(vtestGrade.z,vtestGrade.z*.3,-vtestGrade.z);
+      c=mix(c,vtestHaze.rgb,vtestHaze.a*smoothstep(.55,1.0,vUv.y));
+      vec2 q=vUv-.5;c*=1.0-vtestGrade.w*smoothstep(.25,.75,dot(q,q)*2.0);
+      gl_FragColor.rgb=c;
+     }
+  }`;
   composer.addPass(output);
   return {
     render() {
@@ -92,11 +130,13 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
        if(fused)output.uniforms.studyAOTint.value.set(grounded?ground.tint:'#000000')}
       const strength=grounded?ground.intensity:contact.blendIntensity;
       if(fused)output.uniforms.studyAOIntensity.value=contact.enabled?strength*contactScale:0;
+      output.uniforms.vtestGradeOn.value=visualOn('grade')?1:0;output.uniforms.vtestMiniOn.value=visualOn('miniature')?1:0;
       composer.render();
     },
     resize(width, height) {
       composer.setPixelRatio(renderer.getPixelRatio());
       composer.setSize(width, height);
+      const ratio=renderer.getPixelRatio();output.uniforms.vtestTexel.value=[1/Math.max(1,width*ratio),1/Math.max(1,height*ratio)];
     },
     setContact(enabled) { contactRequested = enabled; },
     getContact() { return contactRequested; },

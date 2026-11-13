@@ -2,7 +2,7 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
-import {NORTH_STAR_TREES} from './northStarTrees.js';
+import {NORTH_STAR_TREES,NORTH_STAR_ROCK} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
 // two cypresses, three escarpments, then the limestone block. `family` is the
@@ -297,12 +297,12 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
     shader.vertexShader='attribute float rangeFoot;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <color_vertex>',`#include <color_vertex>
       #ifdef USE_INSTANCING_COLOR
-      vec3 stonePigment=vColor.xyz/max(instanceColor,vec3(.001));
+      vec3 stonePigment=vColor.xyz/max(instanceColor,vec3(.001))${NORTH_STAR_ROCK?`*vec3(${NORTH_STAR_ROCK.map(v=>v.toFixed(3)).join(',')})`:''};
       vColor.xyz=mix(stonePigment,instanceColor,rangeFoot);
       #endif
     `);
   };
-  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v1';
+  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v1'+(NORTH_STAR_ROCK?NORTH_STAR_ROCK.join():'');
   foliageMaterial.onBeforeCompile=shader=>{
     shader.uniforms.groveTime=time;
     shader.vertexShader='uniform float groveTime; attribute float canopyWeight;\n'+shader.vertexShader;

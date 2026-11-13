@@ -33,15 +33,20 @@ export function createPainterlyStyle(renderer,lighting,grain) {
    shader.uniforms.paintGrain={value:grain};
    shader.uniforms.paintPaperAmount=paperAmount;
    Object.assign(shader.uniforms,uniforms);shareUniforms(shader,LIGHT_UNIFORMS);
-   shader.vertexShader='varying vec3 paintPosition;\n'+shader.vertexShader;
+   shader.vertexShader='varying vec3 paintPosition; varying float paintFoot;\n'+shader.vertexShader;
    shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
     vec4 paintWorld=vec4(transformed,1.0);
     #ifdef USE_INSTANCING
      paintWorld=instanceMatrix*paintWorld;
     #endif
     paintPosition=(modelMatrix*paintWorld).xyz;
+    vec4 paintOrigin=vec4(0.0,0.0,0.0,1.0);
+    #ifdef USE_INSTANCING
+     paintOrigin=instanceMatrix*paintOrigin;
+    #endif
+    paintFoot=(modelMatrix*paintOrigin).y;
    `);
-   shader.fragmentShader=declarations+'\n'+LIGHT_GLSL.head+'\nvarying vec3 paintPosition; uniform sampler2D paintGrain; uniform float paintPaperAmount;\n'+shader.fragmentShader;
+   shader.fragmentShader=declarations+'\n'+LIGHT_GLSL.head+'\nvarying vec3 paintPosition; varying float paintFoot; uniform sampler2D paintGrain; uniform float paintPaperAmount;\n'+shader.fragmentShader;
    shader.fragmentShader=shader.fragmentShader.replace('#include <shadowmap_pars_fragment>','#include <shadowmap_pars_fragment>\n#include <shadowmask_pars_fragment>');
    // MeshStandardMaterial has no transmission/clearcoat in this study.
    // Remove physical light evaluation in this variant, not merely its output.
@@ -57,6 +62,7 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      // Cast shadows belong to the cool pigment family, even on upward
      // faces. Do not leak the yellow sunlight back into the shadow fill.
      float visible=smoothstep(.10,.95,getShadowMask());
+     ${terrain||water?'':LIGHT_GLSL.gradient}
      vec3 pigment=diffuseColor.rgb;
      float value=dot(pigment,vec3(.2126,.7152,.0722));
      float greenPigment=smoothstep(.0,.06,pigment.g-max(pigment.r,pigment.b));
@@ -90,7 +96,7 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      }
    `);
   };
-  material.customProgramCacheKey=()=>`${baseKey}:painted-v9:${water}:${terrain}:${painted}`;
+  material.customProgramCacheKey=()=>`${baseKey}:painted-v10:${water}:${terrain}:${painted}`;
   return material;
  }
  function setPainted(value){

@@ -1193,6 +1193,7 @@
   },
   "visualTest": {
     "northStar": true,
+    "land": "deep",
     "motionFps": 24,
     "sea": {
       "shallow": "#a9d8d0",
@@ -1340,9 +1341,26 @@
       "edgeWander": 0.05
     },
     "grounding": {
-      "intensity": 0.5,
-      "radius": 0.32,
-      "tint": "#3f4f86"
+      "intensity": 0.72,
+      "radius": 0.4,
+      "tint": "#3b3f7e"
+    },
+    "gradient": {
+      "foot": 0.8,
+      "top": 1.1,
+      "span": 0.42
+    },
+    "grade": {
+      "contrast": 0.3,
+      "saturation": 1.1,
+      "warm": 0.035,
+      "haze": "#f1e2c8",
+      "hazeStrength": 0.16,
+      "vignette": 0.14
+    },
+    "miniature": {
+      "focus": 0.42,
+      "blur": 5.0
     },
     "light": {
       "rim": "#fff3d6",
@@ -1360,9 +1378,9 @@
       "clean": true,
       "width": 0.016,
       "soft": 0.008,
-      "dark": 0.2,
+      "dark": 0.11,
       "lipWidth": 0.05,
-      "light": 0.07
+      "light": 0.04
     },
     "props": {
       "dense": true,
@@ -1372,7 +1390,24 @@
       "scaleMin": 0.25,
       "scaleSpan": 0.13,
       "stoneChance": 0.5,
-      "stoneScale": 1.35
+      "stoneScale": 1.35,
+      "groves": true,
+      "groveGrass": 0.3,
+      "grovePlains": 0.16,
+      "groveSize": 5,
+      "groveSpread": 0.3,
+      "forestTrees": 9,
+      "forestShade": 0.8
+    },
+    "hills": {
+      "terraced": true,
+      "cap": 0.8,
+      "height": 0.85,
+      "upper": 0.52,
+      "upperFrom": 0.5,
+      "side": 0.74,
+      "flanks": false,
+      "fill": 0.38
     },
     "monuments": {
       "shrine": 0.72,
@@ -1383,6 +1418,48 @@
         0.6,
         0.12
       ]
+    },
+    "town": {
+      "flag": false,
+      "wallRadius": 0.9,
+      "wallInset": 0.06,
+      "wallSpacing": 0.085,
+      "wallHeight": 1.0,
+      "stakeSpacing": 0.05,
+      "gateHalf": 0.17,
+      "gateInset": 0.025,
+      "gateTower": 1.1,
+      "roadGateTower": 0.8,
+      "towerSize": 1,
+      "ground": "#bfa878",
+      "groundLift": 0.03,
+      "street": "#e0d2a8",
+      "streetHalf": 0.1,
+      "minHouses": 4,
+      "housesOverPopulation": 3,
+      "hall": [0, -0.58, 0.46, 0],
+      "capitalHall": 1.12,
+      "big": [[0.55, 0, 0.4, 0], [-0.55, 0, 0.4, 0]],
+      "pockets": [[0.606, -0.35, 0.24, 0], [-0.606, -0.35, 0.24, 0], [0.606, 0.35, 0.24, 0], [-0.606, 0.35, 0.24, 0]],
+      "lots": [[0.3, 0.46, 0.26, 0.1], [-0.353, -0.4, 0.25, 0.08], [0.353, -0.4, 0.25, -0.08], [-0.3, 0.46, 0.26, -0.1]],
+      "yawJitter": 0.16,
+      "monumentSize": 1.1,
+      "bigHouse": 0.85
+    },
+    "works": {
+      "mineSize": 1.0,
+      "mineAt": [0, 0],
+      "quarrySize": 0.92,
+      "quarryAt": [0, 0],
+      "barnSize": 0.46,
+      "haystackSize": 0.19,
+      "haystacks": 3,
+      "fieldInset": 0.93,
+      "fieldGap": 0.03,
+      "stripAt": 0.27,
+      "angleJitter": 0.1,
+      "fields": ["#e8d080", "#b5c471", "#cfa877", "#efe0a6", "#a2bb62"],
+      "yard": "#d8c79c"
     }
   }
 }

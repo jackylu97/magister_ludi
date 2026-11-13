@@ -23,7 +23,7 @@ import type { ImprovementId } from '../sim/improvementData';
 import { createMap, getTileAt, type Tile } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
 import { bumpRevision, createUnit, newGame } from '../sim/state';
-import { TECH_IDS } from '../sim/techData';
+import { TECH_IDS, techDef } from '../sim/techData';
 import type { TerrainId } from '../sim/terrainData';
 import type { UnitTypeId } from '../sim/unitData';
 import { EXPLORED, HIDDEN, resetVisibility, VISIBLE } from '../sim/visibility';
@@ -38,6 +38,10 @@ export const SCENE_VIEWS = {
   roads: { col: 10, row: 8, zoom: 3.4, label: 'Roads: junction, bend, crossing' },
   hillsBorder: { col: 6, row: 5, zoom: 3.4, label: 'Hills and mountains with a border' },
   city: { col: 3, row: 7, zoom: 3.6, label: 'Towns' },
+  town: { col: 3, row: 7, zoom: 9, label: 'The capital, close' },
+  townEast: { col: 15, row: 6, zoom: 9, label: 'The eastern town, close' },
+  hamlet: { col: 9, row: 11, zoom: 9, label: 'The hamlet, close' },
+  works: { col: 15, row: 10, zoom: 3.6, label: 'Farms, a mine and a quarry' },
   units: { col: 15, row: 13, zoom: 3.4, label: 'Pieces and a ship' },
   fog: { col: 9, row: 15, zoom: 2.4, label: 'Visible, remembered, uncharted' },
 } as const;
@@ -45,8 +49,14 @@ export type SceneView = keyof typeof SCENE_VIEWS;
 
 const WIDTH = 26, HEIGHT = 18;
 
-/** The scene's world. A fixture, never a saved game. */
-export function createSceneFixture() {
+/**
+ * The scene's world. A fixture, never a saved game.
+ *
+ * `age` is the age both courts have reached: 1 or 2 gives them only the
+ * technologies of those ages, so the towns show their earlier houses and
+ * walls. Without it they know every technology.
+ */
+export function createSceneFixture(age?: number) {
   const state = newGame({ seed: 23, sizeName: 'duel', players: [
     { name: 'Western court', color: '#714291', secondary: '#c9ccd6', isHuman: true },
     { name: 'Eastern court', color: '#b34e37', secondary: '#e8c672', isHuman: true },
@@ -78,6 +88,7 @@ export function createSceneFixture() {
   for (let row = 5; row <= 7; row++) for (let col = 0; col <= 2; col++) tile(col, row).feature = 'forest';
   for (let row = 12; row <= 13; row++) for (let col = 15; col <= 17; col++) tile(col, row).feature = 'jungle';
   for (let row = 3; row <= 4; row++) for (let col = 10; col <= 12; col++) tile(col, row).feature = 'forest';
+  tile(17, 11).hills = true;
   tile(2, 10).feature = 'oasis';
   tile(10, 9).feature = 'floodplain'; tile(11, 9).feature = 'floodplain';
 
@@ -111,6 +122,8 @@ export function createSceneFixture() {
     [19, 9, 'fishingBoats'], [14, 11, 'plantation'], [16, 12, 'plantation'], [1, 7, 'lumbermill'],
     [3, 10, 'farm'], [11, 12, 'academy'], [8, 13, 'landmark'], [6, 10, 'holySite'], [9, 5, 'citadel'],
     [16, 8, 'manufactory'], [18, 5, 'customsHouse'], [5, 14, 'floatingGardens'],
+    // A group of farms beside a mine and the quarry, for the `works` view.
+    [15, 10, 'farm'], [16, 10, 'farm'], [15, 11, 'farm'], [17, 11, 'mine'], [16, 9, 'quarry'],
   ];
   for (const [col, row, id] of works) tile(col, row).improvement = id;
 
@@ -141,7 +154,7 @@ export function createSceneFixture() {
   }
   state.tileOwner[8 * WIDTH + 7] = null;
 
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
+  for (const player of state.players) player.techsResearched = TECH_IDS.filter(id => age === undefined || techDef(id).age <= age);
   bumpRevision(state);
 
   // One piece of each kind, and a ship on the coast.

@@ -177,6 +177,8 @@ def unit_assets():
 
 if '--monuments-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_monument_assets.py')),init_globals=globals());sys.exit(0)
+if '--northstar-only' in sys.argv:
+ runpy.run_path(str(Path(__file__).with_name('build_northstar_assets.py')),init_globals=globals());sys.exit(0)
 if '--city-only' in sys.argv:
  city_assets();sys.exit(0)
 if '--sites-only' in sys.argv:

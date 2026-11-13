@@ -10,15 +10,17 @@ import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { VIEW3D } from './lookData';
 import { paintedCityGeometry } from './paintedCityGeometry';
+import { NORTH_STAR_TOWER_HEIGHT, NORTH_STAR_WALL_HEIGHT, northStarTownGeometry } from './northStarTownGeometry';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
-import { centre, onTileTop, surfaceHeight, tileShape } from '../terrainStudy/surface.js';
+import { centre, neighbour, onTileTop, surfaceHeight, tileShape } from '../terrainStudy/surface.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
 type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
-  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk';
+  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | 'ns-hall';
+type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}`;
 
 /**
  * The north-star look (the visual test, 2026-11-12; docs/art-pass.md): a town
@@ -30,7 +32,15 @@ type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spir
  */
 const MONUMENTS = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.monuments : null;
 const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-armillary'] as const;
-type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower'>;
+/**
+ * The town that fills its hex (the visual test, 2026-11-12; `docs/flags.md`
+ * item (nnnnnnn), "Towns and works in the test scene"). On under the same
+ * switch as the monuments, and only when the new houses are loaded, so a
+ * renderer with the study's kit alone draws the study's town.
+ */
+const TOWN = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.town : null;
+const NORTH_STAR_HOUSE_NAMES = [1, 2, 3].flatMap(tier => ['a', 'b', 'c'].map(variant => `ns-house-${tier}${variant}` as NorthStarHouse));
+type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower' | NorthStarHouse | 'ns-hall'>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
 interface PaintedCityAnchor { x: number; y: number; z: number }
 interface PaintedCityOptions { previewWalls?: boolean }
@@ -137,12 +147,15 @@ export class PaintedCityLayer {
   readonly cityHeights = new Map<number, number>();
   readonly placements: PaintedCityPlacement[] = [];
   private readonly geometry = paintedCityGeometry();
+  private readonly northStar = northStarTownGeometry();
   private readonly fields: MeshStandardMaterial;
   private readonly recipes = new Map<number, CityRecipe>();
   private readonly batches = new Map<string, CityBatch>();
   private preparedMap: GameMap | undefined;
   private disposed = false;
   private casters = '';
+  /** The north-star town's numbers, or null when the look is off or its houses are not loaded. */
+  private readonly town: typeof TOWN;
 
   /**
    * What the static sun's bake needs to know about this layer, as one string:
@@ -161,9 +174,13 @@ export class PaintedCityLayer {
 
   constructor(private readonly assets: PaintedCityAssets, registerMaterial: RegisterMaterial) {
     this.group.name = 'painted-cities';
+    this.town = TOWN && assets['ns-hall'] && NORTH_STAR_HOUSE_NAMES.every(name => assets[name]) ? TOWN : null;
+    // The north-star town's ground is drawn over the roads (ground ink has an
+    // offset of -2), so a road stops at the town's gate.
+    const offset = this.town ? -3 : -1;
     this.fields = new MeshStandardMaterial({
       color: 'white', vertexColors: true, roughness: .96, flatShading: true, side: DoubleSide,
-      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+      polygonOffset: true, polygonOffsetFactor: offset, polygonOffsetUnits: offset,
     });
     registerMaterial(this.fields, { terrain: true });
   }
@@ -182,8 +199,24 @@ export class PaintedCityLayer {
    * moved. The prepared tile and the original tile are checked by **identity**
    * beside this string, because a new board is new triangles under the same town.
    */
-  private recipeKey(city: City, cell: number, look: CityLook, options: PaintedCityOptions): string {
-    return `${cell}|${city.population}|${options.previewWalls === true}|${sculptKey(look)}`;
+  private recipeKey(city: City, cell: number, look: CityLook, options: PaintedCityOptions, roads: number): string {
+    return `${cell}|${city.population}|${options.previewWalls === true}|${sculptKey(look)}${this.town ? `|roads=${roads}` : ''}`;
+  }
+
+  /**
+   * The edges a road leaves the town by, one bit for each direction. The
+   * north-star town opens a gate in its wall there. The rule is the road
+   * painter's own (`planPaintedRoads`): both hexes are paved and neither is water.
+   */
+  private roadEdges(state: GameState, preparedMap: GameMap, original: Tile, tile: Tile): number {
+    if (!this.town || original.road === undefined) return 0;
+    let mask = 0;
+    for (let d = 0; d < 6; d++) {
+      const other = neighbour(tile, preparedMap, d) as Tile | null;
+      const next = other ? getTileAt(state.map, other.col, other.row) : undefined;
+      if (next && next.road !== undefined && !['ocean', 'coast', 'lake'].includes(next.terrain)) mask |= 1 << d;
+    }
+    return mask;
   }
 
   build(state: GameState, preparedMap: GameMap, levels: FogLevels = null, shadows = true, options: PaintedCityOptions = {}): void {
@@ -201,11 +234,12 @@ export class PaintedCityLayer {
       if (!original || !tile) continue;
       const cell = tileIndex(state.map, city.col, city.row);
       const look = cityLook(state, city, capitals);
-      const key = this.recipeKey(city, cell, look, options);
+      const roads = this.roadEdges(state, preparedMap, original, tile);
+      const key = this.recipeKey(city, cell, look, options, roads);
       let recipe = this.recipes.get(city.id);
       if (!recipe || recipe.key !== key || recipe.tile !== tile || recipe.original !== original) {
         this.deleteRecipe(city.id);
-        recipe = this.city(city, original, tile, look, options, cell, key);
+        recipe = this.city(city, original, tile, look, options, cell, key, roads);
         this.recipes.set(city.id, recipe);
       }
       for (const part of recipe.parts) {
@@ -281,7 +315,7 @@ export class PaintedCityLayer {
 
   private city(
     city: City, original: Tile, tile: Tile, look: CityLook,
-    options: PaintedCityOptions, cell: number, key: string,
+    options: PaintedCityOptions, cell: number, key: string, roads = 0,
   ): CityRecipe {
     const c = centre(tile) as { x: number; z: number };
     const recipe: CityRecipe = { key, cell, tile, original, parts: [], patches: [], placements: [],
@@ -341,71 +375,198 @@ export class PaintedCityLayer {
       recipe.placements.push(placement); return placement;
     };
 
-    patch([[-.54, -.49], [.38, -.58], [.68, -.18], [.55, .52], [-.51, .57], [-.69, .11]], '#b8b693');
-    patch([[-.11, .79], [.11, .79], [.105, .27], [-.10, .27]], '#cdc3a0', .009);
-    // The monumental capital remains legible at population one. Its front
-    // steps stop behind the garrison court rather than under the unit's base.
-    const civic = look.capital ? 'civic-sanctum' : 'city-loggia';
-    building('civic', civic, 0, -.58, look.capital ? [.59, .64, .70][look.tier - 1]! : [.59, .65, .70][look.tier - 1]!);
-    const houses = Math.max(1, Math.min(city.population, CITY.houseCap, houseSlots.length));
-    for (let i = 0; i < houses; i++) {
-      const [x, z, scale, yaw] = houseSlots[i]!;
-      const name = look.tier === 1 && this.assets.house ? 'house' : look.tier >= 3 && i % 3 === 1 ? 'city-dome' : i % 3 === 2 ? 'city-loggia' : 'city-house';
-      building('house', name, x, z, scale * [1, 1.08, 1.14][look.tier - 1]!, yaw);
-    }
     const grand = MONUMENTS && this.assets['monument-obelisk'] && this.assets['monument-ziggurat'] && this.assets['monument-armillary'] ? MONUMENTS : null;
-    if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
-    if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);
-    if (grand && look.capital) building('wonder', 'monument-armillary', grand.capitalAt[0]!, grand.capitalAt[1]!, grand.capital);
-    for (let i = 0; i < look.wonders; i++) {
-      const [x, z] = wonderSlots[i % wonderSlots.length]!;
-      const storey = Math.floor(i / wonderSlots.length);
-      if (grand && !storey) building('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!, x, z, grand.wonder);
-      else building('wonder', 'city-spire', x, z, .25, 0, storey ? height(x, z) + .010 + storey * .285 : undefined);
-    }
-    if ((look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls) {
+    const town = this.town;
+    if (town) {
+      // The town that fills its hex. Every address is a fixed place, so a town
+      // that grows fills the next free address and moves nothing that stands.
       const shape = tileShape(tile) as { normals: [number, number][]; upper: number[] };
-      const stone = look.tier >= CITY.wall.fromTier, count = stone ? 52 : 92;
-      const radiusAt = (angle: number): number => {
-        let radius = .78 + .014 * Math.sin(angle * 5);
+      const radiusAt = (angle: number, inset: number): number => {
+        let radius = town.wallRadius;
         shape.normals.forEach(([nx, nz], i) => {
           const dot = nx * Math.cos(angle) + nz * Math.sin(angle);
-          if (dot > 0) radius = Math.min(radius, (shape.upper[i]! - (stone ? .06 : .04)) / dot);
+          if (dot > 0) radius = Math.min(radius, (shape.upper[i]! - inset) / dot);
         });
         return radius;
       };
-      for (let i = 0; i < count; i++) {
-        const angle = i * Math.PI * 2 / count;
-        if (angle > 1.28 && angle < 1.86) continue;
-        const r = radiusAt(angle), x = Math.cos(angle) * r, z = Math.sin(angle) * r;
-        if (!onTileTop(tile, x, z, .025)) continue;
-        const scale = stone ? Math.PI * 2 * r / count * 1.03 : 1.42;
-        const vertical = stone ? 1.15 : 1.10 + .2 * (.5 + .5 * Math.sin(city.col * 73 + city.row * 19 + i * 17));
-        const yaw = stone ? -angle - Math.PI * .5 : angle;
-        const halfX = stone ? scale * .5 : .022 * 1.42, halfZ = stone ? .030 : .022 * 1.42;
-        const foot = [[-halfX, -halfZ], [halfX, -halfZ], [halfX, halfZ], [-halfX, halfZ]].map(([xx, zz]) => {
-          const p = transform(xx!, zz!, yaw); return { x: x + p.x, z: z + p.z };
-        });
-        if (!foot.every(p => onTileTop(tile, p.x, p.z, .004))) continue;
-        const points = [...foot, ...foot.map((a, j) => {
-          const b = foot[(j + 1) % foot.length]!; return { x: (a.x + b.x) * .5, z: (a.z + b.z) * .5 };
-        }), { x, z }];
-        const heights = points.map(p => height(p.x, p.z)), min = Math.min(...heights), max = Math.max(...heights);
-        add(stone ? this.geometry.stoneWall : this.geometry.stake, x, min - .006, z,
-          scale, vertical + (max - min) / .205, stone ? 1 : 1.42, yaw);
-        tallest = Math.max(tallest, max + .21 * vertical);
-        recipe.placements.push({ cityId: city.id, kind: 'wall', asset: stone ? 'stoneWall' : 'stake', x: c.x + x, y: min - .006, z: c.z + z,
-          scale, yaw, footprint: foot.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: min - .006, foundationMax: max });
+      const ring = (count: number, inset: number): { x: number; z: number }[] => Array.from({ length: count }, (_, i) => {
+        const angle = i * Math.PI * 2 / count, r = radiusAt(angle, inset);
+        return { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
+      });
+      patch(ring(36, town.wallInset).map(p => [p.x, p.z]), town.ground, town.groundLift);
+      const walled = (look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls === true;
+      // The street to the front gate. A town with no wall has no gate, and no street.
+      const gateZ = radiusAt(Math.PI * .5, town.wallInset);
+      if (walled) patch([[-town.streetHalf, gateZ], [town.streetHalf, gateZ], [town.streetHalf, .27], [-town.streetHalf, .27]], town.street, town.groundLift + .002);
+      // A piece is scaled so the longest side of its footprint is the address's size.
+      const stand = (kind: PaintedCityPlacement['kind'], name: CityAssetName, address: readonly number[], factor = 1, turn = 0): void => {
+        const geometry = this.assets[name]; if (!geometry) return;
+        const box = bounds(geometry), [x, z, size, yaw] = address as [number, number, number, number];
+        building(kind, name, x, z, size * factor / Math.max(box.max.x - box.min.x, box.max.z - box.min.z), yaw + turn);
+      };
+      // Which house, and how far it turns, hash the town's own hex.
+      const hash = (n: number): number => {
+        let v = Math.imul(city.col + 29, 374761393) ^ Math.imul(city.row + 73, 668265263) ^ Math.imul(n + 1, 1274126177);
+        v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296;
+      };
+      stand('civic', 'ns-hall', town.hall, look.capital ? town.capitalHall : 1);
+      const big = [...town.big], pockets = [...town.pockets];
+      if (grand) {
+        const raise = (kind: PaintedCityPlacement['kind'], name: CityAssetName): void => {
+          // An obelisk is narrow and takes a pocket. The other two want a big
+          // address. With none left, the town raises an obelisk in a pocket.
+          const wide = name !== 'monument-obelisk' ? big.shift() : undefined;
+          const address = wide ?? pockets.shift() ?? big.shift();
+          if (address) stand(kind, wide ? name : 'monument-obelisk', address, town.monumentSize);
+        };
+        if (look.capital) raise('wonder', 'monument-armillary');
+        if (look.temple && look.tier >= CITY.temple.fromTier) raise('temple', 'monument-ziggurat');
+        if (look.shrine && look.tier >= CITY.shrine.fromTier) raise('shrine', 'monument-obelisk');
+        for (let i = 0; i < look.wonders; i++) raise('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!);
       }
-      // An unsupported lintel is especially visible on a cut shoreline. The
-      // gate is one assembly, admitted only when both full support pads fit.
-      const supports = [-.22, .22].flatMap(x => [-.044, .044].flatMap(dx => [-.044, .044].map(dz => ({ x: x + dx, z: .75 + dz }))));
-      if (supports.every(p => onTileTop(tile, p.x, p.z, .004))) {
-        for (const x of [-.22, .22]) add(this.geometry.stake, x, height(x, .75), .75, 2, 1.6, 2);
-        const gateY = Math.max(height(-.22, .75), height(.22, .75)) + .26;
-        add(this.geometry.rail, 0, gateY, .75, .47, 1.5, 1.5);
-        recipe.placements.push({ cityId: city.id, kind: 'gate', asset: 'rail', x: c.x, y: gateY, z: c.z + .75, scale: .47, yaw: 0,
-          footprint: supports.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: gateY, foundationMax: gateY });
+      const large = big.length, addresses = [...big, ...town.lots, ...pockets];
+      const houses = Math.min(addresses.length, Math.max(town.minHouses, city.population + town.housesOverPopulation));
+      for (let i = 0; i < houses; i++) {
+        const name = `ns-house-${look.tier}${'abc'[Math.floor(hash(i) * 3)]}` as NorthStarHouse;
+        stand('house', name, addresses[i]!, i < large ? town.bigHouse : 1, (hash(i + 40) - .5) * 2 * town.yawJitter);
+      }
+      if (walled) {
+        const stone = look.tier >= CITY.wall.fromTier;
+        // Walk the ring by distance, so the courses are one length on the
+        // straight sides and round the corners alike.
+        const samples = ring(360, town.wallInset), travelled = [0];
+        for (let i = 1; i <= samples.length; i++) {
+          const a = samples[i - 1]!, b = samples[i % samples.length]!;
+          travelled.push(travelled[i - 1]! + Math.hypot(b.x - a.x, b.z - a.z));
+        }
+        const total = travelled[samples.length]!, count = Math.max(6, Math.round(total / (stone ? town.wallSpacing : town.stakeSpacing)));
+        const at = (distance: number): { x: number; z: number } => {
+          const d = ((distance % total) + total) % total;
+          let i = 0; while (i < samples.length - 1 && travelled[i + 1]! < d) i++;
+          const a = samples[i]!, b = samples[(i + 1) % samples.length]!, t = (d - travelled[i]!) / (travelled[i + 1]! - travelled[i]! || 1);
+          return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+        };
+        const post = (geometry: BufferGeometry, asset: string, x: number, z: number, halfX: number, halfZ: number,
+          sx: number, sy: number, sz: number, tall: number, yaw: number): boolean => {
+          const foot = [[-halfX, -halfZ], [halfX, -halfZ], [halfX, halfZ], [-halfX, halfZ]].map(([xx, zz]) => {
+            const p = transform(xx!, zz!, yaw); return { x: x + p.x, z: z + p.z };
+          });
+          if (!onTileTop(tile, x, z, .012) || !foot.every(p => onTileTop(tile, p.x, p.z, .004))) return false;
+          const points = [...foot, ...foot.map((a, j) => {
+            const b = foot[(j + 1) % foot.length]!; return { x: (a.x + b.x) * .5, z: (a.z + b.z) * .5 };
+          }), { x, z }];
+          const heights = points.map(p => height(p.x, p.z)), min = Math.min(...heights), max = Math.max(...heights);
+          add(geometry, x, min - .006, z, sx, sy + (max - min) / tall, sz, yaw);
+          tallest = Math.max(tallest, max + tall * sy);
+          recipe.placements.push({ cityId: city.id, kind: 'wall', asset, x: c.x + x, y: min - .006, z: c.z + z,
+            scale: sx, yaw, footprint: foot.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: min - .006, foundationMax: max });
+          return true;
+        };
+        // A gate stands where the street leaves the ring at the front, and
+        // where each road does: two posts and a lintel.
+        const gates = [Math.PI * .5, ...[0, 1, 2, 3, 4, 5].filter(d => roads & (1 << d)).map(d => d * Math.PI / 3)];
+        const inGate = (p: { x: number; z: number }, pad: number): boolean => gates.some(angle => {
+          const ux = Math.cos(angle), uz = Math.sin(angle);
+          return p.x * ux + p.z * uz > 0 && Math.abs(p.x * uz - p.z * ux) < town.gateHalf + pad;
+        });
+        const length = total / count;
+        for (let i = 0; i < count; i++) {
+          const p = at(i * length), before = at(i * length - .01), after = at(i * length + .01);
+          if (inGate(p, stone ? length * .5 : 0)) continue;
+          const yaw = -Math.atan2(after.z - before.z, after.x - before.x);
+          if (stone) post(this.northStar.wall, 'ns-wall', p.x, p.z, length * .5, .0375, length * 1.04, town.wallHeight, 1, NORTH_STAR_WALL_HEIGHT, yaw);
+          else post(this.geometry.stake, 'stake', p.x, p.z, .022 * 1.6, .022 * 1.6, 1.6,
+            1.25 + .2 * (.5 + .5 * Math.sin(city.col * 73 + city.row * 19 + i * 17)), 1.6, .205, yaw);
+        }
+        if (stone) for (const corner of [30, 150, 210, 270, 330]) {
+          const angle = corner * Math.PI / 180, r = radiusAt(angle, town.wallInset);
+          post(this.northStar.tower, 'ns-tower', Math.cos(angle) * r, Math.sin(angle) * r, .06, .06, town.towerSize, town.towerSize, town.towerSize, NORTH_STAR_TOWER_HEIGHT, 0);
+        }
+        for (const angle of gates) {
+          const spread = Math.atan2(town.gateHalf, radiusAt(angle, town.wallInset));
+          const posts = [-1, 1].map(side => {
+            const a = angle + side * spread, r = radiusAt(a, town.wallInset + town.gateInset);
+            return { x: Math.cos(a) * r, z: Math.sin(a) * r };
+          });
+          const size = town.towerSize * (angle === gates[0] ? town.gateTower : town.roadGateTower);
+          const raised = posts.map(p => stone
+            ? post(this.northStar.tower, 'ns-tower', p.x, p.z, .035, .035, size, size, size, NORTH_STAR_TOWER_HEIGHT, 0)
+            : post(this.geometry.stake, 'stake', p.x, p.z, .03, .03, 2.2, 1.9, 2.2, .205, 0));
+          if (!raised.every(Boolean)) continue;
+          const [a, b] = posts as [{ x: number; z: number }, { x: number; z: number }];
+          const gateY = Math.max(height(a.x, a.z), height(b.x, b.z)) + (stone ? NORTH_STAR_TOWER_HEIGHT * size * .78 : .30);
+          add(stone ? this.northStar.lintel : this.geometry.rail, (a.x + b.x) * .5, gateY, (a.z + b.z) * .5,
+            Math.hypot(b.x - a.x, b.z - a.z), stone ? 1 : 1.8, stone ? 1 : 1.8, -Math.atan2(b.z - a.z, b.x - a.x));
+          recipe.placements.push({ cityId: city.id, kind: 'gate', asset: stone ? 'ns-lintel' : 'rail', x: c.x + (a.x + b.x) * .5, y: gateY, z: c.z + (a.z + b.z) * .5,
+            scale: Math.hypot(b.x - a.x, b.z - a.z), yaw: 0, footprint: posts.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: gateY, foundationMax: gateY });
+        }
+      }
+    } else {
+      patch([[-.54, -.49], [.38, -.58], [.68, -.18], [.55, .52], [-.51, .57], [-.69, .11]], '#b8b693');
+      patch([[-.11, .79], [.11, .79], [.105, .27], [-.10, .27]], '#cdc3a0', .009);
+      // The monumental capital remains legible at population one. Its front
+      // steps stop behind the garrison court rather than under the unit's base.
+      const civic = look.capital ? 'civic-sanctum' : 'city-loggia';
+      building('civic', civic, 0, -.58, look.capital ? [.59, .64, .70][look.tier - 1]! : [.59, .65, .70][look.tier - 1]!);
+      const houses = Math.max(1, Math.min(city.population, CITY.houseCap, houseSlots.length));
+      for (let i = 0; i < houses; i++) {
+        const [x, z, scale, yaw] = houseSlots[i]!;
+        const name = look.tier === 1 && this.assets.house ? 'house' : look.tier >= 3 && i % 3 === 1 ? 'city-dome' : i % 3 === 2 ? 'city-loggia' : 'city-house';
+        building('house', name, x, z, scale * [1, 1.08, 1.14][look.tier - 1]!, yaw);
+      }
+      if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
+      if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);
+      if (grand && look.capital) building('wonder', 'monument-armillary', grand.capitalAt[0]!, grand.capitalAt[1]!, grand.capital);
+      for (let i = 0; i < look.wonders; i++) {
+        const [x, z] = wonderSlots[i % wonderSlots.length]!;
+        const storey = Math.floor(i / wonderSlots.length);
+        if (grand && !storey) building('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!, x, z, grand.wonder);
+        else building('wonder', 'city-spire', x, z, .25, 0, storey ? height(x, z) + .010 + storey * .285 : undefined);
+      }
+      if ((look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls) {
+        const shape = tileShape(tile) as { normals: [number, number][]; upper: number[] };
+        const stone = look.tier >= CITY.wall.fromTier, count = stone ? 52 : 92;
+        const radiusAt = (angle: number): number => {
+          let radius = .78 + .014 * Math.sin(angle * 5);
+          shape.normals.forEach(([nx, nz], i) => {
+            const dot = nx * Math.cos(angle) + nz * Math.sin(angle);
+            if (dot > 0) radius = Math.min(radius, (shape.upper[i]! - (stone ? .06 : .04)) / dot);
+          });
+          return radius;
+        };
+        for (let i = 0; i < count; i++) {
+          const angle = i * Math.PI * 2 / count;
+          if (angle > 1.28 && angle < 1.86) continue;
+          const r = radiusAt(angle), x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+          if (!onTileTop(tile, x, z, .025)) continue;
+          const scale = stone ? Math.PI * 2 * r / count * 1.03 : 1.42;
+          const vertical = stone ? 1.15 : 1.10 + .2 * (.5 + .5 * Math.sin(city.col * 73 + city.row * 19 + i * 17));
+          const yaw = stone ? -angle - Math.PI * .5 : angle;
+          const halfX = stone ? scale * .5 : .022 * 1.42, halfZ = stone ? .030 : .022 * 1.42;
+          const foot = [[-halfX, -halfZ], [halfX, -halfZ], [halfX, halfZ], [-halfX, halfZ]].map(([xx, zz]) => {
+            const p = transform(xx!, zz!, yaw); return { x: x + p.x, z: z + p.z };
+          });
+          if (!foot.every(p => onTileTop(tile, p.x, p.z, .004))) continue;
+          const points = [...foot, ...foot.map((a, j) => {
+            const b = foot[(j + 1) % foot.length]!; return { x: (a.x + b.x) * .5, z: (a.z + b.z) * .5 };
+          }), { x, z }];
+          const heights = points.map(p => height(p.x, p.z)), min = Math.min(...heights), max = Math.max(...heights);
+          add(stone ? this.geometry.stoneWall : this.geometry.stake, x, min - .006, z,
+            scale, vertical + (max - min) / .205, stone ? 1 : 1.42, yaw);
+          tallest = Math.max(tallest, max + .21 * vertical);
+          recipe.placements.push({ cityId: city.id, kind: 'wall', asset: stone ? 'stoneWall' : 'stake', x: c.x + x, y: min - .006, z: c.z + z,
+            scale, yaw, footprint: foot.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: min - .006, foundationMax: max });
+        }
+        // An unsupported lintel is especially visible on a cut shoreline. The
+        // gate is one assembly, admitted only when both full support pads fit.
+        const supports = [-.22, .22].flatMap(x => [-.044, .044].flatMap(dx => [-.044, .044].map(dz => ({ x: x + dx, z: .75 + dz }))));
+        if (supports.every(p => onTileTop(tile, p.x, p.z, .004))) {
+          for (const x of [-.22, .22]) add(this.geometry.stake, x, height(x, .75), .75, 2, 1.6, 2);
+          const gateY = Math.max(height(-.22, .75), height(.22, .75)) + .26;
+          add(this.geometry.rail, 0, gateY, .75, .47, 1.5, 1.5);
+          recipe.placements.push({ cityId: city.id, kind: 'gate', asset: 'rail', x: c.x, y: gateY, z: c.z + .75, scale: .47, yaw: 0,
+            footprint: supports.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: gateY, foundationMax: gateY });
+        }
       }
     }
     recipe.anchor = { x: c.x + .30, y: height(.30, .08) + .008, z: c.z + .08 };
@@ -433,5 +594,6 @@ export class PaintedCityLayer {
     this.clearBatches(); this.clearRecipes(); this.fields.dispose();
     this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
     Object.values(this.geometry).forEach(geometry => geometry.dispose());
+    Object.values(this.northStar).forEach(geometry => geometry.dispose());
   }
 }

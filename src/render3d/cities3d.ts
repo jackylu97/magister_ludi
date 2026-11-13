@@ -374,7 +374,7 @@ export class CityLayer {
     shadows: boolean,
     levels: FogLevels = null,
     icons: TileIcons | null = null,
-    art?: { towns?: boolean; flagAnchors?: ReadonlyMap<number, { x: number; y: number; z: number }> },
+    art?: { towns?: boolean; flags?: boolean; flagAnchors?: ReadonlyMap<number, { x: number; y: number; z: number }> },
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -402,6 +402,11 @@ export class CityLayer {
         this.addTown(city, look, centre, top, geometry, collector);
         this.addWall(look, tile, centre, top, geometry, collector);
       }
+      // The north-star look draws no pole and no flag in the middle of a town
+      // (`visualTest.town.flag`; the user, 2026-11-12). The banner over the
+      // board and the border still show the owner. The yoke, the torch and the
+      // faith device hang from the flag, so they are not drawn either.
+      if (art?.flags === false) continue;
       const flag = art?.flagAnchors?.get(city.id);
       const flagCentre = flag ?? centre, flagTop = flag?.y ?? top;
 

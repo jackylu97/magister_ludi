@@ -393,7 +393,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
         for (const r of stoneCluster(t, hash, dense)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
         for (const r of shoreStones(t, renderMap, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y, c.z + r.z, r.s, r.s * .70, r.s * .85, r.angle, new T.Color('#dbe0cf'));
-        for (let slot = 0; slot < (dense ? dense.slots : 1); slot++) {
+        for (let slot = 0; slot < (dense ? (dense.groves ? dense.groveSize + 1 : dense.slots) : 1); slot++) {
           const sapling = openLandTree(t, hash, slot, dense);
           if (!sapling) continue;
           const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2;
@@ -410,7 +410,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           }
         }
         if (!isWater(t) && t.terrain !== 'mountain' && ['forest', 'jungle'].includes(t.feature)) {
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < (dense?.groves ? dense.forestTrees : 5); i++) {
             const a = hash(t.col, t.row, i + 90) * 6.28, d = Math.sqrt(hash(t.col, t.row, i + 110)) * .72;
             const x = Math.cos(a) * d, z = Math.sin(a) * d;
             if (!onTileTop(t, x, z, .1)) continue;
@@ -419,6 +419,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
             const tree = i % 3 === 0 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3];
             const warm = i % 3 !== 0 && t.feature !== 'jungle' && t.terrain !== 'snow' && hash(t.col, t.row, 170 + i) > .91;
             const tint = warm ? new T.Color(2.55, .48, .5) : new T.Color([0xffffff, 0xc3dec9, 0xd6ddbd][i % 3]);
+            if (dense?.groves && !warm) tint.multiplyScalar(dense.forestShade);
             prop(tree.geometry, tree.material, c.x + x, surfaceHeight(t, x, z) - .012, c.z + z,
               s * (i % 3 === 0 ? 1.5 : hero ? 1.13 : 1), s * (i % 3 === 0 ? 1.05 : .93), s * (i % 3 === 0 ? 1.5 : 1), a, tint, DECOR);
           }

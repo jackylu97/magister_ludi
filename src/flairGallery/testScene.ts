@@ -19,6 +19,8 @@ import { SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture'
  *   city, units, fog);
  * - `light`: morning, day, golden or dusk;
  * - `vtest`: the visual test switches, as in the game (`visualTest.ts`);
+ * - `age`: 1 or 2 draws the towns of an earlier age (their houses and walls);
+ *   without it both courts know every technology;
  * - `still`: `1` (the default) holds the clock that moving water, clouds and
  *   pieces read, so two screenshots differ only by a switch; `0` lets it run.
  * The panel's last line gives the frame's draw calls and triangles.
@@ -38,13 +40,15 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     + 'font:12px/1.5 system-ui,sans-serif;color:#2a2620;border:1px solid #2a2620;max-width:260px';
   into.append(canvas, panel);
   const renderer = new Renderer3D(canvas, { painted: true });
-  const state = createSceneFixture();
+  const age = Number(params.get('age'));
+  const state = createSceneFixture(age === 1 || age === 2 ? age : undefined);
   let disposed = false, ready = false;
   const resize = new ResizeObserver(() => renderer.resize()); resize.observe(canvas);
 
   const writeUrl = (): void => {
     const url = new URL(location.href);
     url.searchParams.set('review', 'scene'); url.searchParams.set('view', view); url.searchParams.set('light', light);
+    if (age === 1 || age === 2) url.searchParams.set('age', String(age));
     url.searchParams.set('vtest', formatVisualTest(visualTest())); url.searchParams.set('still', still ? '1' : '0');
     history.replaceState(null, '', url);
   };
@@ -79,7 +83,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   };
   const title = document.createElement('strong'); title.textContent = 'Visual test scene'; panel.append(title);
   row('View', select('scene-view', Object.entries(SCENE_VIEWS).map(([key, one]) => [key, one.label] as const), view, value => { view = value as SceneView; frame(); }));
-  row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
+  row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['tinted', 'Soft, violet shade'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
     value => { light = value; renderer.setDaylight(value); }));
   const hold = document.createElement('input'); hold.type = 'checkbox'; hold.id = 'scene-still'; hold.checked = still;
   hold.onchange = () => { still = hold.checked; renderer.setClock(still ? 12 : null); writeUrl(); };

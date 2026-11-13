@@ -8,6 +8,7 @@ import {onTileTop,surfaceHeight} from './surface.js';
 export function openLandTree(tile,hash,slot=0,dense=null){
  if(!['grassland','plains'].includes(tile.terrain))return null;
  if((tile.feature&&tile.feature!=='none')||tile.resource)return null;
+ if(dense?.groves)return groveTree(tile,hash,slot,dense);
  const salt=slot*37;
  const chance=dense?(tile.terrain==='grassland'?dense.grassChance:dense.plainsChance):(tile.terrain==='grassland'?.14:.075);
  if(hash(tile.col,tile.row,1200+salt)>=chance)return null;
@@ -21,6 +22,29 @@ export function openLandTree(tile,hash,slot=0,dense=null){
   const heights=[[.08,0],[-.08,0],[0,.08],[0,-.08]].map(([dx,dz])=>surfaceHeight(tile,x+dx,z+dz));
   if(Math.max(y,...heights)-Math.min(y,...heights)>.04)continue;
   return {x,y,z,angle,scale:(dense?dense.scaleMin:.20)+hash(tile.col,tile.row,1230+salt)*(dense?dense.scaleSpan:.075),cypress:hash(tile.col,tile.row,1231+salt)>.78};
+ }
+ return null;
+}
+
+// Groves (the visual test, 2026-11-12): the reference games group their trees
+// and leave meadow between the groups. A tile either has one grove, a few
+// trees round one point, or no tree.
+function groveTree(tile,hash,slot,dense){
+ const chance=tile.terrain==='grassland'?dense.groveGrass:dense.grovePlains;
+ if(hash(tile.col,tile.row,1300)>=chance)return null;
+ const count=2+Math.floor(hash(tile.col,tile.row,1301)*(dense.groveSize-1));
+ if(slot>=count)return null;
+ const turn=hash(tile.col,tile.row,1302)*Math.PI*2,ax=Math.cos(turn)*.34,az=Math.sin(turn)*.34;
+ for(let attempt=0;attempt<4;attempt++){
+  const salt=slot*11+attempt;
+  const angle=slot*2.4+hash(tile.col,tile.row,1310+salt)*1.2,radius=slot?dense.groveSpread*(.55+hash(tile.col,tile.row,1340+salt)*.45):0;
+  const x=ax+Math.cos(angle)*radius,z=az+Math.sin(angle)*radius;
+  if(!onTileTop(tile,x,z,.15))continue;
+  const y=surfaceHeight(tile,x,z);
+  const heights=[[.08,0],[-.08,0],[0,.08],[0,-.08]].map(([dx,dz])=>surfaceHeight(tile,x+dx,z+dz));
+  if(Math.max(y,...heights)-Math.min(y,...heights)>.04)continue;
+  // The first tree is the largest; the others step down round it.
+  return {x,y,z,angle,scale:(dense.scaleMin+hash(tile.col,tile.row,1370+slot)*dense.scaleSpan)*(slot?.78:1.12),cypress:hash(tile.col,tile.row,1380+slot)>.8};
  }
  return null;
 }

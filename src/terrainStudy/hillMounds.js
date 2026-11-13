@@ -1,5 +1,10 @@
+import {VIEW3D} from '../render3d/lookData';
 // Deliberately small polygon meshes, not samples of a rounded height field.
 // Local hills and landscape strokes use the same broad, tilted polygon planes.
+// Terraces (the visual test, 2026-11-12): a hill is one broad flat step, and a
+// large hill carries a second, smaller step. A flat top takes the same light
+// as the flat ground, so only the side faces read, as in the reference games.
+const TERRACE=VIEW3D.visualTest.northStar&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills:null;
 function random(col,row,salt){
  let n=Math.imul(col+31,73856093)^Math.imul(row+17,19349663)^Math.imul(salt+1,83492791);
  n=Math.imul(n^(n>>>13),1274126177);
@@ -49,16 +54,28 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   const origin=locate(0,0),topBase=baseHeight(origin[0]*fit,origin[1]*fit)+.002;
   // An irregular, slightly tilted plateau produces a broad top plane. The
   // lower shoulders remain distinct instead of becoming little pyramids.
-  const capX=options.capX??(.46+r(salt+11)*.16),capZ=options.capZ??(.27+r(salt+12)*.16);
+  const capX=TERRACE?TERRACE.cap:options.capX??(.46+r(salt+11)*.16),capZ=TERRACE?TERRACE.cap:options.capZ??(.27+r(salt+12)*.16);
+  if(TERRACE)height*=TERRACE.height;
   for(const [x,z]of rim){
-   const u=x*capX+rx*.08,v=z*capZ-rz*.07,[px,pz]=locate(u,v);
-   vertices.push([px*fit,topBase+height*(1+u/rx*.12-v/rz*.10),pz*fit]);
+   const u=TERRACE?x*capX:x*capX+rx*.08,v=TERRACE?z*capZ:z*capZ-rz*.07,[px,pz]=locate(u,v);
+   vertices.push([px*fit,topBase+height*(TERRACE?1:1+u/rx*.12-v/rz*.10),pz*fit]);
   }
   for(let j=0;j<sides;j++){
    const k=(j+1)%sides;
    indices.push(j,k,sides+j,k,sides+k,sides+j);
   }
   for(let j=1;j<sides-1;j++)indices.push(sides,sides+j,sides+j+1);
+  if(TERRACE&&Math.min(rx,rz)*fit>=TERRACE.upperFrom){
+   // The second step: a smaller copy of the outline, set off-centre on the first.
+   const at=vertices.length,ox=(r(salt+13)-.5)*rx*.3,oz=(r(salt+14)-.5)*rz*.3,rise=height*(1.75+r(salt+15)*.35);
+   for(const [scale,y]of [[TERRACE.upper,topBase+height],[TERRACE.upper*TERRACE.cap,topBase+rise]])
+    for(const [x,z]of rim){const [px,pz]=locate(x*scale+ox,z*scale+oz);vertices.push([px*fit,y,pz*fit])}
+   for(let j=0;j<sides;j++){
+    const k=(j+1)%sides;
+    indices.push(at+j,at+k,at+sides+j,at+k,at+sides+k,at+sides+j);
+   }
+   for(let j=1;j<sides-1;j++)indices.push(at+sides,at+sides+j,at+sides+j+1);
+  }
   const faces=[];
   for(let j=0;j<indices.length;j+=3){
    let [p,q,s]=indices.slice(j,j+3).map(k=>vertices[k]);
@@ -226,7 +243,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
   const seed=Math.floor(random(q,r,604)*1000000);
   if(!stroke(x,z,length,width,.20+h*.13,turn,seed,.59))continue;
   const ca=Math.cos(turn),sa=Math.sin(turn);
-  for(let j=0;j<1+Math.floor(k*3);j++){
+  for(let j=0;j<(TERRACE&&!TERRACE.flanks?0:1+Math.floor(k*3));j++){
    const a=random(q,r,610+j*3),b=random(q,r,611+j*3);
    const u=(a*2-1)*length*.95,v=(b>.5?1:-1)*(width*.8+.12+b*.24);
    const size=.30+a*.32;
@@ -244,7 +261,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
    const salt=(i+3)*7+j+3,x=i*.23+(random(tile.col,tile.row,740+salt)-.5)*.10,z=j*.23+(random(tile.col,tile.row,800+salt)-.5)*.10;
    if(shape.normals.every(([nx,nz],k)=>x*nx+z*nz<=shape.upper[k]-.075))samples.push([x,z,baseHeight(tile,x,z)]);
   }
-  const h=random(tile.col,tile.row,701),k=random(tile.col,tile.row,702),turn=direction(c.x,c.z,h),target=.63+k*.10;
+  const h=random(tile.col,tile.row,701),k=random(tile.col,tile.row,702),turn=direction(c.x,c.z,h),target=TERRACE?TERRACE.fill+k*.08:.63+k*.10;
   const seed=Math.floor(random(tile.col,tile.row,703)*1000000);
   for(let pass=0;pass<5;pass++){
    const vacant=samples.filter(([x,z,y])=>moundSurfaceHeight(pieces,x,z,y)<y+.028);
@@ -255,7 +272,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
    let placed=false;
    for(let attempt=0;attempt<Math.min(6,ranked.length)&&!placed;attempt++){
     const {x,z}=ranked[attempt],a=random(seed,pass,860+attempt),b=random(seed,pass,870+attempt);
-    const size=(pass===0?.69:.48)+a*(pass===0?.30:.24);
+    const size=TERRACE?.72+a*.26:(pass===0?.69:.48)+a*(pass===0?.30:.24);
     placed=stroke(c.x+x,c.z+z,size,size*(.72+b*.22),.17+a*.11,turn+(b-.5)*1.4,seed+pass*7+attempt,.53);
    }
    if(!placed)break;

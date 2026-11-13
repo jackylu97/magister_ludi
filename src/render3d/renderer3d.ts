@@ -2311,7 +2311,7 @@ export class Renderer3D implements MapView {
       this.shadows,
       this.fogLevels(),
       this.icons,
-      this.paintedCities ? {towns: false, flagAnchors: this.paintedCities.flagAnchors} : undefined,
+      this.paintedCities ? {towns: false, flags: !VIEW3D.visualTest.northStar || VIEW3D.visualTest.town.flag, flagAnchors: this.paintedCities.flagAnchors} : undefined,
     );
     this.citiesSignature = signCities(this.state);
     // The stones only. `signCities` also moves for a town the seat cannot see

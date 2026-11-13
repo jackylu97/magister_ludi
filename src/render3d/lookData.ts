@@ -2268,12 +2268,47 @@ export interface VisualTestSpec {
   northStar: boolean;
   /** The sizes of the monuments a town raises under the north-star look, and where the capital's armillary stands. */
   monuments: { shrine: number; temple: number; wonder: number; capital: number; capitalAt: number[] };
+  /**
+   * A town that fills its hex under the north-star look (`paintedCities.ts`).
+   * An address is `[x, z, size, yaw]` in hex units: `size` is the longest side
+   * of the footprint the piece is scaled to. `big` holds a monument or a large
+   * house, `pockets` hold an obelisk or a small house, `lots` hold a house.
+   * `flag: false` leaves the pole and flag in the middle of the town undrawn.
+   */
+  town: {
+    flag: boolean;
+    wallRadius: number; wallInset: number; wallSpacing: number; wallHeight: number; stakeSpacing: number;
+    gateHalf: number; gateInset: number; gateTower: number; roadGateTower: number; towerSize: number;
+    ground: string; groundLift: number; street: string; streetHalf: number;
+    minHouses: number; housesOverPopulation: number;
+    hall: number[]; capitalHall: number; big: number[][]; pockets: number[][]; lots: number[][];
+    yawJitter: number; monumentSize: number; bigHouse: number;
+  };
+  /** The mine, the quarry and the farm under the north-star look (`northStarWorks.js`). Sizes are in hex units. */
+  works: {
+    mineSize: number; mineAt: number[]; quarrySize: number; quarryAt: number[];
+    barnSize: number; haystackSize: number; haystacks: number;
+    /** The fields: how far they reach toward the hex edge, the gap between two, where the strips divide, and their colours. */
+    fieldInset: number; fieldGap: number; stripAt: number; angleJitter: number; fields: string[]; yard: string;
+  };
   /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
-  props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number };
+  props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number;
+    groves: boolean; groveGrass: number; grovePlains: number; groveSize: number; groveSpread: number; forestTrees: number; forestShade: number };
+  /** Which land palette the north-star look uses: `soft` or `deep` (darker, more saturated ground). */
+  land: string;
+  /** Hills as flat terraces with a darker side face. `cap` is how wide the flat top is against the foot, `upper` the size of the second terrace, `side` the tone of the side face. */
+  hills: { terraced: boolean; cap: number; height: number; upper: number; upperFrom: number; side: number; flanks: boolean; fill: number };
+
   /** Switch 11: each hex reads as a tile: only its own terrain's strokes, and a fine groove with a light lip at its edge. */
   tiles: { clean: boolean; width: number; soft: number; dark: number; lipWidth: number; light: number };
   /** Switch 9: the contact shade pass, made stronger and wider, with a cool tint. */
   grounding: { intensity: number; radius: number; tint: string };
+  /** Switch 12: things that stand up are darker at the foot and lighter at the top. `span` is the height in world units over which the tone changes. */
+  gradient: { foot: number; top: number; span: number };
+  /** Switch 13: a final colour grade in the output step: contrast, saturation, warm highlights with cool shadows, a haze toward the top of the screen, a vignette. */
+  grade: { contrast: number; saturation: number; warm: number; haze: string; hazeStrength: number; vignette: number };
+  /** Switch 14: a blur at the top and bottom of the screen. `focus` is the half-height of the sharp band (0 to 1), `blur` the largest radius in pixels. */
+  miniature: { focus: number; blur: number };
   /** Switch 10: a rim light on things that stand up, and a deeper, cooler shade. */
   light: { rim: string; rimStrength: number; rimPower: number; rimInShade: number; shadeDeepen: number; shadeTint: number[] };
   rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number };

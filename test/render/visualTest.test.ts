@@ -53,7 +53,7 @@ describe('the vtest URL option', () => {
   });
 
   it('ignores numbers and options it does not know', () => {
-    const state = parseVisualTest('4,12,x,99');
+    const state = parseVisualTest('4,99,x,99');
     expect(VISUAL_SWITCHES.filter((def) => state[def.key]).map((def) => def.id)).toEqual([4]);
   });
 
@@ -70,9 +70,9 @@ describe('the vtest URL option', () => {
     expect(changed.map((def) => def.key)).toEqual(['rivers', 'organicRivers', 'pins']);
   });
 
-  it('numbers the eleven switches 1 to 11, each once', () => {
-    expect(VISUAL_SWITCHES.map((def) => def.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-    expect(new Set(VISUAL_SWITCHES.map((def) => def.key)).size).toBe(11);
+  it('numbers the fourteen switches 1 to 14, each once', () => {
+    expect(VISUAL_SWITCHES.map((def) => def.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    expect(new Set(VISUAL_SWITCHES.map((def) => def.key)).size).toBe(14);
   });
 });
 

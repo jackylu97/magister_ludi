@@ -19,11 +19,20 @@ const LAND={
   dry:{grassland:'#a1b573',plains:'#d3c48a',desert:'#ead8aa',tundra:'#abb09c',snow:'#edefeb',mountain:'#a2a3a6',oasis:'#99b270',floodplain:'#b0c07d'},
   rich:{grassland:'#8eaa69',plains:'#c4b87d',desert:'#e0cd9d',tundra:'#9aa495',snow:'#e4eaec',mountain:'#8d99a1',oasis:'#86a865',floodplain:'#a0b670'},
  },
-}[NORTH_STAR?'soft':'study'];
+ // `deep` (2026-11-12, second look at the reference games): their ground is a
+ // mid-dark, saturated green, so pale walls, roads and fields stand out on it.
+ // `visualTest.land` picks `soft` or `deep`.
+ deep:{
+  base:{oasis:'#78a352',floodplain:'#93b05a',grassland:'#7fa24a',plains:'#c2ab5c',desert:'#e3c98c',tundra:'#94a08a',snow:'#eaeeee',mountain:'#7f8794'},
+  dry:{grassland:'#93ad52',plains:'#cdb564',desert:'#ecd297',tundra:'#a0a890',snow:'#edefeb',mountain:'#8f9199',oasis:'#86aa58',floodplain:'#a2b862'},
+  rich:{grassland:'#6c9343',plains:'#b09f52',desert:'#d6bb80',tundra:'#86957f',snow:'#e4eaec',mountain:'#6f7f88',oasis:'#6b9a4c',floodplain:'#84a552'},
+ },
+}[NORTH_STAR?(VIEW3D.visualTest.land==='deep'?'deep':'soft'):'study'];
 export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
 const dryColors=LAND.dry;
 const richColors=LAND.rich;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
+const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills.side:0;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
 }]));
@@ -199,7 +208,9 @@ export function createTerrainPainter(map,mountainRanges){
     Math.min(triangle[0][2],triangle[1][2],triangle[2][2]),Math.max(triangle[0][2],triangle[1][2],triangle[2][2])];
    while(moundIndex<moundPigments.length-1&&i>=moundPigments[moundIndex].end)moundIndex++;
    const moundKind=i>=plateCount?moundPigments[moundIndex]?.kind:null;
-   let fragments=[{polygon:triangle,color:moundKind?pigments[moundKind].base:base}];
+   // A terrace's side face takes one darker tone; its flat top takes the ground's.
+   const steep=TERRACE_SIDE&&moundKind&&normals.getY(i)<.9;
+   let fragments=[{polygon:triangle,color:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base}];
    // The established hill shapes read through their lighting planes. Leave
    // them intact instead of fragmenting every slope with more painted cuts.
    for(const p of i<plateCount?patches:[]){

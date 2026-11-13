@@ -24,7 +24,7 @@
  */
 
 /** The on/off switches, by key. */
-export type VisualSwitch = 'sea' | 'rivers' | 'borders' | 'organicRivers' | 'organicRoads' | 'pins' | 'clouds' | 'idle' | 'grounding' | 'light' | 'tiles';
+export type VisualSwitch = 'sea' | 'rivers' | 'borders' | 'organicRivers' | 'organicRoads' | 'pins' | 'clouds' | 'idle' | 'grounding' | 'light' | 'tiles' | 'gradient' | 'grade' | 'miniature';
 
 /**
  * How the border line of switch 3 is drawn:
@@ -69,6 +69,9 @@ export const VISUAL_SWITCHES: readonly VisualSwitchDef[] = [
   { id: 9, key: 'grounding', label: 'Grounding shade', rebuild: 'none' },
   { id: 10, key: 'light', label: 'Rim light and deeper cool shade', rebuild: 'none' },
   { id: 11, key: 'tiles', label: 'Hexes as tiles', rebuild: 'none' },
+  { id: 12, key: 'gradient', label: 'Darker foot, lighter top', rebuild: 'none' },
+  { id: 13, key: 'grade', label: 'Colour grade', rebuild: 'none' },
+  { id: 14, key: 'miniature', label: 'Miniature blur', rebuild: 'none' },
 ];
 
 /** The border switch's number in `?vtest=`, which takes a style after a colon. */
