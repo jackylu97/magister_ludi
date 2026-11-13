@@ -1193,7 +1193,7 @@
   },
   "visualTest": {
     "northStar": true,
-    "land": "deep",
+    "land": "study",
     "motionFps": 24,
     "sea": {
       "style": "bands",
@@ -1651,12 +1651,16 @@
       "terrain": 3.6
     },
     "paint": {
-      "blend": 0.3,
+      "blend": 0,
+      "strokeBlend": 0,
       "strokes": 1,
       "dabs": 0,
       "halo": 0,
-      "tongues": 4,
-      "reach": 1.5,
+      "tongues": 0,
+      "reach": 1.2,
+      "spread": 1,
+      "layers": 2,
+      "crease": 0.5,
       "brush": 0
     },
     "hills": {

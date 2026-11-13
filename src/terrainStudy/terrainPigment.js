@@ -127,13 +127,25 @@ export function createTerrainPainter(map,mountainRanges){
   }
   return nearest;
  }
- function brushGroup(col,row){
-  const key=`${col}:${row}`;
+ // `layer` 0 is the study's own lattice of brush groups. A higher layer is the
+ // same lattice again, moved by part of its spacing and hashed afresh, and it
+ // keeps only the groups that stand on a hex beside another kind of land. So
+ // more of the same strokes, at the same size, lie across the edges between
+ // terrains, and nothing changes inside one terrain (the user, 2026-11-13:
+ // "keep the relative size of the old strokes and just extend more of them
+ // across hex transition boundaries").
+ function besideOtherLand(tile){
+  const own=terrainKind(tile);
+  for(let d=0;d<6;d++){const other=neighbour(tile,map,d);if(other&&!isWater(other)&&terrainKind(other)!==own)return true}
+  return false;
+ }
+ function brushGroup(col,row,layer=0){
+  const key=`${col}:${row}:${layer}`;
   if(groups.has(key))return groups.get(key);
-  const h=hash(col+73,row-41),k=hash(col-29,row+137);
-  const x=(col+.5)*spacingX+(h-.5)*.60,z=(row+.5)*spacingZ+(k-.5)*.55;
+  const h=hash(col+73+layer*911,row-41-layer*577),k=hash(col-29-layer*313,row+137+layer*701);
+  const x=(col+.5+layer*.37)*spacingX+(h-.5)*.60,z=(row+.5+layer*.61)*spacingZ+(k-.5)*.55;
   const owner=tileAt(x,z),patches=[];
-  if(owner&&!isWater(owner)){
+  if(owner&&!isWater(owner)&&(layer===0||besideOtherLand(owner))){
    const p=pigments[terrainKind(owner)],turn=.35+.42*Math.sin(x*.20+z*.13)+(h-.5)*.55;
    const tangent=[Math.cos(turn),Math.sin(turn)],normal=[-tangent[1],tangent[0]];
    const ownerKind=terrainKind(owner);
@@ -144,7 +156,8 @@ export function createTerrainPainter(map,mountainRanges){
    // One broad area, a medium flank and a few small angular breaks. The
    // darker pieces touch or sit just outside the main shape's edge, so they
    // read as one irregular contour rather than uniformly scattered confetti.
-   const length=1.18+h*.42,width=.40+k*.16;
+   // `spread` makes every brush group a little larger than the study's, so more of each terrain's paint runs over into the hexes beside it (the user, 2026-11-13: "what we had before our changes and just do a bit more of that").
+   const spread=PAINT?.spread??1,length=(1.18+h*.42)*spread,width=(.40+k*.16)*spread;
    add(0,0,length,width,p.rich,h);
    add(.18,-.66,.62+k*.16,.24+h*.06,p.dry,k,-.18);
    add(-length*.44,width*.64,.27+h*.12,.13+k*.07,p.rich,k,.22);
@@ -168,7 +181,7 @@ export function createTerrainPainter(map,mountainRanges){
     add((a*2-1)*length*.8,(b*2-1)*width*.7,.16+a*.2,.07+b*.07,tone,a*b,(b-.5)*.7);
    }
   }
-  patches.forEach((p,i)=>{p.order=[row,col,i]});
+  patches.forEach((p,i)=>{p.order=[row,col,i+layer*1000]});
   groups.set(key,patches);return patches;
  }
  function regions(tile){
@@ -191,19 +204,27 @@ export function createTerrainPainter(map,mountainRanges){
    if(otherKind===ownKind)continue;
    const a=d*Math.PI/3,nx=Math.cos(a),nz=Math.sin(a),mx=c.x+nx*Math.sqrt(3)/2,mz=c.z+nz*Math.sqrt(3)/2;
    const ex=Math.round(mx*16),ez=Math.round(mz*16),q=pigments[otherKind];
+   // A patchwork (the user, 2026-11-13: "what i'm looking for is a patchwork
+   // transition"; layered strokes from both sides made stripes). The edge is
+   // cut into a few lengths. Each length belongs to one of the two terrains,
+   // by a hash both hexes share, and that terrain lays one patch over the
+   // line into the other hex. No two patches overlap, and none has a second
+   // shape under it. Some patches take the half tone between the two grounds.
+   const mine=tile.row*map.width+tile.col,theirs=other.row*map.width+other.col;
    for(let k=0;k<PAINT.tongues;k++){
     const h1=hash(ex+k*7,ez-k*13),h2=hash(ex-k*11,ez+k*5),h3=hash(ex+k*3+91,ez+k*17);
-    // Strokes that lean out from this hex are the neighbour's to draw as its own colour; here only the ones that come in show.
-    const along=(k+.5)/PAINT.tongues-.5+(h1-.5)*.2,reach=PAINT.reach??1,inward=-(.02+h2*.12)*reach,turn=a+Math.PI/2+(h3-.5)*.5;
-    const px=mx-nz*along+nx*inward,pz=mz+nx*along+nz*inward,rx=(.24+h2*.14)*reach,rz=(.14+h3*.1)*reach;
-    const under=patch(px,pz,turn+.2,rx*1.3,rz*1.35,h1,p.base.clone().lerp(q.base,.5)),over=patch(px,pz,turn,rx,rz,h3,q.base);
-    under.kind=over.kind=ownKind;under.order=over.order=[-1,d,k];
-    patches.push(under,over);
+    // The hex with the lower number reaches over on the lengths the hash gives it; the other hex on the rest.
+    if((h1>.5)===(mine<theirs))continue;
+    const reach=PAINT.reach??1,slot=1/PAINT.tongues,along=(k+.5)*slot-.5,deep=(.1+h2*.14)*reach;
+    const px=mx-nz*along-nx*deep*.8,pz=mz+nx*along-nz*deep*.8;
+    const one=patch(px,pz,a+Math.PI/2+(h3-.5)*.3,slot*.5,deep,h3,h2<(PAINT.blend??0)?p.base.clone().lerp(q.base,.5):q.base);
+    one.kind=ownKind;one.order=[-1,d,k];
+    patches.push(one);
    }
   }
   for(const offset of period?[-period,0,period]:[0]){
    const col=Math.floor((c.x-offset)/spacingX);
-   for(let r=row-2;r<=row+2;r++)for(let q=col-2;q<=col+2;q++)for(const source of brushGroup(q,r)){
+   for(let layer=0;layer<=(PAINT?.layers??0);layer++)for(let r=row-2;r<=row+2;r++)for(let q=col-2;q<=col+2;q++)for(const source of brushGroup(q,r,layer)){
    const region=translated(source,offset);
    const [left,right,top,bottom]=region.bounds;
    if(right<c.x-1||left>c.x+1||bottom<c.z-1||top>c.z+1)continue;
@@ -215,10 +236,10 @@ export function createTerrainPainter(map,mountainRanges){
    // toward this hex's own ground (the user, 2026-11-13: "I'd rather it blend
    // a little more"). The neighbour does the same with this terrain's strokes,
    // so two terrains meet through two half tones and not on one hard edge.
-   if(PAINT&&PAINT.blend&&region.kind&&region.kind!==ownKind){
+   if(PAINT&&PAINT.strokeBlend&&region.kind&&region.kind!==ownKind){
     if(!mixed.has(region))mixed.set(region,new Map());
     const tones=mixed.get(region);
-    if(!tones.has(ownKind))tones.set(ownKind,{...region,color:region.color.clone().lerp(p.base,PAINT.blend)});
+    if(!tones.has(ownKind))tones.set(ownKind,{...region,color:region.color.clone().lerp(p.base,PAINT.strokeBlend)});
     patches.push(tones.get(ownKind));continue;
    }
    patches.push(region);
@@ -339,7 +360,8 @@ export function createTerrainPainter(map,mountainRanges){
     if((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0])>0)triangle.reverse();
     for(const p of triangle){
      sample(tile,p[0],p[2],color);
-     const middle=rings[1].includes(p),strength=middle?.78:.94;
+     // The crease along a joined hex edge is the study's. `crease` is how much of its darkening stays.
+     const middle=rings[1].includes(p),strength=1-(1-(middle?.78:.94))*(PAINT?.crease??1);
      positions.push(...p);colors.push(color.r*strength,color.g*strength,color.b*strength);
     }
    }
