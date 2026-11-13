@@ -2352,10 +2352,14 @@ export interface VisualTestSpec {
     uneven: number; widthVary: number; sandVary: number;
     /** `straighten` is how many passes relax the hex edges' zigzag out of the line; `bendSwell` is how much wider the river is on a bend. */
     straighten: number; bendSwell: number;
+    /** Bends in proportion to the water: a bend is `meander` widths long and swings `meanderReach` widths to each side, up to `wander`. 0 keeps the fixed `wanderWave`. */
+    meander: number; meanderReach: number;
     /** Two banks that differ: `bankVary` is each bank's own wave; `barPinch` narrows the inside of a bend and `barWidth` widens its sand into a bar; `deep` is the darker middle, `deepShare` of the width. */
     bankVary: number; barPinch: number; barWidth: number; deep: string; deepShare: number;
     /** `barGreen` is the share of wide sand that grows green patches; a stream joins a river `joinDown` units downstream of the hex corner, bent over its last `joinReach` units; a river that starts on land rises from a pool `springSize` across. */
     barGreen: number; joinDown: number; joinReach: number; springSize: number;
+    /** Near a meeting of runs each run lays plain water only, for `junctionClear` units; the ground there is cut as a round pool `junctionPool` times the river's half width. */
+    junctionClear: number; junctionPool: number;
     /** The true cut: the ground drops `cutDepth` under the water and rises in a straight slope over `cutBank` beside it. 0 depth is no cut. */
     cutDepth: number; cutBank: number;
     modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
