@@ -6755,6 +6755,38 @@ function countedHexRows(
 }
 
 /**
+ * Whether this seat holds a live hex `pays` row that the town working the hex
+ * counts (`countedHexRows`). That is the one way a card makes a town's ground
+ * read the buildings a preview adds. `candidateReachesGround` (`yields/hex.ts`)
+ * asks it, and treats a yes as "the candidate may change the ground".
+ *
+ * Asked once for each building the bot weighs in each town, so the answer is
+ * kept against the live list it was read from (`COUNTS_TOWN_GROUND`).
+ */
+export function cardCountsTownGround(state: GameState, playerId: number): boolean {
+  const live = liveEffects(state, playerId);
+  const held = COUNTS_TOWN_GROUND.get(live);
+  if (held !== undefined) return held;
+  let found = false;
+  for (const { effect } of pickKind(live, 'pays')) {
+    if (effect.where === 'hex' && effect.on !== undefined && basisOf(effect) === 'count') {
+      found = true;
+      break;
+    }
+  }
+  COUNTS_TOWN_GROUND.set(live, found);
+  return found;
+}
+
+/**
+ * `cardCountsTownGround`'s answers, keyed on the live list itself. `liveEffects`
+ * builds a new list whenever the law changes and never writes to one it has
+ * handed out, so an answer lives exactly as long as the list it was read from.
+ * That is `TILE_LINE_PLANS`' bargain (`yields/hex.ts`).
+ */
+const COUNTS_TOWN_GROUND = new WeakMap<readonly LiveCardEffect[], boolean>();
+
+/**
  * The hex `pays` lines **this city's own rites** put on its ground — the fifth
  * producer of a `TileLine` (Entry XXVIII).
  *

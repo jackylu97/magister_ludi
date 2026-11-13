@@ -526,3 +526,149 @@ The shadow run recomputes every remembered answer and fails if the two differ. I
   - A fault that cannot happen today: in `realiseItem` (`cities.ts`), `consecrateBuilding` writes `City.consecration` after the function's `bumpEconomy`, and `slateRegister.test.ts` has no row for that field. No consecration row in `data/religion.json` pays happiness or authority, so no answer can go stale now. It becomes a real fault the day one does.
 
 Checks: type check clean, 11,117 core tests passed, build clean, both pins unchanged, digest test passed, and the core shadow run passed all 11,117 tests.
+
+## Slow bot turns, 2026-11-13 (batch BPS)
+
+The user: *"fix the slow bot turns please"* (`docs/flags.md`, "Slow bot turns first"). Branch `decks` at `a84b16f5`, schema 242, after bot batches BP1 and BP2. The rules of this pass still hold: a speed fix only, and the bots decide the same.
+
+### Method
+
+- The same game as the earlier probes: six seats with two decks each, standard map, barbarians on, seeds 999 and 42. The probe is a scratch script outside the repo, run with `vite-node`. It times each turn, each seat, each bot decision and each command, and it takes a CPU profile of turns 101 to 120 through `node:inspector`.
+- The laptop's load changed a lot while this batch ran. Other work pushed the load average from 5 to over 40, and one game took three times as long in one hour as in another. So a time below is only compared with a time taken in the same minutes. The before and after figures come from one process that plays the same game on both trees, a turn on one and then the same turn on the other, so both see the same load. Commands, towns and units do not depend on the load, so those figures are exact.
+- Two reference commits were played too: `5379853b`, the commit before BP1, and `f0c48fbb`, BP1 itself.
+
+### Pins at `a84b16f5`
+
+The pins at the top of this file are from `a207602a` and no longer apply: many batches since then moved them on purpose. These are the pins for this batch.
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `3f51010e:815245` | `828fd649:840149` | `3f9d417b:865264` | `f5ce3aa0:907099` | `221b097e:974889` | `3da1fb22:1062995` |
+| Two decks, seed 42 | `13c84b0d:816820` | `7f8d775c:834115` | `03250d43:851358` | `76a0149d:873960` | `5395f68d:918415` | `54932900:975388` |
+
+At turn 130 the two games are `088cfd2f:1112337` and `83d3c432:1011458`. `test/sim/aiDigest.slow.test.ts` pins duel `87a4f27f:348377` and standard `36c397f5:1062622`.
+
+### What makes the late turns slow
+
+**Mostly more work, not slower work.** Seed 999, turns 111 to 120, the commit before BP1 against this tree, run side by side with the profiler on:
+
+| Measure | Before BP1 (`5379853b`) | This tree (`a84b16f5`) | Change |
+|---|---:|---:|---:|
+| Seconds a turn | 1.61 | 3.02 | +88% |
+| Commands a turn | 80 | 138 | +73% |
+| Towns | 44 | 61 | +39% |
+| Units, barbarians' included | 332 | 413 | +24% |
+| Milliseconds a command | 20.2 | 21.9 | +8% |
+
+The three causes, one at a time:
+
+1. **More commands.** BP1 is where they rose. In turns 111 to 120, seed 999 gives 80 commands a turn before BP1, 126 at BP1 and 138 on this tree. On seed 42 the rise is small: 69, 75 and 82. Most of the new commands are orders to pieces and towns:
+
+   | Command, seed 999, turns 111 to 120, a turn | Before BP1 | This tree |
+   |---|---:|---:|
+   | `moveUnit` | 31.9 | 58.4 |
+   | `setCityProduction` | 10.0 | 18.4 |
+   | `buildImprovement` | 4.8 | 9.0 |
+   | `setCitizenFocus` | 5.1 | 7.8 |
+   | `attack` | 2.4 | 5.2 |
+   | `proposeDeal` and `declineDeal` | 4.2 | 9.1 |
+   | `buyRoute` | 0.7 | 3.5 |
+   | everything else, `endTurn` included | 20.6 | 26.4 |
+
+   One seat holds most of the rise. Seat 3 (zealot, Magisterial and Expansionist) gives 41 commands a turn and takes 0.96 s of the 3.0 s. Before BP1 it gave 11 and took 0.21 s.
+2. **Bigger empires.** 61 towns against 44, and 413 units against 332. A seat's turn opens with readings of the whole empire (below), and those grow with the towns.
+3. **Slower decisions for each command.** Only a little: 21.9 ms a command against 20.2. Each decision costs about what it did.
+
+Why the bots hold more towns and give more orders after BP1 is a question about their play. This batch does not change it.
+
+**Where the time goes on this tree.** Seed 999, turns 101 to 120, a profile of 58.9 s:
+
+| Part of the turn | Time | Share |
+|---|---:|---:|
+| Bot decisions | 44.9 s | 76% |
+| Of which `valueContext`, once a seat's turn: `wantBook` 11.3 s, `liveChains` 7.0 s, `nextTownChain` 1.1 s, `routeOutlook` 1.0 s | 20.6 s | 35% |
+| Of which the beeline's first table in each seat's turn (`techGoalTable`); a later table costs about 1.2 ms | 8.7 s | 15% |
+| Of which the other arms, on each decision | 15.6 s | 26% |
+| The reducer | 11.3 s | 19% |
+| Of which the end of the turn (`runEndOfTurn`) | 8.5 s | 14% |
+
+**The largest single cost was the what-if fold.** `townFolds.with` folds a town with one more building, through `explainCity` with a candidate. The tech chains, the beeline's table and both banks price buildings this way. It took 12.4 s, 21% of the profile. Counted over the same turns:
+
+- 397 folds with a candidate in a seat's turn, of which 338 were a pair of town and building asked for the first time. So a memo could not help, because the pairs are distinct.
+- Timed step by step, a fold with a candidate spent 41% of its time in steps 3 to 7 (the cards' town lines, the seams, the specialists, the routes, the palace) and 34% in steps 1 and 2 (the centre and the worked hexes).
+- Steps 3 to 7 never read the candidate. Steps 1 and 2 read it only through `cityContext`, and 93% of pairs had a candidate that cannot change the ground.
+
+So most of each fold walked again what the town's plain reading (`readCity`) already held.
+
+By itself, no function held more than 3.5% of the profile: `explainCity` 3.5%, its line builder `say` 2.9%, `cityLocalEffects` 2.6%, `tileConditionHolds` 1.9%, `liveReading` 1.8%, `searchPath` 1.6%. The cost is in how often the folds run, not in one slow loop.
+
+### The fix
+
+A fold with a candidate copies, from the town's plain reading, every part that the candidate cannot change. It walks only the rest.
+
+- **`explainCity` (`src/sim/yields/town.ts`)** takes a fifth parameter, `standing`: the town's plain reading at the same moment. When a caller passes it with a candidate, `explainCity` copies:
+  - the lines of steps 3 to 7, always;
+  - the lines of steps 1 and 2, when `candidateReachesGround` says no;
+  - the lines of step 9, when no card's share on buildings reaches the candidate (`sharesReachCandidate`);
+  - the percentages, when both readings were handed the same `empire` object.
+
+  Steps 8 and 10 are always worked out. The copied lines are the same objects, in the same order, so the list and its fold are what a full walk gives. `copySteps` and `sharesReachCandidate` are two small helpers beside it. With no `standing`, or no candidate, nothing changes.
+- **`candidateReachesGround` (`src/sim/yields/hex.ts`)** is the test for steps 1 and 2. It asks the three places where `cityContext` reads a candidate: whether the candidate's row puts a tile line on the ground, whether it waters fields, and whether a card's hex line counted by the town is live (`cardCountsTownGround`). It asks the candidate's row and never the town, so it reads no town's buildings. That costs a cautious "yes" for a candidate the town already holds and for a second source of water, which only means that the hexes are walked: 92.8% of pairs still copy the ground, against 93.3% for a test that asked the town.
+- **`rowTileLines` and `buildingIrrigates` (`src/sim/buildingEffects.ts`)** are the two row facts it asks. `buildingTileLines` and `buildingsIrrigate` now ask them for each row, so each fact is still worked out in one place, and their answers are the same.
+- **`cardCountsTownGround` (`src/sim/statecraft/evaluator.ts`)** answers the third question. It keeps its answer against the live list of effects, which is rebuilt whenever the law changes and never written after.
+- **`townFolds.with` (`src/ai/townFolds.ts`)** passes `readCity(state, city)` as `standing`. It asks `readCity` at the moment of the fold and not the grid's own `quoteOf`, because a chain's copy can keep a grid after the economy clock moves. While the clock stands still, it is the same memo.
+
+**Why no decision can change.** Each copied part is a function of inputs that the candidate does not reach. That is what the parameter's docblock argues, part by part. Three checks prove it:
+
+- A scratch check folded every building row in every town of both games, at turns 30, 60, 90 and 110: 30,750 pairs. With and without `standing`, the readings and the folds were the same, byte for byte. It was run again on the final code, with the same result.
+- `test/sim/whatIfCopy.test.ts` (new, core) does the same on a played duel, and again after a seat slots The Bourse and after it takes The Hydraulic Empire, which reach step 9 and the ground. It also checks that a "no" from `candidateReachesGround` means the same context. Each of three broken versions of the code failed it: a ground test that always says no, one that skips the counted rows, and a share test that always says no.
+- Both pins match at all six turns and at turn 130, and the digest test passes on both boards.
+
+### Before and after
+
+One process plays the same game on both trees, a turn on `a84b16f5` and then the same turn on this batch's tree, in turns to 130. Wall seconds a turn, and CPU seconds a turn in brackets (CPU time counts the garbage collector's threads too, so early turns read higher than the wall). The load rose again from about turn 100 of seed 999, so the late seconds there are high for both trees; read the change.
+
+| Turns | Seed 999 before | Seed 999 after | Change | Seed 42 before | Seed 42 after | Change |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 to 10 | 0.19 (0.35) | 0.18 (0.33) | −7% (−6%) | 0.19 (0.36) | 0.19 (0.36) | −1% (0%) |
+| 11 to 20 | 0.27 (0.38) | 0.31 (0.37) | +15% (−4%) | 0.28 (0.35) | 0.27 (0.32) | −4% (−8%) |
+| 21 to 30 | 0.33 (0.47) | 0.31 (0.44) | −6% (−5%) | 0.31 (0.40) | 0.30 (0.39) | −2% (−3%) |
+| 31 to 40 | 0.40 (0.54) | 0.40 (0.53) | +1% (−2%) | 0.40 (0.53) | 0.36 (0.47) | −11% (−11%) |
+| 41 to 50 | 0.53 (0.65) | 0.47 (0.61) | −12% (−6%) | 0.45 (0.59) | 0.47 (0.61) | +6% (+3%) |
+| 51 to 60 | 0.62 (0.76) | 0.57 (0.69) | −8% (−9%) | 0.50 (0.63) | 0.46 (0.60) | −8% (−4%) |
+| 61 to 70 | 0.97 (1.15) | 0.74 (0.99) | −24% (−14%) | 0.57 (0.74) | 0.52 (0.68) | −8% (−7%) |
+| 71 to 80 | 1.14 (1.61) | 1.04 (1.46) | −8% (−9%) | 0.89 (1.11) | 0.66 (0.90) | −26% (−19%) |
+| 81 to 90 | 2.50 (2.58) | 2.20 (2.09) | −12% (−19%) | 1.05 (1.29) | 0.97 (1.19) | −7% (−8%) |
+| 91 to 100 | 2.57 (2.75) | 2.07 (2.28) | −19% (−17%) | 2.22 (2.25) | 1.97 (2.00) | −11% (−11%) |
+| 101 to 110 | 5.88 (5.50) | 5.57 (4.65) | −5% (−15%) | 1.90 (2.13) | 1.66 (1.78) | −13% (−17%) |
+| 111 to 120 | 6.89 (6.27) | 5.55 (4.98) | −20% (−21%) | 4.40 (3.64) | 3.66 (3.16) | −17% (−13%) |
+| 121 to 130 | 7.88 (7.71) | 6.53 (6.45) | −17% (−16%) | 4.52 (4.37) | 3.94 (3.91) | −13% (−10%) |
+| Whole game | 301.6 s (307.1 s) | 259.2 s (258.7 s) | −14% (−16%) | 176.8 s (183.8 s) | 154.4 s (163.7 s) | −13% (−11%) |
+
+- **The late turns cost about 15% less on both seeds.** In CPU time, turns 91 to 130 fall by 15% to 21% on seed 999 and by 10% to 17% on seed 42.
+- **A second round, under a heavier load** (the laptop was swapping), agrees: CPU time for the whole game falls by 13% on seed 999 and by 12% on seed 42, and turns 91 to 130 fall by 10% to 24%.
+- **Commands, towns and digests are the same** on both trees in every band, as they must be.
+- These runs were taken before the register fix (see Checks), which makes the ground test ask the candidate's row. That walks the hexes for 0.5% more pairs, which is too small to move these figures, so they were not taken again.
+- **The what-if fold itself**, in profiles of turns 101 to 120 of seed 999 taken side by side: `townFolds.with` fell from 12.4 s to 4.4 s with steps 1 to 7 copied (a quiet pair), and from 24.7 s to 5.4 s with step 9 and the percentages copied too (a pair taken under a heavy load, so only its ratio counts).
+
+### What this batch measured and did not fix
+
+These are not done. Each is a question or a small saving.
+
+- **More commands and bigger empires (the main cause).** The late turn is about twice what it was before BP1 because the bots give 73% more commands and hold 39% more towns (seed 999). The rise is in BP1, and most of it is in seat 3. That is the bots' play, so it is a question for BP3 or for the user, not a speed fix.
+- **Town readings after each clock move.** A seat's turn takes about 142 plain town readings, against about 10 towns a seat, because the economy clock moves on 56% of commands (1,352 of 2,414 in turns 101 to 120 of seed 999, all of `setCityProduction`, `buildImprovement`, `attack` and `setCitizenFocus`). Each move throws away every town's reading. P2 measured a per-town clock for `setCityProduction` at 2.7% and did not build it. That still holds.
+- **The deck margin.** `readDeckMargin` builds two ghost readings of the empire for each engine card, 2.3 times in a seat's turn, at 9.4 ms each. In 54 of 275 cases it repeats one already read on the same clock in another context of the same turn. A memo would save about 1%.
+- **The purchase gate in `reachOf` (`wants.ts`).** The want book asks `explainPurchaseCost` and then `purchaseGate`, which prices the purchase again when every earlier clause passes. Most rows are refused before that, so the second price costs 0.13 s of the profile. Not worth a change.
+- **The end of the turn.** 14% of a late turn, with no part above 3.5%: `collectYields`, the barbarians' raid, `spendLeftoverMovement`, the wager readings, the deck tally.
+- **Two other folds with a candidate** in the bot do not pass `standing` yet: `frontRowWorth` (`bot.ts`) and `explainRelic` (`wants.ts`). Together they cost about 0.1 s in the profile.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- The register of readers in `test/sim/decks/expansionistCura.test.ts` (Expansionist batch E12) failed at the first gate. A first version of `candidateReachesGround` read the town's shelf itself: it asked `townShelf`, read `shelf.buildings` twice and handed `buildingsIrrigate` a one-row list that was not what the town holds. The register allows a read of a town's buildings only where the question is what was built, and asks every reading of a building's effect to be handed what the town holds. The test now asks only the candidate's row (above), so the register needed no new row and kept every pin. It passes.
+- Every test file that reads the source of the simulation or the bot (75 files under `test/sim` and `test/mapgen`, 3,358 tests; and 26 files under `test/ui` and `test/render`, 863 tests): passed.
+- 24 narrow test files, 1,361 tests, all passed: the new `whatIfCopy.test.ts`, the yield registers (`yieldsDocSync`, `yieldOrder`, `readings`, `verbs`, `slateRegister`, `stepSeen`, `benches`), the load-order tests (`moduleCycles`, `aiModuleCycles`), and the bot and yield files that fold a town (`aiBot`, `aiWants`, `aiAppraisal`, `aiSittingMemos`, `aiExpansionist`, `aiCommerce`, `aiScientific`, `exactYields`, `buildingPackage`, `cities`, `cardImpact`, `greatPeople`, `charters`, `statecraft`).
+- The shadow check (`test/vitest.shadow.config.ts`) on `whatIfCopy`, `readings` and `aiSittingMemos`: passed.
+- `test/sim/aiDigest.slow.test.ts`: passed on both boards.
+- Both two-deck games: the same digests at turns 20 to 120 and at turn 130, on every run of this batch.
+- The core tier, the build and the slow tier were not run. They are the orchestrator's gate.

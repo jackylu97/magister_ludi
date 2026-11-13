@@ -42,7 +42,7 @@ import { HEX_MARK_IDS, RULES } from '../rulesData';
 // The ground facts (Expansionist batch E3; Dominion batch D7), straight from
 // the evaluator rather than through the `statecraft.ts` index, so the build
 // does not warn of a circular import between chunks.
-import { type GroundFacts, groundFactsFor, townShelf } from '../statecraft/evaluator';
+import { type GroundFacts, cardCountsTownGround, groundFactsFor, townShelf } from '../statecraft/evaluator';
 import { type City, type GameState, playerById } from '../state';
 import {
   TERRAIN_DATA,
@@ -55,7 +55,7 @@ import {
 } from '../terrainData';
 import { type TechId, techDef } from '../techData';
 import { resourceTileLines } from '../resourceEffects';
-import { buildingTileLines, buildingsIrrigate } from '../buildingEffects';
+import { buildingIrrigates, buildingTileLines, buildingsIrrigate, rowTileLines } from '../buildingEffects';
 
 // --- tiles ------------------------------------------------------------------
 
@@ -411,6 +411,50 @@ export function cityContext(
   if (own.length > 0) next.lines = [...(ctx.lines ?? []), ...own];
   if (irrigates) next.irrigates = true;
   return next;
+}
+
+/**
+ * **Could these candidate buildings change what this town's ground pays?**
+ * `false` means that `cityContext(state, city, hypothetical)` holds the same
+ * lines and the same water as `cityContext(state, city)`, so every hex the town
+ * works pays the same with them as without them (batch BPS).
+ *
+ * It asks the three places `cityContext` reads `hypothetical`, and nothing else
+ * reads it there:
+ *
+ *   - `buildingTileLines`: a candidate can add lines only if its own row puts a
+ *     tile line on the ground under the owner's techs (`rowTileLines`). A row
+ *     with none adds nothing, whether or not the town already holds it;
+ *   - `buildingsIrrigate`: a candidate can water the fields only if its row
+ *     irrigates (`buildingIrrigates`);
+ *   - the counted rows of `scopedCardTileLines`: a candidate may raise a count.
+ *     This asks only whether such a row is live (`cardCountsTownGround`).
+ *
+ * Each question is asked of the candidate's row and never of the town, so the
+ * function reads no town's buildings (the register in
+ * `test/sim/decks/expansionistCura.test.ts`). The cost of that is a `true` in
+ * two cases where the ground would in fact not change: a candidate the town
+ * already holds, and a second source of water. `true` only means that the hexes
+ * are walked, so a cautious answer is always safe. The candidates are asked one
+ * at a time, because each adds its own lines and nothing else.
+ *
+ * `explainCity` asks it when a what-if caller hands in the town's plain reading,
+ * so that the hexes are not walked again for a building that cannot touch them.
+ */
+export function candidateReachesGround(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[],
+): boolean {
+  if (hypothetical.length === 0) return false;
+  const player = playerById(state, city.ownerId);
+  // No owner means no context with or without the candidates.
+  if (player === undefined) return false;
+  for (const id of hypothetical) {
+    if (buildingIrrigates(id)) return true;
+    if (rowTileLines(id, player.techsResearched).length > 0) return true;
+  }
+  return cardCountsTownGround(state, city.ownerId);
 }
 
 /** One entry of the breakdown. No spread, because this is the hottest list we build. */

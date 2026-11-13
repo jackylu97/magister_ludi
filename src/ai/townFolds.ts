@@ -134,7 +134,14 @@ function buildTownFolds(state: GameState, player: Player): TownFolds {
       const found = hypothetical.get(key);
       if (found !== undefined) return found;
       const city = towns[index]!;
-      const fold = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
+      // The town's plain reading **as the board stands now**, handed in so the
+      // what-if copies the lines the row cannot change (batch BPS, `explainCity`'s
+      // `standing`). It is asked here and not taken from `quoteOf`, because a
+      // grid can be asked after the clock has moved (a chain's copy keeps the grid
+      // it was found on), and the copied lines must be the ones a full walk would
+      // read today. While the clock stands still this is the same memo `quoteOf`
+      // holds.
+      const fold = foldCity(state, city, [id], null, explainCity(state, city, [id], empire, readCity(state, city)));
       hypothetical.set(key, fold);
       return fold;
     },

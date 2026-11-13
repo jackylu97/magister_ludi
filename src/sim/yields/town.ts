@@ -81,6 +81,7 @@ import { siegeField, underSiege } from '../combat';
 import {
   type TileYieldContext,
   type TileYieldContribution,
+  candidateReachesGround,
   cityContext,
   explainTileYield,
   foldTile,
@@ -1464,6 +1465,34 @@ export function foldCityFlats(lines: readonly CityYieldLine[]): CityYields {
   return total;
 }
 
+/**
+ * Pushes onto `into` every line of `from` whose step is `first` to `last`, in
+ * `from`'s order. `explainCity` uses it to copy a town's plain reading into a
+ * what-if (its `standing` parameter). A list is in step order, so the copied
+ * lines land where a full walk would have put them.
+ */
+function copySteps(
+  into: CityYieldLine[],
+  from: readonly CityYieldLine[],
+  first: number,
+  last: number,
+): void {
+  for (const line of from) {
+    if (line.step >= first && line.step <= last) into.push(line);
+  }
+}
+
+/**
+ * Whether a share the cards put on this town's buildings (step 9,
+ * `explainCardBuildingYields`) reaches one of these candidates. If none does,
+ * step 9 reads only the buildings the town already holds, because it skips a
+ * building no share reaches, and a what-if may copy the plain reading's lines.
+ */
+function sharesReachCandidate(state: GameState, city: City, hypothetical: readonly BuildingId[]): boolean {
+  const shares = cardBuildingPercents(state, city);
+  return hypothetical.some((id) => shares.some((share) => share.matches(id)));
+}
+
 export interface CityReading {
   /**
    * **The labelled list the flats are the fold of** — steps 1–10 of
@@ -1493,8 +1522,34 @@ export function explainCity(
   city: City,
   hypothetical: readonly BuildingId[] = [],
   empire: EmpirePercents = empirePercents(state, city.ownerId),
+  /**
+   * **This town's plain reading, taken at this same moment** (`readCity`), when a
+   * what-if caller holds one (batch BPS). Only a caller at rest may pass it,
+   * because the reading is kept on the economy clock.
+   *
+   * What a what-if copies from it, and why each part cannot differ:
+   *
+   *   - steps 3 to 7 always: they read `state` and `city` and never
+   *     `hypothetical`;
+   *   - steps 1 and 2 when the candidates cannot change the ground
+   *     (`candidateReachesGround`): they read `hypothetical` only through
+   *     `cityContext`;
+   *   - step 9 when no share a card puts on the town's buildings reaches a
+   *     candidate (`sharesReachCandidate`): it then reads only the buildings
+   *     the town holds;
+   *   - the percentages when both readings were handed the same `empire`.
+   *
+   * Steps 8 and 10 are always worked out here. The copied lines are the same
+   * objects in the same order, so the list, its fold and every figure are what a
+   * full walk gives. The bot's what-if grid asks a town this question for every
+   * building it weighs (`townFolds.ts`).
+   */
+  standing?: CityReading,
 ): CityReading {
   const lines: CityYieldLine[] = [];
+  // The lines a what-if may copy (see `standing`). `null` for every real reading.
+  const borrowed = standing !== undefined && hypothetical.length > 0 ? standing.lines : null;
+  const groundBorrowed = borrowed !== null && !candidateReachesGround(state, city, hypothetical);
   /** One line, pushed. The six voices default to nought; a source fills its own. */
   const say = (
     step: number,
@@ -1533,125 +1588,137 @@ export function explainCity(
     });
   };
 
-  // The candidate reaches the *ground* as well as the shelves: a building whose
-  // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
-  // what-if that only ghosts `explainCityBuildings`. Empty for every real
-  // reading, which is every caller but the two hypothetical ones. Asked once, for
-  // the centre and for the worked hexes, because nothing writes between the two.
-  const ctx = cityContext(state, city, hypothetical);
+  // **Steps 1 and 2 copied** when a what-if's candidates cannot change the
+  // ground (`standing`). Otherwise the centre and the hexes are walked here.
+  if (borrowed !== null && groundBorrowed) {
+    copySteps(lines, borrowed, 1, 2);
+  } else {
+    // The candidate reaches the *ground* as well as the shelves: a building whose
+    // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
+    // what-if that only ghosts `explainCityBuildings`. Empty for every real
+    // reading, which is every caller but the two hypothetical ones. Asked once, for
+    // the centre and for the worked hexes, because nothing writes between the two.
+    const ctx = cityContext(state, city, hypothetical);
 
-  // **1 — the centre**, as two lines rather than one, because they are two
-  // different sentences and a breakdown that merged them would credit the land
-  // with a citizen's beaker. The town's hex pays what it beats the base city
-  // yield by (an excess — `explainCentreYield`), and that is the ground's; what
-  // a settlement makes *by being one* belongs to no tile, no building and no
-  // card, which is exactly what `other` means.
-  const centre = foldCentre(state, city, hypothetical, ctx);
-  say(1, CENTRE_SOURCE, 'tiles', centre);
-  // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
-  // beaker, where the old floor banked nothing at all.
-  say(1, TOWN_ITSELF_SOURCE, 'other', {
-    science: city.population * CITIES.sciencePerPop,
-    culture: CITIES.baseCulturePerCity,
-  });
+    // **1 — the centre**, as two lines rather than one, because they are two
+    // different sentences and a breakdown that merged them would credit the land
+    // with a citizen's beaker. The town's hex pays what it beats the base city
+    // yield by (an excess — `explainCentreYield`), and that is the ground's; what
+    // a settlement makes *by being one* belongs to no tile, no building and no
+    // card, which is exactly what `other` means.
+    const centre = foldCentre(state, city, hypothetical, ctx);
+    say(1, CENTRE_SOURCE, 'tiles', centre);
+    // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
+    // beaker, where the old floor banked nothing at all.
+    say(1, TOWN_ITSELF_SOURCE, 'other', {
+      science: city.population * CITIES.sciencePerPop,
+      culture: CITIES.baseCulturePerCity,
+    });
 
-  for (const cell of city.workedTiles) {
-    const tile = getTileAt(state.map, cell.col, cell.row);
-    if (!tile) continue;
-    // **2 — the hex, split by who dressed it.** The later Order pools pay
-    // through hex `pays`, so an Order paying a hammer on every hill is the
-    // whole of what a late deck does, and a hex filed whole under the land would
-    // show that deck paying nothing (`docs/flags.md`, ruling jj). Each `add`
-    // line that names a card is lifted out under that card's class and the
-    // ground keeps **the fold minus exactly those lines** — never a second sum
-    // of the remainder, because `foldTile` is the one place a `base`/
-    // `override` list becomes a number and a hill replaces the grass under it.
-    const hexLines = explainTileYield(tile, ctx);
-    const ground = foldTile(tile, ctx, hexLines);
-    // **A hex a great person is standing on is the great person's** — the
-    // ruling of 2026-09-10 (`docs/flags.md` (eeee)). The academy's beakers, the
-    // landmark's note and the manufactory's hammers are tile lines like any
-    // other, so The Patronage — which promises "their works, their gifts and
-    // their legacies" — read near nought on a realm that had planted all five.
-    // `classifyImprovement` says which, off the row's own `greatPerson` marker
-    // and never off a name; its docblock says why the whole line moves and why
-    // the prophet's holy site does not move with it.
-    const hexClass =
-      tile.improvement === undefined ? 'tiles' : classifyImprovement(tile.improvement);
-    let label = HEX_SOURCE;
-    for (const entry of hexLines) {
-      if (entry.kind !== 'add') label = entry.source;
-      if (entry.card === undefined || entry.kind !== 'add') continue;
-      const into = classifyCard(entry.card);
-      // A card's line stays in the fold when it belongs where the fold is going
-      // — the land's, or the great person's on a hex that is already theirs.
-      // The comparison is against the *hex's* class rather than the constant,
-      // because lifting a rider out of a work's hex only to file it back under
-      // the same class would be a second line saying the same thing.
-      if (into === hexClass) continue;
-      say(2, entry.source, into, entry, { card: entry.card });
-      for (const key of TILE_YIELD_KEYS) ground[key] -= entry[key];
+    for (const cell of city.workedTiles) {
+      const tile = getTileAt(state.map, cell.col, cell.row);
+      if (!tile) continue;
+      // **2 — the hex, split by who dressed it.** The later Order pools pay
+      // through hex `pays`, so an Order paying a hammer on every hill is the
+      // whole of what a late deck does, and a hex filed whole under the land would
+      // show that deck paying nothing (`docs/flags.md`, ruling jj). Each `add`
+      // line that names a card is lifted out under that card's class and the
+      // ground keeps **the fold minus exactly those lines** — never a second sum
+      // of the remainder, because `foldTile` is the one place a `base`/
+      // `override` list becomes a number and a hill replaces the grass under it.
+      const hexLines = explainTileYield(tile, ctx);
+      const ground = foldTile(tile, ctx, hexLines);
+      // **A hex a great person is standing on is the great person's** — the
+      // ruling of 2026-09-10 (`docs/flags.md` (eeee)). The academy's beakers, the
+      // landmark's note and the manufactory's hammers are tile lines like any
+      // other, so The Patronage — which promises "their works, their gifts and
+      // their legacies" — read near nought on a realm that had planted all five.
+      // `classifyImprovement` says which, off the row's own `greatPerson` marker
+      // and never off a name; its docblock says why the whole line moves and why
+      // the prophet's holy site does not move with it.
+      const hexClass =
+        tile.improvement === undefined ? 'tiles' : classifyImprovement(tile.improvement);
+      let label = HEX_SOURCE;
+      for (const entry of hexLines) {
+        if (entry.kind !== 'add') label = entry.source;
+        if (entry.card === undefined || entry.kind !== 'add') continue;
+        const into = classifyCard(entry.card);
+        // A card's line stays in the fold when it belongs where the fold is going
+        // — the land's, or the great person's on a hex that is already theirs.
+        // The comparison is against the *hex's* class rather than the constant,
+        // because lifting a rider out of a work's hex only to file it back under
+        // the same class would be a second line saying the same thing.
+        if (into === hexClass) continue;
+        say(2, entry.source, into, entry, { card: entry.card });
+        for (const key of TILE_YIELD_KEYS) ground[key] -= entry[key];
+      }
+      say(2, label, hexClass, ground);
     }
-    say(2, label, hexClass, ground);
   }
 
-  // **3 — the cards' city lines.** What this empire's Statecraft cards pay this
-  // town (`explainCardCityYields`), each under the card that spoke, which is what lets a
-  // reader put an Order's coin in the deck's slice without walking the deck.
-  for (const line of explainCardCityYields(state, city)) {
-    say(3, line.source, classifyCard(line.card), line, { card: line.card });
+  // **Steps 3 to 7 copied** for a what-if that holds the town's plain reading
+  // (`standing`). None of them reads the candidates.
+  if (borrowed !== null) {
+    copySteps(lines, borrowed, 3, 7);
+  } else {
+    // **3 — the cards' city lines.** What this empire's Statecraft cards pay this
+    // town (`explainCardCityYields`), each under the card that spoke, which is what lets a
+    // reader put an Order's coin in the deck's slice without walking the deck.
+    for (const line of explainCardCityYields(state, city)) {
+      say(3, line.source, classifyCard(line.card), line, { card: line.card });
+    }
+
+    // **4 — the luxuries' city lines.** What the city's own improved seams pay it
+    // (`resourceEffects.ts`). After the cards and before the buildings only because
+    // a seam in the ground is older than a market built over it; the sum is the
+    // same in any order. A seam's coin is the land's.
+    for (const line of cityResourceYields(state, city)) {
+      say(4, line.source, 'tiles', line, { resource: line.resource });
+    }
+
+    // **5 — the specialists.** What the town's guilds pay it (Entry XLVIII), one
+    // line per family that has anybody — folded here rather than added downstream
+    // so a scholar's beakers are staged by Entry XVII exactly as a library's are,
+    // reach the pool through the same `collectYields`, and appear in the panel's
+    // ledger with their reason beside them. A specialist is a citizen who stopped
+    // working a hex: the tile he left is already missing from `workedTiles` above,
+    // so this is a substitution and never a bonus — and he is filed beside the
+    // stones that seated him, which is the city panel's own reading.
+    for (const line of citySpecialistYields(city)) say(5, line.source, 'buildings', line);
+
+    // **6 — the routes arriving.** What the caravans sent *to* this town are
+    // bringing (`explainRouteYield` in `routeYields.ts`) — off each caravan's
+    // *origin* buildings, since 2026-08-27's reversal pays the destination and
+    // reads the origin. *Inside* this function rather than beside it, so a route's
+    // food is staged like every other flat (Entry XVII) and its gold reaches the
+    // treasury through the same `collectYields` as the market's.
+    //
+    // **Every voice a `RouteYieldLine` carries**, and that is the whole of the fix
+    // of 2026-09-06: the line grew science and culture with the international
+    // ruling and this loop still folded the three it was born with, so
+    // Ledger-Keepers' beaker and note were computed, printed by the trade panel,
+    // and then dropped on the way into the town's basket. A fold that reads some of
+    // a list is rule 5 broken quietly. The loop hands `say` the whole line rather
+    // than named voices, which is why faith joining the shape in batch C8 (Pilgrim
+    // Markets) needed no edit here — `say` spreads all six and a line that says
+    // nothing about faith carries nought.
+    for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
+    // **And the routes leaving, copied home** (Commerce batch T3, The Return
+    // Leg): under the `homeRoutesPayOrigin` rule, each domestic route that sets
+    // out from this town pays it a copy of what it pays its destination. Read
+    // after the routes arriving and inside this step, so the copy is staged like
+    // every other flat. Filed under the card that pays it, because the copy is
+    // the card's and not a caravan's. See `cityReturnLegYields`.
+    for (const line of cityReturnLegYields(state, city)) {
+      say(6, line.source, classifyCard(line.card), line, { card: line.card });
+    }
+
+    // **7 — the palace.** The seat of government, a line like every other rather
+    // than a term added on the side, so the palace's coin is staged like a
+    // market's (Entry XVII) and reaches the treasury through the same
+    // `collectYields`. Empty in every city but one.
+    for (const line of explainPalaceYield(state, city)) say(7, line.source, 'buildings', line);
   }
-
-  // **4 — the luxuries' city lines.** What the city's own improved seams pay it
-  // (`resourceEffects.ts`). After the cards and before the buildings only because
-  // a seam in the ground is older than a market built over it; the sum is the
-  // same in any order. A seam's coin is the land's.
-  for (const line of cityResourceYields(state, city)) {
-    say(4, line.source, 'tiles', line, { resource: line.resource });
-  }
-
-  // **5 — the specialists.** What the town's guilds pay it (Entry XLVIII), one
-  // line per family that has anybody — folded here rather than added downstream
-  // so a scholar's beakers are staged by Entry XVII exactly as a library's are,
-  // reach the pool through the same `collectYields`, and appear in the panel's
-  // ledger with their reason beside them. A specialist is a citizen who stopped
-  // working a hex: the tile he left is already missing from `workedTiles` above,
-  // so this is a substitution and never a bonus — and he is filed beside the
-  // stones that seated him, which is the city panel's own reading.
-  for (const line of citySpecialistYields(city)) say(5, line.source, 'buildings', line);
-
-  // **6 — the routes arriving.** What the caravans sent *to* this town are
-  // bringing (`explainRouteYield` in `routeYields.ts`) — off each caravan's
-  // *origin* buildings, since 2026-08-27's reversal pays the destination and
-  // reads the origin. *Inside* this function rather than beside it, so a route's
-  // food is staged like every other flat (Entry XVII) and its gold reaches the
-  // treasury through the same `collectYields` as the market's.
-  //
-  // **Every voice a `RouteYieldLine` carries**, and that is the whole of the fix
-  // of 2026-09-06: the line grew science and culture with the international
-  // ruling and this loop still folded the three it was born with, so
-  // Ledger-Keepers' beaker and note were computed, printed by the trade panel,
-  // and then dropped on the way into the town's basket. A fold that reads some of
-  // a list is rule 5 broken quietly. The loop hands `say` the whole line rather
-  // than named voices, which is why faith joining the shape in batch C8 (Pilgrim
-  // Markets) needed no edit here — `say` spreads all six and a line that says
-  // nothing about faith carries nought.
-  for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
-  // **And the routes leaving, copied home** (Commerce batch T3, The Return
-  // Leg): under the `homeRoutesPayOrigin` rule, each domestic route that sets
-  // out from this town pays it a copy of what it pays its destination. Read
-  // after the routes arriving and inside this step, so the copy is staged like
-  // every other flat. Filed under the card that pays it, because the copy is
-  // the card's and not a caravan's. See `cityReturnLegYields`.
-  for (const line of cityReturnLegYields(state, city)) {
-    say(6, line.source, classifyCard(line.card), line, { card: line.card });
-  }
-
-  // **7 — the palace.** The seat of government, a line like every other rather
-  // than a term added on the side, so the palace's coin is staged like a
-  // market's (Entry XVII) and reaches the treasury through the same
-  // `collectYields`. Empty in every city but one.
-  for (const line of explainPalaceYield(state, city)) say(7, line.source, 'buildings', line);
 
   // **8 — the buildings.** `explainCityBuildings` is the only place a building's
   // worth is read — a candidate the city already has is skipped in there, because
@@ -1688,14 +1755,21 @@ export function explainCity(
   // *before* the conversions because a conversion takes a share of the town's
   // whole fold and this is part of it. A line with no card is the fallback shape
   // and files under the stones.
-  for (const line of explainCardBuildingYields(state, city, hypothetical)) {
-    say(
-      9,
-      line.source,
-      line.card === undefined ? 'buildings' : classifyCard(line.card),
-      line,
-      { ...(line.card === undefined ? {} : { card: line.card }) },
-    );
+  //
+  // A what-if copies these lines when no share reaches a candidate (`standing`):
+  // the shares then read only the buildings the town already holds.
+  if (borrowed !== null && !sharesReachCandidate(state, city, hypothetical)) {
+    copySteps(lines, borrowed, 9, 9);
+  } else {
+    for (const line of explainCardBuildingYields(state, city, hypothetical)) {
+      say(
+        9,
+        line.source,
+        line.card === undefined ? 'buildings' : classifyCard(line.card),
+        line,
+        { ...(line.card === undefined ? {} : { card: line.card }) },
+      );
+    }
   }
 
   // **10 — the conversions.** A share of what the town makes, paid again as
@@ -1719,7 +1793,13 @@ export function explainCity(
     // beside it (batch E2). Same additions, same order, one sum. With no conversion
     // the list has not grown since the fold above, so that is the same fold.
     flats: conversions.length === 0 ? beforeConversions : foldCityFlats(lines),
-    percents: cityYieldPercents(state, city, empire),
+    // The percentages read the town and the empire's half and never the
+    // candidates, so a what-if takes the plain reading's list when both readings
+    // were handed the same empire's half (`standing`).
+    percents:
+      borrowed !== null && standing !== undefined && standing.empire === empire
+        ? standing.percents
+        : cityYieldPercents(state, city, empire),
     empire,
   };
 }

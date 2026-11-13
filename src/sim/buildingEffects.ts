@@ -234,9 +234,19 @@ export function cityIsWatered(city: BuildingShelf): boolean {
  */
 export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
   for (const id of buildings) {
-    if (buildingDef(id).irrigates === true) return true;
+    if (buildingIrrigates(id)) return true;
   }
   return false;
+}
+
+/**
+ * Whether this one row irrigates the fields of a town that holds it: the marker
+ * `buildingsIrrigate` asks of each building on a list. A fact about the row, not
+ * about a town, so it takes no shelf. `candidateReachesGround` (`yields/hex.ts`)
+ * asks it of a what-if candidate (batch BPS).
+ */
+export function buildingIrrigates(id: BuildingId): boolean {
+  return buildingDef(id).irrigates === true;
 }
 
 /**
@@ -547,26 +557,39 @@ export function buildingTileLines(
   const list: TileLine[] = [];
   for (const id of BUILDING_IDS) {
     // Few rows carry a tile line, so that is asked before the walk of the shelf.
-    const lines = buildingDef(id).tileYields;
-    if (lines === undefined) continue;
+    if (buildingDef(id).tileYields === undefined) continue;
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
-    for (const line of lines) {
-      if (line.requiresTech !== undefined && !techs.includes(line.requiresTech)) continue;
-      const add = line.add;
-      const resolved: TileLine = {
-        source: buildingDef(id).name,
-        on: line.on,
-        food: add.food ?? 0,
-        production: add.production ?? 0,
-        gold: add.gold ?? 0,
-        science: add.science ?? 0,
-        culture: add.culture ?? 0,
-        faith: add.faith ?? 0,
-      };
-      // A line that pays nothing is a line in a breakdown that explains nothing,
-      // which is the same bargain `cardTileLines` keeps.
-      if (CITY_YIELD_KEYS.some((key) => resolved[key] !== 0)) list.push(resolved);
-    }
+    for (const line of rowTileLines(id, techs)) list.push(line);
+  }
+  return list;
+}
+
+/**
+ * **The tile lines one row puts on the ground of a town that holds it**, with
+ * the owner's techs: each of its `tileYields` that the techs open and that pays
+ * something, in the row's own order. `buildingTileLines` is this, row by row,
+ * for the rows a town holds. A fact about the row, not about a town, so it takes
+ * no shelf. `candidateReachesGround` (`yields/hex.ts`) asks it of a what-if
+ * candidate (batch BPS).
+ */
+export function rowTileLines(id: BuildingId, techs: readonly TechId[]): TileLine[] {
+  const list: TileLine[] = [];
+  for (const line of buildingDef(id).tileYields ?? []) {
+    if (line.requiresTech !== undefined && !techs.includes(line.requiresTech)) continue;
+    const add = line.add;
+    const resolved: TileLine = {
+      source: buildingDef(id).name,
+      on: line.on,
+      food: add.food ?? 0,
+      production: add.production ?? 0,
+      gold: add.gold ?? 0,
+      science: add.science ?? 0,
+      culture: add.culture ?? 0,
+      faith: add.faith ?? 0,
+    };
+    // A line that pays nothing is a line in a breakdown that explains nothing,
+    // which is the same bargain `cardTileLines` keeps.
+    if (CITY_YIELD_KEYS.some((key) => resolved[key] !== 0)) list.push(resolved);
   }
   return list;
 }
