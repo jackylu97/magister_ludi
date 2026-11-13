@@ -2,6 +2,7 @@ import {Color} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {riverPaths} from '../terrainStudy/waterContours.js';
 import {centre, terrainMapWraps} from '../terrainStudy/surface.js';
+import {terrainColors} from '../terrainStudy/terrainPigment.js';
 import {surfacePatch} from '../terrainStudy/surfacePatch.js';
 import {hashUnit} from './hash';
 
@@ -63,9 +64,9 @@ export function createOrganicRivers(map, knobs) {
  const widthAt = node => knobs.width + knobs.widthGrow * Math.min(1, upstream.get(node) / knobs.growLength);
 
  const polygons = [], colors = {bank: new Color(knobs.bank), water: new Color(knobs.water), shine: new Color(knobs.shine)};
- const add = (points, color, lift) => {
+ const add = (points, color, lift, land = false) => {
   const xs = points.map(p => p[0]), zs = points.map(p => p[1]);
-  polygons.push({points, color, lift, bounds: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)]});
+  polygons.push({points, color, lift, land, bounds: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)]});
  };
 
  for (const path of network.paths) {
@@ -104,6 +105,21 @@ export function createOrganicRivers(map, knobs) {
    }
   };
   const side = path.side;
+  if (knobs.modelled) {
+   // Modelled banks (2026-11-12): on each side the ground rises gently to a
+   // rim and drops steeply to the water, so the river sits in a bed with lit
+   // and shaded faces. The banks are real, sloped ground: they go into the
+   // land's batch and take the sun as the hills do. The rise fades to nothing
+   // at both ends of a run, where a junction's disc or the sea takes over.
+   const rise = samples.map(({s}) => path.closed ? knobs.bankHeight : knobs.bankHeight * smooth(0, knobs.bankFade, s) * smooth(0, knobs.bankFade, length - s));
+   for (const way of [1, -1]) for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
+    const j = (i + 1) % samples.length, a = samples[i], b = samples[j], na = bent[i], nb = bent[j];
+    const at = (p, n, d) => [p.x + n[0] * d * way, p.z + n[1] * d * way];
+    const wall = knobs.bankWidth, slope = knobs.bankSlope, ha = knobs.lift + rise[i], hb = knobs.lift + rise[j];
+    add([at(a, na, a.half - .004), at(b, nb, b.half - .004), at(b, nb, b.half + wall), at(a, na, a.half + wall)], colors.bank, [knobs.lift * .5, knobs.lift * .5, hb, ha], true);
+    add([at(a, na, a.half + wall), at(b, nb, b.half + wall), at(b, nb, b.half + wall + slope), at(a, na, a.half + wall + slope)], null, [ha, hb, knobs.lift * .5, knobs.lift * .5], true);
+   }
+  } else
   band(p => -(p.half + knobs.bankWidth), p => p.half + knobs.bankWidth, colors.bank, knobs.lift);
   band(p => -p.half, p => p.half, colors.water, knobs.lift * 1.5);
   band(p => side * p.half * knobs.shineFrom, p => side * p.half * knobs.shineTo, colors.shine, knobs.lift * 2);
@@ -137,19 +153,26 @@ export function createOrganicRivers(map, knobs) {
   /** The ribbon pieces lying on one hex, clipped to its ground; null if none. */
   pieces(tile, top) {
    if (!tile.riverEdges && !nearRiver(tile)) return null;
-   const c = centre(tile), seen = new Set(), parts = [];
+   const c = centre(tile), seen = new Set(), parts = [], banks = [];
+   // The outer slope of a modelled bank takes its hex's own ground colour, a little deeper.
+   const ground = new Color(terrainColors[['oasis', 'floodplain'].includes(tile.feature) ? tile.feature : tile.terrain] ?? '#888888').multiplyScalar(knobs.bankGround ?? 1);
    for (let gz = Math.floor((c.z - 1.1) / cell); gz <= Math.floor((c.z + 1.1) / cell); gz++)
     for (let gx = Math.floor((c.x - 1.1) / cell); gx <= Math.floor((c.x + 1.1) / cell); gx++)
      for (const entry of grid.get(`${gx}:${gz}`) || []) {
       if (seen.has(entry)) continue; seen.add(entry);
       const {polygon, shift} = entry, [x0, x1, z0, z1] = polygon.bounds;
       if (x1 + shift < c.x - 1.1 || x0 + shift > c.x + 1.1 || z1 < c.z - 1.1 || z0 > c.z + 1.1) continue;
-      const piece = surfacePatch(top, polygon.points.map(([x, z]) => [x + shift, z]), polygon.color, polygon.lift);
-      if (piece.attributes.position.count) parts.push(piece); else piece.dispose();
+      const piece = surfacePatch(top, polygon.points.map(([x, z]) => [x + shift, z]), polygon.color ?? ground, polygon.lift);
+      if (piece.attributes.position.count) (polygon.land ? banks : parts).push(piece); else piece.dispose();
      }
-   if (!parts.length) return null;
-   const merged = mergeGeometries(parts); parts.forEach(part => part.dispose());
-   merged.userData.pigmentBaked = true;
+   const join = list => {
+    if (!list.length) return null;
+    const merged = mergeGeometries(list); list.forEach(part => part.dispose());
+    merged.userData.pigmentBaked = true;
+    return merged;
+   };
+   const merged = join(parts), land = join(banks);
+   if (merged && land) merged.userData.banks = land; else land?.dispose();
    return merged;
   },
  };

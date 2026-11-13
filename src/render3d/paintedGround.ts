@@ -25,7 +25,7 @@ type Point = [number, number];
  * inward `normal`, and falls to nothing at distance `to`.
  */
 type Fade = { a: Point; normal: Point; from: number; to: number; alpha: number };
-type Mark = { polygon: Point[]; color: Color; lift: number; deck?: number; heights?: number[]; fade?: Fade; bounds: { minX: number; maxX: number; minZ: number; maxZ: number } };
+type Mark = { polygon: Point[]; color: Color; lift: number; /** One lift a corner, for a sloped band (`surfacePatch`). */ lifts?: number[]; deck?: number; heights?: number[]; fade?: Fade; bounds: { minX: number; maxX: number; minZ: number; maxZ: number } };
 export type GroundPlan = Map<number, Mark[]>;
 const root3 = Math.sqrt(3), apothem = root3 / 2;
 const corners: Point[] = [[1, -1], [1, 1], [0, 2], [-1, 1], [-1, -1], [0, -2]];
@@ -241,6 +241,8 @@ export interface OrganicRoadStyle {
   bedWidth: number; coreWidth: number; bed: string; core: string; capSides: number;
   shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
   bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
+  /** A road with a 3D form: a flat top `raisedHeight` above the ground, with a sloped shoulder `raisedShoulder` wide on each side. The bridge is a deck `bridgeHeight` up with side faces and rails `railHeight` tall. */
+  raised: boolean; raisedHeight: number; raisedShoulder: number; bridgeHeight: number; railHeight: number;
 }
 
 /**
@@ -333,6 +335,22 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
       [-style.rutOffset, style.rutWidth / 2, rut, .0205, style.edgeWander * .3, false],
       [0, style.crownWidth / 2, crown, .021, style.edgeWander * .3, false],
     ];
+    if (style.raised) {
+      // A road with a form (2026-11-12): a flat top that stands above the
+      // ground, and a sloped shoulder each side in the bed's darker colour, so
+      // the road has a lit side and a shaded side like a low causeway.
+      const top = style.raisedHeight, foot = .012, half = style.coreWidth / 2, wide = style.raisedShoulder;
+      for (const curve of curves) {
+        for (const side of [1, -1]) for (const polygon of ribbonQuads(curve, wide / 2, side * (half + wide / 2), 0))
+          marks.push({ ...marking(polygon, '#ffffff', foot), color: bed, lifts: side > 0 ? [foot, foot, top, top] : [top, top, foot, foot] } as Mark);
+        for (const polygon of ribbonQuads(curve, half + .002, 0, 0)) marks.push({ ...marking(polygon, '#ffffff', top + .001), color: core } as Mark);
+      }
+      const disc = (x: number, z: number, radius: number): Point[] => Array.from({ length: style.capSides }, (_, i) => [x + Math.cos(i * 2 * Math.PI / style.capSides) * radius, z + Math.sin(i * 2 * Math.PI / style.capSides) * radius] as Point);
+      for (const [x, z] of caps) {
+        marks.push({ ...marking(disc(x, z, half + wide), '#ffffff', foot), color: bed } as Mark);
+        marks.push({ ...marking(disc(x, z, half), '#ffffff', top + .001), color: core } as Mark);
+      }
+    } else
     for (const [offset, half, color, lift, wander, capped] of bands) {
       if (half <= 0) continue; // A band with no width is left out: the clean path has no shoulder, ruts or crown.
       for (const curve of curves) for (const polygon of ribbonQuads(curve, half, offset, wander)) marks.push({ ...marking(polygon, '#ffffff', lift), color } as Mark);
@@ -350,6 +368,23 @@ function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoa
           [link.at[0] + nx * (offset + half), link.at[1] + nz * (offset + half)], [from[0] + nx * (offset + half), from[1] + nz * (offset + half)]];
         marks.push({ ...marking(polygon, '#ffffff', lift), color, deck } as Mark);
       };
+      if (style.raised) {
+        // A bridge with a form: a deck above the river's banks, with a face
+        // down each side and a rail that stands on each edge.
+        const nx = -dz, nz = dx;
+        const box = (offset: number, half: number, low: number, high: number, color: Color): void => {
+          const corner = (end: Point, across: number): Point => [end[0] + nx * across, end[1] + nz * across];
+          const a0 = corner(from, offset - half), a1 = corner(link.at, offset - half), b1 = corner(link.at, offset + half), b0 = corner(from, offset + half);
+          const quad = (polygon: Point[], heights: number[]): void => { marks.push({ ...marking(polygon, '#ffffff', 0), color, deck: 0, heights } as Mark); };
+          quad([a0, a1, b1, b0], [high, high, high, high]);
+          // Each side face twice, once each way round, so it shows from both sides.
+          for (const [p, q] of [[a0, a1], [b0, b1], [a0, b0]] as const) { quad([p, q, q, p], [low, low, high, high]); quad([q, p, p, q], [low, low, high, high]); }
+        };
+        const deckTop = deck + style.bridgeHeight, edge = style.bridgeWidth / 2 - style.railWidth / 2;
+        box(0, style.bridgeWidth / 2, deck, deckTop, plank);
+        for (const side of [-1, 1]) box(side * edge, style.railWidth / 2, deckTop, deckTop + style.railHeight, rail);
+        continue;
+      }
       strip(0, style.bridgeWidth / 2, plank, .022);
       for (const side of [-1, 1]) strip(side * (style.bridgeWidth / 2 - style.railWidth / 2), style.railWidth / 2, rail, .025);
     }
@@ -593,6 +628,7 @@ function foldMarks(marks: readonly Mark[]): number {
     mix(mark.deck === undefined ? -1 : mark.deck * 1e6);
     if (mark.fade) for (const value of [...mark.fade.a, ...mark.fade.normal, mark.fade.from, mark.fade.to, mark.fade.alpha]) mix(value * 1e6);
     if (mark.heights) for (const value of mark.heights) mix(value * 1e6);
+    if (mark.lifts) for (const value of mark.lifts) mix(value * 1e6);
     mix(0x5bf03635);
   }
   return hash >>> 0;

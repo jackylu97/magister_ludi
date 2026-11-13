@@ -381,7 +381,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
         waterDetails(t, renderMap, push, water);
-        if (riverRibbon) push(water.river, riverRibbon);
+        if (riverRibbon) {
+          // Modelled banks are sloped land, so they go into the land's batch.
+          const banks = riverRibbon.userData.banks; delete riverRibbon.userData.banks;
+          push(water.river, riverRibbon);
+          if (banks) push(ground.desert, banks);
+        }
         featureDetails(t, (m, g) => push(m, g, undefined, m === features.shrub ? DECOR : [features.stone, features.reeds].includes(m) ? CLUTTER : NEVER), features, hash);
         sculptedTurf(t, (m, g) => push(m, g, undefined, CLUTTER), ground[t.terrain], hash);
         const c = centre(t);
