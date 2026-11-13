@@ -2254,6 +2254,10 @@ export interface VisualTestSpec {
   /** Frames a second the board draws while something on it moves by itself. */
   motionFps: number;
   sea: {
+    /** `bands` is the coast after A Short Hike: sand, a lapping foam line, crisp shallows, then coast and ocean in a crisp step. `soft` is the earlier look. */
+    style: string;
+    /** The banded coast's numbers, in hex units from the shore: the sand's width and how much it varies; the foam line's width, the share left out, and how far and how fast it laps; where the shallows end, and their drawn line; how far each step wanders; the drawn line at the step from coast to ocean; and where the ocean deepens again. */
+    bands: { sand: number; sandVary: number; foam: number; foamGaps: number; lap: number; lapSpeed: number; shallows: number; shallowsWander: number; line: number; lineStrength: number; wander: number; stepLine: number; stepLineStrength: number; deepAt: number };
     shallow: string; coast: string; ocean: string; deep: string; lake: string;
     shoreReach: number; edgeReach: number; coastRange: number; deepRange: number; edgeSoftness: number;
     shelfLine: string; shelfLineInset: number; shelfLineWidth: number; shelfLineStrength: number;

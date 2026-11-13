@@ -208,9 +208,59 @@ vec3 vtestSeaPaint(vec3 water, vec2 p, float time) {
   paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x);
   return paint;
 }
+
+// The coast in bands (2026-11-13, after A Short Hike, as the river was). From
+// the land outward: pale sand, a thin white foam line that laps in and out, a
+// crisp band of turquoise shallows, the coast's blue, then the ocean's deeper
+// blue. Every edge is a crisp step, and two slow noises make each step wander,
+// so none of them copies the hex line. Coast and ocean meet in a step with a
+// drawn pale line on the coast side, which keeps the two kinds of hex apart.
+vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
+  float shore = max(water.x, 0.0), deep = water.z;
+  float slow = vtestNoise(p * 1.7) - .5, fine = vtestNoise(p * 4.3 + 3.7) - .5;
+  float wobble = (vtestNoise(p * .45) - .5) * 1.0 + (vtestNoise(p * 1.3 + 4.1) - .5) * .25;
+  float t = clamp((deep - .55 + wobble) / max(vtestSeaShape.y, 1e-3), 0.0, 1.0);
+  float width = fwidth(t) * 1.2 + 1e-4;
+  vec3 paint = mix(vtestSeaCoast, vtestSeaOcean, smoothstep(.30 - width, .30 + width, t));
+  paint = mix(paint, vtestSeaDeep, smoothstep(${sea.bands.deepAt.toFixed(3)} - width, ${sea.bands.deepAt.toFixed(3)} + width, t));
+  // The drawn line on the coast side of the step.
+  float drawn = (1.0 - smoothstep(0.0, width * 2.0, abs(t - .30 + ${sea.bands.stepLine.toFixed(4)}) - ${sea.bands.stepLine.toFixed(4)} * .5));
+  paint = mix(paint, vtestSeaShelfLine, drawn * ${sea.bands.stepLineStrength.toFixed(3)});
+  if (deep < 0.0) paint = vtestSeaLake;
+  float reach = shore + slow * ${sea.bands.wander.toFixed(3)} + fine * ${(sea.bands.wander * .3).toFixed(3)};
+  float soft = fwidth(shore) * 1.2 + 1e-4;
+  // Shallows, with a pale drawn line at their outer edge.
+  // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
+  float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${sea.bands.shallowsWander.toFixed(3)};
+  float shallows = 1.0 - smoothstep(${sea.bands.shallows.toFixed(3)} - soft, ${sea.bands.shallows.toFixed(3)} + soft, outer);
+  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(outer - ${sea.bands.shallows.toFixed(3)}) - ${sea.bands.line.toFixed(4)});
+  paint = mix(paint, vtestSeaShallow, shallows);
+  paint = mix(paint, vtestSeaFoam, rim * ${sea.bands.lineStrength.toFixed(3)});
+  // The waterline laps in and out, each stretch of shore in its own time.
+  float lap = sin(time * ${sea.bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${sea.bands.lap.toFixed(4)};
+  float sandEdge = ${sea.bands.sand.toFixed(3)} * (1.0 + slow * ${sea.bands.sandVary.toFixed(3)}) + lap;
+  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${sea.bands.foam.toFixed(4)} * .5) - ${sea.bands.foam.toFixed(4)} * .5);
+  foam *= step(${sea.bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
+  // A second, fainter line a little further out, left by the last wave.
+  float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${sea.bands.foam.toFixed(4)} * 4.0) - ${sea.bands.foam.toFixed(4)} * .3);
+  trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
+  paint = mix(paint, vtestSeaFoam, max(foam, trail * .6));
+  paint = mix(paint, vtestSeaSand, 1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach));
+  // Ripples: short pale strokes, few and slow, each fading in and out.
+  vec2 q = p + vec2(time * vtestSeaGlintShape.y, time * vtestSeaGlintShape.y * .3);
+  vec2 g = q * vec2(1.25, 3.1);
+  vec2 cell = floor(g), f = fract(g) - .5;
+  float pick = vtestHash(cell);
+  f.x += (vtestHash(cell + 7.0) - .5) * .5;
+  float life = smoothstep(.2, 1.0, .5 + .5 * sin(time * .5 + pick * 60.0));
+  float stroke = (1.0 - smoothstep(.035, .075, abs(f.y + sin(f.x * 6.0) * .03))) * (1.0 - smoothstep(.16, .34, abs(f.x)));
+  float ripple = step(.80, pick) * stroke * life * smoothstep(${(sea.bands.shallows + .1).toFixed(3)}, ${(sea.bands.shallows + .4).toFixed(3)}, shore);
+  paint = mix(paint, vtestSeaGlint, ripple * vtestSeaGlintShape.x);
+  return paint;
+}
 `,
   /** After `#include <color_fragment>`, with `p` the world xz and `studyTime` the clock. */
-  fragment: 'if (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = vtestSeaPaint(vPaintedWater, p, studyTime);\n',
+  fragment: `if (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n`,
 };
 
 // --- 7. cloud shadows ----------------------------------------------------------
