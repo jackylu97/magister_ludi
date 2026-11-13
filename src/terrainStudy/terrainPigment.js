@@ -32,7 +32,7 @@ export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#
 const dryColors=LAND.dry;
 const richColors=LAND.rich;
 const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
-const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills.side:0;
+const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?(VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft.side:VIEW3D.visualTest.hills.side):0;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
 }]));

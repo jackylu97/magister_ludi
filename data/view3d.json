@@ -1651,7 +1651,14 @@
       "upperFrom": 0.5,
       "side": 0.74,
       "flanks": false,
-      "fill": 0.38
+      "fill": 0.38,
+      "smooth": true,
+      "soft": {
+        "height": 0.78,
+        "round": 2,
+        "profile": [[0.86, 0.5], [0.68, 0.84], [0.44, 0.97], [0.18, 1]],
+        "side": 0.8
+      }
     },
     "monuments": {
       "shrine": 0.72,

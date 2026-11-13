@@ -5,6 +5,8 @@ import {VIEW3D} from '../render3d/lookData';
 // large hill carries a second, smaller step. A flat top takes the same light
 // as the flat ground, so only the side faces read, as in the reference games.
 const TERRACE=VIEW3D.visualTest.northStar&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills:null;
+// A soft hill (the user, 2026-11-13: the terraces are "too chunky and unnatural"): a low rounded mound in place of the steps.
+const SOFT=TERRACE&&TERRACE.smooth?TERRACE.soft:null;
 function random(col,row,salt){
  let n=Math.imul(col+31,73856093)^Math.imul(row+17,19349663)^Math.imul(salt+1,83492791);
  n=Math.imul(n^(n>>>13),1274126177);
@@ -28,12 +30,18 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    const u=cx+x*a-z*b,v=cz+x*b+z*a;
    return [u*ca-v*sa,u*sa+v*ca];
   };
-  const sides=options.outline?.length??(i===0?6:5);
-  const rim=Array.from({length:sides},(_,j)=>{
+  const corners=options.outline?.length??(i===0?6:5);
+  let rim=Array.from({length:corners},(_,j)=>{
    if(options.outline){const [x,z]=options.outline[j];return [x*rx,z*rz]}
-   const theta=j*Math.PI*2/sides,scale=.86+r(salt+5+j)*.28;
+   const theta=j*Math.PI*2/corners,scale=.86+r(salt+5+j)*.28;
    return [Math.cos(theta)*rx*scale,Math.sin(theta)*rz*scale];
   });
+  // A soft hill (2026-11-13) has a rounder outline: each pass cuts every corner off.
+  for(let pass=0;pass<(SOFT?SOFT.round:0);pass++)rim=rim.flatMap((a,j)=>{
+   const b=rim[(j+1)%rim.length];
+   return [[a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]];
+  });
+  const sides=rim.length;
   const footprint=rim.map(([x,z])=>locate(x,z));
   // Fit the whole footprint inside the actual river/coast cuts. Overlapping
   // feet join the group into low, broken ridges as in the supplied reference.
@@ -55,7 +63,21 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   // An irregular, slightly tilted plateau produces a broad top plane. The
   // lower shoulders remain distinct instead of becoming little pyramids.
   const capX=TERRACE?TERRACE.cap:options.capX??(.46+r(salt+11)*.16),capZ=TERRACE?TERRACE.cap:options.capZ??(.27+r(salt+12)*.16);
-  if(TERRACE)height*=TERRACE.height;
+  if(TERRACE)height*=SOFT?SOFT.height:TERRACE.height;
+  if(SOFT){
+   // A low rounded mound: rings of the outline, each smaller and higher than
+   // the last, so the side rises in a few gentle facets to a small top.
+   for(const [scale,share]of SOFT.profile)for(const [x,z]of rim){
+    const [px,pz]=locate(x*scale,z*scale);
+    vertices.push([px*fit,topBase+height*share,pz*fit]);
+   }
+   for(let ring=0;ring<SOFT.profile.length;ring++)for(let j=0;j<sides;j++){
+    const k=(j+1)%sides,low=ring*sides,high=low+sides;
+    indices.push(low+j,low+k,high+j,low+k,high+k,high+j);
+   }
+   const top=SOFT.profile.length*sides;
+   for(let j=1;j<sides-1;j++)indices.push(top,top+j,top+j+1);
+  }else{
   for(const [x,z]of rim){
    const u=TERRACE?x*capX:x*capX+rx*.08,v=TERRACE?z*capZ:z*capZ-rz*.07,[px,pz]=locate(u,v);
    vertices.push([px*fit,topBase+height*(TERRACE?1:1+u/rx*.12-v/rz*.10),pz*fit]);
@@ -65,7 +87,8 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
    indices.push(j,k,sides+j,k,sides+k,sides+j);
   }
   for(let j=1;j<sides-1;j++)indices.push(sides,sides+j,sides+j+1);
-  if(TERRACE&&Math.min(rx,rz)*fit>=TERRACE.upperFrom){
+  }
+  if(TERRACE&&!SOFT&&Math.min(rx,rz)*fit>=TERRACE.upperFrom){
    // The second step: a smaller copy of the outline, set off-centre on the first.
    const at=vertices.length,ox=(r(salt+13)-.5)*rx*.3,oz=(r(salt+14)-.5)*rz*.3,rise=height*(1.75+r(salt+15)*.35);
    for(const [scale,y]of [[TERRACE.upper,topBase+height],[TERRACE.upper*TERRACE.cap,topBase+rise]])
