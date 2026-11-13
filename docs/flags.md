@@ -83,6 +83,12 @@ The user: *"i want to explore ways of making the game more visually appealing, w
     - Mountains take a warm slate colour that belongs to the palette.
     - The hex line is fainter.
     - Not yet: land with a thick side face everywhere, and a clearer difference between desert and unexplored paper.
+  - **Shading, 2026-11-12** (the assistant proposed five rendering items; the user: *"ok lets go for that"*). Test scene only:
+    - A height gradient on trees, rocks and buildings: darker at the foot, lighter at the top.
+    - Coloured shadows: a shadow leans blue or purple and keeps its saturation.
+    - A stronger contact shade where things meet the ground (switch 9's numbers).
+    - Two new switches for the user to judge: a final colour grade (contrast, warm highlights, slight haze), and a blur at the top and bottom of the screen for a miniature look.
+    - Bevelled model edges are modelling work and are not in this step.
 
 **(mmmmmmm) Great people: cheaper to earn, odds on the Renown tab, and legacy changes: RULED 2026-11-12; batch GP1 queued.**
 The user, 2026-11-11: *"i think we need to slightly nerf some of the great people, and also make them slightly easier to earn. The renown tab should show the current percentage odds somewhere of what great people are going to be available to draft. let's make great people generally 25% faster to earn (with the same starting cost) and then start an artifact with some proposed changes (they should feel roughly similar in power for their situational use case, generally powerful great people should be nerfed)."* The proposal page is https://claude.ai/artifact/4HePmSDpo2ahSPhV4uM8qY. On 2026-11-12 the user commented on it and wrote *"ok i made comments on the great people doc, please schedule those changes for subagents"*. Reading taken: a row with no comment is approved as proposed.
