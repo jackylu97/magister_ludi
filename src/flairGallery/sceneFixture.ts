@@ -40,6 +40,7 @@ export const SCENE_VIEWS = {
   rivers: { col: 13, row: 8, zoom: 3.4, label: 'River: sources, join, mouth' },
   roads: { col: 10, row: 8, zoom: 3.4, label: 'Roads: junction, bend, crossing' },
   hillsBorder: { col: 6, row: 5, zoom: 3.4, label: 'Hills and mountains with a border' },
+  enclosed: { col: 7, row: 8, zoom: 4.2, label: 'An unowned hex inside a border' },
   mountains: { col: 7, row: 4, zoom: 9, label: 'The mountain range, closer' },
   mountainDesert: { col: 5, row: 10, zoom: 3.4, label: 'One mountain in the desert' },
   mountainSnow: { col: 5, row: 2, zoom: 3.4, label: 'One mountain in the snow, one on tundra' },

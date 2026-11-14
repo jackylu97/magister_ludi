@@ -2352,7 +2352,7 @@ export interface VisualTestSpec {
   rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number; /** The edge river's two water colours under the north-star look. */ water: string; light: string };
   borders: {
     level?: boolean; holeMax: number; fillNeighbours: number; fillPasses: number;
-    tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number;
+    tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number; gapGlowWidth?: number; gapGlowAlpha?: number;
     /** The `ruled` and `wash` border styles. */
     ruledLift: number; washWidth: number; washAlpha: number; inkWidth: number;
   };

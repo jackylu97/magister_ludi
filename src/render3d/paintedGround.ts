@@ -77,6 +77,8 @@ const memoised = (memo: PlanMemo | undefined, state: GameState, signature: numbe
 export interface BorderStyle {
   holeMax: number; fillNeighbours: number; fillPasses: number;
   tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number;
+  /** A soft band of the seat's colour round a gap, fading away from it into the owned land (the user, 2026-11-14: an enclosed open hex "renders poorly"). Nought draws none. */
+  gapGlowWidth?: number; gapGlowAlpha?: number;
   /**
    * How the line is drawn (`BorderStyleKey` in `visualTest.ts`). `drape` lays it
    * over the relief. `ruled` and `wash` run it straight from corner to corner at
@@ -635,7 +637,14 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap, style:
   // The gaps inside an outline: an owned hex's edges toward a hex the outline
   // closed over. Only asked for with the style, for the faint gap line.
   const gaps = style ? collect(owner, (seat, other) => other !== null && owner[other] !== seat && region[other] === seat) : null;
-  outlines.set(result, { lines, gaps, owner, region });
+  // The same gaps from the other side: each closed-over hex's edges toward the
+  // owned land, with the seat that closed over it. The gap's line is drawn on
+  // these, so it lies on the gap's own ground as one closed loop. Drawn on the
+  // owned side it climbed the hill next door (the user, 2026-11-14: an enclosed
+  // open hex "renders poorly").
+  const pocket = style ? region.map((seat, cell) => seat !== undefined && owner[cell] !== seat ? seat : undefined) : null;
+  const pockets = pocket ? collect(pocket, (seat, other) => other !== null && owner[other] === seat) : null;
+  outlines.set(result, { lines, gaps, pockets, pocket, owner, region });
   return result;
 }
 
@@ -670,7 +679,7 @@ function spread(prepared: GameMap, polygon: Point[], inside: readonly (number | 
 }
 
 /** The edges a plan drew, and the gaps inside its outlines, for the tint layer. */
-const outlines = new WeakMap<GroundPlan, { lines: EdgeSet; gaps: EdgeSet | null; owner: (number | undefined)[]; region: (number | undefined)[] }>();
+const outlines = new WeakMap<GroundPlan, { lines: EdgeSet; gaps: EdgeSet | null; pockets: EdgeSet | null; pocket: (number | undefined)[] | null; owner: (number | undefined)[]; region: (number | undefined)[] }>();
 
 /**
  * The translucent half of the visual test version's border (switch 3), drawn by
@@ -683,7 +692,7 @@ const outlines = new WeakMap<GroundPlan, { lines: EdgeSet; gaps: EdgeSet | null;
 export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, style: BorderStyle): GroundPlan {
   const lines = planPaintedTerritory(state, prepared, style);
   const signature = signTerritory(state);
-  const styleKey = `tint:${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.tintWidth}:${style.tintAlpha}:${style.tintLift}:${style.gapWidth}:${style.gapAlpha}:${style.kind ?? 'drape'}:${style.washWidth}:${style.washAlpha}:${style.inkWidth}:${style.ruledLift}`;
+  const styleKey = `tint:${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.tintWidth}:${style.tintAlpha}:${style.tintLift}:${style.gapWidth}:${style.gapAlpha}:${style.gapGlowWidth ?? 0}:${style.gapGlowAlpha ?? 0}:${style.kind ?? 'drape'}:${style.washWidth}:${style.washAlpha}:${style.inkWidth}:${style.ruledLift}:${style.level ? 'level' : ''}`;
   const memo = memoised(tintPlans.get(prepared), state, signature, styleKey);
   if (memo) return memo;
   const kept = outlines.get(lines);
@@ -695,11 +704,12 @@ export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, st
       const previous = set.incoming.get(edge.ka) ?? edge, next = set.outgoing.get(edge.kb) ?? edge;
       const polygon: Point[] = [rail(edge.a, previous.normal, edge.normal, from), rail(edge.b, edge.normal, next.normal, from),
         rail(edge.b, edge.normal, next.normal, to), rail(edge.a, previous.normal, edge.normal, to)];
-      if (flat && ruled) {
-        // A ruled gap line, straight and level like the border it belongs to.
-        const own = borderHeight(prepared, edge.cell);
-        const ha = Math.max(own, borderHeight(prepared, previous.cell)), hb = Math.max(own, borderHeight(prepared, next.cell));
-        const mark = marking(polygon, playerColor(state, edge.owner), style.ruledLift ?? .02) as Mark;
+      if (flat && (ruled || style.level)) {
+        // A ruled gap line, straight and level like the border it belongs to. With `level` it runs at the ground's own height along the edge, so it does not smear down the side of a hill.
+        const height = (e: Edge): number => ruled ? borderHeight(prepared, e.cell) : edgeHeight(prepared, e.cell, e.a, e.b, e.normal);
+        const own = height(edge);
+        const ha = Math.max(own, height(previous)), hb = Math.max(own, height(next));
+        const mark = marking(polygon, playerColor(state, edge.owner), ruled ? style.ruledLift ?? .02 : .013) as Mark;
         mark.deck = 0; mark.heights = [ha, hb, hb, ha];
         mark.fade = { a: edge.a, normal: edge.normal, from, to: from + 1e3, alpha };
         const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
@@ -718,7 +728,13 @@ export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, st
   const wash = style.kind === 'wash';
   const from = wash ? TERRITORY_INSET + (style.inkWidth ?? .03) : TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH;
   band(kept.lines, kept.region, from, from + (wash ? style.washWidth ?? .2 : style.tintWidth), wash ? style.washAlpha ?? .3 : style.tintAlpha, false);
-  if (kept.gaps) band(kept.gaps, kept.owner, TERRITORY_INSET, TERRITORY_INSET + style.gapWidth, style.gapAlpha, true);
+  if (kept.pockets && kept.pocket) band(kept.pockets, kept.pocket, 0, style.gapWidth, style.gapAlpha, true);
+  // The gap's own glow: the border's inward glow at a smaller size, so the gap reads as an edge of the land and not as a stray line.
+  if (kept.gaps && (style.gapGlowWidth ?? 0) > 0) {
+    // Not on a hill: draped down a hill's steep side, the band becomes a tall dark patch.
+    const flatLand = kept.owner.map((seat, cell) => prepared.tiles[cell]!.hills ? undefined : seat);
+    band(kept.gaps, flatLand, 0, style.gapGlowWidth!, style.gapGlowAlpha ?? 0, false);
+  }
   tintPlans.set(prepared, { state, signature, plan: result, style: styleKey });
   return result;
 }
@@ -892,7 +908,7 @@ export class PaintedGroundLayer {
         let pieces: BufferGeometry[] = [];
         try {
           pieces = this.tint
-            ? marks.flatMap(mark => (projectMarkings(terrain[0], [mark]) as BufferGeometry[]).map(piece => fadeGeometry(piece, mark.fade)))
+            ? marks.filter(mark => mark.deck === undefined).flatMap(mark => (projectMarkings(terrain[0], [mark]) as BufferGeometry[]).map(piece => fadeGeometry(piece, mark.fade)))
             : projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
           for (const mark of marks) if (mark.deck !== undefined) {
             const positions: number[] = [], colors: number[] = [];
