@@ -13,8 +13,9 @@
  *     nothing else;
  *   · an engine in a full council takes a chair of its own and benches nothing
  *     (fault B4);
- *   · a card that can never sit, a government and a follower belief are not
- *     stamped;
+ *   · a card that can never sit, a government, and a follower belief of a seat
+ *     with no religion are not stamped (since bot batch BP5 a founder's follower
+ *     and enhancer beliefs are, `aiBeliefChoice.test.ts`);
  *   · the stamp is remembered only while the board stands still.
  *
  * The same claims over many recorded positions, and the check that each effect
@@ -36,7 +37,7 @@ import {
 } from '../../src/ai/value';
 import type { Game } from '../../src/sim/game';
 import { FOLLOWER_BELIEF_IDS } from '../../src/sim/religionData';
-import { type GameState, type Player, bumpRevision, realPlayers } from '../../src/sim/state';
+import { type GameState, type Player, bumpRevision, foundedReligion, realPlayers } from '../../src/sim/state';
 import { slotTypesOf } from '../../src/sim/statecraft';
 import { chairFitFor } from '../../src/sim/statecraft/council';
 import {
@@ -154,7 +155,7 @@ describe('the bot prices a card by its stamp', () => {
     expect(explainCardStamp(ctx, engine)!.total).toBeGreaterThanOrEqual(0);
   });
 
-  it('walks a card that can never sit, a government and a follower belief', () => {
+  it('walks a card that can never sit, a government and a follower belief of a seat with no religion', () => {
     const state = board();
     const player = seats(state)[0]!;
     const ctx = valueContext(state, player);
@@ -163,6 +164,8 @@ describe('the bot prices a card by its stamp', () => {
     expect(explainCardStamp(ctx, boon)).toBeNull();
     expect(explainCardStamp(ctx, charter)).toBeNull();
     expect(explainCardStamp(ctx, GOVERNMENT_IDS[1]! as CardId)).toBeNull();
+    // A follower belief sits on a founded religion's shelf, and this seat has none.
+    expect(foundedReligion(state, player.id)).toBeUndefined();
     expect(explainCardStamp(ctx, FOLLOWER_BELIEF_IDS[0]! as CardId)).toBeNull();
     // The walk still prices them, as it did before the batch.
     expect(Number.isFinite(explainCard(player, boon, ctx).total)).toBe(true);

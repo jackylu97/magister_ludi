@@ -232,6 +232,7 @@ import {
 } from '../sim/religion';
 import {
   LIVE_RITE_IDS,
+  type BeliefId,
   type ReligionBeliefPool,
   type RiteId,
   beliefDef,
@@ -389,6 +390,7 @@ import {
   bankedTowardItem,
   citiesOf,
   cityById,
+  cityReligion,
   countFirsts,
   foundedReligion,
   playerById,
@@ -824,6 +826,14 @@ export interface ValueContext {
    * (`beyondTheStamp`). Absent everywhere else, so no other reading moves.
    */
   today?: true;
+  /**
+   * **A belief is being chosen** (bot batch BP5, fault B7). Set only on the copy
+   * `faithChoiceContext` makes, which prices an enhancer belief at a choice. Under
+   * it a count of the towns that follow the seat's religion also counts the
+   * seat's own towns that the religion can expect to hold (`faithTowns`), as a
+   * promise. Absent everywhere else, so no Order's count moves.
+   */
+  faithChoice?: true;
 }
 
 /**
@@ -1607,9 +1617,11 @@ export function explainEffects(
   /**
    * **The one town these effects land in, when the caller knows it** (Devotion
    * batch DV9). The rite plan hands the town that would keep the rite, so the
-   * Sabbath's production is that town's own (`sabbathWorth`). Every other
-   * shape reads the context as before, so a caller that names no town gets
-   * the figures it always got.
+   * Sabbath's production is that town's own (`sabbathWorth`). Since bot batch
+   * BP5 (fault B6) a hex line reads that town's worked hexes and a share of the
+   * food surplus reads that town's surplus, so a rite is priced in the town it
+   * is said over. Every other shape reads the context as before, so a caller
+   * that names no town gets the figures it always got.
    */
   town?: City,
 ): Appraisal {
@@ -1631,16 +1643,16 @@ export function explainEffects(
       // **The ground the clause landed on is in the label** (batch X2): a term
       // reading nought because two towns of five admit it has to say so, or the
       // feed prints a zero nobody can account for.
-      label: (effect.kind === 'pays' ? paysWord(effect) : effect.kind) + scopeNote(effect, ctx),
+      label: (effect.kind === 'pays' ? paysWord(effect) : effect.kind) + scopeNote(effect, ctx, town),
       value:
         effect.kind === 'productionToCulture' && town !== undefined
           ? sabbathWorth(ctx, town)
-          : scoreEffect(effect, ctx),
+          : scoreEffect(effect, ctx, town),
     });
     // **The hammer premium** (batch 6): a card that pays production shortens
     // every engine this empire is still raising, exactly as a mine does, and it
     // walks through the same door. The empire reading — a card names no town.
-    const hammers = hammerTerm(productionOf(effect, ctx), ctx);
+    const hammers = hammerTerm(productionOf(effect, ctx, town), ctx);
     if (hammers !== null) terms.push(hammers);
   }
   const ownRows = secondCapitalOwnRows(effects, ctx);
@@ -1682,8 +1694,10 @@ function nominalRate(ctx: ValueContext): number {
  * Everything else answers nought, which is honest rather than lazy: a card whose
  * hammers this bot cannot read is a card whose hammers it should not claim a
  * compression for.
+ *
+ * `town` is `explainEffects`' town: a hex line counts the hexes of that town only.
  */
-function productionOf(effect: CardEffect, ctx: ValueContext): number {
+function productionOf(effect: CardEffect, ctx: ValueContext, town?: City): number {
   const nominal = nominalRate(ctx);
   switch (effect.kind) {
     // The one shape that pays a voice (batch E5). Only its **flat** bases carry
@@ -1704,9 +1718,9 @@ function productionOf(effect: CardEffect, ctx: ValueContext): number {
       // weight alone, as every other negative hammer is.
       if (effect.where === 'hex') {
         return (
-          hammers * workedHexesAdmitting(ctx, effect) +
-          (hexPercentShareOf(ctx, effect).production ?? 0) +
-          (wholeShareOf(ctx, effect).production ?? 0)
+          hammers * workedHexesAdmitting(ctx, effect, town) +
+          (hexPercentShareOf(ctx, effect, town).production ?? 0) +
+          (wholeShareOf(ctx, effect, town).production ?? 0)
         );
       }
       if (effect.where === 'empire') return hammers;
@@ -1765,8 +1779,11 @@ const ROUTE_VOICES = 5;
  * the simulation's own predicates. The one ground still unevaluated is the
  * road's — `origin` and `destination` narrow which *caravans* carry a line, and
  * what a caravan pays is `routes.ts`' fold rather than this file's count.
+ *
+ * `town` is `explainEffects`' town: a hex line counts the hexes of that town only
+ * (bot batch BP5, fault B6).
  */
-function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
+function scorePays(effect: CardPaysEffect, ctx: ValueContext, town?: City): number {
   const basis = effect.basis ?? 'flat';
 
   if (basis === 'count') {
@@ -1849,9 +1866,9 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     // A whole share (`wholePercent`, batch DT3) is read off the worked hexes
     // themselves, so it joins after the count rather than inside it.
     return (
-      valueOfYields(bagOf(effect), ctx) * workedHexesAdmitting(ctx, effect) +
-      valueOfYields(hexPercentShareOf(ctx, effect), ctx) +
-      valueOfYields(wholeShareOf(ctx, effect), ctx)
+      valueOfYields(bagOf(effect), ctx) * workedHexesAdmitting(ctx, effect, town) +
+      valueOfYields(hexPercentShareOf(ctx, effect, town), ctx) +
+      valueOfYields(wholeShareOf(ctx, effect, town), ctx)
     );
   }
 
@@ -1890,7 +1907,12 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
   return valueOfYields(bagOf(effect), ctx) * townsAdmitting(ctx, effect.scope);
 }
 
-function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
+/**
+ * One effect, in the one currency. `town` is `explainEffects`' town, read by the
+ * two arms that can price one town on its own: a hex line and a share of the food
+ * surplus (bot batch BP5, fault B6).
+ */
+function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number {
   const nominal = nominalRate(ctx);
   // Switching on an **aliased discriminant** still narrows `effect` inside each
   // case and — unlike switching on `effect.kind` — leaves `kind` (not `effect`)
@@ -1903,7 +1925,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     // merge, and the same eight readings below, chosen by the row's own two
     // dimensions rather than by eight names for them — every figure unchanged.
     case 'pays':
-      return scorePays(effect, ctx);
+      return scorePays(effect, ctx, town);
     // **The town count is the scope's** (batch X2): the Bank's twenty percent is
     // paid in the towns a caravan ends at (`routeEndsHere`), not in all of them,
     // and `townsAdmitting` is the simulation's own answer to which those are.
@@ -2157,7 +2179,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // rider on any other hand keeps the stand-in. See `offerRiderWorth`.
       return offerRiderWorth(effect, ctx);
     case 'rulePercent':
-      return scoreRulePercent(effect, ctx);
+      return scoreRulePercent(effect, ctx, town);
     case 'upkeepSurcharge':
       // **The Reckless Levy's coin a soldier** (H1's shape, 2026-09-06), and the
       // first thing this batch's `never` caught: a charge on every piece the
@@ -3828,8 +3850,8 @@ function firingPerTurn(worth: FiringWorth, ctx: ValueContext): number {
  *     which is the same door `explainUpkeepCost` charges a wage through;
  *   · **happinessDemand** — what this empire's citizens demand
  *     (`happinessDemand` per town), at the live happiness price;
- *   · **growthSurplus** — a share of the food the realm makes, at the food
- *     weight, which is the channel the rule multiplies;
+ *   · **growthSurplus**: a share of each town's food surplus, which is the
+ *     channel the rule multiplies, at the food weight (`growthShareWorth`);
  *   · **growthCarryover** — a share of what a growth *cost*, banked back, times
  *     how often this empire grows (`occasionRate`), as a lump;
  *   · **settlerCost** — the hammers the settler this empire is actually raising
@@ -3847,13 +3869,71 @@ function firingPerTurn(worth: FiringWorth, ctx: ValueContext): number {
 function scoreRulePercent(
   effect: Extract<CardEffect, { kind: 'rulePercent' }>,
   ctx: ValueContext,
+  town?: City,
 ): number {
+  // The growth channel is read town by town, each town against the scope, so it
+  // takes no share of the realm here (bot batch BP5). See `growthShareWorth`.
+  if (effect.rule === 'growthSurplus') return growthShareWorth(effect, ctx, town);
   // **The scope takes its share of the realm's books** (batch X2). Every reading
-  // below is an empire-wide rate — the payroll, the food, the demand — and a
+  // below is an empire-wide rate, such as the payroll or the demand, and a
   // rewrite three towns of eight admit rewrites about three eighths of it. Three
   // live rows carry a scope; a rewrite no town admits is rewriting nothing.
   const admits = scopeShare(ctx, effect.scope);
   return admits === 0 ? 0 : admits * ruleRewriteValue(effect, ctx);
+}
+
+/** The realm's reading of each share of the food surplus, kept for the sitting. */
+const GROWTH_SHARE_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
+
+/**
+ * **What a share of the food surplus is worth a turn** (`rulePercent`
+ * `growthSurplus`; bot batch BP5, fault B6 of
+ * `docs/audit/bot-pass-3-card-values.md`).
+ *
+ * The rule changes a town's surplus: the food left after its citizens eat, times
+ * the town's growth percentages. So the change in each town is the growth channel
+ * read with the share added and without it (`channelSurplus`, the channel's own
+ * arithmetic and floor). A town the scope does not admit changes nothing, and so
+ * does a town with no surplus, because the channel does not multiply a deficit.
+ * The sum is weighed at the food weight.
+ *
+ * This used to read the whole empire's food a turn (`foodPerTurn`), which counts
+ * each town's harvest and not its surplus. So the Rite of Fasting read as the
+ * loss of every town's harvest, and five Doctrines with a growth rule read high.
+ *
+ * `town` is the one town the line lands in: a rite said there. With no town, the
+ * realm's towns are read, and a context priced for one town (`townScoped`,
+ * `wants.ts`) takes its share of them, the mean town.
+ */
+function growthShareWorth(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  ctx: ValueContext,
+  town?: City,
+): number {
+  if (town !== undefined) return growthMoved(effect, ctx, [town]) * voiceWeight(ctx, 'food');
+  const memo = onContext(GROWTH_SHARE_MEMO, ctx, () => new Map<CardEffect, number>());
+  let moved = memo.get(effect);
+  if (moved === undefined) {
+    moved = growthMoved(effect, ctx, citiesOf(ctx.state, ctx.playerId)) * oneTownShare(ctx);
+    memo.set(effect, moved);
+  }
+  return moved * voiceWeight(ctx, 'food');
+}
+
+/** The food a turn the share changes in these towns. See `growthShareWorth`. */
+function growthMoved(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  ctx: ValueContext,
+  towns: readonly City[],
+): number {
+  const state = ctx.state;
+  let moved = 0;
+  for (const city of towns) {
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope, ctx.playerId)) continue;
+    const made = foldCity(state, city, [], null, readCity(state, city));
+    moved += channelSurplus(state, city, made, effect.percent) - channelSurplus(state, city, made);
+  }
+  return moved;
 }
 
 function ruleRewriteValue(
@@ -3870,7 +3950,10 @@ function ruleRewriteValue(
     case 'happinessDemand':
       return -share * boardTempo(ctx).demand * meterWeight(ctx, 'happiness');
     case 'growthSurplus':
-      return share * Math.max(0, ratesOf(ctx).foodPerTurn ?? 0) * voiceWeight(ctx, 'food');
+      // Read town by town before the scope's share is taken (`scoreRulePercent`),
+      // so this arm is not reached from there. It is kept so the switch stays
+      // exhaustive, and it gives the same reading.
+      return growthShareWorth(effect, ctx);
     case 'guildInflow':
       // **A share of what the guild bars take in** (Expansionist batch E10,
       // The Burghers; priced in batch E13). See `guildInflowWorth`.
@@ -4254,8 +4337,10 @@ function beliefSlotWorth(amount: number, pool: ReligionBeliefPool, ctx: ValueCon
   const religion = foundedReligion(ctx.state, ctx.playerId);
   if (religion === undefined) return 0;
   let best = 0;
+  // Each belief priced as a choice, in the towns the faith can expect to hold
+  // (bot batch BP5, `explainBeliefChoice`).
   for (const id of religionBeliefPool(religion, pool)) {
-    best = Math.max(best, explainEffects(beliefDef(id).effects ?? [], ctx).total);
+    best = Math.max(best, explainBeliefChoice(id, ctx).total);
   }
   return amount * best * Math.max(0, ctx.ai.score.devotion.beliefSlotShare);
 }
@@ -4704,13 +4789,17 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
  *     game can never hold. The ruling keeps the bot's own reading for them;
  *   · a **Doctrine**, held for the rest of the game on the ghost the command
  *     would leave (`ghostSeatUnderDoctrine`);
- *   · a **pantheon god**, which is the seat's own.
+ *   · a **belief**: a pantheon god, which is the seat's own, and since bot batch
+ *     BP5 a follower or enhancer belief of the religion the seat founded. The
+ *     sim's stamp puts that belief on the religion's shelf, so a follower belief
+ *     is paid only in the towns that follow now (fault B7). The towns the faith
+ *     can expect to hold beyond those are the bot's own reading
+ *     (`explainBeliefBeyond`). A seat with no religion has no shelf, and the
+ *     stamp has no pair for it.
  *
- * A follower or enhancer belief is not stamped: it pays in the towns that
- * follow the faith, and which towns the price should read is the open fault B7
- * (bot batch BP5). A government is not stamped either: its stamp is the whole
- * adoption, the council re-seated with it, and `adoptionTable` (`council.ts`)
- * prices the signature and the new chairs as two terms of its own.
+ * A government is not stamped: its stamp is the whole adoption, the council
+ * re-seated with it, and `adoptionTable` (`council.ts`) prices the signature and
+ * the new chairs as two terms of its own.
  */
 function stampSubject(id: CardId, ctx: ValueContext): CardImpactSubject | null {
   if (isOrderId(id)) {
@@ -4719,7 +4808,7 @@ function stampSubject(id: CardId, ctx: ValueContext): CardImpactSubject | null {
     return { kind: 'order', id };
   }
   if (isDoctrineId(id)) return { kind: 'doctrine', id };
-  if (isBeliefId(id) && beliefPoolOf(id) === null) return { kind: 'belief', id };
+  if (isBeliefId(id)) return { kind: 'belief', id };
   return null;
 }
 
@@ -4971,7 +5060,10 @@ export function explainCardEffects(
   reading: CardReading = 'walk',
 ): Appraisal {
   const stamped = reading === 'stamp' || hasFoldReadEngine(effects) ? explainStampFirst(id, effects, ctx) : null;
-  const own = stamped ?? explainEffects(effects, ctx, id);
+  // A follower or enhancer belief is always priced as a choice (bot batch BP5):
+  // nothing asks the price of one the religion already holds.
+  const own =
+    stamped ?? (isFaithShelfBelief(id) ? explainBeliefChoice(id, ctx, effects) : explainEffects(effects, ctx, id));
   // **A commission is priced as its reward** (Dominion batch D16). Its row
   // usually carries no effects, so without this term every commission was
   // worth nothing to a bot. A card that is not a commission returns its own
@@ -4997,7 +5089,7 @@ function explainStampFirst(id: CardId, effects: readonly CardEffect[], ctx: Valu
   const stamp = explainCardStamp(ctx, id);
   if (stamp === null) return null;
   const terms: ValueTerm[] = [nest('what it pays now, on the empire’s books with the card in place', stamp)];
-  const beyond = explainBeyondStamp(effects, ctx, id);
+  const beyond = isFaithShelfBelief(id) ? explainBeliefBeyond(id, effects, ctx) : explainBeyondStamp(effects, ctx, id);
   if (beyond.terms.length > 0) terms.push(nest('what the books cannot show', beyond));
   return appraise(terms);
 }
@@ -5600,7 +5692,7 @@ export function explainCounted(
   // Nave), paid in the town it is counted in. See `explainFrontRow`.
   if (effect.count === 'frontRowTenths') return explainFrontRow(effect, ctx);
   // **A hex line counted by its town** (batch DT13). See `explainHexCounted`.
-  if (effect.where === 'hex') return explainHexCounted(effect, ctx, card);
+  if (effect.where === 'hex') return explainHexCounted(effect, ctx, card, town);
   // **A line each town counts for itself** (batch DT19b). See `explainCountedByTown`.
   if (countsTownByTown(effect)) return explainCountedByTown(effect, ctx, card, town);
   const ai = ctx.ai;
@@ -5979,11 +6071,24 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       },
     ];
   }
+  // **The towns the faith can expect to hold** (bot batch BP5, fault B7): at a
+  // belief choice, a count of the towns that follow the seat's religion also
+  // counts its own towns that the religion can expect to hold and does not yet.
+  // See `faithTowns`.
+  const faith: ValueTerm[] = [];
+  const turned = followingCountAhead(effect, ctx);
+  if (turned > 0) {
+    faith.push({
+      label: `+ ${round(turned)} more ${effect.count} in the seat's towns its faith can expect to hold`,
+      value: turned,
+    });
+  }
   const buildable = potentialTownsFor(effect, ctx);
-  if (buildable === null) return [];
+  if (buildable === null) return faith;
   const turns = buildTurns(buildable.cost, ctx);
   const discount = delayDiscount(turns, ctx);
   return [
+    ...faith,
     {
       label: `+ ${buildable.open} more the towns could raise, discounted for the raising`,
       value: buildable.open * discount,
@@ -6032,9 +6137,12 @@ function censusLeadOutlook(effect: CardPaysEffect, ctx: ValueContext): { more: n
  *
  * **No promise half.** `potentialTownsFor` reads no potential for a line narrowed
  * to one town, for the reason its docblock gives, and a hex row is one.
+ *
+ * `town` is the one town the line lands in, when the caller knows it, and only its
+ * hexes are walked (`groundOfHexLine`).
  */
-function explainHexCounted(effect: CardPaysEffect, ctx: ValueContext, card?: CardId): Appraisal {
-  const ground = groundOfHexLine(ctx, effect);
+function explainHexCounted(effect: CardPaysEffect, ctx: ValueContext, card?: CardId, town?: City): Appraisal {
+  const ground = groundOfHexLine(ctx, effect, town);
   const asked = card ?? ('' as CardId);
   let paid = 0;
   for (const { city } of ground.hexes) {
@@ -6114,10 +6222,16 @@ function potentialTownsFor(
               ? BUILDING_IDS.filter((id) => buildingRowSupplies(id, effect.voice!))
               : [];
   if (wanted.length === 0) return null;
+  // **A count of following towns counts their buildings only** (bot batch BP5,
+  // fault B7: The Scriptoria read every town's faith houses). So the promise is
+  // the buildings that the towns the faith can expect to hold could raise.
+  const faith =
+    effect.count !== undefined && FOLLOWING_COUNTS.has(effect.count) ? new Set(faithTowns(ctx).expectedIds) : null;
   let open = 0;
   let hammers = 0;
   for (const city of ctx.state.cities) {
     if (city.ownerId !== ctx.playerId) continue;
+    if (faith !== null && !faith.has(city.id)) continue;
     for (const id of wanted) {
       // A row this town already holds is **realized**, not potential — it is
       // already in the count the line above printed, and counting it twice would
@@ -9873,6 +9987,231 @@ function holdsFaith(ctx: ValueContext): boolean {
 /** Does this town, of any empire, keep a religion this seat is paid by? */
 function followsSeatFaith(ctx: ValueContext, city: City): boolean {
   return cityScopeAdmits(ctx.state, city, FOLLOWS_SEAT, ctx.playerId);
+}
+
+// --- a belief chosen: the towns the faith can expect to hold (bot batch BP5) ------
+
+/**
+ * **The seat's own towns, by what they follow** (bot batch BP5, fault B7 of
+ * `docs/audit/bot-pass-3-card-values.md`).
+ *
+ * A follower belief pays only in the towns that follow the religion
+ * (`followerBeliefEffects`), so its price has to read those towns. The user's
+ * ruling (`docs/flags.md` (ooooooo), B7): *"make sure that bot's price the
+ * potential across all cities when making a selection (the first religious pick
+ * will always be zero because there are no followers)"*. So a choice reads the
+ * towns the seat can expect to hold in its religion:
+ *
+ *   · **a first pick**: every town the seat holds. That is a seat that has not
+ *     founded a religion yet (the founding's price), and a religion that holds
+ *     no follower belief yet;
+ *   · **a later pick**: the towns that follow the religion now, and the towns
+ *     that follow no religion. A town that follows a rival's religion is left
+ *     out, because the rival's faith holds it. In the bots' games, a town of a
+ *     later founder held by an older faith seldom turned back.
+ *
+ * The religion is the one the seat founded (`foundedReligion`), because only
+ * the founder chooses its beliefs, and a town follows it when the majority of
+ * its citizens do (`cityReligion`), which is the sim's own test for where a
+ * follower belief pays. Exported for `test/sim/aiCardStamp.slow.test.ts`.
+ */
+export interface FaithTowns {
+  /** The seat's towns. */
+  towns: number;
+  /** Of them, the towns that follow the religion it founded, now. */
+  following: number;
+  /** Of them, the towns it can expect to hold in its religion. */
+  expected: number;
+  /** The expected towns' ids, in `state.cities` order. */
+  expectedIds: readonly number[];
+}
+
+const FAITH_TOWNS_MEMO = new WeakMap<ValueContext, FaithTowns>();
+
+export function faithTowns(ctx: ValueContext): FaithTowns {
+  return onContext(FAITH_TOWNS_MEMO, ctx, () => {
+    const mine = foundedReligion(ctx.state, ctx.playerId);
+    const first = mine === undefined || mine.follower.length === 0;
+    const towns = citiesOf(ctx.state, ctx.playerId);
+    let following = 0;
+    const expectedIds: number[] = [];
+    for (const city of towns) {
+      const kept = cityReligion(city);
+      const follows = mine !== undefined && kept === mine.id;
+      if (follows) following += 1;
+      if (first || follows || kept === null) expectedIds.push(city.id);
+    }
+    return { towns: towns.length, following, expected: expectedIds.length, expectedIds };
+  });
+}
+
+/** One rewrite for each data row, so the memos keyed on a row keep working. */
+const AS_FOLLOWING = new WeakMap<CardEffect, CardEffect>();
+
+/**
+ * **A follower line as it reads in a town that follows the faith** (bot batch
+ * BP5). The faith part of its scope comes off (`withoutFaith`), because the town
+ * is taken to follow. A count of the town's followers reads its citizens
+ * (Pilgrimage), because the expected board counts every citizen of an expected
+ * town as a follower (`expectedFaithBoard`).
+ */
+function asFollowing(effect: CardEffect): CardEffect {
+  const held = AS_FOLLOWING.get(effect);
+  if (held !== undefined) return held;
+  let open = withoutFaith(effect);
+  if (open.kind === 'pays' && open.count === 'followersHere') {
+    open = { ...open, count: 'population', within: 'city' };
+  }
+  AS_FOLLOWING.set(effect, open);
+  return open;
+}
+
+/** Is this a belief of a founded faith's own shelves, a follower or an enhancer? */
+function isFaithShelfBelief(id: CardId): id is BeliefId {
+  return isBeliefId(id) && beliefPoolOf(id) !== null;
+}
+
+/**
+ * **A follower or enhancer belief, priced as a choice, by the bot's walk** (bot
+ * batch BP5, fault B7). The reading for an estimate over a whole bag (the
+ * founding's two hands and the next rung, `wants.ts`; The Seven Councils'
+ * room), and for a decision when the belief cannot be stamped.
+ *
+ *   · **a follower belief** pays city by city, in the towns that follow. So it
+ *     is the walk of its lines as they read in a town that follows
+ *     (`asFollowing`), over every town, times the share of the towns the faith
+ *     can expect to hold (`faithTowns`). A first pick reads every town;
+ *   · **an enhancer belief** pays its holder by the towns that follow anywhere.
+ *     So it is the walk on a context where a count of those towns also counts
+ *     the seat's own towns it can expect to hold (`faithChoiceContext`);
+ *   · **a pantheon god** is the seat's own, and is walked as before.
+ *
+ * `effects` are the row's own unless a caller hands others.
+ */
+export function explainBeliefChoice(
+  id: BeliefId,
+  ctx: ValueContext,
+  effects: readonly CardEffect[] = beliefDef(id).effects ?? [],
+): Appraisal {
+  const pool = beliefPoolOf(id);
+  if (pool === 'enhancer') return explainEffects(effects, faithChoiceContext(ctx), id);
+  if (pool !== 'follower') return explainEffects(effects, ctx, id);
+  const towns = faithTowns(ctx);
+  if (towns.towns === 0) return appraise([]);
+  const whole = explainEffects(effects.map(asFollowing), ctx, id);
+  if (whole.terms.length === 0) return whole;
+  return appraise([
+    nest('what it would pay if every town followed the faith', whole),
+    {
+      label: `× ${towns.expected} of ${towns.towns} towns the faith can expect to hold`,
+      value: towns.expected / towns.towns,
+      op: 'mul',
+    },
+  ]);
+}
+
+/**
+ * **What a follower or enhancer belief's stamp cannot see, at a choice** (bot
+ * batch BP5). The stamp is the sim's: the belief on the religion's shelf, paid in
+ * the towns that follow now, which is the narrowing the audit's fault B7 asks for.
+ * What it cannot see is the towns the faith can expect to hold that do not follow
+ * yet, and what no turn's books show.
+ *
+ *   · **a follower belief**, line by line. A line the books show is its walk in
+ *     the towns the faith can expect to hold (`explainBeliefChoice`'s reading,
+ *     with the promises), less its walk in the towns that follow now with no
+ *     promise, which is the part the stamp holds. Any other line is its walk in
+ *     the towns the faith can expect to hold;
+ *   · **an enhancer belief**: what `explainBeyondStamp` reads, on the context of
+ *     a choice (`faithChoiceContext`), so the promise half counts the towns the
+ *     faith can expect to hold.
+ */
+function explainBeliefBeyond(id: BeliefId, effects: readonly CardEffect[], ctx: ValueContext): Appraisal {
+  if (beliefPoolOf(id) !== 'follower') return explainBeyondStamp(effects, faithChoiceContext(ctx), id);
+  const towns = faithTowns(ctx);
+  if (towns.towns === 0) return appraise([]);
+  const expected = towns.expected / towns.towns;
+  const following = towns.following / towns.towns;
+  const terms: ValueTerm[] = [];
+  for (const effect of effects) {
+    const open = asFollowing(effect);
+    const label = effect.kind === 'pays' ? paysWord(effect) : effect.kind;
+    const later = walkOne(open, ctx, id) * expected;
+    const books = stampSight(effect) === 'books';
+    const value = books ? later - walkOne(open, todayContext(ctx), id) * following : later;
+    if (value === 0) continue;
+    terms.push({
+      label: books
+        ? `${label}: what the towns the faith can expect to hold would add`
+        : `${label}: what the books cannot show, in the towns the faith can expect to hold`,
+      value,
+    });
+  }
+  return appraise(terms);
+}
+
+/**
+ * **The context of a belief choice** (`ValueContext.faithChoice`), one for each
+ * book, because the memos in this file are keyed on the context object.
+ */
+const FAITH_CHOICE_MEMO = new WeakMap<ValueContext, ValueContext>();
+
+function faithChoiceContext(ctx: ValueContext): ValueContext {
+  if (ctx.faithChoice === true) return ctx;
+  return onContext(FAITH_CHOICE_MEMO, ctx, () => ({ ...ctx, faithChoice: true }));
+}
+
+/**
+ * **The board where the towns the faith can expect to hold follow it** (bot batch
+ * BP5): every expected town of the seat that does not follow its religion now has
+ * all its citizens following it. A shallow copy, with a copy of each town it
+ * changes, so nothing writes through into `state`. `null` for a seat that has
+ * founded no religion. Only the counts of following towns are asked of it
+ * (`followingCountAhead`), and those read the towns and nothing else.
+ */
+const EXPECTED_FAITH_BOARD = new WeakMap<ValueContext, GameState | null>();
+
+function expectedFaithBoard(ctx: ValueContext): GameState | null {
+  return onContext(EXPECTED_FAITH_BOARD, ctx, () => {
+    const mine = foundedReligion(ctx.state, ctx.playerId);
+    if (mine === undefined) return null;
+    const expected = new Set(faithTowns(ctx).expectedIds);
+    const cities = ctx.state.cities.map((city) =>
+      expected.has(city.id) && cityReligion(city) !== mine.id
+        ? { ...city, followers: { [mine.id]: city.population } }
+        : city,
+    );
+    return { ...ctx.state, cities };
+  });
+}
+
+/**
+ * The counts of the towns that follow the seat's religion: the tide's family of
+ * `CountKind` (`followingCount`, the evaluator).
+ */
+const FOLLOWING_COUNTS: ReadonlySet<CountKind> = new Set<CountKind>([
+  'followingCities',
+  'followingForeign',
+  'followingPop',
+  'followingForeignPop',
+  'followingEmpires',
+  'followingWithBuilding',
+  'followingCitiesWithWonder',
+  'followingBuildingsOfCategory',
+]);
+
+/**
+ * **How much more a count of following towns reads at a belief choice** (bot
+ * batch BP5): the count on the board where the towns the faith can expect to hold
+ * follow it (`expectedFaithBoard`), less the count now. Nought off a choice, for
+ * a count of another kind, and for a seat with no religion.
+ */
+function followingCountAhead(effect: CardPaysEffect, ctx: ValueContext): number {
+  if (ctx.faithChoice !== true || effect.count === undefined || !FOLLOWING_COUNTS.has(effect.count)) return 0;
+  const board = expectedFaithBoard(ctx);
+  if (board === null) return 0;
+  const asked = '' as CardId;
+  return Math.max(0, countOf(board, ctx.playerId, asked, effect) - countOf(ctx.state, ctx.playerId, asked, effect));
 }
 
 /**

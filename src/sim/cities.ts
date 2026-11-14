@@ -3559,11 +3559,18 @@ export function otherCarryingRoutes(state: GameState, from: City, to: City): num
  * without the move into production (Dominion batch D7). What The Laws of Lord
  * Shang moves is this figure, so the production line and the food basket read
  * one number.
+ *
+ * `extraPercent` is a growth percentage that is not in the town's list, added to
+ * the list's sum before the one multiplication. It is nought for every rule of
+ * the game. The bot asks it (bot batch BP5) to read what a card or a rite that
+ * changes the growth channel would change in this town, with the channel's own
+ * floor, so that it does not restate the arithmetic here.
  */
 export function channelSurplus(
   state: GameState,
   city: City,
   yields: CityYields = foldCity(state, city),
+  extraPercent = 0,
 ): number {
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
@@ -3572,7 +3579,7 @@ export function channelSurplus(
   // *list* (hard rule 5) — see `explainGrowthPercent`, which the city panel
   // prints line by line. Floored at zero for `growthFactor`'s reason: the worst
   // any of this may do is stall a city, never eat it.
-  const factor = Math.max(0, 1 + foldGrowthPercent(explainGrowthPercent(state, city)) / 100);
+  const factor = Math.max(0, 1 + (foldGrowthPercent(explainGrowthPercent(state, city)) + extraPercent) / 100);
   // **Exact** since batch X. It used to floor, on the argument that "a fraction
   // of a bushel banked forever eventually decides a growth turn nobody can
   // account for" — which had it backwards: the fraction is *earned*, and a −25%

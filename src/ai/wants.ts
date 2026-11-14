@@ -105,6 +105,7 @@ import {
 } from './chain';
 import {
   type ValueContext,
+  explainBeliefChoice,
   explainBuildingRow,
   explainEffects,
   explainRite,
@@ -1638,9 +1639,10 @@ function prophetTerms(
  *     pays what its row pays (`improvementYield`), read off the improvement
  *     table's own inverse (`workForFamily('prophet')`) rather than by name;
  *   · **the rungs the founding deals.** `plantHolySiteAt` deals a belief hand and
- *     owes a second, both out of the follower bag, and a belief is priced by
- *     `explainEffects` — the evaluator every card in this bot goes through. The
- *     best two of the bag, because two hands cannot deal one belief twice;
+ *     owes a second, both out of the follower bag, and a belief is priced as a
+ *     choice (`explainBeliefChoice`, `value.ts`), the reading the belief offer
+ *     reads. The best two of the bag, because two hands cannot deal one belief
+ *     twice;
  *   · **the founder's trickle.** `RELIGION.founderTrickle` is a pair of ordinary
  *     `pays` count rows and they are read as ordinary rows
  *     (`explainForecastCount`) — the board's own count is nought for an empire
@@ -1650,8 +1652,9 @@ function prophetTerms(
  *     them this bot expects actually to convert.
  *
  * Two things it deliberately does **not** count, both to avoid paying twice:
- * the empire's own towns converting (a follower belief's city clauses are
- * already priced in every town by `explainEffects`' standing bargain), and the
+ * the empire's own towns converting (a belief of the founding is a first pick, so
+ * its city clauses are already priced in every town the seat holds,
+ * `explainBeliefChoice`), and the
  * later rungs of the ladder the founding opens (each of those wants a prophet of
  * its own, and that prophet is the row this function is pricing, one purchase
  * later).
@@ -1699,7 +1702,8 @@ function explainStones(ctx: ValueContext): Appraisal {
 
 /**
  * The two beliefs the founding's own hands would take — the best two of the
- * follower bag, priced by `explainEffects`.
+ * follower bag, each priced as a first pick (`explainBeliefChoice`): in every town
+ * the seat holds, as though each followed the faith (bot batch BP5, fault B7).
  *
  * The best *two* rather than twice the best, because the second hand is dealt
  * from a bag the first has been taken out of (`payBeliefDebt`), so a bag whose
@@ -1709,8 +1713,10 @@ function explainStones(ctx: ValueContext): Appraisal {
  */
 function foundingRungs(ctx: ValueContext): Appraisal {
   const scored: number[] = [];
+  // A belief of the founding is a first pick, so it is priced in every town the
+  // seat holds (bot batch BP5, `explainBeliefChoice`).
   for (const id of poolBeliefs('follower')) {
-    scored.push(explainEffects(beliefDef(id).effects ?? [], ctx).total);
+    scored.push(explainBeliefChoice(id, ctx).total);
   }
   scored.sort((a, b) => b - a);
   const taken = scored.slice(0, FOUNDING_HANDS);
@@ -1742,7 +1748,8 @@ const FOUNDING_HANDS = 2;
  * The pool is the simulation's own answer (`nextBeliefPool`: followers to three,
  * then enhancers to two, plus any room The Seven Councils opens, with enhancers behind
  * Theology), the bag is the one it would actually draw from, and a belief is priced
- * by `explainEffects`. The stated
+ * as a choice, in the towns the faith can expect to hold (`explainBeliefChoice`,
+ * bot batch BP5). The stated
  * ceiling is `ladderPlan`'s, said once more: the best of the bag rather than the
  * expected best of a hand.
  */
@@ -1757,8 +1764,10 @@ function explainNextRung(
   if (pool === null) return null;
   const bag = religionBeliefPool(religion, pool);
   let best: Appraisal | null = null;
+  // Each belief priced as a choice, in the towns the faith can expect to hold
+  // (bot batch BP5, `explainBeliefChoice`).
   for (const id of bag) {
-    const folded = explainEffects(beliefDef(id).effects ?? [], ctx);
+    const folded = explainBeliefChoice(id, ctx);
     if (best === null || folded.total > best.total) best = folded;
   }
   if (best === null) return null;
@@ -1902,7 +1911,11 @@ const RELIC: BuildingId | null = BUILDING_IDS.find((id) => buildingDef(id).place
  *
  * A count each town keeps for itself reads this town's since batch DT19b
  * (`explainCountedByTown`, `value.ts`), so a rite that counts shelves reads the ones
- * standing here.
+ * standing here. Since bot batch BP5 (fault B6) a hex line reads this town's
+ * worked hexes (`workedHexesAdmitting`), and a share of the food surplus reads this
+ * town's surplus (`growthShareWorth`). Before that, Rite of the Harvest was priced
+ * over every town's hexes, and the Rite of Fasting as the loss of every town's
+ * harvest.
  */
 function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
   const wants: Want[] = [];

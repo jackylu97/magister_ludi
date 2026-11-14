@@ -1154,10 +1154,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * state. Duel `8daf613b:326673` -> `2d4e0b89:352098`, standard
  * `35a1f543:1051740` -> `a098571d:1017275`. Nothing stalled and no command was
  * refused.
+ *
+ * Re-cut for bot batch BP5 (`docs/flags.md` (ooooooo), B6 and B7, with the user's
+ * addition that a belief is priced on the towns its faith can expect to hold).
+ * The bots price a rite in the town it is said over, read a share of the food
+ * surplus on each town's surplus, and price a follower or enhancer belief at a
+ * choice on the towns the faith can expect to hold, with its stamp at a
+ * decision. No rule changed; both pins matched on the untouched tree before this
+ * batch. Duel `2d4e0b89:352098` -> `ee0c50f4:344556`, standard
+ * `a098571d:1017275` -> `a3ad5cdc:1030926`. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '2d4e0b89:352098',
-  standard: 'a098571d:1017275',
+  duel: 'ee0c50f4:344556',
+  standard: 'a3ad5cdc:1030926',
 };
 
 /**

@@ -8,7 +8,8 @@
  * duel board, every seat holding all six decks, at turns 40, 80 and 120. At each
  * position every seat prices every card it could be asked about (the Orders its
  * decks could deal next and the ones it holds, the live Doctrines, the pantheon
- * gods: `cardsToPrice`). Four checks:
+ * gods, and for a seat with a religion the follower and enhancer beliefs:
+ * `cardsToPrice`). Four checks:
  *
  *   1. **The stamp is the sim's stamp.** The bot's reading of a card on the
  *      stamp's two boards (`explainCardStamp`) equals `explainCardImpact`'s own
@@ -16,7 +17,10 @@
  *      into a line of the books the bot's reading does not read fails here.
  *   2. **A card the books show is priced at its stamp.** A card whose every
  *      effect the bot reads as on the books, with no promise, is priced at its
- *      stamp exactly. A shape that the bot reads twice fails here.
+ *      stamp exactly. A shape that the bot reads twice fails here. A follower or
+ *      enhancer belief has one more promise (bot batch BP5): the towns its faith
+ *      can expect to hold that do not follow it yet (`faithTowns`), so it is
+ *      checked only where every such town follows already.
  *   3. **What the bot reads as unseen leaves the books where they were.** Each
  *      effect the bot prices by its own reading (`stampSight` answers `'none'`)
  *      is lent alone to its card's row, and the card's stamp must not move. A
@@ -41,10 +45,12 @@ import {
   explainCardEffects,
   explainCardStamp,
   explainEffects,
+  faithTowns,
   stampSight,
   type ValueContext,
 } from '../../src/ai/value';
 import { restoreState, snapshotState } from '../../src/sim/game';
+import { beliefPoolOf, isBeliefId } from '../../src/sim/religionData';
 import { type GameState, realPlayers } from '../../src/sim/state';
 import { isOrderId, orderDef } from '../../src/sim/statecraftData';
 import {
@@ -118,6 +124,7 @@ function check(positions: readonly GameState[]): Findings {
       if (player.eliminated) continue;
       const ctx = valueContext(state, player);
       const today = { ...ctx, chains: [], today: true } as ValueContext;
+      const faith = faithTowns(ctx);
       for (const id of cardsToPrice(state, player)) {
         const stamp = explainCardStamp(ctx, id);
         if (stamp === null) continue;
@@ -134,9 +141,12 @@ function check(positions: readonly GameState[]): Findings {
         if (isOrderId(id) && (orderDef(id).commission !== undefined || orderDef(id).charter !== undefined)) continue;
         const sights = effects.map((effect) => stampSight(effect));
         if (effects.length > 0 && sights.every((sight) => sight === 'books')) {
-          const promised = effects.some(
-            (effect) => explainEffects([effect], ctx, id).total !== explainEffects([effect], today, id).total,
-          );
+          const faithPromise = isBeliefId(id) && beliefPoolOf(id) !== null && faith.expected > faith.following;
+          const promised =
+            faithPromise ||
+            effects.some(
+              (effect) => explainEffects([effect], ctx, id).total !== explainEffects([effect], today, id).total,
+            );
           if (!promised) {
             findings.seenChecked += 1;
             const priced = explainCardEffects(id, effects, ctx, 'stamp').total;

@@ -52,7 +52,7 @@ import {
 import aiJson from '../../data/ai.json';
 
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
-import { buildingProductionCost, foundCityAt, ownedTiles, refreshCityDerived } from '../../src/sim/cities';
+import { buildingProductionCost, channelSurplus, foundCityAt, ownedTiles, refreshCityDerived } from '../../src/sim/cities';
 import { FAMILIES, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { leaderAbilityDef } from '../../src/sim/leaderData';
 import { type ImprovementId, workForFamily } from '../../src/sim/improvementData';
@@ -81,6 +81,8 @@ import { explainTechCost, foldTechCost, researchExpansion } from '../../src/sim/
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { cityContext } from '../../src/sim/yields/hex';
+import { readCity } from '../../src/sim/readings';
+import { foldCity } from '../../src/sim/yields/town';
 import { newGame } from './newGameHelpers';
 import { lendDoctrineEffects } from './statecraftHelpers';
 
@@ -630,13 +632,25 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     it('sets the lines the card adds against the growth it costs', () => {
       const { state, player, cities } = board(4, 60);
       for (const city of cities) {
-        city.population = 8;
+        city.population = 3;
         refreshCityDerived(state, city);
       }
       bumpRevision(state);
       const effects = doctrineDef('theTwoCapitals' as DoctrineId).effects;
-      const bare = scoreEffects(effects, valueContext(state, player), 'theTwoCapitals' as DoctrineId);
-      expect(bare).toBeLessThan(0);
+      const growth = effects.find((effect) => effect.kind === 'rulePercent')!;
+      const ctx = valueContext(state, player);
+      // The growth line costs what the growth channel loses in every town but the
+      // capital, each at its own surplus (bot batch BP5, fault B6), and no longer
+      // a share of the empire's food a turn.
+      const surplus = (city: City, percent = 0): number =>
+        channelSurplus(state, city, foldCity(state, city, [], null, readCity(state, city)), percent);
+      const lost = cities.slice(1).reduce((sum, city) => sum + surplus(city, -25) - surplus(city), 0);
+      expect(lost).toBeLessThan(0);
+      expect(scoreEffects([growth], ctx, 'theTwoCapitals' as DoctrineId)).toBeCloseTo(lost * voiceWeight(ctx, 'food'), 9);
+      const bare = scoreEffects(effects, ctx, 'theTwoCapitals' as DoctrineId);
+      expect(bare).toBeLessThan(
+        scoreEffects(effects.filter((effect) => effect !== growth), ctx, 'theTwoCapitals' as DoctrineId),
+      );
       player.techsResearched = [...player.techsResearched, ...TECH_IDS.slice(0, 40)] as TechId[];
       seatOrders(state, player, ['theSumOfKnowledge']);
       const paid = scoreEffects(effects, valueContext(state, player), 'theTwoCapitals' as DoctrineId);

@@ -261,10 +261,14 @@ describe('the levy cards are priced on the levy rate', () => {
 // --- the retire arm --------------------------------------------------------------
 
 describe('the levy for a rite (Human Sacrifice, batch DT19)', () => {
-  // On this bench the Harvest pays well in each town and the Fast costs more growth
-  // than it pays, so the two rites give the bot a levy to take and one to refuse.
+  // On this bench the Harvest pays well in each town, and Consecration of the
+  // Bounds pays almost nothing because no luxury lies on the ground, so the two
+  // rites give the bot a levy to take and one to refuse. Before bot batch BP5 the
+  // Fast was the rite to refuse: its growth rule read the whole empire's harvest
+  // as lost. It now reads the town's surplus, and on this bench it pays.
   const HARVEST = 'riteOfTheHarvest' as RiteId;
   const FASTING = 'riteOfFasting' as RiteId;
+  const CONSECRATION = 'consecrationOfTheBounds' as RiteId;
 
   /** Three towns of seat 0 holding the Doctrine, knowing the rites it is given. */
   function sacrificing(rites: readonly RiteId[] = [HARVEST]) {
@@ -308,7 +312,7 @@ describe('the levy for a rite (Human Sacrifice, batch DT19)', () => {
 
   it('does not take it when the rite is worth less than the citizen', () => {
     withAiTuning(CHEAP_CONTENTMENT, () => {
-      const { state, player, cities } = sacrificing([FASTING]);
+      const { state, player, cities } = sacrificing([CONSECRATION]);
       expect(explainCitizenLevy(cities[0]!, 'rite', valueContext(state, player)).total).toBeLessThan(0);
       const before = cities[0]!.population;
       expect(sit(state).filter((decision) => decision.kind === 'levy')).toEqual([]);
@@ -341,13 +345,19 @@ describe('the levy for a rite (Human Sacrifice, batch DT19)', () => {
   });
 
   it('picks the best rite by what it pays over the towns, and passes over one that acts at once', () => {
-    const { state, player } = sacrificing([FASTING, HARVEST, 'votiveOffering' as RiteId]);
+    const { state, player } = sacrificing([CONSECRATION, HARVEST, 'votiveOffering' as RiteId]);
     const ctx = valueContext(state, player);
     const plan = bestLevyRite(ctx)!;
     const here = { ...ctx, cities: 1 };
-    expect(explainRite(HARVEST, here).total).toBeGreaterThan(explainRite(FASTING, here).total);
+    expect(explainRite(HARVEST, here).total).toBeGreaterThan(explainRite(CONSECRATION, here).total);
     expect(plan.rite).toBe(HARVEST);
     expect(plan.worth.total).toBeCloseTo(explainRite(HARVEST, here).total, 6);
+    // With the Fast known too, the levy takes whichever of the two pays more.
+    const both = sacrificing([FASTING, HARVEST]);
+    const bothCtx = valueContext(both.state, both.player);
+    const oneTown = { ...bothCtx, cities: 1 };
+    const best = explainRite(FASTING, oneTown).total > explainRite(HARVEST, oneTown).total ? FASTING : HARVEST;
+    expect(bestLevyRite(bothCtx)!.rite).toBe(best);
   });
 
   it('prices the shorter wait only where the seat has a levy worth taking', () => {

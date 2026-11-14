@@ -818,3 +818,85 @@ These are not done.
 - The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers` and `botWorker` passed. `botWorker` moves to seed 26: on seed 30 the bots no longer call a great person in sixty turns, though the page and the worker still played it to the same log and the same digests.
 - The shadow check (`test/vitest.shadow.config.ts`) passed on `aiRiderRates`, `aiSittingMemos`, `aiDriverEliminated` and `readings`. It fails on `aiWar.test.ts` at `botThreatWeights` on the untouched tree too: that test writes `state.wars` without announcing it. Not this batch's.
 - The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+## Bot batch BP5: rites in their own town, and beliefs in the towns their faith can expect to hold, 2026-11-14
+
+The rulings are `docs/flags.md` (ooooooo), B6 ("as the audit proposes") and B7, with the user's addition: *"make sure that bot's price the potential across all cities when making a selection (the first religious pick will always be zero because there are no followers)"*. The faults and their evidence are faults 6 and 7 of `docs/audit/bot-pass-3-card-values.md`. This batch changes the bots' decisions on purpose, so the pins move. No rule of the game changed. Branch `decks` at `44fe4165`.
+
+### What the bot reads now
+
+- **A rite is priced in its own town** (B6). `explainEffects` hands its `town` to the hex walk (`workedHexesAdmitting`, `groundOfHexLine`, `wholeShareOf`, `hexPercentShareOf`, `scopeNote`, in `scopeReach.ts`) and to `scoreRulePercent`. With no town named, a context priced for one town reads its share of the realm, the mean town.
+- **A share of the food surplus reads the surplus** (B6, `growthShareWorth`, `value.ts`). Each town is the growth channel read with the share and without it. `channelSurplus` (`src/sim/cities.ts`) takes an optional extra percentage for this; it is nought for every rule of the game, so nothing in the sim changes.
+- **The towns a faith can expect to hold** (B7, `faithTowns`): every town at a first pick (no religion yet, or a religion with no follower belief yet); at a later pick, the towns that follow the religion and the towns that follow none.
+- **A belief at a choice** (B7, `explainBeliefChoice`): a follower belief is the walk of its lines as they read in a following town, times the share of the expected towns; an enhancer belief is the walk on a context (`ValueContext.faithChoice`) where a count of following towns also counts the expected towns. The founding's hands, the next rung and The Seven Councils' room read it.
+- **At a decision** a founder's follower and enhancer beliefs are stamped (B8's ruling). The sim's stamp pays a follower belief only in the towns that follow now. What it cannot see, the expected towns that do not follow yet, is the bot's reading (`explainBeliefBeyond`).
+- `docs/bot-priorities.md` has the readings in full. No new knob.
+
+### The prices, on a recorded board
+
+Seed 42 at turn 100 (BP4's snapshot), the median over every town of the bot's price a turn against the sim's rite preview in the same town, at the seat's prices:
+
+| Rite | Before | After | Preview |
+|---|---:|---:|---:|
+| Rite of the Harvest | 294 | 35 | 28 |
+| Rite of Plenty | 341 | 48 | 48 |
+| Consecration of the Bounds | 53 | 7 | 5 |
+| Rite of Fasting | −1,235 | +79 | +121 |
+
+The preview cannot see the growth the Fast stops, so the bot reads less than the preview there. On the same board two seats have just founded, with no town following yet. Lines asked of following towns now read every town at a first pick: Feast Days reads 472 against 36 before, Pilgrimage 207 against 0, and Congregation and Pilgrims' Coin, which count following towns, 126 and 336 against 0.
+
+### What it costs
+
+A belief's stamp costs about 3 to 4 ms on a turn-100 board (33 beliefs in 96 to 143 ms, against 5 to 7 ms walked). A belief offer with a free redeal stamps its hand and the bag, about 20 beliefs, a few times a seat in a game. The rite and growth readings are memos on the context, or one town's walk.
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 3.61 | 2.72 | 2.27 | 2.51 |
+| CPU seconds a turn | 3.86 | 2.93 | 2.39 | 2.74 |
+| Commands a turn | 173 | 146 | 96 | 128 |
+| Milliseconds a command | 20.9 | 18.6 | 23.7 | 19.7 |
+
+The two trees were played in one process, a turn on each in turn, with the two seeds at once. The cost of a command fell on both seeds, so the change in seconds a turn is play: seed 999 gives fewer commands late and seed 42 more.
+
+### Turn 100, over six seeds
+
+The same game to turn 100 on seeds 1, 7, 42, 999, 2026 and 31337, totals over the six seats:
+
+| | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 261 | 1,383 | 6,957 | 5,973 | 2,083 | 4,266 | 2,748 | 925 |
+| After | 270 | 1,315 | 6,583 | 6,601 | 2,118 | 4,194 | 2,317 | 1,058 |
+| Change | +3% | −5% | −5% | +11% | +2% | −2% | −16% | +14% |
+
+The spread between seeds is wide. Culture fell 56% on seed 999 (922 to 410), which is more than the whole fall; it rose on seeds 2026 (+68%), 31337 (+18%) and 42 (+11%). Production rose on four seeds. Religions founded by turn 100 are 18 before and 18 after, at a mean turn of 82 against 85. The first founding of each game is at a mean turn of 77 against 76: earlier on three seeds and later on three. Seed 42 founds none by turn 100 after (two before, at turns 97 and 100), and three by turn 120 in both trees. The follower beliefs chosen move toward the lines asked of following towns (Feast Days, Cathedrals of the Sky, Lamps of the Shrine), which read nothing at a first pick before.
+
+### Pins at BP5
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `3f51010e:815245` | `b1aef284:839032` | `8566c623:869521` | `4275e141:909089` | `3645c8f2:973247` | `fb89d2b0:1044013` |
+| Two decks, seed 42 | `29590316:816994` | `81cae172:833771` | `f7ffb892:855631` | `5d8b7a10:887624` | `ee21e4a7:932357` | `2c8f93a6:1023751` |
+
+At turn 130 the two games are `2a57c839:1086027` and `9cac3410:1044566`. `test/sim/aiDigest.slow.test.ts` pins duel `ee0c50f4:344556` and standard `a3ad5cdc:1030926`. Before the batch, the untouched tree gave the BP4 pins above at every turn, at turn 130, and both digest pins.
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **The Rite of the Sabbath** reads −102 a turn against +29 in the preview (seed 42, turn 100, median). It is priced in its town already; the bot weighs a hammer above a point of culture (`sabbathWorth`). That is a weight, not the town.
+- **A building's growth row** (the Aqueduct, The Hanging Gardens) reads the realm's surplus now, but still over the realm and not over its own town: the older over-read `explainWrittenEffects` names.
+- **One more devout town** (`readDevoutTown`, `followerLinesInOneTown`) still reads a held Pilgrimage off the real town's followers, not as a town that follows (`asFollowing`). Small.
+- **Ecclesia** (a hex count of following towns) reads the towns that follow now, with no count of the expected towns: the hex count has no promise half.
+- **The belief redeal stamps the whole bag.** About 20 stamps for each free redeal. A walk of the bag would cost about a twentieth, but would set a walked mean against a stamped hand.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- `test/sim/aiRiteTown.test.ts` (new, core): a hex rite reads the worked hexes of its own town; with no town named, a one-town context reads the mean town and the seat's own book every town; the Rite of Fasting costs its town's surplus, and nothing in a town whose growth has stopped; a card's share of the surplus is the realm's surplus town by town, against its scope. All five fail on the untouched tree.
+- `test/sim/aiBeliefChoice.test.ts` (new, core): the expected towns at a first pick and at a later pick; a line asked of following towns priced in every town at a first pick; a later pick at the share of the expected towns; a count of followers read as citizens; at a decision, the stamp alone when every town follows and nothing is promised, and more than the stamp when expected towns do not follow yet; an enhancer's count of following towns with the expected towns in it.
+- Tests reworked because they pinned the old readings: `aiLevy` (the rite to refuse is now Consecration of the Bounds, since the Fast pays on that bench, and the ordering reads the better rite), `aiExpansionist` (the two Aqueduct tests seat the bench towns' citizens, so the towns make more food than they eat), `aiScientific` (The Two Capitals' growth line is held to the surplus it costs in the towns other than the capital). `aiCardStamp.test.ts` says its follower belief is a seat's with no religion.
+- `test/sim/aiCardStampHelpers.ts`: a founder's follower and enhancer beliefs join `cardsToPrice`, and the slow check's second claim leaves out a faith belief while expected towns do not follow yet. The slow positions hold 165 such stamps (33 at turn 80, 132 at turn 120), and all four checks pass on them.
+- Every core test that imports the bot, or reads the source of a changed file (`import.meta.glob` and the file names): 208 files, 7,024 tests, passed.
+- The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads` and `cityModifiers` passed.
+- The shadow check (`test/vitest.shadow.config.ts`) passed on `aiRiteTown`, `aiBeliefChoice`, `aiCardStamp`, `aiSittingMemos`, `aiDevotion` and `aiLevy`.
+- The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.

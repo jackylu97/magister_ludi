@@ -19,10 +19,10 @@ import {
   foldCardImpact,
 } from '../../src/sim/cardImpact';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
-import { BELIEF_IDS, beliefDef, beliefPoolOf, isBeliefId } from '../../src/sim/religionData';
+import { ALL_BELIEF_IDS, beliefDef, beliefPoolOf, isBeliefId } from '../../src/sim/religionData';
 import { renownPerTurn } from '../../src/sim/renown';
 import { discardSlates } from '../../src/sim/slate';
-import type { GameState, Player } from '../../src/sim/state';
+import { type GameState, type Player, foundedReligion } from '../../src/sim/state';
 import { expectedHandBags } from '../../src/sim/statecraft';
 import { neverSeatedError } from '../../src/sim/statecraft/council';
 import {
@@ -50,7 +50,9 @@ export function subjectOf(id: CardId): CardImpactSubject {
  * **Every card a seat could be asked to price at this moment**, of the three
  * classes the bot stamps: the Orders its decks could deal next and the Orders it
  * holds that may take a chair, every live Doctrine of its decks, and every live
- * pantheon god. In the order the data lists them, so two runs read the same list.
+ * pantheon god. A seat that has founded a religion also prices every live
+ * follower and enhancer belief, which the bot stamps since bot batch BP5. In the
+ * order the data lists them, so two runs read the same list.
  */
 export function cardsToPrice(state: GameState, player: Player): CardId[] {
   const sc = player.statecraft;
@@ -69,8 +71,10 @@ export function cardsToPrice(state: GameState, player: Player): CardId[] {
     if (def.retired === true || !def.decks.some((deck) => decks.includes(deck))) continue;
     add(id);
   }
-  for (const id of BELIEF_IDS) {
-    if (beliefDef(id).retired === true || beliefPoolOf(id) !== null) continue;
+  const founded = foundedReligion(state, player.id) !== undefined;
+  for (const id of ALL_BELIEF_IDS) {
+    if (beliefDef(id).retired === true) continue;
+    if (beliefPoolOf(id) !== null && !founded) continue;
     add(id);
   }
   return ids.filter((id) => !isOrderId(id) || neverSeatedError(sc, id) === null);

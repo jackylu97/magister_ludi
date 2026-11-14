@@ -406,8 +406,19 @@ export function capitalAdmits(ctx: ValueContext, scope?: CityScope): number {
  * is the wonder idiom and no town holds the row yet, the reading is one middling
  * town's worth of that ground — the row is a promise about the town that raises
  * it, and this empire's own average is the only town it can be asked about.
+ *
+ * **One town, when the line lands in one** (bot batch BP5, fault B6). `town` is
+ * the town a rite is said over, and only its worked hexes are walked. A context
+ * priced for one town with no town named (`townScoped`, `wants.ts`) reads its
+ * share of the realm's hexes, the mean town. Before this, a rite read every
+ * town's hexes, so Rite of the Harvest was priced at ten times its pay in a
+ * realm of twelve towns.
  */
-export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect): number {
+export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect, town?: City): number {
+  if (town !== undefined) {
+    const ground = groundOfHexLine(ctx, effect, town);
+    return ground.hexes.length / ground.over;
+  }
   const memo = scopeMemo(ctx);
   const held = memo.get(effect);
   if (held !== undefined) return held;
@@ -430,13 +441,20 @@ interface HexLineCell {
  *
  * `over` is what the walk's figures are divided by. It is one, except for the
  * promise that docblock describes: a scope no town admits yet reads the whole
- * empire's hexes shared over its towns, one middling town's worth.
+ * empire's hexes shared over its towns, one middling town's worth. A context
+ * priced for fewer towns than the realm holds (`oneTownShare`) divides the
+ * admitted hexes by the same share, so it reads its share of the realm.
+ *
+ * `town` narrows the walk to that one town (bot batch BP5). The town is then the
+ * whole of the ground, and no share is taken.
  */
 export function groundOfHexLine(
   ctx: ValueContext,
   effect: CardPaysEffect,
+  town?: City,
 ): { hexes: HexLineCell[]; over: number } {
-  const towns = citiesOf(ctx.state, ctx.playerId);
+  const towns = town !== undefined ? [town] : citiesOf(ctx.state, ctx.playerId);
+  const share = town !== undefined ? 1 : oneTownShare(ctx);
   const reads = tileConditionReadsFold(effect.on);
   // **The garrisons** (Dominion batch D7, The Farming Garrisons and The
   // Castra): the hexes where this empire has a fortified military unit now.
@@ -484,9 +502,10 @@ export function groundOfHexLine(
       onAdmitted.push(...mine);
     }
   }
-  if (admitted > 0) return { hexes: onAdmitted, over: 1 };
+  if (admitted > 0) return { hexes: onAdmitted, over: 1 / share };
   // A context that reads the board as it is today counts no promise (bot batch
-  // BP3, `ValueContext.today`).
+  // BP3, `ValueContext.today`). The promise is one middling town already, so no
+  // share is taken of it.
   return towns.length === 0 || ctx.today === true || !scopePromisesABuilding(effect.scope)
     ? { hexes: [], over: 1 }
     : { hexes: everywhere, over: towns.length };
@@ -536,14 +555,16 @@ const WHOLE_SHARE_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>
  *
  * The town's own hex is not priced. It is not in `workedTiles`, and it keeps its
  * floor under a card that takes everything away (`explainCentreYield`).
+ *
+ * `town` narrows the walk to one town (`groundOfHexLine`), and is not remembered.
  */
-export function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
+export function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect, town?: City): YieldBag {
   const percent = effect.wholePercent ?? 0;
   if (percent === 0) return {};
-  const memo = onContext(WHOLE_SHARE_MEMO, ctx, () => new Map());
-  const held = memo.get(effect);
+  const memo = town === undefined ? onContext(WHOLE_SHARE_MEMO, ctx, () => new Map()) : null;
+  const held = memo?.get(effect);
   if (held !== undefined) return held;
-  const ground = groundOfHexLine(ctx, effect);
+  const ground = groundOfHexLine(ctx, effect, town);
   const share: YieldBag = {};
   let context: TileYieldContext | undefined;
   let contextOf: City | undefined;
@@ -559,7 +580,7 @@ export function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBa
   for (const voice of VOICES) {
     share[voice] = (((share[voice] ?? 0) / ground.over) * percent) / 100;
   }
-  memo.set(effect, share);
+  memo?.set(effect, share);
   return share;
 }
 
@@ -577,15 +598,17 @@ const HEX_PERCENT_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>
  * row's shares, less the hex folded without it. The fold sums these shares before one
  * multiplication, so the difference is the same whether the seat holds the row or
  * not. Whole shares come off both readings, for `wholeShareOf`'s reason.
+ *
+ * `town` narrows the walk to one town (`groundOfHexLine`), and is not remembered.
  */
-export function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
+export function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect, town?: City): YieldBag {
   const works = effect.percent ?? 0;
   const base = effect.basePercent ?? 0;
   if ((works === 0 && base === 0) || effect.on === undefined) return {};
-  const memo = onContext(HEX_PERCENT_MEMO, ctx, () => new Map());
-  const held = memo.get(effect);
+  const memo = town === undefined ? onContext(HEX_PERCENT_MEMO, ctx, () => new Map()) : null;
+  const held = memo?.get(effect);
   if (held !== undefined) return held;
-  const ground = groundOfHexLine(ctx, effect);
+  const ground = groundOfHexLine(ctx, effect, town);
   const line: TileLine = {
     source: '',
     on: effect.on,
@@ -614,7 +637,7 @@ export function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect): Yi
     for (const voice of VOICES) share[voice] = (share[voice] ?? 0) + after[voice] - before[voice];
   }
   for (const voice of VOICES) share[voice] = (share[voice] ?? 0) / ground.over;
-  memo.set(effect, share);
+  memo?.set(effect, share);
   return share;
 }
 
@@ -668,11 +691,13 @@ export function scopeShare(ctx: ValueContext, scope?: CityScope): number {
  * note is the count and never the test's name: the scope's own words are the
  * describers' business (`statecraft/describers.ts`) and a number is what this
  * file deals in.
+ *
+ * `town` is the one town the line lands in, as `workedHexesAdmitting` reads it.
  */
-export function scopeNote(effect: CardEffect, ctx: ValueContext): string {
+export function scopeNote(effect: CardEffect, ctx: ValueContext, town?: City): string {
   const scope = (effect as { scope?: CityScope }).scope;
   const hexes =
-    effect.kind === 'pays' && effect.where === 'hex' ? workedHexesAdmitting(ctx, effect) : null;
+    effect.kind === 'pays' && effect.where === 'hex' ? workedHexesAdmitting(ctx, effect, town) : null;
   const parts: string[] = [];
   if (scope !== undefined) parts.push(`in ${townsAdmitting(ctx, scope)} of ${ctx.cities} towns`);
   if (hexes !== null) parts.push(`on ${round(hexes)} worked hexes`);

@@ -47,7 +47,7 @@ import {
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, buildingDef, isPublicWork } from '../../src/sim/buildingData';
-import { buildingProductionCost, foundCityAt, ownedTiles } from '../../src/sim/cities';
+import { buildingProductionCost, foodUpkeep, foundCityAt, ownedTiles, refreshCityDerived } from '../../src/sim/cities';
 import { explainGuildInflow, foldGuildInflow } from '../../src/sim/guilds';
 import { type GameMap, type Tile, createMap, getTileAt, raiseImprovement } from '../../src/sim/map';
 import { layRoad } from '../../src/sim/roads';
@@ -73,6 +73,7 @@ import {
 import { buildError, researchExpansion } from '../../src/sim/tech';
 import { type TechId } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { foldCity } from '../../src/sim/yields/town';
 import { newGame } from './newGameHelpers';
 
 const HORIZON = aiJson.priorities.horizonTurns;
@@ -125,6 +126,19 @@ function board(towns = 1, turn = 20): { state: GameState; player: Player; cities
   recomputeAllVisibility(state);
   bumpRevision(state);
   return { state, player: seat(state, 0), cities };
+}
+
+/**
+ * Seats each town's citizens on its hexes, so that each town makes more food than
+ * its citizens eat. `board` sets the population and leaves the citizens where the
+ * founding put them, which leaves a town of six working one hex and short of food.
+ * (The towns are dry and unhappy, so the growth channel's factor is at its floor
+ * of nought, and a share of the surplus lifts it a little above.)
+ */
+function surplusTowns(state: GameState, cities: readonly City[]): void {
+  for (const city of cities) refreshCityDerived(state, city);
+  bumpRevision(state);
+  for (const city of cities) expect(foldCity(state, city).food).toBeGreaterThan(foodUpkeep(city));
 }
 
 /** The hexes a town owns, its own centre left out. */
@@ -227,6 +241,9 @@ describe('a price for each Expansionist shape of E9 to E12 (E13)', () => {
   it('prices The Cura Aquarum as the Aqueduct in each town joined by road', () => {
     const { state, player, cities } = board(3, 20);
     const cura = [effectOf('theCuraAquarum')];
+    // The Aqueduct pays a share of each town's food surplus (bot batch BP5), so
+    // the citizens are seated on their hexes and the towns have one.
+    surplusTowns(state, cities);
     // A road joins the second town to the capital; the third is not joined.
     for (let col = 4; col <= 8; col++) layRoad(at(state.map, col, 5), 0);
     bumpRevision(state);
@@ -411,6 +428,7 @@ describe('the five Expansionist commissions are priced by D16’s commission pri
 describe('a town that holds the Aqueduct through The Cura Aquarum (E13)', () => {
   it('gains nothing from building a real one', () => {
     const { state, player, cities } = board(2, 20);
+    surplusTowns(state, cities);
     for (let col = 4; col <= 8; col++) layRoad(at(state.map, col, 5), 0);
     bumpRevision(state);
     const joined = cities[1]!;

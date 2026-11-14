@@ -275,6 +275,61 @@ batch BP4; `docs/flags.md` (ooooooo) B2; the audit is
   (a gift of the founding) and a stamp from before the town was last taken do
   not count.
 
+**Rites in their own town, and beliefs in the towns their faith can expect to
+hold** (bot pass 3, batch BP5; `docs/flags.md` (ooooooo) B6 and B7; the audit is
+`docs/audit/bot-pass-3-card-values.md` faults 6 and 7):
+
+- **A rite is priced in the town it is said over** (B6). The rite plan hands its
+  town to the walk (`explainEffects`' `town`). A hex line reads the worked hexes
+  of that town only (`workedHexesAdmitting`, `groundOfHexLine`). With no town
+  named, a context priced for one town (`townScoped`, `wants.ts`) reads its share
+  of the realm's hexes, which is the mean town. The prophet's rite over every
+  town and the levy's rite multiply that by the towns. Before, a hex rite read
+  every town's hexes, so Rite of the Harvest read about ten times its pay in a
+  realm of twelve towns.
+- **A share of the food surplus reads the surplus** (B6, `growthShareWorth`,
+  `value.ts`). The `growthSurplus` rule changes a town's surplus, so each town is
+  the growth channel read with the share and without it (`channelSurplus`, which
+  takes one extra percentage for this and keeps the channel's floor of nought).
+  A town the scope does not admit, or a town with no surplus, adds nothing. A
+  rite reads its own town and a card reads the realm's towns. Before, the rule
+  read the empire's food a turn, which counts every town's harvest: the Rite of
+  Fasting read as the loss of the whole empire's food, and the five Doctrines
+  with a growth rule read high. The growth rows of the Aqueduct and the Hanging
+  Gardens now read the realm's surplus, but still over the realm and not over
+  their own town, which is the older over-read that `explainWrittenEffects`
+  names.
+- **The towns a faith can expect to hold** (B7, `faithTowns`). At a first pick
+  (the seat has founded no religion yet, or its religion holds no follower
+  belief yet) they are every town the seat holds. At a later pick they are the
+  towns that follow the religion now and the towns that follow no religion. A
+  town that a rival's religion holds is left out. The user's addition to B7 asked
+  for this: a first pick has no followers, so a price of the following towns
+  alone would be nought.
+- **A follower belief at a choice** (`explainBeliefChoice`). The walk of its
+  lines as they read in a town that follows (`asFollowing`: the faith part of
+  each scope comes off, and a count of the town's followers reads its
+  citizens), over every town, times the share of the towns the faith can expect
+  to hold. The founding's two hands (`foundingRungs`), the next rung
+  (`explainNextRung`) and the room of The Seven Councils (`beliefSlotWorth`) are
+  priced this way.
+- **At a decision** (the belief offer and its free redeal), a follower or
+  enhancer belief of the religion the seat founded is stamped, as the B8 ruling
+  asks. The sim's stamp puts it on the religion's shelf, so a follower belief is
+  paid in the towns that follow now and nowhere else, which is the narrowing the
+  audit asked for. What the stamp cannot see is added (`explainBeliefBeyond`): a
+  line the books show, at its walk in the expected towns less its walk in the
+  following towns with no promise; any other line, at its walk in the expected
+  towns.
+- **An enhancer belief at a choice** is read on a context of its own
+  (`ValueContext.faithChoice`, `faithChoiceContext`). There, a count of the towns
+  that follow the religion also counts the expected towns that do not follow
+  yet, as a promise (`followingCountAhead`, read on a board where those towns
+  follow). The buildings that such a count promises are the ones the expected
+  towns could raise (`potentialTownsFor`), not every town's: The Scriptoria read
+  every town's faith buildings.
+- No new knob.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged
