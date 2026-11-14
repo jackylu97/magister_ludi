@@ -189,6 +189,9 @@ import {
   type WindfallOccasionFacts,
   type WindfallPayout,
   windfallPayout,
+  // Bot batch BP7: a wonder that opens a chair for whoever holds it.
+  buildingOpensChairs,
+  refitSlots,
 } from './statecraft';
 // Dominion batch D1's readers, straight from the evaluator: the experience a
 // unit is gained with, and the empty-payout check the rank's riders use. The
@@ -5622,6 +5625,15 @@ export function realiseItem(
     // town without claiming would be a second Oracle.
     const wonder = isWonder(item.id) ? claimWonderFor(state, city, item.id) : undefined;
     if (wonder) payWonderRenown(state, city, item.id);
+    // **A wonder that opens a chair opens it now** (bot batch BP7, The Forbidden
+    // City). The chair belongs to whoever holds the town, so the council grows on
+    // the turn the stones go up, as it does for a Doctrine that opens one
+    // (`refitSlots`' register). After the claim, because the claim is what opens
+    // the walk's wonder source on the first wonder of a game.
+    if (buildingOpensChairs(item.id)) {
+      const holder = playerById(state, city.ownerId);
+      if (holder !== undefined) refitSlots(state, holder);
+    }
     // The row's own completion grants, **after** the claim and the renown and
     // before the riders: a wonder hands over what it hands over because it now
     // stands, and a technology it finishes has to land before a rider that might

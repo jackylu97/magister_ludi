@@ -58,8 +58,11 @@ import {
   tileOwnerPlayerId,
 } from './cities';
 import {
+  // Bot batch BP7: a razed town takes its wonder's chair with it.
+  buildingOpensChairs,
   payWindfallGrants,
   recordScalingOccasion,
+  refitSlots,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -1314,6 +1317,12 @@ export function razeCityAt(
   // released two lines up and the roster it was on is the one both meters walk.
   // Announced once, for both writes.
   bumpEconomy(state);
+  // **A wonder's chair goes with its town** (bot batch BP7, The Forbidden City).
+  // The council is seated again as an adoption seats it (`refitSlots`' `'reseat'`).
+  if (city.buildings.some(buildingOpensChairs)) {
+    const owner = playerById(state, city.ownerId);
+    if (owner !== undefined) refitSlots(state, owner, 'reseat');
+  }
   state.citySightings = state.citySightings.map((list) =>
     list.filter((sighting) => sighting.cityId !== city.id),
   );

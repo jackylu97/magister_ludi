@@ -1357,7 +1357,10 @@ describe('The Arthashastra (batch DT9)', () => {
     const ctx = valueContext(state, player);
     const best = scoreEffects([{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect], ctx);
     expect(best).toBeGreaterThan(0);
-    expect(worth() - empty).toBeCloseTo(best, 6);
+    // Twice the best card since bot batch BP7: the chair the Doctrine opens is
+    // worth the best card off the chairs (`extraChairsWorth`), and that chair
+    // reads the card again.
+    expect(worth() - empty).toBeCloseTo(2 * best, 6);
   });
 });
 

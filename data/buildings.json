@@ -1320,9 +1320,8 @@
       "culture": 2,
       "sciencePerPop": 0,
       "authorityCapacity": 5,
-      "effects": [],
-      "deferred": [
-        "one more Order slot"
+      "effects": [
+        { "kind": "slotRider" }
       ],
       "renown": {
         "family": "merchant",

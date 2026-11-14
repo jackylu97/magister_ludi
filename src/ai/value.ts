@@ -87,6 +87,7 @@ import {
   type BuildingId,
   buildingDef,
   buildingRowSupplies,
+  isBuildingId,
   isEmpireBuilding,
   isPublicWork,
   isWonder,
@@ -122,6 +123,8 @@ import { atWarWithAnybody, fieldSoldiersOf, garrisonAt, garrisonOwed } from './c
 import { readCity, readEmpire } from '../sim/readings';
 import {
   buildingProductionCost,
+  // Bot batch BP7: the piece The Sword of State hands over.
+  bestMeleeFor,
   bestOfClassFor,
   capitalCityOf,
   carriableSurplus,
@@ -223,10 +226,13 @@ import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData'
 import {
   type ChargeVerbName,
   availableRites,
+  // Bot batch BP7: Stonehenge's free god, at the next rung's price.
+  beliefPool,
   chargeCostOf,
   cityRite,
   cityRites,
   holySites,
+  nextFaithRungCost,
   plantingCost,
   religionBeliefPool,
   riteCostAhead,
@@ -241,6 +247,7 @@ import {
   beliefDef,
   beliefPoolOf,
   isBeliefId,
+  isRiteId,
   riteDef,
 } from '../sim/religionData';
 // Bot batch BP3: a card is priced on its stamp's own two boards, and the books
@@ -355,6 +362,7 @@ import {
   type CardId,
   type RiderBuildingTest,
   type CardPeriodicEffect,
+  type CharterSpec,
   type CityScope,
   type CombatCondition,
   type CommissionFigure,
@@ -1081,6 +1089,11 @@ export function explainBuildingRow(
         // is worth what holding one more technology is worth *now*.
         nest('a free technology, granted once', lumpOfPoints(ageBand(ctx.ai.weights.techByAge, ctx.age), ctx)),
       );
+    } else if (grant.grant === 'faithRung' || grant.grant === 'doctrineDraft' || grant.grant === 'building') {
+      // **The three grants bot pass 3 found unread** (batch BP7, P9): each read
+      // through the reading that exists for what it hands over. See
+      // `completionGrantTerm`.
+      terms.push(completionGrantTerm(grant, ctx, city));
     } else {
       terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
     }
@@ -1097,6 +1110,70 @@ export function explainBuildingRow(
   const wagered = wager ? rowWagerTerm(id, ctx, city) : null;
   if (wagered !== null) terms.push(wagered);
   return appraise(terms);
+}
+
+/**
+ * **Three completion grants, each read through the reading that exists** (bot pass
+ * 3, batch BP7; `docs/flags.md` (ooooooo) P9). Until this batch each fell to
+ * `score.unknownEffect`, two points, so Stonehenge's whole row read 18 and it
+ * waited 83.5 turns for a builder (`docs/audit/bot-pass-3-competitiveness.md`).
+ *
+ *   · **a god, free** (`faithRung`, Stonehenge): the faith the next rung of the
+ *     ladder would cost (`nextFaithRungCost`), as a lump, because the pick spends
+ *     no faith. Nothing while the pantheon's bag is empty, because the hand would
+ *     deal nothing;
+ *   · **a Doctrine offer** (`doctrineDraft`, the Theatre of Dionysus): the bot's
+ *     price for a Doctrine offer (`doctrineOfferWorth`), the reading a commission's
+ *     Doctrine offer takes. A Doctrine is held for good, so it is a rate;
+ *   · **a building, free** (`building`, the Theatre's Amphitheatre): the hammers
+ *     it would cost this seat to raise (`buildingProductionCost`), as a lump.
+ *     Nothing in a town that already holds it, because the grant then does not
+ *     land.
+ */
+function completionGrantTerm(
+  grant: Extract<NonNullable<ReturnType<typeof buildingDef>['onComplete']>[number], { grant: 'faithRung' | 'doctrineDraft' | 'building' }>,
+  ctx: ValueContext,
+  city?: City,
+): ValueTerm {
+  const player = playerById(ctx.state, ctx.playerId);
+  switch (grant.grant) {
+    case 'faithRung': {
+      if (player === undefined || beliefPool(ctx.state, player).length === 0) {
+        return { label: 'a free god on completion: no god is left in the bag', value: 0 };
+      }
+      const faith = nextFaithRungCost(player);
+      return nest(
+        `a free god on completion: the ${round(faith)} faith the next rung would cost, paid once`,
+        explainLump({ faith }, ctx),
+      );
+    }
+    case 'doctrineDraft': {
+      const offer = doctrineOfferWorth(ctx);
+      return {
+        label:
+          offer.options === 0
+            ? 'a Doctrine offer on completion: no Doctrine of its government’s tier is left to offer'
+            : `a Doctrine offer on completion: the best of ${offer.options} Doctrines, held for good`,
+        value: offer.worth,
+      };
+    }
+    case 'building': {
+      const name = buildingDef(grant.building).name;
+      if (city !== undefined && city.buildings.includes(grant.building)) {
+        return { label: `a free ${name} on completion: ${city.name} already holds one`, value: 0 };
+      }
+      const hammers = buildingProductionCost(grant.building, ctx.state, ctx.playerId);
+      return nest(
+        `a free ${name} on completion: the ${round(hammers)} hammers it would cost, paid once`,
+        explainLump({ production: hammers }, ctx),
+      );
+    }
+    default: {
+      const unhandled: never = grant;
+      void unhandled;
+      return { label: 'a grant this bot cannot read', value: ctx.ai.score.unknownEffect };
+    }
+  }
 }
 
 /**
@@ -2236,19 +2313,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       const slot = routeSlotTerm((effect.extra ?? 1) * towns, ctx);
       return slot === null ? 0 : slot.value;
     }
-    case 'slotRider':
-      // **A chair is a card put to work**, so it takes the stand-in an unread
-      // card in a draft took before Magisterial batch MG17 priced the Order
-      // hand (`offerRider` above): the two are the same promise from opposite
-      // ends — that one deals a row this empire does not hold, and this opens a
-      // chair for a row it does. Anything
-      // sharper would have to be `scoreCard` on the best benched Order, and that
-      // lives in `council.ts`, which reads this file and may not be read back.
-      //
-      // Never discounted for an empty chair. A council with a free seat still
-      // fills it at the next draft, and a card held for the rest of the game is
-      // not worth nothing because of what happens to be slotted this turn.
-      return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * (effect.extra ?? 1);
+    case 'slotRider': {
+      // **A chair is a card put to work** (bot batch BP7): the best card the seat
+      // holds off its chairs, or the card it expects to draft, read through
+      // `extraChairsWorth`. A chair closed (Scutage) keeps the old stand-in; a
+      // Doctrine's stamp already holds what the closing costs.
+      const extra = effect.extra ?? 1;
+      if (extra <= 0) return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * extra;
+      return extraChairsWorth(extra, ctx);
+    }
     case 'effectAmplifier':
       return scoreAmplifier(effect, ctx);
     case 'unlocksBuilding': {
@@ -3585,34 +3658,86 @@ function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
  * A great person (Magisterial batch MG6, The Wandering Muse), a windfall and
  * a foreign card (batch MG14, The Grand Retrospective and The Cabinet of
  * Curiosities) are priced since batch MG17. See `magisterialDraftGrantWorth`.
+ *
+ * **Bot pass 3, batch BP7** (`docs/flags.md` (ooooooo) B10):
+ *
+ *   · **a unit is the hammers it would cost** (`unitProductionCost`), as a lump,
+ *     in place of a twentieth of a soldier's worth. A trader is the route it
+ *     would run (`draftedUnitWorth`);
+ *   · **the lump is spread over the turns the game has left** (`boonTurns`), at
+ *     most the one horizon, in place of `score.lumpTurns`. A card set
+ *     against the Boon pays every turn for the rest of the game, so the Boon's
+ *     one payment is set against that many turns.
+ *
+ * A card drawn from another deck (The Cabinet of Curiosities) is held, so it is
+ * a rate already and is not spread.
  */
 export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   if (!isOrderId(id)) return 0;
   const grants = orderDef(id).onDraft ?? [];
   if (grants.length === 0) return 0;
-  let units = 0;
-  let others = 0;
+  let once = 0;
+  let rate = 0;
   for (const grant of grants) {
     switch (grant.grant) {
-      case 'unit':
-        units += 1;
+      case 'unit': {
+        const piece = draftedUnitWorth(grant.unit, ctx);
+        once += piece.once;
+        rate += piece.rate;
         break;
+      }
       case 'greatPerson':
       case 'windfall':
-      case 'foreignCard':
-        others += magisterialDraftGrantWorth(grant, ctx);
+        once += magisterialDraftGrantWorth(grant, ctx);
         break;
+      case 'foreignCard': {
+        const player = playerById(ctx.state, ctx.playerId);
+        if (player !== undefined) rate += foreignCardWorth(player, ctx);
+        break;
+      }
       default: {
         const unhandled: never = grant;
         void unhandled;
       }
     }
   }
-  return (
-    (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
-      Math.max(1, ctx.ai.score.lumpTurns) +
-    others
-  );
+  return rate + once / boonTurns(ctx);
+}
+
+/**
+ * **The turns a Boon's one payment is spread over** (bot batch BP7, B10): the
+ * turns the game has left (`score.gameTurns` less the turn now), at least one and
+ * at most the one horizon (`priorities.horizonTurns`), over which every rate in
+ * the bot is read.
+ */
+export function boonTurns(ctx: ValueContext): number {
+  const left = Math.floor(ctx.ai.score.gameTurns) - ctx.state.turn;
+  return Math.max(1, Math.min(Math.max(1, ctx.ai.priorities.horizonTurns), left));
+}
+
+/**
+ * **A unit a draft hands over** (bot batch BP7, B10), as points paid once
+ * (`once`) or points a turn (`rate`):
+ *
+ *   · a **trader** runs the best route a new caravan could run today
+ *     (`RouteOutlook.open`), while a route slot is free for it. A route runs
+ *     until something ends it, so this is a rate. With no free slot the trader
+ *     waits, and it is worth nothing now;
+ *   · **any other piece** is the hammers it would cost this seat to raise
+ *     (`unitProductionCost`), weighed as a lump of production. `'bestMelee'` is
+ *     the best melee unit the seat can build now (`bestMeleeFor`), as the grant
+ *     resolves it, and nothing when there is none.
+ */
+function draftedUnitWorth(unit: UnitTypeId | 'bestMelee', ctx: ValueContext): { once: number; rate: number } {
+  const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
+  if (type === null) return { once: 0, rate: 0 };
+  if (unitDef(type).category === 'trader') {
+    const routes = ctx.routes;
+    if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
+    return { once: 0, rate: routes.open.pay.total };
+  }
+  const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
+  return { once: explainYields({ production: hammers }, ctx).total, rate: 0 };
 }
 
 /**
@@ -5986,6 +6111,21 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
         },
       ];
     }
+    if (occasion === 'sizeRecord') {
+      // **A town passing its largest size** (The Grain Census; bot batch BP7,
+      // B10). The rider's own pace (`occasionRate`: the seat's growths over the
+      // turns played) over the horizon, and never fewer than the table's figure,
+      // because a whole-game pace reads low once the empire is bigger than its
+      // average (`docs/plans/performance-pass-2026-11-06.md`, BP4's rates).
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = Math.max(occasionRate('sizeRecord', ctx) * horizon, forecast);
+      return [
+        {
+          label: `+ ${round(more)} more towns past their largest size over the horizon (the seat's pace of growth; never fewer than ${forecast})`,
+          value: more,
+        },
+      ];
+    }
     if (occasion === 'riteStarted') {
       // **The seasons the seat's towns keep now** (Devotion batch DV9, The
       // Rogations): only a rite with no `atOnce` counts, and a season kept
@@ -6967,10 +7107,11 @@ function rewardTerms(
     });
   }
   if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
-    // A chair for the rest of the game, as `slotRider` prices one.
+    // A chair for the rest of the game, as `slotRider` prices one
+    // (`extraChairsWorth`, bot batch BP7).
     lasting({
       label: `${reward.wildcardChairs} more Wildcard chairs`,
-      value: ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * reward.wildcardChairs,
+      value: extraChairsWorth(reward.wildcardChairs, ctx),
     });
   }
   for (const effect of reward.lasting ?? []) {
@@ -7347,12 +7488,19 @@ function researchBeakersTo(ctx: ValueContext, tech: TechId): number {
  *
  * A charter whose technology the seat already knows or has already opened is
  * worth nothing more. That is also why a held charter is never worth a chair.
+ *
+ * **A charter that opens something else** (bot pass 3, batch BP7; `docs/flags.md`
+ * (ooooooo) B10) is priced through the reading that exists for what it opens
+ * (`explainCharterOpening`). Before this batch the seven live ones read nothing.
  */
 export function explainCharter(id: OrderId, ctx: ValueContext): Appraisal | null {
-  const tech = orderDef(id).charter?.unlocks.tech;
+  const unlocks = orderDef(id).charter?.unlocks;
+  if (unlocks === undefined) return null;
+  const tech = unlocks.tech;
+  if (tech === undefined) return explainCharterOpening(unlocks, ctx);
   // A retired charter may name a technology the tree no longer holds (the
   // Metallurgists' and the Naturalists'). It opens nothing, so it is no charter.
-  if (tech === undefined || !isTechId(tech)) return null;
+  if (!isTechId(tech)) return null;
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return null;
   const name = techDef(tech).name;
@@ -7369,6 +7517,72 @@ export function explainCharter(id: OrderId, ctx: ValueContext): Appraisal | null
       `${round(beakers)} beakers to research ${name} and what it needs, at the folded price`,
     ),
   ]);
+}
+
+/**
+ * **What a charter that opens no technology is worth** (bot pass 3, batch BP7;
+ * `docs/flags.md` (ooooooo) B10, as the proposal of 2026-11-12 put it: "price
+ * each Charter through the reading that exists for what it opens"):
+ *
+ *   · **a building** (The Planters' Charter): the shelf it opens, in the towns
+ *     that would raise it (`scoreUnlockedBuilding`), the reading a technology's
+ *     building and an `unlocksBuilding` card take;
+ *   · **a unit** (Numidian Cavalry, The Chartered Company): the `unlocksUnit`
+ *     reading, a line of soldiers priced as one of them;
+ *   · **a rite** (The Fast, The Sabbath Laws): one town's blessing
+ *     (`explainRite`, on a one-town context as the levy's rite reads it), times
+ *     the seat's towns, at nought or more, because the seat need not say a rite
+ *     that costs it;
+ *   · **a tended work** (The Fish Traps, The Wild Orchards): nothing, because
+ *     this bot lays no tended work (its roster, `workers.improvements`, holds
+ *     none), so the row opens nothing for it.
+ *
+ * Something the seat has opened already is worth nothing more.
+ */
+function explainCharterOpening(unlocks: CharterSpec['unlocks'], ctx: ValueContext): Appraisal | null {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const terms: ValueTerm[] = [];
+  // A retired charter may name a row the tables no longer hold (The Purple Works'
+  // and The Dye Vats' buildings), as a retired technology charter may. Such a row
+  // opens nothing.
+  if (unlocks.building !== undefined && isBuildingId(unlocks.building)) {
+    const id = unlocks.building;
+    const name = buildingDef(id).name;
+    terms.push(
+      player.charteredBuildings.includes(id)
+        ? { label: `the ${name} is already open to this empire`, value: 0 }
+        : { label: `the ${name}, in the towns that would raise it`, value: scoreUnlockedBuilding(id, ctx) },
+    );
+  }
+  if (unlocks.unit !== undefined && isUnitTypeId(unlocks.unit)) {
+    terms.push({
+      label: `the ${unitDef(unlocks.unit).name}, a piece the towns may raise`,
+      value: scoreEffects([{ kind: 'unlocksUnit', unit: unlocks.unit }], ctx),
+    });
+  }
+  if ((unlocks.rites ?? []).length > 0) {
+    const here: ValueContext = { ...ctx, cities: 1 };
+    const towns = Math.max(0, ctx.cities);
+    for (const rite of unlocks.rites ?? []) {
+      if (!isRiteId(rite)) continue;
+      const name = riteDef(rite).name;
+      if (player.charteredRites.includes(rite)) {
+        terms.push({ label: `${name} is already open to this empire`, value: 0 });
+        continue;
+      }
+      const blessing = explainRite(rite, here);
+      terms.push({
+        label: `${name}: one town’s blessing × ${towns} town${towns === 1 ? '' : 's'}, at nought or more`,
+        value: Math.max(0, blessing.total) * towns,
+        parts: [nest('one town’s blessing', blessing)],
+      });
+    }
+  }
+  if (unlocks.improvement !== undefined) {
+    terms.push({ label: 'a tended work, which this bot does not lay', value: 0 });
+  }
+  return terms.length === 0 ? null : appraise(terms);
 }
 
 /**
@@ -11754,6 +11968,96 @@ function handWorth(ctx: ValueContext): number {
 }
 
 /**
+ * **What more Wildcard chairs are worth to this seat**, a turn (bot pass 3, batch
+ * BP7; `docs/flags.md` (ooooooo) P9). The Forbidden City opens one, and so do The
+ * King's Friends, The Council of Ten and a commission that wins chairs. Before this
+ * batch each chair was the stand-in `score.unknownEffect × score.nominalCount`.
+ *
+ * A Wildcard chair takes any card, so the next chair takes the best card the seat
+ * holds and cannot seat now. The cards off their chairs that may sit
+ * (`neverSeatedError`) are priced as the slot arm prices them, by the walk (a
+ * commission at its chair price, `explainCommissionChair`), and taken best first.
+ * The bot fills a free chair as soon as a held card fits it, so a card left off the
+ * chairs is one no free chair takes.
+ *
+ * When the bench runs out, a chair waits for a card the seat has still to draft.
+ * That card is the expected best of a dealt hand (`expectedBestOrder`, with a card
+ * that never sits read at nought), discounted by the turns until the seat has
+ * drafted enough cards to fill its free chairs and this one, at its drafting pace
+ * (`draftsPerTurn`). A seat that drafts nothing more gains nothing from such a
+ * chair.
+ *
+ * Remembered for the context. The memo holds nought while it is read, so a held
+ * card that itself opens a chair (The King's Friends on the bench) does not read
+ * this again.
+ */
+/** What `extraChairsWorth` reads: the bench's prices, best first, the free chairs, the expected card and the drafting pace. */
+interface ChairReading {
+  bench: number[];
+  free: number;
+  card: number;
+  pace: number;
+}
+const CHAIR_WORTH_MEMO = new WeakMap<ValueContext, ChairReading>();
+export function extraChairsWorth(chairs: number, ctx: ValueContext): number {
+  const reading = chairReading(ctx);
+  const count = Math.max(0, Math.floor(chairs));
+  let worth = 0;
+  for (let at = 0; at < count; at++) {
+    const held = reading.bench[at];
+    if (held !== undefined) {
+      worth += Math.max(0, held);
+      continue;
+    }
+    if (reading.pace <= 0 || reading.card <= 0) continue;
+    const drafts = reading.free + (at - reading.bench.length) + 1;
+    worth += reading.card * delayDiscount(drafts / reading.pace, ctx);
+  }
+  return worth;
+}
+
+function chairReading(ctx: ValueContext): ChairReading {
+  const known = CHAIR_WORTH_MEMO.get(ctx);
+  if (known !== undefined) return known;
+  const empty: ChairReading = { bench: [], free: 0, card: 0, pace: 0 };
+  CHAIR_WORTH_MEMO.set(ctx, empty);
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return empty;
+  const sc = player.statecraft;
+  const bench: number[] = [];
+  for (const id of sc.orders) {
+    if (!isOrderId(id) || isSlotted(sc, id) || neverSeatedError(sc, id) !== null) continue;
+    // A commission whose goal is met takes a chair for one turn and leaves it
+    // (`metCommissionWaits` seats it at once), so it is no lasting use of a chair.
+    if (orderDef(id).commission !== undefined) {
+      const parts = commissionProgress(ctx.state, ctx.playerId, id);
+      if (parts.length > 0 && parts.every((part) => part.met)) continue;
+    }
+    const chair = explainCommissionChair(id, ctx);
+    bench.push(chair !== null ? chair.total : explainCardEffects(id, orderDef(id).effects, ctx, 'walk').total);
+  }
+  bench.sort((a, b) => b - a);
+  let free = 0;
+  sc.slots.forEach((slot, index) => {
+    if (slot === null && maliceAt(player, index) === null) free += 1;
+  });
+  const pace = draftsPerTurn(ctx);
+  const bags = expectedHandBags(ctx.state, player);
+  const card =
+    pace <= 0 || bags.length === 0
+      ? 0
+      : expectedBestOrder(
+          bags,
+          sc.orderSkips,
+          (id) => (neverSeatedError(sc, id) !== null ? 0 : explainCardEffects(id, orderDef(id).effects, ctx, 'walk').total),
+          cardRareWeight(ctx.state, ctx.playerId),
+        );
+  const reading: ChairReading = { bench, free, card, pace };
+  CHAIR_WORTH_MEMO.set(ctx, reading);
+  return reading;
+}
+
+/**
  * **What more cards in a hand add to the best of it**, as a share of the hand
  * (`offerRider`). The best of `n` cards drawn from one spread of values sits
  * at `n ÷ (n + 1)` of that spread, so a hand of `m` cards is worth
@@ -12848,29 +13152,30 @@ function widerFitWorth(ctx: ValueContext): number {
 }
 
 /**
- * **What drafting an Order hands over**, for the three grants of Magisterial
- * batches MG6 and MG14, as a per-turn figure:
+ * **What drafting an Order hands over**, for two grants of Magisterial batches
+ * MG6 and MG14, as points paid once. `onDraftWorth` spreads them over the turns
+ * the game has left (bot batch BP7, `boonTurns`):
  *
  *   · a great person (The Wandering Muse): at the renown the seat's next one
  *     costs, as a commission's great person is priced
  *     (`scientificGrantWorth`); the renown to the next rung, which the grant
  *     pays when no offer can open, is the same figure;
  *   · a windfall (The Grand Retrospective): the yield for each thing its count
- *     finds now, as a lump. The card counts itself among the Orders held
- *     (the triage's reading 38), and it is not held yet when it is drafted;
- *   · a foreign card (The Cabinet of Curiosities): the mean card of the bag it
- *     is drawn from (`foreignCardBag`), each at its chance under the draw's
- *     own odds (`rarityFirstOdds`, with no pity), priced by its effects.
+ *     finds now. The card counts itself among the Orders held (the triage's
+ *     reading 38), and it is not held yet when it is drafted.
+ *
+ * The third grant, a foreign card (The Cabinet of Curiosities), is a held card
+ * and so a rate: the mean card of the bag it is drawn from (`foreignCardWorth`).
  */
 function magisterialDraftGrantWorth(
-  grant: Exclude<NonNullable<ReturnType<typeof orderDef>['onDraft']>[number], { grant: 'unit' }>,
+  grant: Extract<NonNullable<ReturnType<typeof orderDef>['onDraft']>[number], { grant: 'greatPerson' | 'windfall' }>,
   ctx: ValueContext,
 ): number {
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return 0;
   switch (grant.grant) {
     case 'greatPerson':
-      return lumpOfPoints(renownThreshold(ctx.state, player) * ctx.ai.weights.renown, ctx).total;
+      return renownThreshold(ctx.state, player) * ctx.ai.weights.renown;
     case 'windfall': {
       let found = 0;
       if (grant.perCount !== undefined) {
@@ -12883,10 +13188,8 @@ function magisterialDraftGrantWorth(
       if (found <= 0) return 0;
       const bag: YieldBag = {};
       bag[grant.yield as Voice] = grant.amount * found;
-      return explainLump(bag, ctx).total;
+      return explainYields(bag, ctx).total;
     }
-    case 'foreignCard':
-      return foreignCardWorth(player, ctx);
     default: {
       const unhandled: never = grant;
       void unhandled;

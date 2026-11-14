@@ -398,7 +398,9 @@ describe('the schema says so', () => {
     // so a v210 log's draws move.
     // 242 since batch BP2 (bot pass 3): `Player.unitsGained` joins the state,
     // a record the bots read; no rule reads it.
-    expect(SCHEMA_VERSION).toBe(242);
+    // 243 since batch BP7 (bot pass 3): the Forbidden City gives whoever holds
+    // its town one more Wildcard chair.
+    expect(SCHEMA_VERSION).toBe(243);
   });
 
   it('says in the changelog what a v110 log does now', () => {

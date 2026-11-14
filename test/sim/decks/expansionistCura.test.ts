@@ -350,6 +350,8 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'cities.ts › payGrants': { reads: 1, why: 'built: a completion grant skips a building the town has built' },
   'combat.ts › applyCombat': { reads: 2, why: 'one of a kind: the wonders a captured town holds' },
   'combat.ts › captureCity': { reads: 1, why: 'one of a kind: the wonders a capture counts' },
+  // Bot batch BP7: a wonder whose holder has more chairs (The Forbidden City).
+  'combat.ts › handOverCity': { reads: 1, why: 'one of a kind: a wonder in the town that opens chairs' },
   'combat.ts › worksAndWondersIn': { reads: 1, why: 'one of a kind: the wonders in a town' },
   'commands.ts › validateQueue': { reads: 1, why: 'built: the build list refuses a row the town has built' },
   'commissions.ts › payCommission': { reads: 1, why: 'built: a reward building the town has built is skipped' },
@@ -357,6 +359,8 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   // in one town. No helper counts one town's wonders, and the `wonders` count
   // with `within: 'city'` reads the same list.
   'commissions.ts › townWonders': { reads: 1, why: 'one of a kind: the wonders in one town, for a commission' },
+  // Bot batch BP7: a razed town takes its wonder's chair with it.
+  'diplomacy.ts › razeCityAt': { reads: 1, why: 'one of a kind: a wonder in the town that opens chairs' },
   'purchase.ts › clausesBeforeTheBank': {
     reads: 2,
     why: 'built: buying refuses a building the town has built, and a row needs one built',

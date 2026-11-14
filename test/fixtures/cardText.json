@@ -11348,13 +11348,12 @@
   ],
   "forbiddenCity": [
    {
-    "raw": "+5 authority capacity",
-    "text": "+5 authority capacity"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    },
    {
-    "raw": "one more Order slot — not built yet",
-    "text": "one more Order slot — not built yet",
-    "deferred": true
+    "raw": "+5 authority capacity",
+    "text": "+5 authority capacity"
    }
   ],
   "alhambra": [

@@ -3401,12 +3401,16 @@ function techGoalTable(
   let bestScore = -Infinity;
   let bestCandidate: BotCandidate | null = null;
   const shut = techsShutByCharter(player);
+  // A held charter's technology, when its road fits the deadline (bot batch BP7).
+  // A lookup by id only; nothing below walks it.
+  const deadline = charterDeadline(state, player, ctx);
+  let deadlineRow: BotCandidate | null = null;
   for (const id of ALL_TECH_IDS) {
     if (player.techsResearched.includes(id)) continue;
     if (shut.includes(id)) continue;
     const road = researchExpansion(state, player.id, id);
     if (road.length === 0) continue;
-    if (road.length > ai.research.goalHorizon) {
+    if (road.length > ai.research.goalHorizon && id !== deadline?.tech) {
       // Not a rejection by the rules — a rejection by this bot's own horizon,
       // which is the difference between a beeline and a hundred-turn ambition.
       candidates.push(
@@ -3488,11 +3492,30 @@ function techGoalTable(
       terms,
     };
     candidates.push(candidate);
+    if (id === deadline?.tech) deadlineRow = candidate;
     if (candidate.score > bestScore) {
       bestScore = candidate.score;
       best = id;
       bestCandidate = candidate;
     }
+  }
+  // **A held charter's technology is researched within `research.charterTurns`
+  // turns** (bot pass 3, batch BP7; `docs/flags.md` (ooooooo) B10). A fixed
+  // behaviour, which the proposal names as its one exception to pricing: the
+  // charter's road is taken as the goal over the table's best. Its own row keeps
+  // its chain's terms, so the feed still prints what the road was worth.
+  if (deadline !== null && deadlineRow !== null) {
+    deadlineRow.terms = [
+      ...deadlineRow.terms,
+      {
+        label:
+          `a charter this seat holds opened it: researched within ${ai.research.charterTurns} turns ` +
+          `(about ${round1(deadline.turns)} turns away), over the table's best`,
+        value: 0,
+      },
+    ];
+    deadlineRow.chosen = true;
+    return { goal: deadline.tech, candidates };
   }
   // The floor the v0 stood on: if nothing scored — an empty horizon, a finished
   // tree — take whatever is open, cheapest first, so the seat is never left with
@@ -3516,6 +3539,42 @@ function techGoalTable(
   }
   if (bestCandidate !== null) bestCandidate.chosen = true;
   return { goal: best, candidates };
+}
+
+/**
+ * **The charter technology this seat must research now**, or `null` (bot pass 3,
+ * batch BP7; `docs/flags.md` (ooooooo) B10; the proposal: "a seat that holds a
+ * Charter researches its technology within 15 turns").
+ *
+ * The game keeps no record of the turn a charter was drafted, so the deadline is
+ * read off the road instead: an opened charter technology the seat has not learnt
+ * is due once the beakers of its road, at the folded price (`techCostFor`), can be
+ * learnt in `research.charterTurns` turns at the seat's science rate. A road that
+ * long or shorter is the goal, and it lands inside the deadline. A longer road
+ * waits until the seat's science, or the nodes it learns for other goals, bring it
+ * inside. Of several, the nearest, and a tie goes to the charter drafted first
+ * (`Player.charteredTechs` is in draft order). Nought turns the rule off.
+ */
+function charterDeadline(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): { tech: TechId; turns: number } | null {
+  const limit = Math.max(0, ctx.ai.research.charterTurns);
+  if (limit <= 0) return null;
+  const rate = Math.max(1, ctx.scienceRate);
+  let due: { tech: TechId; turns: number } | null = null;
+  for (const tech of player.charteredTechs) {
+    if (player.techsResearched.includes(tech)) continue;
+    const road = researchExpansion(state, player.id, tech);
+    if (road.length === 0) continue;
+    let beakers = 0;
+    for (const step of road) beakers += techCostFor(ctx, step);
+    const turns = beakers / rate;
+    if (turns > limit) continue;
+    if (due === null || turns < due.turns) due = { tech, turns };
+  }
+  return due;
 }
 
 /**

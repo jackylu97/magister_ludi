@@ -1029,3 +1029,133 @@ These are not done.
 - The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar` and `beads` passed.
 - The shadow check (`test/vitest.shadow.config.ts`) passed on `aiDeckTerms`, `aiCommissionChair`, `aiSittingMemos`, `aiCardStamp`, `aiCommissions` and `aiSeatable`.
 - The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+## Bot batch BP7: the smaller readings, the wonder rewards and the Forbidden City's chair, 2026-11-14
+
+The rulings are `docs/flags.md` (ooooooo), B10 and P9, both "as proposed on the page" the item links (the proposal of 2026-11-12). B10 is fault 10 of `docs/audit/bot-pass-3-card-values.md`. The page's P9 ("three wonder rewards the bot cannot read") is row 10 of the ranked table in `docs/audit/bot-pass-3-competitiveness.md`; row 9 of that table is a rule question about what a wonder costs, which the page does not number. The user added the Forbidden City's chair: *"please make sure to implement the forbidden palace's additional wildcard slot"*. That is a rule change, so this batch is schema 243. Branch `decks` at `1104891a`.
+
+### The rule change: the Forbidden City's chair
+
+- The row's `deferred: ["one more Order slot"]` is now `effects: [{ "kind": "slotRider" }]`, the shape The King's Friends and The Council of Ten use. No new shape. The card says "you have one more wildcard chair" through the existing describer.
+- The chair belongs to whoever holds the town the wonder stands in, because a wonder's effects are its holder's law. Three seams refit the councils, and each asks only about a town that holds a row that opens chairs (`buildingOpensChairs`, `statecraft/council.ts`): the wonder finished (`realiseItem`), the town handed over by capture or treaty (`handOverCity`, for both seats) and the town razed (`razeCityAt`).
+- A seat that loses the chair is seated again as an adoption seats it: `refitSlots(state, player, 'reseat')` runs `reseatOrders` with the old council's fit. A card that keeps its chair keeps its seal, a card whose chair closed moves to a free chair that fits it, and a card that fits no free chair returns to the collection with its progress. Scutage closes a chair by choice and keeps its older reading (the card in the closed chair returns), which `magisterialDoctrines.test.ts` pins.
+- `docs/wonders.md` states the rule and `docs/README.md` has a line. `docs/codex.md` is generated and far out of date (a fresh run rewrites 215 lines), so it was not regenerated and still marks the row as deferred.
+
+### What the bot reads now
+
+- **B10, a charter that opens no technology** (`explainCharterOpening`, `value.ts`): a building at the shelf it opens (`scoreUnlockedBuilding`), a unit at the `unlocksUnit` reading, a rite at one town's blessing (`explainRite`) times the towns, at nought or more, and a tended work at nought, because the bot's roster lays none. Before, the seven live ones read nought.
+- **B10, a Boon** (`onDraftWorth`): a unit is the hammers it would cost, as a lump; a trader is the best route a new caravan could run today while a slot is free; and the lump is spread over the turns the game has left (`boonTurns`: `score.gameTurns` less the turn now, at most the one horizon, `priorities.horizonTurns`), in place of `score.lumpTurns`.
+- **B10, The Grain Census**: its tally is forecast at the seat's pace of growth over the horizon, never below `score.tallyForecast.sizeRecord`.
+- **B10, a charter technology**: the research choice reads it as the draft does (`explainCharterKnowledge` in `readNodeGifts`), and a held charter's technology becomes the research goal once its road can be learnt in `research.charterTurns` turns (`charterDeadline`, `bot.ts`). The game records no draft turn, so the deadline reads the road. This is the proposal's one fixed behaviour.
+- **P9, three completion grants** (`completionGrantTerm`, `value.ts`): Stonehenge's free god at the faith the next rung costs, as a lump; the Theatre of Dionysus' Doctrine offer at the bot's price for a Doctrine offer, the reading a commission's Doctrine offer takes; its free Amphitheatre at the hammers it would cost, as a lump. Each read `score.unknownEffect` (2) before.
+- **One more Wildcard chair** (`extraChairsWorth`, `value.ts`): the best card the seat holds and cannot seat now, by the walk (a commission at its chair price, and a met commission left out because it leaves its chair after a turn); with the bench empty, the card the seat expects to draft, discounted for the drafts it waits on. The Forbidden City's row reads it, and so does every `slotRider` that opens chairs and a commission's `wildcardChairs` reward. A chair closed keeps the old stand-in.
+- **New knobs**: `score.gameTurns` (200), `score.tallyForecast.sizeRecord` (10) and `research.charterTurns` (15), each with a row in `data/ai.bounds.json`; the arena shows them with no page edit. `docs/bot-priorities.md` has the readings in full.
+
+### The prices, on a recorded board
+
+Seed 42, the six-seat two-deck game, at turn 90 (the untouched tree's board, read by both trees). The value is points a turn, for each of the six seats:
+
+| Row | Before | After |
+|---|---|---|
+| Stonehenge's free god | 2 | 24 to 54 |
+| The Theatre's Doctrine offer | 2 | 11 to 377 |
+| The Theatre's free Amphitheatre | 2 | 25 |
+| The Forbidden City's chair | 0 (deferred) | 32 to 609 |
+
+The chair reads the walk. On this board the walk and the slot arm's stamp disagree for some cards on the bench: seat 3's best benched card is 609 by the walk and 423 by its stamp. A stamp for every benched card each time the row is priced would cost about what BP3 measured and dropped (30 to 50 stamps a seat), so the chair keeps the walk, as the pool estimates do.
+
+### Turn 100, over six seeds
+
+The same game to turn 100 on seeds 1, 7, 42, 999, 2026 and 31337, totals over the six seats:
+
+| | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 264 | 1,272 | 6,365 | 6,220 | 1,964 | 4,664 | 1,999 | 1,001 |
+| After | 269 | 1,365 | 6,493 | 7,487 | 2,381 | 4,696 | 2,314 | 934 |
+| Change | +2% | +7% | +2% | +20% | +21% | +1% | +16% | −7% |
+
+The spread between seeds is wide, as in the batches before: production rose 168% on seed 31337 (876 to 2,345) and 18% on seed 2026, and fell 33% on seed 42 and 16% on seed 7. Without seed 31337, production is −4%.
+
+### Wonders
+
+Wonders built, per seed, seats 0 to 5:
+
+| Seed | By turn 100, before | By turn 100, after | By turn 150, before | By turn 150, after |
+|---|---|---|---|---|
+| 1 | 12 (2 · 0 · 0 · 4 · 6 · 0) | 10 (6 · 0 · 1 · 2 · 1 · 0) | 27 | 26 (8 · 0 · 1 · 9 · 8 · 0) |
+| 7 | 11 (4 · 4 · 1 · 1 · 1 · 0) | 10 (2 · 7 · 0 · 0 · 1 · 0) | 24 (10 · 11 · 1 · 1 · 1 · 0) | 22 (11 · 9 · 0 · 1 · 1 · 0) |
+| 42 | 10 (0 · 8 · 2 · 0 · 0 · 0) | 10 (1 · 4 · 0 · 4 · 0 · 1) | 25 (0 · 21 · 2 · 2 · 0 · 0) | 24 (2 · 7 · 0 · 14 · 0 · 1) |
+| 999 | 13 (11 · 0 · 0 · 0 · 0 · 2) | 10 (4 · 1 · 2 · 0 · 0 · 3) | 27 (20 · 2 · 0 · 0 · 0 · 5) | 22 (12 · 1 · 2 · 0 · 2 · 5) |
+| 2026 | 10 (0 · 4 · 2 · 1 · 3 · 0) | 11 (0 · 3 · 1 · 7 · 0 · 0) | | |
+| 31337 | 10 (5 · 3 · 0 · 0 · 2 · 0) | 16 (2 · 0 · 1 · 11 · 2 · 0) | | |
+| Total | 66 | 67 | 103 | 94 |
+
+- **The three wonders whose rewards are now read are built earlier.** Stonehenge: 4, 7, 1, 4, 11 and 28 turns earlier on the six seeds. The Theatre of Dionysus: 6, 9, 1, 19 and 20 turns earlier on five seeds, 11 turns later on seed 999.
+- **The Forbidden City** was built on four seeds of six by turn 150 in both trees: at turns 111, 117, 105 and 119 before, and 117, 107, 121 and 119 after. Its holder had every chair filled on 135 of the 140 turns it held the wonder, read at the end of each turn; the chair stood empty on 5 turns in all. On seed 1 a malice sat in the last chair, so a card filled another.
+- **More hammers go into lost races.** Town-turns with a wonder at the front of a queue that another seat finished first, seeds 1, 7, 42 and 999, turns 1 to 150: 172 before, 264 after. Each of the two halves alone gives about 215.
+
+### Charters and Boons
+
+- **Charter technologies researched**: by turn 100, 0 of 10 held before and 8 of 8 after; by the end of the runs (turn 150 on four seeds, 100 on two), 5 of 16 before and 10 of 10 after, every one within 15 turns of the turn the seat drafted it (3 to 11 turns). With `research.charterTurns` at 0 the new reading alone researched 2 of 13 by turn 150, so the deadline is what does it.
+- **Boons**: picked in 3 of 13 offers that held one before turn 60 (4 of 14 before), and 3 of 6 from turn 60 (3 of 7 before). Too few offers to read a change.
+
+### Turn 150, and what this batch cannot tell apart
+
+Seeds 1, 7, 42 and 999 to turn 150, totals over the six seats. "B10 only" and "P9 only" are this batch with the other half's readings put back (P9 only keeps the Forbidden City's rule); "no deadline" is this batch with `research.charterTurns` at 0; "no change" is the untouched tree with `score.deck.tieBreak` at 2.5 in place of 2, a nudge with no expected direction, which changed the game on seeds 1 and 42 only.
+
+| Turn 150 | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 353 | 1,997 | 14,946 | 32,306 | 6,478 | 32,624 | 12,999 | 3,101 |
+| No change | −1% | −2% | −2% | −3% | +6% | −7% | −8% | 0% |
+| This batch | −5% | +9% | −12% | −9% | −28% | −22% | −4% | −19% |
+| B10 only | −12% | 0% | −8% | −37% | −28% | −61% | −43% | −24% |
+| P9 only | −7% | +13% | −1% | +4% | +15% | −21% | +1% | −1% |
+| No deadline | −11% | +8% | +13% | +4% | −5% | −32% | −34% | +1% |
+
+Every changed tree reads less science at turn 150 than the untouched one, and the nudge moved one seed's science by 25% (seed 1, 11,513 to 8,587). No single part of the batch carries the fall: each half alone, and the batch without the deadline, read lower too, and the two halves do not add up to the whole. So four seeds cannot say whether the batch costs late play or the untouched tree drew well on these seeds. A run over many more seeds would; it was not done here.
+
+### What it costs
+
+The new readings, timed on seed 42 at turn 90 over the six seats: the first chair reading (the bench walked and the next hand's best card) took 19 ms, the three wonder rows 23 ms, the 21 live charters 20 ms and five Boons 2 ms, against 470 ms for the six seats' contexts. Each reading is a memo on the context or one walk, so the batch's own cost is a few percent of a context at most.
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 2.16 | 2.85 | 1.86 | 1.43 |
+| CPU seconds a turn | 2.44 | 3.16 | 2.07 | 1.62 |
+| Commands a turn | 132 | 153 | 100 | 110 |
+| Milliseconds a command | 16.4 | 18.6 | 18.6 | 13.1 |
+
+The two trees were played in one process, a turn on each in turn, with the two seeds at once and nothing else running. The cost of a command rose on one seed and fell on the other, so the change in seconds a turn is play: seed 999 gives more commands late.
+
+### Pins at BP7
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `1d42380f:815164` | `736d7c4a:837205` | `6d3730d3:862627` | `ea59bd77:911063` | `bb476e42:973365` | `70413f21:1051545` |
+| Two decks, seed 42 | `f9fc43c1:817008` | `e52fd1aa:832347` | `383d2a0c:846051` | `8d8b77c5:873818` | `8ab0688d:913489` | `2dcda59e:974198` |
+
+The digests carry the schema version, so they move even where the play did not. This run stopped after turn 120, so it gives no turn-130 figure. `test/sim/aiDigest.slow.test.ts` pins duel `89f988df:326624` and standard `ea9d00e3:1043519`. Before the batch, the untouched tree gave the BP6 pins above at every turn from 20 to 120, and both digest pins.
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **The chair reads the walk, not the stamp.** On the recorded board the two differ by up to a third for a card on the bench (above). A stamp of the bench each time a chair is priced is the cost BP3 dropped.
+- **Lost races.** The Theatre and the Forbidden City now read high, so more seats queue them at once, and more town-turns go into races another seat wins (172 to 264 over four seeds to turn 150). The build arm still reads no race (fault P4, held by the user for the parameter pass).
+- **The charter deadline reads the road, not the draft.** The game keeps no draft turn, so a charter whose road is longer than `research.charterTurns` turns waits until the road comes inside it. On these seeds every held charter was researched within 15 turns of its draft, and none waited.
+- **The research reading of a charter technology** agrees with the draft's now, but on its own it changed little: with the deadline off, 2 of 13 held charter technologies were researched by turn 150.
+- **The trader of The First Caravan** is the route a new caravan could run today. It does not ask whether the seat would have bought that route anyway with gold.
+- **Turn 150.** The fall in late science above is not traced to a cause. More seeds would tell a cost from the spread of four games.
+- **`docs/codex.md`** is stale, as above.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- `test/sim/forbiddenCityChair.test.ts` (new, core): the row is a `slotRider` in plain words and no longer deferred; the chair opens on completion, for the holder only; a card sits in it, and the slot command before the wonder is refused with the state byte-identical; capture moves it to the new holder; the loser's card moves to a free chair that fits it and keeps its progress, and a card that keeps its chair keeps its seal; an unsorted card takes a typed chair; a card that fits no free chair returns with its progress; a raze closes it; the same steps twice give the same board byte for byte.
+- `test/sim/aiWonderRewards.test.ts` (new, core): Stonehenge's god at the next rung's faith, the Theatre's Doctrine offer at a commission's Doctrine offer reading (The Golden Bull), the free Amphitheatre at its hammers and nought where one stands, no grant of the three left to the stand-in; one more chair is the best benched card and then the next; a second chair waits longer; the Forbidden City's row reads the chair; the slot arm fills the new chair.
+- `test/sim/aiSmallReadings.test.ts` (new, core): the building, unit, rite and tended-work charters; `boonTurns` early, late and past the end; The Sword of State at its hammers; The First Caravan at its route and nought with no slot; The Grain Census's forecast; a charter node read as the draft reads it; the deadline sets the goal, the table's best differs with the rule off, and a long road waits.
+- Tests reworked: `wonders` (the deferral and shape registers), `cardTextSnapshot`'s fixture (`CARD_TEXT_WRITE=1`, the Forbidden City's two lines only), `explore` (the schema digit; with the version printed as 242 the old hashes return), the fifteen schema pins, `slateRegister` and `magisterialConstitution` (the new chair writer, which announces and settles), `expansionistCura` (two new readers of a town's buildings), `aiBounds` (two new whole-number knobs), `aiMagisterial` (The Wandering Muse and The Grand Retrospective at the new spread), `aiScientific` (a charter node's traits inside the draft's reading) and `decks/magisterialDoctrines` (The Arthashastra's chair is worth the best card as well as its second reading).
+- Every core test that imports the bot, reads a source file (`import.meta.glob` or `readFileSync`), names the schema, the wonders, the chairs or a town handed over, and the Compendium's tests: 259 files, 7,628 tests, passed. Thirteen of them first failed on a worker timeout while another job loaded the machine, and passed when run again alone.
+- The slow tier, by name: `aiDigest` (the pins above), `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers`, `religion`, `statecraft`, `cities`, `war`, `endgame` and `saveCheckpoints` passed. `aiCardStamp` passed on the tree before the last change (a met commission left out of the chair's bench), which no recorded game reached: the four seeds played the same games to turn 150 with and without it.
+- The shadow check (`test/vitest.shadow.config.ts`) passed on `forbiddenCityChair`, `aiWonderRewards`, `aiSmallReadings`, `aiSittingMemos`, `aiCardStamp`, `wonders` and `readings`.
+- The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.

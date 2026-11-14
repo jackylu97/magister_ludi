@@ -1401,10 +1401,15 @@ describe('determinism', () => {
    * and not the length** at both seeds: 225 became 226, and that is all. Nobody here
    * holds the Doctrine. Checked with the change in place and the version still at 225,
    * which gave the hashes of batch DT19c exactly.
+   *
+   * Bot batch BP7 (the Forbidden City's chair, schema 243) moved the hash and not the
+   * length at both seeds: 242 became 243, and that is all. Nobody here finishes a
+   * wonder. Checked with the change in place and the version printed as 242, which
+   * gives the hashes before the batch exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '42569634:190677',
-    2026: '94232e25:190843',
+    11: 'bc4aa9d5:190677',
+    2026: '1ca89414:190843',
   };
 
   for (const seed of [11, 2026]) {

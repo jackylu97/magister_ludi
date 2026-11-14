@@ -35,10 +35,28 @@ Zeus' +15% at a wall is the attacker-side `combatPercent` share, which gained a
 `when` so a percentage can name one kind of fight; the Terracotta Army's veterans
 are a `unitStamp`, which gained a `scope` so a stamp can name the town that
 raised the piece; and Notre-Dame's Cathedral clause was always an ordinary scoped
-`cityYields` beside a scoped happiness. **Two are still deferred**: The Forbidden
-City's extra Order slot (no shape moves the slot spread, and it touches the
-chairs ruling) and the Alhambra's, because being dug in is a *posture* a piece
-takes and loses, not a fact it can be born with.
+`cityYields` beside a scoped happiness. **One is still deferred**: the Alhambra's,
+because being dug in is a *posture* a piece takes and loses, not a fact it can be
+born with.
+
+**The Forbidden City's chair** (bot batch BP7, 2026-11-14, `docs/flags.md`
+(ooooooo) P9; the user: *"please make sure to implement the forbidden palace's
+additional wildcard slot"*):
+
+- The row carries the existing `slotRider` shape, so no new shape was needed.
+  Whoever holds the town it stands in has one more Wildcard chair, added at the end
+  of the council like every chair a card opens.
+- The chair follows the stones, as every wonder's pay does:
+  - it opens when the wonder is finished (`realiseItem`);
+  - it moves when the town changes hands, by capture or by treaty (`handOverCity`);
+  - it closes when the town is razed (`razeCityAt`).
+- A seat that loses the chair is seated again as an adoption seats it
+  (`refitSlots` with `'reseat'`): a card that keeps its chair keeps it and its seal,
+  a card whose chair closed moves to a free chair that fits it, and a card that
+  fits no free chair returns to the collection with its progress.
+- A Doctrine that closes a chair (Scutage) keeps the older reading: the card in the
+  closed chair returns to the collection.
+- Save schema 243.
 
 ## Refused, on purpose
 

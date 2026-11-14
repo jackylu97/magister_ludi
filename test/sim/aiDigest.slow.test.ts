@@ -1173,10 +1173,21 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * of its price. No rule changed; both pins matched on the untouched tree before
  * this batch. Duel `ee0c50f4:344556` -> `cfa6111d:359911`, standard
  * `a3ad5cdc:1030926` -> `af0e32c5:1034066`.
+ *
+ * Re-cut for bot batch BP7 (`docs/flags.md` (ooooooo), B10 and P9). One rule
+ * changed: the Forbidden City gives whoever holds its town one more Wildcard chair
+ * (schema 243, so every state's print moves). The bots price a charter that opens
+ * no technology by what it opens, a Boon's unit at its hammers and its lump over
+ * the turns the game has left, The Grain Census with a forecast, a charter
+ * technology in the research choice as the draft reads it, a held charter's
+ * technology by a deadline, three completion grants by their own readings, and
+ * one more Wildcard chair at the best card it would seat. Both pins matched on
+ * the untouched tree before this batch. Duel `cfa6111d:359911` ->
+ * `89f988df:326624`, standard `af0e32c5:1034066` -> `ea9d00e3:1043519`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'cfa6111d:359911',
-  standard: 'af0e32c5:1034066',
+  duel: '89f988df:326624',
+  standard: 'ea9d00e3:1043519',
 };
 
 /**

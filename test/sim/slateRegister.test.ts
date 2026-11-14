@@ -283,6 +283,9 @@ const ANNOUNCING = new Set([
   // Order's lines come and go with the chair it sits in, which is the third
   // source of the walk, so the write announces on the line it happens.
   'council.ts#refitSlots',
+  // Bot batch BP7: a council that loses the Forbidden City's chair, seated again
+  // as an adoption seats it. The same chairs the third source reads.
+  'council.ts#reseatClosedChairs',
   // Batch C: a met commission leaves its chair, which is the third source of
   // the walk, so the phase announces on the line it empties the chair.
   'commissions.ts#runCommissions',

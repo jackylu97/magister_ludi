@@ -673,7 +673,9 @@ describe('determinism', () => {
     // so a v210 log's draws move.
     // 242 since batch BP2 (bot pass 3): `Player.unitsGained` joins the state,
     // a record the bots read; no rule reads it.
-    expect(SCHEMA_VERSION).toBe(242);
+    // 243 since batch BP7 (bot pass 3): the Forbidden City gives whoever holds
+    // its town one more Wildcard chair.
+    expect(SCHEMA_VERSION).toBe(243);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

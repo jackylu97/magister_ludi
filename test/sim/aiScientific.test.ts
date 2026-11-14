@@ -347,11 +347,17 @@ describe('research reads the folded price (S13)', () => {
     const ctx = valueContext(state, player);
     const chain = techChain(state, player, ctx, 'casting' as TechId);
     const gifts = chain.terms[0]!.parts!;
-    const traits = gifts.find((term) => term.label.startsWith('the traits'));
-    expect(traits).toBeDefined();
-    // The trait waits for its node like every other gift of the road.
-    expect(traits!.parts![0]!.value).toBe(explainTechTraits('casting' as TechId, ctx).total);
-    expect(traits!.value).toBeGreaterThan(0);
+    // Since bot batch BP7 a charter node is read as the draft reads its charter
+    // (`explainCharterKnowledge`), and the traits are one term of that reading.
+    const known = gifts.find((term) => term.label.startsWith('what knowing it gives'));
+    expect(known).toBeDefined();
+    // The reading waits for its node like every other gift of the road.
+    expect(known!.parts![0]!.value).toBe(explainCharterKnowledge('casting' as TechId, ctx).total);
+    const traits = explainCharterKnowledge('casting' as TechId, ctx).terms.find((term) =>
+      term.label.startsWith('the traits'),
+    );
+    expect(traits?.value).toBe(explainTechTraits('casting' as TechId, ctx).total);
+    expect(known!.value).toBeGreaterThan(0);
   });
 });
 

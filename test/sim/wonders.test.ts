@@ -633,13 +633,14 @@ describe('the ratified roster', () => {
     // `cityYields` beside a scoped happiness. What is still deferred is on the
     // row and struck through on the card, which is the Statecraft rule applied
     // to a wonder.
-    for (const id of ['alhambra', 'forbiddenCity'] as const) {
+    for (const id of ['alhambra'] as const) {
       expect(buildingDef(id).deferred, id).toBeDefined();
       const struck = describeCard(id).filter((clause) => clause.deferred);
       expect(struck.length, id).toBeGreaterThan(0);
     }
-    // And the three that were built promise nothing any more.
-    for (const id of ['statueOfZeus', 'terracottaArmy', 'notreDame'] as const) {
+    // And the ones that were built promise nothing any more. The Forbidden City's
+    // chair joined them in bot batch BP7: it is a `slotRider` on the row now.
+    for (const id of ['statueOfZeus', 'terracottaArmy', 'notreDame', 'forbiddenCity'] as const) {
       expect(buildingDef(id).deferred, id).toBeUndefined();
       expect(describeCard(id).filter((clause) => clause.deferred).length, id).toBe(0);
     }
@@ -675,6 +676,8 @@ describe('the ratified roster', () => {
       'cityStat',
       'percentYields',
       'offerRider',
+      // Bot batch BP7: the Forbidden City's chair.
+      'slotRider',
     ]) {
       expect(used.has(kind), kind).toBe(true);
     }

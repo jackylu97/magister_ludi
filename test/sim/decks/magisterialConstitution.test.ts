@@ -524,6 +524,8 @@ describe('the register of chair writers', () => {
     'commissions.ts#runCommissions',
     'draft.ts#adoptGovernmentAt',
     'council.ts#refitSlots',
+    // Bot batch BP7: a council that loses the Forbidden City's chair.
+    'council.ts#reseatClosedChairs',
     'council.ts#seatMalice',
   ];
   const EXCUSED: Record<string, string> = {

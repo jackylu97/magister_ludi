@@ -17,6 +17,7 @@
  * `../statecraft.ts` re-exports its names.
  */
 
+import { type BuildingId, buildingDef } from '../buildingData';
 import { type MaliceId, MALICE_IDS, MALICE_RULES, isMaliceId, maliceDef } from '../maliceData';
 import { type GameState, type HeldMalice, type Player, playerById } from '../state';
 import {
@@ -42,7 +43,7 @@ import {
 import { bumpEconomy } from '../slate';
 // Both of these files import this one back. Each name below is used only inside
 // a function, so neither edge is read while the modules load.
-import { cardActionRule, cardExtraChairs, sealTurnsFor } from './evaluator';
+import { cardActionRule, cardExtraChairs, oneOfAKind, sealTurnsFor } from './evaluator';
 import {
   type PlayerStatecraft,
   type SlottedOrder,
@@ -929,11 +930,35 @@ export function reseatCouncil(
  * Arthashastra) opens it at once and moves no seated card. A chair count that
  * waited for the next adoption would also leave the screen and a replay reading
  * different councils.
+ *
+ * Since bot batch BP7 a wonder can open a chair too (The Forbidden City). Its
+ * chair belongs to whoever holds the town it stands in, so three more seams call
+ * this: the wonder finished (`realiseItem`, `cities.ts`), a town that changes
+ * hands (`handOverCity`, `combat.ts`, for both seats) and a town razed
+ * (`razeCityAt`, `diplomacy.ts`). Each asks only when the town holds a row that
+ * opens a chair (`buildingOpensChairs`).
+ *
+ * `closing` says what happens to a card in a chair that closes:
+ *
+ *   · `'return'` (the default): the card returns to the collection. A Doctrine
+ *     that closes a chair (Scutage) is a choice the seat made, and the tests pin
+ *     this reading;
+ *   · `'reseat'`: the council is seated again by `reseatOrders`, as an adoption
+ *     seats it. Every card that still has its chair keeps it and its seal, a card
+ *     whose chair closed moves to a free chair that fits it, and a card that fits
+ *     no free chair returns to the collection with its progress. A seat that loses
+ *     a wonder's town did not choose to lose the chair, so its cards keep as many
+ *     chairs as they can (the user's ruling of 2026-10-16 on adoption).
  */
-export function refitSlots(state: GameState, player: Player): OrderId[] {
+export function refitSlots(
+  state: GameState,
+  player: Player,
+  closing: 'return' | 'reseat' = 'return',
+): OrderId[] {
   const sc = player.statecraft;
   const want = chairCount(state, player.id, sc.government);
   if (want === sc.slots.length) return [];
+  if (closing === 'reseat' && want < sc.slots.length) return reseatClosedChairs(state, player, want);
   const returned: OrderId[] = [];
   while (sc.slots.length > want) {
     const dropped = sc.slots.pop();
@@ -963,6 +988,46 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
   // with the rest.
   if (returned.length > 0) returned.push(...settleCouncilFit(state, player));
   return returned;
+}
+
+/**
+ * **A council that shrinks, seated again** (bot batch BP7): `refitSlots` with
+ * `closing: 'reseat'`. The council takes its new length, the malices take their
+ * chairs again, and then the Orders are seated by `reseatOrders` with the fit the
+ * old council granted, keeping the seal of every card that keeps its chair. Answers
+ * the cards that went back to the collection, in their old seat order.
+ *
+ * The fit is read before the chairs change, as an adoption reads it. If the card
+ * that widened the fit (The Mixed Constitution) went back to the collection, the
+ * fit narrows, and `settleCouncilFit` seats the council again by the plain rule.
+ */
+function reseatClosedChairs(state: GameState, player: Player, want: number): OrderId[] {
+  const sc = player.statecraft;
+  const previous = sc.slots.slice();
+  const fit = chairFitFor(state, player.id);
+  // The new length first, because the layout is read off the array's length.
+  sc.slots = previous.slice(0, want);
+  reseatMalices(player);
+  const layout = slotTypesOf(sc);
+  const held = layout.map((_, index) => maliceAt(player, index) !== null);
+  const seating = reseatOrders(previous, layout, held, state.turn, fit, true);
+  sc.slots = seating.slots;
+  // A chair closed is a chair the meters read through (batch M3, `slate.ts`).
+  bumpEconomy(state);
+  return [...seating.returned, ...settleCouncilFit(state, player)];
+}
+
+/**
+ * **Does this building open or close chairs for whoever holds it?** True for a
+ * row that the empire's walk reads (a wonder or a great house, `oneOfAKind`) and
+ * whose effects carry a `slotRider` (The Forbidden City, bot batch BP7). The
+ * seams that put the row in a town, move its town or remove its town ask this,
+ * so a council is re-fitted only when the stones can change its size. It reads
+ * the row's markers and never a building's name.
+ */
+export function buildingOpensChairs(id: BuildingId): boolean {
+  if (!oneOfAKind(id)) return false;
+  return (buildingDef(id).effects ?? []).some((effect) => effect.kind === 'slotRider');
 }
 
 /**

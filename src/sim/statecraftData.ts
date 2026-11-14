@@ -8488,6 +8488,11 @@ interface CardRouteRiderEffect {
  * is the standing fact it produces, so a card taken mid-government widens the
  * council the moment it is taken (`refitSlots`) and a card that stopped being
  * held narrows it again on the next refit.
+ *
+ * A wonder may carry one too (The Forbidden City, bot batch BP7). Its effects are
+ * the law of whoever holds its town, so the chair follows the town: the seams that
+ * finish the wonder, hand its town over and raze its town refit the councils
+ * involved (`refitSlots`' register).
  */
 interface CardSlotRiderEffect {
   kind: 'slotRider';
@@ -9408,11 +9413,10 @@ interface CardUnlocksUnitEffect {
  * line of the same fold, so "how many beliefs may I hold" has one answer and a
  * wonder cannot open a slot the consecration screen does not offer.
  *
- * There is deliberately no Statecraft twin yet: the Forbidden City's "one more
- * Order office" would have to say *which kind* of slot it opens, and a spread is
- * rebuilt on every adoption (`adoptGovernmentAt`), so an office grant is a
- * design decision about the layout rather than a number added to one. It is
- * deferred on that row.
+ * Its Statecraft twin is `slotRider` (`CardSlotRiderEffect`). Since bot batch
+ * BP7 the Forbidden City carries one: its holder has one more Wildcard chair,
+ * appended at the end of the layout like every chair a card opens, so no
+ * adoption has to decide which kind of chair it is.
  */
 interface CardPantheonSlotsEffect {
   kind: 'pantheonSlots';

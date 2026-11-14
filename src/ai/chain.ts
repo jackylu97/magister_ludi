@@ -210,9 +210,9 @@ import {
   explainEffects,
   explainProjectRow,
   explainSoldier,
-  explainTechEffects,
+  // Bot batch BP7: a charter technology read as the draft reads it.
+  explainCharterKnowledge,
   explainTechTraits,
-  explainTechWorks,
   expectedGreatPersonWorth,
   techCostFor,
 } from './value';
@@ -973,8 +973,18 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
   const ai = ctx.ai;
   const def = techDef(node);
   const unlocks = def.unlocks;
+  // **A charter technology is read as the draft reads it** (bot pass 3, batch
+  // BP7; `docs/flags.md` (ooooooo) B10). The draft prices a charter by what
+  // knowing its technology gives (`explainCharterKnowledge`, `value.ts`): its
+  // traits, its buildings as the shelves they open, its units, its works and its
+  // own rules. This road used to read the buildings town by town and the units as
+  // the levy reads them, so the two arms disagreed about one technology, and the
+  // audit found 12 of 16 held charter technologies never researched. So a charter
+  // node's gifts are that one reading, as a flat gift the road discounts like any
+  // other; its abilities, projects and bead are read below as for any node.
+  const charter = def.charter === true;
   const units: NodeUnit[] = [];
-  for (const unit of unlocks.units ?? []) {
+  for (const unit of charter ? [] : (unlocks.units ?? [])) {
     const row = unitDef(unit);
     units.push({
       id: unit,
@@ -984,7 +994,7 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
     });
   }
   const buildings: NodeBuilding[] = [];
-  for (const building of unlocks.buildings ?? []) {
+  for (const building of charter ? [] : (unlocks.buildings ?? [])) {
     buildings.push({
       id: building,
       name: buildingDef(building).name,
@@ -1036,28 +1046,19 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
     else undiscounted.push(race);
   }
   const effects = def.effects ?? [];
-  if (effects.length > 0) {
-    // A charter row's effects may count the works it opens (Herbals' Physic
-    // Gardens), which the board cannot count before the node is known, so it
-    // is read at the works forecast (`explainTechEffects`, Scientific batch
-    // S13). Every other row reads exactly as it always did.
-    flat.push(
-      nest(
-        'the rules the node itself carries',
-        def.charter === true ? explainTechEffects(node, ctx) : explainEffects(effects, ctx),
-      ),
-    );
-  }
-  // **What a charter technology gives beyond its unlocks** (Scientific batch
-  // S13): the traits it hands a line of units, as strength lines, and the work
-  // rows it opens. An ordinary node carries no trait, and its works are the
-  // improvement plan's to price, so neither term appears on it.
-  if ((def.traits ?? []).length > 0) {
-    flat.push(nest('the traits it gives a line of units', explainTechTraits(node, ctx)));
-  }
-  if (def.charter === true) {
-    const works = explainTechWorks(node, ctx);
-    if (works.terms.length > 0) flat.push(nest('the works it opens', works));
+  if (charter) {
+    // The draft's own reading of a charter technology (see above). It holds the
+    // rules the node carries at the works forecast (`explainTechEffects`,
+    // Scientific batch S13), the traits and the works it opens.
+    const known = explainCharterKnowledge(node, ctx);
+    if (known.terms.length > 0) flat.push(nest('what knowing it gives, as the draft reads a charter', known));
+  } else {
+    if (effects.length > 0) flat.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
+    // An ordinary node carries no trait today; a trait it carried would be read
+    // as a charter's is. Its works are the improvement plan's to price.
+    if ((def.traits ?? []).length > 0) {
+      flat.push(nest('the traits it gives a line of units', explainTechTraits(node, ctx)));
+    }
   }
   // **The door** (E1a, `docs/plans/bot-evolution.md` §2.3): the node that opens
   // the great work for the world earns `research.doorValue` for being the door,

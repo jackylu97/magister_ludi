@@ -426,6 +426,8 @@ export type {
 } from './statecraft/draft';
 
 export {
+  // Bot batch BP7: a building whose holder gains or loses chairs (The Forbidden City).
+  buildingOpensChairs,
   chairCount,
   // Magisterial batch MG12: the fit a seat's council grants.
   chairFitFor,

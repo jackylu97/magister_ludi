@@ -593,6 +593,12 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     chairs at once and moves no card. A government's offer card and the bots'
     `adoptionTable` read the chairs the adoption would lay out (`chairLayoutUnder`),
     so they count what the seat's own law adds or closes.
+  - **The Forbidden City's chair** (bot batch BP7, schema 243): the wonder's row
+    carries a `slotRider`, so whoever holds its town has one more Wildcard chair.
+    `realiseItem`, `handOverCity` and `razeCityAt` call `refitSlots` for a town
+    holding such a row (`buildingOpensChairs`). A seat that loses the chair is
+    seated again by `reseatOrders` (`refitSlots` with `'reseat'`), as an adoption
+    seats it; Scutage's closing still returns the card in the closed chair.
   - **A chair that counts twice** (batch DT9, The Arthashastra): a `slotPosition`
     row with `whole: true`. `position: -1` is the last chair of the flavour that no
     malice holds, so the chair moves when another chair opens or a malice takes it.

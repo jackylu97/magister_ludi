@@ -1212,6 +1212,19 @@ export interface AiConfig {
       /** The most the cautious version adds, as a share of the card's own price. */
       shareCap: number;
     };
+    /**
+     * **The turn the bot expects a game to end on** (bot pass 3, batch BP7;
+     * `docs/flags.md` (ooooooo) B10). The game sets no last turn, so the bot
+     * keeps this one figure for it.
+     *
+     * A Boon pays once, when it is drafted, and takes no chair, while a card it
+     * is set against pays every turn for the rest of the game. So the Boon's lump
+     * is spread over the turns the game has left, this less the turn now, and
+     * never over more than the one horizon (`priorities.horizonTurns`)
+     * (`boonTurns`, `value.ts`). Before this batch every Boon was spread over
+     * `score.lumpTurns`, so it read too dear early and too cheap late.
+     */
+    gameTurns: number;
     /** Soldiers a completion grant of one unit is worth. */
     combatScale: number;
     /**
@@ -1948,6 +1961,16 @@ export interface AiConfig {
      * Nought counts only the renown banked now.
      */
     greatPersonTurns: number;
+    /**
+     * **A held charter's technology is researched within this many turns** (bot
+     * pass 3, batch BP7; `docs/flags.md` (ooooooo) B10). A seat that holds a
+     * charter and has not learnt its technology takes it as its research goal
+     * as soon as the road to it can be learnt in this many turns at its science
+     * rate (`charterDeadline`, `bot.ts`). A fixed behaviour rather than a price:
+     * the audit found 12 of 16 held charter technologies never researched, and
+     * a card drafted and never used is the worse result.
+     */
+    charterTurns: number;
     /**
      * **What changing its mind leaves behind**, as a share of the beakers it
      * would strand — batch S2, schema 111, `docs/flags.md` (www).

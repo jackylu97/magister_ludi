@@ -412,6 +412,70 @@ the item links):
   great person's work, the luxuries, the routes, the treasury, the worked hexes
   and the council in order.
 
+**The smaller readings, the wonder rewards and the Forbidden City's chair** (bot
+pass 3, batch BP7; `docs/flags.md` (ooooooo) B10 and P9, both "as proposed on the
+page" the item links; the audits are `docs/audit/bot-pass-3-card-values.md` fault
+10 and `docs/audit/bot-pass-3-competitiveness.md` Part 4 row 10, which the page
+calls P9):
+
+- **A charter that opens no technology** (B10, `explainCharterOpening`,
+  `value.ts`) is priced through the reading that exists for what it opens. Before,
+  the seven live ones read nought.
+  - A building (The Planters' Charter): the shelf it opens, in the towns that
+    would raise it (`scoreUnlockedBuilding`).
+  - A unit (Numidian Cavalry, The Chartered Company): the `unlocksUnit` reading.
+  - A rite (The Fast, The Sabbath Laws): one town's blessing (`explainRite` on a
+    one-town context) times the seat's towns, at nought or more.
+  - A tended work (The Fish Traps, The Wild Orchards): nought, because the bot's
+    roster (`workers.improvements`) lays no tended work.
+  - A row the seat has opened already is worth nought, and a retired charter that
+    names a row the tables no longer hold opens nothing.
+- **A Boon** (B10, `onDraftWorth`):
+  - a unit is the hammers it would cost the seat (`unitProductionCost`), as a lump,
+    in place of a twentieth of a soldier's worth (`draftedUnitWorth`);
+  - a trader is the best route a new caravan could run today
+    (`RouteOutlook.open`), as a rate, while a route slot is free; nought with no
+    slot free;
+  - the lump is spread over the turns the game has left (`boonTurns`):
+    `score.gameTurns` (200, new) less the turn now, at least one and at most the
+    one horizon (`priorities.horizonTurns`). Before, every Boon was spread over
+    `score.lumpTurns` (20). The Cabinet of Curiosities' card is held, so it is a
+    rate and is not spread.
+- **The Grain Census** (B10): its tally (`sizeRecord`) is forecast at the seat's
+  pace of growth over the horizon, never below `score.tallyForecast.sizeRecord`
+  (10, new). Before, the table had no forecast and the promise read nought.
+- **A charter technology in the research choice** (B10, `readNodeGifts`,
+  `chain.ts`) is read as the draft reads the charter: one flat gift,
+  `explainCharterKnowledge`, which the road discounts like any other. Before, the
+  road read its buildings town by town and its units as the levy does, so the two
+  arms disagreed about one technology.
+- **A held charter's technology is researched in time** (B10, `charterDeadline`,
+  `bot.ts`). This is the proposal's one fixed behaviour. The game keeps no record
+  of the turn a charter was drafted, so the deadline reads the road: once an
+  opened charter technology's road can be learnt in `research.charterTurns` (15,
+  new) turns at the seat's science rate, it is the research goal over the table's
+  best. The nearest goes first. Nought turns the rule off.
+- **Three completion grants** (P9, `completionGrantTerm`, `value.ts`), which fell
+  to `score.unknownEffect` before:
+  - Stonehenge's free god: the faith the next rung costs (`nextFaithRungCost`),
+    as a lump; nought while the pantheon's bag is empty;
+  - the Theatre of Dionysus' Doctrine offer: the bot's price for a Doctrine offer
+    (`doctrineOfferWorth`), the reading a commission's Doctrine offer takes, as a
+    rate;
+  - the Theatre's free Amphitheatre: the hammers it would cost
+    (`buildingProductionCost`), as a lump; nought in a town that holds one.
+- **One more Wildcard chair** (P9 and the user's addition, `extraChairsWorth`,
+  `value.ts`). The Forbidden City opens one for whoever holds its town (a rule of
+  the game since this batch, `docs/wonders.md`). A chair takes the best card the
+  seat holds and cannot seat now, priced as the slot arm prices it (the walk, or a
+  commission's chair price); once the bench runs out, the card it expects to
+  draft (`expectedBestOrder`), discounted for the drafts needed to fill the free
+  chairs and this one at its drafting pace. Every `slotRider` that opens chairs
+  reads it (The King's Friends, The Council of Ten, The Arthashastra, the
+  Forbidden City) and so does a commission's `wildcardChairs` reward. A chair
+  closed (Scutage) keeps the old stand-in. The slot arm fills the new chair as it
+  fills any empty chair.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

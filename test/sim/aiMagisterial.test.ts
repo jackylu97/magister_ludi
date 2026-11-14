@@ -35,6 +35,7 @@ import {
   explainCommission,
   explainCounted,
   explainEffects,
+  boonTurns,
   onDraftWorth,
   scoreEffects,
 } from '../../src/ai/value';
@@ -42,7 +43,7 @@ import {
   bagOfTileYield,
   delayDiscount,
   explainLump,
-  lumpOfPoints,
+  explainYields,
   valueOfYields,
   voiceWeight,
 } from '../../src/ai/prices';
@@ -759,8 +760,9 @@ describe('the grants', () => {
   it('prices The Wandering Muse’s great person at the renown the next one costs', () => {
     const { state, player } = board([6]);
     const ctx = valueContext(state, player);
+    // Spread over the turns the game has left since bot batch BP7 (`boonTurns`).
     expect(onDraftWorth(WANDERING_MUSE, ctx)).toBeCloseTo(
-      lumpOfPoints(renownThreshold(state, player) * aiJson.weights.renown, ctx).total,
+      (renownThreshold(state, player) * aiJson.weights.renown) / boonTurns(ctx),
       10,
     );
   });
@@ -779,10 +781,11 @@ describe('the grants', () => {
     let expected = 0;
     for (const found of counts) {
       for (const voice of ['culture', 'science', 'production'] as const) {
-        expected += explainLump({ [voice]: 20 * found }, ctx).total;
+        expected += explainYields({ [voice]: 20 * found }, ctx).total;
       }
     }
-    expect(onDraftWorth(RETROSPECTIVE, ctx)).toBeCloseTo(expected, 8);
+    // The lump spread over the turns the game has left (bot batch BP7, `boonTurns`).
+    expect(onDraftWorth(RETROSPECTIVE, ctx)).toBeCloseTo(expected / boonTurns(ctx), 8);
   });
 
   it('prices The Cabinet of Curiosities at the mean card of the bag it draws from', () => {

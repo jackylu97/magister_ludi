@@ -348,6 +348,9 @@ import {
   settleCultureWindfall,
   windfallPayout,
   windfallPayoutIsEmpty,
+  // Bot batch BP7: a wonder's chair follows the town it stands in.
+  buildingOpensChairs,
+  refitSlots,
 } from './statecraft';
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
@@ -3509,6 +3512,17 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   delete city.focus;
   delete city.avoidGrowth;
   assignCitizens(state, city);
+  // **A wonder's chair follows its town** (bot batch BP7, The Forbidden City): the
+  // new holder's council gains it and the old holder's council loses it. The loser
+  // did not choose to lose the chair, so its council is seated again as an
+  // adoption seats it (`refitSlots`' `'reseat'`): a card that fits no free chair
+  // returns to the collection with its progress. The gainer's council only grows.
+  if (city.buildings.some(buildingOpensChairs)) {
+    const gainer = playerById(state, ownerId);
+    if (gainer !== undefined) refitSlots(state, gainer);
+    const old = playerById(state, loser);
+    if (old !== undefined && loser !== ownerId) refitSlots(state, old, 'reseat');
+  }
 }
 
 /**

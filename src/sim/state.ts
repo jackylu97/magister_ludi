@@ -554,8 +554,21 @@ import {
  *
  * **A v241 save is refused and does not replay.** The branch migrates nothing, for
  * the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v243 (branch `decks`; bot pass 3, batch BP7, `docs/flags.md` (ooooooo) P9):
+ * **the Forbidden City's chair.** No field joins the state. The rule that changes:
+ * the Forbidden City's row carries a `slotRider` in place of its deferred line, so
+ * whoever holds its town has one more Wildcard chair. The chair opens when the
+ * wonder is finished (`realiseItem`), moves when the town changes hands
+ * (`handOverCity`) and closes when the town is razed (`razeCityAt`). A council
+ * that loses the chair is seated again as an adoption seats it.
+ *
+ * **A v242 save is refused and does not replay.** A seat that held the wonder now
+ * has one more chair, so its council and everything it pays move. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 242;
+export const SCHEMA_VERSION = 243;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
