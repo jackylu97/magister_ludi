@@ -15,7 +15,7 @@ a flag, a chimney) may pass that a little.
   tower.
 - ns-landmark: the study's stele again. Three steps, a tapered needle with a
   gilt cap, a plaque and cut strokes down its faces. New here: a low plaza,
-  four corner posts and two braziers.
+  four corner posts and two braziers, inside a ring of old rough stones.
 - ns-manufactory: a forge hall with a waterwheel and a flume, a blast furnace,
   two chimneys, a casting shed, a store, a crane, a cart on rails and heaps of
   coal and ore.
@@ -150,6 +150,23 @@ def wheel(x,y,z,r,t,m=SOOT):
  """A cart wheel whose axle runs east to west."""
  tube([(x-t/2,y,z),(x+t/2,y,z)],[r,r],m,8)
 
+STANDING=pigment('GW standing stone','b3a68f');STANDING_DEEP=pigment('GW standing stone shade','968a76');MOSS=pigment('GW moss','8c9c58')
+def menhir(x,y,h,seed,lean=.09):
+ """A rough standing stone: five uneven sides, a slanted top and a lean. Returns the middle of its top."""
+ rng=random.Random(seed*7+1);n=5;v=[];f=[]
+ w,d=rng.uniform(.045,.062),rng.uniform(.032,.045);lx,ly=rng.uniform(-lean,lean),rng.uniform(-lean,lean)*.6
+ tilt=rng.uniform(-.04,.04)
+ for z,k in ((FOOT,1.1),(h*.45,1.0+rng.uniform(-.08,.12)),(h*.85,.82),(h,.55)):
+  for i in range(n):
+   a=-math.pi/2+(i+.5)*math.tau/n;j=rng.uniform(.88,1.12)
+   zz=max(z,0) if z<=0 else z
+   v.append((x+lx*zz+math.cos(a)*w*k*j,y+ly*zz+math.sin(a)*d*k*j,z+(tilt*math.cos(a)*(z/h) if z>0 else 0)))
+ for r in range(3):
+  for i in range(n):f.append((r*n+i,r*n+(i+1)%n,(r+1)*n+(i+1)%n,(r+1)*n+i))
+ f.extend([tuple(reversed(range(n))),tuple(range(3*n,4*n))])
+ mesh('GW menhir',v,f,STANDING if seed%3 else STANDING_DEEP)
+ return (x+lx*h,y+ly*h,h)
+
 def academy():
  reset();pad(1.28,1.14,PLINTH)
  box(-.42,.42,-.50,.04,GROUND,GROUND+.008,PAVE)
@@ -252,6 +269,37 @@ def landmark():
    solid(sx*.33,sy*.22,[(GROUND,.04),(.10,.032),(.115,.042),(.13,.042)],MARBLE,4)
    leaf((sx*.33,sy*.22,.15),(.024,.024,.024),GILT)
   brazier(sx*.33,0,GROUND,.11,MARBLE)
+ # The needle stands a little behind the middle of the hex, so the ring's mouth has room.
+ for o in bpy.context.scene.objects:o.location.y+=.08
+ # The old ring (the user, 2026-11-14: "add a ring of stones around the landmark so that its visually as big as
+ # the others"). Rough stones of uneven height and lean on a round of worn earth, open at the front. They are
+ # grey and uncut, where the holy site's stones are white, even and capped.
+ solid(0,0,[(FOOT,.64,.57),(.012,.64,.57)],COBBLE,12)
+ rng=random.Random(63)
+ for k in range(11):
+  a=math.radians(250-k*32+rng.uniform(-6,6));d=rng.uniform(.72,.80)
+  if abs(math.cos(a)*.58*d)<.47 and -.30<math.sin(a)*.50*d<.46:continue
+  turned((math.cos(a)*.58*d,math.sin(a)*.50*d,.014),(rng.uniform(.07,.11),rng.uniform(.05,.08),.012),PLINTH,rng.uniform(0,3))
+ ring=((300,.37,0),(322,.27,1),(345,.15,2),(8,.31,3),(33,.25,4),(70,.33,5),(92,.36,6),(112,.35,7),(147,.34,8),(172,.33,9),(220,.29,11),(242,.39,12))
+ at={}
+ for deg,h,seed in ring:
+  a=math.radians(deg);x,y=math.cos(a)*.575,math.sin(a)*.50
+  # The half-sunk stone leans hard; the rest lean a little, each its own way.
+  at[deg]=menhir(x,y,h,seed,.32 if deg==345 else .09)
+ for d0,d1 in ((92,112),(147,172)):
+  (x0,y0,z0),(x1,y1,z1)=at[d0],at[d1];top=max(z0,z1)
+  o=turned(((x0+x1)/2,(y0+y1)/2,top+.022),(math.hypot(x1-x0,y1-y0)+.09,.075,.05),STANDING,math.atan2(y1-y0,x1-x0),.012)
+  o.rotation_euler[1]=.04*(1 if d0==92 else -1)
+ # One stone has fallen and lies broken in two.
+ a=math.radians(197);x,y=math.cos(a)*.56,math.sin(a)*.49
+ turned((x-.03,y+.05,.035),(.17,.075,.06),STANDING,1.1,.014).rotation_euler[1]=.12
+ turned((x+.05,y-.085,.03),(.10,.07,.05),STANDING_DEEP,.75,.012)
+ # Moss at the feet of some stones, and cut marks on four of them: the needle's strokes, older.
+ for deg in (322,8,70,147,220,242):
+  a=math.radians(deg+7);leaf((math.cos(a)*.555,math.sin(a)*.485,.018),(.04,.03,.012),MOSS)
+ for deg,m in ((300,GILT),(242,GILT),(220,STANDING_DEEP),(322,STANDING_DEEP)):
+  x,y,z=at[deg]
+  for j in range(3):box(x-.022+j*.004,x+.022-j*.004,y-.052,y-.04,z*.38+j*.045,z*.38+j*.045+.014,m)
  export('ns-landmark')
 
 def manufactory():

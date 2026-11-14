@@ -1803,7 +1803,7 @@
         "smokeFrom": [0.545, 0.9, -0.485],
         "models": {
           "academy": { "size": 1.28, "at": [0, 0], "court": true },
-          "landmark": { "size": 0.82, "at": [0, -0.42], "court": false },
+          "landmark": { "size": 1.28, "at": [0, 0], "court": true },
           "manufactory": { "size": 1.28, "at": [0, 0], "court": true },
           "customsHouse": { "size": 1.28, "at": [0, 0], "court": true },
           "citadel": { "size": 1.24, "at": [0, 0], "court": true },
