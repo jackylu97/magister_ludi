@@ -26,11 +26,11 @@ import { prepareTerrainMap, setRiverStyle } from '../../src/terrainStudy/surface
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
 
 describe('the vtest URL option', () => {
-  it('turns everything on but the new border, the cloud shadows and the quieter pins when it is missing, empty or "all"', () => {
+  it('turns everything on but the cloud shadows and the quieter pins when it is missing, empty or "all"', () => {
     for (const value of [null, undefined, '', 'all', ' ALL ']) {
       const state = parseVisualTest(value);
-      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(!['borders', 'clouds', 'pins'].includes(def.key));
-      expect(state.border).toBe('wash');
+      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(!['clouds', 'pins'].includes(def.key));
+      expect(state.border).toBe('drape');
     }
   });
 
@@ -44,12 +44,12 @@ describe('the vtest URL option', () => {
     expect(VISUAL_SWITCHES.filter((def) => state[def.key]).map((def) => def.id)).toEqual([1, 3, 5]);
   });
 
-  it('reads the border style after 3, and takes wash without one', () => {
-    expect(parseVisualTest('3').border).toBe('wash');
+  it('reads the border style after 3, and takes the draped style without one', () => {
+    expect(parseVisualTest('3').border).toBe('drape');
     expect(parseVisualTest('3:drape').border).toBe('drape');
     expect(parseVisualTest('2,3:wash').border).toBe('wash');
     expect(parseVisualTest('2,3:wash').rivers).toBe(true);
-    expect(parseVisualTest('3:noon').border).toBe('wash');
+    expect(parseVisualTest('3:noon').border).toBe('drape');
   });
 
   it('ignores numbers and options it does not know', () => {

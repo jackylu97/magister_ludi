@@ -85,7 +85,8 @@ export const BORDER_STYLES: readonly { key: BorderStyleKey; label: string }[] = 
 ];
 
 const BORDER_KEYS = new Set<BorderStyleKey>(BORDER_STYLES.map((style) => style.key));
-const DEFAULT_BORDER: BorderStyleKey = 'wash';
+// `drape` since 2026-11-14: the two-ink line with the glow inside it, which the user liked.
+const DEFAULT_BORDER: BorderStyleKey = 'drape';
 
 /** Every switch on: the test version's default. */
 export function allOn(): VisualTestState {
@@ -93,7 +94,8 @@ export function allOn(): VisualTestState {
   for (const def of VISUAL_SWITCHES) state[def.key] = true;
   // The user looked at the new border on 2026-11-12 and asked for the old one
   // back, so the border switch is off unless its number is given.
-  state.borders = false;
+  // On 2026-11-14 the user asked for the border's inward glow, so the switch is on again, in the draped style.
+  state.borders = true;
   // The user asked for the cloud shadows to go (2026-11-14: "lets get rid of the cloud shadows"). The switch stays, off unless its number is given.
   state.clouds = false;
   // And for the quieter pins to go ("also remove the quieter resource pins"): a pin keeps its full size at every zoom and does not fade on an improved hex.
@@ -133,7 +135,7 @@ export function parseVisualTest(value: string | null | undefined): VisualTestSta
 export function formatVisualTest(state: VisualTestState): string {
   const on = VISUAL_SWITCHES.filter((def) => state[def.key]);
   const usual = allOn();
-  if (VISUAL_SWITCHES.every((def) => !!state[def.key] === usual[def.key])) return 'all';
+  if (state.border === usual.border && VISUAL_SWITCHES.every((def) => !!state[def.key] === usual[def.key])) return 'all';
   if (on.length === 0) return 'none';
   return on.map((def) => def.id === BORDER_SWITCH_ID && state.border !== DEFAULT_BORDER ? `${def.id}:${state.border}` : String(def.id)).join(',');
 }

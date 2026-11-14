@@ -85,6 +85,14 @@ export interface BorderStyle {
    * band `washWidth` wide, `washAlpha` strong at the line.
    */
   kind?: 'drape' | 'ruled' | 'wash';
+  /**
+   * With `level`, the draped style's two-ink line is not laid over the relief.
+   * Each edge runs straight at the highest ground along that edge alone
+   * (`edgeHeight`), so the line does not climb a hill's cliff and come back
+   * down (the user, 2026-11-14: borders "look weird when overlapping with
+   * hills"). On flat ground it lies where the draped line lay.
+   */
+  level?: boolean;
   ruledLift?: number; washWidth?: number; washAlpha?: number; inkWidth?: number;
 }
 
@@ -98,6 +106,18 @@ export interface BorderStyle {
  * reads as one ink line, where a vertical step reads as a gap.
  */
 const borderHeights = new WeakMap<GameMap, Map<number, number>>();
+/** The highest ground under one border edge, from end to end, a little inside its hex. */
+function edgeHeight(prepared: GameMap, cell: number, a: Point, b: Point, normal: Point): number {
+  const tile = prepared.tiles[cell]!, c = centre(tile) as { x: number; z: number }, period = Math.sqrt(3) * prepared.width;
+  const inset = TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH;
+  let highest = -Infinity;
+  for (let k = 0; k <= 8; k++) for (const back of [0, inset, inset * 2]) {
+    let x = a[0] + (b[0] - a[0]) * k / 8 - normal[0] * back - c.x; const z = a[1] + (b[1] - a[1]) * k / 8 - normal[1] * back - c.z;
+    x -= Math.round(x / period) * period;
+    highest = Math.max(highest, surfaceHeight(tile, x * .97, z * .97) as number);
+  }
+  return highest;
+}
 function borderHeight(prepared: GameMap, cell: number): number {
   let known = borderHeights.get(prepared);
   if (!known) { known = new Map(); borderHeights.set(prepared, known); }
@@ -545,7 +565,7 @@ type Edge = { cell: number; owner: number; a: Point; b: Point; ka: number; kb: n
 /** Integer vertex identity joins concave corners and the cylindrical wrap seam. */
 export function planPaintedTerritory(state: GameState, prepared: GameMap, style: BorderStyle | null = null): GroundPlan {
   const signature = signTerritory(state);
-  const styleKey = style ? `outline:${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.kind ?? 'drape'}:${style.ruledLift}:${style.inkWidth}` : undefined;
+  const styleKey = style ? `outline:${style.level ? 'level:' : ''}${style.holeMax}:${style.fillNeighbours}:${style.fillPasses}:${style.kind ?? 'drape'}:${style.ruledLift}:${style.inkWidth}` : undefined;
   const memo = memoised(territoryPlans.get(prepared), state, signature, styleKey);
   if (memo) return memo;
   const cityOwners = new Map(state.cities.map(city => [city.id, city.ownerId]));
@@ -594,12 +614,14 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap, style:
     const colors = style?.kind === 'wash' ? [playerColor(state, edge.owner)] : [playerColor(state, edge.owner), playerSecondaryColor(state, edge.owner)];
     for (let band = 0; band < colors.length; band++) {
       const polygon: Point[] = [a[band]!, b[band]!, b[band + 1]!, a[band + 1]!];
-      if (ruled) {
+      if (ruled || style?.level) {
         // Straight along the edge at the hexes' own heights. A ruled line is
         // not clipped to the ground, so it belongs to its own hex only.
-        const own = borderHeight(prepared, edge.cell);
-        const ha = Math.max(own, borderHeight(prepared, previous.cell)), hb = Math.max(own, borderHeight(prepared, next.cell));
-        const mark = marking(polygon, colors[band], style!.ruledLift ?? .02) as Mark;
+        const level = !ruled;
+        const own = level ? edgeHeight(prepared, edge.cell, edge.a, edge.b, edge.normal) : borderHeight(prepared, edge.cell);
+        const ha = Math.max(own, level ? edgeHeight(prepared, previous.cell, previous.a, previous.b, previous.normal) : borderHeight(prepared, previous.cell));
+        const hb = Math.max(own, level ? edgeHeight(prepared, next.cell, next.a, next.b, next.normal) : borderHeight(prepared, next.cell));
+        const mark = marking(polygon, colors[band], level ? .013 : style!.ruledLift ?? .02) as Mark;
         mark.deck = 0; mark.heights = [ha, hb, hb, ha];
         const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
         continue;
