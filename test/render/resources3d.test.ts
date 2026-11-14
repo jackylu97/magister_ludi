@@ -1141,14 +1141,19 @@ describe('the resource markers', () => {
       );
     });
 
-    it('is an ordinary object in the world, hidden by what stands in front of it', () => {
-      // Not `onTop`, unlike every flat readout: a marker is a thing in the
-      // diorama, so a mountain must be able to hide it — the class-badge rule.
+    it('draws the roundel over the scene, and leaves the stem an ordinary object', () => {
+      // The user's ruling of 2026-11-13: "make sure to make the resource icons
+      // render in front of any foliage/map elements". So the roundel skips the
+      // depth test and takes the readouts' place in the draw order
+      // (`visualTest.pins.onTop`). Before that it was an ordinary object that a
+      // mountain or a tree could hide. The stem still is one.
       const { roundel, stem } = markerOver(4, 4);
-      for (const mesh of [roundel, stem]) expect(mesh.renderOrder).toBe(0);
+      expect(stem.renderOrder).toBe(0);
       const paper = roundel.material as MeshBasicMaterial;
-      expect(paper.depthTest).toBe(true);
-      expect(paper.depthWrite).toBe(true);
+      const onTop = VIEW3D.visualTest.northStar && VIEW3D.visualTest.pins.onTop;
+      expect(roundel.renderOrder).toBe(onTop ? RENDER_ORDER.tileIcon : 0);
+      expect(paper.depthTest).toBe(!onTop);
+      expect(paper.depthWrite).toBe(!onTop);
     });
 
     it('costs one draw for the pins on top of the cells already drawn', () => {

@@ -26,10 +26,10 @@ import { prepareTerrainMap, setRiverStyle } from '../../src/terrainStudy/surface
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
 
 describe('the vtest URL option', () => {
-  it('turns everything but the new border on when it is missing, empty or "all"', () => {
+  it('turns everything on but the new border, the cloud shadows and the quieter pins when it is missing, empty or "all"', () => {
     for (const value of [null, undefined, '', 'all', ' ALL ']) {
       const state = parseVisualTest(value);
-      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(def.key !== 'borders');
+      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(!['borders', 'clouds', 'pins'].includes(def.key));
       expect(state.border).toBe('wash');
     }
   });

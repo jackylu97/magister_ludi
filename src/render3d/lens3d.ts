@@ -492,7 +492,9 @@ export class LensLayer {
     const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
     const fadedDisc = disc.clone().multiplyScalar(PINS.improvedScale);
     const lift = LENS.resourceMarkerLift;
-    const quiet = visualOn('pins') ? quietPins(icons) : null;
+    // The pins' own material is used whenever they are drawn over the scene, with the quieting on or off.
+    const quieter = visualOn('pins');
+    const quiet = quieter || (VIEW3D.visualTest.northStar && PINS.onTop) ? quietPins(icons) : null;
 
     for (const tile of tiles) {
       // `reveal` does not answer the question differently — it declines to ask
@@ -507,7 +509,7 @@ export class LensLayer {
       const centre = cellCenter(tile.col, tile.row);
       // The quieter pins (switch 6): smaller and faint on a hex this viewer has
       // already improved, since the work standing there already says it.
-      const improved = quiet !== null && tile.improvement !== undefined
+      const improved = quieter && tile.improvement !== undefined
         && state.cities.find(city => city.id === tileOwnerCityId(state, tile.col, tile.row))?.ownerId === playerId;
       // −z is up-screen and −x is left under this camera (see `atlasDecal`), so
       // subtracting both is "toward the tile's upper-left corner".
@@ -533,7 +535,8 @@ export class LensLayer {
         // to be something — see the same note on the unit badges.
         [],
         new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, improved ? fadedDisc : disc),
-        { material: quiet ? (improved ? quiet.faded : quiet.normal) : icons.standingMaterial },
+        // A pin drawn over the scene also claims the readouts' place in the draw order, after every tree and building.
+        { material: quiet ? (improved ? quiet.faded : quiet.normal) : icons.standingMaterial, ...(quiet && PINS.onTop ? { order: RENDER_ORDER.tileIcon } : {}) },
       );
     }
   }

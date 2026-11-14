@@ -94,6 +94,10 @@ export function allOn(): VisualTestState {
   // The user looked at the new border on 2026-11-12 and asked for the old one
   // back, so the border switch is off unless its number is given.
   state.borders = false;
+  // The user asked for the cloud shadows to go (2026-11-14: "lets get rid of the cloud shadows"). The switch stays, off unless its number is given.
+  state.clouds = false;
+  // And for the quieter pins to go ("also remove the quieter resource pins"): a pin keeps its full size at every zoom and does not fade on an improved hex.
+  state.pins = false;
   return state;
 }
 
@@ -128,7 +132,8 @@ export function parseVisualTest(value: string | null | undefined): VisualTestSta
 /** The `vtest` URL value that `parseVisualTest` reads back as this state. */
 export function formatVisualTest(state: VisualTestState): string {
   const on = VISUAL_SWITCHES.filter((def) => state[def.key]);
-  if (on.length === VISUAL_SWITCHES.length - 1 && !state.borders) return 'all';
+  const usual = allOn();
+  if (VISUAL_SWITCHES.every((def) => !!state[def.key] === usual[def.key])) return 'all';
   if (on.length === 0) return 'none';
   return on.map((def) => def.id === BORDER_SWITCH_ID && state.border !== DEFAULT_BORDER ? `${def.id}:${state.border}` : String(def.id)).join(',');
 }
