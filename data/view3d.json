@@ -1745,6 +1745,17 @@
       "towerSize": 1,
       "ground": "#bfa878",
       "groundLift": 0.03,
+      "floor": {
+        "reach": 0.84,
+        "ragged": 0.1,
+        "fringe": 12,
+        "square": 0.2,
+        "lane": 0.045,
+        "stones": 46,
+        "stone": 0.05,
+        "paveLight": "#d2c29a",
+        "paveDark": "#a9966c"
+      },
       "street": "#e0d2a8",
       "streetHalf": 0.1,
       "minHouses": 4,
@@ -1785,6 +1796,14 @@
       "windmillHub": [0, 0.5, 0.165],
       "sailSpeed": 0.9,
       "yard": "#d8c79c"
+    },
+    "animals": {
+      "nod": 0.07,
+      "nodSpeed": 0.55,
+      "flick": 0.09,
+      "flickSpeed": 7,
+      "sway": 0.018,
+      "step": 0.05
     }
   }
 }

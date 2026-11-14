@@ -2285,7 +2285,7 @@ export interface VisualTestSpec {
     flag: boolean;
     wallRadius: number; wallInset: number; wallSpacing: number; wallHeight: number; stakeSpacing: number;
     gateHalf: number; gateInset: number; gateTower: number; roadGateTower: number; towerSize: number;
-    ground: string; groundLift: number; street: string; streetHalf: number;
+    ground: string; groundLift: number; street: string; /** The town's floor: how far an open town's floor reaches toward the hex edge and how ragged that edge is, the loose patches beyond it, the square's size, a lane's half width, and the paving stones (count, size, two tones). Absent, the plain plate. */ floor?: { reach: number; ragged: number; fringe: number; square: number; lane: number; stones: number; stone: number; paveLight: string; paveDark: string }; streetHalf: number;
     minHouses: number; housesOverPopulation: number;
     hall: number[]; capitalHall: number; big: number[][]; pockets: number[][]; lots: number[][];
     yawJitter: number; monumentSize: number; bigHouse: number;
@@ -2303,6 +2303,13 @@ export interface VisualTestSpec {
     /** The share of farms that have a windmill in place of the barn, its footprint, its turn toward the camera, the hub's place in the model, and the sails' speed in radians a second. */
     windmillShare: number; windmillSize: number; windmillYaw: number; windmillHub: number[]; sailSpeed: number;
   };
+  /**
+   * The idle motion of the north-star animals (`paintedAnimals.ts`), in the model's own units (an animal is about one unit long).
+   * `nod`: how far the head dips and lifts, and `nodSpeed` its speed in radians a second. `flick`: how far the tail's tip goes to
+   * the side, and `flickSpeed` its speed. `sway`: how far the back leans to the side as the weight shifts. `step`: how far an
+   * animal moves forward and back, now and then. 0 stops a motion.
+   */
+  animals: { nod: number; nodSpeed: number; flick: number; flickSpeed: number; sway: number; step: number };
   /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
   props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number;
     groves: boolean; groveGrass: number; grovePlains: number; groveSize: number; groveSpread: number; forestTrees: number; forestShade: number };

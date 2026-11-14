@@ -393,8 +393,45 @@ export class PaintedCityLayer {
         const angle = i * Math.PI * 2 / count, r = radiusAt(angle, inset);
         return { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
       });
-      patch(ring(36, town.wallInset).map(p => [p.x, p.z]), town.ground, town.groundLift);
+      const hash = (n: number): number => {
+        let v = Math.imul(city.col + 29, 374761393) ^ Math.imul(city.row + 73, 668265263) ^ Math.imul(n + 1, 1274126177);
+        v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296;
+      };
       const walled = (look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls === true;
+      // The town's floor (the user, 2026-11-13: "more city-like ... similar to
+      // the mine, where it somewhat transitions into the surrounding tile").
+      // An open town's floor has an uneven edge that stops short of the hex
+      // line, with loose patches of the same earth beyond it, so it runs out
+      // into the ground. A walled town's floor fills the wall. On it lie a
+      // paler square in the middle, lanes out to the houses, and paving stones
+      // in two tones, thick near the middle and thin toward the edge.
+      const floor = town.floor;
+      if (!floor) patch(ring(36, town.wallInset).map(p => [p.x, p.z]), town.ground, town.groundLift);
+      else {
+        const edge = (angle: number): number => radiusAt(angle, town.wallInset) * (walled ? 1 : floor.reach + floor.ragged * (Math.sin(angle * 3 + hash(900) * 6.28) * .5 + Math.sin(angle * 5 + hash(901) * 6.28) * .3 + (hash(910 + Math.round(angle * 5.73)) - .5) * .6));
+        const blob = (x: number, z: number, r: number, seed: number, sides = 6): number[][] => Array.from({ length: sides }, (_, k) => {
+          const angle = k * Math.PI * 2 / sides + hash(seed) * 6.28, reach = r * (.7 + hash(seed + k + 1) * .5);
+          return [x + Math.cos(angle) * reach, z + Math.sin(angle) * reach * .8];
+        });
+        patch(Array.from({ length: 36 }, (_, i) => { const angle = i * Math.PI * 2 / 36, r = edge(angle); return [Math.cos(angle) * r, Math.sin(angle) * r]; }), town.ground, town.groundLift);
+        // Loose earth beyond an open town's edge.
+        if (!walled) for (let i = 0; i < floor.fringe; i++) {
+          const angle = hash(1000 + i) * 6.28, r = edge(angle) * (1.02 + hash(1040 + i) * .2);
+          patch(blob(Math.cos(angle) * r, Math.sin(angle) * r, .05 + hash(1080 + i) * .07, 1100 + i * 9), town.ground, town.groundLift);
+        }
+        // The square, and a lane to each of the six sides.
+        patch(blob(0, .05, floor.square, 1300, 8), town.street, town.groundLift + .002);
+        for (let d = 0; d < 6; d++) {
+          if (walled && d === 1) continue;
+          const angle = d * Math.PI / 3 + Math.PI / 6 + (hash(1320 + d) - .5) * .3, r = edge(angle) * (.62 + hash(1330 + d) * .2), nx = -Math.sin(angle) * floor.lane, nz = Math.cos(angle) * floor.lane;
+          patch([[nx, .05 + nz], [Math.cos(angle) * r + nx * .6, Math.sin(angle) * r + nz * .6], [Math.cos(angle) * r - nx * .6, Math.sin(angle) * r - nz * .6], [-nx, .05 - nz]], town.street, town.groundLift + .002);
+        }
+        // Paving stones.
+        for (let i = 0; i < floor.stones; i++) {
+          const angle = hash(1400 + i) * 6.28, r = Math.pow(hash(1500 + i), .8) * edge(angle) * .92;
+          patch(blob(Math.cos(angle) * r, Math.sin(angle) * r, floor.stone * (.7 + hash(1600 + i) * .6), 1700 + i * 7, 5), hash(1800 + i) > .5 ? floor.paveLight : floor.paveDark, town.groundLift + .004);
+        }
+      }
       // The street to the front gate. A town with no wall has no gate, and no street.
       const gateZ = radiusAt(Math.PI * .5, town.wallInset);
       if (walled) patch([[-town.streetHalf, gateZ], [town.streetHalf, gateZ], [town.streetHalf, .27], [-town.streetHalf, .27]], town.street, town.groundLift + .002);
@@ -405,10 +442,6 @@ export class PaintedCityLayer {
         building(kind, name, x, z, size * factor / Math.max(box.max.x - box.min.x, box.max.z - box.min.z), yaw + turn);
       };
       // Which house, and how far it turns, hash the town's own hex.
-      const hash = (n: number): number => {
-        let v = Math.imul(city.col + 29, 374761393) ^ Math.imul(city.row + 73, 668265263) ^ Math.imul(n + 1, 1274126177);
-        v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296;
-      };
       stand('civic', 'ns-hall', town.hall, look.capital ? town.capitalHall : 1);
       const big = [...town.big], pockets = [...town.pockets];
       if (grand) {
