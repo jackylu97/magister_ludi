@@ -2305,9 +2305,10 @@ export interface VisualTestSpec {
     /**
      * The great people's works (`northStarWorks.js`). `paving` is the colour of the flat stones on the ground. For each
      * improvement: `size`, the model's longest side in hex units; `at`, its place in the hex (x east, z south); and `court`,
-     * true for a work that stands round the middle of the hex with the piece inside it.
+     * true for a work that stands round the middle of the hex with the piece inside it. `smokeFrom` is the top of the
+     * manufactory's tall chimney in the model's own units (x east, y up, z south), where its smoke starts.
      */
-    greatWorks: { paving: string; models: Record<string, { size: number; at: number[]; court: boolean }> };
+    greatWorks: { paving: string; smokeFrom: number[]; models: Record<string, { size: number; at: number[]; court: boolean }> };
   };
   /**
    * The idle motion of the north-star animals (`paintedAnimals.ts`), in the model's own units (an animal is about one unit long).

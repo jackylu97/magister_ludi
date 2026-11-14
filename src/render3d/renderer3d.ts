@@ -1033,7 +1033,13 @@ export class Renderer3D implements MapView {
 
   /** The smoke over the towns the seat watches now (switch 8). */
   private rebuildSmoke(): void {
-    this.paintedSmoke?.build(this.state, this.fogLevels(), this.paintedCities?.cityHeights ?? new Map(), visualOn('idle'));
+    // The manufactory's tall chimney smokes too. The works layer says where each one stands.
+    const from = VIEW3D.visualTest.works.greatWorks.smokeFrom, width = this.state?.map.width ?? 1;
+    const chimneys = (this.paintedWorks?.placements ?? []).filter((work) => work.asset === 'ns-manufactory').map((work) => ({
+      x: work.x + from[0]! * work.scale, y: work.y + from[1]! * work.scale, z: work.z + from[2]! * work.scale,
+      col: work.cell % width, row: Math.floor(work.cell / width),
+    }));
+    this.paintedSmoke?.build(this.state, this.fogLevels(), this.paintedCities?.cityHeights ?? new Map(), visualOn('idle'), chimneys);
   }
 
   /** How long the last frame took to submit, in milliseconds, on the CPU. */
@@ -2468,6 +2474,8 @@ export class Renderer3D implements MapView {
     this.paintedFlow?.build(this.paintedBoard.renderMap, levels, this.state.map, visualOn('organicRivers'));
     this.paintedRichness?.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width, this.shadows);
     this.paintedSails?.build(this.paintedWorks.placements, (cell) => (levels ? levels[cell] ?? 0 : -1), Math.sqrt(3) * this.state.map.width, this.shadows);
+    // The smoke of a manufactory's chimney follows the works.
+    this.rebuildSmoke();
     // Bake when the set of drawn props changed, read off the entries the layer
     // just drew (which already leave out uncharted ground, town hexes, cleared
     // scenery and resources this seat cannot name). `signPaintedWorks` moves

@@ -1800,13 +1800,14 @@
       "sailSpeed": 0.9,
       "greatWorks": {
         "paving": "#ddd2b4",
+        "smokeFrom": [0.545, 0.9, -0.485],
         "models": {
-          "academy": { "size": 1.0, "at": [0, -0.42], "court": false },
-          "landmark": { "size": 0.9, "at": [0, -0.42], "court": false },
-          "manufactory": { "size": 1.0, "at": [0, -0.42], "court": false },
-          "customsHouse": { "size": 1.0, "at": [0, -0.42], "court": false },
-          "citadel": { "size": 1.15, "at": [0, 0], "court": true },
-          "holySite": { "size": 1.15, "at": [0, 0], "court": true }
+          "academy": { "size": 1.28, "at": [0, 0], "court": true },
+          "landmark": { "size": 0.82, "at": [0, -0.42], "court": false },
+          "manufactory": { "size": 1.28, "at": [0, 0], "court": true },
+          "customsHouse": { "size": 1.28, "at": [0, 0], "court": true },
+          "citadel": { "size": 1.24, "at": [0, 0], "court": true },
+          "holySite": { "size": 1.28, "at": [0, 0], "court": true }
         }
       },
       "yard": "#d8c79c"

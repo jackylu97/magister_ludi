@@ -30,6 +30,9 @@ const SMOKE_UNIFORMS = ['vtestTime', 'vtestIdle', 'vtestSmoke'] as const;
 
 type Register = (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown;
 
+/** The top of a chimney that smokes, in world units, and the hex it stands on. */
+export interface SmokeSource { x: number; y: number; z: number; col: number; row: number }
+
 export class PaintedSmokeLayer {
   readonly group = new Group();
   /** Built again with the layer, because the seeds are an attribute on it. */
@@ -58,13 +61,17 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
    * One chimney a town the seat watches now, `idle.smokePuffs` puffs a
    * chimney. `heights` is the tallest stone of each town
    * (`PaintedCityLayer.cityHeights`), so the smoke starts at the roofs.
+   * `chimneys` are more places that smoke, each the top of a chimney in world
+   * units with the hex it stands on (the manufactory's tall chimney). They
+   * follow the same fog rule as a town.
    */
-  build(state: GameState | null, levels: FogLevels, heights: ReadonlyMap<number, number>, on: boolean): void {
+  build(state: GameState | null, levels: FogLevels, heights: ReadonlyMap<number, number>, on: boolean, chimneys: readonly SmokeSource[] = []): void {
     this.clear();
     if (!state || !on) return;
     const towns = state.cities.filter((city) => levelAt(levels, state.map, city.col, city.row) === VISIBLE);
+    const stacks = chimneys.filter((stack) => levelAt(levels, state.map, stack.col, stack.row) === VISIBLE);
     const puffs = Math.max(1, Math.round(IDLE.smokePuffs));
-    const count = towns.length * puffs;
+    const count = (towns.length + stacks.length) * puffs;
     if (!count) return;
     const seeds = new Float32Array(count * 2);
     const geometry = this.geometry = new IcosahedronGeometry(1, 0);
@@ -81,6 +88,15 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
         mesh.setMatrixAt(i, matrix);
         seeds[i * 2] = p / puffs + hashUnit(city.col, city.row, 801) * 0.37;
         seeds[i * 2 + 1] = hashUnit(city.col, city.row, 810 + p);
+      }
+    });
+    stacks.forEach((stack, s) => {
+      for (let p = 0; p < puffs; p++) {
+        const i = (towns.length + s) * puffs + p;
+        matrix.makeTranslation(stack.x, stack.y, stack.z);
+        mesh.setMatrixAt(i, matrix);
+        seeds[i * 2] = p / puffs + hashUnit(stack.col, stack.row, 821) * 0.37;
+        seeds[i * 2 + 1] = hashUnit(stack.col, stack.row, 830 + p);
       }
     });
     geometry.setAttribute('smokeSeed', new InstancedBufferAttribute(seeds, 2));
