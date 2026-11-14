@@ -1614,7 +1614,7 @@
     },
     "miniature": {
       "focus": 0.42,
-      "blur": 5.0
+      "blur": 3.0
     },
     "light": {
       "rim": "#fff3d6",
