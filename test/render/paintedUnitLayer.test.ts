@@ -17,6 +17,11 @@ import { unitDef, type UnitTypeId } from '../../src/sim/unitData';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
 import { newGame } from '../sim/newGameHelpers';
+import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
+
+// This file pins today's pieces. The swordsman has a north-star model behind `NORTH_STAR_UNITS`
+// (test/render/northStarUnits.test.ts covers it), so here it is drawn as today's piece.
+overrideNorthStarUnit('swordsman', null);
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });

@@ -98,6 +98,7 @@ import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens, signReligion } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
+import { seatInks } from '../art/seatInks';
 import { cellCenter, tileTopY, wrapWidth, worldToCell } from './layout';
 import { type TurnMarkRef, OverlayLayer } from './overlays';
 import {
@@ -120,6 +121,7 @@ import {
   signUnits,
   terrainUnder,
   unitColor,
+  unitTrimColor,
   unitShellWash,
   unitGhostColor,
 } from './pieces';
@@ -141,12 +143,14 @@ import { PaintedSiteLayer } from './paintedSites';
 import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory, planPaintedTerritoryTint } from './paintedGround';
 import { type VisualTestState, changedSwitches, onVisualTestChange, visualBorder, visualOn } from './visualTest';
 import { VTEST_UNIFORMS, installBob, pinScaleFor, syncVisualUniforms } from './visualTestLook';
+import { installUnitIdle } from './northStarUnits';
 import { PaintedSmokeLayer } from './paintedSmoke';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
 import { PaintedFlowLayer } from './paintedFlow';
 import { SeaMirror } from './seaMirror';
+import { buildMapEnds } from './mapEnds';
 // @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
 import { bakeSeaDistances } from './seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
@@ -390,6 +394,8 @@ export class Renderer3D implements MapView {
   private seaDistances: Texture | null = null;
   /** The sea as a mirror (`seaMirror.ts`): made on the first frame that wants it. `mirrorOn` is the scene page's switch. */
   private seaMirror: SeaMirror | null = null;
+  /** The rails at the north and south ends of the map (`mapEnds.ts`), one set a board. */
+  private mapEnds: ReturnType<typeof buildMapEnds> | null = null;
   mirrorOn = true;
   /** The board's meshes that stay out of the mirror, and the board they were listed for. */
   private mirrorBoardHidden: Object3D[] = [];
@@ -725,6 +731,8 @@ export class Renderer3D implements MapView {
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
+    // The outline of a north-star piece breathes with its body (`northStarUnits.ts`).
+    installUnitIdle(this.materials.unitOutline);
     for (const light of oldLights) this.scene.remove(light);
     this.scene.remove(this.key.target);
     this.resize();
@@ -2265,6 +2273,7 @@ export class Renderer3D implements MapView {
       this.scene.remove(this.board.group);
       this.board.dispose();
     }
+    if (this.mapEnds) { this.mapEnds.group.removeFromParent(); this.mapEnds.dispose(); this.mapEnds = null; }
     const started = performance.now();
     this.paintedWorksSignature = null;
     const prepared = this.preparedBoard;
@@ -2290,6 +2299,11 @@ export class Renderer3D implements MapView {
       board.createChartTable(material => this.paintedLook!.registerMaterial(material, { chart: true }));
       // The cloud pattern repeats once a map width (switch 7).
       VTEST_UNIFORMS.vtestPeriod.value = board.wrapWidth;
+      if (VIEW3D.visualTest.mapEnds?.on) {
+        this.mapEnds = buildMapEnds(map, VIEW3D.visualTest.mapEnds, material => this.paintedLook!.registerMaterial(material));
+        // A child of the board's group, so a frame's cost counts the rails with the board.
+        board.group.add(this.mapEnds.group);
+      }
       this.bakeSeaDistances();
     } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
@@ -2356,6 +2370,11 @@ export class Renderer3D implements MapView {
     this.units.group.traverse(object => {
       if (!(object instanceof Mesh) || !object.geometry.getAttribute('paintedBob')) return;
       for (const material of Array.isArray(object.material) ? object.material : [object.material]) installBob(material);
+    });
+    // The same for a north-star piece's idle motion: its outline and its ghost move with the body.
+    this.units.group.traverse(object => {
+      if (!(object instanceof Mesh) || !object.geometry.getAttribute('paintedIdle')) return;
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) installUnitIdle(material);
     });
     // The resting pieces are the bulk of layer 2, and this one call is every way
     // their depth map can go stale: a unit placed, taken, moved, killed,
@@ -3484,7 +3503,7 @@ export class Renderer3D implements MapView {
     const piece = this.geometry.pieces[unitSculpt(unit, terrainUnder(this.map, unit))];
     const shape = painted?.geometry ?? piece.geometry;
     computeHullNormals(shape);
-    const material = painted && this.paintedUnits ? this.paintedUnits.material(painted, color) : pieceMaterials(this.materials, piece, color);
+    const material = painted && this.paintedUnits ? this.paintedUnits.material(painted, color, unitTrimColor(this.state, unit)) : pieceMaterials(this.materials, piece, color);
 
     // The piece's own turn goes on each mesh, never on the group: the group
     // carries the wrap offsets, and a rotation above them would swing the two
@@ -3607,7 +3626,7 @@ export class Renderer3D implements MapView {
       anchor.position.set(centre.x + dx, height, centre.z);
       // Cloned per copy so the three wrap copies can share nothing mutable; the
       // geometry is still the shared sculpt, which is the expensive half.
-      const materials = painted && this.paintedUnits ? this.paintedUnits.material(painted, color) : pieceMaterials(this.materials, piece, color);
+      const materials = painted && this.paintedUnits ? this.paintedUnits.material(painted, color, playerPieceColor(seatInks(player).secondary, fallen.ownerId)) : pieceMaterials(this.materials, piece, color);
       const cloned = Array.isArray(materials)
         ? materials.map((material) => material.clone())
         : materials.clone();

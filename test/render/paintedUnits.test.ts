@@ -10,6 +10,11 @@ import { packUnitAsset } from '../../src/terrainStudy/unitAssets.js';
 import { createPrimitiveUnitScene } from '../../src/terrainStudy/primitiveUnitModels.js';
 // @ts-expect-error The real shared painted lighting remains JavaScript.
 import { createPainterlyStyle } from '../../src/terrainStudy/painterly.js';
+import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
+
+// This file pins today's pieces. The swordsman has a north-star model behind `NORTH_STAR_UNITS`
+// (test/render/northStarUnits.test.ts covers it), so here it is drawn as today's piece.
+overrideNorthStarUnit('swordsman', null);
 
 const approved = ['warrior', 'spearman', 'horseman', 'archer', 'horseArcher', 'worker', 'prophet', 'scout', 'settler', 'trader', 'greatPerson', 'warElephant'] as const;
 const infantryVariants = ['swordsman', 'legionary', 'longswordsman', 'fireLance', 'khopesh', 'eagleWarrior'] as const;

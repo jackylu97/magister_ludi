@@ -13,6 +13,7 @@ import { packUnitAsset } from '../terrainStudy/unitAssets.js';
 import { createPrimitiveUnitScene } from '../terrainStudy/primitiveUnitModels.js';
 // @ts-expect-error The study inventory remains JavaScript.
 import { paintedUnitTypes, unitReviewVariants } from '../terrainStudy/unitCatalog.js';
+import { buildNorthStarUnit, installUnitIdle, northStarUnitModel, northStarUnitTurn } from './northStarUnits';
 
 export interface PaintedUnitModel {
   readonly geometry: BufferGeometry;
@@ -22,6 +23,8 @@ export interface PaintedUnitModel {
   readonly contacts: [number, number, number][];
   readonly yaw: number;
   readonly waterborne?: boolean;
+  /** True for a north-star model: some of its vertices take the seat's second colour. */
+  readonly trimmed?: boolean;
 }
 
 interface PackedUnitAsset {
@@ -62,6 +65,20 @@ export class PaintedUnitKit {
     const family: Family = unit.type === 'greatPerson' && isGreatPersonId(unit.person)
       ? greatPersonDef(unit.person).family : 'scholar';
     const key = embarked ? 'embarked' : unit.type === 'greatPerson' ? `greatPerson:${family}` : unit.type;
+    // A north-star model, when `NORTH_STAR_UNITS` names one for this type (`northStarUnits.ts`).
+    const northStar = embarked ? null : northStarUnitModel(unit.type);
+    if (northStar) {
+      const made = this.models.get(`ns:${northStar}`);
+      if (made) return made;
+      const asset = buildNorthStarUnit(northStar);
+      asset.geometry.name = `Painted unit ${northStar}`;
+      asset.geometry.userData.paintedUnitAsset = northStar;
+      asset.geometry.computeBoundingBox();
+      asset.geometry.computeBoundingSphere();
+      const model: PaintedUnitModel = { ...asset, yaw: northStarUnitTurn(unit.type) ?? studyYaw(unit.type), trimmed: true };
+      this.models.set(`ns:${northStar}`, model);
+      return model;
+    }
     const cached = this.models.get(key);
     if (cached) return cached;
 
@@ -102,9 +119,17 @@ export class PaintedUnitKit {
     }
   }
 
-  material(_model: PaintedUnitModel, bodyColor: number): MeshStandardMaterial {
+  /**
+   * The material of a piece in a seat's colours. Today's pieces read only
+   * `bodyColor`. A north-star model (`model.trimmed`) also reads `trimColor`,
+   * the seat's second colour, and has its own material for each pair.
+   */
+  material(model: PaintedUnitModel, bodyColor: number, trimColor = bodyColor): MeshStandardMaterial {
     if (this.disposed) throw new Error('Painted unit kit has been disposed');
-    const cached = this.materials.get(bodyColor);
+    const trimmed = model.trimmed === true;
+    // Colours are 24 bits; a trimmed pair sits above them and cannot meet a plain colour's key.
+    const materialKey = trimmed ? (bodyColor + 1) * 0x1000000 + trimColor : bodyColor;
+    const cached = this.materials.get(materialKey);
     if (cached) return cached;
     const material = new MeshStandardMaterial({
       color: 0xffffff, vertexColors: true, flatShading: true, roughness: .94, metalness: 0,
@@ -112,7 +137,7 @@ export class PaintedUnitKit {
       stencilZPass: ReplaceStencilOp, stencilWriteMask: 1,
     });
     material.name = `Painted unit pigment ${bodyColor.toString(16).padStart(6, '0')}`;
-    const ownerColor = { value: new Color(bodyColor) };
+    const ownerColor = { value: new Color(bodyColor) }, ownerTrim = { value: new Color(trimColor) };
     try {
       // Register the lighting first, then preserve its hook and changing cache
       // key. Only the enamel receives seat/routed ink; ivory and gilt stay fixed.
@@ -128,7 +153,21 @@ export class PaintedUnitKit {
           .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= mix(vec3(1.0), paintedUnitBodyColor, vPaintedOwner);');
       };
       material.customProgramCacheKey = () => `${originalKey()}:painted-unit-owner-v1`;
-      this.materials.set(bodyColor, material);
+      if (trimmed) {
+        const ownerHook = material.onBeforeCompile;
+        material.onBeforeCompile = function(shader, renderer): void {
+          ownerHook.call(this, shader, renderer);
+          shader.uniforms.paintedUnitTrimColor = ownerTrim;
+          // `paintedOwner` is 2 on a vertex that takes the second colour. The line above this one has already
+          // multiplied it by the first colour, so the mix is written again from the vertex colour.
+          shader.fragmentShader = `uniform vec3 paintedUnitTrimColor;\n${shader.fragmentShader}`
+            .replace('diffuseColor.rgb *= mix(vec3(1.0), paintedUnitBodyColor, vPaintedOwner);',
+              'diffuseColor.rgb *= vPaintedOwner > 1.5 ? paintedUnitTrimColor : mix(vec3(1.0), paintedUnitBodyColor, vPaintedOwner);');
+        };
+        material.customProgramCacheKey = () => `${originalKey()}:painted-unit-owner-v1:trim`;
+        installUnitIdle(material);
+      }
+      this.materials.set(materialKey, material);
       return material;
     } catch (error) {
       material.dispose();

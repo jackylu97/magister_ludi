@@ -950,7 +950,7 @@ export function unitColor(state: GameState, unit: Unit): number {
  * at the seam after `flush` (see `UnitLayer.build`), where a caravan's route and
  * a declared war both outrank a seat's colours.
  */
-function unitTrimColor(state: GameState, unit: Unit): number {
+export function unitTrimColor(state: GameState, unit: Unit): number {
   const player = state.players[unit.ownerId];
   return playerPieceColor(seatInks(player).secondary, unit.ownerId);
 }
@@ -1228,7 +1228,7 @@ export class UnitLayer {
           // bucket key by identity, so a hostile piece batches into its own
           // bucket exactly as cleanly as a friendly one does.
           { ghost: materials.silhouette(hostile ? HOSTILE_GLOW : ink), unitOutline: true, order: RENDER_ORDER.unitBody,
-            ...(painted && paintedKit ? { material: paintedKit.material(painted, ink), litMaterial: true } : {}) },
+            ...(painted && paintedKit ? { material: paintedKit.material(painted, ink, unitTrimColor(state, unit)), litMaterial: true } : {}) },
         );
         slots.push(pieceHandle);
         this.bodies.set(unit.id, pieceHandle);

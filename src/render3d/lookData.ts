@@ -2317,6 +2317,12 @@ export interface VisualTestSpec {
    * animal moves forward and back, now and then. 0 stops a motion.
    */
   animals: { nod: number; nodSpeed: number; flick: number; flickSpeed: number; sway: number; step: number };
+  /**
+   * The idle motion of a north-star unit piece (`northStarUnits.ts`), in world units (a figure is about 0.95 tall).
+   * `breath` is how far the head rises and sinks and `sway` how far it leans, with their speeds. `flutter` is how far
+   * the free end of a plume or a cape swings, and `flutterSpeed` how fast.
+   */
+  unitIdle: { breath: number; breathSpeed: number; sway: number; swaySpeed: number; flutter: number; flutterSpeed: number };
   /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
   props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number;
     groves: boolean; groveGrass: number; grovePlains: number; groveSize: number; groveSpread: number; forestTrees: number; forestShade: number };
@@ -2351,6 +2357,8 @@ export interface VisualTestSpec {
   /** Switch 10: a rim light on things that stand up, and a deeper, cooler shade. */
   light: { rim: string; rimStrength: number; rimPower: number; rimInShade: number; shadeDeepen: number; shadeTint: number[] };
   rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number; /** The edge river's two water colours under the north-star look. */ water: string; light: string };
+  /** The rails at the north and south ends of the map (`mapEnds.ts`). */
+  mapEnds?: import('./mapEnds').MapEndsStyle;
   borders: {
     level?: boolean; holeMax: number; fillNeighbours: number; fillPasses: number;
     tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number; gapGlowWidth?: number; gapGlowAlpha?: number;

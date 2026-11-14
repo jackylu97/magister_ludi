@@ -1265,6 +1265,21 @@
       "water": "#8fcfbe",
       "light": "#b9e6d4"
     },
+    "mapEnds": {
+      "on": true,
+      "width": 0.62,
+      "rise": 0.11,
+      "foot": 0.5,
+      "gap": 0.015,
+      "wood": "#9c7a5c",
+      "woodShade": "#7d5f47",
+      "brass": "#d2ab55",
+      "inlayAt": 0.16,
+      "inlayWidth": 0.035,
+      "tick": 0.09,
+      "majorTick": 0.2,
+      "majorEvery": 5
+    },
     "borders": {
       "level": true,
       "holeMax": 8,
@@ -1819,6 +1834,14 @@
       "flickSpeed": 7,
       "sway": 0.018,
       "step": 0.05
+    },
+    "unitIdle": {
+      "breath": 0.012,
+      "breathSpeed": 1.5,
+      "sway": 0.01,
+      "swaySpeed": 0.6,
+      "flutter": 0.035,
+      "flutterSpeed": 4.5
     }
   }
 }

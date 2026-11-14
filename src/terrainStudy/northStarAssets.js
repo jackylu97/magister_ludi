@@ -32,3 +32,9 @@ export const NORTH_STAR_GREAT_WORKS=NORTH_STAR_GREAT_WORK_MODELS?{
 }:{};
 // The animals and the great works are loaded with the works, so the list of works carries them.
 export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];
+// The unit pieces of the north-star look (the user, 2026-11-14: "lets do a
+// single melee piece for now"). The key is a unit type, the value a model of
+// `scripts/terrain-study/build_northstar_units.py`. A type with no entry keeps
+// today's piece. `false` gives back every piece of today exactly.
+export const NORTH_STAR_UNIT_MODELS=true;
+export const NORTH_STAR_UNITS=NORTH_STAR_UNIT_MODELS?{swordsman:'ns-swordsman'}:{};

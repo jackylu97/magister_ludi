@@ -7,6 +7,9 @@ import {
 } from '../render3d/visualTest';
 import type { LensView } from '../ui/mapView';
 import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture';
+import { overrideNorthStarUnit } from '../render3d/northStarUnits';
+import { createUnit } from '../sim/state';
+import type { UnitTypeId } from '../sim/unitData';
 
 /**
  * The visual test scene: `flair.html?review=scene`. The user, 2026-11-12: "for
@@ -26,6 +29,15 @@ import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture } from 
  * - `still`: `1` (the default) holds the clock that moving water, clouds and
  *   pieces read, so two screenshots differ only by a switch; `0` lets it run.
  * The panel's last line gives the frame's draw calls and triangles.
+ *
+ * Three more, for the review of the unit pieces (2026-11-14):
+ * - `nsunit`: `type:model` pairs split by commas, which draw a unit type with
+ *   another north-star model. `type:old` draws today's piece, and a third
+ *   part, `type:model:turn`, turns the piece about the upright (radians);
+ * - `pieces`: more pieces to stand in the scene, as `col.row.type.seat` split
+ *   by commas. `only` as the first entry removes the scene's own pieces;
+ * - `at`: `col_row_zoom` centres the camera on a hex, `zoom` times closer than
+ *   the game's closest. It replaces the view's own camera.
  */
 export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
@@ -50,6 +62,16 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   renderer.mirrorAll = params.get('mirror') === 'all';
   const age = Number(params.get('age'));
   const state = createSceneFixture(age === 1 || age === 2 ? age : undefined);
+  for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
+    const [type, model, turn] = pair.split(':');
+    overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
+  }
+  for (const entry of (params.get('pieces') ?? '').split(',').filter(Boolean)) {
+    if (entry === 'only') { state.units = []; continue; }
+    const [col, row, type, seat] = entry.split('.');
+    createUnit(state, Number(seat), type as UnitTypeId, Number(col), Number(row));
+  }
+  const at = (params.get('at') ?? '').split('_').map(Number);
   let disposed = false, ready = false;
   const resize = new ResizeObserver(() => renderer.resize()); resize.observe(canvas);
 
@@ -63,7 +85,11 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const frame = (): void => {
     if (!ready) return;
     const target = SCENE_VIEWS[view];
-    if (target.zoom === 1) {
+    if (at.length === 3 && at.every(Number.isFinite)) {
+      renderer.focusOpening({ col: at[0]!, row: at[1]! });
+      renderer.zoomBy(1e-6, canvas.clientWidth / 2, canvas.clientHeight / 2);
+      renderer.zoomBy(VIEW3D.camera.maxFrustum / VIEW3D.camera.minFrustum * at[2]!, canvas.clientWidth / 2, canvas.clientHeight / 2);
+    } else if (target.zoom === 1) {
       // The whole board, then a little closer: a small wrapping board framed
       // whole shows its wrap copies on both sides.
       renderer.frameCells(state.map.tiles.map(tile => ({ col: tile.col, row: tile.row })), false);
