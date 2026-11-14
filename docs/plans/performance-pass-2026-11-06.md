@@ -1323,3 +1323,246 @@ These are not done.
 - The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers` and `barbarians` passed: 12 files, 41 tests.
 - The shadow check (`test/vitest.shadow.config.ts`) passed on `aiCampHunt` and `aiSittingMemos`.
 - The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+## End check of bot pass 3, 2026-11-14
+
+`docs/flags.md` (ooooooo): the user asked to *"continue with the build and examine at the end"* whether the bots' extra commands are sound, and BP6, BP7 and BP8 left open questions (the turn-150 fall of BP7, the culture fall of BP6 and BP8). This is a measurement only: no file under `src/`, `data/` or `test/` changed. Branch `decks` at `9a12c3aa`.
+
+### Method
+
+- **Trees**, each a detached `git worktree` with the main tree's `node_modules` linked in: deployed `2a73a7e5` (GitHub `main`), pre-pass `5379853b` (the commit before BP1; nothing under `src/`, `data/` or `test/` changes between it and BP1's parent), BP5 `9420cef6`, BP6 `86646802`, BP7 `ac469aab`, and now `b28f3c5e` (BP8; `9a12c3aa` changes only docs). Between BP5 and now the rules data changes in one row, the Forbidden City (BP7), so a change in play there is the bots'.
+- **The game** is BP6 to BP8's: six seats with two decks each, standard map, barbarians on. Seeds 999, 42, 1, 7, 2026, 31337, 3, 5, 11, 13, 17, 23, 101, 314, 777 and 4242.
+- **The probe** is a scratch script (`play.ts`, in the session's scratch folder `endcheck/`), run with `vite-node`. It needed no change for the older trees. It plays one or more trees in one process, one turn on each tree in rotation, and records, a turn: the wall and CPU time of `driveBots` (the end of the turn included), the accepted commands by type and by seat, refusals, towns, units by kind, and counters of repeated and undone orders (below). It takes a full snapshot at turns 100 and 150. It reproduced the pinned digests of BP7 and BP8 (for example `a99a216a:817383`, `eaa3d1e9:857299`, `ac7f2fa1:935726` and `fbdafb23:982630` for BP8's seed 42 at turns 20, 60, 100 and 120), so the probe does not change play.
+- **Question 1** plays deployed, pre-pass and now in one process for each of seeds 999, 42, 1 and 7, so the three see the same load. The other games ran one tree a process, four at a time.
+- **The yields** are `foldEmpireRates`, as in BP4 to BP8. That figure leaves out the empire-scale card lines (`explainEmpireCardYields`). For culture these are large (a quarter of what an empire banks at turn 100), so question 4 gives the banked culture too: the towns' culture plus every line of `explainEmpireLines`.
+- **Paired figures.** For each seed, the ratio of one tree's total to the other's. The tables give the geometric mean of those ratios with a 95% interval (a t interval on the log ratios), the count of seeds down and up, and the change of the totals. A change whose interval holds nought is not shown at this sample size.
+- **The laptop slept.** From about 15:58 the machine went into deep sleep with a dark wake of about a minute every 15 minutes, so some turns read 900 to 980 seconds of wall time and under 13 seconds of CPU. Those turns are in games of questions 2 to 4 only, which read no time. From 17:03 `caffeinate -s`, tied to the queue's process, held the machine awake. No game of question 1 has such a turn.
+- **One probe fault, mended.** In the first 26 games of BP5 to now, the town half of the culture split failed (`explainCity` returns a reading, not a list). Those games were played again to turn 100 for the split; the totals were never affected.
+
+### 1. Commands and seconds a turn
+
+Seeds 999, 42, 1 and 7, the three trees in one process, a turn on each in rotation. Each row is the mean over the seeds of the ten turns that end at the turn named. Commands are the accepted commands without End Turn. At turn 150 the table has three seeds, because seed 1 ended at turn 129 on the current tree (seat 1 finished the Opus).
+
+| Turn | Tree | Moves | Builds | Purchases | Cards and council | Worker orders | Others | All | Towns | Units | Commands a town | Moves a unit | Wall s | CPU s | ms a command |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 20 | deployed | 2.4 | 2.0 | 0.3 | 2.1 | 0.5 | 3.9 | 11.3 | 7.9 | 25 | 1.43 | 0.09 | 0.54 | 0.64 | 48 |
+| 20 | pre-pass | 2.5 | 2.1 | 0.3 | 2.1 | 0.7 | 3.8 | 11.5 | 7.7 | 26 | 1.49 | 0.10 | 0.28 | 0.38 | 24 |
+| 20 | now | 2.3 | 2.1 | 0.3 | 2.0 | 0.6 | 3.7 | 11.0 | 7.8 | 26 | 1.41 | 0.09 | 0.28 | 0.40 | 26 |
+| 60 | deployed | 16.8 | 5.3 | 1.4 | 3.2 | 1.8 | 16.9 | 45.4 | 19.8 | 91 | 2.29 | 0.19 | 1.72 | 1.88 | 39 |
+| 60 | pre-pass | 10.5 | 5.8 | 0.5 | 2.5 | 2.3 | 13.7 | 35.3 | 20.1 | 84 | 1.76 | 0.13 | 0.74 | 0.88 | 22 |
+| 60 | now | 23.6 | 6.9 | 0.9 | 2.1 | 3.2 | 18.8 | 55.5 | 22.2 | 92 | 2.50 | 0.26 | 0.97 | 1.20 | 18 |
+| 100 | deployed | 19.8 | 5.2 | 1.8 | 3.8 | 1.6 | 19.1 | 51.3 | 29.9 | 151 | 1.71 | 0.13 | 3.04 | 3.28 | 59 |
+| 100 | pre-pass | 34.0 | 9.8 | 2.5 | 3.8 | 3.9 | 26.7 | 80.7 | 36.2 | 176 | 2.23 | 0.19 | 1.64 | 1.89 | 21 |
+| 100 | now | 46.4 | 12.4 | 3.9 | 3.7 | 4.9 | 32.2 | 103.5 | 42.9 | 201 | 2.41 | 0.23 | 2.12 | 2.39 | 21 |
+| 120 | deployed | 22.3 | 5.7 | 2.9 | 3.6 | 1.9 | 21.1 | 57.7 | 35.0 | 180 | 1.65 | 0.12 | 4.72 | 5.00 | 86 |
+| 120 | pre-pass | 54.5 | 14.4 | 2.8 | 4.0 | 4.5 | 28.1 | 108.4 | 48.2 | 256 | 2.25 | 0.21 | 3.04 | 3.30 | 29 |
+| 120 | now | 64.8 | 17.8 | 6.3 | 4.6 | 5.8 | 43.8 | 143.2 | 56.9 | 290 | 2.52 | 0.22 | 6.15 | 6.44 | 41 |
+| 150 | deployed | 24.7 | 7.2 | 5.0 | 4.0 | 2.3 | 20.2 | 63.4 | 41.0 | 234 | 1.55 | 0.11 | 5.95 | 6.22 | 94 |
+| 150 | pre-pass | 73.9 | 16.4 | 5.6 | 4.7 | 4.4 | 39.5 | 144.5 | 64.2 | 397 | 2.25 | 0.19 | 6.78 | 7.13 | 47 |
+| 150 | now | 76.6 | 25.4 | 10.0 | 6.3 | 7.8 | 56.3 | 182.3 | 77.4 | 456 | 2.36 | 0.17 | 18.99 | 19.42 | 94 |
+
+"Builds" is `setCityProduction`. "Purchases" is `purchaseItem`, `purchaseTile`, `buyRoute`, `purchaseGreatPersonOffer` and `contribute`. "Cards and council" is the draft, slot, government and Doctrine commands. "Worker orders" is `buildImprovement`, `prospect`, `chopFeature` and `removeImprovement`. In "others", turns 91 to 150, a turn: attacks 4.5 deployed, 6.8 pre-pass, 12.2 now; fortify 4.1, 9.4, 11.8; citizen focus 2.5, 4.1, 5.5; deals proposed 2.7, 3.5, 3.3 and declined 2.3, 3.0, 2.8.
+
+Per seed, turns 141 to 150 (seed 1 on the current tree: turns 120 to 129, its last ten):
+
+| Seed | Tree | Commands | Towns | Units | Commands a town | Wall s | ms a command |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 999 | deployed | 61 | 39 | 244 | 1.55 | 5.99 | 99 |
+| 999 | pre-pass | 104 | 55 | 359 | 1.88 | 4.26 | 41 |
+| 999 | now | 185 | 69 | 426 | 2.68 | 8.49 | 46 |
+| 42 | deployed | 63 | 39 | 227 | 1.61 | 5.74 | 91 |
+| 42 | pre-pass | 125 | 57 | 311 | 2.19 | 6.37 | 51 |
+| 42 | now | 144 | 72 | 369 | 2.01 | 6.04 | 42 |
+| 1 | deployed | 146 | 46 | 326 | 3.16 | 19.11 | 131 |
+| 1 | pre-pass | 200 | 69 | 462 | 2.90 | 9.09 | 46 |
+| 1 | now | 221 | 75 | 434 | 2.95 | 9.07 | 41 |
+| 7 | deployed | 67 | 45 | 231 | 1.49 | 6.11 | 92 |
+| 7 | pre-pass | 205 | 80 | 521 | 2.55 | 9.71 | 47 |
+| 7 | now | 218 | 92 | 573 | 2.38 | 42.44 | 194 |
+
+**Where the rise comes from.** Against the pre-pass tree, the current tree gives 28% more commands a turn at turn 100, 32% more at turn 120 and 26% more at turn 150. It holds 18% to 21% more towns and 14% to 15% more units. Commands a town rose by 5% to 12%. So about two thirds of the rise is bigger empires, and one third is more commands for each town. The larger part of the rise since the deployed build came before bot pass 3: at turn 100 the pre-pass tree already gives 57% more commands than the deployed one, at 30% more commands a town.
+
+The commands for each town that bot pass 3 added are mostly these, turns 91 to 150, a turn: attacks 6.8 to 12.2 (the camp hunt of BP8 doubled the blows on camp wardens), purchases (2.5 to 3.9 at turn 100, 5.6 to 10.0 at turn 150: routes hired, BP8), production orders (one for each item finished, so they follow the towns), worker orders (P6 raised more workers), and the loops below.
+
+**Repeated and undone orders.** Counted on every accepted command of the same four games, turns 91 to 150, a turn (shares in brackets):
+
+| | Deployed | Pre-pass | Now |
+|---|---:|---:|---:|
+| Moves | 26.8 | 56.1 | 65.9 |
+| A move back to a hex the piece left in the last two turns | 4.0 (15%) | 6.3 (11%) | 10.7 (16%) |
+| A second move to the same piece in the same turn | 1.9 (7%) | 4.0 (7%) | 6.4 (10%) |
+| A move that changes the end of a march under way | 14.0 (52%) | 29.1 (52%) | 31.4 (48%) |
+| Production orders | 6.4 | 14.2 | 19.3 |
+| Of which a change of a build under way | 0 | 0.36 (3%) | 0.22 (1%) |
+| Citizen-focus orders | 2.5 | 4.1 | 5.5 |
+| Of which back to a focus the town held in the last five turns | 1.5 (61%) | 2.4 (58%) | 3.7 (67%) |
+| Sleep and fortify orders | 4.1 | 9.6 | 13.0 |
+| Of which to a piece also put to sleep the turn before | 0.08 (2%) | 0.39 (4%) | 1.34 (10%) |
+| Deals proposed, and accepted | 2.7, 0.4 | 3.5, 0.5 | 3.3, 0.5 |
+| Refused by the reducer; repeated orders the driver stopped | 0; 0 | 0; 0 | 0; 0 |
+
+- **Production does not churn.** 97% to 100% of production orders fill an empty queue after an item is finished. A build under way is changed about once in 50 orders, and no town changes back.
+- **Most "re-aims" are not waste.** About half of all moves change the end of a march, on all three trees. A piece that is re-asked as the board moves gets a new goal; the share did not rise.
+- **Three loops, by trace** (seed 7 on the current tree, every order of turns 86 to 92 printed with the arm's summary):
+  - **A prophet walks between two hexes for ever.** `prophetCommand`'s last clause, `holySiteStep` (`src/ai/bot.ts`), steps the prophet to any neighbouring hex where the ground would take a holy site, when nothing else applies. It does not ask whether the prophet stands on a town centre, or whether a site could be raised on the new hex. In a town that already holds a site, the next decision steps it back. On seed 7 seat 4's prophet made eight such moves every turn from turn 88, and two more prophets two moves each. Over the four seeds, "other civilians" (prophets, apostles, great people) made 6.1 moves back a turn at turns 141 to 150, against 2.7 before the pass. The arm is older than the pass; the bots now buy more prophets. Over all 16 games of questions 2 to 4, 7 games on the current tree show three or more such moves in a turn by turn 100, and none of 15 on the pre-pass tree.
+  - **A town's focus switches every turn.** `focusCommand` puts a town on the production focus when its build waits on hammers, and back to the default when nothing waits. With the production focus the build no longer waits, so the next turn it goes back, and so on. One town on seed 7 switched on all seven turns traced. The arm is bound to one order a town a turn, but nothing stops the reversal next turn. This is on all three trees; each order also moves the economy clock, so the seat reads its towns again. Over the 16 games at turns 51 to 100, 1.9 of 3.3 focus orders a turn flip back on the current tree, and 1.1 of 2.0 before the pass.
+  - **Settlers put back to sleep every turn.** `wakeIdleSettler` wakes a sleeping settler with a march once a turn, and the settler's arm puts it to sleep again. On seed 7 the current tree holds 37 settlers at turn 150 (5 on the pre-pass tree), about 10 of them put back to sleep each turn. Over the four seeds, 15.5 settlers at turns 141 to 150 against 5.8. The settlers were built and then had nowhere to go.
+- **Deals.** About 3 deals are proposed a turn and one in seven is accepted, on all three trees. That is about 6 commands a turn of offers and refusals.
+- Together the loops and the refused deals are about 15 commands of 150 a late turn on the current tree. They are real waste, but they are not most of the rise.
+
+**Why seed 7 is slow.** The current tree's seed 7 takes 42 seconds a turn at turns 141 to 150 (pre-pass: 9.7), at 194 ms a command, and 10 to 22 seconds a turn at turns 109 to 117. The commands do not explain it. Two CPU profiles of a solo run of that game (BPS's `run.ts`, which played the same game: the same digests at turns 20 to 100):
+
+- **Turns 141 to 146: 70% of the time is in `countOf` (`src/sim/statecraft/evaluator.ts`)**, through its `empireYield` arm, which calls `foldEmpireRates`. Seat 5 holds Money at Work (Commerce, "+1 science in every town for each 20 gold a turn"). That line is read in every town, and each read folds the whole empire, so one reading of the seat costs as many empire folds as it has towns (19). BP3's stamps read the seat's books twice a card, and the re-seat arm and the chair fill stamp many cards: an unslot decision took 8.6 seconds, a slot 3.7 seconds and a draft pick 2.1 seconds. On turns 145 and 146 seat 5 alone took 51 and 65 seconds. Three live Commerce Orders count the empire's gold this way: The Nest Egg (the capital only), Money at Work and Bills of Exchange (every town). BP3 found this for Bills of Exchange and left it for a speed batch. In the games of this check, about one game in four has a seat holding Money at Work or Bills of Exchange at turn 150, on every tree.
+- **Turns 109 to 116: 59% of the time is in `wakeTheCampaign` (`src/ai/bot.ts`)**, through `soldierCommand`, `campaignPlan`, `musterHex` and `campaignMarch`, and 67% in `findPath`. Seat 4 (the warmonger) is at war with many pieces dug in. The arm remembers a piece (`BotSitting.called`) only when it sends it a march or a blow. A piece whose answer is to stay is not remembered, so `housekeeping` asks it again, with a full campaign plan and path searches, at every decision of the seat's turn. Seat 4 took 5 to 15 seconds of each of those turns.
+
+On seeds 999 and 42 the cost of a command did not rise: at turns 111 to 120, 28.6 against 28.4 ms and 29.5 against 33.7 ms. At turns 141 to 150 those two seeds take 8.5 and 6.0 seconds a turn against 4.3 and 6.4, in step with their commands (185 against 104, and 144 against 125). On seed 1 the cost of a command rose by 43% at turns 111 to 120 (32.0 against 22.4 ms). There the warmonger, at war, gives 80 to 116 commands on some turns, which fits the campaign arm above, but that seed was not profiled.
+
+**Verdict.** The rise in commands is mostly sound. About two thirds of it is bigger empires (more towns, units and workers), the rest is real work the batches asked for (camp blows, routes hired, worker orders), and production orders do not churn. About a tenth of a late turn's commands is waste in three loops (the prophet, the focus, the settlers) and in refused deals; the focus loop and the deals are older than the pass. The cost of a command did not rise on two seeds of four. On the other two it did, and on seed 7 two speed faults, not the commands, make a late turn four times as slow as before the pass.
+
+### 2. Turn 150: BP6, BP7 and now, over 16 seeds
+
+**BP7's four seeds reproduce.** On seeds 1, 7, 42 and 999, summed at turn 150 or at the game's end, BP6 gives 32,625 science and 6,481 gold, and BP7 25,464 and 4,671: −22% and −28%, the figures BP7 reported (its "before" read 32,624 and 6,478). So these are the same games. Two of the four seeds carry the fall: science on seed 42 falls from 6,580 to 3,545, and seed 1 from 11,514 to 7,936, while seed 7 rises from 4,933 to 6,108.
+
+**Many games end before turn 150.** The Opus ends 3 of 16 games on BP6, 6 on BP7 (one of them on turn 150 itself) and 7 on the current tree by turn 150 (and none on the pre-pass and deployed trees, whose games of this check stop at turn 100 for 12 seeds and at 150 for four):
+
+| Tree | Games that end before turn 150 (seed, last turn, the builder's seat) |
+|---|---|
+| BP6 | 1 (148, seat 3), 5 (144, seat 0), 314 (140, seat 3) |
+| BP7 | 3 (135, seat 0), 5 (145, seat 0), 11 (130, seat 0), 13 (147, seat 0), 777 (148, seat 1); 314 ends on turn 150 itself (seat 1) |
+| Now | 1 (129, seat 1), 2026 (147, seat 1), 5 (142, seat 3), 11 (137, seat 3), 13 (139, seat 0), 314 (135, seat 3), 4242 (146, seat 3) |
+
+So a comparison at turn 150 holds only the seeds where no tree ended, seven of them, and it leaves out the games each tree played best. Both readings are below.
+
+**Turn 120, all 16 seeds** (six seats summed; techs a seat):
+
+| Figure | BP6: mean (median; low to high) | BP7 | Now | BP7 against BP6, paired | Now against BP6, paired |
+|---|---|---|---|---|---|
+| Towns | 57 (58; 43 to 64) | 57 (56; 48 to 70) | 60 (62; 46 to 71) | +1% [−5%, +7%], 4 down, 10 up | +6% [−3%, +16%], 5 down, 10 up |
+| Units | 306 (294; 274 to 390) | 319 (315; 252 to 414) | 320 (332; 239 to 388) | +3% [−4%, +12%], 6 down, 9 up | +4% [−3%, +12%], 6 down, 10 up |
+| Gold | 598 (594; 256 to 1,035) | 775 (754; 261 to 1,744) | 919 (836; 499 to 1,552) | +25% [−4%, +64%], 4 down, 12 up | +53% [+17%, +101%], 4 down, 12 up |
+| Science | 1,358 (1,360; 829 to 1,868) | 1,679 (1,430; 830 to 5,111) | 2,101 (1,692; 936 to 5,080) | +14% [−8%, +42%], 6 down, 10 up | +38% [+3%, +84%], 4 down, 12 up |
+| Culture | 611 (600; 377 to 1,069) | 761 (689; 351 to 1,513) | 1,067 (727; 398 to 2,365) | +20% [−3%, +49%], 5 down, 11 up | +49% [+5%, +110%], 4 down, 12 up |
+| Techs known, a seat | 29.1 (29.3; 24.5 to 31.5) | 29.2 (28.8; 25.8 to 32.2) | 30.6 (30.6; 27.3 to 33.0) | +0% [−3%, +4%], 8 down, 7 up | +5% [+2%, +9%], 3 down, 13 up |
+
+The turn-120 snapshot holds no food, production, faith or wonders (the probe's light snapshot), so those are read at turn 150 only.
+
+**Turn 150, the seven seeds where every tree reached it** (999, 42, 7, 31337, 17, 23, 101):
+
+| Figure | BP6: mean (median; low to high) | BP7 | Now | BP7 against BP6, paired | Now against BP6, paired |
+|---|---|---|---|---|---|
+| Towns | 79 (72; 66 to 96) | 80 (78; 74 to 91) | 82 (82; 71 to 93) | +2% [−12%, +19%] | +4% [−15%, +27%] |
+| Units | 474 (459; 421 to 554) | 516 (507; 390 to 647) | 530 (554; 401 to 618) | +8% [−12%, +32%] | +11% [−10%, +37%] |
+| Food | 3,512 (3,390; 2,741 to 5,054) | 3,364 (2,816; 2,358 to 6,119) | 4,002 (3,274; 2,712 to 6,242) | −8% [−33%, +26%] | +10% [−28%, +69%] |
+| Production | 6,472 (6,684; 3,331 to 9,525) | 8,943 (6,906; 3,102 to 26,093) | 7,396 (5,783; 3,873 to 15,641) | +15% [−47%, +151%] | +9% [−24%, +58%] |
+| Gold | 1,329 (1,399; 685 to 1,911) | 1,528 (1,187; 936 to 3,458) | 1,554 (1,311; 1,018 to 2,749) | +10% [−34%, +82%] | +18% [−37%, +121%] |
+| Science | 5,195 (4,933; 2,238 to 9,598) | 6,422 (4,512; 3,263 to 16,341) | 5,349 (4,154; 3,373 to 9,443) | +14% [−33%, +92%] | +6% [−37%, +76%] |
+| Culture | 2,268 (1,998; 1,057 to 3,885) | 2,561 (1,765; 1,038 to 4,787) | 2,711 (1,950; 1,325 to 5,160) | +7% [−44%, +102%] | +17% [−44%, +143%] |
+| Culture banked (with the empire lines) | 3,084 (2,547; 1,284 to 4,818) | 3,731 (2,515; 1,756 to 7,676) | 3,960 (3,152; 2,266 to 6,539) | +14% [−39%, +114%] | +31% [−33%, +153%] |
+| Faith | 668 (609; 333 to 1,200) | 640 (575; 361 to 1,338) | 685 (717; 402 to 1,002) | −4% [−29%, +30%] | +7% [−31%, +66%] |
+| Techs known, a seat | 36.4 (37.2; 32.5 to 38.7) | 36.9 (36.2; 34.2 to 39.0) | 38.5 (38.2; 37.3 to 40.8) | +1% [−4%, +7%] | +6% [+0%, +12%] |
+| Wonders built | 24 (24; 17 to 27) | 23 (22; 19 to 27) | 24 (24; 22 to 26) | −3% [−16%, +13%] | +1% [−11%, +14%] |
+| Seats eliminated | 1 seat in 7 games | none | none | | |
+
+Per seed, science at turn 150 or at the game's end (marked *), BP6 / BP7 / now: 999 9,598 / 7,875 / 6,215; 42 6,580 / 3,545 / 3,373; 1 11,514* / 7,936 / 3,286*; 7 4,933 / 6,108 / 9,443; 2026 3,284 / 7,316 / 5,028*; 31337 4,995 / 16,341 / 4,154; 3 3,064 / 6,353* / 14,140; 5 4,954* / 10,732* / 3,425*; 11 3,642 / 4,186* / 14,576*; 13 7,949 / 13,093* / 10,466*; 17 3,490 / 3,263 / 6,482; 23 2,238 / 3,312 / 4,005; 101 4,534 / 4,512 / 3,772; 314 6,674* / 5,834 / 10,584*; 777 4,418 / 8,281* / 8,812; 4242 5,419 / 5,307 / 9,024*. The spread between seeds is three to one inside one tree.
+
+**Verdict.** The fall BP7 saw is not real at this sample size. It is the spread of four seeds, two of which carry it. Over 16 seeds at turn 120, BP7 reads no change against BP6 (every interval holds nought), and the current tree reads more gold, science, culture and techs, each with an interval above nought. At turn 150 no figure differs with an interval that excludes nought, on the seven seeds that allow the comparison. The current tree and BP7 also finish the Opus before turn 150 twice as often as BP6.
+
+### 3. The whole pass: before BP1 and now, turn 100, 16 seeds
+
+No game ended before turn 100 on either tree. Six seats summed, except where a figure says "a seat":
+
+| Figure | Pre-pass: mean (median; low to high) | Now: mean (median; low to high) | Now against pre-pass, paired |
+|---|---|---|---|
+| Towns | 37 (37; 31 to 46) | 45 (44; 38 to 53) | +22% [+14%, +30%], 1 down, 15 up |
+| Citizens | 215 (214; 176 to 254) | 313 (299; 250 to 409) | +44% [+33%, +57%], 0 down, 16 up |
+| Units | 175 (170; 127 to 220) | 217 (218; 167 to 293) | +24% [+15%, +34%], 1 down, 15 up |
+| Soldiers | 149 (146; 102 to 187) | 162 (160; 130 to 223) | +9% [−1%, +19%], 7 down, 8 up |
+| Food | 776 (756; 547 to 1,287) | 1,192 (1,128; 925 to 1,806) | +54% [+39%, +69%], 0 down, 16 up |
+| Production | 611 (587; 459 to 964) | 1,135 (1,096; 608 to 1,786) | +82% [+54%, +115%], 0 down, 16 up |
+| Gold | 180 (158; 118 to 278) | 392 (378; 196 to 578) | +115% [+65%, +179%], 1 down, 15 up |
+| Science | 451 (440; 364 to 586) | 859 (867; 627 to 1,237) | +89% [+72%, +107%], 0 down, 16 up |
+| Culture | 264 (251; 146 to 357) | 400 (348; 253 to 741) | +46% [+20%, +78%], 2 down, 14 up |
+| Culture banked (with the empire lines) | 359 (350; 162 to 497) | 533 (460; 327 to 929) | +46% [+17%, +82%], 4 down, 12 up |
+| Faith | 87 (81; 40 to 152) | 177 (189; 81 to 284) | +99% [+58%, +151%], 1 down, 15 up |
+| Gold banked | 1,566 (1,532; 1,137 to 2,088) | 2,528 (2,604; 1,545 to 3,349) | +61% [+41%, +84%], 1 down, 15 up |
+| Techs known, a seat | 20.5 (20.6; 18.3 to 22.8) | 25.3 (25.3; 22.8 to 27.0) | +23% [+20%, +27%], 0 down, 16 up |
+| Wonders built | 8 (8; 4 to 10) | 11 (11; 8 to 15) | +53% [+32%, +79%], 1 down, 15 up |
+| Orders held, a seat | 12.6 (12.4; 10.5 to 15.2) | 13.1 (13.2; 10.8 to 14.7) | +4% [−4%, +12%], 8 down, 8 up |
+| of the seat's main deck | 11.1 (11.2; 9.2 to 13.5) | 7.0 (6.8; 5.8 to 9.2) | −37% [−42%, −31%], 16 down, 0 up |
+| of its second deck | 1.1 (1.1; 0.5 to 2.3) | 3.7 (3.8; 2.5 to 4.8) | +264% [+181%, +371%], 0 down, 16 up |
+| common | 0.7 (0.7; 0.3 to 1.0) | 2.5 (2.7; 1.3 to 3.2) | +295% [+211%, +401%], 0 down, 16 up |
+| Seats with 3 or more of the second deck (of 96) | 13 | 73 | |
+| Doctrines, a seat | 1.90 (1.83; 1.67 to 2.33) | 2.29 (2.33; 2.00 to 2.50) | +21% [+14%, +29%], 0 down, 14 up |
+| Drafts taken, a seat | 12.8 (12.7; 10.5 to 15.2) | 14.4 (14.5; 12.3 to 16.8) | +13% [+5%, +22%], 4 down, 11 up |
+| Commissions met (all 16 games) | 4 | 7 | |
+| Camps cleared | 15 (14; 8 to 25) | 21 (21; 9 to 34) | +42% [+25%, +63%], 0 down, 16 up |
+| Improvements built | 162 (158; 134 to 224) | 247 (252; 185 to 302) | +53% [+41%, +66%], 0 down, 16 up |
+| Great people called | 8 (8; 3 to 15) | 20 (20; 15 to 25) | +169% [+104%, +254%], 0 down, 16 up |
+| Religions founded (all 16 games) | 28 | 57 | |
+| Seats eliminated | none | none | |
+
+"Main" and "second" are the seat's two decks by the count of Orders it holds of each, as in BP6. The pre-pass tree holds the great-people rules of GP1 (`5379853b` is that commit), so the rise in great people is the bots' (BP2's great-person gate and P3).
+
+**Verdict.** At turn 100 bot pass 3 made the bots stronger on every figure, on 14 to 16 seeds of 16, with every interval well above nought: half again as many citizens, twice the gold and faith, nine tenths more science, a fifth more towns and techs, half again as many wonders, improvements and camps cleared, and more than two and a half times the great people. The decks are mixed now: a seat's main deck went from 88% of its Orders to 53%.
+
+### 4. Culture
+
+The same 16 seeds at turn 100, for BP5, BP6, BP7 and now. Six seats summed.
+
+| Figure | BP5 | BP6 | BP7 | Now | BP6 against BP5, paired | Now against BP5, paired |
+|---|---:|---:|---:|---:|---|---|
+| Culture a turn | 404 | 319 | 360 | 400 | −21% [−32%, −9%], 14 down, 2 up | −5% [−18%, +11%], 10 down, 5 up |
+| Culture banked (with the empire lines) | 516 | 424 | 470 | 533 | −20% [−35%, −1%], 12 down | +0% [−15%, +18%], 10 down |
+| Towns | 42 | 42 | 44 | 45 | +2% [−4%, +8%] | +8% [+2%, +14%] |
+| Citizens | 267 | 278 | 288 | 313 | +5% [−3%, +14%] | +18% [+8%, +28%] |
+| Culture a town | 9.8 | 7.5 | 8.2 | 8.8 | | −12% [−24%, +3%], 12 down, 4 up |
+| Faith a turn | 145 | 150 | 140 | 177 | +4% [−8%, +18%] | +21% [−3%, +51%] |
+| Wonders built | 10 | 10 | 11 | 11 | +2% [−10%, +15%] | +11% [+0%, +23%] |
+| Orders held, a seat | 13.7 | 12.3 | 12.6 | 13.1 | −10% [−15%, −5%], 14 down | −5% [−11%, +2%] |
+| Orders held that pay culture (six seats) | 17.1 | 13.6 | 14.0 | 14.6 | | −17% [−33%, +4%], 10 down |
+| Drafts taken, a seat | 14.0 | 13.5 | 13.7 | 14.4 | −4% [−9%, +2%] | +3% [−3%, +10%] |
+| Amphitheaters held | 5.1 | 2.0 | 4.3 | 3.6 | | a town: −39% [−56%, −15%], 13 down |
+| Monuments held | 31.4 | 29.6 | 29.7 | 34.3 | | a town: +1% [−4%, +6%] |
+
+Step by step, culture a turn: BP5 to BP6 −21% [−32%, −9%], BP6 to BP7 +12% [+0%, +25%], BP7 to now +8% [−10%, +30%].
+
+Where the culture comes from: the towns' lines by the Ledger's class (`CityYieldLine.class`) and the empire lines by origin, means over the 16 seeds:
+
+| Part | BP5 | BP6 | BP7 | Now | BP6 against BP5 | Now against BP5 |
+|---|---:|---:|---:|---:|---|---|
+| Town lines: Orders and other cards | 75.6 | 44.8 | 49.7 | 54.1 | −45% [−63%, −20%], 11 down | −42% [−60%, −16%], 13 down |
+| Town lines: buildings | 108.0 | 83.8 | 102.2 | 110.1 | −22% [−33%, −9%], 12 down | +2% [−10%, +16%] |
+| Town lines: religion | 51.6 | 39.6 | 36.8 | 47.4 | −12.0, 9 down | −21% [−48%, +19%] |
+| Town lines: worked hexes | 42.9 | 38.4 | 50.6 | 53.4 | −17% [−39%, +14%] | +16% [−12%, +52%] |
+| Town lines: wonders | 6.8 | 6.9 | 7.8 | 8.8 | −4% [−30%, +32%] | +35% [+13%, +60%], 0 down |
+| Town lines: great people | 3.5 | 2.9 | 1.9 | 5.3 | | |
+| Town lines: other (the palace and the rest) | 41.6 | 42.4 | 43.9 | 44.8 | +2% | +8% [+2%, +14%] |
+| Town percentages | 49.6 | 41.8 | 41.9 | 48.6 | −7% [−47%, +65%] | +6% [−36%, +75%] |
+| Empire lines: cards | 106.9 | 95.6 | 104.4 | 125.2 | −11.3, 8 down | +18.4, 8 down |
+| Empire lines: luxuries, routes, the empire stage | 29.6 | 27.7 | 30.6 | 34.9 | +9% | +5.3 |
+
+- **BP6 cut culture by a fifth, on 14 seeds of 16.** That is real at this sample size. The cut is in three places: culture that Orders pay in towns (−31 a turn, −45%), buildings (−24, −22%, with Amphitheaters 5.1 to 2.0) and religion (−12). Drafts barely moved (−4%), but each seat held 10% fewer Orders.
+- **BP7 and BP8 brought most of it back.** Buildings came back to BP5's level, and worked hexes, wonders and the empire's card lines rose. At 16 seeds the current tree is not lower than BP5 on the mean: −5% [−18%, +11%], and the banked culture +0% [−15%, +18%]. The typical seed is lower (median −16%; 10 down, 5 up), and two seeds far higher (seed 11 +69%, seed 4242 +83%) hold the mean up. The −14% of BP6 and the −10% of BP8 were each on six seeds.
+- **What stays lower is the culture Orders pay in towns**: −42% [−60%, −16%], on 13 seeds of 16. The bots hold fewer culture Orders (17.1 to 14.6 over six seats), and the ones they stopped holding are common cards of one deck with a culture line that needs a condition. Summed over the 16 games, BP5 to now: The Staple Right 14 to 1, The Harbour Cities 12 to 1, Conquered Archives 9 to 3, The Old Holy Places 6 to 1, The Common Road 11 to 6, Civic Receipts 4 to 0, The Pilgrim Staff 6 to 2, The Coast 8 to 4. Those that rose: The Working Court 2 to 9, The Martyrology 5 to 11 (an empire line), Names in Stone 0 to 6, The Seven Sights 0 to 5, Public Gatherings 14 to 19. This is B1, the deck bonus removed in BP6: the bonus kept a seat's own-deck commons, and on their own price these lose to other cards.
+- **More towns with less each.** Culture a town is −12% [−24%, +3%] (12 down) and a citizen −16%, while towns are +8% and citizens +18%.
+
+**Verdict.** At 16 seeds, culture is not lower now than at BP5 on the mean (−5%, interval −18% to +11%), and the culture an empire banks is the same. It fell at BP6 by a fifth (real, 14 seeds of 16) and came back in BP7 and BP8. The part that stays lower is the culture Orders pay in towns (−42%), because without the deck bonus the bots stop drafting the culture commons of their own deck. Not fixed.
+
+### What this check could not measure
+
+- **Seconds a turn outside question 1.** The games of questions 2 to 4 ran one tree a process, under different loads, and some of them through the laptop's sleep, so their times are not compared.
+- **The deployed tree over many seeds.** Question 1 has four seeds for the deployed tree, and its turn-150 row three, because the current tree's seed 1 ended at turn 129.
+- **Seed 1's slow turns** (a 43% higher cost a command at turns 111 to 120) were not profiled. The warmonger was at war there, which fits the campaign arm, but that is not shown.
+- **The empire-scale card lines of gold and science.** The yields of questions 2 and 3 are `foldEmpireRates`, as in BP4 to BP8, which leaves out the empire-scale card lines. For culture the banked figure is given; for gold and science the earlier games of this check did not record those lines, so the tables do not hold them.
+- **The cost of the loops in seconds.** The prophet, focus and settler loops are counted in commands. Each command costs a decision, and a focus order also moves the economy clock, but their share of a turn was not profiled.
+- **Commissions** stay too few to read: 4 met in 16 games to turn 100 before the pass, 7 now.
+- **The turn-150 yields** can be compared on seven seeds only, because so many games end earlier with the Opus.
+
+### Faults to fix next, in this order
+
+1. **The empire's gold counted in every town** (speed). Money at Work and Bills of Exchange pay in every town by a count of the empire's gold a turn (`count: 'empireYield'`), and each town's read folds the whole empire (`countOf` calls `foldEmpireRates`). With BP3's stamps a seat that holds one takes seconds for each council decision: 70% of seed 7's turns 141 to 146, up to 65 seconds for one seat's turn, 42 seconds a turn at turns 141 to 150 against 9.7 before the pass. About one game in four has such a seat by turn 150. A reading of the empire's rates kept on the economy clock for the count, which `readEmpireRates` already is, would make it one fold. BP3 proposed this for a speed batch.
+2. **The campaign arm asks the same dug-in pieces again at every decision** (speed). `wakeTheCampaign` remembers a piece only when it sends it a march or a blow, so a piece whose answer is to stay gets a full campaign plan and path searches at every `housekeeping` decision of its seat's turn: 59% of seed 7's turns 109 to 116, 5 to 15 seconds of each turn for the warmonger. Remembering every piece asked for the rest of the seat's turn would end it, at the cost of not seeing a board that moved within the turn.
+3. **The prophet that walks between two hexes** (play and commands). `holySiteStep` steps a prophet to any neighbouring hex whose ground would take a holy site, when nothing else applies, without asking whether it stands on a town centre or whether a site could then be raised. In a town that holds a site already it walks back and forth for the rest of the game. It shows in 7 of 16 games by turn 100 on the current tree (none before the pass), and at turns 141 to 150 of question 1 at 6 moves back a turn. The faith spent on the prophet is lost too.
+4. **The citizen focus that switches every turn** (commands and speed). `focusCommand` moves a town to the production focus when its build waits on hammers and back when nothing waits, and the move removes the reason. Two thirds of focus orders return to a focus the town held in the last five turns, on every tree. Each order moves the economy clock, so the seat reads its towns again. A margin, or a focus kept for some turns, would stop it.
+5. **Settlers with nowhere to go** (play). Late in the game settlers pile up: 15.5 at turns 141 to 150 in question 1 against 5.8 before the pass, and 37 on seed 7 at turn 150, about 10 of them woken by `wakeIdleSettler` and put back to sleep each turn. The production spent on them is lost. The settler's price could read the sites still open.
+6. **Deals that are declined** (commands). About 3 deals are proposed a turn and one in seven is accepted, on every tree. That is about 6 commands a turn for half a deal.
