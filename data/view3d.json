@@ -1796,6 +1796,17 @@
       "windmillYaw": 0.3,
       "windmillHub": [0, 0.5, 0.165],
       "sailSpeed": 0.9,
+      "greatWorks": {
+        "paving": "#ddd2b4",
+        "models": {
+          "academy": { "size": 1.0, "at": [0, -0.42], "court": false },
+          "landmark": { "size": 0.9, "at": [0, -0.42], "court": false },
+          "manufactory": { "size": 1.0, "at": [0, -0.42], "court": false },
+          "customsHouse": { "size": 1.0, "at": [0, -0.42], "court": false },
+          "citadel": { "size": 1.15, "at": [0, 0], "court": true },
+          "holySite": { "size": 1.15, "at": [0, 0], "court": true }
+        }
+      },
       "yard": "#d8c79c"
     },
     "animals": {

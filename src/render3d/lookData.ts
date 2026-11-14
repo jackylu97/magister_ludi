@@ -2302,6 +2302,12 @@ export interface VisualTestSpec {
     fieldSets: string[][];
     /** The share of farms that have a windmill in place of the barn, its footprint, its turn toward the camera, the hub's place in the model, and the sails' speed in radians a second. */
     windmillShare: number; windmillSize: number; windmillYaw: number; windmillHub: number[]; sailSpeed: number;
+    /**
+     * The great people's works (`northStarWorks.js`). `paving` is the colour of the flat stones on the ground. For each
+     * improvement: `size`, the model's longest side in hex units; `at`, its place in the hex (x east, z south); and `court`,
+     * true for a work that stands round the middle of the hex with the piece inside it.
+     */
+    greatWorks: { paving: string; models: Record<string, { size: number; at: number[]; court: boolean }> };
   };
   /**
    * The idle motion of the north-star animals (`paintedAnimals.ts`), in the model's own units (an animal is about one unit long).

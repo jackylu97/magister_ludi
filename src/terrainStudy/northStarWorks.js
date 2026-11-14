@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {centre,tileShape,onTileTop} from './surface.js';
 import {surfacePatch} from './surfacePatch.js';
+import {NORTH_STAR_GREAT_WORKS} from './northStarAssets.js';
 
 // The mine, the quarry and the farm of the north-star look (the visual test of
 // 2026-11-12, docs/flags.md (nnnnnnn), "Towns and works in the test scene").
@@ -27,6 +28,25 @@ function clip(polygon,nx,nz,limit){
 }
 const middle=polygon=>polygon.reduce((p,q)=>[p[0]+q[0]/polygon.length,p[1]+q[1]/polygon.length],[0,0]);
 const area=polygon=>Math.abs(polygon.reduce((sum,p,i)=>{const q=polygon[(i+1)%polygon.length];return sum+p[0]*q[1]-q[0]*p[1]},0))/2;
+
+// The paving of a great person's work: flat stones on the ground, in the hex's
+// own coordinates (x east, z south). A pad lies under the piece that stands on
+// the hex, and a broken path runs from it to the hex's south edge. `front` is
+// for a work at the back of the hex; `court` for one that stands round the
+// middle, where the path leaves through the gap in its front.
+const GREAT_PAVING={
+ front:[
+  [[-.20,-.08],[-.02,-.10],[0,.04],[-.17,.07],[-.25,0]],[[.02,-.11],[.19,-.09],[.25,.01],[.15,.08],[.03,.05]],
+  [[-.15,.10],[-.01,.08],[.01,.19],[-.11,.20]],[[.03,.08],[.14,.11],[.11,.20],[.04,.19]],
+  [[-.39,-.07],[-.29,-.09],[-.28,.0],[-.37,.03]],[[.30,-.06],[.40,-.07],[.41,.03],[.32,.05]],
+  [[-.07,.24],[.07,.23],[.09,.34],[-.06,.35]],[[-.05,.40],[.08,.39],[.06,.50],[-.07,.49]],[[.0,.55],[.10,.54],[.09,.63],[-.02,.64]],
+ ],
+ court:[
+  [[-.29,-.13],[-.14,-.30],[-.02,-.28],[-.03,-.04],[-.27,-.02]],[[.01,-.29],[.13,-.31],[.30,-.14],[.29,-.03],[.0,-.05]],
+  [[-.31,.01],[-.03,-.01],[-.02,.27],[-.15,.29],[-.31,.12]],[[.01,-.02],[.31,0],[.32,.10],[.17,.28],[.01,.27]],
+  [[-.09,.33],[.09,.32],[.10,.45],[-.08,.46]],[[-.07,.50],[.08,.49],[.07,.60],[-.06,.61]],[[-.04,.65],[.06,.64],[.05,.73],[-.03,.74]],
+ ],
+};
 
 /**
  * A farm's plan: three strips across the hex, two of them cut once, so the
@@ -78,6 +98,15 @@ export function northStarWork(works,{tile,entry,top,assets,patch,building,put,he
   }
   return false;
  };
+ // A great person's work is one large model on its own plinth, with paving on the ground round it.
+ const great=works.greatWorks?.models?.[improvement],model=NORTH_STAR_GREAT_WORKS[improvement];
+ if(great&&model&&assets[model]){
+  if(!sunk(model,great.at,great.size))return false;
+  // Every second stone is a little darker, so the paving reads as stones and not as one sheet.
+  const pale=new T.Color(works.greatWorks.paving),deep=pale.clone().multiplyScalar(.9);
+  for(const [i,stone]of GREAT_PAVING[great.court?'court':'front'].entries())patch(stone,i%2?deep:pale,.007);
+  return true;
+ }
  if(improvement==='mine')return works.newMine?sunk('ns-mine',works.mineAt,works.mineSize):false;
  if(improvement==='quarry')return sunk('ns-quarry',works.quarryAt,works.quarrySize);
  if(improvement!=='farm')return false;

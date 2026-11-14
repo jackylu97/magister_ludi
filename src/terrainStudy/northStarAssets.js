@@ -21,5 +21,14 @@ export const NORTH_STAR_HERDS=NORTH_STAR_ANIMALS?{
 // neck and mane still show at the board's usual distance.
 export const NORTH_STAR_HERD_SCALE=1.25;
 export const NORTH_STAR_ANIMAL_ASSETS=Object.values(NORTH_STAR_HERDS).flat();
-// The animals are loaded with the works, so the list of works carries them.
-export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_ANIMAL_ASSETS];
+// The six works a great person leaves on a hex (the user, 2026-11-14: "make them
+// more monumental and larger in stature, they should look and feel
+// important"). `true` draws the models of
+// `scripts/terrain-study/build_northstar_great_works.py`; `false` gives back the
+// study's works. The key is the improvement, the value its model.
+export const NORTH_STAR_GREAT_WORK_MODELS=true;
+export const NORTH_STAR_GREAT_WORKS=NORTH_STAR_GREAT_WORK_MODELS?{
+ academy:'ns-academy',landmark:'ns-landmark',manufactory:'ns-manufactory',customsHouse:'ns-customs-house',citadel:'ns-citadel',holySite:'ns-holy-site',
+}:{};
+// The animals and the great works are loaded with the works, so the list of works carries them.
+export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];

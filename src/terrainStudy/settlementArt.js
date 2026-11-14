@@ -192,7 +192,7 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   const drawn=ns&&preciseFit?northStarWork(ns,{tile,entry,top,assets,patch,building,put,height,onBuilding}):false;
   const sunk=drawn&&improvement!=='farm';
   const frontResource=lumber||monumental||sunk;
-  if(monumental){
+  if(monumental&&!drawn){
    // Broken paving follows the terrain. No disc or solid hex competes with
    // the surrounding painted strokes or fills the walkable court.
    for(const [polygon,color]of [
@@ -277,7 +277,7 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   if(improvement==='plantation')building(ns?'ns-barn':'house',.42,.42,ns?.6:.32,0);
   if(lumber){building('lumbermill',-.13,.03,.90,-.13);building('lumber-stockpile',.27,0,.92,.10)}
   if(improvement==='fishingBoats')put(assets['fishing-boat'],.12,.1,.85,-.4,0xffffff,WATER_LEVEL-.016);
-  if(monumental){
+  if(monumental&&!drawn){
    if(improvement==='citadel'||improvement==='holySite')building(improvement,0,0,1);
    else building(improvement,0,-.50,.64);
   }

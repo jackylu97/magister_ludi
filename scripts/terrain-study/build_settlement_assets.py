@@ -179,6 +179,8 @@ if '--monuments-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_monument_assets.py')),init_globals=globals());sys.exit(0)
 if '--northstar-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_assets.py')),init_globals=globals());sys.exit(0)
+if '--great-works-only' in sys.argv:
+ runpy.run_path(str(Path(__file__).with_name('build_northstar_great_works.py')),init_globals=globals());sys.exit(0)
 if '--animals-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_animals.py')),init_globals=globals());sys.exit(0)
 if '--city-only' in sys.argv:

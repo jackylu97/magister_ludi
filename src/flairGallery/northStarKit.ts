@@ -5,7 +5,7 @@ import {
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadSettlementAssets } from '../terrainStudy/settlementAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
-import { NORTH_STAR_HERDS, NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
+import { NORTH_STAR_GREAT_WORKS, NORTH_STAR_HERDS, NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadVegetation, VEGETATION_SPECIES } from '../terrainStudy/vegetation.js';
 import { controls, element, slider } from './sheet';
@@ -17,7 +17,8 @@ import { controls, element, slider } from './sheet';
  * three monuments, and the mountains with the saddle of each
  * (`scripts/terrain-study/build_crag_mountains.py`). Each stands at its authored
  * size under a soft light, with no terrain, so a shape can be judged by itself.
- * Then the animals of the herds (`build_northstar_animals.py`).
+ * Then the animals of the herds (`build_northstar_animals.py`) and the six
+ * works of the great people (`build_northstar_great_works.py`).
  * A mountain is drawn as the board draws it, on grass: its ledges take the
  * grass's colour. The table is seen from the south at a turn of 0, which is the
  * side a mountain shows on the board. A new model of this look is
@@ -42,6 +43,8 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = [
     ['Herds', ['horses', 'cattle', 'deer'].flatMap(herd => (NORTH_STAR_HERDS as Record<string, string[]>)[herd] ?? [])] as const,
     ['More animals', ['bison', 'camels', 'ivory'].flatMap(herd => (NORTH_STAR_HERDS as Record<string, string[]>)[herd] ?? [])] as const,
   ] : []),
+  // The six works of the great people (`build_northstar_great_works.py`).
+  ...(Object.keys(NORTH_STAR_GREAT_WORKS as Record<string, string>).length ? [['Great works', Object.values(NORTH_STAR_GREAT_WORKS as Record<string, string>)] as const] : []),
   ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails', 'ns-sheaf', 'ns-logs', 'ns-stall']],
 ];
 

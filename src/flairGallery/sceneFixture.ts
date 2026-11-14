@@ -47,6 +47,8 @@ export const SCENE_VIEWS = {
   town: { col: 3, row: 7, zoom: 9, label: 'The capital, close' },
   townEast: { col: 15, row: 6, zoom: 9, label: 'The eastern town, close' },
   hamlet: { col: 9, row: 11, zoom: 9, label: 'The hamlet, close' },
+  greatWorks: { col: 3, row: 4, zoom: 3.6, label: 'The six works of the great people' },
+  greatWorksClose: { col: 2, row: 3, zoom: 9, label: 'The six works of the great people, close' },
   pasture: { col: 13, row: 10, zoom: 9, label: 'The horse pasture, close' },
   herds: { col: 12, row: 8, zoom: 3.6, label: 'Herds: horses, cattle, camels, bison, elephants' },
   works: { col: 15, row: 10, zoom: 3.6, label: 'Farms, a mine and a quarry' },
@@ -156,6 +158,8 @@ export function createSceneFixture(age?: number) {
     // A farm on the shore, for the `port` view.
     [18, 16, 'farm'],
     [13, 11, 'pasture'], [10, 10, 'pasture'], [11, 5, 'camp'], [12, 5, 'camp'],
+    // The six works of the great people together, for the `greatWorks` views.
+    [1, 3, 'academy'], [3, 3, 'landmark'], [5, 3, 'manufactory'], [3, 5, 'customsHouse'], [2, 4, 'citadel'], [4, 4, 'holySite'],
   ];
   for (const [col, row, id] of works) tile(col, row).improvement = id;
 
@@ -198,6 +202,8 @@ export function createSceneFixture(age?: number) {
     [10, 13, 'warrior', 0], [11, 13, 'spearman', 0], [12, 13, 'archer', 1], [13, 13, 'horseman', 1],
     [14, 13, 'catapult', 1], [12, 14, 'settler', 1], [13, 14, 'worker', 1], [14, 14, 'trader', 1],
     [15, 14, 'prophet', 1], [16, 14, 'scout', 1], [20, 12, 'trireme', 1], [20, 14, 'galley', 1],
+    // A piece on the landmark's hex and one in the citadel's court, to show that each leaves room.
+    [3, 3, 'spearman', 0], [2, 4, 'warrior', 0],
   ];
   for (const [col, row, type, seat] of pieces) createUnit(state, seat, type, col, row);
 
