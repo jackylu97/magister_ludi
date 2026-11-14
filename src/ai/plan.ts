@@ -988,8 +988,8 @@ interface PlanMemo {
   seats: Map<number, Set<number>>;
   /** Per node, what its renewals and reveals would pay this empire's towns. */
   renewals: Map<TechId, RenewalFold>;
-  /** Per town, the charges the spades already on the board will spend near it. */
-  spades: Map<number, number> | null;
+  /** The remaining charges of every spade of this seat on the board (batch BP8). */
+  spades: number | null;
   /**
    * Batch X1e's three: the tree walked once (`reachableTechs`), the board it
    * would be read against (`siteGround`), and per hex the improvements a
@@ -1005,6 +1005,8 @@ interface PlanMemo {
   /** The real board's economy clock when `siteGround` was built. */
   siteGroundEconomy: number;
   ground: Map<number, readonly HexPromise[]>;
+  /** Every hex a citizen of this seat works or will work next (`empireSeats`). */
+  empireSeats: Set<number> | null;
   /** The last plan built on this context, and what it was built on. */
   plan: { state: GameState; playerId: number; economy: number; plan: ImprovementPlan } | null;
 }
@@ -1022,6 +1024,7 @@ function memoOf(ctx: ValueContext): PlanMemo {
     siteGround: null,
     siteGroundEconomy: -1,
     ground: new Map(),
+    empireSeats: null,
     plan: null,
   };
   MEMOS.set(ctx, fresh);
@@ -1040,39 +1043,40 @@ function bagOfTileYield(delta: TileYield): YieldBag {
 // --- what the three decisions ask of it -------------------------------------
 
 /**
- * **What one more spade would actually lay for this town** — and therefore how
- * badly it wants one.
+ * **What one more spade would actually lay, raised in this town** — and
+ * therefore how badly the town wants one.
  *
  * The ruling of 2026-09-09, in the user's own words: *"the value of a worker
  * should be the yields of the top improvable tiles based on the number of workers
  * it has"*, and *"workers early is fine, as long as those tiles will be worked"*.
- * Four clauses, and each of them is a thing this fold used to get wrong:
+ * Bot pass 3 (batch BP8; `docs/flags.md` (ooooooo) P6: *"a worker priced by the
+ * improvements waiting"*, the page's *"the yield of the hexes it would improve in
+ * the next 20 turns"*) made the ground the empire's and bounded the walk:
  *
  *   · **the entries it would lay, not a ranked window.** A worker is `charges`
  *     spades in a box (`UnitDef.charges`, three for a Worker) and each row costs
  *     `ImprovementDef.chargeCost`, so what one more of them is worth is the best
- *     entries its charges actually buy. `workers.planTopN` × `planFalloff` was a
- *     decay over rank standing in for that count; **`planFalloff` is retired**,
- *     because a decay over rank is not a real thing and the count is;
+ *     entries its charges actually buy;
  *   · **on ground somebody will stand on.** An entry counts only on a hex a
- *     citizen of this town works, or one of the next few it would work — the
- *     town's own ranking of its assignable hexes, `population + 2` deep (see
- *     `citizenSeats`). Before this, a size-2 town with eight farmable hexes read
- *     eight entries and craved spades for ground nobody would stand on for
- *     twenty turns (the one-game read of 2026-09-09);
- *   · **at the turn it lands.** The tile pays once the farm is on it, and getting
- *     there is a walk and a turn with a spade in the ground — sequential, because
- *     one worker digs one hex at a time. Each entry is discounted by `delayTerm`
- *     at its own landing turn, and an entry past the horizon is worth nothing and
- *     ends the fold;
- *   · **less what the spades already out will reach.** Each existing worker of
- *     this empire is attributed to the town nearest it and its **remaining**
- *     charges (`Unit.chargesLeft`) come off the front of that town's list, so the
- *     second worker is priced against the ground the first has not got to.
+ *     citizen of one of this seat's towns works, or one of the next few that town
+ *     would work (`citizenSeats`, `population + 2` deep). Before batch BP8 only
+ *     this town's own hexes counted, so a new town that could not raise a worker
+ *     soon had its bare hexes priced by nobody;
+ *   · **less what the spades already out, and the ones queued, will lay.** The
+ *     remaining charges of every spade of this seat (`Unit.chargesLeft`), and the
+ *     charges of a spade queued in another of its towns, come off the front of
+ *     the empire's list, which is best first. Before batch BP8 each spade was
+ *     charged to the town nearest it, so one worker standing by a town talked
+ *     that town out of a second while ground elsewhere waited, and two towns
+ *     could queue a spade each for the same ground;
+ *   · **inside the next `workers.waitingTurns` turns, at the turn it lands.** The
+ *     spade walks out of this town and digs one hex at a time; a hex it would
+ *     reach past the bound is not one it lays. Each entry is discounted by
+ *     `delayTerm` at its own landing turn.
  *
- * The whole point is still that it moves: a capital ringed by unploughed wheat
- * its citizens will work craves spades, and a hamlet whose two worked hexes are
- * finished does not.
+ * The whole point is still that it moves: an empire whose worked hexes wait for
+ * a spade craves one in the town nearest them, and an empire whose spades
+ * already have the ground covered does not.
  */
 export function explainWorkerCraving(
   plan: ImprovementPlan,
@@ -1085,14 +1089,15 @@ export function explainWorkerCraving(
   if (!centre) return appraise([]);
   const def = unitDef(spade);
   const here = tileHex(centre);
-  const seats = citizenSeats(state, city, ctx);
+  const seats = empireSeats(state, ctx);
   const stride = Math.max(1, def.movement);
+  const bound = Math.max(1, ctx.ai.workers.waitingTurns);
   const terms: ValueTerm[] = [];
 
   let charges = Math.max(1, def.charges ?? 1);
-  // What the spades already on the board will have taken by the time this one is
-  // standing. Counted off the front of the same ranked list, because that is the
-  // order they will take them in.
+  // What the spades already on the board, and the ones queued in other towns,
+  // will have taken by the time this one is standing. Counted off the front of
+  // the same ranked list, because that is the order they will take them in.
   let spoken = spokenFor(state, city, ctx);
   let clock = 0;
   let from = here;
@@ -1104,7 +1109,6 @@ export function explainWorkerCraving(
     if (!tile) continue;
     const at = tileIndex(state.map, entry.col, entry.row);
     if (!seats.has(at)) continue;
-    if (wrappedDistance(state.map, here, tileHex(tile)) > ctx.ai.workers.planRadius) continue;
     // A survey spends no charge at all (`prospectAt` takes the turn and nothing
     // else), which is why the cost is read off the row rather than assumed.
     const cost = entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
@@ -1116,11 +1120,13 @@ export function explainWorkerCraving(
     const step = wrappedDistance(state.map, from, tileHex(tile));
     // The walk, then the turn the spade spends with its hands in the ground: a
     // build takes the whole of a worker's movement (`buildImprovementAt`).
-    clock += Math.ceil(step / stride) + 1;
-    const discount = delayTerm(clock, ctx, 'the spade has to walk out and dig');
-    // The clock only ever runs forward, so the first entry past the horizon is
-    // the last entry there is.
-    if (discount.value <= 0) break;
+    const landing = clock + Math.ceil(step / stride) + 1;
+    // A hex it would reach past the bound is not one this spade lays; a nearer
+    // entry further down the list may still be.
+    if (landing > bound) continue;
+    const discount = delayTerm(landing, ctx, 'the spade has to walk out and dig');
+    if (discount.value <= 0) continue;
+    clock = landing;
     charges -= cost;
     from = tileHex(tile);
     terms.push({
@@ -1130,6 +1136,19 @@ export function explainWorkerCraving(
     });
   }
   return appraise(terms);
+}
+
+/** Every hex a citizen of this seat works or will work next, over all its towns. */
+function empireSeats(state: GameState, ctx: ValueContext): Set<number> {
+  const memo = memoOf(ctx);
+  if (memo.empireSeats !== null) return memo.empireSeats;
+  const seats = new Set<number>();
+  for (const town of state.cities) {
+    if (town.ownerId !== ctx.playerId) continue;
+    for (const at of citizenSeats(state, town, ctx)) seats.add(at);
+  }
+  memo.empireSeats = seats;
+  return seats;
 }
 
 /**
@@ -1165,43 +1184,42 @@ function citizenSeats(state: GameState, city: City, ctx: ValueContext): Set<numb
 }
 
 /**
- * **How much of this town's list the spades already out will have taken**, in
- * charges — `Unit.chargesLeft`, which is what a worker has left to give and not
- * what it was built with.
+ * **How much of the empire's list the spades already out, and the ones queued,
+ * will have taken**, in charges (batch BP8).
  *
- * Each spade is attributed to the town **nearest it**, ties by city id, which is
- * the crude half and is written down as crude: a worker standing in the capital's
- * ring is going to plough the capital's ring. Charging every town for every spade
- * would have one worker talk three towns out of wanting one, and charging none of
- * them is how an empire comes to hold six.
+ * Every spade of this seat on the board counts its **remaining** charges
+ * (`Unit.chargesLeft`), which is what it has left to give and not what it was
+ * built with. A spade queued in another of the seat's towns counts its row's
+ * charges, because it will stand soon and the ground it will take is not this
+ * one's to take; the asking town's own queue is the question being asked, so it
+ * does not count. The charges come off the front of the empire's list, best
+ * first, which is the stated crude half: a spade far from the best hexes takes
+ * them anyway on this reading.
  *
- * Taken once per sitting and read per town, `tileContextField`'s bargain: the
- * attribution is a fact about the board that every town's craving shares.
+ * The spades on the board are counted once per sitting; the queues are read on
+ * every ask, because a town choosing a spade in this sitting changes them.
  */
 function spokenFor(state: GameState, city: City, ctx: ValueContext): number {
   const memo = memoOf(ctx);
   if (memo.spades === null) {
-    const spades = new Map<number, number>();
+    let charges = 0;
     for (const unit of state.units) {
       if (unit.ownerId !== ctx.playerId) continue;
       if (!laysGround(unitDef(unit.type))) continue;
-      const standing = getTileAt(state.map, unit.col, unit.row);
-      if (!standing) continue;
-      const on = tileHex(standing);
-      let nearest: { id: number; distance: number } | null = null;
-      for (const town of state.cities) {
-        if (town.ownerId !== ctx.playerId) continue;
-        const centre = getTileAt(state.map, town.col, town.row);
-        if (!centre) continue;
-        const distance = wrappedDistance(state.map, tileHex(centre), on);
-        if (nearest === null || distance < nearest.distance) nearest = { id: town.id, distance };
-      }
-      if (nearest === null) continue;
-      spades.set(nearest.id, (spades.get(nearest.id) ?? 0) + chargesLeft(unit));
+      charges += chargesLeft(unit);
     }
-    memo.spades = spades;
+    memo.spades = charges;
   }
-  return memo.spades.get(city.id) ?? 0;
+  let queued = 0;
+  for (const town of state.cities) {
+    if (town.ownerId !== ctx.playerId || town.id === city.id) continue;
+    for (const item of town.queue) {
+      if (item.kind !== 'unit') continue;
+      const row = unitDef(item.id);
+      if (laysGround(row)) queued += Math.max(1, row.charges ?? 1);
+    }
+  }
+  return memo.spades + queued;
 }
 
 /**

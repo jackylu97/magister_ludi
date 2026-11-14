@@ -610,7 +610,7 @@ function purchasingPlan(
  * The origin town is where the price is *asked*, never who pays: the treasury
  * pays, which is `purchaseError`'s route clause one file over.
  */
-function routeWant(state: GameState, player: Player, ctx: ValueContext): Want | null {
+export function routeWant(state: GameState, player: Player, ctx: ValueContext): Want | null {
   const offer = ctx.routes.open;
   if (offer === null) return null;
   const worth = explainCaravan(ctx);

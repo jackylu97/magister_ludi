@@ -703,8 +703,11 @@ export function campCensus(state: GameState, wild: Player): CampCensus {
  * `unitEveryTurns`, shortened for a camp near the towns of an empire whose law
  * speeds it (Dominion batch D7, The Hunting Grounds). +50% faster is two thirds
  * of the wait, rounded to the nearest turn, and never less than one turn.
+ *
+ * Exported for the bot (batch BP8), which prices a camp by the raiders it
+ * sends and reads the cadence here rather than writing the rule a second time.
  */
-function campCadence(state: GameState, camp: BarbarianCamp): number {
+export function campCadence(state: GameState, camp: { col: number; row: number }): number {
   const cadence = Math.max(1, BARB.unitEveryTurns);
   const percent = campMusterPercent(state, camp);
   if (percent === 0) return cadence;

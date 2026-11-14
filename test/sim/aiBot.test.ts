@@ -613,7 +613,9 @@ describe('the bot defends itself', () => {
     // Batch BR1: a camp starts with its band, so its hex nearly always holds
     // a warden, and no piece can walk onto a hex an enemy stands on. The hunt
     // walks the piece to the free hex beside the camp, and the blow arm weighs
-    // the strike from there.
+    // the strike from there. Since batch BP8 the camp wants a force sized to
+    // its guard (`campForce`), so two more spare pieces stand by the town: the
+    // seat can make the force whole, and the first piece marches.
     const game = grownGame(12);
     const { map } = game.state;
     const city = firstCity(game.state, 0);
@@ -638,6 +640,13 @@ describe('the bot defends itself', () => {
     const { stand, campTile } = pair!;
     createUnit(game.state, 0, 'warrior', city.col, city.row);
     const free = createUnit(game.state, 0, 'warrior', stand.col, stand.row);
+    let helpers = 0;
+    for (const spot of tileNeighbors(map, home)) {
+      if (helpers >= 2 || spot === stand || spot === campTile || !empty(spot)) continue;
+      createUnit(game.state, 0, 'warrior', spot.col, spot.row);
+      helpers += 1;
+    }
+    expect(helpers).toBe(2);
     const camp = { col: campTile.col, row: campTile.row, foundedTurn: game.state.turn };
     game.state.camps.push(camp);
     const wild = game.state.players.find((other) => other.barbarian)!;
@@ -1423,6 +1432,10 @@ describe('the bot module', () => {
     // them in the file would be leaving two dials that turn nothing.
     const config = (await import('../../data/ai.json')).default;
     expect(Object.keys(config).sort()).toEqual([
+      // The camp hunt (bot batch BP8): the force a camp wants, the exchange a
+      // whole force strikes at, how far a piece walks to join one, and what a
+      // camp's raids and a blocked site cost the seat.
+      'camps',
       'driver',
       'expansion',
       'growth',

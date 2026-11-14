@@ -208,6 +208,8 @@ import {
   // Magisterial batch MG17: whether a person may act and then still lay its
   // work.
   actsBeforeWork,
+  // Bot batch BP8: what clearing a camp is worth to this seat.
+  explainCamp,
 } from './value';
 import {
   type YieldBag,
@@ -238,6 +240,8 @@ import {
   type WantInputs,
   meterPrices,
   purseOf,
+  // Bot batch BP8: the route row, read again after a hire (`nextRouteOffer`).
+  routeWant,
   shadowPrices,
   stepAsideFor,
   wantBook,
@@ -374,6 +378,7 @@ import {
   routeIsInternational,
   routeStartable,
   startRouteError,
+  usedRouteSlots,
 } from '../sim/trade';
 import {
   type UnitTypeId,
@@ -669,6 +674,13 @@ export interface BotSitting {
   readonly playerId: number;
   /** Built on first ask, and then read. Never invalidated inside a turn. */
   ctx: ValueContext | null;
+  /** The routes this seat had running when `ctx` was read (batch BP8, `nextRouteOffer`). */
+  ctxRoutes: number;
+  /**
+   * **The next route, read after a hire** (batch BP8): the running routes it was
+   * read at, and the want for the best pair the route outlook offers then.
+   */
+  routeOffer: { running: number; want: Want | null } | null;
   /**
    * How many times this seat has re-aimed its beeline so far this turn —
    * `driver.reaimsPerTurn`'s counter, and the sitting's second piece of memory.
@@ -718,13 +730,28 @@ export interface BotSitting {
    */
   reasked: Map<number, number>;
   /**
-   * The dug-in pieces `wakeTheCampaign` has already called back this turn.
+   * The dug-in pieces `wakeTheCampaign` has already called back this turn, and
+   * since batch BP8 the ones `wakeTheHunt` has asked.
    *
    * A march that cannot take its first step leaves the trench standing, so
    * without this the arm would give the same piece the same order again on
    * the next ask, for ever. Membership only; nothing iterates it.
    */
   called: Set<number>;
+  /**
+   * The sleeping workers `wakeIdleWorker` has already asked this turn (batch
+   * BP8). Membership only; nothing iterates it. A worker whose answer is to
+   * sleep on costs one ask a turn and no more.
+   */
+  roused: Set<number>;
+  /**
+   * **The camps the hunt is about this turn** (batch BP8, `wakeTheHunt`), read
+   * once at the first ask: the camps that are this seat's business whose force
+   * is short and can be made whole, and the camps whose force is whole. Only a
+   * pre-filter on who is asked again; the answer is still the soldier's arm on
+   * the live board.
+   */
+  hunt: { short: { col: number; row: number }[]; whole: { col: number; row: number }[] } | null;
   /**
    * The towns whose levy menu this seat has weighed this turn and found
    * nothing worth taking (`levyDecision`, the bot levy batch). Membership
@@ -758,10 +785,14 @@ export function botSitting(playerId: number): BotSitting {
   return {
     playerId,
     ctx: null,
+    ctxRoutes: 0,
+    routeOffer: null,
     reaims: 0,
     focused: new Set<number>(),
     reasked: new Map<number, number>(),
     called: new Set<number>(),
+    roused: new Set<number>(),
+    hunt: null,
     levyWeighed: new Set<number>(),
     books: null,
     booksRead: 0,
@@ -777,7 +808,12 @@ export function botSitting(playerId: number): BotSitting {
  */
 export function seatContext(state: GameState, player: Player, sitting?: BotSitting): ValueContext {
   if (sitting === undefined || sitting.playerId !== player.id) return valueContext(state, player);
-  if (sitting.ctx === null) sitting.ctx = valueContext(state, player, seatBooks(state, player, sitting));
+  if (sitting.ctx === null) {
+    sitting.ctx = valueContext(state, player, seatBooks(state, player, sitting));
+    // The routes the book was read at, so the spend arm can tell a route hired
+    // since (batch BP8, `nextRouteOffer`).
+    sitting.ctxRoutes = usedRouteSlots(state, player.id);
+  }
   return sitting.ctx;
 }
 
@@ -1693,10 +1729,19 @@ function housekeeping(
   const rousted = wakeIdleSettler(state, player, sitting);
   if (rousted !== null) return rousted;
 
+  // **A worker asleep while ground waits** (batch BP8, P6). See `wakeIdleWorker`.
+  const spade = wakeIdleWorker(state, player, sitting);
+  if (spade !== null) return spade;
+
   // **The campaign wakes its own army** — the trench's sibling of the arm above,
   // and the finding W1 could not have been built without. See `wakeTheCampaign`.
   const called = wakeTheCampaign(state, player, sitting);
   if (called !== null) return called;
+
+  // **The hunt wakes its own pieces** (batch BP8, P5): a dug-in soldier near a
+  // camp is asked again whether a force is gathering there. See `wakeTheHunt`.
+  const hunted = wakeTheHunt(state, player, sitting);
+  if (hunted !== null) return hunted;
 
   // **The march, re-asked** — the third arm of the same family (X7), and the
   // one that covers every piece the other two do not: a settler or a spade
@@ -2291,6 +2336,47 @@ function wakeIdleSettler(
 }
 
 /**
+ * **A worker asleep while ground waits**, or `null` (bot pass 3, batch BP8;
+ * `docs/flags.md` (ooooooo) P6: *"each cause of idle workers fixed"*).
+ *
+ * A worker with nothing in the plan it can reach sleeps (`standDown`), and a
+ * sleeping piece raises no `idleUnit`, so `firstBlocker` never names it again.
+ * `wakeSleepers` wakes a sleeper only when something new comes into its sight.
+ * So a worker that slept on a turn its town's ground was finished slept on
+ * while the town grew onto new hexes, the borders took more, or a technology
+ * opened a new improvement. Batch BP8's measurement found such workers asleep
+ * with a reachable plan entry waiting.
+ *
+ * `wakeIdleSettler`'s shape, for the spade: ask the worker's own arm
+ * (`workerCommand`) what it would do awake, and send that. It sends only an
+ * answer that is not another sleep, and asks each sleeping worker once a turn
+ * (`BotSitting.roused`), so a worker with nothing to do costs one ask a turn.
+ * A caller with no sitting of this seat's gets nothing, for `reaskTheMarch`'s
+ * reason.
+ */
+function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null) return null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id || unit.sleeping !== true) continue;
+    if (unit.movesLeft <= 0 || own.roused.has(unit.id)) continue;
+    if (!isPlainBuilder(unitDef(unit.type))) continue;
+    own.roused.add(unit.id);
+    const choice = workerCommand(state, player, unit, sitting);
+    if (choice === null || choice.command.type === 'sleepUnit' || choice.command.type === 'fortify') continue;
+    return {
+      kind: 'unitOrder',
+      command: choice.command,
+      subject: unitLabel(unit),
+      summary: `Rouses a sleeping worker — there is ground for it now. ${choice.summary}`,
+      candidates: choice.candidates,
+      focus: choice.focus ?? { col: unit.col, row: unit.row },
+    };
+  }
+  return null;
+}
+
+/**
  * **The campaign wakes its own army**, or `null` — one dug-in soldier of a seat
  * at war, asked whether the board has moved under it.
  *
@@ -2348,7 +2434,7 @@ function wakeTheCampaign(
     // audit of 2026-10-06, finding 1). The first call is kept because a piece
     // that *can* step should walk now, not at the end of the turn.
     if (own !== null && own.called.has(unit.id)) continue;
-    const choice = soldierCommand(state, player, unit);
+    const choice = soldierCommand(state, player, unit, sitting);
     if (choice === null) continue;
     if (choice.command.type !== 'moveUnit' && choice.command.type !== 'attack') continue;
     // A caller with no sitting cannot remember the call, so it gets the
@@ -2370,6 +2456,101 @@ function wakeTheCampaign(
     };
   }
   return null;
+}
+
+/**
+ * **The hunt wakes its own pieces**, or `null` (bot pass 3, batch BP8;
+ * `docs/flags.md` (ooooooo) P5).
+ *
+ * A trench is a standing order and `firstBlocker` never names a dug-in piece
+ * again (see `wakeTheCampaign`), so before this batch a soldier that dug in
+ * once, because no camp was worth a march that turn, stood there for the rest
+ * of the game while camps came and went beside it. On seed 42 at turn 60, one
+ * seat had 12 of its 13 soldiers dug in, eight of them a hex from a town, and
+ * had cleared no camp. And a piece holding at a camp's door for the rest of the
+ * force has to be asked again on the turn the force is whole, or it never
+ * strikes.
+ *
+ * So one dug-in or sleeping field soldier at a time is asked the soldier's
+ * questions again (`soldierCommand`), under three bounds:
+ *
+ *   · only while every town is held, only a piece that holds no town
+ *     (`isRedundant`), and only a piece within `camps.marchReach` of a camp
+ *     whose force is short and can be made whole, or beside a camp whose force
+ *     is whole (`huntCamps`, read once a sitting): the hunt's own guards, asked
+ *     before the dear part;
+ *   · **once a turn a piece** (`BotSitting.called`, which `wakeTheCampaign`
+ *     shares), marked before it is asked, so a piece whose answer is to stay
+ *     costs one ask and no more;
+ *   · **only a march or a blow is sent**, as in `wakeTheCampaign`: both break
+ *     the trench, and a piece that would only dig in again is left where it is.
+ *
+ * A caller with no sitting of this seat's gets nothing, for `reaskTheMarch`'s
+ * reason: without the bound the ask would repeat on every decision.
+ */
+function wakeTheHunt(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null || state.camps.length === 0) return null;
+  if (!townsAreHeld(state, player)) return null;
+  const reach = Math.max(1, aiFor(player).camps.marchReach);
+  own.hunt ??= huntCamps(state, player);
+  const hunt = own.hunt;
+  if (hunt.short.length === 0 && hunt.whole.length === 0) return null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    if (unit.fortifiedTurns === undefined && unit.sleeping !== true) continue;
+    if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
+    if (own.called.has(unit.id)) continue;
+    if (!isFieldSoldier(unitDef(unit.type))) continue;
+    const here = getTileAt(state.map, unit.col, unit.row);
+    if (!here) continue;
+    const from = tileHex(here);
+    // A piece in reach of a camp whose force is short may join it; a piece
+    // beside a camp whose force is whole may strike.
+    const within = (camps: readonly { col: number; row: number }[], hexes: number): boolean =>
+      camps.some((camp) => {
+        const tile = getTileAt(state.map, camp.col, camp.row);
+        return tile !== undefined && wrappedDistance(state.map, from, tileHex(tile)) <= hexes;
+      });
+    if (!within(hunt.short, reach) && !within(hunt.whole, 1)) continue;
+    if (!isRedundant(state, player, unit)) continue;
+    own.called.add(unit.id);
+    const choice = soldierCommand(state, player, unit, sitting);
+    if (choice === null) continue;
+    if (choice.command.type !== 'moveUnit' && choice.command.type !== 'attack') continue;
+    return {
+      kind: 'unitOrder',
+      command: choice.command,
+      subject: unitLabel(unit),
+      summary: `Calls a dug-in piece out for the hunt. ${choice.summary}`,
+      candidates: choice.candidates,
+      focus: choice.focus ?? { col: unit.col, row: unit.row },
+    };
+  }
+  return null;
+}
+
+/**
+ * The camps `wakeTheHunt` is about, read once a sitting (batch BP8): every camp
+ * within `military.campHuntRadius` of one of this seat's towns, sorted by its
+ * force (`campForce`) into the ones still short that the seat can make whole and
+ * the ones whose force is whole. A camp the seat cannot field a force for is in
+ * neither, and wakes nobody.
+ */
+function huntCamps(
+  state: GameState,
+  player: Player,
+): { short: { col: number; row: number }[]; whole: { col: number; row: number }[] } {
+  const ai = aiFor(player);
+  const short: { col: number; row: number }[] = [];
+  const whole: { col: number; row: number }[] = [];
+  for (const camp of state.camps) {
+    if (nearOwnCity(state, player, camp.col, camp.row, ai.military.campHuntRadius) === null) continue;
+    const force = campForce(state, player, camp, null);
+    if (force.others > 0 && force.others >= force.wanted) whole.push({ col: camp.col, row: camp.row });
+    else if (force.others + force.spare >= force.wanted) short.push({ col: camp.col, row: camp.row });
+  }
+  return { short, whole };
 }
 
 /**
@@ -3620,7 +3801,7 @@ function charterDeadline(
  */
 function spendCommand(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
   const ctx = seatContext(state, player, sitting);
-  const gold = bankSpend(state, player, ctx, 'gold');
+  const gold = bankSpend(state, player, ctx, 'gold', sitting);
   if (gold !== null) return gold;
   const faith = bankSpend(state, player, ctx, 'faith');
   if (faith !== null) return faith;
@@ -3630,6 +3811,37 @@ function spendCommand(state: GameState, player: Player, sitting?: BotSitting): B
   const culture = bankSpend(state, player, ctx, 'culture');
   if (culture !== null) return culture;
   return contributionCommand(state, player, ctx);
+}
+
+/**
+ * **The route the seat could hire next, once it has hired one this turn**, or
+ * `null` (bot pass 3, batch BP8; the P8 check of `docs/flags.md` (ooooooo)).
+ *
+ * The want book holds one route row, the best pair the route outlook found when
+ * the seat sat down (`routeWant`, `wants.ts`). The check found that after a seat
+ * hired that route, the book had no other route in it until the next turn, so a
+ * seat with several free slots and the gold for them hired one route a turn. So
+ * when the seat's running routes differ from the ones the book was read at
+ * (`BotSitting.ctxRoutes`), the route outlook is asked again (`routeOutlook`)
+ * and its best pair is offered beside the book, at the book's prices and against
+ * the book's bar. It is read once for each count of running routes in a sitting
+ * (`BotSitting.routeOffer`), so the cost is one route outlook a hire. A caller
+ * with no sitting of this seat's gets nothing.
+ */
+function nextRouteOffer(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  sitting?: BotSitting,
+): Want | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null || own.ctx === null) return null;
+  const running = usedRouteSlots(state, player.id);
+  if (running === own.ctxRoutes) return null;
+  if (own.routeOffer !== null && own.routeOffer.running === running) return own.routeOffer.want;
+  const want = routeWant(state, player, { ...ctx, routes: routeOutlook(state, player, ctx) });
+  own.routeOffer = { running, want };
+  return want;
 }
 
 /**
@@ -3662,6 +3874,7 @@ function bankSpend(
   player: Player,
   ctx: ValueContext,
   currency: BankCurrency,
+  sitting?: BotSitting,
 ): BotDecision | null {
   const wants =
     currency === 'gold' ? ctx.wants.gold : currency === 'faith' ? ctx.wants.faith : ctx.wants.culture;
@@ -3710,6 +3923,21 @@ function bankSpend(
     const candidate = wantCandidate(want, currency, false);
     candidates.push(candidate);
     offers.push({ want, candidate });
+  }
+  // **The next route, after a hire** (batch BP8). The book holds one route row,
+  // the best pair, so once the seat has hired it the book offers no second
+  // route until the next turn. See `nextRouteOffer`.
+  if (currency === 'gold') {
+    const next = nextRouteOffer(state, player, ctx, sitting);
+    if (next !== null && !next.outOfReach) {
+      if (purseOf(state, player, currency) - next.price < reserve) {
+        candidates.push(refused(next.label, `${reserve} ${currency} of cover would not survive the price`));
+      } else {
+        const candidate = wantCandidate(next, currency, false);
+        candidates.push(candidate);
+        offers.push({ want: next, candidate });
+      }
+    }
   }
 
   // **The rules are asked again at the moment of firing** — the other half of the
@@ -5028,9 +5256,10 @@ function push(
  * preferences rather than two settings of a cap.
  *
  * A **worker** is no longer flat: it is worth the entries its own charges would
- * lay on ground this town's citizens will stand on (`explainWorkerCraving` over
- * the improvement plan), so a capital ringed by unploughed wheat its people work
- * wants workers and a town whose worked hexes are finished stops. A **caravan** is still a flat figure multiplied by the gold
+ * lay on ground the empire's citizens will stand on, walking out of this town,
+ * less what the spades already out and queued will lay (`explainWorkerCraving`
+ * over the improvement plan, batch BP8), so an empire with unploughed wheat its
+ * people work wants workers and one whose worked hexes are covered stops. A **caravan** is still a flat figure multiplied by the gold
  * pressure: a broke empire builds trade, which is the one production decision
  * that answers a deficit directly. A **soldier** in an ungarrisoned town folds
  * `threat.garrisonValue`, which is what an empty town is worth defending.
@@ -5099,7 +5328,7 @@ function unitRoleValue(
     const craving = explainWorkerCraving(plan, state, city, ctx, id);
     return {
       value: craving.total,
-      terms: [nest('the ground around this town that is waiting for a spade', craving)],
+      terms: [nest('the ground of this empire that is waiting for a spade', craving)],
     };
   }
 
@@ -5710,8 +5939,8 @@ function unitCommand(
     if (def.prophesies === true) return prophetCommand(state, player, unit);
     if (def.proclaims === true) return apostleCommand(state, player, unit);
     if (isPlainBuilder(def)) return workerCommand(state, player, unit, sitting);
-    if (isExplorer(def)) return scoutCommand(state, player, unit);
-    if (isCombatant(def)) return soldierCommand(state, player, unit);
+    if (isExplorer(def)) return scoutCommand(state, player, unit, sitting);
+    if (isCombatant(def)) return soldierCommand(state, player, unit, sitting);
     if (def.greatWork === true) return greatPersonCommand(state, player, unit, sitting);
     return standDown(state, unit, 'Nothing this bot knows how to do with this piece.');
   })();
@@ -6775,7 +7004,7 @@ function workerCommand(
  * left to find, and a bot that re-issued it every turn forever would fill the
  * log with orders that do nothing.
  */
-function scoutCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function scoutCommand(state: GameState, player: Player, unit: Unit, sitting?: BotSitting): UnitChoice | null {
   if (unit.autoExplore !== true && autoExploreError(unit) === null) {
     const target = exploreTarget(state, unit);
     if (target !== null) {
@@ -6787,7 +7016,7 @@ function scoutCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
     }
   }
   // Nothing left to chart: a scout is a soldier with better boots.
-  return soldierCommand(state, player, unit);
+  return soldierCommand(state, player, unit, sitting);
 }
 
 /**
@@ -6819,7 +7048,12 @@ function scoutCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
  *     because a bowman with an enemy in sight has no business walking off to a
  *     camp — but a shot is always better than a step, so the blows come first.
  */
-function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function soldierCommand(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitChoice | null {
   const ai = aiFor(player);
   const resting = restAndHeal(state, player, unit);
   if (resting !== null) return resting;
@@ -6867,9 +7101,20 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   }
   // The wild's exchange is `military.wildAggression` (E1a); nought is the old
   // rule — dealt must beat taken, whatever the seat thinks of its neighbours.
+  // **A full force at a camp** (batch BP8, P5) takes the assault's exchange
+  // against the guard beside the camp, through the siege appetite's door: the
+  // next piece of the force finishes what this one starts. See `campAssault`.
   const blow = stays
     ? null
-    : favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, weighed);
+    : favourableBlow(
+        state,
+        player,
+        unit,
+        holdsWild,
+        ai.military.wildAggression,
+        weighed,
+        campAssault(state, player, unit),
+      );
   if (blow !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: blow.at },
@@ -6925,7 +7170,18 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: screen.at,
     };
   }
-  const camp = campMarch(state, player, unit);
+  const camp = campMarch(state, player, unit, sitting);
+  if (camp === 'hold') {
+    // **At a camp's door** (batch BP8): the piece is part of the force and holds
+    // there until the force is whole. Every town is held, so no town needs it.
+    const hold = standDown(
+      state,
+      unit,
+      'Holds at the door of a camp: it is part of the force there, and the blow was weighed above.',
+    );
+    if (hold !== null && weighed.length > 0) hold.candidates = [...weighed, ...hold.candidates];
+    return hold;
+  }
   if (camp !== null) {
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: camp.at },
@@ -7867,108 +8123,286 @@ function campDoor(state: GameState, unit: Unit, camp: Tile): Tile | 'here' | nul
 }
 
 /**
- * The camp this piece marches on, or `null` — **the camps near this empire's
- * towns, nearest-to-a-town first** (design addendum 2).
+ * The camp this piece marches on, `'hold'` when it stands at a camp's door and
+ * waits for the rest of the force, or `null`.
  *
- * The v0 hunted whatever camp was within `military.campHuntRadius` of *the
- * piece*, which made the hunt a fact about where a soldier happened to be
- * standing rather than about what was threatening the realm: a warrior that had
- * wandered chased a camp in the wild while a camp two hexes from the capital
- * spawned raiders all game. The radius is now measured from **any of this
- * empire's towns** (`nearOwnCity`), and the ordering is that distance first —
- * so a camp beside a border town outranks one at the edge of the reach, and a
- * camp beside nothing at all is not this bot's business.
+ * **Which camps are this seat's business** (design addendum 2): a camp within
+ * `military.campHuntRadius` of one of its towns (`nearOwnCity`). A camp beside
+ * nothing of ours is somebody else's problem. A piece walks at most
+ * `camps.marchReach` hexes to join a hunt.
  *
- * Marching *onto* a camp is how a camp is cleared — the arrival seam burns it
- * out (`arriveOnTile`), there is no verb for it — so this is a plain move order
- * and not an attack.
+ * **Which camp first** (bot pass 3, batch BP8; `docs/flags.md` (ooooooo) P5:
+ * *"camps ranked by what they cost the seat and what clearing pays"*): the camp
+ * worth most to this seat (`explainCamp`, `value.ts`: the bounty, the cards
+ * that pay on a camp cleared, a step toward an open commission, the raiders it
+ * sends at this seat and the site it closes to a settler), times the discount
+ * of the walk. Before this batch the hunt ranked camps by their distance to a
+ * town alone and read neither what a camp costs nor what clearing it pays.
  *
- * **A held camp is marched on to its door** (batch BR1). A camp now starts
- * with its band and keeps two guards, so its hex nearly always holds the
- * warden, and nobody can walk onto a hex an enemy stands on. When the camp
- * itself has no route, the piece walks to the free hex beside the camp nearest
- * to it. From there the blow arm (`favourableBlow` against the wild) weighs a
- * strike at the warden next turn by the seat's own exchange bar, and a melee
- * kill advances onto the camp and clears it. A piece already at the door is
- * not marched again: the blow arm has had its say this turn.
+ * **A force sized to the camp** (the same ruling: *"with a force sized to the
+ * camp"*). A lone warrior at the door of a dug-in warrior warden on open
+ * ground deals 26 and takes 35, so it never struck, dug in and was never asked
+ * again. Now
+ * the camp wants a force of `camps.forceMargin` times its guard's strength
+ * (`campForce`). A piece joins only a camp whose force is still short, and only
+ * when the seat's spare soldiers near the camp can make it whole. A piece at the
+ * door holds there until the force is whole; then every piece of it strikes at
+ * the assault's exchange (`campAssault`), and a melee kill advances onto the
+ * camp and clears it.
  *
- * **It never strips a threatened town.** Two guards, and they are two different
- * sentences: the empire's towns must all be held before anybody goes hunting
- * (`townsAreHeld`, the v0's rule and still right — a bot that emptied its
- * capital to chase raiders is how a bot loses a capital), *and* this particular
- * piece must not be the thing holding the town it is standing in
- * (`isRedundant`, the same reading the disband guard makes from the other end).
- * The first is about the empire, the second about the piece, and neither implies
- * the other.
+ * Marching *onto* a camp is how a camp is cleared: the arrival seam burns it
+ * out (`arriveOnTile`). A held camp is marched on to its door (batch BR1,
+ * `campDoor`), the free hex beside it nearest to the piece.
+ *
+ * **It never strips a threatened town.** The empire's towns must all be held
+ * before anybody goes hunting (`townsAreHeld`), and this piece must not be the
+ * thing holding the town it stands in (`isRedundant`). The page's "only when
+ * the seat's towns keep their floor of defenders" is these two guards.
  */
-function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+function campMarch(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitTarget | 'hold' | null {
+  if (state.camps.length === 0) return null;
   if (!townsAreHeld(state, player)) return null;
   if (!isRedundant(state, player, unit)) return null;
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const ai = aiFor(player);
   const from = tileHex(here);
-  const reachable: {
+  const reach = Math.max(1, ai.camps.marchReach);
+  const stride = Math.max(1, unitDef(unit.type).movement);
+  const ranked: {
     camp: { col: number; row: number };
-    toTown: number;
+    tile: Tile;
     distance: number;
+    toTown: number;
+    worth: Appraisal;
+    walk: ValueTerm;
+    score: number;
+    index: number;
   }[] = [];
+  let ctx: ValueContext | null = null;
   for (const camp of state.camps) {
     const tile = getTileAt(state.map, camp.col, camp.row);
     if (!tile) continue;
     const distance = wrappedDistance(state.map, from, tileHex(tile));
-    if (distance === 0 || distance > ai.military.campHuntRadius) continue;
-    // The camp has to threaten *something of ours*. `nearOwnCity` answers with
-    // the nearest town inside `threat.radius`; a camp with no town near it is
-    // somebody else's problem.
+    if (distance === 0 || distance > reach) continue;
+    // The camp has to threaten *something of ours*.
     const near = nearOwnCity(state, player, camp.col, camp.row, ai.military.campHuntRadius);
     if (near === null) continue;
-    reachable.push({ camp: { col: camp.col, row: camp.row }, toTown: near.distance, distance });
+    ctx ??= seatContext(state, player, sitting);
+    const worth = explainCamp(ctx, camp);
+    const walk = delayTerm(Math.ceil(distance / stride), ctx, 'the piece has to walk there');
+    ranked.push({
+      camp: { col: camp.col, row: camp.row },
+      tile,
+      distance,
+      toTown: near.distance,
+      worth,
+      walk,
+      score: worth.total * walk.value,
+      index: tileIndex(state.map, camp.col, camp.row),
+    });
   }
-  // Nearest to one of our towns first, then nearest to this piece, then map
-  // order — all three facts about the board rather than about the order a loop
-  // happened to visit `state.camps` in.
-  reachable.sort((a, b) => a.toTown - b.toTown || a.distance - b.distance);
+  // Worth most first, then nearest to this piece, then map order: all three
+  // facts about the board rather than about the order a loop visited the camps.
+  ranked.sort((a, b) => b.score - a.score || a.distance - b.distance || a.index - b.index);
+  // **At a camp's door, the piece holds** while that camp's force can still be
+  // made whole: it is part of the force, the blow arm above has had its say this
+  // turn, and walking off to another camp would leave this one short.
+  for (const entry of ranked) {
+    if (entry.distance !== 1) continue;
+    const force = campForce(state, player, entry.camp, unit);
+    if (force.others + force.self + force.spare >= force.wanted) return 'hold';
+  }
   const tried: BotCandidate[] = [];
-  for (const entry of reachable.slice(0, ai.search.pathProbes)) {
-    const tile = getTileAt(state.map, entry.camp.col, entry.camp.row)!;
+  for (const entry of ranked.slice(0, Math.max(1, ai.search.pathProbes))) {
     const label = `camp at (${entry.camp.col},${entry.camp.row})`;
-    // **The lowest score marches**: the key is hexes from the nearest of this
-    // empire's towns, so a camp beside a border town outranks one at the edge of
-    // the reach. A camp near nothing at all never reaches this list.
+    const force = campForce(state, player, entry.camp, unit);
     const terms: ValueTerm[] = [
-      { label: `${entry.toTown} hexes from the nearest town of ours`, value: entry.toTown },
-      { label: `(${entry.distance} hexes from this piece — the tie-break)`, value: 0 },
+      nest(`what clearing it is worth to this seat, a turn (${entry.toTown} hexes from a town of ours)`, entry.worth),
+      entry.walk,
+      {
+        label:
+          `(the force: ${round1(force.others)} strength of ours already there or marching, ` +
+          `${round1(force.wanted)} wanted against a guard of ${round1(force.guard)})`,
+        value: 0,
+      },
     ];
-    if (findPath(state, unit, tile) === null) {
-      const door = campDoor(state, unit, tile);
+    const score = foldTerms(terms);
+    if (entry.distance === 1) {
+      tried.push(refused(label, 'it stands at the door, and the force there cannot be made whole'));
+      continue;
+    }
+    if (force.others > 0 && force.others >= force.wanted) {
+      tried.push(refused(label, `the force there is whole already: ${round1(force.others)} of ${round1(force.wanted)}`));
+      continue;
+    }
+    if (force.others + force.self + force.spare < force.wanted) {
+      tried.push(
+        refused(
+          label,
+          `it wants a force of ${round1(force.wanted)} strength, and this seat can field ` +
+            `${round1(force.others + force.self + force.spare)} within ${reach} hexes of it`,
+        ),
+      );
+      continue;
+    }
+    if (findPath(state, unit, entry.tile) === null) {
+      const door = campDoor(state, unit, entry.tile);
       if (door === 'here') {
-        tried.push(refused(label, 'it stands at the door already, and the strike was weighed above'));
-        continue;
+        tried.push({ label, score, chosen: true, terms });
+        return 'hold';
       }
       if (door === null) {
         tried.push(refused(label, 'no route to it'));
         continue;
       }
-      tried.push({ label, score: entry.toTown, chosen: true, terms });
+      tried.push({ label, score, chosen: true, terms });
       return {
         at: { col: door.col, row: door.row },
         summary:
           `Marches on the camp at (${entry.camp.col},${entry.camp.row}), ${entry.toTown} hexes from one of its ` +
-          'towns, to its door: the camp is held, so its guard must be struck first.',
+          `towns and worth ${round1(entry.worth.total)} a turn to clear, to its door: the camp is held, ` +
+          'so its guard must be struck first.',
         candidates: tried,
       };
     }
-    tried.push({ label, score: entry.toTown, chosen: true, terms });
+    tried.push({ label, score, chosen: true, terms });
     return {
       at: entry.camp,
       summary:
         `Marches on the camp at (${entry.camp.col},${entry.camp.row}), ${entry.toTown} hexes from one of its ` +
-        'towns — every town is held and this piece is not the thing holding one.',
+        `towns and worth ${round1(entry.worth.total)} a turn to clear — every town is held and this piece ` +
+        'is not the thing holding one.',
       candidates: tried,
     };
   }
   return null;
+}
+
+/**
+ * **A camp's force, as this seat would field it** (batch BP8, P5): the
+ * strength the camp wants, the strength of ours already bound to it, this
+ * piece's own, and the spare strength near it that could still join.
+ *
+ * Strength is a piece's larger of its melee and ranged strength, times its
+ * health (`pieceStrength`), the measure the audit's army strength used.
+ *
+ *   · **The guard**: the wild's combat pieces within two hexes of the camp, the
+ *     strongest of them up to the camp's own guard count (`maxUnitsPerCamp`),
+ *     each at the wild's combat bonus. A raider passing by is not the camp's.
+ *     The force wanted is the guard times `camps.forceMargin`.
+ *   · **Bound to it** (`others`): this seat's field soldiers, other than the
+ *     asking piece, within two hexes of the camp or on a march that ends beside
+ *     it.
+ *   · **Spare**: this seat's other field soldiers within `camps.marchReach` of
+ *     the camp that are not standing in one of its towns. Some of them may be
+ *     bound to another camp; the count is an upper bound, which is all the
+ *     question "can the seat make the force whole" needs.
+ */
+interface CampForce {
+  guard: number;
+  wanted: number;
+  others: number;
+  self: number;
+  spare: number;
+}
+
+function campForce(
+  state: GameState,
+  player: Player,
+  camp: { col: number; row: number },
+  asking: Unit | null,
+): CampForce {
+  const ai = aiFor(player);
+  const force: CampForce = { guard: 0, wanted: 0, others: 0, self: 0, spare: 0 };
+  const tile = getTileAt(state.map, camp.col, camp.row);
+  if (!tile) return force;
+  const centre = tileHex(tile);
+  const towns = new Set<number>();
+  for (const city of state.cities) {
+    if (city.ownerId === player.id) towns.add(tileIndex(state.map, city.col, city.row));
+  }
+  const guards: number[] = [];
+  const reach = Math.max(1, ai.camps.marchReach);
+  for (const unit of state.units) {
+    const at = getTileAt(state.map, unit.col, unit.row);
+    if (!at) continue;
+    const distance = wrappedDistance(state.map, centre, tileHex(at));
+    if (playerById(state, unit.ownerId)?.barbarian === true) {
+      if (distance <= 2 && isCombatant(unitDef(unit.type))) {
+        guards.push(pieceStrength(state, unit, RULES.barbarians.combatBonus));
+      }
+      continue;
+    }
+    if (unit.ownerId !== player.id || !isFieldSoldier(unitDef(unit.type))) continue;
+    if (distance > reach) continue;
+    const strength = pieceStrength(state, unit, 0);
+    if (asking !== null && unit.id === asking.id) {
+      force.self = strength;
+      continue;
+    }
+    const end = marchEnd(unit);
+    const endTile = end === null ? undefined : getTileAt(state.map, end.col, end.row);
+    const bound =
+      distance <= 2 || (endTile !== undefined && wrappedDistance(state.map, centre, tileHex(endTile)) <= 1);
+    if (bound) {
+      force.others += strength;
+      continue;
+    }
+    if (towns.has(tileIndex(state.map, unit.col, unit.row))) continue;
+    force.spare += strength;
+  }
+  guards.sort((a, b) => b - a);
+  for (const strength of guards.slice(0, Math.max(1, RULES.barbarians.maxUnitsPerCamp))) force.guard += strength;
+  force.wanted = force.guard * Math.max(1, ai.camps.forceMargin);
+  return force;
+}
+
+/**
+ * A piece's fighting strength: its larger strength plus a flat bonus, times its
+ * health against its own maximum, the empire's figure included (`unitHealthBonus`).
+ */
+function pieceStrength(state: GameState, unit: Unit, bonus: number): number {
+  const def = unitDef(unit.type);
+  const base = Math.max(def.combatStrength, def.rangedStrength ?? 0) + bonus;
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
+  const health = Math.min(1, Math.max(0, unit.hp / Math.max(1, maxHp)));
+  return base * health;
+}
+
+/**
+ * **The assault's exchange at a camp whose force is whole** (batch BP8, P5),
+ * as the siege appetite's argument to `favourableBlow`, or `undefined`.
+ *
+ * When this piece stands beside a camp and the force of ours bound to it
+ * (this piece included) is at least what the camp wants (`campForce`), a blow
+ * on the warden or on a guard beside the camp takes `camps.assaultAppetite`:
+ * the next piece finishes what this one starts, so a first blow that deals
+ * somewhat less than it takes is worth striking. Anywhere else, and at a camp
+ * whose force is still short, the seat's own exchange stands.
+ */
+function campAssault(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+): { appetite: number; at: { col: number; row: number }; within: number } | undefined {
+  if (state.camps.length === 0) return undefined;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return undefined;
+  const from = tileHex(here);
+  for (const camp of state.camps) {
+    const tile = getTileAt(state.map, camp.col, camp.row);
+    if (!tile || wrappedDistance(state.map, from, tileHex(tile)) > 1) continue;
+    const force = campForce(state, player, camp, unit);
+    if (force.others + force.self < force.wanted) continue;
+    return { appetite: aiFor(player).camps.assaultAppetite, at: { col: camp.col, row: camp.row }, within: 1 };
+  }
+  return undefined;
 }
 
 /**

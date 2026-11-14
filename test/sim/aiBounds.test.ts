@@ -104,6 +104,10 @@ const INTEGER_LEAVES = [
   // charter's technology is researched within.
   'score.gameTurns',
   'research.charterTurns',
+  // Batch BP8: hexes a piece walks to join a camp's force, and the turns a new
+  // worker's craving looks ahead.
+  'camps.marchReach',
+  'workers.waitingTurns',
   'wager.ageTurns',
 ];
 

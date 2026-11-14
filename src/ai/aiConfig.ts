@@ -369,8 +369,20 @@ export interface AiConfig {
      * over rank was standing in for that count.
      */
     planTopN: number;
-    /** Hexes from a town an entry has to be inside to count toward its craving. */
+    /**
+     * Hexes from a town a bare bank counts as a walk away, in the chain's
+     * renewal step (`renewalSteps`, `chain.ts`). Since batch BP8 the worker's
+     * craving is bounded by `waitingTurns` instead.
+     */
     planRadius: number;
+    /**
+     * **How far ahead a new worker's craving looks**, in turns (batch BP8;
+     * `docs/flags.md` (ooooooo) P6, the page's *"the yield of the hexes it would
+     * improve in the next 20 turns"*). A hex a spade raised in this town would
+     * reach, walking and digging one hex at a time, later than this is not one
+     * it lays (`explainWorkerCraving`, `plan.ts`).
+     */
+    waitingTurns: number;
     /** How much a hex of walking discounts an entry: `value / (1 + d × this)`. */
     walkDiscount: number;
     /**
@@ -412,6 +424,48 @@ export interface AiConfig {
     smallCityPop: number[];
     /** What that premium is worth, in the one currency. */
     smallCityPremium: number;
+  };
+  /**
+   * **The camp hunt** (bot pass 3, batch BP8; `docs/flags.md` (ooooooo) P5:
+   * *"camps ranked by what they cost the seat and what clearing pays, with a
+   * force sized to the camp"*). The hunt itself is `campMarch` (`bot.ts`), the
+   * price of a camp is `explainCamp` (`value.ts`), and the force is `campForce`
+   * (`bot.ts`). `military.campHuntRadius` still says which camps are this seat's
+   * business: a camp that far from one of its towns.
+   */
+  camps: {
+    /**
+     * **How much stronger the force must be than the camp's guard**: the
+     * guard's strength (the wild's pieces beside the camp, at most the camp's
+     * own guard count) times this. Above one because the warden is dug in on
+     * the camp and the wild fights at a bonus; the margin stands for both
+     * rather than restating the combat ledger.
+     */
+    forceMargin: number;
+    /**
+     * **The exchange a piece of a full force takes against the camp's guard**,
+     * on the `aggression` scale: once the force beside a camp is as strong as
+     * the camp wants, a blow on the warden or a guard beside the camp needs to
+     * deal only `1 − this` of what it takes, because the next piece finishes
+     * what this one starts. It rides the siege appetite's door in
+     * `favourableBlow`, so the rule that a melee piece does not walk into a
+     * dug-in piece on ground that pays it still holds.
+     */
+    assaultAppetite: number;
+    /** **How far a piece walks to join a camp's force**, in hexes from the piece. */
+    marchReach: number;
+    /**
+     * **What one raid costs the seat**, as a share of the hammers of the best
+     * melee piece it could raise: the piece a raider kills, or the piece the
+     * seat trains to meet it. The camp's price reads it once a raider cadence.
+     */
+    raidLoss: number;
+    /**
+     * **What a camp beside the expansion chain's site costs**, as a share of
+     * the next town's worth, spread over the horizon. A settler does not walk to
+     * a site with the wild beside it and nothing of ours with it.
+     */
+    siteShare: number;
   };
   military: {
     campHuntRadius: number;

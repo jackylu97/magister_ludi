@@ -352,6 +352,9 @@ import {
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
 import { levyHammers, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
+// Bot batch BP8: a camp is priced by the raiders it sends, at the wild's own
+// muster cadence.
+import { campCadence } from '../sim/barbarians';
 // Expansionist batch E13: The Burghers' faster guild bar is priced off the
 // simulation's own reading of a town's bar, its share cap and its trades.
 import { explainGuildInflow, idleCitizens, nextGuildFamily } from '../sim/guilds';
@@ -6735,6 +6738,141 @@ export function researchPullTerm(ctx: ValueContext, road: readonly TechId[]): Va
   const steps: CommissionStep[] = [{ occasion: 'techCompleted', count: road.length, techs: road }];
   if (charters > 0) steps.push({ occasion: 'charterTechCompleted', count: charters, techs: road });
   return pullOfSteps(ctx, steps);
+}
+
+/** One appraisal a camp, by its tile index, for the life of a context. */
+const CAMP_MEMO = new WeakMap<ValueContext, Map<number, Appraisal>>();
+
+/**
+ * **What clearing one camp is worth to this seat, a turn** (bot pass 3, batch
+ * BP8; `docs/flags.md` (ooooooo) P5: *"camps ranked by what they cost the seat
+ * and what clearing pays"*). The camp hunt (`campMarch`, `bot.ts`) ranks the
+ * camps near the seat's towns by this figure, discounted by the walk. Before
+ * this batch it ranked them by distance alone.
+ *
+ * Five lines, each a reading the bot already makes elsewhere:
+ *
+ *   · **the bounty**: the camp's gold and food (`campClearGold`,
+ *     `campClearFood`), scaled by the seat's live riders that scale a camp's
+ *     payout, as `settleCampBounty` scales them. It is paid once, so it takes
+ *     the lump exchange (`explainLump`);
+ *   · **what the seat's cards pay on a camp cleared**: each live rider on the
+ *     `camp` moment, one firing (`windfallGrantWorth`), through the lump
+ *     exchange (`firingPerTurn`), as a single firing beside a rate is read
+ *     since batch BP4;
+ *   · **a step toward an open commission** that counts camps cleared
+ *     (`commissionPullTerm`). BP6 left this pull for this batch;
+ *   · **the raiders it sends at this seat**: a camp with its guards musters a
+ *     raider once a cadence (`campCadence`, `barbarians.ts`), and a raider
+ *     marches on the nearest town of a real empire. So a camp whose nearest
+ *     such town is this seat's costs it one raid a cadence. A raid is priced at
+ *     `camps.raidLoss` of the hammers of the best melee piece the seat could
+ *     raise (`bestMeleeFor`): the piece it loses, or the piece it trains to meet
+ *     the raider. A camp nearer another empire's town raids that empire, and
+ *     reads nought here;
+ *   · **the ground it closes to a settler**: when the site the expansion chain
+ *     names lies inside the camp's guard ring (`campUnitRadius`),
+ *     `camps.siteShare` of the town's worth, spread over the horizon. A settler
+ *     does not walk to a site with a raider near it and nothing of ours beside
+ *     it.
+ *
+ * Remembered on the context, one entry a camp, because the hunt asks it for
+ * every camp for every soldier it weighs.
+ */
+export function explainCamp(ctx: ValueContext, camp: { col: number; row: number }): Appraisal {
+  const memo = onContext(CAMP_MEMO, ctx, () => new Map<number, Appraisal>());
+  const key = tileIndex(ctx.state.map, camp.col, camp.row);
+  const held = memo.get(key);
+  if (held !== undefined) return held;
+  const reading = readCamp(ctx, camp);
+  memo.set(key, reading);
+  return reading;
+}
+
+function readCamp(ctx: ValueContext, camp: { col: number; row: number }): Appraisal {
+  const state = ctx.state;
+  const rules = RULES.barbarians;
+  const terms: ValueTerm[] = [];
+
+  // The riders on a cleared camp: a percentage scales the camp's own payout,
+  // and a grant is a voice the camp never pays.
+  let percent = 0;
+  const grants: ValueTerm[] = [];
+  for (const { effect } of effectsOfKind(state, ctx.playerId, 'windfallRider')) {
+    if (effect.occasion !== 'camp') continue;
+    if (effect.percent !== undefined) percent += effect.percent;
+    if (effect.grant === undefined) continue;
+    let each = firingPerTurn(windfallGrantWorth(effect.grant, ctx, 'camp', effect.inTown), ctx);
+    if (effect.perAge === true) each *= Math.max(1, ctx.age);
+    if (effect.perSlottedOrder === true) each *= slottedOrderCount(ctx);
+    if (each !== 0) grants.push({ label: 'a card that pays when a camp is cleared', value: each });
+  }
+  const scale = Math.max(0, 100 + percent) / 100;
+  terms.push(
+    nest(
+      `the bounty, ${round(rules.campClearGold * scale)} gold and ${round(rules.campClearFood * scale)} food, paid once`,
+      explainLump({ gold: rules.campClearGold * scale, food: rules.campClearFood * scale }, ctx),
+    ),
+  );
+  if (grants.length > 0) terms.push(nest('what this seat’s cards pay when it clears a camp', appraise(grants)));
+
+  const pull = commissionPullTerm(ctx, { occasion: 'campCleared', count: 1 });
+  if (pull !== null) terms.push(pull);
+
+  // The raids: a raider marches on the nearest town of a real empire.
+  const centre = getTileAt(state.map, camp.col, camp.row);
+  if (centre !== undefined) {
+    const here = tileHex(centre);
+    let ours = Number.POSITIVE_INFINITY;
+    let theirs = Number.POSITIVE_INFINITY;
+    for (const city of state.cities) {
+      const owner = playerById(state, city.ownerId);
+      if (owner === undefined || owner.barbarian === true) continue;
+      const tile = getTileAt(state.map, city.col, city.row);
+      if (tile === undefined) continue;
+      const distance = wrappedDistance(state.map, here, tileHex(tile));
+      if (city.ownerId === ctx.playerId) ours = Math.min(ours, distance);
+      else theirs = Math.min(theirs, distance);
+    }
+    const melee = bestMeleeFor(state, ctx.playerId);
+    if (ours <= theirs && melee !== null) {
+      const cadence = campCadence(state, camp);
+      const hammers = unitProductionCost(state, ctx.playerId, melee) * Math.max(0, ctx.ai.camps.raidLoss);
+      terms.push(
+        nest(
+          `the raiders it sends at this seat: its nearest town of a real empire is ours, ${ours} hexes off`,
+          appraise([
+            nest(
+              `one raid costs ${round(hammers)} hammers of ${unitDef(melee).name}`,
+              explainYields({ production: hammers }, ctx),
+            ),
+            { label: `÷ ${cadence} turns between raiders`, value: cadence, op: 'div' },
+          ]),
+        ),
+      );
+    } else if (ours > theirs) {
+      terms.push({
+        label: `its raiders go to another empire's town first (${theirs} hexes off, ours ${ours})`,
+        value: 0,
+      });
+    }
+    // The ground a settler would found on, inside the guard's ring.
+    const chain = ctx.expansion;
+    if (chain !== null && chain.refused === null) {
+      const site = getTileAt(state.map, chain.site.tile.col, chain.site.tile.row);
+      if (site !== undefined && wrappedDistance(state.map, here, tileHex(site)) <= rules.campUnitRadius) {
+        const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+        const share = Math.max(0, ctx.ai.camps.siteShare);
+        terms.push({
+          label:
+            `the site at (${chain.site.tile.col},${chain.site.tile.row}) lies inside its guard ring: ` +
+            `${round(share)} of the next town's worth ${round(chain.payoff)}, over the ${horizon}-turn horizon`,
+          value: (chain.payoff * share) / horizon,
+        });
+      }
+    }
+  }
+  return appraise(terms);
 }
 
 /**

@@ -1184,10 +1184,18 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * one more Wildcard chair at the best card it would seat. Both pins matched on
  * the untouched tree before this batch. Duel `cfa6111d:359911` ->
  * `89f988df:326624`, standard `af0e32c5:1034066` -> `ea9d00e3:1043519`.
+ *
+ * Re-cut for bot batch BP8 (`docs/flags.md` (ooooooo), P5, P6 and the P8
+ * check). The bots rank camps by what they cost the seat and what clearing
+ * pays, send a force sized to the camp and call dug-in pieces out for it, price
+ * a worker by the empire's ground waiting for a spade and wake a sleeping
+ * worker, and offer the next route after a hire. No rule changed; both pins
+ * matched on the untouched tree before this batch. Duel `89f988df:326624` ->
+ * `ce93521f:331077`, standard `ea9d00e3:1043519` -> `855266fe:1048454`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '89f988df:326624',
-  standard: 'ea9d00e3:1043519',
+  duel: 'ce93521f:331077',
+  standard: '855266fe:1048454',
 };
 
 /**

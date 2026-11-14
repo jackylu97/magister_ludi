@@ -408,9 +408,9 @@ the item links):
 - **Not priced yet**: the cost of the work a goal needs that the seat would not do
   anyway (the forecast reads the seat's own pace, so a goal it does not work
   toward reads far away and near nothing), and the steps no arm above asks: a
-  camp cleared, a town taken, a war ended, a town converted, a rank earned, a
-  great person's work, the luxuries, the routes, the treasury, the worked hexes
-  and the council in order.
+  town taken, a war ended, a town converted, a rank earned, a great person's
+  work, the luxuries, the routes, the treasury, the worked hexes and the council
+  in order. A camp cleared is the camp hunt's since batch BP8 (`explainCamp`).
 
 **The smaller readings, the wonder rewards and the Forbidden City's chair** (bot
 pass 3, batch BP7; `docs/flags.md` (ooooooo) B10 and P9, both "as proposed on the
@@ -475,6 +475,79 @@ calls P9):
   Forbidden City) and so does a commission's `wildcardChairs` reward. A chair
   closed (Scutage) keeps the old stand-in. The slot arm fills the new chair as it
   fills any empty chair.
+
+**The camp hunt, the worker's price, the wake arms and the next route** (bot
+pass 3, batch BP8; `docs/flags.md` (ooooooo) P5, P6 and the P8 check; the audit
+is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 rows 5,
+6 and 8):
+
+- **What a camp is worth** (P5, `explainCamp`, `value.ts`), a turn, in five lines:
+  - the bounty (`campClearGold`, `campClearFood`), scaled by the seat's live riders
+    that scale a camp's payout, through the lump exchange;
+  - what the seat's live riders on the `camp` moment pay for one firing
+    (`windfallGrantWorth`, through `firingPerTurn`);
+  - a step toward an open commission that counts camps cleared
+    (`commissionPullTerm`, the pull BP6 left for this batch);
+  - the raiders it sends at this seat: when the seat holds the real town nearest
+    the camp, one raid every muster cadence (`campCadence`, `barbarians.ts`, now
+    exported), each at `camps.raidLoss` (1) of the hammers of the best melee piece
+    the seat could raise (`bestMeleeFor`). A camp nearer another empire's town
+    reads nought here;
+  - the site it closes to a settler: when the expansion chain's site is inside the
+    camp's guard ring (`campUnitRadius`), `camps.siteShare` (0.25) of the next
+    town's worth over the horizon.
+- **Which camp** (`campMarch`, `bot.ts`): a camp within
+  `military.campHuntRadius` of one of the seat's towns, and within
+  `camps.marchReach` (12) of the piece, ranked by its worth times the discount of
+  the walk. Before, the hunt ranked camps by their distance to a town alone.
+- **A force sized to the camp** (`campForce`). The guard is the wild's combat
+  pieces within two hexes of the camp, the strongest of them up to
+  `maxUnitsPerCamp`, each at the wild's combat bonus; the camp wants
+  `camps.forceMargin` (1.5) times it. Strength is a piece's larger strength times
+  its health against its own maximum, the empire's figure included. A piece joins a camp only while the seat's force bound to it (within
+  two hexes, or on a march that ends beside it) is short, and only when the seat's
+  spare field soldiers within reach can make it whole. A piece at the door holds
+  there while the force can still be made whole.
+- **The assault** (`campAssault`). When the force beside a camp is whole, a blow on
+  the warden or a guard beside it takes `camps.assaultAppetite` (0.5) through the
+  siege appetite's door in `favourableBlow`: the next piece finishes what this one
+  starts. The rule that a melee piece does not strike a dug-in piece on ground that
+  pays it still holds.
+- **The hunt wakes its pieces** (`wakeTheHunt`, housekeeping). A dug-in or sleeping
+  field soldier that holds no town, while every town is held, is asked the
+  soldier's questions again once a turn (`BotSitting.called`) when it is within
+  reach of a camp whose force is short and can be made whole, or beside a camp
+  whose force is whole. Only a march or a blow is sent. The camps are read once a
+  sitting (`BotSitting.hunt`, `huntCamps`). Before, a soldier that dug in once was
+  never asked again outside a war.
+- **The worker's price** (P6, `explainWorkerCraving`, `plan.ts`). The ground is the
+  empire's: an entry counts on a hex a citizen of any of the seat's towns works or
+  will work next (`empireSeats`). The remaining charges of every spade of the seat,
+  and the charges of a spade queued in another of its towns, come off the front of
+  the empire's list, best first (`spokenFor`). The spade walks out of the asking
+  town, and a hex it would reach later than `workers.waitingTurns` (20) turns is not
+  one it lays. Before, only the asking town's hexes counted, within
+  `workers.planRadius`, and each spade on the board was charged to the town nearest
+  it. `workers.planRadius` is still read by the chain's renewal step.
+- **A sleeping worker is asked again** (P6, `wakeIdleWorker`, housekeeping): once a
+  turn (`BotSitting.roused`), and the answer is sent unless it is another sleep. A
+  worker that slept when its ground was finished used to sleep on while the towns
+  grew onto new hexes.
+- **The next route after a hire** (the P8 check, `nextRouteOffer`, `bot.ts`). The
+  want book holds one route row, the best pair at sit-down, so a seat with free
+  slots and the gold for them hired one route a turn. When the seat's running
+  routes (`usedRouteSlots`) differ from the count the book was read at
+  (`BotSitting.ctxRoutes`), the route outlook is asked again (`routeOutlook`) and
+  its best pair is offered beside the book, at the book's prices and against its
+  bar, once for each count of running routes (`BotSitting.routeOffer`). The
+  sitting's context is still read once a turn, so a town founded during the turn
+  has no rows in the book until the next turn. Reading the context again after
+  every purchase, or after every founding and route hired, was measured and
+  dropped: the first made the bot buy less in a turn and the towns make less, and
+  the second spent about a third of a late turn on seed 42 reading contexts.
+- **New knobs**: `camps.forceMargin`, `camps.assaultAppetite`, `camps.marchReach`,
+  `camps.raidLoss`, `camps.siteShare` (a new block of `data/ai.json`) and
+  `workers.waitingTurns`, each with a row in `data/ai.bounds.json`.
 
 ## Personas and tuning
 

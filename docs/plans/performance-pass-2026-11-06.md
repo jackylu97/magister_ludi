@@ -1159,3 +1159,167 @@ These are not done.
 - The slow tier, by name: `aiDigest` (the pins above), `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers`, `religion`, `statecraft`, `cities`, `war`, `endgame` and `saveCheckpoints` passed. `aiCardStamp` passed on the tree before the last change (a met commission left out of the chair's bench), which no recorded game reached: the four seeds played the same games to turn 150 with and without it.
 - The shadow check (`test/vitest.shadow.config.ts`) passed on `forbiddenCityChair`, `aiWonderRewards`, `aiSmallReadings`, `aiSittingMemos`, `aiCardStamp`, `wonders` and `readings`.
 - The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+## Bot batch BP8: the camp hunt, the worker's price and the purchase check, 2026-11-14
+
+The rulings are `docs/flags.md` (ooooooo), P5, P6 and the bot side of P8, each "as proposed on the page" the item links (the proposal of 2026-11-12). They are rows 5, 6 and 8 of the ranked table in `docs/audit/bot-pass-3-competitiveness.md`, with the evidence in its sections 3.4, 3.5 and 3.7. P5 also takes the pull BP6 left: the commission step "a camp cleared". The page and the audit disagree on one point: the page says the count of workers "is a fixed target" today, but the code has priced a worker by the ground waiting for a spade since batch 4 (`explainWorkerCraving`). The batch followed the page's fix, and changed what that price reads. No rule of the game changed. The one change under `src/sim/` is that `campCadence` (`barbarians.ts`) is exported for the bot. Branch `decks` at `b7a87f7a`.
+
+### What the measurement found before the change
+
+The six-seat, two-deck game of BP6 and BP7, seeds 1, 7, 42, 999, 2026 and 31337, on the untouched tree. The probes are in the session's scratch folder (`bp8/`).
+
+- **The camps.** Every seed holds the 24 camps the rules allow at turns 50 and 100. The wild founds up to three camps every second turn while it holds fewer than `maxCamps`, so a camp cleared is replaced within two turns, and "camps standing" cannot fall while legal ground is left. What clearing changes is where the camps stand and how many raids a seat meets. The seats cleared 14 camps by turn 50 and 111 by turn 100, over 36 seats.
+- **Why so few.** The hunt ranked camps by distance alone and sent any free piece. A lone warrior at the door of a dug-in warrior warden on open ground deals 26 and takes 35, so it did not strike. It dug in, and a dug-in piece is never asked again outside a war (`wakeTheCampaign` is the only arm that wakes one). On seed 42 at turn 60 one seat had 12 of its 13 soldiers dug in, eight of them a hex from a town, and had cleared no camp.
+- **Idle workers** are rare on this tree: 43 of 5,343 worker-turns to turn 100 (0.8%), against the audit's 19% on its older tree. Each worker-turn was sorted by what the worker was told: built, walked, kept walking, slept, or nothing. The idle ones were asleep: 15 with a plan entry they could reach, 22 with nothing in the plan. A sleeping worker is never asked again (`firstBlocker` names no sleeping piece), and only `wakeSleepers` wakes it, on a new sighting.
+- **Too few workers.** 0.54 a town at turn 100, and 27% of worked hexes (406 of 1,517) bare with a legal improvement. In the build table on seed 1, the worker's row scored a median of 0.28 of the winner's where bare hexes waited; soldiers, palisades and walls won half of those tables. At least a quarter of those rows read nought, because each spade on the board was charged to the town nearest it, so one worker by a town talked that town out of a second while ground elsewhere waited.
+- **Workers lost.** The wild took 217 civilians by turn 100 (more than the 146 workers alive then). On seed 42 to turn 100 (read on an early version of this batch, with the camp hunt already changed), 30 of the 33 workers and settlers taken had been walking, most with a raider a hex away at the start of the turn and a soldier of ours one or two hexes off. The bot reads a soldier within `war.escortRadius` as cover, but the wild takes any civilian with no soldier on its own hex (`isUnguarded`).
+- **Walking.** Three quarters of worker-turns are a march ordered or a march carried on, against a quarter spent building.
+- **The purchase check (P8).** When each seat ended its turn, three cases were looked for where the purse covered a purchase above the bot's own reserve: a building at the front of a town founded in the last 15 turns that the town would take 8 turns or more to raise; a town with no soldier in it and a hostile piece within two hexes; a free route slot. For each case the bot's own book (the sitting's) and a book read fresh at that moment were asked what the spend arm would do, with the live gates the arm asks. Most cases were the bot holding toward a better want, holding its wage reserve, or a gate refusing the row. The faults were two, and both come from a book read once a turn: the want book holds one route row, the best pair, so after the seat hired it the next pair was not in the book until the next turn, and a seat with free slots hired one route a turn; and a town founded during the turn had no rows in the book, so an empty new town with the wild beside it was not bought a defender that turn. On a bench with two free slots and 5,000 gold, the untouched tree hires one route in the turn.
+
+### What the bot reads now
+
+- **A camp's worth** (`explainCamp`, `value.ts`): the bounty through the lump exchange, the cards that pay on a camp cleared, the commission pull, the raiders it sends at this seat (when the seat holds the real town nearest it, one raid every muster cadence at `camps.raidLoss` of the hammers of the best melee piece the seat could raise) and the site it closes to a settler. `campMarch` ranks camps by it, discounted by the walk.
+- **A force sized to the camp** (`campForce`): the camp wants `camps.forceMargin` (1.5) times its guard, and a piece joins only while the force is short and the seat's spare soldiers within `camps.marchReach` (12) can make it whole. A piece at the door holds there. Once the force beside a camp is whole, a blow on the guard takes `camps.assaultAppetite` (0.5) (`campAssault`).
+- **The hunt wakes its pieces** (`wakeTheHunt`): a dug-in or sleeping field soldier near a camp whose force is short and can be made whole, or beside a camp whose force is whole, is asked again once a turn; only a march or a blow is sent.
+- **The worker's price** (`explainWorkerCraving`, `plan.ts`): the ground of every town of the seat, less the charges of every spade on the board and of every spade queued in another town, inside `workers.waitingTurns` (20) turns of the asking town.
+- **A sleeping worker is asked again** once a turn (`wakeIdleWorker`).
+- **The next route after a hire** (`nextRouteOffer`): once the seat's running routes differ from the count its book was read at, the route outlook is asked again and its best pair is offered beside the book.
+- `docs/bot-priorities.md` has the readings in full.
+
+### Turn 100, over six seeds
+
+The same game to turn 100 on seeds 1, 7, 42, 999, 2026 and 31337, totals over the six seats. "Before" is the untouched tree, "after" this batch as it ships.
+
+| Seed | Version | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | Before | 50 | 277 | 1,435 | 1,479 | 327 | 757 | 444 | 241 |
+| 1 | After | 53 | 293 | 1,340 | 1,786 | 335 | 859 | 470 | 234 |
+| 7 | Before | 44 | 210 | 1,030 | 734 | 406 | 879 | 416 | 139 |
+| 7 | After | 44 | 226 | 1,119 | 1,182 | 327 | 893 | 461 | 201 |
+| 42 | Before | 34 | 180 | 657 | 558 | 274 | 459 | 289 | 60 |
+| 42 | After | 40 | 167 | 1,052 | 694 | 259 | 734 | 268 | 81 |
+| 999 | Before | 52 | 246 | 1,211 | 1,305 | 391 | 811 | 345 | 109 |
+| 999 | After | 45 | 188 | 931 | 949 | 518 | 930 | 283 | 103 |
+| 2026 | Before | 38 | 185 | 699 | 1,066 | 383 | 708 | 323 | 123 |
+| 2026 | After | 52 | 205 | 952 | 1,181 | 372 | 874 | 306 | 212 |
+| 31337 | Before | 51 | 267 | 1,461 | 2,345 | 600 | 1,082 | 497 | 262 |
+| 31337 | After | 42 | 217 | 1,024 | 881 | 209 | 682 | 300 | 250 |
+
+| Six seeds | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 269 | 1,365 | 6,493 | 7,487 | 2,381 | 4,696 | 2,314 | 934 |
+| After | 276 | 1,296 | 6,418 | 6,673 | 2,020 | 4,972 | 2,088 | 1,081 |
+| Change | +3% | −5% | −1% | −11% | −15% | +6% | −10% | +16% |
+
+The spread between seeds is wide, as in the batches before. Production rose on four seeds (1, 7, 42 and 2026, by 11% to 61%) and fell on two (999 by 27%, 31337 by 62%). Seed 31337's figure before is BP7's outlier (production rose 168% on that seed in BP7); without seed 31337, production is +13% and gold +2%.
+
+### The wild
+
+| | Camps standing, turn 50 | Turn 100 | Camps cleared, turn 50 | Turn 100 | Units lost to the wild, turn 50 | Turn 100 | Civilians the wild took, to turn 100 | Blows on a camp's warden, to turn 100 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 144 | 143 | 14 | 111 | 201 | 495 | 217 | 369 |
+| After | 144 | 144 | 21 | 145 | 219 | 535 | 184 | 726 |
+
+- The figures are summed over the six games (36 seats). Camps cleared by turn 100 rose on every seed (1: 18 to 26, 7: 23 to 26, 42: 16 to 17, 999: 15 to 17, 2026: 13 to 32, 31337: 26 to 27).
+- Camps standing do not move, for the rule reason above: the wild refills to 24.
+- Units lost to the wild rose 8% (on three seeds of six); the civilians it took fell 15%.
+
+### Workers
+
+| | Workers, turn 50 | Turn 100 | A town, turn 100 | Worker-turns to turn 100 | Idle | Share idle | Improvements built to turn 100 | Worked hexes bare with a legal improvement, turn 100 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Before | 50 | 146 | 0.54 | 5,343 | 43 | 0.8% | 1,306 | 406 of 1,517 (27%) |
+| After | 62 | 144 | 0.52 | 6,214 | 24 | 0.4% | 1,502 | 331 of 1,585 (21%) |
+
+Each cause of an idle worker the measurement found, and what was done:
+
+- **Asleep with ground it could reach** (15 worker-turns before): a sleeping worker is never asked again. `wakeIdleWorker` asks it once a turn. After: 2.
+- **Asleep with nothing in the plan** (22 before, 22 after): the plan held no entry for it. This is not a fault: there was no ground for it.
+- **The worker's price read nought** where bare hexes waited, in a quarter of the build tables on seed 1, because each spade on the board was charged to the town nearest it. The craving now reads the empire's ground less every spade's charges and the spades queued (`explainWorkerCraving`). Workers held at turn 100 did not rise (146 to 144), but more were raised early (50 to 62 at turn 50), improvements built to turn 100 rose 15% and the bare worked hexes fell from 27% to 21%.
+- **Not idle, but lost or slow, and not fixed**: the wild's thefts (217 civilians by turn 100 before, 184 after) and the walking (three quarters of worker-turns, before and after). See below.
+
+### The banks and the purchase check
+
+| | Turn | Gold banked, median (most) | Faith banked, median (most) | Gold spent | Bought with gold: pieces / buildings | Routes hired | Hexes bought | Bought with faith: pieces / buildings | Rites |
+|---|---|---|---|---:|---|---:|---:|---|---:|
+| Before | 50 | 72 (145) | 14 (111) | 6,765 | 93 / 0 | 4 | 19 | 0 / 0 | 74 |
+| Before | 100 | 426 (1,018) | 76 (331) | 73,607 | 437 / 127 | 171 | 33 | 45 / 1 | 313 |
+| Before | 150, seeds 42 and 999 | 1,235 (3,466) | 181 (612) | 114,032 | 292 / 208 | 184 | 13 | 54 / 14 | 285 |
+| After | 50 | 75 (141) | 16 (296) | 6,835 | 94 / 0 | 2 | 21 | 0 / 0 | 75 |
+| After | 100 | 390 (983) | 98 (746) | 72,246 | 365 / 129 | 171 | 36 | 64 / 0 | 347 |
+| After | 150, seeds 42 and 999 | 1,626 (8,749) | 92 (877) | 128,434 | 276 / 220 | 193 | 17 | 62 / 42 | 224 |
+
+The figures to a turn are counts over the games to that turn; the medians are over the 36 seats (12 at turn 150).
+
+**The purchase check**, at every seat's end of turn to turn 100 (3,600 seat-turns a tree), the three cases described above, and what the two books say at that moment (the first 40 cases a seed):
+
+| | A new town's building | A town with no soldier and the wild beside it | A free route slot | Held toward a better want | Held for the wage reserve | Refused by the rules | The sitting's book holds, a fresh one buys |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Before | 0 | 12 | 33 | 11 | 2 | 11 | 21 |
+| After | 6 | 32 | 35 | 19 | 22 | 11 | 21 |
+
+- In every case but the last column, the bot's own book says why it did not buy, and the reason is its rule: the purchase is worth less a coin than holding toward a dearer want or holding the wage reserve, or the rules refuse the row (a piece already in the town's hex, a pair already running, borders frozen). That is the comparison the spend arm makes.
+- **The empty town beside the wild.** After the batch, 32 such cases to turn 100 (12 before), and in 24 of them the bot's own book held: a soldier for the empty town was worth less a coin than the bar (a Palisade or a Swordsman saved for, the wage reserve), and the best row it could buy was often a Granary. A garrison leaves its town when it kills a piece next door and advances, and the book did not then rate a new defender above holding. Why that row reads so low was not traced. This is the page's own example of a purchase that should beat waiting, so it is open for the next batch.
+- The last column is the book read once a turn: routes (14 before, 13 after) and towns with no rows in the sitting's book (7 before, 8 after), which are towns founded later in the game, most likely during that turn (not fixed, above). One route fault is fixed: after a hire the next pair was not in the book, so a seat hired one route a turn (`nextRouteOffer`). On a bench with two free slots and 5,000 gold the untouched tree hires one route in the turn and this tree hires two. The check reads the sitting's book and not that offer, so it cannot tell how many of the 13 route cases after are offers the spend arm saw and held; the others have causes the check does not name (a pair or a price that moved during the turn).
+- To turn 100 the seats hired 171 routes before and after, and bought 494 things with gold against 564 before; gold income at turn 100 was 15% lower (2% without seed 31337).
+
+### What it costs
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 3.00 | 1.84 | 1.77 | 1.76 |
+| CPU seconds a turn | 3.32 | 2.06 | 2.07 | 2.06 |
+| Commands a turn | 153 | 111 | 110 | 105 |
+| Milliseconds a command | 19.6 | 16.5 | 16.1 | 16.8 |
+
+The two trees were played in one process, a turn on each in turn, with the two seeds at once and nothing else of this batch running. The new arms are cheap: in a CPU profile of turns 101 to 120 on seed 42 (an earlier version of the batch), the hunt's wake arm took 0.2 seconds in all, the camp forces 0.1 seconds, and the worker's arms about 0.6 seconds more than before. Seed 999's fall is play: its seats give fewer commands late. A version measured before the last fix (the force reading took the empire's health figure) gave 2.69 against 3.30 and 2.08 against 2.02 seconds a turn.
+
+Two versions of the P8 fix were measured and dropped for their cost. Reading the sitting's context again after every founding and every route hired took 6 contexts a turn and 0 to 7 more on seed 42 at turns 100 to 120, each 150 to 300 milliseconds: about a third of a late turn went into contexts, and that tree played turns 100 to 120 of seed 42 at 4.43 seconds a turn, against 1.67 for the untouched tree in the same process. Reading it again after every purchase was dropped for its play (below).
+
+### Tried and dropped
+
+Each was measured on an earlier version of this batch, on the six seeds to turn 100, and taken out. Totals over the six seats against the untouched tree:
+
+| Version | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| The book read again after every purchase | +6% | −11% | +2% | −13% | −6% | +7% | −1% | +5% |
+| A civilian's cover read as a soldier on its own hex, with the third row's reading | −12% | −9% | −8% | −22% | −7% | −14% | −15% | −2% |
+| This batch with the book read again at a founding and a route hired | +9% | +8% | +29% | +41% | +10% | +32% | +55% | +49% |
+
+- **The book read again after every purchase.** It fixes every stale-book case at once, but after each purchase the fresh book prices gold against the smaller purse, so the seat bought less in a turn (368 pieces bought with gold to turn 100, against 423 in the version without it) and fewer soldiers; production fell on five seeds of six against the same tree without it.
+- **A civilian's cover read as a soldier on its own hex** (the wild's own rule, `isUnguarded`). The wild took 183 civilians to turn 100, against 217 on the untouched tree and 189 on an earlier version of this batch without the change, while workers ran home far more often (worker marches 2,359 to 4,500 to turn 100) and built 21% fewer improvements than the untouched tree.
+- **The book read again at a founding and a route hired** played well (the third row; without seed 2026, where one seat ran away, the figures are +4% towns, +1% production and −3% science), and in it two games of six ended before turn 150 with the Opus (seed 42 at turn 133, seed 999 at turn 139). It was dropped for its cost (above). The version that ships offers the next route without reading the book again.
+
+### Pins at BP8
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `399a050d:815383` | `a7ddf102:837928` | `74f9a6c3:871041` | `778d5be5:906555` | `d85e3560:960547` | `ecc7feaa:1023061` |
+| Two decks, seed 42 | `a99a216a:817383` | `77c7b302:836308` | `eaa3d1e9:857299` | `a8be71df:889996` | `ac7f2fa1:935726` | `fbdafb23:982630` |
+
+`test/sim/aiDigest.slow.test.ts` pins duel `ce93521f:331077` and standard `855266fe:1048454`. Before the batch, the untouched tree gave the BP7 pins above at every turn from 20 to 120, and both digest pins (`89f988df:326624`, `ea9d00e3:1043519`).
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **Camps standing** stay at the cap. The wild refills to `maxCamps` within two turns of a camp cleared, so the page's measure "camps cleared" moves and "camps standing" cannot, while legal ground is left.
+- **Units lost to the wild** rose 8% to turn 100: more pieces fight at camps. The force and the assault exchange are knobs (`camps.forceMargin`, `camps.assaultAppetite`) for the parameter pass.
+- **The wild's thefts.** 184 civilians taken to turn 100, against 217. The bot still reads a soldier within `war.escortRadius` as a civilian's cover, where the rule needs a soldier on its own hex. Reading the rule's cover was tried and dropped (above); the next step is a guard that stands on the worker's hex, or work chosen away from the wild.
+- **Walking.** Three quarters of worker-turns are a march, before and after. `workers.walkDiscount` (0.12 a hex) is a knob for the parameter pass.
+- **Bare worked hexes** fell from 27% to 21% at turn 100; the page's target was under 10%. Workers held at turn 100 did not rise (146 to 144, 0.52 a town).
+- **The empty town beside the wild** (P8, above): the bot's book does not rate a new defender above holding in 24 of 32 cases. Not traced, not changed.
+- **A town founded during the turn** has no rows in the want book until the next turn (P8). The fix that reads the book again at a founding was measured and dropped for its cost (above), so this case stands.
+- **Late gold.** At turn 150 on seeds 42 and 999 the median seat banks 1,626 gold and the richest 8,749 (1,235 and 3,466 before), and in one dropped version a seat held 16,076 at turn 138. What a late treasury should buy is the rule question P8 left for the user.
+- **The endgame.** In the version that ships no game ends before turn 150 on seeds 42 and 999, and no seat holds Alchemy there at turn 150. In the dropped version that read the book again at a founding and a route hired, the Opus was finished at turns 133 and 139.
+- **The check after BP8.** `docs/flags.md` asks for the commands and the seconds a turn to be measured again after this batch. The table above is that measure for seeds 999 and 42; a run over more seeds is the orchestrator's.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- `test/sim/aiCampHunt.test.ts` (new, core, 13 tests): a camp's worth reads the bounty, and the raiders only of a camp whose nearest town is ours; the riders that scale the payout and pay on a camp cleared; the pull of an open commission that counts camps cleared. The force: no lone piece at a camp the seat cannot field a force for, a march once it can, the assault blow with the whole force beside the camp and none alone, a dug-in piece called out once a turn and none with no camp in reach. The worker: the empire's ground less every spade and every spade queued in another town, another town's bare hexes when the asking town's are finished, nothing past the look-ahead, a sleeping worker roused. The next route: two routes hired in one turn on a bench where the untouched tree hires one, and nothing beside the book while no route has been hired.
+- Tests reworked: `aiBot` (the door of a held camp gets two spare pieces, so the force can be whole; the sheet register names the `camps` block) and `aiBounds` (two new whole-number knobs).
+- Every core test that imports the bot, its sheet or the wild, or reads a source file (`import.meta.glob` or `readFileSync`): 252 files, 7,525 tests passed and 3 failed. One was the register in `resourceBonuses` (a reader of a piece's maximum health must pass the empire's figure; the new force reading did not, and now does). Two were load-order cases of `moduleCycles` that timed out at 30 seconds while other work on the machine held the load average at 15 to 21. After the fix the three files passed alone, and the ten bot files most touched (`aiBot`, `aiPersona`, `aiGarrison`, `aiAppraisal`, `aiWants`, `aiWar`, `aiCampHunt`, `aiBounds`, `aiRows`, `arenaPage`) passed again: 424 tests.
+- The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads`, `cityModifiers` and `barbarians` passed: 12 files, 41 tests.
+- The shadow check (`test/vitest.shadow.config.ts`) passed on `aiCampHunt` and `aiSittingMemos`.
+- The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.

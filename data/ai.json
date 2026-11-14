@@ -52,6 +52,7 @@
     ],
     "planTopN": 4,
     "planRadius": 4,
+    "waitingTurns": 20,
     "walkDiscount": 0.12,
     "workDefenseValue": 0.6
   },
@@ -63,6 +64,13 @@
       9
     ],
     "smallCityPremium": 9
+  },
+  "camps": {
+    "forceMargin": 1.5,
+    "assaultAppetite": 0.5,
+    "marchReach": 12,
+    "raidLoss": 1,
+    "siteShare": 0.25
   },
   "military": {
     "campHuntRadius": 7,
