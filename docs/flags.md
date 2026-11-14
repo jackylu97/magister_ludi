@@ -50,6 +50,12 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - Open for the user: the game now has two rules for a chair that closes. Scutage returns the card in the closed chair to the collection. The Forbidden City moves it to a free chair that fits, and returns it only if none does. They could agree.
   - Open: four seeds at turn 150 show science −22% and gold −28%. Split runs (B10 only, P9 only, no deadline) do not point at one part, and the untouched tree with a small knob change moved science −7%. A run over many more seeds is needed; it joins the check after BP8.
   - Not done: lost wonder races rose (the race term is P4, held); `docs/codex.md` is stale and was not regenerated; the chair's price by the walk differs from the stamp by up to a third.
+- **BP8's findings, 2026-11-14** (tables in `docs/plans/performance-pass-2026-11-06.md`). Bot pass 3's eight batches are all committed.
+  - Open: an empty town beside the wild often buys no defender (32 cases in six games to turn 100; in 24 the bot's own gold book held the coin, with a Granary as the best row). Not traced.
+  - Open: a town founded in the turn has no rows in the gold book until the next turn. Reading the book again at each founding fixed it and cost a third of a late turn, so it was dropped.
+  - Open: the wild takes any civilian with no soldier on its own hex, but the bot counts a soldier within 4 hexes as cover. Units lost to the wild rose 8%.
+  - Open: 21% of worked hexes with a legal improvement are still bare at turn 100 (the page's aim was under 10%), and three quarters of worker-turns are marches (`workers.walkDiscount`, for the parameter pass).
+  - For the user: the richest seat holds 8,749 gold at turn 150. What late gold should buy is a rule question.
 - **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 + P3 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
 
 **(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
