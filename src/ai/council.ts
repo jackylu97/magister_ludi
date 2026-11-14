@@ -26,6 +26,7 @@
 // function, so neither edge is read while the modules load.
 import { type BotSitting, seatContext } from './bot';
 import {
+  type Appraisal,
   type BotCandidate,
   type BotDecision,
   type ValueTerm,
@@ -42,6 +43,11 @@ import {
   // Bot batch BP3: the chair a stamped Order is read in on its stamp's board.
   cardStampChair,
   explainCardEffects,
+  // Bot batch BP6: what an offered Order adds to the Doctrines still to come,
+  // and what an open commission is worth for a turn of its chair.
+  explainCommissionChair,
+  explainDoctrineProgress,
+  explainEffects,
   onDraftWorth,
   // Batch DT11: what a card already pays with no chair, under Scutage.
   orderPaysOffItsChair,
@@ -52,6 +58,7 @@ import {
 } from './value';
 import { expectedBestOrder } from './wants';
 
+import { commissionProgress, commissionRewardWaits } from '../sim/commissions';
 import { discoveryDef } from '../sim/discoveryData';
 import { seatName } from '../sim/leaderData';
 import { readEmpireRates } from '../sim/readings';
@@ -214,7 +221,7 @@ function slotPairTerms(
   fits: number,
 ): ValueTerm[] {
   const scarcity = Math.max(1, fits);
-  const terms: ValueTerm[] = [nest('what the card is worth', explainCard(player, cardId, ctx))];
+  const terms: ValueTerm[] = [nest('what the card is worth', seatPrice(player, cardId, ctx))];
   // **A stamped card is read in a chair already** (bot batch BP3): its stamp is
   // the books with it seated against the books with it held and not seated. So
   // what it pays with no chair under Scutage is already out of that figure, and
@@ -233,6 +240,46 @@ function slotPairTerms(
     terms.push({ label: 'what this chair reads again', value: again * orderReadAgain(cardId, ctx) });
   }
   return terms;
+}
+
+/**
+ * **What one held card is worth in a chair**: its price (`explainCard`), or for
+ * an open commission its chair price (`explainCommissionChair`, bot batch BP6,
+ * `docs/flags.md` (ooooooo) B12). The three chair arms read it (`slotPairTerms`)
+ * and so does a new government's chair fill (`adoptionTable`).
+ *
+ * A commission pays nothing while it sits and its reward once, so a chair reads
+ * it as an investment: the reward over the turns of the chair it takes. No live
+ * commission carries effects of its own. If one did, they would be priced
+ * beside the chair price, by the walk.
+ */
+function seatPrice(player: Player, id: OrderId, ctx: ValueContext): Appraisal {
+  const chair = explainCommissionChair(id, ctx);
+  if (chair === null) return explainCard(player, id, ctx);
+  const own = orderDef(id).effects ?? [];
+  if (own.length === 0) return chair;
+  return appraise([nest('its own effects', explainEffects(own, ctx, id)), nest('what its goal pays for the chair', chair)]);
+}
+
+/**
+ * **Does a held commission wait off its chair with its goal met?** (bot batch
+ * BP6, B12.) A reached goal grows with no chair and is checked only while its
+ * card sits, so the card should take a chair on the turn the goal is met, not
+ * on the next turn the arrangement is looked at (`isReseatTurn`). Its chair
+ * price then reads the whole reward (`explainCommissionChair`), so the swap
+ * below finds it. One walk of the seat's few commissions, read off the board.
+ */
+function metCommissionWaits(state: GameState, player: Player, seatable: readonly OrderId[]): boolean {
+  const sc = player.statecraft;
+  for (const id of seatable) {
+    const spec = orderDef(id).commission;
+    if (spec === undefined || isSlotted(sc, id)) continue;
+    const parts = commissionProgress(state, player.id, id);
+    if (parts.length === 0 || !parts.every((part) => part.met)) continue;
+    if (commissionRewardWaits(state, player, spec)) continue;
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -290,6 +337,13 @@ function slotPairTerms(
  * in each seal's length, a different turn for each seat (`isReseatTurn`). A chair
  * left empty is filled on any turn (`slottingDecision`), and so is a chair that
  * counts twice (`moveToCountedChair`).
+ *
+ * **A met commission off its chair is looked for on any turn** (bot batch BP6,
+ * `docs/flags.md` (ooooooo) B12). A reached goal grows without a chair and is
+ * checked only while its card sits, so the turn the goal is met is the turn the
+ * card should sit. `metCommissionWaits` asks that of the seat's few
+ * commissions, and the chair price then reads the whole reward
+ * (`explainCommissionChair`), so the swap below finds it.
  */
 export function reslotDecision(
   state: GameState,
@@ -310,7 +364,9 @@ export function reslotDecision(
     fits.set(type, seatable.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
-  if (!isReseatTurn(state, player)) return moveToCountedChair(state, player, ctx, layout, fits, rows);
+  if (!isReseatTurn(state, player) && !metCommissionWaits(state, player, seatable)) {
+    return moveToCountedChair(state, player, ctx, layout, fits, rows);
+  }
   let best: { cardId: OrderId; slot: number; row: number; gain: number } | null = null;
 
   for (let slot = 0; slot < layout.length; slot++) {
@@ -555,7 +611,7 @@ export function adoptionTable(
       for (const ownedId of seatable) {
         if (spent.has(ownedId)) continue;
         if (!fit(ownedId, office.type)) continue;
-        const worth = scoreCard(player, ownedId, ctx);
+        const worth = seatPrice(player, ownedId, ctx).total;
         if (take === null || worth > take.worth) take = { id: ownedId, worth };
       }
       if (take === null) {
@@ -590,8 +646,8 @@ export function adoptionTable(
 
 /**
  * Which card of an Order draft this bot takes: **the best-scoring one**, in the
- * one currency, with a bonus for a card on a thread this empire is already
- * committed to.
+ * one currency. Since bot batch BP6 the deck adds only a tie-break and the
+ * progress toward the Doctrines still to come (`deckTerms`).
  *
  * This replaces the v0's label-counting, which could not tell +1💰 from +6💰
  * (see `scoreCard`). Ties go to the first index, which is draw order and
@@ -659,7 +715,7 @@ export function orderDecision(state: GameState, player: Player, sitting?: BotSit
     summary:
       taken === undefined
         ? 'Takes the first option: there is no card to read.'
-        : `Drafts ${cardName(taken)} — best of ${picked.candidates.length} on effects plus the threads it already holds.`,
+        : `Drafts ${cardName(taken)}, the best of ${picked.candidates.length} on what each would pay.`,
     candidates,
   };
 }
@@ -711,7 +767,8 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
     const held = scored.get(id);
     if (held !== undefined) return held;
     // A whole pool, so walked rather than stamped (bot batch BP3, `CardReading`).
-    const fresh = scoreCard(player, id, ctx, 'walk');
+    // Priced as the hand on the table is, with its deck terms (bot batch BP6).
+    const fresh = explainDraftCard(player, id, ctx, 'walk').total;
     scored.set(id, fresh);
     return fresh;
   };
@@ -954,7 +1011,8 @@ function pickCard(
   for (let index = 0; index < options.length; index++) {
     const id = options[index];
     if (id === undefined) continue;
-    const appraisal = explainCard(player, id, ctx);
+    // A draft: the card's own price and the two small deck terms (bot batch BP6).
+    const appraisal = explainDraftCard(player, id, ctx);
     const candidate: BotCandidate = {
       label: cardName(id),
       score: appraisal.total,
@@ -975,33 +1033,23 @@ function pickCard(
 // --- what one card is worth to the seat -------------------------------------
 
 /**
- * How much this bot likes one card: what its effects are worth in the one
- * currency, plus **a synergy bonus per card it already holds on the same
- * thread**.
+ * How much this bot likes one card: **what it pays this empire**, in the one
+ * currency.
  *
- * The valuation is `scoreEffects` (`value.ts`), which reads magnitudes off the
- * row rather than counting labels — the v0 preferred a card with three tiny
- * effects to one with a single enormous one, because all it could see was how
- * many effects wore a `kind` it liked.
+ * The valuation is `explainCardEffects` (`value.ts`), which reads magnitudes off
+ * the row rather than counting labels. Since bot batch BP3 the effects term is
+ * the card's stamp, the sim's own reading of the empire's books with the card
+ * in place, plus what a stamp cannot see (`CardReading`).
  *
- * The **synergy** term is the half that makes a bot play a deck rather than
- * graze one, and since D1b it reads the **deck** rather than the line. The
- * thread (`CardDefBase.line` — hunt, caravan, forge, cloister) was the
- * designer's grouping and nothing in the simulation switched on it, which was
- * precisely what made it safe for a *reader* to; but the fifteen threads are a
- * closed union with a mark and a stylesheet cut apiece, and the six decks'
- * labels are not members of it, so **every one of D1b's three hundred and
- * ninety-nine rows carries no line** and the reading was dead for the whole
- * live catalogue. The deck is the thread now: it is the card's home, it is what
- * the draw itself deals from, and a bot that took the dominion card because it
- * already holds four dominion cards is the same bot with an identity the old
- * term was reaching for. Same knob, same weight (`score.synergyBonus`), one
- * cheaper reading.
- *
- * **What the card would pay this empire on this board** is no longer deferred
- * (bot batch BP3): the effects term is the card's stamp, the sim's own reading of
- * the empire's books with the card in place, plus what a stamp cannot see
- * (`explainCardEffects`, `CardReading`).
+ * **No deck term** (bot batch BP6, `docs/flags.md` (ooooooo) B1). Until BP6 this
+ * added 14 points (`score.synergyBonus`) for each held card of the card's deck,
+ * with a seated card counted twice and no cap. The audit found that the bonus
+ * decided 42% of Order picks and was 60% of a typical offered card's price
+ * (`docs/audit/bot-pass-3-card-values.md`, fault 1), so two-deck seats held one
+ * deck only, and commissions worth nothing were drafted. The user asked why a
+ * greedy pick on correct prices would need it, and ruled it out. A seating, a
+ * re-seating and a new government's chairs read this price alone. A draft reads
+ * `explainDraftCard`, which adds two small deck terms.
  */
 export function scoreCard(
   player: Player,
@@ -1041,16 +1089,82 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext, readi
   const alreadyDrafted = isOrderId(id) && player.statecraft.orders.includes(id);
   const drafted = alreadyDrafted ? 0 : onDraftWorth(id, ctx);
   if (drafted !== 0) terms.push({ label: 'what drafting it hands over', value: drafted });
+  return appraise(terms);
+}
+
+/**
+ * **What one card is worth as a pick in a draft**: its own price
+ * (`explainCard`) and the deck terms (`deckTerms`). The arms that take a card
+ * into the collection read this: the Order, Doctrine and belief offers
+ * (`pickCard`), the pass's estimate of the next hand (`skipCandidate`) and the
+ * culture price's estimate of it (the `cardWorth` closure in `bot.ts`). So
+ * the hand on the table and the hand it is compared with are priced alike.
+ */
+export function explainDraftCard(
+  player: Player,
+  id: CardId,
+  ctx: ValueContext,
+  reading: CardReading = 'stamp',
+): Appraisal {
+  const own = explainCard(player, id, ctx, reading);
+  const deck = deckTerms(player, id, ctx, own.total);
+  return deck.length === 0 ? own : appraise([...own.terms, ...deck]);
+}
+
+/**
+ * **The deck terms of a pick** (bot batch BP6, `docs/flags.md` (ooooooo) B1).
+ * Empty for a card of no deck (a common Order, a belief) and for an Order the
+ * seat already holds, which is not being drafted.
+ *
+ * The ruled version, the default:
+ *
+ *   · **a tie-break** of at most `score.deck.tieBreak` (2) points: the points
+ *     times the share of the seat's held cards (Orders and Doctrines) that
+ *     share a deck with this one. Two cards that pay the same break toward the
+ *     deck the seat holds more of, and no price moves by more than that;
+ *   · **the progress toward the Doctrines still to come**, for an Order: what
+ *     the card adds to a Doctrine of the seat's decks whose pay counts the
+ *     seat's Orders (`explainDoctrineProgress`, `value.ts`). It is the one
+ *     thing a single card's price cannot see.
+ *
+ * The cautious version, when `score.deck.sharePerCard` is above nought: the
+ * card gains that share of its own price for each held card of its decks, at
+ * most `score.deck.shareCap`, in place of both terms above. A card worth
+ * nothing or less gains nothing. It is the audit's first fix, kept behind the
+ * knob so the two versions can be measured side by side.
+ */
+function deckTerms(player: Player, id: CardId, ctx: ValueContext, own: number): ValueTerm[] {
   const decks = decksOf(id);
-  if (decks.length > 0) {
-    const held = heldInDecks(player, decks);
-    const words = decks.map((deck) => DECK_WORDS[deck]).join(' or ');
+  if (decks.length === 0) return [];
+  if (isOrderId(id) && player.statecraft.orders.includes(id)) return [];
+  const knobs = ctx.ai.score.deck;
+  const words = decks.map((deck) => DECK_WORDS[deck]).join(' or ');
+  const shared = heldOfDecks(player, decks);
+  if (knobs.sharePerCard > 0) {
+    const share = Math.min(Math.max(0, knobs.shareCap), knobs.sharePerCard * shared);
+    if (share <= 0 || own <= 0) return [];
+    return [
+      {
+        label:
+          `the deck share: ${shared} held card${shared === 1 ? '' : 's'} of the ${words} deck × ` +
+          `${round1(knobs.sharePerCard * 100)}% of the card's own ${round1(own)}, at most ${round1(knobs.shareCap * 100)}%`,
+        value: share * own,
+      },
+    ];
+  }
+  const terms: ValueTerm[] = [];
+  const held = heldCards(player);
+  if (shared > 0 && held > 0 && knobs.tieBreak !== 0) {
     terms.push({
-      label: `${held} card${held === 1 ? '' : 's'} already held in the ${words} deck × ${ctx.ai.score.synergyBonus}`,
-      value: ctx.ai.score.synergyBonus * held,
+      label: `the deck tie-break: ${shared} of the ${held} cards held are of the ${words} deck × ${round1(knobs.tieBreak)}`,
+      value: (knobs.tieBreak * shared) / held,
     });
   }
-  return appraise(terms);
+  if (isOrderId(id)) {
+    const progress = explainDoctrineProgress(id, ctx);
+    if (progress !== null) terms.push(nest('progress toward the Doctrines its decks still offer', progress));
+  }
+  return terms;
 }
 
 /** A card's own printed name, for a candidate row. */
@@ -1062,14 +1176,11 @@ export function cardName(id: CardId): string {
  * **The decks a card calls home**, or none.
  *
  * `decks` is a field on `OrderDef` and `DoctrineDef` rather than on
- * `CardDefBase`, because the other card classes — beliefs, rites, legacies,
- * malices, a leader's abilities — are not dealt from a deck at all and would
- * have to carry an empty list to pretend otherwise. So the reading asks the two
- * classes that have one and answers nothing for the rest, which is exactly the
- * old term's behaviour for a card with no line: **no deck, no synergy**. A
- * generic Order (no membership, in every seat's pool) belongs to no deck by
- * construction and earns nothing here either — it is the card that goes with
- * everything, so it pulls the bot toward nothing.
+ * `CardDefBase`, because the other card classes (beliefs, rites, legacies,
+ * malices, a leader's abilities) are not dealt from a deck. So the reading asks
+ * the two classes that have one and answers nothing for the rest. A common
+ * Order (no deck, in every seat's pool) belongs to no deck and gets no deck
+ * term.
  */
 function decksOf(id: CardId): readonly DeckId[] {
   if (isOrderId(id)) return orderDef(id).decks;
@@ -1078,28 +1189,20 @@ function decksOf(id: CardId): readonly DeckId[] {
 }
 
 /**
- * How many cards this empire already holds that share a deck with this one —
- * Orders held (slotted or not), Doctrines taken, and gods consecrated.
- *
- * **Sharing, not matching** (D1b): a cross-type row names two decks and is at
- * home in either, so the count is an intersection rather than an equality, and
- * a cross-type card is pulled toward by both of the seats it bridges. That is
- * the draw's own rule for a pool (`ordersForDecks`), read here for a weight.
- *
- * Held rather than *slotted*, deliberately: an Order sitting outside a slot is
- * still a commitment this empire made and still says what kind of empire it is
- * trying to be. A slotted card counts twice for the same reason it is slotted —
- * it is the commitment that is actually paying.
+ * **The held cards that share a deck with the named decks**: each Order held,
+ * seated or not, and each Doctrine taken, once. A card of two decks shares with
+ * either, as the draw's pool does (`ordersForDecks`).
  */
-function heldInDecks(player: Player, decks: readonly DeckId[]): number {
+function heldOfDecks(player: Player, decks: readonly DeckId[]): number {
   const sc = player.statecraft;
-  const shares = (id: CardId): number => (decksOf(id).some((deck) => decks.includes(deck)) ? 1 : 0);
+  const shares = (id: CardId): boolean => decksOf(id).some((deck) => decks.includes(deck));
   let count = 0;
-  for (const id of sc.orders) count += shares(id);
-  for (const slot of sc.slots) {
-    if (slot !== null) count += shares(slot.card);
-  }
-  for (const id of sc.doctrines) count += shares(id);
-  for (const id of player.pantheon.beliefs) count += shares(id);
+  for (const id of sc.orders) if (shares(id)) count += 1;
+  for (const id of sc.doctrines) if (shares(id)) count += 1;
   return count;
+}
+
+/** Every card the seat holds that the tie-break counts: its Orders and its Doctrines. */
+function heldCards(player: Player): number {
+  return player.statecraft.orders.length + player.statecraft.doctrines.length;
 }

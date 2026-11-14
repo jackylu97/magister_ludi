@@ -26,7 +26,8 @@ import {
   nextBotDecision,
   valueContext,
 } from '../../src/ai/bot';
-import { scoreCard } from '../../src/ai/council';
+import { explainDraftCard, scoreCard } from '../../src/ai/council';
+import aiJson from '../../data/ai.json';
 import { type BotDecision, foldTerms } from '../../src/ai/decision';
 import { buildImprovementPlan, rankPlanFor } from '../../src/ai/plan';
 import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
@@ -713,14 +714,12 @@ describe('the beeline', () => {
 });
 
 describe('the drafting hand', () => {
-  it('prefers a card from a deck this empire is already committed to', () => {
-    // **Design addendum 4, re-aimed onto the deck** (D1b). The addendum's rule
-    // is unchanged — two cards that score the same on their effects are
-    // separated by what the empire already holds beside them — but the thread
-    // it read is dead for the live catalogue: `line` is a closed union of
-    // fifteen the six decks' labels are not members of, and every one of D1b's
-    // rows carries none. The deck is the thread now, so the pair below is two
-    // rows with equal base scores and **disjoint** deck lists.
+  it('breaks a tie between two equal cards toward the deck the empire holds, by at most the tie-break', () => {
+    // **Bot batch BP6** (`docs/flags.md` (ooooooo) B1). The flat deck bonus is
+    // gone: it decided 42% of picks. What is left of it is a tie-break. Two
+    // rows with the same price and no deck in common are separated by what the
+    // empire already holds beside them, and by no more than
+    // `score.deck.tieBreak`. The card's own price does not move at all.
     const game = grownGame(4);
     const player = seat(game.state, 0);
     const ctx = valueContext(game.state, player);
@@ -741,23 +740,32 @@ describe('the drafting hand', () => {
     }
     expect(pair).not.toBeNull();
     const [a, b] = pair!;
-    // Commit to `a`'s deck by holding it, and `a` must now outscore `b`.
-    player.statecraft.orders.push(a as OrderId);
-    expect(scoreCard(player, a as OrderId, ctx)).toBeGreaterThan(
-      scoreCard(player, b as OrderId, ctx),
+    // Commit to `a`'s deck by holding a card of it (not `a` itself, which a
+    // draft would not offer again), and `a` must now outscore `b` as a pick.
+    const mate = ORDER_IDS.find(
+      (id) => id !== a && orderDef(id).decks.some((deck) => orderDef(a).decks.includes(deck)) &&
+        !orderDef(id).decks.some((deck) => orderDef(b).decks.includes(deck)),
     );
+    expect(mate).toBeDefined();
+    const own = scoreCard(player, a, ctx);
+    player.statecraft.orders.push(mate!);
+    expect(scoreCard(player, a, ctx)).toBe(own);
+    const gap = explainDraftCard(player, a, ctx).total - explainDraftCard(player, b, ctx).total;
+    expect(gap).toBeGreaterThan(0);
+    expect(gap).toBeLessThanOrEqual(aiJson.score.deck.tieBreak + 1e-9);
   });
 
   it('counts a cross-type card toward either of the decks it bridges', () => {
     // The intersection half of the reading: a row naming two decks is at home
-    // in both, so holding a single-type card of *either* pulls the bot toward
+    // in both, so holding a single-type card of *either* breaks a tie toward
     // it. `ordersForDecks` deals a pool by the same rule.
     const game = grownGame(4);
     const player = seat(game.state, 0);
     const ctx = valueContext(game.state, player);
     const cross = ORDER_IDS.find((id) => orderDef(id).decks.length === 2 && orderDef(id).retired !== true);
     expect(cross, 'a live cross-type row').toBeDefined();
-    const before = scoreCard(player, cross!, ctx);
+    player.statecraft.orders.length = 0;
+    const before = explainDraftCard(player, cross!, ctx).total;
     for (const deck of orderDef(cross!).decks) {
       const mate = ORDER_IDS.find(
         (id) => id !== cross && orderDef(id).decks.length === 1 && orderDef(id).decks[0] === deck,
@@ -765,7 +773,7 @@ describe('the drafting hand', () => {
       expect(mate, `a row of the ${deck} deck`).toBeDefined();
       player.statecraft.orders.length = 0;
       player.statecraft.orders.push(mate!);
-      expect(scoreCard(player, cross!, ctx), deck).toBeGreaterThan(before);
+      expect(explainDraftCard(player, cross!, ctx).total, deck).toBeGreaterThan(before);
     }
   });
 

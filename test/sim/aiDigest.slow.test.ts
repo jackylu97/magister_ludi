@@ -1164,10 +1164,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * batch. Duel `2d4e0b89:352098` -> `ee0c50f4:344556`, standard
  * `a098571d:1017275` -> `a3ad5cdc:1030926`. Nothing stalled and no command was
  * refused.
+ *
+ * Re-cut for bot batch BP6 (`docs/flags.md` (ooooooo), B1 and B12). The deck bonus
+ * is gone: a pick is the card's own price, a tie-break of at most two points and
+ * the progress toward a Doctrine still to come that counts the seat's Orders. A
+ * commission is priced for a chair by its reward over the turns of the chair it
+ * takes, and the arms that move an open commission's goal carry a step's share
+ * of its price. No rule changed; both pins matched on the untouched tree before
+ * this batch. Duel `ee0c50f4:344556` -> `cfa6111d:359911`, standard
+ * `a3ad5cdc:1030926` -> `af0e32c5:1034066`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ee0c50f4:344556',
-  standard: 'a3ad5cdc:1030926',
+  duel: 'cfa6111d:359911',
+  standard: 'af0e32c5:1034066',
 };
 
 /**

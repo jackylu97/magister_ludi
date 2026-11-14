@@ -144,7 +144,7 @@ import {
   cardName,
   discoveryDecision,
   doctrineDecision,
-  explainCard,
+  explainDraftCard,
   orderDecision,
   reslotDecision,
   slottingDecision,
@@ -195,6 +195,9 @@ import {
   explainBuildingRow,
   explainEffects,
   explainProjectRow,
+  // Bot batch BP6: a row's and a road's step toward an open commission.
+  buildingPullTerm,
+  researchPullTerm,
   explainSoldier,
   techCostFor,
   bestLevyRite,
@@ -605,7 +608,8 @@ export function valueContext(
     // price it is itself about to set would be the fixed point batch 1 refused.
     cultureRate: rates.culturePerTurn ?? 0,
     // A whole pool, so walked rather than stamped (bot batch BP3, `CardReading`).
-    cardWorth: (id) => explainCard(player, id, staked, 'walk'),
+    // Priced as a pick, with the deck terms of a draft (bot batch BP6).
+    cardWorth: (id) => explainDraftCard(player, id, staked, 'walk'),
     // **The levy the faith book charges a bought soldier against** (batch X3),
     // read at the prior for `soldierWorth`'s reason: the book is what sets the
     // live price, so every row in it is appraised before that price exists.
@@ -3412,6 +3416,12 @@ function techGoalTable(
     }
     const chain = techChain(state, player, ctx, id, true);
     const terms: ValueTerm[] = [...chain.terms];
+    // **A step toward an open commission** (bot batch BP6, B12): the road's
+    // technologies, for a goal that counts technologies or charter
+    // technologies completed. Before the margin, so the plan it moves is held by
+    // the same tenth as any other.
+    const pull = researchPullTerm(ctx, road);
+    if (pull !== null) terms.push(pull);
     // **What changing its mind would leave behind** (batch S2, schema 111).
     // Beakers now stay with the node they were spent on, so a challenger whose
     // road does not pass through the node the pool is aimed at strands
@@ -4816,6 +4826,11 @@ function buildCandidates(
     // list, which is the null half of the acceptance.
     const race = raceTerm(ctx, { kind: 'building', id });
     if (race !== null) terms.push(race);
+    // **A step toward an open commission** (bot batch BP6, `docs/flags.md`
+    // (ooooooo) B12): a wonder row moves the goals that count wonders completed
+    // and the hammers put into one. `null` for every other row.
+    const pull = buildingPullTerm(ctx, id);
+    if (pull !== null) terms.push(pull);
     const value = foldTerms(terms);
     push(candidates, state, city, standing, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
   }

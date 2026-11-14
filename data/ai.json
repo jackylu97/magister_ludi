@@ -216,7 +216,11 @@
     "unknownEffect": 2,
     "caravanScale": 3,
     "nominalCount": 3,
-    "synergyBonus": 14,
+    "deck": {
+      "tieBreak": 2,
+      "sharePerCard": 0,
+      "shareCap": 0.5
+    },
     "combatScale": 7.5,
     "patienceTurns": 10,
     "lumpTurns": 20,

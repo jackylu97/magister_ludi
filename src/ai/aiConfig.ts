@@ -1179,12 +1179,39 @@ export interface AiConfig {
     // of the hexes the empire actually works (`workedHexesAdmitting`,
     // `scopeReach.ts`), and the knob was read by nothing after that while shipping
     // as a live box on the arena panel.
+    // `synergyBonus` stood here until bot batch BP6 and is **retired**: it was a
+    // flat 14 points for each held card of an offered card's deck, with no cap
+    // and with a seated card counted twice. The audit found that it decided 42%
+    // of Order picks (`docs/audit/bot-pass-3-card-values.md`, fault 1). The
+    // user ruled it out (`docs/flags.md` (ooooooo) B1). `deck` below replaces it.
     /**
-     * Per already-held card sharing an option's **deck**. See `scoreCard`. It
-     * read the designer's `line` until D1b, when the six decks became the
-     * card's home and every new row stopped carrying one.
+     * **How a draft reads the decks a seat already holds** (bot batch BP6,
+     * `docs/flags.md` (ooooooo) B1). The user asked: *"why is this bonus even
+     * needed? in theory, the greedy approach should be a good decision maker on
+     * its own already right?"* So an offered card is priced by what it pays,
+     * and the decks add only two small terms (`deckTerms`, `council.ts`). Only a
+     * draft reads them: the chair arms and a new government's chairs price a
+     * card by what it pays and nothing else.
      */
-    synergyBonus: number;
+    deck: {
+      /**
+       * **The tie-break**: points for an offered card whose deck the seat holds,
+       * times the share of its held cards (Orders and Doctrines) that share a
+       * deck with it. So of two cards that pay the same, the one of the deck
+       * the seat holds more of wins, and no card gains more than this.
+       */
+      tieBreak: number;
+      /**
+       * **The cautious version, off by default.** Above nought, an offered card
+       * gains this share of its own price for each held card of its decks, up
+       * to `shareCap`, in place of the tie-break and the Doctrine progress. A
+       * card worth nothing stays worth nothing. The audit's first fix; kept so
+       * that the two versions can be measured side by side.
+       */
+      sharePerCard: number;
+      /** The most the cautious version adds, as a share of the card's own price. */
+      shareCap: number;
+    };
     /** Soldiers a completion grant of one unit is worth. */
     combatScale: number;
     /**

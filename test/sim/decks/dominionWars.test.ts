@@ -632,6 +632,12 @@ describe('Dominion D6 — words and the bot', () => {
   it('prices Vae Victis by the capture riders the seat has seated', () => {
     const state = flat();
     foundCityAt(state, 0, at(state, 2, 2));
+    // Soldiers spare of the town's garrison, so the seat at war has a pace of
+    // captures (bot batch BP4). With no army the capture rider reads nothing, and
+    // until bot batch BP6 this test passed only because holding Carried-Off
+    // Scholars raised the deck bonus on Vae Victis.
+    for (let n = 0; n < 4; n++) createUnit(state, 0, 'warrior', 3 + n, 4);
+    touch(state);
     const player = seat(state, 0);
     const worth = (): number => scoreCard(player, 'vaeVictis' as OrderId, valueContext(state, player));
     const alone = worth();

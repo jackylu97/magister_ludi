@@ -25,7 +25,7 @@ import { describe, expect, it } from 'vitest';
 import { typedChiefdomInThisBlock } from './chiefdomHelpers';
 
 import { nextBotDecision, valueContext } from '../../src/ai/bot';
-import { scoreCard } from '../../src/ai/council';
+import { explainDraftCard, scoreCard } from '../../src/ai/council';
 import { type ValueTerm } from '../../src/ai/decision';
 import {
   type ValueContext,
@@ -1122,9 +1122,10 @@ describe('the pass candidate', () => {
     const { state, player } = dealt(120);
     hold(state, 0, SECOND_SITTING);
     const ctx = valueContext(state, player);
-    // The pass prices the whole pool, so it walks the cards (bot batch BP3).
+    // The pass prices the whole pool, so it walks the cards (bot batch BP3), and
+    // it prices each as a pick, with the deck terms of a draft (bot batch BP6).
     const pitied = expectedBestOrder(expectedHandBags(state, player), player.statecraft.orderSkips + 1, (id) =>
-      scoreCard(player, id, ctx, 'walk'),
+      explainDraftCard(player, id, ctx, 'walk').total,
     );
     const row = passRow(state);
     expect(row.terms[0]!.label).toContain('a free hand dealt at once');
@@ -1342,8 +1343,9 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const bags = expectedHandBags(state, player);
-    // The pass prices the whole pool, so it walks the cards (bot batch BP3).
-    const score = (id: OrderId): number => scoreCard(player, id, ctx, 'walk');
+    // The pass prices the whole pool, so it walks the cards (bot batch BP3), and
+    // it prices each as a pick, with the deck terms of a draft (bot batch BP6).
+    const score = (id: OrderId): number => explainDraftCard(player, id, ctx, 'walk').total;
     const row = nextBotDecision(state, 0)!.candidates.find((candidate) => candidate.label === 'pass the hand')!;
     expect(row.terms[0]!.value).toBeCloseTo(
       expectedBestOrder(bags, 1, score, 100) - expectedBestOrder(bags, 0, score, 100),

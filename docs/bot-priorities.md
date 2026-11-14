@@ -330,6 +330,88 @@ hold** (bot pass 3, batch BP5; `docs/flags.md` (ooooooo) B6 and B7; the audit is
   every town's faith buildings.
 - No new knob.
 
+**No deck bonus, and commissions priced as investments** (bot pass 3, batch
+BP6; `docs/flags.md` (ooooooo) B1 and B12; the audit is
+`docs/audit/bot-pass-3-card-values.md` fault 1, and B12 is on the proposal page
+the item links):
+
+- **The deck bonus is gone** (B1). It added `score.synergyBonus` (14) points for
+  each held card of an offered card's deck, with a seated card counted twice and
+  no cap, and decided 42% of Order picks. The user: *"why is this bonus even
+  needed? in theory, the greedy approach should be a good decision maker on its
+  own already right?"* The knob is retired.
+- **A card's own price** (`explainCard`, `council.ts`) has no deck term. The
+  chair arms (`slotPairTerms`) and a new government's chair fill
+  (`adoptionTable`) read it, through `seatPrice`.
+- **A pick** (`explainDraftCard`) is the card's own price plus the deck terms
+  (`deckTerms`). The Order, Doctrine and belief offers read it, and so do the
+  two estimates of a hand to come: the pass (`skipCandidate`) and the culture
+  price (the `cardWorth` closure in `bot.ts`). A common card and a card already
+  held get no deck term. The terms:
+  - **the tie-break**: `score.deck.tieBreak` (2) times the share of the seat's
+    held cards (Orders and Doctrines) that share a deck with the card. Of two
+    cards that pay the same, the one of the deck the seat holds more of wins,
+    and no price moves by more than the knob;
+  - **the progress toward the Doctrines still to come**
+    (`explainDoctrineProgress`, `value.ts`): for each adoption the seat reaches
+    over the horizon (`adoptionsAhead`) and each Doctrine of its decks that the
+    adoption could offer (`doctrineBagFor`), the helpings the card adds to a
+    `pays` line that counts the seat's Orders (`slottedOrdersOfSlot`,
+    `slottedOrders`, `ordersHeld`, `decksHeld`), times what one helping pays,
+    times one chance in the bag's size, times the wait at the seat's drafting
+    pace. No Doctrine needs cards of one deck to be offered (the offer deals one
+    from each of the seat's two decks, whatever it holds), and no card counts
+    the cards of a deck, so today only The Magnaura's count of seated Civic
+    Orders reads here.
+- **The cautious version** is one knob away: with `score.deck.sharePerCard` above
+  nought, a pick gains that share of the card's own price for each held card of
+  its decks, at most `score.deck.shareCap` (0.5), in place of the tie-break and
+  the progress. A card worth nothing or less gains nothing. It is off by default;
+  it is there so the two versions can be measured side by side.
+- **A commission's chair price** (B12, `explainCommissionChair`, `value.ts`). A
+  commission pays nothing while it sits and its reward once, so a chair reads it
+  as an investment, the reward against the turns of the chair it takes. The
+  reward is read in full: a one-time reward at its lump times
+  `score.lumpTurns`, and a lasting one at its rate for each turn of the horizon
+  after the goal (`rewardTerms` marks each term as one or the other). Then:
+  - **met** (and the reward can land): the whole reward for one turn of the
+    chair, because it pays at the end of the turn and leaves;
+  - **a counted part still to come**: a counted part grows only while the card
+    sits, so the reward times the discount of the forecast turns
+    (`commissionForecast`), over those turns;
+  - **only reached parts still to come**: nothing, because a reached figure grows
+    without a chair. The card is seated on the turn its goal is met: the re-seat
+    arm looks on any turn when a held commission's goal is met
+    (`metCommissionWaits`), not only on its own turn of the seal.
+  Before, a chair priced a commission as a draft does, and in the audit's games
+  only 2 of 26 commissions not met were ever seen in a chair.
+- **The pull of a step** (B12, `commissionPullTerm`, `value.ts`). While a seat
+  holds an open commission, an action that moves its goal carries one step's
+  share of the commission's price (`explainCommission`: the reward at the delay
+  of its forecast), the share being the part of what is still to come that the
+  step brings, at most all of it. It is touch point (b) said for a commission:
+  `chainTerm`'s share of a chain. A counted part counts a step only while its
+  card sits; a reached part counts it whether the card sits or not; a goal with
+  a floor is cut to `score.commission.floorShare`. A goal the seat will not meet
+  inside the horizon has a price of nought, so its steps read nothing: the pull
+  keeps a seat on a goal it can reach and does not start one it cannot. The arms
+  that ask it:
+  - the production table: a world wonder is one wonder completed, and a wonder
+    or the Opus its cost in hammers put into a wonder (`buildingPullTerm`);
+  - the beeline: the technologies on a road, and the charter technologies among
+    them (`researchPullTerm`);
+  - the rite plan: a rite started;
+  - the gold book: a building bought with gold;
+  - the hex planner: one more hex owned (scaled by the claim share, because the
+    borders would claim an owed hex anyway) and one hex claimed (not scaled,
+    because the borders claiming a hex count nothing toward it).
+- **Not priced yet**: the cost of the work a goal needs that the seat would not do
+  anyway (the forecast reads the seat's own pace, so a goal it does not work
+  toward reads far away and near nothing), and the steps no arm above asks: a
+  camp cleared, a town taken, a war ended, a town converted, a rank earned, a
+  great person's work, the luxuries, the routes, the treasury, the worked hexes
+  and the council in order.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

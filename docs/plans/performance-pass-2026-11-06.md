@@ -900,3 +900,132 @@ These are not done.
 - The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar`, `beads` and `cityModifiers` passed.
 - The shadow check (`test/vitest.shadow.config.ts`) passed on `aiRiteTown`, `aiBeliefChoice`, `aiCardStamp`, `aiSittingMemos`, `aiDevotion` and `aiLevy`.
 - The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+## Bot batch BP6: no deck bonus, and commissions priced as investments, 2026-11-14
+
+The rulings are `docs/flags.md` (ooooooo), B1 and B12. B1 is the deck bonus removed, with a tie-break of about two points and a price for the progress toward a Doctrine that needs many cards of one deck. The user: *"why is this bonus even needed? in theory, the greedy approach should be a good decision maker on its own already right?"* The cautious version (+5% of the card's own price for each held card, to +50%) is measured beside it. B12 is "as proposed on the page" the item links (the proposal of 2026-11-12): measure each commission, price it as an investment, add the steering half, and give an open commission a chair price from its reward. The audit's fault 1 has B1's evidence. This batch changes the bots' decisions on purpose, so the pins move. No rule of the game changed. Branch `decks` at `9420cef6`.
+
+### What the bot reads now
+
+- **A card's own price has no deck term** (`explainCard`, `council.ts`). The chair arms read it (`seatPrice`) and so does a new government's chair fill. `score.synergyBonus` is retired.
+- **A pick** (`explainDraftCard`) is the card's own price plus the deck terms (`deckTerms`): a tie-break of `score.deck.tieBreak` (2) times the share of the seat's held cards that share a deck with the card, and the progress toward the Doctrines still to come (`explainDoctrineProgress`, `value.ts`). The Order, Doctrine and belief offers, the pass and the culture price read it.
+- **No Doctrine needs cards of one deck.** The offer deals one Doctrine from each of the seat's two decks, whatever it holds (`drawDoctrineOffer`), and no card counts the cards of a deck. So the progress term prices the one thing that does exist: a Doctrine still to come whose `pays` line counts the seat's Orders. Today that is The Magnaura (+1 science in every town for each seated Civic Order). The term reads nothing for most cards.
+- **The cautious version** is the knob `score.deck.sharePerCard` (0, off). Above nought, a pick gains that share of its own price for each held card of its decks, at most `score.deck.shareCap` (0.5), in place of the tie-break and the progress. The two new knobs and the cap have rows in `data/ai.bounds.json`, and the arena panel shows them with no page edit.
+- **A commission's chair price** (`explainCommissionChair`): the reward read in full (a one-time reward at its lump times `score.lumpTurns`, a lasting one at its rate for each turn of the horizon after the goal), and then: met, the whole reward for one turn of the chair; a counted part still to come, the reward times the discount of the forecast turns, over those turns; only reached parts still to come, nothing, because a reached figure grows without a chair. The re-seat arm looks on any turn when a held commission's goal is met (`metCommissionWaits`).
+- **The pull of a step** (`commissionPullTerm`): an action that moves an open commission's goal carries one step's share of the commission's price, as a chain hands its steps a share (`chainTerm`). A counted part counts a step only while its card sits; a goal the seat will not meet inside the horizon is priced at nought, so it pulls nothing. Five arms ask it: the production table (a wonder, and its hammers), the beeline (the technologies on a road), the rite plan, the gold book (a building bought) and the hex planner (a hex owned, a hex claimed).
+- `docs/bot-priorities.md` has the readings in full.
+
+### Turn 100, three versions
+
+Six seats, two decks a seat, standard map, the same game on seeds 1, 7, 42, 999, 2026 and 31337. "Old" is the untouched tree (the deck bonus), "ruled" is this batch as it ships, and "cautious" is this batch with `score.deck.sharePerCard` at 0.05. Totals over the six seats.
+
+| Seed 999 | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Old | 48 | 248 | 1,137 | 936 | 370 | 730 | 410 | 230 |
+| Ruled | 44 | 192 | 1,410 | 1,314 | 574 | 981 | 366 | 153 |
+| Cautious | 45 | 222 | 1,465 | 1,567 | 812 | 950 | 404 | 195 |
+
+| Seed 42 | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Old | 39 | 192 | 1,012 | 674 | 260 | 485 | 261 | 72 |
+| Ruled | 42 | 189 | 1,013 | 832 | 254 | 627 | 327 | 78 |
+| Cautious | 33 | 187 | 826 | 938 | 406 | 590 | 226 | 64 |
+
+| Six seeds, summed | Towns | Units | Food | Production | Gold | Science | Culture | Faith |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Old | 270 | 1,315 | 6,583 | 6,601 | 2,117 | 4,192 | 2,318 | 1,058 |
+| Ruled | 264 | 1,272 | 6,365 | 6,220 | 1,964 | 4,664 | 1,999 | 1,001 |
+| Ruled, change | −2% | −3% | −3% | −6% | −7% | +11% | −14% | −5% |
+| Cautious | 261 | 1,390 | 6,883 | 6,767 | 2,517 | 4,432 | 2,044 | 1,040 |
+| Cautious, change | −3% | +6% | +5% | +3% | +19% | +6% | −12% | −2% |
+
+The spread between seeds is wide, as in the batches before: production in the ruled version rose 40% on seed 999 and 23% on seed 42 and fell 32% on seed 7 and 21% on seed 2026. Culture fell on five seeds of six in the ruled version and on all six in the cautious one.
+
+**Deck focus at turn 100**, the mean over the 36 seats. "Main" and "second" are the seat's two decks, by the count it holds of each. "Picks a deck term decided" counts the Order picks whose winner changes when the deck terms are taken out of the scores, over the six games.
+
+| Version | Orders held | Of the main deck | Of the second deck | Common | Seats with 3 or more of the second deck | Doctrines held | Picks a deck term decided |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Old | 14.1 | 12.0 | 1.5 | 0.8 | 10 of 36 | 2.22 | 215 of 506 (42%) |
+| Ruled | 12.9 | 6.9 | 3.6 | 2.4 | 27 of 36 | 2.22 | 15 of 463 (3%) |
+| Cautious | 12.8 | 6.8 | 3.4 | 2.5 | 25 of 36 | 2.14 | 10 of 460 (2%) |
+
+The Doctrines a seat holds come with its governments, one offer at each adoption, so the count does not move with the deck spread, as the B1 page feared it might. Seed 999, Orders of the seat's first deck / second deck / common, and Doctrines of the first / second deck:
+
+| Seat (decks) | Old | Ruled | Cautious |
+|---|---|---|---|
+| 0 (Dominion, Magisterial) | 17 / 3 / 1, D 4 / 0 | 5 / 5 / 1, D 0 / 3 | 7 / 2 / 4, D 2 / 0 |
+| 1 (Expansionist, Scientific) | 0 / 11 / 0, D 0 / 2 | 5 / 8 / 0, D 1 / 1 | 6 / 5 / 3, D 1 / 0 |
+| 2 (Commerce, Devotion) | 1 / 11 / 0, D 0 / 2 | 1 / 8 / 3, D 0 / 2 | 2 / 5 / 4, D 2 / 0 |
+| 3 (Magisterial, Expansionist) | 3 / 13 / 1, D 0 / 2 | 2 / 6 / 2, D 2 / 0 | 4 / 8 / 3, D 2 / 1 |
+| 4 (Devotion, Dominion) | 16 / 3 / 1, D 2 / 1 | 3 / 7 / 2, D 0 / 2 | 7 / 5 / 1, D 0 / 2 |
+| 5 (Scientific, Commerce) | 0 / 13 / 1, D 0 / 2 | 5 / 8 / 4, D 0 / 2 | 3 / 8 / 3, D 1 / 1 |
+
+Seed 42, the same:
+
+| Seat (decks) | Old | Ruled | Cautious |
+|---|---|---|---|
+| 0 (Dominion, Magisterial) | 10 / 3 / 0, D 2 / 0 | 5 / 5 / 1, D 2 / 0 | 4 / 2 / 3, D 1 / 1 |
+| 1 (Expansionist, Scientific) | 12 / 2 / 1, D 2 / 0 | 8 / 7 / 2, D 2 / 1 | 9 / 5 / 2, D 4 / 0 |
+| 2 (Commerce, Devotion) | 12 / 0 / 1, D 2 / 0 | 8 / 2 / 4, D 2 / 0 | 7 / 3 / 4, D 2 / 0 |
+| 3 (Magisterial, Expansionist) | 1 / 12 / 0, D 0 / 2 | 6 / 8 / 3, D 2 / 1 | 8 / 2 / 1, D 2 / 0 |
+| 4 (Devotion, Dominion) | 3 / 9 / 1, D 0 / 2 | 2 / 6 / 3, D 1 / 1 | 3 / 5 / 1, D 0 / 1 |
+| 5 (Scientific, Commerce) | 12 / 0 / 0, D 1 / 1 | 5 / 4 / 3, D 2 / 0 | 3 / 3 / 3, D 0 / 1 |
+
+B12 changed almost nothing by turn 100: the ruled tree with B1 alone played the same games on five seeds of six, because few commissions are drafted after B1 and fewer reach a chair before turn 100.
+
+### Commissions, measured
+
+The same game to turn 150 on seeds 999 and 42, both trees.
+
+| | Drafted | Ever seated | Met |
+|---|---:|---:|---:|
+| Old | 11 | 0 | 0 |
+| This batch | 4 | 2 | 3 |
+
+- **Old.** Seven of the eleven were drafted at a forecast at the horizon, which is a price of nought; the deck bonus drafted them. None was ever seated.
+- **This batch.** The Founding Vows (seed 999, seat 2) was drafted at turn 56 at a forecast of 10 turns, stayed on the bench until it was seated at turn 118, and was met at turn 122, four turns after it sat. The Great Loan and The Domesday Survey were drafted with their reached goals already met, and each was seated and paid on the turn it was drafted. The Eighth Wonder (seed 999, seat 3) sat 32 turns from turn 35 and was not met by turn 150. In the six turn-100 games, three of the six commissions drafted read a forecast at the horizon, which is a price of nought; why each beat its hand was not traced.
+- **Does progress need a chair?** By the rules, yes for every counted goal: its tally grows only while the card sits (`recordScalingOccasion`). A reached goal grows with no chair and is checked only while the card sits, so it needs a chair for one turn, the turn it is met.
+- **The bot's forecast of turns to each goal**, as if each seat held the card, at turns 40, 80, 120 and 150 of the final tree's two games. Seven commissions read at the horizon (60 turns or more) for every seat at every snapshot: A Guild Commission, A Victor's Peace, Hold the Capitals, Take the City, The Grand Campaign, The Lynx-Eyed Academy and The Wide Country. Four need captures or a war won, two need buildings or hexes bought, and The Lynx-Eyed Academy needs four Academies. That is the bot's forecast from its own pace, not proof that no bot can meet them, so the list is for the user's design call (the page's "Your decision"). The Mission reads 54 turns for every seat at every snapshot, the cautious default alone, because the board keeps no record of towns converted.
+- **What meeting a goal costs** is not priced (below). The goals fall in three groups by what moves them: ones the seat does anyway (technologies, Orders held, hexes and worked hexes, gold income, wonders already under way); ones an arm can steer with this batch's pull (a wonder, a road through a technology, a rite, a building bought, a hex bought); and ones no arm steers (a camp, a capture, a war won, a town converted, a rank, a great person's work, the luxuries, the routes, the treasury, a council in order).
+
+### What it costs
+
+The new readings, timed on seed 42 at turn 110 over the six seats: pricing every card the seats' decks can deal (236 cards) took 54 ms as the card's own price, and the deck terms of the pick added a few milliseconds (the Doctrine progress alone 3 ms). Every commission's chair price took under a millisecond, and the pull of every building row and every research road 4 ms. The six seats' contexts took 840 ms. So the batch's own cost is under 1% of a late turn.
+
+| Turns 100 to 120 | Seed 999 before | Seed 999 after | Seed 42 before | Seed 42 after |
+|---|---:|---:|---:|---:|
+| Wall seconds a turn | 6.87 | 6.13 | 6.88 | 8.34 |
+| CPU seconds a turn | 5.16 | 4.81 | 3.81 | 4.44 |
+| Commands a turn | 146 | 132 | 128 | 100 |
+
+The two trees were played in one process, a turn on each in turn, beside other runs, so the load was high: read the change, not the figure. The rise on seed 42 is play. At turn 120 its seats hold 64 towns against 52 before (seat 1 holds 20), and each command reads a bigger empire.
+
+### Pins at BP6
+
+| Game | Turn 20 | Turn 40 | Turn 60 | Turn 80 | Turn 100 | Turn 120 |
+|---|---|---|---|---|---|---|
+| Two decks, seed 999 | `1a5c474a:815245` | `b017563e:835628` | `7930b0eb:861051` | `44af7c4e:906518` | `526b6051:959079` | `952b428a:1055558` |
+| Two decks, seed 42 | `46751351:817059` | `d80e0e19:832350` | `f41fa359:852595` | `b342b3f4:883991` | `6e64c238:939183` | `87e4c121:1023292` |
+
+At turn 130 the two games are `606b903b:1113768` and `cccd2570:1086475`. `test/sim/aiDigest.slow.test.ts` pins duel `cfa6111d:359911` and standard `af0e32c5:1034066`. Before the batch, the untouched tree gave the BP5 pins above at every turn, at turn 130, and both digest pins.
+
+### What this batch measured and did not fix
+
+These are not done.
+
+- **The cost of the work a goal needs** (B12's second step). The draft price is the reward at the delay of the forecast, as before. The forecast reads the seat's own pace, so a goal the seat does not work toward reads far away and near nothing, which keeps such a commission out of a draft; but the price does not charge what the work would cost a seat that chose to do it.
+- **The chair in a draft.** A draft prices a commission as if it would sit. The Founding Vows was drafted at turn 56 and sat at turn 118. A plain card weaker than every seated card has the same fault; the BP3 ruling asks for a bench charge in one place for every card or none.
+- **The steps no arm asks** (above): a camp cleared (the camp ranking is P5, batch BP8), a town taken, a war won, a town converted, a rank earned, a great person's work, the luxuries, the routes, the treasury and a council in order.
+- **The Doctrine engines.** The progress term reads only a Doctrine's `pays` lines that count Orders. A Doctrine whose worth grows with the cards held in another way (The Council of Ten's chairs, Scutage, The Arthashastra) is not read as progress.
+- **Culture at turn 100** fell 14% in the ruled version and 12% in the cautious one over six seeds, on five seeds of six and on all six. Not traced.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- `test/sim/aiDeckTerms.test.ts` (new, core): a card's own price reads no deck, and the chair arms read it with no tie-break; a pick adds the knob times the share of held cards of its deck, at most the knob; a common card and a card already held get nothing; The Magnaura's count is priced on a Civic Order at the chance and the wait of the adoption, and on no card that joins no count, no card already held and no seat without the Doctrine; the cautious version adds its capped share of the card's own price and nothing to a card worth nothing.
+- `test/sim/aiCommissionChair.test.ts` (new, core): a met goal's chair price is its whole reward; a reached goal not met reads nothing; a counted goal is the reward, times the discount, over the forecast turns; the slot arm seats a met commission over a card that pays, and the re-seat arm looks off its own turn when one waits; the pull of a counted goal counts only while its card sits, a reached goal's counts either way and stops once it is met, and the wonder row and the research road read only their own goals.
+- Tests reworked because they pinned the old bonus: `aiBot` (the two deck tests now pin the tie-break), `aiMagisterial` (the pass and the hand estimate now price each card as a pick) and `decks/dominionWars` (Vae Victis passed only because holding Carried-Off Scholars raised the deck bonus; the seat now has soldiers, so it has a pace of captures, and the doubled rider is priced above nought).
+- Every core test that imports the bot, or reads the source of a changed file or the bot's sheet (`import.meta.glob` and the file names): 116 files, 4,109 tests, passed.
+- The slow tier, by name: `aiDigest` (the pins above), `aiCardStamp`, `botWorker` (seed 26 as before; it passes unchanged), `aiBot`, `aiDecision`, `aiDriver`, `aiGarrison`, `aiWants`, `aiWar` and `beads` passed.
+- The shadow check (`test/vitest.shadow.config.ts`) passed on `aiDeckTerms`, `aiCommissionChair`, `aiSittingMemos`, `aiCardStamp`, `aiCommissions` and `aiSeatable`.
+- The core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.

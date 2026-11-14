@@ -170,6 +170,9 @@ import { ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from 
 // of how far its goal has come and of the figures a reward reads, so the card
 // face, the HUD chip and the bot cannot disagree about either.
 import { commissionFigure, commissionProgress } from '../sim/commissions';
+// Bot batch BP6: a met goal whose reward cannot land yet keeps its card in the
+// chair, so the chair price asks the same question the phase asks.
+import { commissionRewardWaits } from '../sim/commissions';
 // Magisterial batch MG17: the work a garden goal names and the seat's work
 // families, read where the goals read them.
 import { gardenWorkFor, workFamiliesHeld } from '../sim/commissions';
@@ -354,6 +357,7 @@ import {
   type CardPeriodicEffect,
   type CityScope,
   type CombatCondition,
+  type CommissionFigure,
   type CommissionGoal,
   type CommissionReward,
   type CountKind,
@@ -6363,13 +6367,234 @@ export function explainCommission(id: OrderId, ctx: ValueContext): Appraisal | n
   }
   const reward: ValueTerm[] = [];
   for (const line of spec.reward) {
-    for (const term of rewardTerms(line, spec.goals, ctx)) reward.push(term);
+    for (const { term } of rewardTerms(line, spec.goals, ctx)) reward.push(term);
   }
   const forecast = commissionForecast(id, ctx);
   return appraise([
     nest('the reward', appraise(reward)),
     delayTerm(forecast.turns, ctx, forecast.why),
   ]);
+}
+
+/**
+ * **What an open commission is worth for each turn it holds a chair** (bot pass
+ * 3, batch BP6; `docs/flags.md` (ooooooo) B12), or `null` for a card that is not
+ * an open commission. The chair arms read this in place of the card's price
+ * (`seatPrice`, `council.ts`).
+ *
+ * A commission pays nothing while it sits. It pays its reward once, when its
+ * goal is met, and then leaves its chair. So the question for a chair is an
+ * investment: the reward against the turns of the chair it takes, beside a
+ * card that pays every turn it sits. Before this batch a commission was priced
+ * for a chair as for a draft, the reward at the lump exchange times the delay,
+ * and that put a goal two turns away below almost any card that pays a little
+ * each turn. In the audit's games 26 of 29 commissions drafted were never met,
+ * and only 2 of the 26 were ever seen in a chair.
+ *
+ * The reward is read in full: a one-time reward at its whole worth (the lump
+ * times `score.lumpTurns`), and a lasting one at its rate for each turn of the
+ * horizon after the goal is met. Then, by where the goal stands:
+ *
+ *   · **met** (every part met, and the reward can land): seated now, it pays at
+ *     the end of this turn and leaves the chair. So it is the whole reward for
+ *     one turn of the chair;
+ *   · **a counted part still to come**: a counted part grows only while the card
+ *     is seated (`recordScalingOccasion`), so it needs the chair for every turn
+ *     the goal is forecast to take (`commissionForecast`). It is the reward,
+ *     times the delay discount of those turns, over those turns;
+ *   · **only reached parts still to come**: a reached figure grows whether the
+ *     card sits or not, and is checked only while it sits. So the chair adds
+ *     nothing yet, and the card is seated on the turn its goal is met
+ *     (`reslotDecision` looks on every such turn).
+ */
+export function explainCommissionChair(id: OrderId, ctx: ValueContext): Appraisal | null {
+  const spec = orderDef(id).commission;
+  if (spec === undefined) return null;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  if (commissionFulfilledTurn(player.statecraft, id) !== undefined) return null;
+  const parts = commissionProgress(ctx.state, ctx.playerId, id);
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+  let once = 0;
+  let rate = 0;
+  for (const line of spec.reward) {
+    for (const { term, lasting } of rewardTerms(line, spec.goals, ctx)) {
+      if (lasting) rate += term.value;
+      else once += term.value;
+    }
+  }
+  const whole = (turns: number): ValueTerm[] => [
+    { label: 'the reward paid once, in full', value: once * lumpTurns },
+    {
+      label: `the lasting reward, for the ${Math.max(0, horizon - turns)} turns of the horizon after the goal is met`,
+      value: rate * Math.max(0, horizon - turns),
+    },
+  ];
+  const met = parts.length > 0 && parts.every((part) => part.met);
+  if (met && !commissionRewardWaits(ctx.state, player, spec)) {
+    return appraise([
+      nest('the goal is met: seated now, it pays this turn and leaves the chair', appraise(whole(1))),
+    ]);
+  }
+  const counted = parts.some((part) => !part.met && part.goal.kind === 'counted');
+  if (!counted) {
+    return appraise([
+      {
+        label: met
+          ? 'the goal is met, but its reward cannot land yet, so a chair adds nothing now'
+          : 'its goal grows without a chair, and the card is seated on the turn the goal is met',
+        value: 0,
+      },
+    ]);
+  }
+  const forecast = commissionForecast(id, ctx);
+  const turns = Math.max(1, forecast.turns);
+  return appraise([
+    nest('the reward in full', appraise(whole(turns))),
+    delayTerm(turns, ctx, forecast.why),
+    {
+      label: `÷ ${turns} turn${turns === 1 ? '' : 's'} of the chair: a counted goal grows only while its card is seated`,
+      value: turns,
+      op: 'div',
+    },
+  ]);
+}
+
+/**
+ * **One step toward a goal** that an arm prices (bot batch BP6, B12): the
+ * moment of a counted goal or the figure of a reached one, how many the step
+ * adds, and the technologies it completes, for a goal on one technology.
+ */
+export interface CommissionStep {
+  occasion?: TallyOccasion;
+  figure?: CommissionFigure;
+  count: number;
+  techs?: readonly TechId[];
+}
+
+/**
+ * **What one step toward the seat's open commissions is worth**, as one printed
+ * term, or `null` when no open commission counts the step (bot pass 3, batch
+ * BP6; `docs/flags.md` (ooooooo) B12: *"while a seat holds an open Commission,
+ * the remaining reward joins the price of each action that moves the goal"*).
+ *
+ * It is touch point (b) of `docs/bot-priorities.md`, the share a chain hands
+ * each of its steps (`chainTerm`, `bot.ts`), said for a commission. The share
+ * of one goal part is the commission's price (`explainCommission`: the reward
+ * at the delay of its forecast) times the part of what is still to come that
+ * this step brings, at most all of it. A goal with a floor counts only some
+ * moments, so its share is cut to `score.commission.floorShare`, as its
+ * forecast is.
+ *
+ * A counted part grows only while its card sits in a chair, so a step counts
+ * for it only then. A reached part counts the step whether the card sits or
+ * not, because the card is seated when the goal is met. A part already met
+ * gives nothing. A goal the seat will not meet inside the horizon has a price
+ * of nought, so its steps read nothing: the pull keeps a seat on a goal it can
+ * reach and does not start a goal it cannot, such as a war it would not choose.
+ *
+ * The arms that ask it: the production table (a wonder: one wonder completed,
+ * and its hammers put into a wonder), the beeline (the technologies on a road),
+ * the rite plan (a rite started), the gold book (a building bought with gold)
+ * and the hex planner (a hex claimed, one more hex owned).
+ */
+export function commissionPullTerm(ctx: ValueContext, step: CommissionStep): ValueTerm | null {
+  if (step.count <= 0) return null;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const sc = player.statecraft;
+  const parts: ValueTerm[] = [];
+  for (const id of sc.orders) {
+    const spec = orderDef(id).commission;
+    if (spec === undefined || commissionFulfilledTurn(sc, id) !== undefined) continue;
+    // Asked of the row first, which is cheap, so a commission no step moves
+    // reads no progress at all.
+    const moves = spec.goals.some(
+      (goal) =>
+        (goal.kind === 'counted' && goal.occasion === step.occasion) ||
+        (goal.kind === 'reached' && goal.figure === step.figure),
+    );
+    if (!moves) continue;
+    const seated = isSlotted(sc, id);
+    let share = 0;
+    let what = '';
+    for (const part of commissionProgress(ctx.state, ctx.playerId, id)) {
+      if (part.met) continue;
+      const goal = part.goal;
+      let adds = 0;
+      if (goal.kind === 'counted' && step.occasion === goal.occasion && seated) {
+        adds = goal.tech === undefined ? step.count : (step.techs ?? []).includes(goal.tech) ? 1 : 0;
+        if (goalHasFloor(goal)) adds *= ctx.ai.score.commission.floorShare;
+      } else if (goal.kind === 'reached' && step.figure === goal.figure) {
+        adds = step.count;
+      }
+      if (adds <= 0) continue;
+      const remaining = part.need - part.have;
+      if (remaining <= 0) continue;
+      const here = Math.min(1, adds / remaining);
+      if (here > share) {
+        share = here;
+        what = `${round(Math.min(adds, remaining))} of the ${round(remaining)} ${goal.kind === 'counted' ? goal.occasion : goal.figure} still to come`;
+      }
+    }
+    if (share <= 0) continue;
+    const price = explainCommission(id, ctx)?.total ?? 0;
+    if (price <= 0) continue;
+    parts.push({ label: `${orderDef(id).name}: ${what}, × ${round(share)} of its price ${round(price)}`, value: price * share });
+  }
+  if (parts.length === 0) return null;
+  const folded = appraise(parts);
+  return { label: 'a step toward an open commission', value: folded.total, parts: folded.terms };
+}
+
+/**
+ * **The steps of several moments, as one term**, or `null` when none of them
+ * pulls. A row that moves two goals at once (a wonder is one wonder completed
+ * and its hammers put into a wonder) carries one term with both.
+ */
+function pullOfSteps(ctx: ValueContext, steps: readonly CommissionStep[]): ValueTerm | null {
+  const found: ValueTerm[] = [];
+  for (const step of steps) {
+    const term = commissionPullTerm(ctx, step);
+    if (term !== null) found.push(...(term.parts ?? [term]));
+  }
+  if (found.length === 0) return null;
+  const folded = appraise(found);
+  return { label: 'a step toward an open commission', value: folded.total, parts: folded.terms };
+}
+
+/**
+ * **A building row's step toward the seat's open commissions** (bot batch BP6,
+ * B12), for the production table: a world wonder is one wonder completed, and
+ * a wonder or the Magnum Opus takes its cost in hammers put into a wonder (the
+ * `wonderProduction` tally counts the hammers a town puts into either). `null`
+ * for any other row, and for every row of a seat with no open commission.
+ */
+export function buildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
+  const def = buildingDef(id);
+  const wonder = isWonder(id);
+  if (!wonder && def.endsTheGame !== true) return null;
+  const steps: CommissionStep[] = [
+    { occasion: 'wonderProduction', count: buildingProductionCost(id, ctx.state, ctx.playerId) },
+  ];
+  if (wonder) steps.push({ occasion: 'wonderCompleted', count: 1 });
+  return pullOfSteps(ctx, steps);
+}
+
+/**
+ * **A research road's step toward the seat's open commissions** (bot batch BP6,
+ * B12), for the beeline: every technology on the road is one completed, and
+ * each charter technology on it is one charter technology completed. A goal on
+ * one technology (The Great Instrument's Alchemy) counts only a road through
+ * that technology.
+ */
+export function researchPullTerm(ctx: ValueContext, road: readonly TechId[]): ValueTerm | null {
+  if (road.length === 0) return null;
+  const charters = road.filter((tech) => techDef(tech).charter === true).length;
+  const steps: CommissionStep[] = [{ occasion: 'techCompleted', count: road.length, techs: road }];
+  if (charters > 0) steps.push({ occasion: 'charterTechCompleted', count: charters, techs: road });
+  return pullOfSteps(ctx, steps);
 }
 
 /**
@@ -6629,7 +6854,9 @@ function commissionMetRate(ctx: ValueContext): number {
 }
 
 /**
- * **What one line of a commission's reward is worth**, as printed terms.
+ * **What one line of a commission's reward is worth**, as printed terms, each
+ * marked as paid once or for the rest of the game (bot batch BP6: the chair
+ * price reads the two apart, `explainCommissionChair`).
  *
  * Read in the order `payCommission` reads a row: a row paid to each town pays
  * nothing else, and every other field adds its own term. Each figure the
@@ -6637,12 +6864,28 @@ function commissionMetRate(ctx: ValueContext): number {
  * less than the goal itself guarantees (a treasury goal of 2,000 pays at least
  * on 2,000).
  */
+interface RewardTerm {
+  term: ValueTerm;
+  /**
+   * True for a reward that pays every turn for the rest of the game (a lasting
+   * effect, a building, a chair, a post, a Doctrine, land), whose term is a
+   * rate. False for one paid once, whose term is a lump at the lump exchange.
+   */
+  lasting: boolean;
+}
+
 function rewardTerms(
   reward: CommissionReward,
   goals: readonly CommissionGoal[],
   ctx: ValueContext,
-): ValueTerm[] {
-  const terms: ValueTerm[] = [];
+): RewardTerm[] {
+  const terms: RewardTerm[] = [];
+  const once = (term: ValueTerm): void => {
+    terms.push({ term, lasting: false });
+  };
+  const lasting = (term: ValueTerm): void => {
+    terms.push({ term, lasting: true });
+  };
   if (reward.eachTown === true) {
     if (reward.yield === undefined || reward.amount === undefined) return terms;
     if (reward.fromFigure !== undefined) {
@@ -6650,7 +6893,7 @@ function rewardTerms(
       // empire's, so the whole reward is the amount times the empire's figure.
       const figure = rewardFigure(reward, goals, ctx);
       const bag: YieldBag = { [reward.yield]: reward.amount * figure };
-      terms.push(
+      once(
         nest(
           `${reward.amount} ${reward.yield} for each of ${round(figure)} ${reward.fromFigure}, once`,
           explainLump(bag, ctx),
@@ -6662,7 +6905,7 @@ function rewardTerms(
     // the goal that pays it usually makes one (Man the Walls' garrisons).
     const towns = Math.max(townsAdmitting(ctx, reward.scope), Math.min(1, ctx.cities));
     const bag: YieldBag = { [reward.yield]: reward.amount * towns };
-    terms.push(
+    once(
       nest(
         `${reward.amount} ${reward.yield} in each of ${round(towns)} towns, once`,
         explainLump(bag, ctx),
@@ -6673,9 +6916,7 @@ function rewardTerms(
   if (reward.yield !== undefined && reward.amount !== undefined) {
     const figure = rewardFigure(reward, goals, ctx);
     const bag: YieldBag = { [reward.yield]: reward.amount * figure };
-    terms.push(
-      nest(`${round(reward.amount * figure)} ${reward.yield}, once`, explainLump(bag, ctx)),
-    );
+    once(nest(`${round(reward.amount * figure)} ${reward.yield}, once`, explainLump(bag, ctx)));
   }
   if (reward.unit !== undefined) {
     // A combat unit is a piece, as a gifted soldier is everywhere else in this
@@ -6685,14 +6926,14 @@ function rewardTerms(
     const points = fights
       ? ctx.ai.weights.military * ctx.ai.score.combatScale
       : ctx.ai.weights.worker;
-    terms.push(nest(`a free ${reward.unit}, once`, lumpOfPoints(points, ctx)));
+    once(nest(`a free ${reward.unit}, once`, lumpOfPoints(points, ctx)));
   }
   if (reward.timed !== undefined) {
     // The timed grant's reading in `windfallGrantWorth`: the effects for as
     // many turns as they hold, as a share of the lump's turns.
     const turns = Math.max(0, reward.timed.turns);
     const share = turns / Math.max(1, ctx.ai.score.lumpTurns);
-    terms.push({
+    once({
       label: `its effects for ${turns} turns`,
       value: scoreEffects(reward.timed.effects, ctx) * share,
     });
@@ -6701,7 +6942,7 @@ function rewardTerms(
     // A great person, priced at the renown the seat's next one would cost.
     const player = ctx.state.players[ctx.playerId];
     const renown = player === undefined ? 0 : renownThreshold(ctx.state, player);
-    terms.push(
+    once(
       nest(
         'a great person, at the renown one costs',
         lumpOfPoints(renown * ctx.ai.weights.renown, ctx),
@@ -6712,9 +6953,7 @@ function rewardTerms(
     const to = reward.citizensTo ?? 'capital';
     const towns = to === 'capital' ? 1 : Math.min(Math.max(0, to.smallest), ctx.cities);
     const food = reward.citizens * towns * growthThreshold(ctx);
-    terms.push(
-      nest(`${reward.citizens} citizens in ${towns} towns, once`, explainLump({ food }, ctx)),
-    );
+    once(nest(`${reward.citizens} citizens in ${towns} towns, once`, explainLump({ food }, ctx)));
   }
   if (reward.building !== undefined) {
     // A building pays every turn it stands, so it is a rate: the founding
@@ -6722,14 +6961,14 @@ function rewardTerms(
     const def = buildingDef(reward.building);
     const bag: YieldBag = {};
     for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
-    terms.push({
+    lasting({
       label: `a free ${reward.building}`,
       value: valueOfYields(bag, ctx) + explainBuildingRow(reward.building, ctx).total,
     });
   }
   if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
     // A chair for the rest of the game, as `slotRider` prices one.
-    terms.push({
+    lasting({
       label: `${reward.wildcardChairs} more Wildcard chairs`,
       value: ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * reward.wildcardChairs,
     });
@@ -6752,7 +6991,7 @@ function rewardTerms(
     // `guaranteedTownsWorth`.
     const towns = guaranteedTownsWorth(effect, goals, ctx);
     const floor = Math.max(counted, towns.worth);
-    terms.push({
+    lasting({
       label:
         floor > board
           ? counted >= towns.worth
@@ -6765,14 +7004,14 @@ function rewardTerms(
   if (reward.postsInPartnerCapitals === true) {
     // **Your trading post in each partner's capital** (Commerce batch T4, The
     // World's Fair; priced in batch T9). See `partnerPostTerms`.
-    for (const term of partnerPostTerms(goals, ctx)) terms.push(term);
+    for (const term of partnerPostTerms(goals, ctx)) lasting(term);
   }
   if (reward.doctrineOffer === true) {
     // **A Doctrine offer** (Magisterial batch MG7, Commission: The Golden
     // Bull; priced in batch MG17): the best Doctrine the offer would deal.
     // See `doctrineOfferWorth`.
     const offer = doctrineOfferWorth(ctx);
-    terms.push({
+    lasting({
       label:
         offer.options === 0
           ? 'a Doctrine offer, once: no Doctrine of its government’s tier is left to offer'
@@ -6785,7 +7024,7 @@ function rewardTerms(
     // Commission: The Paradise Garden; priced in batch MG17), held for good.
     // See `claimWithinWorth`.
     const land = claimWithinWorth(reward.claimWithin, goals, ctx);
-    terms.push({
+    lasting({
       label: `the ${land.hexes} unowned hexes within ${reward.claimWithin} of a work, held for good`,
       value: land.worth,
     });
@@ -11315,6 +11554,124 @@ function adoptionRate(ctx: ValueContext): number {
   const ahead = adoptionsAhead(ctx);
   const count = ahead.tiers.length + (ahead.banked ? 1 : 0);
   return count / Math.max(1, ctx.ai.priorities.horizonTurns);
+}
+
+/**
+ * **What an offered Order adds to the Doctrines still to come** (bot pass 3,
+ * batch BP6; `docs/flags.md` (ooooooo) B1), or `null` when it adds nothing.
+ *
+ * The deck bonus is gone, and a greedy pick on the cards' own prices replaces
+ * it. A card's price cannot see one thing: a Doctrine the seat does not hold
+ * yet whose pay counts the seat's Orders. The card raises that count, so the
+ * Doctrine will pay more when it comes. This reading prices that rise.
+ *
+ * What exists today. No Doctrine needs cards of one deck to be offered: the
+ * offer deals one Doctrine from each of the seat's two decks, whatever the seat
+ * holds (`drawDoctrineOffer`). No card counts the cards of a deck. The rise is
+ * real only for a Doctrine with a `pays` line that counts the seat's Orders:
+ * seated Orders of a type (`slottedOrdersOfSlot`, The Magnaura), seated Orders
+ * (`slottedOrders`), Orders held (`ordersHeld`) or the decks among them
+ * (`decksHeld`). So this is the one reading of that rise, and it reads nothing
+ * for most cards.
+ *
+ * For each adoption the seat reaches over the horizon (`adoptionsAhead`), and
+ * each Doctrine of its decks that the adoption could offer (`doctrineBagFor`):
+ *
+ *   · the helpings the card adds to each such line, against the line's cap;
+ *   · times what one helping pays (`scorePayout`);
+ *   · times one chance in the bag's size that this Doctrine is the one held
+ *     after the adoption. The offer deals a few of the bag and the seat keeps
+ *     one of them, so each Doctrine is held about once in that many;
+ *   · times the wait until the adoption, at the seat's own drafting pace
+ *     (`draftsPerTurn`).
+ *
+ * A card the seat already holds has made its progress, so it reads nothing.
+ */
+export function explainDoctrineProgress(id: OrderId, ctx: ValueContext): Appraisal | null {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const sc = player.statecraft;
+  if (sc.orders.includes(id)) return null;
+  const tiers = adoptionsAhead(ctx).tiers;
+  const pace = draftsPerTurn(ctx);
+  if (tiers.length === 0 || pace <= 0) return null;
+  const seatable = neverSeatedError(sc, id) === null;
+  const terms: ValueTerm[] = [];
+  for (const tier of tiers) {
+    const bag = doctrineBagFor(ctx.state, player, tier);
+    if (bag.length === 0) continue;
+    const delay = Math.max(0, tier - sc.drafts) / pace;
+    const discount = delayDiscount(delay, ctx);
+    if (discount <= 0) continue;
+    for (const doctrine of bag) {
+      for (const effect of doctrineDef(doctrine).effects ?? []) {
+        if (effect.kind !== 'pays' || effect.basis !== 'count') continue;
+        const added = ordersCountAdded(effect, id, seatable, player);
+        if (added <= 0) continue;
+        const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+        const cap = effect.max === undefined ? Infinity : effect.max * per;
+        const now = countOf(ctx.state, ctx.playerId, doctrine, effect);
+        const helpings = (Math.min(now + added, cap) - Math.min(now, cap)) / per;
+        if (helpings <= 0) continue;
+        const worth = (helpings * scorePayout(effect, ctx) * discount) / bag.length;
+        terms.push({
+          label:
+            `${doctrineDef(doctrine).name}: ${round(helpings)} more helping of its ${effect.count} count, ` +
+            `one chance in ${bag.length} that it is the Doctrine held after the tier-${tier} adoption, ` +
+            `some ${round(delay)} turns away`,
+          value: worth,
+        });
+      }
+    }
+  }
+  return terms.length === 0 ? null : appraise(terms);
+}
+
+/**
+ * **How much one more Order raises a count of the seat's Orders**, for
+ * `explainDoctrineProgress`: one for a count it joins, nought for a count it
+ * cannot join, and the new decks it brings for `decksHeld`. A card that never
+ * sits (a Boon, a charter, a met commission) joins no count of seated Orders.
+ * A card's type for a count of one type is the evaluator's (`countedTypeOf`),
+ * so an unsorted card counts as the type of the chair it would sit in.
+ */
+function ordersCountAdded(effect: CardPaysEffect, id: OrderId, seatable: boolean, player: Player): number {
+  switch (effect.count) {
+    case 'slottedOrdersOfSlot': {
+      const slot = effect.slot;
+      if (!seatable || slot === undefined) return 0;
+      return countedTypeOf(id, slot) === slot ? 1 : 0;
+    }
+    case 'slottedOrders':
+      return seatable ? 1 : 0;
+    case 'ordersHeld':
+      return 1;
+    case 'decksHeld': {
+      const seatedOnly = effect.seated === true;
+      if (seatedOnly && !seatable) return 0;
+      const sc = player.statecraft;
+      const counted: OrderId[] = [];
+      if (seatedOnly) {
+        for (const slotted of sc.slots) {
+          if (slotted !== null && isOrderId(slotted.card)) counted.push(slotted.card);
+        }
+      } else {
+        counted.push(...sc.orders);
+      }
+      const held = new Set<string>();
+      let deckless = false;
+      for (const card of counted) {
+        const own = orderDef(card).decks;
+        if (own.length === 0) deckless = true;
+        for (const deck of own) held.add(deck);
+      }
+      const own = orderDef(id).decks;
+      if (own.length === 0) return deckless ? 0 : 1;
+      return own.filter((deck) => !held.has(deck)).length;
+    }
+    default:
+      return 0;
+  }
 }
 
 /**

@@ -113,6 +113,8 @@ import {
   explainSoldier,
   expectedBestOrder,
   hexPurchaseRiderTerm,
+  // Bot batch BP6: a want's step toward an open commission.
+  commissionPullTerm,
   holdsHexPurchaseRider,
 } from './value';
 import {
@@ -530,6 +532,10 @@ function purchasingPlan(
       // race's own share through the same door the queue and the beeline use.
       const race = raceTerm(ctx, { kind: 'building', id });
       if (race !== null) terms.push(race);
+      // **A step toward an open commission** (bot batch BP6, B12): a building
+      // bought with gold, for a goal that counts them (A Guild Commission).
+      const pull = commissionPullTerm(ctx, { occasion: 'buildingBoughtWithGold', count: 1 });
+      if (pull !== null) terms.push(pull);
       wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'gold', reach, city, item, terms));
     }
   }
@@ -733,6 +739,11 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   const wait = borderGrowth(state, city).turns;
   const next = bestExpansionTile(state, city);
   const soonShare = wait === null ? 1 : Math.min(1, wait / horizon);
+  // **What a hex bought moves toward the seat's open commissions** (bot batch
+  // BP6, B12): one more hex owned, and one hex claimed. Facts about the seat,
+  // not the hex, so read once a town. `null` for a seat with no such goal open.
+  const owned = commissionPullTerm(ctx, { figure: 'hexesOwned', count: 1 });
+  const claimed = commissionPullTerm(ctx, { occasion: 'hexClaimed', count: 1 });
 
   const quote = (tile: Tile, price: number | null): Appraisal | null => {
     const yields = foldTileLines(explainTileYield(tile, here));
@@ -764,6 +775,11 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
       });
     }
     terms.push(...newResourceTerms(ctx, ctx.realm, tile.resource, 'on the hex', tileCopies(tile)));
+    // **One more hex owned** (bot batch BP6, B12), for a goal that counts the
+    // hexes in the borders (The Domesday Survey). Inside the hex's own worth,
+    // so the claim share below scales it: a hex the borders would claim soon
+    // anyway is one sooner, not one more.
+    if (owned !== null) terms.push(owned);
     const owed = next !== null && next.col === tile.col && next.row === tile.row;
     const share = owed ? soonShare : 1;
     const claim: ValueTerm = {
@@ -779,10 +795,15 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
     // share and not scaled by it, because the borders claiming the hex fire no
     // rider. Only the coin's purchase pays it. See `hexPurchaseRiderTerm`.
     const rider = price === null ? null : hexPurchaseRiderTerm(ctx, tile, price);
+    // **A hex claimed** (bot batch BP6, B12), for a goal that counts hexes
+    // bought, given by an outpost or a cleared camp (The Wide Country). After
+    // the claim share, as the rider is: the borders claiming a hex count
+    // nothing toward it.
     const folded = appraise([
       nest(`the hex at (${tile.col},${tile.row})`, appraise(terms)),
       claim,
       ...(rider === null ? [] : [rider]),
+      ...(claimed === null ? [] : [claimed]),
     ]);
     return folded.total <= 0 ? null : folded;
   };
@@ -1937,7 +1958,11 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
       // The town is handed in (Devotion batch DV9), so a rite whose blessing
       // is a fact about the town that keeps it (the Sabbath's production) is
       // priced in this town.
-      const worth = explainRite(id, here, city);
+      const blessing = explainRite(id, here, city);
+      // **A step toward an open commission** (bot batch BP6, B12): a rite
+      // started, for a goal that counts them (The Founding Vows).
+      const pull = commissionPullTerm(ctx, { occasion: 'riteStarted', count: 1 });
+      const worth = pull === null ? blessing : appraise([nest('the blessing', blessing), pull]);
       const row: Want = {
         label: `${riteDef(id).name} at ${city.name}`,
         currency: 'faith',
