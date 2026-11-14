@@ -2,10 +2,11 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
-import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS} from './northStarTrees.js';
+import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS,NORTH_STAR_RANGE_COUNT as RANGE_COUNT} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
-// two cypresses, three escarpments, then the limestone block. `family` is the
+// two cypresses, the mountains (three escarpments or five crags), then the
+// limestone block. `family` is the
 // name the distance sheet calls a group of them by; it is not in the bundle,
 // which indexes by `name` alone.
 // The north-star look (the visual test, 2026-11-12) loads the round trees of
@@ -19,7 +20,7 @@ const RANGE=CRAGS?'crag':'escarpment';
 export const VEGETATION_SPECIES=[
  ...[0,1,2].map(i=>({name:`grove-${TREES}-${i}`,evergreen:false,rock:false,family:'groves'})),
  ...[0,1].map(i=>({name:`cypress-${TREES}-${i}`,evergreen:true,rock:false,family:'groves'})),
- ...[0,1,2].map(i=>({name:`${RANGE}-${i}`,evergreen:false,rock:true,family:'escarpments'})),
+ ...Array.from({length:RANGE_COUNT},(_,i)=>({name:`${RANGE}-${i}`,evergreen:false,rock:true,family:'escarpments'})),
  {name:'limestone',evergreen:false,rock:true,family:'stones'},
 ];
 
@@ -378,7 +379,7 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
      if(failed)throw failed.reason;
      return loaded.map(result=>result.value);
     })();
-  const broadleaves=assets.slice(0,3),cypresses=assets.slice(3,5),escarpments=assets.slice(5,8),limestone=assets[8];
+  const broadleaves=assets.slice(0,3),cypresses=assets.slice(3,5),escarpments=assets.slice(5,5+RANGE_COUNT),limestone=assets[5+RANGE_COUNT];
   if(!bundled)finishVegetation({broadleaves,cypresses,escarpments,limestone},{indexed});
   // Name each sculpt on the geometry itself. A batch submitted at the overview
   // has no other identity to report — the bundle carries none, and a benchmark

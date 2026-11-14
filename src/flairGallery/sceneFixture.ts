@@ -47,6 +47,8 @@ export const SCENE_VIEWS = {
   town: { col: 3, row: 7, zoom: 9, label: 'The capital, close' },
   townEast: { col: 15, row: 6, zoom: 9, label: 'The eastern town, close' },
   hamlet: { col: 9, row: 11, zoom: 9, label: 'The hamlet, close' },
+  pasture: { col: 13, row: 10, zoom: 9, label: 'The horse pasture, close' },
+  herds: { col: 12, row: 8, zoom: 3.6, label: 'Herds: horses, cattle, camels, bison, elephants' },
   works: { col: 15, row: 10, zoom: 3.6, label: 'Farms, a mine and a quarry' },
   yields: { col: 16, row: 2, zoom: 3.6, label: 'Rich hexes: food, production, gold in three steps' },
   units: { col: 15, row: 13, zoom: 3.4, label: 'Pieces and a ship' },
@@ -140,6 +142,8 @@ export function createSceneFixture(age?: number) {
     [2, 6, 'wheat'], [5, 6, 'iron'], [8, 6, 'gold'], [2, 5, 'deer'], [13, 10, 'horses'], [12, 11, 'stone'],
     [19, 9, 'fish'], [20, 4, 'pearls'], [23, 10, 'whales'], [14, 11, 'wine'], [16, 12, 'spices'],
     [12, 2, 'furs'], [1, 1, 'silver'], [17, 10, 'cotton'], [4, 11, 'incense'],
+    // More herds, for the `herds` view.
+    [13, 11, 'cattle'], [10, 10, 'camels'], [11, 5, 'bison'], [12, 5, 'ivory'],
   ];
   for (const [col, row, id] of resources) tile(col, row).resource = id;
   const works: [number, number, ImprovementId][] = [
@@ -151,6 +155,7 @@ export function createSceneFixture(age?: number) {
     [15, 10, 'farm'], [16, 10, 'farm'], [15, 11, 'farm'], [17, 11, 'mine'], [16, 9, 'quarry'],
     // A farm on the shore, for the `port` view.
     [18, 16, 'farm'],
+    [13, 11, 'pasture'], [10, 10, 'pasture'], [11, 5, 'camp'], [12, 5, 'camp'],
   ];
   for (const [col, row, id] of works) tile(col, row).improvement = id;
 

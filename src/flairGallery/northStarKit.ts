@@ -5,7 +5,7 @@ import {
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadSettlementAssets } from '../terrainStudy/settlementAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
-import { NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
+import { NORTH_STAR_HERDS, NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadVegetation, VEGETATION_SPECIES } from '../terrainStudy/vegetation.js';
 import { controls, element, slider } from './sheet';
@@ -14,9 +14,10 @@ import { controls, element, slider } from './sheet';
  * Every model of the north-star look on one table: `flair.html?review=northstar`.
  * The houses of the three ages, the hall, the mine, the quarry, the barn and
  * the haystack (`scripts/terrain-study/build_northstar_assets.py`), and the
- * three monuments, and the three mountains with the saddle of each
+ * three monuments, and the mountains with the saddle of each
  * (`scripts/terrain-study/build_crag_mountains.py`). Each stands at its authored
  * size under a soft light, with no terrain, so a shape can be judged by itself.
+ * Then the animals of the herds (`build_northstar_animals.py`).
  * A mountain is drawn as the board draws it, on grass: its ledges take the
  * grass's colour. The table is seen from the south at a turn of 0, which is the
  * side a mountain shows on the board. A new model of this look is
@@ -36,6 +37,11 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = [
   ['Houses, middle ages', (NORTH_STAR_HOUSES as string[]).slice(3, 6)],
   ['Houses, late ages', (NORTH_STAR_HOUSES as string[]).slice(6, 9)],
   ['Hall and monuments', ['ns-hall', 'monument-obelisk', 'monument-ziggurat', 'monument-armillary']],
+  // The animals (`build_northstar_animals.py`), a row for the grazing herds and a row for the rest.
+  ...(['horses', 'cattle', 'deer'].some(herd => (NORTH_STAR_HERDS as Record<string, string[]>)[herd]) ? [
+    ['Herds', ['horses', 'cattle', 'deer'].flatMap(herd => (NORTH_STAR_HERDS as Record<string, string[]>)[herd] ?? [])] as const,
+    ['More animals', ['bison', 'camels', 'ivory'].flatMap(herd => (NORTH_STAR_HERDS as Record<string, string[]>)[herd] ?? [])] as const,
+  ] : []),
   ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails', 'ns-sheaf', 'ns-logs', 'ns-stall']],
 ];
 
@@ -50,6 +56,8 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
   const stage = element('div', 'painted-works-stage'), canvas = element('canvas', 'painted-works-canvas');
   canvas.setAttribute('aria-label', 'The models of the north-star look, in rows.');
   const overlay = element('div', 'painted-works-labels');
+  // The table grows with its rows, so a label never lies on the row in front of it.
+  canvas.style.height = `${ROWS.length * 170}px`;
   stage.append(canvas, overlay); into.append(stage);
   const status = element('p', 'sheet-note', 'Loading the models…'); status.setAttribute('role', 'status'); into.append(status);
   const renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -117,7 +125,7 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
       const label = element('span', 'painted-works-label', i === 0 ? `${rowLabel}: ${name}` : name); overlay.append(label);
       pieces.push({ pivot, label, at: new Vector3(x, Math.min(0, box.min.y), z + .55) });
     }));
-    status.textContent = `${NORTH_STAR_TOWN_ASSETS.length + NORTH_STAR_WORK_ASSETS.length} new models, the three monuments and the three mountains with their saddles, at their authored sizes.`;
+    status.textContent = `${NORTH_STAR_TOWN_ASSETS.length + NORTH_STAR_WORK_ASSETS.length} new models, the three monuments and the ${RANGES.length} mountains with their saddles, at their authored sizes.`;
     draw();
     document.body.dataset.sceneReady = '1';
   } catch (error) {

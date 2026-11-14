@@ -3,6 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {centre,isWater,onTileTop,surfaceHeight,WATER_LEVEL} from './surface.js';
 import {surfacePatch} from './surfacePatch.js';
 import {resourceFamilies,animalAsset,resourceColors} from './resourceCatalog.js';
+import {NORTH_STAR_HERDS,NORTH_STAR_HERD_SCALE} from './northStarAssets.js';
 import {crag} from './shapes.js';
 import {indexGeometry} from './indexGeometry.js';
 import {farmPaint,farmLayout} from './farmPaint.js';
@@ -232,12 +233,14 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   }
   if(family==='animal'){
    const name=animalAsset[resource],count=resource==='ivory'?2:3;
+   // The north-star herd has two or three models; a herd takes them in turn, from a start that differs by hex.
+   const herd=(NORTH_STAR_HERDS[resource]||[]).filter(model=>assets[model]),first=Math.floor(rand(40)*herd.length);
    for(let i=0;i<count;i++){
-    const s=(resource==='ivory'?.47:resource==='furs'?.45:.41+rand(i+1)*.045)*.48;
+    const s=(resource==='ivory'?.47:resource==='furs'?.45:.41+rand(i+1)*.045)*.48*(herd.length?NORTH_STAR_HERD_SCALE:1);
     const x=(frontResource?[-.32,0,.32]:[-.23,.23,-.03])[i],z=(monumental?[.55,.65,.55]:lumber?[.38,.48,.38]:[-.20,.16,.38])[i];
     const a=-.45+rand(i+10)*1.1+(i===1?Math.PI:0);
     if(!onTileTop(tile,x,z,s*.53))continue;
-    const g=assets[name];
+    const g=herd.length?assets[herd[(first+i)%herd.length]]:assets[name];
     const samples=[[-.28,-.11],[-.28,.11],[.23,-.11],[.23,.11]].map(([px,pz])=>{const [dx,dz]=local(px*s,pz*s,preciseFit?-a:a);return height(x+dx,z+dz)});
     put(g,x,z,s,a,0xffffff,Math.max(...samples)-.004);
    }

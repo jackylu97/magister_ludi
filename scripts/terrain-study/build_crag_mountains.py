@@ -38,7 +38,7 @@ def material(name,color):
  m=bpy.data.materials.get(name) or bpy.data.materials.new(name);m.diffuse_color=(*color,1);return m
 # The renderer keeps only the light and dark of the stones and gives the rock
 # its colour, so they are greys: darker low down, lighter toward the summit.
-STONE=[material('stone'+str(i),(v,v,v)) for i,v in enumerate([.42,.50,.58,.68])]
+STONE=[material('stone'+str(i),(v,v,v)) for i,v in enumerate([.46,.54,.62,.72])]
 # The cap of a ledge is dark under the ground's colour, so a ledge is a little
 # darker and browner than the open ground and still shows on sand.
 LEDGE=material('stoneLedge',(.2,.2,.2))
@@ -228,6 +228,50 @@ def export(name):
  bpy.ops.object.select_all(action='SELECT')
  bpy.ops.export_scene.gltf(filepath=str(OUT/(name+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_vertex_color='ACTIVE')
 
+def details(prefix,seed,ribs,ledges,snow):
+ """Break the large faces of the rock: ribs that run down a face, and small ledges cut into it.
+
+ Looks at the blocks from the front and from the right, the sides the board
+ and its sun see, and works where it finds a steep face. A rib is a narrow
+ block that leans on the face from the ground up, with a sloping top. A
+ ledge is a small shelf at some height under the snow line `snow`; some are
+ level, and the loader turns a level one green, and the rest slope and stay
+ bare rock.
+ """
+ rng=random.Random(seed);verts=[];faces=[]
+ for o in [o for o in bpy.context.scene.objects if o.type=='MESH' and o.name.startswith(prefix)]:
+  o.data.calc_loop_triangles();base=len(verts)
+  verts.extend(v.co.copy() for v in o.data.vertices)
+  faces.extend(tuple(base+i for i in t.vertices) for t in o.data.loop_triangles)
+ bvh=BVHTree.FromPolygons(verts,faces,all_triangles=True);top=max(v.z for v in verts)
+ def face(a,z,side=0.):
+  d=Vector((math.cos(a),math.sin(a),0));across=Vector((-d.y,d.x,0))
+  loc,normal,_,_=bvh.ray_cast(d*2+across*side+Vector((0,0,z)),-d)
+  return (loc,d) if loc is not None and abs(normal.z)<.5 and normal.dot(d)>.35 else (None,d)
+ placed=[]
+ def free(loc,gap):return all((loc-other).length>gap for other in placed)
+ count=0
+ for _ in range(600):
+  if not ribs:break
+  a=rng.uniform(math.radians(-175),math.radians(35));loc,d=face(a,.14,rng.uniform(-.4,.4))
+  if loc is None or not free(loc,.3):continue
+  # The rib is as high as the face behind it stays close.
+  height=0
+  for h in (1.0,.85,.7,.55):
+   above,_=face(a,h*.9,(loc-d*loc.dot(d)).dot(Vector((-d.y,d.x,0))))
+   if above is not None and (Vector((above.x-loc.x,above.y-loc.y,0))).length<.17:height=h;break
+  if not height:continue
+  count+=1;ribs-=1;placed.append(loc);size=rng.uniform(.11,.15)
+  mass(prefix+'Rib'+str(count),(loc.x-d.x*size*.2,loc.y-d.y*size*.2),size,[(.02,1.15),(height*.6,.9),(height,.5)],seed*53+count,sides=4,turn=a,
+   bevel=.02,tilt=(-d.x*.6,-d.y*.6),rough=.18,ragged=.06,pigment=rng.choice((1,2,3)),cap='rock',snow=snow)
+ for _ in range(1500):
+  if not ledges:break
+  a=rng.uniform(math.radians(-175),math.radians(35));loc,d=face(a,rng.uniform(.34,snow-.12),rng.uniform(-.5,.5))
+  if loc is None or not free(loc,.24):continue
+  count+=1;ledges-=1;placed.append(loc);size=rng.uniform(.1,.15);level=rng.random()<.4
+  mass(prefix+'Shelf'+str(count),(loc.x-d.x*size*.3,loc.y-d.y*size*.3),size,[(loc.z-size*1.2,.5),(loc.z,1)],seed*59+count,sides=4,turn=a+math.pi/4+rng.uniform(-.2,.2),
+   bevel=.018,tilt=(0,0) if level else (-d.x*.5,-d.y*.5),rough=.14,ragged=0,pigment=rng.choice((1,2)),cap='ledge' if level else 'rock',snow=snow)
+
 def saddle(seed,block):
  # Drawn tall because the renderer squashes it to about a third: a low
  # footing with one block of rock on it.
@@ -235,52 +279,75 @@ def saddle(seed,block):
  mass('SaddleBlock',block,.50,[(.3,1),(.95,.84),(1.45,.6)],seed+1,sides=6,turn=seed*.37,stretch=1.25,pigment=2,bevel=.05,tilt=(.1,.06),ragged=.1,cap='rock')
  scatter('Saddle',seed,2,0,0,1,stand=2.6)
 
-# The board is seen from the south, which is -y here, and a mountain is set down
-# facing that way (`createMountainRanges` turns a crag only a little). So each
-# model is composed for that view. The summit is a group of two or three
-# leaning blocks of different heights that stand into one another, with a
-# cleft where they meet. They rise near the front of a low sloping skirt, so
-# the front is one tall broken face. Behind and beside them are a green terrace, a
-# ramp and a shoulder at different heights.
+def skirt(seed,stretch=1.):
+ # The low slope every mountain stands on. It takes the ground's colour at its edge.
+ mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],seed,sides=8,apron=.07,stretch=stretch,pigment=0,cap='rock')
+
+def finish(seed,snow,ribs=3,ledges=6):
+ details('Crag',seed,ribs,ledges,snow)
+ scatter('Crag',seed,5,3,1,3)
+ saddle(seed*20+1,((seed%3-1)*.08,.05))
+
+# The board is seen from the south, which is -y here, with its sun in the east,
+# which is +x. A mountain is set down facing between the two
+# (`createMountainRanges`), so each model is composed for that view: its high
+# sheer face is at the front right, and its green terraces step down toward the
+# front left. The blocks stand upright. A mountain gets its form from its
+# proportions: a broad lower block, narrower blocks on it, and one summit
+# clearly higher than its shoulders.
 # Heights: the foot is 0 and the tallest summit 1.62, a little under the old
 # models' tallest block (1.64).
 def crag0():
- # The great crag: the summit stands over a sheer face at the front right,
- # and a long green ramp climbs to it from the left.
- mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],11,sides=8,apron=.07,pigment=0,cap='rock')
- mass('CragTerrace',(-.16,.26),.52,[(.02,1),(.34,.93),(.5,.86)],12,sides=7,turn=.5,stretch=1.15,pigment=1,tilt=(-.03,.03))
- mass('CragRamp',(-.36,-.10),.32,[(.02,1),(.42,.94),(.70,.86)],13,sides=6,stretch=1.25,pigment=1,lean=(.06,0),tilt=(.34,0),ragged=.07)
- mass('CragPeakA',(.26,-.16),.37,[(.02,1),(.7,.9),(1.2,.6),(1.62,.22)],15,sides=6,turn=.3,bevel=.03,lean=(.04,-.05),tilt=(.2,-.1),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.2)
- mass('CragPeakB',(.02,-.06),.35,[(.02,1),(.55,.92),(.92,.7),(1.2,.36)],16,sides=5,turn=.9,bevel=.03,lean=(-.04,-.03),tilt=(-.2,.05),rough=.2,ragged=.1,pigment=2,cap='rock',snow=1.1)
- mass('CragPeakC',(.46,.04),.27,[(.02,1),(.55,.9),(.8,.72),(.98,.44)],17,sides=5,turn=.2,bevel=.03,lean=(.05,.03),tilt=(.15,.1),rough=.18,pigment=2,cap='rock')
- mass('CragShoulder',(-.10,-.46),.2,[(.02,1),(.36,.9),(.52,.78)],18,sides=5,turn=.4,pigment=1,tilt=(-.06,.05))
- scatter('Crag',1,6,3,1,4)
- saddle(21,(-.08,.05))
+ # The great crag: the summit stands over the sheer east face, with a
+ # shoulder behind it, and three terraces step down to the west.
+ skirt(11)
+ mass('CragTier1',(-.04,.02),.60,[(.02,1),(.3,.96),(.52,.9)],12,sides=8,turn=.5,stretch=1.1,pigment=1,tilt=(-.03,.03))
+ mass('CragTier2',(.12,.10),.42,[(.02,1),(.6,.95),(.95,.86)],13,sides=6,turn=.2,pigment=2,tilt=(.04,-.03))
+ mass('CragSummit',(.24,.06),.27,[(.5,1),(1.2,.86),(1.45,.6),(1.62,.3)],15,sides=5,turn=.8,bevel=.03,lean=(.02,-.02),tilt=(.12,-.08),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.28)
+ mass('CragShoulder',(.02,.22),.24,[(.5,1),(1.05,.88),(1.26,.56)],16,sides=5,turn=.3,bevel=.03,tilt=(-.2,.1),rough=.18,pigment=2,cap='rock',snow=1.2)
+ mass('CragStep',(-.42,-.22),.25,[(.02,1),(.5,.95),(.72,.86)],17,sides=5,turn=.4,pigment=1,tilt=(-.05,.04))
+ finish(1,1.25)
 
 def crag1():
- # The twin: two summits that lean apart, one lower, with a deep cleft
- # between them down to a green floor.
- mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],31,sides=8,apron=.07,stretch=1.08,pigment=0,cap='rock')
- mass('CragTerrace',(0,.08),.56,[(.02,1),(.34,.93),(.5,.86)],32,sides=7,turn=.3,stretch=1.25,pigment=1,tilt=(.03,.03))
- mass('CragPeakA',(-.34,-.12),.34,[(.02,1),(.7,.9),(1.2,.6),(1.6,.22)],34,sides=6,bevel=.03,lean=(-.06,-.04),tilt=(-.2,-.08),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.22)
- mass('CragPeakA2',(-.44,.14),.29,[(.02,1),(.65,.9),(1.0,.68),(1.22,.4)],37,sides=5,turn=.4,bevel=.03,lean=(-.04,.03),tilt=(-.15,.1),rough=.18,pigment=2,cap='rock')
- mass('CragPeakB',(.34,-.08),.34,[(.02,1),(.6,.9),(1.05,.64),(1.36,.32)],35,sides=6,turn=.5,bevel=.03,lean=(.07,-.03),tilt=(.2,-.05),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.12)
- mass('CragPeakB2',(.46,.16),.26,[(.02,1),(.55,.9),(.8,.7),(.96,.46)],38,sides=5,turn=.1,bevel=.03,lean=(.04,.03),tilt=(.12,.1),rough=.18,pigment=2,cap='rock')
- mass('CragShoulder',(.02,-.44),.22,[(.02,1),(.36,.9),(.52,.78)],36,sides=5,turn=.2,pigment=1,tilt=(.04,-.06))
- scatter('Crag',2,6,3,1,4)
- saddle(41,(.08,-.04))
+ # The twin: two upright summits, one lower, on one broad block, with a
+ # cleft between them down to its green top.
+ skirt(31,1.08)
+ mass('CragTier1',(0,.02),.60,[(.02,1),(.3,.96),(.5,.9)],32,sides=8,turn=.3,stretch=1.2,pigment=1,tilt=(.03,.03))
+ mass('CragPeakL',(-.35,.04),.32,[(.02,1),(.7,.93),(1.1,.8)],34,sides=6,pigment=2,tilt=(-.05,.04))
+ mass('CragSummitL',(-.38,.06),.22,[(.6,1),(1.3,.84),(1.62,.34)],37,sides=5,turn=.4,bevel=.03,tilt=(-.14,-.08),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.3)
+ mass('CragPeakR',(.37,.0),.30,[(.02,1),(.6,.93),(.9,.8)],35,sides=6,turn=.5,pigment=2,tilt=(.05,.03))
+ mass('CragSummitR',(.40,.02),.2,[(.5,1),(1.05,.84),(1.3,.36)],38,sides=5,turn=.1,bevel=.03,tilt=(.14,-.06),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.14)
+ mass('CragBack',(0,.36),.26,[(.02,1),(.55,.94),(.8,.84)],36,sides=5,turn=.2,pigment=1,tilt=(.04,-.06))
+ finish(2,1.2)
 
 def crag2():
- # The leaning stack: three blocks step up from the left to a summit that
- # leans out over a sheer drop on the right.
- mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],51,sides=8,apron=.07,stretch=1.08,pigment=0,cap='rock')
- mass('CragTerrace',(-.10,.20),.54,[(.02,1),(.34,.93),(.48,.86)],58,sides=7,turn=.6,stretch=1.2,pigment=1,tilt=(.03,-.03))
- mass('CragPeakA',(.06,-.10),.40,[(.02,1),(.65,.88),(1.2,.64),(1.62,.24)],54,sides=6,turn=.9,stretch=1.15,bevel=.03,lean=(.36,-.04),tilt=(.25,-.05),rough=.2,ragged=.1,pigment=3,cap='rock',snow=1.25)
- mass('CragPeakB',(-.20,.02),.36,[(.02,1),(.55,.9),(.92,.7),(1.18,.42)],57,sides=5,turn=.2,bevel=.03,lean=(.16,0),tilt=(.3,0),rough=.18,ragged=.08,pigment=2)
- mass('CragPeakC',(-.46,-.06),.27,[(.02,1),(.4,.92),(.62,.8),(.78,.6)],55,sides=5,turn=.5,lean=(.08,0),tilt=(.3,0),pigment=1)
- mass('CragShoulder',(.42,-.36),.20,[(.02,1),(.34,.9),(.5,.8)],56,sides=5,turn=.1,pigment=1,tilt=(-.08,-.06))
- scatter('Crag',3,6,3,1,4)
- saddle(61,(.04,.06))
+ # The horn: four blocks, each narrower than the one under it, to one
+ # summit in the middle. The steps are wider at the front.
+ skirt(51)
+ mass('CragTier1',(0,.04),.66,[(.02,1),(.28,.95),(.46,.89)],52,sides=8,turn=.6,pigment=1,tilt=(.02,-.03))
+ mass('CragTier2',(.03,.10),.50,[(.02,1),(.6,.93),(.86,.83)],53,sides=6,turn=.1,pigment=2,tilt=(-.04,.03))
+ mass('CragTier3',(.06,.14),.35,[(.4,1),(1.0,.9),(1.24,.76)],54,sides=6,turn=.7,bevel=.035,pigment=2,tilt=(.05,.04),snow=1.2)
+ mass('CragSummit',(.08,.15),.23,[(.8,1),(1.4,.8),(1.62,.3)],57,sides=5,turn=.2,bevel=.03,tilt=(.12,-.1),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.3)
+ finish(3,1.22,ribs=4,ledges=7)
 
-for variant,build in enumerate([crag0,crag1,crag2]):
+def crag3():
+ # The table and tower: one wide high block with a sheer wall all round and
+ # a green top, and a tower with a shoulder at the back of it.
+ skirt(71,1.06)
+ mass('CragTable',(-.06,-.04),.56,[(.02,1),(.5,.97),(.9,.93)],72,sides=8,turn=.3,stretch=1.15,pigment=1,tilt=(.03,.02),ragged=.07)
+ mass('CragTower',(.26,.16),.27,[(.5,1),(1.2,.9),(1.42,.7),(1.58,.36)],74,sides=5,turn=.6,bevel=.03,tilt=(.12,-.06),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.3)
+ mass('CragShoulder',(.04,.24),.22,[(.5,1),(1.1,.88),(1.24,.6)],75,sides=5,turn=.1,bevel=.03,tilt=(-.2,.08),rough=.18,pigment=2,cap='rock',snow=1.22)
+ mass('CragStep',(.46,-.28),.24,[(.02,1),(.4,.95),(.56,.87)],76,sides=5,turn=.5,pigment=2,tilt=(.05,-.04))
+ finish(4,1.25)
+
+def crag4():
+ # The ridge: four upright teeth in a row, the third the highest, behind one
+ # long green terrace.
+ skirt(91,1.1)
+ for i,(x,y,r,h,snow) in enumerate([(-.42,.02,.27,1.0,None),(-.14,.05,.30,1.3,1.16),(.16,.02,.30,1.62,1.28),(.44,.05,.25,1.12,None)]):
+  mass('CragTooth'+str(i),(x,y),r,[(.02,1),(h*.55,.9),(h*.85,.66),(h,.34)],92+i,sides=5,turn=i*.7,bevel=.03,tilt=((i-1.5)*.08,-.08),rough=.18,ragged=.08,pigment=2+i%2,cap='rock',snow=snow)
+ mass('CragTerrace',(-.02,-.27),.36,[(.02,1),(.3,.96),(.5,.9)],97,sides=7,turn=.2,stretch=1.7,pigment=1,tilt=(.03,-.02))
+ finish(5,1.2,ribs=2)
+
+for variant,build in enumerate([crag0,crag1,crag2,crag3,crag4]):
  reset();build();export('crag-'+str(variant))

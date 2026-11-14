@@ -82,7 +82,8 @@ describe('painted asset lifecycle', () => {
       geometries.add(output.geometry);
       if (output.shoulderGeometry) geometries.add(output.shoulderGeometry);
     }
-    expect(geometries.size).toBe(12);
+    // One geometry for each model, and a shoulder for each mountain (three escarpments or five crags).
+    expect(geometries.size).toBe(outputs.length + loaded.escarpments.length);
     for (const geometry of geometries) {
       expect(owned.geometryDisposals.mock.contexts).not.toContain(geometry);
       expect(geometry.getAttribute('position').count).toBeGreaterThan(0);

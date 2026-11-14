@@ -475,7 +475,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         // A mountain is broader and a little lower than the study's shard, so it reads as a mass of rock (`visualTest.mountains`).
         const massif = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.mountains : {wide: 1, tall: 1};
         for (const piece of ranges.pieces.get(t) || []) {
-          const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant];
+          const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant % assets.escarpments.length];
           prop(piece.asset === 'shoulder' ? rock.shoulderGeometry : rock.geometry, assets.rangeMaterial,
             piece.x, piece.y, piece.z, piece.sx * massif.wide, piece.sy * massif.tall, piece.sz * massif.wide, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
         }
