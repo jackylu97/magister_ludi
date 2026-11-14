@@ -45,6 +45,11 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - Open for the user: which version to keep (six seeds at turn 100, ruled against cautious: production −6% against +3%, gold −7% against +19%, science +11% against +6%, culture −14% against −12%).
   - Open for the user: seven commissions that the bot's forecast puts at the 60-turn horizon for every seat at every snapshot: A Guild Commission, A Victor's Peace, Hold the Capitals, Take the City, The Grand Campaign, The Lynx-Eyed Academy, The Wide Country. This is a forecast, not proof that no bot can meet them.
   - Not done in BP6: the cost of the work in a commission's draft price; a bench charge for a card that will not sit; pulls for steps no arm prices yet (a camp cleared, a town taken, a war won, a town converted, and others listed in the plan file).
+- **BP7's findings, 2026-11-14** (commit `ac469aab`; tables in `docs/plans/performance-pass-2026-11-06.md`):
+  - The Forbidden City's chair is built as a `slotRider` on the row (schema 243). The chair follows the town: completion, capture and raze fit the slots again. An empire that loses it re-seats as an adoption does.
+  - Open for the user: the game now has two rules for a chair that closes. Scutage returns the card in the closed chair to the collection. The Forbidden City moves it to a free chair that fits, and returns it only if none does. They could agree.
+  - Open: four seeds at turn 150 show science −22% and gold −28%. Split runs (B10 only, P9 only, no deadline) do not point at one part, and the untouched tree with a small knob change moved science −7%. A run over many more seeds is needed; it joins the check after BP8.
+  - Not done: lost wonder races rose (the race term is P4, held); `docs/codex.md` is stale and was not regenerated; the chair's price by the walk differs from the stamp by up to a third.
 - **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 + P3 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
 
 **(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
