@@ -1,12 +1,26 @@
 """Unit pieces for the north-star look; run via build_settlement_assets.py -- --ns-units-only.
 
 The user, 2026-11-14: "could you create a page for how you'd redesign the
-units? lets do a single melee piece for now, you can choose." This file builds
-the swordsman in two directions, and grey blockouts of four other classes:
+units? lets do a single melee piece for now, you can choose." The first
+swordsman was a cartoon figure with a face. The user, 2026-11-15: "i like the
+direction of the new models a lot. I think they come off as amateur-ish or too
+cartoonish in terms of the art style, but they look impressive already." And,
+with a picture of a faceted hoplite cast in one colour: "you don't need to do
+exactly like this, but i think it reads better if it looks somewhat like a
+board game piece, and leans more elegant/simple instead of cartoony".
 
-- `ns-swordsman`: one large figure on a low base (the direction chosen);
-- `ns-swordsman-squad`: three smaller figures on one base (the direction
-  rejected, kept so the two can be compared);
+This file builds:
+
+- `ns-swordsman`: the board game piece (the default). A tall slim figure whose
+  tunic falls as one column to a round pedestal. It has a closed helmet with a
+  dark slit and no face, a large round shield and a sword that rests point
+  down. It is the seat's first colour all over. The seat's second colour is on
+  the crest and the face of the shield only;
+- `ns-swordsman-cast`: the same sculpt in the seat's first colour only;
+- `ns-swordsman-toon`: the cartoon figure of 2026-11-14, kept so the two can be
+  compared and the old one restored;
+- `ns-swordsman-squad`: three small cartoon figures on one base (a direction
+  the user rejected, kept for comparison);
 - `ns-block-spearman`, `ns-block-archer`, `ns-block-horseman`,
   `ns-block-catapult`: rough shapes in one grey, to show how the classes differ
   in outline. They are not finished models.
@@ -18,16 +32,18 @@ the unit types that use a model from here.
 
 The rules of a piece:
 - A figure looks toward -Y and stands on z = 0. One unit is one world unit, and
-  the single figure is about 0.95 tall with its plume, as today's piece is.
+  a foot piece is about 1.0 tall with its crest.
 - A material whose name starts with `Owner` takes the seat's first colour. One
   that starts with `Trim` takes the seat's second colour. Both are written in
-  white or a light grey, because the renderer multiplies them by the seat's
-  colour. Every other material keeps its own colour.
+  white or a grey, because the renderer multiplies them by the seat's colour.
+  Every other material keeps its own colour.
 - Each vertex carries how it moves when the piece idles, as a vertex colour:
   red is how much it follows the body's breath and shift of weight (0 at the
   feet, 1 at the top of the head), green how much it flutters (0 at the root of
   a plume or the top of a cape, 1 at its free end), and blue is the figure's
   own phase from 0 to 1, so the three figures of a squad do not move as one.
+- A board game piece has few parts and few colours. A part that does not read
+  when the piece is 50 pixels tall does not belong on it.
 """
 
 OUT_UNITS=Path(__file__).resolve().parents[2]/'art'/'terrain-study'/'northstar-units'
@@ -163,6 +179,48 @@ def swordsman_figure(detail=True):
  keep(mesh('Short cape',v,f,OWNER_DEEP),'flutter',root)
  return STATE['new']
 
+OWNER_SLIT=pigment('Owner slit','4a4a4a');OWNER_CAST=pigment('Owner cast body','c4c4c4');SLIT=pigment('NS unit slit','2b2622')
+
+def cone(a,b,ra,rb,m,n=10,idle='body',root=None):return keep(tube([tuple(a),tuple(b)],[ra,rb],m,n),idle,root)
+
+def pedestal(m_low=OWNER_DEEP,m_top=OWNER):
+ """A round pedestal with one step, as a game piece has."""
+ rings([(0,0,0,.200,.200),(0,0,.036,.200,.200),(0,0,.048,.186,.186)],m_low,12,idle=None)
+ rings([(0,0,.048,.166,.166),(0,0,.080,.154,.154)],m_top,12,idle=None)
+
+def column_body(m,n=8):
+ """The tunic as one column from the pedestal to the shoulders, and the helmet. Returns the helmet's rings."""
+ rings([(0,0,.070,.128,.116),(0,0,.105,.112,.102),(0,0,.52,.082,.070),(0,-.004,.660,.134,.088),(0,-.004,.735,.124,.082),(0,0,.775,.046,.046)],m,n)
+ return rings([(0,0,.760,.056,.060),(0,0,.782,.074,.082),(0,0,.880,.074,.082),(0,.004,.930,.042,.050)],m,n)
+
+def swordsman_piece(cast=False):
+ """The swordsman as a board game piece. `cast` paints every part in the seat's first colour."""
+ STATE['new']=[]
+ # In the cast piece the body is a step darker, so the shield, crest and blade still stand out from it.
+ second=OWNER if cast else TRIM;cloth=OWNER_CAST if cast else OWNER
+ column_body(cloth)
+ # The helmet's one dark slit. A T-shaped slit read as two eyes and a nose at play zoom.
+ dark=OWNER_SLIT if cast else SLIT
+ slab((0,-.076,.852),(.062,.018,.024),dark)
+ # A short upright crest that runs from the brow to the back and is wider at the top.
+ root=(0,.01,.915);v=[]
+ for x in (-.016,.016):v+=[(x,-.062,.910),(x,.082,.898),(x,.106,.990),(x,-.080,1.005)]
+ f=[(0,1,2,3),(7,6,5,4),(0,3,7,4),(1,5,6,2),(3,2,6,7),(0,4,5,1)]
+ keep(mesh('Crest',v,f,second),'flutter',root)
+ # The right arm (-X) comes down to the hilt of a sword that stands on its point.
+ hand=Vector((-.150,-.105,.560))
+ limb([(-.108,0,.700),(-.150,-.035,.640),tuple(hand)],[.038,.034,.032],cloth,4)
+ limb([tuple(hand+Vector((0,0,-.03))),tuple(hand+Vector((0,0,.065)))],[.020,.024],OWNER,5)
+ slab((hand.x,hand.y,.512),(.150,.032,.028),OWNER)
+ blade((hand.x,hand.y,.500),(hand.x,hand.y,.050),.042,OWNER if cast else BLADE,.020)
+ # The left arm (+X) holds a large round shield with a pointed boss. Its face looks a little up, at the camera.
+ limb([(.108,0,.700),(.165,-.05,.57)],[.038,.034],cloth,4)
+ c=Vector((.185,-.085,.500));d=Vector((.75,-1.,.30)).normalized();r=.140
+ cone(c-d*.020,c+d*.006,r,r,OWNER,10)
+ cone(c+d*.006,c+d*.040,r*.84,r*.24,second,10)
+ cone(c+d*.040,c+d*.105,r*.20,.004,OWNER,6)
+ return STATE['new']
+
 def marks_and_export(name):
  """Writes each vertex's idle weights as a vertex colour, then exports the piece."""
  bpy.context.view_layer.update();tris=0
@@ -186,8 +244,11 @@ def marks_and_export(name):
  bpy.ops.export_scene.gltf(filepath=str(OUT_UNITS/(name+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_vertex_color='ACTIVE')
  print('ASSET',name,tris,flush=True)
 
-def swordsman():
- reset();base(.25);place(swordsman_figure(),scale=1.06);marks_and_export('ns-swordsman')
+def swordsman_toon():
+ reset();base(.25);place(swordsman_figure(),scale=1.06);marks_and_export('ns-swordsman-toon')
+
+def swordsman(cast=False):
+ reset();pedestal();place(swordsman_piece(cast),scale=1.24);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
 
 def swordsman_squad():
  reset();base(.29)
@@ -197,29 +258,32 @@ def swordsman_squad():
 
 # --- grey blockouts: outline only ---------------------------------------------------
 def block_body():
- for x in (.08,-.08):limb([(x,0,.03),(x,0,.36)],[.06,.066],BLOCK,5)
- rings([(0,0,.27,.185,.150),(0,0,.44,.128,.105),(0,0,.56,.158,.122),(0,0,.70,.085,.075)],BLOCK,8)
- rings([(0,-.01,.685,.07,.066),(0,-.01,.735,.108,.10),(0,-.01,.80,.112,.104),(0,-.01,.84,.085,.08)],BLOCK,8)
+ """The slim column body and helmet of the board game piece, in grey."""
+ column_body(BLOCK)
 
-def blockout(name,author):
- reset();STATE['new']=[];rings([(0,0,0,.265,.265),(0,0,.034,.25,.25)],BLOCK,14,idle=None);author();marks_and_export('ns-block-'+name)
+def blockout(name,author,foot=True):
+ """`foot` pieces stand on the swordsman's pedestal. The horseman and the catapult keep a wide low base."""
+ reset();STATE['new']=[]
+ if foot:pedestal(BLOCK,BLOCK)
+ else:rings([(0,0,0,.265,.265),(0,0,.034,.25,.25)],BLOCK,14,idle=None)
+ author();marks_and_export('ns-block-'+name)
 
 def block_spearman():
  block_body()
  # A tall spear, a tall narrow shield and a pointed helmet: the tallest foot piece.
- rings([(0,-.01,.79,.13,.12),(0,-.01,.88,.09,.085),(0,-.01,1.0,.012,.012)],BLOCK,8)
- limb([(-.23,-.10,.03),(-.23,-.10,1.22)],[.016,.016],BLOCK,4);blade((-.23,-.10,1.20),(-.23,-.10,1.40),.045,BLOCK)
- limb([(-.165,0,.645),(-.23,-.10,.56)],[.05,.045],BLOCK,5)
- slab((.17,-.17,.42),(.20,.03,.50),BLOCK)
+ rings([(0,0,.86,.078,.086),(0,0,.93,.050,.056),(0,0,1.04,.008,.008)],BLOCK,8)
+ limb([(-.19,-.11,.08),(-.19,-.11,1.22)],[.014,.014],BLOCK,4);blade((-.19,-.11,1.20),(-.19,-.11,1.40),.040,BLOCK)
+ limb([(-.108,0,.70),(-.19,-.11,.58)],[.038,.034],BLOCK,4)
+ slab((.13,-.15,.40),(.17,.03,.48),BLOCK)
 
 def block_archer():
  block_body()
- # No shield and no helmet: a hood, a tall bow held out to the side and a quiver over the shoulder.
- rings([(0,0,.76,.125,.12),(0,.03,.90,.07,.07),(0,.07,.94,.01,.01)],BLOCK,8)
- pts=[(-.30+.10*math.cos(a),-.10,.52+.40*math.sin(a)) for a in [math.radians(d) for d in (-90,-60,-30,0,30,60,90)]]
+ # No shield and no crest: a hood, a tall bow held out to the side and a quiver over the shoulder.
+ rings([(0,0,.86,.080,.088),(0,.02,.94,.048,.052),(0,.06,.99,.008,.008)],BLOCK,8)
+ pts=[(-.27+.10*math.cos(a),-.10,.52+.40*math.sin(a)) for a in [math.radians(d) for d in (-90,-60,-30,0,30,60,90)]]
  limb(pts,[.012,.016,.018,.02,.018,.016,.012],BLOCK,4)
- limb([(-.165,0,.645),(-.21,-.10,.52)],[.05,.045],BLOCK,5)
- limb([(.10,.13,.50),(.17,.15,.86)],[.045,.05],BLOCK,5)
+ limb([(-.108,0,.70),(-.18,-.10,.52)],[.038,.034],BLOCK,4)
+ limb([(.06,.10,.52),(.13,.12,.88)],[.036,.040],BLOCK,5)
 
 def block_horseman():
  # A rider on a horse: long and low, twice the footprint of a foot piece.
@@ -239,5 +303,5 @@ def block_catapult():
  limb([(-.16,.02,.56),(.16,.02,.56)],[.03,.03],BLOCK,4)
  limb([(0,-.22,.20),(0,.30,.78)],[.03,.022],BLOCK,4);slab((0,.32,.80),(.12,.12,.07),BLOCK)
 
-swordsman();swordsman_squad()
-for name,author in (('spearman',block_spearman),('archer',block_archer),('horseman',block_horseman),('catapult',block_catapult)):blockout(name,author)
+swordsman();swordsman(True);swordsman_toon();swordsman_squad()
+for name,author,foot in (('spearman',block_spearman,True),('archer',block_archer,True),('horseman',block_horseman,False),('catapult',block_catapult,False)):blockout(name,author,foot)

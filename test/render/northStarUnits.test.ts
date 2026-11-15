@@ -46,7 +46,7 @@ describe('north-star unit pieces', () => {
         expect(attribute.count).toBe(count);
         expect([...attribute.array].every(Number.isFinite)).toBe(true);
       }
-      expect(geometry.index!.count / 3).toBeLessThan(1000);
+      expect(geometry.index!.count / 3).toBeLessThan(900);
     } finally { geometry.dispose(); }
   });
 
@@ -60,6 +60,21 @@ describe('north-star unit pieces', () => {
         expect(owner.getX(index.getX(i + 2))).toBe(owner.getX(index.getX(i)));
       }
     } finally { geometry.dispose(); }
+  });
+
+  it('keeps the board game piece low in triangles and few in colours, and the cast piece in one seat colour', () => {
+    const piece = buildNorthStarUnit('ns-swordsman').geometry, cast = buildNorthStarUnit('ns-swordsman-cast').geometry, toon = buildNorthStarUnit('ns-swordsman-toon').geometry;
+    try {
+      for (const geometry of [piece, cast, toon]) expect(geometry.index!.count / 3).toBeLessThan(900);
+      expect(piece.index!.count).toBe(cast.index!.count);
+      // The cast piece has no part in the seat's second colour and no neutral part.
+      expect(new Set(cast.getAttribute('paintedOwner').array)).toEqual(new Set([1]));
+      // The board game piece has two neutral colours at most: the pale blade and the dark slit.
+      const neutral = new Set<string>(), owner = piece.getAttribute('paintedOwner'), color = piece.getAttribute('color');
+      for (let i = 0; i < owner.count; i++) if (owner.getX(i) === 0) neutral.add([color.getX(i), color.getY(i), color.getZ(i)].join(','));
+      expect(neutral.size).toBeLessThanOrEqual(2);
+      expect(new Set(toon.getAttribute('paintedOwner').array)).toEqual(new Set([0, 1, 2]));
+    } finally { piece.dispose(); cast.dispose(); toon.dispose(); }
   });
 
   it('keeps the base still when the piece idles, and moves the head more than the feet', () => {

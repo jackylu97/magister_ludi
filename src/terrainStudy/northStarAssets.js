@@ -36,5 +36,10 @@ export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystac
 // single melee piece for now"). The key is a unit type, the value a model of
 // `scripts/terrain-study/build_northstar_units.py`. A type with no entry keeps
 // today's piece. `false` gives back every piece of today exactly.
+// `ns-swordsman` is the board game piece (the user, 2026-11-15: "it reads
+// better if it looks somewhat like a board game piece, and leans more
+// elegant/simple instead of cartoony"). `ns-swordsman-cast` is the same piece
+// in one colour, and `ns-swordsman-toon` is the cartoon figure of 2026-11-14.
+// To go back to the cartoon figure, write 'ns-swordsman-toon' in the table below.
 export const NORTH_STAR_UNIT_MODELS=true;
 export const NORTH_STAR_UNITS=NORTH_STAR_UNIT_MODELS?{swordsman:'ns-swordsman'}:{};
