@@ -56,6 +56,14 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - Open: the wild takes any civilian with no soldier on its own hex, but the bot counts a soldier within 4 hexes as cover. Units lost to the wild rose 8%.
   - Open: 21% of worked hexes with a legal improvement are still bare at turn 100 (the page's aim was under 10%), and three quarters of worker-turns are marches (`workers.walkDiscount`, for the parameter pass).
   - For the user: the richest seat holds 8,749 gold at turn 150. What late gold should buy is a rule question.
+- **BP9: the faults the end check found, ruled 2026-11-14.** The end check is the section "End check of bot pass 3, 2026-11-14" in `docs/plans/performance-pass-2026-11-06.md`; its list "Faults to fix next" numbers them. The user, on faults 1 to 3: *"yes go for it."* On faults 4 and 5: *"4 and 5 feel like genuine bugs, this should be patched out. I think it's fine to just prevent the bots from doing that, unless there's a more elegant solution."*
+  - Fault 1: Money at Work and Bills of Exchange fold the whole empire once for each town (`countOf` calls `foldEmpireRates`). Fix the cost; the figures a card pays must not change.
+  - Fault 2: `wakeTheCampaign` asks dug-in pieces again at every decision when their answer is "stay". Fix the cost.
+  - Fault 3: a prophet walks between two hexes without end (`holySiteStep`). Find the cause and fix it.
+  - Fault 4: a town switches its focus every turn (`focusCommand`). Find why the two readings disagree and fix that if the fix is simple. If it is not, a plain guard is allowed: the bot does not undo its own focus order within a few turns.
+  - Fault 5: settlers with nowhere to go are woken and put back to sleep every turn, and the bot still builds settlers late. Find the cause first. A plain guard is allowed: the bot does not wake a settler that has no site, and does not build a settler when one already waits with no site.
+  - Fault 6 (refused deals) is not ruled and stays out of BP9.
+  - No game rule changes. These are bot and cost fixes.
 - **Batches, one agent at a time in the main tree:** BP1 = P1 + P2 · BP2 = B9 + B5 + P3 · BP3 = the stamp-first pricing (B8's ruling, with B3 and B4) and the slow-tier check · BP4 = B2 · BP5 = B6 + B7 · BP6 = B1 + B12 · BP7 = B10 + P9 (with the Forbidden City's chair) · BP8 = P5 + P6 + P8's check.
 
 **(nnnnnnn) A visual pass on the painted board, with low drawing cost: RULED 2026-11-12; a test version is in flight (batch V1).**
