@@ -351,9 +351,8 @@ def swordsman_long(cast=False):
  """The swordsman as a long, slim statue. `cast` paints every part in the seat's first colour."""
  STATE['new']=[]
  second=OWNER if cast else TRIM;robe=OWNER_CAST if cast else OWNER_DEEP;cloak=OWNER
- # The line of the figure: the hips push out to its left and the head comes back over the feet.
- def centre(z):
-  t=max(0,min(1,(z-.09)/1.0));return (.040*math.sin(t*math.pi),.022*math.sin(t*math.tau)-.016*t)
+ # The figure stands upright (the user, 2026-11-15: "the pose feels awkward and the silhouette unnatural. have it jst be upright").
+ def centre(z):return (0.,0.)
  # The robe: narrow at the hem, a little fuller at the hip, widest at the shoulders.
  lathe([(.085,.062),(.120,.052),(.300,.047),(.500,.050),(.640,.056),(.780,.064),(.890,.084),(.940,.062),(.972,.026),(1.000,.024)],robe,10,centre)
  # The cloak: one long shell from the shoulders. It is open at the sword side and falls to the ankle behind the shield side.
@@ -378,12 +377,12 @@ def swordsman_long(cast=False):
  f=[(0,1,2,3,4,5),(11,10,9,8,7,6)]+[(i,6+i,6+(i+1)%6,(i+1)%6) for i in range(6)]
  keep(mesh('Crest',v,f,second))
  sx,sy=centre(.89)
- # The sword arm (-X): a long thin arm to a sword held upright. The blade rises past the helmet.
+ # The sword arm (-X): a long sword stands on its point, and the hand rests on its pommel at the chest.
  x,y=sx-.104,sy-.092;steel=OWNER if cast else BLADE
- limb([(sx-.070,sy-.010,.890),(sx-.122,sy-.020,.740),(x,y,.668)],[.032,.027,.026],cloak,6)
- blade((x,y,.716),(x,y,1.285),.026,steel,.014)
- slab((x,y,.706),(.096,.022,.020),second)
- limb([(x,y,.622),(x,y,.700)],[.012,.012],second,6);limb([(x,y,.596),(x,y,.622)],[.020,.020],second,6)
+ limb([(sx-.070,sy-.010,.890),(sx-.118,sy-.030,.810),(x,y,.800)],[.032,.027,.026],cloak,6)
+ blade((x,y,.690),(x,y,.094),.026,steel,.014)
+ slab((x,y,.700),(.104,.022,.020),second)
+ limb([(x,y,.708),(x,y,.776)],[.012,.012],second,6);limb([(x,y,.776),(x,y,.800)],[.020,.020],second,6)
  # The shield arm (+X): a long arm down to a round shield held low at the hip.
  limb([(sx+.070,sy-.010,.890),(sx+.116,sy-.040,.720),(sx+.118,sy-.070,.580)],[.032,.027,.026],cloak,6)
  c=Vector((sx+.124,sy-.088,.520));d=Vector((.70,-1.,.24)).normalized();r=.112
