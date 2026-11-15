@@ -334,7 +334,70 @@ def swordsman_turned(cast=False):
  return STATE['new']
 
 def swordsman_turn(cast=False):
- reset();turned_base(OWNER_DEEP if cast else TRIM_DEEP);place(swordsman_turned(cast),scale=1.22);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
+ reset();turned_base(OWNER_DEEP if cast else TRIM_DEEP);place(swordsman_turned(cast),scale=1.22);marks_and_export('ns-swordsman-statue-cast' if cast else 'ns-swordsman-statue')
+
+# --- the long figure (the user, 2026-11-15) ---------------------------------------------
+# "please look at the proportions and figure weighting of my reference, imagine you're a
+# master of gestural form, i want some visual intrigue and forms that feel a bit long and
+# skinny than natural."
+# The references are figures 8 to 9 heads tall. Their weight is high, in the shoulders and
+# the cloak, and they taper to narrow feet. A thin weapon rises above the helmet. One round
+# mass sits on one side and one thin line on the other, and the figure stands on a broad drum.
+def lathe(profile,m,n,centre,idle='body'):
+ """A turned form whose centre line bends: `centre(z)` gives (x, y) for a ring at height z."""
+ return rings([(centre(z)[0],centre(z)[1],z,r,r*.9) for z,r in profile],m,n,idle=idle)
+
+def swordsman_long(cast=False):
+ """The swordsman as a long, slim statue. `cast` paints every part in the seat's first colour."""
+ STATE['new']=[]
+ second=OWNER if cast else TRIM;robe=OWNER_CAST if cast else OWNER_DEEP;cloak=OWNER
+ # The line of the figure: the hips push out to its left and the head comes back over the feet.
+ def centre(z):
+  t=max(0,min(1,(z-.09)/1.0));return (.040*math.sin(t*math.pi),.022*math.sin(t*math.tau)-.016*t)
+ # The robe: narrow at the hem, a little fuller at the hip, widest at the shoulders.
+ lathe([(.085,.062),(.120,.052),(.300,.047),(.500,.050),(.640,.056),(.780,.064),(.890,.084),(.940,.062),(.972,.026),(1.000,.024)],robe,10,centre)
+ # The cloak: one long shell from the shoulders. It is open at the sword side and falls to the ankle behind the shield side.
+ n=12;v=[];f=[]
+ for z,r in ((.968,.030),(.940,.074),(.890,.102)):
+  cx,cy=centre(z)
+  for i in range(n):
+   a=(i+.5)*math.tau/n;v.append((cx+math.cos(a)*r,cy+math.sin(a)*r*.9,z))
+ for i in range(n):
+  a=(i+.5)*math.tau/n;low=(.5+.5*math.cos(a-math.radians(62)))**1.3;z=.800-.640*low;r=.104-.012*low;cx,cy=centre(z)
+  v.append((cx+.030*low+math.cos(a)*r,cy+.045*low+math.sin(a)*r*.9,z))
+ for j in range(3):
+  for i in range(n):f.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
+ f.append(tuple(range(n)))
+ keep(mesh('Long cloak',v,f,cloak))
+ # A small helmet with a dark opening and a crest that arcs from brow to nape.
+ lathe([(.992,.030),(1.012,.044),(1.058,.047),(1.094,.040),(1.122,.020),(1.132,.004)],cloak,8,centre)
+ hx,hy=centre(1.06)
+ slab((hx,hy-.040,1.044),(.026,.016,.036),OWNER_SLIT if cast else SLIT)
+ v=[]
+ for x in (hx-.011,hx+.011):v+=[(x,hy-.048,1.086),(x,hy+.046,1.046),(x,hy+.074,1.110),(x,hy+.044,1.172),(x,hy-.008,1.188),(x,hy-.050,1.150)]
+ f=[(0,1,2,3,4,5),(11,10,9,8,7,6)]+[(i,6+i,6+(i+1)%6,(i+1)%6) for i in range(6)]
+ keep(mesh('Crest',v,f,second))
+ sx,sy=centre(.89)
+ # The sword arm (-X): a long thin arm to a sword held upright. The blade rises past the helmet.
+ x,y=sx-.104,sy-.092;steel=OWNER if cast else BLADE
+ limb([(sx-.070,sy-.010,.890),(sx-.122,sy-.020,.740),(x,y,.668)],[.032,.027,.026],cloak,6)
+ blade((x,y,.716),(x,y,1.285),.026,steel,.014)
+ slab((x,y,.706),(.096,.022,.020),second)
+ limb([(x,y,.622),(x,y,.700)],[.012,.012],second,6);limb([(x,y,.596),(x,y,.622)],[.020,.020],second,6)
+ # The shield arm (+X): a long arm down to a round shield held low at the hip.
+ limb([(sx+.070,sy-.010,.890),(sx+.116,sy-.040,.720),(sx+.118,sy-.070,.580)],[.032,.027,.026],cloak,6)
+ c=Vector((sx+.124,sy-.088,.520));d=Vector((.70,-1.,.24)).normalized();r=.112
+ cone(c-d*.016,c+d*.006,r,r,cloak,12)
+ cone(c+d*.006,c+d*.030,r*.86,r*.26,second,12)
+ cone(c+d*.030,c+d*.085,r*.20,.004,cloak,6)
+ return STATE['new']
+
+def long_base(m=TRIM_DEEP):
+ """A broad thick drum, so the slim figure looks slimmer still."""
+ rings([(0,0,0,.215,.215),(0,0,.078,.215,.215),(0,0,.090,.203,.203)],m,16,idle=None)
+
+def swordsman_tall(cast=False):
+ reset();long_base(OWNER_DEEP if cast else TRIM_DEEP);place(swordsman_long(cast),scale=1.);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
 
 def marks_and_export(name):
  """Writes each vertex's idle weights as a vertex colour, then exports the piece."""
@@ -418,5 +481,5 @@ def block_catapult():
  limb([(-.16,.02,.56),(.16,.02,.56)],[.03,.03],BLOCK,4)
  limb([(0,-.22,.20),(0,.30,.78)],[.03,.022],BLOCK,4);slab((0,.32,.80),(.12,.12,.07),BLOCK)
 
-swordsman_turn();swordsman_turn(True);swordsman_art();swordsman();swordsman_toon();swordsman_squad()
+swordsman_tall();swordsman_tall(True);swordsman_turn();swordsman_art();swordsman();swordsman_toon();swordsman_squad()
 for name,author,foot in (('spearman',block_spearman,True),('archer',block_archer,True),('horseman',block_horseman,False),('catapult',block_catapult,False)):blockout(name,author,foot)
