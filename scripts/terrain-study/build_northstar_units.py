@@ -221,6 +221,58 @@ def swordsman_piece(cast=False):
  cone(c+d*.040,c+d*.105,r*.20,.004,OWNER,6)
  return STATE['new']
 
+# --- the art deco piece (the user, 2026-11-15) ------------------------------------------
+# "the angles should be sharper in its silhouette, make broad sweeping strokes in its form
+# instead of faceted/detailed. Treat it like an avant garde piece of art, maybe art deco?
+# I'm imagining something slightly more chess piece looking, with sharp angles and more
+# exagerated form/pose."
+# So every form here has four sides or fewer, with an edge toward the camera, and the piece
+# is a few long lines: a body that sweeps in from the foot to a high waist and out to sharp
+# shoulders, a sword that rises to one side, and a cape that falls away behind.
+DIAMOND=-math.tau/8
+
+def spike(a,b,side,face,w,t,m,idle='body'):
+ """A blade of four long planes: a flat diamond at `a`, `w` wide and `t` thick, that runs to a point at `b`."""
+ a=Vector(a);b=Vector(b);side=Vector(side).normalized();face=Vector(face).normalized()
+ v=[a-side*w,a+face*t,a+side*w,a-face*t,b]
+ return keep(mesh('Spike',[tuple(q) for q in v],[(0,1,4),(1,2,4),(2,3,4),(3,0,4),(3,2,1,0)],m),idle)
+
+def deco_pedestal(m_low=OWNER_DEEP):
+ """A low round foot with one sharp slope up to the body."""
+ rings([(0,0,0,.215,.215),(0,0,.028,.215,.215),(0,0,.082,.150,.150)],m_low,12,idle=None)
+
+def swordsman_deco(cast=False):
+ """The swordsman as an art deco chess piece. `cast` paints every part in the seat's first colour."""
+ STATE['new']=[]
+ second=OWNER if cast else TRIM;cloth=OWNER_CAST if cast else OWNER;deep=OWNER_CAST if cast else OWNER_DEEP
+ # The body: a diamond in section, so one edge looks at the camera. It leans forward as it rises.
+ rings([(0,.030,.070,.165,.150),(0,.020,.160,.100,.092),(0,.000,.360,.070,.066),(0,-.020,.500,.064,.060),(0,-.050,.700,.180,.072),(0,-.056,.735,.130,.054),(0,-.060,.755,.036,.036)],cloth,4,DIAMOND)
+ # The helm: a tall diamond that ends in a point, with no face at all.
+ rings([(0,-.060,.735,.036,.042),(0,-.072,.790,.060,.082),(0,-.078,.870,.054,.086),(0,-.040,.985,.003,.003)],cloth,4,DIAMOND)
+ # The crest: one thin fin from the brow that sweeps up and back to a point behind the head.
+ v=[]
+ for x in (-.011,.011):v+=[(x,-.150,.885),(x,.020,.800),(x,.200,1.020)]
+ keep(mesh('Crest fin',v,[(0,1,2),(5,4,3),(0,3,4,1),(1,4,5,2),(2,5,3,0)],second))
+ # The sword arm (-X): down and forward to the fist, then the blade rises out to the side in one line.
+ hand=Vector((-.215,-.165,.500));tip=Vector((-.400,-.120,1.030))
+ spike((-.150,-.050,.690),tuple(hand),(1,0,.6),(0,1,0),.062,.050,cloth)
+ along=(tip-hand).normalized();flat=along.cross(Vector((0,1,0))).normalized()
+ spike(tuple(hand),tuple(hand+flat*.115),along,(0,1,0),.024,.024,second);spike(tuple(hand),tuple(hand-flat*.115),along,(0,1,0),.024,.024,second)
+ spike(tuple(hand-along*.03),tuple(tip),flat,(0,1,0),.072,.018,OWNER if cast else BLADE)
+ # The shield arm (+X) and a long kite shield with one ridge down its middle.
+ c=Vector((.190,-.160,.470));d=Vector((.50,-1.,.22)).normalized();across=d.cross(Vector((0,0,1))).normalized();up=across.cross(d).normalized()
+ spike((.150,-.050,.690),tuple(c),(1,0,-.6),(0,1,0),.062,.050,cloth)
+ top=c+up*.190;foot=c-up*.310;l=c+up*.080-across*.130;r=c+up*.080+across*.130;ridge=c+up*.090+d*.050;back=c+up*.090-d*.012
+ keep(mesh('Kite shield',[tuple(q) for q in (top,l,foot,r,ridge,back)],[(0,1,4),(1,2,4),(2,3,4),(3,0,4),(1,0,5),(2,1,5),(3,2,5),(0,3,5)],second))
+ # The cape: two long planes from the shoulders that fall away behind to a point past the foot.
+ v=[(-.165,-.030,.700),(0,.020,.735),(.165,-.030,.700),(-.170,.150,.100),(0,.250,.060),(.170,.150,.100)]
+ f=[(0,1,4,3),(1,2,5,4)];f+=[tuple(reversed(q)) for q in f]
+ keep(mesh('Cape',v,f,deep))
+ return STATE['new']
+
+def swordsman_art(cast=False):
+ reset();deco_pedestal();place(swordsman_deco(cast),scale=1.25);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
+
 def marks_and_export(name):
  """Writes each vertex's idle weights as a vertex colour, then exports the piece."""
  bpy.context.view_layer.update();tris=0
@@ -248,7 +300,7 @@ def swordsman_toon():
  reset();base(.25);place(swordsman_figure(),scale=1.06);marks_and_export('ns-swordsman-toon')
 
 def swordsman(cast=False):
- reset();pedestal();place(swordsman_piece(cast),scale=1.24);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
+ reset();pedestal();place(swordsman_piece(cast),scale=1.24);marks_and_export('ns-swordsman-column-cast' if cast else 'ns-swordsman-column')
 
 def swordsman_squad():
  reset();base(.29)
@@ -303,5 +355,5 @@ def block_catapult():
  limb([(-.16,.02,.56),(.16,.02,.56)],[.03,.03],BLOCK,4)
  limb([(0,-.22,.20),(0,.30,.78)],[.03,.022],BLOCK,4);slab((0,.32,.80),(.12,.12,.07),BLOCK)
 
-swordsman();swordsman(True);swordsman_toon();swordsman_squad()
+swordsman_art();swordsman_art(True);swordsman();swordsman_toon();swordsman_squad()
 for name,author,foot in (('spearman',block_spearman,True),('archer',block_archer,True),('horseman',block_horseman,False),('catapult',block_catapult,False)):blockout(name,author,foot)

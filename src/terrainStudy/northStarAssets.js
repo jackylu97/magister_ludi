@@ -40,6 +40,8 @@ export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystac
 // better if it looks somewhat like a board game piece, and leans more
 // elegant/simple instead of cartoony"). `ns-swordsman-cast` is the same piece
 // in one colour, and `ns-swordsman-toon` is the cartoon figure of 2026-11-14.
+// Since the user's second look (2026-11-15) `ns-swordsman` is the art deco piece: sharp edges and a few
+// long planes. The column piece before it is `ns-swordsman-column`.
 // To go back to the cartoon figure, write 'ns-swordsman-toon' in the table below.
 export const NORTH_STAR_UNIT_MODELS=true;
 export const NORTH_STAR_UNITS=NORTH_STAR_UNIT_MODELS?{swordsman:'ns-swordsman'}:{};
