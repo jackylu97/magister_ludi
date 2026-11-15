@@ -199,7 +199,7 @@ import {
   foldEmpireRates,
   type EmpireYieldLine,
 } from './yields/empire';
-import type { EmpireRates } from './statecraft/evaluator';
+import { type EmpireRates, readingAtRest } from './statecraft/evaluator';
 import { CITY_YIELD_KEYS } from './resourceData';
 import { slateMemo } from './slate';
 
@@ -270,7 +270,7 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
   // can see where a piece is standing. A seat that spends its turn marching pays
   // for it once rather than once a step.
   return slateMemo(state, 'economy', 'percents', String(playerId), () =>
-    empirePercents(state, playerId),
+    readingAtRest(() => empirePercents(state, playerId)),
   );
 }
 
@@ -295,7 +295,7 @@ export function readCity(state: GameState, city: City): CityReading {
   // `movement.ts`). Any other accepted command moves this clock when it ends, and
   // the only commands that may leave it still are the five in `COMMAND_CLOCKS`.
   return slateMemo(state, 'economy', 'towns', String(city.id), () =>
-    explainCity(state, city, [], readEmpirePercents(state, city.ownerId)),
+    readingAtRest(() => explainCity(state, city, [], readEmpirePercents(state, city.ownerId))),
   );
 }
 
@@ -326,7 +326,7 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
   // On the economy clock, for `readCity`'s reason exactly: this is that reading
   // summed, over lines that include the caravans abroad and the army's upkeep.
   return slateMemo(state, 'economy', 'empires', String(playerId), () =>
-    empireReading(state, playerId),
+    readingAtRest(() => empireReading(state, playerId)),
   );
 }
 
@@ -348,13 +348,23 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
  * lets leave the clock still, which changes something this folds and says nothing.
  * The answer is shared by every asker, so none of them may change it, and the type
  * says so.
+ *
+ * **The four readings here are readers at rest, and say so** (bot batch BP9). Each
+ * computes inside `readingAtRest` (`statecraft/evaluator.ts`), so the `empireYield`
+ * count inside a town's list reads its own fold of the empire from the slate, under
+ * its cut, rather than folding the empire once for every town. Money at Work and
+ * Bills of Exchange made one reading of an empire of N towns cost N × N town
+ * readings without it. The count's figure is the same: the fold it remembers is the
+ * one it would take, and it is thrown away when the economy clock moves.
  */
 export function readEmpireRates(state: GameState, playerId: number): Readonly<EmpireRates> {
   return slateMemo(state, 'economy', 'rates', String(playerId), () =>
-    foldEmpireRates(state, playerId, {
-      percents: readEmpirePercents(state, playerId),
-      listOf: (city) => readCity(state, city),
-    }),
+    readingAtRest(() =>
+      foldEmpireRates(state, playerId, {
+        percents: readEmpirePercents(state, playerId),
+        listOf: (city) => readCity(state, city),
+      }),
+    ),
   );
 }
 

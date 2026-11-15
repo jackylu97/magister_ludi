@@ -881,6 +881,20 @@ describe('nobody rebuilds the town’s list', () => {
         );
         continue;
       }
+      if (path.endsWith('/focusRoll.ts')) {
+        // **The fourth exception, since bot batch BP9** (`docs/flags.md`
+        // (ooooooo), fault 4), and the muster roll's kind of thing: the turn the
+        // bot last gave each town a focus order, which is what *happened* rather
+        // than a reading of the board. A revision would erase it on the next
+        // command, and the hold could never run. It is listed in
+        // `harnessMemory.ts` with the other three.
+        expect(`${path} says what it keys on`).toBe(
+          /cityId/.test(text) && /turn/.test(text)
+            ? `${path} says what it keys on`
+            : `${path} says nothing about what it keys on`,
+        );
+        continue;
+      }
       // One of the two clocks. `townFolds.ts` moved to the economy clock in batch P1.
       expect(`${path} keys on a clock`).toBe(
         /revision|economyStamp/.test(text) ? `${path} keys on a clock` : `${path} keys on something else`,

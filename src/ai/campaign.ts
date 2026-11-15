@@ -37,7 +37,15 @@ import { type AiConfig } from './aiConfig';
 import type { ValueContext } from './value';
 
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
-import { type Cell, type MoveProfile, canStopOn, findPath, moveProfile, transitField } from '../sim/pathfind';
+import {
+  type Cell,
+  type MoveProfile,
+  canStopOn,
+  findPath,
+  findPathToFirst,
+  moveProfile,
+  transitField,
+} from '../sim/pathfind';
 import { type City, type GameState, type Player, type Unit, realPlayers } from '../sim/state';
 import { type UnitDef, isCombatant, isFieldSoldier, isRanged, unitDef } from '../sim/unitData';
 import { atWar } from '../sim/wars';
@@ -566,7 +574,6 @@ export function musterHex(
   // wanted is the town's, not this piece's. See the docblock.
   const walker: Unit = { ...prober, col: home.city.col, row: home.city.row };
   const mover = moveProfile(state, walker);
-  let path: Cell[] | null = null;
   // **Two rings, not one.** The hexes *beside* a town are exactly the hexes its
   // defenders are standing on, and a hex with somebody else's soldier on it is
   // not one `canStopOn` will end a route at — so a probe that only ever asked
@@ -574,13 +581,16 @@ export function musterHex(
   // the muster collapsed onto the capital. Measured on the duel bench (seed
   // 20260907, t30): thirteen pieces gathered six hexes out and never pushed,
   // because their muster was the town they had marched from.
-  for (const goal of standingsNear(state, walker, { col: target.col, row: target.row }, 2, true).slice(
+  //
+  // The first goal with a route wins, which is `findPathToFirst` (bot batch
+  // BP9, fault 2). It returns the route a loop of `findPath` returns, and a
+  // search that fails tells it which of the later goals cannot be reached
+  // either, so a town across the water costs one search and not four.
+  const goals = standingsNear(state, walker, { col: target.col, row: target.row }, 2, true).slice(
     0,
     Math.max(1, ai.search.pathProbes),
-  )) {
-    path = findPath(state, walker, goal, mover);
-    if (path !== null) break;
-  }
+  );
+  const path: Cell[] | null = findPathToFirst(state, walker, goals, mover);
   const at = { col: home.city.col, row: home.city.row };
   if (path === null) return { at, home: home.city };
   // **The last hex on the road that is still `musterDistance` out.** Written as

@@ -4,7 +4,8 @@
     "endTurnAttempts": 3,
     "greatPersonRedraws": 4,
     "reaimsPerTurn": 1,
-    "reaskPerTurn": 1
+    "reaskPerTurn": 1,
+    "focusHoldTurns": 5
   },
   "search": {
     "pathProbes": 4,

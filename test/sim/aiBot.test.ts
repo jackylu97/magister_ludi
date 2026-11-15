@@ -652,6 +652,10 @@ describe('the bot defends itself', () => {
     const wild = game.state.players.find((other) => other.barbarian)!;
     const warden = createUnit(game.state, wild.id, 'warrior', camp.col, camp.row);
     warden.fortifiedTurns = 2;
+    // A full purse, so the disband arm has no arrears to answer first: on the
+    // fixture played since bot batch BP9 the seat stands at a coin a turn
+    // short, and the four new warriors are the reason this test adds.
+    seat(game.state, 0).gold = 1000;
     bumpRevision(game.state);
     expect(findPath(game.state, free, campTile)).toBeNull();
 
@@ -1354,6 +1358,11 @@ describe('the bot module', () => {
     // the want book share one forecast. `musterRoll.ts` is the third memory
     // beside the state: it dates the units a seat raised, so the disband arm can
     // keep a new one. It is listed in `harnessMemory.ts` with the other two.
+    //
+    // Twenty-five since bot batch BP9 (2026-11-15): `focusRoll.ts` is the fourth
+    // memory beside the state. It dates the bot's last focus order to each town,
+    // so the focus arm does not undo its own order within `driver.focusHoldTurns`
+    // turns. It is listed in `harnessMemory.ts` with the other three.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1366,6 +1375,7 @@ describe('the bot module', () => {
       'decision.ts',
       'diplomacy.ts',
       'driver.ts',
+      'focusRoll.ts',
       'ground.ts',
       'harnessMemory.ts',
       'musterRoll.ts',

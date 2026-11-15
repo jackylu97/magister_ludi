@@ -1946,6 +1946,22 @@ export function expansionStepShare(chain: ExpansionChain): number {
 }
 
 /**
+ * **A settler of this seat waits with nowhere to go** (bot batch BP9, fault 5):
+ * one stands asleep. The settler's arm puts a settler to sleep only when there
+ * is nowhere legal to found and nowhere better to walk (`settlerCommand`), so a
+ * sleeping settler is the bot's own record that the board has no site for it.
+ * While one waits, a second one would wait beside it, so neither settler row
+ * buys another. One walk of the units, on the live board.
+ */
+export function settlerWaits(state: GameState, playerId: number): boolean {
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId || unit.sleeping !== true) continue;
+    if (unitDef(unit.type).foundsCity === true) return true;
+  }
+  return false;
+}
+
+/**
  * **What the next town is worth to an empire that already holds some.**
  *
  * `weights.city × cityValueFalloffByAge[age]^towns`, and the falloff is the honest tall

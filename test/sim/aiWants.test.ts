@@ -27,6 +27,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { adoptFocusRoll } from '../../src/ai/focusRoll';
 import {
   AI,
   type BotDecision,
@@ -572,6 +573,10 @@ function richSittings(): RichSitting[] {
   const record: RichSitting[] = [];
   for (let turn = 0; turn < 6; turn++) {
     for (const player of realPlayers(game.state)) player.gold = 5000;
+    // The focus arm's own comparison is under test here, so the record is taken
+    // without the hold bot batch BP9 put over it (`focusRoll.ts`): the roll is
+    // emptied before each sitting. The hold is tested in `aiEndCheckLoops.test.ts`.
+    adoptFocusRoll(game.state, []);
     const sitting = botSitting(0);
     for (let step = 0; step < 200; step++) {
       const decision = nextBotDecision(game.state, 0, sitting);
@@ -586,6 +591,7 @@ function richSittings(): RichSitting[] {
     }
     // The driver's own sitting of seat 0, recorded beside it. `decide` sees the
     // decision before the dispatch and `attempt` the reducer's answer after it.
+    adoptFocusRoll(game.state, []);
     let pending: RichSitting | null = null;
     driveBots(game, {
       warn: () => {},

@@ -549,6 +549,55 @@ is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 row
   `camps.raidLoss`, `camps.siteShare` (a new block of `data/ai.json`) and
   `workers.waitingTurns`, each with a row in `data/ai.bounds.json`.
 
+**The end check's faults** (bot batch BP9; `docs/flags.md` (ooooooo), the bullet
+"BP9"; the measurements are the section "BP9" of
+`docs/plans/performance-pass-2026-11-06.md`):
+
+- **The empire's gold counted once a reading** (fault 1, a speed fix). Money at
+  Work and Bills of Exchange pay in every town by the empire's gold a turn
+  (`count: 'empireYield'`), and each town's count folded the whole empire. A
+  reader at rest now asks inside `readingAtRest` (`statecraft/evaluator.ts`): the
+  four readings of `readings.ts` and every bot decision (`nextBotDecision`). There
+  the count reads its fold from the slate, on the economy clock, keyed by seat and
+  by the four recursion cuts (`restingCutRates`). Outside the scope, in a handler
+  or a phase, the count folds fresh as before. The figures do not change.
+- **The campaign's asks made cheaper** (fault 2, a speed fix). A dug-in piece
+  whose answer is to stay is still asked again at the next decision: in the
+  pinned duel, 137 such answers became a march or a blow later in the same turn,
+  so a remembered stay would change play. Instead the march's goals and the
+  muster's goals are searched as one list each (`findPathToFirst`, the search's
+  own proof), so an unreachable target costs one failed search and not four. The
+  answers are the same.
+- **The prophet's step** (fault 3). `holySiteStep` steps a piece only to a hex
+  where it could raise a site on its next order: the reducer's gate asked of a
+  positional copy of the piece on that hex (`plantErrorOn`), and for a founded
+  faith a town there that holds no site (`townWantingSiteAt`). A prophet with
+  nothing to raise stands down and sleeps. Before, it walked between two hexes,
+  each the first legal neighbour of the other. The apostle's walk to a town that
+  would keep its relic had the same fault: it asked only for the cathedral, so
+  an apostle with a charge left walked between two towns that each kept a relic.
+  It now asks `placeRelicError` of a positional copy too (`relicErrorOn`).
+- **The focus hold** (fault 4, the user's guard). The focus arm prices its two
+  placements at the seat's live prices. The comparison does not read the
+  town's own focus, but the price of gold and science moves from turn to turn
+  with what the seat could buy, and where the lean wins or loses by a few points
+  the answer flipped turn after turn. The bot does not change a town's focus
+  back for `driver.focusHoldTurns` (5) turns after it gave the order. The
+  orders are dated in `focusRoll.ts`, a harness memory beside the state.
+- **The settler's price** (fault 5, the user's guard). A settler row
+  (`unitRoleValue` and the faith purchase's `expansionTerm`) is worth nothing
+  while a settler of the seat sleeps for want of a site (`settlerWaits`), and the
+  queue's row is worth nothing when no legal site is in reach of any town (the
+  faith purchase already read it so). Before, the queue priced a settler at a
+  whole next town in that case. A sleeping settler is asked again once a turn
+  (`BotSitting.roused`), not at every decision. Not changed: the settler row
+  still reads the chain's share when the chain's one step is the escort for a
+  settler already standing. Pricing that step as the soldiers' alone cost 2 to 6
+  towns a game at turn 100 on four seeds, because those extra settlers found
+  other sites (the plan file's section "BP9").
+- **New knob**: `driver.focusHoldTurns` (frozen with the rest of `driver.*`, so no
+  row in `data/ai.bounds.json`).
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

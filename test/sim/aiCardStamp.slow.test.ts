@@ -147,9 +147,23 @@ function check(positions: readonly GameState[]): Findings {
             effects.some(
               (effect) => explainEffects([effect], ctx, id).total !== explainEffects([effect], today, id).total,
             );
-          if (!promised) {
+          // **A belief's own promise, read as the bot reads it** (bot batch BP9).
+          // `explainBeliefBeyond` prices a follower line opened to every town the
+          // faith can expect to hold, on the seat's context against today's, so
+          // the chains' promise of towns still to come shows there even when every
+          // expected town follows already. The raw line's walk above cannot see
+          // it, because the faith scope keeps the promised towns out. The first
+          // position to show it was seat 5 of the duel at turn 121 (Feast Days),
+          // in the game the BP9 bots play. Such a belief is not a card with no
+          // promise, so it is not checked here.
+          const pricedReading = promised ? null : explainCardEffects(id, effects, ctx, 'stamp');
+          const beliefPromise =
+            pricedReading !== null &&
+            isBeliefId(id) &&
+            pricedReading.terms.some((term) => term.label === 'what the books cannot show' && term.value !== 0);
+          if (!promised && !beliefPromise) {
             findings.seenChecked += 1;
-            const priced = explainCardEffects(id, effects, ctx, 'stamp').total;
+            const priced = pricedReading!.total;
             if (Math.abs(priced - stamp.total) > NOTHING) {
               findings.seenOff.push(`${where}: priced ${priced}, stamped ${stamp.total}`);
             }

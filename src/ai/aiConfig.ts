@@ -110,6 +110,20 @@ export interface AiConfig {
      * before this batch.
      */
     reaskPerTurn: number;
+    /**
+     * How many turns the bot leaves a town on the citizen focus it gave it
+     * before it may change it back (bot batch BP9, `focusRoll.ts`).
+     *
+     * The focus arm prices its two placements at the seat's live prices, which
+     * move from turn to turn with what the seat could buy, and where the lean
+     * wins or loses by a few points the arm's answer flipped from one turn to
+     * the next: two thirds of all focus orders in the end check of bot pass 3
+     * went back to a focus the town held in the last five turns. The user's
+     * ruling (2026-11-14) allows a plain guard, and this is it. A bound on how
+     * often a town may be re-pointed, never on which focus is chosen.
+     * **Nought** turns the guard off.
+     */
+    focusHoldTurns: number;
   };
   search: {
     /**

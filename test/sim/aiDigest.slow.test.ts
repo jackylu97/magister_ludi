@@ -1192,10 +1192,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * worker, and offer the next route after a hire. No rule changed; both pins
  * matched on the untouched tree before this batch. Duel `89f988df:326624` ->
  * `ce93521f:331077`, standard `ea9d00e3:1043519` -> `855266fe:1048454`.
+ *
+ * Re-cut for bot batch BP9 (`docs/flags.md` (ooooooo), the faults of the end
+ * check). Fixes 1 and 2 (the `empireYield` count read at rest, and the
+ * campaign's goal lists searched as one) moved neither pin, measured with them
+ * alone. Fixes 3 to 5 change play: a prophet steps only toward a site it could
+ * raise, the bot does not undo its own focus order for `driver.focusHoldTurns`
+ * turns, and a settler is worth nothing while one of the seat sleeps for want
+ * of a site or when no site is open at all. No rule changed. Duel
+ * `ce93521f:331077` -> `3def2cf4:345268`, standard `855266fe:1048454` ->
+ * `b8fc7751:1046273`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ce93521f:331077',
-  standard: '855266fe:1048454',
+  duel: '3def2cf4:345268',
+  standard: 'b8fc7751:1046273',
 };
 
 /**

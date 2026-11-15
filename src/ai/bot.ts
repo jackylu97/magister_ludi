@@ -110,6 +110,7 @@ import {
   incumbentGoal,
   liveChains,
   raceTerm,
+  settlerWaits,
   techChain,
 } from './chain';
 // **Re-exported, not redefined** (batch 4): what the next town is worth became
@@ -163,6 +164,7 @@ import {
   realThreat,
   soldiersCarried,
 } from './armySupport';
+import { lastFocusOrder, noteFocusOrder } from './focusRoll';
 import { markMusterTurn, raisedWithin } from './musterRoll';
 import { type TileContextField, tileContextField } from './ground';
 import {
@@ -257,7 +259,7 @@ import { cityKeepsRelics, cityQueueFloor } from '../sim/buildingEffects';
 import { townBuildings, townShelf } from '../sim/statecraft/evaluator';
 // The bot levy batch: which seated cards grant a levy or pay for a soldier
 // retired, read the way the simulation reads them.
-import { effectsOfKind, unitMatches } from '../sim/statecraft/evaluator';
+import { effectsOfKind, readingAtRest, unitMatches } from '../sim/statecraft/evaluator';
 // The levy menu, with each line's refusal, exactly as the city panel lists it.
 import { levyOptions } from '../sim/levies';
 import {
@@ -333,7 +335,7 @@ import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
 import { type TileYield, isWaterTerrain } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
-import { canStopOn, findPath, reachableTiles } from '../sim/pathfind';
+import { canStopOn, findPath, findPathToFirst, reachableTiles } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
   type ContributionOffer,
@@ -740,7 +742,8 @@ export interface BotSitting {
   called: Set<number>;
   /**
    * The sleeping workers `wakeIdleWorker` has already asked this turn (batch
-   * BP8). Membership only; nothing iterates it. A worker whose answer is to
+   * BP8), and since bot batch BP9 the sleeping settlers `wakeIdleSettler` has
+   * asked. Membership only; nothing iterates it. A piece whose answer is to
    * sleep on costs one ask a turn and no more.
    */
   roused: Set<number>;
@@ -1481,6 +1484,20 @@ export function nextBotDecision(
   playerId: number,
   sitting?: BotSitting,
 ): BotDecision | null {
+  // **A decision is a reader at rest** (bot batch BP9, fault 1). The bot only
+  // reads, and it asks between commands, never inside one, so every reading it
+  // takes may lean on the economy clock. `readingAtRest` tells the card
+  // evaluator so, and the `empireYield` count then folds an empire once rather
+  // than once a town. The answers are the same.
+  return readingAtRest(() => decideNext(state, playerId, sitting));
+}
+
+/** `nextBotDecision`'s body, asked inside the reader-at-rest scope. */
+function decideNext(
+  state: GameState,
+  playerId: number,
+  sitting?: BotSitting,
+): BotDecision | null {
   const player = playerById(state, playerId);
   if (!player) return null;
   // The three seats a bot never drives, and each for its own reason: the wild is
@@ -1892,15 +1909,25 @@ function focusCommand(
 ): BotDecision | null {
   const ctx = seatContext(state, player, sitting);
   const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  const hold = Math.max(0, aiFor(player).driver.focusHoldTurns);
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     // The whole gate, and it is the simulation's: a puppet chooses for itself,
     // and a seat that has ended its turn may not point anybody.
     if (citizenFocusError(state, player.id, city) !== null) continue;
     if (own !== null && own.focused.has(city.id)) continue;
+    // **The bot does not undo its own order for `driver.focusHoldTurns` turns**
+    // (bot batch BP9, fault 4; the user's guard). The two placements are priced
+    // at the seat's live prices, which move from turn to turn with what the
+    // seat could buy, and where the lean wins or loses by a few points the
+    // answer flipped every turn. A town still on the focus this bot gave it
+    // within the hold is left alone. See `focusRoll.ts`.
+    const given = lastFocusOrder(state, city.id);
+    if (given !== null && state.turn - given.turn < hold && given.focus === cityFocus(city)) continue;
     const table = focusTable(state, city, ctx);
     if (table.best === cityFocus(city)) continue;
     if (own !== null) own.focused.add(city.id);
+    noteFocusOrder(state, city.id, table.best);
     return {
       kind: 'focus',
       command: {
@@ -2318,9 +2345,19 @@ function wakeIdleSettler(
   player: Player,
   sitting?: BotSitting,
 ): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id || unit.sleeping !== true) continue;
     if (unitDef(unit.type).foundsCity !== true) continue;
+    // **Once a turn a settler** (bot batch BP9, fault 5), `wakeIdleWorker`'s
+    // bound: a settler asleep for want of a site is asked whether the board has
+    // one for it at the first housekeeping of the turn, and not again at every
+    // decision after. Each ask scores every hex in its search radius. A caller
+    // with no sitting keeps the old unbounded ask.
+    if (own !== null) {
+      if (own.roused.has(unit.id)) continue;
+      own.roused.add(unit.id);
+    }
     const choice = settlerCommand(state, player, unit, sitting);
     if (choice === null || choice.command.type === 'sleepUnit') continue;
     return {
@@ -2407,6 +2444,18 @@ function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting):
  * Gated on a war because it is the campaign's arm and nothing else's: a seat at
  * peace with a fortified line has no business shuffling it, and the cost of the
  * sweep is paid only by seats that are fighting.
+ *
+ * **A piece whose answer is to stay is asked again at the next decision, and
+ * that is on purpose** (bot batch BP9, fault 2). The end check of bot pass 3
+ * found this arm at 59% of seed 7's turns 109 to 116, nearly all of it in path
+ * searches for pieces that then stayed. Remembering a "stay" for the rest of the
+ * seat's turn would change play: in the pinned 120-turn duel, 137 stay answers
+ * turned into a march or a blow later in the same turn, after another piece of
+ * the seat moved off a hex, gathered at the muster or struck a blow. So the
+ * answer is not remembered. What BP9 cut is the price of each ask: the march's
+ * goals and the muster's goals are each searched as one list
+ * (`findPathToFirst`), so a town across the water costs one failed search and
+ * not four. The answers are the ones the loop of `findPath` gave.
  */
 function wakeTheCampaign(
   state: GameState,
@@ -5301,11 +5350,28 @@ function unitRoleValue(
     // the town, discounted for the raising and the walk, less the hammers and the
     // meters founding would spend. Folding `explainNextTown` beside it would
     // count the town twice.
+    // **Only while the board has a site for it** (bot batch BP9, fault 5). Two
+    // readings, each of them a settler that would found nothing:
+    //
+    //   · no chain at all: there is no legal site within reach of any town. Until
+    //     this batch the row was priced at a whole next town here ("with nowhere
+    //     yet legal to put it"), while the faith purchase of the same piece read
+    //     nought;
+    //   · a settler of this seat asleep for want of a site (`settlerWaits`, the
+    //     user's guard): late in a game, with the map full, every town of a seat
+    //     kept raising settlers that then slept.
     const chain = ctx.expansion;
     const terms: ValueTerm[] =
       chain === null
-        ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
-        : [expansionShareTerm(chain)];
+        ? [{ label: 'nowhere this empire could still put a town, so a settler has nothing to found', value: 0 }]
+        : settlerWaits(state, player.id)
+          ? [
+              {
+                label: 'a settler of this empire already waits with nowhere to found, so another has nothing to do',
+                value: 0,
+              },
+            ]
+          : [expansionShareTerm(chain)];
     if (citizen !== null) terms.push(nest('the citizen it costs this town', citizen, 'sub'));
     return { value: foldTerms(terms), terms };
   }
@@ -7242,6 +7308,18 @@ function soldierCommand(
   return stand;
 }
 
+/**
+ * Does this route end on this goal? `findPathToFirst` hands back the route to
+ * the first goal of a list that has one, so the goals before that one are the
+ * goals a loop of `findPath` would have refused, and the goal the route ends on
+ * is the one it would have taken (bot batch BP9, fault 2).
+ */
+function routeEndsOn(route: readonly { col: number; row: number }[] | null, goal: Tile): boolean {
+  if (route === null || route.length === 0) return false;
+  const last = route[route.length - 1]!;
+  return last.col === goal.col && last.row === goal.row;
+}
+
 /** A hex this piece was told to act on, with the reasoning that named it. */
 interface UnitTarget {
   at: { col: number; row: number };
@@ -8040,11 +8118,17 @@ function campaignMarch(
     // the row (`isSiegePiece`, `UnitDef.range`) and never of a type name.
     const reach = isSiegePiece(def) ? Math.max(1, def.range ?? 1) : 1;
     if (wrappedDistance(state.map, from, tileHex(walls)) <= reach) return null;
-    const goals = approachHexes(state, unit, plan.target, reach).filter(unclaimed);
-    for (const goal of goals.slice(0, Math.max(1, ai.search.pathProbes))) {
+    const goals = approachHexes(state, unit, plan.target, reach)
+      .filter(unclaimed)
+      .slice(0, Math.max(1, ai.search.pathProbes));
+    // One search for the whole list (bot batch BP9, fault 2): the first goal
+    // with a route is the one a loop of `findPath` would take, and the goals
+    // before it are the ones that loop would have refused. See `routeEndsOn`.
+    const route = findPathToFirst(state, unit, goals);
+    for (const goal of goals) {
       const distance = wrappedDistance(state.map, from, tileHex(goal));
       const label = `push to (${goal.col},${goal.row})`;
-      if (findPath(state, unit, goal) === null) {
+      if (!routeEndsOn(route, goal)) {
         tried.push(refused(label, 'no route to it'));
         continue;
       }
@@ -8073,12 +8157,14 @@ function campaignMarch(
   const centre = getTileAt(state.map, plan.muster.col, plan.muster.row);
   if (!centre) return null;
   if (wrappedDistance(state.map, from, tileHex(centre)) <= radius) return null;
-  for (const goal of standingsNear(state, unit, plan.muster, radius, false)
+  const musterGoals = standingsNear(state, unit, plan.muster, radius, false)
     .filter(unclaimed)
-    .slice(0, Math.max(1, ai.search.pathProbes))) {
+    .slice(0, Math.max(1, ai.search.pathProbes));
+  const musterRoute = findPathToFirst(state, unit, musterGoals);
+  for (const goal of musterGoals) {
     const distance = wrappedDistance(state.map, from, tileHex(goal));
     const label = `muster at (${goal.col},${goal.row})`;
-    if (findPath(state, unit, goal) === null) {
+    if (!routeEndsOn(musterRoute, goal)) {
       tried.push(refused(label, 'no route to it'));
       continue;
     }
@@ -8765,8 +8851,7 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: step },
       summary:
-        `Steps off the town centre to (${step.col},${step.row}), where the stones would be legal — a bought prophet ` +
-        'spawns on the very hex a holy site may not stand on.',
+        `Steps to (${step.col},${step.row}), where it can raise a holy site on its next order.`,
       candidates: tried,
       focus: step,
     };
@@ -8786,7 +8871,12 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
  * counts the moment the hex changes hands.
  */
 function townWantingSite(state: GameState, player: Player, unit: Unit): City | null {
-  const holder = tileOwnerCityId(state, unit.col, unit.row);
+  return townWantingSiteAt(state, player, unit.col, unit.row);
+}
+
+/** `townWantingSite`, asked of any hex rather than of where a piece stands. */
+function townWantingSiteAt(state: GameState, player: Player, col: number, row: number): City | null {
+  const holder = tileOwnerCityId(state, col, row);
   if (holder === null) return null;
   const town = cityById(state, holder);
   if (!town || town.ownerId !== player.id) return null;
@@ -8810,10 +8900,10 @@ function townWantingSite(state: GameState, player: Player, unit: Unit): City | n
  * has no reading of, and a healing is hit points, which is a fraction of a piece.
  *
  * The walk is the settler's shape without the settler's search: the towns are
- * this empire's own, the gate on each is the simulation's (`placeRelicError`
- * asked as though the piece stood there is not a thing this file may do, so the
- * *reachable* town is chosen by the path and the refusal is asked again on
- * arrival, which is the same bargain every arm here strikes with the reducer).
+ * this empire's own, and the gate on each is the simulation's, `placeRelicError`
+ * asked of a positional copy of the piece on the town's hex (`relicErrorOn`,
+ * bot batch BP9). The refusal is asked again on arrival, which is the same
+ * bargain every arm here strikes with the reducer.
  *
  * **Under The Abbeys an apostle raises a further holy site** (Devotion batch
  * DV9; the rule `apostlesPlantHolySites`, read through
@@ -8864,12 +8954,16 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     if (city.col === unit.col && city.row === unit.row) continue;
     const tile = getTileAt(state.map, city.col, city.row);
     if (!tile) continue;
-    if (findPath(state, unit, tile) === null) continue;
-    // The town has to be one a relic could actually be left in, and the one
-    // reading of that this file keeps is the *shelf's* marker — the same clause
-    // `explainRelic` prices the apostle by, so the piece walks to the town the
-    // book bought it for.
+    // The town has to be one a relic could actually be left in: the reducer's own
+    // gate, asked of the apostle as though it stood there (bot batch BP9). The
+    // walk used to ask only for the *shelf* (`cityWouldKeepRelic`), so an apostle
+    // with a charge left walked between two towns that each kept a relic already,
+    // for the rest of the game: the prophet's loop of fault 3, one arm over (seed
+    // 7, turn 133 on). The gate also refuses a town that keeps one, which is the
+    // clause `explainRelic` prices the apostle by.
     if (!cityWouldKeepRelic(state, city)) continue;
+    if (relicErrorOn(state, player, unit, tile) !== null) continue;
+    if (findPath(state, unit, tile) === null) continue;
     tried.push(chosenAt(`walk to ${city.name}`, tried.length));
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: { col: city.col, row: city.row } },
@@ -8914,7 +9008,32 @@ function cityWouldKeepRelic(state: GameState, city: City): boolean {
   return cityKeepsRelics(townShelf(state, city));
 }
 
-/** A hex beside the prophet where its work would be legal, or `null`. */
+/**
+ * **A hex beside the piece where it would raise the stones on its next order**,
+ * or `null`.
+ *
+ * The step exists for a bought prophet, which spawns on its town's centre where
+ * no holy site may stand. Until bot batch BP9 it asked only whether the
+ * *ground* beside the piece would take a site, so it also stepped a prophet
+ * that had nothing to raise at all: a faith founded, no belief left to take,
+ * and a town that already holds its site. On the new hex the same three facts
+ * held, so the next decision stepped it again, usually straight back, because
+ * each hex was the first legal neighbour of the other in `mapRange` order. No
+ * score was involved. The end check of bot pass 3 found such a prophet making
+ * eight moves a turn on seed 7 from turn 88 on (fault 3).
+ *
+ * So the step now asks the question the next order will ask. A hex qualifies
+ * only when the piece standing there could raise a site and would want to:
+ *
+ *   · the simulation's own gate, `plantHolySiteError`, asked of a positional
+ *     copy of the piece on that hex (charges, a pending belief, the city
+ *     centre and the ground, all in the reducer's words);
+ *   · and, for a faith already founded, a town holding that hex that has no
+ *     site yet (`townWantingSiteAt`), the one-site-a-town clause the planting
+ *     itself keeps.
+ *
+ * A piece with no such hex beside it stands down, and sleeps.
+ */
 function holySiteStep(
   state: GameState,
   player: Player,
@@ -8923,13 +9042,44 @@ function holySiteStep(
   if (HOLY_SITE === null) return null;
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
+  const founds = plantingCost(state, player.id) === 'foundReligion';
   for (const tile of mapRange(state.map, tileHex(here), 1)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (improvementErrorAt(state, player.id, tile, HOLY_SITE) !== null) continue;
+    if (!founds && townWantingSiteAt(state, player, tile.col, tile.row) === null) continue;
+    if (plantErrorOn(state, player, unit, tile) !== null) continue;
     if (findPath(state, unit, tile) === null) continue;
     return { col: tile.col, row: tile.row };
   }
   return null;
+}
+
+/**
+ * What `plantHolySiteError` would say with this piece standing on `tile`: the
+ * gate asked of a shallow copy of the board with the piece moved there, and
+ * nothing else changed. A plain object handed to a pure query, never a piece
+ * put on the board (the walker idiom of `musterHex`, `campaign.ts`).
+ */
+function plantErrorOn(state: GameState, player: Player, unit: Unit, tile: Tile): string | null {
+  return plantHolySiteError(boardWithPieceOn(state, unit, tile), player.id, unit.id);
+}
+
+/** What `placeRelicError` would say with this apostle standing on `tile`. `plantErrorOn`'s twin. */
+function relicErrorOn(state: GameState, player: Player, unit: Unit, tile: Tile): string | null {
+  return placeRelicError(boardWithPieceOn(state, unit, tile), player.id, unit.id);
+}
+
+/**
+ * A shallow copy of the board with one piece moved to `tile`, standing there
+ * with a move to act with, as it would on the turn it arrives. The two gates
+ * above ask it; nothing is put on the real board.
+ */
+function boardWithPieceOn(state: GameState, unit: Unit, tile: Tile): GameState {
+  const moved: Unit = { ...unit, col: tile.col, row: tile.row, movesLeft: Math.max(unit.movesLeft, 1) };
+  return {
+    ...state,
+    units: state.units.map((piece) => (piece.id === unit.id ? moved : piece)),
+  };
 }
 
 /**

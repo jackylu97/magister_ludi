@@ -264,7 +264,7 @@ describe('the bots’ memories beside the state', () => {
     // must be handed them (`harnessMemory.ts`). Caches: rebuilt on any copy,
     // with the same answer, because they are keyed on the economy clock, which is
     // per board and starts again on a copy (`slate.ts`).
-    const carried = ['dealMemory.ts', 'musterRoll.ts', 'warLedger.ts'];
+    const carried = ['dealMemory.ts', 'focusRoll.ts', 'musterRoll.ts', 'warLedger.ts'];
     const caches = ['townFolds.ts'];
     const found: string[] = [];
     for (const [path, text] of Object.entries(AI_SOURCES)) {

@@ -102,6 +102,7 @@ import {
   chainStepFor,
   expansionStepShare,
   raceTerm,
+  settlerWaits,
 } from './chain';
 import {
   type ValueContext,
@@ -1562,6 +1563,12 @@ function expansionTerm(ctx: ValueContext): ValueTerm {
     return { label: 'nowhere this empire could still put a town — nothing for one to found', value: 0 };
   }
   const where = `(${chain.site.tile.col},${chain.site.tile.row})`;
+  // **Not while a settler waits with nowhere to go** (bot batch BP9, fault 5,
+  // the user's guard): one asleep for want of a site is one more than the board
+  // can use already. See `settlerWaits`.
+  if (settlerWaits(ctx.state, ctx.playerId)) {
+    return { label: 'a settler of this empire already waits with nowhere to found, so another has nothing to do', value: 0 };
+  }
   return {
     label:
       `a step of the next town at ${where} — ` +

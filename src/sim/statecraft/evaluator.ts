@@ -559,6 +559,64 @@ export function lawIsCut(): boolean {
 let rateDepth = 0;
 
 /**
+ * How many readers at rest are asking right now (bot batch BP9, fault 1). See
+ * `readingAtRest`.
+ */
+let restDepth = 0;
+
+/**
+ * **Run `read` as a reader at rest**: one that asks while no command and no phase
+ * is part of the way through a write. `readings.ts` wraps its town and empire
+ * readings in this, and the bot wraps each of its decisions.
+ *
+ * It exists for the `empireYield` count. Money at Work and Bills of Exchange pay
+ * in every town by the empire's gold a turn, so without a memo one reading of an
+ * empire of N towns folds the empire N times, which is N × N town readings. In a
+ * game where a seat held one of these cards, the end check of bot pass 3 found
+ * 70% of a late turn in that fold (seed 7, turns 141 to 146).
+ *
+ * The count's fold cannot be remembered for every caller. `windfallPayout`,
+ * `collectYields` and `refreshCityDerived` ask from inside a write, and some
+ * writes there do not move the economy clock (`City.queue`, the baskets; see
+ * `slate.ts`, batch P1). A reader at rest has no such gap, so inside this scope
+ * the count reads the fold through `restingCutRates`, remembered on the economy
+ * clock. Outside it, the count folds fresh, as before. The figure is the same
+ * either way.
+ *
+ * The scope says nothing about the state. It only tells the count that the
+ * economy clock covers every write since the last ask.
+ */
+export function readingAtRest<T>(read: () => T): T {
+  restDepth += 1;
+  try {
+    return read();
+  } finally {
+    restDepth -= 1;
+  }
+}
+
+/**
+ * **The `empireYield` count's fold of one empire, for a reader at rest**: the
+ * books under the count's own cut, remembered on the economy clock (see
+ * `readingAtRest`). Asked only with `rateDepth` raised, so every count inside the
+ * fold answers nothing, as it does in the fresh fold.
+ *
+ * The key holds every other cut that changes what the fold answers. A count asked
+ * while a condition, the authority meter, a building's package or a town's held
+ * buildings is being read sees a shorter law or a shorter package, so each of the
+ * four is a separate entry and two answers are never mixed (the idiom of
+ * `liveReading`'s key).
+ */
+function restingCutRates(state: GameState, playerId: number): EmpireRates {
+  const cuts =
+    `${conditionDepth > 0 ? 1 : 0}${meterDepth > 0 ? 1 : 0}` +
+    `${suppliesDepth > 0 ? 1 : 0}${heldDepth > 0 ? 1 : 0}`;
+  return slateMemo(state, 'economy', 'cutRates', `${playerId}:${cuts}`, () =>
+    foldEmpireRates(state, playerId),
+  );
+}
+
+/**
  * The recursion cut for `CountKind`'s `authoritySurplus` — `rateDepth`'s idiom
  * one meter over.
  *
@@ -3623,7 +3681,9 @@ export function countOf(
       if (rateDepth > 0) return 0;
       rateDepth += 1;
       try {
-        const rates = foldEmpireRates(state, playerId);
+        // At rest the fold is remembered on the economy clock, so one reading of
+        // an empire folds it once and not once a town (`readingAtRest`).
+        const rates = restDepth > 0 ? restingCutRates(state, playerId) : foldEmpireRates(state, playerId);
         return Math.max(0, Math.floor(rates[RATE_OF_VOICE[voice]] ?? 0));
       } finally {
         rateDepth -= 1;
