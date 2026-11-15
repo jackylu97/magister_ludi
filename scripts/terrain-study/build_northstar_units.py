@@ -271,7 +271,70 @@ def swordsman_deco(cast=False):
  return STATE['new']
 
 def swordsman_art(cast=False):
- reset();deco_pedestal();place(swordsman_deco(cast),scale=1.25);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
+ reset();deco_pedestal();place(swordsman_deco(cast),scale=1.25);marks_and_export('ns-swordsman-deco-cast' if cast else 'ns-swordsman-deco')
+
+# --- the turned piece (the user, 2026-11-15) --------------------------------------------
+# "its a little too angular, could you try another pass with sweeping curves folded into
+# the design? like a chess piece almost."
+# So the body is turned like a chess piece: round, with one long curved profile. A cloak
+# lies over the shoulders and its hem sweeps down across the chest in one curve. There are
+# no arms. The sword stands on its point beside the figure, on a wide base of two steps.
+def turned(profile,m,n=16,sway=None,idle='body'):
+ """A turned form: rings of (z, radius). `sway(z)` moves a ring's centre in y, for a slight S-curve."""
+ return rings([(0,sway(z) if sway else 0,z,r,r*.92) for z,r in profile],m,n,idle=idle)
+
+def turned_base(m=TRIM_DEEP):
+ """One thick plain drum, as under a statue, in the seat's second colour."""
+ rings([(0,0,0,.240,.240),(0,0,.096,.240,.240),(0,0,.110,.226,.226)],m,16,idle=None)
+
+def swordsman_turned(cast=False):
+ """The swordsman as a small statue with the lines of a chess piece. `cast` paints every part in the seat's first colour.
+
+ The user's later references (2026-11-15, `images/16.png` to `18.png` of the session) are statues of a soldier on a
+ thick drum: a long robe, a cloak that sweeps down the back, a real helmet, a round shield and an upright weapon.
+ """
+ STATE['new']=[]
+ second=OWNER if cast else TRIM;robe=OWNER_CAST if cast else OWNER_DEEP;cloak=OWNER
+ sway=lambda z:.014*math.sin((z-.09)/.70*math.tau)
+ # The robe: one turned form from the drum to the neck, with a small flare at the hem.
+ turned([(.088,.118),(.110,.110),(.160,.098),(.300,.088),(.450,.082),(.550,.088),(.630,.104),(.695,.110),(.742,.086),(.770,.036),(.800,.034)],robe,12,sway)
+ # The cloak: a shell from the shoulders. Its hem is high on the chest and sweeps down to the calves behind.
+ n=12;v=[];f=[]
+ for z,r in ((.774,.042),(.750,.100),(.700,.134)):
+  for i in range(n):
+   a=(i+.5)*math.tau/n;v.append((math.cos(a)*r,sway(z)+math.sin(a)*r*.92,z))
+ for i in range(n):
+  a=(i+.5)*math.tau/n;low=.5+.5*math.cos(a-math.radians(105));z=.640-.400*low**1.4;r=.128+.040*low
+  v.append((math.cos(a)*r,sway(z)+.035*low+math.sin(a)*r*.92,z))
+ for j in range(3):
+  for i in range(n):f.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
+ f.append(tuple(range(n)))
+ keep(mesh('Cloak',v,f,cloak))
+ # The helmet: a round dome that comes to a blunt point, a dark opening for the face, and a crest that arcs from brow to nape.
+ turned([(.790,.050),(.812,.066),(.860,.070),(.900,.060),(.935,.034),(.950,.008)],cloak,10,sway)
+ y0=sway(.86)
+ slab((0,y0-.062,.842),(.040,.022,.050),OWNER_SLIT if cast else SLIT)
+ v=[]
+ for x in (-.016,.016):v+=[(x,y0-.070,.905),(x,y0+.070,.850),(x,y0+.100,.930),(x,y0+.060,1.000),(x,y0-.010,1.020),(x,y0-.070,.985)]
+ f=[(0,1,2,3,4,5),(11,10,9,8,7,6)]+[(i,6+i,6+(i+1)%6,(i+1)%6) for i in range(6)]
+ keep(mesh('Crest',v,f,second))
+ # The right arm (-X) comes out of the cloak to the hilt of a sword that stands on its point.
+ x,y=-.150,-.105;steel=OWNER if cast else BLADE
+ limb([(-.098,-.010,.690),(-.150,-.050,.640),(x,y,.622)],[.036,.032,.030],robe,6)
+ blade((x,y,.555),(x,y,.094),.034,steel,.016)
+ slab((x,y,.565),(.130,.030,.028),second)
+ turned([(.579,.016),(.640,.016)],second,6).location=(x,y,0)
+ turned([(.640,.028),(.664,.028),(.674,.010)],second,8).location=(x,y,0)
+ # The left arm (+X) carries a round shield with a pointed boss at the side.
+ limb([(.098,-.010,.690),(.150,-.060,.560)],[.036,.032],robe,6)
+ c=Vector((.158,-.080,.480));d=Vector((.75,-1.,.26)).normalized();r=.128
+ cone(c-d*.018,c+d*.006,r,r,cloak,12)
+ cone(c+d*.006,c+d*.034,r*.86,r*.26,second,12)
+ cone(c+d*.034,c+d*.090,r*.20,.004,cloak,6)
+ return STATE['new']
+
+def swordsman_turn(cast=False):
+ reset();turned_base(OWNER_DEEP if cast else TRIM_DEEP);place(swordsman_turned(cast),scale=1.22);marks_and_export('ns-swordsman-cast' if cast else 'ns-swordsman')
 
 def marks_and_export(name):
  """Writes each vertex's idle weights as a vertex colour, then exports the piece."""
@@ -355,5 +418,5 @@ def block_catapult():
  limb([(-.16,.02,.56),(.16,.02,.56)],[.03,.03],BLOCK,4)
  limb([(0,-.22,.20),(0,.30,.78)],[.03,.022],BLOCK,4);slab((0,.32,.80),(.12,.12,.07),BLOCK)
 
-swordsman_art();swordsman_art(True);swordsman();swordsman_toon();swordsman_squad()
+swordsman_turn();swordsman_turn(True);swordsman_art();swordsman();swordsman_toon();swordsman_squad()
 for name,author,foot in (('spearman',block_spearman,True),('archer',block_archer,True),('horseman',block_horseman,False),('catapult',block_catapult,False)):blockout(name,author,foot)

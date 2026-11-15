@@ -42,6 +42,8 @@ export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystac
 // in one colour, and `ns-swordsman-toon` is the cartoon figure of 2026-11-14.
 // Since the user's second look (2026-11-15) `ns-swordsman` is the art deco piece: sharp edges and a few
 // long planes. The column piece before it is `ns-swordsman-column`.
+// Since the third look (2026-11-15) `ns-swordsman` is the statue piece: a turned robe, a cloak with a curved
+// hem, a helmet, a round shield and a sword, on one thick drum. The art deco piece is `ns-swordsman-deco`.
 // To go back to the cartoon figure, write 'ns-swordsman-toon' in the table below.
 export const NORTH_STAR_UNIT_MODELS=true;
 export const NORTH_STAR_UNITS=NORTH_STAR_UNIT_MODELS?{swordsman:'ns-swordsman'}:{};
