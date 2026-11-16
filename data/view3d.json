@@ -1200,7 +1200,7 @@
       "bands": {
         "sand": 0.17,
         "sandVary": 0.95,
-        "foam": 0.036,
+        "foam": 0.055,
         "foamGaps": 0.22, "trail": 0,
         "lap": 0.018,
         "lapSpeed": 0.9,
@@ -1468,7 +1468,7 @@
         "sandVary": 0.5,
         "wander": 0.035,
         "lap": 0.022,
-        "shallows": 0.12,
+        "shallows": 0.17,
         "shallowsWander": 0.1
       }
     },
