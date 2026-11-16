@@ -309,3 +309,12 @@ As they were raised:
 - **Walkthrough lessons across games.** A walkthrough lesson finished in one game is skipped in later games. The old tutorial replayed all eleven steps in every new game.
 - **Skip.** Pressing Skip also switches the walkthrough off for later games, as the old tutorial did.
 - **What "I've played Civilization" skips.** The lessons on systems section 1 calls familiar: happiness, workers, discovery, camps, the combat forecast, war and peace, religion, caravans and great people.
+
+## 11. Revision of 2026-11-16: less reading, and after the interface is final
+
+The orchestrator proposed a first game with far less text: one goal line of three to six words near End Turn in place of coach cards, the board pointing at what to do, "Suggested" marks on builds, technologies and cards from the bot's own valuation, the first card as the centrepiece (preview on hover, seat it, watch the number change), a budget of about 150 words of required reading in the first 25 turns, and first-contact notes inside each screen after that. It asked three questions. The user, 2026-11-16: *"#2 yes for sure. Let's simplify #1 and still present in the first-run (make it visual and less reading). #3 i think we don't need. For the pamphlet: we should explain the basic game premise with some visuals/diagrams. Some things that are important: basic controls (right click to move units), the goals of the game (animated abacus) and drafting/slotting cards. But what i'm realizing is that we may want to finalize the UX before we do this."*
+
+- **"Suggested" marks: yes.**
+- **The pamphlet stays in the first run, simpler.** It is visual, with little reading. It explains the premise with pictures or diagrams. It must cover: the basic controls (a right-click moves a unit), the goal of the game (the animated abacus), and drafting and seating cards. This replaces the six pages of section 5.2.
+- **A fixed first map: no.**
+- **Order of work:** the interface is made final first (the Scholar's Study work, `docs/plans/ui-critique-2026-10-16.md`). The tutorial follows it. Nothing in this revision is built yet.
