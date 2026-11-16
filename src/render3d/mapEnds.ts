@@ -1,6 +1,7 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial } from 'three';
 
 import type { GameMap } from '../sim/map';
+import { type MouldedRailStyle, buildMouldedMapEnds } from './mapEndsMoulded';
 
 /**
  * The frame at the north and south ends of the map (the visual test,
@@ -19,9 +20,17 @@ import type { GameMap } from '../sim/map';
  * There is no rail in the east or the west, so the two ends read as ends and
  * the sides read as open. The rail is always drawn, also beside hexes the
  * player has not explored: the size of the map is not a secret.
+ *
+ * There are two rails. `style: 'plain'` is the first one, a single slab, kept so
+ * the new one is simple to revert. `style: 'moulded'` is the frame with a shaped
+ * profile, planks and an inlaid scale (`mapEndsMoulded.ts`); it reads `gap` from
+ * here and everything else from `moulded`.
  */
 export interface MapEndsStyle {
   on: boolean;
+  /** Which rail to build: `plain` or `moulded`. Without it, or with any other word, the plain one. A string and not a union, because the sheet is read as JSON. */
+  style?: string;
+  moulded?: MouldedRailStyle;
   /** How far the rail reaches past the points of the last row, in hex units. */
   width: number;
   /** The rail's top above flat land, and its foot below it. */
@@ -37,6 +46,7 @@ const ROOT3 = Math.sqrt(3);
 
 /** The rails of one map, for all three wrap copies. The caller adds `group` to the scene and calls `dispose` when the board is replaced. */
 export function buildMapEnds(map: GameMap, style: MapEndsStyle, register?: (material: MeshStandardMaterial) => void): { group: Group; dispose(): void } {
+  if (style.style === 'moulded' && style.moulded) return buildMouldedMapEnds(map, style, style.moulded, register);
   const group = new Group(); group.name = 'map-ends';
   const wood = new MeshStandardMaterial({ color: 0xffffff, roughness: .82, metalness: 0, vertexColors: true });
   const brass = new MeshStandardMaterial({ color: new Color(style.brass), roughness: .45, metalness: .35 });
