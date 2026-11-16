@@ -421,6 +421,171 @@ def marks_and_export(name):
  bpy.ops.export_scene.gltf(filepath=str(OUT_UNITS/(name+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_vertex_color='ACTIVE')
  print('ASSET',name,tris,flush=True)
 
+# --- abstract game pieces, three families (the user, 2026-11-15) ---------------------------
+# "lets do the abstract game pieces. it can look like a more elegant/inspired version of
+# what we currently have (the chess pieces) that feel less stocky ... We should also find a
+# slightly better design so that the unit type is more obvious from looking at it, more
+# differentiation in the template so that it reads better? could you do 3 different
+# variations with different weights/forms". And, with a picture of a small plain figure on a
+# tall drum (`images/19.png` of the session): "maybe something like this, but with even
+# simpler shapes?"
+#
+# Each family builds five classes: sword, spear, bow, horse and siege engine.
+# - Family A, turned: a slim turned stem, and the class is a large finial on top.
+# - Family B, cut-out: the whole piece is one thick flat outline of the class.
+# - Family C, monument: a tall drum on a wide disc, with a very plain small figure on top.
+# In all three the class also sets the height, and the class mark faces the camera (it lies
+# in the plane from side to side). The seat's first colour is the body; the second colour is
+# the class mark in A, the inlay in B and the disc in C. The pieces do not idle.
+def lat(profile,m,n=16,at=(0,0),squash=1.):
+ """A turned form about an upright line at `at`: rings of (z, radius)."""
+ return rings([(at[0],at[1],z,r,r*squash) for z,r in profile],m,n,idle=None)
+
+def outline(points,depth,m,y=0.):
+ """A flat outline in the plane from side to side, `depth` thick. `points` are (x, z), counter-clockwise seen from the front."""
+ k=len(points);v=[(x,y-depth/2,z) for x,z in points]+[(x,y+depth/2,z) for x,z in points]
+ f=[tuple(range(k)),tuple(reversed(range(k,2*k)))]+[(i,k+i,k+(i+1)%k,(i+1)%k) for i in range(k)]
+ return keep(mesh('Outline',v,f,m),None)
+
+def bar(a,b,width,depth,m,y=0.):
+ """A straight flat bar from (x, z) `a` to `b`."""
+ a=Vector((a[0],a[1]));b=Vector((b[0],b[1]));d=(b-a).normalized();side=Vector((-d.y,d.x))*width/2
+ return outline([tuple(a-side),tuple(b-side),tuple(b+side),tuple(a+side)],depth,m,y)
+
+def crescent(cx,cz,radius,spread,thick,depth,m,y=0.,steps=9):
+ """A bow: an arc that bulges toward -X and thins to a point at each end."""
+ outer=[];inner=[]
+ for i in range(steps):
+  a=math.radians(-spread+2*spread*i/(steps-1));t=thick*math.cos(a/spread*math.pi/2*math.radians(1)*57.2958)
+  outer.append((cx-radius*math.cos(a),cz+radius*math.sin(a)));inner.append((cx-(radius-t)*math.cos(a),cz+(radius-t)*math.sin(a)))
+ return outline(list(reversed(outer))+inner[1:-1],depth,m,y)
+
+HORSE=[(-.07,0),(.08,0),(.105,.15),(.075,.275),(.052,.365),(.012,.305),(-.04,.295),(-.16,.175),(-.172,.112),(-.10,.098),(-.05,.142),(-.072,.05)]
+def horse_head(at,scale,depth,m,y=0.):
+ """A horse's head and neck in outline, looking toward -X. `at` is the (x, z) of the middle of the neck's foot."""
+ return outline([(at[0]+x*scale,at[1]+z*scale) for x,z in reversed(HORSE)],depth,m,y)
+
+def still(name):
+ """Marks every part as standing still, then exports."""
+ for o in bpy.context.scene.objects:
+  if o.type=='MESH':o['idle']=None
+ marks_and_export(name)
+
+# Family A: turned.
+def a_stem(h,foot=.165,waist=.040,squash=1.):
+ lat([(0,foot),(.022,foot),(.040,foot*.90)],OWNER_DEEP,16,squash=squash)
+ lat([(.040,foot*.84),(.062,foot*.56),(.100,foot*.38),(.200,waist*1.3),(h*.55,waist),(h-.075,waist*1.3),(h-.035,waist*1.9)],OWNER,12,squash=squash)
+ lat([(h-.035,waist*1.9),(h-.020,waist*2.5),(h,waist*2.5),(h+.014,waist*1.3)],TRIM,12)
+
+def a_sword():
+ a_stem(.60);slab((0,0,.640),(.230,.034,.032),TRIM);blade((0,0,.650),(0,0,1.10),.050,TRIM,.016)
+def a_spear():
+ a_stem(.46,.150,.034);lat([(.46,.014),(1.00,.014)],TRIM,6);blade((0,0,.98),(0,0,1.27),.058,TRIM,.018)
+def a_bow():
+ a_stem(.48,.150,.036);crescent(.135,.76,.275,74,.060,.034,TRIM);bar((.060,.496),(.060,1.024),.012,.014,TRIM)
+def a_horse():
+ a_stem(.44,.185,.050,.80);horse_head((.005,.452),1.18,.080,TRIM)
+def a_siege():
+ lat([(0,.215),(.024,.215),(.044,.195)],OWNER_DEEP,16)
+ lat([(.044,.180),(.070,.130),(.330,.118),(.380,.150),(.440,.150)],OWNER,12)
+ for i in range(6):
+  a=i*math.tau/6;slab((math.cos(a)*.122,math.sin(a)*.122,.462),(.058,.058,.046),OWNER)
+ bar((-.165,.455),(.215,.930),.034,.034,TRIM);slab((-.165,0,.455),(.090,.070,.090),TRIM);lat([(.905,.020),(.925,.046),(.955,.046),(.975,.020)],TRIM,8,(.215,0))
+
+# Family B: cut-out.
+def b_foot(rx=.175,squash=.62):
+ lat([(0,rx),(.026,rx),(.040,rx*.93)],TRIM_DEEP,16,squash=squash)
+D=.072
+def b_sword():
+ b_foot()
+ outline([(-.036,.03),(.036,.03),(.036,.290),(.165,.290),(.165,.345),(.076,.345),(.056,.930),(0,1.120),(-.056,.930),(-.076,.345),(-.165,.345),(-.165,.290),(-.036,.290)],D,OWNER)
+ outline([(-.013,.400),(.013,.400),(.008,.900),(-.008,.900)],D+.014,TRIM)
+def b_spear():
+ b_foot(.150)
+ outline([(-.022,.03),(.022,.03),(.022,.800),(.078,.800),(.078,.840),(.022,.840),(.022,.900),(-.022,.900),(-.022,.840),(-.078,.840),(-.078,.800),(-.022,.800)],D,OWNER)
+ outline([(-.022,.900),(.022,.900),(.086,1.010),(0,1.275),(-.086,1.010)],D,TRIM)
+def b_bow():
+ b_foot(.165)
+ crescent(.170,.640,.350,74,.082,D,OWNER);bar((.074,.304),(.074,.976),.016,D*.5,OWNER)
+ outline([(-.026,.03),(.026,.03),(.026,.615),(-.026,.615)],D,OWNER)
+ outline([(-.250,.640),(-.180,.600),(-.180,.628),(.130,.628),(.130,.652),(-.180,.652),(-.180,.680)],D+.014,TRIM)
+def b_horse():
+ b_foot(.200)
+ horse_head((.010,.03),2.45,D,OWNER)
+ outline([(.150,.380),(.215,.360),(.190,.640),(.150,.800)],D+.014,TRIM)
+def b_siege():
+ b_foot(.215)
+ outline([(-.200,.03),(.200,.03),(.036,.520),(-.036,.520)],D,OWNER)
+ bar((-.270,.300),(.250,.900),.046,D+.014,TRIM);outline([(-.330,.200),(-.215,.200),(-.215,.330),(-.330,.330)],D+.014,TRIM);outline([(.215,.860),(.300,.860),(.300,.945),(.215,.945)],D+.014,TRIM)
+
+# Family C: monument.
+def c_plinth(top=.40,drum=.150,disc=.300,squash=1.):
+ lat([(0,disc),(.050,disc),(.060,disc*.965)],TRIM_DEEP,20,squash=squash)
+ lat([(.060,drum),(top-.012,drum),(top,drum*.94)],OWNER,16,squash=squash)
+ return top
+
+def c_figure(z,at=(0,0),m=OWNER):
+ """A very plain small figure: a tapered robe and a round head."""
+ lat([(z,.056),(z+.210,.040),(z+.250,.050),(z+.275,.018)],m,8,at)
+ lat([(z+.270,.018),(z+.288,.034),(z+.318,.034),(z+.336,.016)],m,8,at)
+
+def c_sword():
+ z=c_plinth();c_figure(z);slab((-.062,-.050,z+.170),(.110,.022,.022),TRIM);blade((-.062,-.050,z+.180),(-.062,-.050,z+.660),.030,TRIM,.012);lat([(z+.110,.012),(z+.170,.012)],TRIM,6,(-.062,-.050))
+def c_spear():
+ z=c_plinth(.34);c_figure(z);lat([(z,.011),(z+.700,.011)],TRIM,6,(-.070,-.040));blade((-.070,-.040,z+.690),(-.070,-.040,z+.920),.040,TRIM,.014)
+def c_bow():
+ z=c_plinth(.36);c_figure(z);crescent(-.010,z+.190,.150,72,.036,.026,TRIM,-.062);bar((-.056,z+.047),(-.056,z+.333),.008,.010,TRIM,-.062)
+def c_horse():
+ z=c_plinth(.30,.175,.320,.80)
+ outline([(-.150,z+.130),(-.150,z),(-.110,z),(-.110,z+.110),(.090,z+.110),(.090,z),(.130,z),(.130,z+.150),(.150,z+.230),(.110,z+.250),(.040,z+.245),(-.080,z+.250),(-.120,z+.330),(-.100,z+.400),(-.150,z+.380),(-.240,z+.290),(-.235,z+.245),(-.185,z+.250),(-.170,z+.190)][::-1],.090,OWNER)
+ c_figure(z+.235,(-.010,0),TRIM)
+def c_siege():
+ z=c_plinth(.26,.185,.320)
+ outline([(-.130,z),(.130,z),(.026,z+.250),(-.026,z+.250)],.110,OWNER);bar((-.190,z+.110),(.190,z+.480),.030,.040,TRIM);slab((-.190,0,z+.110),(.080,.070,.080),TRIM);lat([(z+.455,.016),(z+.472,.040),(z+.498,.040),(z+.515,.016)],TRIM,8,(.190,0))
+
+# Family D: monolith (the user, 2026-11-15, with `images/20.png` of the session: tall dark carved
+# pieces, each a tapered block with slanted shoulders and a small block for a head: "or maybe
+# something like this as a template"). The body is one carved block with five sides. Each
+# section is turned a little against the one below, so the long faces break on a diagonal, as
+# a knife cut does. The class is the block's own shape and height, and one plain mark in the
+# seat's second colour.
+def carved(sections,m,n=5):
+ """A carved block: sections of (z, x, y, radius in x, radius in y, turn in radians), joined by faces that twist."""
+ v=[];f=[]
+ for z,x,y,rx,ry,turn in sections:
+  for i in range(n):
+   a=turn+(i+.5)*math.tau/n;v.append((x+math.cos(a)*rx,y+math.sin(a)*ry,z))
+ for j in range(len(sections)-1):
+  for i in range(n):
+   a,b,c,d=j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i;f+=[(a,b,c),(a,c,d)]
+ f+=[tuple(reversed(range(n))),tuple(range((len(sections)-1)*n,len(sections)*n))]
+ return keep(mesh('Carved block',v,f,m),None)
+
+def d_body(h,w=.150,head=.20,lean=.018):
+ """The block, its slanted shoulders and its small head. `h` is the height of the shoulders."""
+ carved([(0,0,0,w,w*.84,.30),(h*.46,0,0,w*.90,w*.74,.42),(h,0,0,w*.74,w*.60,.62),(h+.105,lean,0,.036,.034,.62)],OWNER)
+ carved([(h+.085,lean,0,.030,.030,.2),(h+.125,lean,0,.042,.040,.2),(h+.085+head*.86,lean,0,.038,.036,.3),(h+.085+head,lean,0,.020,.020,.3)],OWNER,4)
+
+def d_sword():
+ d_body(.66);x,y=-.185,-.070
+ blade((x,y,.560),(x,y,.0),.036,TRIM,.016);slab((x,y,.572),(.130,.026,.026),TRIM);slab((x,y,.640),(.026,.026,.110),TRIM)
+def d_spear():
+ d_body(.80,.125,.22);x,y=-.165,-.060
+ lat([(0,.012),(1.02,.012)],TRIM,5,(x,y));blade((x,y,1.00),(x,y,1.275),.046,TRIM,.016)
+def d_bow():
+ d_body(.56,.140,.19);crescent(.030,.440,.290,72,.058,.034,TRIM,-.105);bar((-.060,.164),(-.060,.716),.012,.014,TRIM,-.105)
+def d_horse():
+ carved([(0,.02,0,.185,.125,.30),(.20,.02,0,.165,.108,.40),(.40,.03,0,.120,.090,.52)],OWNER)
+ horse_head((.040,.385),1.62,.120,OWNER);outline([(.135,.640),(.180,.620),(.168,.800),(.135,.930)],.134,TRIM)
+def d_siege():
+ carved([(0,0,0,.235,.190,.785),(.20,0,0,.185,.150,.84),(.36,0,0,.110,.095,.90)],OWNER,4)
+ bar((-.215,.300),(.225,.800),.036,.040,TRIM);slab((-.215,0,.300),(.094,.080,.094),TRIM);lat([(.775,.018),(.795,.046),(.825,.046),(.845,.018)],TRIM,6,(.225,0))
+
+def tokens():
+ for family,pieces in (('a',(a_sword,a_spear,a_bow,a_horse,a_siege)),('b',(b_sword,b_spear,b_bow,b_horse,b_siege)),('c',(c_sword,c_spear,c_bow,c_horse,c_siege)),('d',(d_sword,d_spear,d_bow,d_horse,d_siege))):
+  for author in pieces:
+   reset();STATE['new']=[];author();still('tok-'+author.__name__.replace('_','-'))
+
 def swordsman_toon():
  reset();base(.25);place(swordsman_figure(),scale=1.06);marks_and_export('ns-swordsman-toon')
 
@@ -480,5 +645,5 @@ def block_catapult():
  limb([(-.16,.02,.56),(.16,.02,.56)],[.03,.03],BLOCK,4)
  limb([(0,-.22,.20),(0,.30,.78)],[.03,.022],BLOCK,4);slab((0,.32,.80),(.12,.12,.07),BLOCK)
 
-swordsman_tall();swordsman_tall(True);swordsman_turn();swordsman_art();swordsman();swordsman_toon();swordsman_squad()
+tokens();swordsman_tall();swordsman_tall(True);swordsman_turn();swordsman_art();swordsman();swordsman_toon();swordsman_squad()
 for name,author,foot in (('spearman',block_spearman,True),('archer',block_archer,True),('horseman',block_horseman,False),('catapult',block_catapult,False)):blockout(name,author,foot)
