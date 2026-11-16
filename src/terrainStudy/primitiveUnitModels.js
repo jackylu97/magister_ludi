@@ -59,8 +59,9 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0}={}){
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
  const ivory=material('Warm ivory','#e8d8b2'),gold=material('Antique gold','#b69045'),dark=material('Incised detail','#303d42');
  // `Trim` parts take the seat's second colour in the game (`packUnitAsset` with `trim`); elsewhere they stay gilt.
- // `steel` is for helmets, so a soldier's head reads as armour and not as a cap (the user, 2026-11-15).
- const trim=material('Trim gilt','#b69045'),steel=material('Burnished helm steel','#66737f');
+ // `steel` is the helmets' material. It is a darker tone of the seat's first colour, not grey (the user, 2026-11-15:
+ // "make sure the new helmets use the same player character and aren't grey in game"), so its name starts with `Owner`.
+ const trim=material('Trim gilt','#b69045'),steel=material('Owner helmet','#8d8f91');
  const mesh=(name,geometry,m,x=0,y=0,z=0)=>{
   const o=new T.Mesh(geometry,m);o.name=name;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;
  };
