@@ -11,11 +11,11 @@ export function addInfantryVariant(kit,type){
   geometry.translate(0,0,-depth/2);
   return mesh(name,geometry,material,x,y,z);
  };
- // The infantry's helmet in steel, with a brow band in the seat's second colour and, from the third age, a low
+ // The infantry's helmet in ivory, with a brow band in the seat's first colour and, from the third age, a low
  // fore-and-aft crest in it.
  const lowHelmet=(label,crest=true)=>{
   mesh(`${label} low steel helmet`,new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
-  ring(`${label} trim brow band`,.174,1.122,trim,0,0,.026);
+  ring(`${label} owner brow band`,.176,1.122,owner,0,0,.032);
   for(const side of [-1,1])box(`${label} steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
   if(crest&&tier>=2)box(`${label} trim helmet crest`,[.036,tier>=3?.120:.075,.300],trim,0,1.290+(tier>=3?.060:.037),-.010);
  };
@@ -61,7 +61,7 @@ export function addInfantryVariant(kit,type){
   relief('Longswordsman steel visor',[[-.118,-.099],[.118,-.099],[.136,.046],[.097,.104],[-.097,.104],[-.136,.046]],.021,steel,0,1.162,.189);
   for(const side of [-1,1])box(`Longswordsman dark visor slit ${side}`,[.083,.020,.005],dark,side*.058,1.184,.204);
   box('Longswordsman gilt visor ridge',[.015,.190,.011],gold,0,1.161,.211);
-  ring('Longswordsman low trim helm edge',.167,1.061,trim,0,0,.014);
+  ring('Longswordsman low owner helm edge',.170,1.061,owner,0,0,.024);
   sword('Longswordsman',.626,.046,.170);
   relief('Longswordsman gilt heater rim',[[-.114,.140],[.114,.140],[.104,-.035],[0,-.165],[-.104,-.035]],.030,gold,-.215,.800,.170);
   relief('Longswordsman enamel heater shield',[[-.094,.120],[.094,.120],[.084,-.027],[0,-.140],[-.084,-.027]],.031,ownerShade,-.215,.800,.188);

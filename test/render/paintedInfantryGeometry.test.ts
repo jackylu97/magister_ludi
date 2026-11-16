@@ -11,15 +11,15 @@ type Packed = { fixed: BufferGeometry; owner: BufferGeometry; contacts: [number,
 const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createPrimitiveUnitScene(type, { family })) as Packed;
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
-  warrior: '90266:326b79b2', spearman: '82515:61573c97', horseman: '90974:de35941b', archer: '99539:d4cfa202',
+  warrior: '90266:fdf57dc4', spearman: '82515:41ad81f5', horseman: '90974:de35941b', archer: '99539:3463006f',
   horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '86410:b0b71f65',
   settler: '89830:fc38728', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
   'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',
   'greatPerson:merchant': '121926:1d2ecc63', 'greatPerson:general': '137686:59d42dd3',
 };
 const infantryBaseline: Record<string, string> = {
-  swordsman: '104262:3a2a2b1e', legionary: '115367:e5d4b36d', longswordsman: '103814:ea04d0fc',
-  fireLance: '105042:d626abfa', khopesh: '117807:b95b0290', eagleWarrior: '142486:207a1e71',
+  swordsman: '104262:45214f95', legionary: '115367:814f376', longswordsman: '103814:ec2f9439',
+  fireLance: '105042:f65f778a', khopesh: '117807:24cca213', eagleWarrior: '142486:6856ab6',
 };
 // Cut again on 2026-11-15, after the user's readability rulings on every kind of piece: bolder tools, helmets in the
 // body's colour, shorter lances and staffs, no nose, one body height, the tool not counted in the height, and parts in the seat's second colour. These are the
@@ -67,7 +67,7 @@ describe('painted infantry variants around the accepted warrior', () => {
       expect(widthAt(.35, .57)).toBeGreaterThan(widthAt(.06, .20) * 2.5);
       expect(club.material.name).toBe('Warm tool wood'); expect(club.material.transparent).toBe(false); expect(club.material.opacity).toBe(1);
       expect(scene.getObjectByName('Warrior simple club')!.children).toHaveLength(3);
-      for (const name of ['Steel helmet dome', 'Trim brow band', 'Steel nasal bar', 'Steel cheek guard -1']) {
+      for (const name of ['Steel helmet dome', 'Owner brow band', 'Steel nasal bar', 'Steel cheek guard -1']) {
         const actual = scenePart(scene, name), expected = scenePart(spearman, name);
         expect(actual.position.toArray()).toEqual(expected.position.toArray());
         expect(actual.quaternion.toArray()).toEqual(expected.quaternion.toArray());
@@ -76,9 +76,10 @@ describe('painted infantry variants around the accepted warrior', () => {
       }
       // The helmet is the seat's first colour, the same tone as the robe (the user, 2026-11-15: "lets just have the
       // helmets be the same color, they don't need to be darker"). Its brow band is in the second colour.
-      expect(scenePart(scene, 'Steel helmet dome').material.name).toBe('Owner helmet');
-      expect(scenePart(scene, 'Steel helmet dome').material.color).toEqual(scenePart(scene, 'Turned enamel robe').material.color);
-      expect(scenePart(scene, 'Trim brow band').material.name).toBe('Trim gilt');
+      // Since the first playtest the helmet is ivory and its brow band is in the seat's first colour (the user, 2026-11-16:
+      // "could we have the helmets be white again, with the primary color of the player as an accent color?").
+      expect(scenePart(scene, 'Steel helmet dome').material.name).toBe('Warm ivory');
+      expect(scenePart(scene, 'Owner brow band').material.name).toBe('Owner enamel');
       // The spearman's helmet has a spike, so the two classes differ in outline.
       expect(spearman.getObjectByName('Steel helmet spike')).toBeDefined(); expect(scene.getObjectByName('Steel helmet spike')).toBeUndefined();
       const packed = pack('warrior');
@@ -117,7 +118,7 @@ describe('painted infantry variants around the accepted warrior', () => {
               if (!(object instanceof Mesh)) return;
               expect(object.scale.x * object.scale.y * object.scale.z).toBeGreaterThan(0);
               const materials = Array.isArray(object.material) ? object.material : [object.material];
-              for (const material of materials) expect(['Owner enamel', 'Owner turned recess', 'Owner helmet', 'Trim gilt', 'Warm ivory', 'Antique gold', 'Incised detail']).toContain(material.name);
+              for (const material of materials) expect(['Owner enamel', 'Owner turned recess', 'Trim gilt', 'Warm ivory', 'Antique gold', 'Incised detail']).toContain(material.name);
             });
           } finally { disposeScene(scene); }
         }

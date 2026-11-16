@@ -101,10 +101,11 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
  const ivory=material('Warm ivory','#e8d8b2'),gold=material('Antique gold','#b69045'),dark=material('Incised detail','#303d42');
  // `Trim` parts take the seat's second colour in the game (`packUnitAsset` with `trim`); elsewhere they stay gilt.
- // `steel` is the helmets' material. It is the seat's first colour, the same tone as the body (the user, 2026-11-15:
- // "lets just have the helmets be the same color, they don't need to be darker"), so its name starts with `Owner`.
- // The brow band in the second colour, the cheek guards, the spike and the brim are what make it a helmet.
- const trim=material('Trim gilt','#b69045'),steel=material('Owner helmet','#ffffff');
+ // `steel` is the helmets' material. The brow band, the cheek guards, the spike and the brim are what make it a helmet.
+ // Since the first playtest (the user, 2026-11-16: "could we have the helmets be white again, with the primary color of
+ // the player as an accent color? ... every unit has a splash of color on the helmet") a helmet is ivory, as the caps
+ // were, and its brow band is in the seat's first colour.
+ const trim=material('Trim gilt','#b69045'),steel=ivory;
  const mesh=(name,geometry,m,x=0,y=0,z=0)=>{
   const o=new T.Mesh(geometry,m);o.name=name;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;
  };
@@ -126,13 +127,13 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
   // The small nose is gone (the user, 2026-11-15: "the little nose on the figures can be removed").
   sphere('Faceted ivory face',.145,ivory,0,y);
  };
- // A soldier's helmet in steel: a dome over the top of the head, a brow band in the seat's second colour, a nasal
+ // A soldier's helmet in ivory: a dome over the top of the head, a brow band in the seat's first colour, a nasal
  // bar and two cheek guards. `point` adds a short spike (spears and polearms) and `brim` a wide flat brim (bows),
  // so the two classes differ in outline. A later age adds a plume in the second colour, taller in the last age.
  const helmet=(kind)=>{
   mesh('Steel helmet dome',new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
   // The band is bold: with the dome in the body's colour, it is what marks the helmet off from the robe.
-  ring('Trim brow band',.174,1.122,trim,0,0,.026);
+  ring('Owner brow band',.176,1.122,owner,0,0,.032);
   box('Steel nasal bar',[.026,.120,.020],steel,0,1.068,.168);
   for(const side of [-1,1])box(`Steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
   if(kind==='point')mesh('Steel helmet spike',new T.ConeGeometry(.062,.150,8),steel,0,1.345);
