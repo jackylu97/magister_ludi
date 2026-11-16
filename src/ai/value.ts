@@ -64,7 +64,7 @@
 import type { AiConfig } from './aiConfig';
 // The seat's books, a type only: `armySupport.ts` is a leaf this file only names.
 import type { SeatBooks } from './armySupport';
-import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
+import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 // **Type-only, and deliberately so.** `wants.ts` reads this module's folds at
 // runtime; this module only needs to *name* the book its context carries. The
 // import is erased at build, so the leaf stays a leaf — `statecraft.ts`'
@@ -73,6 +73,7 @@ import type { WantBook } from './wants';
 // Type-only for the same reason: `chain.ts` reads this module's folds at
 // runtime, and this module only needs to *name* the chains its context carries.
 import type { BeadChain, ExpansionChain, TechChain } from './chain';
+import type { FoundingSite } from './settlerSites';
 /**
  * Type-only, and deliberately: `routes.ts` reads this file at runtime (the pay
  * of a route is `explainYields` of the simulation's own fold), so a value import
@@ -680,6 +681,15 @@ export interface ValueContext {
    * them and appraised, like the book, at the prior.
    */
   expansion: ExpansionChain | null;
+  /**
+   * **The legal sites near this empire's towns** (bot batch BP10,
+   * `settlerSites.ts`): every hex within `expansion.siteSearchRadius` of a town
+   * of the seat where a town may be founded, nearest to a town first. Read once
+   * for the context, from the board alone. Where a settler is priced or sent,
+   * each site is asked again for its legality and against the claims of the
+   * seat's other settlers, so a town founded during the turn is seen.
+   */
+  sites: readonly FoundingSite[];
   /**
    * **Every tech chain this empire is executing** (`liveChains`, `chain.ts`) —
    * the research goal it is aiming at, and one per technology it holds whose
@@ -5548,14 +5558,26 @@ function surplusMovedShare(ctx: ValueContext): number {
 
 /**
  * **Does the empire's books carry what this rewritten rule changes?** The army's
- * wages and the citizens' demand are lines on the books now. Every other rule
- * changes a price, a pace, a range or a cost still to be paid, which no turn's
- * books show.
+ * wages and the citizens' demand are lines on the books now, and so is the war
+ * weariness lost units add: it is part of the seat's contentment for as long as
+ * the losses are in the weariness window. Every other rule changes a price, a
+ * pace, a range or a cost still to be paid, which no turn's books show.
+ *
+ * The unit-loss rule moved here in bot batch BP10. Its games held a position
+ * (seat 2 of the duel at turn 121, at war with losses in the window) where The
+ * Glorious Dead's rule moved the stamp's books by 32 points, so the stamp sees
+ * it, and the stand-in the bot priced beside the stamp counted a share of the
+ * same relief twice. Now the stamp's figure is the price, as it is for the
+ * army's wages, and the stand-in counts only as a promise beyond today
+ * (`beyondTheStamp`). The town-loss rule should read the same way, but no
+ * recorded position holds a lost town, so the slow check cannot hold it to the
+ * books, and it stays a stand-in.
  */
 function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['rule']): boolean {
   switch (rule) {
     case 'unitUpkeep':
     case 'happinessDemand':
+    case 'unitLossWeariness':
       return true;
     case 'roadStepCost':
     case 'growthSurplus':
@@ -5574,7 +5596,6 @@ function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['
     case 'riteCost':
     case 'pacificationRate':
     case 'campMuster':
-    case 'unitLossWeariness':
     case 'townLossWeariness':
     case 'unitCost':
     case 'charterTechCost':
@@ -7710,10 +7731,20 @@ function explainCharterOpening(unlocks: CharterSpec['unlocks'], ctx: ValueContex
         continue;
       }
       const blessing = explainRite(rite, here);
+      // **The parts carry the multiplication** (bot batch BP10): the slow fold
+      // audit found this term printing one town's blessing as its only part
+      // beside a value of that blessing times the towns, on the first board
+      // where a seat with two towns drafted The Fast. The value is the fold.
+      const parts: ValueTerm[] = [
+        nest('one town’s blessing', blessing),
+        blessing.total > 0
+          ? { label: `× ${towns} town${towns === 1 ? '' : 's'}`, value: towns, op: 'mul' }
+          : { label: '× 0: a rite that pays nothing is not said', value: 0, op: 'mul' },
+      ];
       terms.push({
         label: `${name}: one town’s blessing × ${towns} town${towns === 1 ? '' : 's'}, at nought or more`,
-        value: Math.max(0, blessing.total) * towns,
-        parts: [nest('one town’s blessing', blessing)],
+        value: foldTerms(parts),
+        parts,
       });
     }
   }

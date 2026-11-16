@@ -1651,8 +1651,12 @@ export function expansionChain(
   player: Player,
   ctx: ValueContext,
   probe: SiteProbe,
-  /** The row that founds, and whether one is already walking. `bot.ts`' reading. */
-  settler: { id: UnitTypeId; walking: boolean },
+  /**
+   * The row that founds, and whether one is already walking. `bot.ts`' reading.
+   * `coming` is the towns already on their way (`explainNextTown`), for a chain
+   * priced for one more settler (bot batch BP10); nought for the seat's chain.
+   */
+  settler: { id: UnitTypeId; walking: boolean; coming?: number },
 ): ExpansionChain {
   const def = unitDef(settler.id);
   // The live price — the size, the column and the ladder folded — not the base.
@@ -1687,7 +1691,7 @@ export function expansionChain(
   }
 
   const town = appraise([
-    nest('a town, before the engines it would join', explainNextTown(state, player, ctx)),
+    nest('a town, before the engines it would join', explainNextTown(state, player, ctx, settler.coming ?? 0)),
     nest('and the engines it would join', townChainShare(ctx)),
   ]);
   // **The walk is discounted and the raising is not**, and that is not an
@@ -1946,22 +1950,6 @@ export function expansionStepShare(chain: ExpansionChain): number {
 }
 
 /**
- * **A settler of this seat waits with nowhere to go** (bot batch BP9, fault 5):
- * one stands asleep. The settler's arm puts a settler to sleep only when there
- * is nowhere legal to found and nowhere better to walk (`settlerCommand`), so a
- * sleeping settler is the bot's own record that the board has no site for it.
- * While one waits, a second one would wait beside it, so neither settler row
- * buys another. One walk of the units, on the live board.
- */
-export function settlerWaits(state: GameState, playerId: number): boolean {
-  for (const unit of state.units) {
-    if (unit.ownerId !== playerId || unit.sleeping !== true) continue;
-    if (unitDef(unit.type).foundsCity === true) return true;
-  }
-  return false;
-}
-
-/**
  * **What the next town is worth to an empire that already holds some.**
  *
  * `weights.city × cityValueFalloffByAge[age]^towns`, and the falloff is the honest tall
@@ -1979,7 +1967,17 @@ export function settlerWaits(state: GameState, playerId: number): boolean {
  * It lives here rather than in `bot.ts` because batch 4 made it the expansion
  * chain's payoff, and a chain may not stand on the policy that reads it.
  */
-export function explainNextTown(state: GameState, player: Player, ctx: ValueContext): Appraisal {
+export function explainNextTown(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  /**
+   * Towns already on their way: settlers of the seat that stand, march or are
+   * queued for a site of their own (bot batch BP10, `settlerSites.ts`). The
+   * next town is the one after them, so the falloff counts them as held.
+   */
+  coming = 0,
+): Appraisal {
   let held = 0;
   for (const city of state.cities) {
     if (city.ownerId === player.id) held += 1;
@@ -1994,6 +1992,13 @@ export function explainNextTown(state: GameState, player: Player, ctx: ValueCont
   for (let index = 0; index < held; index++) {
     terms.push({
       label: `× ${round(falloff)} — the ${ordinal(index + 1)} town this empire already holds`,
+      value: falloff,
+      op: 'mul',
+    });
+  }
+  for (let index = 0; index < coming; index++) {
+    terms.push({
+      label: `× ${round(falloff)}: the ${ordinal(held + index + 1)} town, which a settler of this empire is already on its way to found`,
       value: falloff,
       op: 'mul',
     });

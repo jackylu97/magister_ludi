@@ -5,7 +5,7 @@
     "greatPersonRedraws": 4,
     "reaimsPerTurn": 1,
     "reaskPerTurn": 1,
-    "focusHoldTurns": 5
+    "focusOrders": 1
   },
   "search": {
     "pathProbes": 4,

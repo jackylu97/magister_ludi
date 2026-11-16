@@ -1202,10 +1202,18 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * of a site or when no site is open at all. No rule changed. Duel
  * `ce93521f:331077` -> `3def2cf4:345268`, standard `855266fe:1048454` ->
  * `b8fc7751:1046273`.
+ *
+ * Re-cut for bot batch BP10 (`docs/flags.md` (ooooooo), the bullet "BP10").
+ * All three changes move play: a settler is raised and sent only for a site no
+ * other settler of the seat is for, and keeps the site it marches to; a town's
+ * citizen focus is chosen once a build in place of BP9's five-turn hold; and a
+ * prophet is priced only for acts its arm takes. No rule changed. Duel
+ * `3def2cf4:345268` -> `4da3f046:337488`, standard `b8fc7751:1046273` ->
+ * `6a878f7e:1003339`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3def2cf4:345268',
-  standard: 'b8fc7751:1046273',
+  duel: '4da3f046:337488',
+  standard: '6a878f7e:1003339',
 };
 
 /**

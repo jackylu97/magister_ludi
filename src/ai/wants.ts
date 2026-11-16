@@ -100,9 +100,7 @@ import {
   type ExpansionChain,
   chainCompression,
   chainStepFor,
-  expansionStepShare,
   raceTerm,
-  settlerWaits,
 } from './chain';
 import {
   type ValueContext,
@@ -140,12 +138,14 @@ import {
   cityTile,
   mirrorRowFor,
   tileCopies,
+  tileOwnerCityId,
   tileOwnerPlayerId,
   tilePurchaseError,
   tilePurchasePrice,
   workRadiusOf,
   yieldScore,
 } from '../sim/cities';
+import { improvementErrorAt } from '../sim/improvements';
 import {
   cityContext,
   explainTileYield,
@@ -177,12 +177,13 @@ import {
   type RiteId,
   beliefDef,
   poolBeliefs,
-  riteAbility,
   riteDef,
 } from '../sim/religionData';
 import {
   beliefPool,
+  gainBeliefError,
   hasOpenBeliefSlot,
+  holySites,
   nextBeliefPool,
   nextFaithRungCost,
   religionBeliefPool,
@@ -203,7 +204,6 @@ import {
   spendableGold,
 } from '../sim/statecraft';
 import { type OrderId } from '../sim/statecraftData';
-import { hasAbility } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import {
   UNIT_TYPE_IDS,
@@ -416,6 +416,14 @@ export interface WantInputs {
    * asks it and only when the levy is short, and the answer walks the roster.
    */
   recruit: () => { name: string; wage: number; worth: Appraisal } | null;
+  /**
+   * **What a settler bought in this town is worth** (bot batch BP10): the next
+   * town at the site that settler would be for, or nothing when every site in
+   * reach of the town already has a settler of the seat for it
+   * (`settlerSites.ts`). `bot.ts`' reading, the one the queue's settler row
+   * folds, handed in for `soldierWorth`'s reason.
+   */
+  settlerWorth: (city: City) => ValueTerm[];
 }
 
 /** What the levy wants, what it holds, and the sentence that says why. */
@@ -1174,13 +1182,14 @@ function faithPlan(
           item,
           faithRowTerms(state, player, ctx, reach.price, {
             id,
+            city,
             prophet: def.prophesies === true,
             apostle: def.proclaims === true,
             founder: def.prophesies === true && unfounded,
-            towns: towns.length,
             noPantheon,
             godTurns,
             levy: inputs.levy,
+            settler: def.foundsCity === true ? () => inputs.settlerWorth(city) : null,
           }),
         ),
       );
@@ -1366,8 +1375,10 @@ function ladderPlan(
  * evaluators everything else in the book goes through:
  *
  *   · **a prophet is the best of the acts it could perform** (`prophetTerms`) —
- *     founding a faith, drawing another rung of one already founded, or saying a
- *     rite over the whole realm. Its two charges buy **one** of the acts this
+ *     founding a faith, drawing another rung of one already founded, or raising
+ *     a further holy site where its arm would raise one (since bot batch BP10;
+ *     the rite over the whole realm is no longer priced, because no arm of this
+ *     bot says it). Its two charges buy **one** of the acts this
  *     book prices — founding and deepening take both (`chargeCostOf`,
  *     `rules.religion.prophetCosts`) — so its worth is the best of them and not
  *     their sum;
@@ -1413,13 +1424,16 @@ function faithRowTerms(
   price: number,
   row: {
     id: UnitTypeId;
+    /** The town the row is bought in. */
+    city: City;
     prophet: boolean;
     apostle: boolean;
     founder: boolean;
-    towns: number;
     noPantheon: boolean;
     godTurns: number;
     levy: LevyReading;
+    /** A settler's worth in this town (`WantInputs.settlerWorth`), for a row that founds. */
+    settler: (() => ValueTerm[]) | null;
   },
 ): ValueTerm[] {
   if (row.prophet) return prophetTerms(state, player, ctx, row);
@@ -1446,7 +1460,7 @@ function faithRowTerms(
       levyTerm(soldier.total, row.levy, ctx.ai.military.levySurplusSlope),
     ];
   }
-  if (def.foundsCity === true) return [expansionTerm(ctx)];
+  if (def.foundsCity === true && row.settler !== null) return row.settler();
   return [
     nest('worth at least the faith it costs — nothing it does is priced', explainLump({ faith: price }, ctx)),
   ];
@@ -1542,50 +1556,12 @@ function levyTerm(worth: number, levy: LevyReading, slope: number): ValueTerm {
 }
 
 /**
- * **A settler's whole worth: its share of the expansion chain** — the term
- * `unitRoleValue` folds for the queue's settler, said once more for one bought
- * out of a bank.
- *
- * The share rather than the town, and it is `unitRoleValue`'s note repeated: a
- * settler makes nothing anywhere, so the whole of what it is worth is the town it
- * founds, and that is what the chain already prices. A chain with nothing left to
- * raise shares nothing — a settler already walking is no step — and an empire
- * with nowhere legal to put a town has no chain at all, which is a want worth
- * nought and says so.
- *
- * The citizen the town loses is **not** charged here, and that is the one place
- * this parts from the queue's settler: a bought piece costs a bank rather than a
- * town's next citizen, and the town it is bought in is not asked to shrink.
- */
-function expansionTerm(ctx: ValueContext): ValueTerm {
-  const chain = ctx.expansion;
-  if (chain === null || chain.stepsRemaining <= 0) {
-    return { label: 'nowhere this empire could still put a town — nothing for one to found', value: 0 };
-  }
-  const where = `(${chain.site.tile.col},${chain.site.tile.row})`;
-  // **Not while a settler waits with nowhere to go** (bot batch BP9, fault 5,
-  // the user's guard): one asleep for want of a site is one more than the board
-  // can use already. See `settlerWaits`.
-  if (settlerWaits(ctx.state, ctx.playerId)) {
-    return { label: 'a settler of this empire already waits with nowhere to found, so another has nothing to do', value: 0 };
-  }
-  return {
-    label:
-      `a step of the next town at ${where} — ` +
-      `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
-    value: expansionStepShare(chain),
-  };
-}
-
-/**
  * **What a prophet is worth: the best single thing it could do** — batch H12.
  *
  * A prophet carries two charges and every act this book prices spends both of
- * them — founding and deepening are the two-charge acts of the ruled ladder
- * (`chargeCostOf`, `docs/religion-v2.md`) and the rite is the one act here that
- * leaves a charge standing. So the honest price of one is the best of its acts
- * rather than the sum of them, and a **floor** rather than the whole where the
- * spare charge would have bought a second rite:
+ * them: founding, deepening and a further site are the two-charge acts of the
+ * ruled ladder (`chargeCostOf`, `docs/religion-v2.md`). So the honest price of
+ * one is the best of its acts rather than the sum of them:
  *
  *   · **found the faith** (`explainFounding`) — the stones, the rungs the
  *     founding deals, the founder's trickle over the towns the tide would reach;
@@ -1593,9 +1569,14 @@ function expansionTerm(ctx: ValueContext): ValueTerm {
  *     priced by the evaluator a belief is always priced by;
  *   · **raise a further holy site** (`explainStones`, batch F3) — the other
  *     two-charge act of an empire that has already founded, and the cheapest
- *     thing on the sheet: a site is stones and a tide, never a rule;
- *   · **say a rite over every town** (`explainEmpireRite`) — the fourth act, and
- *     the one that was already priced before this batch.
+ *     thing on the sheet: a site is stones and a tide, never a rule. Since bot
+ *     batch BP10 only in a town where the prophet's arm would raise one
+ *     (`siteRaisableFrom`).
+ *
+ * **The rite over every town is not priced** (bot batch BP10). It was the fourth
+ * act from `55027c67` (2026-09-07), but no arm of this bot sends `empireRite`,
+ * so a prophet bought for it slept. A prophet with no act it would take is
+ * worth nothing here, and the book does not buy it.
  *
  * **The appetite is the floor, not the price.** `religion.prophetTechValue` is
  * what this empire *says* a first faith is worth — it is the same number the
@@ -1611,7 +1592,7 @@ function prophetTerms(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  row: { founder: boolean; towns: number; noPantheon: boolean; godTurns: number },
+  row: { city: City; founder: boolean; noPantheon: boolean; godTurns: number },
 ): ValueTerm[] {
   const acts: { label: string; worth: Appraisal }[] = [];
   if (row.founder) {
@@ -1624,11 +1605,21 @@ function prophetTerms(
     // faith with every rung taken still has something to want a prophet for, and
     // it is priced as the stones alone (`explainStones`) so it never outbids a
     // belief that is actually available.
-    const stones = explainStones(ctx);
-    if (stones.terms.length > 0) acts.push({ label: 'a further holy site', worth: stones });
+    //
+    // **Only where the prophet's arm would raise one** (bot batch BP10). A bought
+    // prophet stands on the centre of the town that bought it, and the arm
+    // raises a further site only on that town's ground, one step off the centre,
+    // and only while the town holds no site (`prophetCommand`, `bot.ts`). Before
+    // BP10 the stones were priced in every town, so a seat whose towns all held a
+    // site kept buying prophets that then slept.
+    if (siteRaisableFrom(state, player, row.city)) {
+      const stones = explainStones(ctx);
+      if (stones.terms.length > 0) acts.push({ label: 'a further holy site', worth: stones });
+    }
   }
-  const rites = explainEmpireRite(state, ctx, row.towns);
-  if (rites.terms.length > 0) acts.push({ label: 'a rite said over every town', worth: rites });
+  // **No rite over every town** (bot batch BP10): no arm of this bot sends the
+  // empire rite (`empireRite`), so a prophet bought for it would sleep. Before
+  // BP10 the book priced it (`explainEmpireRite`, since `55027c67`).
 
   let best: { label: string; worth: Appraisal } | null = null;
   for (const act of acts) {
@@ -1774,8 +1765,9 @@ const FOUNDING_HANDS = 2;
  * deal this empire.
  *
  * The pool is the simulation's own answer (`nextBeliefPool`: followers to three,
- * then enhancers to two, plus any room The Seven Councils opens, with enhancers behind
- * Theology), the bag is the one it would actually draw from, and a belief is priced
+ * then enhancers to two, plus any room The Seven Councils opens), its door is the
+ * reducer's (`gainBeliefError`, which keeps enhancers behind Theology; read here
+ * since bot batch BP10), the bag is the one it would actually draw from, and a belief is priced
  * as a choice, in the towns the faith can expect to hold (`explainBeliefChoice`,
  * bot batch BP5). The stated
  * ceiling is `ladderPlan`'s, said once more: the best of the bag rather than the
@@ -1790,6 +1782,13 @@ function explainNextRung(
   if (religion === null) return null;
   const pool = nextBeliefPool(state, religion);
   if (pool === null) return null;
+  // **Only a rung a prophet could take now** (bot batch BP10). `nextBeliefPool`
+  // names the next pool but not its door: the enhancer pool waits on a
+  // technology, and the prophet's arm deepens only when the reducer's gate
+  // (`gainBeliefError`) says yes. Before BP10 a seat with its follower beliefs
+  // full and no Theology bought prophets for an enhancer it could not take, and
+  // they slept.
+  if (deepenRefusal(state, player) !== null) return null;
   const bag = religionBeliefPool(religion, pool);
   let best: Appraisal | null = null;
   // Each belief priced as a choice, in the towns the faith can expect to hold
@@ -1997,33 +1996,52 @@ function riteOutOfReach(state: GameState, player: Player, cityId: number, id: Ri
 }
 
 /**
- * **What the best rite this empire knows would be worth said over every town** —
- * the prophet's fourth act, priced the way its old ones were.
- *
- * The prophet's other three acts price as an *appetite* (`faithRowTerms`), which
- * is the honest shape for "found a religion" and a poor one for a rite: this act
- * pays a blessing in every town at once and that is a figure the book can read.
- * So it is the rite plan's own arithmetic, times the towns it would land on,
- * charged the single price — which is what makes a prophet worth keeping in a
- * realm with forty towns and no chapels.
+ * What `gainBeliefError` would say to a prophet of this seat with its charges
+ * whole and a move to act with: the reducer's own gate, asked of a shallow copy
+ * of the board with one such piece added on a town of the seat (bot batch BP10;
+ * the positional copy of `plantErrorOn`, `bot.ts`). Nothing is put on the real
+ * board. `null` when a prophet could deepen the faith now.
  */
-function explainEmpireRite(state: GameState, ctx: ValueContext, towns: number): Appraisal {
-  let best: { id: RiteId; worth: Appraisal } | null = null;
-  // **One town's blessing, times the towns** — `ritePlan`'s own correction, and
-  // it matters twice as much here: reading each town's share at the empire's
-  // scale and then multiplying by the towns again would price a prophet's rite at
-  // the square of the realm.
-  const here = townScoped(ctx);
-  for (const id of LIVE_RITE_IDS) {
-    if (!hasAbility(state, ctx.playerId, riteAbility(id))) continue;
-    const worth = explainRite(id, here);
-    if (best === null || worth.total > best.worth.total) best = { id, worth };
+function deepenRefusal(state: GameState, player: Player): string | null {
+  const type = UNIT_TYPE_IDS.find((id) => unitDef(id).prophesies === true);
+  const town = state.cities.find((city) => city.ownerId === player.id);
+  if (type === undefined || town === undefined) return 'no prophet and no town';
+  const piece = {
+    id: state.nextEntityId,
+    ownerId: player.id,
+    type,
+    col: town.col,
+    row: town.row,
+    hp: 100,
+    movesLeft: 1,
+    hasAttacked: false,
+    chargesLeft: unitDef(type).charges ?? 0,
+  } as Unit;
+  return gainBeliefError({ ...state, units: [...state.units, piece] }, player.id, piece.id);
+}
+
+/**
+ * **Could a prophet bought in this town raise a further holy site?** (bot
+ * batch BP10) The prophet's arm raises one only on the ground of a town that
+ * holds no site, and it walks only one hex off the centre it is bought on
+ * (`holySiteStep`, `bot.ts`). So the town must hold no site, and a hex beside
+ * its centre that belongs to it must take the stones (`improvementErrorAt`,
+ * the ground's half of the rule). The prophet's own gate (`plantHolySiteError`)
+ * is the arm's to ask when the piece stands there.
+ */
+function siteRaisableFrom(state: GameState, player: Player, city: City): boolean {
+  if (HOLY_SITE === null) return false;
+  for (const site of holySites(state)) {
+    if (tileOwnerCityId(state, site.col, site.row) === city.id) return false;
   }
-  if (best === null || towns <= 0) return appraise([]);
-  return appraise([
-    nest(`${riteDef(best.id).name}, the best rite this empire knows`, best.worth),
-    { label: `× ${towns} town${towns === 1 ? '' : 's'} it would reach`, value: towns, op: 'mul' },
-  ]);
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (centre === undefined) return false;
+  for (const tile of mapRange(state.map, tileHex(centre), 1)) {
+    if (tile.col === city.col && tile.row === city.row) continue;
+    if (tileOwnerCityId(state, tile.col, tile.row) !== city.id) continue;
+    if (improvementErrorAt(state, player.id, tile, HOLY_SITE) === null) return true;
+  }
+  return false;
 }
 
 /**

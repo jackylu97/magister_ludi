@@ -539,7 +539,13 @@ describe('the bot defends itself', () => {
     // board. It is asserted below rather than assumed: the quiet pick must be
     // something other than a soldier, or the test proves nothing by finding one
     // under siege.
-    const game = grownGame(19);
+    // **Re-sited a sixth time for bot batch BP10**: a settler is now raised for
+    // every site no other settler of the seat is for, so the capital raises
+    // settlers through most of these turns, and under the column it took a
+    // settler on turn nineteen. Swept 8–32 again: turns 16 to 18 read as the
+    // addendum says (a settler in the quiet world, a soldier under the column),
+    // and seventeen is the middle of that run.
+    const game = grownGame(17);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
@@ -1360,9 +1366,15 @@ describe('the bot module', () => {
     // keep a new one. It is listed in `harnessMemory.ts` with the other two.
     //
     // Twenty-five since bot batch BP9 (2026-11-15): `focusRoll.ts` is the fourth
-    // memory beside the state. It dates the bot's last focus order to each town,
-    // so the focus arm does not undo its own order within `driver.focusHoldTurns`
-    // turns. It is listed in `harnessMemory.ts` with the other three.
+    // memory beside the state. Since bot batch BP10 it keeps the focus the bot
+    // chose for each town's build, so the focus arm keeps that choice until the
+    // build is finished. It is listed in `harnessMemory.ts` with the other three.
+    //
+    // Twenty-six since bot batch BP10 (2026-11-15): `settlerSites.ts` is a leaf
+    // that says which site each settler of a seat is for and which sites are
+    // still free, read off the live board. The build arm, the faith purchase and
+    // the settler's own arm all read it, so a settler is raised and sent only
+    // for a site no other settler of the seat is for. It stores nothing.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1383,6 +1395,7 @@ describe('the bot module', () => {
       'prices.ts',
       'routes.ts',
       'scopeReach.ts',
+      'settlerSites.ts',
       'stepper.ts',
       'townFolds.ts',
       'value.ts',

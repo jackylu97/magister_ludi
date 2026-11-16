@@ -9,33 +9,39 @@
  *     game. The step now asks the question the next order will ask.
  *   - **The town whose focus switches every turn.** The focus arm prices its
  *     two placements at the seat's live prices, which move from turn to turn,
- *     and where the lean wins or loses by a few points the answer flipped. The
- *     user's guard: the bot does not undo its own focus order within
- *     `driver.focusHoldTurns` turns (`focusRoll.ts`).
- *   - **The settlers that pile up.** A settler row was priced at a step of the
- *     next town while settlers of the seat already slept for want of a site,
- *     and at a whole next town when no site was open at all. Now a settler is
- *     worth nothing in both cases (the user's guard, and the faith purchase's
- *     own reading of an empire with no site).
+ *     and where the lean wins or loses by a few points the answer flipped.
+ *     Since bot batch BP10 the bot chooses a town's focus when the town starts
+ *     a build and keeps it until that build is finished or leaves the head of
+ *     the queue (`focusRoll.ts`); with `driver.focusOrders` at nought it sends
+ *     no focus order at all. BP9's five-turn hold is gone.
+ *   - **The settlers that pile up.** BP9 priced no settler while one of the
+ *     seat slept for want of a site. Bot batch BP10 traced the cause: several
+ *     towns started a settler for the one site the empire read once a turn, and
+ *     each settler then chose its own site with no notion of the others. Now a
+ *     settler is raised only for a site no other settler of the seat (standing,
+ *     marching or queued) is for, and a settler keeps the site it marches to
+ *     (`settlerSites.ts`). BP9's guard is gone.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { botSitting, nextBotCommand, nextBotDecision } from '../../src/ai/bot';
-import { settlerWaits } from '../../src/ai/chain';
-import type { BotCandidate, ValueTerm } from '../../src/ai/decision';
-import { adoptFocusRoll, lastFocusOrder, noteFocusOrder } from '../../src/ai/focusRoll';
-import { readHarnessMemory } from '../../src/ai/harnessMemory';
+import { botSitting, nextBotCommand, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { foundingSites, freeSiteForTown, siteClaims } from '../../src/ai/settlerSites';
 import aiJson from '../../data/ai.json';
+import type { BotCandidate, ValueTerm } from '../../src/ai/decision';
+import { type BuildMark, adoptFocusRoll, focusChoiceFor, noteFocusChoice } from '../../src/ai/focusRoll';
+import { withAiTuning } from '../../src/ai/aiConfig';
+import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import { type Game, dispatch } from '../../src/sim/game';
 import { improvementErrorAt } from '../../src/sim/improvements';
 import { workForFamily } from '../../src/sim/improvementData';
-import { type Tile, getTileAt, mapRange, tileHex } from '../../src/sim/map';
+import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../../src/sim/map';
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
-import { type City, type GameState, type Player, addBuilding, bumpRevision, createUnit, playerById } from '../../src/sim/state';
+import { type City, type GameState, type Player, addBuilding, bumpRevision, createUnit, playerById, queueItemKey } from '../../src/sim/state';
 import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { findPath } from '../../src/sim/pathfind';
+import { researchExpansion } from '../../src/sim/tech';
 import { CONFIG } from './aiBotHelpers';
 import { grownGames } from './grownGameHelpers';
 
@@ -147,9 +153,7 @@ describe('fault 3, one arm over: the apostle\'s walk', () => {
   });
 });
 
-describe('fault 4: the focus hold', () => {
-  const HOLD = (aiJson as { driver: { focusHoldTurns: number } }).driver.focusHoldTurns;
-
+describe('fault 4: one focus a build (bot batch BP10)', () => {
   /** Every focus order seat 0 sends until it falls quiet, by town. */
   function focusOrders(game: Game): number[] {
     const towns: number[] = [];
@@ -171,49 +175,89 @@ describe('fault 4: the focus hold', () => {
     return { game, city };
   }
 
-  it('has a hold of a few turns', () => {
-    expect(HOLD).toBeGreaterThan(1);
-    expect(Number.isInteger(HOLD)).toBe(true);
-  });
+  /** The town's build as the roll reads it. */
+  function buildOf(city: City): BuildMark {
+    const head = city.queue[0];
+    return { head: head === undefined ? '-' : queueItemKey(head), basket: city.hammerBasket };
+  }
 
   it('undoes a focus the bot did not give, as before', () => {
     // The fixture's own claim: on this board the arm sends the town back.
     const { game, city } = leaning();
+    expect(city.queue.length, 'the town is building something').toBeGreaterThan(0);
     expect(focusOrders(game)).toContain(city.id);
+    // And the order is written down against the town's build.
+    expect(focusChoiceFor(game.state, city.id)).toMatchObject({ focus: 'default', head: buildOf(city).head });
   });
 
-  it('leaves a town on the focus the bot gave it within the hold', () => {
+  it('leaves a town on the focus the bot chose for the build it is on', () => {
     const { game, city } = leaning();
-    noteFocusOrder(game.state, city.id, 'production');
+    noteFocusChoice(game.state, city.id, 'production', buildOf(city));
     expect(focusOrders(game)).not.toContain(city.id);
-    expect(lastFocusOrder(game.state, city.id)).toEqual({ cityId: city.id, turn: game.state.turn, focus: 'production' });
   });
 
-  it('may change it again once the hold has run', () => {
+  it('keeps the choice for turns, while the build goes on', () => {
     const { game, city } = leaning();
-    adoptFocusRoll(game.state, [{ cityId: city.id, turn: game.state.turn - HOLD, focus: 'production' }]);
-    expect(focusOrders(game)).toContain(city.id);
-    // And the order it gives is written down, so the next hold starts now.
-    expect(lastFocusOrder(game.state, city.id)?.turn).toBe(game.state.turn);
+    // Chosen ten turns ago with fewer hammers in the basket: the same build.
+    const now = buildOf(city);
+    adoptFocusRoll(game.state, [{ cityId: city.id, turn: game.state.turn - 10, focus: 'production', head: now.head, basket: Math.max(0, now.basket - 5) }]);
+    expect(focusOrders(game)).not.toContain(city.id);
+    // The basket it saw is written down for the next look.
+    expect(focusChoiceFor(game.state, city.id)?.basket).toBe(now.basket);
   });
 
-  it('holds only the focus it gave: a town another hand moved is free', () => {
+  it('chooses again once the build is finished: the same head with a basket that fell', () => {
     const { game, city } = leaning();
-    // The roll says default; the town stands on production, which the bot did not give.
-    noteFocusOrder(game.state, city.id, 'default');
+    const now = buildOf(city);
+    adoptFocusRoll(game.state, [{ cityId: city.id, turn: game.state.turn - 1, focus: 'production', head: now.head, basket: now.basket + 50 }]);
     expect(focusOrders(game)).toContain(city.id);
+    expect(focusChoiceFor(game.state, city.id)?.turn).toBe(game.state.turn);
+  });
+
+  it('chooses again when the build leaves the head of the queue', () => {
+    const { game, city } = leaning();
+    noteFocusChoice(game.state, city.id, 'production', { head: 'unit:not-this-one', basket: 0 });
+    expect(focusOrders(game)).toContain(city.id);
+  });
+
+  it('holds only the focus it chose: a town another hand moved is free', () => {
+    const { game, city } = leaning();
+    // The roll says default; the town stands on production, which the bot did not choose.
+    noteFocusChoice(game.state, city.id, 'default', buildOf(city));
+    expect(focusOrders(game)).toContain(city.id);
+  });
+
+  it('writes down a choice to keep the focus the town has, so the build keeps it', () => {
+    const game = grownGame(10);
+    const city = firstCity(game.state, 0);
+    adoptFocusRoll(game.state, []);
+    focusOrders(game);
+    // Whatever the arm chose, the town stands on it, and the roll names this build.
+    const row = focusChoiceFor(game.state, city.id);
+    expect(row).not.toBeNull();
+    expect(row!.head).toBe(buildOf(city).head);
+    expect(row!.focus).toBe(city.focus ?? 'default');
+  });
+
+  it('sends no focus order at all with driver.focusOrders at nought', () => {
+    const { game, city } = leaning();
+    const orders = withAiTuning({ driver: { focusOrders: 0 } } as never, () => focusOrders(game));
+    expect(orders).toEqual([]);
+    expect(city.focus).toBe('production');
   });
 
   it('is carried to the bot worker with the other harness memories', () => {
     const { game, city } = leaning();
-    noteFocusOrder(game.state, city.id, 'production');
+    noteFocusChoice(game.state, city.id, 'production', { head: 'unit:warrior', basket: 3 });
     expect(readHarnessMemory(game.state).focus).toEqual([
-      { cityId: city.id, turn: game.state.turn, focus: 'production' },
+      { cityId: city.id, turn: game.state.turn, focus: 'production', head: 'unit:warrior', basket: 3 },
     ]);
   });
 });
 
-describe('fault 5: the settler row', () => {
+describe('fault 5: a settler only for a site no other settler is for (bot batch BP10)', () => {
+  const RADIUS = (aiJson as { expansion: { siteSearchRadius: number } }).expansion.siteSearchRadius;
+
   /** The Settler row of seat 0's first town, with its queue emptied so the town decides. */
   function settlerRow(state: GameState): BotCandidate | undefined {
     const city = firstCity(state, 0);
@@ -228,23 +272,172 @@ describe('fault 5: the settler row', () => {
     return terms.flatMap((term) => [term.label, ...labels(term.parts ?? [])]);
   }
 
-  it('prices no settler while one of the seat sleeps for want of a site', () => {
+  /** Seat 0 at turn ten with its own settlers taken off the board. */
+  function noSettlers(): { game: Game; city: City } {
     const game = grownGame(10);
-    const city = firstCity(game.state, 0);
-    // The seat's own settler of turn ten is taken off, so the chain owes one.
     game.state.units = game.state.units.filter((unit) => !(unit.ownerId === 0 && unit.type === 'settler'));
+    for (const town of game.state.cities) if (town.ownerId === 0) town.queue = town.queue.filter((item) => item.id !== 'settler');
     bumpRevision(game.state);
+    return { game, city: firstCity(game.state, 0) };
+  }
+
+  it('claims a march\'s end, and gives a second march beside it no claim', () => {
+    const { game, city } = noSettlers();
+    const sites = foundingSites(game.state, 0, RADIUS);
+    const first = sites[0]!.tile;
+    const a = createUnit(game.state, 0, 'settler', city.col, city.row);
+    a.path = [{ col: first.col, row: first.row }];
+    const b = createUnit(game.state, 0, 'settler', city.col, city.row);
+    b.path = [{ col: first.col, row: first.row }];
+    const claims = siteClaims(game.state, 0, sites, RADIUS);
+    expect(claims.filter((claim) => claim.by === 'march')).toEqual([
+      { col: first.col, row: first.row, by: 'march', unitId: a.id, cityId: null },
+    ]);
+    // The second settler has lost the site, so it stands for the next free one.
+    const second = claims.find((claim) => claim.unitId === b.id);
+    expect(second?.by).toBe('standing');
+    const there = getTileAt(game.state.map, second!.col, second!.row)!;
+    expect(foundingErrorAt(game.state, 0, there)).toBeNull();
+  });
+
+  it('gives a town\'s next settler a different site from the one its queue is already for', () => {
+    const { game, city } = noSettlers();
+    const sites = foundingSites(game.state, 0, RADIUS);
+    const before = freeSiteForTown(game.state, city, sites, RADIUS);
+    expect(before, 'a free site near the town').not.toBeNull();
+    city.queue = [{ kind: 'unit', id: 'settler' } as never];
+    const after = freeSiteForTown(game.state, city, sites, RADIUS);
+    expect(after === null || after.col !== before!.col || after.row !== before!.row).toBe(true);
+  });
+
+  it('prices a settler at the next town while a site is free, and at nothing once every site has a settler', () => {
+    const { game, city } = noSettlers();
     const free = settlerRow(game.state);
-    // The fixture's claim: with no settler standing, a settler is worth a step
-    // of the next town.
     expect(free, 'a settler row').toBeDefined();
     expect(free!.score).toBeGreaterThan(0);
-    const waiting = createUnit(game.state, 0, 'settler', city.col, city.row);
-    waiting.sleeping = true;
+    // March a settler to every free site in reach of the town, one by one.
+    const sites = foundingSites(game.state, 0, RADIUS);
+    for (let guard = 0; guard < 80; guard++) {
+      const site = freeSiteForTown(game.state, city, sites, RADIUS);
+      if (site === null) break;
+      createUnit(game.state, 0, 'settler', city.col, city.row).path = [{ col: site.col, row: site.row }];
+    }
+    expect(freeSiteForTown(game.state, city, sites, RADIUS)).toBeNull();
     bumpRevision(game.state);
-    expect(settlerWaits(game.state, 0)).toBe(true);
     const held = settlerRow(game.state);
     expect(held!.score).toBe(0);
-    expect(labels(held!.terms).some((label) => label.includes('already waits with nowhere to found'))).toBe(true);
+    expect(labels(held!.terms).some((label) => label.includes('already has a settler of this empire for it'))).toBe(true);
+  });
+
+  it('sends a settler to a site another settler of the seat is not marching to', () => {
+    const { game, city } = noSettlers();
+    // The first settler marches to the site the second would choose alone.
+    const lone = createUnit(game.state, 0, 'settler', city.col, city.row);
+    bumpRevision(game.state);
+    const alone = nextCommandFor(game, 0, lone.id);
+    expect(alone?.type).toBe('moveUnit');
+    const target = alone!.target!;
+    const first = createUnit(game.state, 0, 'settler', city.col, city.row);
+    first.path = [{ col: target.col, row: target.row }];
+    bumpRevision(game.state);
+    const order = nextCommandFor(game, 0, lone.id);
+    // Not the same site, and not one inside the spacing rule of it.
+    expect(order?.type).toBe('moveUnit');
+    const there = getTileAt(game.state.map, order!.target!.col, order!.target!.row)!;
+    const taken = getTileAt(game.state.map, target.col, target.row)!;
+    expect(foundingErrorAt(game.state, 0, there)).toBeNull();
+    expect(wrappedHexes(game, there, taken)).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps marching to the site it is for when asked again on the way', () => {
+    const { game, city } = noSettlers();
+    const settler = createUnit(game.state, 0, 'settler', city.col, city.row);
+    bumpRevision(game.state);
+    const first = nextCommandFor(game, 0, settler.id);
+    expect(first?.type).toBe('moveUnit');
+    expect(dispatch(game, first as never).ok).toBe(true);
+    // Asked again with a sitting, the way `reaskTheMarch` asks a piece under orders.
+    const sitting = botSitting(0);
+    for (let step = 0; step < 60; step++) {
+      const decision = nextBotDecision(game.state, 0, sitting);
+      if (decision === null) break;
+      const command = decision.command as { type: string; unitId?: number };
+      expect(command.unitId === settler.id && command.type === 'moveUnit').toBe(false);
+      if (!dispatch(game, decision.command).ok) break;
+    }
+  });
+});
+
+/** Hexes between two tiles on the duel's wrapped map. */
+function wrappedHexes(game: Game, a: Tile, b: Tile): number {
+  return wrappedDistance(game.state.map, tileHex(a), tileHex(b));
+}
+
+describe('the prophet the bot buys (bot batch BP10)', () => {
+  it('prices no enhancer belief before the technology that opens them', () => {
+    const { game } = foundedFaith();
+    canBuyProphets(game);
+    const player = seat(game.state, 0);
+    // The follower beliefs are full, so the next rung is an enhancer, which waits on Theology.
+    player.techsResearched = player.techsResearched.filter((id) => id !== 'theology');
+    bumpRevision(game.state);
+    const row = prophetRow(game);
+    expect(row, 'a prophet for sale').toBeDefined();
+    expect(row!.labels.some((label) => label.includes('enhancer beliefs it could still take'))).toBe(false);
+    // With the technology, the rung is priced again.
+    player.techsResearched.push('theology' as never);
+    bumpRevision(game.state);
+    expect(prophetRow(game)!.labels.some((label) => label.includes('enhancer beliefs it could still take'))).toBe(true);
+  });
+
+  /** The faith book's prophet row in seat 0's first town, or `undefined`. */
+  function prophetRow(game: Game): { worth: number; labels: string[] } | undefined {
+    const player = seat(game.state, 0);
+    const city = firstCity(game.state, 0);
+    const want = valueContext(game.state, player).wants.faith.find(
+      (row) => row.buy?.item.kind === 'unit' && row.buy.item.id === 'prophet' && row.buy.cityId === city.id,
+    );
+    return want === undefined ? undefined : { worth: want.worth, labels: deepLabels(want.terms) };
+  }
+
+  function deepLabels(terms: readonly ValueTerm[]): string[] {
+    return terms.flatMap((term) => [term.label, ...deepLabels(term.parts ?? [])]);
+  }
+
+  /** The technology that sells prophets, and the faith to buy one. */
+  function canBuyProphets(game: Game): void {
+    const player = seat(game.state, 0);
+    for (const step of researchExpansion(game.state, 0, 'theHighTemple' as never)) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
+    player.faithPool = 5000;
+    bumpRevision(game.state);
+  }
+
+  it('prices no rite said over every town, which no arm of the bot sends', () => {
+    const { game } = foundedFaith();
+    canBuyProphets(game);
+    const row = prophetRow(game);
+    expect(row, 'a prophet for sale').toBeDefined();
+    expect(row!.labels.some((label) => label.includes('a rite said over every town'))).toBe(false);
+  });
+
+  it('prices a further holy site only in a town that would take one', () => {
+    const { game, city } = foundedFaith();
+    canBuyProphets(game);
+    // Every rung taken, so the one act left is a further site.
+    const religion = game.state.religions.find((faith) => faith.founderId === 0)!;
+    religion.enhancer = religionBeliefPool(religion, 'enhancer').slice(0, 2);
+    bumpRevision(game.state);
+    const open = prophetRow(game)!;
+    expect(open.labels.some((label) => label.includes('a further holy site'))).toBe(true);
+    expect(open.worth).toBeGreaterThan(0);
+    // The town's site stands: a prophet bought here has nothing left to raise.
+    const [standing] = plantableGround(game.state, city);
+    standing!.improvement = HOLY_SITE;
+    bumpRevision(game.state);
+    const closed = prophetRow(game)!;
+    expect(closed.labels.some((label) => label.includes('a further holy site'))).toBe(false);
+    expect(closed.worth).toBe(0);
   });
 });

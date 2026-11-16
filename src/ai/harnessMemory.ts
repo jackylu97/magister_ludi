@@ -4,8 +4,8 @@
  * Four bot memories hang off the live state object in a `WeakMap` instead of
  * being saved: the refusal memory (`dealMemory.ts`), the war windows
  * (`warLedger.ts`), the muster roll (`musterRoll.ts`, which dates the units a
- * seat raised) and the focus roll (`focusRoll.ts`, which dates the bot's last
- * focus order to each town, bot batch BP9). Each reads the rulings in its own
+ * seat raised) and the focus roll (`focusRoll.ts`, which keeps the focus the
+ * bot chose for each town's build, bot batches BP9 and BP10). Each reads the rulings in its own
  * docblock: they are not facts about the world, so a save does not carry them.
  *
  * A second copy of the same game does not carry them either, and the bot
@@ -23,7 +23,7 @@
  */
 
 import { type DealRefusalRecord, adoptDealMemory, copyDealMemory } from './dealMemory';
-import { type FocusOrder, adoptFocusRoll, copyFocusRoll } from './focusRoll';
+import { type FocusChoice, adoptFocusRoll, copyFocusRoll } from './focusRoll';
 import { type MusterMark, adoptMusterRoll, copyMusterRoll } from './musterRoll';
 import { type WarLedgerEntry, adoptWarLedger, copyWarLedger } from './warLedger';
 import type { GameState } from '../sim/state';
@@ -32,8 +32,8 @@ export interface HarnessMemory {
   deals: DealRefusalRecord[];
   wars: WarLedgerEntry[];
   muster: MusterMark[];
-  /** The focus roll (bot batch BP9, `focusRoll.ts`). */
-  focus: FocusOrder[];
+  /** The focus roll (bot batches BP9 and BP10, `focusRoll.ts`). */
+  focus: FocusChoice[];
 }
 
 /** A copy of every harness memory this state holds. Plain data: it crosses `postMessage`. */

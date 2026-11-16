@@ -110,9 +110,18 @@ import {
   incumbentGoal,
   liveChains,
   raceTerm,
-  settlerWaits,
   techChain,
 } from './chain';
+import {
+  type SiteClaim,
+  claimsOfOthers,
+  foundingSites,
+  freeSiteForTown,
+  marchClaimOf,
+  nearestFreeSite,
+  siteClaims,
+  siteIsFree,
+} from './settlerSites';
 // **Re-exported, not redefined** (batch 4): what the next town is worth became
 // the expansion chain's payoff, so it moved into `chain.ts` — a chain may not
 // stand on the policy that reads it. The name stays reachable from here because
@@ -164,7 +173,7 @@ import {
   realThreat,
   soldiersCarried,
 } from './armySupport';
-import { lastFocusOrder, noteFocusOrder } from './focusRoll';
+import { type BuildMark, focusChoiceFor, noteFocusChoice, stillOnBuild } from './focusRoll';
 import { markMusterTurn, raisedWithin } from './musterRoll';
 import { type TileContextField, tileContextField } from './ground';
 import {
@@ -274,6 +283,7 @@ import {
   cityById,
   hasEndedTurn,
   playerById,
+  queueItemKey,
   realPlayers,
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
@@ -339,6 +349,7 @@ import { canStopOn, findPath, findPathToFirst, reachableTiles } from '../sim/pat
 import { PROJECT_IDS } from '../sim/projectData';
 import {
   type ContributionOffer,
+  type PurchasableItem,
   bankOf,
   contributeError,
   explainContribution,
@@ -544,6 +555,11 @@ export function valueContext(
     // purchasing plan would buy. It reads the map and nothing else, so it can be
     // built with the prior.
     realm: realmResources(state, player.id),
+    // **The legal sites near the seat's towns** (bot batch BP10), read off the
+    // board once for the context: the expansion chain's nearest site, and the
+    // ground the settler rows and the settlers' claims are read against
+    // (`settlerSites.ts`).
+    sites: foundingSites(state, player.id, ai.expansion.siteSearchRadius),
     // **What this empire could still commit of each strategic kind** (batch
     // R5). Taken here for `realm`'s reason exactly: the settler's arm prices two
     // hundred candidate hexes in one decision, and this is what tells the first
@@ -621,6 +637,9 @@ export function valueContext(
     // read at the prior for `soldierWorth`'s reason: the book is what sets the
     // live price, so every row in it is appraised before that price exists.
     levy: levyReading(staked),
+    // **A settler bought in a town** (bot batch BP10): the queue's own reading,
+    // on the context the book is priced on, which holds the expansion chain.
+    settlerWorth: (city) => settlerTerms(state, player, city, constrained),
   } satisfies WantInputs);
   const priced = shadowPrices(book, staked);
   return {
@@ -878,44 +897,102 @@ function nextTownChain(
   }
   if (settler === null) return null;
 
-  const towns: City[] = [];
-  for (const city of state.cities) {
-    if (city.ownerId === player.id) towns.push(city);
-  }
-  if (towns.length === 0) return null;
-
-  let best: { tile: Tile; distance: number } | null = null;
-  for (const town of towns) {
-    const from = tileHex(cityTile(state.map, town));
-    for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
-      if (foundingErrorAt(state, player.id, tile) !== null) continue;
-      const distance = wrappedDistance(state.map, from, tileHex(tile));
-      if (best !== null && distance >= best.distance) continue;
-      best = { tile, distance };
-    }
-  }
+  // The nearest legal site to any town of the seat, out of the context's own
+  // list (`ValueContext.sites`, bot batch BP10), which is sorted nearest first
+  // and then in map order.
+  const best = ctx.sites[0] ?? null;
   if (best === null) return null;
 
-  const lines = explainFoundingCost(state, player.id, best.tile);
-  const probe: SiteProbe = {
-    tile: { col: best.tile.col, row: best.tile.row },
-    score: explainSiteValue(state, ctx.realm, ctx, best.tile).total,
-    distance: best.distance,
+  const probe = siteProbe(state, player, ctx, best.tile, best.distance, {
     // The escort question, asked of the *site* exactly as the settler's own arm
     // asks it (`marchToSite`): a settler with nothing walking beside it will not
     // walk to a hex something hostile is standing near.
     dangerous:
       nearestHostile(state, player, best.tile.col, best.tile.row, ai.war.escortRadius) !== null &&
       !escortAvailable(state, player),
+  });
+  return expansionChain(state, player, ctx, probe, {
+    id: settler,
+    walking: countOwnedAndQueued(state, player.id, settler) > 0,
+  });
+}
+
+/** The chain's reading of one site: the settle table's score, the walk, the escort and the meters. */
+function siteProbe(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  tile: Tile,
+  distance: number,
+  escort: { dangerous: boolean },
+): SiteProbe {
+  const lines = explainFoundingCost(state, player.id, tile);
+  return {
+    tile: { col: tile.col, row: tile.row },
+    score: explainSiteValue(state, ctx.realm, ctx, tile).total,
+    distance,
+    dangerous: escort.dangerous,
     costs: {
       authority: -foldMeter(foundingCostLines(lines, 'authority')),
       happiness: -foldMeter(foundingCostLines(lines, 'happiness')),
     },
   };
-  return expansionChain(state, player, ctx, probe, {
-    id: settler,
-    walking: countOwnedAndQueued(state, player.id, settler) > 0,
+}
+
+/**
+ * **What a settler raised or bought in this town is worth** (bot batch BP10;
+ * the user, 2026-11-15: *"aren't we having the bot look at it's available
+ * settle locations to determine whether to make a settler?"*), as the terms the
+ * queue's settler row and the faith purchase both fold.
+ *
+ * The bot raises a settler only for a site no other settler of the seat is for:
+ * the free site nearest to this town within the search radius, after the claims
+ * of every settler the seat has standing, marching or queued
+ * (`freeSiteForTown`, `settlerSites.ts`). The claims are read off the live
+ * board, so a second town that chooses a build in the same turn sees the
+ * settler the first one queued. With such a site the settler is the next town
+ * there, priced as the expansion chain prices a town: the town, the engines it
+ * joins and the walk from this town, less what founding would spend. The
+ * falloff counts every settler already for a site as a town held, because the
+ * town this one founds comes after theirs. Without a site it is worth nothing.
+ *
+ * It reads the chain's settler and its meter floor, and nothing of the chain's
+ * steps. Before BP10 the row read the chain's share of whatever step was left,
+ * which was the escort's when a settler already stood (BP9's open fault).
+ */
+function settlerTerms(state: GameState, player: Player, city: City, ctx: ValueContext): ValueTerm[] {
+  const chain = ctx.expansion;
+  if (chain === null) {
+    return [{ label: 'nowhere this empire could still put a town, so a settler has nothing to found', value: 0 }];
+  }
+  // A law that forbids founding (The Soldiers' Share) leaves a settler nothing to do.
+  if (cardBehaviorRule(state, player.id, 'noFounding')) {
+    return [{ label: 'this empire\'s laws forbid founding towns, so a settler has nothing to do', value: 0 }];
+  }
+  const radius = ctx.ai.expansion.siteSearchRadius;
+  const centre = cityTile(state.map, city);
+  const claims = siteClaims(state, player.id, ctx.sites, radius);
+  const site = nearestFreeSite(state, player.id, ctx.sites, claims, centre, radius);
+  if (site === null) {
+    return [
+      {
+        label:
+          `every legal site within ${radius} hexes of ${city.name} already has a settler of this empire ` +
+          'for it, so another has nothing to found',
+        value: 0,
+      },
+    ];
+  }
+  const probe = siteProbe(state, player, ctx, site, wrappedDistance(state.map, tileHex(centre), tileHex(site)), {
+    dangerous: false,
   });
+  // Every settler already for a site is a town on its way, so the falloff
+  // prices this one as the town after them (`explainNextTown`).
+  return [
+    expansionShareTerm(
+      expansionChain(state, player, ctx, probe, { id: chain.settler, walking: false, coming: claims.length }),
+    ),
+  ];
 }
 
 /** Could any town of this empire raise this row today? The simulation's gate. */
@@ -1901,33 +1978,46 @@ function reaimBeeline(
  * town this seat has pointed this turn keeps its word until the seat sits down
  * again. A caller with no sitting keeps the old unbounded behaviour, which is
  * the same bargain `seatContext` and `reaimBeeline` make.
+ *
+ * **Since bot batch BP10 a town is pointed once a build.** The comparison is
+ * priced at the seat's live prices, which move from turn to turn, so across
+ * turns the answer could flip while the town worked on one thing. The arm now
+ * chooses when the town starts a build and keeps that choice until the build is
+ * finished or leaves the head of the queue (`focusRoll.ts`). With
+ * `driver.focusOrders` at nought it sends no focus order at all.
  */
 function focusCommand(
   state: GameState,
   player: Player,
   sitting?: BotSitting,
 ): BotDecision | null {
+  // **No focus orders at all** (bot batch BP10, the user's plainer reading):
+  // `driver.focusOrders` at nought, and every town keeps the balanced ordering.
+  if (aiFor(player).driver.focusOrders <= 0) return null;
   const ctx = seatContext(state, player, sitting);
   const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
-  const hold = Math.max(0, aiFor(player).driver.focusHoldTurns);
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     // The whole gate, and it is the simulation's: a puppet chooses for itself,
     // and a seat that has ended its turn may not point anybody.
     if (citizenFocusError(state, player.id, city) !== null) continue;
     if (own !== null && own.focused.has(city.id)) continue;
-    // **The bot does not undo its own order for `driver.focusHoldTurns` turns**
-    // (bot batch BP9, fault 4; the user's guard). The two placements are priced
-    // at the seat's live prices, which move from turn to turn with what the
-    // seat could buy, and where the lean wins or loses by a few points the
-    // answer flipped every turn. A town still on the focus this bot gave it
-    // within the hold is left alone. See `focusRoll.ts`.
-    const given = lastFocusOrder(state, city.id);
-    if (given !== null && state.turn - given.turn < hold && given.focus === cityFocus(city)) continue;
+    // **One choice a build** (bot batch BP10; the user, 2026-11-15: *"the bot
+    // should simply just complete what it's working on without swapping focus
+    // in cities"*). The focus is chosen when the town starts a build and kept
+    // until that build is finished or leaves the head of the queue. A town
+    // still on the focus this bot chose, on the build it chose it for, is left
+    // alone. A town whose focus another hand changed is chosen for again. See
+    // `focusRoll.ts`, which also says how a project is treated.
+    const build = buildMarkOf(city);
+    const chosen = focusChoiceFor(state, city.id);
+    if (chosen !== null && chosen.focus === cityFocus(city) && stillOnBuild(chosen, build)) continue;
     const table = focusTable(state, city, ctx);
+    // The choice is written down even when it is to keep the focus the town
+    // has: that is the focus for this build too.
+    noteFocusChoice(state, city.id, table.best, build);
     if (table.best === cityFocus(city)) continue;
     if (own !== null) own.focused.add(city.id);
-    noteFocusOrder(state, city.id, table.best);
     return {
       kind: 'focus',
       command: {
@@ -1946,6 +2036,12 @@ function focusCommand(
     };
   }
   return null;
+}
+
+/** The town's build as the focus roll reads it: the head of its queue and the hammers toward it. */
+function buildMarkOf(city: City): BuildMark {
+  const head = city.queue[0];
+  return { head: head === undefined ? '-' : queueItemKey(head), basket: city.hammerBasket };
 }
 
 /**
@@ -4072,6 +4168,14 @@ function bankSpend(
       best.candidate.rejected = refusal;
       continue;
     }
+    // **A settler is bought only for a site no other settler of the seat is
+    // for** (bot batch BP10), asked of the live board: the book was priced when
+    // the seat sat down, and a town may have queued a settler since.
+    const site = settlerSiteRefusal(state, ctx, bought.cityId, bought.item);
+    if (site !== null) {
+      best.candidate.rejected = site;
+      continue;
+    }
     return purchaseDecision(state, player, best.want, bar, currency, candidates);
   }
 }
@@ -4192,6 +4296,25 @@ function routeDecision(
     candidates,
     focus: { col: to.col, row: to.row },
   };
+}
+
+/**
+ * Why a settler bought in this town now would have no site of its own, or
+ * `null` (bot batch BP10, `settlerTerms`). `null` for every row that founds no
+ * town.
+ */
+function settlerSiteRefusal(
+  state: GameState,
+  ctx: ValueContext,
+  cityId: number,
+  item: PurchasableItem,
+): string | null {
+  if (item.kind !== 'unit' || unitDef(item.id).foundsCity !== true) return null;
+  const city = cityById(state, cityId);
+  if (!city) return null;
+  const radius = ctx.ai.expansion.siteSearchRadius;
+  if (freeSiteForTown(state, city, ctx.sites, radius) !== null) return null;
+  return `every legal site within ${radius} hexes of ${city.name} already has a settler of this empire for it`;
 }
 
 /** One want, sent. Split out so `bankSpend`'s live gate can loop above it. */
@@ -5331,10 +5454,10 @@ function unitRoleValue(
     // charges the writ founding would over-spend. `settlerCap` was the audit's
     // "loose sanity cap", and batch 7 retires it too, because the two things that
     // were supposed to stop a ninth settler are now both real: the falloff decays
-    // what the next town is worth (`explainNextTown`), and **a realised step drops
-    // out by construction** — a settler already walking owes no hammers, so the
-    // expansion chain has no step left and its share is nought. A cap over the top
-    // of that only ever fires when the arithmetic has already said no.
+    // what the next town is worth (`explainNextTown`), and since bot batch BP10 a
+    // settler is worth something only for a site that no other settler of the
+    // seat is for (`settlerTerms`). A cap over the top of that only ever fires
+    // when the arithmetic has already said no.
     // **A settler costs a citizen only under The Planted Towns** (batch DT12's rule,
     // read here since batch DT19b). The charge was old: a settler has trained free of
     // citizens for a long time, so a seat holding no such rule pays nothing for it.
@@ -5350,28 +5473,9 @@ function unitRoleValue(
     // the town, discounted for the raising and the walk, less the hammers and the
     // meters founding would spend. Folding `explainNextTown` beside it would
     // count the town twice.
-    // **Only while the board has a site for it** (bot batch BP9, fault 5). Two
-    // readings, each of them a settler that would found nothing:
-    //
-    //   · no chain at all: there is no legal site within reach of any town. Until
-    //     this batch the row was priced at a whole next town here ("with nowhere
-    //     yet legal to put it"), while the faith purchase of the same piece read
-    //     nought;
-    //   · a settler of this seat asleep for want of a site (`settlerWaits`, the
-    //     user's guard): late in a game, with the map full, every town of a seat
-    //     kept raising settlers that then slept.
-    const chain = ctx.expansion;
-    const terms: ValueTerm[] =
-      chain === null
-        ? [{ label: 'nowhere this empire could still put a town, so a settler has nothing to found', value: 0 }]
-        : settlerWaits(state, player.id)
-          ? [
-              {
-                label: 'a settler of this empire already waits with nowhere to found, so another has nothing to do',
-                value: 0,
-              },
-            ]
-          : [expansionShareTerm(chain)];
+    // **Only for a site no other settler of the seat is for** (bot batch BP10).
+    // See `settlerTerms`, which the faith purchase folds too.
+    const terms: ValueTerm[] = settlerTerms(state, player, city, ctx);
     if (citizen !== null) terms.push(nest('the citizen it costs this town', citizen, 'sub'));
     return { value: foldTerms(terms), terms };
   }
@@ -6247,6 +6351,30 @@ function settlerCommand(
     const flight = civilianFlight(state, player, unit);
     if (flight !== null) return flight;
   }
+  // **The site each settler of the seat is for** (bot batch BP10,
+  // `settlerSites.ts`), read off the live board. A settler walks only to a site
+  // no other settler of the seat is marching to, and keeps the site it is
+  // marching to while that site is still legal and still its own.
+  const claims = siteClaims(state, player.id, ctx.sites, ai.expansion.siteSearchRadius);
+  const others = claimsOfOthers(claims, unit.id).filter((claim) => claim.by === 'march');
+  const mine = marchClaimOf(claims, unit.id);
+  const own = mine === null ? undefined : getTileAt(state.map, mine.col, mine.row);
+  if (mine !== null && own !== undefined) {
+    const threat =
+      escorted === null ? nearestHostile(state, player, mine.col, mine.row, ai.war.escortRadius) : null;
+    if (threat === null) {
+      if (!legalHere) return keepMarch(unit, mine);
+      // On legal ground on the way, the one comparison left is its own site
+      // against the ground under it: the march arm's bar, with that site the
+      // only candidate. Founding here is terminal, so it cannot loop.
+      const onward = marchToSite(state, player, unit, held, escorted, standing!.appraisal, true, ctx, others, own);
+      if (onward !== null) return keepMarch(unit, mine);
+      return foundHere(
+        `Founds on the ${round1(standing!.appraisal.total)} ground under it: the rest of the walk to ` +
+          `(${mine.col},${mine.row}), the site it was marching to, does not beat it.`,
+      );
+    }
+  }
   const march = marchToSite(
     state,
     player,
@@ -6256,6 +6384,7 @@ function settlerCommand(
     standing?.appraisal ?? null,
     legalHere,
     ctx,
+    others,
   );
   if (march !== null) return march;
   // Nowhere better within reach: found here if the rules allow it — a settler
@@ -6267,7 +6396,87 @@ function settlerCommand(
         `${round1(standing!.appraisal.total)} ground under it. Founds here.`,
     );
   }
+  // **The next free site, further off** (bot batch BP10): its own radius holds
+  // nothing it can take, so it walks to the nearest site by the seat's towns
+  // that no other settler is going to, before it waits.
+  const further = marchToFreeSite(state, player, unit, ctx, escorted, others);
+  if (further !== null) return further;
   return standDown(state, unit, 'Nowhere legal to found and nowhere better to walk.');
+}
+
+/**
+ * **The march to the site this settler is for, kept** (bot batch BP10). The
+ * same destination as the standing order, so `reaskTheMarch` sends nothing.
+ * Before BP10 a settler asked again on the way chose again from where it then
+ * stood, and on BP10's trace a third of the late settlers changed their target
+ * three times or more.
+ */
+function keepMarch(unit: Unit, site: SiteClaim): UnitChoice {
+  return {
+    command: { type: 'moveUnit', playerId: unit.ownerId, unitId: unit.id, target: { col: site.col, row: site.row } },
+    summary:
+      `Keeps marching to (${site.col},${site.row}), the site it is for: it is still legal and ` +
+      'no other settler of this empire is going there.',
+    candidates: [chosenAt(`keep marching to (${site.col},${site.row})`, 0)],
+    focus: { col: site.col, row: site.row },
+  };
+}
+
+/**
+ * **The nearest free site beyond the settler's own radius**, as a march, or
+ * `null` (bot batch BP10). The sites are the seat's own (`ValueContext.sites`,
+ * every legal hex near one of its towns); a site counts when no other settler
+ * of the seat is marching within the spacing rule of it, nothing hostile stands
+ * near it while the settler walks alone, and a route reaches it. At most
+ * `search.pathProbes` routes are asked for, nearest site first.
+ */
+function marchToFreeSite(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  ctx: ValueContext,
+  escorted: Unit | null,
+  others: readonly SiteClaim[],
+): UnitChoice | null {
+  const ai = ctx.ai;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (here === undefined) return null;
+  const from = tileHex(here);
+  const radius = ai.expansion.siteSearchRadius;
+  const ranked = ctx.sites
+    .map((site) => ({ tile: site.tile, distance: wrappedDistance(state.map, from, tileHex(site.tile)) }))
+    .filter((site) => site.distance > radius)
+    .sort(
+      (a, b) =>
+        a.distance - b.distance ||
+        tileIndex(state.map, a.tile.col, a.tile.row) - tileIndex(state.map, b.tile.col, b.tile.row),
+    );
+  let probes = 0;
+  for (const site of ranked) {
+    if (probes >= ai.search.pathProbes) break;
+    if (!siteIsFree(state, site.tile, others)) continue;
+    if (foundingErrorAt(state, player.id, site.tile) !== null) continue;
+    if (escorted === null && nearestHostile(state, player, site.tile.col, site.tile.row, ai.war.escortRadius) !== null) {
+      continue;
+    }
+    probes += 1;
+    if (findPath(state, unit, site.tile) === null) continue;
+    return {
+      command: {
+        type: 'moveUnit',
+        playerId: player.id,
+        unitId: unit.id,
+        target: { col: site.tile.col, row: site.tile.row },
+      },
+      summary:
+        `Nothing within ${radius} hexes it can take, so it marches ${site.distance} hexes to ` +
+        `(${site.tile.col},${site.tile.row}), the nearest site by this empire's towns that no other ` +
+        'settler of this empire is going to.',
+      candidates: [chosenAt(`march to (${site.tile.col},${site.tile.row})`, 0)],
+      focus: { col: site.tile.col, row: site.tile.row },
+    };
+  }
+  return null;
 }
 
 /**
@@ -6303,10 +6512,18 @@ function marchToSite(
    */
   legalHere: boolean,
   ctx: ValueContext,
+  /**
+   * The marches of the seat's other settlers (bot batch BP10, `settlerSites.ts`).
+   * A hex within the spacing rule of one is a site another settler is for.
+   */
+  others: readonly SiteClaim[],
+  /** The one site to weigh, for a settler that keeps the site it marches to (bot batch BP10). */
+  only?: Tile,
 ): UnitChoice | null {
   const ai = aiFor(player);
   const candidates: { tile: Tile; score: number; distance: number; terms: ValueTerm[] }[] = [];
   const struck: BotCandidate[] = [];
+  const spoken: BotCandidate[] = [];
   // **The margin defends the ground under the piece** (principle 1 of the
   // priority spec, and the other half of `siteScoreMin`'s replacement). A
   // settler re-decides every turn against a map that keeps opening, so a bar set
@@ -6341,9 +6558,16 @@ function marchToSite(
   const bar = legalHere ? hereScore * ctx.ai.priorities.switchMargin : -Infinity;
   const stride = Math.max(1, unitDef(unit.type).movement);
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
-  for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
+  for (const tile of only === undefined ? mapRange(state.map, from, ai.expansion.siteSearchRadius) : [only]) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
+    // **Not a site another settler of the seat is marching to** (bot batch BP10).
+    if (!siteIsFree(state, tile, others)) {
+      if (spoken.length < ai.search.pathProbes) {
+        spoken.push(refused(`(${tile.col},${tile.row})`, 'another settler of this empire is marching to a site beside it'));
+      }
+      continue;
+    }
     const appraisal = explainSiteValue(state, held, ctx, tile);
     const distance = wrappedDistance(state.map, from, tileHex(tile));
     // **The road is part of the price** (batch 4, in `siteScoreMin`'s place). A
@@ -6393,6 +6617,8 @@ function marchToSite(
     // The sites the escort rule struck out, at most a handful of them so a
     // reader sees the rule bite without reading a hundred rows of it.
     ...struck.slice(0, ai.search.pathProbes),
+    // And a handful of the sites another settler of the seat is for.
+    ...spoken,
   ];
   for (const candidate of probes) {
     const label = `(${candidate.tile.col},${candidate.tile.row}), ${candidate.distance} hexes off`;

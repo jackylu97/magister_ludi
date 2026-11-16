@@ -545,11 +545,14 @@ interface RichSitting {
 let richRecord: RichSitting[] | null = null;
 
 /**
- * Six turns of seat 0 on the grown duel, with Pottery's row granted and a
+ * Seven turns of seat 0 on the grown duel, with Pottery's row granted and a
  * full purse every turn, recorded once for the spend arm and the focus arm.
  * Six since batch R3: the Scientific review changed the Tier 0 pools, so the
  * seats draft other cards, and on the board that follows the arm first leans
  * a town on the hammers in the fifth turn and puts it back in the sixth.
+ * Seven since bot batch BP10: settlers are raised for every free site, so the
+ * board differs, and on it the arm leans a town in the fifth turn and puts one
+ * back in the seventh.
  *
  * Each turn holds two sittings of seat 0, as the driver opens one
  * (`botSitting`): the one asked here on a full purse, and the one the driver
@@ -571,11 +574,12 @@ function richSittings(): RichSitting[] {
   const game = grownGame(RIPE);
   grant(game.state, seat(game.state, 0), gatingTech('building', 'granary') ?? undefined);
   const record: RichSitting[] = [];
-  for (let turn = 0; turn < 6; turn++) {
+  for (let turn = 0; turn < 7; turn++) {
     for (const player of realPlayers(game.state)) player.gold = 5000;
     // The focus arm's own comparison is under test here, so the record is taken
-    // without the hold bot batch BP9 put over it (`focusRoll.ts`): the roll is
-    // emptied before each sitting. The hold is tested in `aiEndCheckLoops.test.ts`.
+    // without the rule over it (`focusRoll.ts`: bot batch BP10 chooses a town's
+    // focus once a build): the roll is emptied before each sitting. The rule is
+    // tested in `aiEndCheckLoops.test.ts`.
     adoptFocusRoll(game.state, []);
     const sitting = botSitting(0);
     for (let step = 0; step < 200; step++) {

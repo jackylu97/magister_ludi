@@ -1728,3 +1728,207 @@ Every interval holds nought: at this sample size the batch does no measurable ha
 ### Files
 
 `src/sim/statecraft/evaluator.ts` (`readingAtRest`, `restingCutRates`, the `empireYield` arm), `src/sim/readings.ts` (the four readings at rest), `src/ai/bot.ts` (`nextBotDecision` and `decideNext`; `campaignMarch` and `routeEndsOn`; `holySiteStep`, `townWantingSiteAt`, `plantErrorOn`, `relicErrorOn`, `boardWithPieceOn`, the apostle's walk; `focusCommand`; `unitRoleValue`'s settler row; `wakeIdleSettler`), `src/ai/campaign.ts` (`musterHex`), `src/ai/chain.ts` (`settlerWaits`), `src/ai/wants.ts` (`expansionTerm`), `src/ai/focusRoll.ts` (new), `src/ai/harnessMemory.ts`, `src/ai/aiConfig.ts` and `data/ai.json` (`driver.focusHoldTurns`, 5), `docs/bot-priorities.md`, this section, and the tests named above.
+
+## BP10: settlers for free sites, one focus a build, and the prophet's price, 2026-11-15
+
+`docs/flags.md` (ooooooo), the bullet "BP10: the user's second ruling on the focus and the settlers, 2026-11-15". The user: *"the bot should simply just complete what it's working on without swapping focus in cities (disallow switching entirely). for the settler: aren't we having the bot look at it's available settle locations to determine whether to make a settler? How is it not sending those to settle if it already chose a spot"*. Bot fixes only: no file under `src/sim/` and no rules data changed.
+
+### Method
+
+- **Trees**, each a detached `git worktree` with the main tree's `node_modules` linked in: the **old tree** is `7f0ae0a8` (BP9 and the flags commits), **focus A** is the old tree with the focus change alone, **focus B** is focus A with `driver.focusOrders` at nought, and the **new tree** is the whole batch as measured, which is the batch without the weariness reading of part 4 (it came last).
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on. Seeds 999, 42, 1, 7, 2026, 31337, 3, 5, 11, 13, 17, 23, 101, 314, 777 and 4242.
+- **The probe** is BP9's `play9.ts` with three more records (`play10.ts` in the session's scratch folder `bp10/`): the life of every settler (the turn and town it was started in, the site the sitting's expansion chain named then, the seat's other settlers at that moment, every order it got, where it stood and where its march ended at the end of each turn, and what became of it); every focus order with the town's build at the time (the head of the queue and how many turns it had been the head; a build ends when the head changes or its basket falls); and prophets held, asleep and bought. A tuning sheet can be applied to one tree of a process (`TUNES`), which is how focus B and the no-hold run were played.
+- **Paired figures** as in the end check: for each seed, the ratio of one tree's total to the other's; the geometric mean of the ratios with a 95% t interval, and the seeds down and up.
+- The machine carried other load during these runs (load average 15 to 38), and from about 11:30 it slept for long spells ("What the measurement could not finish"), so seconds are compared only between trees of one process, in CPU time.
+
+### 1. Settlers
+
+#### The trace
+
+Seeds 999, 42 and 7 on the old tree to turn 150 (they end at turns 141, 127 and 147, when a seat finishes the Opus), every settler of the real seats alive at some turn from 100 to 150: 142 settlers. 84 founded a town, a mean of 4.9 turns after they were raised. 58 founded nothing.
+
+**The answer to the user's question.** The bot does look at the sites, but in two places that did not know about each other, and neither knew about the seat's other settlers:
+
+- **The build arm read one site for the whole empire, once a turn.** A settler row was worth a share of the expansion chain, whose site is the legal hex nearest to any town of the seat, read when the seat sat down for its turn (`ctx.expansion`, `nextTownChain`). The chain drops its settler step once a settler of the seat stands or is queued, but it is read once a turn, so every town that chose a build later in that turn still saw the step open and priced a settler at a whole next town for the same site. Of 116 late settlers started in a queue, 92 were started on a turn when another town of the same seat also started one, and 78 while another town already had one queued. In 20 of 38 seat-turns with a start, two or more towns started one, up to eight in one turn (seed 42).
+- **The settler chose its own site, and looked only 8 hexes from where it stood.** Once raised, a settler took the best-scoring hex within `expansion.siteSearchRadius` of itself (`marchToSite`), not the chain's site, with no notion of where the seat's other settlers were going. So several marched to one hex, the first founded and the rest lost it. A settler asked again on the way chose again from where it then stood, so its target moved. And a settler raised in a town whose own 8 hexes held no legal site slept at once: the chain's site was near another town. 10 of the 12 sleepers had been priced on a site 9 to 16 hexes from the town that raised them.
+
+The 58 that founded nothing, one cause each (the first that applies, in this order):
+
+| Cause | Settlers |
+|---|---:|
+| Taken by the wild on the way | 11 |
+| Asleep at the end: no legal site within its 8 hexes (asleep 18.7 turns on average, at most 32) | 12 |
+| Marching to a site another settler of the seat was also marching to | 19 |
+| Still marching, its target changed 3 or more times | 4 |
+| Raised in the last five turns of the game, still on its way | 11 |
+| Other | 1 |
+
+Causes looked for and not found as a main cause: a site made illegal by a rival during the march (1 settler), a wait for an escort (6 settlers had a site struck for want of one at some order; none stood at the end after one), and a path over water (27 settlers had a best site with no route at some order; the probe cannot see whether a sleeper's own search failed for want of a route, but 10 of the 12 sleepers were priced on a site out of their reach).
+
+#### The fix
+
+The rule the user expects, at its two causes. A new leaf, `settlerSites.ts`, says which site each settler of the seat is for, read off the live board (a **claim**): a settler marching to a legal site claims the end of its march (of two marches within the spacing rule of each other, the first in unit order keeps it); an awake settler with no claim claims the free site nearest to it within the search radius, else the nearest anywhere among the seat's sites; a settler in a town's queue claims the free site nearest to that town; a sleeping settler claims nothing. A site is free when it is legal now and at least `minCitySpacing` (4) hexes from every claim. The seat's sites are the legal hexes within 8 hexes of its towns, read once for the context (`ValueContext.sites`) and asked again for their legality where used.
+
+- **The build arm and the faith purchase** (`settlerTerms`, `bot.ts`) price a settler in a town only for the free site nearest to that town, after every claim of the seat. The claims are read when the row is priced, so a second town choosing a build in the same turn sees the settler the first one queued. With a site, the settler is the next town there, priced as the expansion chain prices a town, with the walk from this town; without one it is worth nothing ("every legal site within 8 hexes of X already has a settler of this empire for it"). The spend arm asks the claims again before it buys one (`settlerSiteRefusal`). A law that forbids founding (The Soldiers' Share) makes a settler worth nothing.
+- **The falloff counts the settlers already on their way.** A first version priced each new settler as though the towns its siblings would found did not exist, and on the duel fixture the capital then raised settlers from turn 12 to turn 31 without a break. The next town is now the one after every claimed site (`explainNextTown`'s `coming`).
+- **The settler keeps its site** (`settlerCommand`). Asked again on the way, a settler marching to a site it claims keeps the march (the same target, so `reaskTheMarch` sends nothing), unless something hostile now stands near the site and nothing walks with it. On legal ground on the way it compares only its own site with the ground under it, at the march arm's margin, and founds there when the rest of the walk does not pay; the first version without this founded the duel's first capital a turn later. Choosing a site, it skips every hex within the spacing rule of another settler's march. With nothing it can take within 8 hexes, it walks to the nearest free site among the seat's sites (`marchToFreeSite`, at most four routes asked), and sleeps only when there is none.
+- **BP9's guard is removed** (`settlerWaits`). A sleeping settler claims nothing, and a settler is raised only for a free site, so the guard had nothing left to stop.
+- **BP9's open fault, the escort's share, is fixed by construction**: the settler row reads its own site's chain and none of the seat chain's steps, so it no longer takes the escort step's whole worth while a settler stands. The expansion chain itself, and every other reader of it (the escort term, the meter prices, the camp's site, the worker's want), is unchanged.
+- **Tests** (`aiEndCheckLoops.test.ts`): a march claims its end and a second march beside it has no claim; a town's next settler is for a different site from the one its queue is for; a town prices a settler while a site is free and at nothing once every site has one, with the sentence that says so; a settler is not sent to a site within the spacing rule of another's march; a marching settler asked again sends nothing.
+
+#### Before and after
+
+**Towns at turns 50 and 100.** The new tree's runs of seeds 777 and 4242 did not finish (below), so the new tree has 15 seeds at turn 50 and 14 at turn 100. Focus A is the old tree with the focus change alone, so "new against A" is the settler and prophet changes alone.
+
+| Figure | Old tree | A | New | New against the old tree | New against A |
+|---|---:|---:|---:|---|---|
+| Towns, turn 50 | 19 | 19 | 21 | +11% [+1%, +21%], 4 down, 10 up | +10% [+3%, +18%], 2 down, 11 up |
+| Towns, turn 100 | 46 | 44 | 53 | +16% [+6%, +27%], 2 down, 11 up | +21% [+13%, +30%], 1 down, 13 up |
+| Citizens, turn 100 | 308 | 296 | 322 | +3% [−10%, +17%] | +8% [−7%, +26%] |
+| Food, turn 100 | 1,185 | 1,156 | 1,302 | +4% [−16%, +29%] | +12% [−10%, +39%] |
+| Production, turn 100 | 1,244 | 1,128 | 1,164 | −12% [−32%, +13%] | +2% [−23%, +36%] |
+| Gold, turn 100 | 405 | 384 | 438 | −2% [−26%, +30%] | +13% [−19%, +58%] |
+| Science, turn 100 | 871 | 785 | 822 | −6% [−20%, +10%] | +3% [−19%, +31%] |
+| Culture, turn 100 | 425 | 372 | 434 | −2% [−28%, +32%] | +11% [−12%, +40%] |
+| Faith, turn 100 | 167 | 150 | 158 | −3% [−18%, +15%] | +5% [−8%, +19%] |
+
+Means are over each tree's own seeds; the paired columns use the seeds both trees reached. Early expansion is not lost: towns rise at turn 50 and at turn 100, with intervals above nought. BP9's escort's share, which the settler row no longer reads, cost 2 to 6 towns a game when it was fixed alone; together with the claims it costs none. At turns 51 to 100 a seat holds 4.9 settlers a turn against 4.0 (they are now raised for several sites at once) and starts 0.74 a turn against 0.58.
+
+**Late settlers**, seeds 999, 42 and 7. The new tree's runs reached turn 130 on seeds 999 and 7 and turn 150 on seed 42 before the machine went to sleep (below); the old tree's games end at turns 141, 127 and 147. So the window is turns 100 to 130.
+
+| Settlers alive at some turn in 100 to 130 | Old tree | New tree |
+|---|---:|---:|
+| All | 121 | 155 |
+| Founded a town | 79 | 115 |
+| Founded nothing | 42 | 40 |
+| of which taken by the wild | 9 | 38 |
+| of which taken by a rival | 0 | 2 |
+| of which asleep at the end for want of a site | 8 (asleep 22.5 turns on average) | 0 |
+| of which marching to a site another settler of the seat was going to | 11 | 0 |
+| of which still marching, target changed 3 or more times | 4 | 0 |
+| of which raised in the last five turns, still on its way | 9 | 0 |
+| Settlers that slept at some turn end, whole games | 14 (234 turn-ends, at most 32 in a row) | 3 (18 turn-ends, at most 9) |
+
+| Turns 121 to 130, a turn (seed 42 old tree: 121 to 126) | Old tree: 999, 42, 7 | New tree: 999, 42, 7 |
+|---|---|---|
+| Settlers held | 10.2, 13.3, 10.8 | 10.7, 3.9, 8.1 |
+| asleep | 5.2, 0.0, 1.1 | 0.1, 0.0, 0.0 |
+| Towns | 74.6, 58.3, 68.5 | 86.3, 82.4, 92.6 |
+
+- Every settler of the new tree that founded nothing was taken. None sleeps for want of a site, none marches to a site another settler is for, and none wanders. The settlers still held late are on their way: on seed 42, at turns 141 to 150, 10.1 are held and none sleeps.
+- **A settler with no site at all** is now rare: 3 in the three games slept at some turn, for at most 9 turns. A disband rule is not needed.
+- **The open problem is the wild.** It took 38 settlers in the window against 9, a quarter of all settlers (seed 999 alone: 25 of 59; seat 3 there lost 12). There are more settlers on the road at once, and the wild takes any civilian with no soldier on its own hex (BP8's open item: the bot counts a soldier within 4 hexes as cover). 15 of the 38 were on the far march to a free site beyond their own 8 hexes (`marchToFreeSite`), which asks only whether something hostile stands near the site, not along the road; of the 41 settlers that took such a march, 19 founded a town.
+
+### 2. Citizen focus
+
+**Why BP9's build-keyed hold failed.** The old tree with the hold turned off (`driver.focusHoldTurns` 0), seeds 7, 999, 42 and 1 to turn 100. At turns 51 to 100 the bots gave 2.7 focus orders a turn, and 257 of them undid the town's last order within four turns. The probe dates every build: a build starts when the head of a town's queue changes, or when the head stays and its basket falls (a row finished, and the same row again).
+
+- **Builds are short.** 1,659 builds started at turns 51 to 100: half took two turns or less, 74% four turns or less.
+- **42% of the quick undos came after the town had started a new build** (107 of 257); 58% (150) undid an order on the same build.
+
+So a hold that ends with the build cannot stop four undos in ten: the next build starts within a turn or two, and the comparison is a near tie that the live prices tip either way. BP9 reported that its build-keyed hold left 193 of 257 quick undos standing. On this run a hold keyed on the head and its basket leaves 107. BP9 did not keep its code, so how it was keyed is not known; the gap says it also let go of some builds that had not changed. Both causes are real, and the larger one is that builds are short.
+
+**Version A, the default** (`driver.focusOrders` 1). The arm chooses a town's focus when the town starts a build and keeps it until that build is finished or leaves the head of the queue. The choice is written down even when it keeps the focus the town has, so no later look on the same build can change it. The roll (`focusRoll.ts`) keeps, for each town, the focus chosen, the head it was chosen for (`queueItemKey`, or `-` for an empty queue) and the hammers in the head's basket when the arm last looked; the same head with a basket that has not fallen is the same build, so a second copy of one unit after the first is a new build. **A project** never finishes and its basket only grows, so its focus is kept while it heads the queue; the production arm puts a better row ahead of a project when one appears (`projectIdleCommand`), and that is a new build. A town whose focus another hand changed is chosen for again. BP9's five-turn hold (`driver.focusHoldTurns`) is gone.
+
+**Version B** (`driver.focusOrders` 0): the bot sends no focus order.
+
+**Version A against B and the old tree** (BP9's five-turn hold), 16 seeds at turn 100, six seats summed:
+
+| Figure | Old tree (hold) | A | B | A against the old tree | B against the old tree |
+|---|---:|---:|---:|---|---|
+| Towns | 46 | 44 | 41 | −4% [−11%, +3%], 10 down, 4 up | −9% [−15%, −2%], 13 down, 3 up |
+| Citizens | 308 | 296 | 290 | −4% [−13%, +5%], 10 down, 6 up | −5% [−12%, +2%], 11 down, 5 up |
+| Food | 1,185 | 1,156 | 1,114 | −4% [−18%, +13%], 7 down, 9 up | −5% [−15%, +5%], 9 down, 7 up |
+| Production | 1,244 | 1,128 | 974 | −13% [−28%, +6%], 11 down, 5 up | −24% [−34%, −13%], 15 down, 1 up |
+| Gold | 405 | 384 | 349 | −8% [−29%, +20%], 7 down, 9 up | −17% [−36%, +7%], 8 down, 8 up |
+| Science | 871 | 785 | 735 | −10% [−22%, +3%], 13 down, 3 up | −15% [−25%, −4%], 14 down, 2 up |
+| Culture | 425 | 372 | 342 | −12% [−29%, +9%], 10 down, 6 up | −20% [−32%, −5%], 12 down, 4 up |
+| Faith | 167 | 150 | 144 | −12% [−27%, +7%], 9 down, 7 up | −12% [−24%, +2%], 10 down, 5 up |
+
+| Turns 51 to 100, a turn | Old tree | A | B |
+|---|---:|---:|---:|
+| Focus orders | 2.14 | 1.60 | 0 |
+| Back to a focus the town held in the last five turns | 0.77 | 0.49 | 0 |
+| Undoing the town's last order within four turns | 0 | 0.40 | 0 |
+| of which on the same build | 0 | 0 | 0 |
+| Accepted commands | 76.8 | 75.6 | 69.1 |
+
+- **B is clearly worse**: production −24%, science −15%, culture −20% and towns −9%, each with an interval below nought. Without a focus the towns never lean on the hills when a build waits on hammers.
+- **A is not measurably different from BP9's hold** at this sample size (every interval holds nought), but it reads lower on most seeds (science 13 of 16 down, production 11). One likely reason, not measured: a town that chose the balanced ordering at the start of a long build (a wonder) cannot lean on the hills later in it, where under the hold it could after five turns. That is the user's rule working as written. A stays the default, as the brief asks; the user can choose.
+- A changes no focus within a build (0 of its 0.40 quick undos a turn), and gives a quarter fewer focus orders than the hold.
+
+### 3. The prophet's price
+
+**Confirmed, and one more.** The want book prices a prophet by its best act (`prophetTerms`, `wants.ts`). Three of the acts it priced were acts the prophet's arm (`prophetCommand`) would not or could not take:
+
+- **The rite over every town** (`explainEmpireRite`, priced since `55027c67`): no arm of the bot sends `empireRite`. Removed from the price.
+- **A further holy site** (`explainStones`) was priced in every town. The arm raises one only on the ground of the town the prophet stands in, one step off the centre it was bought on, and only while that town holds no site (`townWantingSite`, `holySiteStep`). It is now priced only where that can happen (`siteRaisableFrom`: the town holds no site, and a hex of its own beside the centre takes one).
+- **Another rung** (`explainNextRung`) read `nextBeliefPool`, which names the next pool but not its door: the enhancer pool waits on Theology. A seat with its follower beliefs full and no Theology bought prophets for an enhancer the arm could not take (`gainBeliefError` refuses). The rung is now priced only when that gate, asked of a copy of the board with one prophet of the seat added (`deepenRefusal`), says yes. The function's docblock had said enhancers waited on Theology; the code did not.
+
+A prophet with no act left is worth nothing, and the book does not buy it. A bot arm for the empire rite is not built. It would be small (the rite plan already prices one town's blessing, `explainRite` on a town-scoped context, and the command names the prophet and the rite), but which rite, and when a prophet should spend a charge on it rather than wait for a rung, are choices the arm does not make today; it is left as a proposal.
+
+**Tests** (`aiEndCheckLoops.test.ts`): the prophet row prices no rite over every town; it prices a further site in a town that holds none, and nothing once the town's site stands; it prices no enhancer before Theology, and does with it.
+
+**Idle prophets**, a turn, six seats summed:
+
+| | Old tree | New tree |
+|---|---:|---:|
+| Turns 51 to 100, 16 seeds (new tree 15): prophets held | 0.47 | 0.03 |
+| asleep at the end of the turn | 0.37 | 0.00 |
+| bought | 0.18 | 0.10 |
+| Turns 121 to 130 (seed 42: the old tree's last turns, 121 to 126), seeds 999, 42, 7: held | 4.4, 3.0, 4.5 | 0.1, 0.5, 0.6 |
+| asleep | 3.8, 2.8, 4.4 | 0.0, 0.5, 0.3 |
+
+On the new tree's seed 42, which runs to turn 150, 2.2 prophets stand at turns 141 to 150 and 1.8 of them sleep. They were not traced.
+
+### 4. Two more fixes, found by the slow tier
+
+`aiCardStamp.slow.test.ts` failed on the new games: "theGloriousDead at turn 121, seat 2: rulePercent/unitLossWeariness moves the books by 32". The bot read the unit-loss weariness rule (The Funeral Oration, The Glorious Dead) as a rule the stamp cannot see, and priced a stand-in beside the stamp. In this position seat 2 is at war with losses in the weariness window, the stamp's contentment moves by 32 points, and the stand-in counted a share of the same relief again. The rule now reads as a line on the books (`rulePercentInBooks`, `value.ts`), as the army's wages do. Its town-loss sibling should read the same way, but no recorded position holds a lost town, and the check's other half (a shape read as on the books must move them somewhere) then fails, so it stays a stand-in. The fault is older than this batch; BP10's games are the first to hold the position. This change came after the measurements above. It moves play only for a seat that holds one of the two cards while it has lost units in the window, and it moved neither pin.
+
+`aiDecision.slow.test.ts` (the fold audit) failed on the new games too: "t35 draft/Teal → The Fast → … Rite of Fasting: one town's blessing × 2 towns: parts fold to 20.5, term says 41.1". The charter's rite term (`explainCharterOpening`, bot batch BP7) printed one town's blessing as its only part beside a value of that blessing times the towns. Its parts now carry the multiplication (and a `× 0` line when the blessing pays nothing), and its value is their fold. The figure is the same, so play does not change. The fault is BP7's; BP10's games are the first where a seat with two towns weighed The Fast.
+
+### 5. Speed
+
+Seeds 7, 999 and 42, the old tree and the new one in one process a seed, a turn on each in rotation, turns 100 to 120. The machine slept for long spells during these runs (about 11:30 on, on battery: `caffeinate` does not hold a Mac awake there, and the power log shows deep idle with 45-second dark wakes), so the table gives CPU seconds a turn, and wall seconds only over the turns with no sleep in them.
+
+| Seed | Tree | CPU s a turn | Wall s a turn (turns with no sleep) | Commands a turn | Towns | CPU ms a command |
+|---|---|---:|---:|---:|---:|---:|
+| 7 | old | 4.86 | 4.89 (18 of 21) | 119 | 56.4 | 41 |
+| 7 | new | 7.33 | 7.31 (18) | 189 | 75.8 | 39 |
+| 999 | old | 4.70 | 4.28 (16) | 139 | 62.7 | 34 |
+| 999 | new | 6.91 | 7.78 (19) | 163 | 71.7 | 42 |
+| 42 | old | 5.66 | 5.34 (18) | 146 | 49.7 | 39 |
+| 42 | new | 2.92 | 2.85 (21) | 108 | 57.4 | 27 |
+
+The new games are bigger (a sixth to a third more towns), and on seeds 7 and 999 the turn is half again as long. The cost of a command is the same on seed 7, a fifth higher on seed 999 and lower on seed 42, where the old tree's game ends at turn 127 with seat 1 finishing the Opus and the new tree's runs to turn 150. The site claims are read at every settler decision and every settler row; they were not profiled.
+
+### What the measurement could not finish
+
+- **The machine slept.** From about 11:30 the laptop ran on battery and went into deep idle sleep, with dark wakes of about 45 seconds every 10 to 60 minutes (the power log); `caffeinate -s` holds it awake only on mains power, and `-i` did not stop it. So the new tree's runs of seeds 777 and 4242 to turn 100 did not finish (its tables hold 15 seeds at turn 50 and 14 at turn 100), and the 150-turn runs stopped at turn 130 on seeds 999 and 7 (seed 42 reached 150).
+- **Turn 150** was not compared: the old tree's games end before it on two of the three seeds, and the new tree's runs did not reach it on two.
+- **The cost of the claims** in a late turn was not profiled.
+
+### Not done, and proposals
+
+- **The wild takes many more settlers** (above): 38 in turns 100 to 130 against 9. Two bot-side answers, neither built: drop the far march to a free site beyond the settler's own radius (`marchToFreeSite`; the user's rule allows a settler to wait), or ask the danger along the road and not only at the site; and BP8's open item, a soldier on the settler's own hex as its only cover.
+- **Version A reads lower than BP9's hold on most seeds** (not measurable at 16 seeds). If the user wants it, a long build could count as a new build every few turns; that would break the ruling as written, so it is not built.
+- **A bot arm for the empire rite**: a proposal (above). The prophet's price no longer counts the rite, so nothing is bought for it.
+- **Prophets still asleep late** on the new tree's seed 42 (1.8 of 2.2 at turns 141 to 150) were not traced.
+- **The focus ties** (BP9's proposal: when both sheets place the citizens on the same hexes, the arm still orders the balanced focus) are unchanged.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once, with the reason printed beside them: duel `3def2cf4:345268` -> `4da3f046:337488`, standard `b8fc7751:1046273` -> `6a878f7e:1003339`. The weariness reading of part 4 came after the cut and moved neither pin (the test passes with them).
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- Core, by name: every `test/sim/ai*.test.ts` that is not slow, `test/ui/botWorker.test.ts`, `test/ui/arenaPage.test.ts` (`driver.focusOrders` appears on the panel as a number), `test/sim/readings.test.ts`, `test/sim/empireYieldAtRest.test.ts` and `test/sim/decks/dominionEconomy.test.ts`: 44 files, 993 tests passed, after the last change to play. `aiAppraisal`, `aiDecision`, `aiSmallReadings` and `aiWonderRewards` again after the fold fix: 4 files, 169 tests passed.
+- `test/sim/aiEndCheckLoops.test.ts` (core, 20 tests): the focus tests (one focus a build, the switch at nought, the roll in the harness memory), the settler tests and the prophet tests above.
+- Tests changed for what the batch changed: `aiBot.test.ts` (the module list holds `settlerSites.ts`; the defence fixture re-sited from turn 19 to 17, because the capital now raises settlers through most of the old turns), `aiWants.test.ts` (the rich record runs seven turns, so the focus arm leans a town and puts one back), `aiDigest.slow.test.ts` (the pins).
+- Slow, by name: `aiDigest`, `aiCardStamp`, `aiBot`, `aiDriver`, `aiWants`, `aiWar`, `aiDecision`, `aiGarrison`, `botWorker`, `religion`, `beads`, `barbarians`, `statecraft`, `ledgerFold` and `cityModifiers`: 15 files passed. `aiCardStamp` and `aiDecision` passed after the two fixes of part 4; `aiDigest` and `aiDecision` were run last, after the fold fix.
+- The whole core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+### Files
+
+`src/ai/settlerSites.ts` (new: `foundingSites`, `siteClaims`, `nearestFreeSite`, `freeSiteForTown`, `claimsOfOthers`, `marchClaimOf`, `siteIsFree`), `src/ai/bot.ts` (`valueContext`'s `sites`; `nextTownChain`, `siteProbe`, `settlerTerms`; `unitRoleValue`'s settler row; `settlerCommand`, `keepMarch`, `marchToFreeSite`, `marchToSite`; `settlerSiteRefusal` in `bankSpend`; `focusCommand`, `buildMarkOf`), `src/ai/chain.ts` (`explainNextTown`'s `coming`, `expansionChain`; `settlerWaits` removed), `src/ai/wants.ts` (`WantInputs.settlerWorth`, the faith row's settler and town; `prophetTerms`, `siteRaisableFrom`, `deepenRefusal`, `explainNextRung`; `expansionTerm` and `explainEmpireRite` removed), `src/ai/value.ts` (`ValueContext.sites`; `rulePercentInBooks`; the rite term of `explainCharterOpening`), `src/ai/focusRoll.ts` (one choice a build), `src/ai/harnessMemory.ts`, `src/ai/aiConfig.ts` and `data/ai.json` (`driver.focusOrders` 1 in place of `driver.focusHoldTurns`), `docs/bot-priorities.md`, this section, and the tests: `test/sim/aiEndCheckLoops.test.ts`, `test/sim/aiBot.test.ts` (the module list holds `settlerSites.ts`; the defence fixture re-sited from turn 19 to 17), `test/sim/aiWants.test.ts` (the rich record runs seven turns), `test/sim/aiDigest.slow.test.ts` (the pins).

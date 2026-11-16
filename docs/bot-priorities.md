@@ -581,22 +581,85 @@ is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 row
   placements at the seat's live prices. The comparison does not read the
   town's own focus, but the price of gold and science moves from turn to turn
   with what the seat could buy, and where the lean wins or loses by a few points
-  the answer flipped turn after turn. The bot does not change a town's focus
-  back for `driver.focusHoldTurns` (5) turns after it gave the order. The
-  orders are dated in `focusRoll.ts`, a harness memory beside the state.
-- **The settler's price** (fault 5, the user's guard). A settler row
-  (`unitRoleValue` and the faith purchase's `expansionTerm`) is worth nothing
-  while a settler of the seat sleeps for want of a site (`settlerWaits`), and the
-  queue's row is worth nothing when no legal site is in reach of any town (the
-  faith purchase already read it so). Before, the queue priced a settler at a
-  whole next town in that case. A sleeping settler is asked again once a turn
-  (`BotSitting.roused`), not at every decision. Not changed: the settler row
-  still reads the chain's share when the chain's one step is the escort for a
-  settler already standing. Pricing that step as the soldiers' alone cost 2 to 6
-  towns a game at turn 100 on four seeds, because those extra settlers found
-  other sites (the plan file's section "BP9").
-- **New knob**: `driver.focusHoldTurns` (frozen with the rest of `driver.*`, so no
-  row in `data/ai.bounds.json`).
+  the answer flipped turn after turn. BP9's guard was a hold of five turns after
+  an order. Bot batch BP10 replaced it with one choice a build (below).
+- **The settler's price** (fault 5, the user's guard). BP9 priced a settler row
+  at nothing while a settler of the seat slept for want of a site, and when no
+  legal site was in reach of any town. Bot batch BP10 replaced the first guard
+  with the site claims (below). The second stands. A sleeping settler is asked
+  again once a turn (`BotSitting.roused`), not at every decision.
+
+**Settlers for free sites, one focus a build, and the prophet's price** (bot
+batch BP10; `docs/flags.md` (ooooooo), the bullet "BP10"; the measurements are
+the section "BP10" of `docs/plans/performance-pass-2026-11-06.md`):
+
+- **Which site each settler is for** (`settlerSites.ts`). A claim is a site a
+  settler of the seat is for, read off the live board in this order:
+  - a settler marching to a legal site claims the end of its march; of two
+    marches that end within the spacing rule of each other, the first in unit
+    order keeps the claim;
+  - an awake settler with no claim claims the free site nearest to it within
+    `expansion.siteSearchRadius`, else the nearest anywhere among the seat's
+    sites; a sleeping settler claims nothing;
+  - a settler in a town's queue claims the free site nearest to that town within
+    the radius.
+
+  A site is free when it is legal now and at least `minCitySpacing` hexes from
+  every claim. The seat's sites are the legal hexes within the radius of its
+  towns, read once for the context (`ValueContext.sites`) and asked again for
+  their legality where used.
+- **A settler only for a free site** (`settlerTerms`, `bot.ts`). The queue's
+  settler row and the faith purchase read the same terms: the free site nearest
+  to the town, after every claim. With one, the settler is the next town there,
+  priced as the expansion chain prices a town, with the walk from this town and
+  a falloff that counts every settler already for a site as a town held
+  (`explainNextTown`'s `coming`). Without one it is worth nothing. A law that
+  forbids founding (The Soldiers' Share) makes it worth nothing too. The spend
+  arm asks the claims again before it buys a settler (`settlerSiteRefusal`).
+  The row no longer reads the chain's steps, so it no longer takes the escort's
+  share (BP9's open fault).
+- **A settler keeps its site** (`settlerCommand`). A settler marching to a site
+  it claims keeps that march when asked again, unless something hostile now
+  stands near the site and nothing walks with it. On legal ground on the way it
+  founds where it stands when the rest of the walk does not beat the ground
+  under it by `priorities.switchMargin`. A settler choosing a site skips every
+  hex within the spacing rule of another settler's march. A settler with no site
+  it can take within its radius walks to the nearest free site among the seat's
+  sites (`marchToFreeSite`, at most `search.pathProbes` routes asked), and
+  sleeps only when there is none.
+- **BP9's guard is gone** (`settlerWaits`). A settler that sleeps for want of a
+  site claims nothing, and a town builds a settler only for a free site, so the
+  guard has nothing left to stop.
+- **One focus a build** (`focusCommand`, `focusRoll.ts`). The user,
+  2026-11-15: *"the bot should simply just complete what it's working on
+  without swapping focus in cities"*. The arm chooses a town's citizen focus
+  when the town starts a build and keeps it until that build is finished or
+  leaves the head of the queue. The roll keeps, for each town, the focus chosen,
+  the head of the queue it was chosen for and the hammers in that head's basket.
+  The same head with a basket that has not fallen is the same build. A project
+  never finishes, so its focus is kept while it heads the queue. A town whose
+  focus another hand changed is chosen for again. With `driver.focusOrders` at
+  nought the bot sends no focus order at all.
+- **The prophet's price** (`prophetTerms`, `wants.ts`). A prophet is priced by
+  the acts its arm takes, and nothing else:
+  - the rite over every town is not priced, because no arm sends `empireRite`;
+  - a further holy site is priced only in a town that holds no site and has a
+    hex of its own beside its centre that takes one (`siteRaisableFrom`),
+    because a bought prophet stands on that centre and raises a site only one
+    step off it;
+  - a further rung is priced only when the reducer would let a prophet take it
+    now (`deepenRefusal`: `gainBeliefError` asked of a copy of the board with
+    one prophet added), so an enhancer before Theology is not priced.
+- **War weariness from lost units is on the books** (`rulePercentInBooks`,
+  `value.ts`). The rule that scales the weariness a lost unit adds (The Funeral
+  Oration, The Glorious Dead) is read by the stamp: while the seat has losses in
+  the weariness window, the stamp's contentment moves by it. Before, it was read
+  as a rule the stamp cannot see, and the bot priced a stand-in beside the stamp
+  that counted a share of the same relief again. The slow stamp check found the
+  position in BP10's games. The town-loss rule stays a stand-in, because no
+  recorded position holds a lost town to check it against.
+- **Knobs**: `driver.focusOrders` (1, new; frozen with the rest of `driver.*`)
+  replaces `driver.focusHoldTurns`.
 
 ## Personas and tuning
 
