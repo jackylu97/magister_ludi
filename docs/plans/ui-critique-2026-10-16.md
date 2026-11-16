@@ -455,3 +455,29 @@ The decisions, board by board. Iteration 3 applies them.
   - a luxury that both players have access to is not shown at all.
 - **Room to grow:** more diplomatic options will come, so the layout must take new kinds of deal item and new actions without a redesign.
 - A board for it joins the Scholar's Study canvas (`Diplomacy.dc.html`).
+
+---
+
+## The user's review of the Scholar's Study, iteration 3 (2026-11-16)
+
+Given in the session. The orchestrator recommended display face C (Bona Nova) with E (Newsreader) as the safe choice, corner panel A with C's live figures, and luxury rule 1. The user:
+
+> "I think B/E are my favorites, let's go with E for now. Reliquary looks great. Let's do A with C's live figures, i agree. your recommendation for the luxury rule makes sense, option #1."
+
+- **Display face: E, Newsreader,** "for now". B (Ibarra Real Nova) is the user's other favourite and stays on the board as the alternative. Newsreader replaces Instrument Serif wherever it is the display face. Fraunces, Instrument Sans and IBM Plex Mono stay.
+- **The Reliquary: approved** as a full sheet (`Reliquary.dc.html`, iteration 3).
+- **The corner panel: variant A** (`Corner.dc.html`): four buttons in the panel for diplomacy, routes, faith and standings, and the panel grows down in place on a click. The Faith and Routes buttons carry variant C's live figures. The collapsed panel shows the technology's name and more detail, as drawn.
+- **The luxury rule: option 1.** In a deal, a luxury is not shown when both sides have their own copy. It is shown greyed when the other side has it only on loan from a deal that will end, with the source and the turns left.
+- **Not yet reviewed:** the Ledger with its graphs, and the rest of the Diplomacy board.
+
+### Build order
+
+The boards in `docs/plans/mockups/scholars-study/` are the spec of record, with the review sections above saying what is approved. Batches, one at a time in the main tree:
+
+| Batch | What | Boards |
+|---|---|---|
+| **SS1** | The foundation: Newsreader as the display face; no small label over a heading; the palette, the yield inks and the contrast fixes; flat panels, with the hard shadow only on played things; End Turn's cinnabar colour in its wide shape; the coin, the candle and the glass bead; the news toasts; the two sheets that ignore reduced motion; the ten decorative side stripes | Display, Type, Ink, Marks, Main, Ornament |
+| **SS2** | The corner panel, variant A with live figures | Corner |
+| **SS3** | The Reliquary as a full sheet | Reliquary |
+| **SS4** | The luxury rule in the deal table | Diplomacy (the rule only) |
+| later | The big moments, the Ledger, the diplomacy screen and the deal notice, the top bar | after the user's review of each |
