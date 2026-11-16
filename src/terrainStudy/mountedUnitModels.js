@@ -123,7 +123,9 @@ export function addChariot(kit,type){
   cylinder('Chariot quiver',.052,.23,ownerShade,-.11,.76,-.08,.045,8);
   for(let i=0;i<3;i++)rod(`Chariot arrow ${i}`,[-.13+i*.024,.83,-.08],[-.13+i*.024,1.10,-.08],.006,ivory,4);
  }else{
-  rod('Chariot upright spear',[-.11,.46,-.07],[-.11,1.30,-.07],.019*bold,gold,8);
-  plate(kit,'Chariot ivory spearhead',[[0,0],[-.04*bold,.035],[0,.17*(readable?1.25:1)],[.04*bold,.035]],.023*bold,ivory,-.11,1.25,-.07);
+  // The readable spear is a little shorter, so its head stands under the badge and not in it.
+  const reach=readable?.15:0;
+  rod('Chariot upright spear',[-.11,.46,-.07],[-.11,1.30-reach,-.07],.019*bold,gold,8);
+  plate(kit,'Chariot ivory spearhead',[[0,0],[-.04*bold,.035],[0,.17*(readable?1.25:1)],[.04*bold,.035]],.023*bold,ivory,-.11,1.25-reach,-.07);
  }
 }

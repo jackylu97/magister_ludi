@@ -11,18 +11,18 @@ type Packed = { fixed: BufferGeometry; owner: BufferGeometry; contacts: [number,
 const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createPrimitiveUnitScene(type, { family })) as Packed;
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
-  warrior: '90266:d22f19fa', spearman: '82515:21500666', horseman: '90974:9b929fb9', archer: '99539:f1a46aa6',
-  horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:fb29bfc9', scout: '162950:55dfb155',
-  settler: '89830:c397e071', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
+  warrior: '90266:326b79b2', spearman: '82515:61573c97', horseman: '90974:de35941b', archer: '99539:d4cfa202',
+  horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '162950:2c4698cd',
+  settler: '89830:fc38728', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
   'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',
   'greatPerson:merchant': '121926:1d2ecc63', 'greatPerson:general': '137686:59d42dd3',
 };
 const infantryBaseline: Record<string, string> = {
-  swordsman: '104262:8867e4e2', legionary: '115367:8fb29e71', longswordsman: '103814:4edfe664',
-  fireLance: '105042:7449e807', khopesh: '117807:25e4e2a4', eagleWarrior: '142486:92092d31',
+  swordsman: '104262:3a2a2b1e', legionary: '115367:e5d4b36d', longswordsman: '103814:ea04d0fc',
+  fireLance: '105042:d626abfa', khopesh: '117807:b95b0290', eagleWarrior: '142486:207a1e71',
 };
-// Cut again on 2026-11-15, after the user's readability rulings on every kind of piece: bolder tools, helmets, no
-// nose, one body height, the tool not counted in the height, and parts in the seat's second colour. These are the
+// Cut again on 2026-11-15, after the user's readability rulings on every kind of piece: bolder tools, helmets in the
+// body's colour, shorter lances and staffs, no nose, one body height, the tool not counted in the height, and parts in the seat's second colour. These are the
 // pieces of the first age (`tier` 0) packed in two roles. Both roles, indices, contacts and bounds count.
 function hash(model: Packed): string {
   let h = 2166136261, bytes = 0;
@@ -74,8 +74,10 @@ describe('painted infantry variants around the accepted warrior', () => {
         expect(actual.material.color).toEqual(expected.material.color);
         for (const [attribute, values] of Object.entries(expected.geometry.attributes)) expect(actual.geometry.getAttribute(attribute).array).toEqual(values.array);
       }
-      // The helmet is a darker tone of the seat's first colour, and its brow band is in the second colour.
+      // The helmet is the seat's first colour, the same tone as the robe (the user, 2026-11-15: "lets just have the
+      // helmets be the same color, they don't need to be darker"). Its brow band is in the second colour.
       expect(scenePart(scene, 'Steel helmet dome').material.name).toBe('Owner helmet');
+      expect(scenePart(scene, 'Steel helmet dome').material.color).toEqual(scenePart(scene, 'Turned enamel robe').material.color);
       expect(scenePart(scene, 'Trim brow band').material.name).toBe('Trim gilt');
       // The spearman's helmet has a spike, so the two classes differ in outline.
       expect(spearman.getObjectByName('Steel helmet spike')).toBeDefined(); expect(scene.getObjectByName('Steel helmet spike')).toBeUndefined();
@@ -163,7 +165,8 @@ describe('painted infantry variants around the accepted warrior', () => {
       // Sizes are in the piece's own units, before the scale that brings it to the board.
       const size = (type: string, name: string): Vector3 => new Box3().setFromObject(scenePart(scenes[type]!, name)).getSize(new Vector3()).divide(scenes[type]!.scale);
       const short = size('swordsman', 'Swordsman pointed ivory blade'), long = size('longswordsman', 'Longswordsman pointed ivory blade');
-      expect(long.y).toBeGreaterThan(short.y * 1.25);
+      // A tool that stands far over the head is shortened a little, so the long blade leads by less than it did.
+      expect(long.y).toBeGreaterThan(short.y * 1.15);
       expect(size('legionary', 'Legionary bowed enamel shield').y).toBeGreaterThan(.37);
       expect(size('legionary', 'Legionary restrained trim crest').y).toBeLessThan(.16);
       expect(scenePart(scenes.longswordsman!, 'Longswordsman dark visor slit -1').material.name).toBe('Incised detail');

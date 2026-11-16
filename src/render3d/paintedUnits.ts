@@ -69,6 +69,13 @@ export function unitDecorationTier(type: string): number {
   return age === undefined ? 0 : Math.max(0, Math.min(3, age - 1));
 }
 
+/**
+ * A piece that stands as an alternate design. The test scene marks a unit with one, to show the scout's and the
+ * settler's alternates side by side. The game marks none: it draws the design that `UNIT_VARIANTS` names.
+ */
+const artVariants = new WeakMap<object, string>();
+export function setUnitArtVariant(unit: object, variant: string): void { artVariants.set(unit, variant); }
+
 /** Geometry and owner pigments shared by resting, moving and falling pieces. */
 export class PaintedUnitKit {
   private readonly models = new Map<string, PaintedUnitModel>();
@@ -82,7 +89,8 @@ export class PaintedUnitKit {
     const embarked = terrain !== undefined && isWaterTerrain(terrain) && !navalVariants.includes(unit.type);
     const family: Family = unit.type === 'greatPerson' && isGreatPersonId(unit.person)
       ? greatPersonDef(unit.person).family : 'scholar';
-    const key = embarked ? 'embarked' : unit.type === 'greatPerson' ? `greatPerson:${family}` : unit.type;
+    const variant = embarked ? undefined : artVariants.get(unit);
+    const key = embarked ? 'embarked' : unit.type === 'greatPerson' ? `greatPerson:${family}` : variant ? `${unit.type}:${variant}` : unit.type;
     // A north-star model, when `NORTH_STAR_UNITS` names one for this type (`northStarUnits.ts`).
     const northStar = embarked ? null : northStarUnitModel(unit.type);
     if (northStar) {
@@ -100,7 +108,7 @@ export class PaintedUnitKit {
     const cached = this.models.get(key);
     if (cached) return cached;
 
-    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family, tier: embarked ? 0 : unitDecorationTier(unit.type) }), { trim: true }) as PackedUnitAsset;
+    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family, tier: embarked ? 0 : unitDecorationTier(unit.type), ...(variant ? { variant } : {}) }), { trim: true }) as PackedUnitAsset;
     const trim = packed.trim;
     let geometry: BufferGeometry | null = null;
     try {

@@ -1,5 +1,6 @@
 import { VIEW3D } from '../render3d/lookData';
 import { Renderer3D } from '../render3d/renderer3d';
+import { setUnitArtVariant } from '../render3d/paintedUnits';
 import { VTEST_UNIFORMS } from '../render3d/visualTestLook';
 import { NO_LENS } from '../render3d/lens3d';
 import {
@@ -36,7 +37,8 @@ import type { UnitTypeId } from '../sim/unitData';
  *   part, `type:model:turn`, turns the piece about the upright (radians);
  * - `pieces`: more pieces to stand in the scene, as `col.row.type.seat` split
  *   by commas. `only` as the first entry removes the scene's own pieces, and a
- *   fifth part, `col.row.greatPerson.seat.person`, names a great person;
+ *   fifth part, `col.row.greatPerson.seat.person`, names a great person, or on a
+ *   scout or a settler an alternate design, `col.row.scout.seat.b`;
  * - `at`: `col_row_zoom` centres the camera on a hex, `zoom` times closer than
  *   the game's closest. It replaces the view's own camera.
  */
@@ -69,9 +71,12 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   }
   for (const entry of (params.get('pieces') ?? '').split(',').filter(Boolean)) {
     if (entry === 'only') { state.units = []; continue; }
-    // A fifth part names a great person, so each family's piece can stand in the scene.
-    const [col, row, type, seat, person] = entry.split('.');
-    createUnit(state, Number(seat), type as UnitTypeId, Number(col), Number(row), person as Parameters<typeof createUnit>[5]);
+    // A fifth part names a great person, so each family's piece can stand in the scene. On a scout or a settler it
+    // names an alternate design (`b`, `c` or `d`).
+    const [col, row, type, seat, fifth] = entry.split('.');
+    const person = type === 'greatPerson' ? fifth as Parameters<typeof createUnit>[5] : undefined;
+    const unit = createUnit(state, Number(seat), type as UnitTypeId, Number(col), Number(row), person);
+    if (fifth && type !== 'greatPerson') setUnitArtVariant(unit, fifth);
   }
   const at = (params.get('at') ?? '').split('_').map(Number);
   let disposed = false, ready = false;

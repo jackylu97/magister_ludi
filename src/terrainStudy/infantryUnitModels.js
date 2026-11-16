@@ -15,7 +15,7 @@ export function addInfantryVariant(kit,type){
  // fore-and-aft crest in it.
  const lowHelmet=(label,crest=true)=>{
   mesh(`${label} low steel helmet`,new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
-  ring(`${label} trim brow band`,.172,1.122,trim,0,0,.014);
+  ring(`${label} trim brow band`,.174,1.122,trim,0,0,.026);
   for(const side of [-1,1])box(`${label} steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
   if(crest&&tier>=2)box(`${label} trim helmet crest`,[.036,tier>=3?.120:.075,.300],trim,0,1.290+(tier>=3?.060:.037),-.010);
  };

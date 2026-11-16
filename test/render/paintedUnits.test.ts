@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Color, ShaderLib, Texture, type BufferGeometry, type MeshStandardMaterial, type WebGLRenderer } from 'three';
-import { PaintedUnitKit, unitDecorationTier, type PaintedUnitModel } from '../../src/render3d/paintedUnits';
+import { PaintedUnitKit, setUnitArtVariant, unitDecorationTier, type PaintedUnitModel } from '../../src/render3d/paintedUnits';
+// @ts-expect-error The alternate designs remain JavaScript.
+import { UNIT_VARIANTS, UNIT_VARIANT_IDS } from '../../src/terrainStudy/civilianVariants.js';
 import { FAMILIES, GREAT_PERSON_IDS, greatPersonDef, type Family } from '../../src/sim/greatPeopleData';
 import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import type { Unit } from '../../src/sim/state';
@@ -111,6 +113,59 @@ describe('production painted unit kit', () => {
     // Every foot piece has one body, so their heights differ only by what is on the head.
     const foot = ['warrior', 'worker', 'settler', 'archer', 'swordsman', 'spearman', 'greatPerson'].map(height);
     expect(Math.max(...foot) - Math.min(...foot)).toBeLessThan(.15);
+  });
+
+  it('keeps a lance, a pike or a staff near the bounds of its piece, with the longer tool still the taller', () => {
+    const kit = make(), over = (type: string): number => {
+      const model = kit.resolve({ type: type as Unit['type'] })!;
+      return model.geometry.boundingBox!.max.y - model.height;
+    };
+    // The user, 2026-11-15: "adjust the lance and staff heights so they fit the bounds of the piece a bit better".
+    for (const type of ['spearman', 'phalanx', 'pikeman', 'knight', 'gendarme', 'chanyuGuard', 'cataphract', 'prophet', 'apostle', 'inquisitor', 'canoness', 'augur', 'scout', 'settler', 'fireLance']) {
+      expect(over(type), type).toBeGreaterThan(.05); expect(over(type), type).toBeLessThan(.40);
+    }
+    expect(over('pikeman')).toBeGreaterThan(over('phalanx')); expect(over('phalanx')).toBeGreaterThan(over('spearman'));
+    expect(over('gendarme')).toBeGreaterThan(over('knight'));
+    // The chariot's spear stands under the badge.
+    expect(over('chariot')).toBeLessThan(0);
+  });
+
+  it('builds every alternate design of the scout and the settler with ground contacts and both colour roles', () => {
+    const shapes = new Set<string>();
+    for (const type of ['scout', 'settler'] as const) {
+      const present = packUnitAsset(createPrimitiveUnitScene(type), { trim: true }) as PackedSource;
+      for (const variant of UNIT_VARIANT_IDS[type] as string[]) {
+        const packed = packUnitAsset(createPrimitiveUnitScene(type, { variant }), { trim: true }) as PackedSource;
+        try {
+          expect(packed.contacts.length, `${type} ${variant}`).toBeGreaterThan(4);
+          for (const part of [packed.fixed, packed.owner, packed.trim!]) {
+            expect(part.index!.count, `${type} ${variant}`).toBeGreaterThan(0);
+            for (const attribute of Object.values(part.attributes)) expect([...attribute.array].every(Number.isFinite)).toBe(true);
+          }
+          // One body height for every design, and a footprint that stays on its hex.
+          expect(Math.abs(packed.height - present.height), `${type} ${variant}`).toBeLessThan(.12);
+          expect(packed.radius).toBeLessThan(.7);
+          shapes.add([...packed.fixed.getAttribute('position').array, ...packed.owner.getAttribute('position').array].join(','));
+          // No alternate wears a helmet or a nose.
+          const names: string[] = [];
+          createPrimitiveUnitScene(type, { variant }).traverse((object: { name: string }) => names.push(object.name));
+          expect(names.some(name => /helmet|nose/i.test(name))).toBe(false);
+        } finally { for (const part of sourceParts(packed)) part.dispose(); }
+      }
+      // The game draws the present design until the user chooses another.
+      expect(UNIT_VARIANTS[type]).toBe('a');
+      const chosen = packUnitAsset(createPrimitiveUnitScene(type, { variant: 'a' }), { trim: true }) as PackedSource;
+      expect([...chosen.fixed.getAttribute('position').array]).toEqual([...present.fixed.getAttribute('position').array]);
+      for (const part of [...sourceParts(present), ...sourceParts(chosen)]) part.dispose();
+      expect(() => createPrimitiveUnitScene(type, { variant: 'z' })).toThrow('variant');
+    }
+    expect(shapes.size).toBe(8);
+    // The test scene marks one unit with a design. An unmarked unit keeps the present one.
+    const kit = make(), marked = { type: 'scout' } as const, plain = { type: 'scout' } as const;
+    setUnitArtVariant(marked, 'c');
+    expect(kit.resolve(marked)!.geometry.userData.paintedUnitAsset).toBe('scout:c');
+    expect(kit.resolve(plain)!.geometry.userData.paintedUnitAsset).toBe('scout');
+    expect(kit.resolve(marked, 'coast')!.geometry.userData.paintedUnitAsset).toBe('embarked');
   });
 
   it('gives a later age more decoration in the second colour, and every piece some', () => {
