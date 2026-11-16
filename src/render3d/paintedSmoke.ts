@@ -63,9 +63,11 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
    * (`PaintedCityLayer.cityHeights`), so the smoke starts at the roofs.
    * `chimneys` are more places that smoke, each the top of a chimney in world
    * units with the hex it stands on (the manufactory's tall chimney). They
-   * follow the same fog rule as a town.
+   * follow the same fog rule as a town. `anchors` is where a town's smoke
+   * starts, by city id, for the towns that say so.
    */
-  build(state: GameState | null, levels: FogLevels, heights: ReadonlyMap<number, number>, on: boolean, chimneys: readonly SmokeSource[] = []): void {
+  build(state: GameState | null, levels: FogLevels, heights: ReadonlyMap<number, number>, on: boolean, chimneys: readonly SmokeSource[] = [],
+    anchors: ReadonlyMap<number, { x: number; y: number; z: number }> = new Map()): void {
     this.clear();
     if (!state || !on) return;
     const towns = state.cities.filter((city) => levelAt(levels, state.map, city.col, city.row) === VISIBLE);
@@ -80,8 +82,11 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
     towns.forEach((city, t) => {
       // One chimney a town, on the houses at the town's lower left, clear of
       // the pieces in the middle and of the name banner over them.
-      const x = ROOT3 * (city.col + (city.row % 2) * 0.5) + IDLE.smokeAt[0], z = city.row * 1.5 + IDLE.smokeAt[1];
-      const y = 0.12 + (heights.get(city.id) ?? 0.3) * IDLE.smokeAt[2];
+      // A north-star town says where its smoke starts: the smoke hole or chimney of its centre building
+      // (`PaintedCityLayer.smokeAnchors`). The study's town has no such point and keeps the fixed place.
+      const anchor = anchors.get(city.id);
+      const x = anchor?.x ?? ROOT3 * (city.col + (city.row % 2) * 0.5) + IDLE.smokeAt[0], z = anchor?.z ?? city.row * 1.5 + IDLE.smokeAt[1];
+      const y = anchor?.y ?? 0.12 + (heights.get(city.id) ?? 0.3) * IDLE.smokeAt[2];
       for (let p = 0; p < puffs; p++) {
         const i = t * puffs + p;
         matrix.makeTranslation(x, y, z);

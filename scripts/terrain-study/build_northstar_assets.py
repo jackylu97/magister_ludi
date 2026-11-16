@@ -10,6 +10,9 @@ nothing: `visualTest.northStar` in data/view3d.json picks which set is drawn.
 - ns-house-2a/2b/2c: the middle ages. Pale walls under terracotta roofs.
 - ns-house-3a/3b/3c: the late ages. Taller houses, a turret, an arcade.
 - ns-hall: the town's hall, a broad roof with one square tower.
+- ns-great-hut, ns-great-house: the centre of a town of the first age and of
+  the middle ages, in the materials of that age's houses.
+- ns-house-3d/3e/3f, ns-hall-3: the richer houses and hall of the late ages.
 - ns-mine: a dark tunnel mouth with a timber frame in a round rock.
 - ns-quarry: pale stone cut in square steps, with a crane.
 - ns-barn, ns-haystack: the farm's building and its stacks.
@@ -351,6 +354,91 @@ def lumber_camp():
  cylinder((-.22,.0,.035),.045,.07,TIMBER,7);cylinder((-.22,.0,.071),.036,.004,STRAW,7)
  block((-.22,.0,.12),(.012,.012,.10),TIMBER,.002);block((-.20,.0,.165),(.05,.012,.03),BLADE,.002)
 
+# --- Town centres by age, and the richer houses of the late ages ---------------
+# The user, 2026-11-16: "The town center building feels out of place in age
+# 1/2, lets have towns contain just huts in age 1, small buildings in age 2,
+# but could we have slightly more intricate buildings for age 3/4?"
+# `NORTH_STAR_TOWN_AGES` in src/terrainStudy/northStarAssets.js says which
+# models each age draws, and where each centre's smoke leaves it.
+def dark_arch(x,y,w=.09,h=.15):
+ """A dark arched opening on a front wall: a door-coloured slab with a round head. Plain edges, to keep the count low."""
+ block((x,y,h/2+.03),(w,.02,h),DOOR,0)
+ head=cylinder((0,0,0),w/2,.02,DOOR,6);head.rotation_euler[0]=math.pi/2;head.location=(x,y,h+.03)
+def dormer(x,y,z):
+ block((x,y,z),(.075,.06,.07),WALL,0);gable(x,y,z+.035,.095,.08,.05,TILE_DEEP,'y');block((x,y-.031,z),(.035,.01,.04),DOOR,0)
+def chimney(x,y,z,h=.16):
+ block((x,y,z+h/2),(.06,.06,h),WALL,0);block((x,y,z+h),(.08,.08,.025),STONE,0)
+def pane(x,y,z,w=.055,h=.07):block((x,y,z),(w,.014,h),DOOR,0)
+
+def great_hut():
+ # The centre of a town of the first age: a broad round hut under two tiers of straw. Its smoke leaves the top, at (0,0,.80).
+ cylinder((0,0,.15),.30,.30,MUD,12)
+ cone(0,0,.25,.43,.10,STRAW_DEEP,12);cone(0,0,.29,.40,.34,STRAW,12)
+ cylinder((0,0,.57),.125,.06,MUD,10)
+ cone(0,0,.575,.21,.05,STRAW_DEEP,10);cone(0,0,.605,.185,.19,STRAW,10)
+ cylinder((0,0,.79),.035,.02,PIT,6)
+ door(0,-.30,.11,.20)
+ for x in [-.105,.105]:block((x,-.37,.14),(.035,.035,.28),TIMBER,.004)
+ block((0,-.37,.29),(.29,.045,.04),TIMBER,.004)
+def great_house():
+ # The centre of a town of the middle ages: a house of the same kind as the others, a little larger, with a wing and a chimney.
+ # Its smoke leaves the chimney, at (.19,.10,.67).
+ block((0,0,.025),(.62,.44,.05),STONE,.01);block((0,.04,.19),(.56,.30,.33),WALL,.018)
+ eaves(0,.04,.34,.63,.37,TILE_DEEP);gable(0,.04,.375,.60,.34,.22,TILE)
+ block((-.14,-.13,.16),(.24,.24,.27),WALL,.016)
+ eaves(-.14,-.14,.28,.30,.28,TILE_DEEP);gable(-.14,-.14,.315,.27,.26,.17,TILE,'y')
+ chimney(.19,.10,.44,.21)
+ door(-.14,-.251,.09,.15);window(.10,-.111,.20);window(.22,-.111,.20)
+
+def house_3d():
+ # A tall house whose upper storey stands out over the lower on a timber band, with a chimney.
+ block((0,0,.025),(.40,.36,.05),STONE,.01);block((0,0,.17),(.34,.30,.26),WALL,.016)
+ block((0,-.01,.305),(.40,.35,.03),TIMBER,.006)
+ block((0,-.01,.43),(.38,.34,.24),WALL,.016)
+ eaves(0,-.01,.54,.44,.40,TILE_DEEP);gable(0,-.01,.575,.42,.38,.30,TILE,'y')
+ chimney(-.13,.09,.62,.22)
+ door(0,-.151,.09,.16)
+ for x in [-.10,.10]:pane(x,-.181,.43)
+ pane(0,-.201,.68,.06,.08)
+def house_3e():
+ # A broad house with a round turret, two arches on the ground floor, a dormer and a chimney.
+ block((0,0,.025),(.50,.38,.05),STONE,.01);block((-.03,0,.20),(.42,.34,.36),WALL,.018)
+ eaves(-.03,0,.36,.50,.42,TILE_DEEP);hip(-.03,0,.395,.47,.39,.20,TILE,.4)
+ cylinder((.20,-.12,.34),.105,.68,WALL,10);cylinder((.20,-.12,.665),.125,.03,STONE,10)
+ cone(.20,-.12,.68,.15,.05,SLATE,10);cone(.20,-.12,.71,.135,.29,SLATE,10)
+ for x in [-.17,-.045]:dark_arch(x,-.171,.085,.13)
+ pane(-.17,-.171,.29);pane(-.045,-.171,.29);pane(.20,-.226,.46,.045,.08)
+ dormer(-.11,-.11,.475);chimney(-.17,.09,.44,.2)
+def house_3f():
+ # A long house: three arches along the front, and a second storey set back under its own roof.
+ block((0,0,.025),(.60,.36,.05),STONE,.01);block((0,0,.18),(.56,.32,.32),WALL,.018)
+ block((0,0,.345),(.60,.36,.03),TILE_DEEP,.006)
+ block((0,.03,.46),(.50,.24,.22),WALL,.016)
+ eaves(0,.03,.56,.58,.32,TILE_DEEP);hip(0,.03,.595,.55,.29,.20,TILE,.55)
+ for x in [-.17,0,.17]:
+  dark_arch(x,-.161,.10,.14);pane(x,-.091,.47,.05,.065)
+ chimney(.20,.07,.62,.17)
+def hall_3():
+ # The hall of the late ages: the hall of before with an arcade on both sides of a taller tower, an open belfry, two dormers and a chimney.
+ # Its smoke leaves the chimney, at (.27,.15,.83).
+ for i,(w,d) in enumerate([(.90,.66),(.82,.58)]):block((0,0,.02+i*.04),(w,d,.04),STONE,.008)
+ block((0,.04,.28),(.72,.42,.40),WALL,.02)
+ eaves(0,.04,.46,.80,.50,TILE_DEEP,.04);hip(0,.04,.50,.77,.47,.25,TILE,.5)
+ for side in [-1,1]:
+  block((side*.245,-.215,.19),(.25,.10,.22),WALL,.01);block((side*.245,-.215,.315),(.28,.13,.03),TILE_DEEP,.006)
+  for x in [side*.185,side*.305]:dark_arch(x,-.267,.075,.12)
+  pane(side*.245,-.171,.40,.06,.07);dormer(side*.25,-.09,.615)
+ block((0,-.12,.48),(.25,.25,.84),WALL,.016)
+ block((0,-.12,.74),(.29,.29,.03),STONE,.006)
+ block((0,-.246,.84),(.08,.012,.11),DOOR,0)
+ for x in [-.126,.126]:block((x,-.12,.84),(.012,.08,.11),DOOR,0)
+ block((0,-.12,.915),(.31,.31,.04),STONE,.008)
+ hip(0,-.12,.935,.29,.29,.30,SLATE,0)
+ bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.04,location=(0,-.12,1.26));bpy.context.object.data.materials.append(GILT_NS)
+ dark_arch(0,-.246,.12,.22)
+ disc=cylinder((0,0,0),.05,.012,GILT_NS,12);disc.rotation_euler[0]=math.pi/2;disc.location=(0,-.248,.60)
+ chimney(.27,.15,.58,.22)
+
 MODELS=[
  ('ns-sheaf',sheaf),('ns-logs',logs),('ns-stall',stall),
  ('ns-windmill',windmill),('ns-windmill-sails',windmill_sails),
@@ -361,6 +449,7 @@ MODELS=[
  ('ns-granary',granary),('ns-rack',rack),('ns-thatch-barn',thatch_barn),
  ('ns-mine-pit',mine_pit),('ns-mine-winch',mine_winch),('ns-quarry-cut',quarry_cut),('ns-quarry-frame',quarry_frame),
  ('ns-shelter',shelter),('ns-stable',stable),('ns-lumber-camp',lumber_camp),
+ ('ns-great-hut',great_hut),('ns-great-house',great_house),('ns-house-3d',house_3d),('ns-house-3e',house_3e),('ns-house-3f',house_3f),('ns-hall-3',hall_3),
 ]
 # `--only=ns-rack,ns-granary` writes those models and leaves every other file as it is.
 ONLY=next((a[7:].split(',') for a in sys.argv if a.startswith('--only=')),None)

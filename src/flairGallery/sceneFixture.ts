@@ -19,6 +19,7 @@
  */
 
 import { foundCityAt } from '../sim/cities';
+import type { YieldLightKind } from '../render3d/paintedYieldLight';
 import type { ImprovementId } from '../sim/improvementData';
 import { createMap, getTileAt, type Tile } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
@@ -58,6 +59,8 @@ export const SCENE_VIEWS = {
   ages: { col: 15, row: 6, zoom: 3.6, label: 'The eastern town with its works round it' },
   agesClose: { col: 15, row: 6, zoom: 9, label: 'The eastern town with its works, close' },
   yields: { col: 16, row: 2, zoom: 3.6, label: 'Rich hexes: food, production, gold in three steps' },
+  yieldLight: { col: 14, row: 2, zoom: 3.6, label: 'Rich hexes: the six yields in three steps, and two hexes with two yields' },
+  yieldLightClose: { col: 14, row: 2, zoom: 9, label: 'Rich hexes, close' },
   units: { col: 15, row: 13, zoom: 3.4, label: 'Pieces and a ship' },
   fog: { col: 9, row: 15, zoom: 2.4, label: 'Visible, remembered, uncharted' },
 } as const;
@@ -71,8 +74,13 @@ const WIDTH = 26, HEIGHT = 18;
  * left). The scene hands these to the renderer, which shows them whatever the
  * hexes really yield (`Renderer3D.setRichnessShowcase`).
  */
-export const SCENE_RICHNESS: readonly [col: number, row: number, kind: 'food' | 'production' | 'gold', step: number][] =
-  (['food', 'production', 'gold'] as const).flatMap((kind, r) => [1, 2, 3].map((step) => [14 + step, 1 + r, kind, step] as [number, number, 'food' | 'production' | 'gold', number]));
+export const SCENE_RICHNESS: readonly [col: number, row: number, kind: YieldLightKind, step: number, second?: YieldLightKind][] = [
+  ...(['food', 'production', 'gold'] as const).flatMap((kind, r) => [1, 2, 3].map((step) => [14 + step, 1 + r, kind, step] as [number, number, YieldLightKind, number])),
+  // Science, culture and faith, on the tundra beside them, for the light of a rich hex (`paintedYieldLight.ts`).
+  ...(['science', 'culture', 'faith'] as const).flatMap((kind, r) => [1, 2, 3].map((step) => [10 + step, r, kind, step] as [number, number, YieldLightKind, number])),
+  // Two hexes with two yields each: food with gold, and production with science.
+  [14, 3, 'food', 3, 'gold'], [14, 2, 'production', 2, 'science'],
+];
 
 /**
  * The scene's world. A fixture, never a saved game.

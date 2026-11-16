@@ -2282,6 +2282,12 @@ export interface VisualTestSpec {
    * `flag: false` leaves the pole and flag in the middle of the town undrawn.
    */
   town: {
+    /**
+     * `true` draws a town from `NORTH_STAR_TOWN_AGES` (`northStarAssets.js`): huts round a larger hut in the first age, small
+     * houses round a larger house in the second, richer houses round a hall in the late ages (the user, 2026-11-16).
+     * `false` gives back the one hall in every age and the late houses of before.
+     */
+    byAge: boolean;
     flag: boolean;
     wallRadius: number; wallInset: number; wallSpacing: number; wallHeight: number; stakeSpacing: number;
     gateHalf: number; gateInset: number; gateTower: number; roadGateTower: number; towerSize: number;
@@ -2351,6 +2357,31 @@ export interface VisualTestSpec {
   /** A few small flocks of pale birds that cross the board. Sizes and height in hex units, speed in hex units a second, flap in radians a second. */
   birds: { flocks: number; flockSize: number; size: number; height: number; speed: number; flap: number; color: string };
   /** Yields on the board: a hex shows scenery by its strongest yield in three steps (`steps` are the yields each step starts at), and motes of light on the third. */
+  /**
+   * A rich hex shown by particles and light (`paintedYieldLight.ts`; the user, 2026-11-16: "express this gameplay idea
+   * exclusively with particles ... a combination of lighting and particles").
+   * - `show`: `a` motes, `b` light on the ground, `c` shapes that differ by yield, `structures` the sheaves, logs and
+   *   stalls of before (`paintedRichness.ts`), `off` nothing.
+   * - `body`: how much of the ground behind it a light hides, from 0 (light only, which turns white on bright grass) to 1.
+   * - `steps`: for each yield, the three amounts at which a hex reaches steps 1, 2 and 3. A hex shows at most `kinds`
+   *   yields, and its second yield gets `secondShare` of the particles of a first.
+   * - `colors`: the lit yield inks of `src/style.css` (`--y-food-lit` and the five beside it).
+   * - `strength`: the brightness of the ground's light at steps 1, 2 and 3. `inner` and `outer`: the ring of the hex the
+   *   particles stand in, clear of the piece in the middle. `lift`: how far a flat quad lies over the ground.
+   * - `rise` (hex units) and `speed` (lives a second) move the motes and the shapes.
+   * - System a: `motes` a step, `moteSize`, and the ground glow's strength `glow` and radius `glowRadius`.
+   * - System b: the pool's strength `pool` and radius `poolRadius`, `glints` a step and `glintSize`.
+   * - System c: `shapes` a step and each yield's `shapeSize`; it uses a's ground glow.
+   */
+  yieldLight: {
+    show: string; body: number; kinds: number; secondShare: number;
+    steps: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number[]>;
+    colors: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', string>;
+    strength: number[]; inner: number; outer: number; lift: number; rise: number; speed: number;
+    motes: number; moteSize: number; glow: number; glowRadius: number;
+    pool: number; poolRadius: number; glints: number; glintSize: number;
+    shapes: number; shapeSize: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number>;
+  };
   richness: { on: boolean; steps: { food: number[]; production: number[]; gold: number[] }; size: number; radius: number; motes: number; moteSize: number; moteRise: number; moteSpeed: number; colors: { food: string; production: string; gold: string } };
   /** Edge smoothing on the painted board: the sample count of the scene's render target. 0 is off. */
   smoothing: number;

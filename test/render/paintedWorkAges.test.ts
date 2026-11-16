@@ -103,18 +103,21 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('works by the age of their owner',
     const expected: Record<number, Record<string, string>> = {
       1: { farm: 'ns-granary', mine: 'ns-mine-pit', quarry: 'ns-quarry-cut', pasture: 'ns-shelter', lumbermill: 'ns-lumber-camp', plantation: 'ns-granary' },
       2: { farm: 'ns-thatch-barn', mine: 'ns-mine-winch', quarry: 'ns-quarry-frame', pasture: 'ns-shelter', lumbermill: 'ns-lumber-camp', plantation: 'ns-thatch-barn' },
-      3: { farm: 'ns-barn', mine: 'mine', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'lumbermill', plantation: 'ns-barn' },
+      3: { farm: 'ns-windmill', mine: 'mine', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'lumbermill', plantation: 'ns-barn' },
       4: { farm: 'ns-windmill', mine: 'mine', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'lumbermill', plantation: 'ns-barn' },
     };
     for (const age of [1, 2, 3, 4]) {
       setAge(age);
       for (const [improvement, model] of Object.entries(expected[age]!)) expect(modelsAt(cells[improvement]!), `age ${age} ${improvement}`).toContain(model);
-      // No windmill before the last age, whatever the share of farms that have one.
-      if (age < 4) expect(modelsAt(cells.farm!)).not.toContain('ns-windmill');
+      // No windmill in the first two ages, whatever the share of farms that have one.
+      if (age < 3) expect(modelsAt(cells.farm!)).not.toContain('ns-windmill');
     }
     // The first farm has sheaves beside its store (and the drying rack where the yard has room); a later farm has haystacks.
     setAge(1); expect(modelsAt(cells.farm!)).toContain('ns-sheaf'); expect(modelsAt(cells.farm!)).not.toContain('ns-haystack');
-    setAge(3); expect(modelsAt(cells.farm!)).toContain('ns-haystack');
+    // Ages 3 and 4 share their models: a farm with no windmill is the barn with its haystacks in both (the user, 2026-11-16).
+    works.windmillShare = 0;
+    for (const age of [3, 4]) { setAge(age); expect(modelsAt(cells.farm!)).toEqual(expect.arrayContaining(['ns-barn', 'ns-haystack'])); }
+    expect((NORTH_STAR_WORK_AGES as Record<string, unknown[]>).farm![2]).toEqual((NORTH_STAR_WORK_AGES as Record<string, unknown[]>).farm![3]);
     // The owner is in the last age, but a farm nobody owns stays at the first step.
     setAge(4); expect(modelsAt(cells.unowned!)).toContain('ns-granary');
   });

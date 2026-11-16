@@ -148,6 +148,8 @@ import { PaintedSmokeLayer } from './paintedSmoke';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
+import { PaintedYieldLightLayer, type YieldLightPick } from './paintedYieldLight';
+import { VISIBLE as SEEN_NOW } from '../sim/visibility';
 import { PaintedFlowLayer } from './paintedFlow';
 import { SeaMirror } from './seaMirror';
 import { buildMapEnds } from './mapEnds';
@@ -390,6 +392,8 @@ export class Renderer3D implements MapView {
   private paintedBirds: PaintedBirdsLayer | null = null;
   /** Scenery and motes on rich hexes (the visual test version). */
   private paintedRichness: PaintedRichnessLayer | null = null;
+  private paintedYieldLight: PaintedYieldLightLayer | null = null;
+  private yieldLightSignature: number | null = null;
   /** Glints that travel down the rivers (the visual test version). */
   private paintedFlow: PaintedFlowLayer | null = null;
   /** The sea's distances for the board in place, as a texture (`seaDistances.js`); null without a free coast. */
@@ -728,8 +732,9 @@ export class Renderer3D implements MapView {
     this.paintedSails = new PaintedSailsLayer((this.paintedLook.workAssets as unknown as Record<string, ConstructorParameters<typeof PaintedSailsLayer>[0]>)['ns-windmill-sails'], this.paintedLook.registerMaterial);
     this.scene.add(this.paintedSails.group);
     if (VIEW3D.visualTest.northStar) { this.paintedBirds = new PaintedBirdsLayer(this.paintedLook.registerMaterial); this.scene.add(this.paintedBirds.group); }
-    if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.paintedRichness.showcase = this.richnessShowcase; this.scene.add(this.paintedRichness.group); }
+    if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.paintedRichness.showcase = this.richnessShowcase as PaintedRichnessLayer['showcase']; this.scene.add(this.paintedRichness.group); }
     if (VIEW3D.visualTest.northStar) { this.paintedFlow = new PaintedFlowLayer(); this.scene.add(this.paintedFlow.group); }
+    if (VIEW3D.visualTest.northStar) { this.paintedYieldLight = new PaintedYieldLightLayer(); this.paintedYieldLight.showcase = this.yieldLightShowcase(); this.scene.add(this.paintedYieldLight.group); }
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
@@ -1035,11 +1040,32 @@ export class Renderer3D implements MapView {
    * The visual test scene's examples of rich hexes: each cell shows the stated
    * kind and step whatever its yield. Call it before the first state is set.
    */
-  setRichnessShowcase(examples: ReadonlyMap<number, { kind: 'food' | 'production' | 'gold'; step: number }> | null): void {
+  setRichnessShowcase(examples: ReadonlyMap<number, YieldLightPick & { second?: YieldLightPick }> | null): void {
     this.richnessShowcase = examples;
-    if (this.paintedRichness) this.paintedRichness.showcase = examples;
+    if (this.paintedRichness) this.paintedRichness.showcase = examples as PaintedRichnessLayer['showcase'];
+    if (this.paintedYieldLight) { this.paintedYieldLight.showcase = this.yieldLightShowcase(); this.yieldLightSignature = null; }
   }
-  private richnessShowcase: ReadonlyMap<number, { kind: 'food' | 'production' | 'gold'; step: number }> | null = null;
+  private richnessShowcase: ReadonlyMap<number, YieldLightPick & { second?: YieldLightPick }> | null = null;
+  /** The scene's examples as the light layer takes them: the yields of each hex, strongest first. */
+  private yieldLightShowcase(): ReadonlyMap<number, YieldLightPick[]> | null {
+    if (!this.richnessShowcase) return null;
+    return new Map([...this.richnessShowcase].map(([cell, { kind, step, second }]) => [cell, second ? [{ kind, step }, second] : [{ kind, step }]]));
+  }
+
+  /**
+   * The particles and light of the rich hexes (`paintedYieldLight.ts`). Built again when the works are, and when the
+   * set of hexes the seat sees now changes: the layer draws only on those, and a rich hex may hold no work and no
+   * resource, so the works' own fog signature does not cover it.
+   */
+  private rebuildYieldLight(worksSignature: number): void {
+    if (!this.state || !this.paintedYieldLight || !this.paintedBoard) return;
+    const levels = this.fogLevels();
+    let signature = worksSignature ^ Math.imul(this.fogSeat ?? -1, 40503);
+    if (levels) for (let cell = 0; cell < levels.length; cell++) if (levels[cell] === SEEN_NOW) signature = Math.imul(signature ^ cell, 16777619);
+    if (signature === this.yieldLightSignature) return;
+    this.yieldLightSignature = signature;
+    this.paintedYieldLight.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width);
+  }
 
   /** The smoke over the towns the seat watches now (switch 8). */
   private rebuildSmoke(): void {
@@ -1049,7 +1075,7 @@ export class Renderer3D implements MapView {
       x: work.x + from[0]! * work.scale, y: work.y + from[1]! * work.scale, z: work.z + from[2]! * work.scale,
       col: work.cell % width, row: Math.floor(work.cell / width),
     }));
-    this.paintedSmoke?.build(this.state, this.fogLevels(), this.paintedCities?.cityHeights ?? new Map(), visualOn('idle'), chimneys);
+    this.paintedSmoke?.build(this.state, this.fogLevels(), this.paintedCities?.cityHeights ?? new Map(), visualOn('idle'), chimneys, this.paintedCities?.smokeAnchors);
   }
 
   /** How long the last frame took to submit, in milliseconds, on the CPU. */
@@ -1986,7 +2012,7 @@ export class Renderer3D implements MapView {
       if (this.paintedWorks) this.paintedWorks.group.visible = false;
       for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory, this.paintedTerritoryTint]) if (layer) layer.group.visible = false;
       this.paintedSmoke?.build(null, null, new Map(), false);
-      this.paintedWorksSignature = null;
+      this.paintedWorksSignature = null; this.yieldLightSignature = null;
       this.cityBannerAnchors.clear();
       this.invalidate();
       return;
@@ -2002,7 +2028,7 @@ export class Renderer3D implements MapView {
     }
     // A load may replace presentation facts not covered by ordinary command
     // fingerprints (e.g. owner colours). Commands retain the same state object.
-    if (force) { this.visibilitySignatures = null; this.paintedWorksSignature = null; this.reveal?.reset(); }
+    if (force) { this.visibilitySignatures = null; this.paintedWorksSignature = null; this.yieldLightSignature = null; this.reveal?.reset(); }
     this.syncStateLayers(force);
     this.rebuildOverlays();
     this.rebuildLens();
@@ -2277,7 +2303,7 @@ export class Renderer3D implements MapView {
     }
     if (this.mapEnds) { this.mapEnds.group.removeFromParent(); this.mapEnds.dispose(); this.mapEnds = null; }
     const started = performance.now();
-    this.paintedWorksSignature = null;
+    this.paintedWorksSignature = null; this.yieldLightSignature = null;
     const prepared = this.preparedBoard;
     this.preparedBoard = null;
     const ready = prepared?.map === map && prepared.shadows === this.shadows;
@@ -2468,6 +2494,7 @@ export class Renderer3D implements MapView {
   private rebuildPaintedWorks(): boolean {
     if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
     const signature = signPaintedWorks(this.state, this.fogSeat);
+    this.rebuildYieldLight(signature);
     const levels = this.fogLevels();
     let fogSignature = 0;
     if (levels) for (let cell = 0; cell < levels.length; cell++) {
@@ -4200,7 +4227,7 @@ export class Renderer3D implements MapView {
         }
         const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
           this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
-          this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group];
+          this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group, this.paintedYieldLight?.group];
         this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground]);
       } else this.seaMirror?.off();
       this.paintedLook.render();
@@ -4310,13 +4337,13 @@ export class Renderer3D implements MapView {
     if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
     this.reveal?.dispose(); this.reveal = null;
     for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory,
-      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails, this.paintedBirds, this.paintedRichness, this.paintedFlow]) {
+      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails, this.paintedBirds, this.paintedRichness, this.paintedFlow, this.paintedYieldLight]) {
       if (!layer) continue;
       this.scene.remove(layer.group);
       layer.dispose();
     }
     this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
-    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null; this.paintedBirds = null; this.paintedRichness = null; this.paintedFlow = null;
+    this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null; this.paintedBirds = null; this.paintedRichness = null; this.paintedFlow = null; this.paintedYieldLight = null;
     this.paintedUnits?.dispose(); this.paintedUnits = null;
     this.paintedLook?.setBakeDetail(null);
     this.paintedLook?.dispose(); this.paintedLook = null;
@@ -4349,6 +4376,7 @@ export class Renderer3D implements MapView {
     this.paintedSails?.dispose();
     this.paintedBirds?.dispose();
     this.paintedRichness?.dispose();
+    this.paintedYieldLight?.dispose();
     this.paintedFlow?.dispose();
     this.unwatchVisualTest();
     this.paintedUnits?.dispose();

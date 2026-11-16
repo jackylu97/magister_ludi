@@ -5,7 +5,27 @@
 // only when `visualTest.northStar` in data/view3d.json is true. A plain module
 // with no imports, so Node scripts can read it.
 export const NORTH_STAR_HOUSES=['ns-house-1a','ns-house-1b','ns-house-1c','ns-house-2a','ns-house-2b','ns-house-2c','ns-house-3a','ns-house-3b','ns-house-3c'];
-export const NORTH_STAR_TOWN_ASSETS=[...NORTH_STAR_HOUSES,'ns-hall'];
+// What a town draws in each age of its owner (the user, 2026-11-16: "lets have
+// towns contain just huts in age 1, small buildings in age 2, but could we have
+// slightly more intricate buildings for age 3/4"). One entry for each tier of a
+// town's look (`cityTier`): the first age, the second, and the third and fourth
+// together.
+// - `houses`: the three house models of that age.
+// - `centre`: the building at the hall's address, and `centreSize`, its size as
+//   a share of `visualTest.town.hall`'s size. The first age has a larger hut,
+//   the second a larger house; only the late ages have a hall.
+// - `smoke`: where the town's smoke leaves the centre, in the model's own units
+//   (x east, y up, z south): the hut's smoke hole or the building's chimney.
+// `visualTest.town.byAge` in data/view3d.json turns the table on; `false` gives
+// back `NORTH_STAR_TOWN_BEFORE`: the one hall in every age, and the late houses of before.
+export const NORTH_STAR_TOWN_AGES=[
+ {houses:['ns-house-1a','ns-house-1b','ns-house-1c'],centre:'ns-great-hut',centreSize:.84,smoke:[0,.80,0]},
+ {houses:['ns-house-2a','ns-house-2b','ns-house-2c'],centre:'ns-great-house',centreSize:.84,smoke:[.19,.675,-.10]},
+ {houses:['ns-house-3d','ns-house-3e','ns-house-3f'],centre:'ns-hall-3',centreSize:1,smoke:[.27,.82,-.15]},
+];
+export const NORTH_STAR_TOWN_BEFORE=[1,2,3].map(tier=>({houses:['a','b','c'].map(v=>`ns-house-${tier}${v}`),centre:'ns-hall',centreSize:1,smoke:[.22,.66,-.02]}));
+export const NORTH_STAR_AGED_TOWN_ASSETS=['ns-great-hut','ns-great-house','ns-house-3d','ns-house-3e','ns-house-3f','ns-hall-3'];
+export const NORTH_STAR_TOWN_ASSETS=[...NORTH_STAR_HOUSES,'ns-hall',...NORTH_STAR_AGED_TOWN_ASSETS];
 // The animals of the north-star look (the user, 2026-11-13: the horses "seem a
 // bit too simple"). `true` draws the models of
 // `scripts/terrain-study/build_northstar_animals.py`; `false` gives back the
@@ -50,7 +70,7 @@ export const NORTH_STAR_WORK_AGES={
  farm:[
   {store:'ns-granary',size:.66,beside:'ns-sheaf',besideSize:1.15,count:3,rack:true},
   {store:'ns-thatch-barn',size:1,beside:'ns-haystack',besideSize:1,count:2},
-  {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3},
+  {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
   {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
  ],
  mine:['ns-mine-pit','ns-mine-winch','mine','mine'],

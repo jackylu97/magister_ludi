@@ -11,11 +11,12 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { PaintedCityLayer, type PaintedCityAssets } from '../../src/render3d/paintedCities';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, type GameMap } from '../../src/sim/map';
+import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility, VISIBLE } from '../../src/sim/visibility';
 // @ts-expect-error No declarations for the shared study geometry.
 import { centre, prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error No declarations for the shared study geometry.
-import { NORTH_STAR_TOWN_ASSETS } from '../../src/terrainStudy/northStarAssets.js';
+import { NORTH_STAR_TOWN_AGES, NORTH_STAR_TOWN_ASSETS } from '../../src/terrainStudy/northStarAssets.js';
 // @ts-expect-error No declarations for the shared study geometry.
 import { northStarFarmPlan } from '../../src/terrainStudy/northStarWorks.js';
 import { newGame } from '../sim/newGameHelpers';
@@ -59,19 +60,70 @@ function fixture(names: readonly string[]) {
 describe.skipIf(!VIEW3D.visualTest.northStar)('the north-star town', () => {
   const town = VIEW3D.visualTest.town;
 
-  it('stands a hall and the new houses, and keeps the garrison\'s place clear', () => {
+  it('stands a centre and the new houses, and keeps the garrison\'s place clear', () => {
     const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
     f.build();
     const pieces = f.layer.placements.filter(p => p.kind !== 'wall' && p.kind !== 'gate');
-    expect(pieces.filter(p => p.kind === 'civic').map(p => p.asset)).toEqual(['ns-hall']);
+    expect(pieces.filter(p => p.kind === 'civic')).toHaveLength(1);
     const houses = pieces.filter(p => p.kind === 'house');
     expect(houses.length).toBeGreaterThanOrEqual(town.minHouses);
-    for (const house of houses) expect(house.asset).toMatch(/^ns-house-[123][abc]$/);
+    for (const house of houses) expect(house.asset).toMatch(/^ns-house-[123][a-f]$/);
     for (const piece of pieces) for (const corner of piece.footprint) {
       const distance = Math.hypot(corner.x - f.c.x, corner.z - f.c.z);
       expect(distance).toBeGreaterThan(VIEW3D.pieces.base.radius);
       expect(distance).toBeLessThan(1);
     }
+  });
+
+  // The user, 2026-11-16: "lets have towns contain just huts in age 1, small buildings in age 2, but could we have
+  // slightly more intricate buildings for age 3/4".
+  it('draws the centre and the houses of its owner\'s age: a larger hut, a larger house, then a hall', () => {
+    const byAge = town.byAge;
+    try {
+      town.byAge = true;
+      const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
+      const ages = NORTH_STAR_TOWN_AGES as { houses: string[]; centre: string }[];
+      expect(ages.map(age => age.centre)).toEqual(['ns-great-hut', 'ns-great-house', 'ns-hall-3']);
+      for (const age of [1, 2, 3, 4]) {
+        f.state.players[0]!.techsResearched = TECH_IDS.filter(id => techDef(id).age <= age && techDef(id).charter !== true);
+        f.build();
+        const entry = ages[Math.min(3, age) - 1]!;
+        const pieces = f.layer.placements.filter(p => p.cityId === f.city.id);
+        expect(pieces.filter(p => p.kind === 'civic').map(p => p.asset), `age ${age}`).toEqual([entry.centre]);
+        for (const house of pieces.filter(p => p.kind === 'house')) expect(entry.houses, `age ${age}`).toContain(house.asset);
+        // No hall, and no tiled house, stands in a town of the first two ages.
+        if (age < 3) for (const piece of pieces) expect(piece.asset).not.toMatch(/^ns-hall/);
+      }
+      // Ages 3 and 4 share one look, so the town is not cut again between them.
+      expect(ages).toHaveLength(3);
+    } finally { town.byAge = byAge; }
+  });
+
+  it('starts the smoke at the centre building, whatever else stands in the town', () => {
+    const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
+    f.build();
+    const centre = f.layer.placements.find(p => p.kind === 'civic')!, smoke = f.layer.smokeAnchors.get(f.city.id)!;
+    expect(smoke).toBeDefined();
+    // Over the centre's own footprint, and above its floor: never a fixed place in the hex, and never the height of a monument.
+    const xs = centre.footprint.map(p => p.x), zs = centre.footprint.map(p => p.z);
+    expect(smoke.x).toBeGreaterThan(Math.min(...xs)); expect(smoke.x).toBeLessThan(Math.max(...xs));
+    expect(smoke.z).toBeGreaterThan(Math.min(...zs)); expect(smoke.z).toBeLessThan(Math.max(...zs));
+    expect(smoke.y).toBeGreaterThan(centre.y);
+  });
+
+  it('gives back the hall of before in every age when the switch is off', () => {
+    const byAge = town.byAge;
+    try {
+      town.byAge = false;
+      const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
+      for (const age of [1, 3]) {
+        f.state.players[0]!.techsResearched = TECH_IDS.filter(id => techDef(id).age <= age && techDef(id).charter !== true);
+        f.build();
+        const pieces = f.layer.placements.filter(p => p.cityId === f.city.id);
+        expect(pieces.filter(p => p.kind === 'civic').map(p => p.asset)).toEqual(['ns-hall']);
+        for (const house of pieces.filter(p => p.kind === 'house')) expect(house.asset).toMatch(new RegExp(`^ns-house-${age}[abc]$`));
+      }
+    } finally { town.byAge = byAge; }
   });
 
   it('reaches close to the hex edge with its wall', () => {
