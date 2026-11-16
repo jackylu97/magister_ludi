@@ -405,6 +405,8 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   // Shallows, with a pale drawn line at their outer edge.
   // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
   float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
+  // The shallows' outer edge moves in and out a little, each stretch in its own time (the user, 2026-11-16: "some slight motion to the light blue section").
+  outer += sin(time * ${(bands.lapSpeed * .6).toFixed(3)} + vtestNoise(p * .5 + 3.0) * 6.2832) * ${bands.shallowsMove.toFixed(4)};
   // With a free coast the band at the shore is the only band, so its width is uneven at a second, smaller size.
   outer += free * (vtestNoise(p * ${open.scallopScale.toFixed(3)} + 2.0) - .5) * ${open.scallop.toFixed(3)};
   // At a river mouth the river's channel runs out through the shallows to the
@@ -423,7 +425,9 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   // The waterline laps in and out, each stretch of shore in its own time.
   float lap = sin(time * ${bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${bands.lap.toFixed(4)};
   float sandEdge = ${bands.sand.toFixed(3)} * (1.0 + slow * ${bands.sandVary.toFixed(3)}) + lap;
-  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * .5) - ${bands.foam.toFixed(4)} * .5);
+  // The foam's width varies along the shore and drifts slowly, as foam left by waves does (the user, 2026-11-16: "unbroken, but vary in depth").
+  float foamWide = ${bands.foam.toFixed(4)} * (1.0 - ${bands.foamVary.toFixed(3)} * .5 + ${bands.foamVary.toFixed(3)} * vtestNoise(p * 2.3 + vec2(time * .05, 5.0)));
+  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - foamWide * .5) - foamWide * .5);
   foam *= step(${bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
   // A second, fainter line a little further out, left by the last wave.
   float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);

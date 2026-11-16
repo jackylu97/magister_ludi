@@ -1201,7 +1201,7 @@
         "sand": 0.17,
         "sandVary": 0.95,
         "foam": 0.055,
-        "foamGaps": 0.22, "trail": 0,
+        "foamGaps": 0, "trail": 0, "foamVary": 0.9, "shallowsMove": 0.022,
         "lap": 0.018,
         "lapSpeed": 0.9,
         "shallows": 0.3,
