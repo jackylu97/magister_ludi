@@ -1286,6 +1286,7 @@
         "seamWidth": 0.011,
         "scale": { "majorEvery": 5, "numerals": true, "studs": true },
         "shade": { "color": "#4b4263", "alpha": 0.5, "south": 0.5, "north": 0.14 },
+        "side": { "depth": 0.8, "color": "#5f4532", "plank": 12, "shade": 0.35 },
         "raised": { "raise": 0.26, "lip": 0.09, "wall": "cut", "ground": 0.1, "shadeReach": 0.22, "shadeLift": 0.112, "shadeAlpha": 0.7 }
       },
       "width": 0.62,

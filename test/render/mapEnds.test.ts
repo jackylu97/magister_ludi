@@ -137,6 +137,30 @@ describe('the rails at the north and south ends of the map', () => {
     expect(high.cut.north).toBeCloseTo(high.cut.south!, 5);
   });
 
+  it('the board\'s side goes down and outward from the rail\'s foot, and a depth of 0 leaves it out', () => {
+    const map = mapOf(24, 18), moulded = SHEET.moulded!, side = moulded.side!;
+    const lowest = (style: MapEndsStyle): { y: number; outward: number; triangles: number } => {
+      const built = buildMapEnds(map, style);
+      const position = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!.geometry.getAttribute('position');
+      let y = Infinity, outward = Infinity;
+      for (let i = 0; i < position.count; i++) {
+        y = Math.min(y, position.getY(i));
+        // Below the rail's foot, the least distance of the wood from the hex points' line.
+        if (position.getY(i) < -moulded.foot - 1e-3) outward = Math.min(outward, Math.abs(position.getZ(i) - (position.getZ(i) < 12 ? 0 : (map.height - 1) * 1.5)) - 1);
+      }
+      built.dispose();
+      return { y, outward, triangles: position.count / 3 };
+    };
+    const withSide = lowest({ ...SHEET, style: 'moulded' });
+    const without = lowest({ ...SHEET, style: 'moulded', moulded: { ...moulded, side: { ...side, depth: 0 } } });
+    expect(side.depth).toBeGreaterThan(0);
+    expect(withSide.y).toBeCloseTo(-moulded.foot - side.depth, 4);
+    expect(without.y).toBeCloseTo(-moulded.foot, 4);
+    // Everything below the foot is at least the rail's own width out (less the gap): nothing of the side is nearer the hexes.
+    expect(withSide.outward).toBeGreaterThanOrEqual(moulded.width - 1e-3);
+    expect(without.triangles).toBeLessThan(withSide.triangles);
+  });
+
   it('the moulded rail carries the grain attribute, and normals for the paint shader', () => {
     const built = buildMapEnds(mapOf(24, 18), { ...SHEET, style: 'moulded' });
     const rail = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!;
