@@ -491,3 +491,22 @@ The boards in `docs/plans/mockups/scholars-study/` are the spec of record, with 
 Newsreader has other vertical metrics than Instrument Serif, so text set in it can sit high or low in a box that was tuned for the old face. Batch **SS1b**: go through every element set in the display face, check its vertical centring and its spacing against its neighbours, and correct it. The turn card ("Your turn, Pachacuti") is the first case.
 
 **The news toasts' size (the user, 2026-11-16):** *"the new toast banners are slightly too large, lets shrink them a bit"*. Part of SS1b: the toasts become a little smaller (padding, type and mark together, about a seventh), and stay readable.
+
+---
+
+## The rest of the redesign is approved (the user, 2026-11-16)
+
+> "the other elements of the UI overhaul are approved, make sure those get scheduled after the current pass."
+
+So the boards that were "not yet reviewed" are approved as drawn: the Ledger with its graphs, and the whole Diplomacy board (the screen and the deal notice). With the earlier approvals, every board on the canvas is now approved except what a review cancelled or kept as it was (the four cuts for the bead families; the tech marks, deferred; Statecraft's and the Census's present look; beat 3 of the Opus close).
+
+### Build order after SS4
+
+One batch at a time in the main tree, after SS1b and SS2 to SS4:
+
+| Batch | What | Boards |
+|---|---|---|
+| **SS5** | The Ledger as an account book, with the sparklines and the stacked plate | Ledger |
+| **SS6** | The diplomacy screen as a full sheet with the deal table, and the deal notice as a card with Accept, Refuse and "Change it at the table". It needs three small interface changes the board assumes: the notice sends the answer itself; the sheet opens with a rival's offer loaded; a real reading of what a luxury gives | Diplomacy |
+| **SS7** | The big moments: the age plate; the Opus close, beats 1 and 2; the full-screen page that animates the existing 3D Abacus in place of beat 4; the standings page | Moments |
+| **SS8** | What SS1 left: the type-size tokens and the 11 px floor, the top bar's tab labels and the other mono capitals, the sheet motion, the seal under a seated card showing only the turn number, and the bead card with the star mark | Type, Main, Ornament |
