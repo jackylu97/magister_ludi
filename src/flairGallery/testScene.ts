@@ -8,7 +8,7 @@ import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from '../render3d/visualTest';
 import type { LensView } from '../ui/mapView';
-import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture } from './sceneFixture';
+import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture, createWorksFixture } from './sceneFixture';
 import { overrideNorthStarUnit } from '../render3d/northStarUnits';
 import { createUnit } from '../sim/state';
 import type { UnitTypeId } from '../sim/unitData';
@@ -33,6 +33,10 @@ import type { UnitTypeId } from '../sim/unitData';
  * - `yields`: how a rich hex is shown: `a` motes, `b` light on the ground, `c`
  *   shapes by yield, `structures` the sheaves, logs and stalls of before, `off`
  *   nothing (it sets `visualTest.yieldLight.show` for this page);
+ * - `world`: `works` draws a second, small world where every work and every
+ *   great person's work shows its real yield (`createWorksFixture`);
+ * - `force`: `2` or `3` raises every hex that shows a yield light to that step;
+ * - `idle`: `0` turns the small idle motion off (switch 8), to see what holds still;
  * - `towns`: `old` draws every town round the one hall of before (it turns
  *   `visualTest.town.byAge` off for this page);
  * - `still`: `1` (the default) holds the clock that moving water, clouds and
@@ -77,9 +81,12 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   if (params.get('works') === 'old') VIEW3D.visualTest.works.byAge = false;
   if (params.get('towns') === 'old') VIEW3D.visualTest.town.byAge = false;
   // `yields` picks how a rich hex is shown, as `visualTest.yieldLight.show` does.
+  if (params.get('idle') === '0') setVisualTest({ idle: false });
   const yieldShow = params.get('yields');
   if (yieldShow && (YIELD_LIGHT_SHOWS as readonly string[]).includes(yieldShow)) VIEW3D.visualTest.yieldLight.show = yieldShow;
-  const state = createSceneFixture(aged ? age : undefined);
+  // `world=works` draws the small world of works at their real yields (`createWorksFixture`); use `at` to frame it.
+  const worksWorld = params.get('world') === 'works';
+  const state = worksWorld ? createWorksFixture(aged ? age : undefined) : createSceneFixture(aged ? age : undefined);
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -190,9 +197,14 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // For a capture script: it sets the held clock frame by frame, so a recording has an even frame rate.
   (window as unknown as { sceneClock?: (seconds: number | null) => void }).sceneClock = seconds => renderer.setClock(seconds);
   // And the cost of the last frame: draw calls, triangles and the milliseconds the CPU took to submit it.
+  // And what the light of the rich hexes shows, by `col,row`, to check a view against the yield rules.
+  (window as unknown as { sceneYields?: () => Record<string, unknown> }).sceneYields = () => Object.fromEntries([...renderer.yieldLightShown].map(([cell, hex]) => [`${cell % state.map.width},${Math.floor(cell / state.map.width)}`, hex]));
   (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
   renderer.setFogSeat(0);
-  renderer.setRichnessShowcase(new Map(SCENE_RICHNESS.map(([col, row, kind, step, second]) => [row * state.map.width + col,
+  // `force=2` or `force=3` raises every hex that shows to that step, to see the look of a step the land alone does not reach.
+  const forced = Number(params.get('force'));
+  if (forced === 2 || forced === 3) renderer.setYieldLightForcedStep(forced);
+  if (!worksWorld) renderer.setRichnessShowcase(new Map(SCENE_RICHNESS.map(([col, row, kind, step, second]) => [row * state.map.width + col,
     { kind, step, ...(second ? { second: { kind: second, step: Math.max(1, step - 1) } } : {}) }])));
   renderer.setGameState(state);
   const resourceCells = state.map.tiles.filter(tile => tile.resource).map(tile => ({ col: tile.col, row: tile.row }));

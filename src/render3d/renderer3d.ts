@@ -148,7 +148,7 @@ import { PaintedSmokeLayer } from './paintedSmoke';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
-import { PaintedYieldLightLayer, type YieldLightPick } from './paintedYieldLight';
+import { PaintedYieldLightLayer, type YieldLightHex, type YieldLightPick } from './paintedYieldLight';
 import { VISIBLE as SEEN_NOW } from '../sim/visibility';
 import { PaintedFlowLayer } from './paintedFlow';
 import { SeaMirror } from './seaMirror';
@@ -734,7 +734,7 @@ export class Renderer3D implements MapView {
     if (VIEW3D.visualTest.northStar) { this.paintedBirds = new PaintedBirdsLayer(this.paintedLook.registerMaterial); this.scene.add(this.paintedBirds.group); }
     if (VIEW3D.visualTest.northStar) { this.paintedRichness = new PaintedRichnessLayer(this.paintedLook.workAssets as unknown as ConstructorParameters<typeof PaintedRichnessLayer>[0]); this.paintedRichness.showcase = this.richnessShowcase as PaintedRichnessLayer['showcase']; this.scene.add(this.paintedRichness.group); }
     if (VIEW3D.visualTest.northStar) { this.paintedFlow = new PaintedFlowLayer(); this.scene.add(this.paintedFlow.group); }
-    if (VIEW3D.visualTest.northStar) { this.paintedYieldLight = new PaintedYieldLightLayer(); this.paintedYieldLight.showcase = this.yieldLightShowcase(); this.scene.add(this.paintedYieldLight.group); }
+    if (VIEW3D.visualTest.northStar) { this.paintedYieldLight = new PaintedYieldLightLayer(); this.paintedYieldLight.showcase = this.yieldLightShowcase(); this.paintedYieldLight.forcedStep = this.forcedYieldStep; this.scene.add(this.paintedYieldLight.group); }
     this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
     // The pieces' outline shell rides the same swell as a ship's body (switch 8).
     installBob(this.materials.unitOutline);
@@ -1046,10 +1046,18 @@ export class Renderer3D implements MapView {
     if (this.paintedYieldLight) { this.paintedYieldLight.showcase = this.yieldLightShowcase(); this.yieldLightSignature = null; }
   }
   private richnessShowcase: ReadonlyMap<number, YieldLightPick & { second?: YieldLightPick }> | null = null;
+  /** The visual test scene's forced step for the light of the rich hexes (`PaintedYieldLightLayer.forcedStep`). Call it before the first state is set. */
+  setYieldLightForcedStep(step: number | null): void { this.forcedYieldStep = step; if (this.paintedYieldLight) { this.paintedYieldLight.forcedStep = step; this.yieldLightSignature = null; } }
+  private forcedYieldStep: number | null = null;
+  /** The hexes the light of the rich hexes drew last, and what each shows, by cell. For the test scene and for tests. */
+  get yieldLightShown(): ReadonlyMap<number, YieldLightHex> { return this.paintedYieldLight?.shown ?? new Map(); }
   /** The scene's examples as the light layer takes them: the yields of each hex, strongest first. */
-  private yieldLightShowcase(): ReadonlyMap<number, YieldLightPick[]> | null {
+  private yieldLightShowcase(): ReadonlyMap<number, YieldLightHex> | null {
     if (!this.richnessShowcase) return null;
-    return new Map([...this.richnessShowcase].map(([cell, { kind, step, second }]) => [cell, second ? [{ kind, step }, second] : [{ kind, step }]]));
+    // An example names its step; its score is that step's threshold. A second yield holds a third of it.
+    const thresholds = VIEW3D.visualTest.yieldLight.thresholds;
+    return new Map([...this.richnessShowcase].map(([cell, { kind, step, second }]) => [cell, { score: thresholds[step - 1] ?? 0, step,
+      parts: second ? [{ kind, share: 2 / 3 }, { kind: second.kind, share: 1 / 3 }] : [{ kind, share: 1 }] }]));
   }
 
   /**
@@ -1060,7 +1068,8 @@ export class Renderer3D implements MapView {
   private rebuildYieldLight(worksSignature: number): void {
     if (!this.state || !this.paintedYieldLight || !this.paintedBoard) return;
     const levels = this.fogLevels();
-    let signature = worksSignature ^ Math.imul(this.fogSeat ?? -1, 40503);
+    // The seat's count of technologies stands in for "a yield may have changed": a technology is what raises a work's yield.
+    let signature = worksSignature ^ Math.imul(this.fogSeat ?? -1, 40503) ^ Math.imul(this.state.players[this.fogSeat ?? 0]?.techsResearched.length ?? 0, 2654435761);
     if (levels) for (let cell = 0; cell < levels.length; cell++) if (levels[cell] === SEEN_NOW) signature = Math.imul(signature ^ cell, 16777619);
     if (signature === this.yieldLightSignature) return;
     this.yieldLightSignature = signature;

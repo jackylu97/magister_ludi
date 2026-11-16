@@ -1590,42 +1590,24 @@
     },
     "smoothing": 4,
     "yieldLight": {
-      "show": "a",
+      "show": "d",
+      "d": {
+        "motes": [3, 6, 9],
+        "moteSize": [0.04, 0.052, 0.068],
+        "moteOpacity": 0.9,
+        "wash": [0, 0.45, 1],
+        "washRadius": 0.8,
+        "washStrength": 0.62,
+        "washBody": 0.3,
+        "greatLift": 0.45,
+        "breath": 0.12
+      },
       "body": 0.55,
       "kinds": 2,
       "secondShare": 0.5,
-      "steps": {
-        "food": [
-          3,
-          4,
-          5
-        ],
-        "production": [
-          2,
-          3,
-          4
-        ],
-        "gold": [
-          2,
-          3,
-          4
-        ],
-        "science": [
-          1,
-          2,
-          3
-        ],
-        "culture": [
-          1,
-          2,
-          3
-        ],
-        "faith": [
-          1,
-          2,
-          3
-        ]
-      },
+      "weights": {"food": 1, "production": 1, "gold": 0.75, "science": 1.5, "culture": 1.5, "faith": 1},
+      "thresholds": [4, 7, 10],
+      "minShare": 0.2,
       "colors": {
         "food": "#7fd06c",
         "production": "#eda75f",
