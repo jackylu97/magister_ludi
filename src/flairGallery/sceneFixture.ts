@@ -166,6 +166,8 @@ export function createSceneFixture(age?: number) {
     [13, 11, 'cattle'], [10, 10, 'camels'], [11, 5, 'bison'], [12, 5, 'ivory'],
     // For the works round the eastern town (the `ages` views).
     [16, 6, 'cattle'], [15, 7, 'stone'], [17, 6, 'wine'],
+    // On the south's last row, to judge what the map's end rail covers of a pin (seen with `seat=1`).
+    [11, 17, 'wheat'], [16, 17, 'horses'],
   ];
   for (const [col, row, id] of resources) tile(col, row).resource = id;
   const works: [number, number, ImprovementId][] = [
@@ -203,6 +205,9 @@ export function createSceneFixture(age?: number) {
   // A fourth town on the shore, to show a town wall beside a free coastline.
   const port = foundCityAt(state, 1, tile(18, 15));
   port.population = 4;
+  // A fifth town on the south's last row, for the same reason. The western court's fog hides it.
+  const southern = foundCityAt(state, 1, tile(13, 17));
+  southern.population = 3;
   // The west owns cols 0 to 11 from row 5 down to row 13, with one unowned
   // hex inside; the east owns cols 12 to 18 from row 3 to row 12. They meet
   // along the line between cols 11 and 12, and the west's north border runs

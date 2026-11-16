@@ -53,6 +53,11 @@ import type { UnitTypeId } from '../sim/unitData';
  *   scout or a settler an alternate design, `col.row.scout.seat.b`;
  * - `at`: `col_row_zoom` centres the camera on a hex, `zoom` times closer than
  *   the game's closest. It replaces the view's own camera.
+ *
+ * And one for the review of the map's end rails (2026-11-16):
+ * - `seat`: `1` draws the scene as the eastern court sees it, which is all of it
+ *   in sight. Without it the western court's fog is drawn (the south-west
+ *   remembered, the south-middle unexplored).
  */
 export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
@@ -200,7 +205,8 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // And what the light of the rich hexes shows, by `col,row`, to check a view against the yield rules.
   (window as unknown as { sceneYields?: () => Record<string, unknown> }).sceneYields = () => Object.fromEntries([...renderer.yieldLightShown].map(([cell, hex]) => [`${cell % state.map.width},${Math.floor(cell / state.map.width)}`, hex]));
   (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
-  renderer.setFogSeat(0);
+  const seat = params.get('seat') === '1' ? 1 : 0;
+  renderer.setFogSeat(seat);
   // `force=2` or `force=3` raises every hex that shows to that step, to see the look of a step the land alone does not reach.
   const forced = Number(params.get('force'));
   if (forced === 2 || forced === 3) renderer.setYieldLightForcedStep(forced);
@@ -208,7 +214,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     { kind, step, ...(second ? { second: { kind: second, step: Math.max(1, step - 1) } } : {}) }])));
   renderer.setGameState(state);
   const resourceCells = state.map.tiles.filter(tile => tile.resource).map(tile => ({ col: tile.col, row: tile.row }));
-  renderer.setLens({ ...NO_LENS, resources: true, resourceCells, playerId: 0 } as LensView);
+  renderer.setLens({ ...NO_LENS, resources: true, resourceCells, playerId: seat } as LensView);
   ready = true;
   frame();
   document.body.dataset.sceneReady = '1';

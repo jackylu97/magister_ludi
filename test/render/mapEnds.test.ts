@@ -54,7 +54,7 @@ describe('the rails at the north and south ends of the map', () => {
       // No vertex is over a hex of the last row; the gap is the smallest distance allowed.
       expect(rail.worst).toBeGreaterThanOrEqual(style.gap - 1e-4);
       // The wall's shade reaches onto the last row by its own length and no more.
-      if (name === 'moulded') expect(rail.shadeWorst).toBeGreaterThanOrEqual(style.gap - (style.moulded!.north?.shadeReach ?? 0) - 1e-4);
+      if (name === 'moulded') expect(rail.shadeWorst).toBeGreaterThanOrEqual(style.gap - (style.moulded!.raised?.shadeReach ?? 0) - 1e-4);
       // There is a rail at each end: one north of the first row's points, one south of the last row's.
       expect(rail.minZ).toBeLessThan(-1);
       expect(rail.maxZ).toBeGreaterThan((height - 1) * 1.5 + 1);
@@ -77,33 +77,88 @@ describe('the rails at the north and south ends of the map', () => {
     // One rail mesh and one shade mesh for each of the three wrap copies.
     expect(moulded.draws).toBe(6);
     expect(plain.draws).toBe(12);
-    // Per wrap copy: under 110 triangles a column for both ends together.
-    expect(moulded.triangles / 3 / map.width).toBeLessThan(110);
+    // Per wrap copy: under 125 triangles a column for both ends together.
+    expect(moulded.triangles / 3 / map.width).toBeLessThan(125);
   });
 
-  it('the north rail stands higher than the south rail: a wall at the cut and a taller lip', () => {
-    const map = mapOf(24, 18), built = buildMapEnds(map, { ...SHEET, style: 'moulded' });
+  /** The wood of one end, as points measured from that end's own line: along the rail from its west end, outward from the hex points, and up. */
+  function woodOfEnd(map: GameMap, style: MapEndsStyle, end: 'north' | 'south'): string[] {
+    const built = buildMapEnds(map, style);
     const rail = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!;
-    const position = rail.geometry.getAttribute('position'), north = SHEET.moulded!.north!;
-    // The highest point of each end, and the highest point on each end's cut (within a little of the hex points' line).
-    const top = { north: -Infinity, south: -Infinity }, cut = { north: -Infinity, south: -Infinity };
+    const position = rail.geometry.getAttribute('position'), grain = rail.geometry.getAttribute('rail');
+    const row = end === 'north' ? 0 : map.height - 1, sign = end === 'north' ? -1 : 1, west = ROOT3 * ((row % 2) * .5 - .5);
+    const points: string[] = [];
     for (let i = 0; i < position.count; i++) {
-      const z = position.getZ(i), y = position.getY(i), end = z < (map.height - 1) * .75 ? 'north' : 'south';
-      top[end] = Math.max(top[end], y);
-      if (clearOfLastRow(position.getX(i), z, map) < SHEET.gap + 1e-3) cut[end] = Math.max(cut[end], y);
+      // Wood only. The brass figures are left out on purpose: they read from the south at both ends, so they are not mirrored.
+      if (grain.getX(i) === 0) continue;
+      const z = position.getZ(i);
+      if ((z < (map.height - 1) * .75) !== (end === 'north')) continue;
+      const along = position.getX(i) - west, outward = sign * (z - row * 1.5) - 1;
+      points.push(`${along.toFixed(3)} ${outward.toFixed(3)} ${position.getY(i).toFixed(3)}`);
     }
-    expect(top.north - top.south).toBeCloseTo(north.raise + north.lip, 4);
-    expect(cut.north - cut.south).toBeCloseTo(north.wall === 'behind' ? 0 : north.raise, 4);
-    // The wall shows above the ground by several times what the south's cut does.
-    expect(cut.north - north.ground).toBeGreaterThan(.15);
-    // Without the block, the north rail is the south rail mirrored.
-    const { north: _dropped, ...mirrored } = SHEET.moulded!;
-    const same = buildMapEnds(map, { ...SHEET, style: 'moulded', moulded: mirrored });
-    const samePosition = (same.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!.geometry.getAttribute('position');
-    let low = -Infinity, high = -Infinity;
-    for (let i = 0; i < samePosition.count; i++) { if (samePosition.getZ(i) < 10) low = Math.max(low, samePosition.getY(i)); else high = Math.max(high, samePosition.getY(i)); }
-    expect(low).toBeCloseTo(high, 5);
-    built.dispose(); same.dispose();
+    built.dispose();
+    return points.sort();
+  }
+
+  for (const height of [18, 25]) {
+    it(`the two ends are mirror images of each other (a map ${height} rows high)`, () => {
+      // An even height puts the south's last row half a column to the east of the north's; the points are measured from each end's own west end.
+      const map = mapOf(24, height), style = { ...SHEET, style: 'moulded' };
+      const north = woodOfEnd(map, style, 'north'), south = woodOfEnd(map, style, 'south');
+      expect(north.length).toBeGreaterThan(1000);
+      expect(south).toEqual(north);
+    });
+  }
+
+  it('both ends are raised by the one shared block: a wall at the cut and a taller lip', () => {
+    const map = mapOf(24, 18), raised = SHEET.moulded!.raised!;
+    const heights = (style: MapEndsStyle): { top: Record<string, number>; cut: Record<string, number> } => {
+      const built = buildMapEnds(map, style);
+      const position = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!.geometry.getAttribute('position');
+      // The highest point of each end, and the highest point on each end's cut (within a little of the hex points' line).
+      const top = { north: -Infinity, south: -Infinity }, cut = { north: -Infinity, south: -Infinity };
+      for (let i = 0; i < position.count; i++) {
+        const z = position.getZ(i), y = position.getY(i), end = z < (map.height - 1) * .75 ? 'north' : 'south';
+        top[end] = Math.max(top[end], y);
+        if (clearOfLastRow(position.getX(i), z, map) < SHEET.gap + 1e-3) cut[end] = Math.max(cut[end], y);
+      }
+      built.dispose();
+      return { top, cut };
+    };
+    const { raised: _dropped, ...flat } = SHEET.moulded!;
+    const high = heights({ ...SHEET, style: 'moulded' }), low = heights({ ...SHEET, style: 'moulded', moulded: flat });
+    for (const end of ['north', 'south']) {
+      expect(high.top[end]! - low.top[end]!).toBeCloseTo(raised.raise + raised.lip, 4);
+      expect(high.cut[end]! - low.cut[end]!).toBeCloseTo(raised.wall === 'behind' ? 0 : raised.raise, 4);
+      // The wall shows well above the ground.
+      expect(high.cut[end]! - raised.ground).toBeGreaterThan(.15);
+    }
+    expect(high.top.north).toBeCloseTo(high.top.south!, 5);
+    expect(high.cut.north).toBeCloseTo(high.cut.south!, 5);
+  });
+
+  it('the board\'s side goes down and outward from the rail\'s foot, and a depth of 0 leaves it out', () => {
+    const map = mapOf(24, 18), moulded = SHEET.moulded!, side = moulded.side!;
+    const lowest = (style: MapEndsStyle): { y: number; outward: number; triangles: number } => {
+      const built = buildMapEnds(map, style);
+      const position = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!.geometry.getAttribute('position');
+      let y = Infinity, outward = Infinity;
+      for (let i = 0; i < position.count; i++) {
+        y = Math.min(y, position.getY(i));
+        // Below the rail's foot, the least distance of the wood from the hex points' line.
+        if (position.getY(i) < -moulded.foot - 1e-3) outward = Math.min(outward, Math.abs(position.getZ(i) - (position.getZ(i) < 12 ? 0 : (map.height - 1) * 1.5)) - 1);
+      }
+      built.dispose();
+      return { y, outward, triangles: position.count / 3 };
+    };
+    const withSide = lowest({ ...SHEET, style: 'moulded' });
+    const without = lowest({ ...SHEET, style: 'moulded', moulded: { ...moulded, side: { ...side, depth: 0 } } });
+    expect(side.depth).toBeGreaterThan(0);
+    expect(withSide.y).toBeCloseTo(-moulded.foot - side.depth, 4);
+    expect(without.y).toBeCloseTo(-moulded.foot, 4);
+    // Everything below the foot is at least the rail's own width out (less the gap): nothing of the side is nearer the hexes.
+    expect(withSide.outward).toBeGreaterThanOrEqual(moulded.width - 1e-3);
+    expect(without.triangles).toBeLessThan(withSide.triangles);
   });
 
   it('the moulded rail carries the grain attribute, and normals for the paint shader', () => {
@@ -112,10 +167,10 @@ describe('the rails at the north and south ends of the map', () => {
     expect(rail.castShadow && rail.receiveShadow).toBe(true);
     expect(rail.geometry.getAttribute('rail').count).toBe(rail.geometry.getAttribute('position').count);
     expect(rail.geometry.getAttribute('normal').count).toBe(rail.geometry.getAttribute('position').count);
-    // Every top face looks up: no face of the rail is wound the wrong way and so drawn from below only.
+    // Every flat top looks up: none is wound the wrong way and so drawn from below only. (The underside of the belt on the outer side slopes down by design, so the check is for faces that look straight down.)
     const normal = rail.geometry.getAttribute('normal'), position = rail.geometry.getAttribute('position');
     let down = 0;
-    for (let i = 0; i < normal.count; i++) if (normal.getY(i) < -1e-6 && position.getY(i) > 0) down++;
+    for (let i = 0; i < normal.count; i++) if (normal.getY(i) < -.99 && position.getY(i) > 0) down++;
     expect(down).toBe(0);
     built.dispose();
   });

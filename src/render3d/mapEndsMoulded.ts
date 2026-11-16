@@ -63,25 +63,45 @@ export interface MouldedRailStyle {
   /** The shade at the rail's foot on the table: its colour, its strength (0 to 1), how far it reaches on the south side and on the north side. */
   shade: { color: string; alpha: number; south: number; north: number };
   /**
-   * The north rail only. The camera looks from the south, so at the north end it
-   * sees the rail's inner side and its tops, never its outer side. With the
-   * south's profile mirrored, the north rail read as flat stripes on the ground
-   * (the user, 2026-11-16: "It should really look like it's a table/board being
-   * viewed from the same angle as the camera. Maybe it can be slightly raised
-   * from the terrain"). So the north rail stands higher:
-   * - `raise` lifts the whole top, which gives a wall that faces the camera;
-   * - `lip` lifts the lip again, so its near face shows above the board;
+   * How high the rail stands above the ground. Both ends read this one block,
+   * so the two rails are the same shape mirrored and cannot drift apart.
+   *
+   * It began as the north rail's own. The camera looks from the south, so at
+   * the north end it sees the rail's inner side and its tops, never its outer
+   * side, and a low rail read as flat stripes on the ground (the user,
+   * 2026-11-16: "It should really look like it's a table/board being viewed
+   * from the same angle as the camera. Maybe it can be slightly raised from the
+   * terrain"). The user then asked for the same at the south, "for the sake of
+   * completion ... lets make sure the two sides are symmetrical", and accepted
+   * that the south rail now covers the foot of the last row.
+   * - `raise` lifts the whole top, which gives a wall on the board's side;
+   * - `lip` lifts the lip again, so its inner face shows above the board;
    * - `wall` says where the wall stands: `cut` at the hex points (it follows
-   *   them, and its shadow falls on the last row), or `behind` them (the apron
-   *   stays low and a straight wall rises where the board begins).
-   * Without this block the north rail is the south rail mirrored.
+   *   them), or `behind` them (the apron stays low and a straight wall rises
+   *   where the board begins).
+   * Without this block both rails are low: the first moulded rail.
    */
-  north?: { raise: number; lip: number; wall: string; /** The height of flat land's surface, where the wall's dark foot ends. */ ground: number; /** The shade the wall lays on the ground at its foot: how far it reaches onto the last row, its height (a little above `ground`), and its strength (0 to 1). */ shadeReach: number; shadeLift: number; shadeAlpha: number };
+  /**
+   * The board's own side, under the rail (the user, 2026-11-16: "the south rail
+   * should have some thickness, could we add in an additional shaded section that
+   * shows the thickness of the entire south rail, to give the board a feeling of
+   * dimensionality?"). The rail sits on the board, and below the rail's skirt
+   * the board's edge goes on down to the table: a plain, deep face in long
+   * boards, with a small chamfer at its top and a base moulding at its foot.
+   * It goes down and outward only, so it covers no more of the hexes.
+   * - `depth` is how far it goes below the rail's foot. 0, or no block, leaves it out.
+   * - `color` is its wood, `plank` the length of its boards in columns.
+   * - `shade` is how much longer the shade on the table is for each unit of depth.
+   * Both ends have it, so they stay mirror images. At the north it faces away
+   * from the camera and is never seen.
+   */
+  side?: { depth: number; color: string; plank: number; shade: number };
+  raised?: { raise: number; lip: number; wall: string; /** The height of flat land's surface, where the wall's dark foot ends. */ ground: number; /** The shade the wall lays on the ground at its foot: how far it reaches onto the last row, its height (a little above `ground`), and its strength (0 to 1). */ shadeReach: number; shadeLift: number; shadeAlpha: number };
 }
 
 const ROOT3 = Math.sqrt(3);
 type Point = [number, number, number];
-type Member = 'apron' | 'board' | 'lip' | 'skirt';
+type Member = 'apron' | 'board' | 'lip' | 'skirt' | 'side';
 
 /**
  * The straight part of the profile, from the board side to the outer side.
@@ -180,7 +200,22 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
   const shadeMaterial = new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false });
   const period = ROOT3 * map.width;
   const scaleD = m.width / PROFILE_WIDTH, scaleY = m.rise / PROFILE_RISE;
-  const flatProfile = PROFILE.map((p, i) => ({ ...p, d: p.d * scaleD, y: i === PROFILE.length - 1 ? -m.foot : p.y * scaleY }));
+  const flatProfile: { d: number; y: number; member: Member; tone: number; worn?: boolean; toneEnd?: number }[] =
+    PROFILE.map((p, i) => ({ ...p, d: p.d * scaleD, y: i === PROFILE.length - 1 ? -m.foot : p.y * scaleY }));
+  // The board's side goes on from the rail's foot: a chamfer, the deep face, the base moulding, the base.
+  const sideDepth = m.side?.depth ?? 0, sideFrom = flatProfile.length - 1;
+  if (sideDepth > 0) {
+    const bottom = -m.foot - sideDepth;
+    flatProfile[sideFrom] = { ...flatProfile[sideFrom]!, member: 'side', tone: 1, worn: true };
+    flatProfile.push(
+      { d: .838 * scaleD, y: -m.foot - .022, member: 'side', tone: .8, toneEnd: .5 },
+      { d: .838 * scaleD, y: bottom + .085, member: 'side', tone: .92, worn: true },
+      { d: .866 * scaleD, y: bottom + .058, member: 'side', tone: .62, toneEnd: .4 },
+      { d: .866 * scaleD, y: bottom, member: 'side', tone: 1 },
+    );
+  }
+  const woods: Record<Member, string> = { ...m.woods, side: m.side?.color ?? m.woods.skirt };
+  const planks: Record<Member, number> = { ...m.planks, side: m.side?.plank ?? m.planks.skirt };
   const flatApron = { chamferY: APRON.chamferY * scaleY, lipIn: APRON.lipIn * scaleD, lipOut: APRON.lipOut * scaleD, lipY: APRON.lipY * scaleY, ledgeIn: APRON.ledgeIn * scaleD, ledgeY: APRON.ledgeY * scaleY };
   const seamColor = new Color(m.seam), wornColor = new Color(m.worn), brass = new Color(m.brass), brassLight = new Color(m.brassLight), bed = new Color(m.bed);
 
@@ -194,10 +229,10 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     const z0 = row * 1.5 + end * (1 + style.gap);
     const x0 = -ROOT3 / 2 + ROOT3 * shift;
     const at = (x: number, d: number, y: number): Point => [x, y, z0 + end * d];
-    // The north rail's own heights (see `north` on the style). Points 0 to 14 of the profile are above the ground; 8 to 14 are the lip.
-    const north = end < 0 ? m.north : undefined, raise = north?.raise ?? 0, wallAtCut = north !== undefined && north.wall !== 'behind';
+    // The raised heights (see `raised` on the style), the same at both ends. Points 0 to 14 of the profile are above the ground; 8 to 14 are the lip.
+    const raised = m.raised, raise = raised?.raise ?? 0, wallAtCut = raised !== undefined && raised.wall !== 'behind';
     const apronRaise = wallAtCut ? raise : 0;
-    const profile = flatProfile.map((p, i) => ({ ...p, y: p.y + (i > 14 ? 0 : (i === 0 ? apronRaise : raise) + (i >= 8 ? north?.lip ?? 0 : 0)) }));
+    const profile = flatProfile.map((p, i) => ({ ...p, y: p.y + (i > 14 ? 0 : (i === 0 ? apronRaise : raise) + (i >= 8 ? raised?.lip ?? 0 : 0)) }));
     const apron = { ...flatApron, chamferY: flatApron.chamferY + apronRaise, lipY: flatApron.lipY + apronRaise, ledgeY: flatApron.ledgeY + apronRaise };
     /** A flat face. `ref` says which way it looks, so the winding is right at both ends. */
     const face = (points: Point[], ref: Point, tones: Color | Color[], grain: number, seed: number): void => {
@@ -217,9 +252,10 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     const outward = (d0: number, y0: number, d1: number, y1: number): Point => [0, d1 - d0, end * (y0 - y1)];
     /** A plank's own colour: its member's colour, moved a little in tone and hue. */
     const plankColor = (member: Member, index: number): { color: Color; seed: number } => {
-      const key = ['apron', 'board', 'lip', 'skirt'].indexOf(member) + (end > 0 ? 4 : 0);
+      // The keys of the first four members are as they were, so their planks keep the colours the user approved.
+      const key = member === 'side' ? (end > 0 ? 9 : 8) : ['apron', 'board', 'lip', 'skirt'].indexOf(member) + (end > 0 ? 4 : 0);
       const a = hash(key, index, 1), b = hash(key, index, 2);
-      const color = new Color(m.woods[member]).offsetHSL((b - .5) * .02, (b - .5) * .04, (a - .5) * m.toneVary);
+      const color = new Color(woods[member]).offsetHSL((b - .5) * .02, (b - .5) * .04, (a - .5) * m.toneVary);
       return { color, seed: hash(key, index, 3) };
     };
     const toned = (base: Color, tone: number, worn = false): Color => {
@@ -228,7 +264,7 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     };
     /** Where the joints of a member fall, as whole columns from the rail's west end. Joints sit on the notches, between two ticks. */
     const joints = (member: Member, offset: number): number[] => {
-      const count = Math.max(1, Math.round(map.width / m.planks[member]));
+      const count = Math.max(1, Math.round(map.width / planks[member]));
       return Array.from({ length: count + 1 }, (_, k) => Math.round(k * map.width / count) + offset);
     };
 
@@ -250,17 +286,17 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
         // The cut side, dark at the foot: the shade where the rail meets the ground.
         if (apronRaise > 0) {
           // A wall that faces the camera: dark where it meets the ground, then the wood's own tone up to the chamfer.
-          const ground = north!.ground, knee = ground + (apron.chamferY - ground) * .35;
+          const ground = raised!.ground, knee = ground + (apron.chamferY - ground) * .35;
           band(0, -m.foot, 0, ground, toned(base, .3), toned(base, .4), .6);
           band(0, ground, 0, knee, toned(base, .4), toned(base, .8), .8);
           band(0, knee, 0, apron.chamferY, toned(base, .8), toned(base, 1.02), 1);
           // The wall's shade on the ground. The board's shadow map does not show on the ground tiles, so the shade is laid
           // here as the table's is: a strip that fades out, a little above flat land so the chart paper takes it too.
-          const reach = north!.shadeReach, lift = north!.shadeLift;
+          const reach = raised!.shadeReach, lift = raised!.shadeLift;
           const strip = [at(ax, ad, lift), at(bx, bd, lift), at(bx, bd - reach, lift), at(ax, ad - reach, lift)];
-          for (const k of [0, 2, 1, 0, 3, 2]) {
+          for (const k of end < 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3]) {
             shadePositions.push(...strip[k]!);
-            shadeColors.push(shadeColor.r, shadeColor.g, shadeColor.b, k < 2 ? north!.shadeAlpha : 0);
+            shadeColors.push(shadeColor.r, shadeColor.g, shadeColor.b, k < 2 ? raised!.shadeAlpha : 0);
           }
         } else band(0, -m.foot, 0, apron.chamferY, toned(base, .34), toned(base, .7), .6);
         band(0, apron.chamferY, apron.lipIn, apron.lipY, toned(base, 1.08, true), toned(base, 1.08, true), .5);
@@ -282,7 +318,8 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     const members: { member: Member; from: number; to: number; offset: number; skew: number }[] = [
       { member: 'board', from: 0, to: 4, offset: 3, skew: 0 },
       { member: 'lip', from: 4, to: 15, offset: 0, skew: 1 },
-      { member: 'skirt', from: 15, to: profile.length - 1, offset: 2, skew: 0 },
+      { member: 'skirt', from: 15, to: sideFrom, offset: 2, skew: 0 },
+      ...(sideDepth > 0 ? [{ member: 'side' as Member, from: sideFrom, to: profile.length - 1, offset: 5, skew: 0 }] : []),
     ];
     const boardJoints: number[] = [], lipJoints: number[] = [];
     for (const { member, from, to, offset, skew } of members) {
@@ -296,13 +333,22 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
         for (let i = from; i < to; i++) {
           const p = profile[i]!, q = profile[i + 1]!, ref = outward(p.d, p.y, q.d, q.y);
           // With the wall behind the points, the board's bevel is the wall: darker at its foot, on the apron.
-          const wall = i === 0 && north !== undefined && !wallAtCut;
+          const wall = i === 0 && raised !== undefined && !wallAtCut;
           const tone0 = toned(base, wall ? .55 : p.tone, p.worn), tone1 = toned(base, wall ? .95 : p.toneEnd ?? p.tone, p.worn);
           const grain = p.worn ? .5 : p.tone < .7 ? .3 : 1;
           face([at(west + half + slant(p.d), p.d, p.y), at(east - half + slant(p.d), p.d, p.y), at(east - half + slant(q.d), q.d, q.y), at(west + half + slant(q.d), q.d, q.y)], ref, [tone0, tone0, tone1, tone1], grain, seed);
           // The joint at the plank's west end: the same face, a little sunk and dark.
           const sink = .006, length = Math.hypot(ref[1], ref[2]) || 1, nd = end * ref[2] / length * sink, ny = ref[1] / length * sink;
           face([at(west - half + slant(p.d), p.d - nd, p.y - ny), at(west + half + slant(p.d), p.d - nd, p.y - ny), at(west + half + slant(q.d), q.d - nd, q.y - ny), at(west - half + slant(q.d), q.d - nd, q.y - ny)], ref, seamColor, 0, 0);
+        }
+        if (member === 'lip' && raised) {
+          // A raised rail has a tall outer side. One belt across it, a third of the way up, keeps it from reading as a slab.
+          const outer = profile[14]!, foot = profile[15]!, low = foot.y + (outer.y - foot.y) * .34, d = outer.d, out = d + .016 * scaleD;
+          const belt: [number, number, number, boolean][] = [[d, low + .062, 1.05, true], [out, low + .046, .9, false], [out, low + .008, .62, false], [d, low, .62, false]];
+          for (let i = 0; i < belt.length - 1; i++) {
+            const [d0, y0, tone, worn] = belt[i]!, [d1, y1] = belt[i + 1]!;
+            face([at(west + half + slant(d0), d0, y0), at(east - half + slant(d0), d0, y0), at(east - half + slant(d1), d1, y1), at(west + half + slant(d1), d1, y1)], outward(d0, y0, d1, y1), toned(base, tone, worn), worn ? .5 : 1, seed);
+          }
         }
       }
     }
@@ -368,7 +414,7 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     }
 
     // --- The shade on the table at the rail's foot. ---
-    const reach = end > 0 ? m.shade.south : m.shade.north, footD = profile[profile.length - 1]!.d, y = -m.foot + .002;
+    const reach = (end > 0 ? m.shade.south : m.shade.north) + sideDepth * (m.side?.shade ?? 0), footD = profile[profile.length - 1]!.d, y = profile[profile.length - 1]!.y + .002;
     const quad = [at(x0, footD, y), at(x0 + period, footD, y), at(x0 + period, footD + reach, y), at(x0, footD + reach, y)];
     for (const k of end > 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3]) {
       shadePositions.push(...quad[k]!);
