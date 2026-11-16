@@ -4,13 +4,16 @@
    The user, 2026-10-16: "it's very easy to click it on accident." Skip was a
    button the same size as the one that moves the walkthrough on, eight pixels
    from it, and on a step with no Next it was the only button on the card. It is
-   now a small text link in the card's top-right corner, on the step counter's
-   line, and the primary button sits at the foot of the card. The link is the
+   now a small text link in the card's top-right corner, on the title's line,
+   and the primary button sits at the foot of the card. The link is the
    last thing in the card's markup, so the keyboard reaches the primary button
    first; the grid below is what lifts it into the corner. */
 
-/* Two columns. The step counter and the Skip link share the first row, and
-   everything else spans the card. */
+/* Two columns. The title and the Skip link share the first row, and
+   everything else spans the card. The step counter is a fact about the step,
+   so since batch SS1 it sits under the title rather than over it (the Type
+   board). It stays first in the markup, so a screen reader still says where the
+   walkthrough is before it reads the step. */
 .tutorial-card {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -26,7 +29,16 @@
   display: none;
 }
 
-.tutorial-card > .tutorial-title,
+.tutorial-card > .tutorial-title {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.tutorial-card > .tutorial-eyebrow {
+  grid-row: 2;
+}
+
+.tutorial-card > .tutorial-eyebrow,
 .tutorial-card > .tutorial-body,
 .tutorial-card > .tutorial-actions {
   grid-column: 1 / -1;
@@ -52,7 +64,7 @@
   line-height: 1.3;
   text-align: right;
   text-decoration: underline;
-  text-decoration-color: var(--ink-faint);
+  text-decoration-color: var(--ink-line);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
   cursor: pointer;

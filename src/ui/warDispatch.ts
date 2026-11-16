@@ -68,8 +68,9 @@ export function createWarDispatch(options: {
     draw:()=>{
       if(!current)return;
       body.replaceChildren();
-      body.append(element('p','eyebrow',`Urgent dispatch · Turn ${current.turn}`));
       const title=element('h2','',`${current.name} has declared war on you.`);title.id='war-dispatch-title';body.append(title);
+      // The dispatch and its turn are a fact under the title (batch SS1).
+      body.append(element('p','eyebrow title-fact',`Urgent dispatch · Turn ${current.turn}`));
       body.append(element('blockquote','','“The time for bargaining is over.”'));
       body.append(element('p','','Hostilities begin immediately. Enemy units already inside your borders can attack.'));
       body.append(element('p','',`Any existing deals and trade routes with the ${current.people} end when war begins. Peace must be negotiated.`));

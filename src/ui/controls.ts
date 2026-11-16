@@ -381,6 +381,7 @@ import {
   type MapView,
 } from './mapView';
 import {
+  type NewsMarkKind,
   type NotificationEntry,
   charterOpenedText,
   createCharterWatcher,
@@ -566,6 +567,12 @@ interface AnnounceOptions {
    * practice as the two above.
    */
   openTech?: TechId;
+  /** The drawn mark that leads the line (`NotificationEntry.mark`). */
+  mark?: NewsMarkKind;
+  /** The mark's ink, as a custom property name (`NotificationEntry.ink`). */
+  ink?: string;
+  /** The name in the line that is news, set in red ink (`NotificationEntry.news`). */
+  news?: string;
 }
 
 /**
@@ -2837,6 +2844,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     } else if (opts.openTech !== undefined) {
       entry.action = { kind: 'openTech', tech: opts.openTech };
     }
+    // Set only when given, so an entry with none keeps the shape it always had.
+    if (opts.mark !== undefined) entry.mark = opts.mark;
+    if (opts.ink !== undefined) entry.ink = opts.ink;
+    if (opts.news !== undefined) entry.news = opts.news;
     onNotify?.(entry, localPlayerId);
   }
 
@@ -2893,7 +2904,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function reportCharters(): void {
     for (const tech of charterNews.poll(getGame().state, localPlayerId)) {
-      announce(charterOpenedText(tech), { openTech: tech });
+      announce(charterOpenedText(tech), { openTech: tech, mark: 'research' });
     }
   }
 
@@ -3655,7 +3666,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const mine: TriumphAward[] = [];
     for (const triumph of result.triumphs) {
       if (triumph.playerId !== localPlayerId) continue;
-      announce(`✦ Triumph — ${triumph.name} · ${signedFigure(triumph.pays)} renown`);
+      announce(`Triumph: ${triumph.name}, ${signedFigure(triumph.pays)} renown`, {
+        mark: 'triumph',
+        news: triumph.name,
+      });
       // **A row that is shown somewhere else keeps its chronicle line and skips
       // the sheet** (batch C1, `TriumphDef.quiet`). The census's Triumph is
       // drawn *inside the census sheet* by the user's ruling of 2026-09-09 —
@@ -3722,12 +3736,20 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         continue;
       }
       if (award.playerId !== localPlayerId) {
-        announce(`${who} took a bead: ${award.name}`);
+        announce(`${who} took a bead: ${award.name}`, {
+          mark: 'bead',
+          ink: BEAD_FAMILY_MARK[award.family].ink,
+          news: award.name,
+        });
         continue;
       }
       const family = BEAD_FAMILY_MARK[award.family].word.toLowerCase();
       const paid = award.boon.length === 0 ? '' : ` · ${award.boon.join(' ')}`;
-      announce(`◉ A bead: ${award.name} (${family})${paid}`);
+      announce(`A bead: ${award.name} (${family})${paid}`, {
+        mark: 'bead',
+        ink: BEAD_FAMILY_MARK[award.family].ink,
+        news: award.name,
+      });
     }
     if (mine.length === 0) return;
     if (heldBeadNews === null) onBeadAwards?.(mine);
@@ -3762,7 +3784,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function reportAgeOpened(result: CommandResult): void {
     if (!result.ok || result.beadAgeOpened === undefined) return;
     const age = result.beadAgeOpened;
-    announce(`◈ ${deckEraWord(age)} opens`);
+    const era = deckEraWord(age);
+    // The numeral is the news (the Marks board: "Æra III opens", III in red).
+    announce(`${era} opens`, { mark: 'age', news: era.split(' ').pop() });
     if (heldBeadNews === null) onBeadAgeOpened?.(age);
     else heldBeadNews.ageOpened = age;
   }
@@ -6381,19 +6405,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    announce(`✦ ${view.name} — ${said}`, { cell: { col: unit.col, row: unit.row } });
+    announce(`${view.name}: ${said}`, {
+      cell: { col: unit.col, row: unit.row },
+      mark: 'greatPerson',
+      news: view.name,
+    });
     // **A person that acted may still be on the board** (Magisterial batch
     // MG13, The Universal Genius): the act paid, and the person stays to lay
     // their work. Nothing is spent yet, so there is no legacy line and no
     // ceremony until the work is laid. Asked of the state after the command,
     // as the selection below always was.
     if (unitById(getGame().state, unit.id)) {
-      announce(`✦ ${view.name} stays, and can still lay their work`);
+      announce(`${view.name} stays, and can still lay their work`, { mark: 'greatPerson', news: view.name });
     } else {
       // The legacy is the half that survives the choice, and it is worth its
       // own line: the board decision was burst or ground, and the card is
       // yours whichever was taken (`docs/great-people.md`).
-      announce(`✦ ${view.name}'s legacy stands with your government`);
+      announce(`${view.name}'s legacy stands with your government`, { mark: 'greatPerson', news: view.name });
       // **The ceremony**, raised only on an accepted command (the refusal
       // above returns before this line) and only when the person is spent.
       // The person is named by id so the sheet reads the roster itself, and
@@ -7364,7 +7392,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const player = playerById(getGame().state, localPlayerId);
     const waiting = player !== undefined && hasGreatPersonOffer(player);
     if (waiting && !greatPersonOfferOutstanding) {
-      announce('✦ A great person awaits your call.', { openGreatPerson: true });
+      announce('A great person awaits your call.', {
+        openGreatPerson: true,
+        mark: 'greatPerson',
+        news: 'A great person',
+      });
     }
     greatPersonOfferOutstanding = waiting;
   }
@@ -7529,9 +7561,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         const seat = playerById(getGame().state, localPlayerId);
         if (seat) {
           const owed = statecraftBlocker(seat);
-          if (owed !== null) announce(`🎵 The meter is full — ${owed}.`);
+          if (owed !== null) announce(`The meter is full: ${owed}.`, { mark: 'culture' });
           else if (seat.statecraft.pendingGovernment !== undefined) {
-            announce('🎵 A new charter is ready to be sworn.');
+            announce('A new charter is ready to be sworn.', { mark: 'culture' });
           }
         }
         // Last, so it wins the notice line: a meter going under is rarer than a

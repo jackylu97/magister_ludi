@@ -1,242 +1,215 @@
 <title>Magister Ludi Specimen</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz@0,6..72;1,6..72&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-  /* Committed single look: the tabletop, second take — bolder ink, hotter accents. */
+  /* The Scholar's Study (interface batch SS1, from the boards the user approved
+     on 2026-10-16 and 2026-11-16, docs/plans/mockups/scholars-study/). Agents
+     copy this file, so it shows the language as it is now. src/style.css holds
+     the same values as tokens. */
   :root {
-    --table: #e9e2cf;
-    --parchment: #f7f2e1;
-    --ink: #1d1a20;
-    --ink-soft: #56505a;
-    --vermilion: #d4502e;
-    --teal: #1f8a85;
-    --cobalt: #2757b8;
-    --gilt: #c8901f;
-    --grape: #7b3fa8;
-    --y-food: #3f9636;
-    --y-prod: #c26a1d;
-    --y-gold: #c8901f;
-    --y-sci: #2757b8;
-    --y-cul: #7b3fa8;
+    /* grounds */
+    --parchment: #f7f2e1;   /* sheets, panels, toasts */
+    --table: #e9e2cf;       /* the ground under the sheets */
+    --vellum: #efe6cd;      /* the charter */
+    --lampblack: #1e1b22;   /* the star chart's night */
+    --deep-lapis: #1c3f7a;  /* the plates: an age, the Opus */
+    /* inks */
+    --ink: #1d1a20;         /* iron-gall ink: text, the top bar's ground */
+    --ink-soft: #56505a;    /* washed ink: secondary text */
+    --ink-faint: #625e5b;   /* faded ink: hints and captions */
+    --rule: rgba(29, 26, 32, 0.14);
+    --edge: rgba(29, 26, 32, 0.22);
+    /* pigments, one job each */
+    --cinnabar: #bd4729;    /* the one primary action's ground */
+    --rubric: #ab3d1e;      /* red ink: the word that is news, a debit */
+    --gilt: #c8901f;        /* frames and the gilt bead; never text on paper */
+    --deep-gilt: #7f5b0e;   /* gilt at text weight */
+    --lapis: #3f639f;       /* knowledge: research, the science bead */
+    --verdigris: #176b66;   /* the rival; trade and distance */
+    --sealing-wax: #8f2a1c; /* seals on the charter and the chart */
+    /* yield inks: deep on paper, lit on ink */
+    --y-food: #306f29;  --y-food-lit: #7fd06c;
+    --y-prod: #94500f;  --y-prod-lit: #eda75f;
+    --y-gold: #7f5b0e;  --y-gold-lit: #ecc154;
+    --y-sci: #2757b8;   --y-sci-lit: #82aef2;
+    --y-cul: #7b3fa8;   --y-cul-lit: #cf9fee;
+    --y-faith: #994074; --y-faith-lit: #e08fc0;
+    /* the paper's shadow, and the hard shadow of a thing you play */
+    --paper-shadow: 0 1px 0 rgba(29, 26, 32, 0.08), 0 10px 22px -12px rgba(29, 26, 32, 0.42);
+    --played-shadow: 5px 5px 0 var(--ink);
+    --face-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+    --face-name: Fraunces, Georgia, serif;
+    --face-ui: "Instrument Sans", system-ui, sans-serif;
+    --face-num: "IBM Plex Mono", ui-monospace, monospace;
   }
   body {
     background: var(--table);
     color: var(--ink);
-    font-family: "Instrument Sans", system-ui, sans-serif;
-    font-size: 1.04rem;
-    line-height: 1.6;
+    font-family: var(--face-ui);
+    font-size: 1rem;
+    line-height: 1.55;
     margin: 0;
     padding: 3rem 1.25rem 5rem;
   }
-  main { max-width: 47rem; margin: 0 auto; }
-
-  .eyebrow {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--vermilion); margin: 0 0 1rem;
-  }
+  main { max-width: 52rem; margin: 0 auto; }
+  h1 { font-family: var(--face-display); font-weight: 400; font-size: 3rem; line-height: 1.02; margin: 0 0 0.6rem; }
+  h1::first-letter, .sheet-title::first-letter { color: var(--rubric); }
   h2 {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-size: 1.55rem; font-weight: 400; letter-spacing: 0.01em;
-    margin: 3rem 0 1rem; padding-top: 1.4rem;
-    border-top: 3px solid var(--ink);
+    font-family: var(--face-name); font-variation-settings: "opsz" 72;
+    font-weight: 600; font-size: 1.2rem;
+    margin: 2.6rem 0 0.8rem; padding-top: 1rem;
+    border-top: 1px solid var(--rule);
   }
-  h2 em { font-style: italic; color: var(--vermilion); }
-  p { margin: 0.6rem 0; }
-  p.note { color: var(--ink-soft); font-size: 0.95rem; }
-  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.85em; }
+  p { margin: 0.5rem 0; }
+  p.note { color: var(--ink-faint); font-size: 0.85rem; }
+  code { font-family: var(--face-num); font-size: 0.85em; }
 
-  /* ---- title treatments ---- */
-  .marquee {
+  /* A label or a fact: the names face's small caps, in faded ink. Never red,
+     and never over a heading: a fact about a heading goes under it. */
+  .label {
+    font-family: var(--face-name); font-variant-caps: all-small-caps;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-size: 0.86rem; letter-spacing: 0.04em; color: var(--ink-faint);
+  }
+
+  /* A panel lies flat: the paper's edge and a soft shadow. */
+  .paper {
     background: var(--parchment);
-    border: 3px solid var(--ink);
-    border-radius: 10px;
-    box-shadow: 8px 8px 0 var(--ink);
-    padding: 2.6rem 1.5rem 2rem;
-    text-align: center;
-    margin: 1.3rem 0 2rem;
-    position: relative;
-    overflow: hidden;
+    border: 1px solid var(--edge);
+    border-radius: 3px;
+    box-shadow: var(--paper-shadow);
+    padding: 1.1rem 1.3rem;
   }
-  .marquee .opt {
-    position: absolute; top: 0.7rem; left: 0.9rem;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-  .title-instrument {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400;
-    font-size: clamp(2.6rem, 9vw, 4.3rem);
-    letter-spacing: 0.005em;
-    line-height: 1.02;
-    margin: 0;
-  }
-  .title-instrument em { font-style: italic; }
-  .title-fraunces {
-    font-family: Fraunces, Georgia, serif;
-    font-weight: 640;
-    font-variation-settings: "opsz" 144, "SOFT" 60;
-    font-size: clamp(2.4rem, 8.5vw, 4rem);
-    letter-spacing: -0.015em;
-    line-height: 1.02;
-    margin: 0;
-  }
-  .marquee .sub {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-style: italic;
-    color: var(--ink-soft);
-    margin: 0.6rem 0 0;
-    font-size: 1.15rem;
-  }
-  .marquee .stamp {
-    display: inline-block; margin-top: 1rem;
-    background: var(--vermilion); color: var(--parchment);
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase;
-    padding: 0.3rem 0.9rem; border-radius: 999px;
-    border: 2px solid var(--ink);
-  }
-  .marquee.alt .stamp { background: var(--teal); }
+  .row { display: flex; flex-wrap: wrap; gap: 1.4rem; align-items: center; }
 
-  /* ---- type ramp ---- */
-  .ramp { background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; padding: 1.1rem 1.3rem; box-shadow: 6px 6px 0 var(--ink); }
-  .ramp > div { padding: 0.6rem 0; border-bottom: 1.5px dashed rgba(29,26,32,0.3); }
+  /* ---- type ---- */
+  .sheet-title { font-family: var(--face-display); font-weight: 400; font-size: 1.9rem; line-height: 1; margin: 0 0 0.35rem; }
+  .sheet-title em { font-style: italic; }
+  .ramp > div { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); }
   .ramp > div:last-child { border-bottom: 0; }
-  .ramp .label { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-soft); display: block; margin-bottom: 0.15rem; }
-  .r-display { font-family: "Instrument Serif", Georgia, serif; font-size: 2rem; line-height: 1.1; }
-  .r-display em { font-style: italic; color: var(--vermilion); }
-  .r-city { font-family: Fraunces, Georgia, serif; font-weight: 600; font-variation-settings: "opsz" 90; font-size: 1.5rem; letter-spacing: -0.01em; }
-  .r-flavor { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 1.2rem; }
+  .ramp .label { display: block; margin-bottom: 0.1rem; }
+  .r-display { font-family: var(--face-display); font-size: 2rem; line-height: 1.1; }
+  .r-display em { font-style: italic; color: var(--rubric); }
+  .r-name { font-family: var(--face-name); font-weight: 600; font-variation-settings: "opsz" 90; font-size: 1.4rem; }
+  .r-flavor { font-family: var(--face-display); font-style: italic; font-size: 1.15rem; }
   .r-ui { font-weight: 600; font-size: 1rem; }
-  .r-num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.05rem; }
+  .r-num { font-family: var(--face-num); font-size: 1rem; font-variant-numeric: tabular-nums; }
 
   /* ---- palette ---- */
-  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.8rem, 1fr)); gap: 0.8rem; }
-  .chip { border: 2.5px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--parchment); box-shadow: 4px 4px 0 var(--ink); }
-  .chip b { display: block; height: 3.6rem; }
-  .chip span { display: block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.66rem; letter-spacing: 0.05em; padding: 0.32rem 0.5rem; color: var(--ink); }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); gap: 0.7rem; }
+  .chip b { display: block; height: 3.2rem; border-radius: 3px; border: 1px solid var(--edge); }
+  .chip span { display: block; font-size: 0.78rem; line-height: 1.3; padding-top: 0.3rem; }
+  .chip span i { font-style: normal; color: var(--ink-faint); }
+  .inks { display: grid; grid-template-columns: 6rem 1fr 1fr; gap: 0.4rem 0.8rem; align-items: center; }
+  .inks .paperink { background: var(--parchment); border: 1px solid var(--edge); border-radius: 2px; padding: 0.2rem 0.6rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .inks .inkink { background: var(--ink); border-radius: 2px; padding: 0.2rem 0.6rem; font-weight: 500; font-variant-numeric: tabular-nums; }
 
-  /* ---- components ---- */
-  .stage { background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; padding: 1.4rem; box-shadow: 6px 6px 0 var(--ink); display: flex; flex-direction: column; gap: 1.25rem; align-items: flex-start; }
-
-  .yieldbar { display: flex; gap: 1.2rem; background: var(--ink); color: var(--parchment); border-radius: 12px; padding: 0.6rem 1.2rem; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.02rem; font-variant-numeric: tabular-nums; border: 2.5px solid var(--ink); box-shadow: 4px 4px 0 rgba(29,26,32,0.35); }
-  .yieldbar b { font-weight: 500; }
-
-  .turnsplash {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-size: 2.1rem; line-height: 1;
-    background: var(--vermilion); color: var(--parchment);
+  /* ---- what you play keeps the hard shadow ---- */
+  .end-turn {
+    display: inline-flex; align-items: center; gap: 9px;
+    min-width: 264px; justify-content: center;
+    padding: 11px 20px 12px;
+    background: var(--cinnabar); color: var(--parchment);
     border: 3px solid var(--ink); border-radius: 10px;
-    padding: 0.7rem 1.6rem 0.85rem;
-    box-shadow: 6px 6px 0 var(--ink);
-    transform: rotate(-1.2deg);
+    box-shadow: var(--played-shadow);
+    font: 700 16px/1.25 var(--face-ui); letter-spacing: 0.01em;
   }
-  .turnsplash em { font-style: italic; }
-
-  .btnrow { display: flex; gap: 0.9rem; flex-wrap: wrap; }
-  .btn {
-    font-family: "Instrument Sans", system-ui, sans-serif; font-weight: 700; letter-spacing: 0.02em;
-    font-size: 1.02rem;
-    background: var(--vermilion); color: var(--parchment);
-    border: 2.5px solid var(--ink); border-radius: 8px;
-    padding: 0.55rem 1.5rem;
+  .end-turn kbd { border: 1.5px solid rgba(247, 242, 225, 0.75); border-radius: 4px; padding: 0 5px; font: 11px var(--face-ui); }
+  .turn-card {
+    position: relative; display: inline-block;
+    padding: 9px 26px 12px;
+    background: var(--cinnabar); color: var(--parchment);
+    border: 2px solid var(--ink); border-radius: 4px;
     box-shadow: 4px 4px 0 var(--ink);
-    cursor: pointer;
+    font-family: var(--face-display); font-size: 2rem; line-height: 1.05;
   }
-  .btn.teal { background: var(--teal); }
-  .btn.quiet { background: var(--parchment); color: var(--ink); }
-  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+  .turn-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(236, 193, 84, 0.75); border-radius: 2px; }
+  .turn-card em { font-style: italic; }
+  .confirm { padding: 0 16px; height: 40px; background: var(--cinnabar); color: var(--parchment); border: 1px solid var(--ink); border-radius: 4px; box-shadow: var(--paper-shadow); font: 700 15px var(--face-ui); }
+  .quiet { height: 36px; padding: 0 12px; background: var(--parchment); border: 1px solid var(--edge); border-radius: 3px; box-shadow: var(--paper-shadow); font: 500 14px var(--face-ui); color: var(--ink); }
 
-  .card {
-    width: 15.5rem; background: var(--parchment);
-    border: 3px solid var(--ink); border-radius: 12px;
-    box-shadow: 7px 7px 0 var(--ink);
-    overflow: hidden;
-    transform: rotate(0.8deg);
-  }
-  .card header { background: var(--grape); color: var(--parchment); padding: 0.6rem 1rem 0.5rem; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid var(--ink); }
-  .card header h4 { font-family: Fraunces, Georgia, serif; font-weight: 640; font-variation-settings: "opsz" 100; font-size: 1.25rem; letter-spacing: -0.01em; margin: 0; }
-  .card header small { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; }
-  .card .body { padding: 0.9rem 1rem 1.1rem; }
-  .card .effect { font-weight: 700; margin: 0 0 0.45rem; font-size: 1.02rem; }
-  .card .effect span { color: var(--y-food); }
-  .card .flavor { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 1rem; color: var(--ink-soft); margin: 0; }
-
-  .banner {
-    display: inline-flex; align-items: center; gap: 0.65rem;
-    background: var(--ink); color: var(--parchment);
-    border-radius: 999px;
-    padding: 0.32rem 1rem 0.32rem 0.5rem;
-    box-shadow: 4px 4px 0 rgba(29,26,32,0.35);
-  }
-  .banner .pop { background: var(--teal); border-radius: 999px; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.88rem; border: 2px solid var(--parchment); }
-  .banner .name { font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 1.1rem; letter-spacing: 0; }
-  .banner .prod { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.72rem; color: #d9c99a; }
-
-  .tip { background: var(--ink); color: var(--parchment); border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.9rem; max-width: 17rem; box-shadow: 5px 5px 0 rgba(29,26,32,0.3); }
-  .tip b { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 1.05rem; display: block; margin-bottom: 0.15rem; }
-  .tip .y { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.82rem; }
-  .yf { color: #7fd06c; } .yp { color: #eda75f; } .yg { color: #ecc154; }
+  /* ---- the news ---- */
+  .toasts { display: flex; flex-direction: column; gap: 6px; width: 360px; }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 11px; background: var(--parchment); border: 1px solid var(--edge); border-radius: 3px; box-shadow: var(--paper-shadow); font-size: 14px; line-height: 1.35; }
+  .toast svg { flex: none; }
+  .toast .turn { flex: none; font-family: var(--face-name); font-variant-caps: all-small-caps; font-variant-numeric: lining-nums tabular-nums; font-size: 13px; letter-spacing: 0.04em; color: var(--ink-faint); }
+  .news { color: var(--rubric); }
+  .bar { display: inline-flex; gap: 15px; align-items: center; padding: 0 16px; height: 42px; background: var(--ink); color: var(--parchment); border-radius: 3px; font-variant-numeric: lining-nums tabular-nums; font-weight: 500; }
+  .bar span { display: inline-flex; gap: 6px; align-items: center; }
 </style>
 
 <main>
-  <p class="eyebrow">Magister Ludi · design-language specimen · take two: skinnier, hotter, harder ink</p>
+  <h1>Magister Ludi</h1>
+  <p class="note">The design language of the interface, after the Scholar's Study (batch SS1). The boards in <code>docs/plans/mockups/scholars-study/</code> are the spec of record; this page is the short form.</p>
 
-  <h2>Title treatments — <em>two modern voices</em></h2>
-  <div class="marquee">
-    <span class="opt">option a · instrument serif</span>
-    <p class="title-instrument">Magister <em>Ludi</em></p>
-    <p class="sub">a game of everything mankind has thought</p>
-    <span class="stamp">skinny · sharp · editorial</span>
+  <h2>Type</h2>
+  <div class="paper">
+    <p class="sheet-title">The <em>Census</em></p>
+    <p class="label">taken on turn 91</p>
   </div>
-  <div class="marquee alt">
-    <span class="opt">option b · fraunces</span>
-    <p class="title-fraunces">Theatrum Mundi</p>
-    <p class="sub">all the world, staged small</p>
-    <span class="stamp">thick joins · soft ink · warm</span>
+  <p class="note">A sheet title has no small label over it. Its first letter is red, and its italic word stays. A fact about the title goes under it, in small caps. A label is in ink, in small caps or in the names face, and it is never red.</p>
+  <div class="paper ramp">
+    <div><span class="label">display · Newsreader, at 28 px and more</span><span class="r-display">The Classical <em>Era</em></span></div>
+    <div><span class="label">names · Fraunces 600 (cities, leaders, cards)</span><span class="r-name">Alexandria</span></div>
+    <div><span class="label">flavour · Newsreader italic</span><span class="r-flavor">"Good fences make good neighbours."</span></div>
+    <div><span class="label">interface · Instrument Sans (sentences and buttons)</span><span class="r-ui">Build queue · 4 items · granary next</span></div>
+    <div><span class="label">figures · IBM Plex Mono, tabular</span><span class="r-num">+12.4 · 087/120 · turn 143</span></div>
   </div>
-  <p class="note">Instrument Serif is the skinny one — hairline-adjacent strokes, sharp modern cut, and its italic (the red <em>Ludi</em>) is the punchiest single move in the whole system. Fraunces is the thick-ligature energy — high optical size gives it heavy, soft-inked joins, like letterpress pushed too hard into paper. Swap either name into either face; they're set opposite here only for contrast.</p>
+  <p class="note">Newsreader announces: the title, the sheet titles, the turn card and the plates. Fraunces names, Instrument Sans works, and IBM Plex Mono counts.</p>
 
-  <h2>Type ramp</h2>
-  <div class="ramp">
-    <div><span class="label">display · Instrument Serif + italic accent</span><span class="r-display">The Classical <em>Era</em></span></div>
-    <div><span class="label">names · Fraunces 600 (cities, leaders, cards)</span><span class="r-city">Alexandria</span></div>
-    <div><span class="label">flavor · Instrument Serif italic</span><span class="r-flavor">"Good fences make good neighbours."</span></div>
-    <div><span class="label">interface · Instrument Sans 600 (dense UI)</span><span class="r-ui">Build queue · 4 items · granary next</span></div>
-    <div><span class="label">figures · IBM Plex Mono (all numbers, tabular)</span><span class="r-num">+12.4 ⚙ · 087/120 🔬 · turn 143</span></div>
-  </div>
-  <p class="note">Same three-voice rule as before — serifs speak, the sans works, the mono counts — but the whole ramp is now one family tree: Instrument Serif and Instrument Sans are siblings, Fraunces plays the heavyweight. No serif below ~15px, ever.</p>
-
-  <h2>Palette — same board, hotter blood</h2>
+  <h2>Palette</h2>
   <div class="chips">
-    <div class="chip"><b style="background:#1d1a20"></b><span>ink 1D1A20</span></div>
-    <div class="chip"><b style="background:#f7f2e1"></b><span>parchment F7F2E1</span></div>
-    <div class="chip"><b style="background:#d4502e"></b><span>vermilion D4502E</span></div>
-    <div class="chip"><b style="background:#1f8a85"></b><span>teal 1F8A85</span></div>
-    <div class="chip"><b style="background:#2757b8"></b><span>cobalt 2757B8</span></div>
-    <div class="chip"><b style="background:#7b3fa8"></b><span>grape 7B3FA8</span></div>
-    <div class="chip"><b style="background:#c8901f"></b><span>gilt C8901F</span></div>
+    <div class="chip"><b style="background:#f7f2e1"></b><span>parchment<br><i>sheets, panels, toasts</i></span></div>
+    <div class="chip"><b style="background:#e9e2cf"></b><span>the table<br><i>the ground</i></span></div>
+    <div class="chip"><b style="background:#efe6cd"></b><span>vellum<br><i>the charter</i></span></div>
+    <div class="chip"><b style="background:#1e1b22"></b><span>lampblack<br><i>the star chart</i></span></div>
+    <div class="chip"><b style="background:#1c3f7a"></b><span>deep lapis<br><i>the plates</i></span></div>
+    <div class="chip"><b style="background:#1d1a20"></b><span>iron-gall ink<br><i>text, the top bar</i></span></div>
+    <div class="chip"><b style="background:#56505a"></b><span>washed ink<br><i>secondary text</i></span></div>
+    <div class="chip"><b style="background:#625e5b"></b><span>faded ink<br><i>hints, captions</i></span></div>
+    <div class="chip"><b style="background:#bd4729"></b><span>cinnabar<br><i>the primary action</i></span></div>
+    <div class="chip"><b style="background:#ab3d1e"></b><span>rubric<br><i>the word that is news</i></span></div>
+    <div class="chip"><b style="background:#c8901f"></b><span>gilt<br><i>frames; never text on paper</i></span></div>
+    <div class="chip"><b style="background:#7f5b0e"></b><span>deep gilt<br><i>gilt at text weight</i></span></div>
+    <div class="chip"><b style="background:#3f639f"></b><span>lapis<br><i>knowledge</i></span></div>
+    <div class="chip"><b style="background:#176b66"></b><span>verdigris<br><i>the rival, trade</i></span></div>
+    <div class="chip"><b style="background:#8f2a1c"></b><span>sealing wax<br><i>seals</i></span></div>
   </div>
-  <p class="note">The board keeps its muted sage-and-wheat toon palette — that's scenery. The <em>interface</em> gets the saturated cuts: vermilion for the local player's actions, teal for the rival, cobalt/grape/gilt as the science/culture/gold voices. Bolder here means UI color is louder than terrain, never competing with it.</p>
+  <p class="note">Each pigment has one job, and text has 4.5:1 or more on each ground. Faded ink reaches 5.73:1 on parchment; the old faint ink, ink at 42%, was 2.59:1 and is now used only for lines.</p>
+  <div class="inks" style="margin-top:1rem">
+    <span class="label">food</span><span class="paperink" style="color:var(--y-food)">+172 food</span><span class="inkink" style="color:var(--y-food-lit)">172</span>
+    <span class="label">production</span><span class="paperink" style="color:var(--y-prod)">+127 production</span><span class="inkink" style="color:var(--y-prod-lit)">127</span>
+    <span class="label">gold</span><span class="paperink" style="color:var(--y-gold)">+437 gold</span><span class="inkink" style="color:var(--y-gold-lit)">437</span>
+    <span class="label">science</span><span class="paperink" style="color:var(--y-sci)">+91 science</span><span class="inkink" style="color:var(--y-sci-lit)">91</span>
+    <span class="label">culture</span><span class="paperink" style="color:var(--y-cul)">+199 culture</span><span class="inkink" style="color:var(--y-cul-lit)">199</span>
+    <span class="label">faith</span><span class="paperink" style="color:var(--y-faith)">+51 faith</span><span class="inkink" style="color:var(--y-faith-lit)">51</span>
+  </div>
+  <p class="note">Yield inks: deep on paper, lit on ink.</p>
 
-  <h2>Components — <em>harder shadows, bigger moves</em></h2>
-  <div class="stage">
-    <div class="turnsplash">Your <em>turn</em>, Magister</div>
-    <div class="yieldbar"><b class="yf">🌾 +14</b><b class="yp">⚙ +9</b><b class="yg">🪙 +6</b><b style="color:#82aef2">🔬 +11</b><b style="color:#cf9fee">🎭 +7</b></div>
-    <div class="btnrow">
-      <button class="btn">End Turn</button>
-      <button class="btn teal">Found City</button>
-      <button class="btn quiet">Tech Tree</button>
-    </div>
-    <div class="banner"><span class="pop">6</span><span class="name">Carthage</span><span class="prod">granary · 3t</span></div>
-    <div class="card">
-      <header><h4>Serfdom</h4><small>economic</small></header>
-      <div class="body">
-        <p class="effect"><span>+1 🌾</span> from every worked farm</p>
-        <p class="flavor">The land remembers who bent to it.</p>
-      </div>
-    </div>
-    <div class="tip"><b>Grassland Hills</b><span class="y"><span class="yf">2🌾</span> <span class="yp">2⚙</span> · move 2 · defense +25%</span></div>
+  <h2>Panels lie flat; what you play keeps the hard shadow</h2>
+  <div class="row">
+    <div class="paper">A sheet, a panel, a hover card</div>
+    <button class="quiet" type="button">Lens</button>
+    <button class="confirm" type="button">Confirm</button>
   </div>
-  <p class="note">What changed from take one: ink borders 2px → 3px and shadows now solid ink (not translucent grey) at 6–8px throw — the "sticker on cardboard" read. A degree of rotation on cards and splashes so they sit like played pieces, not laid-out divs. The turn splash is the new loudest element: big skinny serif on hot vermilion — announcements get the display face and a full color block, everything else stays quiet so it lands.</p>
+  <div class="row" style="margin-top:1.4rem">
+    <span class="turn-card">Your <em>turn</em>, Magister</span>
+    <span class="end-turn">End Turn <kbd>⏎</kbd></span>
+  </div>
+  <p class="note">The turn card, End Turn and a card on the table are pressed or dealt like tokens, so they keep the solid ink shadow. Everything else is paper: a thin edge and a soft shadow. Nothing tilts. Cinnabar fills the one primary control on a screen.</p>
+
+  <h2>Marks and the news</h2>
+  <div class="row">
+    <span class="bar">
+      <span><svg viewBox="0 0 24 24" width="17" height="17" style="color:var(--y-gold-lit)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 10.2a8.6 5.8 0 1 0 17.2 0a8.6 5.8 0 1 0 -17.2 0Z"/><path d="M3.4 10.2v3.4a8.6 5.8 0 0 0 17.2 0v-3.4"/></g></svg>437</span>
+      <span><svg viewBox="0 0 24 24" width="17" height="17" style="color:var(--y-faith-lit)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 21V11.2H14.4V21"/><path d="M7 21H17"/><path d="M12 11.2V9.8"/><path d="M11.53 9.33Q9.07 5.53 12.87 3.07Q15.33 6.87 11.53 9.33Z"/></g></svg>51</span>
+      <span><svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--y-gold-lit)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 12H5.6"/><path d="M18.4 12H22.4"/><path d="M5.6 12a6.4 6.4 0 1 0 12.8 0a6.4 6.4 0 1 0 -12.8 0Z"/><path d="M8.7 9.9A4.2 4.2 0 0 1 11.6 7.9"/></g></svg>2/7</span>
+    </span>
+  </div>
+  <p class="note">Gold is a plain coin, faith is a candle with a leaning flame, and the bead is a pierced glass bead on its wire. The other yield marks, the meters' marks and the bead families' marks are unchanged.</p>
+  <div class="toasts" style="margin-top:1rem">
+    <div class="toast"><svg viewBox="0 0 24 24" width="18" height="18" style="color:var(--deep-gilt)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 18H21.6"/><path d="M6.6 18A5.4 5.4 0 0 1 17.4 18"/><path d="M6.63 12.63L4.93 10.93"/><path d="M12 10.4L12 8"/><path d="M17.37 12.63L19.07 10.93"/><path d="M4.8 21.4H8.6M15.4 21.4H19.2"/></g></svg><span class="turn">turn 91</span><span>Æra <span class="news">III</span> opens</span></div>
+    <div class="toast"><svg viewBox="0 0 24 24" width="18" height="18" style="color:var(--deep-gilt)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 21V9.6H19.6V21"/><path d="M3.2 6.6H20.8V9.6H3.2Z"/><path d="M9.4 21V15.6A2.6 2.6 0 0 1 14.6 15.6V21"/><path d="M2.4 21H21.6"/></g></svg><span class="turn">turn 91</span><span>Triumph: <span class="news">The Third Hearth</span>, +10 renown</span></div>
+    <div class="toast"><svg viewBox="0 0 24 24" width="18" height="18" style="color:var(--lapis)"><g fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 12H5.6"/><path d="M18.4 12H22.4"/><path d="M5.6 12a6.4 6.4 0 1 0 12.8 0a6.4 6.4 0 1 0 -12.8 0Z"/><path d="M8.7 9.9A4.2 4.2 0 0 1 11.6 7.9"/></g></svg><span class="turn">turn 91</span><span>A bead: <span class="news">The Academies</span> (science)</span></div>
+  </div>
+  <p class="note">Each kind of news has its own mark: the sun on the horizon for an age, the arch for a Triumph, the laurel for a great person, the compass star for research and the bead for a bead. Red ink marks only the name that is new.</p>
 </main>

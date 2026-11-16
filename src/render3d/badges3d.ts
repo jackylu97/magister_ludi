@@ -1905,7 +1905,7 @@ export function fitInscription(widths: readonly number[], usable: number): numbe
  * The one cell in either atlas that is neither a drawing nor a number, and it is
  * set rather than drawn for the reason the numerals are: letterforms are what a
  * face is *for*, and thirteen hand-traced letters would be thirteen paths nobody
- * could tell from Instrument Serif at a hundred pixels.
+ * could tell from Newsreader at a hundred pixels.
  *
  * Four things make it read as an inscription rather than as a label, and the
  * first three are Entry VII's inscription voice rendered in a canvas:
@@ -1967,13 +1967,13 @@ function drawInscriptionCell(
     return width;
   };
 
-  context.font = `${maxSize}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  context.font = `${maxSize}px "Newsreader", "Fraunces", Georgia, serif`;
   const maxTracking = maxSize * ICONS.inscriptionTracking;
   const maxWidths = lines.map((line) => trackedWidth(line.toUpperCase(), maxTracking));
   const ratio = fitInscription(maxWidths, usable);
   const size = Math.max(1, Math.round(maxSize * ratio));
   const tracking = size * ICONS.inscriptionTracking;
-  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  context.font = `${size}px "Newsreader", "Fraunces", Georgia, serif`;
 
   // Leading is measured off the type size rather than the cell, so the plate
   // stays a plate if somebody dials the size: two lines set half a size apart
@@ -2536,7 +2536,7 @@ export class TileIcons {
     // A canvas samples whatever face is *currently* installed the instant
     // `fillText` runs — there is no "wait for this font" primitive on the 2D
     // context, only on the document. Rasterising the numerals or the
-    // inscription before Instrument Serif has swapped in silently ships the
+    // inscription before Newsreader has swapped in silently ships the
     // Georgia fallback, which sets *wider* — so the inscription's measured
     // width, and therefore `fitInscription`'s ratio, would depend on how far
     // page load had gotten when this ran rather than on the data. The
@@ -2552,7 +2552,7 @@ export class TileIcons {
     // which is the pre-existing behaviour, not a regression.
     if (typeof document !== 'undefined' && document.fonts) {
       try {
-        await document.fonts.load(`${Math.round(layout.cell * ICONS.inscriptionScale)}px "Instrument Serif"`);
+        await document.fonts.load(`${Math.round(layout.cell * ICONS.inscriptionScale)}px "Newsreader"`);
         await document.fonts.ready;
       } catch {
         // Best effort — see above.

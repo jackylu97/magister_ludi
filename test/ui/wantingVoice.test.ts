@@ -381,7 +381,8 @@ describe('the wanting voice', () => {
     const quiet: [string, Node[], string][] = [
       ['a rite this seat can perform', [on('city-rite-says')], 'var(--ink-soft)'],
       ['"Researched"', [on('info-card'), on('info-card-state')], 'var(--ink-soft)'],
-      ['"3 in the plan"', [on('info-card'), on('info-card-state', 'is-planned')], 'var(--gilt)'],
+      // Deep gilt since batch SS1: plain gilt is never text on paper.
+      ['"3 in the plan"', [on('info-card'), on('info-card-state', 'is-planned')], 'var(--deep-gilt)'],
       ['the bead gate, met', [on('bead-card'), on('bead-card-gate', 'is-met')], 'var(--teal)'],
       // The trade sheet's refusal headings — "Already running", "Out of reach".
       // A state, so quiet: the reducer's sentence under it is the lack, and it

@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Magister Ludi</title>
-    <!-- The interface's three voices (see docs/design-specimen.html): Instrument
-         Serif announces, Fraunces names, Instrument Sans works, IBM Plex Mono
-         counts. Every stack in style.css has a real local fallback, so a blocked
+    <!-- The interface's voices (see docs/design-specimen.html): Newsreader
+         announces, Fraunces names, Instrument Sans works, IBM Plex Mono counts.
+         Newsreader replaced Instrument Serif as the display face in batch SS1
+         (the user's choice, 2026-11-16); its optical-size axis is requested so
+         the large titles get the display cut. Every stack in style.css has a real local fallback, so a blocked
          font request costs polish and nothing else.
 
          The font stylesheet is preloaded and switched to a stylesheet when it
@@ -23,13 +25,13 @@
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz@0,6..72;1,6..72&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       onload="this.onload = null; this.rel = 'stylesheet'"
     />
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz@0,6..72;1,6..72&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       />
     </noscript>
   </head>
@@ -126,7 +128,6 @@
             <span class="marquee-star bl" aria-hidden="true">✶</span>
             <span class="marquee-star br" aria-hidden="true">✶</span>
             <div class="marquee-name">
-              <span class="marquee-over">a game of the ages</span>
               <h1 class="marquee-title">Magister <em>Ludi</em></h1>
               <span class="marquee-rule-star" aria-hidden="true"></span>
             </div>
@@ -147,7 +148,6 @@
              key would be a lie. -->
         <div class="landing-title-grid landing-step" data-step-for="title">
           <div class="hud-card landing-card landing-menu">
-            <p class="eyebrow">the table</p>
             <!-- Continue is the newest save of any kind — autosave or a named
                  one, whichever is later — named by its own figure, seed and
                  turn (`refreshResumeRow`). It hides itself when there is
@@ -200,7 +200,7 @@
                `refreshResumeRow` fills it from `recentWorlds` (savesPanel.ts),
                which is the one reading of the shelf either surface makes. -->
           <div class="hud-card landing-card landing-shelf">
-            <p class="eyebrow">recent worlds</p>
+            <p class="eyebrow">Recent worlds</p>
             <div id="landing-shelf" class="landing-shelf-rows"></div>
             <p id="landing-shelf-empty" class="landing-hint" hidden>
               No worlds yet. A game autosaves at the end of every turn.
@@ -221,8 +221,10 @@
              The masthead does not repeat here: the breadcrumb stands in for it
              (STEP_CRUMB in landingFlow.ts, written once at boot). -->
         <form id="landing-setup" class="hud-card landing-card landing-step" data-step-for="world">
-          <p id="landing-crumb-world" class="eyebrow landing-crumb"></p>
           <h2 class="landing-title">Draw a world</h2>
+          <!-- The step, as a fact under the title rather than a label over it
+               (the Type board, batch SS1). -->
+          <p id="landing-crumb-world" class="eyebrow landing-crumb title-fact"></p>
 
           <!-- How the table is filled, as a switch rather than as a checkbox in
                the fine print. It writes the hot-seat checkbox below, which stays
@@ -1083,7 +1085,6 @@
       <div class="tech-sheet">
         <header class="tech-head">
           <div class="tech-head-titles">
-            <p class="eyebrow tech-eyebrow">the magister’s star chart</p>
             <h2 class="tech-title">Natural Philosophy</h2>
           </div>
           <!-- The chart runs off both edges of any window, so the screen says
@@ -1137,7 +1138,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the magister’s statecraft</p>
             <h2 class="statecraft-title">Orders &amp; Doctrines</h2>
           </div>
           <p class="statecraft-hint">
@@ -1172,7 +1172,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">your religion</p>
             <h2 class="statecraft-title">Faith</h2>
           </div>
           <p class="statecraft-hint">
@@ -1208,7 +1207,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s compendium</p>
             <h2 class="statecraft-title">Every <em>Table</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1245,7 +1243,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s trade</p>
             <h2 class="statecraft-title">Caravans &amp; <em>Roads</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1281,7 +1278,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s wager</p>
             <h2 class="statecraft-title">Three <em>Bars</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1314,7 +1310,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the figure at your table</p>
             <h2 class="statecraft-title">Your <em>Civ</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1350,7 +1345,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the clerks have counted</p>
             <h2 class="statecraft-title">The <em>Census</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1388,7 +1382,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the council</p>
             <h2 class="statecraft-title">Foreign courts</h2>
           </div>
           <p class="statecraft-hint">
@@ -1427,7 +1420,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s reckoning</p>
             <h2 class="statecraft-title">The Bead <em>Race</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1462,7 +1454,6 @@
       <div class="statecraft-sheet reliquary-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">they served you; their legacy remains</p>
             <h2 class="statecraft-title">The <em>Reliquary</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1502,7 +1493,6 @@
       <div class="statecraft-sheet ledger-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">what your empire makes, and who makes it</p>
             <h2 class="statecraft-title">The <em>Ledger</em></h2>
           </div>
           <p class="statecraft-hint"><kbd>Esc</kbd> to close</p>
@@ -1534,7 +1524,6 @@
       <div class="statecraft-sheet capture-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">a town has fallen</p>
             <h2 class="statecraft-title">What becomes of <em>it</em>?</h2>
           </div>
           <p class="statecraft-hint"><kbd>Esc</kbd> to hold it as a puppet</p>
@@ -1575,11 +1564,9 @@
                  (docs/flags.md (yyyyy)). -->
             <div class="statecraft-head-titles">
               <div id="loading-head-wait">
-                <p class="eyebrow statecraft-eyebrow">one moment</p>
                 <h2 class="statecraft-title">Loading the <em>world</em></h2>
               </div>
               <div id="loading-head-refused" hidden>
-                <p class="eyebrow statecraft-eyebrow">the save</p>
                 <h2 class="statecraft-title">Would not <em>open</em></h2>
               </div>
             </div>
@@ -1629,7 +1616,6 @@
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">what every empire has to show</p>
             <h2 class="statecraft-title">The <em>Standings</em></h2>
           </div>
           <p class="statecraft-hint">
@@ -1688,7 +1674,6 @@
       <div class="abacus-sheet">
         <header class="abacus-head">
           <div class="abacus-head-titles">
-            <p class="eyebrow abacus-eyebrow">the reckoning</p>
             <h2 class="abacus-title">The Abacus</h2>
           </div>
           <button id="abacus-close" class="abacus-close" type="button" aria-label="Close">

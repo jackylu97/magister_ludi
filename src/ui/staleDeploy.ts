@@ -51,6 +51,8 @@
  * exercised against a bare target with no browser in the room.
  */
 
+import { pageSealDataUri } from '../art/newsMarks';
+
 /**
  * What a failed chunk load says, across the engines and the ways a server can
  * answer a missing asset.
@@ -207,6 +209,13 @@ export function createStaleDeployNotice(
       card.setAttribute('role', 'status');
       card.setAttribute('aria-live', 'polite');
 
+      // A seal in ink leads the card, in place of the red stripe it wore: the
+      // card is about the page, not the game (batch SS1, the Ornament board).
+      const seal = document.createElement('span');
+      seal.className = 'stale-notice-seal';
+      seal.setAttribute('aria-hidden', 'true');
+      seal.style.backgroundImage = `url("${pageSealDataUri()}")`;
+
       const text = document.createElement('span');
       text.className = 'toast-text';
       text.textContent = STALE_DEPLOY_TEXT;
@@ -217,7 +226,7 @@ export function createStaleDeployNotice(
       button.textContent = 'Refresh';
       button.addEventListener('click', () => reload());
 
-      card.append(text, button);
+      card.append(seal, text, button);
       document.body.append(card);
     },
   });

@@ -568,8 +568,9 @@ describe('the tile-icon atlas', () => {
       expect(mark.paths.length).toBeGreaterThan(0);
       expect(mark.note.length).toBeGreaterThan(0);
       // The courtesy note `CREDITS.md` prints, and the thing a re-vendoring has
-      // to keep: which upstream icon this is and under what licence.
-      expect(mark.credit).toMatch(/Lucide|Tabler/);
+      // to keep: which upstream icon this is and under what licence. Gold and
+      // faith have been drawn for this project since batch SS1, and say so.
+      expect(mark.credit).toMatch(/Lucide|Tabler|Magister Ludi/);
       for (const path of mark.paths) {
         expect(path.d.length).toBeGreaterThan(0);
         // Stroked, never a bare fill: the six are outline icons and the mask in

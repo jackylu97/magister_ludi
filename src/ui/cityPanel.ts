@@ -225,6 +225,7 @@ import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { seatName } from '../sim/leaderData';
+import { beadMarkNode } from './newsMark';
 
 
 /**
@@ -4187,9 +4188,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (bead === undefined) {
         name.textContent = `${def.name} ↻`;
       } else {
-        const beadMark = element('span', 'bead-family-mark', '◉');
+        // The glass bead on its wire, drawn (batch SS1), in the family's ink.
+        const beadMark = element('span', 'bead-family-mark');
         beadMark.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[bead.family].ink})`);
         beadMark.setAttribute('aria-hidden', 'true');
+        beadMark.append(beadMarkNode());
         name.append(beadMark, document.createTextNode(def.name));
       }
       button.append(name);

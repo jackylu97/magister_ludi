@@ -69,6 +69,7 @@
  */
 
 import { leaderBannerInk } from '../art/leaderBanners';
+import { warSealDataUri } from '../art/newsMarks';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { seatName, seatPeople } from '../sim/leaderData';
@@ -901,6 +902,14 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const swatch = seal(row.playerId);
     head.append(swatch);
     head.append(element('span', 'diplo-name', row.name));
+    // A war seal beside the name says the war (batch SS1, the Ornament board).
+    // Hidden from a screen reader: the status beside it says "at war".
+    if (row.relation === 'war') {
+      const warSeal = element('span', 'diplo-war-seal');
+      warSeal.setAttribute('aria-hidden', 'true');
+      warSeal.style.backgroundImage = `url("${warSealDataUri()}")`;
+      head.append(warSeal);
+    }
     head.append(element('span','diplo-people',row.people));
     head.append(element('span', 'diplo-status', row.status));
     card.append(head);
@@ -982,8 +991,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const swatch = seal(row.playerId);
     line.append(swatch);
     line.append(element('span', 'diplo-head-name', row.name));
-    titles.append(element('p','eyebrow',`The court of the ${row.people}`));
     titles.append(line);
+    // The people is a fact under the name, not a label over it (batch SS1).
+    titles.append(element('p','eyebrow title-fact',`The court of the ${row.people}`));
     titles.append(element('p', 'diplo-head-status', row.status));
     const weary = wearinessLine(row);
     if (weary !== null) titles.append(element('p', 'diplo-head-weariness', weary));

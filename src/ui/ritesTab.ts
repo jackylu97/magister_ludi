@@ -105,7 +105,7 @@ import { YIELD_GLYPH, YIELD_NAME, netFigure, signedFigure } from './figures';
 import { setDescriptorText } from './keywords';
 import { type PriceLook, priceCellElement, priceLook } from './priceCell';
 import { type RefusalHeadLine, type RefusalPlace, planRefusals, refusalLineElement } from './refusalLine';
-import { setYieldText } from './yieldMark';
+import { setYieldText, yieldMarkNode } from './yieldMark';
 import {
   riteClauseWords,
   riteSays,
@@ -1213,6 +1213,16 @@ function townName(cityId: number, name: string, faith: string, handlers: RitesTa
   return cell;
 }
 
+/**
+ * The candle that leads a rite's chip, in faith's ink, in place of the faith
+ * stripe the chip wore at its edge (batch SS1, the Ornament board).
+ */
+function riteCandle(): HTMLElement {
+  const candle = element('span', 'faith-rite-chip-candle');
+  candle.append(yieldMarkNode('faith'));
+  return candle;
+}
+
 /** The strip of chips. */
 function drawChips(model: RitesTabModel, handlers: RitesTabHandlers): HTMLElement {
   const strip = element('div', 'faith-rite-chips');
@@ -1221,7 +1231,7 @@ function drawChips(model: RitesTabModel, handlers: RitesTabHandlers): HTMLElemen
   for (const chip of model.chips) {
     if (!chip.known) {
       const locked = element('span', 'faith-rite-chip is-locked');
-      locked.append(element('span', 'faith-rite-chip-name', chip.name));
+      locked.append(riteCandle(), element('span', 'faith-rite-chip-name', chip.name));
       locked.append(element('span', 'faith-rite-chip-teacher', `needs ${chip.teacher ?? ''}`));
       locked.title = `${chip.name} is taught by ${chip.teacherPhrase ?? 'something you do not have'}`;
       strip.append(locked);
@@ -1231,7 +1241,7 @@ function drawChips(model: RitesTabModel, handlers: RitesTabHandlers): HTMLElemen
     button.type = 'button';
     button.dataset.key = `chip:${chip.rite}`;
     button.setAttribute('aria-pressed', chip.selected ? 'true' : 'false');
-    button.append(element('span', 'faith-rite-chip-name', chip.name));
+    button.append(riteCandle(), element('span', 'faith-rite-chip-name', chip.name));
     if (chip.voice !== null) {
       const mark = element('span', 'faith-rite-chip-mark');
       setYieldText(mark, YIELD_GLYPH[chip.voice]);

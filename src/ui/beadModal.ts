@@ -264,7 +264,8 @@ export function createBeadModal(
 
     const sheet = element('div', 'triumph-sheet bead-sheet gilt-frame');
     sheet.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[face.family].ink})`);
-    sheet.append(element('p', 'triumph-eyebrow', face.eyebrow));
+    // No label over the crest (batch SS1): the line under the name already
+    // says "a bead" and its family.
 
     // The crest is a bead, at the size a crest wants: the laurel is renown's
     // mark and this system does not pay in renown.

@@ -2,15 +2,16 @@
  * Magister Ludi's interface skin.
  *
  * The design language is fixed by `docs/design-specimen.html`, and this file is
- * that specimen applied to a HUD: parchment surfaces, 3px ink borders, solid
- * (never blurred) ink shadows, small radii, and buttons that physically depress.
+ * that specimen applied to a HUD. Since the Scholar's Study (batch SS1, the
+ * boards in `docs/plans/mockups/scholars-study/`), a panel lies flat: a thin
+ * edge of the paper and a soft shadow. Only the things the player plays keep
+ * the hard ink shadow: End Turn, the turn card, a card on the table, a stamp.
  *
- * Three voices, one rule each:
- *   · Instrument Serif announces — the turn splash, era text.
- *   · Fraunces names — cities, terrain, panel titles.
- *   · Instrument Sans works — every dense label and button.
- *   · IBM Plex Mono counts — every number, always tabular.
- * No serif below ~15px; below that the sans and the mono do all the talking.
+ * The voices, one rule each:
+ *   · Newsreader announces: the title, the sheet titles, the turn card.
+ *   · Fraunces names: cities, terrain, panel titles, and the small-caps labels.
+ *   · Instrument Sans works: every sentence and button.
+ *   · IBM Plex Mono counts: every number, always tabular.
  *
  * Where this departs from the specimen it is for HUD density: the specimen sets
  * body copy at ~1.04rem on a wide page, while the panels here are 240–290px
@@ -23,19 +24,52 @@
   color-scheme: light;
 
   /* --- ink and paper ---------------------------------------------------- */
+  /* The palette is the Ink board's (`Ink.dc.html`, approved 2026-10-16). Each
+     pigment has one job, and text has 4.5:1 or more on each ground. */
+  /* Iron-gall ink: text, and the top bar's ground. */
   --ink: #1d1a20;
+  /* Washed ink: secondary text. */
   --ink-soft: #56505a;
-  --ink-faint: rgba(29, 26, 32, 0.42);
+  /* Faded ink: hints and captions. 5.73:1 on parchment and 4.97:1 on the
+     table. It was ink at 42%, which is 2.59:1 and failed. */
+  --ink-faint: #625e5b;
+  /* The old faint ink, kept for lines only: a border, a dashed rule, a bar, the
+     outline of a control that is off. Never text: text uses `--ink-faint`. */
+  --ink-line: rgba(29, 26, 32, 0.42);
   /* The ledger's rule: the lightest ink this interface draws with, and the only
      one whose job is to *separate* rather than to say anything. Every hairline
      between two entries of a breakdown is this, so tuning how ruled a ledger
      looks is one number (art pass A4). */
   --rule: rgba(29, 26, 32, 0.14);
+  /* The paper's edge: the thin outline of a sheet, a panel, a toast or a chip. */
+  --edge: rgba(29, 26, 32, 0.22);
+  /* Parchment: sheets, panels, toasts. */
   --parchment: #f7f2e1;
+  /* The table: the ground under the sheets. */
   --table: #e9e2cf;
+  /* Vellum: the charter (Statecraft). */
+  --vellum: #efe6cd;
+  /* Lampblack: the star chart's night. */
+  --lampblack: #1e1b22;
+  /* Deep lapis: the plates (an age, the Opus). */
+  --deep-lapis: #1c3f7a;
 
   /* --- accents ---------------------------------------------------------- */
-  --vermilion: #d4502e;
+  /* Cinnabar: the ground of the one primary action on a screen (End Turn,
+     Confirm, the turn card). Parchment on it is 4.57:1. */
+  --cinnabar: #bd4729;
+  /* Rubric: red ink on paper. The word that is news, a debit, the manicule
+     that leads a refusal. 5.48:1 on parchment. A label is never red. */
+  --rubric: #ab3d1e;
+  /* Rubric lifted for the star chart's night: a sheet title's first letter
+     there (the Type board). */
+  --rubric-lit: #e7a07f;
+  /* Sealing wax: the seals on the charter and the chart. */
+  --sealing-wax: #8f2a1c;
+  /* The old name of the red. It now means rubric, so every rule that printed
+     red text keeps working; a ground that is the primary action names
+     `--cinnabar` instead. */
+  --vermilion: var(--rubric);
   /* **War**, and deliberately not vermilion. The board rims an enemy's pieces
      in `units.hostileGlow` (`data/view3d.json`, the palette's `warRed`), and
      the user's ruling asked for a red that is *not* the crimson a seat can
@@ -46,10 +80,15 @@
      is the same alarm lifted the way the yield voices are (see below), for the
      one thing on ink that has to shout — a meter in deficit. */
   --vermilion-lit: #f28563;
-  --teal: #1f8a85;
+  /* Verdigris: the rival, and trade and distance. 4.88:1 on the table. The
+     token keeps its old name. */
+  --teal: #176b66;
   --cobalt: #2757b8;
   --grape: #7b3fa8;
+  /* Gilt: frames and the gilt bead. Never text on paper (2.51:1): text and
+     marks on paper use deep gilt. On ink, gilt text uses `--y-gold-lit`. */
   --gilt: #c8901f;
+  --deep-gilt: #7f5b0e;
   /* The research dial's ring: the same lapis the star chart draws Philosophy
      in (`data/view3d.json`'s palette), so a node's colour on the 3D disc and
      the HUD's progress ring are one fact, not two. */
@@ -156,15 +195,18 @@
   --rank-common-dot: #7a747d;
 
   /* --- yield voices ----------------------------------------------------- */
-  --y-food: #3f9636;
-  --y-prod: #c26a1d;
-  --y-gold: #c8901f;
+  /* The deep inks: a yield's word, figure or mark on paper. Each reaches 4.5:1
+     on parchment, on the table and on vellum (the Ink board, "deep on paper,
+     lit on ink"). Gold is deep gilt, because plain gilt is 2.51:1. */
+  --y-food: #306f29;
+  --y-prod: #94500f;
+  --y-gold: #7f5b0e;
   --y-sci: #2757b8;
   --y-cul: #7b3fa8;
-  --y-faith: #a8467e;
+  --y-faith: #994074;
 
-  /* Yields drawn on ink instead of parchment need to be lifted to stay legible
-     — the banner and the tooltip are the only two dark surfaces in the set. */
+  /* The lit inks: the same voices on ink (the top bar, a night card, a
+     tooltip). */
   --y-food-lit: #7fd06c;
   --y-prod-lit: #eda75f;
   --y-gold-lit: #ecc154;
@@ -206,21 +248,35 @@
   --ldg-people: var(--gilt);
   --ldg-trade: var(--teal);
   --ldg-wonders: var(--cobalt);
-  --ldg-other: var(--ink-faint);
+  --ldg-other: var(--ink-line);
 
   /* --- faces ------------------------------------------------------------ */
-  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* --- component recipe ------------------------------------------------- */
+  /* Since batch SS1 the recipe has two halves (the Main and Ornament boards).
+
+     Paper: a sheet, a panel, a popover, a toast, a button. It lies flat, with
+     a thin edge (`--edge`), a small radius and a soft shadow. `--shadow` and
+     `--shadow-sm` are this soft shadow now, so every rule that asked for the
+     old hard throw is flat without an edit of its own.
+
+     Played: End Turn, the turn card, a card on the table, a stamp, a bead. You
+     press or deal these like tokens, so they keep the solid ink shadow
+     (`--played-shadow`). */
   --border: 3px;
   --border-thin: 2px;
   --radius: 10px;
   --radius-sm: 6px;
-  --shadow: 5px 5px 0 var(--ink);
-  --shadow-sm: 3px 3px 0 var(--ink);
+  --paper-radius: 3px;
+  --paper-shadow: 0 1px 0 rgba(29, 26, 32, 0.08), 0 10px 22px -12px rgba(29, 26, 32, 0.42);
+  --shadow: var(--paper-shadow);
+  --shadow-sm: var(--paper-shadow);
+  --played-shadow: 5px 5px 0 var(--ink);
+  --played-shadow-sm: 3px 3px 0 var(--ink);
 
   /* The height of the top bar, and therefore where the board begins. Read by
      #viewport, by the popover column hung under the bar, and by both right-hand
@@ -283,15 +339,46 @@ body {
   outline-offset: 2px;
 }
 
-/* An eyebrow: the mono uppercase micro-label the specimen uses to title
-   sections. Applied through classes rather than used as one. */
+/* A small label: the name of a section, or a fact. It used to be a tracked
+   mono capital line set over a heading (the critique's "eyebrow"). Since batch
+   SS1 it is the Type board's label: the names face's small caps, in faded ink.
+   It never stands over a heading. A fact about a heading goes under it, and a
+   line that only repeated the heading, or was flavour in the place of a label,
+   is gone. The class keeps its old name, because three hundred rules and
+   tests know it. A label is never red. */
 .eyebrow {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  color: var(--ink-faint);
+}
+
+/* A fact under a sheet title: "taken on turn 91", "step one of two". The
+   label's voice, set under the title it is about (the Type board). */
+.title-fact {
+  margin: 4px 0 0;
+}
+
+/* --- sheet titles ----------------------------------------------------------
+   Every sheet title is set in the display face, with its first letter in red
+   ink and its italic word kept (the Type and Display boards). On the star
+   chart's night the red is lifted, as the board draws it. */
+.statecraft-title::first-letter,
+.abacus-title::first-letter,
+.pamphlet-title::first-letter,
+.offer-title::first-letter,
+.landing-title::first-letter,
+.leader-title::first-letter,
+.compendium-title::first-letter {
+  color: var(--rubric);
+}
+
+.tech-title::first-letter {
+  color: var(--rubric-lit);
 }
 
 /* The drawn resource mark, inline in a line of text.
@@ -564,6 +651,26 @@ body {
   mask-position: center;
 }
 
+/* The bead: a pierced glass bead on its wire (batch SS1, the Marks board), in
+   place of the `◉` character. Same mechanism as the meter marks, a size
+   larger, because the wire's two ends make it a wide mark. */
+.bead-mark {
+  flex: none;
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.22em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--bead-mark);
+  mask-image: var(--bead-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 /* A meter mark **composed into a figure** rather than standing alone on a chip:
    `+4☺` on a card stamp, printed by `yieldMark.ts`'s one walk. It takes the
    yield mark's proportions and its air, because in that sentence it is doing the
@@ -729,8 +836,15 @@ body {
    poster is shown once, on the title screen, and never again on the way into a
    game — so these two screens say where they are instead, in the face every
    counted thing in this interface is set in. */
-.landing-crumb {
-  font-family: var(--face-num);
+/* Since batch SS1 it sits under the step's title as a fact, in the label's
+   small caps (`.eyebrow`). It takes the room the title used to keep below
+   itself, so the step's first row does not move. */
+.landing-title + .landing-crumb {
+  margin: -8px 0 12px;
+}
+
+.leader-title + .landing-crumb {
+  margin: -2px 0 8px;
 }
 
 /* --- the title screen ---
@@ -937,7 +1051,7 @@ body {
 }
 
 .landing-mode:disabled {
-  color: var(--ink-faint);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -1017,10 +1131,10 @@ body {
 /* The specimen's marquee card, at HUD scale. */
 .marquee {
   padding: 30px 22px 24px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   text-align: center;
 }
 
@@ -1287,7 +1401,7 @@ body {
 .landing-begin .btn-start {
   flex: 0 0 auto;
   padding: 11px 30px 12px;
-  border-width: var(--border);
+  border-color: var(--ink);
   border-radius: 999px;
   background: var(--ink);
   color: var(--parchment);
@@ -1300,8 +1414,8 @@ body {
 }
 
 .btn-start:active:not(:disabled) {
-  transform: translate(5px, 5px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 /* A renderer that could not start says so here, where the player is looking. */
@@ -1332,10 +1446,10 @@ body {
   position: fixed;
   z-index: 10;
   padding: 10px 12px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.45;
@@ -1547,6 +1661,12 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
 /* Renown wears gilt, the colour gold wears: renown and money are the two
    things on this bar an empire banks. */
 .topbar-tab-figure.is-renown {
+  color: var(--y-gold-lit);
+}
+
+/* The bead wears lit gilt on the bar, as the renown laurel does (the Main
+   board). */
+.topbar-tab-figure.is-beads .topbar-figure-mark {
   color: var(--y-gold-lit);
 }
 
@@ -1959,7 +2079,7 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
 .meter-lines.is-effects {
   margin-top: 6px;
   padding-top: 5px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
   color: var(--ink-soft);
 }
 
@@ -2074,22 +2194,22 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
   pointer-events: none;
 }
 
-/* The card. A parchment surface with the usual ink edge, one notch quieter than
-   a popover — it is news, not a screen — and it carries its turn in mono on the
-   left the way every other number in this interface is set. */
+/* The card: paper that lies flat, with the kind of news drawn at its head,
+   the turn in the label's small caps, and the sentence (the Main and Marks
+   boards, batch SS1). */
 .toast {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   margin: 0;
-  padding: 7px 10px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  padding: 8px 14px 8px 11px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1.35;
   text-align: left;
   color: var(--ink);
@@ -2099,16 +2219,48 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
 
 .toast-turn {
   flex: none;
-  font-family: var(--face-num);
-  font-size: 9.5px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-variant-caps: all-small-caps;
+  font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
 
 .toast-text {
   min-width: 0;
+}
+
+/* The mark at the head of a line of news (`src/ui/newsMark.ts`): a drawn
+   mark in its kind's ink, or, for news the boards gave no mark, its old
+   character in faded ink. The slot keeps its width when it is empty, so every
+   line starts its words at the same place. */
+.news-mark {
+  flex: none;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  font-size: 15px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+.news-mark:not(.is-glyph):not(.is-empty) {
+  background-color: var(--news-ink, var(--ink));
+  -webkit-mask-image: var(--news-mark);
+  mask-image: var(--news-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* Red ink marks only the name that is new (the Main board). */
+.news-word {
+  color: var(--rubric);
 }
 
 /* An entry that knows where it happened is a button. It says so with the hover
@@ -2134,9 +2286,10 @@ button.toast:active {
 /* The stale-deploy card: the toast's dress, none of its behaviour (see
    `staleDeploy.ts`). It is a *condition* rather than news, so it sits in its own
    fixed slot, never fades, and takes pointer events because it carries a
-   control. A vermilion edge because it is the one card on screen that is about
-   the page rather than about the game. It is never `is-leaving`, which is why
-   the rule above cannot reach it. */
+   control. It is the one card on screen that is about the page rather than
+   about the game, and since batch SS1 an ink seal at its head says so, in
+   place of the red stripe down its edge (the Ornament board). It is never
+   `is-leaving`, which is why the rule above cannot reach it. */
 .stale-notice {
   position: fixed;
   top: calc(var(--topbar-h) + 10px);
@@ -2146,9 +2299,15 @@ button.toast:active {
   justify-content: space-between;
   width: min(360px, calc(100vw - 48px));
   transform: translateX(-50%);
-  border-color: var(--vermilion);
-  border-left-width: 4px;
   pointer-events: auto;
+}
+
+.stale-notice-seal {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 .stale-notice-refresh {
@@ -2234,6 +2393,15 @@ button.toast:active {
   min-width: 0;
 }
 
+/* The chronicle's line wears the toast's mark, a size smaller. */
+.log-entry .news-mark {
+  align-self: center;
+  width: 14px;
+  height: 14px;
+  font-size: 12px;
+  line-height: 14px;
+}
+
 /* Cell-bearing entries are pressable, and look it: an ink edge on hover rather
    than a permanent one, so a list of a hundred lines is not a grid of boxes. */
 button.log-entry {
@@ -2298,17 +2466,21 @@ button.log-entry:active {
   gap: 8px;
   margin-bottom: 9px;
   padding-bottom: 6px;
-  border-bottom: var(--border-thin) solid var(--ink);
+  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
+  border-bottom: 1px solid var(--rule);
 }
 
+/* A popover's title is a label, so it is in ink and in the names face (the
+   Type board: "the strong colour moves off labels and onto news"). It was
+   9px red mono capitals, which made the label the loudest thing on the card. */
 .popover-title {
   margin: 0;
-  font-family: var(--face-num);
-  font-size: 9px;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--vermilion);
+  line-height: 1.2;
+  color: var(--ink);
 }
 
 /* The setup card's eyebrow is the one place the game's name is set in the
@@ -2377,15 +2549,15 @@ button.log-entry:active {
 }
 
 .hud-card button.lens-option {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
   padding: 5px 8px;
-  border: var(--border-thin) solid var(--ink);
-  border-left: 5px solid var(--table);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
@@ -2399,8 +2571,24 @@ button.log-entry:active {
   background: #fffdf4;
 }
 
+/* The lens that is up wears a thumb-index tab at its left edge, and the rows
+   at rest wear no stripe (batch SS1, the Ornament board). The board puts the
+   lens's mark in the tab; no lens has a drawn mark yet, so the tab is plain
+   ink until one does. */
 .hud-card button.lens-option.is-on {
-  border-left-color: var(--vermilion);
+  border-color: var(--ink);
+}
+
+.hud-card button.lens-option.is-on::before {
+  position: absolute;
+  top: 50%;
+  left: -8px;
+  width: 8px;
+  height: 18px;
+  border-radius: 3px 0 0 3px;
+  background: var(--ink);
+  transform: translateY(-50%);
+  content: '';
 }
 
 /* The tick occupies its row whether or not it is shown, so choosing a lens
@@ -2615,13 +2803,16 @@ button.log-entry:active {
 }
 
 /* --- buttons --------------------------------------------------------------
-   Every button in the game is one of these: a bordered block that sits on a
-   hard ink shadow and drops onto the page when pressed. */
+   Every button in the game is one of these. Since batch SS1 a button is paper
+   like the panel it sits on: the paper's edge, a soft shadow, and a press of
+   one pixel. The primary action is filled in cinnabar with an ink edge (the
+   Ink board's Confirm). Only End Turn keeps the hard shadow and the deep
+   press, because the player plays it like a token (`.btn-end`). */
 .btn {
   flex: 1;
   padding: 6px 10px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
@@ -2635,13 +2826,15 @@ button.log-entry:active {
 }
 
 .btn-primary {
-  background: var(--vermilion);
+  border-color: var(--ink);
+  background: var(--cinnabar);
   color: var(--parchment);
   font-size: 13px;
   padding: 7px 10px;
 }
 
 .btn-second {
+  border-color: var(--ink);
   background: var(--teal);
   color: var(--parchment);
 }
@@ -2655,17 +2848,18 @@ button.log-entry:active {
   background-image: linear-gradient(rgba(29, 26, 32, 0.09), rgba(29, 26, 32, 0.09));
 }
 
-/* The whole point of the language: a press is a physical event. */
+/* A press is still a physical event, one pixel deep: the paper is pressed
+   flat against the table. */
 .btn:active:not(:disabled) {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn:disabled {
   background: var(--table);
-  color: var(--ink-faint);
-  border-color: var(--ink-faint);
-  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.18);
+  color: var(--ink-line);
+  border-color: var(--edge);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -2864,7 +3058,7 @@ button.seat:active {
 .restart-row {
   margin-top: 9px;
   padding-top: 9px;
-  border-top: var(--border-thin) dashed var(--ink-faint);
+  border-top: var(--border-thin) dashed var(--ink-line);
 }
 
 /* The restart row and its inline confirm occupy the same line, so answering
@@ -3083,10 +3277,12 @@ button.seat:active {
    whatever the hex *is*. The derivation still exists; it is `explainTileYield`'s,
    and it was never a thing to typeset. */
 
+/* A hint is a sentence, so it gets the sentence floor of 12 px (the Ink and
+   Type boards, batch SS1). */
 .hint {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--ink-soft);
 }
@@ -3120,10 +3316,10 @@ kbd {
   width: var(--empire-panel-w);
   height: var(--empire-panel-h);
   padding: 0 8px 0 5px;
-  border: var(--border) solid var(--ink);
-  border-radius: 12px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12px;
@@ -3146,8 +3342,8 @@ kbd {
 
 /* The physical press every HUD button has. */
 .empire-panel:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 /* The seat's banner: its charge masked in ink on a parchment canton (the
@@ -3300,10 +3496,10 @@ kbd {
   box-sizing: border-box;
   width: 300px;
   padding: 6px 10px 9px;
-  border: var(--border) solid var(--ink);
-  border-radius: 2px var(--radius) var(--radius) var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12px;
@@ -3492,7 +3688,7 @@ kbd {
    chosen. */
 .drawer-glyph {
   flex: none;
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 .drawer-glyph.is-dim {
@@ -3580,7 +3776,7 @@ kbd {
 }
 
 #hud-research.is-prompting .drawer-name {
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 .drawer-foot {
@@ -3785,10 +3981,10 @@ kbd {
   box-sizing: border-box;
   width: 100%;
   height: var(--commission-chip-h);
-  padding: 4px 8px 4px 6px;
+  position: relative;
+  padding: 4px 8px 4px 14px;
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--line-ink, var(--ink));
-  border-radius: var(--radius-sm);
+  border-radius: var(--paper-radius);
   background: rgba(247, 242, 225, 0.72);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
@@ -3808,8 +4004,32 @@ kbd {
   outline-offset: 2px;
 }
 
-.commission-chip.is-done {
-  border-left-color: var(--gilt);
+/* The thumb-index tab: the card's ink, its suit in parchment, half over the
+   chip's left edge (the Ornament board). A finished commission's tab is gilt. */
+.commission-tab {
+  position: absolute;
+  top: 50%;
+  left: -9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 26px;
+  border-radius: 3px 0 0 3px;
+  background: var(--line-ink, var(--ink));
+  color: var(--parchment);
+  transform: translateY(-50%);
+}
+
+.commission-tab svg {
+  --suit-stroke: 7;
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.commission-chip.is-done .commission-tab {
+  background: var(--gilt);
 }
 
 .commission-ring {
@@ -3889,10 +4109,10 @@ kbd {
   display: none;
   width: 260px;
   padding: 9px 11px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   font-size: 12px;
   line-height: 1.4;
   color: var(--ink);
@@ -4196,11 +4416,11 @@ kbd {
   min-width: 40px;
   height: 40px;
   padding: 0 8px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
   line-height: 1;
   white-space: nowrap;
@@ -4216,8 +4436,8 @@ kbd {
    `--shadow-sm`, collapsed. A button whose card is open stays pressed in. */
 .turn-tool:active,
 .turn-tool[aria-expanded='true'] {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 /* The chronicle's ❧. */
@@ -4302,12 +4522,15 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   box-sizing: border-box;
   min-width: var(--end-turn-w);
   padding: 11px 20px 12px;
-  border-width: var(--border);
+  /* A played thing (the Ink and Main boards): its old wide shape, the thick
+     ink edge and the hard shadow stay, and its ground is cinnabar through
+     `.btn-primary`. Parchment on cinnabar is 4.57:1. */
+  border: var(--border) solid var(--ink);
   border-radius: var(--radius);
   font-size: 16px;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  box-shadow: var(--shadow);
+  box-shadow: var(--played-shadow);
 }
 
 .btn-end:active:not(:disabled) {
@@ -4330,7 +4553,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
    should only be loud when the turn can actually end. The key rides on
    parchment now, so it takes the ink treatment the other buttons' keys have. */
 .btn-end.btn-quiet .btn-key {
-  border-color: var(--ink-faint);
+  border-color: var(--ink-line);
   color: var(--ink);
 }
 
@@ -4350,7 +4573,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   background: var(--parchment);
   border-color: var(--ink);
   color: var(--ink-soft);
-  box-shadow: var(--shadow);
+  box-shadow: var(--played-shadow);
   transform: none;
   cursor: progress;
 }
@@ -4421,10 +4644,10 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   box-sizing: border-box;
   width: var(--end-turn-w);
   padding: 8px 10px 7px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12px;
@@ -4531,7 +4754,7 @@ body.has-diplomatic-offers .end-turn-list {
      rather than as withdrawn. */
   --price-paper-barred: var(--table);
   --price-ink-barred: var(--ink-faint);
-  --price-rim-barred: var(--ink-faint);
+  --price-rim-barred: var(--ink-line);
   /* The hovered plate's rim — the one state the panel has no equivalent for,
      because on a board the tag under the cursor has to name the hex. */
   --price-rim-hover: var(--gilt);
@@ -4655,17 +4878,19 @@ body.has-diplomatic-offers .end-turn-list {
 
 .turn-splash {
   padding: 9px 26px 12px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--vermilion);
+  /* A played thing (the Ornament board): a thin ink edge, a small radius and
+     the hard shadow, on cinnabar. Nothing tilts any more: the 1.2° lean went
+     with batch SS1. */
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--cinnabar);
   color: var(--parchment);
   font-family: var(--face-display);
   font-size: 2rem;
   font-weight: 400;
   line-height: 1.05;
   text-align: center;
-  box-shadow: 6px 6px 0 var(--ink);
-  transform: rotate(-1.2deg);
+  box-shadow: 4px 4px 0 var(--ink);
   animation: splash-pop 260ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
 }
 
@@ -4680,7 +4905,6 @@ body.has-diplomatic-offers .end-turn-list {
   font-size: 1.15rem;
   background: var(--teal);
   box-shadow: 4px 4px 0 var(--ink);
-  transform: rotate(-0.8deg);
 }
 
 .turn-splash.is-seat .turn-splash-name {
@@ -4697,11 +4921,11 @@ body.has-diplomatic-offers .end-turn-list {
 @keyframes splash-pop {
   from {
     opacity: 0;
-    transform: rotate(-1.2deg) scale(0.86);
+    transform: scale(0.86);
   }
   to {
     opacity: 1;
-    transform: rotate(-1.2deg) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -5217,10 +5441,10 @@ body.has-diplomatic-offers .end-turn-list {
   width: 340px;
   padding: 11px 13px 13px;
   overflow-y: auto;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.45;
@@ -5230,7 +5454,7 @@ body.has-diplomatic-offers .end-turn-list {
      its own content, not by a dedicated travel gesture, so the bar can afford
      to be a little more present than the chart's. */
   scrollbar-width: thin;
-  scrollbar-color: var(--ink-faint) transparent;
+  scrollbar-color: var(--ink-line) transparent;
 }
 
 .city-rail::-webkit-scrollbar,
@@ -5246,7 +5470,7 @@ body.has-diplomatic-offers .end-turn-list {
 .city-rail::-webkit-scrollbar-thumb,
 #unit-panel::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: var(--ink-faint);
+  background: var(--ink-line);
 }
 
 .city-rail::-webkit-scrollbar-thumb:hover,
@@ -5273,18 +5497,20 @@ body.has-diplomatic-offers .end-turn-list {
   letter-spacing: -0.015em;
 }
 
-/* Section labels: the specimen's mono uppercase eyebrow. Shared by the sheet
-   and by the mode's cards, which is the one thing about the two surfaces that
-   should never differ. */
+/* Section labels, shared by the sheet and by the mode's cards, which is the
+   one thing about the two surfaces that should never differ. Since batch SS1
+   they are the label's small caps in faded ink (`.eyebrow`): they were red mono
+   capitals, and a label is never red (the Ink board). */
 .city-mode h3,
 #unit-panel h3 {
   margin: 14px 0 6px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--vermilion);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: var(--ink-faint);
 }
 
 /* --- the city mode --------------------------------------------------------
@@ -5373,7 +5599,7 @@ body.has-diplomatic-offers .end-turn-list {
   font-family: var(--face-display);
   font-variation-settings: normal;
   font-weight: 400;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: 0;
 }
@@ -5412,6 +5638,14 @@ body.has-diplomatic-offers .end-turn-list {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The name gives last. Newsreader (batch SS1) sets wider than the condensed
+   face before it, and a town's name cut to "Cus…" at 1440 px is worse than a
+   shorter belief line. A very long name still ellipsises past 11 em. */
+.city-band h2 {
+  flex-shrink: 0;
+  max-width: 11em;
 }
 
 /* The banks, just left of the six chips (batch UX5; the user, 2026-10-12: "The
@@ -5535,8 +5769,8 @@ body.has-diplomatic-offers .end-turn-list {
 }
 
 .city-step:disabled {
-  border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  border-color: var(--ink-line);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -5626,7 +5860,7 @@ body:has(.city-mode:not([hidden])) .city-mode {
   pointer-events: auto;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--ink-faint) transparent;
+  scrollbar-color: var(--ink-line) transparent;
 }
 
 /* The town rail owns the top-left corner outright: the research card and the
@@ -5677,10 +5911,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-card {
   flex: 0 0 auto;
   padding: 7px 9px 8px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: color-mix(in srgb, var(--parchment) 93%, transparent);
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.35);
+  box-shadow: var(--paper-shadow);
 }
 
 /* The eyebrow inside a card is the panel's own, with a card's air rather than a
@@ -5789,10 +6023,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
   max-height: calc(100% - 12px - max(calc(14px + 46px), var(--end-turn-clearance)));
   overflow-y: auto;
   padding: 8px 10px 9px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   pointer-events: none;
   font-size: 11px;
   line-height: 1.4;
@@ -5813,14 +6047,15 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin-bottom: 5px;
 }
 
-/* The yield's name in the mode's eyebrow voice. */
+/* The yield's name in the mode's label voice: small caps, never red (batch
+   SS1). */
 .city-chip-card-name {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--vermilion);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
 }
 
 .city-chip-card-total {
@@ -5855,7 +6090,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-chip-row.is-flat + .city-chip-row.is-percent {
   margin-top: 3px;
   padding-top: 3px;
-  border-top: 1px solid var(--ink-faint);
+  border-top: 1px solid var(--ink-line);
 }
 
 .city-chip-row-label {
@@ -5949,7 +6184,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-disc[open] > summary {
-  border-bottom: 1px solid var(--ink-faint);
+  border-bottom: 1px solid var(--ink-line);
   margin-bottom: 3px;
 }
 
@@ -6067,7 +6302,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   gap: 7px;
   padding: 7px 22px;
   pointer-events: auto;
-  border: var(--border) solid var(--ink);
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--parchment);
   color: var(--ink);
@@ -6076,7 +6311,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -6085,8 +6320,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-leave:active {
-  transform: translateX(-50%) translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateX(-50%) translateY(1px);
+  box-shadow: none;
 }
 
 /* The one instruction, and only while somebody is being taught or is shopping
@@ -6101,7 +6336,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin: 0;
   padding: 4px 10px;
   pointer-events: none;
-  border: 1px dashed var(--ink-faint);
+  border: 1px dashed var(--ink-line);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--parchment) 86%, transparent);
   font-size: 11px;
@@ -6150,7 +6385,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -6201,7 +6436,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-modifier.is-stage {
   margin-top: 3px;
   padding-top: 3px;
-  border-top: 1px solid var(--ink-faint);
+  border-top: 1px solid var(--ink-line);
   color: var(--ink);
   letter-spacing: 0.02em;
 }
@@ -6375,7 +6610,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -6389,10 +6624,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-contribute-button:disabled {
-  border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  border-color: var(--ink-line);
+  color: var(--ink-line);
   background: var(--table);
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -6462,7 +6697,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -6482,7 +6717,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .city-buy-tiles:disabled {
   opacity: 0.45;
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -6645,8 +6880,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-icon-button:disabled {
-  border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  border-color: var(--ink-line);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -6730,7 +6965,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   min-width: 0;
   overflow: hidden;
   padding: 6px 8px;
-  border: var(--border-thin) dashed var(--ink-faint);
+  border: var(--border-thin) dashed var(--ink-line);
   border-radius: var(--radius-sm);
   color: var(--ink);
   font-family: var(--face-ui);
@@ -6828,7 +7063,7 @@ p.city-trade-link {
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--y-gold);
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -6854,9 +7089,10 @@ p.city-trade-link {
    ended its turn. A state rather than a lack: the faint ink, never the wanting
    voice. */
 .price-cell.is-buy:disabled {
-  border-color: var(--ink-faint);
+  border-color: var(--ink-line);
   background: var(--table);
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  box-shadow: none;
+  /* The figure is still read, so it is faded ink, not the line ink. */
   color: var(--ink-faint);
   cursor: default;
 }
@@ -6925,7 +7161,7 @@ p.city-trade-link {
   border: var(--border-thin) solid var(--vermilion);
   border-radius: var(--radius-sm);
   background: var(--parchment);
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.35);
+  box-shadow: var(--paper-shadow);
 }
 
 /* The banks: "Treasury 437 (+21) · Faith 51 (+2)". The labels quiet, each
@@ -6984,20 +7220,42 @@ p.city-trade-link {
   /* Four, not six, above and below (batch UX7): a row is one line now, and the
      price plate beside it sets the row's height anyway. */
   padding: 4px 8px;
-  border: var(--border-thin) solid var(--ink);
-  border-left: 5px solid var(--y-prod);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 11px;
   font-weight: 600;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
-.city-buildable.is-building {
-  border-left-color: var(--cobalt);
+/* The production mark leads the row, and nothing is at its edge (batch SS1,
+   the Ornament board). It was a thick stripe: production's ink for a unit and
+   cobalt for a building. A building's row keeps cobalt, on its mark. The
+   picture is `--production-mark` on the root (`installFlourishMarks`). */
+.city-buildable::before {
+  flex: none;
+  align-self: center;
+  width: 11px;
+  height: 11px;
+  background-color: var(--y-prod);
+  -webkit-mask-image: var(--production-mark);
+  mask-image: var(--production-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  content: '';
+}
+
+.city-buildable.is-building::before {
+  background-color: var(--cobalt);
+}
+
+.city-buildable:disabled::before {
+  background-color: var(--ink-line);
 }
 
 .city-buildable:hover:not(:disabled) {
@@ -7010,10 +7268,10 @@ p.city-trade-link {
 }
 
 .city-buildable:disabled {
-  border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  border-color: var(--ink-line);
+  color: var(--ink-line);
   background: var(--table);
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -7231,11 +7489,12 @@ p.city-trade-link {
 }
 
 /* One folded row: its name, and on the line under it what it waits on. */
+/* No stripe at its edge (batch SS1, the Ornament board): the fold it sits in
+   already says these rows are not yet open. */
 .city-not-yet-row {
   display: grid;
   gap: 1px;
   padding: 3px 4px 3px 9px;
-  border-left: 3px solid var(--ink-faint);
 }
 
 .city-not-yet-row > .city-not-yet-name {
@@ -7267,10 +7526,10 @@ p.city-trade-link {
   max-height: calc(100% - 12px - max(calc(14px + 46px), var(--end-turn-clearance)));
   overflow: hidden;
   padding: 8px 10px 9px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 3px 3px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   pointer-events: none;
   font-size: 11px;
   line-height: 1.35;
@@ -7294,7 +7553,7 @@ p.city-trade-link {
   width: auto;
   max-width: 300px;
   padding: 5px 8px;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
 }
 
 /* "Buy outright · 356💰 · you have 437 gold", or why it is not sold here. */
@@ -7440,7 +7699,7 @@ p.city-trade-link {
   text-align: left;
 }
 .city-levy-choice:disabled {
-  color: var(--ink-faint);
+  color: var(--ink-line);
   border-bottom-color: transparent;
   cursor: default;
 }
@@ -7712,8 +7971,8 @@ p.city-trade-link {
 }
 
 .unit-action:disabled .unit-action-key {
-  border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  border-color: var(--ink-line);
+  color: var(--ink-line);
 }
 
 /* --- the star chart -------------------------------------------------------
@@ -7796,11 +8055,6 @@ p.city-trade-link {
 
 .tech-head-titles {
   flex: 1;
-}
-
-.tech-eyebrow {
-  margin: 0 0 2px;
-  color: var(--gilt);
 }
 
 /* The display face, as every announcement in this game uses. */
@@ -8427,7 +8681,7 @@ p.city-trade-link {
 }
 
 .tech-mark.is-unit {
-  border-color: rgba(212, 80, 46, 0.75);
+  border-color: color-mix(in srgb, var(--vermilion) 75%, transparent);
   color: #f0a48f;
 }
 
@@ -8509,7 +8763,6 @@ p.city-trade-link {
   background: var(--ink);
   color: var(--parchment);
   font-size: 1.5rem;
-  transform: rotate(-0.6deg);
 }
 
 .turn-splash.is-tech .turn-splash-name {
@@ -8883,13 +9136,12 @@ p.city-trade-link {
 /* The technology splash's eyebrow over a charter technology's name. */
 .turn-splash-eyebrow {
   display: block;
-  margin-bottom: 5px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
+  margin-top: 5px;
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-variant-caps: all-small-caps;
   line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--deck-charter-lit);
 }
 
@@ -8948,16 +9200,12 @@ p.city-trade-link {
   align-items: flex-start;
   gap: 14px;
   padding-bottom: 10px;
-  border-bottom: var(--border-thin) solid var(--ink);
+  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
+  border-bottom: 1px solid var(--rule);
 }
 
 .abacus-head-titles {
   flex: 1;
-}
-
-.abacus-eyebrow {
-  margin: 0 0 2px;
-  color: var(--ink-soft);
 }
 
 .abacus-title {
@@ -9059,7 +9307,7 @@ p.city-trade-link {
   height: 10px;
   flex: none;
   border-radius: 50%;
-  border: 1px solid var(--ink-faint);
+  border: 1px solid var(--ink-line);
 }
 
 .abacus-overlay :focus-visible {
@@ -9102,7 +9350,7 @@ p.city-trade-link {
    a glance says which reading this is before a word of it is read. */
 .combat-forecast.is-comparison {
   border-style: dashed;
-  border-color: var(--ink-faint);
+  border-color: var(--ink-line);
   background: none;
 }
 
@@ -9138,7 +9386,7 @@ p.city-trade-link {
   gap: 0 10px;
   margin: 0 0 8px;
   padding: 0 0 8px;
-  border-bottom: 1px solid var(--ink-faint);
+  border-bottom: 1px solid var(--ink-line);
 }
 
 .combat-strength {
@@ -9150,7 +9398,7 @@ p.city-trade-link {
 
 .combat-strength.is-defender {
   padding-left: 10px;
-  border-left: 1px solid var(--ink-faint);
+  border-left: 1px solid var(--ink-line);
 }
 
 .combat-strength-label {
@@ -9228,7 +9476,7 @@ p.city-trade-link {
 .combat-side + .combat-side {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid var(--ink-faint);
+  border-top: 1px solid var(--ink-line);
 }
 
 .combat-side-label {
@@ -9406,12 +9654,12 @@ p.city-trade-link {
   font-size: 2.6rem;
   background: var(--ink);
   box-shadow: 8px 8px 0 var(--vermilion);
-  transform: rotate(-1.6deg);
 }
 
+/* On ink, red text is the lit red: rubric on ink is too dark to read. */
 .turn-splash.is-victory em {
   font-style: italic;
-  color: var(--vermilion);
+  color: var(--vermilion-lit);
 }
 
 .turn-splash.is-victory .turn-splash-name {
@@ -9440,10 +9688,10 @@ p.city-trade-link {
   z-index: 45;
   max-width: 274px;
   padding: 9px 11px 10px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 11px;
@@ -9668,7 +9916,7 @@ p.city-trade-link {
    and gilt because a plan is a decision already made rather than a state of the
    world. It sits under the block/being-researched line, never instead of it. */
 .info-card-state.is-planned {
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 /* The unit sheet's own card, raised by the rows whose sentence is longer than a
@@ -9761,7 +10009,7 @@ p.city-trade-link {
   place-items: center;
   width: 15px;
   height: 15px;
-  border: 1px solid var(--ink-faint);
+  border: 1px solid var(--ink-line);
   border-radius: 3px;
   font-family: var(--face-num);
   font-size: 9px;
@@ -9769,7 +10017,7 @@ p.city-trade-link {
 }
 
 .info-card-mark.is-unit {
-  border-color: rgba(212, 80, 46, 0.7);
+  border-color: color-mix(in srgb, var(--vermilion) 70%, transparent);
   color: var(--vermilion);
 }
 
@@ -9791,7 +10039,7 @@ p.city-trade-link {
 }
 
 .info-card-mark.is-reveal {
-  border-color: rgba(31, 138, 133, 0.7);
+  border-color: color-mix(in srgb, var(--teal) 70%, transparent);
 }
 
 .info-card-mark.is-renewal {
@@ -9883,7 +10131,7 @@ p.city-trade-link {
 }
 
 .info-card.is-night .info-card-mark.is-unit {
-  border-color: rgba(212, 80, 46, 0.75);
+  border-color: color-mix(in srgb, var(--vermilion) 75%, transparent);
   color: #f0a48f;
 }
 
@@ -10007,10 +10255,10 @@ p.city-trade-link {
      point the cards do not get, and a five-card hand with an upgrade beneath it
      needs all of them. `offerSpread` reserves exactly these numbers. */
   padding: 18px 20px 20px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
 }
 
@@ -10028,7 +10276,8 @@ p.city-trade-link {
 .offer-head {
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: var(--border-thin) solid var(--ink);
+  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
+  border-bottom: 1px solid var(--rule);
   text-align: center;
 }
 
@@ -10227,9 +10476,9 @@ p.city-trade-link {
    it answers on hover. */
 .offer-answer:disabled {
   background: var(--parchment);
-  color: var(--ink-faint);
-  border-color: var(--ink-faint);
-  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.18);
+  color: var(--ink-line);
+  border-color: var(--ink-line);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -10245,13 +10494,13 @@ p.city-trade-link {
 .offer-return {
   flex: none;
   padding: 9px 16px 10px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--gilt);
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12.5px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -10265,12 +10514,12 @@ p.city-trade-link {
 }
 
 .offer-return:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .offer-eyebrow {
-  margin: 0 0 2px;
+  margin: 2px 0 0;
 }
 
 .offer-title {
@@ -10490,7 +10739,7 @@ p.city-trade-link {
    one pushed down, so four cards of unequal clause length still rule off at the
    same line. */
 /* The foot of a card is the one place on this screen the *display* face gets to
-   speak: Instrument Serif italic, at 15px, which is exactly the floor the
+   speak: the display face's italic, at 15px, which is exactly the floor the
    project's type rule sets for a serif ("no serif below ~15px, ever"). It is
    the specimen's own `flavor` treatment, and a tarot card is the first surface
    in the HUD wide enough to run it — the collection's thumbnails are half this
@@ -10498,7 +10747,7 @@ p.city-trade-link {
 .offer-options[data-face='tarot'] .offer-flavor {
   margin-top: auto;
   padding-top: calc(8px * var(--offer-scale, 1));
-  border-top: 1.5px solid var(--ink-faint);
+  border-top: 1.5px solid var(--ink-line);
   font-family: var(--face-display);
   font-size: calc(0.95rem * var(--offer-scale, 1));
   line-height: 1.25;
@@ -10651,7 +10900,7 @@ p.city-trade-link {
 .suit-frame-pip {
   inset: 0.3125em;
   border-width: 1px;
-  border-color: var(--ink-faint);
+  border-color: var(--ink-line);
   border-radius: 4px;
 }
 
@@ -10750,7 +10999,7 @@ p.city-trade-link {
   display: block;
   width: 0.875em;
   height: 1px;
-  background: var(--ink-faint);
+  background: var(--ink-line);
 }
 
 .suit-rank-numeral {
@@ -11364,12 +11613,12 @@ p.city-trade-link {
   display: grid;
   gap: 3px;
   padding: 7px 9px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
   text-align: left;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
   transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
@@ -11379,8 +11628,8 @@ p.city-trade-link {
 }
 
 .save-pick:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .save-head {
@@ -11526,11 +11775,22 @@ p.city-trade-link {
 .statecraft-sheet {
   width: min(1080px, 100%);
   padding: 20px 24px 28px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+/* Less motion: the sheet fades in where it stands and does not rise. The
+   critique's detector found this sheet and the pamphlet's in none of the
+   reduced-motion blocks (batch SS1, the Ornament board). Every sheet that
+   borrows this paper inherits the fade. The pamphlet's own block sits after
+   its rule, below. */
+@media (prefers-reduced-motion: reduce) {
+  .statecraft-sheet {
+    animation: offer-fade 160ms ease-out both;
+  }
 }
 
 .statecraft-head {
@@ -11538,7 +11798,8 @@ p.city-trade-link {
   align-items: flex-start;
   gap: 16px;
   padding-bottom: 12px;
-  border-bottom: var(--border-thin) solid var(--ink);
+  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
+  border-bottom: 1px solid var(--rule);
 }
 
 .statecraft-head-titles {
@@ -11554,11 +11815,13 @@ p.city-trade-link {
   color: var(--ink);
 }
 
+/* The sheet's hint, in faded ink at 13 px (the Ink board's "faint hint text"
+   pair: 5.73:1, where ink at 42% and 11 px was 2.59:1). */
 .statecraft-hint {
   margin: 0;
   padding-top: 6px;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ink-faint);
 }
 
@@ -11566,8 +11829,9 @@ p.city-trade-link {
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  /* The paper's edge, as the Main board draws a sheet's ×. */
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--table);
   font-size: 16px;
   line-height: 1;
@@ -11646,7 +11910,7 @@ p.city-trade-link {
   flex-direction: column;
   min-height: 0;
   padding-right: 16px;
-  border-right: var(--border-thin) solid var(--ink-faint);
+  border-right: var(--border-thin) solid var(--ink-line);
 }
 
 .sc-column-body {
@@ -11710,7 +11974,7 @@ p.city-trade-link {
     padding-right: 0;
     padding-bottom: 12px;
     border-right: none;
-    border-bottom: var(--border-thin) solid var(--ink-faint);
+    border-bottom: var(--border-thin) solid var(--ink-line);
   }
 
   .bead-rods,
@@ -11727,7 +11991,7 @@ p.city-trade-link {
     padding-right: 0;
     padding-bottom: 12px;
     border-right: none;
-    border-bottom: var(--border-thin) solid var(--ink-faint);
+    border-bottom: var(--border-thin) solid var(--ink-line);
   }
 
   .sc-column-body,
@@ -11962,7 +12226,7 @@ p.city-trade-link {
   width: 100%;
   min-height: 42px;
   padding: 6px 10px;
-  border: var(--border-thin) dashed var(--ink-faint);
+  border: var(--border-thin) dashed var(--ink-line);
   border-radius: var(--radius-sm);
   background: transparent;
   font: inherit;
@@ -11984,8 +12248,8 @@ p.city-trade-link {
 .sc-slot-open {
   border-color: var(--vermilion);
   border-style: solid;
-  background: rgba(212, 80, 46, 0.08);
-  box-shadow: 0 0 0 2px rgba(212, 80, 46, 0.25);
+  background: color-mix(in srgb, var(--vermilion) 8%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vermilion) 25%, transparent);
 }
 
 /* An office this session changed and has not signed: the gilt of the
@@ -12015,7 +12279,7 @@ p.city-trade-link {
 .sc-slot-malice {
   border-style: solid;
   border-color: var(--vermilion);
-  background: rgba(212, 80, 46, 0.1);
+  background: color-mix(in srgb, var(--vermilion) 10%, transparent);
   box-shadow: var(--shadow-sm);
   color: var(--vermilion);
   cursor: not-allowed;
@@ -12252,7 +12516,7 @@ p.city-trade-link {
 .sc-chair.sc-slot-open .sc-chair-empty {
   border-style: solid;
   border-color: var(--chair-ink, var(--vermilion));
-  background: var(--chair-ground, rgba(212, 80, 46, 0.08));
+  background: var(--chair-ground, color-mix(in srgb, var(--vermilion) 8%, transparent));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--chair-ink, var(--vermilion)) 30%, transparent);
 }
 
@@ -12289,7 +12553,7 @@ p.city-trade-link {
   gap: 8px;
   padding: 8px;
   border: 2.5px solid var(--vermilion);
-  background: rgba(212, 80, 46, 0.1);
+  background: color-mix(in srgb, var(--vermilion) 10%, transparent);
   box-shadow: 3px 3px 0 var(--ink);
   color: var(--vermilion);
   cursor: not-allowed;
@@ -12334,7 +12598,7 @@ p.city-trade-link {
   width: 8px;
   height: 12px;
   border-radius: 2px;
-  background: var(--chair-ink, var(--ink-faint));
+  background: var(--chair-ink, var(--ink-line));
 }
 
 /* The Wildcard chair's plate is purple, ring and ground, as the board draws it:
@@ -12410,7 +12674,7 @@ p.city-trade-link {
   padding: 7px 10px;
   border: var(--border-thin) solid var(--vermilion);
   border-radius: var(--radius-sm);
-  background: rgba(212, 80, 46, 0.08);
+  background: color-mix(in srgb, var(--vermilion) 8%, transparent);
 }
 
 .sc-hand-name {
@@ -12456,7 +12720,7 @@ p.city-trade-link {
   gap: 5px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
   background: var(--parchment);
 }
 
@@ -12486,7 +12750,7 @@ p.city-trade-link {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 /* The reducer's own sentence, in the one place a greyed Confirm can explain
@@ -12683,7 +12947,7 @@ p.city-trade-link {
   gap: 7px;
   margin: 0 0 8px;
   padding-bottom: 5px;
-  border-bottom: var(--border-thin) solid var(--ink-faint);
+  border-bottom: var(--border-thin) solid var(--ink-line);
 }
 
 .sc-group-mark {
@@ -12792,11 +13056,11 @@ p.city-trade-link {
 .offer-overlay[data-weight='heavy'] .offer-sheet {
   border-width: 5px;
   border-color: var(--gilt);
-  box-shadow: 10px 10px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
 }
 
 .offer-overlay[data-weight='heavy'] .offer-title {
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 /* And the cards in it wear it too: a gilt frame with the ornament doubled into
@@ -12848,7 +13112,7 @@ p.city-trade-link {
 
 .offer-widening-line {
   padding: 1px 7px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: 999px;
   font-family: var(--face-num);
   font-size: 9px;
@@ -12867,16 +13131,15 @@ p.city-trade-link {
    the whole point of this mark is that it is not. The dock's Statecraft and
    Religion buttons wore it until batch UX3 (as `.hud-badge-waiting`), and the
    culture chip before them. */
-/* `--vermilion` (#d4502e) has no separate RGB-components token to draw an
-   alpha ring off, so the ring's colour is spelled out here rather than through
-   a custom property invented for this one rule. */
+/* The ring is the red ink at an alpha, drawn with `color-mix` so it follows the
+   token rather than a copy of its old value. */
 @keyframes yield-waiting-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(212, 80, 46, 0.55);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--vermilion) 55%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(212, 80, 46, 0);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--vermilion) 0%, transparent);
   }
 }
 
@@ -12966,7 +13229,7 @@ p.city-trade-link {
 .rel-city-select {
   font: inherit;
   padding: 3px 6px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
@@ -12988,7 +13251,7 @@ p.city-trade-link {
   min-width: 0;
   padding: 2px 4px;
   border: 0;
-  border-bottom: var(--border-thin) dashed var(--ink-faint);
+  border-bottom: var(--border-thin) dashed var(--ink-line);
   background: transparent;
   font-family: var(--face-display);
   font-size: 22px;
@@ -13124,7 +13387,6 @@ p.city-trade-link {
   gap: 5px;
   padding: 5px 9px;
   border: 1.5px solid var(--ink);
-  border-left: 4px solid var(--y-faith);
   border-radius: 5px;
   background: #fdfaef;
   color: var(--ink);
@@ -13136,15 +13398,34 @@ p.city-trade-link {
   cursor: pointer;
 }
 
+/* The candle leads the chip (batch SS1, the Ornament board). */
+.faith-rite-chip-candle {
+  display: inline-flex;
+  color: var(--y-faith);
+}
+
+.faith-rite-chip-candle .yield-mark {
+  margin-left: 0;
+}
+
 button.faith-rite-chip:hover:not(.is-on) {
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
 }
 
 .faith-rite-chip.is-on {
   border-color: var(--teal);
   background: var(--teal);
   color: #fff;
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
+}
+
+/* On the chosen chip's verdigris ground the candle is the lit faith ink. */
+.faith-rite-chip.is-on .faith-rite-chip-candle {
+  color: var(--y-faith-lit);
+}
+
+.faith-rite-chip.is-locked .faith-rite-chip-candle {
+  color: var(--ink-line);
 }
 
 .faith-rite-chip-mark {
@@ -13163,8 +13444,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 /* A rite you do not know: dashed, quiet, and not a control. */
 .faith-rite-chip.is-locked {
   border-style: dashed;
-  border-left-style: solid;
-  border-left-color: var(--ink-faint);
+  border-color: var(--ink-line);
   background: transparent;
   color: var(--ink-soft);
   font-weight: 500;
@@ -13191,7 +13471,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 6px 10px;
   border: 1.5px solid var(--teal);
   border-radius: var(--radius-sm);
-  background: rgba(31, 138, 133, 0.1);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
   color: var(--ink);
 }
 
@@ -13257,7 +13537,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-town.is-started {
-  background: rgba(31, 138, 133, 0.12);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
 }
 
 /* The town the city screen asked about. */
@@ -13424,7 +13704,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-radius: var(--radius-sm);
   background: #fdfaef;
   color: var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
   font-size: 11.5px;
   font-weight: 600;
@@ -13460,7 +13740,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 #religion-overlay .price-cell.is-labelled.is-short .price-cell-figure {
   padding: 3px 8px;
-  border: 1.5px dashed var(--ink-faint);
+  border: 1.5px dashed var(--ink-line);
   border-radius: var(--radius-sm);
 }
 
@@ -13472,7 +13752,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border: var(--border-thin) solid var(--ink);
   border-radius: 8px;
   background: #fffdf5;
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
 }
 
 .faith-menu-item {
@@ -13694,14 +13974,15 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 14px 0 7px;
 }
 
+/* A shelf's label: the label's small caps, never red (batch SS1). */
 .faith-shelf-title {
   margin: 0;
-  font-family: var(--face-num);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--vermilion);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
 }
 
 .faith-shelf-note {
@@ -13880,7 +14161,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   gap: 3px;
   min-height: 110px;
   padding: 10px;
-  border: 1.5px dashed var(--ink-faint);
+  border: 1.5px dashed var(--ink-line);
   border-radius: var(--radius-sm);
   text-align: center;
   color: var(--ink-faint);
@@ -13950,7 +14231,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-fact {
   padding: 2px 8px;
-  border: 1.5px solid var(--ink-faint);
+  border: 1.5px solid var(--ink-line);
   border-radius: 999px;
   background: #fdfaef;
   font-size: 11px;
@@ -14076,7 +14357,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-follower-majority {
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 /* A foreign town and a rival faith carry their owner's colour as a dot. */
@@ -14423,85 +14704,37 @@ button.faith-rite-chip:hover:not(.is-on) {
    right amount is a matter of a hundredth of an em, which is exactly the sort
    of number that gets forked into six different values if each surface owns it.
 
-   `font-variant-caps: small-caps` first, `font-size` untouched: Fraunces and
-   Instrument Serif both carry real small caps, and a face that does not gets
-   the browser's synthesised pair, which at these sizes is indistinguishable
-   from the drawn one. Nothing is upper-cased in the markup, so the *words* are
-   unchanged and a screen reader still reads "Orders & Doctrines".
+   `font-variant-caps: small-caps`, with `font-size` untouched. Nothing is
+   upper-cased in the markup, so the *words* are unchanged.
 
-   Applied by class, and by a selector list naming the three screen titles that
-   already existed — they are the class's whole first cohort, and adding the
-   token to their markup would have been three edits to say one thing. */
+   The three sheet titles (Statecraft's, the star chart's and the Abacus's)
+   were the class's first cohort, in synthesised small caps. Since batch SS1
+   they are set like every other sheet title: Newsreader in its own case, with
+   a red first letter (see "Sheet titles" below). Newsreader has no small
+   caps, and synthesised ones are thin at 30 px (the critique's "minor
+   observations"). */
 :root {
   --inscription-tracking: 0.09em;
 }
 
-.inscription,
-.statecraft-title,
-.tech-title,
-.abacus-title {
+.inscription {
   font-variant-caps: small-caps;
   letter-spacing: var(--inscription-tracking);
 }
 
-/* The eyebrow family is *already* an inscription — mono, uppercase, tracked —
-   and was before there was a word for it. What it lacked was one number: the
-   four surfaces had drifted to four tracking values. They keep their own
-   sizes and inks (a gilt era band and a vermilion popover title are saying
-   different things) and share the tracking from here on. */
-.eyebrow,
-.popover-title,
+/* The era band and the poster's stamp share the inscription's tracking. The
+   eyebrow and the popover title left this list in batch SS1: both are now set
+   in the names face (see `.eyebrow` and `.popover-title`). */
 .tech-era,
 .marquee-stamp {
   letter-spacing: calc(var(--inscription-tracking) * 1.7);
 }
 
 /* --- the corner star ------------------------------------------------------
-   One small drawn star at one corner of every panel-class surface.
-
-   `.hud-card` is the shared panel recipe (see its own block above), so this is
-   one rule and it reaches the lens card, the meter cards, both popover columns
-   and the landing's setup card. The picture is path data —
-   `src/ui/deviceMarks.ts`, printed through the same `markSvg` emitter as every
-   resource, yield, site and card mark — arriving as `--corner-star` on the
-   document root, because a pseudo-element has no `style` object for a module to
-   write a mask onto. It masks `currentColor`, so the star is the panel's own
-   ink and needs no second colour for a card drawn on ink.
-
-   Top-left, everywhere, for one reason and one convention. The reason: the
-   right-hand corners are where close buttons live and the bottom of a card is
-   where its longest sentence ends. The convention: a printer's ornament sits at
-   the head of the block it opens.
-
-   It sits in the padding gutter — the star's box is 10px from the padding
-   edge and the content box begins at 12px — so it never overlaps a word.
-
-   One surface is exempt, for a reason worth stating rather than a taste.
-   `.saves-sheet` is the one `.hud-card` that scrolls its own content, and an
-   absolutely-positioned ornament inside a scroller travels with the content
-   instead of staying on the corner — a star that slides down the page as you
-   look for a save is worse than no star. (The research card was the other
-   until batch UX3 removed it. The empire panel and its drawer are not
-   `.hud-card`s, so they need no exemption.) */
-.hud-card:not(.saves-sheet)::after {
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 10px;
-  height: 10px;
-  opacity: 0.32;
-  background-color: currentColor;
-  -webkit-mask-image: var(--corner-star);
-  mask-image: var(--corner-star);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  pointer-events: none;
-  content: '';
-}
+   Gone from every panel in batch SS1 (the Ornament board: "The corner star
+   leaves every panel"). An ornament on every card had stopped meaning anything.
+   The drawing stays in `src/ui/deviceMarks.ts` as the mark for research news
+   (`src/ui/newsMark.ts`). */
 
 /* --- the gold double-frame -----------------------------------------------
    Two hairline gilt rules with a gap between them, inside the surface's own ink
@@ -15101,11 +15334,11 @@ button.faith-rite-chip:hover:not(.is-on) {
   font-weight: 700;
   letter-spacing: var(--inscription-tracking);
   text-transform: uppercase;
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 .city-buildable:disabled .city-buildable-eyebrow {
-  color: var(--ink-faint);
+  color: var(--ink-line);
 }
 
 /* A building already in the queue keeps its row in the add list (batch UX5,
@@ -15135,7 +15368,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .city-buildable.is-queued:disabled .city-buildable-eyebrow:not(.is-queued) {
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 /* --- renown, great people and their Triumphs -----------------------------
@@ -15215,7 +15448,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   align-items: baseline;
   gap: 0.34em;
   padding: 1px 7px;
-  border: 1px solid var(--badge-ink, var(--ink-faint));
+  border: 1px solid var(--badge-ink, var(--ink-line));
   border-radius: 999px;
   background: none;
   color: var(--badge-ink, var(--ink-soft));
@@ -15344,22 +15577,22 @@ button.faith-rite-chip:hover:not(.is-on) {
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   padding: 20px 26px 18px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   text-align: center;
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
 }
 
+/* The kind of moment, as a fact under its name (batch SS1). */
 .triumph-eyebrow {
-  margin: 0;
-  color: var(--ink-soft);
-  font-family: var(--face-ui);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  margin: 2px 0 0;
+  color: var(--ink-faint);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
 }
 
 /* The laurel, at the size a crest wants rather than the size a chip does. The
@@ -15470,7 +15703,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 5px 16px 6px;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
-  background: var(--vermilion);
+  background: var(--cinnabar);
   color: var(--parchment);
   font-family: var(--face-ui);
   font-size: 12px;
@@ -15539,11 +15772,11 @@ button.faith-rite-chip:hover:not(.is-on) {
 .confirm-card {
   width: min(360px, 100%);
   padding: 18px 22px 16px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
   text-align: center;
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
 }
 
@@ -15613,7 +15846,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   gap: 10px;
   min-height: 0;
   padding-right: 16px;
-  border-right: var(--border-thin) solid var(--ink-faint);
+  border-right: var(--border-thin) solid var(--ink-line);
 }
 
 .cmp-search {
@@ -15668,7 +15901,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .cmp-section:disabled {
-  color: var(--ink-faint);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -15759,7 +15992,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .cmp-entry {
   padding: 10px 12px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: var(--radius-sm);
   background: var(--parchment);
 }
@@ -15915,7 +16148,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 0 0 6px -16px;
   padding: 4px 8px;
   border-left: 3px solid var(--vermilion);
-  background: rgba(212, 80, 46, 0.07);
+  background: color-mix(in srgb, var(--vermilion) 7%, transparent);
   font-family: var(--face-num);
   font-size: 11px;
   line-height: 1.45;
@@ -15980,7 +16213,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   gap: 10px;
   margin: 12px 0 0;
   padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .help-foot .btn {
@@ -16366,7 +16599,7 @@ button.trade-chip {
 }
 
 .trade-mode button[disabled] {
-  color: var(--ink-faint);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -16444,7 +16677,7 @@ button.trade-chip {
 .trade-send[disabled] {
   border-color: var(--rule);
   background: none;
-  color: var(--ink-faint);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -16672,7 +16905,7 @@ button.trade-chip {
   gap: 4px;
   width: 100%;
   padding: 8px 10px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   font: inherit;
@@ -16692,8 +16925,17 @@ button.trade-chip {
 /* A war is the one relation the sheet raises its voice about: a heavier rule
    on the left edge, in the same war red the board rims an enemy's pieces with
    (`units.hostileGlow` in `data/view3d.json`). One colour, two surfaces. */
-.diplo-seat.is-war {
-  border-left: 4px solid var(--war-red);
+/* A seat at war wears a war seal beside its name (`.diplo-war-seal`), in
+   place of the red stripe down its edge (batch SS1, the Ornament board,
+   approved). */
+.diplo-war-seal {
+  flex: none;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  vertical-align: middle;
 }
 
 /* A truce is a war that is over and a peace that is not yet free: dashed,
@@ -16748,7 +16990,7 @@ button.trade-chip {
   align-items: baseline;
   gap: 4px;
   padding: 0 5px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: var(--radius-sm);
   font-size: 10px;
   color: var(--ink-soft);
@@ -16768,7 +17010,7 @@ button.trade-chip {
 
 .diplo-foot {
   padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 /* --- the table -----------------------------------------------------------
@@ -16785,7 +17027,7 @@ button.trade-chip {
   justify-content: space-between;
   gap: 10px;
   padding-bottom: 8px;
-  border-bottom: var(--border-thin) solid var(--ink-faint);
+  border-bottom: var(--border-thin) solid var(--ink-line);
 }
 
 .diplo-head.is-war {
@@ -16843,7 +17085,7 @@ button.trade-chip {
   justify-content: space-between;
   gap: 6px;
   padding-bottom: 4px;
-  border-bottom: var(--border-thin) solid var(--ink-faint);
+  border-bottom: var(--border-thin) solid var(--ink-line);
 }
 
 .diplo-side-name {
@@ -16887,7 +17129,7 @@ button.trade-chip {
 .diplo-field-input {
   flex: 0 0 5.5em;
   padding: 1px 4px;
-  border: var(--border-thin) solid var(--ink-faint);
+  border: var(--border-thin) solid var(--ink-line);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
@@ -16908,7 +17150,7 @@ button.trade-chip {
 /* A refused row is drawn and dimmed rather than hidden — the sheet's rule
    everywhere a gate exists — and its reason is on the hover. */
 .diplo-check input:disabled + .diplo-check-label {
-  color: var(--ink-faint);
+  color: var(--ink-line);
 }
 
 .diplo-check-note {
@@ -16930,7 +17172,7 @@ button.trade-chip {
 .diplo-half + .diplo-half {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: var(--border-thin) dashed var(--ink-faint);
+  border-top: var(--border-thin) dashed var(--ink-line);
 }
 
 .diplo-half-head {
@@ -16965,7 +17207,7 @@ button.trade-chip {
   flex-direction: column;
   gap: 8px;
   padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .diplo-paper {
@@ -16973,7 +17215,7 @@ button.trade-chip {
   flex-direction: column;
   gap: 3px;
   padding: 6px 8px;
-  border: var(--border-thin) dashed var(--ink-faint);
+  border: var(--border-thin) dashed var(--ink-line);
   border-radius: var(--radius-sm);
 }
 
@@ -17062,10 +17304,10 @@ body.compendium-page {
   flex: 1 1 auto;
   min-height: 0;
   padding: 16px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
 }
 
 /* Under this width the index beside the body is two things neither of which can
@@ -17090,7 +17332,7 @@ body.compendium-page {
     padding-right: 0;
     padding-bottom: 12px;
     border-right: none;
-    border-bottom: var(--border-thin) solid var(--ink-faint);
+    border-bottom: var(--border-thin) solid var(--ink-line);
   }
 
   .cmp-sections,
@@ -17138,7 +17380,7 @@ body.compendium-page {
 }
 
 .bead-slot.is-empty {
-  border: 1px dashed var(--ink-faint);
+  border: 1px dashed var(--ink-line);
 }
 
 /* The golden slot, and it is empty all game (Entry VI.3): larger than its
@@ -17183,7 +17425,7 @@ body.compendium-page {
   min-height: 0;
   overflow-y: auto;
   padding-top: 8px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .abacus-caption {
@@ -17234,7 +17476,7 @@ body.compendium-page {
 
 .abacus-rod-open {
   flex: 0 0 auto;
-  border: 1px solid var(--ink-faint);
+  border: 1px solid var(--ink-line);
   border-radius: 2px;
   background: transparent;
   padding: 2px 8px;
@@ -17345,13 +17587,17 @@ body.compendium-page {
   margin-top: 12px;
 }
 
+/* No stripe at its edge (batch SS1, the Ornament board): the family's mark
+   leads the card instead, as it leads a row of "What pays a bead". No surface
+   builds a bead card today (the deeds were retired in batch Q1); the rule is
+   kept for the day one does. */
 .bead-card {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 10px 12px;
-  border: var(--border-thin) solid var(--ink);
-  border-left: 3px solid var(--bead-ink, var(--ink));
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
 }
 
@@ -17438,7 +17684,7 @@ body.compendium-page {
 .bead-back {
   width: 16px;
   height: 24px;
-  border: 1px solid var(--ink-faint);
+  border: 1px solid var(--ink-line);
   border-radius: 2px;
   background: repeating-linear-gradient(
     45deg,
@@ -17704,14 +17950,14 @@ body.compendium-page {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: transparent;
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12px;
   font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
   cursor: pointer;
   transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
@@ -17721,8 +17967,8 @@ body.compendium-page {
 }
 
 .victory-abacus:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -17857,7 +18103,7 @@ body.compendium-page {
 
 .bead-banner-eyebrow {
   margin: 0;
-  color: var(--gilt);
+  color: var(--deep-gilt);
 }
 
 .bead-banner-title {
@@ -17900,7 +18146,7 @@ body.compendium-page {
   align-items: baseline;
   gap: 8px;
   padding: 4px 0;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .bead-banner-words {
@@ -17997,10 +18243,10 @@ body.compendium-page {
   z-index: 44;
   width: min(320px, calc(100vw - 24px));
   padding: 12px 14px 11px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow);
+  box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.5;
@@ -18028,18 +18274,17 @@ body.compendium-page {
 
 /* Mono, small, tracked — the counter, and every number in this interface. */
 .tutorial-eyebrow {
-  margin: 0 0 4px;
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  margin: 2px 0 6px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
 
 .tutorial-card.is-tip .tutorial-eyebrow {
-  color: var(--vermilion);
+  color: var(--ink-faint);
 }
 
 /* The display face announces, exactly as it does on the landing. */
@@ -18109,11 +18354,18 @@ body.compendium-page {
 .pamphlet-sheet {
   width: min(720px, 100%);
   padding: 22px 26px 24px;
-  border: var(--border) solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--paper-shadow);
   animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+/* Less motion: a fade, and no rise (batch SS1; see `.statecraft-sheet`). */
+@media (prefers-reduced-motion: reduce) {
+  .pamphlet-sheet {
+    animation: offer-fade 160ms ease-out both;
+  }
 }
 
 .pamphlet-title {
@@ -18176,10 +18428,10 @@ body.compendium-page {
 .pamphlet-figure {
   margin: 0 0 10px;
   padding: 6px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
   background: var(--parchment);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--paper-shadow);
 }
 
 .pamphlet-figure img {
@@ -18225,7 +18477,7 @@ body.compendium-page {
   gap: 12px;
   margin-top: 4px;
   padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .pamphlet-dots {
@@ -18923,7 +19175,7 @@ body.compendium-page {
   align-items: center;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .rel-call-line {
@@ -18963,7 +19215,7 @@ body.compendium-page {
   max-width: 24rem;
   margin-top: 6px;
   padding-top: 12px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .rel-renown-heading {
@@ -19368,7 +19620,7 @@ body.compendium-page {
    band that failed to draw. */
 .ldg-band.is-empty {
   padding-top: 4px;
-  border-top: var(--border-thin) dashed var(--ink-faint);
+  border-top: var(--border-thin) dashed var(--ink-line);
 }
 
 /* The aggregate at the head of band 1 — the same reading the Statecraft screen's
@@ -19534,7 +19786,7 @@ body.compendium-page {
   flex-direction: column;
   gap: 6px;
   padding-top: 8px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+  border-top: var(--border-thin) solid var(--ink-line);
 }
 
 .ldg-key {
@@ -19569,7 +19821,7 @@ body.compendium-page {
 .ldg-spark {
   width: 100%;
   height: 44px;
-  border-bottom: var(--border-thin) solid var(--ink-faint);
+  border-bottom: var(--border-thin) solid var(--ink-line);
 }
 
 .ldg-spark-line {
@@ -19756,17 +20008,35 @@ body.compendium-page {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
+  /* Room for the first card's tab, so a scrolling pane does not clip it. */
+  padding-left: 9px;
 }
 
 .wager-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
   background: var(--parchment);
-  border: var(--border) solid var(--ink);
-  border-left: 5px solid var(--wager-ink, var(--ink));
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  box-shadow: var(--paper-shadow);
+}
+
+/* A thumb-index tab in the ink of the wager's family, half over the card's
+   left edge, in place of the thick stripe it wore (batch SS1, the Ornament
+   board). The Abacus's band wears the same tab. */
+.wager-card::before,
+.abacus-wager::before {
+  position: absolute;
+  top: 12px;
+  left: -9px;
+  width: 9px;
+  height: 26px;
+  border-radius: 3px 0 0 3px;
+  background: var(--wager-ink, var(--ink));
+  content: '';
 }
 
 .wager-card.is-staked {
@@ -19820,7 +20090,7 @@ body.compendium-page {
 
 .wager-stake:disabled {
   background: transparent;
-  color: var(--ink-faint);
+  color: var(--ink-line);
   cursor: default;
 }
 
@@ -19838,13 +20108,15 @@ body.compendium-page {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 12px;
+  padding-left: 9px;
 }
 
 .abacus-wager {
+  position: relative;
   padding: 10px 12px;
   background: var(--parchment);
-  border: var(--border) solid var(--ink);
-  border-left: 5px solid var(--wager-ink, var(--ink));
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
 }
 
 .abacus-wager.is-staked {
@@ -20770,17 +21042,6 @@ body.compendium-page {
   margin: 0;
 }
 
-.marquee-over {
-  display: block;
-  font-family: var(--face-num);
-  font-size: 12px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: #f3e6c8;
-  opacity: 0.85;
-  margin: 0 0 10px 3px;
-}
-
 .marquee-poster .marquee-title {
   font-size: clamp(2.5rem, 5.4vw, 4.5rem);
   line-height: 0.9;
@@ -20829,7 +21090,6 @@ body.compendium-page {
 
 @media (max-width: 900px) {
   .marquee-poster .marquee-name { top: 10%; }
-  .marquee-over { font-size: 10px; letter-spacing: 0.24em; }
   .marquee-poster .marquee-stamp { right: 16px; bottom: 14px; }
 }
 

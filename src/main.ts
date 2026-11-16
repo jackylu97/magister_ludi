@@ -3797,10 +3797,11 @@ async function boot(initial: Game | null): Promise<void> {
     const piece = game.state.units.find(
       (unit) => unit.ownerId === seat && personOf(unit) === id,
     );
-    controls.announce(
-      `✦ ${def.name} has been recruited`,
-      piece ? { cell: { col: piece.col, row: piece.row } } : {},
-    );
+    controls.announce(`${def.name} has been recruited`, {
+      ...(piece ? { cell: { col: piece.col, row: piece.row } } : {}),
+      mark: 'greatPerson',
+      news: def.name,
+    });
   }
 
   /*

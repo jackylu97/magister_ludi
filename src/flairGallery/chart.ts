@@ -160,7 +160,7 @@ export async function drawMarginaliaSwatches(into: HTMLElement): Promise<TileIco
  * on this page is asked of the game: the answer depends on `icons.
  * inscriptionScale`, on `inscriptionTracking`, and — the part nobody would
  * predict — on **whether the display face has finished loading when the atlas
- * rasterises**, since a fallback serif sets wider than Instrument Serif does
+ * rasterises**, since a fallback serif sets wider than Newsreader does
  * (`TileIcons.load` now waits on `document.fonts.ready` before it rasterises
  * any text cell, for exactly that reason, so this measurement and the board's
  * own atlas are reading the same face).
@@ -190,14 +190,14 @@ function inscriptionMeasure(): HTMLElement {
   };
 
   const maxSize = Math.round(layout.cell * ICONS.inscriptionScale);
-  context.font = `${maxSize}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  context.font = `${maxSize}px "Newsreader", "Fraunces", Georgia, serif`;
   const maxTracking = maxSize * ICONS.inscriptionTracking;
   const maxWidths = DRACONES_LINES.map((line) => widthOf(line, maxTracking));
 
   const usable = layout.cell - 2 * layout.cell * ICONS.inscriptionPad;
   const ratio = fitInscription(maxWidths, usable);
   const size = Math.max(1, Math.round(maxSize * ratio));
-  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  context.font = `${size}px "Newsreader", "Fraunces", Georgia, serif`;
   const tracking = size * ICONS.inscriptionTracking;
   const fittedWidths = DRACONES_LINES.map((line) => widthOf(line, tracking));
 

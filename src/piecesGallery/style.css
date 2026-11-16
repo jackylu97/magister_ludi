@@ -5,7 +5,7 @@
  * Deliberately its own stylesheet rather than a slice of `src/style.css`. That
  * file is the game's interface and is owned by the interface work; this is a
  * look-dev page whose only job is to get out of the way of eight miniatures.
- * What it borrows is the *language* — ink on vellum, Instrument Serif to
+ * What it borrows is the *language* — ink on vellum, Newsreader to
  * announce, Instrument Sans to work, mono for anything countable — not the
  * cascade.
  */
@@ -19,7 +19,7 @@
   --crimson: #b35843;
   --teal: #477f7e;
 
-  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }

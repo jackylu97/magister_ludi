@@ -952,13 +952,13 @@ export function drawPaletteAndRamp(into: HTMLElement): void {
   const ramp = block(
     into,
     'The type ramp — docs/design-specimen.html',
-    'Four faces, one rule each: Instrument Serif announces, Fraunces names, Instrument Sans works, IBM Plex Mono counts. No serif below ~15px.',
+    'Four faces, one rule each: Newsreader announces, Fraunces names, Instrument Sans works, IBM Plex Mono counts. No serif below ~15px.',
   );
   const stack = element('div', 'ramp');
   for (const [cls, label, text] of [
-    ['r-display', 'display · Instrument Serif', 'The Age of Omens closes'],
+    ['r-display', 'display · Newsreader', 'The Age of Omens closes'],
     ['r-city', 'name · Fraunces', 'Uruk ✶'],
-    ['r-flavor', 'flavour · Instrument Serif italic', 'Non omnis moriar'],
+    ['r-flavor', 'flavour · Newsreader italic', 'Non omnis moriar'],
     ['r-ui', 'ui · Instrument Sans', 'Build a granary'],
     ['r-num', 'figure · IBM Plex Mono', '+12 · −4 · 108 · T 41'],
   ] as const) {

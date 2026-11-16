@@ -2,10 +2,18 @@
  * The six yield marks: one drawn pictogram per voice the game counts in — food,
  * production, gold, science, culture, faith.
  *
- * Vendored, not drawn
- * -------------------
- * Every other mark in `src/art/` is original work for this project. These six
- * are not, and that is a decision rather than an accident: the yield glyphs are
+ * Four vendored, two drawn
+ * ------------------------
+ * Gold and faith are this project's own since batch SS1: the simpler coin and
+ * the simpler candle of the Scholar's Study Marks board
+ * (`docs/plans/mockups/scholars-study/Marks.dc.html`, approved by the user on
+ * 2026-10-16: "Gold: use a coin, not the bag. Make the coin simpler. Faith: use
+ * a candle, but make it simpler and give it a different flame."). They are
+ * drawn on upstream's 24-unit grid at this set's weight, so the six still read
+ * as one set. The other four stay vendored.
+ *
+ * Every other mark in `src/art/` is original work for this project. The four
+ * below are not, and that is a decision rather than an accident: the yield glyphs are
  * the most-read marks in the game — they are on the top bar, on every build
  * button, on every tile of the board with the switch up — and a set that has
  * been drawn by people who draw icon sets for a living reads better at twelve
@@ -16,8 +24,8 @@
  *   production  Lucide `settings`       (ISC) — the gear
  *   science     Lucide `flask-conical`  (ISC)
  *   culture     Lucide `music`          (ISC)
- *   faith       Lucide `flame`          (ISC)
- *   gold        Tabler `moneybag`       (MIT)
+ *   faith       drawn here: a taper on its foot, its flame leaning like a leaf
+ *   gold        drawn here: a plain coin, its face and its edge
  *
  * `public/sprites/CREDITS.md` carries the licences and the links. Both sets are
  * permissive and neither requires attribution in a running build; it is given
@@ -166,13 +174,11 @@ export const YIELD_MARKS: Readonly<Record<YieldKey, YieldMark>> = {
     ],
   },
   gold: {
-    note: 'a drawstring money bag',
-    credit: 'Tabler Icons `moneybag` (MIT)',
+    note: 'a plain coin: its face and its edge, with nothing struck in it',
+    credit: 'Magister Ludi (the Scholar\'s Study Marks board)',
     paths: [
-      stroke(
-        'M9.5 3h5a1.5 1.5 0 0 1 1.5 1.5a3.5 3.5 0 0 1 -3.5 3.5h-1a3.5 3.5 0 0 1 -3.5 -3.5a1.5 1.5 0 0 1 1.5 -1.5',
-      ),
-      stroke('M4 17v-1a8 8 0 1 1 16 0v1a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4'),
+      stroke('M3.4 10.2a8.6 5.8 0 1 0 17.2 0a8.6 5.8 0 1 0 -17.2 0Z'),
+      stroke('M3.4 10.2v3.4a8.6 5.8 0 0 0 17.2 0v-3.4'),
     ],
   },
   science: {
@@ -197,12 +203,13 @@ export const YIELD_MARKS: Readonly<Record<YieldKey, YieldMark>> = {
     ],
   },
   faith: {
-    note: 'a flame with its inner tongue',
-    credit: 'Lucide `flame` (ISC)',
+    note: 'a candle: a taper on its foot, its wick, and a flame that leans like a leaf',
+    credit: 'Magister Ludi (the Scholar\'s Study Marks board)',
     paths: [
-      stroke(
-        'M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4',
-      ),
+      stroke('M9.6 21V11.2H14.4V21'),
+      stroke('M7 21H17'),
+      stroke('M12 11.2V9.8'),
+      stroke('M11.53 9.33Q9.07 5.53 12.87 3.07Q15.33 6.87 11.53 9.33Z'),
     ],
   },
 };

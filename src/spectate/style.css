@@ -4,7 +4,7 @@
  * Its own stylesheet rather than a slice of `src/style.css`, for the reason the
  * mapgen page's is: that file is the game's interface and is owned by the
  * interface work. What this borrows is the *language* — ink on vellum,
- * Instrument Serif to announce, Fraunces to name, Instrument Sans to work, mono
+ * Newsreader to announce, Fraunces to name, Instrument Sans to work, mono
  * for anything countable — and the panel recipe (hard 2px rule, hard offset
  * shadow, no blur), not the cascade.
  *
@@ -27,7 +27,7 @@
 
   --sidebar: 470px;
 
-  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;

@@ -335,13 +335,14 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
       const mark = BEAD_FAMILY_MARK[board.face.family];
       column.style.setProperty('--wager-ink', `var(${mark.ink})`);
       if (board.face.staked) column.classList.add('is-staked');
-      column.append(element('p', 'eyebrow abacus-wager-eyebrow', board.face.eyebrow));
       const name = element('h4', 'abacus-wager-name');
       name.append(element('span', undefined, board.face.name));
       // The one thing on this band that is about *you*: your own chair at the
       // table, on your own card. Nothing marks anybody else's.
       if (board.face.staked) name.append(element('span', 'abacus-wager-stake', 'your stake'));
       column.append(name);
+      // The wager's family is a fact under its name (batch SS1).
+      column.append(element('p', 'eyebrow abacus-wager-eyebrow', board.face.eyebrow));
       column.append(element('p', 'abacus-wager-note', board.face.note));
 
       const bar = element('p', 'abacus-wager-bar');

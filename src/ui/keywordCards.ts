@@ -367,10 +367,11 @@ export function mountKeywordCards(options: KeywordCardsOptions = {}): KeywordCar
     el.tabIndex = -1;
 
     const head = element('div', 'kwc-head');
-    head.append(element('p', 'kwc-eyebrow eyebrow', definition.eyebrow));
     const name = element('p', 'kwc-name', definition.name);
     name.id = `kwc-${card.id}-name`;
     head.append(name);
+    // The kind of thing, as a fact under the name (batch SS1, the Type board).
+    head.append(element('p', 'kwc-eyebrow eyebrow', definition.eyebrow));
 
     const body = element('div', 'kwc-body');
     body.id = `kwc-${card.id}-body`;

@@ -429,7 +429,11 @@ describe('the announcements', () => {
   });
 
   it('says your own bead with its family and what it paid', () => {
-    expect(controls).toContain('◉ A bead: ${award.name} (${family})${paid}');
+    // The bead is drawn at the head of the line since batch SS1 (`mark:
+    // 'bead'`), so the sentence no longer starts with `◉`; its name is the news.
+    expect(controls).toContain('A bead: ${award.name} (${family})${paid}');
+    expect(controls).not.toContain('◉ A bead:');
+    expect(controls).toContain("mark: 'bead',");
     // The settlement's own lines, never re-derived.
     expect(controls).toContain('award.boon.join(');
   });
@@ -453,7 +457,9 @@ describe('the announcements', () => {
     // turned face up with it (batch Q1): there is no table, and the sheet the
     // moment raises is the wager's.
     expect(controls).toContain('result.beadAgeOpened === undefined');
-    expect(controls).toContain('◈ ${deckEraWord(age)} opens`);');
+    // The sun on the horizon leads the line since batch SS1, and the numeral is
+    // the news.
+    expect(controls).toContain("announce(`${era} opens`, { mark: 'age', news: era.split(' ').pop() });");
     expect(controls).not.toContain('${what} on the table');
     expect(controls).not.toContain('const ageBefore =');
   });

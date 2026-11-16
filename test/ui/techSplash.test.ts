@@ -51,7 +51,7 @@ describe('techSplashReading', () => {
 });
 
 describe('the splash and the hand-over', () => {
-  it('draws the eyebrow over the name, as data and never as markup', () => {
+  it('draws the charter line under the name, as data and never as markup', () => {
     const body = braceBody(uiSource('turnSplash.ts'), 'function announceTech(');
     expect(body).toContain("over.className = 'turn-splash-eyebrow';");
     expect(body).toContain('over.textContent = eyebrow;');

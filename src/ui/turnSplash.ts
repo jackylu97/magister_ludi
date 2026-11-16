@@ -174,8 +174,13 @@ export function createTurnSplash(container: HTMLElement): TurnSplash {
   function announceTech(techName: string, notes: readonly string[], eyebrow?: string | null): void {
     const card = document.createElement('div');
     card.className = 'turn-splash is-tech';
-    // A charter technology's eyebrow, over the name: the one difference from
-    // any other discovery, said once and small.
+    const name = document.createElement('span');
+    name.className = 'turn-splash-name';
+    name.textContent = techName;
+    card.append(name, document.createTextNode(' mastered'));
+    // A charter technology's line, under the name: the one difference from
+    // any other discovery, said once and small. Under, not over, since batch
+    // SS1 (the Type board: a fact goes under the title).
     if (eyebrow !== undefined && eyebrow !== null) {
       card.classList.add('is-charter');
       const over = document.createElement('span');
@@ -183,10 +188,6 @@ export function createTurnSplash(container: HTMLElement): TurnSplash {
       over.textContent = eyebrow;
       card.append(over);
     }
-    const name = document.createElement('span');
-    name.className = 'turn-splash-name';
-    name.textContent = techName;
-    card.append(name, document.createTextNode(' mastered'));
     // The auto-upgrade line, when there is one: what a discovery did to the
     // pieces already on the board is the part a player would otherwise miss.
     if (notes.length > 0) {

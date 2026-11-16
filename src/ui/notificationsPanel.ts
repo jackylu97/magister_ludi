@@ -34,7 +34,7 @@ import {
   isActionable,
 } from './notifications';
 import { type Popover, createPopover } from './popover';
-import { setYieldText } from './yieldMark';
+import { newsMarkNode, writeNewsText } from './newsMark';
 
 /** Above this the badge stops counting and starts gesturing. */
 const BADGE_MAX = 99;
@@ -92,6 +92,8 @@ export function createNotificationsPanel(
       el.addEventListener('click', () => onAction?.(action));
     }
 
+    const mark = newsMarkNode(entry);
+
     const turn = document.createElement('span');
     turn.className = 'log-entry-turn';
     turn.textContent = String(entry.turn);
@@ -99,11 +101,12 @@ export function createNotificationsPanel(
 
     const text = document.createElement('span');
     text.className = 'log-entry-text';
-    // The same treatment the toast gives the same sentence — the string is the
-    // record, the glyphs in it are drawn. See `src/ui/yieldMark.ts`.
-    setYieldText(text, entry.text);
+    // The same treatment the toast gives the same sentence: the string is the
+    // record, its mark is drawn and its new name is in red ink. See
+    // `newsMark.ts`.
+    writeNewsText(text, entry);
 
-    el.append(turn, text);
+    el.append(mark, turn, text);
     return el;
   }
 

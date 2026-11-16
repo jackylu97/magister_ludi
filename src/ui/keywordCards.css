@@ -173,7 +173,7 @@
   margin: 0 0 4px -12px;
   padding: 3px 7px;
   border-left: 3px solid var(--vermilion);
-  background: rgba(212, 80, 46, 0.07);
+  background: color-mix(in srgb, var(--vermilion) 7%, transparent);
   font-family: var(--face-num);
   font-size: 10.5px;
   color: var(--ink-soft);

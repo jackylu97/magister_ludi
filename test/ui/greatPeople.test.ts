@@ -301,7 +301,8 @@ describe('the news', () => {
     expect(controls).toContain('function reportTriumphs(result: CommandResult)');
     expect(controls).toContain('reportTriumphs(result);');
     expect(controls).toContain('result.triumphs');
-    expect(controls).toMatch(/Triumph — \$\{triumph\.name\}/);
+    // The arch leads the line since batch SS1, and the name is the news.
+    expect(controls).toMatch(/Triumph: \$\{triumph\.name\}/);
     // Filtered by seat, unlike a wonder: a triumph is one empire's claim.
     expect(controls).toContain('triumph.playerId !== localPlayerId');
   });
@@ -315,7 +316,7 @@ describe('the news', () => {
 
   it('announces what an act or a work did, and the legacy that stays', () => {
     const controls = sourceOf('controls.ts');
-    expect(controls).toMatch(/\$\{view\.name\} — \$\{said\}/);
+    expect(controls).toMatch(/\$\{view\.name\}: \$\{said\}/);
     expect(controls).toMatch(/legacy stands with your government/);
   });
 

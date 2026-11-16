@@ -262,8 +262,10 @@ export function createVictoryScreen(options: VictoryScreenOptions): VictoryScree
 
   function drawHead(head: VictoryHead): HTMLElement {
     const block = element('section', head.won ? 'victory-title is-won' : 'victory-title');
-    block.append(element('p', 'eyebrow victory-eyebrow', head.eyebrow));
+    // The kind of ending is a fact under the name, not a label over it (batch
+    // SS1, the Type board).
     if (head.name !== '') block.append(element('h3', 'victory-name', head.name));
+    block.append(element('p', 'eyebrow victory-eyebrow title-fact', head.eyebrow));
     block.append(element('p', 'victory-headline', head.headline));
     block.append(element('p', 'victory-text', head.text));
     return block;

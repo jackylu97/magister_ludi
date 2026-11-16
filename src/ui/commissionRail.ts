@@ -208,7 +208,15 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     ring.setAttribute('aria-hidden', 'true');
     const text = element('span', 'commission-text');
     const name = element('span', 'commission-name');
-    for (const suit of chip.suits.length === 0 ? (['seal'] as const) : chip.suits) {
+    // A thumb-index tab at the chip's left edge, in the card's ink, carrying
+    // its first suit (batch SS1, the Ornament board, approved). It replaces
+    // the stripe the chip wore down that edge. A card of two decks keeps its
+    // second suit before its name.
+    const suits = chip.suits.length === 0 ? (['seal'] as const) : chip.suits;
+    const tab = element('span', 'commission-tab');
+    tab.setAttribute('aria-hidden', 'true');
+    tab.append(suitGlyphNode(suits[0]!));
+    for (const suit of suits.slice(1)) {
       const glyph = suitGlyphNode(suit);
       glyph.classList.add('commission-suit');
       name.append(glyph);
@@ -216,7 +224,7 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     name.append(document.createTextNode(chip.name));
     text.append(name);
     text.append(element('span', 'commission-count', chipCountWords(chip)));
-    button.append(ring, text);
+    button.append(tab, ring, text);
 
     // The full goal and reward, in the card's own words and with the same
     // counters the card face prints.

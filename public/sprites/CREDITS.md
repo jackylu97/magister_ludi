@@ -371,6 +371,10 @@ a *piece's* name on the board — and a player who saw the same mark in both pla
 reasonably read the badge as "this tile makes faith". A candle is the same idea one step over:
 lit, tended, and something a person carries.
 
+Since batch SS1 the faith yield is itself a candle (the Scholar's Study Marks board: a taper on
+its foot, its flame leaning like a leaf), so the paragraph above no longer holds. The badge's
+piece, the augur, is retired, so the two marks do not meet on the board today.
+
 ## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 
 **One hand on one grid, twenty vendored and twenty-one drawn here**, and that is new as of
@@ -542,10 +546,10 @@ because the work deserves it, which is the same sentence this file makes about K
 | --- | --- | --- | --- |
 | food | `carrot` | Lucide (ISC) | a carrot, pulled, with its two leaves |
 | production | `settings` | Lucide (ISC) | a cogwheel, eight teeth around a hub |
-| gold | `moneybag` | Tabler (MIT) | a drawstring money bag |
+| gold | none: drawn for this project (batch SS1) | Magister Ludi | a plain coin, its face and its edge |
 | science | `flask-conical` | Lucide (ISC) | a conical flask, filled to its line |
 | culture | `music` | Lucide (ISC) | a beamed pair of notes |
-| faith | `flame` | Lucide (ISC) | a flame with its inner tongue |
+| faith | none: drawn for this project (batch SS1) | Magister Ludi | a candle on its foot, its flame leaning like a leaf |
 
 They are **path data, not files**, and live in `src/art/yieldMarks.ts` beside the resource marks
 rather than under `public/` — the six SVGs that used to sit in `icons/yields/` are gone. A file

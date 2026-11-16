@@ -102,7 +102,8 @@ export const BEAD_FAMILY_MARK: Record<BeadFamily, BeadFamilyMark> = {
   domination: { word: 'Domination', glyph: '⚔', ink: '--vermilion' },
   culture: { word: 'Culture', glyph: '❧', ink: '--grape' },
   science: { word: 'Science', glyph: '✦', ink: '--lapis' },
-  economic: { word: 'Economic', glyph: '⇄', ink: '--gilt' },
+  // Deep gilt, because a mark on paper needs 3:1 and plain gilt is 2.51:1.
+  economic: { word: 'Economic', glyph: '⇄', ink: '--deep-gilt' },
 };
 
 /**

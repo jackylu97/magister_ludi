@@ -133,6 +133,7 @@ import {
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
+import { beadMarkNode } from './newsMark';
 import { type Popover, createPopover } from './popover';
 import { tradeLedger } from './tradeScreen';
 import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
@@ -803,8 +804,9 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   // rate: nothing accrues, every bead is an announced event.
   const beadsItem = sheetButton('topbar-tab-part topbar-tab-figure is-beads', 'beads-overlay');
   {
-    const icon = element('span', 'topbar-figure-mark', '◉');
-    icon.setAttribute('aria-hidden', 'true');
+    // The glass bead on its wire, drawn (batch SS1), in place of `◉`.
+    const icon = element('span', 'topbar-figure-mark');
+    icon.append(beadMarkNode());
     beadsItem.append(icon);
   }
   const beadsValue = element('span', 'topbar-figure-value', '—');

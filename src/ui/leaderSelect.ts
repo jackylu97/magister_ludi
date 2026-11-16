@@ -583,7 +583,6 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     const card = options.detail;
     card.replaceChildren();
     if (!isLeaderId(chosen)) {
-      card.append(element('p', 'eyebrow', 'no leader'));
       card.append(element('h3', 'leader-detail-name', 'The plain rules'));
       card.append(element('p', 'leader-note', NO_LEADER_NOTE));
       return;
@@ -622,8 +621,9 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
 
   function render(): void {
     container.replaceChildren();
-    container.append(element('p', 'eyebrow landing-crumb', options.crumb));
+    // The step is a fact under the title, not a label over it (batch SS1).
     container.append(element('h2', 'leader-title', 'Choose your civ'));
+    container.append(element('p', 'eyebrow landing-crumb title-fact', options.crumb));
     container.append(element('p', 'landing-hint leader-lede', LEADER_LEDE));
     // Walked once and read twice — the roster and the card beside it are two
     // drawings of one fold.

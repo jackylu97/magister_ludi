@@ -1193,9 +1193,11 @@ export function createOfferCard(
 
     const sheet = element('div', 'offer-sheet');
     const head = element('header', 'offer-head');
+    // The offer's facts ("tier 12 · the culture meter is full") go under its
+    // title, not over it (batch SS1, the Type board).
     head.append(
-      element('p', 'eyebrow offer-eyebrow', offer.eyebrow),
       element('h2', 'offer-title', offer.title),
+      element('p', 'eyebrow offer-eyebrow', offer.eyebrow),
     );
     if (offer.note !== undefined) head.append(element('p', 'offer-lede', offer.note));
     // Why the hand is wider than the table deals, in the register the rest of

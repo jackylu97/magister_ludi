@@ -64,8 +64,14 @@ describe('the vendored yield marks', () => {
       'M15 9q4 4 7 0-3-4-7 0 4-4 0-7-4 3 0 7',
       'm8 15-2.58-2.58',
     ]);
+    // Faith and gold are no longer vendored (batch SS1): they are the candle
+    // and the coin of the Scholar's Study Marks board, pinned here to the
+    // board's coordinates for the same reason.
     expect(yieldMark('faith').paths.map((path) => path.d)).toEqual([
-      'M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4',
+      'M9.6 21V11.2H14.4V21',
+      'M7 21H17',
+      'M12 11.2V9.8',
+      'M11.53 9.33Q9.07 5.53 12.87 3.07Q15.33 6.87 11.53 9.33Z',
     ]);
     expect(yieldMark('science').paths.map((path) => path.d)).toEqual([
       'M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2',
@@ -73,8 +79,8 @@ describe('the vendored yield marks', () => {
       'M8.5 2h7',
     ]);
     expect(yieldMark('gold').paths.map((path) => path.d)).toEqual([
-      'M9.5 3h5a1.5 1.5 0 0 1 1.5 1.5a3.5 3.5 0 0 1 -3.5 3.5h-1a3.5 3.5 0 0 1 -3.5 -3.5a1.5 1.5 0 0 1 1.5 -1.5',
-      'M4 17v-1a8 8 0 1 1 16 0v1a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4',
+      'M3.4 10.2a8.6 5.8 0 1 0 17.2 0a8.6 5.8 0 1 0 -17.2 0Z',
+      'M3.4 10.2v3.4a8.6 5.8 0 0 0 17.2 0v-3.4',
     ]);
   });
 
@@ -123,13 +129,16 @@ describe('the vendored yield marks', () => {
       // Which upstream icon, from which set, under which licence. The thing a
       // re-vendoring has to keep and the thing the credits file is generated
       // from by hand.
+      // The two drawn for this project (batch SS1) name the board instead.
+      if (key === 'gold' || key === 'faith') {
+        expect(mark.credit).toContain('Magister Ludi');
+        continue;
+      }
       expect(mark.credit).toMatch(/^(Lucide|Tabler Icons) `[a-z-]+` \((ISC|MIT)\)$/);
     }
-    expect(yieldMark('gold').credit).toContain('Tabler');
-    expect(yieldMark('gold').credit).toContain('moneybag');
-    // Five of the six are Lucide's; only the money bag is Tabler's.
-    const tabler = YIELD_KEYS.filter((key) => yieldMark(key).credit.includes('Tabler'));
-    expect(tabler).toEqual(['gold']);
+    // The other four are Lucide's; no Tabler drawing is left in the set.
+    const lucide = YIELD_KEYS.filter((key) => yieldMark(key).credit.includes('Lucide'));
+    expect([...lucide].sort()).toEqual(['culture', 'food', 'production', 'science']);
   });
 });
 

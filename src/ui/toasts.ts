@@ -41,7 +41,7 @@
  */
 
 import { type NotificationAction, type NotificationEntry, isActionable } from './notifications';
-import { setYieldText } from './yieldMark';
+import { newsMarkNode, writeNewsText } from './newsMark';
 import { prefersReducedMotion } from './motion';
 
 /** How long a toast stays up before it starts leaving. */
@@ -128,23 +128,23 @@ export function createToastStack(options: ToastStackOptions): ToastStack {
         });
       }
 
+      // The kind of news, drawn (batch SS1, the Marks board's news marks).
+      const mark = newsMarkNode(entry);
+
+      // "turn 91", in the label's small caps (the Main board).
       const turn = document.createElement('span');
       turn.className = 'toast-turn';
-      turn.textContent = String(entry.turn);
-      // Decoration with a word behind it: a screen reader gets "turn 12", not a
-      // bare number leading the sentence.
-      turn.setAttribute('aria-label', `turn ${entry.turn}`);
+      turn.textContent = `turn ${entry.turn}`;
 
       const text = document.createElement('span');
       text.className = 'toast-text';
-      // The entry's own string stays the sentence — it is what the log replays
-      // and what a screen reader is given — but any yield glyph in it is *drawn*
-      // here rather than printed as an emoji, which is the whole of the retiral
-      // (see `src/ui/yieldMark.ts`). The marks are `aria-hidden`, so the spoken
-      // line is unchanged: `setYieldText` leaves the text nodes alone.
-      setYieldText(text, entry.text);
+      // The entry's own string stays the sentence: it is what the log replays
+      // and what a screen reader is given. Its leading character moves to the
+      // mark's slot, the new name is set in red ink, and any yield glyph in it
+      // is drawn (`newsMark.ts`, `src/ui/yieldMark.ts`).
+      writeNewsText(text, entry);
 
-      card.append(turn, text);
+      card.append(mark, turn, text);
       container.prepend(card);
       trim();
 

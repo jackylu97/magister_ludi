@@ -37,6 +37,7 @@
  * write at boot, one custom property, and the path data still lives here.
  */
 
+import { yieldMarkDataUri } from '../art/yieldMarks';
 import {
   MARK_BOX,
   MARK_STROKE,
@@ -174,4 +175,8 @@ export function printerDeviceMarkUrl(): string {
  */
 export function installFlourishMarks(root: HTMLElement): void {
   root.style.setProperty('--corner-star', `url("${cornerStarDataUri()}")`);
+  // The production mark that leads a town's build rows, in place of the stripe
+  // they wore at their edge (batch SS1, the Ornament board). Every row is a
+  // pseudo-element's job, so the picture goes on the root too.
+  root.style.setProperty('--production-mark', `url("${yieldMarkDataUri('production')}")`);
 }

@@ -176,13 +176,14 @@ export function createTriumphModal(
     container.replaceChildren();
 
     const sheet = element('div', 'triumph-sheet gilt-frame');
-    sheet.append(element('p', 'triumph-eyebrow', 'Triumph'));
-
     const crest = element('div', 'triumph-crest');
     crest.append(renownMarkNode());
     sheet.append(crest);
 
     sheet.append(element('h2', 'triumph-name', face.name));
+    // "Triumph" is a fact under the name, not a label over the crest (batch
+    // SS1, the Type board).
+    sheet.append(element('p', 'triumph-eyebrow', 'Triumph'));
     // The cause first, because it is what a player who has just been handed a
     // sheet is asking. Then the epigram, **labelled** — the Compendium's ruling
     // (2026-08-27) applied here for exactly its stated reason: a sentence in

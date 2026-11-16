@@ -2,12 +2,11 @@
 #diplomacy-overlay .statecraft-sheet { width:min(1320px,96vw); max-width:1320px; height:90vh; max-height:940px; background:#f4f0e3; color:#30372e; }
 #diplomacy-overlay .statecraft-head { background:#f4f0e3; border-bottom:1px solid #c9c3b0; padding:20px 28px; }
 #diplomacy-overlay .statecraft-title { font:400 38px/1 var(--face-display); letter-spacing:-.025em; }
-#diplomacy-overlay .statecraft-eyebrow { color:#85806d; letter-spacing:.15em; }
 #diplomacy-overlay .statecraft-hint { font-size:11px; color:#807e6d; }
 #diplomacy-body { padding:0; min-height:0; flex:1; }
 #diplomacy-body .sc-split { display:flex; height:100%; min-height:0; gap:0; }
 #diplomacy-body .diplo-column { flex:0 0 235px; min-width:0; padding:23px 14px; background:#e9e6d8; border-right:1px solid #c9c4b3; gap:12px; }
-#diplomacy-body .sc-eyebrow { font-size:10px; color:#7b7d69; padding:0 9px; }
+#diplomacy-body .sc-eyebrow { padding:0 9px; }
 #diplomacy-body .sc-column-body { display:flex; flex-direction:column; gap:6px; overflow:auto; }
 #diplomacy-body .diplo-seat { background:transparent; border:1px solid transparent; padding:15px 10px; border-radius:5px; gap:9px; }
 #diplomacy-body .diplo-seat:hover { background:#f4f0e4; }
@@ -26,7 +25,7 @@
 #diplomacy-body .diplo-table { min-width:0; flex:1; overflow:auto; padding:22px 26px; display:flex; flex-direction:column; gap:16px; }
 #diplomacy-body .diplo-head { border:0; padding:0; gap:12px; }
 #diplomacy-body .diplo-head-titles { gap:7px; }
-#diplomacy-body .diplo-head-titles>.eyebrow { font-size:9px; color:#8b8069; letter-spacing:.14em; margin:0 0 0 59px; }
+#diplomacy-body .diplo-head-titles>.eyebrow { margin:2px 0 0 59px; }
 #diplomacy-body .diplo-head-line { align-items:center; gap:14px; }
 #diplomacy-body .diplo-head-name { font:400 32px/1.1 var(--face-display); }
 #diplomacy-body .diplo-head-status { margin-left:59px; color:#607256; font-size:10px; }
@@ -41,7 +40,7 @@
 #diplomacy-body .diplo-tabs button { background:none; border:0; border-bottom:2px solid transparent; color:#7b7c6b; padding:0 0 12px; font-size:11px; cursor:pointer; }
 #diplomacy-body .diplo-tabs button[aria-current=page] { color:#303f34; border-bottom-color:#546447; font-weight:600; }
 #diplomacy-body .diplo-dialogue { border-left:2px solid #a39066; padding:4px 0 4px 19px; }
-#diplomacy-body .diplo-dialogue>.eyebrow { margin:0; font-size:9px; letter-spacing:.14em; color:#8a7b5e; }
+#diplomacy-body .diplo-dialogue>.eyebrow { margin:0; }
 #diplomacy-body .diplo-dialogue blockquote { margin:9px 0; font:400 26px/1.2 var(--face-display); }
 #diplomacy-body .diplo-dialogue .hint { margin:0; }
 #diplomacy-body .diplo-trade-title h3 { font:400 25px var(--face-display); margin:0; }
@@ -49,7 +48,7 @@
 #diplomacy-body .diplo-board { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 225px; gap:18px; align-items:start; }
 #diplomacy-body .diplo-side { gap:13px; }
 #diplomacy-body .diplo-side-head { display:block; padding:9px 0; border-top:1px solid #bab7a2; border-bottom:0; }
-#diplomacy-body .diplo-side-head .eyebrow { margin:0; font-size:9px; letter-spacing:.13em; color:#7d7b68; }
+#diplomacy-body .diplo-side-head .eyebrow { margin:0; }
 #diplomacy-body .diplo-side-name { font:400 22px var(--face-display); margin:5px 0; }
 #diplomacy-body .diplo-side-purse { font:10px var(--face-num); color:#8c8068; }
 #diplomacy-body .diplo-group { gap:7px; }

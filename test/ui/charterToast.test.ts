@@ -81,7 +81,7 @@ describe('the toast', () => {
     const controls = uiSource('controls.ts');
     expect(controls).toContain("entry.action = { kind: 'openTech', tech: opts.openTech };");
     expect(braceBody(controls, 'function reportCharters(')).toContain(
-      'announce(charterOpenedText(tech), { openTech: tech });',
+      "announce(charterOpenedText(tech), { openTech: tech, mark: 'research' });",
     );
   });
 

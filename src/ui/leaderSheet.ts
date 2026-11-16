@@ -374,7 +374,6 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
   /** The head: who is at the table, and the two inks the board flies for them. */
   function drawHead(state: GameState, seat: number): HTMLElement {
     const hold = element('article', 'leader-hold leader-hold-figure');
-    hold.append(element('p', 'eyebrow', 'the figure at your table'));
     const head = element('div', 'leader-hold-head');
     head.append(canton(state, seat));
     head.append(element('h3', 'leader-hold-name', seatName(state, seat)));

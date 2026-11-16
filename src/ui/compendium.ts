@@ -224,6 +224,7 @@ import {
   wagerDealtInAge,
   wagerDef,
 } from '../sim/wagerData';
+import { BEAD_GLYPH, beadMarkNode } from './newsMark';
 import { WAGER_LINE_NAME } from './wagerSheet';
 import { describeBeadBoon } from '../sim/beads';
 import { AXIS_MARK } from './religionScreen';
@@ -3321,6 +3322,11 @@ function markNode(mark: CompendiumMark): HTMLElement {
     return box;
   }
   const box = element('span', 'cmp-mark');
+  // The bead's character is drawn as the glass bead on its wire (batch SS1).
+  if (mark.glyph === BEAD_GLYPH) {
+    box.append(beadMarkNode());
+    return box;
+  }
   setYieldText(box, mark.glyph);
   return box;
 }
@@ -3334,8 +3340,9 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
   const head = element('div', 'cmp-entry-head');
   if (entry.mark !== null) head.append(markNode(entry.mark));
   const titles = element('div', 'cmp-entry-titles');
-  titles.append(element('p', 'eyebrow cmp-eyebrow', entry.eyebrow));
+  // What kind of thing the entry is, as a fact under its name (batch SS1).
   titles.append(element('h4', 'cmp-entry-name', entry.name));
+  titles.append(element('p', 'eyebrow cmp-eyebrow', entry.eyebrow));
   head.append(titles);
   card.append(head);
 

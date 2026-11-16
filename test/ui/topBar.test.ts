@@ -523,7 +523,8 @@ describe('the Lens and the chronicle, beside End Turn', () => {
     const body = rule.slice(0, rule.indexOf('}'));
     expect(body).toContain('min-width: 40px;');
     expect(body).toContain('height: 40px;');
-    expect(css).toMatch(/\.turn-tool:active,\n\.turn-tool\[aria-expanded='true'\] \{\s*transform: translate\(3px, 3px\);/);
+    // Paper since batch SS1: the press is one pixel.
+    expect(css).toMatch(/\.turn-tool:active,\n\.turn-tool\[aria-expanded='true'\] \{\s*transform: translateY\(1px\);/);
   });
 
   it('draw their cards above the unit panel, and below the popover columns', () => {

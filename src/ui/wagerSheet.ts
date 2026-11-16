@@ -264,7 +264,6 @@ export function createWagerSheet(options: WagerSheetOptions): WagerSheet {
     }
 
     const head = element('section', 'wager-lead');
-    head.append(element('p', 'eyebrow', 'the age sets its bars'));
     head.append(element('h3', 'wager-headline', wagerDealHeadline(deal)));
     head.append(element('p', 'wager-lead-text', WAGER_DEAL_LEAD));
     body.append(head);
@@ -301,8 +300,9 @@ export function createWagerSheet(options: WagerSheetOptions): WagerSheet {
     const mark = BEAD_FAMILY_MARK[face.family];
     card.style.setProperty('--wager-ink', `var(${mark.ink})`);
     if (face.staked) card.classList.add('is-staked');
-    card.append(element('p', 'eyebrow wager-eyebrow', face.eyebrow));
+    // The wager's family is a fact under its name (batch SS1, the Type board).
     card.append(element('h4', 'wager-name', face.name));
+    card.append(element('p', 'eyebrow wager-eyebrow', face.eyebrow));
     card.append(element('p', 'wager-note', face.note));
 
     const bar = element('p', 'wager-bar');

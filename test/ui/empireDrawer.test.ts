@@ -571,8 +571,10 @@ describe('the stylesheet', () => {
 
   it('draws the panel’s states: hover lifts, a press sinks, open flattens the right edge, owed shows the dot', () => {
     expect(css).toContain('.empire-panel:hover,\n.empire-panel.is-open {\n  background: #fdfaef;');
-    expect(rule('.empire-panel:active')).toContain('transform: translate(3px, 3px);');
-    expect(rule('.empire-panel:active')).toContain('box-shadow: 0 0 0 var(--ink);');
+    // Since batch SS1 the panel is paper: a press is one pixel and the soft
+    // shadow goes.
+    expect(rule('.empire-panel:active')).toContain('transform: translateY(1px);');
+    expect(rule('.empire-panel:active')).toContain('box-shadow: none;');
     expect(css).toMatch(
       /\n\.empire-panel\.is-open \{\s*border-top-right-radius: 2px;\s*border-bottom-right-radius: 2px;/,
     );

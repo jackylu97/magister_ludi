@@ -93,7 +93,25 @@ export interface NotificationEntry {
   turn: number;
   text: string;
   action?: NotificationAction;
+  /**
+   * The drawn mark that leads the line (batch SS1, the Scholar's Study news
+   * marks). Absent on news the boards gave no mark; such a line keeps a
+   * leading character, if it has one, in the same slot (`newsMark.ts`).
+   */
+  mark?: NewsMarkKind;
+  /** The mark's ink, as a custom property name (`--lapis`). Defaults per mark. */
+  ink?: string;
+  /** The name in the line that is news. It is set in red ink. It must occur in `text`. */
+  news?: string;
 }
+
+/**
+ * The five kinds of news the Marks board drew a mark for, and culture, whose
+ * mark is the culture yield's own: an age opens (the sun on the horizon), a
+ * Triumph (the arch), a great person (the laurel), research (the compass star)
+ * and a bead (the bead on its wire).
+ */
+export type NewsMarkKind = 'age' | 'triumph' | 'greatPerson' | 'research' | 'bead' | 'culture';
 
 /**
  * Whether an entry should render as a control rather than plain text.

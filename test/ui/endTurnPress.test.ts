@@ -190,7 +190,8 @@ describe('the button while the others move', () => {
     expect(rule).not.toContain('translate(');
     // On its full shadow, in parchment and ink — not the greyed "not for you"
     // plate `.btn:disabled` paints for a control that has been taken away.
-    expect(rule).toContain('box-shadow: var(--shadow)');
+    // End Turn is a played thing, so its shadow is the hard one (batch SS1).
+    expect(rule).toContain('box-shadow: var(--played-shadow)');
     expect(rule).toContain('background: var(--parchment)');
     expect(rule).toContain('border-color: var(--ink)');
     expect(rule).toContain('cursor: progress');

@@ -514,10 +514,8 @@ export function createPamphletOverlay(options: PamphletOverlayOptions): Pamphlet
     const card = doc.createElement('div');
     card.className = 'pamphlet-sheet';
 
-    const eyebrow = doc.createElement('p');
-    eyebrow.className = 'eyebrow pamphlet-eyebrow';
-    eyebrow.textContent = 'before your first turn';
-    card.append(eyebrow);
+    // No label over the title (batch SS1): "before your first turn" was
+    // flavour in the place of a label.
 
     const title = doc.createElement('h2');
     title.className = 'pamphlet-title';

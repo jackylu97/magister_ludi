@@ -163,7 +163,7 @@ describe('when the sheet is raised', () => {
   it('keeps the chronicle line as well as the sheet', () => {
     // The log is the record. A player who proceeded past a sheet while looking
     // at the board has to be able to find the line again.
-    expect(reportBody).toContain('announce(`✦ Triumph — ');
+    expect(reportBody).toContain('announce(`Triumph: ');
   });
 
   it('raises a mid-turn Triumph on the spot', () => {
