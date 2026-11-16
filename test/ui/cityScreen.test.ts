@@ -327,8 +327,7 @@ describe('the city mode', () => {
     const text = css();
     for (const id of [
       '#topbar',
-      '#empire-panel',
-      '#empire-drawer',
+      '#empire-corner',
       '#hud-commissions',
       '#hud-meters',
       '#hud-popovers',

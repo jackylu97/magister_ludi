@@ -196,8 +196,10 @@ describe('the two screens', () => {
     expect(screen).toContain('for (const line of row.lines) {');
     expect(screen).toContain('signedMeterFigure(foldRenownLedger(rows))');
     expect(screen).toContain('section.append(renownOddsNode(odds));');
-    // Drawn on the empty screen too, before anybody has been called.
-    const empty = screen.slice(screen.indexOf('if (roll.length === 0) {'));
-    expect(empty.slice(0, empty.indexOf('return;'))).toContain('drawRenown();');
+    // Drawn on the empty screen too, before anybody has been called: since
+    // batch SS3 `draw` builds the renown column whatever the deck holds.
+    const draw = screen.slice(screen.indexOf('function draw(flip: boolean): void {'), screen.indexOf('function drawLeft('));
+    expect(draw).toContain('drawRenown()');
+    expect(draw).not.toMatch(/if \(roll\.length === 0\)/);
   });
 });

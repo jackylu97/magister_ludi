@@ -178,9 +178,9 @@ describe('the cap', () => {
 });
 
 describe('where the chips live', () => {
-  it('mounts the rail after the empire drawer, registers its disposer, and redraws with the HUD', () => {
+  it('mounts the rail after the corner panel, registers its disposer, and redraws with the HUD', () => {
     const main = uiSource('main.ts');
-    expect(main).toContain('else empireDrawerEl.after(commissionRail.root);');
+    expect(main).toContain('else empireCornerEl.after(commissionRail.root);');
     expect(main).toContain('gameDisposers.push(() => commissionRail?.dispose());');
     expect(main).toContain('commissionRail?.render();');
     expect(main).toContain('openAt: (card) => statecraft?.openAt(card),');

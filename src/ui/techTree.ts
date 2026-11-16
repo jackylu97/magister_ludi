@@ -612,20 +612,24 @@ interface TechTreeOptions {
    */
   hintLine: HTMLElement;
   /**
-   * The research section of the empire drawer (`#hud-research`, the HUD's
-   * research card until batch UX3). The whole section is a button: it opens
-   * this screen, and it is where what is being learnt is written between
-   * visits. See `renderStatus`.
+   * The corner panel's Research row (`#hud-research`, the HUD's research card
+   * until batch UX3). The whole row is a button: it opens this screen, and it
+   * is where what is being learnt is written between visits. See
+   * `renderStatus`.
    */
   statusCard: HTMLButtonElement;
   /** The technology's name, or the prompt to pick one. */
   statusName: HTMLElement;
-  /** The progress bar: its `--progress` custom property is its width. */
-  statusDial: HTMLElement;
-  /** The technology's glyph, before its name. */
-  statusGlyph: HTMLElement;
-  /** Turns left, after the figures. */
-  statusBoss: HTMLElement;
+  /**
+   * The progress bar: its `--progress` custom property is its width. Optional
+   * since batch SS2: the corner panel draws its own bar beside the name, from
+   * the same `researchProgress`, and has no second one.
+   */
+  statusDial?: HTMLElement;
+  /** The technology's glyph, before its name. Optional for `statusDial`'s reason. */
+  statusGlyph?: HTMLElement;
+  /** Turns left, after the figures. Optional for `statusDial`'s reason. */
+  statusBoss?: HTMLElement;
   /** The mono figures: banked over cost. */
   statusFigures: HTMLElement;
   getGame: () => Game;
@@ -2519,15 +2523,17 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       statusName.textContent = prompting ? 'Choose research…' : 'Philosophy complete';
       // An empty bar while prompting, which has no fraction to show, and a
       // full one for a finished tree, which `.is-done` draws in gilt.
-      statusDial.style.setProperty('--progress', prompting ? '0%' : '100%');
+      statusDial?.style.setProperty('--progress', prompting ? '0%' : '100%');
       // A dim stand-in star while nothing is chosen, and a lit one once the
       // tree is finished: the tech's own glyph belongs to neither state, there
       // being no current tech to draw it for.
-      statusGlyph.textContent = prompting ? '✧' : '✦';
-      statusGlyph.classList.toggle('is-dim', prompting);
+      if (statusGlyph) {
+        statusGlyph.textContent = prompting ? '✧' : '✦';
+        statusGlyph.classList.toggle('is-dim', prompting);
+      }
       // Neither state has a turn count: prompting has no denominator to count
       // down, and a finished tree has nothing left to finish.
-      statusBoss.textContent = '';
+      if (statusBoss) statusBoss.textContent = '';
       // With no aim there is no denominator, so the figures line says what the
       // pool *is* — banking is real (see the model in `src/sim/tech.ts`), and a
       // player who has forgotten to choose should see the beakers piling up.
@@ -2556,14 +2562,16 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // A charter technology's seal after its name (Scientific batch S10), as on
     // its node and its chip in the plan.
     if (isCharterTech(current)) statusName.append(charterSealNode());
-    statusDial.style.setProperty('--progress', `${(progress.fraction * 100).toFixed(1)}%`);
+    statusDial?.style.setProperty('--progress', `${(progress.fraction * 100).toFixed(1)}%`);
     // Through the printer, like every other glyph on this screen: a tech whose
     // own glyph *is* one of the six yield marks — Agriculture, Bronze Working,
     // Drama, Currency — wears the drawn one here as it does on its node, rather
     // than the emoji on one surface and the drawing on the other.
-    setYieldText(statusGlyph, def.glyph);
-    statusGlyph.classList.remove('is-dim');
-    statusBoss.textContent = progress.turns === null ? '' : `${progress.turns}t`;
+    if (statusGlyph) {
+      setYieldText(statusGlyph, def.glyph);
+      statusGlyph.classList.remove('is-dim');
+    }
+    if (statusBoss) statusBoss.textContent = progress.turns === null ? '' : `${progress.turns}t`;
     // The figures drop the turn count `progress.figures` carries: the turns
     // are their own element (`statusBoss`), so the two would repeat a fact.
     setYieldText(statusFigures, `${progress.banked}/${progress.cost} ${BEAKER}`);

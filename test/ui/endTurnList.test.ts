@@ -330,15 +330,15 @@ describe('the stylesheet', () => {
     );
   });
 
-  it('stacks the empire drawer above the toasts, so a toast cannot cover it', () => {
+  it('stacks the open corner panel above the toasts, so a toast cannot cover it', () => {
     const z = (selector: string): number => {
       const match = /z-index:\s*(\d+)/.exec(rule(selector));
       if (!match) throw new Error(`no z-index on ${selector}`);
       return Number(match[1]);
     };
-    expect(z('.empire-drawer')).toBeGreaterThan(z('.toasts'));
+    expect(z('.empire-corner.is-open')).toBeGreaterThan(z('.toasts'));
     // And still under the bar.
-    expect(z('.empire-drawer')).toBeLessThan(z('#topbar'));
+    expect(z('.empire-corner.is-open')).toBeLessThan(z('#topbar'));
   });
 });
 

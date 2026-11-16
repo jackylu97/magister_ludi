@@ -927,12 +927,21 @@ describe('the sheet’s frame and its doors', () => {
     expect(main).toContain(
       "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
     );
-    // The tab wears the drawn cart rather than a typed glyph, and the empire
-    // drawer that replaced the dock (batch UX3) has no Trade door.
+    // The tab wears the drawn cart rather than a typed glyph.
     expect(bar).toContain('tabMark(tradeMarkDataUri())');
     expect(bar).not.toContain("'⇄'");
-    expect(source('empireDrawer.ts')).not.toContain('tradeMarkDataUri');
-    expect(source('empireDrawer.ts')).not.toContain('trade?.open()');
+    // Since batch SS2 the corner panel's Routes button is the sheet's second
+    // door (the user: trade routes are among the buttons opened most). It wears
+    // the same drawn cart, from the one drawing in `dockMarks.ts`, never a glyph
+    // of its own; and it opens the sheet through `main.ts`, like every door,
+    // never by reaching for the sheet itself.
+    const panel = source('empireDrawer.ts');
+    expect(panel).toContain("import { diplomacyMarkDataUri, standingsMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';");
+    expect(panel).toContain('routes: () => tradeMarkDataUri(),');
+    expect(panel).not.toContain("'⇄'");
+    expect(panel).not.toContain('trade?.open()');
+    expect(main).toContain('routes: () => trade?.open(),');
+    expect(main).toContain('trigger: quickRoutesButton,');
   });
 
   it('leaves the unit sheet one link and no route verbs', () => {

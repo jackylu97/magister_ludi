@@ -184,6 +184,17 @@ describe('the game-screen disposal register', () => {
     expect(main).not.toContain('createVictoryModal');
   });
 
+  it('keeps the Reliquary, a full sheet since batch SS3, on the frame and in both registers', () => {
+    const main = source('main.ts');
+    const sheet = source('reliquaryScreen.ts');
+    expect(sheet).toContain('createModalShell({');
+    expect(sheet).not.toContain("window.addEventListener('keydown'");
+    // The pile's ‹ › are the shell's `onKey`, so its one window listener is the frame's.
+    expect(sheet).toContain('onKey: (event) => {');
+    expect(main).toContain('gameDisposers.push(() => reliquary?.dispose());');
+    expect(main).toContain("screens.register(held('reliquary', 'screen', () => reliquary));");
+  });
+
   it('preserves close handlers when Restart reuses the booted screens', () => {
     const main = source('main.ts');
     const landing = main.slice(main.indexOf('function showLanding()'), main.indexOf('function hideLanding()'));

@@ -76,8 +76,8 @@ import { seatName, seatPeople } from '../sim/leaderData';
 import {
   answerDealError,
   bargainSeatError,
+  dealSideError,
   declareWarError,
-  luxuryLendingBan,
   declinePeaceError,
   diplomaticSeats,
   hasMetSeat,
@@ -102,6 +102,7 @@ import {
   controlledHoldings,
   resourceCopies,
 } from '../sim/cities';
+import { lentCopiesToPlayer } from '../sim/deals';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { wearinessBetween } from '../sim/weariness';
 import { figure, signedMeterFigure } from './figures';
@@ -332,6 +333,19 @@ interface DealChoice {
   note: string | null;
   /** Why this cannot be put on the table, or `null` when it can. */
   error: string | null;
+  /**
+   * A luxury row the other side holds **only on loan** (batch SS4, the luxury
+   * rule's option 1): the row is drawn greyed, with who lent it and the turns
+   * its deal has left. Still chosen like any row the reducer accepts, because a
+   * copy lent now still counts when that loan ends. Absent on every other row.
+   */
+  onLoan?: LoanNote;
+  /**
+   * A luxury row whose giver holds **only a borrowed copy**. The reducer accepts
+   * it (`dealSideError` asks `availableCopies`, which counts copies lent in), so
+   * the row is offered as usual, and this says where the copy came from.
+   */
+  borrowed?: LoanNote;
 }
 
 /** What one column of the panel offers — one empire's side of the bargain. */
@@ -340,8 +354,18 @@ interface DealSideModel {
   name: string;
   /** Coin in the treasury: the ceiling on a lump, and printed as one. */
   gold: number;
-  /** Every luxury this empire holds, in the resource table's own order. */
+  /**
+   * Every luxury this empire may put on this table, in the resource table's own
+   * order. Since batch SS4 a luxury the other side has its own copy of is left
+   * off (`luxuryRowShow`).
+   */
   luxuries: DealChoice[];
+  /**
+   * What this empire holds of luxuries, whatever the table shows: kinds, and
+   * copies (`resourceCopies`, lent copies counted as the copies ruling counts
+   * them). The column's head and the list's foot print it.
+   */
+  stock: { kinds: number; copies: number };
   /** The right of way, with the technology named when it is refused. */
   openBorders: DealChoice;
   /** Towns that may be ceded. Empty unless a peace is being written. */
@@ -433,8 +457,8 @@ interface DealPanelModel {
  */
 export function dealPanel(state: GameState, seat: number, targetId: number): DealPanelModel {
   const war = warBetween(state, seat, targetId) !== undefined;
-  const yours = dealSide(state, seat, targetId, war);
-  const theirs = dealSide(state, targetId, seat, war);
+  const yours = dealSide(state, seat, targetId, war, seat);
+  const theirs = dealSide(state, targetId, seat, war, seat);
   const proposals: DealProposalRow[] = [];
   for (const row of state.dealProposals) {
     const mine = row.by === seat && row.to === targetId;
@@ -505,19 +529,142 @@ function sideOfPeace(
   return seat < other ? terms.a : terms.b;
 }
 
-/** One column of the panel. See `dealPanel`. */
+/**
+ * One loan of one luxury to one empire: who lent it, and the turns its deal has
+ * left (`dealTurnsLeft`, an absolute expiry read against the turn).
+ */
+export interface LuxuryLoan {
+  lenderId: number;
+  turnsLeft: number;
+}
+
+/**
+ * One empire's hold on one luxury, split the way the luxury rule needs it: the
+ * copies that are its **own**, and the loans that make up the rest.
+ *
+ * Read off the simulation's two figures and nothing else. `resourceCopies` is
+ * the net count (own ground, less what was lent away, plus what was lent in,
+ * the reveal gate applied); `lentCopiesToPlayer` is the lent-in half of it. So
+ * an empire's own copies are the one less the other. An empire that cannot
+ * name the luxury holds none of it, own or lent, which is the reveal gate's
+ * answer, so its loans are not listed either.
+ */
+export interface LuxuryHold {
+  own: number;
+  loans: LuxuryLoan[];
+}
+
+export function luxuryHold(state: GameState, playerId: number, id: ResourceId): LuxuryHold {
+  const total = resourceCopies(state, playerId, id);
+  if (total <= 0) return { own: 0, loans: [] };
+  const lentIn = lentCopiesToPlayer(state, playerId)[id] ?? 0;
+  const loans: LuxuryLoan[] = [];
+  // The register in its own order: an outcome is never read off a keyed walk.
+  for (const deal of state.deals) {
+    const turnsLeft = dealTurnsLeft(state, deal);
+    if (turnsLeft <= 0) continue;
+    if (!(sideTakenBy(deal, playerId).luxuries ?? []).includes(id)) continue;
+    const lenderId = otherSeatOf(deal, playerId);
+    if (lenderId === null) continue;
+    loans.push({ lenderId, turnsLeft });
+  }
+  return { own: Math.max(0, total - lentIn), loans };
+}
+
+/**
+ * What a luxury row shows, by the receiving side's hold on it (batch SS4; the
+ * user, 2026-11-16, and the ruling "option 1" in
+ * `docs/plans/ui-critique-2026-10-16.md`):
+ *
+ * - **hidden** when the receiver has a copy of its own. The giver holds the
+ *   luxury too (it is on the giver's list), so both have it and a copy across
+ *   the table would add nothing;
+ * - **onLoan** when the receiver holds it only on loan from a deal that will
+ *   end: drawn greyed, with the lender and the turns left;
+ * - **open** when the receiver does not hold it at all.
+ */
+export type LuxuryRowShow = 'hidden' | 'onLoan' | 'open';
+
+export function luxuryRowShow(receiver: LuxuryHold): LuxuryRowShow {
+  if (receiver.own > 0) return 'hidden';
+  if (receiver.loans.length > 0) return 'onLoan';
+  return 'open';
+}
+
+/**
+ * A row's loan line, as the table prints it: the words, then each loan's turns
+ * as a figure. "They have it only on loan from you" over "4 turns left".
+ */
+export interface LoanNote {
+  /** "They have it only on loan", "Your copy is on loan". */
+  head: string;
+  /** One part a loan: "from you", "from them", "from the Tang". */
+  parts: { from: string; turns: string }[];
+}
+
+/**
+ * The words of a loan line, from the seat's side of the table.
+ *
+ * `holderId` is the empire holding the borrowed copy; `otherId` is the other
+ * empire at this table. `kind` says which rule the line belongs to: the
+ * receiver's loan (the greyed row) or the giver's own borrowed copy. A lender
+ * is "you" when it is the seat, "them" when it is the other empire at the
+ * table, and the people's name otherwise.
+ */
+export function loanNote(
+  state: GameState,
+  seat: number,
+  otherId: number,
+  holderId: number,
+  loans: readonly LuxuryLoan[],
+  kind: 'receiver' | 'giver',
+): LoanNote {
+  const mine = holderId === seat;
+  const head =
+    kind === 'receiver'
+      ? mine
+        ? 'You have it only on loan'
+        : 'They have it only on loan'
+      : mine
+        ? 'Your copy is on loan'
+        : 'Their copy is on loan';
+  const lender = (id: number): string => {
+    if (id === seat) return 'from you';
+    if (id === otherId) return 'from them';
+    return `from the ${seatPeople(state, id)}`;
+  };
+  return {
+    head,
+    parts: loans.map((loan) => ({
+      from: lender(loan.lenderId),
+      turns: loan.turnsLeft === 1 ? '1 turn left' : `${figure(loan.turnsLeft)} turns left`,
+    })),
+  };
+}
+
+/** One column of the panel. See `dealPanel`. `seat` is whose screen it is. */
 function dealSide(
   state: GameState,
   giverId: number,
   receiverId: number,
   war: boolean,
+  seat: number,
 ): DealSideModel {
   const giver = playerById(state, giverId);
   const luxuries: DealChoice[] = [];
-  // The Forbidden Silks (batch DT7): the reducer's own sentence, so the row greys
-  // before a player writes a paper the reducer would throw out.
-  const banned = luxuryLendingBan(state, giverId);
-  for (const holding of controlledHoldings(state, giverId, 'luxury')) {
+  const other = giverId === seat ? receiverId : giverId;
+  const holdings = controlledHoldings(state, giverId, 'luxury');
+  const stock = {
+    kinds: holdings.length,
+    copies: holdings.reduce((sum, holding) => sum + resourceCopies(state, giverId, holding.id), 0),
+  };
+  for (const holding of holdings) {
+    // The luxury rule (batch SS4): the receiver's hold decides whether the row
+    // is drawn at all, and whether it is drawn greyed.
+    const theirs = luxuryHold(state, receiverId, holding.id);
+    const show = luxuryRowShow(theirs);
+    if (show === 'hidden') continue;
+    const mine = luxuryHold(state, giverId, holding.id);
     const copies = resourceCopies(state, giverId, holding.id);
     // **What may actually be promised** (batch R1, ruling 4 — "only trade away
     // available copies"). A copy a unit of this empire is standing on is spoken
@@ -532,7 +679,12 @@ function dealSide(
     // So this subtraction is nought on every row the game currently ships. It
     // stays because the rule is the reducer's, not this list's: the day a
     // luxury gates a unit the panel already agrees with the refusal.
-    const spare = banned !== null ? 0 : availableCopies(state, giverId, holding.id);
+    // The reducer's own sentence for this one term, asked through a probe side
+    // (`dealSideError`): the Forbidden Silks' ban (batch DT7) and a copy that is
+    // already spoken for are both its words, so the row greys before a player
+    // writes a paper the reducer would throw out.
+    const error = dealSideError(state, giverId, receiverId, { luxuries: [holding.id] }, war);
+    const spare = error !== null ? 0 : availableCopies(state, giverId, holding.id);
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
@@ -550,7 +702,13 @@ function dealSide(
       // batch R1 is a copy this empire's own army has spoken for, and that is
       // what this greys; the row prints both figures beside it (batch R4), so a
       // player reads why before the refusal rather than after it.
-      error: banned ?? (spare < 1 ? 'every copy is already spoken for' : null),
+      error,
+      ...(show === 'onLoan'
+        ? { onLoan: loanNote(state, seat, other, receiverId, theirs.loans, 'receiver') }
+        : {}),
+      ...(mine.own === 0 && mine.loans.length > 0
+        ? { borrowed: loanNote(state, seat, other, giverId, mine.loans, 'giver') }
+        : {}),
     });
   }
   const cities: DealChoice[] = [];
@@ -575,6 +733,7 @@ function dealSide(
     name: seatName(state, giverId),
     gold: giver?.gold ?? 0,
     luxuries,
+    stock,
     openBorders: {
       label: 'Open borders',
       note: null,
@@ -717,6 +876,12 @@ interface DiplomacyScreenOptions {
   body: HTMLElement;
   closeButton: HTMLElement;
   trigger?: HTMLElement;
+  /**
+   * The other controls that open this sheet, for the focus return and the
+   * `aria-expanded` mirror (batch SS2: the corner panel's quick button beside
+   * a bar tab). See `modalShell.ts`.
+   */
+  doors?: () => readonly (HTMLElement | null | undefined)[];
   getState: () => GameState;
   getPlayerId: () => number;
   /** Sends `declareWar`. The screen never mutates state itself. */
@@ -963,9 +1128,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     column.append(scroller);
 
     const foot = element('div', 'diplo-foot');
-    const goods=dealSide(options.getState(),options.getPlayerId(),chosen?.playerId??options.getPlayerId(),false).luxuries;
+    const seat = options.getPlayerId();
+    const stock=dealSide(options.getState(),seat,chosen?.playerId??seat,false,seat).stock;
     foot.append(element('p','eyebrow','Your luxuries'));
-    foot.append(element('p','diplo-stock',`${figure(goods.length)} kinds · ${figure(goods.reduce((n,c)=>n+(c.copies??0),0))} copies`));
+    foot.append(element('p','diplo-stock',`${figure(stock.kinds)} kinds · ${figure(stock.copies)} copies`));
     // The hint says what the rows' own figure counts (batch R4). "A spare is a
     // copy you can offer while keeping one" described the old `held − 1` note
     // and would now describe nothing on the screen.
@@ -1133,7 +1299,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const head = element('div', 'diplo-side-head');
     head.append(element('p','eyebrow',heading));
     head.append(element('h4', 'diplo-side-name', side.name));
-    head.append(element('p','diplo-stock',`${figure(side.luxuries.length)} kinds · ${figure(side.luxuries.reduce((n,c)=>n+(c.copies??0),0))} luxury copies`));
+    head.append(element('p','diplo-stock',`${figure(side.stock.kinds)} kinds · ${figure(side.stock.copies)} luxury copies`));
     head.append(element('span', 'diplo-side-purse', `${figure(side.gold)} in hand`));
     column.append(head);
 
@@ -1539,12 +1705,22 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    * One tick-box row, drawn **and disabled with its reason** when the term is
    * refused — the greyed-button rule this whole interface keeps.
    */
+  /** A loan line under a luxury's name: the words, then each loan's turns as a figure. */
+  function loanLine(note: LoanNote, kind: string): HTMLElement {
+    const line = element('small', `diplo-check-note diplo-loan ${kind}`, note.head);
+    note.parts.forEach((part, at) => {
+      line.append(document.createTextNode(`${at === 0 ? ' ' : '; '}${part.from} · `));
+      line.append(element('span', 'diplo-loan-turns', part.turns));
+    });
+    return line;
+  }
+
   function checkRow(
     choice: DealChoice,
     checked: boolean,
     write: (on: boolean) => void,
   ): HTMLElement {
-    const wrap = element('label', `diplo-check${checked?' is-selected':''}${choice.error?' is-disabled':''}`);
+    const wrap = element('label', `diplo-check${checked?' is-selected':''}${choice.error?' is-disabled':''}${choice.onLoan?' is-greyed':''}`);
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = checked && choice.error === null;
@@ -1576,11 +1752,18 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       // batch is meant to remove, not add.
       const spare = choice.spare ?? choice.copies;
       const count=element('span','diplo-copy',figure(spare));count.append(element('small','','to offer'));wrap.append(count);
-      const note = spare < 1 ? 'None to offer'
+      // A refused row says why in the reducer's own words (`dealSideError`),
+      // under the name rather than only on hover (batch SS4).
+      const note = choice.error !== null ? choice.error
+        : spare < 1 ? 'None to offer'
         : choice.copies === 1 ? 'Last copy'
         : spare < choice.copies ? `${figure(choice.copies)} held`
         : null;
       if (note !== null) wrap.append(element('small','diplo-check-note',note));
+      // The luxury rule's two lines (batch SS4): the other side holds it only
+      // on loan (the row is greyed), or the giver's own copy is borrowed.
+      if (choice.onLoan) wrap.append(loanLine(choice.onLoan, 'is-on-loan'));
+      if (choice.borrowed) wrap.append(loanLine(choice.borrowed, 'is-borrowed'));
     } else if(choice.population!==undefined) wrap.append(element('span','diplo-check-note',choice.error??`Population ${figure(choice.population)}`));
     else if (choice.note !== null) wrap.append(element('span', 'diplo-check-note', choice.note));
     return wrap;
@@ -1690,6 +1873,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     body,
     closeButton,
     trigger,
+    doors: options.doors,
     onOpen: () => options.onOpen?.(),
     draw,
     onKey: (event) => {

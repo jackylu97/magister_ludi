@@ -10,6 +10,9 @@
  * cascade.
  */
 
+/* The display face's own declaration, with its baseline moved down (batch SS1b). */
+@import '../displayFace.css';
+
 :root {
   --ink: #2f2b32;
   --ink-soft: #6c6570;
@@ -19,7 +22,7 @@
   --crimson: #b35843;
   --teal: #477f7e;
 
-  --face-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --face-display: 'Newsreader Centred', 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }

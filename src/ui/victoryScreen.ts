@@ -250,6 +250,12 @@ interface VictoryScreenOptions {
   closeButton: HTMLElement;
   /** The dock's own door, for the `aria-expanded` mirror and the focus return. */
   trigger?: HTMLElement | null;
+  /**
+   * The other controls that open this sheet, for the focus return and the
+   * `aria-expanded` mirror (batch SS2: the corner panel's quick button beside
+   * a bar tab). See `modalShell.ts`.
+   */
+  doors?: () => readonly (HTMLElement | null | undefined)[];
   getState: () => GameState;
   getPlayerId: () => number;
   /** The landing screen's own journey, handed down rather than reached from here. */
@@ -382,6 +388,7 @@ export function createVictoryScreen(options: VictoryScreenOptions): VictoryScree
     body,
     closeButton,
     trigger,
+    doors: options.doors,
     draw: render,
     onOpen: () => options.onOpen?.(),
   });

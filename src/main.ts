@@ -423,19 +423,24 @@ const lensOptionsEl = requireElement<HTMLElement>('lens-options');
 const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
-/* The empire panel, top-left, and the drawer that opens beside it (batch UX3;
-   see `src/ui/empireDrawer.ts`). The panel is one button; the drawer is static
-   markup that module fills. */
+/* The corner panel, top-left (batch SS2; see `src/ui/empireDrawer.ts`): one
+   card with a top part that opens it downward in place, four quick buttons and
+   the open part's rows. Static markup that module fills. */
+const empireCornerEl = requireElement<HTMLElement>('empire-corner');
 const empirePanelEl = requireElement<HTMLButtonElement>('empire-panel');
 const empireDrawerEl = requireElement<HTMLElement>('empire-drawer');
-/* The drawer's research section: one button that opens the star chart. It
-   keeps the old research card's ids, so it is handed to `createTechTree`, whose
-   `renderStatus` writes its name, figures, turns, bar and glyph. */
+/* The quick buttons: each is a door onto its sheet, so each sheet takes it as
+   its trigger or as one of its other doors (`modalShell.ts`). */
+const quickDiplomacyButton = requireElement<HTMLButtonElement>('quick-diplomacy');
+const quickRoutesButton = requireElement<HTMLButtonElement>('quick-routes');
+const quickFaithButton = requireElement<HTMLButtonElement>('quick-faith');
+const quickStandingsButton = requireElement<HTMLButtonElement>('quick-standings');
+/* The panel's Research row: one button that opens the star chart. It keeps the
+   old research card's id, so it is handed to `createTechTree`, whose
+   `renderStatus` writes the technology's name on the panel's top part and the
+   figures on this row. */
 const researchSection = requireElement<HTMLButtonElement>('hud-research');
 const techCurrentEl = requireElement<HTMLElement>('tech-current');
-const researchDialEl = requireElement<HTMLElement>('research-dial');
-const researchGlyphEl = requireElement<HTMLElement>('research-glyph');
-const researchTurnsEl = requireElement<HTMLElement>('research-turns');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
@@ -4554,9 +4559,6 @@ async function boot(initial: Game | null): Promise<void> {
     hintLine: requireElement('tech-hint'),
     statusCard: researchSection,
     statusName: techCurrentEl,
-    statusDial: researchDialEl,
-    statusGlyph: researchGlyphEl,
-    statusBoss: researchTurnsEl,
     statusFigures: researchFiguresEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
@@ -4636,6 +4638,8 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: religionOverlayEl,
     body: religionBodyEl,
     closeButton: requireElement('religion-close'),
+    // The corner panel's Faith button (batch SS2), one click from rest.
+    trigger: quickFaithButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     buy: (cityId, item, currency) => {
@@ -4694,6 +4698,10 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: tradeOverlayEl,
     body: tradeBodyEl,
     closeButton: requireElement('trade-close'),
+    // The corner panel's Routes button (batch SS2), and the bar's Trade tab
+    // as the other door. The bar is built after this sheet, so it is asked late.
+    trigger: quickRoutesButton,
+    doors: () => [meterCards?.tradeTab],
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     buyRoute: (fromCityId, toCityId, mode) => {
@@ -5028,37 +5036,40 @@ async function boot(initial: Game | null): Promise<void> {
   meterCards = civYields;
 
   /**
-   * The empire panel and its drawer (batch UX3). See `src/ui/empireDrawer.ts`
-   * for the design; this is the wiring. Each section and row opens its screen,
-   * and the screen's own opening closes the drawer through the registry.
-   * Research is the one door not wired here: the star chart owns the research
-   * section's click (`statusCard` above).
-   *
-   * A peek waits while anything blocks the board's keys (a sheet, news, the
-   * landing, the other empires' turns) and while a move is being aimed.
+   * The corner panel (batch SS2). See `src/ui/empireDrawer.ts` for the design;
+   * this is the wiring. Each row and quick button opens its screen, and the
+   * screen's own opening folds the card through the registry. Research is the
+   * one door not wired here: the star chart owns the Research row's click
+   * (`statusCard` above).
    */
   empireDrawer = createEmpireDrawer({
+    corner: empireCornerEl,
     panel: empirePanelEl,
     drawer: empireDrawerEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
-    canPeek: () => !isInputBlocked() && !controls.isMoveMode(),
     onOpen: () => screens.opening('drawer'),
     // The tutorial's open-the-tree step rings the panel, and the research
-    // section once the drawer is open, so it is re-placed on every change.
+    // row once the card is open, so it is re-placed on every change.
     onChange: () => tutorial.refresh(),
     openStatecraft: () => statecraft?.open(),
-    openFaith: () => religion?.open(),
     openLeader: () => leaderSheet?.open(),
     openWager: () => wagerSheet?.open(),
+    openQuick: {
+      diplomacy: () => diplomacy?.open(),
+      routes: () => trade?.open(),
+      faith: () => religion?.open(),
+      standings: () => victory?.open(),
+    },
   });
   gameDisposers.push(() => empireDrawer?.dispose());
 
   /**
-   * The commission chips (batch C): one per seated commission, under the empire
+   * The commission chips (batch C): one per seated commission, under the corner
    * panel, at most four and then "+N more". A chip opens the government sheet
-   * at its card, and "+N more" opens Statecraft. Mounted after the drawer, so
-   * the keyboard reaches the panel, then the drawer, then the chips.
+   * at its card, and "+N more" opens Statecraft. Mounted after the corner
+   * panel, so the keyboard reaches the panel first, then the chips. The open
+   * panel covers them until it closes.
    */
   const previousCommissions = commissionRail;
   commissionRail = createCommissionRail({
@@ -5068,7 +5079,7 @@ async function boot(initial: Game | null): Promise<void> {
     openAll: () => statecraft?.open(),
   });
   if (previousCommissions) previousCommissions.root.replaceWith(commissionRail.root);
-  else empireDrawerEl.after(commissionRail.root);
+  else empireCornerEl.after(commissionRail.root);
   gameDisposers.push(() => commissionRail?.dispose());
   diplomacy = createDiplomacyScreen({
     overlay: diplomacyOverlayEl,
@@ -5076,6 +5087,8 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('diplomacy-close'),
     // The bar's Diplomacy tab (batch UX1; it was the dock's third door).
     trigger: civYields.diplomacyTab,
+    // The corner panel's Diplomacy button is this sheet's other door (batch SS2).
+    doors: () => [quickDiplomacyButton],
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     // Every verb below sends through `controls`, so the board's own funnel has
@@ -5232,6 +5245,8 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('victory-close'),
     // The Standings tab's own button (batch UX1; it was the dock's sixth door).
     trigger: civYields.standingsTab,
+    // The corner panel's Standings button is this sheet's other door (batch SS2).
+    doors: () => [quickStandingsButton],
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     toTitle: () => showLanding(),

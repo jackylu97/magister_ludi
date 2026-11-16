@@ -18,13 +18,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FAMILY_PLURAL,
   RELIQUARY_EMPTY,
   REVOKED_BAND,
   reliquaryCalls,
   reliquaryCount,
+  reliquaryFamilies,
+  reliquaryFamilyCount,
+  reliquaryFan,
+  reliquaryOfFamily,
   reliquaryRoll,
   reliquaryStamped,
   reliquaryStep,
+  reliquarySubtitle,
 } from '../../src/ui/reliquaryScreen';
 import {
   greatPersonOfferBank,
@@ -43,7 +49,7 @@ import {
   legacyHeadline,
   legacyIsSilent,
 } from '../../src/ui/greatPersonFace';
-import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
+import { FAMILIES, GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { type GameState, bumpRevision } from '../../src/sim/state';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -108,6 +114,77 @@ function withLegacies(): GameState {
   bumpRevision(state);
   return state;
 }
+
+// --- the full sheet: families, fan and line (batch SS3) ----------------------
+
+describe('the families rail', () => {
+  it('lists the families that have cards, the most first, then the ones with none', () => {
+    const roll = reliquaryRoll(withLegacies(), 0);
+    const rows = reliquaryFamilies(roll);
+    // Every family once, so a family with no card still has its dashed row.
+    expect(rows.map((row) => row.family).sort()).toEqual([...FAMILIES].sort());
+    const counts = rows.map((row) => row.count);
+    const held = counts.filter((count) => count > 0);
+    expect(held.reduce((a, b) => a + b, 0)).toBe(roll.length);
+    // The held ones come first, the most first; the empty ones after, in the
+    // roster's own order.
+    expect(counts.slice(0, held.length)).toEqual([...held].sort((a, b) => b - a));
+    const empty = rows.slice(held.length).map((row) => row.family);
+    expect(empty).toEqual(FAMILIES.filter((family) => empty.includes(family)));
+    for (const row of rows) expect(row.label).toBe(FAMILY_PLURAL[row.family]);
+  });
+
+  it('shows one family’s cards, or the whole deck for no family', () => {
+    const roll = reliquaryRoll(withLegacies(), 0);
+    expect(reliquaryOfFamily(roll, null)).toEqual(roll);
+    const family = roll[0]!.face.family;
+    const one = reliquaryOfFamily(roll, family);
+    expect(one.length).toBeGreaterThan(0);
+    expect(one.every((card) => card.face.family === family)).toBe(true);
+    expect(reliquaryFamilyCount(0, one.length, family)).toBe(
+      `1 of ${one.length} · ${FAMILY_PLURAL[family].toLowerCase()}`,
+    );
+  });
+});
+
+describe('the fan and the line beside the title', () => {
+  it('fans the cards under the top one, in the order the arrows turn them up', () => {
+    const roll = reliquaryRoll(withLegacies(), 0);
+    expect(reliquaryFan(roll, 0, 5).map((row) => row.index)).toEqual([1, 2]);
+    expect(reliquaryFan(roll, 1, 5).map((row) => row.index)).toEqual([2, 0]);
+    expect(reliquaryFan(roll, 0, 1).map((row) => row.index)).toEqual([1]);
+    // A deck of one has nothing under it, and an empty deck nothing at all.
+    expect(reliquaryFan(roll.slice(0, 1), 0, 5)).toEqual([]);
+    expect(reliquaryFan([], 0, 5)).toEqual([]);
+  });
+
+  it('names the seat and counts the legacies still in force, in words', () => {
+    const roll = reliquaryRoll(withLegacies(), 0);
+    // Three cards, one struck: two in force.
+    expect(reliquarySubtitle('Mansa Musa', roll)).toBe('Mansa Musa · two legacies in force');
+    expect(reliquarySubtitle('Mansa Musa', roll.slice(0, 1))).toBe('Mansa Musa · one legacy in force');
+    expect(reliquarySubtitle('Mansa Musa', [])).toBe('Mansa Musa · no one called yet');
+    expect(reliquarySubtitle('Mansa Musa', [roll[1]!])).toBe('Mansa Musa · no legacy in force');
+  });
+});
+
+describe('the families rail’s marks and the screen it sits on', () => {
+  const SCREEN = source('reliquaryScreen.ts');
+
+  it('marks each family with the game’s own family emblem, Generals and Engineers included', () => {
+    expect(SCREEN).toContain("cardLineMarkUrl(FAMILY_EMBLEM[which])");
+    for (const family of FAMILIES) expect(FAMILY_EMBLEM[family]).toBeTruthy();
+  });
+
+  it('is the ninth sheet’s furniture: the modal shell, the cap rule, and the one close', () => {
+    expect(SCREEN).toContain('const shell = createModalShell({');
+    const html = raw('index.html');
+    const sheet = html.slice(html.indexOf('id="reliquary-overlay"'), html.indexOf('id="reliquary-body"'));
+    expect(sheet).toContain('class="statecraft-overlay"');
+    expect(sheet).toContain('class="rel-subtitle"');
+    expect(sheet).toContain('id="reliquary-close"');
+  });
+});
 
 // --- the roll ---------------------------------------------------------------
 
@@ -340,7 +417,7 @@ describe('the Reliquary screen', () => {
     // paying a ghost-diff per legacy on every arrow press again.
     expect(SCREEN).toContain('face: greatPersonCard(record.id)');
     expect(SCREEN).not.toContain('greatPersonFace(');
-    expect(SCREEN).toContain('drawReliquaryCard(withFigure(state, playerId, roll[at]!))');
+    expect(SCREEN).toContain('drawReliquaryCard(withFigure(state, playerId, deck[at]!))');
     expect(SCREEN).toContain('stampedState !== state || stampedAt !== revision || stampedSeat !== playerId');
     expect(SCREEN).toContain('getRevision?.()');
     // And the game is where the revision comes from — `state.revision` since
@@ -425,19 +502,39 @@ describe('the Reliquary screen', () => {
     expect(main).toContain("screens.register(held('reliquary', 'screen', () => reliquary));");
   });
 
-  it('narrows the paper it borrows', () => {
-    // The capped-overlay rule's membership is pinned in `religionScreen.test.ts`
-    // (all seven ids, one rule). What is this file's is what the Reliquary does
-    // *with* it: one card, so ~30rem rather than the family's 1240px.
-    // Said through the overlay's id, because what it narrows is
-    // `#reliquary-overlay .statecraft-sheet` — an id in the selector, and a bare
-    // class beside it would lose the cascade silently.
-    expect(STYLE).toMatch(/#reliquary-overlay \.reliquary-sheet \{\s*width: min\(30rem, 100%\);/);
-    expect(STYLE).toContain('#reliquary-overlay .reliquary-body {');
-    // And the stack under the card, which is what makes the pile a pile.
-    expect(STYLE).toContain('.rel-under-1');
-    expect(STYLE).toContain('.rel-under-2');
+  it('is a full sheet now: the paper’s own width, three columns and a foot', () => {
+    // Batch SS3 (the user: "lets have that be its own screen instead of a small
+    // popover"). The capped-overlay rule's membership is pinned in
+    // `religionScreen.test.ts`; the Reliquary no longer narrows it.
+    expect(STYLE).not.toMatch(/#reliquary-overlay \.reliquary-sheet \{[^}]*width:/);
+    expect(STYLE).not.toContain('width: min(30rem, 100%);');
+    // The board's three columns, and the desk in the middle.
+    expect(STYLE).toContain('grid-template-columns: 286px minmax(0, 1fr) 300px;');
+    expect(SCREEN).toContain('grid.append(drawLeft(roll, deck), drawDesk(state, playerId, deck, flip), drawRenown());');
+    expect(STYLE).toContain('.rel-desk {');
+    // And the stack under the card, which is what makes the pile a pile: up to
+    // four edges, 6 px apart.
+    for (const edge of [1, 2, 3, 4]) expect(STYLE).toContain(`.rel-under-${edge} { --edge-n: ${edge}; }`);
+    expect(SCREEN).toContain('for (let edge = Math.min(4, deck.length - 1); edge >= 1; edge -= 1)');
     expect(STYLE).toContain('@keyframes rel-flip');
+  });
+
+  it('flips with a short move, and with a 120 ms fade under reduced motion', () => {
+    expect(STYLE).toContain('animation: rel-flip 280ms');
+    const reduced = STYLE.slice(STYLE.indexOf("/* The Reliquary's flip: a fade of 120 ms with no slide (the board). */"));
+    expect(reduced).toContain('animation: rel-flip-fade 120ms linear both;');
+    expect(STYLE).toContain('@keyframes rel-flip-fade {');
+  });
+
+  it('holds the place of an empty deck with a dashed outline, and still draws renown and the calls', () => {
+    const desk = SCREEN.slice(SCREEN.indexOf('function drawDesk('));
+    expect(desk).toContain("const place = element('div', 'rel-place');");
+    expect(STYLE).toMatch(/\.rel-place \{[^}]*border: 1\.5px dashed/);
+    // `draw` builds the renown column and the calls whatever the deck holds.
+    const draw = SCREEN.slice(SCREEN.indexOf('function draw(flip: boolean): void {'), SCREEN.indexOf('function drawLeft('));
+    expect(draw).toContain('drawRenown()');
+    expect(draw).toContain('drawCalls();');
+    expect(draw).not.toContain('return;\n');
   });
 
   it('does not dress a standing card as one that can be picked', () => {
@@ -561,10 +658,14 @@ describe('the calls at the foot', () => {
 
   it('draws the rail on the empty screen too — the clause a new adopter has', () => {
     const screen = source('reliquaryScreen.ts');
-    // Both arms of `draw` reach it: the empire that has spent nobody is exactly
-    // the one whose whole signature clause lives on this rail.
-    expect(screen.match(/drawCalls\(\);/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(screen).toContain("body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));");
+    // `draw` has one arm since batch SS3: the desk draws the empty deck's
+    // outline, and the calls are drawn after it whatever the deck holds. The
+    // empire that has spent nobody is exactly the one whose whole signature
+    // clause lives on this rail.
+    const draw = screen.slice(screen.indexOf('function draw(flip: boolean): void {'), screen.indexOf('function drawLeft('));
+    expect(draw.match(/drawCalls\(\);/g)?.length).toBe(1);
+    expect(draw.indexOf('drawCalls();')).toBeGreaterThan(draw.indexOf('body.append(grid);'));
+    expect(screen).toContain("place.append(element('p', 'rel-empty', RELIQUARY_EMPTY));");
   });
 
   it('wears the offer sheet’s own answer rather than a button of its own', () => {

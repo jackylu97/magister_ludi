@@ -29,8 +29,9 @@ import { uiSource } from './sourceHelpers';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
-import { luxuryLendingBan } from '../../src/sim/diplomacy';
+import { dealSideError, luxuryLendingBan } from '../../src/sim/diplomacy';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { improvementForResource } from '../../src/sim/improvementData';
 import { RULES } from '../../src/sim/rulesData';
 import { resourceDef } from '../../src/sim/resourceData';
 import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
@@ -40,6 +41,9 @@ import {
   dealButtonLabel,
   dealFootSentence,
   dealPanel,
+  loanNote,
+  luxuryHold,
+  luxuryRowShow,
   termLines,
 } from '../../src/ui/diplomacyScreen';
 import { newGame } from '../sim/newGameHelpers';
@@ -403,7 +407,12 @@ describe('a seat under The Forbidden Silks (batch DT7)', () => {
     const theirs = town(state, 1, 10, 4);
     giveSilk(state, mine, 2, 3);
     giveSilk(state, mine, 4, 5);
-    giveSilk(state, theirs, 9, 3);
+    // Their luxury is wine: had it been silk too, both sides would hold their
+    // own and the luxury rule (batch SS4) would hide it.
+    const vines = getTileAt(state.map, 9, 3)!;
+    vines.resource = 'wine';
+    vines.improvement = improvementForResource('wine')!;
+    state.tileOwner[tileIndex(state.map, 9, 3)] = theirs.id;
     state.players[0]!.statecraft.doctrines.push('theForbiddenSilks' as never);
     bumpRevision(state);
 
@@ -416,5 +425,169 @@ describe('a seat under The Forbidden Silks (batch DT7)', () => {
     expect(model.theirs.luxuries[0]!.error).toBeNull();
     // The other seat's panel says the same of this seat's column.
     expect(dealPanel(state, 1, 0).theirs.luxuries[0]!.error).toBe(luxuryLendingBan(state, 0));
+  });
+});
+
+// --- the luxury rule (batch SS4) ----------------------------------------------
+
+/**
+ * The luxury rule in the deal table (the user, 2026-11-16, ruled as option 1 in
+ * `docs/plans/ui-critique-2026-10-16.md`): a luxury is not shown when both
+ * sides have their own copy; it is shown greyed, with who lent it and the turns
+ * left, when the other side has it only on loan; it is shown as usual when the
+ * other side does not have it. A giver whose only copy is borrowed may still
+ * lend it, because `dealSideError` asks `availableCopies`, which counts copies
+ * lent in, so that row is offered with a line saying where the copy came from.
+ */
+describe('the luxury rule', () => {
+  /** Three seats: Ada (0) and Bors (1) at the table, Cyd (2) a third empire. */
+  function three(): GameState {
+    const state = newGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#a00', isHuman: true },
+        { name: 'Bors', color: '#00a', isHuman: true },
+        { name: 'Cyd', color: '#0a0', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 14, height: 8, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(14 * 8).fill(null);
+    state.units = [];
+    state.cities = [];
+    state.camps = [];
+    state.nextEntityId = 1;
+    return state;
+  }
+
+  /** A live loan of one silk from `from` to `to`, for `turns` more turns. */
+  function lend(state: GameState, from: number, to: number, turns: number): void {
+    const [a, b] = from < to ? [from, to] : [to, from];
+    const gives = { luxuries: ['silk' as const] };
+    state.deals.push({
+      id: 900 + state.deals.length,
+      a,
+      b,
+      terms: { a: from === a ? gives : {}, b: from === b ? gives : {} },
+      untilTurn: state.turn + turns,
+    });
+    bumpRevision(state);
+  }
+
+  function setUp(): { state: GameState; ada: City; bors: City; cyd: City } {
+    const state = three();
+    const ada = town(state, 0, 2, 2);
+    const bors = town(state, 1, 7, 2);
+    const cyd = town(state, 2, 11, 5);
+    return { state, ada, bors, cyd };
+  }
+
+  const silk = <T extends { id?: string }>(rows: readonly T[]): T | undefined =>
+    rows.find((row) => row.id === 'silk');
+
+  it('hides a luxury both sides have their own copy of, in both columns', () => {
+    const { state, ada, bors } = setUp();
+    giveSilk(state, ada, 1, 2);
+    giveSilk(state, bors, 8, 2);
+    const model = dealPanel(state, 0, 1);
+    expect(silk(model.yours.luxuries)).toBeUndefined();
+    expect(silk(model.theirs.luxuries)).toBeUndefined();
+    // The column's head still counts what the empire holds.
+    expect(model.yours.stock).toEqual({ kinds: 1, copies: 1 });
+  });
+
+  it('greys a luxury the other side holds only on loan, with the lender and the turns left', () => {
+    const { state, ada, cyd } = setUp();
+    giveSilk(state, ada, 1, 2);
+    giveSilk(state, cyd, 12, 5);
+    lend(state, 2, 1, 4);
+    const row = silk(dealPanel(state, 0, 1).yours.luxuries)!;
+    expect(row.onLoan).toEqual({
+      head: 'They have it only on loan',
+      parts: [{ from: 'from the Cyd', turns: '4 turns left' }],
+    });
+    // Still chosen like any row the reducer accepts: the loan will end.
+    expect(row.error).toBeNull();
+    expect(row.borrowed).toBeUndefined();
+  });
+
+  it('says "from you" when the loan is the seat’s own, and words one turn as one', () => {
+    const { state, ada } = setUp();
+    giveSilk(state, ada, 1, 2);
+    giveSilk(state, ada, 3, 3);
+    lend(state, 0, 1, 1);
+    const row = silk(dealPanel(state, 0, 1).yours.luxuries)!;
+    expect(row.onLoan).toEqual({
+      head: 'They have it only on loan',
+      parts: [{ from: 'from you', turns: '1 turn left' }],
+    });
+    expect(row.error).toBeNull();
+  });
+
+  it('greys their column too when the seat holds the luxury only on loan', () => {
+    const { state, bors, cyd } = setUp();
+    giveSilk(state, bors, 8, 2);
+    giveSilk(state, cyd, 12, 5);
+    lend(state, 2, 0, 6);
+    const row = silk(dealPanel(state, 0, 1).theirs.luxuries)!;
+    expect(row.onLoan).toEqual({
+      head: 'You have it only on loan',
+      parts: [{ from: 'from the Cyd', turns: '6 turns left' }],
+    });
+    expect(row.error).toBeNull();
+  });
+
+  it('shows a luxury the other side does not have as an ordinary row', () => {
+    const { state, ada } = setUp();
+    giveSilk(state, ada, 1, 2);
+    const row = silk(dealPanel(state, 0, 1).yours.luxuries)!;
+    expect(row.onLoan).toBeUndefined();
+    expect(row.borrowed).toBeUndefined();
+    expect(row.error).toBeNull();
+  });
+
+  it('offers a copy the giver only borrowed, since the reducer accepts it, and says where it came from', () => {
+    const { state, cyd } = setUp();
+    giveSilk(state, cyd, 12, 5);
+    lend(state, 2, 0, 5);
+    expect(dealSideError(state, 0, 1, { luxuries: ['silk'] }, false)).toBeNull();
+    const row = silk(dealPanel(state, 0, 1).yours.luxuries)!;
+    expect(row.error).toBeNull();
+    expect(row.borrowed).toEqual({
+      head: 'Your copy is on loan',
+      parts: [{ from: 'from the Cyd', turns: '5 turns left' }],
+    });
+    // And from their side: the Bors' only silk is a loan from you.
+    const back = dealPanel(state, 1, 0);
+    expect(silk(back.theirs.luxuries)!.borrowed).toEqual({
+      head: 'Their copy is on loan',
+      parts: [{ from: 'from the Cyd', turns: '5 turns left' }],
+    });
+  });
+
+  it('splits a hold into its own copies and its loans, off the simulation’s two figures', () => {
+    const { state, ada, cyd } = setUp();
+    giveSilk(state, ada, 1, 2);
+    giveSilk(state, cyd, 12, 5);
+    lend(state, 2, 0, 3);
+    expect(luxuryHold(state, 0, 'silk')).toEqual({ own: 1, loans: [{ lenderId: 2, turnsLeft: 3 }] });
+    expect(luxuryHold(state, 1, 'silk')).toEqual({ own: 0, loans: [] });
+    expect(luxuryRowShow({ own: 1, loans: [] })).toBe('hidden');
+    expect(luxuryRowShow({ own: 0, loans: [{ lenderId: 2, turnsLeft: 3 }] })).toBe('onLoan');
+    expect(luxuryRowShow({ own: 0, loans: [] })).toBe('open');
+    // The words carry no identifier, and the turns are their own figure.
+    const note = loanNote(state, 0, 1, 1, [{ lenderId: 2, turnsLeft: 3 }], 'receiver');
+    expect(note.head).not.toMatch(/\d/);
+  });
+
+  it('draws a greyed row pressable, and a refused row with the reducer’s words', () => {
+    const screen = uiSource('diplomacyScreen.ts');
+    expect(screen).toContain("${choice.onLoan?' is-greyed':''}");
+    expect(screen).toContain('const error = dealSideError(state, giverId, receiverId, { luxuries: [holding.id] }, war);');
+    expect(screen).toContain('const note = choice.error !== null ? choice.error');
+    // Greyed is a look, not a lock: only `error` disables the box.
+    const row = screen.slice(screen.indexOf('function checkRow('));
+    expect(row).toContain('if (choice.error !== null) {\n      input.disabled = true;');
   });
 });

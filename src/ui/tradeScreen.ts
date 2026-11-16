@@ -1157,6 +1157,12 @@ interface TradeScreenOptions {
   body: HTMLElement;
   closeButton: HTMLElement;
   trigger?: HTMLElement;
+  /**
+   * The other controls that open this sheet, for the focus return and the
+   * `aria-expanded` mirror (batch SS2: the corner panel's quick button beside
+   * a bar tab). See `modalShell.ts`.
+   */
+  doors?: () => readonly (HTMLElement | null | undefined)[];
   getState: () => GameState;
   getPlayerId: () => number;
   /**
@@ -1846,6 +1852,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     body,
     closeButton,
     trigger,
+    doors: options.doors,
     onOpen: () => options.onOpen?.(),
     onShow: () => {
       painted = null;

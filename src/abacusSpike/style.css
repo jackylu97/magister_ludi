@@ -13,6 +13,9 @@
  * edge at all.
  */
 
+/* The display face's own declaration, with its baseline moved down (batch SS1b). */
+@import '../displayFace.css';
+
 :root {
   --ink: #1d1a20;
   --ink-soft: #56505a;
@@ -20,7 +23,7 @@
   --vellum-deep: #c2b18c;
   --parchment: #f7f2e1;
 
-  --face-display: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --face-display: 'Newsreader Centred', 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;

@@ -190,21 +190,21 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'openChart',
-    // The empire panel while its drawer is shut, and the drawer's research
-    // section once it is open (batch UX3). The research section is the way to
-    // the tree, but it is hidden until the drawer opens, so the ring starts on
-    // the panel and moves to the section when the player opens the drawer;
-    // `main.ts` re-places the card whenever the drawer opens or closes. The
-    // lookup returns the first match in document order: the panel comes first,
-    // so it wins while the drawer is shut, and it stops matching once its
-    // `aria-expanded` is true, which leaves the research section.
+    // The corner panel's top part while the panel is shut, and its Research
+    // row once it is open (batch UX3, re-laid in batch SS2). The Research row
+    // is the way to the tree, but it is hidden until the panel opens, so the
+    // ring starts on the top part and moves to the row when the player opens
+    // the panel; `main.ts` re-places the card whenever the panel opens or
+    // closes. The lookup returns the first match in document order: the top
+    // part comes first, so it wins while the panel is shut, and it stops
+    // matching once its `aria-expanded` is true, which leaves the row.
     anchor: '#empire-panel:not([aria-expanded="true"]), #hud-research',
     title: 'Open the technology tree',
     // "A tree with nodes", never the chart's own theatre (the pamphlet audit,
     // 2026-09-03): a first-time player has not learned that the stars *are* the
     // technologies, so the three tree steps describe the thing, not the drawing.
     body:
-      'Your empire\'s banner is at the top left. Click it to open the drawer beside it, then click Research to open the technology tree. Every idea you can learn is a node on the tree, and the lines between nodes show which ideas need which.',
+      'Your empire\'s banner is at the top left, beside what you are researching. Click it to open the panel, then click Research to open the technology tree. Every idea you can learn is a node on the tree, and the lines between nodes show which ideas need which.',
     advance: { kind: 'event', event: 'techChartOpened' },
   },
   {
@@ -222,7 +222,7 @@ export const STEPS: readonly TutorialStep[] = [
     place: 'corner',
     title: 'Close the tree',
     body:
-      'Press Escape, or the cross in the corner, to close the tree. The blue bar beside your banner now shows how far along your research is, and the number after it is the turns left.',
+      'Press Escape, or the cross in the corner, to close the tree. The blue bar beside your banner now shows how far along your research is, and the number above it is the turns left.',
     advance: { kind: 'event', event: 'techChartClosed' },
   },
   {

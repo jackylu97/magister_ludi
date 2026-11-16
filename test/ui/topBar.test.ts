@@ -317,16 +317,22 @@ describe('the tabs and their doors', () => {
     expect(main).toContain('onOpenBeads: () => beads?.open(),');
   });
 
-  it('leaves the screens about this empire to the empire drawer, and the other empires to the bar', () => {
-    // The dock kept Statecraft, Religion and Leader until batch UX3; the empire
-    // drawer has them now, and still nothing about another empire.
+  it('leaves the screens about this empire to the corner panel’s rows, and keeps the bar’s tabs', () => {
+    // The dock kept Statecraft, Religion and Leader until batch UX3. Since batch
+    // SS2 the corner panel's open part has Culture and Leader as rows, Faith is
+    // one of its four quick buttons, and the quick buttons are also doors onto
+    // Diplomacy, Trade and the Standings, beside the bar's own three tabs.
     const html = source('index.html');
     const drawer = html.slice(html.indexOf('<div id="empire-drawer"'), html.indexOf('<!-- ================= the star chart'));
-    for (const door of ['id="drawer-culture"', 'id="drawer-faith"', 'id="drawer-leader"']) {
+    for (const door of ['id="drawer-culture"', 'id="drawer-leader"']) {
       expect(drawer, door).toContain(door);
     }
-    for (const gone of ['diplomacy-overlay', 'trade-overlay', 'victory-overlay']) {
+    for (const gone of ['diplomacy-overlay', 'trade-overlay', 'victory-overlay', 'religion-overlay']) {
       expect(drawer, gone).not.toContain(gone);
+    }
+    const quick = html.slice(html.indexOf('id="empire-quick"'), html.indexOf('<div id="empire-drawer"'));
+    for (const door of ['diplomacy-overlay', 'trade-overlay', 'religion-overlay', 'victory-overlay']) {
+      expect(quick, door).toContain(`aria-controls="${door}"`);
     }
     for (const gone of ['hudDock.diplomacyButton', 'hudDock.tradeButton', 'hudDock.standingsButton']) {
       expect(main, gone).not.toContain(gone);

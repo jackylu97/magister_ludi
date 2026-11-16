@@ -103,6 +103,14 @@ interface ModalShellOptions {
   closeButton: HTMLElement;
   /** The bar control that opens it, for the `aria-expanded` mirror and the focus return. */
   trigger?: HTMLElement | null;
+  /**
+   * The other controls that open this sheet (batch SS2: a corner panel quick
+   * button beside a bar tab). Each mirrors `aria-expanded` as the trigger does,
+   * and the keyboard goes back to whichever of them held it when the sheet
+   * opened; otherwise to the trigger. Asked each time, because some of them are
+   * built after the sheet is.
+   */
+  doors?: () => readonly (HTMLElement | null | undefined)[];
   /** What this sheet paints. Called on every open and on every `refresh` while up. */
   draw: () => void;
   /** Shuts whatever else the HUD has up. Raised on a genuine opening, before the sheet shows. */
@@ -130,14 +138,22 @@ interface ModalShellOptions {
 
 export function createModalShell(options: ModalShellOptions): ModalShell {
   const { overlay, body, closeButton, trigger } = options;
+  /** The control the keyboard goes back to on close: the door it left, or the trigger. */
+  let returnTo: HTMLElement | null = trigger ?? null;
 
   function isOpen(): boolean {
     return !overlay.hidden;
   }
 
+  /** The trigger and every other door, present ones only. */
+  function allDoors(): HTMLElement[] {
+    const doors = [trigger, ...(options.doors?.() ?? [])];
+    return doors.filter((door): door is HTMLElement => door !== null && door !== undefined);
+  }
+
   /** The bar control's mirror of the one flag. A screen with no trigger has none to keep. */
   function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
+    for (const door of allDoors()) door.setAttribute('aria-expanded', String(isOpen()));
   }
 
   function open(): void {
@@ -150,6 +166,9 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
       options.draw();
       return;
     }
+    // Asked before `onOpen`, which may fold the panel the door sits in.
+    const active = document.activeElement;
+    returnTo = allDoors().find((door) => door === active) ?? trigger ?? null;
     options.onOpen?.();
     overlay.hidden = false;
     setExpanded();
@@ -171,7 +190,7 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
     overlay.hidden = true;
     setExpanded();
     options.onClose?.();
-    trigger?.focus({ preventScroll: true });
+    returnTo?.focus({ preventScroll: true });
   }
 
   function onKeyDown(event: KeyboardEvent): void {

@@ -1,101 +1,91 @@
 /**
- * The empire panel and its drawer (batch UX3). The spec is
- * `docs/plans/hud-empire-panel-spec.md` §3 to §5, and the agreed drawing is
- * `docs/plans/mockups/hud-e2-final.html`.
+ * The corner panel (batch SS2): the Corner board's variant A, with variant C's
+ * live figures on two of its buttons. The board is
+ * `docs/plans/mockups/scholars-study/Corner.dc.html`; the user's ruling is in
+ * `docs/plans/ui-critique-2026-10-16.md`, "iteration 3". The file keeps its old
+ * name, because the screen registry, the tutorial and the tests know it.
  *
- * The panel is the top-left corner of the HUD: the seat's banner and two thin
- * bars, research and the draft meter, each followed by its turns. The whole
- * panel is one button. The drawer opens to its right, so it never covers the
- * commission chips under the panel, and it has two depths:
+ * The panel is one card in the top-left corner, 248 px wide, in three parts:
  *
- * - **Depth one** opens when the pointer rests on the panel for
- *   `PEEK_DELAY_MS`, or when the keyboard tabs onto it. It shows the research
- *   and culture sections. Each section is one large button: research opens the
- *   star chart and culture opens Statecraft.
- * - **Depth two** opens on a click, a tap, Enter or Q. It adds the Faith,
- *   Leader and age wager rows and the Supply counts, and it stays open until
- *   Escape, a press outside it, its ×, Q again, or any screen opening.
+ * - **The top part** (`#empire-panel`) is one button: the seat's banner, the
+ *   technology being learnt and the next draft, each with its turns and a bar.
+ *   A click, a tap, Enter or Q opens the card **downward, in place**. It does
+ *   not open to the side any more (the user: "What i don't like about the
+ *   corner panel is that it opens to the side").
+ * - **Four quick buttons** (`#empire-quick`) are always there and never move:
+ *   Diplomacy, Routes, Faith and Standings, the screens the user opens most.
+ *   Each opens its sheet in one click. Routes carries the routes running
+ *   against the cap and Faith carries the faith banked against the next god's
+ *   price (variant C's figures). Faith used to be two clicks away.
+ * - **The open part** (`#empire-drawer`) holds the rows: Research (T), Culture
+ *   (C), Leader (L), the age wager and the Supply counts. It covers the
+ *   commission chips until it closes, as the board draws it.
  *
- * It replaced three things: the research card, the dock (Statecraft, Religion
- * and Leader as three square buttons) and the always-visible strategic
- * resources card (`holdingsRail.ts`).
+ * There is no hover peek any more. The board opens the card on a click, and a
+ * card that grew on hover would cover the chips every time the pointer crossed
+ * the corner on its way to a quick button.
  *
  * What is pure and what is not
  * ----------------------------
- * What the panel and drawer print (`empireGlance` and the word helpers) and
- * the rule for moving between depths (`drawerStep`, `mayPeek`) are pure
- * functions above `createEmpireDrawer`, because the test suite has no DOM.
- * `createEmpireDrawer` fills the static markup in `index.html` and wires the
- * gestures.
+ * What the panel prints (`empireGlance` and the word helpers) and the rule for
+ * opening and closing (`panelStep`) are pure functions above
+ * `createEmpireDrawer`, because the test suite has no DOM. `createEmpireDrawer`
+ * fills the static markup in `index.html` and wires the gestures.
  *
  * Who writes what
  * ---------------
- * The research section keeps the old research card's ids (`#hud-research`,
- * `#tech-current`, `#research-figures`, `#research-turns`, `#research-dial`,
- * `#research-glyph`). `techTree.ts`'s `renderStatus` still writes them, and the
- * star chart still owns the click that opens it from that section. This module
- * writes everything else: the panel, the research section's rate and "next"
- * lines, the culture section, the three rows and the Supply list. The panel's
- * research bar and the section's figures agree because both go through
- * `researchProgress` at the star chart's own rate (`playerScience`).
+ * The star chart (`techTree.ts`, `renderStatus`) writes the technology's name
+ * into the top part (`#tech-current`), and the figures, the title and the
+ * prompting state of the Research row (`#hud-research`, `#research-figures`).
+ * It also owns the Research row's click. This module writes everything else:
+ * the banner, both bars and their turns, the quick buttons' figures, the
+ * research rate and "next", the culture row, the Leader and wager notes and the
+ * Supply list. The top part's research bar and the star chart agree because
+ * both go through `researchProgress` at the star chart's own rate.
  *
- * Peeking, pinning, and the screen registry
- * -----------------------------------------
- * The drawer is registered as a card in the screen registry
- * (`screenRegistry.ts`). Pinning it calls `onOpen`, which `main.ts` wires to
- * `screens.opening('drawer')`, so a pinned drawer closes the other cards and
- * screens, and any card or screen opening closes the drawer.
+ * The figures on the quick buttons are the game's own readings: Routes is the
+ * top bar's Trade figure (`tabFigures`, which reads `tradeLedger`, the trade
+ * sheet's ledger), and Faith is `explainNextRung`, the reading the Faith
+ * sheet's empty place and the old Faith row printed as a sentence
+ * (`nextRungWords`). Nothing here composes a total of its own.
  *
- * Depth one is a **peek** and tells the registry nothing. A pointer crossing
- * the corner on its way somewhere else should not close the Lens card or the
- * chronicle the player has open. A peek still counts as open, so Escape closes
- * it before it reaches the selection, and a card or screen opening still
- * closes it.
- *
- * A peek never starts while a mouse button is held (the map is being dragged),
- * on a touch (there is no hover; a tap pins instead), or while `canPeek` says
- * no (`main.ts`: a sheet or a piece of news is up, or a move is being aimed).
+ * The screen registry
+ * -------------------
+ * The open card is registered as a card in the screen registry
+ * (`screenRegistry.ts`). Opening it calls `onOpen`, which `main.ts` wires to
+ * `screens.opening('drawer')`, so the open card closes the other cards and
+ * screens, and any card or screen opening closes it. A quick button opens a
+ * screen, so a press on one also folds the card back up.
  *
  * Keyboard
  * --------
- * At depth two the drawer behaves like the HUD's other cards (`popover.ts`):
- * pinning moves the keyboard to the first section, Tab and Shift-Tab wrap
- * inside the drawer, and closing it while the keyboard is inside puts the
- * keyboard back on the panel. At depth one nothing is trapped: Tab walks from
- * the panel into the research and culture sections and on to the commission
- * chips, and the peek closes when the keyboard and the pointer have both left.
+ * Opening the card moves the keyboard to the first row (Research), Tab and
+ * Shift-Tab wrap inside the whole card (the top part, the quick buttons and the
+ * rows), and closing it while the keyboard is inside puts the keyboard back on
+ * the top part. Every listener is bound with one `AbortController` and removed
+ * by `dispose`, which `main.ts` puts in `gameDisposers`.
  *
- * Only Tab opens a peek from the keyboard. The panel is also where the
- * keyboard lands when a sheet opened from the drawer closes, and a drawer that
- * opened by itself every time a sheet closed would be in the way.
- *
- * This module follows `popover.ts`'s pattern rather than calling
- * `createPopover`, for two reasons: a popover has one depth and always traps
- * Tab, and its listeners cannot be removed. Every listener here is bound with
- * one `AbortController` and removed by `dispose`, which `main.ts` puts in
- * `gameDisposers`.
- *
- * Supply: why the counts are no longer on the board
- * -------------------------------------------------
- * Until this batch the strategic resource counts sat in a card that was always
- * on screen (the holdings rail, `holdingsRail.ts`, removed here), under a rule
- * its docblock recorded: a player should be able to answer "can I build
- * another horseman?" without clicking anything
- * (`docs/strategic-resources-proposal.md` §7: "If the counts are buried in a
- * submenu, all it does is refuse people."). The user reversed that rule on
- * 2026-10-15 (`docs/flags.md` (ssssss) 1): the counts moved into this drawer's
- * Supply section and to the head of each town's build list, where building
- * decisions are made. The case that needs attention without a click is a
- * resource with no spare copy, and that lights the red dot on the banner.
+ * Supply: why the counts are not always on the board
+ * --------------------------------------------------
+ * Until batch UX3 the strategic resource counts sat in a card that was always
+ * on screen (the holdings rail), under a rule its docblock recorded: a player
+ * should be able to answer "can I build another horseman?" without clicking
+ * anything (`docs/strategic-resources-proposal.md` §7). The user reversed that
+ * rule on 2026-10-15 (`docs/flags.md` (ssssss) 1): the counts moved into this
+ * panel's Supply section and to the head of each town's build list, where
+ * building decisions are made. The case that needs attention without a click is
+ * a resource with no spare copy, and that lights the red dot on the banner.
  */
 
+import { diplomacyMarkDataUri, standingsMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { seatInks } from '../art/seatInks';
+import { yieldMarkDataUri } from '../art/yieldMarks';
 import { turnsToFill } from '../sim/cities';
 import type { Game } from '../sim/game';
 import { seatName } from '../sim/leaderData';
 import { readEmpire } from '../sim/readings';
-import { explainNextRung, hasReligionOffer, nextRungWords } from '../sim/religion';
+import { type NextRung, explainNextRung, hasReligionOffer, nextRungWords } from '../sim/religion';
 import { type GameState, type Player, playerById } from '../sim/state';
 import { hasStatecraftOffer, nextDraftCost } from '../sim/statecraft';
 import { GOVERNMENT_TIERS } from '../sim/statecraftData';
@@ -107,65 +97,23 @@ import { figure, signedFigure, turnsLabel } from './figures';
 import { openKeyword } from './keywords';
 import { researchProgress } from './researchProgress';
 import { techCostFor } from './techPrice';
+import { tabFigures } from './topBar';
 import { type CopyCount, copiesFigureNode, strategicHoldings } from './resourceCopies';
-import { resourceMarkNode } from './resourceMark';
 
-// --- timing and depth --------------------------------------------------------
-
-/** How long the pointer rests on the panel before the drawer opens (spec §4). */
-export const PEEK_DELAY_MS = 200;
-
-/** How long after the pointer leaves both surfaces a peek closes (spec §4). */
-export const LEAVE_DELAY_MS = 300;
-
-/** 0: closed. 1: peeking (research and culture). 2: pinned (everything). */
-export type DrawerDepth = 0 | 1 | 2;
+// --- opening and closing -----------------------------------------------------
 
 /**
- * What can happen to the drawer.
+ * What can happen to the card.
  *
- * - `peek`: the pointer has rested on the panel, or the keyboard has tabbed
- *   onto it.
- * - `leave`: the pointer and the keyboard have both left the panel and the
- *   drawer.
- * - `toggle`: a click or tap on the panel, Enter on it, or Q.
- * - `close`: Escape, the ×, a press outside, or another card or screen
- *   opening.
+ * - `toggle`: a click or tap on the top part, Enter on it, or Q.
+ * - `close`: Escape, a press outside the card, or another card or screen
+ *   opening (a quick button opens one).
  */
-export type DrawerEvent = 'peek' | 'leave' | 'toggle' | 'close';
+export type PanelEvent = 'toggle' | 'close';
 
-/**
- * The drawer's depth after an event.
- *
- * A peek never lowers a pinned drawer, and leaving never closes one: once
- * pinned, the drawer stays until it is closed on purpose.
- */
-export function drawerStep(depth: DrawerDepth, event: DrawerEvent): DrawerDepth {
-  switch (event) {
-    case 'peek':
-      return depth === 0 ? 1 : depth;
-    case 'leave':
-      return depth === 1 ? 0 : depth;
-    case 'toggle':
-      return depth === 2 ? 0 : 2;
-    case 'close':
-      return 0;
-  }
-}
-
-/** What decides whether resting the pointer on the panel may open a peek. */
-interface PeekConditions {
-  /** A mouse button is held, so the map is being dragged. */
-  buttonsHeld: boolean;
-  /** The pointer is a finger. Touch has no hover; a tap pins instead. */
-  touch: boolean;
-  /** A sheet or a piece of news is up, or a move is being aimed. */
-  busy: boolean;
-}
-
-/** Whether a peek may start (spec §4: never while dragging, aiming or behind a sheet). */
-export function mayPeek(at: PeekConditions): boolean {
-  return !at.buttonsHeld && !at.touch && !at.busy;
+/** Whether the card is open after an event. */
+export function panelStep(open: boolean, event: PanelEvent): boolean {
+  return event === 'toggle' ? !open : false;
 }
 
 // --- what is owed ------------------------------------------------------------
@@ -176,16 +124,15 @@ export function mayPeek(at: PeekConditions): boolean {
  *
  * Delegates to `hasStatecraftOffer`, the simulation's own definition of
  * "something is waiting". This function only adds what a missing seat means:
- * nothing is waiting for a seat that is not there. It was the dock's badge
- * (`hudBadgeWaiting` in the old `hudDock.ts`) and now feeds the banner's dot
- * and the culture section's owed line.
+ * nothing is waiting for a seat that is not there. It feeds the banner's dot
+ * and the Culture row's owed line.
  */
 export function statecraftOwed(player: Player | undefined): boolean {
   return player !== undefined && hasStatecraftOffer(player);
 }
 
 /**
- * Is a belief waiting to be chosen? The Faith row's dot.
+ * Is a belief waiting to be chosen? The Faith button's dot.
  *
  * Only a decision lights it, never a rite the seat could afford, which would be
  * true on most turns (`docs/flags.md` (ssssss) 4.7). Delegates to
@@ -196,9 +143,9 @@ export function beliefOwed(player: Player | undefined): boolean {
 }
 
 /**
- * The four things that light the banner's red dot (spec §3): a card to pick (a
- * draft or a Doctrine offer), a charter to swear, a belief to choose, and a
- * strategic resource with no spare copy.
+ * The four things that light the banner's red dot: a card to pick (a draft or a
+ * Doctrine offer), a charter to swear, a belief to choose, and a strategic
+ * resource with no spare copy.
  */
 type OwedDecision = 'card' | 'charter' | 'belief' | 'supply';
 
@@ -253,15 +200,32 @@ interface WagerGlance {
   met: number;
 }
 
-/** Everything the panel and the drawer print for one seat. */
+/** The figure on the Faith button, and what it says aloud. */
+interface FaithFigure {
+  /** "51/60", "full", or nothing at all when no figure is true. */
+  text: string;
+  /** The simulation's own sentence (`nextRungWords`): the title and the name. */
+  words: string;
+  /** True when a god is waiting to be named, which is the button's dot. */
+  owed: boolean;
+}
+
+/** The figure on the Routes button: the top bar's Trade figure. */
+interface RoutesFigure {
+  /** "1/3": routes running, against the routes the empire's markets allow. */
+  text: string;
+  /** "Trade: 1 of 3 routes running". */
+  words: string;
+}
+
+/** Everything the corner panel prints for one seat. */
 interface EmpireGlance {
   playerId: number;
   seatName: string;
   research: ResearchGlance;
   draft: DraftGlance;
-  /** The next god, in the simulation's own sentence (`nextRungWords`). */
-  faithLine: string;
-  beliefOwed: boolean;
+  faith: FaithFigure;
+  routes: RoutesFigure;
   wager: WagerGlance;
   /** Every strategic resource held or spent (`strategicHoldings`). */
   supply: CopyCount[];
@@ -331,8 +295,26 @@ export function wagerGlance(state: GameState, playerId: number): WagerGlance {
 }
 
 /**
- * Everything the panel and the drawer print for this seat, or `null` for a
- * seat that is not there.
+ * The Faith button's figure, out of the next-rung reading.
+ *
+ * "51/60" is the faith banked against the next god's price, both of them the
+ * reading's own figures. The other three states have no such pair: a god
+ * waiting to be named (the dot says so), a full pantheon, and a pantheon whose
+ * next place a technology has still to open. Those print no figure, or the one
+ * word, and the button's title and name carry the reading's whole sentence.
+ */
+export function faithFigure(reading: NextRung): FaithFigure {
+  const words = nextRungWords(reading);
+  if (reading.kind === 'open') {
+    return { text: `${figure(reading.banked)}/${figure(reading.cost)}`, words, owed: false };
+  }
+  if (reading.kind === 'full') return { text: 'full', words, owed: false };
+  return { text: '', words, owed: reading.kind === 'waiting' };
+}
+
+/**
+ * Everything the corner panel prints for this seat, or `null` for a seat that
+ * is not there.
  */
 export function empireGlance(state: GameState, playerId: number): EmpireGlance | null {
   const player = playerById(state, playerId);
@@ -344,15 +326,14 @@ export function empireGlance(state: GameState, playerId: number): EmpireGlance |
   if (draft.owed !== null) owed.push(draft.owed);
   if (belief) owed.push('belief');
   if (supply.some((row) => row.spare === 0)) owed.push('supply');
+  const bar = tabFigures(state, playerId);
   return {
     playerId,
     seatName: seatName(state, playerId),
     research: researchGlance(state, player),
     draft,
-    faithLine: nextRungWords(
-      explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith),
-    ),
-    beliefOwed: belief,
+    faith: faithFigure(explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith)),
+    routes: { text: bar.routes, words: bar.routesSpoken },
     wager: wagerGlance(state, playerId),
     supply,
     owed,
@@ -367,14 +348,8 @@ export const SUPPLY_CAPTION = 'spare of what you hold';
 /** The Supply section with nothing in it. */
 export const SUPPLY_EMPTY = 'No strategic resources yet';
 
-/** The line at the foot of a peek, saying what a click adds. */
-export const PEEK_FOOT = '▾ click for Faith, Leader, Supply';
-
-/** The drawer's header hint at each open depth. */
-export const DEPTH_HINT: Readonly<Record<1 | 2, string>> = {
-  1: 'click or Q to keep open',
-  2: 'Esc or Q to close',
-};
+/** The line at the foot of the open card: the way out. */
+export const CLOSE_HINT = 'Q or Esc closes';
 
 /** "1 turn", "3 turns", "this turn", or what a missing rate means. */
 function turnsPhrase(turns: number | null, never: string): string {
@@ -398,8 +373,8 @@ function draftWords(draft: DraftGlance): string {
 }
 
 /**
- * The panel's accessible name: "Your empire: researching Code of Laws, 1 turn;
- * next draft in 2 turns", and what is waiting, when anything is.
+ * The top part's accessible name: "Your empire: researching Code of Laws, 1
+ * turn; next draft in 2 turns", and what is waiting, when anything is.
  */
 export function panelLabel(glance: EmpireGlance): string {
   const head = `Your empire: ${researchWords(glance.research)}; ${draftWords(glance.draft)}`;
@@ -413,16 +388,29 @@ export function tierWords(draft: DraftGlance): string {
   return draft.nextGovernment === null ? tier : `${tier} · next government at ${draft.nextGovernment}`;
 }
 
-/** The culture section's vermilion line, or `null` when nothing is owed. */
+/** The Culture row's red line, or `null` when nothing is owed. */
 export function cultureOwedWords(draft: DraftGlance): string | null {
   if (draft.owed === 'charter') return 'a charter is ready to be sworn';
   if (draft.owed === 'card') return 'a card awaits';
   return null;
 }
 
-/** The culture section's figures: "120/450 · 2t". */
+/**
+ * The Culture row's line: "120/450 · Tier 14 · next government at 18". The
+ * draft's turns are on the top part already, beside its bar.
+ */
 export function draftFigures(draft: DraftGlance): string {
-  return `${figure(draft.banked)}/${figure(draft.cost)} · ${turnsLabel(draft.turns)}`;
+  return `${figure(draft.banked)}/${figure(draft.cost)} · ${tierWords(draft)}`;
+}
+
+/** The research rate after the star chart's figures: "+91 a turn", or nothing. */
+export function researchRateWords(research: ResearchGlance): string {
+  return research.stage === 'learning' ? `${signedFigure(research.rate)} a turn` : '';
+}
+
+/** "next: Mathematics", or nothing when nothing is queued. */
+export function researchNextWords(research: ResearchGlance): string {
+  return research.next === null ? '' : `next: ${research.next}`;
 }
 
 /** The age wager row's note: "2 of 3 bars met". */
@@ -431,7 +419,16 @@ export function wagerWords(wager: WagerGlance): string {
   return `${wager.met} of ${wager.dealt} bars met`;
 }
 
-/** The turns after the panel's research bar: "1t", or a mark for the two other states. */
+/**
+ * The Leader row's note: the seat's name. It was the old drawer's heading,
+ * which the open card no longer has; the board's "your civ" is the row's
+ * accessible name instead, because both do not fit in 248 px.
+ */
+export function leaderWords(name: string): string {
+  return name;
+}
+
+/** The turns after the top part's research bar: "1t", or a mark for the two other states. */
 export function researchTurnsMark(research: ResearchGlance): string {
   if (research.stage === 'choosing') return '—';
   if (research.stage === 'finished') return '✦';
@@ -449,92 +446,99 @@ export function supplyFingerprint(rows: readonly CopyCount[], playerId: number):
   return `${playerId}|${rows.map((row) => `${row.id}:${row.spare}/${row.held}`).join(',')}`;
 }
 
+/** The four quick buttons, in the board's order, and the screen each opens. */
+export const QUICK_BUTTONS = ['diplomacy', 'routes', 'faith', 'standings'] as const;
+export type QuickButton = (typeof QUICK_BUTTONS)[number];
+
 // --- the surface -------------------------------------------------------------
 
 interface EmpireDrawerOptions {
-  /** The panel, `#empire-panel`: one button. */
+  /** The whole card, `#empire-corner`. */
+  corner: HTMLElement;
+  /** The top part, `#empire-panel`: one button. */
   panel: HTMLButtonElement;
-  /** The drawer, `#empire-drawer`. Hidden with `hidden` while closed. */
+  /** The open part, `#empire-drawer`. Hidden with `hidden` while closed. */
   drawer: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
-  /**
-   * Whether resting the pointer on the panel may open a peek right now. False
-   * while a sheet or a piece of news is up, or a move is being aimed.
-   */
-  canPeek: () => boolean;
-  /** The drawer is being pinned. `main.ts` tells the screen registry. */
+  /** The card is opening. `main.ts` tells the screen registry. */
   onOpen: () => void;
-  /** The depth changed, so the tutorial's ring can move with it. */
+  /** The card opened or closed, so the tutorial's ring can move with it. */
   onChange?: () => void;
-  /** The culture section's door. */
+  /** The Culture row's door (C). */
   openStatecraft: () => void;
-  /** The Faith row's door (H). */
-  openFaith: () => void;
   /** The Leader row's door (L). */
   openLeader: () => void;
-  /** The age wager row's door: the wager's first standing way in. */
+  /** The age wager row's door: the wager's one standing way in. */
   openWager: () => void;
+  /** The four quick buttons' doors: Diplomacy (W), Routes (E), Faith (H), Standings. */
+  openQuick: Readonly<Record<QuickButton, () => void>>;
 }
 
 export interface EmpireDrawer {
-  /** Open at either depth. What the screen registry and Escape ask. */
+  /** True while the card is open. What the screen registry and Escape ask. */
   readonly isOpen: boolean;
-  readonly depth: DrawerDepth;
-  /** Pins the drawer, or closes it when it is pinned. Q, and a press on the panel. */
+  /** Opens the card, or closes it when it is open. Q, and a press on the top part. */
   toggle(): void;
-  /** Closes it at any depth. Safe on a closed drawer. */
+  /** Closes it. Safe on a closed card. */
   close(): void;
   /** Re-reads the seat, and rewrites what changed. Called with the rest of the HUD. */
   render(): void;
-  /** Removes every listener and timer. Registered in `gameDisposers`. */
+  /** Removes every listener. Registered in `gameDisposers`. */
   dispose(): void;
 }
 
-/** Controls that can hold the keyboard inside the drawer. */
+/** Controls that can hold the keyboard inside the card. */
 const FOCUSABLE = 'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
 
-export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
-  const { panel, drawer, getGame, localPlayerId } = options;
+/** Each quick button's mark: the top bar's tab marks, and the faith yield's candle. */
+const QUICK_MARKS: Readonly<Record<QuickButton, () => string>> = {
+  diplomacy: () => diplomacyMarkDataUri(),
+  routes: () => tradeMarkDataUri(),
+  faith: () => yieldMarkDataUri('faith'),
+  standings: () => standingsMarkDataUri(),
+};
 
-  // The panel's parts.
+export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
+  const { corner, panel, drawer, getGame, localPlayerId } = options;
+
+  // The top part's parts. The technology's name is the star chart's.
   const banner = requireElement('empire-banner');
   const researchBar = requireElement('empire-research-bar');
   const researchFill = requireElement('empire-research-fill');
   const researchTurns = requireElement('empire-research-turns');
   const draftFill = requireElement('empire-draft-fill');
   const draftTurns = requireElement('empire-draft-turns');
-  // The drawer's parts. The research section's other lines are the star chart's.
-  const headBanner = requireElement('drawer-banner');
-  const seat = requireElement('drawer-seat');
-  const hint = requireElement('drawer-hint');
+  // The quick buttons.
+  const quick: Record<QuickButton, HTMLButtonElement> = {
+    diplomacy: requireElement<HTMLButtonElement>('quick-diplomacy'),
+    routes: requireElement<HTMLButtonElement>('quick-routes'),
+    faith: requireElement<HTMLButtonElement>('quick-faith'),
+    standings: requireElement<HTMLButtonElement>('quick-standings'),
+  };
+  const routesFigure = requireElement('quick-routes-figure');
+  const faithFigureEl = requireElement('quick-faith-figure');
+  // The open part's parts. The research row's figures are the star chart's.
   const researchRate = requireElement('research-rate');
   const researchNext = requireElement('research-next');
   const culture = requireElement<HTMLButtonElement>('drawer-culture');
   const cultureFigures = requireElement('culture-figures');
-  const cultureFill = requireElement('culture-fill');
-  const cultureTier = requireElement('culture-tier');
   const cultureOwed = requireElement('culture-owed');
-  const foot = requireElement('drawer-foot');
-  const faithRow = requireElement<HTMLButtonElement>('drawer-faith');
-  const faithNote = requireElement('drawer-faith-note');
   const leaderRow = requireElement<HTMLButtonElement>('drawer-leader');
+  const leaderNote = requireElement('drawer-leader-note');
   const wagerRow = requireElement<HTMLButtonElement>('drawer-wager');
   const wagerNote = requireElement('drawer-wager-note');
   const supplyList = requireElement('drawer-supply');
   const supplyCaption = requireElement('drawer-supply-caption');
-  const closeButton = requireElement<HTMLButtonElement>('drawer-close');
 
-  foot.textContent = PEEK_FOOT;
   supplyCaption.textContent = SUPPLY_CAPTION;
+  requireElement('drawer-close-hint').textContent = CLOSE_HINT;
+  for (const name of QUICK_BUTTONS) {
+    const mark = quick[name].querySelector<HTMLElement>('.quick-mark');
+    mark?.style.setProperty('--quick-mark', `url("${QUICK_MARKS[name]()}")`);
+  }
 
-  let depth: DrawerDepth = 0;
-  let overPanel = false;
-  let overDrawer = false;
-  /** True when the last input was a Tab press, which is what a keyboard peek waits for. */
-  let tabbed = false;
-  let peekTimer: number | null = null;
-  let leaveTimer: number | null = null;
+  let open = false;
 
   // What the last render drew for. `-1` is "nothing drawn yet".
   let drawnState: GameState | null = null;
@@ -545,185 +549,73 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   const listening = new AbortController();
   const { signal } = listening;
 
-  /** False while the panel is not drawn at all, as on the city screen. */
+  /** False while the card is not drawn at all, as on the city screen. */
   function shown(): boolean {
     return panel.getClientRects().length > 0;
   }
 
+  /** Every control in the card the keyboard can stand on, in order. */
   function focusables(): HTMLElement[] {
-    return Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    return Array.from(corner.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
       (node) => node.getClientRects().length > 0,
     );
   }
 
-  function keyboardInside(): boolean {
-    const active = document.activeElement;
-    return active !== null && (panel.contains(active) || drawer.contains(active));
-  }
-
-  function clearPeek(): void {
-    if (peekTimer !== null) window.clearTimeout(peekTimer);
-    peekTimer = null;
-  }
-
-  function clearLeave(): void {
-    if (leaveTimer !== null) window.clearTimeout(leaveTimer);
-    leaveTimer = null;
-  }
-
-  function setDepth(next: DrawerDepth): void {
-    if (next === depth) return;
-    // Asked before the drawer is hidden: once it is, the browser has already
-    // moved the keyboard off whatever was inside it.
+  function setOpen(next: boolean): void {
+    if (next === open) return;
+    // Asked before the rows are hidden: once they are, the browser has already
+    // moved the keyboard off whatever was inside them.
     const heldKeyboard = drawer.contains(document.activeElement);
-    depth = next;
-    drawer.hidden = next === 0;
-    drawer.dataset.depth = String(next);
-    panel.classList.toggle('is-open', next > 0);
-    panel.setAttribute('aria-expanded', String(next > 0));
-    if (next !== 0) hint.textContent = DEPTH_HINT[next];
-    if (next === 0) {
-      clearPeek();
-      clearLeave();
-      // A hidden drawer may never get its `pointerleave`, and a stale "over
-      // the drawer" would hold the next peek open after the pointer had gone.
-      overDrawer = false;
-    }
-    if (next === 2) {
+    open = next;
+    drawer.hidden = !next;
+    corner.classList.toggle('is-open', next);
+    panel.classList.toggle('is-open', next);
+    panel.setAttribute('aria-expanded', String(next));
+    if (next) {
       options.onOpen();
-      // The first section rather than the ×: a card that opens with the
-      // keyboard on "close" opens with nothing to read.
-      focusables().find((node) => node !== closeButton)?.focus({ preventScroll: true });
+      // The first row rather than the top part: a card that opens with the
+      // keyboard on its own toggle opens with nothing to read.
+      drawer.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
     } else if (heldKeyboard) {
-      // Spec §5: closing the drawer puts the keyboard back on the panel.
+      // Closing with the keyboard on a row puts it back on the top part. A row
+      // that opened a screen has its keyboard taken by that screen next.
       panel.focus({ preventScroll: true });
     }
     options.onChange?.();
   }
 
   function toggle(): void {
-    clearPeek();
-    clearLeave();
-    // A stood-down panel (the city screen) opens nothing: a drawer nobody can
-    // see would still swallow the next Escape.
-    if (depth === 0 && !shown()) return;
-    setDepth(drawerStep(depth, 'toggle'));
+    // A stood-down card (the city screen) opens nothing: rows nobody can see
+    // would still swallow the next Escape.
+    if (!open && !shown()) return;
+    setOpen(panelStep(open, 'toggle'));
   }
 
   function close(): void {
-    setDepth(drawerStep(depth, 'close'));
+    setOpen(panelStep(open, 'close'));
   }
-
-  // --- the pointer ---------------------------------------------------------
-
-  function entered(onPanel: boolean, event: PointerEvent): void {
-    if (onPanel) overPanel = true;
-    else overDrawer = true;
-    clearLeave();
-    if (!onPanel || depth !== 0) return;
-    const conditions = {
-      buttonsHeld: event.buttons !== 0,
-      touch: event.pointerType === 'touch',
-      busy: !options.canPeek(),
-    };
-    if (!mayPeek(conditions)) return;
-    clearPeek();
-    peekTimer = window.setTimeout(() => {
-      peekTimer = null;
-      // Asked again: the pointer may have left, or a sheet may have opened.
-      if (!overPanel || !options.canPeek() || !shown()) return;
-      setDepth(drawerStep(depth, 'peek'));
-    }, PEEK_DELAY_MS);
-  }
-
-  function left(onPanel: boolean): void {
-    if (onPanel) overPanel = false;
-    else overDrawer = false;
-    if (overPanel || overDrawer) return;
-    clearPeek();
-    if (depth !== 1) return;
-    clearLeave();
-    leaveTimer = window.setTimeout(() => {
-      leaveTimer = null;
-      if (overPanel || overDrawer || keyboardInside()) return;
-      setDepth(drawerStep(depth, 'leave'));
-    }, LEAVE_DELAY_MS);
-  }
-
-  panel.addEventListener('pointerenter', (event) => entered(true, event), { signal });
-  panel.addEventListener('pointerleave', () => left(true), { signal });
-  drawer.addEventListener('pointerenter', (event) => entered(false, event), { signal });
-  drawer.addEventListener('pointerleave', () => left(false), { signal });
 
   // A click, a tap, Enter and Space all arrive here as the button's click.
   panel.addEventListener('click', () => toggle(), { signal });
-  closeButton.addEventListener('click', () => close(), { signal });
 
-  // A press outside both closes the drawer at either depth. Captured, so the
-  // drawer is gone before the board starts a drag under it, and so a handler
-  // that stops the press cannot keep a pinned drawer open.
+  // A press outside the card closes it. Captured, so the card has folded before
+  // the board starts a drag under it, and so a handler that stops the press
+  // cannot keep it open.
   window.addEventListener(
     'pointerdown',
     (event) => {
-      tabbed = false;
       const target = event.target as Node | null;
-      if (target !== null && (panel.contains(target) || drawer.contains(target))) return;
-      // A press elsewhere is proof the pointer is over neither, whatever the
-      // boundary events said (a surface that moved under a resting pointer
-      // sends none).
-      overPanel = false;
-      overDrawer = false;
-      if (depth !== 0) close();
+      if (target !== null && corner.contains(target)) return;
+      if (open) close();
     },
     { capture: true, signal },
   );
 
-  // --- the keyboard --------------------------------------------------------
-
-  window.addEventListener(
+  // Open, Tab and Shift-Tab wrap inside the card, as on every HUD card.
+  corner.addEventListener(
     'keydown',
     (event) => {
-      tabbed = event.key === 'Tab';
-    },
-    { capture: true, signal },
-  );
-
-  // Tabbing onto the panel peeks, so the next Tab walks into the sections.
-  panel.addEventListener(
-    'focus',
-    () => {
-      if (tabbed && depth === 0 && shown()) setDepth(drawerStep(depth, 'peek'));
-    },
-    { signal },
-  );
-
-  // The keyboard can sit on a closed panel (after Escape, or after a click
-  // closed it): a Tab from there opens the peek first, so it lands in the
-  // research section rather than skipping a drawer it cannot see.
-  panel.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.key !== 'Tab' || event.shiftKey || depth !== 0 || !shown()) return;
-      setDepth(drawerStep(depth, 'peek'));
-    },
-    { signal },
-  );
-
-  // A peek closes once the keyboard has gone somewhere else and the pointer is
-  // not holding it open. A pinned drawer stays.
-  const keyboardLeft = (event: FocusEvent): void => {
-    const to = event.relatedTarget as Node | null;
-    if (to !== null && (panel.contains(to) || drawer.contains(to))) return;
-    if (depth === 1 && !overPanel && !overDrawer) setDepth(drawerStep(depth, 'leave'));
-  };
-  panel.addEventListener('focusout', keyboardLeft, { signal });
-  drawer.addEventListener('focusout', keyboardLeft, { signal });
-
-  // Pinned, Tab and Shift-Tab wrap inside the drawer, as on every HUD card.
-  drawer.addEventListener(
-    'keydown',
-    (event) => {
-      if (depth !== 2 || event.key !== 'Tab') return;
+      if (!open || event.key !== 'Tab') return;
       const items = focusables();
       if (items.length === 0) return;
       const first = items[0]!;
@@ -741,12 +633,14 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
 
   // --- the doors -----------------------------------------------------------
 
-  // The research section's click is the star chart's own (`techTree.ts`). Each
-  // of these opens a screen, and the screen's opening closes the drawer.
+  // The research row's click is the star chart's own (`techTree.ts`). Each of
+  // these opens a screen, and the screen's opening closes the card.
   culture.addEventListener('click', () => options.openStatecraft(), { signal });
-  faithRow.addEventListener('click', () => options.openFaith(), { signal });
   leaderRow.addEventListener('click', () => options.openLeader(), { signal });
   wagerRow.addEventListener('click', () => options.openWager(), { signal });
+  for (const name of QUICK_BUTTONS) {
+    quick[name].addEventListener('click', () => options.openQuick[name](), { signal });
+  }
   // One listener for the whole list, because the rows are rebuilt when the
   // counts change. A resource opens its Compendium entry.
   supplyList.addEventListener(
@@ -766,30 +660,28 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     const button = element('button', count.spare === 0 ? 'drawer-supply-row is-short' : 'drawer-supply-row');
     button.type = 'button';
     button.dataset.resource = count.id;
-    // The mark is `aria-hidden` and the name sits beside it, as on every other
-    // surface that prints a resource.
-    const mark = element('span', 'drawer-supply-mark');
-    mark.append(resourceMarkNode(count.id));
-    button.append(mark, element('span', 'drawer-supply-name', count.name), copiesFigureNode(count));
+    button.append(element('span', 'drawer-supply-name', count.name), copiesFigureNode(count));
     button.title = `${count.name} in the Compendium`;
     item.append(button);
     return item;
   }
 
-  function paintBanner(target: HTMLElement, glance: EmpireGlance): void {
+  function paintBanner(glance: EmpireGlance): void {
     const player = playerById(getGame().state, glance.playerId);
-    // The charge, masked in ink on a parchment canton, as the dock's Leader
-    // button drew it; the ring around it is the seat's own colour.
+    // The seat's own colour fills the bookmark the board draws, and the seat's
+    // charge sits in ink on its parchment canton (the heraldry rule: a charge
+    // never sits straight on seat ink). The canton is larger than the board's
+    // six pixels, so the charge can be read; it was on the panel before.
     const uri = heraldryMarkDataUri(heraldryFor(glance.playerId, player?.charge, player?.leader));
-    target.style.setProperty('--banner-mark', `url("${uri}")`);
+    banner.style.setProperty('--banner-mark', `url("${uri}")`);
     const ink = seatInks(player).primary;
-    if (ink.length > 0) target.style.setProperty('--seat-ink', ink);
-    else target.style.removeProperty('--seat-ink');
+    if (ink.length > 0) banner.style.setProperty('--seat-ink', ink);
+    else banner.style.removeProperty('--seat-ink');
   }
 
-  function paintPanel(glance: EmpireGlance): void {
+  function paintTop(glance: EmpireGlance): void {
     const { research, draft } = glance;
-    paintBanner(banner, glance);
+    paintBanner(glance);
     banner.classList.toggle('is-owed', glance.owed.length > 0);
     researchBar.classList.toggle('is-prompting', research.stage === 'choosing');
     researchBar.classList.toggle('is-finished', research.stage === 'finished');
@@ -800,23 +692,33 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     panel.setAttribute('aria-label', panelLabel(glance));
   }
 
-  function paintDrawer(glance: EmpireGlance): void {
+  function paintQuick(glance: EmpireGlance): void {
+    const { faith, routes } = glance;
+    routesFigure.textContent = routes.text;
+    routesFigure.classList.toggle('is-long', routes.text.length > 5);
+    quick.routes.setAttribute('aria-label', `${routes.words}. Opens the trade routes (E)`);
+    quick.routes.title = `${routes.words} (E)`;
+    faithFigureEl.textContent = faith.text;
+    faithFigureEl.hidden = faith.text === '';
+    faithFigureEl.classList.toggle('is-long', faith.text.length > 5);
+    quick.faith.classList.toggle('is-owed', faith.owed);
+    quick.faith.setAttribute('aria-label', `Faith: ${faith.words}. Opens the Faith sheet (H)`);
+    quick.faith.title = `${faith.words} (H)`;
+    quick.diplomacy.setAttribute('aria-label', 'Diplomacy. Opens the Diplomacy sheet (W)');
+    quick.diplomacy.title = 'Diplomacy (W)';
+    quick.standings.setAttribute('aria-label', 'Standings. Opens the standings sheet');
+    quick.standings.title = 'Standings';
+  }
+
+  function paintRows(glance: EmpireGlance): void {
     const { research, draft } = glance;
-    paintBanner(headBanner, glance);
-    seat.textContent = glance.seatName;
+    // The research row's rate and next. Its figures are the star chart's.
+    researchRate.textContent = researchRateWords(research);
+    researchNext.textContent = researchNextWords(research);
 
-    // The research section's rate and next lines. The name, the figures, the
-    // turns and the bar are the star chart's (`renderStatus`).
-    researchRate.textContent =
-      research.stage === 'learning' ? `${signedFigure(research.rate)} a turn` : '';
-    researchNext.hidden = research.next === null;
-    researchNext.textContent = research.next === null ? '' : `next: ${research.next}`;
-
-    // The culture section.
+    // The culture row.
     const owedLine = cultureOwedWords(draft);
     cultureFigures.textContent = draftFigures(draft);
-    cultureFill.style.width = `${(draft.fraction * 100).toFixed(1)}%`;
-    cultureTier.textContent = tierWords(draft);
     cultureOwed.hidden = owedLine === null;
     cultureOwed.textContent = owedLine ?? '';
     culture.classList.toggle('is-owed', owedLine !== null);
@@ -826,13 +728,8 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
         `${tierWords(draft)}${owedLine === null ? '' : `; ${owedLine}`}. Opens Statecraft.`,
     );
 
-    // The rows. Only Faith carries a dot, and only for a belief to choose.
-    faithNote.textContent = glance.faithLine;
-    faithRow.classList.toggle('is-owed', glance.beliefOwed);
-    faithRow.setAttribute(
-      'aria-label',
-      `Faith: ${glance.beliefOwed ? 'a belief to choose' : glance.faithLine}. Opens the Faith sheet.`,
-    );
+    leaderNote.textContent = leaderWords(glance.seatName);
+    leaderRow.setAttribute('aria-label', `Leader: ${glance.seatName}, your civ. Opens your civ's sheet (L)`);
     wagerNote.textContent = wagerWords(glance.wager);
 
     // Supply, rebuilt only when a count moved.
@@ -859,29 +756,24 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     drawnSeat = seatId;
     const glance = empireGlance(state, seatId);
     if (glance === null) return;
-    paintPanel(glance);
-    paintDrawer(glance);
+    paintTop(glance);
+    paintQuick(glance);
+    paintRows(glance);
   }
 
   // The closed state, written once, so the markup's defaults do not matter.
   drawer.hidden = true;
-  drawer.dataset.depth = '0';
   panel.setAttribute('aria-expanded', 'false');
 
   return {
     get isOpen(): boolean {
-      return depth > 0;
-    },
-    get depth(): DrawerDepth {
-      return depth;
+      return open;
     },
     toggle,
     close,
     render,
     dispose(): void {
       listening.abort();
-      clearPeek();
-      clearLeave();
       close();
       drawnState = null;
       drawnSupply = '';

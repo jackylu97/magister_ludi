@@ -297,10 +297,11 @@ describe("the leaders' draft", () => {
 
   it('takes the dot off the leader’s door: nothing behind it is ever owed', () => {
     // The dock's fifth door until batch UX3; the empire drawer's Leader row
-    // since. The only row with a dot is Faith's, for a belief to choose.
+    // since, and the corner panel's since batch SS2. The only dots are on
+    // Culture (a card) and on the Faith button (a belief to choose).
     const drawer = uiSource('empireDrawer.ts');
     expect(drawer).not.toContain('leaderBlocker');
-    expect(drawer).toContain("faithRow.classList.toggle('is-owed', glance.beliefOwed);");
+    expect(drawer).toContain("quick.faith.classList.toggle('is-owed', faith.owed);");
     expect(drawer).not.toMatch(/leaderRow\.classList/);
   });
 });
@@ -433,8 +434,8 @@ describe('the sheet’s furniture', () => {
   });
 
   it('puts the seat’s own charge on the empire panel, and the sheet behind its Leader row and L', () => {
-    // The dock's Leader button wore the charge until batch UX3; the empire
-    // panel's banner wears it now, and the drawer's Leader row opens the sheet.
+    // The dock's Leader button wore the charge until batch UX3; the corner
+    // panel's banner wears it now, and the panel's Leader row opens the sheet.
     const drawer = uiSource('empireDrawer.ts');
     expect(drawer).toContain('heraldryFor(glance.playerId, player?.charge, player?.leader)');
     expect(drawer).toContain("leaderRow.addEventListener('click', () => options.openLeader(), { signal });");

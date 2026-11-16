@@ -19,12 +19,22 @@
  * and then narrows its own width under its own id — the block's own comment
  * invites exactly that.
  *
- * It is **lighter** than its four siblings and deliberately so: it splits into
- * nothing, it scrolls nothing, and it is ≈30rem wide rather than 1240px. There
- * is only one thing on it and it is one card at a time. A player is not
- * comparing legacies — they cannot change any of them — they are *remembering*
- * one, and a grid of six thumbnails would be a filing cabinet where a pile of
- * cards is wanted.
+ * Since batch SS3 it is a **full sheet**, laid out as the Reliquary board draws
+ * it (`docs/plans/mockups/scholars-study/Reliquary.dc.html`; the user: "lets
+ * have that be its own screen instead of a small popover"). Three columns and
+ * a foot:
+ *
+ *   - **left**, the families: one row a family with its count, which shows only
+ *     that family's cards in the pile and the fan, and under it the rest of the
+ *     deck as a fan of small cards, each of which can be brought to the top;
+ *   - **middle**, the desk: the card on top of its pile, larger than before and
+ *     the same face, the ‹ › on either side, and the count under it;
+ *   - **right**, renown against the next price, the odds of the next offer, and
+ *     this turn's renown by town;
+ *   - **the foot**, the calls the law allows.
+ *
+ * Still one card face up at a time: a player is not comparing legacies (they
+ * cannot change any of them), they are *remembering* one.
  *
  * The flip-through, and the stack under it
  * ----------------------------------------
@@ -81,8 +91,12 @@
  */
 
 import { type GameState, playerById } from '../sim/state';
-import { type GreatPersonFace, greatPersonCard, greatPersonStamp } from './greatPersonFace';
-import { type GreatPersonId, isGreatPersonId } from '../sim/greatPeopleData';
+import { FAMILY_EMBLEM, type GreatPersonFace, greatPersonCard, greatPersonStamp } from './greatPersonFace';
+import { FAMILIES, type Family, type GreatPersonId, isGreatPersonId } from '../sim/greatPeopleData';
+import { seatName } from '../sim/leaderData';
+import { cardLineMarkUrl } from './cardLine';
+import { renownMarkNode } from './meterMark';
+import { numberWords } from './numberWords';
 import {
   OFFER_PURCHASE_IDS,
   type OfferPurchaseId,
@@ -215,6 +229,94 @@ export function reliquaryCount(index: number, total: number): string {
 export function reliquaryStep(index: number, total: number, direction: number): number {
   if (total <= 0) return 0;
   return (((index + direction) % total) + total) % total;
+}
+
+/** A family's name on the rail: "Merchants". The interface's word, not the data's. */
+export const FAMILY_PLURAL: Readonly<Record<Family, string>> = {
+  scholar: 'Scholars',
+  artist: 'Artists',
+  engineer: 'Engineers',
+  merchant: 'Merchants',
+  general: 'Generals',
+};
+
+/** One row of the families rail. */
+export interface ReliquaryFamilyRow {
+  family: Family;
+  label: string;
+  /** Cards of this family in the deck, struck ones included. */
+  count: number;
+}
+
+/**
+ * The families rail, after "The whole deck": the families that have cards, the
+ * most first, and a tie to the family whose newest card is newer; then the
+ * families with none, in the roster's own order, drawn dashed with "none yet"
+ * (the board). Pure, because the order is the sort of thing that is quietly
+ * wrong.
+ */
+export function reliquaryFamilies(roll: readonly ReliquaryCard[]): ReliquaryFamilyRow[] {
+  const counts = new Map<Family, number>();
+  const newest = new Map<Family, number>();
+  roll.forEach((card, at) => {
+    const family = card.face.family;
+    counts.set(family, (counts.get(family) ?? 0) + 1);
+    if (!newest.has(family)) newest.set(family, at);
+  });
+  const rows = FAMILIES.map((family) => ({
+    family,
+    label: FAMILY_PLURAL[family],
+    count: counts.get(family) ?? 0,
+  }));
+  const held = rows
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count || newest.get(a.family)! - newest.get(b.family)!);
+  return [...held, ...rows.filter((row) => row.count === 0)];
+}
+
+/** The deck as one family sees it, or the whole deck for `null`. Newest first, as the roll is. */
+export function reliquaryOfFamily(
+  roll: readonly ReliquaryCard[],
+  family: Family | null,
+): ReliquaryCard[] {
+  return family === null ? [...roll] : roll.filter((card) => card.face.family === family);
+}
+
+/**
+ * The fan: the cards under the top one, in the order the arrows would turn them
+ * up, at most `max` of them. Each keeps its place in the deck, so a click can
+ * bring it to the top.
+ */
+export function reliquaryFan(
+  deck: readonly ReliquaryCard[],
+  at: number,
+  max: number,
+): { card: ReliquaryCard; index: number }[] {
+  const fan: { card: ReliquaryCard; index: number }[] = [];
+  for (let step = 1; step < deck.length && fan.length < max; step += 1) {
+    const index = (at + step) % deck.length;
+    fan.push({ card: deck[index]!, index });
+  }
+  return fan;
+}
+
+/**
+ * The line beside the title: whose deck, and how many legacies still pay.
+ * "Mansa Musa · five legacies in force". A struck legacy is in the deck but not
+ * in force, so it is not counted here.
+ */
+export function reliquarySubtitle(seat: string, roll: readonly ReliquaryCard[]): string {
+  const live = roll.filter((card) => !card.revoked).length;
+  if (roll.length === 0) return `${seat} · no one called yet`;
+  if (live === 0) return `${seat} · no legacy in force`;
+  return `${seat} · ${numberWords(live)} ${live === 1 ? 'legacy' : 'legacies'} in force`;
+}
+
+/** The count under a family's pile: "1 of 2 · merchants". The whole deck keeps `reliquaryCount`. */
+export function reliquaryFamilyCount(index: number, total: number, family: Family): string {
+  if (total <= 0) return '';
+  const at = Math.min(Math.max(index, 0), total - 1);
+  return `${at + 1} of ${total} · ${FAMILY_PLURAL[family].toLowerCase()}`;
 }
 
 /**
@@ -490,6 +592,15 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
    */
   const openTowns = new Set<number>();
 
+  /**
+   * The family the rail is showing, or `null` for the whole deck. A fact about
+   * this conversation, like `at`.
+   */
+  let family: Family | null = null;
+
+  /** At most this many small cards in the fan: the board's four, and one more. */
+  const FAN_MAX = 5;
+
   function draw(flip: boolean): void {
     const state = options.getState();
     const playerId = options.getPlayerId();
@@ -497,23 +608,149 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     body.replaceChildren();
     if (wanted !== null) {
       const found = roll.findIndex((card) => card.face.id === wanted);
-      if (found >= 0) at = found;
+      if (found >= 0) {
+        family = null;
+        at = found;
+      }
       wanted = null;
     }
-    if (roll.length === 0) {
-      at = 0;
-      body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));
-      // The odds matter most before anybody is called, so the renown section
-      // is drawn on the empty screen too.
-      drawRenown();
-      // **The calls are drawn on an empty screen too**, and that is the case
-      // that matters most: an empire that has just adopted The Commonwealth has
-      // no legacies yet and its whole signature clause lives on this rail.
-      drawCalls();
-      return;
-    }
-    at = Math.min(Math.max(at, 0), roll.length - 1);
+    // A family the deck no longer holds (a new game, a seat hop) is the whole deck.
+    if (family !== null && !roll.some((card) => card.face.family === family)) family = null;
+    const deck = reliquaryOfFamily(roll, family);
+    at = deck.length === 0 ? 0 : Math.min(Math.max(at, 0), deck.length - 1);
 
+    const subtitle = overlay.querySelector<HTMLElement>('.rel-subtitle');
+    if (subtitle) subtitle.textContent = reliquarySubtitle(seatName(state, playerId), roll);
+
+    const grid = element('div', 'rel-grid');
+    grid.append(drawLeft(roll, deck), drawDesk(state, playerId, deck, flip), drawRenown());
+    body.append(grid);
+    // **The calls are drawn on an empty screen too**, and that is the case that
+    // matters most: an empire that has just adopted The Commonwealth has no
+    // legacies yet and its whole signature clause lives on this rail.
+    drawCalls();
+  }
+
+  /** The left column: the families rail, then the rest of the deck as a fan. */
+  function drawLeft(roll: readonly ReliquaryCard[], deck: readonly ReliquaryCard[]): HTMLElement {
+    const column = element('div', 'rel-column rel-left');
+    column.append(element('h3', 'rel-heading', 'The families'));
+    const rail = element('div', 'rel-families');
+    rail.setAttribute('role', 'group');
+    rail.setAttribute('aria-label', 'Show one family');
+    rail.append(familyButton('The whole deck', roll.length, family === null, null));
+    for (const row of reliquaryFamilies(roll)) {
+      rail.append(familyButton(row.label, row.count, family === row.family, row.family));
+    }
+    column.append(rail);
+
+    column.append(element('h3', 'rel-heading is-spaced', 'The rest of the deck'));
+    const fan = reliquaryFan(deck, at, FAN_MAX);
+    if (fan.length === 0) {
+      column.append(
+        element(
+          'p',
+          'rel-caption',
+          deck.length === 0 ? 'The deck is empty.' : 'No other card is in this deck yet.',
+        ),
+      );
+      return column;
+    }
+    const spread = element('div', 'rel-fan');
+    spread.setAttribute('role', 'group');
+    spread.setAttribute('aria-label', 'The other cards, as a fan');
+    // The board's fan of four: from -10 to 10 degrees, 44 px apart. More cards
+    // close the gaps rather than widen the fan, so it stays in its column.
+    const spreadDeg = 20;
+    const gap = fan.length === 1 ? 0 : Math.min(44, 132 / (fan.length - 1));
+    const first = 30 + (132 - gap * (fan.length - 1)) / 2;
+    fan.forEach(({ card, index }, n) => {
+      const t = fan.length === 1 ? 0.5 : n / (fan.length - 1);
+      const mini = miniCard(card);
+      mini.style.left = `${first + gap * n}px`;
+      mini.style.top = `${18 + Math.round(Math.abs(t - 0.5) * 20)}px`;
+      mini.style.transform = `rotate(${((t - 0.5) * spreadDeg).toFixed(1)}deg)`;
+      mini.addEventListener('click', () => {
+        at = index;
+        draw(true);
+      });
+      spread.append(mini);
+    });
+    column.append(spread);
+    column.append(element('p', 'rel-caption', 'Click a card to bring it to the top.'));
+    return column;
+  }
+
+  /** One row of the families rail. A family with no card is dashed and does nothing. */
+  function familyButton(
+    label: string,
+    count: number,
+    pressed: boolean,
+    which: Family | null,
+  ): HTMLElement {
+    const empty = which !== null && count === 0;
+    const button = element('button', empty ? 'rel-family is-empty' : 'rel-family');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(pressed));
+    if (pressed) button.classList.add('is-pressed');
+    const mark = element('span', which === null ? 'rel-family-mark is-deck' : 'rel-family-mark');
+    mark.setAttribute('aria-hidden', 'true');
+    if (which !== null && !empty) {
+      mark.style.setProperty('--line-mark', cardLineMarkUrl(FAMILY_EMBLEM[which]));
+    }
+    button.append(mark, element('span', 'rel-family-name', label));
+    button.append(element('span', 'rel-family-count', empty ? 'none yet' : String(count)));
+    if (empty) {
+      button.setAttribute('aria-disabled', 'true');
+      return button;
+    }
+    button.addEventListener('click', () => {
+      family = which;
+      at = 0;
+      draw(true);
+    });
+    return button;
+  }
+
+  /** A small card in the fan: its name, its family's mark, and its emblem. */
+  function miniCard(card: ReliquaryCard): HTMLElement {
+    const { face } = card;
+    const button = element('button', card.revoked ? 'rel-mini is-revoked' : 'rel-mini');
+    button.type = 'button';
+    button.dataset.line = face.line;
+    button.setAttribute(
+      'aria-label',
+      `${face.name}, ${face.family}${card.revoked ? ', revoked' : ''}. Brings it to the top.`,
+    );
+    const frame = element('span', 'rel-mini-frame');
+    const head = element('span', 'rel-mini-head');
+    head.append(element('span', 'rel-mini-name', face.name));
+    const mark = element('span', 'rel-mini-family');
+    mark.style.setProperty('--line-mark', cardLineMarkUrl(FAMILY_EMBLEM[face.family]));
+    head.append(mark);
+    const emblem = element('span', 'rel-mini-emblem');
+    emblem.style.setProperty('--line-mark', face.emblem);
+    frame.append(head, emblem);
+    button.append(frame);
+    if (card.revoked) button.append(element('span', 'rel-mini-band', REVOKED_BAND));
+    return button;
+  }
+
+  /** The middle column: the card on top of its pile, the arrows, and the count. */
+  function drawDesk(
+    state: GameState,
+    playerId: number,
+    deck: readonly ReliquaryCard[],
+    flip: boolean,
+  ): HTMLElement {
+    const desk = element('div', 'rel-desk');
+    if (deck.length === 0) {
+      // An empty deck: a dashed outline holds the deck's place (the board).
+      const place = element('div', 'rel-place');
+      place.append(element('p', 'rel-empty', RELIQUARY_EMPTY));
+      desk.append(place);
+      return desk;
+    }
     const browser = element('div', 'rel-browser');
     const back = document.createElement('button');
     back.type = 'button';
@@ -524,23 +761,18 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     browser.append(back);
 
     const stack = element('div', 'rel-stack');
-    // Two under-cards, drawn only when there is more than one to be under: a
-    // pile of one is a card, and a shadow implying otherwise would be a lie the
-    // count line directly beneath it contradicts.
-    if (roll.length > 1) {
-      const under2 = element('span', 'rel-under rel-under-2');
-      under2.setAttribute('aria-hidden', 'true');
-      stack.append(under2);
-    }
-    if (roll.length > 2) {
-      const under1 = element('span', 'rel-under rel-under-1');
-      under1.setAttribute('aria-hidden', 'true');
-      stack.append(under1);
+    // The edges of the cards under the top one, drawn only when there are cards
+    // to be under: a pile of one is a card, and a shadow implying otherwise
+    // would be a lie the count line directly beneath it contradicts.
+    for (let edge = Math.min(4, deck.length - 1); edge >= 1; edge -= 1) {
+      const under = element('span', `rel-under rel-under-${edge}`);
+      under.setAttribute('aria-hidden', 'true');
+      stack.append(under);
     }
     const host = element('div', 'offer-options rel-face');
     host.dataset.face = 'tarot';
     // The figure is asked for **here**, for this one card — see `reliquaryStamped`.
-    const card = drawReliquaryCard(withFigure(state, playerId, roll[at]!));
+    const card = drawReliquaryCard(withFigure(state, playerId, deck[at]!));
     if (flip) card.classList.add('is-flipping');
     host.append(card);
     stack.append(host);
@@ -553,13 +785,16 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     forward.setAttribute('aria-label', 'The card after');
     forward.addEventListener('click', () => step(1));
     browser.append(forward);
-    body.append(browser);
+    desk.append(browser);
 
-    const count = element('p', 'rel-count', reliquaryCount(at, roll.length));
+    const count = element(
+      'p',
+      'rel-count',
+      family === null ? reliquaryCount(at, deck.length) : reliquaryFamilyCount(at, deck.length, family),
+    );
     count.setAttribute('aria-live', 'polite');
-    body.append(count);
-    drawRenown();
-    drawCalls();
+    desk.append(count);
+    return desk;
   }
 
   /**
@@ -571,29 +806,41 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
    * figures are `renownTab.ts`'s readings, and the total under the double rule
    * is the fold of the rows' lines (rule 5).
    */
-  function drawRenown(): void {
+  function drawRenown(): HTMLElement {
     const state = options.getState();
     const playerId = options.getPlayerId();
     const player = playerById(state, playerId);
-    if (!player) return;
-    const section = element('section', 'rel-renown');
+    const section = element('section', 'rel-column rel-renown');
     section.setAttribute('aria-label', 'Renown');
+    if (!player) return section;
 
-    section.append(element('p', 'eyebrow rel-renown-heading', 'the next great person'));
-    const pool = element('div', 'rel-renown-pool');
-    pool.append(element('span', 'rel-renown-pool-label', 'Renown'));
-    pool.append(
-      element(
-        'span',
-        'rel-renown-pool-figure',
-        `${figure(player.renownPool)} of ${figure(renownThreshold(state, player))}`,
-      ),
-    );
+    section.append(element('h3', 'rel-heading', 'The next great person'));
+    const threshold = renownThreshold(state, player);
+    const pool = element('p', 'rel-renown-pool');
+    pool.append(renownMarkNode());
+    const words = element('span', 'rel-renown-pool-words', 'Renown ');
+    words.append(element('span', 'rel-renown-pool-figure is-strong', figure(player.renownPool)));
+    words.append(document.createTextNode(' of '));
+    words.append(element('span', 'rel-renown-pool-figure', figure(threshold)));
+    words.append(document.createTextNode(' for the next name'));
+    pool.append(words);
     section.append(pool);
-    const odds = renownOddsReading(state, playerId);
-    if (odds !== null) section.append(renownOddsNode(odds));
+    const bar = element('span', 'rel-renown-bar');
+    bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', `Renown: ${figure(player.renownPool)} of ${figure(threshold)}`);
+    const fill = element('span', 'rel-renown-fill');
+    const share = threshold <= 0 ? 1 : Math.min(1, Math.max(0, player.renownPool / threshold));
+    fill.style.width = `${(share * 100).toFixed(1)}%`;
+    bar.append(fill);
+    section.append(bar);
 
-    section.append(element('p', 'eyebrow rel-renown-heading', 'renown this turn'));
+    const odds = renownOddsReading(state, playerId);
+    if (odds !== null) {
+      section.append(element('h3', 'rel-heading is-small is-spaced', 'The odds of the next offer'));
+      section.append(renownOddsNode(odds));
+    }
+
+    section.append(element('h3', 'rel-heading is-small is-spaced', 'Renown this turn'));
     const rows = renownLedgerRows(state, playerId);
     if (rows.length === 0) {
       section.append(
@@ -607,8 +854,11 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       total.append(element('span', 'rel-ledger-source', 'This turn'));
       total.append(element('span', 'rel-ledger-value', signedMeterFigure(foldRenownLedger(rows))));
       section.append(total);
+      if (rows.some((row) => row.cityId !== undefined)) {
+        section.append(element('p', 'rel-caption', 'Click a town to see its sources.'));
+      }
     }
-    body.append(section);
+    return section;
   }
 
   /** One row of the ledger: a town that opens to its sources, or a line of its own. */
@@ -660,6 +910,7 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
   function drawCalls(): void {
     const calls = reliquaryCalls(options.getState(), options.getPlayerId());
     if (calls.length === 0) return;
+    // The sheet's foot, under the three columns (the board).
     const rail = element('div', 'rel-calls');
     for (const call of calls) {
       const line = element('div', 'rel-call-line');
@@ -694,8 +945,8 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
   }
 
   function step(direction: number): void {
-    const roll = reliquaryRoll(options.getState(), options.getPlayerId());
-    at = reliquaryStep(at, roll.length, direction);
+    const deck = reliquaryOfFamily(reliquaryRoll(options.getState(), options.getPlayerId()), family);
+    at = reliquaryStep(at, deck.length, direction);
     draw(true);
   }
 

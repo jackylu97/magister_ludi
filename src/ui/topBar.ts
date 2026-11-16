@@ -352,6 +352,12 @@ export interface CivYieldStrip {
    * tab's reason.
    */
   readonly standingsTab: HTMLButtonElement;
+  /**
+   * The Trade tab. The trade sheet's trigger is the corner panel's Routes
+   * button (batch SS2), so this tab is one of its other doors: it keeps the
+   * `aria-expanded` mirror and gets the keyboard back when it opened the sheet.
+   */
+  readonly tradeTab: HTMLButtonElement;
 }
 
 /** The three elements one meter's click-through breakdown card is made of. */
@@ -1670,5 +1676,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     renownChip: renownItem,
     diplomacyTab,
     standingsTab,
+    tradeTab,
   };
 }

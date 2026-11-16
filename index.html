@@ -534,17 +534,18 @@
                                           the tutorial
            under it     #help-overlay     the controls card, from ?
            top-centre   #toasts           news, for five seconds each
-           top-left     #empire-panel     the seat's banner and two thin bars,
-                                          research and the draft meter; a red
-                                          dot when a decision is waiting
-           beside it    #empire-drawer    opens to the right of the panel: on
-                                          hover or focus, research and culture
-                                          (the ways into the star chart and
-                                          Statecraft); pinned by a click or Q,
-                                          also Faith, Leader, the age wager and
+           top-left     #empire-corner    the corner panel (batch SS2): the
+                                          seat's banner, the technology being
+                                          learnt and the next draft, with a red
+                                          dot when a decision is waiting; four
+                                          quick buttons (Diplomacy, Routes,
+                                          Faith, Standings); a click or Q opens
+                                          it downward in place, with Research,
+                                          Culture, Leader, the age wager and
                                           the Supply counts
            under it     #hud-commissions  one chip per seated commission, at
-                                          most four, then "+N more"
+                                          most four, then "+N more"; the open
+                                          corner panel covers them
            bottom-left  #hud-context      what is under the cursor, and refusals
            right        #city-panel / #unit-panel, one at a time
            bottom-right #hud-end-turn     End Turn, with a badge counting what
@@ -567,8 +568,8 @@
          (see `closePopovers` and the `onOpen` hooks in src/main.ts).
 
          #hud-commissions has no markup here: src/ui/commissionRail.ts builds its
-         element and main.ts mounts it after #empire-drawer, so the keyboard
-         reaches the panel, then the drawer, then the chips. It is listed anyway,
+         element and main.ts mounts it after #empire-corner, so the keyboard
+         reaches the corner panel first, then the chips. It is listed anyway,
          because this comment is the list of everything the player can be
          looking at.
          ============================================================ -->
@@ -581,7 +582,7 @@
          chip for the two meters. Middle: the turn and the world's age. Right,
          the screens about the other empires, as three labelled tabs, then the
          controls card (?) and the game menu (☰). Research is not here: it is
-         checked every turn, so it has a bar on the empire panel under the bar
+         checked every turn, so it has a bar on the corner panel under the bar
          (#empire-panel below). The Lens and the chronicle are beside End Turn.
 
          Nothing may scroll out of sight at 1024 px wide. The yields step down
@@ -874,10 +875,10 @@
             <b>❧</b> are the two small buttons beside End Turn
           </li>
           <li>
-            Your <b>banner</b> at the top left shows research and the next draft;
-            rest the pointer on it for more, and click it or press <kbd>Q</kbd>
-            to keep the drawer open, with Faith, your leader, the age wager and
-            your strategic resources
+            The panel at the top left names your research and the next draft.
+            Click it or press <kbd>Q</kbd> to open it, with research, culture, your
+            leader, the age wager and your strategic resources. Its four buttons
+            open Diplomacy, the trade routes, Faith and the Standings
           </li>
           <li>
             <kbd>C</kbd> Statecraft · <kbd>H</kbd> Faith · <kbd>L</kbd> your leader ·
@@ -920,119 +921,120 @@
       </div>
     </div>
 
-    <!-- Top-left, under the bar: the empire panel and its drawer (batch UX3;
-         docs/plans/hud-empire-panel-spec.md §3 to §5). Filled and wired by
-         src/ui/empireDrawer.ts.
+    <!-- Top-left, under the bar: the corner panel (batch SS2, the Corner board's
+         variant A, docs/plans/mockups/scholars-study/Corner.dc.html). Filled
+         and wired by src/ui/empireDrawer.ts.
 
-         The panel is one button: the seat's banner, a research bar and a draft
-         meter bar, each with its turns, and a red dot on the banner when a
-         decision is waiting (a card, a charter, a belief, or a strategic
-         resource with none spare). Resting the pointer on it, or tabbing onto
-         it, opens the drawer at depth one: the research and culture sections,
-         which open the star chart and Statecraft. A click, a tap, Enter or Q
-         pins the drawer at depth two, which adds Faith, Leader, the age wager
-         and the Supply counts.
+         One card, 248 px wide, in three parts:
+           #empire-panel   one button: the seat's banner, the technology being
+                           learnt and the next draft, each with its turns and a
+                           bar. A click or Q opens the card downward in place.
+           #empire-quick   four buttons that are always there and never move:
+                           Diplomacy, Routes (routes running against the cap),
+                           Faith (faith banked against the next god's price) and
+                           Standings. Each opens its sheet in one click.
+           #empire-drawer  the open card's rows: Research (T), Culture (C),
+                           Leader (L), the age wager and the Supply counts. It
+                           covers the commission chips until it closes.
 
-         The research section keeps the old research card's ids, and
-         src/ui/techTree.ts still writes them and still opens the star chart
-         from it. Everything else in the drawer is written by empireDrawer.ts. -->
-    <button
-      id="empire-panel"
-      class="empire-panel"
-      type="button"
-      aria-expanded="false"
-      aria-controls="empire-drawer"
-      aria-label="Your empire"
-    >
-      <span id="empire-banner" class="empire-banner" aria-hidden="true"></span>
-      <span class="empire-bars" aria-hidden="true">
-        <span class="empire-bar-row">
+         The panel's name is the star chart's #tech-current, and the Research
+         row keeps the old research card's other ids, so src/ui/techTree.ts
+         still writes them and still opens the star chart from that row. -->
+    <div id="empire-corner" class="empire-corner">
+      <button
+        id="empire-panel"
+        class="empire-panel"
+        type="button"
+        aria-expanded="false"
+        aria-controls="empire-drawer"
+        aria-label="Your empire"
+      >
+        <span id="empire-banner" class="empire-banner" aria-hidden="true"
+          ><span class="empire-banner-charge"></span
+        ></span>
+        <span class="empire-bars">
+          <span class="empire-bar-row">
+            <span id="tech-current" class="empire-bar-name is-research">—</span>
+            <span id="empire-research-turns" class="empire-bar-turns">—</span>
+          </span>
           <span id="empire-research-bar" class="empire-bar is-research"
             ><span id="empire-research-fill" class="empire-bar-fill"></span
           ></span>
-          <span id="empire-research-turns" class="empire-bar-turns">—</span>
+          <span class="empire-bar-row is-draft">
+            <span class="empire-bar-name">Next draft</span>
+            <span id="empire-draft-turns" class="empire-bar-turns">—</span>
+          </span>
+          <span class="empire-bar is-draft"><span id="empire-draft-fill" class="empire-bar-fill"></span></span>
         </span>
-        <span class="empire-bar-row">
-          <span class="empire-bar is-draft"
-            ><span id="empire-draft-fill" class="empire-bar-fill"></span
-          ></span>
-          <span id="empire-draft-turns" class="empire-bar-turns">—</span>
-        </span>
-      </span>
-      <span class="empire-panel-arrow" aria-hidden="true">▸</span>
-    </button>
+        <span class="empire-panel-arrow" aria-hidden="true"></span>
+      </button>
 
-    <div id="empire-drawer" class="empire-drawer" role="group" aria-label="Your empire" hidden>
-      <div class="drawer-head">
-        <span id="drawer-banner" class="empire-banner is-small" aria-hidden="true"></span>
-        <span id="drawer-seat" class="drawer-seat">—</span>
-        <span id="drawer-hint" class="drawer-hint"></span>
+      <!-- The four quick buttons. Their marks are runtime data: URIs, so
+           empireDrawer.ts puts them in; Routes and Faith also carry a live
+           figure. -->
+      <div id="empire-quick" class="empire-quick" role="group" aria-label="Quick buttons">
+        <button id="quick-diplomacy" class="quick-button is-diplomacy" type="button" aria-haspopup="dialog" aria-controls="diplomacy-overlay">
+          <span class="quick-head"><span class="quick-mark" aria-hidden="true"></span></span>
+          <span class="quick-label">Diplomacy</span>
+        </button>
+        <button id="quick-routes" class="quick-button is-routes" type="button" aria-haspopup="dialog" aria-controls="trade-overlay">
+          <span class="quick-head"
+            ><span class="quick-mark" aria-hidden="true"></span
+            ><span id="quick-routes-figure" class="quick-figure"></span
+          ></span>
+          <span class="quick-label">Routes</span>
+        </button>
+        <button id="quick-faith" class="quick-button is-faith" type="button" aria-haspopup="dialog" aria-controls="religion-overlay">
+          <span class="quick-head"
+            ><span class="quick-mark" aria-hidden="true"></span
+            ><span id="quick-faith-figure" class="quick-figure"></span
+          ></span>
+          <span class="quick-label">Faith</span>
+        </button>
+        <button id="quick-standings" class="quick-button is-standings" type="button" aria-haspopup="dialog" aria-controls="victory-overlay">
+          <span class="quick-head"><span class="quick-mark" aria-hidden="true"></span></span>
+          <span class="quick-label">Standings</span>
+        </button>
       </div>
 
-      <!-- Research: one button that opens the star chart (T). -->
-      <button
-        id="hud-research"
-        class="drawer-section is-research"
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded="false"
-        aria-controls="tech-overlay"
-      >
-        <span class="drawer-title"
-          ><span class="drawer-title-name">Research</span
-          ><span class="drawer-arrow" aria-hidden="true">→</span
-          ><kbd class="drawer-key" aria-hidden="true">T</kbd></span
-        >
-        <span class="drawer-line">
-          <span id="research-glyph" class="drawer-glyph" aria-hidden="true"></span>
-          <span id="tech-current" class="drawer-name">—</span>
-          <span class="drawer-figures"
-            ><span id="research-figures">—</span
-            ><span id="research-rate" class="drawer-figure-part"></span
-            ><span id="research-turns" class="drawer-figure-part"></span
-          ></span>
-        </span>
-        <span class="drawer-bar is-research"><span id="research-dial" class="drawer-bar-fill"></span></span>
-        <span id="research-next" class="drawer-note" hidden></span>
-      </button>
-
-      <!-- Culture: one button that opens Statecraft (C). -->
-      <button
-        id="drawer-culture"
-        class="drawer-section is-culture"
-        type="button"
-        aria-haspopup="dialog"
-        aria-controls="statecraft-overlay"
-      >
-        <span class="drawer-title"
-          ><span class="drawer-title-name">Culture</span
-          ><span class="drawer-arrow" aria-hidden="true">→</span
-          ><kbd class="drawer-key" aria-hidden="true">C</kbd></span
-        >
-        <span class="drawer-line">
-          <span class="drawer-name">Next draft</span>
-          <span id="culture-figures" class="drawer-figures">—</span>
-        </span>
-        <span class="drawer-bar is-culture"><span id="culture-fill" class="drawer-bar-fill"></span></span>
-        <span id="culture-tier" class="drawer-note">—</span>
-        <span id="culture-owed" class="drawer-owed" hidden></span>
-      </button>
-
-      <p id="drawer-foot" class="drawer-foot"></p>
-
-      <!-- Depth two only: the rest of the empire's screens, and Supply. -->
-      <div class="drawer-more">
+      <div id="empire-drawer" class="empire-drawer" role="group" aria-label="Your empire" hidden>
+        <!-- Research: one row that opens the star chart (T). The star chart
+             writes the figures; this module writes the rate and the next. -->
         <button
-          id="drawer-faith"
-          class="drawer-row"
+          id="hud-research"
+          class="drawer-row is-section is-research"
           type="button"
           aria-haspopup="dialog"
-          aria-controls="religion-overlay"
+          aria-expanded="false"
+          aria-controls="tech-overlay"
         >
-          <span class="drawer-row-name">Faith</span>
-          <span id="drawer-faith-note" class="drawer-row-note"></span>
-          <kbd class="drawer-key" aria-hidden="true">H</kbd>
+          <span class="drawer-row-text">
+            <span class="drawer-row-name">Research</span>
+            <span class="drawer-row-note"
+              ><span id="research-figures">—</span
+              ><span id="research-rate" class="drawer-figure-part"></span
+              ><span id="research-next" class="drawer-figure-part"></span
+            ></span>
+          </span>
+          <kbd class="drawer-key" aria-hidden="true">T</kbd>
         </button>
+
+        <!-- Culture: one row that opens Statecraft (C). -->
+        <button
+          id="drawer-culture"
+          class="drawer-row is-section is-culture"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="statecraft-overlay"
+        >
+          <span class="drawer-row-text">
+            <span class="drawer-row-name">Culture</span>
+            <span id="culture-figures" class="drawer-row-note">—</span>
+            <span id="culture-owed" class="drawer-owed" hidden></span>
+          </span>
+          <kbd class="drawer-key" aria-hidden="true">C</kbd>
+        </button>
+
         <button
           id="drawer-leader"
           class="drawer-row"
@@ -1041,7 +1043,7 @@
           aria-controls="leader-overlay"
         >
           <span class="drawer-row-name">Leader</span>
-          <span class="drawer-row-note">your civ</span>
+          <span id="drawer-leader-note" class="drawer-row-note">your civ</span>
           <kbd class="drawer-key" aria-hidden="true">L</kbd>
         </button>
         <button
@@ -1055,15 +1057,16 @@
           <span id="drawer-wager-note" class="drawer-row-note"></span>
           <span class="drawer-key is-arrow" aria-hidden="true">›</span>
         </button>
-        <p class="eyebrow drawer-supply-head">Supply</p>
-        <ul id="drawer-supply" class="drawer-supply" aria-label="Strategic resources: spare of what you hold"></ul>
-        <p id="drawer-supply-caption" class="hint drawer-supply-caption"></p>
-      </div>
 
-      <!-- Last in the tab order, so the keyboard walks the sections first. -->
-      <button id="drawer-close" class="popover-close drawer-close" type="button" aria-label="Close">
-        ×
-      </button>
+        <div class="drawer-supply-block">
+          <p class="drawer-supply-head">Supply</p>
+          <ul id="drawer-supply" class="drawer-supply" aria-label="Strategic resources: spare of what you hold"></ul>
+          <p class="drawer-supply-foot">
+            <span id="drawer-supply-caption" class="drawer-supply-caption"></span>
+            <span id="drawer-close-hint" class="drawer-supply-close"></span>
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- ================= the star chart =========================
@@ -1436,9 +1439,10 @@
     <!-- ================= the Reliquary =========================
          The honored dead and what they still pay: every great person this
          empire has spent, as a pile of tarot faces flipped through one at a
-         time. The seventh member of the parchment-sheet family and the
-         lightest — no split, no scrolling pane, ~30rem wide — because there is
-         only ever one card on it. Built by src/ui/reliquaryScreen.ts on each
+         time. A full sheet since batch SS3 (the Reliquary board): the
+         families and the rest of the deck on the left, the pile on a desk in
+         the middle, renown on the right, and the calls at the foot. Built by
+         src/ui/reliquaryScreen.ts on each
          open off Player.legacies; nothing on it is stored. Reached from the
          renown figure on the top bar's Standings tab, and by the card that
          descends into that figure at the end of a spend ceremony.
@@ -1453,12 +1457,13 @@
     >
       <div class="statecraft-sheet reliquary-sheet">
         <header class="statecraft-head">
-          <div class="statecraft-head-titles">
+          <div class="statecraft-head-titles rel-titles">
             <h2 class="statecraft-title">The <em>Reliquary</em></h2>
+            <!-- Whose deck, and how many legacies still pay. Written by
+                 src/ui/reliquaryScreen.ts on every draw. -->
+            <span class="rel-subtitle"></span>
           </div>
-          <p class="statecraft-hint">
-            &lsaquo; &rsaquo; to walk the pile &mdash; <kbd>Esc</kbd> to close
-          </p>
+          <p class="statecraft-hint">The arrow keys flip the deck. <kbd>Esc</kbd> closes.</p>
           <button
             id="reliquary-close"
             class="statecraft-close"
