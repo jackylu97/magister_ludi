@@ -70,6 +70,8 @@ const INTEGER_LEAVES = [
   'expansion.hexOffersPriced',
   // Bot batch BP11: turns a settler waits for an escort.
   'expansion.escortWaitTurns',
+  // Bot batch BP12: turns off a soldier may be when a waiting settler calls one.
+  'expansion.escortCallTurns',
   'expansion.roadDangerRadius',
   'workers.searchRadius',
   'workers.planTopN',

@@ -1219,10 +1219,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * setting, which the default does not use. No rule changed. Duel
  * `4da3f046:337488` -> `4394b792:358774`, standard `6a878f7e:1003339` ->
  * `6549b1b3:1032261`.
+ *
+ * Re-cut for bot batch BP12 (`docs/flags.md` (ooooooo), the bullet "BP12").
+ * A settler in its town counts the soldier waiting beside it as its escort; a
+ * settler already asleep in its town calls a soldier from further off and
+ * still leaves alone when its road is safe; a town short of its garrison keeps
+ * only its nearest soldiers from the escort plan; and a town raises no settler
+ * while one of its seat's settlers sleeps near it with no soldier coming. No
+ * rule changed. Duel `4394b792:358774` -> `98ab65ea:361047`, standard
+ * `6549b1b3:1032261` -> `8c45d70b:1032553`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '4394b792:358774',
-  standard: '6549b1b3:1032261',
+  duel: '98ab65ea:361047',
+  standard: '8c45d70b:1032553',
 };
 
 /**

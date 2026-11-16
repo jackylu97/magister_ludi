@@ -237,3 +237,102 @@ describe('the escort is the first garrison', () => {
     expect({ col: soldier.col, row: soldier.row }).toEqual({ col: town!.col, row: town!.row });
   });
 });
+
+/**
+ * **Bot batch BP12: the settlers that waited for ever** (`docs/flags.md`
+ * (ooooooo), the bullet "BP12"). The trace (the plan file's section "BP12")
+ * found settlers asleep in their towns for a dozen turns on average, most of
+ * them because every site near them had a hostile near it and no soldier came
+ * to walk with them. Three faults in the escort, each pinned here, and the
+ * build rule that a waiting settler is no reason to raise another.
+ */
+describe('a settler that waits gets its escort (bot batch BP12)', () => {
+  /** Enemy columns two hexes from the town all round it, so no site or road out is safe alone. */
+  function ringOfColumns(state: GameState): void {
+    openWar(state, 0, 1);
+    for (const [col, row] of [[2, 3], [4, 4], [4, 6], [2, 7], [0, 6], [0, 4]] as const) {
+      createUnit(state, 1, 'warrior', col, row);
+    }
+  }
+
+  it('steps out to the soldier beside its town even when no site is safe alone', () => {
+    const state = bench();
+    const town = homeTown(state);
+    ringOfColumns(state);
+    const settler = createUnit(state, 0, 'settler', town.col, town.row);
+    const escort = createUnit(state, 0, 'warrior', 4, 5);
+    recomputeAllVisibility(state);
+    const [walking] = escortJobs(state, 0);
+    expect(walking).toMatchObject({ kind: 'meet', settlerId: settler.id, soldierId: escort.id });
+    escort.col = walking!.at.col;
+    escort.row = walking!.at.row;
+    bumpRevision(state);
+    recomputeAllVisibility(state);
+    // Before BP12 the settler weighed the sites as a settler alone, struck
+    // every one of them, and slept with its soldier waiting beside it.
+    const orders = about(sit(state), settler);
+    expect(orders[0]?.command).toMatchObject({ type: 'moveUnit', target: walking!.at });
+    expect(orders[0]?.summary).toMatch(/Steps out of/);
+  });
+
+  it('calls a soldier from further off once it already sleeps in its town', () => {
+    const state = bench({ width: 30 });
+    const town = homeTown(state);
+    const settler = createUnit(state, 0, 'settler', town.col, town.row);
+    // A free soldier about four turns' walk from the town.
+    const far = createUnit(state, 0, 'warrior', 11, 5);
+    recomputeAllVisibility(state);
+    // Just raised, the settler waits only `expansion.escortWaitTurns`: no job.
+    expect(escortJobs(state, 0)).toEqual([]);
+    settler.sleeping = true;
+    bumpRevision(state);
+    const [job] = escortJobs(state, 0);
+    expect(job).toMatchObject({ kind: 'meet', settlerId: settler.id, soldierId: far.id });
+    expect(job!.turns).toBeGreaterThan(2);
+  });
+
+  it('still leaves alone on a safe road while a soldier called from further off is on its way', () => {
+    const state = bench({ width: 30 });
+    const town = homeTown(state);
+    const settler = createUnit(state, 0, 'settler', town.col, town.row);
+    settler.sleeping = true;
+    createUnit(state, 0, 'warrior', 11, 5);
+    recomputeAllVisibility(state);
+    const [job] = escortJobs(state, 0);
+    expect(job!.turns).toBeGreaterThan(2);
+    const orders = about(sit(state), settler);
+    expect(orders[0]?.command.type).toBe('moveUnit');
+    expect(orders[0]?.summary).toMatch(/Leaves alone/);
+  });
+
+  it('waits for the soldier called from further off when it cannot leave alone', () => {
+    const state = bench({ width: 30 });
+    const town = homeTown(state);
+    ringOfColumns(state);
+    const settler = createUnit(state, 0, 'settler', town.col, town.row);
+    settler.sleeping = true;
+    const far = createUnit(state, 0, 'warrior', 11, 5);
+    recomputeAllVisibility(state);
+    const [job] = escortJobs(state, 0);
+    expect(job).toMatchObject({ kind: 'meet', settlerId: settler.id, soldierId: far.id });
+    const sent = sit(state);
+    expect(about(sent, settler).some((decision) => decision.command.type === 'moveUnit')).toBe(false);
+    expect(about(sent, far)[0]?.command).toMatchObject({ type: 'moveUnit', target: job!.at });
+  });
+
+  it('a town short of its garrison keeps its nearest soldier, and the others may still walk with a settler', () => {
+    const state = bench({ width: 30 });
+    const town = homeTown(state);
+    // A second town far off with no soldier in it, and the soldier nearest it.
+    const empty = foundCityAt(state, 0, at(state.map, 20, 5));
+    const nearEmpty = createUnit(state, 0, 'warrior', 18, 5);
+    const settler = createUnit(state, 0, 'settler', town.col, town.row);
+    const escort = createUnit(state, 0, 'warrior', 4, 5);
+    recomputeAllVisibility(state);
+    expect(empty.ownerId).toBe(0);
+    // Before BP12 one town short of its garrison stopped every escort.
+    const jobs = escortJobs(state, 0);
+    expect(jobs).toEqual([expect.objectContaining({ kind: 'meet', settlerId: settler.id, soldierId: escort.id })]);
+    expect(jobs.some((job) => job.soldierId === nearEmpty.id)).toBe(false);
+  });
+});

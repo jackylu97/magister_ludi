@@ -310,6 +310,18 @@ export interface AiConfig {
      */
     escortWaitTurns: number;
     /**
+     * **How far off a soldier may be when a settler already asleep in its town
+     * calls for one** (bot batch BP12), in turns of the soldier's walk to the
+     * hex beside the town. A settler sleeps in its town when its own arm finds
+     * no site it can take alone or no safe road, or while its escort is on the
+     * way. Before BP12 it waited only for a soldier within `escortWaitTurns`,
+     * and on BP12's trace settlers slept in their towns for a dozen turns on
+     * average while their seat had soldiers to spare further off. A settler
+     * just raised still waits only `escortWaitTurns`. Read as at least
+     * `escortWaitTurns`. See `escortPlan` (`bot.ts`).
+     */
+    escortCallTurns: number;
+    /**
      * **How near the next stretch of a settler's road a hostile piece must
      * stand to keep a settler with no escort from setting out** (bot batch
      * BP11). The stretch is the hexes it walks in its next turn, and only what

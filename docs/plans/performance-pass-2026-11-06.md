@@ -2136,3 +2136,241 @@ Seeds 7, 999 and 42, the old tree and the new one in one process a seed, a turn 
 - `src/ai/aiConfig.ts` and `data/ai.json`: `expansion.escortWaitTurns` (2), `expansion.roadDangerRadius` (2), `driver.focusMargin` (10), `driver.focusOrders`' third setting; the docblock of `war.escortRadius`. `data/ai.bounds.json`: rows for the two `expansion` knobs.
 - Tests: `test/sim/aiEscorts.test.ts` (new); `test/sim/aiEndCheckLoops.test.ts` (the margin); `test/sim/aiWar.test.ts` (the escort case); `test/sim/aiBounds.test.ts` and `test/sim/aiPersona.test.ts` (the new knobs); `test/sim/aiWants.test.ts` (the rich record runs nine turns); `test/sim/aiDigest.slow.test.ts` (the pins).
 - `docs/bot-priorities.md`, and this section.
+
+## BP12: the late pile of settlers, 2026-11-16
+
+`docs/flags.md` (ooooooo), the bullet "BP12: the late pile of settlers, approved 2026-11-15". The user's rule: a settler that waits must not be a reason to build another, and a seat must not hold more settlers than it has free sites and can move. Bot changes only: no file under `src/sim/` and no rules data changed.
+
+### Method
+
+- **Trees**, each a detached `git worktree` with the main tree's `node_modules` linked in. The **old tree** is `f5111f10` (BP11 and the flags commit). The **new tree** is the old tree with this batch's bot files copied in, as measured: the batch without the speed work of part 4, which plays the same game (part 4). Three variants were measured on the way (part 3). The old tree also got the two measurement readings (`settlerReading`, `escortReading`), which send nothing.
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on. The 16 end-check seeds.
+- **The probe** is `play12.ts` in the session's scratch folder `bp12/`, cut down from BP11's `play11.ts`. At the end of each seat's turn it writes one row for each settler of the seat: where it stands (in a town, beside one, on the road, at its site), whether it sleeps, its march, whether a soldier of its own shares its hex, its claim (`siteClaims`), its own arm's answer and reason now (`settlerReading`, asked as if it were awake), its escort job, and the seat's spare soldiers (`escortReading`). For a settler that waits with nowhere to go it also counts the free sites within 8 hexes, those with a hostile within 4 hexes, and those with no route. At each settler start it records what the price saw: the free sites left after the claims, the seat's settlers by state and the spare soldiers. It also records every settler's life (start, orders, fate), as BP10's probe did.
+- **The probe does not change play.** The digest at turn 100 is the same with the rows, with only the lives, and with nothing recorded (seeds 7, 999 and 42, both trees).
+- **Paired figures** as in BP10 and BP11: for each seed the ratio of one tree's total to the other's, the geometric mean of the ratios with a 95% t interval, and the seeds down and up.
+- **Seconds** are CPU seconds (`process.cpuUsage`). The laptop was on mains power at the start (`pmset`: "AC Power"); from about 09:40 it ran on battery and slept once for 21 minutes (the power log). The runs went on after it woke, CPU seconds do not count the sleep, and no run was lost. Other load shared the machine (load average 11 to 17), so seconds compare only between trees of one process.
+
+### 1. The trace
+
+Seeds 999, 42, 7, 1 and 2026 on the old tree to turn 140, every settler of the six seats at every turn from 90 to 140: 355 settlers and 4,124 settler-turns. 213 of the settlers founded a town, and 142 were still alive at turn 141.
+
+**Settler-turns by state**, turns 90 to 140:
+
+| State | 999 | 42 | 7 | 1 | 2026 | All | Share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Waits in a town: nowhere it can go | 193 | 56 | 227 | 220 | 369 | 1,065 | 26% |
+| Marches with an escort | 178 | 205 | 224 | 127 | 400 | 1,134 | 27% |
+| Marches alone | 241 | 195 | 224 | 120 | 209 | 989 | 24% |
+| Runs home | 44 | 56 | 90 | 38 | 94 | 322 | 8% |
+| Waits a turn in the field for its escort to keep pace | 43 | 35 | 51 | 36 | 77 | 242 | 6% |
+| Waits in a town for an escort on its way | 30 | 30 | 36 | 55 | 88 | 239 | 6% |
+| Waits in a town: a hostile near the road, no escort | 9 | 6 | 21 | 5 | 6 | 47 | 1% |
+| Stands in the field: nowhere it can go | 39 | 0 | 2 | 4 | 2 | 47 | 1% |
+| Founds, or steps out to its escort | 4 | 8 | 5 | 1 | 21 | 39 | 1% |
+| All | 781 | 591 | 880 | 606 | 1,266 | 4,124 | |
+
+"Marches" includes the far march to a free site beyond the settler's own 8 hexes (158 settler-turns) and marches whose next stretch has turned unsafe, which a stored route walks on (229).
+
+**Settlers that waited more than three turns**, by the cause they waited for most: 122 settlers, 1,425 waiting turns (11.7 each). Only 40 of them founded a town by turn 141; 82 were still alive.
+
+| Main cause of the wait | Settlers | Waiting turns |
+|---|---:|---:|
+| Nowhere it can go, in a town | 92 | 1,172 |
+| Its escort cannot keep pace, in the field | 15 | 90 |
+| Its escort is on the way, in a town | 10 | 75 |
+| A hostile near the road and no escort, in a town | 3 | 43 |
+| Nowhere it can go, in the field | 2 | 45 |
+
+**Why "nowhere it can go"** (1,065 settler-turns in a town):
+
+| Reading at that turn | Settler-turns |
+|---|---:|
+| Every free site within 8 hexes has a hostile within 4 hexes, and no escort job | 710 |
+| of which a town of the seat was short of its garrison, so the plan sent no escort at all | 374 |
+| of which every town was held, and no free soldier was within 2 turns of the town | 336 |
+| Every free site has a hostile near it, and its escort already stood beside the town | 163 |
+| No legal free site within 8 hexes | 175 |
+| Other (no route, or a road danger the probe does not split out) | 17 |
+
+**What the price saw at each settler start**, turns 90 to 140: 320 starts (316 in a queue, 4 bought). At a start the seat already held 4.8 settlers and had 2.2 more in queues, and the price saw 10.1 free sites and 15.1 spare soldiers on average. 154 of the 320 starts (48%) came while a settler of the same seat already slept in one of its towns, and 57 of the 69 such starts on four seeds came within about 8 hexes of that town.
+
+**The causes, with counts:**
+
+- **No free soldier: not a cause.** No waiting settler-turn fell on a turn with no spare soldier. The seats held 12 to 35 spare soldiers each at turns 121 to 130.
+- **A visible hostile near the road: a small cause.** 47 settler-turns (1%) waited for that reason. The large cause is the hostile near the **site**: in 873 settler-turns every free site within 8 hexes had a hostile within 4 hexes, so the settler arm, weighing the sites as a settler alone, struck them all.
+- **A waiting settler not counted against the free sites: not a cause.** A settler asleep in its own town claims a site (BP11). 172 of the 1,640 waiting settler-turns had no claim, and in each of them there was no free site left for it to claim, so a town could not raise another for one either.
+- **The claim changes while it waits: true, not a cause of the pile.** In 367 of 1,640 waiting settler-turns (22%) the claim differed from the turn before, because a standing claim is the nearest free site and moves with the other settlers' marches. It changes which site a settler is for, not how many settlers a town raises.
+- **Something else: the escort never came, and the towns kept building.** Three faults in BP11's escort plan kept the soldiers away from the settlers that needed them:
+  - a soldier waiting on the hex beside the town did not count as walking with the settler, because a settler in a town has no cover (163 settler-turns, and 48 more with no legal site);
+  - one town short of its garrison anywhere in the empire stopped every escort (`townsAreHeld`), and a town was short in a fifth of the seats' turns (437 settler-turns);
+  - the plan took only a soldier within 2 turns (`expansion.escortWaitTurns`) of the town, although the seat had a dozen to spare further off (336 settler-turns).
+
+  At the same time the settler price read only the free sites, not whether a settler could reach them, so about half the starts came while a settler of the seat already slept in one of its towns, most of them near it.
+
+**A run with `expansion.escortWaitTurns` at nought** (the old tree, seeds 999, 42 and 7, BP11's open question) separates the two waits: the waits for an escort on its way fall from 96 settler-turns to 1, and the waits with nowhere to go stay at 20% of settler-turns (366 of 1,833). The pile is not the short wait for an escort; it is the settlers that have nowhere they may go alone and get no escort.
+
+### 2. The fix
+
+Four changes in `src/ai/bot.ts`, one knob, and no change to the rules. Part 4 adds four changes to the escort plan's cost that give the same answers.
+
+- **The escort beside the town counts** (`settlerCommand`). A settler in its own town has no cover, because `coverOn` counts no soldier in a town. So before BP12 a settler whose soldier already stood on the meeting hex beside the town (`meet`, nought turns) still weighed the sites as a settler alone, struck every site with a hostile near it, and slept, with the soldier waiting beside it. Now that soldier walks with it: the settler may choose a site with a hostile near it, and steps out onto the soldier's hex (`leaveTown`).
+- **A settler that already sleeps in its town calls a soldier from further off** (`readEscortPlan`, knob `expansion.escortCallTurns`, 6). A settler just raised still takes only a soldier within `expansion.escortWaitTurns` (2) turns of the town, and otherwise leaves alone on a safe road, as in BP11. A settler asleep in its town takes a free soldier within `expansion.escortCallTurns` turns. It waits for that soldier only while it cannot leave alone: it is asked again each turn (`wakeIdleSettler`), and it leaves alone when a site and its road are safe (`leaveTown`'s `called`). The soldier walks to the meeting hex through the soldier's own arm (`escortDuty`), as in BP11.
+- **A town short of its garrison keeps only its nearest soldiers** (`garrisonReserve`). Before BP12 one town short of its garrison anywhere in the empire stopped the whole escort plan (`townsAreHeld`). Now, for each such town, its nearest free soldiers, as many as it is short, are held back for it. They are the soldiers the garrison arm sends there (`undefendedCity` sends each soldier to its nearest empty town). The other free soldiers may walk with a settler.
+- **A settler that cannot move is no reason to raise another** (`settlerWaitingNear`, read by `settlerTerms` for the queue's row and the faith purchase, and by `settlerSiteRefusal` for the gold purchase). A town prices a settler at nothing while a settler of the seat sleeps in a town within `expansion.siteSearchRadius` (8) hexes of it with no soldier coming for it in the escort plan. The row says why: "Settler 812 already waits in Larkspur, 5 hexes off, with no soldier coming to walk with it, so a settler raised here now would wait for the same ground". The plan this reads is read once for each revision of the board in a context (`pricedEscortPlan`).
+- **Two readings for the measurement**, which send nothing: `settlerReading` (a settler's own answer and reason, asked as if it were awake, with its escort job) and `escortReading` (the seat's spare soldiers, and whether its towns are held).
+
+**Tests.** `test/sim/aiEscorts.test.ts`, a new block of five: a settler steps out to the soldier beside its town when no site is safe alone; a settler asleep in its town calls a soldier four turns off, and a settler just raised does not; it still leaves alone on a safe road while that soldier walks; it waits for that soldier when it cannot leave alone, and the soldier marches; a town short of its garrison keeps its nearest soldier and another soldier still walks with a settler. `test/sim/aiEndCheckLoops.test.ts`, two more: a town prices no settler while a settler of the seat sleeps in it with no soldier coming, with the sentence, and prices one again when it has gone; a settler asleep with a soldier coming holds nothing back. All five escort tests and the first end-check test fail on the old tree. `test/sim/aiBounds.test.ts` and `test/sim/aiPersona.test.ts` list the new knob.
+
+### 3. Before and after
+
+The new tree as measured is the batch without the speed work of part 4, which plays the same game (part 4).
+
+**16 seeds, turns 50 and 100**, the old tree against the new. Six seats summed.
+
+| Figure | Old tree | New tree | New against old |
+|---|---:|---:|---|
+| Towns, turn 50 | 23.1 | 23.1 | 0% [−5%, +4%], 7 down, 6 up |
+| Towns, turn 100 | 57.9 | 54.4 | −6% [−13%, +2%], 11 down, 5 up |
+| Citizens, turn 100 | 330 | 322 | −3% [−8%, +3%], 11 down, 5 up |
+| Food, turn 100 | 1,305 | 1,210 | −7% [−16%, +3%], 9 down, 6 up |
+| Production, turn 100 | 1,138 | 1,168 | +3% [−10%, +18%], 8 down, 8 up |
+| Gold, turn 100 | 467 | 399 | −16% [−35%, +8%], 10 down, 6 up |
+| Science, turn 100 | 833 | 860 | +4% [−7%, +15%], 5 down, 11 up |
+| Culture, turn 100 | 434 | 404 | −8% [−19%, +4%], 11 down, 5 up |
+| Faith, turn 100 | 164 | 185 | +13% [0%, +28%], 6 down, 10 up |
+| Settlers held, turn 100 | 11.4 | 8.6 | −27% [−57%, +23%], 7 down, 8 up |
+
+| Turns 1 to 100, 16 seeds | Old tree | New tree |
+|---|---:|---:|
+| Settlers started | 1,137 | 992 |
+| Settlers alive at some turn | 1,065 | 958 |
+| Founded a town | 850 | 795 |
+| Taken by the wild (from the settlers' lives) | 55 | 55 |
+| Taken by a rival | 6 | 1 |
+| Still alive at turn 101 | 152 | 106 |
+| Units lost to the wild: settlers taken (from each turn's losses) | 51 | 53 |
+| workers taken | 342 | 306 |
+| soldiers killed | 883 | 794 |
+| traders killed | 40 | 13 |
+
+**The late window, turns 100 to 130**, the 15 seeds where both trees reach turn 130 (the new tree's game on seed 5 ends at turn 127, when a seat finishes the Opus).
+
+| Figure, summed over the 15 seeds | Old tree | New tree | New against old |
+|---|---:|---:|---|
+| Settlers held, a turn at 121 to 130 | 340 | 254 | −27% [−41%, −10%], 13 down, 2 up |
+| of which asleep | 92 | 26 | −67% [−80%, −46%], 12 down, 3 up |
+| Towns founded at turns 100 to 130 | 390 | 406 | 0% [−17%, +20%], 8 down, 7 up |
+| Towns held, a turn at 121 to 130 | 1,191 | 1,142 | −5% [−13%, +4%], 8 down, 7 up |
+| Settlers started or bought at turns 100 to 130 | 517 | 543 | +12% [−10%, +38%], 4 down, 11 up |
+| Settler rows held back because a settler waits near (part 2) | 0 | 772 of 7,763 | |
+| Settlers taken by the wild at turns 100 to 130 | 24 | 27 | |
+| of which on seeds 999, 42 and 7 | 5 | 7 | |
+
+**Settler-turns by state after**, the trace of part 1 on the new tree (seeds 999, 42, 7, 1 and 2026, turns 90 to 140). The new tree's games on seeds 999 and 42 end at turns 136 and 133 (a seat finishes the Opus), so the window holds 242 game-turns against 254.
+
+| State | Old tree | New tree |
+|---|---:|---:|
+| Waits in a town: nowhere it can go | 1,065 (26%) | 281 (9%) |
+| Marches with an escort | 1,134 (27%) | 1,224 (38%) |
+| Marches alone | 989 (24%) | 799 (25%) |
+| Runs home | 322 (8%) | 281 (9%) |
+| Waits a turn in the field for its escort to keep pace | 242 (6%) | 326 (10%) |
+| Waits in a town for an escort on its way | 239 (6%) | 220 (7%) |
+| Waits in a town: a hostile near the road, no escort | 47 (1%) | 64 (2%) |
+| Stands in the field: nowhere it can go | 47 (1%) | 19 (1%) |
+| Founds, or steps out to its escort | 39 (1%) | 30 (1%) |
+| All | 4,124 (16.2 a game-turn) | 3,244 (13.4 a game-turn) |
+| Settlers that waited more than three turns | 122 (1,425 waiting turns) | 73 (682 waiting turns) |
+
+| Turns 121 to 130, a turn, six seats summed | 999 | 42 | 7 | 1 | 2026 |
+|---|---:|---:|---:|---:|---:|
+| Settlers held, old tree | 20.1 | 12.9 | 18.0 | 18.1 | 37.5 |
+| Settlers held, new tree | 14.8 | 13.7 | 18.3 | 11.4 | 24.4 |
+| Free sites a settler in the nearest town has a route to, new tree | 33.1 | 44.6 | 18.5 | 66.7 | 49.9 |
+| Spare soldiers, new tree | 140.8 | 103.6 | 136.3 | 169.5 | 103.5 |
+
+Of the 281 settler-turns still spent asleep in a town with nowhere to go, 208 have every free site near a hostile and no soldier within `expansion.escortCallTurns`, and 65 have no legal free site within 8 hexes.
+
+- **The pile is smaller, and it is no longer asleep.** Over 15 seeds the seats hold 27% fewer settlers at turns 121 to 130, with an interval below nought, and two thirds fewer asleep. The settlers that wait with nowhere to go fall from a quarter of all settler-turns to a tenth. The settlers held late are below the free sites the seats can reach on every traced seed; on the old tree seed 2026 held more (37.5 against 33.4).
+- **Towns founded late do not fall.** 406 against 390 at turns 100 to 130 over 15 seeds; the paired figure is 0%, 8 seeds down and 7 up.
+- **Towns at turn 50 hold; towns at turn 100 read 6% lower**, with an interval that holds nought ([−13%, +2%]) and 11 seeds of 16 down. The towns start 13% fewer settlers to turn 100 (992 against 1,137) and found 6% fewer towns. A variant without the leave-alone rule reads 1% lower at turn 100, but the wild takes more settlers with it and the pile barely shrinks (below).
+- **The wild takes as many settlers**: 55 against 55 to turn 100, and 27 against 24 at turns 100 to 130 (5 against 7 on BP11's three seeds). The counts are small.
+- **Yields at turn 100**: production +3%, science +4%, faith +13% (its interval is just above nought), gold −16%, culture −8%, food −7%; every other interval holds nought. The hammers not spent on settlers (13% fewer started) most likely show in the production and the science; the gold, culture and food read lower with fewer towns.
+- **Games end earlier on some seeds.** On the trace seeds the new tree's games on 999 and 42 end at turns 136 and 133, and in the 130-turn runs seed 5 ends at 127; the old tree's reach 141 on all of them. A seat finishes the Opus sooner. This was not traced.
+
+**Variants measured on the way**, each against the old tree (16 seeds unless said; the late figures over the seeds both trees take to turn 130). "Held back" is the rule that a town raises no settler while a settler of the seat sleeps near it; "leave alone" is the rule that a settler waiting for a soldier called from further off still leaves alone when its road is safe.
+
+| Tree | Towns, turn 50 | Towns, turn 100 | Settlers held at 121 to 130 | of which asleep | Towns founded at 100 to 130 | Settlers the wild took, to turn 100 | the same, 100 to 130 |
+|---|---|---|---|---|---|---|---|
+| First version: held back for any settler asleep near the town, no leave alone | −4% [−11%, +2%] | −7% [−16%, +3%] | not run | | | 55 → 52 | |
+| No held back, no leave alone (12 seeds at turn 50, 11 later) | 0% [−6%, +7%] | +6% [−7%, +20%] | −13% [−31%, +11%] | −43% | −5% [−22%, +16%] | 39 → 56 | 19 → 26 |
+| Held back for a settler with no soldier coming, no leave alone | −2% [−6%, +3%] | −1% [−12%, +10%] | −6% [−22%, +13%] | −35% | +9% [−3%, +23%] | 55 → 64 | 24 → 40 |
+| **The batch**: held back for a settler with no soldier coming, and leave alone | 0% [−5%, +4%] | −6% [−13%, +2%] | −27% [−41%, −10%] | −67% | 0% [−17%, +20%] | 55 → 55 | 24 → 27 |
+
+- **The first version cost early towns.** It held back for a settler whose escort was already on its way, which early in the game is most of them. Holding back only for a settler with no soldier coming costs nothing measurable: the third row against the second, towns at turn 100 0% [−6%, +7%] on 11 seeds.
+- **The leave-alone rule is the difference between the last two rows.** With it the wild takes no more settlers than on the old tree (55 against 55 to turn 100) and the pile shrinks by a quarter. Without it the wild takes 64 and 40, and the pile shrinks by 6%. Paired against each other on 16 seeds, the batch has 5% fewer towns at turn 100 [−10%, +1%], 11 seeds down and 4 up. Which matters more is a choice for the user; the batch keeps the rule, because the wild is one of the brief's limits and the pile is the batch's purpose.
+
+### 4. Speed
+
+**CPU seconds a turn**, seeds 7, 999 and 42, turns 100 to 120, all 21 turns on every run. Two processes a seed: the old tree against the new tree as measured, and the new tree as measured against the final code (with the speed work below). Trees in one process play a turn each in rotation. The bot's own CPU is the time inside `nextBotDecision`.
+
+| Seed | Tree | CPU s a turn | Bot CPU s a turn | Commands a turn | Towns | CPU ms a command |
+|---|---|---:|---:|---:|---:|---:|
+| 7 | old | 7.26 | 5.76 | 158 | 75.1 | 46 |
+| 7 | new, as measured | 6.95 | 5.64 | 173 | 82.1 | 40 |
+| 999 | old | 7.04 | 5.62 | 144 | 74.1 | 49 |
+| 999 | new, as measured | 7.09 | 5.58 | 120 | 80.2 | 59 |
+| 42 | old | 4.70 | 3.65 | 110 | 63.3 | 43 |
+| 42 | new, as measured | 5.57 | 4.41 | 119 | 67.0 | 47 |
+
+| Seed | New, as measured | Final code | Same game |
+|---|---:|---:|---|
+| 7 | 6.12 | 6.31 | yes (digests at turns 100 and 120) |
+| 999 | 6.12 | 5.89 | yes |
+| 42 | 4.86 | 4.68 | yes |
+
+- On seed 7 the turn is 4% cheaper; on seed 999 it costs the same with a sixth fewer commands; on seed 42 it is 19% dearer, in a game with 6% more towns and 8% more commands, and a command costs a tenth more. The two processes ran at different times under different load, so only the columns of one table compare.
+- The final code against the tree as measured is within the noise of a run (−4% to +3%).
+
+**The profile of a late turn** (`node:inspector`, seed 42, turns 110 to 112, the new tree as measured). The escort plan (`readEscortPlan`) was 5.7% of the turn, against 0.4% on the old tree at the same turns. On the old tree one town short of its garrison stopped the plan at its first lines, and a town was short in a fifth of the seats' turns; now the plan is read in full at every revision of the board while the seat has a settler (234 reads in three turns), and a settler asleep in its town asks for soldiers further off.
+
+Four changes give the same answers and make it cheaper:
+
+- each soldier is read once (`freeEscort` at any health, then its health), where the plan read it twice;
+- a soldier with no movement left is not asked for a route to a marching settler, which it must reach this turn (`pathTurns` starts a new turn before the first step);
+- the reserve for towns short of their garrison is read only when a town is short (`townsAreHeld` first);
+- a waiting settler's route to its site is asked last, only when a soldier could come for it.
+
+On seeds 7, 999 and 42 the final code plays the same game as the measured tree (the same digest at turns 100 and 120). They save little: on two more profiles of the same turns the plan was 4.3% and 5.5% of the turn. **The plan is still about 5% of this late turn**, and nothing else of the batch's is above 3.2% (`settlerCommand` 3.2%, `walkWithSettlers` and `escortDuty` 2.1% each with the plan inside them, `settlerTerms` 1.4%, `pricedEscortPlan` and `settlerWaitingNear` 0.5% each). It is not fixed (below).
+
+**Tried and dropped:**
+
+- **A plan kept across revisions while nothing it reads has changed** (a fingerprint of every unit, town, camp, hex owner, hex feature, technology, war and slotted Order). It kept the plan for only 13 of 234 reads, because nearly every command moves a piece or changes a queue, and the fingerprint itself cost a quarter of what it saved.
+- **Routes kept for the sitting**, by piece, place, movement left and goals. The plan fell to 2.6% of the turn. But a route depends on more than those (an enemy piece killed, a piece of the seat's own on the way), and on seed 7 the game parted from the measured tree between turns 100 and 120. A change to speed must not change play that the tables above measure, so it was dropped.
+
+### Not done, and proposals
+
+- **Towns at turn 100 read 6% lower** (the interval holds nought). The towns start 13% fewer settlers to turn 100. The variant without the leave-alone rule reads 1% lower at turn 100 but lets the wild take more settlers (part 3). Why the leave-alone rule costs early towns was not traced.
+- **The remaining waits**: 208 of the 281 settler-turns still asleep in a town with nowhere to go have every site near a hostile and no free soldier within `expansion.escortCallTurns` turns, and 65 have no legal free site within 8 hexes. A settler that cannot move is no reason to build another, so they no longer raise new ones near them, but they still cost their upkeep. A seat could train a soldier for one (the brief's fourth option); it is not built.
+- **Games end earlier on some seeds** (a seat finishes the Opus at turns 127 to 136 on three of the measured games). Not traced.
+- **`expansion.escortCallTurns`** (6) was not swept. It and `expansion.escortWaitTurns` are for the parameter pass.
+- **The escort plan's cost is about 5% of a late turn** on seed 42 (5.7% before the four exact changes, 4.3% to 5.5% after, against 0.4% on the old tree), above the brief's few percent. Keeping routes for a sitting brought it to 2.6% but changed play, so it was dropped. Two ways to finish it, not built: key a kept route on the pieces near it, so a route is asked again when something near it moves; or read the plan once a sitting for the settlers asleep in their towns, whose soldiers walk for several turns anyway.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end, with the reason printed beside them: duel `4394b792:358774` -> `98ab65ea:361047`, standard `6549b1b3:1032261` -> `8c45d70b:1032553`.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- Core, by name, one worker: every `test/sim/ai*.test.ts` that is not slow, `test/ui/arenaPage.test.ts` (the new knob appears on the panel with no page edit), `test/ui/botWorker.test.ts`, `test/sim/readings.test.ts`, `test/sim/empireYieldAtRest.test.ts` and `test/mapgen/moduleCycles.test.ts`: 45 files, 1,080 tests passed, on the final code.
+- Slow, by name, one worker (`TEST_TIER=slow`): `aiCardStamp`, `aiBot`, `aiDriver`, `aiWants`, `aiWar`, `aiDecision`, `aiGarrison`, `botWorker`, `religion`, `beads`, `barbarians`, `statecraft`, `ledgerFold` and `cityModifiers`: 14 files, 45 tests, on the final code; 44 passed and one failed, in `aiCardStamp`: "finds a footprint on the books for each shape it reads as on them", for the unit-loss rule. That check needs a recorded position where a seat that prices The Funeral Oration or The Glorious Dead has lost units inside the weariness window. The game the BP12 bots play has none: seat 5 prices The Glorious Dead at turns 119 to 121 with no losses, and no other seat prices either card at any turn from 100 to 121. The bot's reading of the rule did not change. The test now records the last position once more with two units of each seat lost to the next seat that turn (`recordPositions`), and `aiCardStamp` passes, all four cases (4 tests). `aiDigest` with the new pins: 2 tests passed.
+- The new tests fail on the old tree: all five of `aiEscorts.test.ts`' new block, and the first new test of `aiEndCheckLoops.test.ts`.
+- The whole core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+### Files
+
+- `src/ai/bot.ts`: `settlerCommand` (the escort beside the town, `beside`; a far call waits only when it cannot leave alone); `leaveTown` (`called`); `readEscortPlan` (the long call, `garrisonReserve` in place of the `townsAreHeld` gate, the claim's route asked last, one `freeEscort` a soldier, the no-movement skip); `garrisonReserve` (new); `settlerTerms` and `settlerSiteRefusal` (the waiting rule); `settlerWaitingNear`, `pricedEscortPlan` and `settlerWaitingWords` (new); `settlerReading` and `escortReading` (new, for the measurement).
+- `src/ai/aiConfig.ts` and `data/ai.json`: `expansion.escortCallTurns` (6). `data/ai.bounds.json`: its row.
+- Tests: `test/sim/aiEscorts.test.ts` (five new), `test/sim/aiEndCheckLoops.test.ts` (two new), `test/sim/aiBounds.test.ts` and `test/sim/aiPersona.test.ts` (the new knob), `test/sim/aiDigest.slow.test.ts` (the pins), `test/sim/aiCardStamp.slow.test.ts` (a worn copy of the last recorded position, below).
+- `docs/bot-priorities.md`, and this section.

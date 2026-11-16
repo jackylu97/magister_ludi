@@ -104,6 +104,28 @@ function recordPositions(): GameState[] {
     if (game.state.turn === before) throw new Error(`the game stalled at turn ${before}`);
     if (RECORDED.includes(before)) positions.push(restoreState(snapshotState(game.state)));
   }
+  // **The last position again, with every seat's recent losses** (bot batch
+  // BP12). The unit-loss rule (The Funeral Oration, The Glorious Dead) is read
+  // as a line on the books, and the fourth case below asks some position to
+  // show it moving them. That needs a seat that prices such a card and has lost
+  // units inside the weariness window. BP10's games held one (seat 2 at turn
+  // 121); the game the BP12 bots play does not (seat 5 prices The Glorious Dead
+  // at turns 119 to 121 with no losses). So the last position is recorded once
+  // more with two units of each seat lost to the next seat this turn.
+  const last = positions[positions.length - 1];
+  if (last !== undefined) {
+    const worn = restoreState(snapshotState(last));
+    const seats = realPlayers(worn).filter((player) => !player.eliminated);
+    seats.forEach((player, index) => {
+      const by = seats[(index + 1) % seats.length]!.id;
+      player.warLosses = [
+        ...(player.warLosses ?? []),
+        { turn: worn.turn, by, kind: 'unit' },
+        { turn: worn.turn, by, kind: 'unit' },
+      ];
+    });
+    positions.push(worn);
+  }
   return positions;
 }
 

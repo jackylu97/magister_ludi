@@ -234,7 +234,9 @@ describe('the persona sheet', () => {
         // added `escortWaitTurns` and `roadDangerRadius`: when a settler waits
         // for a soldier to walk with, and how near its road danger counts. They
         // say when a settler sets out, not whether a town is worth settling.
-        gates: ['cityValueFalloffByAge', 'escortWaitTurns', 'hexOffersPriced', 'roadDangerRadius', 'siteSearchRadius'],
+        // Bot batch BP12 added `escortCallTurns`, how far off a soldier may be
+        // when a settler already waiting in its town calls one.
+        gates: ['cityValueFalloffByAge', 'escortCallTurns', 'escortWaitTurns', 'hexOffersPriced', 'roadDangerRadius', 'siteSearchRadius'],
       });
     }
   });

@@ -29,6 +29,7 @@
     ],
     "hexOffersPriced": 4,
     "escortWaitTurns": 2,
+    "escortCallTurns": 6,
     "roadDangerRadius": 2
   },
   "site": {

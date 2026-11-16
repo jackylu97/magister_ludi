@@ -25,7 +25,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { botSitting, focusReading, nextBotCommand, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { botSitting, escortJobs, focusReading, nextBotCommand, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { foundingSites, freeSiteForTown, siteClaims } from '../../src/ai/settlerSites';
 import aiJson from '../../data/ai.json';
 import type { BotCandidate, ValueTerm } from '../../src/ai/decision';
@@ -43,6 +43,7 @@ import { foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/
 import { applyCommand } from '../../src/sim/commands';
 import { createMap } from '../../src/sim/map';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { newGame } from './newGameHelpers';
 import { findPath } from '../../src/sim/pathfind';
 import { researchExpansion } from '../../src/sim/tech';
@@ -408,6 +409,68 @@ describe('fault 5: a settler only for a site no other settler is for (bot batch 
     const held = settlerRow(game.state);
     expect(held!.score).toBe(0);
     expect(labels(held!.terms).some((label) => label.includes('already has a settler of this empire for it'))).toBe(true);
+  });
+
+  it('prices no settler while one of the seat sleeps in a town near it (bot batch BP12)', () => {
+    const { game, city } = noSettlers();
+    expect(settlerRow(game.state)!.score).toBeGreaterThan(0);
+    // A settler asleep in the town: it waits for a soldier or a safe road. Its
+    // own arm is kept out of this sitting so the town decides first.
+    const waiting = createUnit(game.state, 0, 'settler', city.col, city.row);
+    waiting.sleeping = true;
+    city.queue = [];
+    bumpRevision(game.state);
+    // No soldier is coming for it: it cannot move.
+    expect(escortJobs(game.state, 0).some((job) => job.settlerId === waiting.id)).toBe(false);
+    const sitting = botSitting(0);
+    sitting.roused.add(waiting.id);
+    sitting.escortOrders.add(`${waiting.id}>`);
+    let decision = nextBotDecision(game.state, 0, sitting);
+    for (let step = 0; decision !== null && decision.kind !== 'build' && step < 40; step++) {
+      expect(dispatch(game, decision.command).ok).toBe(true);
+      decision = nextBotDecision(game.state, 0, sitting);
+    }
+    expect(decision?.kind).toBe('build');
+    const row = decision!.candidates.find((candidate) => candidate.label.startsWith('Settler'));
+    expect(row?.score).toBe(0);
+    expect(labels(row!.terms).some((label) => label.includes('already waits in'))).toBe(true);
+    // Once it has gone, the town raises one again.
+    game.state.units = game.state.units.filter((unit) => unit.id !== waiting.id);
+    bumpRevision(game.state);
+    expect(settlerRow(game.state)!.score).toBeGreaterThan(0);
+  });
+
+  it('a settler asleep in a town with a soldier coming for it holds nothing back (bot batch BP12)', () => {
+    const { game, city } = noSettlers();
+    const waiting = createUnit(game.state, 0, 'settler', city.col, city.row);
+    waiting.sleeping = true;
+    // A free soldier a few hexes off on open land, which the plan calls for it.
+    const from = tileHex(getTileAt(game.state.map, city.col, city.row)!);
+    const probe = createUnit(game.state, 0, 'warrior', city.col, city.row);
+    const ground = mapRange(game.state.map, from, 4).find(
+      (tile) =>
+        wrappedDistance(game.state.map, from, tileHex(tile)) >= 3 &&
+        !isWaterTerrain(tile.terrain) &&
+        !game.state.units.some((unit) => unit.col === tile.col && unit.row === tile.row) &&
+        !game.state.cities.some((town) => town.col === tile.col && town.row === tile.row) &&
+        findPath(game.state, probe, tile) !== null,
+    );
+    expect(ground, 'land three or four hexes from the town').toBeDefined();
+    probe.col = ground!.col;
+    probe.row = ground!.row;
+    city.queue = [];
+    bumpRevision(game.state);
+    expect(escortJobs(game.state, 0).some((job) => job.settlerId === waiting.id && job.kind === 'meet')).toBe(true);
+    const sitting = botSitting(0);
+    sitting.roused.add(waiting.id);
+    let decision = nextBotDecision(game.state, 0, sitting);
+    for (let step = 0; decision !== null && decision.kind !== 'build' && step < 40; step++) {
+      expect(dispatch(game, decision.command).ok).toBe(true);
+      decision = nextBotDecision(game.state, 0, sitting);
+    }
+    expect(decision?.kind).toBe('build');
+    const row = decision!.candidates.find((candidate) => candidate.label.startsWith('Settler'));
+    expect(labels(row!.terms).some((label) => label.includes('already waits in'))).toBe(false);
   });
 
   it('sends a settler to a site another settler of the seat is not marching to', () => {

@@ -738,6 +738,55 @@ the section "BP10" of `docs/plans/performance-pass-2026-11-06.md`):
   (2), each with a row in `data/ai.bounds.json`; `driver.focusMargin` (10,
   frozen with the rest of `driver.*`).
 
+**The settlers that waited** (bot batch BP12; `docs/flags.md` (ooooooo), the
+bullet "BP12"; the trace and the measurements are the section "BP12" of
+`docs/plans/performance-pass-2026-11-06.md`):
+
+- **The cause.** Late in the game a quarter of all settler-turns were settlers
+  asleep in their own towns with nowhere to go. In most of them every free site
+  within the search radius had a hostile within `war.escortRadius`, so the
+  settler, weighing the sites as a settler alone, struck them all. The seats
+  had soldiers to spare (a dozen or more each), but none came: the escort plan
+  took only a soldier within `expansion.escortWaitTurns` turns, one town short
+  of its garrison anywhere stopped every escort, and a soldier waiting beside
+  the town did not count. Meanwhile towns near the waiting settler went on
+  raising settlers for the free sites the price could see.
+- **The escort beside the town counts** (`settlerCommand`). A settler in its
+  own town whose escort stands on the meeting hex (`meet`, nought turns) weighs
+  the sites as a settler with a soldier, so it can set out for a site with a
+  hostile near it, and it steps out onto the soldier's hex (`leaveTown`).
+- **A settler that already sleeps in its town calls from further off**
+  (`readEscortPlan`). A just-raised settler still takes only a soldier within
+  `expansion.escortWaitTurns` turns and otherwise leaves alone on a safe road.
+  A settler asleep in its town takes a soldier within
+  `expansion.escortCallTurns` turns. It waits for that soldier only while it
+  cannot leave alone: each turn it asks again, and leaves alone when a site
+  and its road are safe.
+- **A town short of its garrison keeps its nearest soldiers**
+  (`garrisonReserve`). For each town short of its garrison, its nearest free
+  soldiers, as many as it is short, are held back for it (they are the ones
+  the garrison arm sends, `undefendedCity`). The other free soldiers may still
+  walk with a settler. Before BP12 one short town stopped the whole plan.
+- **A settler that cannot move is no reason to raise another**
+  (`settlerWaitingNear`, read by `settlerTerms` and `settlerSiteRefusal`). A
+  town prices a settler at nothing while a settler of the seat sleeps in a
+  town within `expansion.siteSearchRadius` hexes of it with no soldier coming
+  for it in the escort plan. A settler whose escort is on the way holds nothing
+  back. The price of every other row is unchanged.
+- **The plan's cost.** With the town gate gone the plan is read in full at
+  every revision of the board, so four changes keep it cheaper and give the
+  same answers: each soldier is read once (`freeEscort`, then its health); a
+  soldier with no movement left is not asked for a route to a settler that
+  must be reached this turn; the reserve is read only when a town is short;
+  and a waiting settler's route to its site is asked last, only when a soldier
+  could come for it. The plan is still about 5% of a late turn on seed 42 (the
+  plan file's section "BP12").
+- **Two readings for the measurement**, which send nothing: `settlerReading`
+  (a settler's own answer, asked as if it were awake) and `escortReading` (the
+  seat's spare soldiers and whether its towns are held).
+- **Knob**: `expansion.escortCallTurns` (6), with a row in
+  `data/ai.bounds.json`.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged
