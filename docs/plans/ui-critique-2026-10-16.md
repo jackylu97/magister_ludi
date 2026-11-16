@@ -510,3 +510,22 @@ One batch at a time in the main tree, after SS1b and SS2 to SS4:
 | **SS6** | The diplomacy screen as a full sheet with the deal table, and the deal notice as a card with Accept, Refuse and "Change it at the table". It needs three small interface changes the board assumes: the notice sends the answer itself; the sheet opens with a rival's offer loaded; a real reading of what a luxury gives | Diplomacy |
 | **SS7** | The big moments: the age plate; the Opus close, beats 1 and 2; the full-screen page that animates the existing 3D Abacus in place of beat 4; the standings page | Moments |
 | **SS8** | What SS1 left: the type-size tokens and the 11 px floor, the top bar's tab labels and the other mono capitals, the sheet motion, the seal under a seated card showing only the turn number, and the bead card with the star mark | Type, Main, Ornament |
+
+## The corner panel, second pass (asked 2026-11-16)
+
+The user, after playing the SS2 build: *"could we do another pass on the corner
+panel? the spacing feels awkward, i'm not sure if we should even have labels on
+the bottom row at all. Could we use the skills we have at our disposal to design
+something better? factor in the top bar too, we probably don't need these menu
+items in multiple places. Give me 3 options"*
+
+- Three options, drawn as boards, for the user to choose from. Nothing is built
+  until the user picks one.
+- Each option covers the corner panel and the top bar together, and says where
+  each screen's one door is (Diplomacy, Trade routes, Faith, Standings, and the
+  other tabs the top bar holds today).
+- The bottom row's labels are in question: each option says whether the four
+  buttons carry labels, figures, marks only, or are gone.
+- What stays from SS2: the card grows in place on a click or Q, the live
+  figures come from the game's own readings, and every screen is reachable by a
+  key.
