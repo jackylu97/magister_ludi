@@ -1,9 +1,45 @@
+import {VIEW3D} from '../render3d/lookData';
 import {Color,Float32BufferAttribute} from 'three';
 import {centre,isWater,neighbour,baseSurfaceHeight,terrainMapWraps} from './surface.js';
 
-export const terrainColors={oasis:'#789747',floodplain:'#94a856',grassland:'#799741',plains:'#ac9b59',desert:'#d8bc86',tundra:'#929b86',snow:'#dce0db',mountain:'#969bb0',ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
-const dryColors={grassland:'#8f9f49',plains:'#bca663',desert:'#e7c385',tundra:'#a4a78b',snow:'#e8e4d7',mountain:'#aba99e',oasis:'#92a35b',floodplain:'#aab360'};
-const richColors={grassland:'#69883e',plains:'#979552',desert:'#c8ad79',tundra:'#82937f',snow:'#c6d1d7',mountain:'#859894',oasis:'#688f49',floodplain:'#83a050'};
+// Two palettes for the land. `study` is the approved study's. `soft` is the
+// visual test's (2026-11-12): lighter, dustier and closer together, toward the
+// north star (Islanders and Dorfromantik, docs/art-pass.md). The tunable
+// `visualTest.northStar` in data/view3d.json picks one when the module loads;
+// `false` gives the study's land back exactly. The water kinds are the same.
+const NORTH_STAR=VIEW3D.visualTest.northStar;
+const LAND={
+ study:{
+  base:{oasis:'#789747',floodplain:'#94a856',grassland:'#799741',plains:'#ac9b59',desert:'#d8bc86',tundra:'#929b86',snow:'#dce0db',mountain:'#969bb0'},
+  dry:{grassland:'#8f9f49',plains:'#bca663',desert:'#e7c385',tundra:'#a4a78b',snow:'#e8e4d7',mountain:'#aba99e',oasis:'#92a35b',floodplain:'#aab360'},
+  rich:{grassland:'#69883e',plains:'#979552',desert:'#c8ad79',tundra:'#82937f',snow:'#c6d1d7',mountain:'#859894',oasis:'#688f49',floodplain:'#83a050'},
+ },
+ soft:{
+  base:{oasis:'#8fae68',floodplain:'#a9bd76',grassland:'#98b26f',plains:'#cdbf84',desert:'#e6d3a4',tundra:'#a3ab98',snow:'#eaeeee',mountain:'#969bb0'},
+  dry:{grassland:'#a1b573',plains:'#d3c48a',desert:'#ead8aa',tundra:'#abb09c',snow:'#edefeb',mountain:'#a2a3a6',oasis:'#99b270',floodplain:'#b0c07d'},
+  rich:{grassland:'#8eaa69',plains:'#c4b87d',desert:'#e0cd9d',tundra:'#9aa495',snow:'#e4eaec',mountain:'#8d99a1',oasis:'#86a865',floodplain:'#a0b670'},
+ },
+ // `deep` (2026-11-12, second look at the reference games): their ground is a
+ // mid-dark, saturated green, so pale walls, roads and fields stand out on it.
+ // `visualTest.land` picks `soft`, `deep`, or `study` for the approved study's own colours.
+ deep:{
+  base:{oasis:'#78a352',floodplain:'#93b05a',grassland:'#7fa24a',plains:'#c2ab5c',desert:'#e3c98c',tundra:'#94a08a',snow:'#eaeeee',mountain:'#7f8794'},
+  dry:{grassland:'#93ad52',plains:'#cdb564',desert:'#ecd297',tundra:'#a0a890',snow:'#edefeb',mountain:'#8f9199',oasis:'#86aa58',floodplain:'#a2b862'},
+  rich:{grassland:'#6c9343',plains:'#b09f52',desert:'#d6bb80',tundra:'#86957f',snow:'#e4eaec',mountain:'#6f7f88',oasis:'#6b9a4c',floodplain:'#84a552'},
+ },
+}[NORTH_STAR?(VIEW3D.visualTest.land==='deep'?'deep':VIEW3D.visualTest.land==='study'?'study':'soft'):'study'];
+export const terrainColors={...LAND.base,ocean:'#536eac',coast:'#8198d0',lake:'#758bc8'};
+// The desert's two stroke tones stand further from its ground (the user, 2026-11-13: "more distinction in the desert tile colors"): the light one paler and yellower, the deep one a redder ochre. Set in `visualTest.paint.desert`; absent, the palette's own.
+const DESERT=NORTH_STAR?VIEW3D.visualTest.paint.desert:null;
+// The grassland's two stroke tones can be set the same way, to stand nearer its ground (`visualTest.paint.grassland`).
+const GRASS=NORTH_STAR?VIEW3D.visualTest.paint.grassland:null;
+const dryColors={...LAND.dry,...(DESERT?{desert:DESERT.dry}:{}),...(GRASS?{grassland:GRASS.dry}:{})};
+const richColors={...LAND.rich,...(DESERT?{desert:DESERT.rich}:{}),...(GRASS?{grassland:GRASS.rich}:{})};
+const PAINT=NORTH_STAR?VIEW3D.visualTest.paint:null;
+const CLEAN_TILES=NORTH_STAR&&VIEW3D.visualTest.tiles.clean;
+const SOFT_HILL=NORTH_STAR&&VIEW3D.visualTest.hills.terraced&&VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft:null;
+const ROCK=new Color(SOFT_HILL?.cliffs?.rock??'#a9a79c');
+const TERRACE_SIDE=NORTH_STAR&&VIEW3D.visualTest.hills.terraced?(VIEW3D.visualTest.hills.smooth?VIEW3D.visualTest.hills.soft.side:VIEW3D.visualTest.hills.side):0;
 const pigments=Object.fromEntries(Object.entries(terrainColors).map(([kind,color])=>[kind,{
  base:new Color(color),dry:new Color(dryColors[kind]||color),rich:new Color(richColors[kind]||color),
 }]));
@@ -55,6 +91,7 @@ export function createTerrainPainter(map,mountainRanges){
  const cache=new WeakMap(),groups=new Map();
  const period=terrainMapWraps(map)?Math.sqrt(3)*map.width:0;
  const shifted=new WeakMap();
+ const mixed=new WeakMap();
  function translated(region,offset){
   if(!offset)return region;
   if(!shifted.has(region))shifted.set(region,new Map());
@@ -94,20 +131,37 @@ export function createTerrainPainter(map,mountainRanges){
   }
   return nearest;
  }
- function brushGroup(col,row){
-  const key=`${col}:${row}`;
+ // `layer` 0 is the study's own lattice of brush groups. A higher layer is the
+ // same lattice again, moved by part of its spacing and hashed afresh, and it
+ // keeps only the groups that stand on a hex beside another kind of land. So
+ // more of the same strokes, at the same size, lie across the edges between
+ // terrains, and nothing changes inside one terrain (the user, 2026-11-13:
+ // "keep the relative size of the old strokes and just extend more of them
+ // across hex transition boundaries").
+ function besideOtherLand(tile){
+  const own=terrainKind(tile);
+  for(let d=0;d<6;d++){const other=neighbour(tile,map,d);if(other&&!isWater(other)&&terrainKind(other)!==own)return true}
+  return false;
+ }
+ function brushGroup(col,row,layer=0){
+  const key=`${col}:${row}:${layer}`;
   if(groups.has(key))return groups.get(key);
-  const h=hash(col+73,row-41),k=hash(col-29,row+137);
-  const x=(col+.5)*spacingX+(h-.5)*.60,z=(row+.5)*spacingZ+(k-.5)*.55;
+  const h=hash(col+73+layer*911,row-41-layer*577),k=hash(col-29-layer*313,row+137+layer*701);
+  const x=(col+.5+layer*.37)*spacingX+(h-.5)*.60,z=(row+.5+layer*.61)*spacingZ+(k-.5)*.55;
   const owner=tileAt(x,z),patches=[];
-  if(owner&&!isWater(owner)){
+  if(owner&&!isWater(owner)&&(layer===0||besideOtherLand(owner))){
    const p=pigments[terrainKind(owner)],turn=.35+.42*Math.sin(x*.20+z*.13)+(h-.5)*.55;
    const tangent=[Math.cos(turn),Math.sin(turn)],normal=[-tangent[1],tangent[0]];
-   const add=(u,v,rx,rz,color,seed,twist=0)=>patches.push(patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color));
+   const ownerKind=terrainKind(owner);
+   const add=(u,v,rx,rz,color,seed,twist=0)=>{
+    // A broad stroke is laid twice (the user, 2026-11-13: strokes should "look more painted instead of vector art"): first a larger, slightly turned shape in a tone half way to the ground's, then the stroke itself. The edge then steps through a half tone and is not one clean cut.
+    if(PAINT&&PAINT.halo&&rx>.2){const under=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist+.14,rx*PAINT.halo,rz*PAINT.halo,(seed+.37)%1,p.base.clone().lerp(color,.5));under.kind=ownerKind;patches.push(under)}
+    const one=patch(x+tangent[0]*u+normal[0]*v,z+tangent[1]*u+normal[1]*v,turn+twist,rx,rz,seed,color);one.kind=ownerKind;patches.push(one)};
    // One broad area, a medium flank and a few small angular breaks. The
    // darker pieces touch or sit just outside the main shape's edge, so they
    // read as one irregular contour rather than uniformly scattered confetti.
-   const length=1.18+h*.42,width=.40+k*.16;
+   // `spread` makes every brush group a little larger than the study's, so more of each terrain's paint runs over into the hexes beside it (the user, 2026-11-13: "what we had before our changes and just do a bit more of that").
+   const spread=PAINT?.spread??1,length=(1.18+h*.42)*spread,width=(.40+k*.16)*spread;
    add(0,0,length,width,p.rich,h);
    add(.18,-.66,.62+k*.16,.24+h*.06,p.dry,k,-.18);
    add(-length*.44,width*.64,.27+h*.12,.13+k*.07,p.rich,k,.22);
@@ -118,27 +172,80 @@ export function createTerrainPainter(map,mountainRanges){
    if(k>.40)add(-length*.65,-width*1.27,.12+h*.06,.07+k*.04,p.rich,1-k,.32);
    // A finer register of strokes: narrow dashes, short wedges and tiny cuts
    // near the larger brush edges. Their alignment follows the same gesture.
-   for(let i=0;i<3+Math.floor(h*3);i++){
+   // More of them, and a second, lighter set, make the ground read as brushed paint (the user, 2026-11-13: "have the texture feel a bit more painterly").
+   for(let i=0;i<Math.round((3+Math.floor(h*3))*(PAINT?PAINT.strokes:1));i++){
     const a=hash(col*17+i+41,row*23-19),b=hash(col*31-i-13,row*11+71);
     const u=(a*2-1)*length*1.12,v=(i%2?1:-1)*(width+.10+b*.26);
     add(u,v,.06+a*.14,.025+b*.035,i%3===0?p.dry:p.rich,b,(a-.5)*.48);
    }
+   for(let i=0;i<(PAINT?PAINT.dabs:0);i++){
+    // Broad soft dabs inside the big shape, in a tone between the ground's and its lighter or deeper one.
+    const a=hash(col*13+i+97,row*29-7),b=hash(col*37-i-5,row*19+113);
+    const tone=p.base.clone().lerp(i%2?p.dry:p.rich,.55);
+    add((a*2-1)*length*.8,(b*2-1)*width*.7,.16+a*.2,.07+b*.07,tone,a*b,(b-.5)*.7);
+   }
   }
-  patches.forEach((p,i)=>{p.order=[row,col,i]});
+  patches.forEach((p,i)=>{p.order=[row,col,i+layer*1000]});
   groups.set(key,patches);return patches;
  }
  function regions(tile){
   if(cache.has(tile))return cache.get(tile);
-  const c=centre(tile),p=pigments[terrainKind(tile)],patches=[];
+  const c=centre(tile),ownKind=terrainKind(tile),p=pigments[ownKind],patches=[];
   const row=Math.floor(c.z/spacingZ);
   // Painting belongs to the landscape, not the hex. Neighbours clip the same
   // large/small shapes, in the same order, so colour continues across joins.
+  // Tongues across a terrain edge (the user, 2026-11-13: "between terrains
+  // there's not a rigid cutoff"). Each hex is filled with its own ground, so
+  // two terrains would meet on the straight hex line. Along such an edge a few
+  // strokes in each terrain's own colour reach into the other, each over a
+  // larger half-tone shape. Both hexes work out the same strokes from the
+  // edge's own place, and each keeps the part that lies on it. They go down
+  // first, so the hex's own strokes paint over them here and there.
+  if(PAINT&&PAINT.tongues)for(let d=0;d<6;d++){
+   const other=neighbour(tile,map,d);
+   if(!other||isWater(other))continue;
+   const otherKind=terrainKind(other);
+   if(otherKind===ownKind)continue;
+   const a=d*Math.PI/3,nx=Math.cos(a),nz=Math.sin(a),mx=c.x+nx*Math.sqrt(3)/2,mz=c.z+nz*Math.sqrt(3)/2;
+   const ex=Math.round(mx*16),ez=Math.round(mz*16),q=pigments[otherKind];
+   // A patchwork (the user, 2026-11-13: "what i'm looking for is a patchwork
+   // transition"; layered strokes from both sides made stripes). The edge is
+   // cut into a few lengths. Each length belongs to one of the two terrains,
+   // by a hash both hexes share, and that terrain lays one patch over the
+   // line into the other hex. No two patches overlap, and none has a second
+   // shape under it. Some patches take the half tone between the two grounds.
+   const mine=tile.row*map.width+tile.col,theirs=other.row*map.width+other.col;
+   for(let k=0;k<PAINT.tongues;k++){
+    const h1=hash(ex+k*7,ez-k*13),h2=hash(ex-k*11,ez+k*5),h3=hash(ex+k*3+91,ez+k*17);
+    // The hex with the lower number reaches over on the lengths the hash gives it; the other hex on the rest.
+    if((h1>.5)===(mine<theirs))continue;
+    const reach=PAINT.reach??1,slot=1/PAINT.tongues,along=(k+.5)*slot-.5,deep=(.1+h2*.14)*reach;
+    const px=mx-nz*along-nx*deep*.8,pz=mz+nx*along-nz*deep*.8;
+    const one=patch(px,pz,a+Math.PI/2+(h3-.5)*.3,slot*.5,deep,h3,h2<(PAINT.blend??0)?p.base.clone().lerp(q.base,.5):q.base);
+    one.kind=ownKind;one.order=[-1,d,k];
+    patches.push(one);
+   }
+  }
   for(const offset of period?[-period,0,period]:[0]){
    const col=Math.floor((c.x-offset)/spacingX);
-   for(let r=row-2;r<=row+2;r++)for(let q=col-2;q<=col+2;q++)for(const source of brushGroup(q,r)){
+   for(let layer=0;layer<=(PAINT?.layers??0);layer++)for(let r=row-2;r<=row+2;r++)for(let q=col-2;q<=col+2;q++)for(const source of brushGroup(q,r,layer)){
    const region=translated(source,offset);
    const [left,right,top,bottom]=region.bounds;
    if(right<c.x-1||left>c.x+1||bottom<c.z-1||top>c.z+1)continue;
+   // Clean tiles (the visual test, 2026-11-12): a hex takes only strokes of
+   // its own terrain, so two terrains meet on the hex line and each hex reads
+   // as one tile, as in the north-star games.
+   if(CLEAN_TILES&&region.kind&&region.kind!==ownKind)continue;
+   // A stroke that comes over from another terrain is mixed part of the way
+   // toward this hex's own ground (the user, 2026-11-13: "I'd rather it blend
+   // a little more"). The neighbour does the same with this terrain's strokes,
+   // so two terrains meet through two half tones and not on one hard edge.
+   if(PAINT&&PAINT.strokeBlend&&region.kind&&region.kind!==ownKind){
+    if(!mixed.has(region))mixed.set(region,new Map());
+    const tones=mixed.get(region);
+    if(!tones.has(ownKind))tones.set(ownKind,{...region,color:region.color.clone().lerp(p.base,PAINT.strokeBlend)});
+    patches.push(tones.get(ownKind));continue;
+   }
    patches.push(region);
    }
   }
@@ -160,7 +267,8 @@ export function createTerrainPainter(map,mountainRanges){
   for(const p of patches)if(p.planes.every(([nx,nz,l])=>x*nx+z*nz<=l))out.copy(p.color);
   return out;
  }
- function paint(geometry,tile){
+ // `creased` is false for ground that lies outside the hex whose paint it takes: the land a free coast lays in a water hex.
+ function paint(geometry,tile,creased=true){
   if(isWater(tile))return;
   const source=geometry.attributes.position,normals=geometry.attributes.normal;
   const {base,patches}=regions(tile),positions=[],colors=[],outputNormals=[];
@@ -174,10 +282,23 @@ export function createTerrainPainter(map,mountainRanges){
     Math.min(triangle[0][2],triangle[1][2],triangle[2][2]),Math.max(triangle[0][2],triangle[1][2],triangle[2][2])];
    while(moundIndex<moundPigments.length-1&&i>=moundPigments[moundIndex].end)moundIndex++;
    const moundKind=i>=plateCount?moundPigments[moundIndex]?.kind:null;
-   let fragments=[{polygon:triangle,color:moundKind?pigments[moundKind].base:base}];
-   // The established hill shapes read through their lighting planes. Leave
-   // them intact instead of fragmenting every slope with more painted cuts.
-   for(const p of i<plateCount?patches:[]){
+   // A terrace's side face takes one darker tone; its flat top takes the ground's.
+   const steep=TERRACE_SIDE&&moundKind&&normals.getY(i)<.9;
+   // A soft hill has no one side face. It carries the ground's own strokes
+   // (the user, 2026-11-13: the hills "need to inherit the ground's texture"),
+   // and each facet is then darkened by how steep it is, so the hill shades
+   // off into the ground.
+   const softHill=SOFT_HILL&&moundKind;
+   // The slope's tone comes in a few even steps, as the reference games shade a smooth hill, and not as one tone for each small facet.
+   const steepness=softHill?Math.max(0,Math.min(1,(1-normals.getY(i))/SOFT_HILL.steepAt)):0;
+   const slope=softHill&&SOFT_HILL.bands?Math.round(steepness*SOFT_HILL.bands)/SOFT_HILL.bands:steepness;
+   // A steep facet of a rocky hill is bare rock (the user, 2026-11-13: the green "lies on top of them in a layer rather than being coated in green color"). It takes the rock's tone, a little of the ground's, and its own small difference, and no strokes.
+   const cliff=softHill&&SOFT_HILL.cliffs&&1-normals.getY(i)>SOFT_HILL.cliffs.at;
+   const rock=cliff?ROCK.clone().lerp(pigments[moundKind].base,SOFT_HILL.cliffs.tint).multiplyScalar(1+(hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*41),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*41))-.5)*2*SOFT_HILL.cliffs.vary):null;
+   let fragments=[{polygon:triangle,color:rock??(softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
+   // The terraced hill shapes read through their lighting planes, and are left
+   // intact instead of being fragmented with more painted cuts.
+   for(const p of i<plateCount||(softHill&&!cliff)?patches:[]){
     if(bounds[1]<p.bounds[0]||bounds[0]>p.bounds[1]||bounds[3]<p.bounds[2]||bounds[2]>p.bounds[3])continue;
     const next=[];
     for(const f of fragments){
@@ -197,8 +318,11 @@ export function createTerrainPainter(map,mountainRanges){
    for(const {polygon,color}of fragments)for(let j=1;j<polygon.length-1;j++){
     const [a,b,c]=[polygon[0],polygon[j],polygon[j+1]];
     if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-10)continue;
+    // A hill's facets are not all one tone: each is a little lighter or darker than the slope alone gives, by a hash of where it lies, and a nearly level facet is lifted a little, as a crown catches the light.
+    const facet=softHill?hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*37),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*37)):0;
+    const shade=cliff?1:(1-(1-TERRACE_SIDE)*slope)*(softHill?1+(facet-.5)*2*SOFT_HILL.facetVary+(1-slope)*SOFT_HILL.crown:1);
     for(const v of [a,b,c]){
-     positions.push(v[0],v[1],v[2]);colors.push(color.r,color.g,color.b);
+     positions.push(v[0],v[1],v[2]);colors.push(color.r*shade,color.g*shade,color.b*shade);
      outputNormals.push(normals.getX(i),normals.getY(i),normals.getZ(i));
     }
    }
@@ -211,7 +335,7 @@ export function createTerrainPainter(map,mountainRanges){
   // The chunk builder normally multiplies vertex colour by biome material.
   // These are already final linear pigments; do not apply that tint twice.
   geometry.userData.pigmentBaked=true;
-  creases(geometry,tile);
+  if(creased)creases(geometry,tile);
  }
  function creases(geometry,tile){
   const c=centre(tile),positions=[],colors=[],color=new Color();
@@ -240,7 +364,8 @@ export function createTerrainPainter(map,mountainRanges){
     if((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0])>0)triangle.reverse();
     for(const p of triangle){
      sample(tile,p[0],p[2],color);
-     const middle=rings[1].includes(p),strength=middle?.78:.94;
+     // The crease along a joined hex edge is the study's. `crease` is how much of its darkening stays.
+     const middle=rings[1].includes(p),strength=1-(1-(middle?.78:.94))*(PAINT?.crease??1);
      positions.push(...p);colors.push(color.r*strength,color.g*strength,color.b*strength);
     }
    }

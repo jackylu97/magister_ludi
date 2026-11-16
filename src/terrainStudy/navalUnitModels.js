@@ -4,7 +4,7 @@ import roster from '../../data/units.json';
 export const navalVariants=['trireme','bireme','galley','caravel','corvette','alexandrianGalley','warGalley','towerShip','carrack','shipOfTheLine','treasureShip','fireShip','gunGalley','frigate'];
 
 export function addNaval(kit,type){
- const {mesh,box,rod,cylinder,sphere,ivory,gold,owner,ownerShade,dark}=kit;
+ const {mesh,box,rod,cylinder,sphere,ivory,gold,owner,ownerShade,dark,trim,tier,readable}=kit;
  const transport=type==='embarked';
  const def=transport?{modelClass:'transport',masts:1}:roster.units[type],heavy=def.modelClass==='navalHeavy',ranged=def.modelClass==='navalRanged';
  const width=transport?1.05:heavy?1.12:ranged?1.02:.88,depth=transport?.20:heavy?.23:.17;
@@ -22,7 +22,11 @@ export function addNaval(kit,type){
  };
  shape('Carved enamel lower hull',0,depth*.47,.70,.93,ownerShade);
  shape('Carved enamel upper hull',depth*.47,depth,.93,1,owner);
- shape('Ivory inset deck',depth,depth+.019,.90,.90,ivory);
+ // The readable ship has a narrower deck, so a broad rim of the hull shows the seat's colour from above.
+ const deck=readable?.80:.90;
+ shape('Ivory inset deck',depth,depth+.019,deck,deck,ivory);
+ // From the second age a painted strake runs round the hull in the seat's second colour.
+ if(readable&&tier>=1)shape('Trim painted strake',depth*.58,depth*.86,.962,.998,trim);
  for(let i=0;i<outline.length;i++){
   const a=outline[i],b=outline[(i+1)%outline.length];
   rod(`Gilt gunwale ${i}`,[a[0],depth+.015,a[1]],[b[0],depth+.015,b[1]],.010,gold,6);
@@ -52,16 +56,34 @@ export function addNaval(kit,type){
   for(const [a,b,c]of faces){tri(p[a],p[b],p[c]);tri(back(p[c]),back(p[b]),back(p[a]));}
   for(let n=0;n<p.length;n++){const a=p[n],b=p[(n+1)%p.length];tri(a,back(a),back(b));tri(a,back(b),b);}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.computeVertexNormals();mesh(`Faceted ivory sail ${i}`,g,ivory);
-  box(`Enamel sail canton ${i}`,[span*.26,.082,.013],owner,-span*.26,top-.075,z+.034);
+  // The readable sail carries a larger canton in the seat's colour. From the third age a stripe crosses each sail,
+  // and the last age adds a second stripe. A stripe follows the sail's belly on both faces. It is in the seat's
+  // first colour: a pale second colour does not show on an ivory sail, and a ship shows little of its seat's colour.
+  const cantonX=readable?-span*.235:-span*.26,cantonY=readable?top-.105:top-.075,mark=readable?1.7:1;
+  if(readable)box(`Enamel sail canton ${i}`,[span*.42,.150,.013],owner,cantonX,cantonY,z+.036);
+  else box(`Enamel sail canton ${i}`,[span*.26,.082,.013],owner,-span*.26,top-.075,z+.034);
+  if(readable&&tier>=2)for(const [n,at] of (tier>=3?[.60,.84]:[.74]).entries()){
+   const high=top-(top-bottom)*(at-.07),low=top-(top-bottom)*(at+.07),band=[],quad=(a,b,c,d)=>band.push(...a,...b,...c,...a,...c,...d);
+   const fall=y=>(top-y)/(top-bottom),edge=y=>[span*.50,y,z+.015*fall(y)],middle=y=>[0,y,z+.045+.025*fall(y)];
+   // Each face is written with both windings, so it shows from either side.
+   for(const side of [-1,1])for(const off of [.007,-.017]){
+    const put=v=>[v[0]*side,v[1],v[2]+off],a=put(edge(low)),b=put(middle(low)),c=put(middle(high)),d=put(edge(high));
+    quad(a,b,c,d);quad(d,c,b,a);
+   }
+   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(band,3));g.computeVertexNormals();mesh(`Enamel sail stripe ${i} ${n}`,g,owner);
+  }
   // A compact line emblem on the foremost sail supplements the hull shape.
   if(!transport&&i===def.masts-1){
-   const x=-span*.26,y=top-.075;
-   if(heavy){box('Heavy sail tower',[.032,.045,.014],ivory,x,y,z+.043);box('Heavy sail battlement',[.05,.015,.014],ivory,x,y+.025,z+.043);}
-   else if(ranged){const target=mesh('Ranged sail target',new T.TorusGeometry(.024,.004,4,10),ivory,x,y,z+.044);}
-   else{beam('Light sail chevron left',[x-.022,y-.012,z+.044],[x,y+.016,z+.044],.004,ivory);beam('Light sail chevron right',[x,y+.016,z+.044],[x+.022,y-.012,z+.044],.004,ivory);}
+   // `mark` makes the class emblem on the canton larger on the readable ship.
+   const x=cantonX,y=cantonY,m=mark;
+   if(heavy){box('Heavy sail tower',[.032*m,.045*m,.014],ivory,x,y,z+.043);box('Heavy sail battlement',[.05*m,.015*m,.014],ivory,x,y+.025*m,z+.043);}
+   else if(ranged){const target=mesh('Ranged sail target',new T.TorusGeometry(.024*m,.004*m,4,10),ivory,x,y,z+.044);}
+   else{beam('Light sail chevron left',[x-.022*m,y-.012*m,z+.044],[x,y+.016*m,z+.044],.004*m,ivory);beam('Light sail chevron right',[x,y+.016*m,z+.044],[x+.022*m,y-.012*m,z+.044],.004*m,ivory);}
   }
-  const pennant=new T.Shape([[0,0],[.10,-.015],[.07,-.043],[0,-.034]].map(p=>new T.Vector2(...p)));
-  mesh(`Enamel mast pennant ${i}`,new T.ExtrudeGeometry(pennant,{depth:.008,bevelEnabled:false,steps:1}),owner,0,top+.064,z);
+  // The readable ship's pennant is larger and takes the seat's second colour. It is longer in the last age.
+  const fly=readable?(tier>=3?2.6:1.9):1,hoist=readable?1.9:1;
+  const pennant=new T.Shape([[0,0],[.10*fly,-.015*hoist],[.07*fly,-.043*hoist],[0,-.034*hoist]].map(p=>new T.Vector2(...p)));
+  mesh(readable?`Trim mast pennant ${i}`:`Enamel mast pennant ${i}`,new T.ExtrudeGeometry(pennant,{depth:readable?.014:.008,bevelEnabled:false,steps:1}),readable?trim:owner,0,top+(readable?.080:.064),z);
  }
  if(transport){
   // A broad merchant hull: one simple sail and travel cargo, no ram or guns.

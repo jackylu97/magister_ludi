@@ -2,6 +2,7 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
+import {NORTH_STAR_ANIMAL_ASSETS} from './northStarAssets.js';
 
 // The authored kit, in the order the bundle indexes it: the herds, the working
 // buildings, the town's own houses, then the sites. Authored once in Blender and
@@ -36,6 +37,9 @@ export function bakeSettlementScene(scene,name){
    if(!o.isMesh)return;
    const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();pieces.push(g);g.applyMatrix4(o.matrixWorld);
    const p=g.attributes.position,color=new Float32Array(p.count*3),uv=new Float32Array(p.count*2),pigment=o.material.color.clone();
+   // A north-star animal's file carries, as a vertex colour, how each vertex moves when the animal idles: red for the
+   // head and neck, green for the tail, blue on every vertex (`build_northstar_animals.py`). It becomes `herdMove`.
+   const animal=NORTH_STAR_ANIMAL_ASSETS.includes(name),marks=animal?g.getAttribute('color'):null;
    // The reference horses are small, warm chestnut accents in the landscape.
    // Recolour coat and mane separately, retaining the sculpt's material masks.
    if(name==='horse'){
@@ -47,6 +51,11 @@ export function bakeSettlementScene(scene,name){
    }
    for(const key of Object.keys(g.attributes))if(!['position','normal'].includes(key))g.deleteAttribute(key);
    g.setAttribute('color',new T.BufferAttribute(color,3));g.setAttribute('uv',new T.BufferAttribute(uv,2));
+   if(animal){
+    const move=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++)move.set(marks?[marks.getX(i),marks.getY(i),1]:[0,0,1],i*3);
+    g.setAttribute('herdMove',new T.BufferAttribute(move,3));
+   }
   });
   geometry=mergeGeometries(pieces);if(!geometry)throw new Error(`No settlement geometry: ${name}`);indexGeometry(geometry);
   return geometry;

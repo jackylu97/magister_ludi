@@ -2240,6 +2240,251 @@ interface View3DData {
   abacus: AbacusSpec;
   units: UnitStyleSpec;
   painted: PaintedSpec;
+  visualTest: VisualTestSpec;
+}
+
+/**
+ * The tunables of the visual test version (batch V1, `docs/flags.md` item
+ * (nnnnnnn)). Each block belongs to one switch in `visualTest.ts`, and
+ * `visualTestLook.ts` reads them. Colours are written out as hex strings here
+ * because this is a test version: when the user picks the looks to keep, the
+ * kept colours move into the palette.
+ */
+export interface VisualTestSpec {
+  /** Frames a second the board draws while something on it moves by itself. */
+  motionFps: number;
+  sea: {
+    /** `bands` is the coast after A Short Hike: sand, a lapping foam line, crisp shallows, then coast and ocean in a crisp step. `soft` is the earlier look. */
+    style: string;
+    /** With `brushed`, the sea is painted with the land's strokes at the land's size: the tone of a deeper stroke and of a lighter one, against 1 for the plain water. Absent, only strokes across the coast and ocean edge are laid. */
+    brushTones?: number[];
+    /** The banded coast's numbers, in hex units from the shore: the sand's width and how much it varies; the foam line's width, the share left out, and how far and how fast it laps; where the shallows end, and their drawn line; how far each step wanders; the drawn line at the step from coast to ocean; and where the ocean deepens again. */
+    bands: { sand: number; sandVary: number; foam: number; foamGaps: number; lap: number; lapSpeed: number; shallows: number; shallowsWander: number; line: number; lineStrength: number; wander: number; stepLine: number; stepLineStrength: number; deepAt: number };
+    shallow: string; coast: string; ocean: string; deep: string; lake: string;
+    shoreReach: number; edgeReach: number; coastRange: number; deepRange: number; edgeSoftness: number;
+    shelfLine: string; shelfLineInset: number; shelfLineWidth: number; shelfLineStrength: number;
+    foam: string; foamOffset: number; foamWidth: number; foamStrength: number; foamBreak: number;
+    patch: number; glint: string; glintStrength: number; glintSpeed: number;
+    /** The land painter's brush lattice, reused for the coast against the ocean. */
+    brushed: boolean; brushSpacingX: number; brushSpacingZ: number;
+    edgeWobble: number; edgeWobbleScale: number; edgeFine: number; edgeBand: number; edgeBandTone: number;
+    sand: string; beachFalloff: number; beachStrength: number; waveSlope: number; waveScale: number; waveSpeed: number; glintPower: number; glintTilt: number; sheen: number;
+  };
+  /** The master tunable of the north-star look: `false` gives back the study's land palette, its cross-hex strokes and its sparse open land. */
+  northStar: boolean;
+  /** The sizes of the monuments a town raises under the north-star look, and where the capital's armillary stands. */
+  monuments: { shrine: number; temple: number; wonder: number; capital: number; capitalAt: number[] };
+  /**
+   * A town that fills its hex under the north-star look (`paintedCities.ts`).
+   * An address is `[x, z, size, yaw]` in hex units: `size` is the longest side
+   * of the footprint the piece is scaled to. `big` holds a monument or a large
+   * house, `pockets` hold an obelisk or a small house, `lots` hold a house.
+   * `flag: false` leaves the pole and flag in the middle of the town undrawn.
+   */
+  town: {
+    flag: boolean;
+    wallRadius: number; wallInset: number; wallSpacing: number; wallHeight: number; stakeSpacing: number;
+    gateHalf: number; gateInset: number; gateTower: number; roadGateTower: number; towerSize: number;
+    ground: string; groundLift: number; street: string; /** The town's floor: how far an open town's floor reaches toward the hex edge and how ragged that edge is, the loose patches beyond it, the square's size, a lane's half width, and the paving stones (count, size, two tones). Absent, the plain plate. */ floor?: { reach: number; ragged: number; fringe: number; square: number; lane: number; stones: number; stone: number; paveLight: string; paveDark: string }; streetHalf: number;
+    minHouses: number; housesOverPopulation: number;
+    hall: number[]; capitalHall: number; big: number[][]; pockets: number[][]; lots: number[][];
+    yawJitter: number; monumentSize: number; bigHouse: number;
+  };
+  /** The mine, the quarry and the farm under the north-star look (`northStarWorks.js`). Sizes are in hex units. */
+  works: {
+    /** `false` draws the study's mine (the user, 2026-11-12: the new one "sticks up like a mound"). */
+    newMine: boolean;
+    mineSize: number; mineAt: number[]; quarrySize: number; quarryAt: number[];
+    barnSize: number; haystackSize: number; haystacks: number;
+    /** The fields: how far they reach toward the hex edge, the gap between two, where the strips divide, and their colours. */
+    fieldInset: number; fieldGap: number; stripAt: number; angleJitter: number; fields: string[]; yard: string;
+    /** A farm takes one of these colour sets, so some farms are mostly green and some gold, orange or red. A set listed twice is twice as likely. */
+    fieldSets: string[][];
+    /** The share of farms that have a windmill in place of the barn, its footprint, its turn toward the camera, the hub's place in the model, and the sails' speed in radians a second. */
+    windmillShare: number; windmillSize: number; windmillYaw: number; windmillHub: number[]; sailSpeed: number;
+    /**
+     * The great people's works (`northStarWorks.js`). `paving` is the colour of the flat stones on the ground. For each
+     * improvement: `size`, the model's longest side in hex units; `at`, its place in the hex (x east, z south); and `court`,
+     * true for a work that stands round the middle of the hex with the piece inside it. `smokeFrom` is the top of the
+     * manufactory's tall chimney in the model's own units (x east, y up, z south), where its smoke starts.
+     */
+    greatWorks: { paving: string; smokeFrom: number[]; models: Record<string, { size: number; at: number[]; court: boolean }> };
+  };
+  /**
+   * The idle motion of the north-star animals (`paintedAnimals.ts`), in the model's own units (an animal is about one unit long).
+   * `nod`: how far the head dips and lifts, and `nodSpeed` its speed in radians a second. `flick`: how far the tail's tip goes to
+   * the side, and `flickSpeed` its speed. `sway`: how far the back leans to the side as the weight shifts. `step`: how far an
+   * animal moves forward and back, now and then. 0 stops a motion.
+   */
+  animals: { nod: number; nodSpeed: number; flick: number; flickSpeed: number; sway: number; step: number };
+  /**
+   * The idle motion of a north-star unit piece (`northStarUnits.ts`), in world units (a figure is about 0.95 tall).
+   * `breath` is how far the head rises and sinks and `sway` how far it leans, with their speeds. `flutter` is how far
+   * the free end of a plume or a cape swings, and `flutterSpeed` how fast.
+   */
+  unitIdle: { breath: number; breathSpeed: number; sway: number; swaySpeed: number; flutter: number; flutterSpeed: number };
+  /** Fuller tiles: more and larger trees and stones on open land. Read when the board is built. */
+  props: { dense: boolean; slots: number; grassChance: number; plainsChance: number; scaleMin: number; scaleSpan: number; stoneChance: number; stoneScale: number;
+    groves: boolean; groveGrass: number; grovePlains: number; groveSize: number; groveSpread: number; forestTrees: number; forestShade: number };
+  /** Which land palette the north-star look uses: `soft` or `deep` (darker, more saturated ground). */
+  land: string;
+  /** Hills as flat terraces with a darker side face. `cap` is how wide the flat top is against the foot, `upper` the size of the second terrace, `side` the tone of the side face. */
+  /** How strongly the paper's tooth shows on the ground, against 1 for everything that stands on it (`painterly.js`). */
+  /** Mountains in the hills' language: how much broader and lower a mountain's pieces stand. The rock's colour is `NORTH_STAR_MOUNTAIN_ROCK` in `northStarTrees.js`. */
+  mountains: { wide: number; tall: number };
+  paper: { terrain: number };
+  /** The ground's paint: the share of the patches along a terrain edge that take the half tone between the two grounds (`blend`), how far a brush stroke from another terrain is mixed toward the hex's own ground (`strokeBlend`), how many times more fine strokes each brush group has (`strokes`), how many broad half-tone dabs it adds (`dabs`), how much larger the half-tone shape under each broad stroke is (`halo`, 0 for none), how many lengths each edge between two terrains is cut into, one patch a length (`tongues`), and how deep a patch reaches (`reach`), how much larger than the study's every brush group is (`spread`), how many more lattices of the study's own brush groups are laid along the edges between terrains (`layers`), how much of the study's dark crease along a hex edge stays (`crease`), and how strong the long brush streaks are on every fill (`brush`). */
+  paint: { blend: number; strokeBlend?: number; strokes: number; dabs: number; halo: number; tongues: number; reach?: number; spread?: number; desert?: { dry: string; rich: string }; grassland?: { dry: string; rich: string }; layers?: number; crease?: number; brush: number };
+  /** With `smooth`, a hill is a low rounded mound (`soft`): its height against the old hill's and how much that differs from hill to hill (`heightVary`), the passes that round its outline, how uneven the outline is (`uneven` in slow waves, `jitter` point by point), how far each point of a ring strays from its ring (`rough`), how much each ring rises and falls round the hill (`bump`), how much broader the hill is than the old one (`size`), how far the top leans to one side, the rings of its profile (each a share of the outline's size and of the height, or a number of rings on one smooth curve), the number of even steps its slope shading comes in (`bands`, 0 for none), how much of each point's own height stays in the bumps (`grit`), how dark its steepest facets are, the bare rock of its steep facets (`cliffs`: the slope from which a facet is rock, the rock's colour, how much of the ground's colour it takes, how much one facet differs from the next, the most boulders at a cliff's foot on one hex and their size, and the most shrubs on a hill's top and their size), how far the cliff's facing strays from south (`cliffSpread`, in radians), how much one facet's tone differs from the next (`facetVary`), how much a level facet is lifted (`crown`), and the slope (`steepAt`, one less the facet's upward lean) at which a facet is fully that dark. */
+  hills: { terraced: boolean; cap: number; height: number; upper: number; upperFrom: number; side: number; flanks: boolean; fill: number; smooth: boolean; soft: { height: number; heightVary: number; round: number; steepAt: number; facetVary: number; crown: number; uneven: number; jitter: number; rough: number; bump: number; size: number; lean: number; profile: number[][] | number; bands: number; grit: number; side: number; cliffSpread: number; cliffs?: { at: number; rock: string; tint: number; vary: number; boulders: number; boulderSize: number; shrubs: number; shrubSize: number } } };
+
+  /** Switch 11: each hex reads as a tile: only its own terrain's strokes, and a fine groove with a light lip at its edge. */
+  tiles: { clean: boolean; width: number; soft: number; dark: number; lipWidth: number; light: number };
+  /** Switch 9: the contact shade pass, made stronger and wider, with a cool tint. */
+  grounding: { intensity: number; radius: number; tint: string };
+  /** A few small flocks of pale birds that cross the board. Sizes and height in hex units, speed in hex units a second, flap in radians a second. */
+  birds: { flocks: number; flockSize: number; size: number; height: number; speed: number; flap: number; color: string };
+  /** Yields on the board: a hex shows scenery by its strongest yield in three steps (`steps` are the yields each step starts at), and motes of light on the third. */
+  richness: { on: boolean; steps: { food: number[]; production: number[]; gold: number[] }; size: number; radius: number; motes: number; moteSize: number; moteRise: number; moteSpeed: number; colors: { food: string; production: string; gold: string } };
+  /** Edge smoothing on the painted board: the sample count of the scene's render target. 0 is off. */
+  smoothing: number;
+  /** Switch 12: things that stand up are darker at the foot and lighter at the top. `span` is the height in world units over which the tone changes. */
+  gradient: { foot: number; top: number; span: number };
+  /** Switch 13: a final colour grade in the output step: contrast, saturation, warm highlights with cool shadows, a haze toward the top of the screen, a vignette. */
+  grade: { contrast: number; saturation: number; warm: number; haze: string; hazeStrength: number; vignette: number };
+  /** Switch 14: a blur at the top and bottom of the screen. `focus` is the half-height of the sharp band (0 to 1), `blur` the largest radius in pixels. */
+  miniature: { focus: number; blur: number };
+  /** Switch 10: a rim light on things that stand up, and a deeper, cooler shade. */
+  light: { rim: string; rimStrength: number; rimPower: number; rimInShade: number; shadeDeepen: number; shadeTint: number[] };
+  rivers: { crestCut: number; toeHalfWidth: number; cornerCut: number; bank: string; bankInner: number; bankOuter: number; /** The edge river's two water colours under the north-star look. */ water: string; light: string };
+  /** The rails at the north and south ends of the map (`mapEnds.ts`). */
+  mapEnds?: import('./mapEnds').MapEndsStyle;
+  borders: {
+    level?: boolean; holeMax: number; fillNeighbours: number; fillPasses: number;
+    tintWidth: number; tintAlpha: number; tintLift: number; gapWidth: number; gapAlpha: number; gapGlowWidth?: number; gapGlowAlpha?: number;
+    /** The `ruled` and `wash` border styles. */
+    ruledLift: number; washWidth: number; washAlpha: number; inkWidth: number;
+  };
+  /** Also: `onTop` draws every pin over the scene; `shield` gives the strategic pin its taller shield; `markScale` sets every resource mark back from its rim, and `shieldMarkScale`, `shieldMarkLift` place the mark on the shield. */
+  pins: { nearPixels: number; farPixels: number; farScale: number; improvedScale: number; improvedFade: number; fadeTo: string; onTop: boolean; smooth: boolean; badgeTrim: number; shield: boolean; markScale: number; shieldMarkScale: number; shieldMarkLift: number };
+  clouds: { scale: number; speed: number; cover: number; softness: number; strength: number };
+  idle: {
+    bobHeight: number; bobSpeed: number; bobRoll: number;
+    smokePuffs: number; smokeAt: number[]; smokeRise: number; smokeSize: number; smokeSpeed: number; smokeDrift: number; smokeColor: string;
+    flagWave: number; flagSpeed: number;
+  };
+  /**
+   * A free coastline (`freeCoast.js`; `docs/flags.md`, "A free coastline"). With
+   * `free`, and the sea switch on, the shore is one smooth line and not the hex
+   * outline. `smoothing`, `step` and `relax` shape the line, and a loop shorter than
+   * `relaxLength` is relaxed less, so a small island keeps its size; `wander` and
+   * `wanderWave` are its slow sideways drift; `shift` sets the whole line out
+   * to sea. `beach` is the width of the sand slope and `beachVary`, `beachWave`
+   * make it uneven; `under` is how far the slope goes on below the water.
+   * At a river mouth the line bends in to the river's end and `mouthInset`
+   * past it, over `mouthReach` to each side. `wet` is the width of the
+   * darker sand at the water, `sandOver` how far the sand runs past the top of
+   * the slope, and `sandLift` its height above the ground. `bands` replaces
+   * those of the sea's `bands` that a smooth shore needs smaller.
+   */
+  coast: {
+    free: boolean; smoothing: number; step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number;
+    beach: number; beachVary: number; beachWave: number; under: number; mouthInset: number; mouthReach: number;
+    sand: string; wetSand: string; wet: number; sandOver: number; sandLift: number;
+    /** The sea's distances as a picture of the map (`seaDistances.js`): grid points to a hex unit, and how far each distance is measured. A river's outflow runs from `mouthBack` up the river to `mouthOut` out to sea, and `mouthTaper` narrows its far end, or widens it when negative. */
+    field: { texels: number; shoreReach: number; shelfReach: number; mouthReach: number; mouthBack: number; mouthOut: number; mouthTaper: number };
+    /** The smooth line between coast and ocean hexes: its own `relax`, `relaxLength`, `wander`, `wanderWave` and `shift`; and how far the colour step wanders in the paint (`wander` again). */
+    shelf: { step: number; relax: number; relaxLength: number; wander: number; wanderWave: number; shift: number };
+    /**
+     * The open sea after A Short Hike: `shelfFine` is how far the edge between
+     * coast and ocean leans on the open water's shapes; `scallop` and `scallopScale` make
+     * the band at the shore uneven; `scale` and `drift` are the size and speed
+     * of the loose shapes; `levels` are the three noise values their outlines
+     * run on; `light` and `dark` are the two tones inside them, `line` and
+     * `lineWidth` their outline; `ripples` is how much of the old pale dashes stays.
+     * `pattern` picks the open water's pattern: 1 the contour shapes, 2 a net
+     * of cells (`cell…`: size, warp, speed, tone), 3 soft patches with no
+     * outline (`patch…`), 4 long swell lines (`swell…`: rows to a hex unit,
+     * bend, how often a line breaks, speed).
+     */
+    open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number; strokes: number;
+      /**
+       * Pattern 5, calm water under the sun. `calmColor` and `deepen` make the
+       * open water a deeper, quieter blue. `cloud…` are the clouds it mirrors:
+       * strength, size, how much longer they are than deep, the noise values
+       * their soft edge runs between, and their drift. `sky`, `skyColor` and
+       * `skyFrom` pale the water toward the top of the screen; `near` and
+       * `nearTo` deepen it toward the bottom. The sun's road is placed on the
+       * screen (`x`, `y` from the bottom left; `width`, `height` as shares of
+       * the screen): a glow that lifts the water's own colour by `strength` and adds `warm` of `color`, wider toward the bottom of the screen by `spread`, and short level strokes
+       * of light (`stroke…`: how many, their length and rows to a hex unit at the zoom where a hex unit is `strokePixels` pixels,
+       * their thickness, drift, flicker, strength and colour). `river` is how
+       * much of the road a river takes. `glint…` are the few points that
+       * flare: how many, how many cells to a hex unit they are picked from,
+       * their size, how fast they swell and fade, the halo's strength, and how
+       * strong the upright rays are beside the level ones.
+       */
+      sun: {
+        calmColor: string; deepen: number; cloud: number; cloudScale: number; cloudSquash: number; cloudFrom: number; cloudTo: number; cloudDrift: number;
+        skyColor: string; sky: number; skyFrom: number; near: number; nearTo: number;
+        x: number; y: number; width: number; height: number; strength: number; warm: number; color: string; spread: number;
+        strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string; river: number;
+        glints: number; glintCells: number; glintSize: number; glintSpeed: number; glintHalo: number; glintUp: number;
+      };
+      /** The sea as a mirror (`seaMirror.ts`): whether it is drawn, what reflects (`pieces`: ships, pieces and towns; `all`: the whole scene), the picture's size as a share of the screen, how much of it shows on the water and how dark, and its ripple and upward smear as shares of the picture. */
+      mirror: { on: boolean; what: string; scale: number; strength: number; tone: number; ripple: number; smear: number };
+      pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
+      swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
+    /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */
+    rocks: { share: number; most: number; near: number; far: number; size: number; sizeVary: number; ring: number; ringWidth: number };
+    /** A river mouth: the half width of the channel that runs out along the outflow, how round the corner is where it joins the open water (`round`), how much its edge wanders, and how far the foam line and the sand stay back. */
+    mouth: { plume: number; wander: number; round: number; gap: number };
+    bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };
+  };
+  /** Switch 4: the painted river ribbon (`organicRivers.js`). */
+  organicRivers: {
+    smoothing: number; step: number; wander: number; wanderWave: number; wanderFade: number;
+    width: number; widthGrow: number; growLength: number; sourceWidth: number; sourceTaper: number;
+    mouthFlare: number; mouthLength: number; bank: string; bankWidth: number; water: string; shine: string;
+    shineFrom: number; shineTo: number; lift: number; propClearance: number;
+    /** Modelled banks: the ground rises `bankHeight` over `bankSlope` to a rim and drops to the water over `bankWidth`. `bankFade` is the length at a run's end where the rise fades out; `bankGround` deepens the slope's ground colour. */
+    /** Where the paler band along each bank starts, as a share of the half width. 0 keeps the old stripe down the middle. */
+    shallows: number;
+    /** Small things along the river: patches of the paler tone on the water, and every `detailEvery` units a reed tuft, a bank stone or a few lily pads. */
+    detail: boolean; patchShare: number; detailEvery: number; lily: string; lilySize: number; reedHeight: number;
+    /** `uneven` makes some stretches wind hard and others run straight (0 to 1); `widthVary` makes the river swell and narrow; `sandVary` makes the sand beside the water wide in places and thin in others. */
+    uneven: number; widthVary: number; sandVary: number;
+    /** `straighten` is how many passes relax the hex edges' zigzag out of the line; `bendSwell` is how much wider the river is on a bend. */
+    straighten: number; bendSwell: number;
+    /** Bends in proportion to the water: a bend is `meander` widths long and swings `meanderReach` widths to each side, up to `wander`. 0 keeps the fixed `wanderWave`. */
+    meander: number; meanderReach: number;
+    /** Two banks that differ: `bankVary` is each bank's own wave; `barPinch` narrows the inside of a bend and `barWidth` widens its sand into a bar; `deep` is the darker middle, `deepShare` of the width. */
+    bankVary: number; barPinch: number; barWidth: number; deep: string; deepShare: number;
+    /** `barGreen` is the share of wide sand that grows green patches; a stream joins a river `joinDown` units downstream of the hex corner, bent over its last `joinReach` units; a river that starts on land rises from a pool `springSize` across. */
+    barGreen: number; joinDown: number; joinReach: number; springSize: number;
+    /** Near a meeting of runs each run lays plain water only, for `junctionClear` units; the ground there is cut as a round pool `junctionPool` times the river's half width. */
+    junctionClear: number; junctionPool: number;
+    /** A thin white line at the waterline, `foamWidth` wide, with the share `foamGaps` of it left out. */
+    foam: string; foamWidth: number; foamGaps: number;
+    /** Trees keep to the river: a group every `treeEvery` units with chance `treeShare`. */
+    treeEvery: number; treeShare: number; /** The length of the slow wave that makes groves and open bank. */ treeWave: number;
+    /** `poolSwell` opens an occasional wide pool; below the width share `rapidsBelow` the water shows white streaks; a rock stands in the stream every `rockEvery` units with chance `rockShare`. */
+    poolSwell: number; rapidsBelow: number; rockEvery: number; rockShare: number;
+    /** Moving water: pale glints that travel downstream. Sizes in hex units, `width` as a share of the river's half width, `speed` in trips a second. */
+    flow: { length: number; width: number; travel: number; speed: number; lift: number; color: string };
+    /** The true cut: the ground drops `cutDepth` under the water and rises in a straight slope over `cutBank` beside it. 0 depth is no cut. */
+    cutDepth: number; cutBank: number;
+    modelled: boolean; bankHeight: number; bankSlope: number; bankFade: number; bankGround: number;
+  };
+  /** Switch 5: the curved roads (`planPaintedRoads` in `paintedGround.ts`). */
+  organicRoads: {
+    step: number; pull: number; wander: number; edgeShift: number; forkAt: number; forkPull: number;
+    bedWidth: number; coreWidth: number; bed: string; core: string; capSides: number;
+    shoulderWidth: number; shoulder: string; rutOffset: number; rutWidth: number; rut: string; crownWidth: number; crown: string; edgeWander: number;
+    bridgeLength: number; bridgeWidth: number; bridge: string; rail: string; railWidth: number;
+    raised: boolean; raisedHeight: number; raisedShoulder: number; bridgeHeight: number; railHeight: number;
+    slabSteps: number; slabShade: number; kerbSteps: number; kerbGaps: number; kerbSize: number; kerbHeight: number; kerb: string;
+  };
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -2897,6 +3142,8 @@ export const VIEW3D: View3DData = {
   // `paintedLook.js`, `paintedBoard.js` and `terrainStudy/lighting.js`, and a
   // clamp here would quietly disagree with the sheet a device profile edits.
   painted: viewJson.painted,
+  // The visual test version's tunables, passed through whole. See `VisualTestSpec`.
+  visualTest: viewJson.visualTest,
 };
 
 // --- colour maths ----------------------------------------------------------

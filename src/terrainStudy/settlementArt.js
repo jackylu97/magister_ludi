@@ -3,12 +3,14 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {centre,isWater,onTileTop,surfaceHeight,WATER_LEVEL} from './surface.js';
 import {surfacePatch} from './surfacePatch.js';
 import {resourceFamilies,animalAsset,resourceColors} from './resourceCatalog.js';
+import {NORTH_STAR_HERDS,NORTH_STAR_HERD_SCALE} from './northStarAssets.js';
 import {crag} from './shapes.js';
 import {indexGeometry} from './indexGeometry.js';
 import {farmPaint,farmLayout} from './farmPaint.js';
 import {createLumbermillGeometry} from './lumbermillGeometry.js';
 import {createSpecialWorkGeometry} from './specialWorkGeometry.js';
 import {createObsidianGeometry} from './obsidianGeometry.js';
+import {northStarWork} from './northStarWorks.js';
 
 function colored(g,color){
  const c=new T.Color(color),p=g.attributes.position,colors=new Float32Array(p.count*3);
@@ -35,8 +37,12 @@ function supportPrism(points,bottom,top){
  colored(g,'#b7b49d');g.deleteAttribute('uv');return g;
 }
 
-export function createSettlementArt(assets,paintedStyle){
+// `northStar` is `visualTest.works` from data/view3d.json when the north-star
+// look is on, and nothing otherwise. The caller hands it in, because this
+// module also loads in Node, where the typed look sheet does not.
+export function createSettlementArt(assets,paintedStyle,northStar=null){
  const material=assets.material;
+ const ns=northStar&&['ns-mine','ns-quarry','ns-barn','ns-haystack'].every(name=>assets[name])?northStar:null;
  const mill=createLumbermillGeometry();
  const special=createSpecialWorkGeometry();
  const fields=new T.MeshStandardMaterial({color:'white',vertexColors:true,roughness:.96,flatShading:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
@@ -182,8 +188,11 @@ export function createSettlementArt(assets,paintedStyle){
   const resource=entry.resource,family=resourceFamilies[resource],improvement=entry.improvement;
   const lumber=improvement==='lumbermill';
   const monumental=Object.prototype.hasOwnProperty.call(special,improvement);
-  const frontResource=lumber||monumental;
-  if(monumental){
+  // The north-star mine, quarry and farm. A drawn one replaces the study's.
+  const drawn=ns&&preciseFit?northStarWork(ns,{tile,entry,top,assets,patch,building,put,height,onBuilding}):false;
+  const sunk=drawn&&improvement!=='farm';
+  const frontResource=lumber||monumental||sunk;
+  if(monumental&&!drawn){
    // Broken paving follows the terrain. No disc or solid hex competes with
    // the surrounding painted strokes or fills the walkable court.
    for(const [polygon,color]of [
@@ -199,7 +208,7 @@ export function createSettlementArt(assets,paintedStyle){
    // suppressed resource silhouettes. They follow the actual terrain faces.
    for(const z of [-.28,.05,.36])patch([[-.43,z-.09],[.44,z-.09],[.42,z+.09],[-.44,z+.09]],'#9a956a');
   }
-  if(improvement==='mine'){
+  if(improvement==='mine'&&!drawn){
    // Exposed bedrock is the map-scale mine silhouette. Paint the actual hill
    // faces so this clearing shares their relief, lighting and cast shadows.
    const angle=(rand(81)-.5)*.4;
@@ -217,25 +226,27 @@ export function createSettlementArt(assets,paintedStyle){
     [[[-.70,.24],[-.62,.21],[-.59,.24],[-.68,.27]],'#959eae'],
    ])stone(points,color,.010,1);
   }
-  if(improvement==='farm'){
+  if(improvement==='farm'&&!drawn){
    const layout=farmLayout(tile);
    for(const g of farmPaint(tile,top,layout))push(fields,g);
    building('house',layout.house.x,layout.house.z,.30,layout.house.angle);
   }
   if(family==='animal'){
    const name=animalAsset[resource],count=resource==='ivory'?2:3;
+   // The north-star herd has two or three models; a herd takes them in turn, from a start that differs by hex.
+   const herd=(NORTH_STAR_HERDS[resource]||[]).filter(model=>assets[model]),first=Math.floor(rand(40)*herd.length);
    for(let i=0;i<count;i++){
-    const s=(resource==='ivory'?.47:resource==='furs'?.45:.41+rand(i+1)*.045)*.48;
+    const s=(resource==='ivory'?.47:resource==='furs'?.45:.41+rand(i+1)*.045)*.48*(herd.length?NORTH_STAR_HERD_SCALE:1);
     const x=(frontResource?[-.32,0,.32]:[-.23,.23,-.03])[i],z=(monumental?[.55,.65,.55]:lumber?[.38,.48,.38]:[-.20,.16,.38])[i];
     const a=-.45+rand(i+10)*1.1+(i===1?Math.PI:0);
     if(!onTileTop(tile,x,z,s*.53))continue;
-    const g=assets[name];
+    const g=herd.length?assets[herd[(first+i)%herd.length]]:assets[name];
     const samples=[[-.28,-.11],[-.28,.11],[.23,-.11],[.23,.11]].map(([px,pz])=>{const [dx,dz]=local(px*s,pz*s,preciseFit?-a:a);return height(x+dx,z+dz)});
     put(g,x,z,s,a,0xffffff,Math.max(...samples)-.004);
    }
   }else if(family==='ore'){
    for(let i=0;i<6;i++){
-    const a=i*2.399+rand(10)*6.28,d=i?(frontResource?.09+rand(i)*.06:.20+rand(i)*.18):0,x=Math.cos(a)*d,z=Math.sin(a)*d+(monumental?.64:lumber?.48:0);
+    const a=i*2.399+rand(10)*6.28,d=i?(frontResource?.09+rand(i)*.06:.20+rand(i)*.18):0,x=Math.cos(a)*d,z=Math.sin(a)*d+(monumental?.64:lumber?.48:sunk?.66:0);
     if(!onTileTop(tile,x,z,.16))continue;
     const s=(i===0?.22:.08+rand(i+8)*.08)*(frontResource?.72:1);
     stretch(oreModels[resource],x,height(x,z)-.025,z,s,s*(i===0?1.5:1.05),s*.85,a);
@@ -260,13 +271,13 @@ export function createSettlementArt(assets,paintedStyle){
    }
   }
   if(improvement==='pasture')fence();
-  if(improvement==='mine')building('mine',.06,.23,.72,0);
-  if(improvement==='quarry')building('quarry',.22,.26,.84,0);
+  if(improvement==='mine'&&!drawn)building('mine',.06,.23,.72,0);
+  if(improvement==='quarry'&&!drawn)building('quarry',.22,.26,.84,0);
   if(improvement==='camp')building('camp',-.35,.39,.65,.25);
-  if(improvement==='plantation')building('house',.42,.42,.32,0);
+  if(improvement==='plantation')building(ns?'ns-barn':'house',.42,.42,ns?.6:.32,0);
   if(lumber){building('lumbermill',-.13,.03,.90,-.13);building('lumber-stockpile',.27,0,.92,.10)}
   if(improvement==='fishingBoats')put(assets['fishing-boat'],.12,.1,.85,-.4,0xffffff,WATER_LEVEL-.016);
-  if(monumental){
+  if(monumental&&!drawn){
    if(improvement==='citadel'||improvement==='holySite')building(improvement,0,0,1);
    else building(improvement,0,-.50,.64);
   }

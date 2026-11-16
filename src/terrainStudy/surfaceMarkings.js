@@ -34,7 +34,7 @@ export function projectMarkings(top,marks){
  for(const m of marks){
   const a=m.bounds;
   if(a.maxX<b.min.x||a.minX>b.max.x||a.maxZ<b.min.z||a.minZ>b.max.z)continue;
-  const g=surfacePatch(top,m.polygon,m.color,m.lift);
+  const g=surfacePatch(top,m.polygon,m.color,m.lifts??m.lift);
   if(g.attributes.position.count)result.push(g);else g.dispose();
  }
  return result;

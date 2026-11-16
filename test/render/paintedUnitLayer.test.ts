@@ -9,7 +9,7 @@ import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
 import { paintedUnitSupport } from '../../src/render3d/paintedUnitPlacement';
 import { installPaintedSurface, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
 import * as surfaceQueries from '../../src/render3d/paintedSurface';
-import { UnitLayer, badgeAnchors, placePiece, terrainUnder, unitColor } from '../../src/render3d/pieces';
+import { UnitLayer, badgeAnchors, placePiece, terrainUnder, unitColor, unitTrimColor } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap, tileIndex } from '../../src/sim/map';
 import { type GameState, type Unit } from '../../src/sim/state';
@@ -17,6 +17,11 @@ import { unitDef, type UnitTypeId } from '../../src/sim/unitData';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
 import { newGame } from '../sim/newGameHelpers';
+import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
+
+// This file pins today's pieces. The swordsman has a north-star model behind `NORTH_STAR_UNITS`
+// (test/render/northStarUnits.test.ts covers it), so here it is drawn as today's piece.
+overrideNorthStarUnit('swordsman', null);
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });
@@ -151,7 +156,8 @@ describe('painted units through the production unit layer', () => {
       const body = passes.find(mesh => mesh.material instanceof MeshStandardMaterial)!;
       const shell = passes.find(mesh => mesh.material === library.unitOutline)!;
       const ghost = passes.find(mesh => mesh.renderOrder === RENDER_ORDER.silhouette)!;
-      expect(body.material).toBe(kit.material(model, unitColor(state, unit)));
+      // The pieces have parts in the seat's second colour, so the material is the one of the pair of colours.
+      expect(body.material).toBe(kit.material(model, unitColor(state, unit), unitTrimColor(state, unit)));
       expect(body.castShadow).toBe(true); expect(body.receiveShadow).toBe(true);
       expect(shell.castShadow || shell.receiveShadow || ghost.castShadow || ghost.receiveShadow).toBe(false);
       expect(model.geometry.groups).toHaveLength(0); expect(model.geometry.getAttribute('aHullNormal')).toBeDefined();

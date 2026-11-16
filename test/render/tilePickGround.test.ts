@@ -69,8 +69,8 @@ async function loadShippedVegetation(): Promise<PaintedVegetationAssets> {
     return { ...entry, material: i >= 5 ? rock : foliage };
   });
   return {
-    broadleaves: assets.slice(0, 3), cypresses: assets.slice(3, 5), escarpments: assets.slice(5, 8),
-    limestone: assets[8]!, broadleaf: assets[0]!, rangeMaterial,
+    broadleaves: assets.slice(0, 3), cypresses: assets.slice(3, 5), escarpments: assets.slice(5, -1),
+    limestone: assets[assets.length - 1]!, broadleaf: assets[0]!, rangeMaterial,
   };
 }
 

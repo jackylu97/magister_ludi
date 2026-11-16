@@ -3,6 +3,7 @@ import { EXPLORED, HIDDEN, VISIBLE } from '../sim/visibility';
 import { discoveryKindTech } from '../sim/discoveryData';
 import { createWorldFixture, WORLD_VIEWS, type WorldView } from './worldFixture';
 import { button, checkbox, controls, element, select } from './sheet';
+import { BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, setVisualTest, visualTest } from '../render3d/visualTest';
 
 /** Real game layers in a small, isolated world for the visual checkpoint. */
 export async function drawPaintedWorld(into: HTMLElement): Promise<() => void> {
@@ -50,6 +51,12 @@ export async function drawPaintedWorld(into: HTMLElement): Promise<() => void> {
   checkbox(knobs, 'Separate empires', true, value => {
     state.cities[1]!.ownerId = value ? 1 : 0; renderer.setGameState(state);
   });
+  // The visual test version's switches (batch V1, `render3d/visualTest.ts`):
+  // the new sea, rivers, roads, border, pins, clouds and idle motion all draw
+  // on this same world, so they are reviewed here too.
+  const tested = visualTest();
+  for (const def of VISUAL_SWITCHES) checkbox(knobs, `${def.id}. ${def.label}`, tested[def.key], value => setVisualTest({ [def.key]: value }));
+  select(knobs, '3. Border style', BORDER_STYLES.map(style => [style.key, style.label] as const), tested.border, value => setVisualTest({ border: value as BorderStyleKey }));
   button(knobs, 'Reset view', frame);
   let drag: { id: number; x: number; y: number } | null = null;
   canvas.addEventListener('pointerdown', event => {

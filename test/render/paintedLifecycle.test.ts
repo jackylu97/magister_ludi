@@ -49,7 +49,7 @@ describe('painted asset lifecycle', () => {
     const owned = resources(), failure = new Error('grove download failed');
     let finishLate!: (gltf: GLTF) => void;
     vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(url => {
-      if (url.endsWith('grove-sculpt-0.glb')) return Promise.reject(failure);
+      if (/grove-(sculpt|soft)-0\.glb$/.test(url)) return Promise.reject(failure);
       if (url.endsWith('limestone.glb')) return new Promise(resolve => { finishLate = resolve; });
       return Promise.resolve(asset());
     });
@@ -67,7 +67,7 @@ describe('painted asset lifecycle', () => {
 
   it('releases source objects and temporary copies when GLB processing throws', async () => {
     const owned = resources();
-    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(url => Promise.resolve(asset(url.endsWith('grove-sculpt-0.glb'))));
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(url => Promise.resolve(asset(/grove-(sculpt|soft)-0\.glb$/.test(url))));
     await expect(loadVegetation({ value: 0 }, null, null)).rejects.toThrow('invalid pigment');
     owned.expectReleased();
   });
@@ -82,7 +82,8 @@ describe('painted asset lifecycle', () => {
       geometries.add(output.geometry);
       if (output.shoulderGeometry) geometries.add(output.shoulderGeometry);
     }
-    expect(geometries.size).toBe(12);
+    // One geometry for each model, and a shoulder for each mountain (three escarpments or five crags).
+    expect(geometries.size).toBe(outputs.length + loaded.escarpments.length);
     for (const geometry of geometries) {
       expect(owned.geometryDisposals.mock.contexts).not.toContain(geometry);
       expect(geometry.getAttribute('position').count).toBeGreaterThan(0);

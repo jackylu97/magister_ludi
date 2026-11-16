@@ -7,10 +7,91 @@ import {addWarElephant} from './warElephantModel.js';
 import {addMountedEquipment,addCamelBust,addChariot,mountedVariants,mountedRangedVariants,chariotVariants} from './mountedUnitModels.js';
 import {addInfantryVariant} from './infantryUnitModels.js';
 import {addPolearmRangedVariant,polearmVariants,rangedVariants} from './polearmRangedModels.js';
+import {addScoutVariant,addSettlerVariant,UNIT_VARIANTS,UNIT_VARIANT_IDS} from './civilianVariants.js';
+
+// Small changes to the pieces so the class reads at play zoom (the user, 2026-11-15: "Could we just make small
+// modifications to the existing pieces so that they're easier to read as units?"). `false` gives the pieces as
+// they were. The foot pieces came first. The mounted pieces, elephants, machines, ships, wagons, the settler and
+// the great people followed (the user, 2026-11-15: "do a readability pass next on the remaining pieces in the same way").
+export const READABLE_UNIT_PIECES=true;
+// How much wider and thicker a tool or shield is, how much longer, and how much slimmer the body and plinth are.
+// `clear` is how far a tool may stand over the piece's head before it meets the badge, and `over` is how much of
+// the rest it keeps (the user, 2026-11-15: "adjust the lance and staff heights so they fit the bounds of the piece
+// a bit better, these adjustments dont need to be very large"). A longer tool is still the taller one.
+const READABLE={toolWidth:1.6,toolLength:1.18,body:.88,reach:.92,clear:.14,over:.5};
+// What each kind of piece counts as its height, in the model's own units before the group's scale. Pieces of one
+// kind carry the badge at one height, and a lance, a mast top, a pennant or a throwing arm does not lift it.
+// Mounted pieces and chariots: the horse's ears. Machines: a little over the trebuchet's pivot, so the badge leaves
+// most of its beam in view. Ships: the tallest yard.
+const KIND_HEIGHT={mounted:1.377,siege:1.30,naval:1.12};
+
+/**
+ * Makes what a piece holds bolder and its body a little slimmer.
+ *
+ * A piece is a turned body on the upright through the middle, and its tools stand beside it. So every part whose
+ * place is off the middle is a tool or a shield, unless it is marked `userData.body`. Each side's tools grow wider and thicker about that side's own
+ * middle, and a little longer from their lowest point, so nothing sinks into the plinth.
+ *
+ * `tools:false` treats every part as body: a chariot, a machine and an elephant are wider than their plinth, so
+ * the whole piece slims with it and the model's own code makes its parts bolder.
+ * `bake` writes each part's turn into its geometry first, so a ring or a wheel that lies on its side slims
+ * evenly. The foot pieces do not use it: their accepted look is as it was.
+ * `toolWidth` replaces the common width for a piece whose emblem is already broad.
+ */
+function makeReadable(group,{tools:findTools=true,bake=false,toolWidth=READABLE.toolWidth}={}){
+ const tools={'-1':[],'1':[]};let top=0;
+ if(bake)for(const part of group.children){
+  if(!part.isMesh||(part.rotation.x===0&&part.rotation.y===0&&part.rotation.z===0))continue;
+  part.geometry.applyMatrix4(new T.Matrix4().compose(new T.Vector3(),part.quaternion,part.scale));part.rotation.set(0,0,0);part.scale.set(1,1,1);
+ }
+ group.updateMatrixWorld(true);
+ for(const part of group.children){
+  if(findTools&&!part.userData.body&&Math.abs(part.position.x)>.15)tools[Math.sign(part.position.x)].push(part);
+  else{
+   part.scale.x*=READABLE.body;part.scale.z*=READABLE.body;part.position.x*=READABLE.body;part.position.z*=READABLE.body;
+   // A plume or a pennant does not count, whether it is a part of the piece or a part inside a carved group.
+   part.updateMatrixWorld(true);
+   part.traverse(o=>{if(o.isMesh&&!/plume|pennant/.test(o.name))top=Math.max(top,new T.Box3().setFromObject(o).max.y)});
+  }
+ }
+ // What the piece counts as its height: the body and helmet, and not a tool, a spear or a plume (the user, 2026-11-15:
+ // "the tools shouldn't 'count' towards its height"). The badge and the health bar stand on this.
+ group.userData.pieceHeight=top;
+ for(const side of [-1,1]){
+  const parts=tools[side];if(!parts.length)continue;
+  const boxes=parts.map(part=>new T.Box3().setFromObject(part));
+  const low=Math.min(...boxes.map(b=>b.min.y));
+  const midX=parts.reduce((sum,part)=>sum+part.position.x,0)/parts.length,midZ=parts.reduce((sum,part)=>sum+part.position.z,0)/parts.length;
+  for(const part of parts){
+   // A part that lies on its side (a shield's disc, a ring) has its length across, so it grows the same in every direction.
+   const flat=Math.abs(part.rotation.x)>1||Math.abs(part.rotation.y)>1;
+   part.scale.x*=toolWidth;part.scale.z*=toolWidth;part.scale.y*=flat?toolWidth:READABLE.toolLength;
+   part.position.x=midX*READABLE.reach+(part.position.x-midX)*toolWidth;
+   part.position.z=midZ+(part.position.z-midZ)*toolWidth;
+   part.position.y=low+(part.position.y-low)*READABLE.toolLength;
+  }
+  // A tool that stands far over the head comes down a little. Its shaft (a part as long as half the tool) gets
+  // shorter from the top, and what the shaft carries above the middle (a point, a hook, a pennant) comes down
+  // with it, unchanged. Heights here are the board's, so the group's scale turns them into the piece's own units.
+  group.updateMatrixWorld(true);
+  const unit=group.scale.y,after=parts.map(part=>new T.Box3().setFromObject(part));
+  const high=Math.max(...after.map(b=>b.max.y)),limit=top+READABLE.clear*unit;
+  if(high<=limit)continue;
+  const drop=(high-limit)*(1-READABLE.over),span=high-low;
+  parts.forEach((part,i)=>{
+   const b=after[i],tall=b.max.y-b.min.y;
+   if(tall>span*.5){
+    const keep=(tall-Math.min(drop,tall*.5))/tall,foot=b.min.y/unit;
+    part.scale.y*=keep;part.position.y=foot+(part.position.y-foot)*keep;
+   }else if((b.min.y+b.max.y)/2>low+span*.6)part.position.y-=drop/unit;
+  });
+ }
+}
 
 // The original memory-table figures: concentric enamel plinths, turned robes,
 // ivory faces and a few gilt marks. Unit identity lives in the finial/tool.
-export function createPrimitiveUnitScene(type,{family='scholar'}={}){
+export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=UNIT_VARIANTS[type]??'a'}={}){
+ if(UNIT_VARIANT_IDS[type]&&!UNIT_VARIANT_IDS[type].includes(variant))throw new Error(`Unknown ${type} variant ${variant}`);
  const mounted=mountedVariants.includes(type);
  const infantry=['swordsman','legionary','longswordsman','fireLance','khopesh','eagleWarrior'].includes(type);
  const equipment=polearmVariants.includes(type)||rangedVariants.includes(type);
@@ -19,6 +100,11 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  const material=(name,color)=>{const m=new T.MeshStandardMaterial({color,roughness:.8,metalness:0});m.name=name;return m};
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
  const ivory=material('Warm ivory','#e8d8b2'),gold=material('Antique gold','#b69045'),dark=material('Incised detail','#303d42');
+ // `Trim` parts take the seat's second colour in the game (`packUnitAsset` with `trim`); elsewhere they stay gilt.
+ // `steel` is the helmets' material. It is the seat's first colour, the same tone as the body (the user, 2026-11-15:
+ // "lets just have the helmets be the same color, they don't need to be darker"), so its name starts with `Owner`.
+ // The brow band in the second colour, the cheek guards, the spike and the brim are what make it a helmet.
+ const trim=material('Trim gilt','#b69045'),steel=material('Owner helmet','#ffffff');
  const mesh=(name,geometry,m,x=0,y=0,z=0)=>{
   const o=new T.Mesh(geometry,m);o.name=name;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;
  };
@@ -37,12 +123,24 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  };
  const box=(name,size,m,x,y,z=0)=>mesh(name,new T.BoxGeometry(...size),m,x,y,z);
  const ivoryFace=(y=1.075)=>{
+  // The small nose is gone (the user, 2026-11-15: "the little nose on the figures can be removed").
   sphere('Faceted ivory face',.145,ivory,0,y);
-  const nose=mesh('Small carved nose',new T.ConeGeometry(.027,.072,4),ivory,0,y-.013,.145);nose.rotation.x=Math.PI/2;
  };
- const augurCap=()=>{
-  mesh('Simple augur cap',new T.ConeGeometry(.166,.307,8),ivory,0,1.279);
-  ring('Gilt cap brim',.162,1.135,gold,0,0,.008);
+ // A soldier's helmet in steel: a dome over the top of the head, a brow band in the seat's second colour, a nasal
+ // bar and two cheek guards. `point` adds a short spike (spears and polearms) and `brim` a wide flat brim (bows),
+ // so the two classes differ in outline. A later age adds a plume in the second colour, taller in the last age.
+ const helmet=(kind)=>{
+  mesh('Steel helmet dome',new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
+  // The band is bold: with the dome in the body's colour, it is what marks the helmet off from the robe.
+  ring('Trim brow band',.174,1.122,trim,0,0,.026);
+  box('Steel nasal bar',[.026,.120,.020],steel,0,1.068,.168);
+  for(const side of [-1,1])box(`Steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
+  if(kind==='point')mesh('Steel helmet spike',new T.ConeGeometry(.062,.150,8),steel,0,1.345);
+  if(kind==='brim')cylinder('Steel helmet brim',.232,.020,steel,0,1.128,0,.232,16);
+  if(tier>=2){
+   const tall=tier>=3?.26:.16,foot=kind==='point'?1.40:1.275;
+   const plume=box('Trim helmet plume',[.036,tall,.150],trim,0,foot+tall/2,-.030);plume.rotation.x=-.18;
+  }
  };
  const bowAndQuiver=(mounted=false)=>{
   const x=mounted?.34:.223,y=mounted?.835:.974,z=mounted?.08:.155;
@@ -66,23 +164,25 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
 
  // Shared stepped plinth from mockups/memory-table/study-01.js.
  if(type!=='embarked'&&type!=='trader'&&type!=='rihlaCaravan'&&!navalVariants.includes(type)){
-  cylinder('Gilt plinth',.37,.09,gold,0,.045,0,.37,24);
+  cylinder('Trim plinth',.37,.09,trim,0,.045,0,.37,24);
   cylinder('Enamel base',.32,.12,owner,0,.13,0,.32,24);
   cylinder('Ivory base bead',.29,.045,ivory,0,.21,0,.29,24);
  }
- const kit={group,mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark};
+ const kit={group,mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark,trim,steel,tier,readable:READABLE_UNIT_PIECES};
+ const readable=READABLE_UNIT_PIECES;
  if(type==='embarked'||navalVariants.includes(type))addNaval(kit,type);
  else if(siegeVariants.includes(type))addSiege(kit,type);
  else if(chariotVariants.includes(type))addChariot(kit,type);
  else if(type==='greatPerson')addGreatPerson(kit,family);
  else if(type==='warElephant'||type==='siegeElephant')addWarElephant(kit,{siege:type==='siegeElephant'});
+ else if(type==='scout'&&variant!=='a')addScoutVariant(kit,variant);
  else if(type==='scout'){
   // A full-sized military pawn in one carved hooded mantle. The open front
   // preserves the ivory face and turned body without adding human limbs.
   const profile=[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
   mesh('Scout turned enamel stem',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Scout hem recess',.262,.027,ownerShade,0,.263);
-  ring('Scout gilt hem',.267,.293);
+  ring('Scout trim hem',.267,.293,trim,0,0,.016);
   ring('Scout collar bead',.146,.963,gold,0,0,.009);
   cylinder('Scout ivory neck',.09,.073,ivory,0,.982);
   sphere('Scout ivory pawn finial',.155,ivory,0,1.075);
@@ -128,7 +228,7 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   sphere('Scout small ivory cloak fastening',.020,ivory,0,.943,.163,8,5);
   for(let i=0;i<6;i++){
    const angle=i*Math.PI/3+Math.PI/6,s=Math.sin(angle),c=Math.cos(angle);
-   rod(`Scout gilt piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.0055);
+   rod(`Scout gilt piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.0055).userData.body=true;
   }
   rod('Scout upright ivory staff',[.319,.230,.035],[.319,1.390,.035],.020,ivory,8);
   cylinder('Scout gilt staff grip',.025,.125,gold,.319,.866,.035,.025,8);
@@ -136,13 +236,21 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   sphere('Scout round staff finial',.040,ivory,.319,1.420,.035,8,5);
  }else if(type==='settler'){
   // A plain pawn carrying a folded banner, held clear above its head.
-  const profile=[[.26,.23],[.275,.31],[.23,.45],[.17,.64],[.135,.79],[.135,.85]];
+  if(variant!=='a')addSettlerVariant(kit,variant);else{
+  // The settler has the foot pieces' body and height (the user, 2026-11-15: "the unit models should be the same size
+  // across the board"). The old piece was a shorter pawn.
+  const profile=readable?[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]]:[[.26,.23],[.275,.31],[.23,.45],[.17,.64],[.135,.79],[.135,.85]];
+  const neck=readable?.120:0;
   mesh('Settler turned enamel stem',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Settler hem recess',.262,.027,ownerShade,0,.263);
-  ring('Settler gilt hem',.267,.293);
-  ring('Settler collar bead',.140,.845,gold,0,0,.009);
-  cylinder('Settler ivory neck',.09,.073,ivory,0,.862);
-  sphere('Settler plain ivory pawn finial',.160,ivory,0,.950);
+  ring('Settler trim hem',.267,.293,trim,0,0,.016);
+  if(readable)ring('Settler trim collar bead',.146,.963,trim,0,0,.014);
+  else ring('Settler collar bead',.140,.845,gold,0,0,.009);
+  cylinder('Settler ivory neck',.09,.073,ivory,0,.862+neck);
+  sphere('Settler plain ivory pawn finial',.160,ivory,0,.950+neck+(readable?.005:0));
+  }
+  // The present piece and the first alternate carry the flag.
+  if(variant==='a'||variant==='b'){
   rod('Settler upright ivory flagpole',[.300,.230,.060],[.300,1.510,.060],.018,ivory,8);
   cylinder('Settler gilt flagpole grip',.023,.109,gold,.300,.770,.060,.023,8);
   sphere('Settler gilt flagpole finial',.032,gold,.300,1.538,.060,8,5);
@@ -178,13 +286,25 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   mesh('Settler folded enamel swallowtail flag',flag,owner);
   for(let i=0;i<top.length-1;i++)rod(`Settler gilt flag upper seam ${i}`,top[i],top[i+1],.005,gold,4);
   rod('Settler gilt flag fly seam',top[2],tailTop,.005,gold,4);
+  if(readable){
+   // The flag and its seams are one group, so they grow together when the piece is made readable. The flag's lower
+   // edge takes the seat's second colour.
+   for(let i=0;i<bottom.length-1;i++)rod(`Trim flag lower border ${i}`,bottom[i],bottom[i+1],.012,trim,4);
+   rod('Trim flag fly border',bottom[2],tailBottom,.012,trim,4);
+   const banner=new T.Group();banner.name='Settler banner';banner.position.set(.310,1.36,.060);
+   for(const part of group.children.filter(part=>/flag (upper|fly|lower)|swallowtail flag/.test(part.name))){part.position.sub(banner.position);banner.add(part)}
+   group.add(banner);
+  }
+  }
  }else if(type==='trader'||type==='rihlaCaravan'){
   // A freestanding wagon. Its four wheels supply the actual ground contacts;
   // there is no token base or display stand beneath the carriage.
   box('Caravan ivory floor',[.500,.070,.638],ivory,0,.525);
   for(const sign of [-1,1]){
    box(`Enamel wagon side ${sign}`,[.035,.156,.580],owner,sign*.234,.630);
-   box(`Gilt wagon rail ${sign}`,[.041,.022,.600],gold,sign*.234,.713);
+   // From the second age the rail is a broad band in the seat's second colour.
+   if(readable&&tier>=1)box(`Trim wagon side band ${sign}`,[.047,.056,.600],trim,sign*.234,.700);
+   else box(`Gilt wagon rail ${sign}`,[.041,.022,.600],gold,sign*.234,.713);
    rod(`Ivory wagon axle ${sign}`,[-.339,.545,sign*.213],[.339,.545,sign*.213],.027,ivory,8);
    for(const side of [-1,1]){
     const x=side*.315,z=sign*.213;
@@ -206,7 +326,9 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   for(const z of [-.271,0,.271]){
    for(let i=0;i<8;i++){
     const a=Math.PI-i*Math.PI/8,b=Math.PI-(i+1)*Math.PI/8;
-    rod(`Gilt canopy bow ${z} ${i}`,[Math.cos(a)*.227,.767+Math.sin(a)*.211,z],[Math.cos(b)*.227,.767+Math.sin(b)*.211,z],.005,gold,4);
+    // The hoops over the cover are the wagon's bands: bolder, and in the seat's second colour.
+    if(readable)rod(`Trim canopy bow ${z} ${i}`,[Math.cos(a)*.229,.767+Math.sin(a)*.213,z],[Math.cos(b)*.229,.767+Math.sin(b)*.213,z],.013,trim,4);
+    else rod(`Gilt canopy bow ${z} ${i}`,[Math.cos(a)*.227,.767+Math.sin(a)*.211,z],[Math.cos(b)*.227,.767+Math.sin(b)*.211,z],.005,gold,4);
    }
   }
   const openingOutline=[[-.130,0],[-.130,.054]];
@@ -221,6 +343,8 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   if(type==='rihlaCaravan')addJourneyCargo(kit);
   for(const part of group.children)part.position.y-=.413;
   group.scale.setScalar(.84);
+  // Both wagons carry the badge above the cover. The journey wagon's carpet roll and pennant do not lift it.
+  if(readable)group.userData.pieceHeight=(.767+.213+.013-.413)*.84;
  }else if(type==='horseman'||type==='horseArcher'||mounted){
   // A knight is one continuous bust on a low turned seat. Its broad foot
   // grows into the neck; it does not reuse the standing figures' robe/stem.
@@ -228,7 +352,9 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   mesh('Low enamel knight seat',new T.LatheGeometry(seat.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Solid enamel socket',.315,.025,owner,0,.417);
   cylinder('Seat recess',.262,.022,ownerShade,0,.264);
-  ring('Gilt seat bead',.266,.294);
+  // The seat's bead takes the seat's second colour and is bolder. The socket stays in the seat's first colour
+  // with its thin gilt rim: it is most of what shows whose horse this is.
+  if(readable)ring('Trim seat bead',.268,.294,trim,0,0,.016);else ring('Gilt seat bead',.266,.294);
   ring('Gilt socket rim',.315,.425,gold,0,0,.006);
   const emblem=box('Knight seat insignia',[.035,.035,.011],gold,0,.350,.280);emblem.rotation.z=Math.PI/4;
   const firstHeadPart=group.children.length;
@@ -257,6 +383,11 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   rod('Gilt mane lower',[0,.12,-.262],[0,.43,-.248],.008,gold);
   rod('Gilt mane middle',[0,.43,-.248],[0,.63,-.220],.008,gold);
   rod('Gilt mane crest',[0,.63,-.220],[0,.77,-.169],.008,gold);
+  // Decoration by age: from the third age a narrow band round the chest in the seat's second colour; in the last age
+  // a cloth in the seat's first colour over the chest, under the band. The badge stands over the head, so
+  // the decoration is on the chest where it shows, and it lies close so the horse keeps its outline.
+  if(readable&&tier>=2)box('Trim chest band',[.342,.042,.417],trim,0,.222,-.0575);
+  if(readable&&tier>=3)box('Owner chest cloth',[.338,.200,.413],owner,0,.100,-.0575);
   }
   const headParts=group.children.slice(firstHeadPart),bust=new T.Group();bust.name='Integrated chess knight';bust.position.y=.415;bust.rotation.y=-.8;group.add(bust);
   for(const part of headParts)bust.add(part);
@@ -273,21 +404,30 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   }
  }else{
   const worker=type==='worker';
-  const profile=worker?[[.26,.23],[.275,.31],[.23,.45],[.17,.64],[.135,.79],[.135,.85]]:[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
+  // Every foot piece has one body of one height (the user, 2026-11-15: "the unit models should be the same size across the board").
+  const profile=[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
   mesh('Turned enamel robe',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Hem shadow',.262,.027,ownerShade,0,.263);
-  ring('Gilt hem',.267,.293);
-  ring('Small collar bead',worker?.140:.146,worker?.845:.963,gold,0,0,.009);
-  cylinder('Ivory neck',.09,.073,ivory,0,worker?.862:.982);
-  // Six restrained lines describe the turned robe instead of separate limbs.
-  for(let i=0;i<(worker?0:6);i++){
-   const angle=i*Math.PI/3+Math.PI/6,s=Math.sin(angle),c=Math.cos(angle);
-   rod(`Gilt piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.0055);
+  // The decoration grows with the piece's age (`tier` 0 to 3), in the seat's second colour:
+  // a hem band; then a collar and an insignia; then piping and a waist band; then a short mantle over the shoulders.
+  ring('Trim hem',.267,.293,trim,0,0,.016);
+  if(!worker&&tier>=1)ring('Trim collar bead',.146,.963,trim,0,0,.014);
+  cylinder('Ivory neck',.09,.073,ivory,0,.982);
+  if(!worker&&tier>=2){
+   for(let i=0;i<6;i++){
+    const angle=i*Math.PI/3+Math.PI/6,s=Math.sin(angle),c=Math.cos(angle);
+    // The piping is part of the robe. Without the mark, the two lines at the sides would count as tools.
+    rod(`Trim piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.009,trim).userData.body=true;
+   }
+   ring('Trim waist band',.174,.630,trim,0,0,.012);
   }
-  if(!worker){const emblem=box('Single diamond insignia',[.04,.04,.011],gold,0,.795,.195);emblem.rotation.z=Math.PI/4}
-  if(worker)sphere('Plain ivory pawn finial',.160,ivory,0,.950);
+  if(!worker&&tier>=3)cylinder('Trim shoulder mantle',.222,.110,trim,0,.885,0,.150,12);
+  if(!worker&&tier>=1){const emblem=box('Single diamond insignia',[.05,.05,.011],gold,0,.795,.195);emblem.rotation.z=Math.PI/4}
+  if(worker)sphere('Plain ivory pawn finial',.160,ivory,0,1.075);
   else ivoryFace();
-  if(type==='warrior'||type==='spearman'||type==='archer'||equipment)augurCap();
+  if(type==='warrior')helmet('plain');
+  else if(type==='spearman'||polearmVariants.includes(type))helmet('point');
+  else if(type==='archer'||rangedVariants.includes(type))helmet('brim');
   if(faithVariants.includes(type))addFaithEquipment(kit,type);
   else if(equipment)addPolearmRangedVariant(kit,type);
   else if(infantry)addInfantryVariant(kit,type);
@@ -333,6 +473,21 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
    }
    sphere('Solar staff ivory heart',.029,ivory,.306,1.442,.005,8,5);
   }
+ }
+ if(READABLE_UNIT_PIECES){
+  const naval=type==='embarked'||navalVariants.includes(type),wagon=type==='trader'||type==='rihlaCaravan';
+  if(naval)group.userData.pieceHeight=KIND_HEIGHT.naval*.72;
+  else if(wagon){/* A wagon's height is set where it is built. */}
+  else if(siegeVariants.includes(type)){makeReadable(group,{tools:false,bake:true});group.userData.pieceHeight=KIND_HEIGHT.siege*.72}
+  else if(chariotVariants.includes(type)){makeReadable(group,{tools:false,bake:true});group.userData.pieceHeight=KIND_HEIGHT.mounted*.72}
+  // An elephant keeps its own height: the siege elephant's tower stands over its head and the badge must clear it.
+  else if(type==='warElephant'||type==='siegeElephant')makeReadable(group,{tools:false,bake:true});
+  else if(type==='horseman'||type==='horseArcher'||mounted){makeReadable(group,{bake:true});group.userData.pieceHeight=KIND_HEIGHT.mounted*.72}
+  // A great person's emblem is broad already, so it grows less than a soldier's tool.
+  else if(type==='greatPerson')makeReadable(group,{bake:true,toolWidth:1.3});
+  else if(type==='settler')makeReadable(group,{bake:true,toolWidth:1.3});
+  else if(type==='scout'&&variant!=='a')makeReadable(group,{bake:true});
+  else makeReadable(group);
  }
  return group;
 }

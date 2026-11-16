@@ -48,7 +48,8 @@ async function prepareFromGlb() {
       loader.parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '', resolve, reject));
     baked.push(bakeVegetationScene(gltf.scene, species));
   }
-  const kit = { broadleaves: baked.slice(0, 3), cypresses: baked.slice(3, 5), escarpments: baked.slice(5, 8), limestone: baked[8] };
+  // The mountains are every species between the cypresses and the limestone: three escarpments or five crags.
+  const kit = { broadleaves: baked.slice(0, 3), cypresses: baked.slice(3, 5), escarpments: baked.slice(5, -1), limestone: baked.at(-1) };
   finishVegetation(kit, { indexed: true });
   return kit;
 }

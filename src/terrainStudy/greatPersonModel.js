@@ -4,11 +4,12 @@ import * as T from 'three';
 // mantle establish the family; a small side emblem supplies the profession.
 export function addGreatPerson(kit,family='scholar'){
  if(!['scholar','artist','engineer','merchant','general'].includes(family))throw new Error(`Unknown great-person family ${family}`);
- const {mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark}=kit;
+ const {mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark,trim,readable}=kit;
  const profile=[[.26,.23],[.28,.31],[.235,.45],[.180,.68],[.211,.865],[.135,1.005]];
  mesh('Great person turned enamel body',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
  cylinder('Great person hem recess',.268,.023,ownerShade,0,.266);
- ring('Great person gilt hem',.277,.307,gold,0,0,.009);
+ // The hem and the mantle's edge take the seat's second colour and are bolder.
+ if(readable)ring('Great person trim hem',.277,.307,trim,0,0,.017);else ring('Great person gilt hem',.277,.307,gold,0,0,.009);
  ring('Great person ivory collar',.142,1.008,ivory,0,0,.014);
  cylinder('Great person ivory neck',.090,.087,ivory,0,1.038);
  sphere('Great person plain ivory head',.147,ivory,0,1.132);
@@ -35,7 +36,10 @@ export function addGreatPerson(kit,family='scholar'){
  }
  const mantle=new T.BufferGeometry();mantle.setAttribute('position',new T.Float32BufferAttribute(sashPositions,3));mantle.computeVertexNormals();
  mesh('Great person ivory diagonal mantle',mantle,ivory);
- for(let i=0;i<sash.length-1;i++)rod(`Great person mantle gilt edge ${i}`,sash[i][1],sash[i+1][1],.005,gold,4);
+ for(let i=0;i<sash.length-1;i++){
+  if(readable)for(const edge of [0,1])rod(`Great person mantle trim edge ${edge} ${i}`,sash[i][edge],sash[i+1][edge],.012,trim,4);
+  else rod(`Great person mantle gilt edge ${i}`,sash[i][1],sash[i+1][1],.005,gold,4);
+ }
  const fastening=cylinder('Great person mantle brooch',.027,.010,gold,-.105,.884,.184,.027,8);fastening.rotation.x=Math.PI/2;
 
  // Two short laurel sprigs follow the head itself. No tall coronet or mitre.
@@ -44,7 +48,9 @@ export function addGreatPerson(kit,family='scholar'){
   for(let i=0;i<4;i++){
    const a=1.40-i*.31,p=[side*.121*Math.sin(a),1.132+.121*Math.cos(a),.086];points.push(p);
    const leaf=mesh(`Great person laurel leaf ${side} ${i}`,new T.IcosahedronGeometry(1,0),gold,...p);
-   leaf.scale.set(.015,.031,.007);leaf.rotation.z=side*(.55-i*.10);
+   // The laurel is what marks a great person, so its leaves are larger on the readable piece.
+   if(readable)leaf.scale.set(.026,.050,.014);else leaf.scale.set(.015,.031,.007);
+   leaf.rotation.z=side*(.55-i*.10);
   }
   for(let i=0;i<points.length-1;i++)rod(`Great person laurel stem ${side} ${i}`,points[i],points[i+1],.0045,gold,4);
  }

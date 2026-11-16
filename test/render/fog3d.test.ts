@@ -1138,17 +1138,20 @@ describe('the printed buckets the fog must leave alone', () => {
       levels,
     );
 
+    // A pin that is drawn over the scene wears its own copy of the standing material, with the same atlas (`quietPins` in `lens3d.ts`).
+    const standing = (material: unknown): boolean => material === fakeIcons.standingMaterial
+      || !!(material as { customProgramCacheKey?: () => string }).customProgramCacheKey?.().startsWith('vtest-pin');
     const printed = [...units.group.children, ...lens.group.children].filter(
       (child): child is InstancedMesh =>
         child instanceof InstancedMesh &&
         (child.material === fakeBadges.material ||
-          child.material === fakeIcons.standingMaterial ||
+          standing(child.material) ||
           child.material === fakeIcons.material),
     );
     // The fixture has to actually contain the things under test.
     expect(printed.length).toBeGreaterThan(0);
     expect(printed.some((mesh) => mesh.material === fakeBadges.material)).toBe(true);
-    expect(printed.some((mesh) => mesh.material === fakeIcons.standingMaterial)).toBe(true);
+    expect(printed.some((mesh) => standing(mesh.material))).toBe(true);
 
     for (const mesh of printed) {
       // Render-ready: the atlas material is intact, no tint stands between the

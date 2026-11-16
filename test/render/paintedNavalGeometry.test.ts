@@ -17,7 +17,11 @@ describe('painted naval silhouette contracts', () => {
       expect(names.filter(name => /^Mast \d+$/.test(name)), type).toHaveLength(def.masts!);
       expect(names.filter(name => /^Faceted ivory sail \d+$/.test(name)), type).toHaveLength(def.masts!);
       expect(names).toContain('Carved enamel lower hull');
-      expect(names).not.toContain('Gilt plinth');
+      expect(names).not.toContain('Gilt plinth'); expect(names).not.toContain('Trim plinth');
+      // A ship has no plinth, so its pennants carry the seat's second colour, one on each mast.
+      expect(names.filter(name => /^Trim mast pennant \d+$/.test(name)), type).toHaveLength(def.masts!);
+      // The badge stands at one height on every ship, whatever its rig.
+      expect(scene.userData.pieceHeight, type).toBe((createPrimitiveUnitScene('trireme') as Group).userData.pieceHeight);
       scene.traverse(object => {
         if (object instanceof Mesh) {
           object.geometry.dispose();

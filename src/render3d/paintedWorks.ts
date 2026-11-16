@@ -16,6 +16,7 @@ import { samplePaintedSurface } from './paintedSurface';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { terraceFarmGeometry } from './terraceFarmGeometry';
 import { terraceFarmSurface, TERRACE_LIFT } from './terraceFarmSurface';
+import { installHerdMotion } from './paintedAnimals';
 import { VIEW3D } from './lookData';
 // @ts-expect-error The reusable approved art builder remains JavaScript.
 import { createSettlementArt } from '../terrainStudy/settlementArt.js';
@@ -148,7 +149,10 @@ export class PaintedWorksLayer {
   constructor(private readonly assets: PaintedWorksAssets, registerMaterial: RegisterMaterial, private readonly source?: PaintedPropSource) {
     registerMaterial(this.terraceMaterial, { terrain: true });
     this.group.name = source?.name ?? 'painted-works';
-    this.art = source ? source.createArt(assets, registerMaterial) : createSettlementArt(assets, { register: registerMaterial });
+    this.art = source ? source.createArt(assets, registerMaterial)
+      : createSettlementArt(assets, { register: registerMaterial }, VIEW3D.visualTest.northStar ? VIEW3D.visualTest.works : null);
+    // The herds' idle motion lives in the shader of the material every work shares (`paintedAnimals.ts`).
+    if (VIEW3D.visualTest.northStar) installHerdMotion(assets.material);
   }
 
   build(state: GameState, preparedMap: GameMap, levels: FogLevels = null, seat: number | null = null,

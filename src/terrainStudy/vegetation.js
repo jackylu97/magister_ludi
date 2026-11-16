@@ -2,15 +2,25 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
+import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS,NORTH_STAR_RANGE_COUNT as RANGE_COUNT} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
-// two cypresses, three escarpments, then the limestone block. `family` is the
+// two cypresses, the mountains (three escarpments or five crags), then the
+// limestone block. `family` is the
 // name the distance sheet calls a group of them by; it is not in the bundle,
 // which indexes by `name` alone.
+// The north-star look (the visual test, 2026-11-12) loads the round trees of
+// `build_soft_trees.py`; otherwise the study's sculpts. Each set has its own
+// prepared bundle.
+const TREES=NORTH_STAR_TREES?'soft':'sculpt';
+// The mountains are the crags of `build_crag_mountains.py` or the study's
+// escarpments (`NORTH_STAR_CRAGS`). The kit still calls the three of them
+// `escarpments`, so nothing that reads the kit changes.
+const RANGE=CRAGS?'crag':'escarpment';
 export const VEGETATION_SPECIES=[
- ...[0,1,2].map(i=>({name:`grove-sculpt-${i}`,evergreen:false,rock:false,family:'groves'})),
- ...[0,1].map(i=>({name:`cypress-sculpt-${i}`,evergreen:true,rock:false,family:'groves'})),
- ...[0,1,2].map(i=>({name:`escarpment-${i}`,evergreen:false,rock:true,family:'escarpments'})),
+ ...[0,1,2].map(i=>({name:`grove-${TREES}-${i}`,evergreen:false,rock:false,family:'groves'})),
+ ...[0,1].map(i=>({name:`cypress-${TREES}-${i}`,evergreen:true,rock:false,family:'groves'})),
+ ...Array.from({length:RANGE_COUNT},(_,i)=>({name:`${RANGE}-${i}`,evergreen:false,rock:true,family:'escarpments'})),
  {name:'limestone',evergreen:false,rock:true,family:'stones'},
 ];
 
@@ -18,7 +28,7 @@ export const VEGETATION_SPECIES=[
 // `scripts/terrain-study/build_asset_bundle.mjs` runs it once and ships the
 // result. The runtime keeps this path as the fallback for a missing or
 // out-of-date bundle, and it is the definition the bundle is pinned against.
-export const VEGETATION_BUNDLE_VERSION='vegetation-1';
+export const VEGETATION_BUNDLE_VERSION=CRAGS?'vegetation-soft-crag-1':TREES==='soft'?'vegetation-soft-1':'vegetation-1';
 export const VEGETATION_BUNDLE_URL=`/terrain-study/asset-bundle/${VEGETATION_BUNDLE_VERSION}.bundle`;
 const BUNDLE_MAGIC='MLAB';
 
@@ -29,7 +39,7 @@ const BUNDLE_MAGIC='MLAB';
  * temporary; only the returned geometry survives.
  */
 export function bakeVegetationScene(scene,{name,evergreen=false}){
- const parts=[],temporary=new Set();
+ const parts=[],saddle=[],temporary=new Set();
  try {
   scene.updateMatrixWorld(true);
   scene.traverse(object=>{
@@ -47,14 +57,23 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
     uv[i*2]=(p.getX(i)+p.getZ(i)*.61)*.45;uv[i*2+1]=(p.getY(i)+p.getZ(i)*.37)*.45;
    }
    for(const key of Object.keys(geometry.attributes))if(!['position','normal'].includes(key))geometry.deleteAttribute(key);
-   geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('canopyWeight',new T.Float32BufferAttribute(new Float32Array(p.count).fill(foliage?1:0),1));parts.push(geometry);
+   geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('canopyWeight',new T.Float32BufferAttribute(new Float32Array(p.count).fill(foliage?1:0),1));
+   // A crag file holds two models: the mountain, and the saddle that joins two
+   // peaks, which its author names `Saddle...`.
+   // Some parts of a crag keep the colour their author gave them on every
+   // terrain (`CRAG_OWN`); `rangeKeep` tells the mountain's shader which.
+   if(name.startsWith('crag'))geometry.setAttribute('rangeKeep',new T.Float32BufferAttribute(new Float32Array(p.count).fill(CRAG_OWN.some(own=>object.material.name.startsWith(own))?1:0),1));
+   (name.startsWith('crag')&&object.name.startsWith('Saddle')?saddle:parts).push(geometry);
   });
   const geometry=mergeGeometries(parts);
   if(!geometry)throw new Error(`Cannot merge vegetation asset ${name}`);
   try {
    // Reuse the main fracture blocks for low shoulders, omitting the tiny
    // rubble already sculpted around the full summit asset.
-   const shoulderParts=name.startsWith('escarpment')?parts.filter(g=>{g.computeBoundingBox();return g.boundingBox.max.y-g.boundingBox.min.y>.62}):[];
+   // A crag brings its own shoulder (the saddle). A crag file with no saddle in
+   // it falls back to the escarpments' rule, so a mountain always has one.
+   const range=name.startsWith('escarpment')||name.startsWith('crag');
+   const shoulderParts=saddle.length?saddle:range?parts.filter(g=>{g.computeBoundingBox();return g.boundingBox.max.y-g.boundingBox.min.y>.62}):[];
    const shoulderGeometry=shoulderParts.length?mergeGeometries(shoulderParts):null;
    return {geometry,shoulderGeometry};
   }catch(error){geometry.dispose();throw error}
@@ -75,6 +94,17 @@ export function bakeVegetationScene(scene,{name,evergreen=false}){
  }
 }
 
+// How a crag takes the ground's colour. A face counts as a shelf if its normal
+// points up at least `level` and it lies between `above` and `below` of the
+// model's height (the lowest block is the mountain's footing and stays rock, as the summit does);
+// `green` is how far it goes to the ground's colour. Faces under `apron` of the
+// height are the slope at the foot, which goes `foot` of the way.
+const CRAG_SHELF={level:.9,above:.25,below:.82,green:.8,apron:.035,foot:.8};
+// The materials of a crag that keep their own colour on every terrain: the
+// snow on a summit, the shrubs and small trees on the ledges, and the scree at
+// the foot. The names are `build_crag_mountains.py`'s.
+const CRAG_OWN=['snow','leaf','pine','bark','scree'];
+
 /**
  * The two whole-kit passes: the range-foot weight the mountain pigment shader
  * mixes on, and the weld. Both depend only on the baked geometry, so the build
@@ -89,7 +119,11 @@ export function finishVegetation({broadleaves,cypresses,escarpments,limestone},{
    const y=(p.getY(i)+p.getY(i+1)+p.getY(i+2))/(3*height);
    const x=(p.getX(i)+p.getX(i+1)+p.getX(i+2))/3,z=(p.getZ(i)+p.getZ(i+1)+p.getZ(i+2))/3;
    const cut=(shoulder?.32:.19)+.055*Math.sin(x*9+z*6),up=n.getY(i)>.24;
-   const weight=Math.max(geometry===limestone.geometry?.46:0,y<cut?(shoulder?.90:.74):y<(shoulder?.62:.38)&&up?(shoulder?.68:.49):0);
+   // A crag takes the ground's colour on its level shelves and on the low
+   // apron at its foot. Its walls and its summit stay rock.
+   const crag=CRAGS&&geometry!==limestone.geometry;
+   const weight=crag?(n.getY(i)>CRAG_SHELF.level&&y>CRAG_SHELF.above&&y<CRAG_SHELF.below?CRAG_SHELF.green:y<CRAG_SHELF.apron?CRAG_SHELF.foot:0)
+    :Math.max(geometry===limestone.geometry?.46:0,y<cut?(shoulder?.90:.74):y<(shoulder?.62:.38)&&up?(shoulder?.68:.49):0);
    weights.fill(weight,i,i+3);
   }
   geometry.setAttribute('rangeFoot',new T.BufferAttribute(weights,1));
@@ -289,15 +323,18 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
   const rockMaterial=new T.MeshStandardMaterial({color:'white',vertexColors:true,roughness:.9,flatShading:true,bumpMap:mineralGrain,bumpScale:.006});
   const rangeMaterial=rockMaterial.clone();
   rangeMaterial.onBeforeCompile=shader=>{
-    shader.vertexShader='attribute float rangeFoot;\n'+shader.vertexShader;
+    shader.vertexShader='attribute float rangeFoot;\n'+(CRAGS?'attribute float rangeKeep;\n':'')+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <color_vertex>',`#include <color_vertex>
       #ifdef USE_INSTANCING_COLOR
-      vec3 stonePigment=vColor.xyz/max(instanceColor,vec3(.001));
+      vec3 ownPigment=vColor.xyz/max(instanceColor,vec3(.001));
+      vec3 stonePigment=ownPigment${NORTH_STAR_ROCK?`*vec3(${NORTH_STAR_ROCK.map(v=>v.toFixed(3)).join(',')})`:''};
+      ${MOUNTAIN_ROCK?`stonePigment=vec3(dot(stonePigment,vec3(.3333)))*vec3(${MOUNTAIN_ROCK.map(v=>v.toFixed(3)).join(',')});`:''}
       vColor.xyz=mix(stonePigment,instanceColor,rangeFoot);
+      ${CRAGS?'vColor.xyz=mix(vColor.xyz,ownPigment,rangeKeep);':''}
       #endif
     `);
   };
-  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v1';
+  rangeMaterial.customProgramCacheKey=()=> 'mountain-range-pigments-v2'+(CRAGS?'keep':'')+(NORTH_STAR_ROCK?NORTH_STAR_ROCK.join():'')+(MOUNTAIN_ROCK?MOUNTAIN_ROCK.join():'');
   foliageMaterial.onBeforeCompile=shader=>{
     shader.uniforms.groveTime=time;
     shader.vertexShader='uniform float groveTime; attribute float canopyWeight;\n'+shader.vertexShader;
@@ -311,12 +348,12 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
       #ifdef USE_INSTANCING
       vec3 root=instanceMatrix[3].xyz;
       float bend=smoothstep(.35,1.5,position.y);
-      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*.012;
-      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*.006;
+      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*${NORTH_STAR_TREES?'.045':'.012'};
+      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*${NORTH_STAR_TREES?'.028':'.006'};
       #endif
     `);
   };
-  foliageMaterial.customProgramCacheKey=()=> 'sculpted-grove-breeze-v2';
+  foliageMaterial.customProgramCacheKey=()=> 'sculpted-grove-breeze-v3';
   const outputs=new Set();
   const materialFor=rock=>rock?rockMaterial:foliageMaterial;
   async function species(name,evergreen=false,rock=false) {
@@ -342,7 +379,7 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
      if(failed)throw failed.reason;
      return loaded.map(result=>result.value);
     })();
-  const broadleaves=assets.slice(0,3),cypresses=assets.slice(3,5),escarpments=assets.slice(5,8),limestone=assets[8];
+  const broadleaves=assets.slice(0,3),cypresses=assets.slice(3,5),escarpments=assets.slice(5,5+RANGE_COUNT),limestone=assets[5+RANGE_COUNT];
   if(!bundled)finishVegetation({broadleaves,cypresses,escarpments,limestone},{indexed});
   // Name each sculpt on the geometry itself. A batch submitted at the overview
   // has no other identity to report — the bundle carries none, and a benchmark

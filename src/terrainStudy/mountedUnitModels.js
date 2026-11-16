@@ -89,7 +89,9 @@ export function addCamelBust(kit,bust){
 }
 
 export function addChariot(kit,type){
- const {box,rod,cylinder,mesh,ring,ivory,owner,ownerShade,gold}=kit;
+ const {box,rod,cylinder,mesh,ring,ivory,owner,ownerShade,gold,trim,tier,readable}=kit;
+ // The readable piece has a thicker spear or bow and a bolder crest. `bold` is how much thicker.
+ const bold=readable?1.6:1;
  // An open two-wheel carriage on the common token base, no tiny rider or
  // horse team. The wheel and curved breastwork are the identifying shapes.
  box('Chariot ivory deck',[.48,.055,.46],ivory,0,.45);
@@ -107,16 +109,23 @@ export function addChariot(kit,type){
   if(type==='scythedChariot')plate(kit,`Chariot scythe ${side}`,[[0,0],[side*.19,.025],[side*.27,.10],[side*.21,-.035],[0,-.04]],.023,ivory,side*.35,.46,.015);
  }
  plate(kit,'Chariot curved breastwork',[[-.24,0],[.24,0],[.23,.20],[.15,.27],[-.15,.27],[-.23,.20]],.035,owner,0,.47,.205);
- box('Chariot breastwork ivory crest',[.26,.025,.02],ivory,0,.714,.231);
+ // The crest of the breastwork is the chariot's band in the seat's second colour. Later ages add a band on each
+ // side and a second band low on the breastwork.
+ if(readable)box('Trim breastwork crest',[.30,.050,.050],trim,0,.722,.212);
+ else box('Chariot breastwork ivory crest',[.26,.025,.02],ivory,0,.714,.231);
+ if(readable&&tier>=1)for(const side of [-1,1])box(`Trim chariot side band ${side}`,[.040,.045,.335],trim,side*.22,.605,-.01);
+ if(readable&&tier>=2)box('Trim breastwork lower band',[.47,.040,.042],trim,0,.520,.208);
  rod('Chariot short drawbar',[0,.44,.24],[0,.34,.49],.027,ivory,8);
  if(type==='chariotArcher'){
   const p=[[-.015,-.28],[.12,-.14],[.15,0],[.12,.14],[-.015,.28]];
-  for(let i=0;i<p.length-1;i++)rod(`Chariot bow ${i}`,[.10+p[i][0],.94+p[i][1],0],[.10+p[i+1][0],.94+p[i+1][1],0],.016,gold,6);
-  rod('Chariot bowstring',[.085,.66,0],[.085,1.22,0],.005,ivory,4);
+  for(let i=0;i<p.length-1;i++)rod(`Chariot bow ${i}`,[.10+p[i][0],.94+p[i][1],0],[.10+p[i+1][0],.94+p[i+1][1],0],.016*bold,gold,6);
+  rod('Chariot bowstring',[.085,.66,0],[.085,1.22,0],.005*bold,ivory,4);
   cylinder('Chariot quiver',.052,.23,ownerShade,-.11,.76,-.08,.045,8);
   for(let i=0;i<3;i++)rod(`Chariot arrow ${i}`,[-.13+i*.024,.83,-.08],[-.13+i*.024,1.10,-.08],.006,ivory,4);
  }else{
-  rod('Chariot upright spear',[-.11,.46,-.07],[-.11,1.30,-.07],.019,gold,8);
-  plate(kit,'Chariot ivory spearhead',[[0,0],[-.04,.035],[0,.17],[.04,.035]],.023,ivory,-.11,1.25,-.07);
+  // The readable spear is a little shorter, so its head stands under the badge and not in it.
+  const reach=readable?.15:0;
+  rod('Chariot upright spear',[-.11,.46,-.07],[-.11,1.30-reach,-.07],.019*bold,gold,8);
+  plate(kit,'Chariot ivory spearhead',[[0,0],[-.04*bold,.035],[0,.17*(readable?1.25:1)],[.04*bold,.035]],.023*bold,ivory,-.11,1.25-reach,-.07);
  }
 }

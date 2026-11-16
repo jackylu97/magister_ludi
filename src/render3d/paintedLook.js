@@ -10,8 +10,16 @@ import {createShadowWrap} from './paintedShadowWrap.js';
 import {PAINTED_WORK_ASSET_NAMES} from './paintedWorks';
 import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
+import {NORTH_STAR_TOWN_ASSETS,NORTH_STAR_WORK_ASSETS} from '../terrainStudy/northStarAssets.js';
 import {VIEW3D} from './lookData';
+import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,VTEST_UNIFORMS,shareUniforms,installClouds} from './visualTestLook';
 
+// Brush marks on the ground (the user, 2026-11-13: the strokes should "look
+// more painted instead of vector art"). The two grain textures are read
+// stretched out along one slanted direction, at two sizes, so every fill
+// carries long faint streaks, as paint dragged by a brush does.
+const BRUSH=VIEW3D.visualTest.northStar?VIEW3D.visualTest.paint.brush:0;
+const BRUSH_GLSL=BRUSH?` vec2 brushAlong=vec2(p.x*.94+p.y*.34,p.y*.94-p.x*.34); float brush=texture2D(studyFlock,vec2(brushAlong.x*.42,brushAlong.y*.055)).r+texture2D(studyMineral,vec2(brushAlong.x*1.1+.37,brushAlong.y*.12)).r-1.0; diffuseColor.rgb*=1.0+brush*${BRUSH.toFixed(3)};`:'';
 export async function createPaintedLook(renderer,scene,camera,key='golden') {
  const resources=new Set();
  const own=resource=>{resources.add(resource);return resource};
@@ -48,8 +56,10 @@ const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=
 // Both asset batches want only the mineral/flocking grain for a bump map, and
 // want it after their own download, so all five requests are in flight at once.
 const assetRequests=[
- loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
- loadSettlementAssets({register(){}},grainRequests[0],{names:['city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
+ // The trees' breeze reads the visual test's clock under the north-star look,
+ // so they sway with the other idle motion. The study's value stays at rest.
+ loadVegetation(VIEW3D.visualTest.northStar?VTEST_UNIFORMS.vtestTime:{value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
+ loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk',...NORTH_STAR_TOWN_ASSETS,...NORTH_STAR_WORK_ASSETS]:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
 const grains=await Promise.allSettled(grainRequests);
@@ -71,14 +81,21 @@ const mineralUniform={value:mineralTexture};
 const flockUniform={value:flockTexture};
 
 // World-space pigment variation preserves a continuous scale across hexes.
-for(const [kind,m]of Object.entries(ground)){const water=['coast','ocean','lake'].includes(kind);m.onBeforeCompile=shader=>{shader.uniforms.studyTime=clockUniform;shader.uniforms.studyMineral=mineralUniform;shader.uniforms.studyFlock=flockUniform;shader.vertexShader='varying vec3 studyPosition;\n'+(water?'':'attribute float turfWeight; varying float vTurfWeight;\n')+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nstudyPosition=position;'+(water?'':'vTurfWeight=turfWeight;'));shader.fragmentShader='varying vec3 studyPosition; uniform float studyTime; uniform sampler2D studyMineral; uniform sampler2D studyFlock;\n'+(water?'':'varying float vTurfWeight;\n')+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+// The visual test version (batch V1) adds the new sea to the water
+// (`SEA_GLSL`, reading the `paintedWater` the board bakes), picked by a uniform
+// so its switch is never a recompile. The old streaks are left out of the water
+// while the new sea is on, since the sea draws its own glints. The land is as
+// it was.
+for(const [kind,m]of Object.entries(ground)){const water=['coast','ocean','lake'].includes(kind);m.onBeforeCompile=shader=>{shader.uniforms.studyTime=clockUniform;shader.uniforms.studyMineral=mineralUniform;shader.uniforms.studyFlock=flockUniform;if(water)shareUniforms(shader,SEA_UNIFORMS);else shareUniforms(shader,TILE_UNIFORMS);shader.vertexShader='varying vec3 studyPosition;\n'+(water?SEA_GLSL.vertexHead:'attribute float turfWeight; varying float vTurfWeight;\n')+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nstudyPosition=position;'+(water?SEA_GLSL.vertex:'vTurfWeight=turfWeight;'));shader.fragmentShader='varying vec3 studyPosition; uniform float studyTime; uniform sampler2D studyMineral; uniform sampler2D studyFlock;\n'+(water?SEA_GLSL.fragmentHead:'varying float vTurfWeight;\n'+TILE_GLSL.head)+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
  vec2 p=studyPosition.xz;
  float patches=sin(p.x*8.0+sin(p.y*5.0))*sin(p.y*7.0);
- ${water?'':'float mineral=texture2D(studyMineral,p*.32).r; float flock=texture2D(studyFlock,p*.55).r; diffuseColor.rgb *= .95 + mineral*.065 + patches*.012 + (flock-.5)*.19*vTurfWeight;'}
+ ${water?'':'float mineral=texture2D(studyMineral,p*.32).r; float flock=texture2D(studyFlock,p*.55).r; diffuseColor.rgb *= .95 + mineral*.065 + patches*.012 + (flock-.5)*.19*vTurfWeight;'+BRUSH_GLSL}
+ ${water?'':TILE_GLSL.fragment}
  ${water?`float wave=sin(p.y*24.0+p.x*3.0+sin(p.x*2.0)+studyTime*.35);
  float streak=step(.93,wave)*step(.3,sin(p.x*4.0+p.y));
- diffuseColor.rgb *= 1.0+streak*.045 + sin(p.x*1.4+p.y*.65)*sin(p.y*1.6)*.008;`:''}
- `)};m.customProgramCacheKey=()=>water?'study-water-v3':'study-land-v2'}
+ diffuseColor.rgb *= 1.0+(vtestSea>.5?0.0:streak*.045) + sin(p.x*1.4+p.y*.65)*sin(p.y*1.6)*.008;
+ ${SEA_GLSL.fragment}`:''}
+ `)};m.customProgramCacheKey=()=>water?'study-water-v3:vtest-v28':'study-land-v4:tiles'}
 
 const mergedLand=mat('#ffffff'),mergedWater=mat('#ffffff'),mergedDetails=mat('#ffffff');
 for(const [m,source]of [[mergedLand,ground.grassland],[mergedWater,ground.ocean]]){m.vertexColors=true;m.onBeforeCompile=source.onBeforeCompile;m.customProgramCacheKey=source.customProgramCacheKey}
@@ -91,6 +108,15 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // All asset loading finished above, before the live renderer's lighting changes.
  lighting=createLighting(renderer,scene,camera,{unitStencil:true});
  const style=createPainterlyStyle(renderer,lighting,paintTexture);
+ // Every material the style registers also takes the visual test version's
+ // cloud shadows (switch 7), except the chart paper: uncharted ground is a map
+ // on a table, and a cloud does not fall on a map.
+ const clouded=new WeakSet();
+ const register=(material,options={})=>{
+  style.register(material,options);
+  if(!options.chart&&!clouded.has(material)){clouded.add(material);installClouds(material)}
+  return material;
+ };
  const shadowKnobs=VIEW3D.painted.shadows;
  // The canonical-period lookup is NOT installed here. Registration would be
  // early enough to save a recompile, but the board clones several of these
@@ -99,9 +125,9 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // under a clone the sweep would wrap a second time. The sweep is the one
  // installer; see `paintedShadowWrap.js`.
  const shadowWrap=createShadowWrap();
- style.register(cityAssets.material);
- for(const m of [...assets.materials,mergedDetails,earth,featureMaterials.stone,featureMaterials.shrub])style.register(m);
- style.register(mergedLand,{terrain:true});style.register(mergedWater,{water:true});
+ register(cityAssets.material);
+ for(const m of [...assets.materials,mergedDetails,earth,featureMaterials.stone,featureMaterials.shrub])register(m);
+ register(mergedLand,{terrain:true});register(mergedWater,{water:true});
  sun=new T.DirectionalLight();sky=new T.HemisphereLight();
  // Terrain shadows bake only on world/visibility changes. Moving counters use
  // a separate small map, so panning or a walk never re-renders the whole world.
@@ -182,7 +208,7 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  }
  setDaylight(key);
  return {
-  assets,cityAssets,workAssets:cityAssets,registerMaterial:(material,options)=>style.register(material,options),
+  assets,cityAssets,workAssets:cityAssets,registerMaterial:(material,options)=>register(material,options),
   materials:{ground,earth,mergedLand,mergedWater,mergedDetails,water:waterMaterials,features:featureMaterials},
   sun,sky,setDaylight,fitShadows,invalidateShadows,updateDynamicShadows,invalidateDynamicShadows,
   // Who raises the near geometry for the depth pass, and drops it again before

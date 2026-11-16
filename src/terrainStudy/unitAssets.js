@@ -4,25 +4,29 @@ import {indexGeometry} from './indexGeometry.js';
 import {unitExamples,greatPersonFamilies} from './unitCatalog.js';
 import {createPrimitiveUnitScene} from './primitiveUnitModels.js';
 
-export function packUnitAsset(scene){
- scene.updateMatrixWorld(true);const parts={fixed:[],owner:[]};
+// `trim` asks for the parts whose material is named `Trim…` as a third geometry, in white, so the game can paint
+// them in a seat's second colour. Without it they stay in the fixed part with their own colour.
+export function packUnitAsset(scene,{trim=false}={}){
+ scene.updateMatrixWorld(true);const parts={fixed:[],owner:[]};if(trim)parts.trim=[];
  scene.traverse(o=>{
   if(!o.isMesh)return;
   const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);
-  const p=g.attributes.position,c=o.material.color,colors=new Float32Array(p.count*3),uv=new Float32Array(p.count*2);
+  const role=o.material.name.startsWith('Owner')?'owner':trim&&o.material.name.startsWith('Trim')?'trim':'fixed';
+  const p=g.attributes.position,c=role==='trim'?new T.Color(1,1,1):o.material.color,colors=new Float32Array(p.count*3),uv=new Float32Array(p.count*2);
   for(let i=0;i<p.count;i++){colors.set([c.r,c.g,c.b],i*3);uv[i*2]=(p.getX(i)+p.getZ(i)*.37)*2;uv[i*2+1]=(p.getY(i)+p.getZ(i)*.23)*2}
   for(const key of Object.keys(g.attributes))if(!['position','normal'].includes(key))g.deleteAttribute(key);
   g.setAttribute('color',new T.BufferAttribute(colors,3));g.setAttribute('uv',new T.BufferAttribute(uv,2));
-  parts[o.material.name.startsWith('Owner')?'owner':'fixed'].push(g);
+  parts[role].push(g);
  });
  const model={};let floor=Infinity;
  for(const [role,geometries]of Object.entries(parts)){
-  if(!geometries.length)throw new Error(`Missing ${role} material role`);
+  if(!geometries.length){if(role==='trim')continue;throw new Error(`Missing ${role} material role`)}
   const g=mergeGeometries(geometries);indexGeometry(g);g.computeBoundingBox();model[role]=g;floor=Math.min(floor,g.boundingBox.min.y);geometries.forEach(g=>g.dispose());
  }
  // Contact vertices come from the actual model underside, including its base.
  const contacts=new Map();
- for(const g of [model.fixed,model.owner]){
+ const all=[model.fixed,model.owner,...(model.trim?[model.trim]:[])];
+ for(const g of all){
   g.translate(0,-floor,0);g.computeBoundingBox();const p=g.attributes.position;
   for(let i=0;i<p.count;i++)if(p.getY(i)<.002){const x=p.getX(i),z=p.getZ(i);contacts.set(`${x.toFixed(5)},${z.toFixed(5)}`,[x,p.getY(i),z])}
   // Include underside interiors: a hill crest can rise between the corners.
@@ -37,9 +41,10 @@ export function packUnitAsset(scene){
   }
  }
  model.contacts=[...contacts.values()];
- model.height=Math.max(model.fixed.boundingBox.max.y,model.owner.boundingBox.max.y);
+ // A piece may say what counts as its height (`pieceHeight`: its body, not its tools).
+ model.height=scene.userData.pieceHeight?scene.userData.pieceHeight-floor:Math.max(...all.map(g=>g.boundingBox.max.y));
  model.radius=0;
- for(const g of [model.fixed,model.owner]){
+ for(const g of all){
   const p=g.attributes.position;
   for(let i=0;i<p.count;i++)model.radius=Math.max(model.radius,Math.hypot(p.getX(i),p.getZ(i)));
  }

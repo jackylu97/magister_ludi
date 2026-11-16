@@ -67,6 +67,9 @@ import { unitHealthBonus } from './sim/resourceEffects';
 import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
 import type { Renderer3D } from './render3d/renderer3d';
+import {
+  BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
+} from './render3d/visualTest';
 import { probeGraphics } from './render3d/canvasSetup';
 import {
   describeImprovement,
@@ -2282,6 +2285,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
+    buildVisualTestPanel(renderer, () => report());
     const benchmark = document.createElement('button'), result = document.createElement('pre');
     benchmark.textContent = 'Benchmark full map'; result.id = 'terrain-benchmark-results';
     result.style.cssText = 'white-space:pre-wrap;max-height:260px;overflow:auto;font-size:10px';
@@ -2349,6 +2353,75 @@ function build3DPanel(renderer: Renderer3D): () => void {
       report();
     });
   };
+}
+
+/**
+ * The "Visual test" switches (batch V1, `docs/flags.md` item (nnnnnnn)): one
+ * checkbox for each of the eight visual changes, and beside the border switch
+ * a selector for how the border is drawn, in the game menu under "Time of day". A change is applied to the running
+ * board at once and written back to the URL's `vtest` option, the same way the
+ * time of day writes `light`, so a reload keeps it. The line under the switches
+ * gives the last frame's draw calls, triangles and time, so the cost of a
+ * switch can be read off as it is flipped.
+ */
+function buildVisualTestPanel(renderer: Renderer3D, report: () => void): void {
+  const section = document.createElement('fieldset');
+  section.className = 'visual-test';
+  section.style.cssText = 'border:1px solid currentColor;padding:6px 8px;margin:6px 0';
+  const legend = document.createElement('legend');
+  legend.textContent = 'Visual test';
+  section.append(legend);
+  const state = visualTest();
+  const write = (): void => {
+    const url = new URL(location.href); url.searchParams.set('vtest', formatVisualTest(visualTest()));
+    history.replaceState(null, '', url);
+    // Two frames on: the first draws the change, the second reads its cost.
+    requestAnimationFrame(() => requestAnimationFrame(() => { line.textContent = costLine(); report(); }));
+  };
+  for (const def of VISUAL_SWITCHES) {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex;gap:6px;align-items:center';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = state[def.key];
+    box.dataset.vtest = String(def.id);
+    box.onchange = () => { setVisualTest({ [def.key]: box.checked }); write(); };
+    const rebuilds = def.rebuild === 'board' ? ' (rebuilds the board)' : '';
+    row.append(box, `${def.id}. ${def.label}${rebuilds}`);
+    if (def.key === 'borders') {
+      const style = document.createElement('select');
+      style.setAttribute('aria-label', 'Border style');
+      style.dataset.vtestBorder = '';
+      for (const one of BORDER_STYLES) {
+        const option = document.createElement('option'); option.value = one.key; option.textContent = one.label; style.append(option);
+      }
+      style.value = state.border;
+      style.onchange = () => { setVisualTest({ border: style.value as BorderStyleKey }); write(); };
+      row.append(style);
+    }
+    section.append(row);
+  }
+  const line = document.createElement('p');
+  line.id = 'visual-test-cost';
+  line.style.cssText = 'font-size:10px;margin:4px 0 0';
+  const costLine = (): string => {
+    const s = renderer.stats;
+    return `${s.drawCalls} draws · ${Math.round(s.triangles / 1000)}k triangles · ${renderer.lastFrameMs.toFixed(1)} ms to submit`;
+  };
+  line.textContent = costLine();
+  // The line reads the last frame drawn, so a press asks for a fresh frame
+  // first: the menu covers the board, and the board may not have drawn since.
+  const measure = document.createElement('button');
+  measure.id = 'visual-test-measure';
+  measure.type = 'button';
+  measure.className = 'btn btn-quiet';
+  measure.textContent = 'Measure this view';
+  measure.onclick = () => {
+    renderer.invalidate();
+    requestAnimationFrame(() => requestAnimationFrame(() => { line.textContent = costLine(); }));
+  };
+  section.append(line, measure);
+  menuExtrasEl.append(section);
 }
 
 /**

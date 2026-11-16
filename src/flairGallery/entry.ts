@@ -4,7 +4,12 @@ import './style.css';
 import { element, section } from './sheet';
 
 const review = new URLSearchParams(location.search).get('review');
-if (review === 'banners') {
+if (review === 'scene') {
+  // The visual test scene (batch V1): full-window, one fixed world, every
+  // control in the URL. See `testScene.ts`.
+  document.getElementById('index')!.hidden = true;
+  void import('./testScene').then(module => module.drawTestScene(document.getElementById('sheet')!));
+} else if (review === 'banners') {
   document.body.classList.add('focused-works-review', 'focused-banners-review');
   const nav = document.getElementById('index')!;
   nav.append(element('h1', undefined, 'Leader banners'));
@@ -49,6 +54,14 @@ if (review === 'banners') {
   const root = section(document.getElementById('sheet')!, 'painted-units', 'Pieces on the board',
     'Accepted representatives and equipment variants across infantry, anti-cavalry, ranged, mounted, siege, naval, religious and caravan lines, with the terrain and lighting used by the game.').root;
   void import('./paintedUnits').then(module => module.drawPaintedUnits(root));
+} else if (review === 'northstar') {
+  document.body.classList.add('focused-works-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'North-star models'));
+  const cabinet = element('a', undefined, 'Full art cabinet'); cabinet.href = '/flair.html#north-star-kit'; nav.append(cabinet);
+  const root = section(document.getElementById('sheet')!, 'north-star-kit', 'Houses, hall, works and monuments',
+    'The models of the visual test, each by itself under a soft light.').root;
+  void import('./northStarKit').then(module => module.drawNorthStarKit(root));
 } else if (review === 'works') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;

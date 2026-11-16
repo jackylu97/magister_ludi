@@ -1,9 +1,13 @@
 import * as T from 'three';
 import {daylightPresets} from './daylightPresets.js';
+import {LIGHT_GLSL,LIGHT_UNIFORMS,SEA_LIGHT_GLSL,shareUniforms} from '../render3d/visualTestLook';
+import {VIEW3D} from '../render3d/lookData';
 
 // Preserve the same geometry, texture inputs and actual cast-shadow map in
 // both treatments. Painted shading uses three colour families, independent
 // of exposure and physical specular response.
+// The paper's tooth on the ground (the user, 2026-11-13: make the paper-like texture "slightly more pronounced for the terrain"). Things that stand on the ground keep the plain amount.
+const TERRAIN_PAPER=VIEW3D.visualTest.northStar?VIEW3D.visualTest.paper.terrain:1;
 export function createPainterlyStyle(renderer,lighting,grain) {
  const materials=new Set(),paperAmount={value:.28};let painted=true;
  const uniforms={};
@@ -31,16 +35,21 @@ export function createPainterlyStyle(renderer,lighting,grain) {
    if(!painted)return;
    shader.uniforms.paintGrain={value:grain};
    shader.uniforms.paintPaperAmount=paperAmount;
-   Object.assign(shader.uniforms,uniforms);
-   shader.vertexShader='varying vec3 paintPosition;\n'+shader.vertexShader;
+   Object.assign(shader.uniforms,uniforms);shareUniforms(shader,LIGHT_UNIFORMS);
+   shader.vertexShader='varying vec3 paintPosition; varying float paintFoot;\n'+shader.vertexShader;
    shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
     vec4 paintWorld=vec4(transformed,1.0);
     #ifdef USE_INSTANCING
      paintWorld=instanceMatrix*paintWorld;
     #endif
     paintPosition=(modelMatrix*paintWorld).xyz;
+    vec4 paintOrigin=vec4(0.0,0.0,0.0,1.0);
+    #ifdef USE_INSTANCING
+     paintOrigin=instanceMatrix*paintOrigin;
+    #endif
+    paintFoot=(modelMatrix*paintOrigin).y;
    `);
-   shader.fragmentShader=declarations+'\nvarying vec3 paintPosition; uniform sampler2D paintGrain; uniform float paintPaperAmount;\n'+shader.fragmentShader;
+   shader.fragmentShader=declarations+'\n'+LIGHT_GLSL.head+'\nvarying vec3 paintPosition; varying float paintFoot; uniform sampler2D paintGrain; uniform float paintPaperAmount;\n'+shader.fragmentShader;
    shader.fragmentShader=shader.fragmentShader.replace('#include <shadowmap_pars_fragment>','#include <shadowmap_pars_fragment>\n#include <shadowmask_pars_fragment>');
    // MeshStandardMaterial has no transmission/clearcoat in this study.
    // Remove physical light evaluation in this variant, not merely its output.
@@ -56,12 +65,14 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      // Cast shadows belong to the cool pigment family, even on upward
      // faces. Do not leak the yellow sunlight back into the shadow fill.
      float visible=smoothstep(.10,.95,getShadowMask());
+     ${terrain||water?'':LIGHT_GLSL.gradient}
      vec3 pigment=diffuseColor.rgb;
      float value=dot(pigment,vec3(.2126,.7152,.0722));
      float greenPigment=smoothstep(.0,.06,pigment.g-max(pigment.r,pigment.b));
      vec3 shadePigment=mix(pigment,vec3(value),paintDesaturate.z*${water?'.2':'1.0'});
      vec3 shadowPaint=shadePigment*(paintShadow-vec3(0,0,greenPigment*paintGreenShadow.x))
        +paintShadowLift-vec3(0,0,greenPigment*paintGreenShadow.y);
+     ${LIGHT_GLSL.shade}
      vec3 middlePaint=mix(pigment,vec3(value),paintDesaturate.y)*paintFill+paintFillLift;
      vec3 castPaint=mix(shadowPaint,middlePaint,paintCastFill);
      vec3 sunPaint=mix(pigment,vec3(value),paintDesaturate.x)*${water?'paintWater':'paintSun'};
@@ -76,7 +87,9 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      float paper=texture2D(paintGrain,paperUv).r;
      float adjacent=texture2D(paintGrain,paperUv+vec2(.0012,.0007)).r;
      float tooth=clamp((paper-adjacent)*3.8+(paper-.5)*.24,-.18,.18);
-     vec3 outgoingLight=mix(castPaint,facePaint,visible)*(1.0+tooth*paintPaperAmount*${water?'.35':'1.0'});
+     vec3 outgoingLight=mix(castPaint,facePaint,visible)*(1.0+tooth*paintPaperAmount*${water?'.35':terrain?TERRAIN_PAPER.toFixed(2):'1.0'});
+     ${terrain||water?'':LIGHT_GLSL.rim}
+     ${water?SEA_LIGHT_GLSL:''}
      // A gentle highlight shoulder preserves amber hues on pale sand/stone
      // instead of clipping the red channel into a flat yellow patch.
      if(paintShoulder>0.0){
@@ -86,7 +99,7 @@ export function createPainterlyStyle(renderer,lighting,grain) {
      }
    `);
   };
-  material.customProgramCacheKey=()=>`${baseKey}:painted-v7:${water}:${terrain}:${painted}`;
+  material.customProgramCacheKey=()=>`${baseKey}:painted-v11:${water}:${terrain}:${painted}`;
   return material;
  }
  function setPainted(value){

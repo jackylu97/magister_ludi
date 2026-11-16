@@ -367,6 +367,15 @@ drawPaletteAndRamp(
 }
 
 {
+  const root = open('north-star-kit', 'North-Star Models',
+    'The houses of three ages, the hall, the mine, the quarry, the barn and the monuments of the visual test.');
+  const link = element('a', undefined, 'Open the north-star model table');
+  link.href = '/flair.html?review=northstar'; root.append(link);
+  const scene = element('a', undefined, 'See them in the visual test scene');
+  scene.href = '/flair.html?review=scene&view=works'; root.append(element('br'), scene);
+}
+
+{
   const root = open('painted-units', 'Painted Units',
     'The twelve accepted primitive pieces, five great-person families, owner colours and movement on the painted board.');
   const link = element('a', undefined, 'Open the painted unit review');

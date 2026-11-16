@@ -66,8 +66,8 @@ function surfaceAttributes(board: PaintedBoard, name: string): BufferAttribute[]
 }
 
 describe('the board drops what nothing reads after upload', () => {
-  it('names exactly the vertex colours and the turf weights', () => {
-    expect([...RELEASED_AFTER_UPLOAD]).toEqual(['color', 'turfWeight']);
+  it('names exactly the vertex colours, the turf weights and the visual test sea attribute', () => {
+    expect([...RELEASED_AFTER_UPLOAD]).toEqual(['color', 'turfWeight', 'paintedWater']);
   });
 
   it('keeps every array until the upload, so the worker can still export the batches', () => {

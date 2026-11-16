@@ -16,6 +16,11 @@ import { canStopOn } from '../../src/sim/pathfind';
 import { resourceDef, tileSuitsResource } from '../../src/sim/resourceData';
 import { unitDef } from '../../src/sim/unitData';
 import { EXPLORED, VISIBLE, visibilityAt } from '../../src/sim/visibility';
+import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
+
+// This file pins today's pieces. The swordsman has a north-star model behind `NORTH_STAR_UNITS`
+// (test/render/northStarUnits.test.ts covers it), so here it is drawn as today's piece.
+overrideNorthStarUnit('swordsman', null);
 
 describe('painted unit review fixture', () => {
   it.each(['polearm', 'ranged', 'cavalry', 'mountedRanged', 'siege', 'navalLight', 'navalHeavy', 'navalRanged', 'faith', 'caravans'] as const)('routes, renders and moves the complete %s comparison through production contracts', group => {

@@ -4,7 +4,7 @@ import { BoardGeometry, unitSculpt } from '../../src/render3d/board3d';
 import { MoveAnimations3D } from '../../src/render3d/animation3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
-import { UnitLayer, unitColor } from '../../src/render3d/pieces';
+import { UnitLayer, unitColor, unitTrimColor } from '../../src/render3d/pieces';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -15,6 +15,11 @@ import { createUnit } from '../../src/sim/state';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import type { FallenUnit } from '../../src/ui/mapView';
 import { newGame } from '../sim/newGameHelpers';
+import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
+
+// This file pins today's pieces. The swordsman has a north-star model behind `NORTH_STAR_UNITS`
+// (test/render/northStarUnits.test.ts covers it), so here it is drawn as today's piece.
+overrideNorthStarUnit('swordsman', null);
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });
@@ -208,7 +213,7 @@ describe('unit motion uses the resting art and pigments', () => {
     for (const family of FAMILIES) {
       f.unit.person = UNIT_REVIEW_PEOPLE[family];
       const model = f.kit!.resolve(f.unit, 'grassland')!;
-      const borrowed = f.kit!.material(model, unitColor(f.state, f.unit));
+      const borrowed = f.kit!.material(model, unitColor(f.state, f.unit), unitTrimColor(f.state, f.unit));
       const borrowedDispose = vi.spyOn(borrowed, 'dispose');
       const before = JSON.stringify(f.state);
       f.runtime.spawnFaller({ ...f.unit });

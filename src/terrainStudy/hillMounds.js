@@ -1,5 +1,21 @@
+import {VIEW3D} from '../render3d/lookData';
 // Deliberately small polygon meshes, not samples of a rounded height field.
 // Local hills and landscape strokes use the same broad, tilted polygon planes.
+// Terraces (the visual test, 2026-11-12): a hill is one broad flat step, and a
+// large hill carries a second, smaller step. A flat top takes the same light
+// as the flat ground, so only the side faces read, as in the reference games.
+const TERRACE=VIEW3D.visualTest.northStar&&VIEW3D.visualTest.hills.terraced?VIEW3D.visualTest.hills:null;
+// A soft hill (the user, 2026-11-13: the terraces are "too chunky and unnatural"): a low rounded mound in place of the steps.
+const SOFT=TERRACE&&TERRACE.smooth?TERRACE.soft:null;
+// The hill's profile, as rings from the foot to the top: each a share of the
+// outline's size and of the height. A list in the data is used as it is. A
+// number asks for that many rings on one smooth curve, flat at the foot and
+// flat at the top, so the facets are too small to read as triangles (the user,
+// 2026-11-13: "the triangles make them look crumpled").
+const SOFT_PROFILE=!SOFT?[]:Array.isArray(SOFT.profile)?SOFT.profile:Array.from({length:SOFT.profile},(_,k)=>{
+ const t=(k+1)/(SOFT.profile+.6);
+ return [1-t,Math.sin(t*Math.PI/2)**2];
+});
 function random(col,row,salt){
  let n=Math.imul(col+31,73856093)^Math.imul(row+17,19349663)^Math.imul(salt+1,83492791);
  n=Math.imul(n^(n>>>13),1274126177);
@@ -19,16 +35,33 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
  return layout.map(([cx,cz,rx,rz,height],i)=>{
   const salt=20+i*20,angle=(r(salt)-.5)*1.1+(i===1?.8:0),a=Math.cos(angle),b=Math.sin(angle);
   rx*=.90+r(salt+1)*.20;rz*=.86+r(salt+2)*.28;height*=.82+r(salt+3)*.36;
+  // Soft hills are broader (the user, 2026-11-13: "generally larger"). The fit below still keeps each inside its own ground.
+  if(SOFT){rx*=SOFT.size;rz*=SOFT.size}
   const locate=(x,z)=>{
    const u=cx+x*a-z*b,v=cz+x*b+z*a;
    return [u*ca-v*sa,u*sa+v*ca];
   };
-  const sides=options.outline?.length??(i===0?6:5);
-  const rim=Array.from({length:sides},(_,j)=>{
+  const corners=options.outline?.length??(i===0?6:5);
+  let rim=Array.from({length:corners},(_,j)=>{
    if(options.outline){const [x,z]=options.outline[j];return [x*rx,z*rz]}
-   const theta=j*Math.PI*2/sides,scale=.86+r(salt+5+j)*.28;
+   const theta=j*Math.PI*2/corners,scale=.86+r(salt+5+j)*.28;
    return [Math.cos(theta)*rx*scale,Math.sin(theta)*rz*scale];
   });
+  // A soft hill (2026-11-13) has a rounder outline: each pass cuts every corner off.
+  for(let pass=0;pass<(SOFT?SOFT.round:0);pass++)rim=rim.flatMap((a,j)=>{
+   const b=rim[(j+1)%rim.length];
+   return [[a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]];
+  });
+  // And an uneven one: two slow waves round the outline push it in and out, so no two hills are the same blob.
+  if(SOFT){
+   const lobes=r(salt+16)*6.28,lobes3=r(salt+17)*6.28;
+   rim=rim.map(([x,z],j)=>{
+    // Each point of the outline is also moved in or out on its own, so the foot is not a smooth curve.
+    const angle=Math.atan2(z/rz,x/rx),swell=1+SOFT.uneven*(Math.sin(angle*2+lobes)*.6+Math.sin(angle*3+lobes3)*.4)+SOFT.jitter*(r(salt+40+j)-.5)*2;
+    return [x*swell,z*swell];
+   });
+  }
+  const sides=rim.length;
   const footprint=rim.map(([x,z])=>locate(x,z));
   // Fit the whole footprint inside the actual river/coast cuts. Overlapping
   // feet join the group into low, broken ridges as in the supplied reference.
@@ -49,16 +82,53 @@ export function makeHillMounds(tile,shape,baseHeight,options={}){
   const origin=locate(0,0),topBase=baseHeight(origin[0]*fit,origin[1]*fit)+.002;
   // An irregular, slightly tilted plateau produces a broad top plane. The
   // lower shoulders remain distinct instead of becoming little pyramids.
-  const capX=options.capX??(.46+r(salt+11)*.16),capZ=options.capZ??(.27+r(salt+12)*.16);
+  const capX=TERRACE?TERRACE.cap:options.capX??(.46+r(salt+11)*.16),capZ=TERRACE?TERRACE.cap:options.capZ??(.27+r(salt+12)*.16);
+  // Soft hills differ in height from one to the next, so a range has high and low ground.
+  if(TERRACE)height*=SOFT?SOFT.height*(1+SOFT.heightVary*(r(salt+21)-.5)*2):TERRACE.height;
+  if(SOFT){
+   // A low rounded mound: rings of the outline, each smaller and higher than
+   // the last, so the side rises in a few gentle facets to a small top.
+   // The top is not over the middle: each ring is set a little further to one side, so one flank is long and gentle and the other short and steeper, as on a real hill.
+   // The lean always has its full length, so every hill has a cliff, and it points toward the south of the board, give or take, so the cliff faces the camera and is not hidden behind its own hill. The hill's own turn is taken out first.
+   const facing=Math.PI/2+(r(salt+18)-.5)*2*SOFT.cliffSpread-angle-turn;
+   const leanX=Math.cos(facing)*rx*SOFT.lean,leanZ=Math.sin(facing)*rz*SOFT.lean;
+   SOFT_PROFILE.forEach(([scale,share],ring)=>rim.forEach(([x,z],j)=>{
+    // Each point of each ring sits a little higher or lower and nearer or further than its ring, so the facets differ like worn ground.
+    // Bumps (the user, 2026-11-13: "a bit more bumpy"): each ring rises and falls round the hill in the same slow waves, so the hill has a few broad spurs and hollows that run from top to foot. (With each ring in its own place, the waves twisted into a whorl.) Only the height moves, so no facet folds over.
+    const round=j/rim.length*Math.PI*2,wave=Math.sin(round*2+r(salt+90)*6.28)*.6+Math.sin(round*3+r(salt+110)*6.28)*.4;
+    // The rings of the cliff's own band stray sideways, so the rock face is broken and not one smooth wall.
+    const rough=1+(share>.08&&share<.97?SOFT.rough:0)*(r(salt+60+ring*29+j)-.5)*2,lift=1+SOFT.bump*(wave*.7+(r(salt+200+ring*31+j)-.5)*.6*SOFT.grit)*Math.min(1,share*4);
+    const [px,pz]=locate(x*scale*rough+leanX*(1-scale),z*scale*rough+leanZ*(1-scale));
+    vertices.push([px*fit,topBase+height*share*lift,pz*fit]);
+   }));
+   for(let ring=0;ring<SOFT_PROFILE.length;ring++)for(let j=0;j<sides;j++){
+    const k=(j+1)%sides,low=ring*sides,high=low+sides;
+    indices.push(low+j,low+k,high+j,low+k,high+k,high+j);
+   }
+   const top=SOFT_PROFILE.length*sides;
+   for(let j=1;j<sides-1;j++)indices.push(top,top+j,top+j+1);
+  }else{
   for(const [x,z]of rim){
-   const u=x*capX+rx*.08,v=z*capZ-rz*.07,[px,pz]=locate(u,v);
-   vertices.push([px*fit,topBase+height*(1+u/rx*.12-v/rz*.10),pz*fit]);
+   const u=TERRACE?x*capX:x*capX+rx*.08,v=TERRACE?z*capZ:z*capZ-rz*.07,[px,pz]=locate(u,v);
+   vertices.push([px*fit,topBase+height*(TERRACE?1:1+u/rx*.12-v/rz*.10),pz*fit]);
   }
   for(let j=0;j<sides;j++){
    const k=(j+1)%sides;
    indices.push(j,k,sides+j,k,sides+k,sides+j);
   }
   for(let j=1;j<sides-1;j++)indices.push(sides,sides+j,sides+j+1);
+  }
+  if(TERRACE&&!SOFT&&Math.min(rx,rz)*fit>=TERRACE.upperFrom){
+   // The second step: a smaller copy of the outline, set off-centre on the first.
+   const at=vertices.length,ox=(r(salt+13)-.5)*rx*.3,oz=(r(salt+14)-.5)*rz*.3,rise=height*(1.75+r(salt+15)*.35);
+   for(const [scale,y]of [[TERRACE.upper,topBase+height],[TERRACE.upper*TERRACE.cap,topBase+rise]])
+    for(const [x,z]of rim){const [px,pz]=locate(x*scale+ox,z*scale+oz);vertices.push([px*fit,y,pz*fit])}
+   for(let j=0;j<sides;j++){
+    const k=(j+1)%sides;
+    indices.push(at+j,at+k,at+sides+j,at+k,at+sides+k,at+sides+j);
+   }
+   for(let j=1;j<sides-1;j++)indices.push(at+sides,at+sides+j,at+sides+j+1);
+  }
   const faces=[];
   for(let j=0;j<indices.length;j+=3){
    let [p,q,s]=indices.slice(j,j+3).map(k=>vertices[k]);
@@ -226,7 +296,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
   const seed=Math.floor(random(q,r,604)*1000000);
   if(!stroke(x,z,length,width,.20+h*.13,turn,seed,.59))continue;
   const ca=Math.cos(turn),sa=Math.sin(turn);
-  for(let j=0;j<1+Math.floor(k*3);j++){
+  for(let j=0;j<(TERRACE&&!TERRACE.flanks?0:1+Math.floor(k*3));j++){
    const a=random(q,r,610+j*3),b=random(q,r,611+j*3);
    const u=(a*2-1)*length*.95,v=(b>.5?1:-1)*(width*.8+.12+b*.24);
    const size=.30+a*.32;
@@ -244,7 +314,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
    const salt=(i+3)*7+j+3,x=i*.23+(random(tile.col,tile.row,740+salt)-.5)*.10,z=j*.23+(random(tile.col,tile.row,800+salt)-.5)*.10;
    if(shape.normals.every(([nx,nz],k)=>x*nx+z*nz<=shape.upper[k]-.075))samples.push([x,z,baseHeight(tile,x,z)]);
   }
-  const h=random(tile.col,tile.row,701),k=random(tile.col,tile.row,702),turn=direction(c.x,c.z,h),target=.63+k*.10;
+  const h=random(tile.col,tile.row,701),k=random(tile.col,tile.row,702),turn=direction(c.x,c.z,h),target=TERRACE?TERRACE.fill+k*.08:.63+k*.10;
   const seed=Math.floor(random(tile.col,tile.row,703)*1000000);
   for(let pass=0;pass<5;pass++){
    const vacant=samples.filter(([x,z,y])=>moundSurfaceHeight(pieces,x,z,y)<y+.028);
@@ -255,7 +325,7 @@ export function createMapHillMounds(map,{centre,neighbour,tileShape,baseHeight,w
    let placed=false;
    for(let attempt=0;attempt<Math.min(6,ranked.length)&&!placed;attempt++){
     const {x,z}=ranked[attempt],a=random(seed,pass,860+attempt),b=random(seed,pass,870+attempt);
-    const size=(pass===0?.69:.48)+a*(pass===0?.30:.24);
+    const size=TERRACE?.72+a*.26:(pass===0?.69:.48)+a*(pass===0?.30:.24);
     placed=stroke(c.x+x,c.z+z,size,size*(.72+b*.22),.17+a*.11,turn+(b-.5)*1.4,seed+pass*7+attempt,.53);
    }
    if(!placed)break;

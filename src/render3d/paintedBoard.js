@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { terrainMesh } from '../terrainStudy/terrainMesh.js';
+import { terrainMesh, coastApron } from '../terrainStudy/terrainMesh.js';
 import { terrainColors, createTerrainPainter } from '../terrainStudy/terrainPigment.js';
 import { createWaterPainter } from '../terrainStudy/waterPigment.js';
 import { waterDetails, shoreStones } from '../terrainStudy/water.js';
@@ -9,11 +9,14 @@ import { sculptedTurf } from '../terrainStudy/turf.js';
 import { openLandTree, stoneCluster } from '../terrainStudy/groundDressing.js';
 import { createMountainRanges } from '../terrainStudy/mountainRanges.js';
 import { indexGeometry } from '../terrainStudy/indexGeometry.js';
-import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap } from '../terrainStudy/surface.js';
+import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap, riverStyle, coastStyle } from '../terrainStudy/surface.js';
 import { createPaintedFog, paintedFogMaterial, paintedFogDepth, paintedChartMaterial } from './paintedFog.js';
 import { PAINTED_CHART, paintedChartGeometry } from './paintedFogLook';
 import { PaintedRelief } from './paintedRelief';
 import { VIEW3D } from './lookData';
+import { createSeaField, RIVER } from './seaField';
+import { createOrganicRivers } from './organicRivers';
+import { createFreeCoast } from './freeCoast';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
@@ -39,7 +42,9 @@ function hash(a, b, n = 0) {
  * prop batches are left alone, since their vertex attributes are the shared
  * asset sculpt's. Exported so the register test can name the list.
  */
-export const RELEASED_AFTER_UPLOAD = ['color', 'turfWeight'];
+// The visual test version (batch V1) adds the one attribute its sea shader
+// reads and nothing else does: the sea's three numbers.
+export const RELEASED_AFTER_UPLOAD = ['color', 'turfWeight', 'paintedWater'];
 function releaseArray() { this.array = null; }
 function releaseAfterUpload(geometry) {
   for (const name of RELEASED_AFTER_UPLOAD) geometry.getAttribute(name)?.onUpload(releaseArray);
@@ -62,8 +67,55 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const sources = new Map(), instanceBases = new WeakMap();
   const chunks = new Map(), mapProps = new Map(), mapSurfaces = new Map();
   const ranges = prepared ? null : createMountainRanges(renderMap);
-  const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null : createWaterPainter(renderMap);
+  // The thinner rivers of the visual test version paint a pale line on each
+  // bank (`setRiverStyle` in `surface.js`; the worker is told the style).
+  const thinRivers = riverStyle(), riverKnobs = VIEW3D.visualTest.rivers;
+  const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null
+    : createWaterPainter(renderMap, {bank: thinRivers && !thinRivers.organic ? {color: riverKnobs.bank, inner: riverKnobs.bankInner, outer: riverKnobs.bankOuter} : null,
+      river: thinRivers && !thinRivers.organic && VIEW3D.visualTest.northStar && riverKnobs.water ? {channel: riverKnobs.water, light: riverKnobs.light} : null,
+      brush: VIEW3D.visualTest.sea.brushed ? {spacingX: VIEW3D.visualTest.sea.brushSpacingX, spacingZ: VIEW3D.visualTest.sea.brushSpacingZ, tones: VIEW3D.visualTest.sea.brushTones ?? null} : null});
+  // The sea's three numbers a water vertex (switch 1 of the visual test
+  // version). Always baked, so the switch is a uniform and never a rebuild.
+  const seaKnobs = VIEW3D.visualTest.sea;
+  // The organic rivers of switch 4: one painted ribbon a run, clipped onto
+  // each bank hex's ground and pushed with the water, so no draw call is added.
+  const organicRivers = !prepared && thinRivers?.organic ? createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers) : null;
+  // The free river's cut: each hex near the river is told the river's line
+  // before any ground is meshed, so the ground drops to the water there.
+  if (organicRivers) for (const tile of renderMap.tiles) { const carve = organicRivers.carve(tile); if (carve) tile.riverCarve = carve; else delete tile.riverCarve; }
+  // A free coast: each hex beside the shore is told the waterline before any
+  // ground is meshed, so the ground slopes under the water along it.
+  const freeCoast = !prepared && coastStyle() ? createFreeCoast(renderMap, VIEW3D.visualTest.coast, organicRivers?.mouths ?? []) : null;
+  if (!prepared) for (const tile of renderMap.tiles) { const coast = freeCoast?.carve(tile); if (coast) tile.coast = coast; else delete tile.coast; }
+  const seaField = prepared ? null : createSeaField(renderMap, {shoreReach: seaKnobs.shoreReach, edgeReach: seaKnobs.edgeReach, wraps: true,
+    coast: freeCoast, cutRivers: !thinRivers?.organic});
   const ground = materials.ground, water = materials.water, features = materials.features;
+  const groundOf = tile => ground[['floodplain', 'oasis'].includes(tile.feature) ? tile.feature : tile.terrain];
+  /**
+   * The land a free coast lays in a water hex takes the paint of the land hex
+   * it lies against, so the ground does not change colour on the hex line.
+   * Each face goes to the land hex nearest the sixth of the hex it is in.
+   */
+  function apronParts(tile, apron) {
+    const p = apron.getAttribute('position'), c = centre(tile), lists = new Map();
+    for (let i = 0; i < p.count; i += 3) {
+      const x = (p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3 - c.x, z = (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3 - c.z;
+      const d = (Math.round(Math.atan2(z, x) * 3 / Math.PI) + 6) % 6;
+      let land = null;
+      for (const turn of [0, 1, 5, 2, 4, 3]) { const other = neighbour(tile, renderMap, (d + turn) % 6); if (other && !isWater(other)) { land = other; break; } }
+      if (!land) continue;
+      if (!lists.has(land)) lists.set(land, []);
+      for (let j = 0; j < 3; j++) lists.get(land).push(p.getX(i + j), p.getY(i + j), p.getZ(i + j));
+    }
+    return [...lists].map(([land, positions]) => {
+      const part = new T.BufferGeometry();
+      part.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+      part.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(positions.length).fill(.985), 3));
+      part.computeVertexNormals();
+      part.userData.plateVertexCount = positions.length / 3;
+      return [land, part];
+    });
+  }
   const terrainMaterials = new Set([...Object.values(ground), water.river]);
   const waterMaterials = new Set([ground.ocean, ground.coast, ground.lake, water.river]);
   const detailMaterials = new Set([...Object.values(water).filter(m => m !== water.river),
@@ -126,7 +178,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
    * bump path is re-pointed at the position below, but the stock `vUv` line is
    * still compiled in and would otherwise read a value nobody set.
    */
-  const SURFACE_DEFAULTS = {paintedReservationDistance: [0], uv: [0, 0]};
+  // `paintedWater` belongs to the visual test version (batch V1): a water
+  // vertex without it keeps its old paint.
+  const SURFACE_DEFAULTS = {paintedReservationDistance: [0], uv: [0, 0], paintedWater: [RIVER, 0, 0]};
   /**
    * The merged land's pigment `uv`, computed instead of stored (#10).
    *
@@ -310,10 +364,11 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         if (bucket === surfaces && terrainMaterials.has(source) && !waterMaterials.has(source))
           push(source, farGeometry || geometry.clone(), undefined, grade, farSurfaces);
         if (!geometry.getAttribute('position').count) { geometry.dispose(); return; }
-        if (waterMaterials.has(source)) waterPainter.paint(geometry);
+        if (waterMaterials.has(source) && !geometry.userData.pigmentBaked) waterPainter.paint(geometry, activeTile);
         const turf = source === ground.grassland ? 1 : [ground.plains, ground.oasis, ground.floodplain].includes(source) ? .65 : source === ground.tundra ? .3 : 0;
         const merge = terrainMaterials.has(source) || detailMaterials.has(source);
         geometry = normalize(geometry, cell, grade, turf, merge ? source : null);
+        if (waterMaterials.has(source)) seaField.attribute(geometry, activeTile);
         if (source === water.river && activeTile.riverEdges) {
           // The flat underlay consists of six triangular edge sectors. Keep
           // each river sector while either bank is charted, without granting
@@ -353,24 +408,104 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       }
       for (const t of tiles) {
         cell = t.row * map.width + t.col; activeTile = t;
-        const [top, skirt] = terrainMesh(t); painter.paint(top, t);
+        const [top, skirt] = terrainMesh(t);
+        // Clipped onto the hex's own ground before the painter cuts it up.
+        const riverRibbon = organicRivers?.pieces(t, top) ?? null;
+        const beach = !isWater(t) && t.coast ? freeCoast.sand(t, top) : null;
+        painter.paint(top, t);
         let farTop;
         if (!isWater(t)) { const far = terrainMesh(t, { distant: true }); farTop = far[0]; far[1].dispose(); painter.paint(farTop, t); }
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
+        // The sand of a free coast is sloped land, so it goes into the land's batch.
+        if (beach) push(ground.desert, beach);
+        if (isWater(t) && t.coast) {
+          const apron = coastApron(t);
+          if (apron.getAttribute('position').count) {
+            const sand = freeCoast.sand(t, apron);
+            for (const [land, part] of apronParts(t, apron)) { painter.paint(part, land, false); push(groundOf(land), part); }
+            if (sand) push(ground.desert, sand);
+          }
+          apron.dispose();
+          // Rocks off the coast, each with a ring of foam on the water.
+          const at = centre(t);
+          for (const rock of freeCoast.rocks(t)) {
+            const s = rock.size * 2.4;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + rock.x, .04 - s * .06, at.z + rock.z, s, s * (.7 + rock.seed * .5), s * .9, rock.seed * 6.28, new T.Color('#b9b3a6'));
+            push(water.river, freeCoast.foamRing(at.x + rock.x, at.z + rock.z, s, rock.seed), undefined, CLUTTER);
+          }
+        }
         waterDetails(t, renderMap, push, water);
+        if (riverRibbon) {
+          // Modelled banks are sloped land, so they go into the land's batch.
+          const banks = riverRibbon.userData.banks; delete riverRibbon.userData.banks;
+          push(water.river, riverRibbon);
+          if (banks) push(ground.desert, banks);
+          // Small things along the river: reeds at the water's edge and stones on the bank.
+          const reeds = organicRivers.reeds(t);
+          if (reeds) push(features.reeds, reeds, undefined, CLUTTER);
+          const at = centre(t);
+          for (const tree of organicRivers.trees(t)) {
+            // Clear of the channel itself, and on land that can carry a tree.
+            if (!['grassland', 'plains', 'tundra'].includes(t.terrain) || (t.feature && t.feature !== 'none') || t.terrain === 'mountain') continue;
+            // Not on a bridge: where a road crosses this river edge, the bank stays open. A road laid after the board is built is not known here.
+            let atBridge = false;
+            if (t.road !== undefined) for (let d = 0; d < 6 && !atBridge; d++) {
+              if (!((t.riverEdges || 0) & (1 << d)) || neighbour(t, renderMap, d)?.road === undefined) continue;
+              atBridge = Math.hypot(tree.x - Math.cos(d * Math.PI / 3) * .866, tree.z - Math.sin(d * Math.PI / 3) * .866) < .45;
+            }
+            if (atBridge) continue;
+            const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2 + Math.floor(tree.seed * 3);
+            // From a bush to a full tree: most are middling, a few are large.
+            const kind = tree.seed > .86 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = .12 + Math.pow((tree.seed * 7.31) % 1, 1.7) * .26;
+            prop(kind.geometry, kind.material, at.x + tree.x, tree.y - .008, at.z + tree.z, s, s * .92, s, tree.seed * 6.28, new T.Color('#cfe6b4'), DECOR);
+          }
+          for (const rock of organicRivers.rocks(t)) {
+            const s = rock.size * 2.4;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + rock.x, rock.y - .004, at.z + rock.z, s, s * .75, s * .9, rock.seed * 6.28, new T.Color('#d2d8cc'));
+          }
+          for (const stone of organicRivers.stones(t)) {
+            const s = .08 + stone.seed * .07;
+            prop(assets.limestone.geometry, assets.limestone.material, at.x + stone.x, stone.y - .006, at.z + stone.z, s, s * .6, s * .85, stone.seed * 6.28, new T.Color('#dbe0cf'));
+          }
+        }
         featureDetails(t, (m, g) => push(m, g, undefined, m === features.shrub ? DECOR : [features.stone, features.reeds].includes(m) ? CLUTTER : NEVER), features, hash);
         sculptedTurf(t, (m, g) => push(m, g, undefined, CLUTTER), ground[t.terrain], hash);
         const c = centre(t);
+        // A mountain is broader and a little lower than the study's shard, so it reads as a mass of rock (`visualTest.mountains`).
+        const massif = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.mountains : {wide: 1, tall: 1};
         for (const piece of ranges.pieces.get(t) || []) {
-          const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant];
+          const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant % assets.escarpments.length];
           prop(piece.asset === 'shoulder' ? rock.shoulderGeometry : rock.geometry, assets.rangeMaterial,
-            piece.x, piece.y, piece.z, piece.sx, piece.sy, piece.sz, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
+            piece.x, piece.y, piece.z, piece.sx * massif.wide, piece.sy * massif.tall, piece.sz * massif.wide, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
         }
-        for (const r of stoneCluster(t, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
+        const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
+        // A rocky hill (2026-11-13): boulders lie at the foot of a cliff, and low shrubs stand on the green top.
+        // Both are found by sampling the hill's own surface, so they follow whatever shape the hill has.
+        const rocky = VIEW3D.visualTest.northStar && VIEW3D.visualTest.hills.smooth ? VIEW3D.visualTest.hills.soft.cliffs : null;
+        if (rocky && t.hills && !isWater(t) && t.terrain !== 'mountain') {
+          let boulders = 0, shrubs = 0;
+          for (let i = 0; i < 40 && (boulders < rocky.boulders || shrubs < rocky.shrubs); i++) {
+            const a = hash(t.col, t.row, 1700 + i) * 6.28, d = Math.sqrt(hash(t.col, t.row, 1750 + i)) * .78, x = Math.cos(a) * d, z = Math.sin(a) * d;
+            if (!onTileTop(t, x, z, .08)) continue;
+            const here = surfaceHeight(t, x, z), flat = surfaceHeight(t, 0, 0) * 0 + .12;
+            let above = 0, below = 0;
+            for (let k = 0; k < 6; k++) { const other = surfaceHeight(t, x + Math.cos(k * 1.047) * .09, z + Math.sin(k * 1.047) * .09) - here; above = Math.max(above, other); below = Math.min(below, other); }
+            const seed = hash(t.col, t.row, 1800 + i);
+            if (boulders < rocky.boulders && above > .05 && here < flat + .03) {
+              const s = rocky.boulderSize * (.6 + seed * .9); boulders++;
+              prop(assets.limestone.geometry, assets.limestone.material, c.x + x, here - .006, c.z + z, s, s * (.55 + seed * .4), s * .85, seed * 6.28, new T.Color(rocky.rock).multiplyScalar(.92 + seed * .12));
+            } else if (shrubs < rocky.shrubs && here > flat + .07 && above < .02 && below > -.03) {
+              const s = rocky.shrubSize * (.7 + seed * .7), tree = assets.broadleaves[Math.floor(seed * 3) % 3]; shrubs++;
+              prop(tree.geometry, tree.material, c.x + x, here - s * .32, c.z + z, s * 1.25, s * .7, s * 1.25, seed * 6.28, new T.Color('#c9dfae'), DECOR);
+            }
+          }
+        }
+        for (const r of stoneCluster(t, hash, dense)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y - .008, c.z + r.z, r.s, r.s * .45, r.s * .80, r.angle, new T.Color('#dbe0c7'));
         for (const r of shoreStones(t, renderMap, hash)) prop(assets.limestone.geometry, assets.limestone.material, c.x + r.x, r.y, c.z + r.z, r.s, r.s * .70, r.s * .85, r.angle, new T.Color('#dbe0cf'));
-        const sapling = openLandTree(t, hash);
-        if (sapling) {
+        for (let slot = 0; slot < (dense ? (dense.groves ? dense.groveSize + 1 : dense.slots) : 1); slot++) {
+          const sapling = openLandTree(t, hash, slot, dense);
+          if (!sapling) continue;
           const variant = Math.floor(t.col / 6) + Math.floor(t.row / 6) * 2;
           const tree = sapling.cypress ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3], s = sapling.scale;
           prop(tree.geometry, tree.material, c.x + sapling.x, sapling.y - .008, c.z + sapling.z, s * (sapling.cypress ? 1.15 : 1), s * .92, s * (sapling.cypress ? 1.15 : 1), sapling.angle, new T.Color('#d7e5c5'), DECOR);
@@ -385,7 +520,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           }
         }
         if (!isWater(t) && t.terrain !== 'mountain' && ['forest', 'jungle'].includes(t.feature)) {
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < (dense?.groves ? dense.forestTrees : 5); i++) {
             const a = hash(t.col, t.row, i + 90) * 6.28, d = Math.sqrt(hash(t.col, t.row, i + 110)) * .72;
             const x = Math.cos(a) * d, z = Math.sin(a) * d;
             if (!onTileTop(t, x, z, .1)) continue;
@@ -394,6 +529,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
             const tree = i % 3 === 0 ? assets.cypresses[variant % 2] : assets.broadleaves[variant % 3];
             const warm = i % 3 !== 0 && t.feature !== 'jungle' && t.terrain !== 'snow' && hash(t.col, t.row, 170 + i) > .91;
             const tint = warm ? new T.Color(2.55, .48, .5) : new T.Color([0xffffff, 0xc3dec9, 0xd6ddbd][i % 3]);
+            if (dense?.groves && !warm) tint.multiplyScalar(dense.forestShade);
             prop(tree.geometry, tree.material, c.x + x, surfaceHeight(t, x, z) - .012, c.z + z,
               s * (i % 3 === 0 ? 1.5 : hero ? 1.13 : 1), s * (i % 3 === 0 ? 1.05 : .93), s * (i % 3 === 0 ? 1.5 : 1), a, tint, DECOR);
           }
