@@ -1589,6 +1589,79 @@
       "tint": "#3b3f7e"
     },
     "smoothing": 4,
+    "yieldLight": {
+      "show": "a",
+      "body": 0.55,
+      "kinds": 2,
+      "secondShare": 0.5,
+      "steps": {
+        "food": [
+          3,
+          4,
+          5
+        ],
+        "production": [
+          2,
+          3,
+          4
+        ],
+        "gold": [
+          2,
+          3,
+          4
+        ],
+        "science": [
+          1,
+          2,
+          3
+        ],
+        "culture": [
+          1,
+          2,
+          3
+        ],
+        "faith": [
+          1,
+          2,
+          3
+        ]
+      },
+      "colors": {
+        "food": "#7fd06c",
+        "production": "#eda75f",
+        "gold": "#ecc154",
+        "science": "#82aef2",
+        "culture": "#cf9fee",
+        "faith": "#e08fc0"
+      },
+      "strength": [
+        0.6,
+        0.8,
+        1.0
+      ],
+      "inner": 0.2,
+      "outer": 0.62,
+      "lift": 0.02,
+      "rise": 0.55,
+      "speed": 0.11,
+      "motes": 3,
+      "moteSize": 0.1,
+      "glow": 0.5,
+      "glowRadius": 0.8,
+      "pool": 0.75,
+      "poolRadius": 0.8,
+      "glints": 3,
+      "glintSize": 0.15,
+      "shapes": 2,
+      "shapeSize": {
+          "food": 0.13,
+          "production": 0.13,
+          "gold": 0.12,
+          "science": 0.17,
+          "culture": 0.11,
+          "faith": 0.12
+        }
+    },
     "richness": {
       "on": true,
       "steps": {
@@ -1750,6 +1823,7 @@
       ]
     },
     "town": {
+      "byAge": true,
       "flag": false,
       "wallRadius": 0.9,
       "wallInset": 0.06,
@@ -1788,6 +1862,7 @@
       "bigHouse": 0.85
     },
     "works": {
+      "byAge": true,
       "newMine": false,
       "mineSize": 1.0,
       "mineAt": [0, 0],

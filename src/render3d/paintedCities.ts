@@ -12,6 +12,8 @@ import { VIEW3D } from './lookData';
 import { paintedCityGeometry } from './paintedCityGeometry';
 import { NORTH_STAR_TOWER_HEIGHT, NORTH_STAR_WALL_HEIGHT, northStarTownGeometry } from './northStarTownGeometry';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
+import { NORTH_STAR_TOWN_AGES, NORTH_STAR_TOWN_BEFORE } from '../terrainStudy/northStarAssets.js';
+// @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { centre, neighbour, onTileTop, surfaceHeight, tileShape } from '../terrainStudy/surface.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { terrainMesh } from '../terrainStudy/terrainMesh.js';
@@ -19,8 +21,11 @@ import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
 type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
-  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | 'ns-hall';
-type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}`;
+  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | NorthStarCentre;
+type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}` | `ns-house-3${'d' | 'e' | 'f'}`;
+type NorthStarCentre = 'ns-hall' | 'ns-great-hut' | 'ns-great-house' | 'ns-hall-3';
+/** One tier's entry of `NORTH_STAR_TOWN_AGES`. */
+type TownAge = { houses: NorthStarHouse[]; centre: NorthStarCentre; centreSize: number; smoke: number[] };
 
 /**
  * The north-star look (the visual test, 2026-11-12; docs/art-pass.md): a town
@@ -40,7 +45,7 @@ const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-arm
  */
 const TOWN = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.town : null;
 const NORTH_STAR_HOUSE_NAMES = [1, 2, 3].flatMap(tier => ['a', 'b', 'c'].map(variant => `ns-house-${tier}${variant}` as NorthStarHouse));
-type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower' | NorthStarHouse | 'ns-hall'>;
+type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower' | NorthStarHouse | NorthStarCentre>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
 interface PaintedCityAnchor { x: number; y: number; z: number }
 interface PaintedCityOptions { previewWalls?: boolean }
@@ -69,6 +74,8 @@ type CityRecipe = {
   parts: { geometry: BufferGeometry; matrices: Matrix4[] }[];
   patches: BufferGeometry[]; placements: PaintedCityPlacement[];
   anchor: PaintedCityAnchor; tallest: number;
+  /** Where the town's smoke starts: the smoke hole or chimney of its centre building. Absent for the study's town. */
+  smoke?: PaintedCityAnchor;
 };
 type CityBatch = { inputs: readonly unknown[]; meshes: Mesh[]; geometry?: BufferGeometry };
 /**
@@ -145,6 +152,8 @@ export class PaintedCityLayer {
   readonly group = new Group();
   readonly flagAnchors = new Map<number, PaintedCityAnchor>();
   readonly cityHeights = new Map<number, number>();
+  /** Where each north-star town's smoke starts, in world units, by city id (`PaintedSmokeLayer` reads it). */
+  readonly smokeAnchors = new Map<number, PaintedCityAnchor>();
   readonly placements: PaintedCityPlacement[] = [];
   private readonly geometry = paintedCityGeometry();
   private readonly northStar = northStarTownGeometry();
@@ -222,7 +231,7 @@ export class PaintedCityLayer {
   build(state: GameState, preparedMap: GameMap, levels: FogLevels = null, shadows = true, options: PaintedCityOptions = {}): void {
     if (this.disposed) return;
     if (this.preparedMap !== preparedMap) { this.clearBatches(); this.clearRecipes(); this.preparedMap = preparedMap; }
-    this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
+    this.flagAnchors.clear(); this.cityHeights.clear(); this.smokeAnchors.clear(); this.placements.length = 0;
     const batches = new Map<BufferGeometry, Batch>(), patches: BufferGeometry[] = [];
     const capitals = capitalIds(state), period = Math.sqrt(3) * state.map.width;
     const living = new Set<number>();
@@ -251,6 +260,7 @@ export class PaintedCityLayer {
       this.placements.push(...recipe.placements);
       this.flagAnchors.set(city.id, recipe.anchor);
       this.cityHeights.set(city.id, recipe.tallest);
+      if (recipe.smoke) this.smokeAnchors.set(city.id, recipe.smoke);
     }
     // A town razed takes its cut with it; a town merely out of sight keeps it,
     // because the fog will hand it back and nothing about the stones moved.
@@ -311,6 +321,17 @@ export class PaintedCityLayer {
   setShadows(enabled: boolean): void {
     for (const batch of this.batches.values()) for (const mesh of batch.meshes)
       if (mesh instanceof InstancedMesh) mesh.castShadow = enabled;
+  }
+
+  /**
+   * The models of a town at one tier of its look: `NORTH_STAR_TOWN_AGES` when
+   * `visualTest.town.byAge` is on and the kit holds that tier's models, and the
+   * town of before (`NORTH_STAR_TOWN_BEFORE`) otherwise.
+   */
+  private townAge(tier: number): TownAge {
+    const index = Math.max(1, Math.min(3, tier)) - 1;
+    const aged = (NORTH_STAR_TOWN_AGES as TownAge[])[index]!;
+    return this.town?.byAge && this.assets[aged.centre] && aged.houses.every(name => this.assets[name]) ? aged : (NORTH_STAR_TOWN_BEFORE as TownAge[])[index]!;
   }
 
   private city(
@@ -436,13 +457,21 @@ export class PaintedCityLayer {
       const gateZ = radiusAt(Math.PI * .5, town.wallInset);
       if (walled) patch([[-town.streetHalf, gateZ], [town.streetHalf, gateZ], [town.streetHalf, .27], [-town.streetHalf, .27]], town.street, town.groundLift + .002);
       // A piece is scaled so the longest side of its footprint is the address's size.
-      const stand = (kind: PaintedCityPlacement['kind'], name: CityAssetName, address: readonly number[], factor = 1, turn = 0): void => {
-        const geometry = this.assets[name]; if (!geometry) return;
+      const stand = (kind: PaintedCityPlacement['kind'], name: CityAssetName, address: readonly number[], factor = 1, turn = 0): PaintedCityPlacement | undefined => {
+        const geometry = this.assets[name]; if (!geometry) return undefined;
         const box = bounds(geometry), [x, z, size, yaw] = address as [number, number, number, number];
-        building(kind, name, x, z, size * factor / Math.max(box.max.x - box.min.x, box.max.z - box.min.z), yaw + turn);
+        return building(kind, name, x, z, size * factor / Math.max(box.max.x - box.min.x, box.max.z - box.min.z), yaw + turn);
       };
       // Which house, and how far it turns, hash the town's own hex.
-      stand('civic', 'ns-hall', town.hall, look.capital ? town.capitalHall : 1);
+      // What this age's town is made of (`NORTH_STAR_TOWN_AGES`). The tier is the look's, so the centre and the
+      // houses change with the fingerprint (`signCities`) and at no other time.
+      const age = this.townAge(look.tier);
+      const middle = stand('civic', age.centre, town.hall, (look.capital ? town.capitalHall : 1) * age.centreSize);
+      if (middle) {
+        // The smoke leaves the centre's own smoke hole or chimney, wherever the centre was fitted.
+        const [sx, sy, sz] = age.smoke as [number, number, number], p = transform(sx * middle.scale, sz * middle.scale, middle.yaw);
+        recipe.smoke = { x: middle.x + p.x, y: middle.y + sy * middle.scale, z: middle.z + p.z };
+      }
       const big = [...town.big], pockets = [...town.pockets];
       if (grand) {
         const raise = (kind: PaintedCityPlacement['kind'], name: CityAssetName): void => {
@@ -460,7 +489,7 @@ export class PaintedCityLayer {
       const large = big.length, addresses = [...big, ...town.lots, ...pockets];
       const houses = Math.min(addresses.length, Math.max(town.minHouses, city.population + town.housesOverPopulation));
       for (let i = 0; i < houses; i++) {
-        const name = `ns-house-${look.tier}${'abc'[Math.floor(hash(i) * 3)]}` as NorthStarHouse;
+        const name = age.houses[Math.floor(hash(i) * age.houses.length)]!;
         stand('house', name, addresses[i]!, i < large ? town.bigHouse : 1, (hash(i + 40) - .5) * 2 * town.yawJitter);
       }
       if (walled) {
@@ -625,7 +654,7 @@ export class PaintedCityLayer {
   dispose(): void {
     if (this.disposed) return; this.disposed = true;
     this.clearBatches(); this.clearRecipes(); this.fields.dispose();
-    this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
+    this.flagAnchors.clear(); this.cityHeights.clear(); this.smokeAnchors.clear(); this.placements.length = 0;
     Object.values(this.geometry).forEach(geometry => geometry.dispose());
     Object.values(this.northStar).forEach(geometry => geometry.dispose());
   }

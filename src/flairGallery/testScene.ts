@@ -3,6 +3,7 @@ import { Renderer3D } from '../render3d/renderer3d';
 import { setUnitArtVariant } from '../render3d/paintedUnits';
 import { VTEST_UNIFORMS } from '../render3d/visualTestLook';
 import { NO_LENS } from '../render3d/lens3d';
+import { YIELD_LIGHT_SHOWS } from '../render3d/paintedYieldLight';
 import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from '../render3d/visualTest';
@@ -25,8 +26,15 @@ import type { UnitTypeId } from '../sim/unitData';
  *   city, units, fog);
  * - `light`: morning, day, golden or dusk;
  * - `vtest`: the visual test switches, as in the game (`visualTest.ts`);
- * - `age`: 1 or 2 draws the towns of an earlier age (their houses and walls);
- *   without it both courts know every technology;
+ * - `age`: 1, 2 or 3 draws the towns and the works of an earlier age (4 is the
+ *   last age); without it both courts know every technology;
+ * - `works`: `old` draws every work as it was before the works followed their
+ *   owner's age (it turns `visualTest.works.byAge` off for this page);
+ * - `yields`: how a rich hex is shown: `a` motes, `b` light on the ground, `c`
+ *   shapes by yield, `structures` the sheaves, logs and stalls of before, `off`
+ *   nothing (it sets `visualTest.yieldLight.show` for this page);
+ * - `towns`: `old` draws every town round the one hall of before (it turns
+ *   `visualTest.town.byAge` off for this page);
  * - `still`: `1` (the default) holds the clock that moving water, clouds and
  *   pieces read, so two screenshots differ only by a switch; `0` lets it run.
  * The panel's last line gives the frame's draw calls and triangles.
@@ -64,7 +72,14 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   renderer.mirrorOn = params.get('mirror') !== '0';
   renderer.mirrorAll = params.get('mirror') === 'all';
   const age = Number(params.get('age'));
-  const state = createSceneFixture(age === 1 || age === 2 ? age : undefined);
+  const aged = age >= 1 && age <= 4;
+  // Before the renderer is made: the works layer reads the switch when it draws.
+  if (params.get('works') === 'old') VIEW3D.visualTest.works.byAge = false;
+  if (params.get('towns') === 'old') VIEW3D.visualTest.town.byAge = false;
+  // `yields` picks how a rich hex is shown, as `visualTest.yieldLight.show` does.
+  const yieldShow = params.get('yields');
+  if (yieldShow && (YIELD_LIGHT_SHOWS as readonly string[]).includes(yieldShow)) VIEW3D.visualTest.yieldLight.show = yieldShow;
+  const state = createSceneFixture(aged ? age : undefined);
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -85,7 +100,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const writeUrl = (): void => {
     const url = new URL(location.href);
     url.searchParams.set('review', 'scene'); url.searchParams.set('view', view); url.searchParams.set('light', light);
-    if (age === 1 || age === 2) url.searchParams.set('age', String(age));
+    if (aged) url.searchParams.set('age', String(age));
     url.searchParams.set('vtest', formatVisualTest(visualTest())); url.searchParams.set('still', still ? '1' : '0');
     history.replaceState(null, '', url);
   };
@@ -172,8 +187,13 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   if (disposed) return dispose;
   renderer.setDaylight(light);
   renderer.setClock(still ? 12 : null);
+  // For a capture script: it sets the held clock frame by frame, so a recording has an even frame rate.
+  (window as unknown as { sceneClock?: (seconds: number | null) => void }).sceneClock = seconds => renderer.setClock(seconds);
+  // And the cost of the last frame: draw calls, triangles and the milliseconds the CPU took to submit it.
+  (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
   renderer.setFogSeat(0);
-  renderer.setRichnessShowcase(new Map(SCENE_RICHNESS.map(([col, row, kind, step]) => [row * state.map.width + col, { kind, step }])));
+  renderer.setRichnessShowcase(new Map(SCENE_RICHNESS.map(([col, row, kind, step, second]) => [row * state.map.width + col,
+    { kind, step, ...(second ? { second: { kind: second, step: Math.max(1, step - 1) } } : {}) }])));
   renderer.setGameState(state);
   const resourceCells = state.map.tiles.filter(tile => tile.resource).map(tile => ({ col: tile.col, row: tile.row }));
   renderer.setLens({ ...NO_LENS, resources: true, resourceCells, playerId: 0 } as LensView);

@@ -94,7 +94,8 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
   /** `prepared` is the board's own map, whose tiles carry the ground's heights. `period` is the wrap width in world units. */
   build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number, shadows: boolean): void {
     this.clear();
-    if (!RICH.on) return;
+    // The scenery is one of the ways to show a rich hex. `visualTest.yieldLight.show` picks the way (`paintedYieldLight.ts`).
+    if (!RICH.on || VIEW3D.visualTest.yieldLight.show !== 'structures') return;
     const cities = new Set(state.cities.map((city) => city.row * state.map.width + city.col));
     const watched = state.map.tiles.filter((tile, cell) => !WATER.has(tile.terrain) && tile.terrain !== 'mountain' && !cities.has(cell)
       && (this.showcase?.has(cell) || levelAt(levels, state.map, tile.col, tile.row) === VISIBLE));
@@ -112,7 +113,8 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
     }
     watched.forEach((original, index) => {
       const rich = this.showcase?.get(original.row * state.map.width + original.col) ?? richestKind(yields[index]!);
-      if (!rich || fit[rich.kind] === undefined) return;
+      // The scene's examples of science, culture and faith have no scenery: only the light shows those.
+      if (!rich || !(KINDS as readonly string[]).includes(rich.kind) || fit[rich.kind] === undefined) return;
       const tile = prepared.tiles[original.row * state.map.width + original.col];
       if (!tile) return;
       const c = centre(tile) as { x: number; z: number };

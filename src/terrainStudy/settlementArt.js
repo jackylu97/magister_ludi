@@ -10,7 +10,7 @@ import {farmPaint,farmLayout} from './farmPaint.js';
 import {createLumbermillGeometry} from './lumbermillGeometry.js';
 import {createSpecialWorkGeometry} from './specialWorkGeometry.js';
 import {createObsidianGeometry} from './obsidianGeometry.js';
-import {northStarWork} from './northStarWorks.js';
+import {northStarWork,northStarWorkAge} from './northStarWorks.js';
 
 function colored(g,color){
  const c=new T.Color(color),p=g.attributes.position,colors=new Float32Array(p.count*3);
@@ -190,6 +190,10 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   const monumental=Object.prototype.hasOwnProperty.call(special,improvement);
   // The north-star mine, quarry and farm. A drawn one replaces the study's.
   const drawn=ns&&preciseFit?northStarWork(ns,{tile,entry,top,assets,patch,building,put,height,onBuilding}):false;
+  // The model a work draws at its owner's age (`NORTH_STAR_WORK_AGES`), if the kit has it.
+  const aged=northStarWorkAge(ns,improvement,entry.step);
+  const agedModel=fallback=>typeof aged==='string'&&assets[aged]?aged:fallback;
+  const agedPair=Array.isArray(aged)&&assets[aged[0]]?aged:null;
   const sunk=drawn&&improvement!=='farm';
   const frontResource=lumber||monumental||sunk;
   if(monumental&&!drawn){
@@ -270,12 +274,12 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
     put(marine[resource]||fish,x,z,.65+rand(i)*.3,-.5,0xffffff,WATER_LEVEL+.004);
    }
   }
-  if(improvement==='pasture')fence();
-  if(improvement==='mine'&&!drawn)building('mine',.06,.23,.72,0);
+  if(improvement==='pasture'){fence();if(agedPair)building(agedPair[0],.25,-.33,agedPair[1],0)}
+  if(improvement==='mine'&&!drawn)building(agedModel('mine'),.06,.23,.72,0);
   if(improvement==='quarry'&&!drawn)building('quarry',.22,.26,.84,0);
   if(improvement==='camp')building('camp',-.35,.39,.65,.25);
-  if(improvement==='plantation')building(ns?'ns-barn':'house',.42,.42,ns?.6:.32,0);
-  if(lumber){building('lumbermill',-.13,.03,.90,-.13);building('lumber-stockpile',.27,0,.92,.10)}
+  if(improvement==='plantation')building(agedPair?agedPair[0]:ns?'ns-barn':'house',.42,.42,agedPair?agedPair[1]:ns?.6:.32,0);
+  if(lumber){building(agedModel('lumbermill'),-.13,.03,.90,-.13);building('lumber-stockpile',.27,0,.92,.10)}
   if(improvement==='fishingBoats')put(assets['fishing-boat'],.12,.1,.85,-.4,0xffffff,WATER_LEVEL-.016);
   if(monumental&&!drawn){
    if(improvement==='citadel'||improvement==='holySite')building(improvement,0,0,1);
