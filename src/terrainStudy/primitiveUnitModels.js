@@ -23,11 +23,14 @@ const READABLE={toolWidth:1.6,toolLength:1.18,body:.88,reach:.92};
  * middle, and a little longer from their lowest point, so nothing sinks into the plinth.
  */
 function makeReadable(group){
- const tools={'-1':[],'1':[]};
+ const tools={'-1':[],'1':[]};let top=0;group.updateMatrixWorld(true);
  for(const part of group.children){
   if(Math.abs(part.position.x)>.15)tools[Math.sign(part.position.x)].push(part);
-  else{part.scale.x*=READABLE.body;part.scale.z*=READABLE.body;part.position.x*=READABLE.body;part.position.z*=READABLE.body}
+  else{part.scale.x*=READABLE.body;part.scale.z*=READABLE.body;part.position.x*=READABLE.body;part.position.z*=READABLE.body;if(!/plume/.test(part.name))top=Math.max(top,new T.Box3().setFromObject(part).max.y)}
  }
+ // What the piece counts as its height: the body and helmet, and not a tool, a spear or a plume (the user, 2026-11-15:
+ // "the tools shouldn't 'count' towards its height"). The badge and the health bar stand on this.
+ group.userData.pieceHeight=top;
  for(const side of [-1,1]){
   const parts=tools[side];if(!parts.length)continue;
   const boxes=parts.map(part=>new T.Box3().setFromObject(part));
@@ -46,7 +49,7 @@ function makeReadable(group){
 
 // The original memory-table figures: concentric enamel plinths, turned robes,
 // ivory faces and a few gilt marks. Unit identity lives in the finial/tool.
-export function createPrimitiveUnitScene(type,{family='scholar'}={}){
+export function createPrimitiveUnitScene(type,{family='scholar',tier=0}={}){
  const mounted=mountedVariants.includes(type);
  const infantry=['swordsman','legionary','longswordsman','fireLance','khopesh','eagleWarrior'].includes(type);
  const equipment=polearmVariants.includes(type)||rangedVariants.includes(type);
@@ -55,6 +58,9 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  const material=(name,color)=>{const m=new T.MeshStandardMaterial({color,roughness:.8,metalness:0});m.name=name;return m};
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
  const ivory=material('Warm ivory','#e8d8b2'),gold=material('Antique gold','#b69045'),dark=material('Incised detail','#303d42');
+ // `Trim` parts take the seat's second colour in the game (`packUnitAsset` with `trim`); elsewhere they stay gilt.
+ // `steel` is for helmets, so a soldier's head reads as armour and not as a cap (the user, 2026-11-15).
+ const trim=material('Trim gilt','#b69045'),steel=material('Burnished helm steel','#66737f');
  const mesh=(name,geometry,m,x=0,y=0,z=0)=>{
   const o=new T.Mesh(geometry,m);o.name=name;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o;
  };
@@ -73,12 +79,23 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  };
  const box=(name,size,m,x,y,z=0)=>mesh(name,new T.BoxGeometry(...size),m,x,y,z);
  const ivoryFace=(y=1.075)=>{
+  // The small nose is gone (the user, 2026-11-15: "the little nose on the figures can be removed").
   sphere('Faceted ivory face',.145,ivory,0,y);
-  const nose=mesh('Small carved nose',new T.ConeGeometry(.027,.072,4),ivory,0,y-.013,.145);nose.rotation.x=Math.PI/2;
  };
- const augurCap=()=>{
-  mesh('Simple augur cap',new T.ConeGeometry(.166,.307,8),ivory,0,1.279);
-  ring('Gilt cap brim',.162,1.135,gold,0,0,.008);
+ // A soldier's helmet in steel: a dome over the top of the head, a brow band in the seat's second colour, a nasal
+ // bar and two cheek guards. `point` adds a short spike (spears and polearms) and `brim` a wide flat brim (bows),
+ // so the two classes differ in outline. A later age adds a plume in the second colour, taller in the last age.
+ const helmet=(kind)=>{
+  mesh('Steel helmet dome',new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
+  ring('Trim brow band',.172,1.122,trim,0,0,.014);
+  box('Steel nasal bar',[.026,.120,.020],steel,0,1.068,.168);
+  for(const side of [-1,1])box(`Steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
+  if(kind==='point')mesh('Steel helmet spike',new T.ConeGeometry(.062,.150,8),steel,0,1.345);
+  if(kind==='brim')cylinder('Steel helmet brim',.232,.020,steel,0,1.128,0,.232,16);
+  if(tier>=2){
+   const tall=tier>=3?.26:.16,foot=kind==='point'?1.40:1.275;
+   const plume=box('Trim helmet plume',[.036,tall,.150],trim,0,foot+tall/2,-.030);plume.rotation.x=-.18;
+  }
  };
  const bowAndQuiver=(mounted=false)=>{
   const x=mounted?.34:.223,y=mounted?.835:.974,z=mounted?.08:.155;
@@ -102,11 +119,11 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
 
  // Shared stepped plinth from mockups/memory-table/study-01.js.
  if(type!=='embarked'&&type!=='trader'&&type!=='rihlaCaravan'&&!navalVariants.includes(type)){
-  cylinder('Gilt plinth',.37,.09,gold,0,.045,0,.37,24);
+  cylinder('Trim plinth',.37,.09,trim,0,.045,0,.37,24);
   cylinder('Enamel base',.32,.12,owner,0,.13,0,.32,24);
   cylinder('Ivory base bead',.29,.045,ivory,0,.21,0,.29,24);
  }
- const kit={group,mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark};
+ const kit={group,mesh,cylinder,sphere,ring,rod,box,owner,ownerShade,ivory,gold,dark,trim,steel,tier};
  if(type==='embarked'||navalVariants.includes(type))addNaval(kit,type);
  else if(siegeVariants.includes(type))addSiege(kit,type);
  else if(chariotVariants.includes(type))addChariot(kit,type);
@@ -118,7 +135,7 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   const profile=[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
   mesh('Scout turned enamel stem',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Scout hem recess',.262,.027,ownerShade,0,.263);
-  ring('Scout gilt hem',.267,.293);
+  ring('Scout trim hem',.267,.293,trim,0,0,.016);
   ring('Scout collar bead',.146,.963,gold,0,0,.009);
   cylinder('Scout ivory neck',.09,.073,ivory,0,.982);
   sphere('Scout ivory pawn finial',.155,ivory,0,1.075);
@@ -175,7 +192,7 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   const profile=[[.26,.23],[.275,.31],[.23,.45],[.17,.64],[.135,.79],[.135,.85]];
   mesh('Settler turned enamel stem',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Settler hem recess',.262,.027,ownerShade,0,.263);
-  ring('Settler gilt hem',.267,.293);
+  ring('Settler trim hem',.267,.293,trim,0,0,.016);
   ring('Settler collar bead',.140,.845,gold,0,0,.009);
   cylinder('Settler ivory neck',.09,.073,ivory,0,.862);
   sphere('Settler plain ivory pawn finial',.160,ivory,0,.950);
@@ -309,21 +326,29 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
   }
  }else{
   const worker=type==='worker';
-  const profile=worker?[[.26,.23],[.275,.31],[.23,.45],[.17,.64],[.135,.79],[.135,.85]]:[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
+  // Every foot piece has one body of one height (the user, 2026-11-15: "the unit models should be the same size across the board").
+  const profile=[[.26,.23],[.27,.3],[.22,.44],[.17,.63],[.2,.85],[.14,.96]];
   mesh('Turned enamel robe',new T.LatheGeometry(profile.map(p=>new T.Vector2(...p)),16),owner);
   cylinder('Hem shadow',.262,.027,ownerShade,0,.263);
-  ring('Gilt hem',.267,.293);
-  ring('Small collar bead',worker?.140:.146,worker?.845:.963,gold,0,0,.009);
-  cylinder('Ivory neck',.09,.073,ivory,0,worker?.862:.982);
-  // Six restrained lines describe the turned robe instead of separate limbs.
-  for(let i=0;i<(worker?0:6);i++){
-   const angle=i*Math.PI/3+Math.PI/6,s=Math.sin(angle),c=Math.cos(angle);
-   rod(`Gilt piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.0055);
+  // The decoration grows with the piece's age (`tier` 0 to 3), in the seat's second colour:
+  // a hem band; then a collar and an insignia; then piping and a waist band; then a short mantle over the shoulders.
+  ring('Trim hem',.267,.293,trim,0,0,.016);
+  if(!worker&&tier>=1)ring('Trim collar bead',.146,.963,trim,0,0,.014);
+  cylinder('Ivory neck',.09,.073,ivory,0,.982);
+  if(!worker&&tier>=2){
+   for(let i=0;i<6;i++){
+    const angle=i*Math.PI/3+Math.PI/6,s=Math.sin(angle),c=Math.cos(angle);
+    rod(`Trim piping ${i}`,[s*.245,.34,c*.245],[s*.174,.627,c*.174],.009,trim);
+   }
+   ring('Trim waist band',.174,.630,trim,0,0,.012);
   }
-  if(!worker){const emblem=box('Single diamond insignia',[.04,.04,.011],gold,0,.795,.195);emblem.rotation.z=Math.PI/4}
-  if(worker)sphere('Plain ivory pawn finial',.160,ivory,0,.950);
+  if(!worker&&tier>=3)cylinder('Trim shoulder mantle',.222,.110,trim,0,.885,0,.150,12);
+  if(!worker&&tier>=1){const emblem=box('Single diamond insignia',[.05,.05,.011],gold,0,.795,.195);emblem.rotation.z=Math.PI/4}
+  if(worker)sphere('Plain ivory pawn finial',.160,ivory,0,1.075);
   else ivoryFace();
-  if(type==='warrior'||type==='spearman'||type==='archer'||equipment)augurCap();
+  if(type==='warrior')helmet('plain');
+  else if(type==='spearman'||polearmVariants.includes(type))helmet('point');
+  else if(type==='archer'||rangedVariants.includes(type))helmet('brim');
   if(faithVariants.includes(type))addFaithEquipment(kit,type);
   else if(equipment)addPolearmRangedVariant(kit,type);
   else if(infantry)addInfantryVariant(kit,type);

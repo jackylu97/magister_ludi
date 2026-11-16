@@ -7,6 +7,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Unit } from '../sim/state';
 import { greatPersonDef, isGreatPersonId, type Family } from '../sim/greatPeopleData';
 import { isWaterTerrain, type TerrainId } from '../sim/terrainData';
+import { UNIT_UNLOCK_TECH, techDef } from '../sim/techData';
+import type { UnitTypeId } from '../sim/unitData';
 // @ts-expect-error The approved shared study asset packer remains JavaScript.
 import { packUnitAsset } from '../terrainStudy/unitAssets.js';
 // @ts-expect-error The approved shared study sculpts remain JavaScript.
@@ -30,6 +32,8 @@ export interface PaintedUnitModel {
 interface PackedUnitAsset {
   fixed: BufferGeometry;
   owner: BufferGeometry;
+  /** The parts that take the seat's second colour. A piece with none has no such geometry. */
+  trim?: BufferGeometry;
   height: number;
   radius: number;
   contacts: [number, number, number][];
@@ -49,6 +53,16 @@ function studyYaw(type: UnitArtState['type']): number {
   if (type === 'trader' || type === 'rihlaCaravan') return -.62;
   if (type === 'settler') return 2.92;
   return type === 'warrior' || unitReviewVariants.includes(type) ? -.16 : .12;
+}
+
+/**
+ * How much decoration a piece carries, 0 to 3: the age of the technology that opens it, less one. A piece that no
+ * technology opens is of the first age. The user, 2026-11-15: "increase the decoration on each piece as they become
+ * more advanced".
+ */
+export function unitDecorationTier(type: string): number {
+  const gate = UNIT_UNLOCK_TECH.get(type as UnitTypeId);
+  return gate ? Math.max(0, Math.min(3, techDef(gate).age - 1)) : 0;
 }
 
 /** Geometry and owner pigments shared by resting, moving and falling pieces. */
@@ -82,17 +96,18 @@ export class PaintedUnitKit {
     const cached = this.models.get(key);
     if (cached) return cached;
 
-    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family })) as PackedUnitAsset;
+    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family, tier: unitDecorationTier(unit.type) }), { trim: true }) as PackedUnitAsset;
+    const trim = packed.trim;
     let geometry: BufferGeometry | null = null;
     try {
-      for (const [part, owner] of [[packed.fixed, 0], [packed.owner, 1]] as const) {
+      for (const [part, owner] of [[packed.fixed, 0], [packed.owner, 1], ...(trim ? [[trim, 2] as const] : [])] as const) {
         const count = part.getAttribute('position').count;
         part.setAttribute('paintedOwner', new Float32BufferAttribute(new Float32Array(count).fill(owner), 1));
         // The study welds profitable meshes; the production bucket contract is
         // indexed even for a small part whose vertices could not be shared.
         if (!part.index) part.setIndex(Array.from({ length: count }, (_, index) => index));
       }
-      geometry = mergeGeometries([packed.fixed, packed.owner], false);
+      geometry = mergeGeometries([packed.fixed, packed.owner, ...(trim ? [trim] : [])], false);
       if (!geometry) throw new Error(`Could not merge painted unit ${key}`);
       geometry.name = `Painted unit ${key}`;
       geometry.userData.paintedUnitAsset = key;
@@ -107,6 +122,8 @@ export class PaintedUnitKit {
       const model: PaintedUnitModel = {
         geometry, height: packed.height, radius: packed.radius,
         contacts: packed.contacts, yaw: embarked ? -.65 : studyYaw(unit.type), waterborne: embarked || navalVariants.includes(unit.type),
+        // A piece with parts in the seat's second colour needs the material that reads it.
+        ...(trim ? { trimmed: true } : {}),
       };
       this.models.set(key, model);
       return model;
@@ -116,6 +133,7 @@ export class PaintedUnitKit {
     } finally {
       packed.fixed.dispose();
       packed.owner.dispose();
+      trim?.dispose();
     }
   }
 
