@@ -2,7 +2,7 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
-import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS,NORTH_STAR_RANGE_COUNT as RANGE_COUNT} from './northStarTrees.js';
+import {NORTH_STAR_TREES,NORTH_STAR_ROCK,NORTH_STAR_MOUNTAIN_ROCK as MOUNTAIN_ROCK,NORTH_STAR_CRAGS as CRAGS,NORTH_STAR_RANGE_COUNT as RANGE_COUNT,NORTH_STAR_FALLEN_ROCKS as FALLEN} from './northStarTrees.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
 // two cypresses, the mountains (three escarpments or five crags), then the
@@ -16,7 +16,8 @@ const TREES=NORTH_STAR_TREES?'soft':'sculpt';
 // The mountains are the crags of `build_crag_mountains.py` or the study's
 // escarpments (`NORTH_STAR_CRAGS`). The kit still calls the three of them
 // `escarpments`, so nothing that reads the kit changes.
-const RANGE=CRAGS?'crag':'escarpment';
+// `NORTH_STAR_FALLEN_ROCKS` picks the crags with the uneven rocks at the foot.
+const RANGE=CRAGS?FALLEN?'crag-fallen':'crag':'escarpment';
 export const VEGETATION_SPECIES=[
  ...[0,1,2].map(i=>({name:`grove-${TREES}-${i}`,evergreen:false,rock:false,family:'groves'})),
  ...[0,1].map(i=>({name:`cypress-${TREES}-${i}`,evergreen:true,rock:false,family:'groves'})),
@@ -28,7 +29,7 @@ export const VEGETATION_SPECIES=[
 // `scripts/terrain-study/build_asset_bundle.mjs` runs it once and ships the
 // result. The runtime keeps this path as the fallback for a missing or
 // out-of-date bundle, and it is the definition the bundle is pinned against.
-export const VEGETATION_BUNDLE_VERSION=CRAGS?'vegetation-soft-crag-1':TREES==='soft'?'vegetation-soft-1':'vegetation-1';
+export const VEGETATION_BUNDLE_VERSION=CRAGS?FALLEN?'vegetation-soft-crag-2':'vegetation-soft-crag-1':TREES==='soft'?'vegetation-soft-1':'vegetation-1';
 export const VEGETATION_BUNDLE_URL=`/terrain-study/asset-bundle/${VEGETATION_BUNDLE_VERSION}.bundle`;
 const BUNDLE_MAGIC='MLAB';
 

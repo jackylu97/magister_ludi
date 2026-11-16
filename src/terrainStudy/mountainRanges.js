@@ -1,5 +1,5 @@
 import {centre,neighbour,isWater,onTileTop,surfaceHeight,tileShape,terrainMapWraps} from './surface.js';
-import {NORTH_STAR_CRAGS,NORTH_STAR_RANGE_COUNT} from './northStarTrees.js';
+import {NORTH_STAR_CRAGS,NORTH_STAR_RANGE_COUNT,NORTH_STAR_FALLEN_ROCKS} from './northStarTrees.js';
 
 const hash=(x,z,s)=>{let n=Math.imul(x+37,374761393)^Math.imul(z-19,668265263)^Math.imul(s+1,1274126177);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296};
 const mountain=t=>t?.terrain==='mountain';
@@ -34,7 +34,7 @@ export function createMountainRanges(map){
    biomes.set(tile,[...local].sort((a,b)=>b[1]-a[1])[0]?.[0]||fallback);
   }
  }
- function add(owner,p,allowed){
+ function add(owner,p,allowed,paint=true){
   // Conservative footprint samples keep the shared assets out of water and
   // neighbouring flat tiles. Dry mountain/hill joins can share the footprint.
   const inside=(x,z)=>allowed.some(t=>{
@@ -67,7 +67,8 @@ export function createMountainRanges(map){
   p.y=Math.min(...heights)-Math.min(.11,p.sy*.16);
   if(!Number.isFinite(p.y))return false;
   if(!pieces.has(owner))pieces.set(owner,[]);pieces.get(owner).push(p);
-  patches.push({x:p.x,z:p.z,angle:-p.angle,rx:p.sx*.87,rz:p.sz*.85,seed:hash(owner.col,owner.row,940+patches.length),biome:p.biome,kind:p.kind});
+  // A loose stone paints no rock on the ground under it.
+  if(paint)patches.push({x:p.x,z:p.z,angle:-p.angle,rx:p.sx*.87,rz:p.sz*.85,seed:hash(owner.col,owner.row,940+patches.length),biome:p.biome,kind:p.kind});
   return true;
  }
  for(const tile of mountains){
@@ -88,7 +89,7 @@ export function createMountainRanges(map){
     if(tile.row*map.width+tile.col>n.row*map.width+n.col)continue;
     const piece={kind:'saddle',asset:'shoulder',x:(c.x+nc.x)/2,z:(c.z+nc.z)/2,sx:1.04,sz:.68+h(20+d)*.10,sy:.36+h(30+d)*.15,angle:-a+(h(40+d)-.5)*.16,variant:(Math.floor(h(4)*3)+1)%3,biome:biomes.get(tile)};
     if(add(tile,piece,[tile,n]))connections.push({from:tile,to:n,kind:'range',piece});
-   }else{
+   }else if(!NORTH_STAR_FALLEN_ROCKS){
     const turn=-a+(h(50+d)-.5)*.3,k=biome(n);
     // Unequal shoulders step down in height and footprint into the hill.
     for(const [i,t,size,height]of [[0,.43,.70,.36],[1,.83,.46,.28]]){
@@ -98,6 +99,42 @@ export function createMountainRanges(map){
     }
    }
   }
+  if(NORTH_STAR_FALLEN_ROCKS)fallenRock(tile,c,h,angle,connected.filter(n=>!mountain(n.tile)));
+ }
+ // The low rock between a mountain and its hills (the user, 2026-11-16: "rocks
+ // at the base that feel too evenly distributed, pointed outward radially").
+ // Before, every hill beside a mountain got one low block and one stone, at the
+ // same two distances and turned along the line to the hill, so a mountain in
+ // the hills wore a ring of equal blocks. Now the hills are ranked, a hill under
+ // the mountain's sheer face first, and each rank gets less: one large block
+ // with stones beside it, then a small block or a few stones, then a single
+ // stone or nothing. Each piece has its own place, size and turn.
+ function fallenRock(tile,c,h,angle,hills){
+  // The sheer face is at the model's front right, which the mountain's turn moves.
+  const sheer=Math.PI/4-angle;
+  const ranked=hills.map(n=>({...n,score:h(200+n.d)+.6*Math.max(0,Math.cos(n.d*Math.PI/3-sheer))})).sort((p,q)=>q.score-p.score);
+  ranked.forEach(({tile:n,d},rank)=>{
+   const g=i=>h(210+d*20+i),nc=localCentre(n,c.x),a=d*Math.PI/3,dx=nc.x-c.x,dz=nc.z-c.z,k=biome(n);
+   const along=(t,side)=>({x:c.x+dx*t-Math.sin(a)*side,z:c.z+dz*t+Math.cos(a)*side});
+   const role=rank===0?'large':rank===1?(g(0)<.55?'small':'stones'):rank===2?(g(0)<.5?'stones':'stray'):g(0)<.3?'stray':'bare';
+   if(role==='bare')return;
+   let block=null;
+   if(role==='large'||role==='small'){
+    const size=role==='large'?.58+g(1)*.2:.36+g(1)*.14;
+    const piece={kind:'foothill',asset:'shoulder',...along(.34+g(2)*.16,(g(3)-.5)*.34),sx:size*(.85+g(4)*.4),sz:size*(.8+g(5)*.3),sy:(role==='large'?.3:.2)+g(6)*.12,angle:g(7)*Math.PI*2,variant:Math.floor(g(8)*NORTH_STAR_RANGE_COUNT),biome:k};
+    if(add(tile,piece,[tile,n])){connections.push({from:tile,to:n,kind:'foothill',piece});block=piece}
+   }
+   const stones=role==='large'?1+Math.floor(g(9)*2.6):role==='small'?Math.floor(g(9)*2.4):role==='stones'?2+Math.floor(g(9)*1.8):1;
+   // The first stone lies beside the block, or by itself on the way to the hill. Each later one lies against the one before, and is smaller.
+   let last=null;
+   for(let i=0;i<stones;i++){
+    const size=last?last.size*(.42+g(10+i)*.36):role==='stray'?.14+g(10)*.12:.26+g(10)*.16,turn=a+(g(13+i)-.5)*(last?5:2.6);
+    const from=last||(block?{x:block.x,z:block.z,reach:Math.max(block.sx,block.sz)*.5}:{...along(.46+g(16)*.2,(g(17)-.5)*.5),reach:0});
+    const reach=from.reach+size*.42;
+    const piece={kind:'foothill',asset:'talus',x:from.x+Math.cos(turn)*reach,z:from.z+Math.sin(turn)*reach,sx:size*(.85+g(19+i)*.4),sz:size*(.8+g(22+i)*.4),sy:size*(.4+g(25+i)*.4),angle:g(28+i)*Math.PI*2,variant:0,biome:k};
+    if(add(tile,piece,[tile,n],false))last={x:piece.x,z:piece.z,size,reach:size*.4};
+   }
+  });
  }
  return {biomes,pieces,patches,connections};
 }

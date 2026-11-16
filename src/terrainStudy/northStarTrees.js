@@ -20,6 +20,14 @@ export const NORTH_STAR_MOUNTAIN_ROCK = NORTH_STAR_TREES ? [.83, .69, .5] : null
 // the shelves). `false` gives back the study's escarpments. The crags come only
 // with the round trees, because each set of models has its own prepared bundle.
 export const NORTH_STAR_CRAGS = NORTH_STAR_TREES && true;
+// The rocks at the foot of a mountain (the user, 2026-11-16: "rocks at the base
+// that feel too evenly distributed, pointed outward radially"). `true` loads the
+// crags whose foot rocks lie in uneven groups (`crag-fallen-0.glb` to
+// `crag-fallen-4.glb`), and `createMountainRanges` then lays the low rock
+// between a mountain and its hills unevenly too. `false` gives back the models
+// and the placement of before (`crag-0.glb` to `crag-4.glb`, which stay in the
+// repository with their own bundle).
+export const NORTH_STAR_FALLEN_ROCKS = NORTH_STAR_CRAGS && true;
 // How many mountain models there are: five crags, so a long range does not
 // repeat three shapes, or the three escarpments.
 export const NORTH_STAR_RANGE_COUNT = NORTH_STAR_CRAGS ? 5 : 3;

@@ -25,12 +25,26 @@ them by their material's name (`CRAG_OWN` in vegetation.js): the snow on a
 summit, the shrubs and small trees on the ledges, and the scree at the foot.
 `scatter` finds the places for them by looking down on the finished rock, so
 they follow whatever shape the blocks have.
+
+The rocks at the foot (the user, 2026-11-16: "rocks at the base that feel too
+evenly distributed, pointed outward radially"). `fallen` lays them as rock
+that fell and gathered: a few groups of different size where a wall stands
+high above, a bare stretch, and one or two strays lower down. Each rock has
+its own size, shape, turn and tip. A rib also turns a face outward now, each
+by its own amount, where it turned a corner straight out before.
+`--old-rocks` after `--` on the command line builds the arrangement of before
+(three blocks of one size, and ribs with a corner out) and writes the old file
+names, `crag-0.glb` to `crag-4.glb`. Without it the files are
+`crag-fallen-0.glb` to `crag-fallen-4.glb`. `NORTH_STAR_FALLEN_ROCKS` in
+src/terrainStudy/northStarTrees.js picks which files the renderer loads.
+After a build, run `node scripts/terrain-study/build_asset_bundle.mjs`.
 """
-import bpy, bmesh, math, random
-from mathutils import Vector
+import bpy, bmesh, math, random, sys
+from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 from pathlib import Path
 OUT=Path(__file__).resolve().parents[2]/'public'/'terrain-study'
+OLD_ROCKS='--old-rocks' in (sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 
 def reset():
  bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
@@ -132,7 +146,116 @@ def boulder(name,pos,size,seed,stand=1.):
  return mass(name,(x,y),size,[(z-.03,1),(z+size*.55*stand,.94),(z+size*.95*stand,.62)],seed,sides=4,turn=rng.uniform(0,math.tau),
   stretch=rng.uniform(.85,1.2),bevel=size*.16,tilt=(rng.uniform(-.25,.25),rng.uniform(-.25,.25)),rough=.22,ragged=0,cap='rock',stone=SCREE)
 
-def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.):
+def rock(name,pos,size,seed,kind,yaw,tip,toward):
+ """One fallen rock, lying partly in the ground.
+
+ `kind` is 'block' (about as high as wide), 'slab' (long and low), 'round'
+ (five sides, widest in the middle) or 'chip' (a small stone of few faces).
+ The rock is turned by `yaw` about the upright, then tipped by `tip` toward
+ the direction `toward`, so a rock can lean on its neighbour. Its lowest
+ ring is under the ground, so no gap shows on a slope.
+ """
+ rng=random.Random(seed)
+ sides,long,high,rings={'block':(rng.choice((4,5)),rng.uniform(1.,1.3),rng.uniform(.75,1.05),((-.5,1.),(.5,.98),(1.,.62))),
+  'slab':(rng.choice((4,5)),rng.uniform(1.5,1.9),rng.uniform(.32,.46),((-.9,1.),(.55,1.),(1.,.8))),
+  'round':(5,rng.uniform(1.,1.2),rng.uniform(.7,.85),((-.4,.78),(.45,1.),(1.,.5))),
+  'chip':(rng.choice((3,4,4)),rng.uniform(1.,1.25),rng.uniform(.55,.8),((-.6,1.),(1.,.6)))}[kind]
+ angles=[(i+rng.uniform(-.3,.3))*math.tau/sides for i in range(sides)];spoke=[1+rng.uniform(-.2,.2) for _ in range(sides)]
+ shift=(rng.uniform(-.18,.18)*size,rng.uniform(-.18,.18)*size)
+ axis=Vector((-math.sin(toward),math.cos(toward),0));verts=[]
+ for j,(z,width) in enumerate(rings):
+  t=j/(len(rings)-1)
+  for a,k in zip(angles,spoke):
+   r=size*width*k*(1+(rng.uniform(-.08,.08) if 0<j else 0))
+   v=Vector((math.cos(a)*r*long+shift[0]*t,math.sin(a)*r/math.sqrt(long)+shift[1]*t,z*size*high+(rng.uniform(-.1,.1)*size*high if j==len(rings)-1 else 0)))
+   v.rotate(Matrix.Rotation(yaw,3,'Z'));v.rotate(Matrix.Rotation(tip,3,axis))
+   verts.append((pos[0]+v.x,pos[1]+v.y,pos[2]+v.z))
+ n=sides;faces=[(j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i) for j in range(len(rings)-1) for i in range(n)]
+ faces.append(tuple(range((len(rings)-1)*n,len(rings)*n)))
+ return solid(name,verts,faces,SCREE)
+
+def fallen(prefix,seed,look,top,groups,strays):
+ """Lay the rocks at the foot as rock that fell from the walls and gathered.
+
+ `look` looks straight down on the mountain. First the foot is read in 72
+ directions: where the first wall stands, and how high the rock is just
+ behind it. A high wall drops more rock, so a group starts there more often.
+ The back of the mountain is never seen on the board, so it gets none.
+ `groups` gives the number of rocks in each group, largest first. A group is
+ one large rock against the wall and smaller ones beside it and on its
+ downhill side, each touching one already laid. `strays` single rocks lie
+ further down the slope, away from every group.
+ """
+ rng=random.Random(seed*67+5);N=72;foot=[]
+ def height(x,y):
+  loc,_=look(x,y);return loc.z if loc is not None else 0.
+ for k in range(N):
+  a=k*math.tau/N;c,s=math.cos(a),math.sin(a);r=.8;wall=None
+  while r>.3:
+   if height(c*(r-.03),s*(r-.03))-height(c*r,s*r)>.1:wall=r;break
+   r-=.02
+  if wall is None:foot.append((a,0,0));continue
+  drop=max(height(c*(wall-.08),s*(wall-.08)),.7*height(c*(wall-.24),s*(wall-.24)))-height(c*wall,s*wall)
+  seen=min(1.,max(0.,(.5-s)/.5))
+  foot.append((a,wall,max(0.,drop)**1.5*seen))
+ placed=[];count=0
+ def ground(x,y,size):
+  # Open slope: not on a wall, not on a ledge above the foot, and inside the model's circle.
+  if math.hypot(x,y)+size*.8>.8:return None
+  loc,normal=look(x,y)
+  if loc is None:return Vector((x,y,0)) if look(x*.9,y*.9)[0] is not None else None
+  if loc.z>top*.2 or normal.z<.55:return None
+  for k in range(4):
+   other,_=look(x+math.cos(k*math.tau/4)*size*.5,y+math.sin(k*math.tau/4)*size*.5)
+   if other is not None and other.z-loc.z>.12:return None
+  return loc
+ def lay(x,y,size,loc,lean=None):
+  nonlocal count;count+=1
+  kind='chip' if size<.062 else rng.choices(('block','slab','round'),(5,3,2))[0]
+  if lean is None:tip,toward=rng.uniform(.05,.3),rng.uniform(0,math.tau)
+  else:tip,toward=rng.uniform(.15,.38),lean
+  # A rock on a slope sinks a little more, so its downhill edge is still in the ground.
+  placed.append((x,y,size))
+  rock(prefix+'Scree'+str(count),(x,y,loc.z-size*(.1+.25*math.sin(tip))),size,seed*71+count,kind,rng.uniform(0,math.tau),tip,toward)
+ anchors=[]
+ for g,number in enumerate(groups):
+  for _ in range(400):
+   a,wall,_=rng.choices(foot,[f[2] for f in foot])[0]
+   # The groups stand unevenly apart: each needs its own distance from the others.
+   apart=rng.uniform(.75,1.5)
+   if any(abs((a-b+math.pi)%math.tau-math.pi)<apart for b in anchors):continue
+   size=rng.uniform(.125,.155)*(1.,.74,.6,.5)[min(g,3)]
+   a+=rng.uniform(-.04,.04);r=wall+size*rng.uniform(.5,.75);x,y=math.cos(a)*r,math.sin(a)*r
+   loc=ground(x,y,size)
+   if loc is None:continue
+   anchors.append(a);lay(x,y,size,loc);group=[(x,y,size)]
+   for i in range(number-1):
+    for _ in range(200):
+     px,py,ps=rng.choices(group,[m[2]**2 for m in group])[0]
+     small=ps*rng.uniform(.35,.7) if i else ps*rng.uniform(.5,.75)
+     small=max(.03,small)
+     # Beside or below the rock it touches: seldom between it and the wall.
+     out=math.atan2(py,px);b=out+rng.uniform(-1.9,1.9);d=ps*.72+small*.6
+     x,y=px+math.cos(b)*d,py+math.sin(b)*d
+     if any((x-qx)**2+(y-qy)**2<((qs+small)*.74)**2 for qx,qy,qs in placed if (qx,qy)!=(px,py)):continue
+     loc=ground(x,y,small)
+     if loc is None:continue
+     lay(x,y,small,loc,math.atan2(py-y,px-x) if rng.random()<.6 else None);group.append((x,y,small));break
+   break
+ for _ in range(strays):
+  for _ in range(400):
+   a,wall,weight=rng.choice(foot)
+   if not wall or weight<=0 or any(abs((a-b+math.pi)%math.tau-math.pi)<.38 for b in anchors):continue
+   # Not far from a group: a rock that rolled on. The stretch with no group stays bare.
+   if not any(abs((a-b+math.pi)%math.tau-math.pi)<.8 for b in anchors):continue
+   size=rng.uniform(.04,.085);r=wall+rng.uniform(.1,.24);x,y=math.cos(a)*r,math.sin(a)*r
+   if any((x-qx)**2+(y-qy)**2<(qs+size+.08)**2 for qx,qy,qs in placed):continue
+   loc=ground(x,y,size)
+   if loc is None:continue
+   lay(x,y,size,loc);break
+ print('ROCKS',prefix,seed,'groups at',[round(math.degrees(a)) for a in anchors],'rocks',len(placed),flush=True)
+
+def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.,rocks=None):
  """Stand shrubs and small trees on the ledges of the rock, and blocks of scree at its foot.
 
  Looks straight down on the blocks whose names start with `prefix`. A place
@@ -182,6 +305,7 @@ def scatter(prefix,seed,shrubs,pines,rounds,scree,stand=1.):
    if loc is not None:
     count+=1;shrubs-=1;placed.append((x,y,.04))
     blob(prefix+'Shrub'+str(count),loc,rng.uniform(.05,.075),seed*41+count,LEAVES[count%4],stand=stand)
+ if rocks and not OLD_ROCKS:fallen(prefix,seed,look,top,*rocks);return
  heap=[]
  for _ in range(4000):
   if not scree:break
@@ -261,9 +385,14 @@ def details(prefix,seed,ribs,ledges,snow):
    above,_=face(a,h*.9,(loc-d*loc.dot(d)).dot(Vector((-d.y,d.x,0))))
    if above is not None and (Vector((above.x-loc.x,above.y-loc.y,0))).length<.17:height=h;break
   if not height:continue
-  count+=1;ribs-=1;placed.append(loc);size=rng.uniform(.11,.15)
-  mass(prefix+'Rib'+str(count),(loc.x-d.x*size*.2,loc.y-d.y*size*.2),size,[(.02,1.15),(height*.6,.9),(height,.5)],seed*53+count,sides=4,turn=a,
-   bevel=.02,tilt=(-d.x*.6,-d.y*.6),rough=.18,ragged=.06,pigment=rng.choice((1,2,3)),cap='rock',snow=snow)
+  count+=1;ribs-=1;placed.append(loc);size=rng.uniform(.11,.15);pigment=rng.choice((1,2,3));turn=a
+  if not OLD_ROCKS:
+   # A rib stood with one corner straight out, like a pointer. Now a face looks
+   # out, turned by its own amount, and the ribs differ in size. `own` is a
+   # second source of numbers, so the ledges that follow stay where they were.
+   own=random.Random(seed*61+count);turn=a+math.pi/4+own.uniform(-.5,.5);size*=own.uniform(.75,1.3);height=min(height,height*own.uniform(.7,1.1))
+  mass(prefix+'Rib'+str(count),(loc.x-d.x*size*.2,loc.y-d.y*size*.2),size,[(.02,1.15),(height*.6,.9),(height,.5)],seed*53+count,sides=4,turn=turn,
+   bevel=.02,tilt=(-d.x*.6,-d.y*.6),rough=.18,ragged=.06,pigment=pigment,cap='rock',snow=snow)
  for _ in range(1500):
   if not ledges:break
   a=rng.uniform(math.radians(-175),math.radians(35));loc,d=face(a,rng.uniform(.34,snow-.12),rng.uniform(-.5,.5))
@@ -283,9 +412,10 @@ def skirt(seed,stretch=1.):
  # The low slope every mountain stands on. It takes the ground's colour at its edge.
  mass('CragBase',(0,0),.78,[(0,1),(.1,.9),(.3,.6)],seed,sides=8,apron=.07,stretch=stretch,pigment=0,cap='rock')
 
-def finish(seed,snow,ribs=3,ledges=6):
+def finish(seed,snow,ribs=3,ledges=6,rocks=((5,3),1)):
+ # `rocks` is the mountain's own arrangement at the foot: the size of each group, and the number of strays.
  details('Crag',seed,ribs,ledges,snow)
- scatter('Crag',seed,5,3,1,3)
+ scatter('Crag',seed,5,3,1,3,rocks=rocks)
  saddle(seed*20+1,((seed%3-1)*.08,.05))
 
 # The board is seen from the south, which is -y here, with its sun in the east,
@@ -306,7 +436,7 @@ def crag0():
  mass('CragSummit',(.24,.06),.27,[(.5,1),(1.2,.86),(1.45,.6),(1.62,.3)],15,sides=5,turn=.8,bevel=.03,lean=(.02,-.02),tilt=(.12,-.08),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.28)
  mass('CragShoulder',(.02,.22),.24,[(.5,1),(1.05,.88),(1.26,.56)],16,sides=5,turn=.3,bevel=.03,tilt=(-.2,.1),rough=.18,pigment=2,cap='rock',snow=1.2)
  mass('CragStep',(-.42,-.22),.25,[(.02,1),(.5,.95),(.72,.86)],17,sides=5,turn=.4,pigment=1,tilt=(-.05,.04))
- finish(1,1.25)
+ finish(1,1.25,rocks=((5,2,2),1))
 
 def crag1():
  # The twin: two upright summits, one lower, on one broad block, with a
@@ -318,7 +448,7 @@ def crag1():
  mass('CragPeakR',(.37,.0),.30,[(.02,1),(.6,.93),(.9,.8)],35,sides=6,turn=.5,pigment=2,tilt=(.05,.03))
  mass('CragSummitR',(.40,.02),.2,[(.5,1),(1.05,.84),(1.3,.36)],38,sides=5,turn=.1,bevel=.03,tilt=(.14,-.06),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.14)
  mass('CragBack',(0,.36),.26,[(.02,1),(.55,.94),(.8,.84)],36,sides=5,turn=.2,pigment=1,tilt=(.04,-.06))
- finish(2,1.2)
+ finish(2,1.2,rocks=((4,3),2))
 
 def crag2():
  # The horn: four blocks, each narrower than the one under it, to one
@@ -328,7 +458,7 @@ def crag2():
  mass('CragTier2',(.03,.10),.50,[(.02,1),(.6,.93),(.86,.83)],53,sides=6,turn=.1,pigment=2,tilt=(-.04,.03))
  mass('CragTier3',(.06,.14),.35,[(.4,1),(1.0,.9),(1.24,.76)],54,sides=6,turn=.7,bevel=.035,pigment=2,tilt=(.05,.04),snow=1.2)
  mass('CragSummit',(.08,.15),.23,[(.8,1),(1.4,.8),(1.62,.3)],57,sides=5,turn=.2,bevel=.03,tilt=(.12,-.1),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.3)
- finish(3,1.22,ribs=4,ledges=7)
+ finish(3,1.22,ribs=4,ledges=7,rocks=((6,2),1))
 
 def crag3():
  # The table and tower: one wide high block with a sheer wall all round and
@@ -338,7 +468,7 @@ def crag3():
  mass('CragTower',(.26,.16),.27,[(.5,1),(1.2,.9),(1.42,.7),(1.58,.36)],74,sides=5,turn=.6,bevel=.03,tilt=(.12,-.06),rough=.18,ragged=.08,pigment=3,cap='rock',snow=1.3)
  mass('CragShoulder',(.04,.24),.22,[(.5,1),(1.1,.88),(1.24,.6)],75,sides=5,turn=.1,bevel=.03,tilt=(-.2,.08),rough=.18,pigment=2,cap='rock',snow=1.22)
  mass('CragStep',(.46,-.28),.24,[(.02,1),(.4,.95),(.56,.87)],76,sides=5,turn=.5,pigment=2,tilt=(.05,-.04))
- finish(4,1.25)
+ finish(4,1.25,rocks=((3,3,2),1))
 
 def crag4():
  # The ridge: four upright teeth in a row, the third the highest, behind one
@@ -347,7 +477,7 @@ def crag4():
  for i,(x,y,r,h,snow) in enumerate([(-.42,.02,.27,1.0,None),(-.14,.05,.30,1.3,1.16),(.16,.02,.30,1.62,1.28),(.44,.05,.25,1.12,None)]):
   mass('CragTooth'+str(i),(x,y),r,[(.02,1),(h*.55,.9),(h*.85,.66),(h,.34)],92+i,sides=5,turn=i*.7,bevel=.03,tilt=((i-1.5)*.08,-.08),rough=.18,ragged=.08,pigment=2+i%2,cap='rock',snow=snow)
  mass('CragTerrace',(-.02,-.27),.36,[(.02,1),(.3,.96),(.5,.9)],97,sides=7,turn=.2,stretch=1.7,pigment=1,tilt=(.03,-.02))
- finish(5,1.2,ribs=2)
+ finish(5,1.2,ribs=2,rocks=((5,1,1),2))
 
 for variant,build in enumerate([crag0,crag1,crag2,crag3,crag4]):
- reset();build();export('crag-'+str(variant))
+ reset();build();export(('crag-' if OLD_ROCKS else 'crag-fallen-')+str(variant))

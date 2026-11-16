@@ -32,7 +32,9 @@ const RANGE_GROUND = '#86b54a';
 type RangeAsset = { geometry: BufferGeometry; shoulderGeometry?: BufferGeometry | null };
 type VegetationKit = { broadleaves: RangeAsset[]; cypresses: RangeAsset[]; escarpments: RangeAsset[]; limestone: RangeAsset; rangeMaterial: MeshStandardMaterial; materials: MeshStandardMaterial[] };
 
-const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = [
+/** `rows=mountains` in the URL draws only the five mountains, spaced so that no two overlap from above. */
+const ONLY_RANGES = new URLSearchParams(typeof location === 'undefined' ? '' : location.search).get('rows') === 'mountains';
+const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = ONLY_RANGES ? [['Mountains', RANGES]] : [
   ['Mountains', [...RANGES, ...RANGES.map(name => name + SADDLE)]],
   ['Houses, first age', (NORTH_STAR_HOUSES as string[]).slice(0, 3)],
   ['Houses, middle ages', (NORTH_STAR_HOUSES as string[]).slice(3, 6)],
@@ -64,7 +66,7 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
   canvas.setAttribute('aria-label', 'The models of the north-star look, in rows.');
   const overlay = element('div', 'painted-works-labels');
   // The table grows with its rows, so a label never lies on the row in front of it.
-  canvas.style.height = `${ROWS.length * 170}px`;
+  canvas.style.height = `${ONLY_RANGES ? 520 : ROWS.length * 170}px`;
   stage.append(canvas, overlay); into.append(stage);
   const status = element('p', 'sheet-note', 'Loading the models…'); status.setAttribute('role', 'status'); into.append(status);
   const renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -73,9 +75,11 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
   scene.add(new AmbientLight('#fff4e2', 1.5));
   const sun = new DirectionalLight('#fff1d6', 2.4); sun.position.set(-3, 6, 4); scene.add(sun);
   const camera = new OrthographicCamera(-1, 1, 1, -1, .1, 100);
-  const columns = Math.max(...ROWS.map(([, names]) => names.length)), spacingX = 1.6, spacingZ = 1.6;
+  const columns = Math.max(...ROWS.map(([, names]) => names.length)), spacingX = ONLY_RANGES ? 2.1 : 1.6, spacingZ = 1.6;
   const pieces: { pivot: Group; label: HTMLElement; at: Vector3 }[] = [];
-  let disposed = false, turn = .35, tilt = 50, material: MeshStandardMaterial | undefined, kit: VegetationKit | undefined;
+  // `turn` and `tilt` in the URL set the two sliders' first values, so a screenshot is one URL. A tilt of 90 looks straight down.
+  const asked = new URLSearchParams(location.search), given = (key: string, fallback: number): number => asked.has(key) && Number.isFinite(Number(asked.get(key))) ? Number(asked.get(key)) : fallback;
+  let disposed = false, turn = given('turn', .35), tilt = Math.min(90, Math.max(25, given('tilt', 50))), material: MeshStandardMaterial | undefined, kit: VegetationKit | undefined;
   const geometries: BufferGeometry[] = [];
 
   const draw = (): void => {
@@ -84,10 +88,10 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
     renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(width, height, false);
     const halfX = columns * spacingX * .5 + .3, halfZ = ROWS.length * spacingZ * .5 + .9;
     // The back row holds the mountains, which stand far taller than a house, so the frame leaves room above it.
-    const half = Math.max(halfX / (width / height), halfZ * .8);
+    const half = ONLY_RANGES ? halfX / (width / height) : Math.max(halfX / (width / height), halfZ * .8);
     camera.left = -half * width / height; camera.right = half * width / height; camera.top = half; camera.bottom = -half;
     const angle = tilt * Math.PI / 180;
-    camera.position.set(0, Math.sin(angle) * 20, Math.cos(angle) * 20); camera.lookAt(0, .2, 0); camera.position.y += .35;  camera.updateProjectionMatrix();
+    camera.up.set(0, tilt >= 89.5 ? 0 : 1, tilt >= 89.5 ? -1 : 0); camera.position.set(0, Math.sin(angle) * 20, Math.cos(angle) * 20); camera.lookAt(0, .2, 0); camera.position.y += .35;  camera.updateProjectionMatrix();
     for (const piece of pieces) piece.pivot.rotation.y = turn;
     renderer.render(scene, camera);
     for (const { label, at } of pieces) {
@@ -96,7 +100,7 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
     }
   };
   slider(knobs, 'Turn', { min: -3.14, max: 3.14, step: .01, value: turn }, value => value.toFixed(2), value => { turn = value; draw(); });
-  slider(knobs, 'Camera tilt', { min: 25, max: 80, step: 1, value: tilt }, value => `${value}°`, value => { tilt = value; draw(); });
+  slider(knobs, 'Camera tilt', { min: 25, max: 90, step: 1, value: tilt }, value => `${value}°`, value => { tilt = value; draw(); });
   const resize = new ResizeObserver(draw); resize.observe(canvas);
   const dispose = (): void => {
     if (disposed) return; disposed = true;
