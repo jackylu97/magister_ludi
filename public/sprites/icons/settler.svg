@@ -1,4 +1,7 @@
-<!-- Tabler Icons `tent` (MIT) — https://tabler.io/icons/icon/tent · @tabler/icons 3.46.0 · stroke 2 → 2.75, nothing else touched -->
+<!-- Drawn for this game, 2026-11-15, in the set's line (24 grid, stroke 2.75, round caps). It replaces Tabler `tent`, which read as a letter A (the user: "could you make a better icon for it?"). A flag planted beside a first house: the piece carries that flag, and founding a town is what it does. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
-<path d="M11 14l4 6h6l-9 -16l-9 16h6l4 -6"/>
+<path d="M6 21v-17"/>
+<path d="M6 4.5h10l-2.5 3l2.5 3h-10"/>
+<path d="M3 21h18"/>
+<path d="M12.5 21v-4.5l3.75 -3l3.75 3v4.5"/>
 </g></svg>

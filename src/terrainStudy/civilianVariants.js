@@ -5,7 +5,8 @@ import * as T from 'three';
 // and `d` are built here on the foot pieces' body. The game draws the variant that `UNIT_VARIANTS` names, so nothing
 // changes until the user chooses.
 export const UNIT_VARIANT_IDS={scout:['a','b','c','d'],settler:['a','b','c','d']};
-export const UNIT_VARIANTS={scout:'a',settler:'a'};
+// The user, 2026-11-15: "lets go with the spyglass scout, with a slightly larger satchel. Settler lets just stay with A".
+export const UNIT_VARIANTS={scout:'c',settler:'a'};
 
 // The foot pieces' turned body with a plain ivory head: one body and one height for every piece on foot.
 // `at` moves it on the plinth and `shade` gives a second figure the darker enamel.
@@ -47,8 +48,8 @@ export function addScoutVariant(kit,variant){
   // A lookout: a headband, a satchel on a strap and a large spyglass held up to the eye.
   ring('Scout trim headband',.152,1.135,trim,0,0,.018);
   const strap=box('Scout trim satchel strap',[.036,.520,.030],trim,0,.740,.176);strap.rotation.z=.62;body(strap);
-  body(box('Scout satchel',[.170,.160,.090],ownerShade,-.170,.560,.160));
-  body(box('Scout gilt satchel clasp',[.050,.040,.012],gold,-.170,.590,.210));
+  body(box('Scout satchel',[.215,.200,.110],ownerShade,-.172,.548,.166));
+  body(box('Scout gilt satchel clasp',[.062,.048,.012],gold,-.172,.590,.226));
   // Three tubes, each wider than the last, with a dark lens at the far end.
   const from=new T.Vector3(.090,1.085,.120),to=new T.Vector3(.560,1.160,.250),at=t=>from.clone().lerp(to,t).toArray();
   body(rod('Scout spyglass eyepiece',at(0),at(.36),.036,gold,8));

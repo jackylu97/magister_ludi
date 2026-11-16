@@ -12,7 +12,7 @@ const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createP
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
   warrior: '90266:326b79b2', spearman: '82515:61573c97', horseman: '90974:de35941b', archer: '99539:d4cfa202',
-  horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '162950:2c4698cd',
+  horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '86410:b0b71f65',
   settler: '89830:fc38728', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
   'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',
   'greatPerson:merchant': '121926:1d2ecc63', 'greatPerson:general': '137686:59d42dd3',

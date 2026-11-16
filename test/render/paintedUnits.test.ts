@@ -107,7 +107,7 @@ describe('production painted unit kit', () => {
     }
     expect(kit.resolve({ type: 'worker' }, 'coast')!.height).toBe(height('trireme'));
     // A lance, a spear, a flag, a staff, a throwing beam and a pennant pole stand over the height.
-    for (const type of ['knight', 'gendarme', 'spearman', 'pikeman', 'settler', 'scout', 'prophet', 'trebuchet', 'rihlaCaravan', 'alexandrianGalley']) {
+    for (const type of ['knight', 'gendarme', 'spearman', 'pikeman', 'settler', 'prophet', 'trebuchet', 'rihlaCaravan', 'alexandrianGalley']) {
       expect(top(type), type).toBeGreaterThan(height(type) + .05);
     }
     // Every foot piece has one body, so their heights differ only by what is on the head.
@@ -121,7 +121,7 @@ describe('production painted unit kit', () => {
       return model.geometry.boundingBox!.max.y - model.height;
     };
     // The user, 2026-11-15: "adjust the lance and staff heights so they fit the bounds of the piece a bit better".
-    for (const type of ['spearman', 'phalanx', 'pikeman', 'knight', 'gendarme', 'chanyuGuard', 'cataphract', 'prophet', 'apostle', 'inquisitor', 'canoness', 'augur', 'scout', 'settler', 'fireLance']) {
+    for (const type of ['spearman', 'phalanx', 'pikeman', 'knight', 'gendarme', 'chanyuGuard', 'cataphract', 'prophet', 'apostle', 'inquisitor', 'canoness', 'augur', 'settler', 'fireLance']) {
       expect(over(type), type).toBeGreaterThan(.05); expect(over(type), type).toBeLessThan(.40);
     }
     expect(over('pikeman')).toBeGreaterThan(over('phalanx')); expect(over('phalanx')).toBeGreaterThan(over('spearman'));
@@ -152,9 +152,9 @@ describe('production painted unit kit', () => {
           expect(names.some(name => /helmet|nose/i.test(name))).toBe(false);
         } finally { for (const part of sourceParts(packed)) part.dispose(); }
       }
-      // The game draws the present design until the user chooses another.
-      expect(UNIT_VARIANTS[type]).toBe('a');
-      const chosen = packUnitAsset(createPrimitiveUnitScene(type, { variant: 'a' }), { trim: true }) as PackedSource;
+      // The user chose the spyglass scout (design c) and kept the settler (design a), 2026-11-15.
+      expect(UNIT_VARIANTS[type]).toBe(type === 'scout' ? 'c' : 'a');
+      const chosen = packUnitAsset(createPrimitiveUnitScene(type, { variant: UNIT_VARIANTS[type] }), { trim: true }) as PackedSource;
       expect([...chosen.fixed.getAttribute('position').array]).toEqual([...present.fixed.getAttribute('position').array]);
       for (const part of [...sourceParts(present), ...sourceParts(chosen)]) part.dispose();
       expect(() => createPrimitiveUnitScene(type, { variant: 'z' })).toThrow('variant');
