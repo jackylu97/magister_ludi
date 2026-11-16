@@ -481,3 +481,11 @@ The boards in `docs/plans/mockups/scholars-study/` are the spec of record, with 
 | **SS3** | The Reliquary as a full sheet | Reliquary |
 | **SS4** | The luxury rule in the deal table | Diplomacy (the rule only) |
 | later | The big moments, the Ledger, the diplomacy screen and the deal notice, the top bar | after the user's review of each |
+
+---
+
+## After SS1: spacing with the new display face (the user, 2026-11-16)
+
+> "could we go through and double check the spacing in elements with the new typeface, for example the 'your turn, pachacuti' element seems uncentered vertically now"
+
+Newsreader has other vertical metrics than Instrument Serif, so text set in it can sit high or low in a box that was tuned for the old face. Batch **SS1b**: go through every element set in the display face, check its vertical centring and its spacing against its neighbours, and correct it. The turn card ("Your turn, Pachacuti") is the first case.
