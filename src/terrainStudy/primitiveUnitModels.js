@@ -8,6 +8,42 @@ import {addMountedEquipment,addCamelBust,addChariot,mountedVariants,mountedRange
 import {addInfantryVariant} from './infantryUnitModels.js';
 import {addPolearmRangedVariant,polearmVariants,rangedVariants} from './polearmRangedModels.js';
 
+// Small changes to the pieces so the class reads at play zoom (the user, 2026-11-15: "Could we just make small
+// modifications to the existing pieces so that they're easier to read as units?"). `false` gives the pieces as
+// they were. It applies to the foot pieces only: mounted pieces, machines, ships and wagons read well already.
+export const READABLE_UNIT_PIECES=true;
+// How much wider and thicker a tool or shield is, how much longer, and how much slimmer the body and plinth are.
+const READABLE={toolWidth:1.6,toolLength:1.18,body:.88,reach:.92};
+
+/**
+ * Makes what a foot piece holds bolder and its body a little slimmer.
+ *
+ * A piece is a turned body on the upright through the middle, and its tools stand beside it. So every part whose
+ * place is off the middle is a tool or a shield. Each side's tools grow wider and thicker about that side's own
+ * middle, and a little longer from their lowest point, so nothing sinks into the plinth.
+ */
+function makeReadable(group){
+ const tools={'-1':[],'1':[]};
+ for(const part of group.children){
+  if(Math.abs(part.position.x)>.15)tools[Math.sign(part.position.x)].push(part);
+  else{part.scale.x*=READABLE.body;part.scale.z*=READABLE.body;part.position.x*=READABLE.body;part.position.z*=READABLE.body}
+ }
+ for(const side of [-1,1]){
+  const parts=tools[side];if(!parts.length)continue;
+  const boxes=parts.map(part=>new T.Box3().setFromObject(part));
+  const low=Math.min(...boxes.map(b=>b.min.y));
+  const midX=parts.reduce((sum,part)=>sum+part.position.x,0)/parts.length,midZ=parts.reduce((sum,part)=>sum+part.position.z,0)/parts.length;
+  for(const part of parts){
+   // A part that lies on its side (a shield's disc, a ring) has its length across, so it grows the same in every direction.
+   const flat=Math.abs(part.rotation.x)>1||Math.abs(part.rotation.y)>1;
+   part.scale.x*=READABLE.toolWidth;part.scale.z*=READABLE.toolWidth;part.scale.y*=flat?READABLE.toolWidth:READABLE.toolLength;
+   part.position.x=midX*READABLE.reach+(part.position.x-midX)*READABLE.toolWidth;
+   part.position.z=midZ+(part.position.z-midZ)*READABLE.toolWidth;
+   part.position.y=low+(part.position.y-low)*READABLE.toolLength;
+  }
+ }
+}
+
 // The original memory-table figures: concentric enamel plinths, turned robes,
 // ivory faces and a few gilt marks. Unit identity lives in the finial/tool.
 export function createPrimitiveUnitScene(type,{family='scholar'}={}){
@@ -334,5 +370,6 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
    sphere('Solar staff ivory heart',.029,ivory,.306,1.442,.005,8,5);
   }
  }
+ if(READABLE_UNIT_PIECES&&!['settler','embarked','trader','rihlaCaravan','greatPerson','warElephant','siegeElephant','horseman','horseArcher'].includes(type)&&!navalVariants.includes(type)&&!siegeVariants.includes(type)&&!chariotVariants.includes(type)&&!mounted&&!mountedRangedVariants.includes(type))makeReadable(group);
  return group;
 }

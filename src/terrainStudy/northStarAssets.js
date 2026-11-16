@@ -47,5 +47,6 @@ export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystac
 // Since the fourth look (2026-11-15) `ns-swordsman` is the long figure: 8 to 9 heads tall and slim, with the
 // weight in the shoulders and cloak. The statue piece before it is `ns-swordsman-statue`.
 // To go back to the cartoon figure, write 'ns-swordsman-toon' in the table below.
-export const NORTH_STAR_UNIT_MODELS=true;
+// Off since 2026-11-15: the user rejected the figure pieces and the abstract families, and keeps today's pieces.
+export const NORTH_STAR_UNIT_MODELS=false;
 export const NORTH_STAR_UNITS=NORTH_STAR_UNIT_MODELS?{swordsman:'ns-swordsman'}:{};
