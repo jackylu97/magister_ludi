@@ -11,15 +11,15 @@ type Packed = { fixed: BufferGeometry; owner: BufferGeometry; contacts: [number,
 const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createPrimitiveUnitScene(type, { family })) as Packed;
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
-  warrior: '90266:fdf57dc4', spearman: '82515:41ad81f5', horseman: '90974:de35941b', archer: '99539:3463006f',
+  warrior: '89222:98ad0457', spearman: '81471:ba38770', horseman: '90974:de35941b', archer: '98495:34ad41ee',
   horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '86410:b0b71f65',
   settler: '89830:fc38728', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
   'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',
   'greatPerson:merchant': '121926:1d2ecc63', 'greatPerson:general': '137686:59d42dd3',
 };
 const infantryBaseline: Record<string, string> = {
-  swordsman: '104262:45214f95', legionary: '115367:814f376', longswordsman: '103814:ec2f9439',
-  fireLance: '105042:f65f778a', khopesh: '117807:24cca213', eagleWarrior: '142486:6856ab6',
+  swordsman: '103218:86867ece', legionary: '114323:fb4bff57', longswordsman: '103814:ec2f9439',
+  fireLance: '103998:5cebc839', khopesh: '116763:2f0ce6ce', eagleWarrior: '141442:eb34b950',
 };
 // Cut again on 2026-11-15, after the user's readability rulings on every kind of piece: bolder tools, helmets in the
 // body's colour, shorter lances and staffs, no nose, one body height, the tool not counted in the height, and parts in the seat's second colour. These are the

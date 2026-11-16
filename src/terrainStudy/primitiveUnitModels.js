@@ -133,7 +133,8 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
  const helmet=(kind)=>{
   mesh('Steel helmet dome',new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
   // The band is bold: with the dome in the body's colour, it is what marks the helmet off from the robe.
-  ring('Owner brow band',.176,1.122,owner,0,0,.032);
+  // A broad band, not a thin ring, so the colour shows at play zoom under the badge.
+  cylinder('Owner brow band',.184,.074,owner,0,1.140,0,.170,16);
   box('Steel nasal bar',[.026,.120,.020],steel,0,1.068,.168);
   for(const side of [-1,1])box(`Steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
   if(kind==='point')mesh('Steel helmet spike',new T.ConeGeometry(.062,.150,8),steel,0,1.345);
