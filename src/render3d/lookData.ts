@@ -2259,7 +2259,7 @@ export interface VisualTestSpec {
     /** With `brushed`, the sea is painted with the land's strokes at the land's size: the tone of a deeper stroke and of a lighter one, against 1 for the plain water. Absent, only strokes across the coast and ocean edge are laid. */
     brushTones?: number[];
     /** The banded coast's numbers, in hex units from the shore: the sand's width and how much it varies; the foam line's width, the share left out, and how far and how fast it laps; where the shallows end, and their drawn line; how far each step wanders; the drawn line at the step from coast to ocean; and where the ocean deepens again. */
-    bands: { sand: number; sandVary: number; foam: number; foamGaps: number; lap: number; lapSpeed: number; shallows: number; shallowsWander: number; line: number; lineStrength: number; wander: number; stepLine: number; stepLineStrength: number; deepAt: number };
+    bands: { sand: number; sandVary: number; foam: number; foamGaps: number; /** How strong the second, fainter foam line inside the shallows is. 0 removes it (the user, 2026-11-16). */ trail: number; lap: number; lapSpeed: number; shallows: number; shallowsWander: number; line: number; lineStrength: number; wander: number; stepLine: number; stepLineStrength: number; deepAt: number };
     shallow: string; coast: string; ocean: string; deep: string; lake: string;
     shoreReach: number; edgeReach: number; coastRange: number; deepRange: number; edgeSoftness: number;
     shelfLine: string; shelfLineInset: number; shelfLineWidth: number; shelfLineStrength: number;
@@ -2476,7 +2476,7 @@ export interface VisualTestSpec {
     rocks: { share: number; most: number; near: number; far: number; size: number; sizeVary: number; ring: number; ringWidth: number };
     /** A river mouth: the half width of the channel that runs out along the outflow, how round the corner is where it joins the open water (`round`), how much its edge wanders, and how far the foam line and the sand stay back. */
     mouth: { plume: number; wander: number; round: number; gap: number };
-    bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };
+    bands: { sand?: number; sandVary?: number; foam?: number; foamGaps?: number; trail?: number; lap?: number; lapSpeed?: number; shallows?: number; shallowsWander?: number; line?: number; lineStrength?: number; wander?: number };
   };
   /** Switch 4: the painted river ribbon (`organicRivers.js`). */
   organicRivers: {

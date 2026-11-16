@@ -428,7 +428,7 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   // A second, fainter line a little further out, left by the last wave.
   float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);
   trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
-  paint = mix(paint, vtestSeaFoam, max(foam, trail * .6) * clear);
+  paint = mix(paint, vtestSeaFoam, max(foam, trail * ${bands.trail.toFixed(3)}) * clear);
   paint = mix(paint, vtestSeaSand, (1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach)) * clear);
   // Ripples: short pale strokes, few and slow, each fading in and out.
   vec2 q = p + vec2(time * vtestSeaGlintShape.y, time * vtestSeaGlintShape.y * .3);

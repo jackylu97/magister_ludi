@@ -1200,14 +1200,14 @@
       "bands": {
         "sand": 0.17,
         "sandVary": 0.95,
-        "foam": 0.02,
-        "foamGaps": 0.22,
+        "foam": 0.036,
+        "foamGaps": 0.22, "trail": 0,
         "lap": 0.018,
         "lapSpeed": 0.9,
-        "shallows": 0.52,
-        "shallowsWander": 0.42,
-        "line": 0.006,
-        "lineStrength": 0.55,
+        "shallows": 0.3,
+        "shallowsWander": 0.24,
+        "line": 0.0035,
+        "lineStrength": 0.4,
         "wander": 0.16,
         "stepLine": 0.02,
         "stepLineStrength": 0.6,
@@ -1468,8 +1468,8 @@
         "sandVary": 0.5,
         "wander": 0.035,
         "lap": 0.022,
-        "shallows": 0.2,
-        "shallowsWander": 0.16
+        "shallows": 0.12,
+        "shallowsWander": 0.1
       }
     },
     "organicRivers": {
