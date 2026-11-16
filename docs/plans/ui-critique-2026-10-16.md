@@ -414,3 +414,31 @@ The user left 42 comments on the canvas (https://claude.ai/artifact/48NaMcoLoubA
 - The Ledger as an account book is approved. Make a full-page render, so the user can comment on details.
 - The Reliquary must change. It must feel like a deck of cards that you flip through.
 - The bead card: keep the change, but use the star mark for now.
+
+---
+
+## The user's review of the Scholar's Study, iteration 2 (2026-11-16)
+
+Given in the session, not as canvas comments. The user's words:
+
+> "unfortunately, i still like the current set of fonts. Could we find a playful, modern font that's not instrument serif? I really like it but its a bit too recognizable, we could have it lean a bit more historic but i want a font that feels playful and polished. I think the ledger looks good, but I like the graphs as a visual, could you incorporate the current set of graphs into the design? The reliquary is great, lets have that be its own screen instead of a small popover (a full modal instead of the current small floating element that exists). What i don't like about the corner panel is that it opens to the side, could we try a version where clicking it expands the view in place? i'd also like the unexpanded view to show the technology name and a little bit more detail than what we have now. I also want to experiment with some quicker ways to get to the religious screen, clicking the corner panel and then clicking the religious screen feels a bit too difficult at the moment. Right now, i'd say diplomacy, trade routes, and religion are probably the buttons i click the most, with the standings as runner up."
+
+The decisions, board by board. Iteration 3 applies them.
+
+**Fonts:**
+- None of the five treatments is chosen. The current set of fonts stays, except the display face.
+- Find a new display face in place of Instrument Serif, which is "a bit too recognizable": playful, modern and polished. It may lean a little more historic.
+
+**The Ledger:**
+- The account book is approved.
+- Add the Ledger's current graphs to the design. The user likes them as a visual.
+
+**The Reliquary:**
+- The deck of cards is approved ("great").
+- It becomes its own full screen (a full modal), not the small floating panel of today.
+
+**The corner panel:**
+- It must not open to the side. Try a version that expands in place on a click.
+- The collapsed view shows the technology's name, and a little more detail than today.
+- Try quicker ways to reach the faith screen. Two clicks through the panel is too slow.
+- The user's most-used buttons: diplomacy, trade routes and religion, then the standings.
