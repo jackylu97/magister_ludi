@@ -15,10 +15,21 @@
  *   so the kind reads by shape and motion as well as colour: grain chaff for
  *   food, sparks for production, coin glints for gold, small stars for
  *   science, petals for culture, candle flames for faith.
+ * - `d`, the user's choice (2026-11-16: "a combination of A and B ... B much more
+ *   subtle ... and A more matte"): matte motes and a soft wash of light on the
+ *   ground, by step. Step 1 is a few small motes and no wash. Step 2 is more
+ *   motes, a little larger, and some wash. Step 3 is the most and the largest
+ *   motes over the full wash. A mote here is a flat, soft-edged dot of the
+ *   yield's ink with no white middle and no halo. The wash has no edge and no
+ *   pattern: it is strongest in the middle and gone well inside the hex. On a
+ *   hill it is seven small washes, each at its own ground height, so it
+ *   follows the slope. The wash takes the colour of the hex's largest yield:
+ *   a blend of two inks by share goes khaki or grey (food with production,
+ *   science with gold), and it would not say which yield leads.
  * `structures` draws the sheaves, logs and stalls of before
  * (`paintedRichness.ts`) and `off` draws nothing.
  *
- * The rule of which hex shows what is `yieldLightKinds`, and it is the same
+ * The rule of which hex shows what is `yieldLightHex`, and it is the same
  * for the three systems. The yield is the one the yields lens prints
  * (`seenTileYields`), so a resource the seat cannot name adds nothing.
  *
@@ -34,6 +45,7 @@ import {
   Color, CustomBlending, DoubleSide, Group, InstancedBufferAttribute, InstancedBufferGeometry, Mesh, OneFactor, OneMinusSrcAlphaFactor, PlaneGeometry, ShaderMaterial,
 } from 'three';
 
+import { improvementDef } from '../sim/improvementData';
 import type { GameMap } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { VISIBLE } from '../sim/visibility';
@@ -50,33 +62,70 @@ export const YIELD_LIGHT_KINDS = ['food', 'production', 'gold', 'science', 'cult
 export type YieldLightKind = typeof YIELD_LIGHT_KINDS[number];
 export type YieldLightPick = { kind: YieldLightKind; step: number };
 /** The systems `visualTest.yieldLight.show` may name. */
-export const YIELD_LIGHT_SHOWS = ['off', 'structures', 'a', 'b', 'c'] as const;
+export const YIELD_LIGHT_SHOWS = ['off', 'structures', 'a', 'b', 'c', 'd'] as const;
 export type YieldLightShow = typeof YIELD_LIGHT_SHOWS[number];
 const WATER = new Set(['ocean', 'coast', 'lake']);
 
 /** What a quad is. The shaders branch on it. */
-const MOTE = 0, GLOW = 1, POOL = 2, GLINT = 3, SHAPE = 4;
+const MOTE = 0, GLOW = 1, POOL = 2, GLINT = 3, SHAPE = 4, MATTE = 5, WASH = 6;
+/** The clock the picture holds at when idle motion is off (switch 8): the layer stands still, it does not vanish. */
+const HELD = '12.0';
+
+/** What a hex shows: its score, its step (1 to 3), and each yield's part of the score, the largest first. */
+export type YieldLightHex = { score: number; step: number; parts: { kind: YieldLightKind; share: number }[] };
 
 /**
- * Which yields a hex shows, strongest first, and the step of each.
+ * What a hex shows, from its yields (the user's rule of 2026-11-16: "We should
+ * add motes based on total yields on a tile, and the mote colors should depend
+ * on which yields are represented, proportionally").
  *
- * - A yield counts when it reaches the first of its three `steps`
- *   (`visualTest.yieldLight.steps`); its step, 1 to 3, is how many it reaches.
- * - The hex shows the `kinds` strongest yields at most (two): the higher step
- *   first, and between two of one step the one nearer its top step.
- * - A hex where no yield reaches a first step shows nothing, so an ordinary
- *   worked hex stays quiet.
+ * - The score is the sum of the hex's yields, each times its weight
+ *   (`visualTest.yieldLight.weights`): culture and science count 1.5 times,
+ *   gold 0.75 times, and food, production and faith once.
+ * - The step is how many of the three `thresholds` the score reaches: 4 or
+ *   more is step 1, 7 or more is step 2, 10 or more is step 3.
+ * - Under the first threshold the hex shows nothing, and the answer is null.
+ * - `parts` is each yield's share of the score, the largest first. The motes
+ *   take their colours from it (`yieldLightSplit`).
  */
-export function yieldLightKinds(yields: Record<YieldLightKind, number>): YieldLightPick[] {
-  const reached: (YieldLightPick & { share: number })[] = [];
+export function yieldLightHex(yields: Record<YieldLightKind, number>): YieldLightHex | null {
+  const parts: { kind: YieldLightKind; share: number }[] = [];
+  let score = 0;
   for (const kind of YIELD_LIGHT_KINDS) {
-    const steps = LIGHT.steps[kind];
-    let step = 0;
-    for (const at of steps) if (yields[kind] >= at) step++;
-    if (step > 0) reached.push({ kind, step, share: yields[kind] / steps[steps.length - 1]! });
+    const part = yields[kind] * LIGHT.weights[kind];
+    if (part > 0) { parts.push({ kind, share: part }); score += part; }
   }
-  reached.sort((a, b) => b.step - a.step || b.share - a.share);
-  return reached.slice(0, LIGHT.kinds).map(({ kind, step }) => ({ kind, step }));
+  let step = 0;
+  for (const at of LIGHT.thresholds) if (score >= at) step++;
+  if (step === 0) return null;
+  // Equal parts keep the order of `YIELD_LIGHT_KINDS`, so the split is the same on every build.
+  parts.sort((a, b) => b.share - a.share || YIELD_LIGHT_KINDS.indexOf(a.kind) - YIELD_LIGHT_KINDS.indexOf(b.kind));
+  for (const part of parts) part.share /= score;
+  return { score, step, parts };
+}
+
+/**
+ * How `count` motes are divided among a hex's yields, in proportion to their
+ * shares. A hex with 3 food and 2 production and five motes has three in
+ * food's colour and two in production's.
+ *
+ * With few motes a plain rounding would drop a yield that matters. So a yield
+ * that holds at least `minShare` of the score (a fifth) gets one mote first,
+ * the largest share first, while motes remain. The rest go by the largest
+ * remainder. The answer depends only on the shares and the count, so a hex
+ * shows the same split on every frame and every build.
+ */
+export function yieldLightSplit(parts: YieldLightHex['parts'], count: number): { kind: YieldLightKind; count: number }[] {
+  const given = parts.map(() => 0);
+  let left = count;
+  parts.forEach((part, i) => { if (left > 0 && part.share >= LIGHT.minShare) { given[i] = 1; left--; } });
+  while (left > 0) {
+    // The yield that is furthest under its exact share takes the next mote.
+    let best = 0, owed = -Infinity;
+    parts.forEach((part, i) => { const short = part.share * count - given[i]!; if (short > owed + 1e-9) { owed = short; best = i; } });
+    given[best]!++; left--;
+  }
+  return parts.map((part, i) => ({ kind: part.kind, count: given[i]! })).filter(entry => entry.count > 0);
 }
 
 /** How many particles a yield gets: `perStep` for each step, and `secondShare` of that for a hex's second yield. */
@@ -90,6 +139,7 @@ attribute vec4 aSeed;   // x: where in its life the quad starts; y: a second see
 attribute vec4 aTint;   // the colour, and the strength in w
 attribute float aSize;
 uniform float vtestTime;
+uniform float vtestIdle;
 varying vec2 vUv;
 varying vec4 vTint;
 varying vec4 vSeed;
@@ -97,12 +147,23 @@ varying float vFade;
 varying float vSpin;
 void main() {
   float phase = aSeed.x, rnd = aSeed.y, type = aSeed.z, kind = aSeed.w;
-  float t = vtestTime;
+  float t = mix(${HELD}, vtestTime, step(0.5, vtestIdle));
   vec3 at = aAt;
   vec2 corner = position.xy;
   float size = aSize, fade = 1.0, spin = 0.0;
-  bool ground = type > 0.5 && type < 3.5;
-  if (type < 0.5) {
+  bool ground = (type > 0.5 && type < 3.5) || type > 5.5;
+  if (type > 5.5) {
+    // The wash breathes a little, and slowly.
+    fade = 1.0 - ${LIGHT.d.breath.toFixed(3)} * (0.5 + 0.5 * sin(t * 0.45 + phase * 6.28318));
+  } else if (type > 4.5) {
+    // A matte mote: the same slow rise as a mote. Its size is its step's, so it does not vary much.
+    float life = fract(t * ${LIGHT.speed.toFixed(4)} * (0.75 + 0.5 * rnd) + phase);
+    at.y += ${LIGHT.rise.toFixed(4)} * life;
+    at.x += 0.04 * sin(t * 0.6 + rnd * 40.0) * life;
+    at.z += 0.025 * cos(t * 0.45 + rnd * 23.0) * life;
+    fade = smoothstep(0.0, 0.22, life) * (1.0 - smoothstep(0.62, 1.0, life));
+    size *= 0.88 + 0.24 * rnd;
+  } else if (type < 0.5) {
     // A mote: a slow rise with a small sway, in and out by a smooth curve.
     float life = fract(t * ${LIGHT.speed.toFixed(4)} * (0.7 + 0.6 * rnd) + phase);
     at.y += ${LIGHT.rise.toFixed(4)} * life;
@@ -175,6 +236,7 @@ void main() {
 
 const FRAGMENT = /* glsl */`
 uniform float vtestTime;
+uniform float vtestIdle;
 varying vec2 vUv;
 varying vec4 vTint;
 varying vec4 vSeed;
@@ -191,6 +253,19 @@ void main() {
   float type = vSeed.z, kind = vSeed.w, r = length(vUv);
   float edge = 1.0 - smoothstep(0.82, 1.0, r);
   float light = 0.0, white = 0.0;
+  if (type > 5.5) {
+    // The wash: strongest in the middle, and nothing well before the quad's edge. No rim and no pattern.
+    float soft = exp(-r * r * 3.6) * (1.0 - smoothstep(0.55, 0.95, r));
+    float a = soft * vFade * vTint.w;
+    gl_FragColor = vec4(vTint.rgb * a, a * ${LIGHT.d.washBody.toFixed(3)});
+    return;
+  }
+  if (type > 4.5) {
+    // A matte mote: a flat dot of the ink with a soft edge. No white middle, no halo, and it hides what is behind it as paint does.
+    float a = (1.0 - smoothstep(0.5, 0.95, r)) * vFade * vTint.w;
+    gl_FragColor = vec4(vTint.rgb * a, a);
+    return;
+  }
   if (type < 0.5) {
     // A mote: a small white-hot middle in a wide soft halo of the colour.
     float core = exp(-r * r * 14.0);
@@ -201,7 +276,7 @@ void main() {
   } else if (type < 2.5) {
     // The pool: a soft fill that moves like light through water, and a rim.
     vec2 p = vUv * 3.2;
-    float t = vtestTime * 0.35;
+    float t = mix(${HELD}, vtestTime, step(0.5, vtestIdle)) * 0.35;
     float caustic = sin(p.x * 2.1 + t + sin(p.y * 1.7 - t * 0.8)) * sin(p.y * 2.3 - t * 0.9 + sin(p.x * 1.3 + t * 0.6));
     // The edge of the pool wanders, so it is a patch of light and not a drawn circle.
     float wander = 0.06 * sin(atan(vUv.y, vUv.x) * 3.0 + vSeed.y * 20.0 + t * 0.4) + 0.04 * sin(atan(vUv.y, vUv.x) * 5.0 - t * 0.3);
@@ -263,20 +338,27 @@ export class PaintedYieldLightLayer {
   private geometry: InstancedBufferGeometry | null = null;
   private meshes: Mesh[] = [];
   /** The quads of the last build, by what they are. For tests and for the cost report. */
-  readonly counts = { hexes: 0, motes: 0, glows: 0, pools: 0, glints: 0, shapes: 0 };
+  readonly counts = { hexes: 0, motes: 0, glows: 0, pools: 0, glints: 0, shapes: 0, washes: 0 };
+  /** The size of the largest mote of the last build, in hex units. For tests. */
+  largestMote = 0;
   /** The hexes of the last build and what each shows, by cell. */
-  readonly shown = new Map<number, YieldLightPick[]>();
+  readonly shown = new Map<number, YieldLightHex>();
   /**
    * Hexes that show stated yields whatever they really yield, by cell. Only the
    * visual test scene sets this, to put an example of every kind and step side
    * by side. The game never does.
    */
-  showcase: ReadonlyMap<number, YieldLightPick[]> | null = null;
+  showcase: ReadonlyMap<number, YieldLightHex> | null = null;
+  /**
+   * A step every hex that shows is raised to, whatever its score. Only the visual test scene sets this, to show what
+   * steps 2 and 3 look like on works that do not reach them by the land alone. The game never does.
+   */
+  forcedStep: number | null = null;
 
   constructor() {
     this.group.name = 'painted-yield-light';
     this.material = new ShaderMaterial({
-      vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms: { vtestTime: VTEST_UNIFORMS.vtestTime },
+      vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms: { vtestTime: VTEST_UNIFORMS.vtestTime, vtestIdle: VTEST_UNIFORMS.vtestIdle },
       // Light that also has a little body: the colour is added, and `alpha` takes away some of what is behind it, so a
       // tinted halo still shows on bright grass, where light that is only added turns to white.
       blending: CustomBlending, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor, transparent: true, depthWrite: false, depthTest: true,
@@ -289,7 +371,7 @@ export class PaintedYieldLightLayer {
   build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number): void {
     this.clear();
     const show = LIGHT.show as YieldLightShow;
-    if (show !== 'a' && show !== 'b' && show !== 'c') return;
+    if (show !== 'a' && show !== 'b' && show !== 'c' && show !== 'd') return;
     const width = state.map.width;
     const cities = new Set(state.cities.map((city) => city.row * width + city.col));
     // A hex the seat sees now, on land, with no town and no mountain on it. Remembered and uncharted ground shows nothing.
@@ -301,10 +383,13 @@ export class PaintedYieldLightLayer {
     const push = (quad: Quad, colour: Color): void => { quads.push(quad); tints.push(colour); };
     watched.forEach((original, index) => {
       const cell = original.row * width + original.col;
-      const picks = this.showcase?.get(cell) ?? yieldLightKinds(yields[index]!);
+      const real = this.showcase?.get(cell) ?? yieldLightHex(yields[index]!);
+      const hex = real && this.forcedStep ? { ...real, step: Math.max(real.step, this.forcedStep) } : real;
       const tile = prepared.tiles[cell];
-      if (!picks.length || !tile) return;
-      this.shown.set(cell, picks); this.counts.hexes++;
+      if (!hex || !tile) return;
+      this.shown.set(cell, hex); this.counts.hexes++;
+      // Systems a, b and c show the hex's two largest yields, each at the hex's step.
+      const picks: YieldLightPick[] = hex.parts.slice(0, LIGHT.kinds).map(part => ({ kind: part.kind, step: hex.step }));
       const c = centre(tile) as { x: number; z: number };
       const h = (n: number): number => hashUnit(tile.col, tile.row, n);
       // The ground's height under a flat quad: the highest of a few places, so a quad on a hill is not buried.
@@ -323,6 +408,35 @@ export class PaintedYieldLightLayer {
         push({ x: c.x, y: top(LIGHT.glowRadius * .5) + LIGHT.lift, z: c.z, size: LIGHT.glowRadius, type: GLOW, kind: YIELD_LIGHT_KINDS.indexOf(first.kind),
           phase: h(1200), rnd: h(1201), strength: LIGHT.glow * strength(first.step) }, colours[first.kind]);
         this.counts.glows++;
+      }
+      if (show === 'd') {
+        const D = LIGHT.d, step = Math.min(3, first.step) - 1, wash = D.wash[step]!;
+        // A great person's work fills its hex with a tall model, so its motes start at roof height.
+        const lift = original.improvement && improvementDef(original.improvement).greatPerson ? D.greatLift : 0;
+        if (wash > 0) {
+          const kind = YIELD_LIGHT_KINDS.indexOf(first.kind), colour = colours[first.kind];
+          // On flat ground one wash covers the hex. On a hill seven small ones do, each at its own ground height, so no part is buried in the slope.
+          const spots: [number, number, number, number][] = tile.hills
+            ? [[0, 0, .62, .55], ...[0, 1, 2, 3, 4, 5].map((d): [number, number, number, number] => [Math.cos(d * Math.PI / 3 + .5) * .34, Math.sin(d * Math.PI / 3 + .5) * .34, .5, .34])]
+            : [[0, 0, 1, 1]];
+          for (const [x, z, scale, share] of spots) {
+            const radius = D.washRadius * scale;
+            const y = Math.max(...[[0, 0], [radius * .4, 0], [-radius * .4, 0], [0, radius * .4], [0, -radius * .4]].map(([dx, dz]) => surfaceHeight(tile, x + dx!, z + dz!) as number));
+            push({ x: c.x + x, y: y + LIGHT.lift, z: c.z + z, size: radius, type: WASH, kind, phase: h(1250), rnd: h(1251), strength: D.washStrength * wash * share }, colour);
+          }
+          this.counts.washes++;
+        }
+        // The motes: the step's count, in the colours of the hex's yields by their shares of the score.
+        let i = 0;
+        const count = D.motes[step]!;
+        for (const entry of yieldLightSplit(hex.parts, count)) for (let k = 0; k < entry.count; k++, i++) {
+          // Hashed places and starts, so two colours are mixed over the hex and not in two groups.
+          const n = 1300 + i * 11, p = place(n);
+          push({ x: c.x + p.x, y: (surfaceHeight(tile, p.x, p.z) as number) + .05 + lift, z: c.z + p.z, size: D.moteSize[step]!, type: MATTE, kind: YIELD_LIGHT_KINDS.indexOf(entry.kind),
+            phase: (h(n + 5) * count + h(n + 1)) / count, rnd: h(n + 2), strength: D.moteOpacity }, colours[entry.kind]);
+          this.counts.motes++; this.largestMote = Math.max(this.largestMote, D.moteSize[step]!);
+        }
+        return;
       }
       picks.forEach((pick, order) => {
         const kind = YIELD_LIGHT_KINDS.indexOf(pick.kind), colour = colours[pick.kind], second = order > 0;
@@ -380,7 +494,8 @@ export class PaintedYieldLightLayer {
     this.meshes = [];
     this.geometry?.dispose(); this.geometry = null;
     this.shown.clear();
-    this.counts.hexes = this.counts.motes = this.counts.glows = this.counts.pools = this.counts.glints = this.counts.shapes = 0;
+    this.counts.hexes = this.counts.motes = this.counts.glows = this.counts.pools = this.counts.glints = this.counts.shapes = this.counts.washes = 0;
+    this.largestMote = 0;
   }
 
   dispose(): void { this.clear(); this.material.dispose(); }

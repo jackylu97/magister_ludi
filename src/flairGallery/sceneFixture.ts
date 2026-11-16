@@ -238,6 +238,84 @@ export function createSceneFixture(age?: number) {
   return state;
 }
 
+/**
+ * A second, small world for the light of a rich hex (`paintedYieldLight.ts`):
+ * `flair.html?review=scene&world=works`. Every hex here shows its REAL yield,
+ * with no forced example, so the picture is what a game would draw. The user,
+ * 2026-11-16: "Could you visualize what that would look like on some of the
+ * improvements and great people works?"
+ *
+ * One court owns the whole land, and one town stands in it. The works are in
+ * rows, and where the rules allow, works of one kind stand at different yields:
+ * - row 1: three farms (plain; on wheat; on wheat beside a river), then three
+ *   pastures (cattle on grass; horses on plains; horses on grass);
+ * - row 3: three mines (a desert hill; a grass hill; iron in a plains hill),
+ *   then three quarries (stone on grass; on plains; in a plains hill);
+ * - row 5: two plantations (wine; cotton), two lumber camps (forest; forest on
+ *   a hill), and a hunting camp;
+ * - row 7: the six works of the great people, on grass;
+ * - row 9: the same six on resources (wheat, cattle, horses on plains, cotton,
+ *   horses, horses), where some reach the second step.
+ * `age` gives the court the technologies of that age and no later one, which
+ * changes some yields (a farm's irrigation, a mine's prospecting).
+ */
+export const WORKS_WORLD = {
+  width: 14, height: 11,
+  farms: [[1, 1], [3, 1], [5, 1]], pastures: [[8, 1], [10, 1], [12, 1]],
+  mines: [[1, 3], [3, 3], [5, 3]], quarries: [[8, 3], [10, 3], [12, 3]],
+  plantations: [[1, 5], [3, 5]], lumber: [[5, 5], [7, 5]], camp: [9, 5], town: [12, 5],
+  great: ['academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite'] as ImprovementId[],
+  greatRows: [7, 9], greatCols: [1, 3, 5, 7, 9, 11],
+} as const;
+
+export function createWorksFixture(age?: number) {
+  const W = WORKS_WORLD;
+  const state = newGame({ seed: 23, sizeName: 'duel', players: [
+    { name: 'Western court', color: '#714291', secondary: '#c9ccd6', isHuman: true },
+    { name: 'Eastern court', color: '#b34e37', secondary: '#e8c672', isHuman: true },
+  ] });
+  state.map = createMap({ width: W.width, height: W.height, terrain: 'grassland' });
+  state.units = []; state.cities = []; state.camps = []; state.nextEntityId = 1;
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  resetVisibility(state);
+  const tile = (col: number, row: number): Tile => getTileAt(state.map, col, row)!;
+  for (const t of state.map.tiles) t.moisture = .55;
+  const put = (at: readonly number[], improvement: ImprovementId, more: Partial<Pick<Tile, 'terrain' | 'hills' | 'resource' | 'feature'>> = {}): void => {
+    Object.assign(tile(at[0]!, at[1]!), more, { improvement });
+  };
+  put(W.farms[0], 'farm'); put(W.farms[1], 'farm', { resource: 'wheat' }); put(W.farms[2], 'farm', { resource: 'wheat' });
+  // The map's own fact that the hex has fresh water (map generation writes it from the river), so the farm is irrigated.
+  tile(W.farms[2][0], W.farms[2][1]).freshwater = true;
+  // A river along the east side of the third farm, for the irrigated field.
+  for (const row of [0, 1, 2]) {
+    const t = tile(W.farms[2][0], row);
+    for (let d = 0; d < 6; d++) {
+      const n = neighbour(t, state.map, d) as Tile | null;
+      if (!n || n.col <= t.col || n.row < 0 || n.row > 2) continue;
+      t.riverEdges = (t.riverEdges ?? 0) | (1 << d); n.riverEdges = (n.riverEdges ?? 0) | (1 << ((d + 3) % 6));
+    }
+  }
+  put(W.pastures[0], 'pasture', { resource: 'cattle' }); put(W.pastures[1], 'pasture', { resource: 'horses', terrain: 'plains' });
+  put(W.pastures[2], 'pasture', { resource: 'horses' });
+  put(W.mines[0], 'mine', { hills: true, terrain: 'desert' }); put(W.mines[1], 'mine', { hills: true }); put(W.mines[2], 'mine', { hills: true, terrain: 'plains', resource: 'iron' });
+  put(W.quarries[0], 'quarry', { resource: 'stone' }); put(W.quarries[1], 'quarry', { resource: 'stone', terrain: 'plains' });
+  put(W.quarries[2], 'quarry', { resource: 'stone', terrain: 'plains', hills: true });
+  put(W.plantations[0], 'plantation', { resource: 'wine' }); put(W.plantations[1], 'plantation', { resource: 'cotton' });
+  put(W.lumber[0], 'lumbermill', { feature: 'forest' }); put(W.lumber[1], 'lumbermill', { feature: 'forest', hills: true });
+  put(W.camp, 'camp', { resource: 'deer' });
+  // The second row stands on resources, which is the one way a work reaches a score of 7 by the land alone.
+  const rich: Partial<Pick<Tile, 'terrain' | 'resource'>>[] = [{ resource: 'wheat' }, { resource: 'cattle' }, { resource: 'horses', terrain: 'plains' },
+    { resource: 'cotton' }, { resource: 'horses', terrain: 'plains' }, { resource: 'horses', terrain: 'plains' }];
+  W.greatRows.forEach((row, r) => W.great.forEach((id, i) => put([W.greatCols[i]!, row], id, r ? rich[i]! : {})));
+  const town = foundCityAt(state, 0, tile(W.town[0], W.town[1]));
+  town.population = 5;
+  state.tileOwner.fill(town.id);
+  for (const player of state.players) player.techsResearched = TECH_IDS.filter(id => age === undefined || techDef(id).age <= age);
+  bumpRevision(state);
+  for (const levels of state.visibility) levels.fill(VISIBLE);
+  return state;
+}
+
 function isWater(tile: Tile): boolean {
   return tile.terrain === 'ocean' || tile.terrain === 'coast' || tile.terrain === 'lake';
 }

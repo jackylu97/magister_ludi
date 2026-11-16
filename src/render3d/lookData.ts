@@ -2360,11 +2360,14 @@ export interface VisualTestSpec {
   /**
    * A rich hex shown by particles and light (`paintedYieldLight.ts`; the user, 2026-11-16: "express this gameplay idea
    * exclusively with particles ... a combination of lighting and particles").
-   * - `show`: `a` motes, `b` light on the ground, `c` shapes that differ by yield, `structures` the sheaves, logs and
+   * - `show`: `d` matte motes over a soft wash, by step (the user's choice, 2026-11-16), `a` motes, `b` light on the ground, `c` shapes that differ by yield, `structures` the sheaves, logs and
    *   stalls of before (`paintedRichness.ts`), `off` nothing.
    * - `body`: how much of the ground behind it a light hides, from 0 (light only, which turns white on bright grass) to 1.
-   * - `steps`: for each yield, the three amounts at which a hex reaches steps 1, 2 and 3. A hex shows at most `kinds`
-   *   yields, and its second yield gets `secondShare` of the particles of a first.
+   * - The rule (the user, 2026-11-16): a hex's score is the sum of its yields, each times its `weights` entry (culture and
+   *   science 1.5, gold 0.75, the rest 1). The score reaches step 1, 2 or 3 at the three `thresholds` (4, 7, 10); under the
+   *   first the hex shows nothing. In system d the motes take the yields' colours in proportion to their parts of the
+   *   score, and a yield with at least `minShare` of the score gets one mote before the rest are shared out. Systems a, b
+   *   and c show the `kinds` largest yields, and the second gets `secondShare` of the particles of the first.
    * - `colors`: the lit yield inks of `src/style.css` (`--y-food-lit` and the five beside it).
    * - `strength`: the brightness of the ground's light at steps 1, 2 and 3. `inner` and `outer`: the ring of the hex the
    *   particles stand in, clear of the piece in the middle. `lift`: how far a flat quad lies over the ground.
@@ -2375,7 +2378,15 @@ export interface VisualTestSpec {
    */
   yieldLight: {
     show: string; body: number; kinds: number; secondShare: number;
-    steps: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number[]>;
+    /**
+     * System d, by step (1, 2, 3): how many matte `motes` a hex's first yield has and their `moteSize` in hex units, and
+     * the share of the ground `wash` (0 is none). `moteOpacity` is how solid a mote is. `washRadius` is the wash's reach
+     * in hex units (it is gone well inside that), `washStrength` its brightness at full, `washBody` how much of the ground
+     * it hides (low, so it reads as light), and `breath` how much it dims as it breathes. `greatLift` is how far above the ground the motes start on a great
+     * person's work, whose model fills its hex: they rise from its roofs and are not lost inside it.
+     */
+    d: { motes: number[]; moteSize: number[]; moteOpacity: number; wash: number[]; washRadius: number; washStrength: number; washBody: number; greatLift: number; breath: number };
+    weights: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number>; thresholds: number[]; minShare: number;
     colors: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', string>;
     strength: number[]; inner: number; outer: number; lift: number; rise: number; speed: number;
     motes: number; moteSize: number; glow: number; glowRadius: number;
