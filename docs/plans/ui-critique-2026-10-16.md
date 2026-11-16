@@ -489,3 +489,5 @@ The boards in `docs/plans/mockups/scholars-study/` are the spec of record, with 
 > "could we go through and double check the spacing in elements with the new typeface, for example the 'your turn, pachacuti' element seems uncentered vertically now"
 
 Newsreader has other vertical metrics than Instrument Serif, so text set in it can sit high or low in a box that was tuned for the old face. Batch **SS1b**: go through every element set in the display face, check its vertical centring and its spacing against its neighbours, and correct it. The turn card ("Your turn, Pachacuti") is the first case.
+
+**The news toasts' size (the user, 2026-11-16):** *"the new toast banners are slightly too large, lets shrink them a bit"*. Part of SS1b: the toasts become a little smaller (padding, type and mark together, about a seventh), and stay readable.
