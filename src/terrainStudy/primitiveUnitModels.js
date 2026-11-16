@@ -101,7 +101,7 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
  const ivory=material('Warm ivory','#e8d8b2'),gold=material('Antique gold','#b69045'),dark=material('Incised detail','#303d42');
  // `Trim` parts take the seat's second colour in the game (`packUnitAsset` with `trim`); elsewhere they stay gilt.
- // `steel` is the helmets' material. The brow band, the cheek guards, the spike and the brim are what make it a helmet.
+ // `steel` is the helmets' material. The brow band, the cheek guards, and the spike or the knob are what make it a helmet.
  // Since the first playtest (the user, 2026-11-16: "could we have the helmets be white again, with the primary color of
  // the player as an accent color? ... every unit has a splash of color on the helmet") a helmet is ivory, as the caps
  // were, and its brow band is in the seat's first colour.
@@ -128,8 +128,9 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
   sphere('Faceted ivory face',.145,ivory,0,y);
  };
  // A soldier's helmet in ivory: a dome over the top of the head, a brow band in the seat's first colour, a nasal
- // bar and two cheek guards. `point` adds a short spike (spears and polearms) and `brim` a wide flat brim (bows),
- // so the two classes differ in outline. A later age adds a plume in the second colour, taller in the last age.
+ // bar and two cheek guards. `point` adds a short spike (spears and polearms) and `knob` a small round knob (bows),
+ // so the two classes differ a little in outline. The bows had a wide brim before, which read as a hat (the user,
+ // 2026-11-16: "the archer line looks like a regular hat instead of a helmet"). A later age adds a plume in the second colour, taller in the last age.
  const helmet=(kind)=>{
   mesh('Steel helmet dome',new T.SphereGeometry(.172,12,5,0,Math.PI*2,0,Math.PI/2),steel,0,1.118,0);
   // The band is bold: with the dome in the body's colour, it is what marks the helmet off from the robe.
@@ -138,9 +139,9 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
   box('Steel nasal bar',[.026,.120,.020],steel,0,1.068,.168);
   for(const side of [-1,1])box(`Steel cheek guard ${side}`,[.030,.120,.090],steel,side*.136,1.050,.060);
   if(kind==='point')mesh('Steel helmet spike',new T.ConeGeometry(.062,.150,8),steel,0,1.345);
-  if(kind==='brim')cylinder('Steel helmet brim',.232,.020,steel,0,1.128,0,.232,16);
+  if(kind==='knob')sphere('Steel helmet knob',.046,steel,0,1.300,0,8,5);
   if(tier>=2){
-   const tall=tier>=3?.26:.16,foot=kind==='point'?1.40:1.275;
+   const tall=tier>=3?.26:.16,foot=kind==='point'?1.40:kind==='knob'?1.335:1.275;
    const plume=box('Trim helmet plume',[.036,tall,.150],trim,0,foot+tall/2,-.030);plume.rotation.x=-.18;
   }
  };
@@ -429,7 +430,7 @@ export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=U
   else ivoryFace();
   if(type==='warrior')helmet('plain');
   else if(type==='spearman'||polearmVariants.includes(type))helmet('point');
-  else if(type==='archer'||rangedVariants.includes(type))helmet('brim');
+  else if(type==='archer'||rangedVariants.includes(type))helmet('knob');
   if(faithVariants.includes(type))addFaithEquipment(kit,type);
   else if(equipment)addPolearmRangedVariant(kit,type);
   else if(infantry)addInfantryVariant(kit,type);

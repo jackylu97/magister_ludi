@@ -11,7 +11,7 @@ type Packed = { fixed: BufferGeometry; owner: BufferGeometry; contacts: [number,
 const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createPrimitiveUnitScene(type, { family })) as Packed;
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
-  warrior: '89222:98ad0457', spearman: '81471:ba38770', horseman: '90974:de35941b', archer: '98495:34ad41ee',
+  warrior: '89222:98ad0457', spearman: '81471:ba38770', horseman: '90974:de35941b', archer: '101751:b5b07226',
   horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:7b481d5f', scout: '86410:b0b71f65',
   settler: '89830:fc38728', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
   'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',

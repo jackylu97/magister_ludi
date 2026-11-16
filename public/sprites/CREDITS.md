@@ -151,7 +151,7 @@ Two rules decided all twenty, and they are the whole design:
 | `warElephant.svg` | `warElephant` | mounted · the beast | *drawn here* | a deep body on stumpy legs, a raised curling trunk, a howdah |
 | `siege.svg` | `siege` | siege · 1 | *drawn here* | a catapult: base, A-frame, arm thrown, shot in the air |
 | `trebuchet.svg` | `trebuchet` | siege · 2 | *drawn here* | a tall frame, the beam pivoted high, the counterweight hung |
-| `settler.svg` | `settler` | civilian | drawn for this game (2026-11-15) | a flag planted beside a first house; it replaced Tabler `tent`, which read as a letter A |
+| `settler.svg` | `settler` | civilian | drawn for this game (2026-11-16) | one large swallowtail flag on a pole, the flag the piece carries; it replaced Tabler `tent`, which read as a letter A |
 | `worker.svg` | `worker` | civilian | Tabler `hammer` | a claw hammer, head up |
 | `scout.svg` | `scout` | civilian | Tabler `binoculars` | field glasses |
 | `trader.svg` | `trader` | civilian | *drawn here* | a covered wagon: canopy hooped over an overhung bed, on two wheels |
