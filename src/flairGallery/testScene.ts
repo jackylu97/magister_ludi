@@ -35,7 +35,8 @@ import type { UnitTypeId } from '../sim/unitData';
  *   another north-star model. `type:old` draws today's piece, and a third
  *   part, `type:model:turn`, turns the piece about the upright (radians);
  * - `pieces`: more pieces to stand in the scene, as `col.row.type.seat` split
- *   by commas. `only` as the first entry removes the scene's own pieces;
+ *   by commas. `only` as the first entry removes the scene's own pieces, and a
+ *   fifth part, `col.row.greatPerson.seat.person`, names a great person;
  * - `at`: `col_row_zoom` centres the camera on a hex, `zoom` times closer than
  *   the game's closest. It replaces the view's own camera.
  */
@@ -68,8 +69,9 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   }
   for (const entry of (params.get('pieces') ?? '').split(',').filter(Boolean)) {
     if (entry === 'only') { state.units = []; continue; }
-    const [col, row, type, seat] = entry.split('.');
-    createUnit(state, Number(seat), type as UnitTypeId, Number(col), Number(row));
+    // A fifth part names a great person, so each family's piece can stand in the scene.
+    const [col, row, type, seat, person] = entry.split('.');
+    createUnit(state, Number(seat), type as UnitTypeId, Number(col), Number(row), person as Parameters<typeof createUnit>[5]);
   }
   const at = (params.get('at') ?? '').split('_').map(Number);
   let disposed = false, ready = false;

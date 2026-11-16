@@ -8,7 +8,8 @@ import type { Unit } from '../sim/state';
 import { greatPersonDef, isGreatPersonId, type Family } from '../sim/greatPeopleData';
 import { isWaterTerrain, type TerrainId } from '../sim/terrainData';
 import { UNIT_UNLOCK_TECH, techDef } from '../sim/techData';
-import type { UnitTypeId } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId } from '../sim/unitData';
+import { ageThatOpens } from '../sim/leaderData';
 // @ts-expect-error The approved shared study asset packer remains JavaScript.
 import { packUnitAsset } from '../terrainStudy/unitAssets.js';
 // @ts-expect-error The approved shared study sculpts remain JavaScript.
@@ -62,7 +63,10 @@ function studyYaw(type: UnitArtState['type']): number {
  */
 export function unitDecorationTier(type: string): number {
   const gate = UNIT_UNLOCK_TECH.get(type as UnitTypeId);
-  return gate ? Math.max(0, Math.min(3, techDef(gate).age - 1)) : 0;
+  // A piece that no technology opens (a leader's piece, a hull that waits for its technology) has the age of its
+  // column on the chart. Without this a gendarme would be plainer than the knight it stands beside.
+  const age = gate ? techDef(gate).age : (UNIT_TYPE_IDS as readonly string[]).includes(type) ? ageThatOpens(type as UnitTypeId) : undefined;
+  return age === undefined ? 0 : Math.max(0, Math.min(3, age - 1));
 }
 
 /** Geometry and owner pigments shared by resting, moving and falling pieces. */
@@ -96,7 +100,7 @@ export class PaintedUnitKit {
     const cached = this.models.get(key);
     if (cached) return cached;
 
-    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family, tier: unitDecorationTier(unit.type) }), { trim: true }) as PackedUnitAsset;
+    const packed = packUnitAsset(createPrimitiveUnitScene(embarked ? 'embarked' : unit.type, { family, tier: embarked ? 0 : unitDecorationTier(unit.type) }), { trim: true }) as PackedUnitAsset;
     const trim = packed.trim;
     let geometry: BufferGeometry | null = null;
     try {

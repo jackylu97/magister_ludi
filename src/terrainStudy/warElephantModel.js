@@ -4,12 +4,13 @@ import * as T from 'three';
 // The forehead, chest and curled trunk share one silhouette. Its broad ears
 // and paired tusks distinguish it without requiring a miniature rider.
 export function addWarElephant(kit,{siege=false}={}){
- const {group,mesh,cylinder,ring,rod,box,owner,ownerShade,ivory,gold,dark}=kit;
+ const {group,mesh,cylinder,ring,rod,box,owner,ownerShade,ivory,gold,dark,trim,tier,readable}=kit;
  const seat=[[.26,.23],[.27,.29],[.265,.33],[.295,.38],[.315,.40],[.315,.43]];
  mesh('Elephant low enamel socket',new T.LatheGeometry(seat.map(p=>new T.Vector2(...p)),16),owner);
  cylinder('Elephant solid socket',.315,.025,owner,0,.417);
  cylinder('Elephant socket recess',.262,.022,ownerShade,0,.264);
- ring('Elephant gilt seat bead',.266,.294);
+ // As on the horses: the seat's bead takes the seat's second colour and is bolder.
+ if(readable)ring('Trim elephant seat bead',.268,.294,trim,0,0,.016);else ring('Elephant gilt seat bead',.266,.294);
  ring('Elephant gilt socket rim',.315,.425,gold,0,0,.006);
  const firstSculpturePart=group.children.length;
 
@@ -118,10 +119,14 @@ export function addWarElephant(kit,{siege=false}={}){
  const cloth=new T.BufferGeometry();cloth.setAttribute('position',new T.Float32BufferAttribute(clothPositions,3));cloth.computeVertexNormals();
  mesh('Elephant enamel war brow cloth',cloth,owner);
  for(const side of [0,4])for(let r=0;r<clothRows.length-1;r++){
-  rod(`Elephant gilt brow edging ${side} ${r}`,clothRows[r][side],clothRows[r+1][side],.005,gold,4);
+  // The brow cloth's edge is the elephant's band in the second colour.
+  if(readable)rod(`Trim brow edging ${side} ${r}`,clothRows[r][side],clothRows[r+1][side],.013,trim,4);
+  else rod(`Elephant gilt brow edging ${side} ${r}`,clothRows[r][side],clothRows[r+1][side],.005,gold,4);
  }
  const sealPoint=foreheadPoint(0,1.218);
  const insignia=box('Elephant small gilt brow diamond',[.047,.047,.010],gold,sealPoint[0],sealPoint[1],sealPoint[2]+.005);insignia.rotation.z=Math.PI/4;
+ // From the third age a plume stands on the crown, taller in the last age. The siege elephant's tower takes its place.
+ if(readable&&tier>=2&&!siege){const tall=tier>=3?.24:.15;box('Trim elephant plume',[.050,tall,.150],trim,0,1.345+tall/2,.020).rotation.x=-.18}
 
  if(siege){
   // A small fortified howdah sits behind the forehead; the original head,

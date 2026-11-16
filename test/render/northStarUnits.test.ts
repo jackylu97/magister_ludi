@@ -10,24 +10,32 @@ const make = (): PaintedUnitKit => { const kit = new PaintedUnitKit(() => {}); k
 afterEach(() => { for (const kit of kits.splice(0)) kit.dispose(); overrideNorthStarUnit('swordsman', (NORTH_STAR_UNITS as Record<string, string>).swordsman ?? null); });
 
 describe('north-star unit pieces', () => {
-  it('draws the swordsman with its north-star model, and every other type with the piece of today', () => {
+  // The north-star unit models are switched off (`NORTH_STAR_UNIT_MODELS` is false: the user chose small changes to
+  // the pieces of today, 2026-11-15). So no type has a model by default, and these tests name one to keep the path
+  // covered.
+  it('draws no north-star model by default, and the named model for the swordsman alone when one is named', () => {
+    expect(northStarUnitModel('swordsman')).toBeNull();
+    expect(make().resolve({ type: 'swordsman' })!.geometry.userData.paintedUnitAsset).toBe('swordsman');
+    overrideNorthStarUnit('swordsman', 'ns-swordsman');
     expect(northStarUnitModel('swordsman')).toBe('ns-swordsman');
     expect(northStarUnitModel('warrior')).toBeNull();
     const kit = make(), model = kit.resolve({ type: 'swordsman' })!;
     expect(model.geometry.userData.paintedUnitAsset).toBe('ns-swordsman');
     expect(model.trimmed).toBe(true);
     expect(kit.resolve({ type: 'swordsman' }, 'grassland')).toBe(model);
-    expect(kit.resolve({ type: 'warrior' })!.trimmed).toBeUndefined();
+    expect(kit.resolve({ type: 'warrior' })!.geometry.userData.paintedUnitAsset).toBe('warrior');
     // On water the swordsman is the shared transport, as every land piece is.
     expect(kit.resolve({ type: 'swordsman' }, 'coast')!.geometry.userData.paintedUnitAsset).toBe('embarked');
   });
 
   it('gives back the piece of today when the model is switched off', () => {
+    overrideNorthStarUnit('swordsman', 'ns-swordsman');
     overrideNorthStarUnit('swordsman', null);
     const model = make().resolve({ type: 'swordsman' })!;
     expect(model.geometry.userData.paintedUnitAsset).toBe('swordsman');
-    expect(model.trimmed).toBeUndefined();
-    expect(new Set(model.geometry.getAttribute('paintedOwner').array)).toEqual(new Set([0, 1]));
+    // The piece of today has parts in the seat's second colour too (its plinth, bands and crest).
+    expect(model.trimmed).toBe(true);
+    expect(new Set(model.geometry.getAttribute('paintedOwner').array)).toEqual(new Set([0, 1, 2]));
   });
 
   it('builds a model the unit layer can place: a size like the pieces of today, a floor at zero and contacts under the base', () => {
@@ -91,12 +99,16 @@ describe('north-star unit pieces', () => {
   });
 
   it('has a material for each pair of seat colours, with the second colour and the idle motion in its shader', () => {
-    const kit = make(), model = kit.resolve({ type: 'swordsman' })!, plain = kit.resolve({ type: 'warrior' })!;
+    overrideNorthStarUnit('swordsman', 'ns-swordsman');
+    const kit = make(), model = kit.resolve({ type: 'swordsman' })!, today = kit.resolve({ type: 'warrior' })!;
     const a = kit.material(model, 0x714291, 0xc9ccd6);
     expect(kit.material(model, 0x714291, 0xc9ccd6)).toBe(a);
     expect(kit.material(model, 0x714291, 0xe8c672)).not.toBe(a);
-    // A piece of today keeps one material for a first colour, whatever second colour is passed.
-    const old = kit.material(plain, 0x714291);
+    // A piece of today has parts in the second colour, so it shares the material of its pair of colours.
+    expect(kit.material(today, 0x714291, 0xc9ccd6)).toBe(a);
+    expect(kit.material(today, 0x714291, 0xe8c672)).not.toBe(a);
+    // A model with no part in the second colour keeps one material for a first colour, whatever second colour is passed.
+    const plain = { ...today, trimmed: false }, old = kit.material(plain, 0x714291);
     expect(kit.material(plain, 0x714291, 0xe8c672)).toBe(old);
     expect(old).not.toBe(a);
     const compile = (material: MeshStandardMaterial) => {

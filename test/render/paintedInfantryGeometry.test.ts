@@ -11,19 +11,19 @@ type Packed = { fixed: BufferGeometry; owner: BufferGeometry; contacts: [number,
 const pack = (type: string, family = 'scholar'): Packed => packUnitAsset(createPrimitiveUnitScene(type, { family })) as Packed;
 const dispose = (model: Packed): void => { model.fixed.dispose(); model.owner.dispose(); };
 const baseline: Record<string, string> = {
-  // September 14 interaction ruling: warrior equipment becomes a club, no shield.
-  warrior: '97969:1008431b', spearman: '88932:e9ad89c5', horseman: '90872:8c34db48', archer: '103777:ead32659',
-  horseArcher: '95166:56f83b84', worker: '80641:95914e55', prophet: '113041:ffad547e', scout: '162055:130cced9',
-  settler: '86978:c90aadbc', trader: '85859:feabe1c6', greatPerson: '120145:d0d28c93', warElephant: '130298:65087db2',
-  'greatPerson:artist': '122198:bbd42d04', 'greatPerson:engineer': '119005:3c41ec50',
-  'greatPerson:merchant': '118184:57185a8e', 'greatPerson:general': '133946:ee9b0b9b',
+  warrior: '90266:d22f19fa', spearman: '82515:21500666', horseman: '90974:9b929fb9', archer: '99539:f1a46aa6',
+  horseArcher: '95267:35f06529', worker: '76146:de020126', prophet: '99686:fb29bfc9', scout: '162950:55dfb155',
+  settler: '89830:c397e071', trader: '85595:6d19f0de', greatPerson: '123886:49f016ea', warElephant: '130221:986c3830',
+  'greatPerson:artist': '125851:4ee7ffc0', 'greatPerson:engineer': '122790:40abc8b',
+  'greatPerson:merchant': '121926:1d2ecc63', 'greatPerson:general': '137686:59d42dd3',
 };
 const infantryBaseline: Record<string, string> = {
-  swordsman: '115362:f2a0dc39', legionary: '126466:5d280b1a', longswordsman: '117170:4e86595c',
-  fireLance: '116141:5a5836a3', khopesh: '128993:1915e101', eagleWarrior: '153586:2851e4e9',
+  swordsman: '104262:8867e4e2', legionary: '115367:8fb29e71', longswordsman: '103814:4edfe664',
+  fireLance: '105042:7449e807', khopesh: '117807:25e4e2a4', eagleWarrior: '142486:92092d31',
 };
-// Captured before the infantry batch, with only the separately ruled warrior
-// club revision updated. Both packed roles, indices, contacts and bounds count.
+// Cut again on 2026-11-15, after the user's readability rulings on every kind of piece: bolder tools, helmets, no
+// nose, one body height, the tool not counted in the height, and parts in the seat's second colour. These are the
+// pieces of the first age (`tier` 0) packed in two roles. Both roles, indices, contacts and bounds count.
 function hash(model: Packed): string {
   let h = 2166136261, bytes = 0;
   for (const geometry of [model.fixed, model.owner]) {
@@ -45,7 +45,7 @@ function disposeScene(scene: Group): void {
 }
 
 describe('painted infantry variants around the accepted warrior', () => {
-  it('preserves the recorded packed bytes for all accepted pieces, with the ruled warrior club revision', () => {
+  it('preserves the recorded packed bytes for all accepted pieces, as cut after the readability rulings', () => {
     expect(Object.keys(baseline)).toHaveLength(originalTypes.length + 4);
     for (const [key, expected] of Object.entries(baseline)) {
       const [type, family = 'scholar'] = key.split(':');
@@ -54,7 +54,7 @@ describe('painted infantry variants around the accepted warrior', () => {
     }
   });
 
-  it('gives only the warrior a stout club without a sword or shield and preserves its approved helmet', () => {
+  it('gives only the warrior a stout club without a sword or shield, under the helmet every soldier wears', () => {
     const scene = createPrimitiveUnitScene('warrior') as Group, spearman = createPrimitiveUnitScene('spearman') as Group;
     try {
       expect(scene.children.some(part => /shield|sword/i.test(part.name))).toBe(false);
@@ -67,48 +67,60 @@ describe('painted infantry variants around the accepted warrior', () => {
       expect(widthAt(.35, .57)).toBeGreaterThan(widthAt(.06, .20) * 2.5);
       expect(club.material.name).toBe('Warm tool wood'); expect(club.material.transparent).toBe(false); expect(club.material.opacity).toBe(1);
       expect(scene.getObjectByName('Warrior simple club')!.children).toHaveLength(3);
-      for (const name of ['Simple augur cap', 'Gilt cap brim']) {
+      for (const name of ['Steel helmet dome', 'Trim brow band', 'Steel nasal bar', 'Steel cheek guard -1']) {
         const actual = scenePart(scene, name), expected = scenePart(spearman, name);
         expect(actual.position.toArray()).toEqual(expected.position.toArray());
         expect(actual.quaternion.toArray()).toEqual(expected.quaternion.toArray());
         expect(actual.material.color).toEqual(expected.material.color);
         for (const [attribute, values] of Object.entries(expected.geometry.attributes)) expect(actual.geometry.getAttribute(attribute).array).toEqual(values.array);
       }
+      // The helmet is a darker tone of the seat's first colour, and its brow band is in the second colour.
+      expect(scenePart(scene, 'Steel helmet dome').material.name).toBe('Owner helmet');
+      expect(scenePart(scene, 'Trim brow band').material.name).toBe('Trim gilt');
+      // The spearman's helmet has a spike, so the two classes differ in outline.
+      expect(spearman.getObjectByName('Steel helmet spike')).toBeDefined(); expect(scene.getObjectByName('Steel helmet spike')).toBeUndefined();
       const packed = pack('warrior');
       try {
-        expect(packed.radius).toBeLessThan(.34); expect(packed.height).toBeCloseTo(1.0314, 5);
+        // The height is the top of the helmet. The club stands beside it and does not count.
+        const dome = new Box3().setFromObject(scenePart(scene, 'Steel helmet dome'));
+        expect(packed.radius).toBeLessThan(.34); expect(packed.height).toBeCloseTo(dome.max.y, 5);
       } finally { dispose(packed); }
     } finally { disposeScene(scene); disposeScene(spearman); }
   });
 
   it('keeps the exact plinth, body, ivory head and owner material channels beneath every variant', () => {
-    const warrior = createPrimitiveUnitScene('warrior') as Group;
-    const common = ['Gilt plinth', 'Enamel base', 'Ivory base bead', 'Turned enamel robe', 'Hem shadow', 'Gilt hem',
-      'Small collar bead', 'Ivory neck', 'Single diamond insignia', 'Faceted ivory face', 'Small carved nose',
-      ...Array.from({ length: 6 }, (_, i) => `Gilt piping ${i}`)];
-    try {
-      for (const type of [...variants, 'phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger']) {
-        const scene = createPrimitiveUnitScene(type) as Group;
-        try {
-          expect(scene.scale.toArray()).toEqual(warrior.scale.toArray());
-          for (const name of common) {
-            const actual = scenePart(scene, name), expected = scenePart(warrior, name);
-            expect(actual.position.toArray()).toEqual(expected.position.toArray());
-            expect(actual.quaternion.toArray()).toEqual(expected.quaternion.toArray());
-            expect(actual.scale.toArray()).toEqual(expected.scale.toArray());
-            expect(actual.material.name).toBe(expected.material.name); expect(actual.material.color).toEqual(expected.material.color);
-            expect(actual.geometry.index?.array).toEqual(expected.geometry.index?.array);
-            for (const [attribute, values] of Object.entries(expected.geometry.attributes)) expect(actual.geometry.getAttribute(attribute).array).toEqual(values.array);
-          }
-          scene.traverse(object => {
-            if (!(object instanceof Mesh)) return;
-            expect(object.scale.x * object.scale.y * object.scale.z).toBeGreaterThan(0);
-            const materials = Array.isArray(object.material) ? object.material : [object.material];
-            for (const material of materials) expect(['Owner enamel', 'Owner turned recess', 'Warm ivory', 'Antique gold', 'Incised detail']).toContain(material.name);
-          });
-        } finally { disposeScene(scene); }
-      }
-    } finally { disposeScene(warrior); }
+    // The first age is plain: a plinth and a hem in the second colour. The last age adds a collar, an insignia,
+    // piping, a waist band and a mantle. No piece has a nose.
+    const plain = ['Trim plinth', 'Enamel base', 'Ivory base bead', 'Turned enamel robe', 'Hem shadow', 'Trim hem', 'Ivory neck', 'Faceted ivory face'];
+    const rich = [...plain, 'Trim collar bead', 'Single diamond insignia', 'Trim waist band', 'Trim shoulder mantle', ...Array.from({ length: 6 }, (_, i) => `Trim piping ${i}`)];
+    for (const [tier, common] of [[0, plain], [3, rich]] as const) {
+      const warrior = createPrimitiveUnitScene('warrior', { tier }) as Group;
+      try {
+        for (const name of rich) expect(warrior.getObjectByName(name) !== undefined, `${tier}: ${name}`).toBe(common.includes(name));
+        for (const type of [...variants, 'phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger']) {
+          const scene = createPrimitiveUnitScene(type, { tier }) as Group;
+          try {
+            expect(scene.scale.toArray()).toEqual(warrior.scale.toArray());
+            expect(scene.getObjectByName('Small carved nose')).toBeUndefined();
+            for (const name of common) {
+              const actual = scenePart(scene, name), expected = scenePart(warrior, name);
+              expect(actual.position.toArray()).toEqual(expected.position.toArray());
+              expect(actual.quaternion.toArray()).toEqual(expected.quaternion.toArray());
+              expect(actual.scale.toArray()).toEqual(expected.scale.toArray());
+              expect(actual.material.name).toBe(expected.material.name); expect(actual.material.color).toEqual(expected.material.color);
+              expect(actual.geometry.index?.array).toEqual(expected.geometry.index?.array);
+              for (const [attribute, values] of Object.entries(expected.geometry.attributes)) expect(actual.geometry.getAttribute(attribute).array).toEqual(values.array);
+            }
+            scene.traverse(object => {
+              if (!(object instanceof Mesh)) return;
+              expect(object.scale.x * object.scale.y * object.scale.z).toBeGreaterThan(0);
+              const materials = Array.isArray(object.material) ? object.material : [object.material];
+              for (const material of materials) expect(['Owner enamel', 'Owner turned recess', 'Owner helmet', 'Trim gilt', 'Warm ivory', 'Antique gold', 'Incised detail']).toContain(material.name);
+            });
+          } finally { disposeScene(scene); }
+        }
+      } finally { disposeScene(warrior); }
+    }
   });
 
   it('packs six distinct compact indexed variants with identical warrior ground contacts and finite pigments', () => {
@@ -120,7 +132,8 @@ describe('painted infantry variants around the accepted warrior', () => {
           expect(hash(model)).toBe(hash(repeated)); unique.add(hash(model));
           expect(hash(model), type).toBe(infantryBaseline[type]);
           expect(model.contacts).toEqual(warrior.contacts);
-          expect(model.height).toBeLessThan(warrior.height + .1); expect(model.radius).toBeLessThan(.34);
+          // The tools are bolder, so a shield or a curved blade reaches further out than the warrior's club.
+          expect(model.height).toBeLessThan(warrior.height + .1); expect(model.radius).toBeLessThan(.40);
           expect(model.height).toBeGreaterThan(.90); expect(model.radius).toBeGreaterThan(.26);
           let triangles = 0;
           for (const geometry of [model.fixed, model.owner]) {
@@ -147,11 +160,12 @@ describe('painted infantry variants around the accepted warrior', () => {
     const scenes = Object.fromEntries(variants.map(type => [type, createPrimitiveUnitScene(type) as Group]));
     const material = new MeshBasicMaterial();
     try {
-      const size = (type: string, name: string): Vector3 => new Box3().setFromObject(scenePart(scenes[type]!, name)).getSize(new Vector3());
+      // Sizes are in the piece's own units, before the scale that brings it to the board.
+      const size = (type: string, name: string): Vector3 => new Box3().setFromObject(scenePart(scenes[type]!, name)).getSize(new Vector3()).divide(scenes[type]!.scale);
       const short = size('swordsman', 'Swordsman pointed ivory blade'), long = size('longswordsman', 'Longswordsman pointed ivory blade');
       expect(long.y).toBeGreaterThan(short.y * 1.25);
       expect(size('legionary', 'Legionary bowed enamel shield').y).toBeGreaterThan(.37);
-      expect(size('legionary', 'Legionary restrained enamel crest').y).toBeLessThan(.16);
+      expect(size('legionary', 'Legionary restrained trim crest').y).toBeLessThan(.16);
       expect(scenePart(scenes.longswordsman!, 'Longswordsman dark visor slit -1').material.name).toBe('Incised detail');
       expect(size('fireLance', 'Fire lance ivory tube').y).toBeGreaterThan(.24);
       expect(scenePart(scenes.fireLance!, 'Fire lance dark open bore').material.name).toBe('Incised detail');
@@ -160,7 +174,8 @@ describe('painted infantry variants around the accepted warrior', () => {
       expect(ray.intersectObject(probe).length).toBeGreaterThan(0);
       ray.ray.origin.set(.07, .39, 1); expect(ray.intersectObject(probe)).toHaveLength(0);
       const eagle = scenes.eagleWarrior!;
-      expect(size('eagleWarrior', 'Eagle warrior carved ivory beak').z).toBeGreaterThan(.14);
+      // The beak is on the head, and the head and body are a little slimmer than they were.
+      expect(size('eagleWarrior', 'Eagle warrior carved ivory beak').z).toBeGreaterThan(.12);
       expect(scenePart(eagle, 'Eagle warrior swept enamel cheek feather -1').geometry.getAttribute('position').count).toBeGreaterThan(20);
       expect(eagle.children.filter(child => child.name.startsWith('Eagle warrior incised club edge'))).toHaveLength(8);
     } finally { for (const scene of Object.values(scenes)) disposeScene(scene); material.dispose(); }
