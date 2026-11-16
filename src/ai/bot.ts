@@ -345,7 +345,7 @@ import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
 import { type TileYield, isWaterTerrain } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
-import { canStopOn, findPath, findPathToFirst, reachableTiles } from '../sim/pathfind';
+import { canStopOn, findPath, findPathToFirst, pathTurnMarks, pathTurns, reachableTiles } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
   type ContributionOffer,
@@ -800,6 +800,19 @@ export interface BotSitting {
   books: SeatBooks | null;
   /** How many times this sitting has read its books. One, by construction; the tests count it. */
   booksRead: number;
+  /**
+   * **The escort plan, at the board's revision it was read at** (bot batch
+   * BP11, `escortPlan`). Every soldier's decision asks it, so it is read once
+   * for each revision of the board rather than once for each soldier.
+   */
+  escorts: { revision: number; plan: EscortPlan } | null;
+  /**
+   * The escort orders `walkWithSettlers` has sent this turn, as
+   * `unit>col,row` (bot batch BP11). Membership only. Each order is sent at
+   * most once a turn, so the arm cannot send the same order to a piece that
+   * did not move, which the driver would stop the seat for.
+   */
+  escortOrders: Set<string>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -818,6 +831,8 @@ export function botSitting(playerId: number): BotSitting {
     levyWeighed: new Set<number>(),
     books: null,
     booksRead: 0,
+    escorts: null,
+    escortOrders: new Set<string>(),
   };
 }
 
@@ -1007,23 +1022,24 @@ function unitUnlocked(state: GameState, player: Player, id: UnitTypeId): boolean
 /**
  * **Is anything of this empire's already in a position to walk a settler out?**
  *
- * Two readings, and which one applies is a fact about the board rather than a
- * choice: a settler that *exists* asks `escortWithin`, the settler arm's own
- * question, so the chain and the piece agree about whether it may march; an
- * empire with no settler yet asks the coarse question instead, because "is a
- * column standing beside a piece that does not exist" has no answer. In that
- * case any column at all is enough — an empire with a spare piece does not have
- * to *raise* an escort, it has one, and sending it is `escortMarch`'s business.
+ * True when a settler of the seat already has a soldier on its hex (`coverOn`),
+ * or when the seat has a soldier it could spare for an escort (`freeEscort`).
+ * Since bot batch BP11 the escort is a soldier on the settler's own hex, and
+ * the escort plan (`escortPlan`) sends it; this is the expansion chain's coarse
+ * reading of whether the seat would have to *raise* one.
  */
 function escortAvailable(state: GameState, player: Player): boolean {
-  let any = false;
+  const ai = aiFor(player);
+  const stride = settlerStride();
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
-    const def = unitDef(unit.type);
-    if (def.foundsCity === true) return escortWithin(state, player, unit) !== null;
-    if (isCombatant(def) && def.category !== 'naval') any = true;
+    if (unitDef(unit.type).foundsCity === true) {
+      if (coverOn(state, player, unit) !== null) return true;
+      continue;
+    }
+    if (freeEscort(state, player, ai, unit, stride)) return true;
   }
-  return any;
+  return false;
 }
 
 /**
@@ -1818,6 +1834,13 @@ function housekeeping(
   const idle = projectIdleCommand(state, player, sitting);
   if (idle !== null) return idle;
 
+  // **The escorts keep up** (bot batch BP11), before any settler is asked again:
+  // a soldier left behind by its settler walks after it before the wild moves,
+  // and a settler whose escort waits beside its town steps out. See
+  // `walkWithSettlers`.
+  const escorts = walkWithSettlers(state, player, sitting);
+  if (escorts !== null) return escorts;
+
   // **A settler asleep beside a town it could have founded** — the audit's
   // idle-settler finding, closed in batch 4. See `wakeIdleSettler`.
   const rousted = wakeIdleSettler(state, player, sitting);
@@ -1993,7 +2016,11 @@ function focusCommand(
 ): BotDecision | null {
   // **No focus orders at all** (bot batch BP10, the user's plainer reading):
   // `driver.focusOrders` at nought, and every town keeps the balanced ordering.
-  if (aiFor(player).driver.focusOrders <= 0) return null;
+  const driver = aiFor(player).driver;
+  if (driver.focusOrders <= 0) return null;
+  // **A change only by a clear margin** (bot batch BP11): `driver.focusOrders`
+  // 2. See `marginFocusCommand`.
+  if (driver.focusOrders >= 2) return marginFocusCommand(state, player, driver.focusMargin, sitting);
   const ctx = seatContext(state, player, sitting);
   const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
   for (const city of state.cities) {
@@ -2038,6 +2065,87 @@ function focusCommand(
   return null;
 }
 
+/**
+ * **The focus changes only by a clear margin** (bot batch BP11,
+ * `driver.focusOrders` 2; the user, 2026-11-15: *"maybe having the bots change
+ * focus isn't a bad thing?"*).
+ *
+ * The same table as the other setting (`focusTable`), asked of every town once
+ * a turn, with no memory of builds. The answer is read against the focus the
+ * town has:
+ *
+ *   - a town on the balanced ordering leans on the hammers when the lean
+ *     scores more than `margin`;
+ *   - a town that leans goes back when the lean scores less than minus
+ *     `margin`, or when one of the table's two gates refuses the lean (nothing
+ *     the empire raises waits on hammers, or the town would not feed itself):
+ *     a gate is the table's rule that the lean must not stand, not a score;
+ *   - anything else keeps the focus the town has. A tie (both placements put
+ *     the citizens on the same hexes, so the lean scores nought) never
+ *     changes it.
+ *
+ * BP9 found that the lean's score moves from turn to turn with the live price
+ * of the gold and science it gives up, by more than the lean won or lost by,
+ * so the answer flipped. The margin is the band that movement stays inside.
+ * A town with a focus the bot does not use is put on the table's answer.
+ */
+function marginFocusCommand(
+  state: GameState,
+  player: Player,
+  margin: number,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const ctx = seatContext(state, player, sitting);
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  const band = Math.max(0, margin);
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    if (citizenFocusError(state, player.id, city) !== null) continue;
+    if (own !== null && own.focused.has(city.id)) continue;
+    const table = focusTable(state, city, ctx);
+    const now = cityFocus(city);
+    let to: CitizenFocus | null = null;
+    if (now === 'default') {
+      if (table.best === 'production' && table.edge > band) to = 'production';
+    } else if (now === 'production') {
+      if (table.gated || table.edge < -band) to = 'default';
+    } else {
+      to = table.best;
+    }
+    // Asked once a turn a town, so a seat's turn asks each table once.
+    if (own !== null) own.focused.add(city.id);
+    if (to === null || to === now) continue;
+    return {
+      kind: 'focus',
+      command: { type: 'setCitizenFocus', playerId: player.id, cityId: city.id, focus: to },
+      subject: townSubject(city),
+      summary:
+        to === 'production'
+          ? `${city.name} puts its people on the hills: the hammers win by ${round1(table.edge)}, more than the ${round1(band)} a change must win by.`
+          : table.gated
+            ? `${city.name} goes back to the balanced ordering: the table refuses the lean.`
+            : `${city.name} goes back to the balanced ordering: it wins by ${round1(-table.edge)}, more than the ${round1(band)} a change must win by.`,
+      candidates: table.candidates,
+      focus: { col: city.col, row: city.row },
+    };
+  }
+  return null;
+}
+
+/**
+ * **The focus table of one town, for a reader outside the arm** (bot batch
+ * BP11): the answer, the lean's score against the balanced ordering at nought
+ * (`edge`), and whether a gate refused the lean. The tests and the
+ * measurement of the margin read it.
+ */
+export function focusReading(
+  state: GameState,
+  city: City,
+  ctx: ValueContext,
+): { best: CitizenFocus; edge: number; gated: boolean; candidates: BotCandidate[] } {
+  return focusTable(state, city, ctx);
+}
+
 /** The town's build as the focus roll reads it: the head of its queue and the hammers toward it. */
 function buildMarkOf(city: City): BuildMark {
   const head = city.queue[0];
@@ -2055,7 +2163,7 @@ function focusTable(
   state: GameState,
   city: City,
   ctx: ValueContext,
-): { best: CitizenFocus; candidates: BotCandidate[] } {
+): { best: CitizenFocus; edge: number; gated: boolean; candidates: BotCandidate[] } {
   const balanced = RULES.cities.citizenWeights;
   const leaning = RULES.cities.citizenFocusWeights.production;
   const tiles = assignableTiles(state, city);
@@ -2176,6 +2284,8 @@ function focusTable(
   if (foldTerms(terms) <= 0) {
     return {
       best: 'default',
+      edge: foldTerms(terms),
+      gated: false,
       candidates: [
         // Not a refusal: the ground simply outweighs the hammers, and a row that
         // loses on its own fold is a scored row that loses (`decision.ts`'
@@ -2231,7 +2341,9 @@ function focusTable(
   // as a `× 0` with its reason, so the fold still reads every line X5b put on
   // it (the keep, the growth), the score is the fold, and the lean loses to
   // the baseline at nought.
+  let gated = false;
   if (hammers === null || hammers.value <= 0) {
+    gated = true;
     lean.terms.push({
       label: '× 0 — nothing this empire is raising is waiting on hammers',
       value: 0,
@@ -2248,6 +2360,7 @@ function focusTable(
   // shifted to the sheet in question. That is what makes it a fact about the
   // ground rather than about the sheet the town happens to stand on today.
   if (lean.score > 0 && foodUnder(leanBag) < foodUpkeep(city)) {
+    gated = true;
     lean.terms.push({
       label: `× 0 — ${city.name} would not feed itself on the hammers`,
       value: 0,
@@ -2264,7 +2377,7 @@ function focusTable(
   const best: CitizenFocus = lean.rejected === undefined && lean.score > 0 ? 'production' : 'default';
   if (best === 'production') lean.chosen = true;
   else plain.chosen = true;
-  return { best, candidates: [lean, plain] };
+  return { best, edge: lean.score, gated, candidates: [lean, plain] };
 }
 
 /**
@@ -6294,8 +6407,15 @@ function settlerCommand(
   // own ground, improved or not — and the tile the purchasing plan would buy
   // reads the very same set (`ValueContext.realm`).
   const held = ctx.realm;
-  // Who is walking with it, asked once and read twice — here and by the march.
-  const escorted = escortWithin(state, player, unit);
+  // **Who is walking with it** (bot batch BP11): a soldier of ours on its own
+  // hex (`coverOn`), or the soldier the escort plan walks to its hex this turn
+  // (`walkWithSettlers` sends it before the wild moves). Asked once and read by
+  // the danger reading and by the march.
+  const plan = escortPlan(state, player, sitting);
+  const job = plan.bySettler.get(unit.id) ?? null;
+  const cover = coverOn(state, player, unit);
+  const escorted = cover ?? (job !== null && job.kind === 'chase' && job.turns <= 1 ? job.soldier : null);
+  const inTown = inOwnTown(state, player, unit.col, unit.row);
   const here = getTileAt(state.map, unit.col, unit.row);
   const standing =
     here === undefined
@@ -6317,6 +6437,14 @@ function settlerCommand(
       },
     ],
   });
+  // **The escort is the first garrison** (bot batch BP11). A settler about to
+  // found, whose soldier reaches its hex this turn, waits for it, so the new
+  // town has a defender from its first turn. `walkWithSettlers` walks the
+  // soldier there and `wakeIdleSettler` asks the settler again.
+  const foundWithEscort = (why: string): UnitChoice | null =>
+    cover === null && escorted !== null
+      ? standDown(state, unit, `Waits for ${unitLabel(escorted)}, which reaches its hex this turn, to found with a garrison. ${why}`)
+      : foundHere(why);
 
   // **`siteScoreMin` is deleted** (batch 4 of `docs/bot-priorities.md`). What
   // stood at the top of this arm was a floor in the settle table's *own* units —
@@ -6340,7 +6468,7 @@ function settlerCommand(
   // and it is the one answer that cannot oscillate, because founding is terminal
   // — and where the rules will not let it found, it runs for the nearest town of
   // its own like any other civilian.
-  const danger = civilianDanger(state, player, unit);
+  const danger = civilianDanger(state, player, unit, escorted);
   if (danger !== null) {
     if (legalHere) {
       return foundHere(
@@ -6348,8 +6476,21 @@ function settlerCommand(
           'march unescorted.',
       );
     }
-    const flight = civilianFlight(state, player, unit);
+    const flight = civilianFlight(state, player, unit, danger);
     if (flight !== null) return flight;
+  }
+  // **Its escort is on the way** (bot batch BP11): it waits in the town, which
+  // is what the departure rule would answer to any march (`leaveTown`), so the
+  // sites are not weighed again while it waits. The settler arm was 6.5% of a
+  // late turn on seed 7, most of it settlers in their towns weighing sites.
+  if (inTown && job !== null && job.kind === 'meet' && job.turns > 0) {
+    return waitInTown(
+      state,
+      player,
+      unit,
+      `Waits in ${cityAt(state, unit.col, unit.row)?.name ?? 'its town'} for ${unitLabel(job.soldier)}, ` +
+        `${job.turns} turns off, to walk with it.`,
+    );
   }
   // **The site each settler of the seat is for** (bot batch BP10,
   // `settlerSites.ts`), read off the live board. A settler walks only to a site
@@ -6360,16 +6501,24 @@ function settlerCommand(
   const mine = marchClaimOf(claims, unit.id);
   const own = mine === null ? undefined : getTileAt(state.map, mine.col, mine.row);
   if (mine !== null && own !== undefined) {
+    // Something hostile near the site, or (bot batch BP11) near the rest of the
+    // road it is walking, with nothing of ours walking with it.
     const threat =
-      escorted === null ? nearestHostile(state, player, mine.col, mine.row, ai.war.escortRadius) : null;
+      escorted === null
+        ? (nearestHostile(state, player, mine.col, mine.row, ai.war.escortRadius) ??
+          roadAhead(state, player, unit.path ?? []))
+        : null;
     if (threat === null) {
+      // A settler still in its town on a march it was given keeps it only when
+      // it may leave (bot batch BP11, `leaveTown`).
+      if (inTown) return leaveTown(state, player, unit, keepMarch(unit, mine), job);
       if (!legalHere) return keepMarch(unit, mine);
       // On legal ground on the way, the one comparison left is its own site
       // against the ground under it: the march arm's bar, with that site the
       // only candidate. Founding here is terminal, so it cannot loop.
       const onward = marchToSite(state, player, unit, held, escorted, standing!.appraisal, true, ctx, others, own);
       if (onward !== null) return keepMarch(unit, mine);
-      return foundHere(
+      return foundWithEscort(
         `Founds on the ${round1(standing!.appraisal.total)} ground under it: the rest of the walk to ` +
           `(${mine.col},${mine.row}), the site it was marching to, does not beat it.`,
       );
@@ -6386,12 +6535,12 @@ function settlerCommand(
     ctx,
     others,
   );
-  if (march !== null) return march;
+  if (march !== null) return setOut(state, player, unit, march, job, inTown, cover, escorted);
   // Nowhere better within reach: found here if the rules allow it — a settler
   // standing around forever is worth less than a mediocre town — else sleep and
   // let the next turn's board be a different question.
   if (legalHere) {
-    return foundHere(
+    return foundWithEscort(
       `Nowhere within ${ai.expansion.siteSearchRadius} hexes it can walk to beats the ` +
         `${round1(standing!.appraisal.total)} ground under it. Founds here.`,
     );
@@ -6400,8 +6549,144 @@ function settlerCommand(
   // nothing it can take, so it walks to the nearest site by the seat's towns
   // that no other settler is going to, before it waits.
   const further = marchToFreeSite(state, player, unit, ctx, escorted, others);
-  if (further !== null) return further;
+  if (further !== null) return setOut(state, player, unit, further, job, inTown, cover, escorted);
+  // **Alone in the field with nowhere to walk** (bot batch BP11): every site
+  // was struck, or there is none. It goes back to the nearest town of its own
+  // and waits there, rather than sleep alone in the field. Not a settler on a
+  // march: it keeps walking (a stand-down does not cancel a march), and the
+  // danger reading at its own hex still turns it home when a hostile comes
+  // near. Sending a marching settler home made it walk out and back on BP11's
+  // first long runs, and settlers piled up late.
+  if (!inTown && escorted === null && marchEnd(unit) === null) {
+    const home = civilianFlight(state, player, unit, 'nowhere it can walk alone in safety and nothing of ours walking with it');
+    if (home !== null) return home;
+  }
   return standDown(state, unit, 'Nowhere legal to found and nowhere better to walk.');
+}
+
+/**
+ * **A settler waits in its town** (bot batch BP11): it sleeps, the one
+ * standing order a civilian has, or, when it still holds a march, it is told
+ * to stop (`cancelOrder`), because a stand-down does not cancel a march
+ * (`reaskTheMarch`).
+ */
+function waitInTown(state: GameState, player: Player, unit: Unit, why: string): UnitChoice | null {
+  if (marchEnd(unit) !== null) {
+    return {
+      command: { type: 'cancelOrder', playerId: player.id, unitId: unit.id },
+      summary: `${why} Stops its march.`,
+      candidates: [chosenAt('wait in the town', 0)],
+    };
+  }
+  return standDown(state, unit, why);
+}
+
+/**
+ * **A new march, read against the road** (bot batch BP11). `march` is a march
+ * the settler arm chose; this decides whether the settler sets out on it.
+ *
+ *   - In one of its own towns, the departure rule decides (`leaveTown`).
+ *   - In the field with a soldier walking with it, it sets out.
+ *   - In the field alone, it sets out when nothing hostile the seat can see
+ *     stands near the road (`roadDanger`), and otherwise goes back to the
+ *     nearest town of its own and waits there (`civilianFlight`).
+ */
+function setOut(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  march: UnitChoice,
+  job: EscortJob | null,
+  inTown: boolean,
+  cover: Unit | null,
+  escorted: Unit | null,
+): UnitChoice | null {
+  if (march.command.type !== 'moveUnit') return march;
+  if (inTown) return leaveTown(state, player, unit, march, job);
+  const target = march.command.target;
+  // **The pair sets out together.** A new march walks the settler now, and its
+  // soldier follows it in the same turn with the movement it has left. So the
+  // settler goes only when the soldier can reach the hex it will stop on this
+  // turn; otherwise it waits a turn, and the two set out with full movement.
+  if (cover !== null) {
+    const pace = paceOf(state, unit, cover, target);
+    if (pace === 'keeps') return march;
+    if (pace === 'spent') {
+      return standDown(
+        state,
+        unit,
+        `Waits a turn on its hex with ${unitLabel(cover)}, which has too little movement left to keep pace with it.`,
+      );
+    }
+    // The soldier cannot follow it on this road even with full movement (the
+    // hex is one it may not stop on, or a rival's ground it may not enter), so
+    // waiting changes nothing: the settler goes, and the soldier follows as it
+    // can. The march arm chose this site only because no site it asked had a
+    // route for both.
+    return march;
+  }
+  // A soldier reaches its hex this turn: the settler waits for it there, so
+  // the two set out together on the next turn.
+  if (escorted !== null) {
+    return standDown(
+      state,
+      unit,
+      `Waits for ${unitLabel(escorted)}, which reaches its hex this turn, to walk with it to (${target.col},${target.row}).`,
+    );
+  }
+  const goal = getTileAt(state.map, target.col, target.row);
+  const route = goal === undefined ? null : findPath(state, unit, goal);
+  const danger = route === null ? null : roadAhead(state, player, route);
+  if (danger === null) return march;
+  const home = civilianFlight(
+    state,
+    player,
+    unit,
+    `${danger.what} ${danger.distance} hexes from its road to (${target.col},${target.row}) and nothing of ours walking with it`,
+  );
+  return home ?? march;
+}
+
+/**
+ * **Can the soldier keep pace with the settler this turn?** (bot batch BP11).
+ *
+ *   - `keeps`: the soldier can reach, on the movement it has left, the hex the
+ *     settler would stop on this turn on its march to `target` (the first rest
+ *     of `pathTurnMarks`), or a soldier of ours already stands there, or the
+ *     settler would not move this turn at all;
+ *   - `spent`: it cannot, and it has spent movement this turn, so the two set
+ *     out together on the next turn;
+ *   - `cannot`: it cannot even on full movement (the hex is one it may not stop
+ *     on, or slower ground for it). Waiting would change nothing, so the
+ *     settler goes, and the soldier follows as it can.
+ */
+function paceOf(
+  state: GameState,
+  settler: Unit,
+  escort: Unit,
+  target: { col: number; row: number },
+): 'keeps' | 'spent' | 'cannot' {
+  const full = unitDef(escort.type).movement;
+  const spent = escort.hasAttacked === true || escort.movesLeft < full;
+  if (escort.movesLeft <= 0) return 'spent';
+  const goal = getTileAt(state.map, target.col, target.row);
+  if (!goal) return 'cannot';
+  const route = findPath(state, settler, goal);
+  if (route === null || route.length === 0) return 'cannot';
+  const rest = pathTurnMarks(state, settler, route)[0];
+  if (rest === undefined || rest.turn !== 1) return 'keeps';
+  const guarded = state.units.some(
+    (other) =>
+      other.ownerId === settler.ownerId &&
+      other.col === rest.col &&
+      other.row === rest.row &&
+      isCombatant(unitDef(other.type)),
+  );
+  if (guarded) return 'keeps';
+  const stop = getTileAt(state.map, rest.col, rest.row);
+  const follow = stop === undefined ? null : findPath(state, escort, stop);
+  if (follow !== null && pathTurns(state, escort, follow) <= 1) return 'keeps';
+  return spent ? 'spent' : 'cannot';
 }
 
 /**
@@ -6490,9 +6775,9 @@ function marchToFreeSite(
  * wild is camped in it. Struck sites appear in the table with the rules'-style
  * sentence saying what is standing near them, so the choice is readable.
  *
- * A settler with a soldier walking beside it (`escortWithin` — a garrison does
- * not count) takes those sites like any other. That is the pair `escortMarch`
- * completes from the soldier's end.
+ * A settler with a soldier walking with it takes those sites like any other:
+ * since bot batch BP11 that is a soldier on its own hex (`coverOn`), or the one
+ * the escort plan walks to its hex this turn (`escortPlan`).
  */
 function marchToSite(
   state: GameState,
@@ -6500,7 +6785,7 @@ function marchToSite(
   unit: Unit,
   /** The empire's seams, hoisted by the caller. See `explainSiteValue`. */
   held: ReadonlySet<ResourceId>,
-  /** The piece walking with it, or `null`. See `escortWithin`. */
+  /** The piece walking with it, or `null`. See `coverOn` and `escortPlan`. */
   escorted: Unit | null,
   here: Appraisal | null,
   /**
@@ -6620,12 +6905,13 @@ function marchToSite(
     // And a handful of the sites another settler of the seat is for.
     ...spoken,
   ];
-  for (const candidate of probes) {
+  // **A site its escort can walk to as well** (bot batch BP11): a settler with a
+  // soldier walking with it takes the best site both have a route to. Only when
+  // no site asked has one does it take the best it can reach alone, and
+  // `setOut` then reads the road.
+  let alone: (typeof probes)[number] | null = null;
+  const march = (candidate: (typeof probes)[number]): UnitChoice => {
     const label = `(${candidate.tile.col},${candidate.tile.row}), ${candidate.distance} hexes off`;
-    if (findPath(state, unit, candidate.tile) === null) {
-      rows.push(refused(label, 'no route to it'));
-      continue;
-    }
     rows.push({ label, score: candidate.score, chosen: true, terms: candidate.terms });
     return {
       command: {
@@ -6641,7 +6927,34 @@ function marchToSite(
       candidates: rows,
       focus: { col: candidate.tile.col, row: candidate.tile.row },
     };
+  };
+  for (const candidate of probes) {
+    const label = `(${candidate.tile.col},${candidate.tile.row}), ${candidate.distance} hexes off`;
+    const route = findPath(state, unit, candidate.tile);
+    if (route === null) {
+      rows.push(refused(label, 'no route to it'));
+      continue;
+    }
+    // **And not down a road something hostile stands beside** (bot batch BP11),
+    // for a settler walking alone: the next stretch of the road, read off what
+    // this seat can see (`roadAhead`).
+    if (escorted === null) {
+      const risk = roadAhead(state, player, route);
+      if (risk !== null) {
+        rows.push(
+          refused(label, `${risk.what} stands ${risk.distance} hexes from its road and nothing of ours is walking with this settler`),
+        );
+        continue;
+      }
+    }
+    if (escorted !== null && findPath(state, escorted, candidate.tile) === null) {
+      rows.push(refused(label, `${unitLabel(escorted)}, walking with it, has no route there`));
+      alone ??= candidate;
+      continue;
+    }
+    return march(candidate);
   }
+  if (alone !== null) return march(alone);
   return null;
 }
 
@@ -6701,20 +7014,43 @@ function nearestHostile(
 }
 
 /**
- * **The escort question**: is anything of ours walking with this civilian?
+ * **Cover**: the soldier of ours standing on this civilian's own hex, out in
+ * the field, or `null` (bot batch BP11; before it, `escortWithin`).
  *
- * A soldier **standing in one of this empire's towns does not count**, and that
- * clause is the whole of what makes the rule work. A settler is built in a town
- * and a town has a garrison, so a positional reading with no such clause would
- * call every settler escorted at the moment it decides where to walk — and then
- * it walks out of the gate alone, which is exactly how the arena lost its
- * settlers to the wild. A garrison is not an escort; it is a garrison.
+ * It is the wild's own rule read from our side. A raider takes a civilian that
+ * has no soldier on its hex (`isUnguarded`, `barbarians.ts`), and a blow on a
+ * hex that holds both hits the soldier first, so a soldier on the hex is cover
+ * and a soldier one hex away is not. Until BP11 the bot counted any soldier of
+ * ours within `war.escortRadius` (4) hexes, outside a town, as cover. At turns
+ * 100 to 130 on BP10's three seeds, 35 of the 38 settlers the wild took stood
+ * alone with a raider one or two hexes off when their seat ended its turn, and
+ * they had marched on.
  *
- * The pair with `escortMarch` closes: an unescorted settler is what that arm
- * looks for, and a soldier that has marched out to one is *not* standing in a
- * town, so it counts here the moment it arrives.
+ * A soldier in one of this empire's towns does not count: a civilian there is
+ * in its own town, which the wild never takes, and the soldier is the town's
+ * garrison. A hex at sea holds one piece that is not a ship
+ * (`hasEscortRoom`), so an embarked civilian has no cover of this kind.
  */
-function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null {
+function coverOn(state: GameState, player: Player, unit: Unit): Unit | null {
+  if (inOwnTown(state, player, unit.col, unit.row)) return null;
+  for (const other of state.units) {
+    if (other.id === unit.id || other.ownerId !== player.id) continue;
+    if (other.col !== unit.col || other.row !== unit.row) continue;
+    if (!isCombatant(unitDef(other.type))) continue;
+    return other;
+  }
+  return null;
+}
+
+/**
+ * **The cover a civilian's danger reading counts** (bot batch BP11): for a
+ * settler, a soldier on its own hex (`coverOn`); for any other civilian, the
+ * reading the bot had before BP11, a soldier of ours within `war.escortRadius`
+ * hexes that is not standing in one of this empire's towns. See
+ * `civilianDanger` for why the worker keeps it.
+ */
+function civilianCover(state: GameState, player: Player, unit: Unit): Unit | null {
+  if (unitDef(unit.type).foundsCity === true) return coverOn(state, player, unit);
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const from = tileHex(here);
@@ -6725,13 +7061,570 @@ function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null
     const tile = getTileAt(state.map, other.col, other.row);
     if (!tile) continue;
     if (wrappedDistance(state.map, from, tileHex(tile)) > within) continue;
-    const garrison = state.cities.some(
-      (city) => city.ownerId === player.id && city.col === other.col && city.row === other.row,
-    );
-    if (garrison) continue;
+    if (inOwnTown(state, player, other.col, other.row)) continue;
     return other;
   }
   return null;
+}
+
+/** True when this hex is the centre of one of this empire's towns. */
+function inOwnTown(state: GameState, player: Player, col: number, row: number): boolean {
+  return cityAt(state, col, row)?.ownerId === player.id;
+}
+
+/** The movement of the row that founds towns, read off the marker. A settler's stride. */
+function settlerStride(): number {
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def.foundsCity === true) return Math.max(1, def.movement);
+  }
+  return 1;
+}
+
+/**
+ * **The nearest hostile this seat can see within `within` hexes of a road**, or
+ * `null` (bot batch BP11). The road is a list of hexes, a route from
+ * `findPath` or the rest of a stored march, and its last hex is the site.
+ *
+ * BP10 found that a settler on a far march asked only whether something
+ * hostile stood near its site; 15 of the 38 settlers the wild took were on
+ * such a march. This asks of every hex of the road. It reads only what the
+ * seat can see (`isVisibleTo`), and it counts the wild and any empire this
+ * seat is at war with, as `nearestHostile` does.
+ */
+function roadDanger(
+  state: GameState,
+  player: Player,
+  road: readonly { col: number; row: number }[],
+  within: number,
+): { what: string; distance: number } | null {
+  if (road.length === 0) return null;
+  const hostiles: { hex: ReturnType<typeof tileHex>; what: string }[] = [];
+  for (const other of state.units) {
+    if (other.ownerId === player.id) continue;
+    if (!isCombatant(unitDef(other.type))) continue;
+    if (!atWar(state, player.id, other.ownerId)) continue;
+    if (!isVisibleTo(state, player.id, other.col, other.row)) continue;
+    const tile = getTileAt(state.map, other.col, other.row);
+    if (!tile) continue;
+    const owner = playerById(state, other.ownerId);
+    hostiles.push({
+      hex: tileHex(tile),
+      what: owner?.barbarian === true ? 'a raider' : `a ${seatPeople(state, other.ownerId)} column`,
+    });
+  }
+  if (hostiles.length === 0) return null;
+  let nearest: { what: string; distance: number } | null = null;
+  for (const cell of road) {
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (!tile) continue;
+    const hex = tileHex(tile);
+    for (const hostile of hostiles) {
+      const distance = wrappedDistance(state.map, hex, hostile.hex);
+      if (distance > within) continue;
+      if (nearest !== null && distance >= nearest.distance) continue;
+      nearest = { what: hostile.what, distance };
+    }
+  }
+  return nearest;
+}
+
+/**
+ * **The danger on the next stretch of a settler's road** (bot batch BP11):
+ * `roadDanger` over the hexes it walks in its next turn (as many hexes as a
+ * settler has movement), within `expansion.roadDangerRadius`. The settler is asked again
+ * every turn on the way (`reaskTheMarch`), so the stretch after that is read
+ * when it is near, and a raider far down the road will have moved by then.
+ * Reading the whole road at once kept settlers in their towns: on BP11's first
+ * runs, early expansion fell on two seeds of three.
+ */
+function roadAhead(
+  state: GameState,
+  player: Player,
+  road: readonly { col: number; row: number }[],
+): { what: string; distance: number } | null {
+  return roadDanger(state, player, road.slice(0, settlerStride()), aiFor(player).expansion.roadDangerRadius);
+}
+
+// --- the escort (bot batch BP11) ----------------------------------------------
+
+/**
+ * **One settler's escort**, as the plan reads it (bot batch BP11).
+ *
+ *   - `hold`: the soldier stands on the settler's hex in the field, and stays
+ *     with it until it moves or founds;
+ *   - `chase`: the settler stands alone in the field, and the soldier walks to
+ *     its hex;
+ *   - `meet`: the settler waits in one of the seat's towns, and the soldier
+ *     walks to, or waits on, a hex beside that town. The settler steps out onto
+ *     that hex, and the two walk on together.
+ */
+interface EscortJob {
+  kind: 'hold' | 'chase' | 'meet';
+  settler: Unit;
+  soldier: Unit;
+  /** The hex the soldier stands on or walks to. */
+  at: { col: number; row: number };
+  /**
+   * Turns the soldier needs to get there, counted as `pathTurns` counts them:
+   * 1 is "this turn". 0 when it already stands there.
+   */
+  turns: number;
+}
+
+/** Every escort job of one seat, by settler and by soldier. */
+export interface EscortPlan {
+  jobs: EscortJob[];
+  bySettler: Map<number, EscortJob>;
+  bySoldier: Map<number, EscortJob>;
+}
+
+/**
+ * **Can this soldier be spared to walk with a settler?** (bot batch BP11).
+ *
+ * A field soldier of the seat (not a scout, not a ship), on land, as fast as a
+ * settler so it can keep pace, healthy enough that the rest arm would not keep
+ * it (`military.healBelowHealth`; not asked for a chase, because a hurt soldier
+ * on a settler's hex is still cover), not holding a town that needs it
+ * (`isRedundant`), and not standing at a camp's door, where it is part of the
+ * hunt's force (batch BP8).
+ */
+function freeEscort(
+  state: GameState,
+  player: Player,
+  ai: AiConfig,
+  unit: Unit,
+  stride: number,
+  /** False for a chase: a hurt soldier beside a settler is still cover. */
+  healthy = true,
+): boolean {
+  if (unit.ownerId !== player.id) return false;
+  const def = unitDef(unit.type);
+  if (!isFieldSoldier(def)) return false;
+  if (def.movement < stride) return false;
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile || isWaterTerrain(tile.terrain)) return false;
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
+  if (healthy && maxHp > 0 && unit.hp / maxHp < ai.military.healBelowHealth) return false;
+  if (!isRedundant(state, player, unit)) return false;
+  const from = tileHex(tile);
+  for (const camp of state.camps) {
+    const there = getTileAt(state.map, camp.col, camp.row);
+    if (there !== undefined && wrappedDistance(state.map, from, tileHex(there)) <= 1) return false;
+  }
+  return true;
+}
+
+/**
+ * **The hexes beside a town where a settler leaving it meets its escort**,
+ * nearest to the settler's site first, then in map order: land the settler
+ * could stand on, not a town.
+ */
+function meetingHexes(state: GameState, settler: Unit, toward: Tile): Tile[] {
+  const centre = getTileAt(state.map, settler.col, settler.row);
+  if (!centre) return [];
+  const goal = tileHex(toward);
+  // Only a hex nearer the site than the town itself, so the pair does not set
+  // out by walking back through the town.
+  const fromTown = wrappedDistance(state.map, tileHex(centre), goal);
+  return mapRange(state.map, tileHex(centre), 1)
+    .filter(
+      (tile) =>
+        (tile.col !== centre.col || tile.row !== centre.row) &&
+        wrappedDistance(state.map, tileHex(tile), goal) < fromTown &&
+        !isWaterTerrain(tile.terrain) &&
+        cityAt(state, tile.col, tile.row) === undefined &&
+        canStopOn(state, settler, tile),
+    )
+    .sort(
+      (a, b) =>
+        wrappedDistance(state.map, tileHex(a), goal) - wrappedDistance(state.map, tileHex(b), goal) ||
+        tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row),
+    );
+}
+
+/**
+ * **The seat's escort plan**: which soldier walks with which settler (bot batch
+ * BP11; the user, 2026-11-15: *"the ai should try to escort its settler with
+ * military units"*).
+ *
+ * Read off the board, nothing stored. The settlers are taken in unit order and
+ * each takes at most one soldier, so a soldier is in at most one job:
+ *
+ *   1. **hold**: a settler in the field with a soldier of ours on its hex keeps
+ *      that soldier;
+ *   2. **chase**: a settler in the field with no soldier on its hex takes the
+ *      nearest free soldier (`freeEscort`) that can reach its hex this turn,
+ *      or, when the settler is not marching, within
+ *      `expansion.escortWaitTurns` turns;
+ *   3. **meet**: a settler in one of the seat's towns, with a site to go to
+ *      (`siteClaims`), takes a free soldier on a hex beside the town
+ *      (`meetingHexes`), else one already marching to such a hex, else the
+ *      nearest free soldier with a route to one within
+ *      `expansion.escortWaitTurns` turns. At most `search.pathProbes` routes
+ *      are asked for a settler.
+ *
+ * A chase or a meet needs every town of the seat held first (`townsAreHeld`),
+ * the order the soldier arm has always kept: an empty town is filled before a
+ * soldier walks anywhere else.
+ */
+function readEscortPlan(state: GameState, player: Player, ctx: ValueContext): EscortPlan {
+  const ai = ctx.ai;
+  const plan: EscortPlan = { jobs: [], bySettler: new Map(), bySoldier: new Map() };
+  const add = (job: EscortJob): void => {
+    plan.jobs.push(job);
+    plan.bySettler.set(job.settler.id, job);
+    plan.bySoldier.set(job.soldier.id, job);
+  };
+  const lone: Unit[] = [];
+  const waiting: Unit[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id || unitDef(unit.type).foundsCity !== true) continue;
+    const here = getTileAt(state.map, unit.col, unit.row);
+    if (!here) continue;
+    if (inOwnTown(state, player, unit.col, unit.row)) {
+      waiting.push(unit);
+      continue;
+    }
+    const cover = coverOn(state, player, unit);
+    if (cover !== null) {
+      if (!plan.bySoldier.has(cover.id)) add({ kind: 'hold', settler: unit, soldier: cover, at: { col: unit.col, row: unit.row }, turns: 0 });
+      continue;
+    }
+    // A hex at sea holds one piece that is not a ship, so nothing can stand
+    // with an embarked settler.
+    if (isWaterTerrain(here.terrain)) continue;
+    lone.push(unit);
+  }
+  if (lone.length === 0 && waiting.length === 0) return plan;
+  if (!townsAreHeld(state, player)) return plan;
+  const stride = settlerStride();
+  const wait = Math.max(0, ai.expansion.escortWaitTurns);
+  const probes = Math.max(1, ai.search.pathProbes);
+  const free: Unit[] = [];
+  const hurt = new Set<number>();
+  for (const unit of state.units) {
+    if (plan.bySoldier.has(unit.id)) continue;
+    if (freeEscort(state, player, ai, unit, stride)) free.push(unit);
+    else if (freeEscort(state, player, ai, unit, stride, false)) {
+      free.push(unit);
+      hurt.add(unit.id);
+    }
+  }
+  if (free.length === 0) return plan;
+  /** The free soldiers not yet in a job, nearest to `from` first, then by id. */
+  const nearest = (from: Tile, reach: number, chase: boolean): { unit: Unit; distance: number }[] =>
+    free
+      .filter((unit) => !plan.bySoldier.has(unit.id) && (chase || !hurt.has(unit.id)))
+      .map((unit) => ({
+        unit,
+        distance: wrappedDistance(state.map, tileHex(from), tileHex(getTileAt(state.map, unit.col, unit.row)!)),
+      }))
+      .filter((entry) => entry.distance <= reach)
+      .sort((a, b) => a.distance - b.distance || a.unit.id - b.unit.id);
+
+  for (const settler of lone) {
+    const here = getTileAt(state.map, settler.col, settler.row)!;
+    const marching = marchEnd(settler) !== null;
+    // A marching settler walks on at the end of the turn, so only a soldier
+    // that reaches it this turn keeps up; one that stands still can be waited
+    // for.
+    const turnsAllowed = marching ? 1 : Math.max(1, wait);
+    for (const { unit } of nearest(here, turnsAllowed * stride * ROAD_REACH, true).slice(0, probes)) {
+      const route = findPath(state, unit, here);
+      if (route === null) continue;
+      const turns = pathTurns(state, unit, route);
+      if (turns > turnsAllowed) continue;
+      add({ kind: 'chase', settler, soldier: unit, at: { col: here.col, row: here.row }, turns });
+      break;
+    }
+  }
+
+  if (waiting.length === 0) return plan;
+  const radius = ai.expansion.siteSearchRadius;
+  const claims = siteClaims(state, player.id, ctx.sites, radius);
+  for (const settler of waiting) {
+    const claim = claims.find((row) => row.unitId === settler.id) ?? null;
+    if (claim === null) continue;
+    const site = getTileAt(state.map, claim.col, claim.row);
+    if (!site) continue;
+    // A claim the settler has no route to is not a walk anybody is waiting for.
+    if (claim.by !== 'march' && findPath(state, settler, site) === null) continue;
+    const meets = meetingHexes(state, settler, site);
+    if (meets.length === 0) continue;
+    const onMeet = (col: number, row: number): boolean => meets.some((tile) => tile.col === col && tile.row === row);
+    // A free soldier already beside the town, on the meeting hex nearest the site.
+    let job: EscortJob | null = null;
+    for (const tile of meets) {
+      const standing = free.find(
+        (unit) => !plan.bySoldier.has(unit.id) && !hurt.has(unit.id) && unit.col === tile.col && unit.row === tile.row,
+      );
+      if (standing !== undefined) {
+        job = { kind: 'meet', settler, soldier: standing, at: { col: tile.col, row: tile.row }, turns: 0 };
+        break;
+      }
+    }
+    // One already marching to such a hex keeps its walk.
+    if (job === null && wait > 0) {
+      for (const unit of free) {
+        if (plan.bySoldier.has(unit.id) || hurt.has(unit.id)) continue;
+        const end = marchEnd(unit);
+        if (end === null || !onMeet(end.col, end.row)) continue;
+        const turns = pathTurns(state, unit, unit.path ?? []);
+        if (turns > wait) continue;
+        job = { kind: 'meet', settler, soldier: unit, at: { col: end.col, row: end.row }, turns };
+        break;
+      }
+    }
+    // Else the nearest with a route to one, within the wait.
+    if (job === null && wait > 0) {
+      const centre = getTileAt(state.map, settler.col, settler.row)!;
+      for (const { unit } of nearest(centre, wait * stride * ROAD_REACH + 1, false).slice(0, probes)) {
+        const goals = meets.filter((tile) => canStopOn(state, unit, tile));
+        if (goals.length === 0) continue;
+        const route = findPathToFirst(state, unit, goals);
+        if (route === null || route.length === 0) continue;
+        const turns = pathTurns(state, unit, route);
+        if (turns > wait) continue;
+        const end = route[route.length - 1]!;
+        job = { kind: 'meet', settler, soldier: unit, at: { col: end.col, row: end.row }, turns };
+        break;
+      }
+    }
+    if (job !== null) add(job);
+  }
+  return plan;
+}
+
+/**
+ * How many hexes a turn's movement can cover at most, as a multiple of the
+ * movement points: a road step costs a third of a point by default
+ * (`MoveProfile.roadStep`). Only a pre-filter on which soldiers are asked for
+ * a route; the route's own turns decide.
+ */
+const ROAD_REACH = 3;
+
+/** The seat's escort plan, read once for each revision of the board in a sitting. */
+function escortPlan(state: GameState, player: Player, sitting?: BotSitting): EscortPlan {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own !== null && own.escorts !== null && own.escorts.revision === state.revision) return own.escorts.plan;
+  const plan = hasSettler(state, player)
+    ? readEscortPlan(state, player, seatContext(state, player, sitting))
+    : { jobs: [], bySettler: new Map<number, EscortJob>(), bySoldier: new Map<number, EscortJob>() };
+  if (own !== null) own.escorts = { revision: state.revision, plan };
+  return plan;
+}
+
+/**
+ * **The seat's escort plan as plain rows**, for a reader outside the arms (bot
+ * batch BP11): the tests and the measurement read it.
+ */
+export function escortJobs(
+  state: GameState,
+  playerId: number,
+  sitting?: BotSitting,
+): { kind: EscortJob['kind']; settlerId: number; soldierId: number; at: { col: number; row: number }; turns: number }[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  return escortPlan(state, player, sitting).jobs.map((job) => ({
+    kind: job.kind,
+    settlerId: job.settler.id,
+    soldierId: job.soldier.id,
+    at: { ...job.at },
+    turns: job.turns,
+  }));
+}
+
+/** True when the seat holds a settler. The plan's cheap first question. */
+function hasSettler(state: GameState, player: Player): boolean {
+  for (const unit of state.units) {
+    if (unit.ownerId === player.id && unitDef(unit.type).foundsCity === true) return true;
+  }
+  return false;
+}
+
+/**
+ * **What a soldier in the escort plan does**, or `null` when it has no job
+ * (bot batch BP11). Asked early in `soldierCommand`, after the two heal arms
+ * and before every blow and march, so a soldier walking with a settler is not
+ * called away to a camp or a fight and leaves it alone.
+ *
+ * A soldier where its job wants it holds there (it sleeps, which keeps its
+ * movement, and the next order wakes it): on the settler's hex, or on the hex
+ * beside the town the settler will step out onto. Anywhere else it marches
+ * there. Where the march finds no route the arm answers `null` and the
+ * soldier's other arms decide.
+ */
+function escortDuty(state: GameState, player: Player, unit: Unit, sitting?: BotSitting): UnitChoice | null {
+  const job = escortPlan(state, player, sitting).bySoldier.get(unit.id);
+  if (job === undefined) return null;
+  const who = unitLabel(job.settler);
+  if (unit.col === job.at.col && unit.row === job.at.row) {
+    const town = job.kind === 'meet' ? cityAt(state, job.settler.col, job.settler.row) : undefined;
+    return standDown(
+      state,
+      unit,
+      job.kind === 'meet'
+        ? `Waits beside ${town?.name ?? 'the town'} for ${who}, which will step out onto this hex and walk with it.`
+        : `Walks with ${who}: stays on its hex, because the wild takes a settler with no soldier on its own hex.`,
+    );
+  }
+  const goal = getTileAt(state.map, job.at.col, job.at.row);
+  if (!goal || findPath(state, unit, goal) === null) return null;
+  const terms: ValueTerm[] = [
+    { label: `${job.turns} turns to (${job.at.col},${job.at.row})`, value: job.turns },
+    {
+      label:
+        job.kind === 'meet'
+          ? '(the hex beside its town where the settler steps out to walk with it)'
+          : '(the settler stands alone, and the wild takes a settler with no soldier on its own hex)',
+      value: 0,
+    },
+  ];
+  return {
+    command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: job.at },
+    summary:
+      job.kind === 'meet'
+        ? `Marches to (${job.at.col},${job.at.row}), beside the town where ${who} waits, to walk with it.`
+        : `Marches to ${who} at (${job.at.col},${job.at.row}), which stands alone, to walk with it.`,
+    candidates: [{ label: `escort ${who}`, score: foldTerms(terms), chosen: true, terms }],
+    focus: job.at,
+  };
+}
+
+/**
+ * **The escorts keep up**, or `null` (bot batch BP11). Housekeeping's arm for
+ * the pieces the idle-unit blocker does not name: a soldier that sleeps with
+ * its settler, or one under a march, and a settler asleep in a town waiting
+ * for its escort.
+ *
+ * A settler walks first: when it marches, its soldier is left on the hex it
+ * left, and this arm sends the soldier after it in the same turn (the plan's
+ * `chase`), before the wild moves. A settler marching on a stored route walks
+ * at the end of the turn, after the wild; its soldier catches up early in the
+ * next turn, here or through the blocker. A soldier the plan sends beside a
+ * town is marched there. A settler whose escort stands beside its town is
+ * asked its own arm (`settlerCommand`), and its answer sent when it is a move:
+ * the settler steps out onto the soldier's hex.
+ *
+ * Each order is sent at most once a turn (`BotSitting.escortOrders`), which
+ * keeps the driver's loop finite. A caller with no sitting gets nothing, for
+ * `reaskTheMarch`'s reason.
+ */
+function walkWithSettlers(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null) return null;
+  const plan = escortPlan(state, player, sitting);
+  for (const job of plan.jobs) {
+    if (job.kind === 'hold') continue;
+    if (job.kind === 'meet' && job.turns === 0) {
+      const settler = job.settler;
+      if (settler.movesLeft <= 0) continue;
+      const key = `${settler.id}>${job.at.col},${job.at.row}`;
+      if (own.escortOrders.has(key)) continue;
+      own.escortOrders.add(key);
+      const choice = settlerCommand(state, player, settler, sitting);
+      if (choice === null || choice.command.type !== 'moveUnit') continue;
+      return {
+        kind: 'unitOrder',
+        command: choice.command,
+        subject: unitLabel(settler),
+        summary: choice.summary,
+        candidates: choice.candidates,
+        focus: choice.focus ?? { col: settler.col, row: settler.row },
+      };
+    }
+    const soldier = job.soldier;
+    if (soldier.col === job.at.col && soldier.row === job.at.row) continue;
+    if (soldier.movesLeft <= 0 || soldier.hasAttacked === true) continue;
+    const end = marchEnd(soldier);
+    // A soldier already walking to the hex beside the town keeps its march; a
+    // chase has to be walked now, before the wild moves.
+    if (job.kind === 'meet' && end !== null && end.col === job.at.col && end.row === job.at.row) continue;
+    const key = `${soldier.id}>${job.at.col},${job.at.row}`;
+    if (own.escortOrders.has(key)) continue;
+    own.escortOrders.add(key);
+    const choice = escortDuty(state, player, soldier, sitting);
+    if (choice === null || choice.command.type !== 'moveUnit') continue;
+    // The piece is called for this turn: the two wake arms (`wakeTheCampaign`,
+    // `wakeTheHunt`) ask a dug-in piece the soldier's questions and would send
+    // this same order again. A march whose first step is blocked leaves the
+    // piece as it was, and the driver stops the seat at a repeated order (seed
+    // 314, turn 63, on BP11's runs).
+    own.called.add(soldier.id);
+    return {
+      kind: 'unitOrder',
+      command: choice.command,
+      subject: unitLabel(soldier),
+      summary: choice.summary,
+      candidates: choice.candidates,
+      focus: choice.focus ?? { col: soldier.col, row: soldier.row },
+    };
+  }
+  return null;
+}
+
+/**
+ * **A settler leaves its town with a soldier when it can** (bot batch BP11),
+ * the departure half of the escort. `march` is what the settler arm would do,
+ * and this is asked only for a settler in one of its own towns whose answer is
+ * a march out.
+ *
+ *   - Its escort waits beside the town (`meet`, 0 turns): it steps out onto the
+ *     soldier's hex, and the two walk on together from there.
+ *   - Its escort is on the way: it waits in the town.
+ *   - No soldier can come within `expansion.escortWaitTurns` turns: it leaves
+ *     alone when nothing hostile the seat can see stands within
+ *     `war.escortRadius` of any hex of its road (`roadDanger`), and waits in
+ *     the town when something does. The user's word was "try".
+ *
+ * Waiting is sleep, the one standing order a civilian has. `wakeIdleSettler`
+ * asks a sleeping settler again once a turn, and `walkWithSettlers` asks it as
+ * soon as its escort stands beside the town. A settler in a town that still
+ * holds a march is told to stop (`cancelOrder`), because a stand-down does not
+ * cancel a march (`reaskTheMarch`).
+ */
+function leaveTown(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  march: UnitChoice,
+  job: EscortJob | null,
+): UnitChoice | null {
+  if (march.command.type !== 'moveUnit') return march;
+  const town = cityAt(state, unit.col, unit.row);
+  const name = town?.name ?? 'its town';
+  const target = march.command.target;
+  const wait = (why: string): UnitChoice | null => waitInTown(state, player, unit, why);
+  if (job !== null && job.kind === 'meet') {
+    if (job.turns === 0 && unit.movesLeft > 0) {
+      return {
+        command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: job.at },
+        summary:
+          `Steps out of ${name} onto (${job.at.col},${job.at.row}), where ${unitLabel(job.soldier)} waits ` +
+          `to walk with it to (${target.col},${target.row}).`,
+        candidates: [chosenAt(`join ${unitLabel(job.soldier)} at (${job.at.col},${job.at.row})`, 0)],
+        focus: job.at,
+      };
+    }
+    return wait(
+      `Waits in ${name} for ${unitLabel(job.soldier)}, ${job.turns} turns off, to walk with it to ` +
+        `(${target.col},${target.row}).`,
+    );
+  }
+  const goal = getTileAt(state.map, target.col, target.row);
+  const route = goal === undefined ? null : findPath(state, unit, goal);
+  const danger = route === null ? null : roadAhead(state, player, route);
+  if (danger === null) {
+    return {
+      ...march,
+      summary: `No soldier of ours can walk with it, and nothing hostile in sight stands near its road. ${march.summary}`,
+    };
+  }
+  return wait(
+    `Waits in ${name}: ${danger.what} stands ${danger.distance} hexes from its road to ` +
+      `(${target.col},${target.row}), and no soldier of ours can walk with it.`,
+  );
 }
 
 /**
@@ -6749,8 +7642,17 @@ function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null
  *     place to be;
  *   · **something hostile is inside `war.escortRadius` and nothing of ours is
  *     walking with it.** This is the settler's own clause, generalised —
- *     `escortWithin` is *"who is with this piece"* and `nearestHostile` is
- *     *"what would kill it"*, both unchanged.
+ *     `coverOn` is *"who is with this piece"* and `nearestHostile` is
+ *     *"what would kill it"*.
+ *
+ * **Since bot batch BP11 a settler's cover is a soldier on its own hex**
+ * (`coverOn`), or the soldier its escort plan walks to its hex this turn
+ * (`cover`, which `settlerCommand` passes; `walkWithSettlers` walks it there
+ * before the wild moves). The wild takes a civilian with no soldier on its hex,
+ * and a soldier four hexes off was counted as cover before. **A worker keeps
+ * the old reading** (`civilianCover`): on BP11's runs the new one made workers
+ * run home far more often (a fifth to two fifths fewer improvements started to
+ * turn 100 on three seeds) and the wild took as many of them.
  *
  * The hostile reading is the **omniscient** one (`nearestHostile`, not
  * `nearestSightedHostile`), which is this file's creed rather than an oversight:
@@ -6758,13 +7660,18 @@ function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null
  * fog-honest danger while the settler kept an omniscient one would be two
  * readings of one question — the exact thing this function exists to prevent.
  */
-function civilianDanger(state: GameState, player: Player, unit: Unit): string | null {
+function civilianDanger(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  cover: Unit | null = civilianCover(state, player, unit),
+): string | null {
   const ai = aiFor(player);
   const holder = tileOwnerPlayerId(state, unit.col, unit.row);
   if (holder !== null && holder !== player.id && atWar(state, player.id, holder)) {
     return `the ${seatPeople(state, holder)}' own fields under it, and a war on with them`;
   }
-  if (escortWithin(state, player, unit) !== null) return null;
+  if (cover !== null) return null;
   const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
   if (danger === null) return null;
   return `${danger.what} ${danger.distance} hexes off and nothing of ours walking with it`;
@@ -6785,8 +7692,16 @@ function civilianDanger(state: GameState, player: Player, unit: Unit): string | 
  * allow it, because a mediocre town is worth more than a settler taken in the
  * open and founding is the one answer that cannot oscillate.
  */
-function civilianFlight(state: GameState, player: Player, unit: Unit): UnitChoice | null {
-  const why = civilianDanger(state, player, unit);
+function civilianFlight(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  /**
+   * Why it goes home. Defaults to `civilianDanger`'s sentence; the settler
+   * passes its own when the danger is on its road (bot batch BP11).
+   */
+  why: string | null = civilianDanger(state, player, unit),
+): UnitChoice | null {
   if (why === null) return null;
   const home = state.cities.some(
     (city) => city.ownerId === player.id && city.col === unit.col && city.row === unit.row,
@@ -6828,79 +7743,6 @@ function civilianFlight(state: GameState, player: Player, unit: Unit): UnitChoic
       summary: `There is ${why}: runs the ${entry.distance} hexes home to ${entry.city.name}.`,
       candidates: tried,
       focus: { col: entry.city.col, row: entry.city.row },
-    };
-  }
-  return null;
-}
-
-/**
- * The settler this soldier walks with, or `null` — **the escort** (the user's
- * notes, P3).
- *
- * Crude and visible, which is what was asked for: the nearest settler of this
- * empire that is out in the open (not standing in one of its towns) with no
- * soldier of ours inside `war.escortRadius`, and the order is a plain march to
- * the hex it is standing on.
- *
- * Marching to the *settler* rather than to the site it is walking toward is the
- * detail that makes this stable rather than clever. The escort's leash is the
- * same radius the settler's own reading uses, so the pair walks: the settler
- * marches, the distance opens past the radius, this arm fires again and the
- * soldier closes it. Aiming at the site instead would have both pieces walking
- * to a fixed point and arriving separately, which is a convoy only by
- * coincidence.
- *
- * The two guards are the camp hunt's, word for word and for its reasons: every
- * town held first, and this piece must not be the thing holding the town it
- * stands in.
- */
-function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget | null {
-  if (!townsAreHeld(state, player)) return null;
-  if (!isRedundant(state, player, unit)) return null;
-  const here = getTileAt(state.map, unit.col, unit.row);
-  if (!here) return null;
-  const from = tileHex(here);
-  const wanted: { settler: Unit; distance: number }[] = [];
-  for (const other of state.units) {
-    if (other.ownerId !== player.id) continue;
-    if (unitDef(other.type).foundsCity !== true) continue;
-    if (other.col === unit.col && other.row === unit.row) continue;
-    // A settler standing in one of its own towns is not in the open.
-    if (state.cities.some((city) => city.ownerId === player.id && city.col === other.col && city.row === other.row)) {
-      continue;
-    }
-    if (escortWithin(state, player, other) !== null) continue;
-    const tile = getTileAt(state.map, other.col, other.row);
-    if (!tile) continue;
-    wanted.push({ settler: other, distance: wrappedDistance(state.map, from, tileHex(tile)) });
-  }
-  wanted.sort((a, b) => a.distance - b.distance || a.settler.id - b.settler.id);
-  const tried: BotCandidate[] = [];
-  for (const entry of wanted.slice(0, aiFor(player).search.pathProbes)) {
-    const tile = getTileAt(state.map, entry.settler.col, entry.settler.row);
-    if (!tile) continue;
-    const label = `escort ${unitLabel(entry.settler)} at (${entry.settler.col},${entry.settler.row})`;
-    if (findPath(state, unit, tile) === null) {
-      tried.push(refused(label, 'no route to it'));
-      continue;
-    }
-    // **The lowest score marches**, as in the two hunts: the key is hexes to the
-    // piece being escorted.
-    tried.push({
-      label,
-      score: entry.distance,
-      chosen: true,
-      terms: [
-        { label: `${entry.distance} hexes to the nearest settler of ours walking alone`, value: entry.distance },
-        { label: '(a settler with nothing beside it does not march at all)', value: 0 },
-      ],
-    });
-    return {
-      at: { col: entry.settler.col, row: entry.settler.row },
-      summary:
-        `Marches ${entry.distance} hexes to walk with ${unitLabel(entry.settler)}, which is out in the open with ` +
-        'nothing of ours beside it.',
-      candidates: tried,
     };
   }
   return null;
@@ -7312,11 +8154,12 @@ function scoutCommand(state: GameState, player: Player, unit: Unit, sitting?: Bo
 }
 
 /**
- * A soldier's questions, in order: **am I too hurt to be doing this**, is there
+ * A soldier's questions, in order: **am I too hurt to be doing this**, **am I
+ * walking with a settler** (bot batch BP11, `escortDuty`), is there
  * a favourable blow against the wild next door, is there one against a nation
  * this seat is at war with, **am I a bowman standing in the open**, is there a
- * camp to march on, am I standing in a town that wants holding, is there a
- * settler of ours walking unescorted — and, failing all of them, dig in.
+ * camp to march on, am I standing in a town that wants holding. Failing all of
+ * them, it digs in.
  *
  * **A peaceful seat still never attacks a nation**, and it is now belt and
  * braces: the aggressive arms are behind `military.aggression`, and the blow
@@ -7364,6 +8207,13 @@ function soldierCommand(
       focus: pullOut.at,
     };
   }
+  // **The escort** (bot batch BP11), after the two heal arms and before every
+  // blow and march: a soldier walking with a settler stays with it, and one the
+  // escort plan sends to a settler walks there. A blow that wins advances the
+  // piece off the settler's hex, and a march to a camp leaves the settler
+  // alone, which is how the wild took them. See `escortPlan`.
+  const escort = escortDuty(state, player, unit, sitting);
+  if (escort !== null) return escort;
   // **The campaign, re-read from the board** (§13.3). Asked here rather than
   // beside the march below because the *blow* needs it too: a piece at the walls
   // of the town its army is pushing on weighs its exchange at the siege appetite
@@ -7489,17 +8339,6 @@ function soldierCommand(
       summary: home.summary,
       candidates: home.candidates,
       focus: home.at,
-    };
-  }
-  // **The escort**, after the towns are held and before anybody goes hunting: a
-  // settler walking alone is an empire's next town walking alone.
-  const escort = escortMarch(state, player, unit);
-  if (escort !== null) {
-    return {
-      command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: escort.at },
-      summary: escort.summary,
-      candidates: escort.candidates,
-      focus: escort.at,
     };
   }
   // The campaign comes **after** the towns are seen to, which is the whole of

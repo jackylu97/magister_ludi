@@ -5,7 +5,8 @@
     "greatPersonRedraws": 4,
     "reaimsPerTurn": 1,
     "reaskPerTurn": 1,
-    "focusOrders": 1
+    "focusOrders": 1,
+    "focusMargin": 10
   },
   "search": {
     "pathProbes": 4,
@@ -26,7 +27,9 @@
       0.9,
       0.9
     ],
-    "hexOffersPriced": 4
+    "hexOffersPriced": 4,
+    "escortWaitTurns": 2,
+    "roadDangerRadius": 2
   },
   "site": {
     "freshWaterBonus": 6,

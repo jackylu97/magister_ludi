@@ -569,12 +569,19 @@ let richRecord: RichSitting[] | null = null;
  * the arms' comparisons, and whether a duel map has opened Pottery by turn
  * twenty is the board's business.
  */
+/**
+ * Turns the rich record runs. Seven since bot batch BP10; nine since BP11,
+ * whose escorts move the board so that the seventh turn no longer puts a town
+ * back on the balanced ordering.
+ */
+const RICH_TURNS = 9;
+
 function richSittings(): RichSitting[] {
   if (richRecord !== null) return richRecord;
   const game = grownGame(RIPE);
   grant(game.state, seat(game.state, 0), gatingTech('building', 'granary') ?? undefined);
   const record: RichSitting[] = [];
-  for (let turn = 0; turn < 7; turn++) {
+  for (let turn = 0; turn < RICH_TURNS; turn++) {
     for (const player of realPlayers(game.state)) player.gold = 5000;
     // The focus arm's own comparison is under test here, so the record is taken
     // without the rule over it (`focusRoll.ts`: bot batch BP10 chooses a town's

@@ -25,8 +25,12 @@
  *      unit order keeps its claim and the other has none;
  *   2. an awake settler with no claim (just raised, or its site was lost)
  *      claims the free site nearest to it within the search radius, else the
- *      free site nearest to it among the seat's sites. A sleeping settler claims
- *      nothing: it sleeps because its own arm found no site for it;
+ *      free site nearest to it among the seat's sites. A sleeping settler out
+ *      in the field claims nothing: it sleeps because its own arm found no site
+ *      for it. A settler asleep in one of the seat's own towns claims like an
+ *      awake one, because since bot batch BP11 a settler also sleeps in a town
+ *      while it waits for a soldier to walk with it (`settlerCommand`, `bot.ts`);
+ *      a settler with no site at all finds no free site here and claims nothing;
  *   3. a settler in a town's queue claims the free site nearest to that town
  *      within the search radius.
  *
@@ -110,6 +114,11 @@ function marchEndOf(unit: Unit): { col: number; row: number } | null {
   return path[path.length - 1] ?? null;
 }
 
+/** True when the piece stands in a town of its own seat. */
+function inOwnTown(state: GameState, unit: Unit): boolean {
+  return state.cities.some((city) => city.ownerId === unit.ownerId && city.col === unit.col && city.row === unit.row);
+}
+
 /** True when a town founded on a claim would leave this hex legal. */
 function clearOf(state: GameState, tile: Tile, claims: readonly SiteClaim[]): boolean {
   const here = tileHex(tile);
@@ -170,7 +179,9 @@ export function siteClaims(
       claims.push({ col: tile.col, row: tile.row, by: 'march', unitId: unit.id, cityId: null });
       continue;
     }
-    if (unit.sleeping !== true) standing.push(unit);
+    // Asleep in one of the seat's own towns: waiting for an escort (bot batch
+    // BP11), so it still claims. Asleep in the field: no site, no claim.
+    if (unit.sleeping !== true || inOwnTown(state, unit)) standing.push(unit);
   }
   for (const unit of standing) {
     const here = getTileAt(state.map, unit.col, unit.row);

@@ -892,11 +892,16 @@ describe('the settler escort', () => {
   });
 
   it('marches the nearest free soldier to a settler walking alone', () => {
+    // Since bot batch BP11 the soldier walks to a settler standing alone in the
+    // field when it can reach its hex within `expansion.escortWaitTurns` turns
+    // (a settler that marches walks on, so only a soldier that reaches it this
+    // turn keeps up). The long chase from anywhere on the map is gone: a
+    // soldier as fast as the settler never caught a settler that walked on.
     const state = bench(2);
     const city = foundCityAt(state, 0, at(state.map, 4, 5));
     // A garrison, so the town is held, and a spare piece to spend on the escort.
     createUnit(state, 0, 'warrior', city.col, city.row);
-    const spare = createUnit(state, 0, 'warrior', 6, 5);
+    const spare = createUnit(state, 0, 'warrior', 8, 7);
     const settler = createUnit(state, 0, 'settler', 10, 8);
     const decision = nextBotDecision(state, 0);
     // The first idle piece the blocker names may be either; ask the spare one

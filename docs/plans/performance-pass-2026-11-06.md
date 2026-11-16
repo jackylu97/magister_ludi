@@ -1932,3 +1932,207 @@ The new games are bigger (a sixth to a third more towns), and on seeds 7 and 999
 ### Files
 
 `src/ai/settlerSites.ts` (new: `foundingSites`, `siteClaims`, `nearestFreeSite`, `freeSiteForTown`, `claimsOfOthers`, `marchClaimOf`, `siteIsFree`), `src/ai/bot.ts` (`valueContext`'s `sites`; `nextTownChain`, `siteProbe`, `settlerTerms`; `unitRoleValue`'s settler row; `settlerCommand`, `keepMarch`, `marchToFreeSite`, `marchToSite`; `settlerSiteRefusal` in `bankSpend`; `focusCommand`, `buildMarkOf`), `src/ai/chain.ts` (`explainNextTown`'s `coming`, `expansionChain`; `settlerWaits` removed), `src/ai/wants.ts` (`WantInputs.settlerWorth`, the faith row's settler and town; `prophetTerms`, `siteRaisableFrom`, `deepenRefusal`, `explainNextRung`; `expansionTerm` and `explainEmpireRite` removed), `src/ai/value.ts` (`ValueContext.sites`; `rulePercentInBooks`; the rite term of `explainCharterOpening`), `src/ai/focusRoll.ts` (one choice a build), `src/ai/harnessMemory.ts`, `src/ai/aiConfig.ts` and `data/ai.json` (`driver.focusOrders` 1 in place of `driver.focusHoldTurns`), `docs/bot-priorities.md`, this section, and the tests: `test/sim/aiEndCheckLoops.test.ts`, `test/sim/aiBot.test.ts` (the module list holds `settlerSites.ts`; the defence fixture re-sited from turn 19 to 17), `test/sim/aiWants.test.ts` (the rich record runs seven turns), `test/sim/aiDigest.slow.test.ts` (the pins).
+
+## BP11: escorts for settlers, and the focus question, 2026-11-15
+
+`docs/flags.md` (ooooooo), the bullet "BP11: escorts for settlers, and the focus question, ruled 2026-11-15". The user: *"the ai should try to escort its settler with military units. Also, why does the no focus orders make the outcomes so much worse? what would be a good fix otherwise, maybe having the bots change focus isn't a bad thing?"* Bot changes only: no file under `src/sim/` and no rules data changed.
+
+### Method
+
+- **Trees**, each a detached `git worktree` with the main tree's `node_modules` linked in: the **old tree** is `f0c057e4` (BP10 and the flags commit), and the **new tree** is the old tree with this batch's bot files copied in, frozen when the final runs started. One fix came after them (a soldier the escort plan sends is marked as called for the turn, below); it touches only a soldier whose march cannot take its first step, and on the one game that showed it (seed 314) it removed the only warning of the 48 games. Two earlier versions were measured and dropped on the way ("Tried and changed on the way"). Focus settings are tuning sheets on the new tree (`TUNES`): **A** is the default (`driver.focusOrders` 1, one focus a build), **B** is no orders (0), **C** is the margin (2, `driver.focusMargin` 10).
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on. The 16 end-check seeds.
+- **The probe** is BP10's `play10.ts` with four more records (`play11.ts` in the session's scratch folder `bp11/`): the units of each seat the wild killed or took, by kind (from each command's and each resolution's combats, and from owners that changed to the wild); where each settler stood when its seat ended its turn, with or without a soldier of its own on its hex, and the nearest piece of the wild; the bot's own CPU time a turn (inside `nextBotDecision`); and, on request, the focus table of every town every turn (`focusReading`) for the noise measurement.
+- **Paired figures** as in the end check and BP10: for each seed the ratio of one tree's total to the other's, the geometric mean of the ratios with a 95% t interval, and the seeds down and up.
+- **Seconds** are CPU seconds (`process.cpuUsage`), not wall seconds. The laptop started on battery (27%), and was on mains power from about 22:25; no run was lost to sleep. Runs on the dropped versions were stopped on purpose.
+
+### 1. Escorts
+
+#### What existed, and why it did not protect the settlers
+
+- **The wild's rule.** A thief of the wild takes a civilian it can see within `theftRadius` (5) that has no soldier on its own hex (`isUnguarded`, `barbarians.ts`). A blow on a hex that holds a soldier and a civilian hits the soldier first, so a soldier on the hex is cover; a melee kill of that soldier still carries the winner onto the hex and takes the civilian. One soldier and one civilian may share a land hex (`stacking.perCategoryPerTile` 1, a category each). On water a hex holds one piece that is not a ship, so an embarked settler can have no soldier with it. A town holds one soldier, so a settler in a town can never have a second soldier on its hex.
+- **The bot's reading.** The settler arm and the worker arm counted any soldier of the seat within `war.escortRadius` (4) hexes, outside a town, as cover (`escortWithin`). The soldier arm's escort (`escortMarch`) sent the nearest redundant soldier to the hex of any settler with no soldier within 4 hexes, after the camp hunt and the empty towns. The expansion chain priced an escort step (a share for soldier rows) when the next site had a hostile near it and the seat had no soldier at all.
+- **Why it failed.** A soldier three hexes off was cover to the bot and not to the wild. On the old tree, at turns 100 to 130 on seeds 999, 42 and 7, the wild took 38 settlers (BP10's figure, reproduced exactly). When their seat last ended its turn before the loss, 35 of the 38 stood alone outside a town, with a piece of the wild one hex off (30) or two (5), and 33 of them were still on a march; 27 of the 35 were three hexes or fewer from a town of their own. The other 3 had a soldier on the hex, which the wild killed first. A settler beside a raider marches on only when the danger reading finds it covered, which under the old reading was any soldier of ours within 4 hexes outside a town. And the chasing soldier walked at a settler's speed behind a settler that walked on, so it reached it only when the settler stopped.
+
+#### The design built
+
+- **A settler's cover is a soldier on its own hex** (`coverOn`), or the soldier its escort plan walks to its hex this turn. The worker reads its danger through the same function (`civilianDanger`), so the first version changed both. **The worker keeps the old reading** (`civilianCover`): on that version's runs, to turn 100 on seeds 999, 42 and 7, the seats held more workers (1,504 worker-turns against 1,134; 1,113 against 773; 1,493 against 1,129) and started fewer improvements (235 against 299; 129 against 208; 203 against 278), most likely because a worker with a raider within 4 hexes and a soldier within 4 now ran home where it used to work on (not traced), and the wild took as many (15 against 15; 21 against 19; 33 against 22). So the change is not clearly safe for workers, and it is kept to settlers. `war.escortRadius` keeps both its old meanings for the worker, and for the settler means only how near a hostile counts as danger.
+- **Which soldier** (`freeEscort`, `escortPlan`): a field soldier of the seat on land, as fast as a settler, healthy (`military.healBelowHealth`; not asked for a soldier already beside the settler), not needed for its town's garrison (`isRedundant`), not at a camp's door (part of a hunt's force). A chase or a meet waits for every town of the seat to be held (`townsAreHeld`). Nearest first, by hexes and then a route (`findPath`, `pathTurns`), at most `search.pathProbes` routes a settler. One soldier a settler, settlers in unit order. The escort outranks the camp hunt, the screen and the campaign: its clause (`escortDuty`) comes after the two heal arms and before every blow and march, so a soldier with a settler does not strike and advance off its hex.
+- **Build or buy one when none is free?** No new rule. The expansion chain still prices its escort step when the next site has a hostile near it and the seat has no soldier to spare (`escortAvailable`, now on the new cover reading), which is the share a soldier row in the queue reads. A seat buys or builds no soldier for an ordinary escort; the user's word was "try".
+- **How the pair moves.** The settler leads and the soldier follows. A new march walks the settler at once, and `walkWithSettlers` (first in housekeeping) or the soldier's own clause walks the soldier onto its hex in the same turn, before the wild moves (the wild moves in the resolution, before stored routes are walked). A settler on a stored route walks at the end of the turn, after the wild, and its soldier catches up early in the next turn; when the wild moves the two stand together. The settler does not run ahead: it sets out only when its soldier can reach the hex the settler stops on this turn (`paceOf`); when the soldier has spent movement, the settler waits a turn on the soldier's hex. Where the soldier cannot follow even on full movement (a rival's ground it may not enter), the march arm first looks for a site both can reach (`marchToSite`), and only then lets the settler go on. At sea they cannot share a hex, so the plan sends no soldier to an embarked settler.
+- **The departure** (`leaveTown`). A settler in a town with a site to go to waits for a free soldier that can reach a hex beside the town, and nearer the site, within `expansion.escortWaitTurns` (2) turns; when that soldier stands there, the settler steps out onto its hex, and the two walk on. A waiting settler sleeps in the town; a settler asleep in its own town now claims its site (`settlerSites.ts`), so no second settler is raised for it.
+- **No escort.** It still goes when its road is safe: when nothing hostile the seat can see stands within `expansion.roadDangerRadius` (2) of the hexes it walks in its next turn (`roadAhead`, `roadDanger`). It waits in the town when something does. In the field, a settler alone does not take a site whose next stretch of road is unsafe, stops keeping a march when its next stretch becomes unsafe, and with no site left, when it is not on a march, walks back to the nearest town of its own. The danger at its own hex is the old reading (`civilianDanger` at `war.escortRadius`), which founds where it stands when the ground is legal and otherwise runs home.
+- **Danger along the road**, not only at the end (BP10's finding): the next stretch is read at every decision on the way, because the settler is asked again each turn (`reaskTheMarch`).
+- **The escort is the first garrison.** A settler about to found whose soldier reaches its hex this turn waits for it (`foundWithEscort`), so the soldier stands in the new town when it is founded; the garrison arms keep it there.
+- **Tests** (`test/sim/aiEscorts.test.ts`, new, 8 tests): a soldier one hex off is not cover and a soldier on the hex is; a settler steps out onto a waiting escort's hex; waits in its town while one is on its way, and the plan sends it; with no soldier and columns round the town it stays; with none and nothing in sight it leaves alone; the soldier walks after its settler in the same turn; the escort becomes the garrison. The cover test and the pair test fail on the old tree. `aiWar.test.ts`' escort case now places the spare soldier within the wait, because the long chase is gone.
+- **Tried and changed on the way**, on 60-turn runs of seeds 999, 42 and 7: a road check over the whole road at `war.escortRadius` (4) kept settlers in their towns, and towns at turn 60 fell on two seeds of three (seed 42: 19 against 26), so the check reads only the next turn's walk at its own radius (2). A soldier that could not follow on full movement made its settler wait for ever (a hex it could not enter), so that case now lets the settler go. A meeting hex on the far side of the town made the pair walk back through the town each turn, so the meeting hex must be nearer the site than the town. On the first long runs a settler on a march whose road turned unsafe was sent home, and walked out and back. Only a settler that is not on a march walks home now; one on a march keeps walking, and the danger reading at its own hex still turns it home. That stopped the walking out and back, but not the larger number of settlers held late (below). The first version also changed the worker's cover (above).
+
+#### Before and after
+
+**16 seeds, turns 1 to 100**, the old tree against the new (focus A on both). Units lost to the wild are pieces of the six seats killed in a fight with the wild or taken by it.
+
+| Figure | Old tree | New tree |
+|---|---:|---:|
+| Settlers alive at some turn | 1,058 | 979 |
+| Founded a town | 755 | 775 |
+| Founded nothing | 216 | 64 |
+| of which taken by the wild | 209 | 61 |
+| of which taken by a rival | 6 | 3 |
+| Still alive at turn 100 | 87 | 140 |
+| Settler-turns in the field, with a soldier of their own on the hex | 364 of 4,607 | 2,585 of 5,718 |
+| Settler-turns waiting in a town | 171 | 1,444 |
+| Units lost to the wild: settlers taken | 194 | 56 |
+| workers taken | 325 | 314 |
+| soldiers killed | 776 | 840 |
+| scouts killed | 675 | 705 |
+| traders killed | 31 | 25 |
+| all | 2,002 | 1,943 |
+
+| Figure, six seats summed | Old tree | New tree | New against old |
+|---|---:|---:|---|
+| Towns, turn 50 | 21 | 23 | +11% [+4%, +18%], 2 down, 12 up |
+| Towns, turn 100 | 53 | 54 | +2% [−7%, +12%], 5 down, 10 up |
+| Citizens, turn 100 | 322 | 317 | −1% [−10%, +9%], 9 down, 7 up |
+| Food, turn 100 | 1,282 | 1,200 | −4% [−15%, +9%], 8 down, 8 up |
+| Production, turn 100 | 1,141 | 1,095 | −1% [−16%, +17%], 6 down, 10 up |
+| Gold, turn 100 | 437 | 397 | −9% [−26%, +11%], 9 down, 7 up |
+| Science, turn 100 | 822 | 782 | −2% [−14%, +11%], 7 down, 9 up |
+| Culture, turn 100 | 432 | 426 | +2% [−16%, +23%], 9 down, 7 up |
+| Faith, turn 100 | 161 | 160 | +1% [−17%, +22%], 5 down, 11 up |
+
+- **The wild takes under a third as many settlers** (209 to 61 to turn 100), and a settler founds nothing in 7% of cases against 20%. A settler stands with a soldier of its own on its hex in 45% of its turns in the field, against 8%.
+- **Early expansion does not fall: it rises.** Towns at turn 50 are 11% up, with the interval above nought and 12 seeds of 16 up. At turn 100 towns are 2% up and every yield is within its interval.
+- **The cost is time.** Settlers spend 1,444 turns waiting in towns against 171, and more of them are alive at turn 100. Units lost to the wild fall 3% in all: fewer settlers, workers and traders, and 8% more soldiers, which now stand beside settlers where the wild strikes.
+- **Workers**, which keep the old cover reading: the wild took 314 against 325.
+
+**Seeds 999, 42 and 7, turns 100 to 130** (BP10's window):
+
+| Settlers alive at some turn in 100 to 130 | Old tree | New tree |
+|---|---:|---:|
+| All | 169 | 179 |
+| Founded a town | 113 | 99 |
+| Founded nothing | 40 | 5 |
+| of which taken by the wild | 38 | 5 |
+| Still alive at turn 131 | 16 | 75 |
+
+| Turns 121 to 130, a turn | Old tree: 999, 42, 7 | New tree: 999, 42, 7 |
+|---|---|---|
+| Settlers held | 10.7, 3.9, 8.1 | 22.3, 30.8, 23.1 |
+| asleep | 0.1, 0.0, 0.0 | 7.3, 8.8, 2.4 |
+| Towns | 86.3, 82.4, 92.6 | 82.8, 87.7, 86.8 |
+
+- **The wild took 5 settlers in the window, against 38.**
+- **Late, the seats hold two to eight times as many settlers**, and found 12% fewer towns in the window: a settler lives longer (it waits for an escort, waits out danger, or walks with a soldier that has to keep pace), and the ones the wild used to take are still on the board. The towns held at turns 121 to 130 are 2% fewer (257 against 261 on the three seeds; one seed up, two down). This was not traced to the end; see "Not done".
+- **One fix after the runs.** On seed 314, turn 63, the plan sent a dug-in soldier toward a town's meeting hex; its first step was blocked, so it stayed as it was, and the camp hunt's wake arm (`wakeTheHunt`) then asked it and sent the same order. The driver stops a seat at a repeated order (`repeatsAnOrder`), so that seat ended its turn early. `walkWithSettlers` now marks the soldier it orders as called for the turn (`BotSitting.called`), as the two wake arms do. Seed 314 played to turn 100 again with no warning.
+
+### 2. Citizen focus
+
+#### Why no focus orders read so much worse
+
+- **What a town does without an order.** `assignCitizens` places a town's citizens by the balanced sheet (`rules.cities.citizenWeights`), which weighs food high, so a town grows and works farms. The production sheet (`citizenFocusWeights.production`) puts the same citizens on hills and mines. The bot leans a town only when the lean is the chains' idea: the hammer premium must be positive (`hammerTerm`), and the growth it gives up is charged (`growthTerm`). With `driver.focusOrders` at nought no town ever leans.
+- **Which focus the bot picks, and when.** On the town traces (seeds 999 and 42, the old tree, A against B, to turn 100), a quarter to two fifths of A's towns stand on the production focus at any turn from 40 on (seed 999: 8 of 20 at turn 40, 25 of 50 at turn 90, 23 of 58 at turn 100; seed 42: 13 of 42 at turn 100). The leans are for units and early buildings: on seed 999, 45 of A's 78 leans were for a unit at the head of the queue (warriors, archers, scouts, workers, settlers) and 33 for a building (palisades, libraries, walls, granaries).
+- **Where the yield goes.** BP10's figure (production −24%, science −15%) was B against BP9's five-turn hold, not against A. Read again from BP10's own runs (16 seeds):
+
+| B (no orders) against | Turn | Towns | Citizens | Production | Production a citizen | Food a citizen | Science | Science a citizen |
+|---|---:|---|---|---|---|---|---|---|
+| BP9's hold | 50 | −7% [−15%, +1%] | +1% [−6%, +9%] | −15% [−22%, −7%] | −16% [−21%, −11%] | +3% [−3%, +9%] | −7% [−18%, +6%] | −8% [−17%, +2%] |
+| BP9's hold | 100 | −9% [−15%, −2%] | −5% [−12%, +2%] | −24% [−34%, −13%] | −20% [−31%, −7%] | 0% [−8%, +9%] | −15% [−25%, −4%] | −10% [−19%, −1%] |
+| A | 50 | −7% [−14%, +1%] | +1% [−6%, +7%] | −9% [−17%, +1%] | −9% [−15%, −3%] | 0% [−5%, +6%] | 0% [−7%, +8%] | 0% [−8%, +8%] |
+| A | 100 | −5% [−11%, +2%] | −1% [−10%, +9%] | −13% [−35%, +15%] | −12% [−30%, +9%] | −1% [−8%, +8%] | −5% [−20%, +12%] | −4% [−15%, +7%] |
+
+  - **Most of the gap is the snapshot itself.** The yields are read at the turn: a town on the production focus makes more hammers that turn, and under BP9's hold many towns stood on it. At turn 50, B's towns make 16% fewer hammers a citizen than the hold's, with the same food a citizen. Against A the gap a citizen is 9%.
+  - **The rest is slower building early.** At turn 50 B holds 7% fewer towns and 7% fewer units than the hold; the lean finishes settlers and soldiers sooner while a town's growth waits anyway (a settler halts growth). The food the towns keep does not come back as citizens by turn 100 (citizens −1% to −5%).
+  - **Science follows the towns and the buildings.** Against the hold, science a citizen is 8% lower at turn 50 and 10% lower at turn 100: libraries and other science buildings are built later as well. Against A it is the same at turn 50 and 4% lower at turn 100, inside the noise.
+  - **Against A the gap is not measurable** at 16 seeds: every interval holds nought. On BP10's settlers it is smaller still: on the two town traces of the old tree (BP10's settlers), B ended turn 100 with more towns than A (seed 999: 66 against 58; seed 42: 49 against 42), more citizens (386 against 354; 287 against 227), and production 7% lower on one and the same on the other (1,376 against 1,486; 666 against 668).
+
+#### The margin setting (C)
+
+- **`driver.focusOrders` 2** (`marginFocusCommand`): the same table as A (`focusTable`), asked of every town once a turn, with no memory of builds. A town on the balanced ordering leans on the hammers when the lean scores more than `driver.focusMargin`; a leaning town goes back when the lean scores less than minus the margin, or when one of the table's two gates refuses the lean (nothing the empire raises waits on hammers, or the town would not feed itself). Anything else keeps the focus the town has. A tie (both sheets place the citizens on the same hexes, so the lean scores nought) never changes it; under A such a town on the hammers is still sent back.
+- **The unit** is the table's own: points a turn of the bot's value scale, the score of "work the hammers" against the balanced ordering at nought. A gate is not a score; it is the table's rule that the lean must not stand, so it sends a leaning town back whatever the margin.
+- **How its size was chosen.** The probe read every town's table every turn to turn 80 on two seeds (`focusReading`; seed 999 on the batch's tree before its last two settler fixes, whose focus arm is the same code, and seed 42 on the final tree; 3,256 town-turns), and took the change of the lean's score from one turn to the next for the same town on the same build at the same size, with no gate on either turn (1,714 pairs). BP9 found that this score moves with the live price of the gold and science the lean gives up.
+
+| Change of the lean's score in one turn, same build and size | Points a turn |
+|---|---:|
+| Median | 0.0 |
+| 75th percentile | 0.2 |
+| 90th percentile | 7.6 |
+| 95th percentile | 16.9 |
+| Largest | 89.1 |
+
+  Half the town-turns score exactly nought (the two sheets agree), and 68 of the 1,714 pairs changed sign from one turn to the next. Under the margin a lean is undone only when the score crosses the whole band, from more than the margin to less than minus it. At 10 points that is a move of more than 20 points, which fewer than one step in twenty makes (the 95th percentile is 16.9). So the margin is 10. At 5, 12% of the steps move by more than the margin; at 20, 4%.
+- **Tests** (`aiEndCheckLoops.test.ts`): a leaning town goes back when the balanced ordering wins by more than the margin; it keeps its focus when the balanced ordering wins by less; and on a tie (uniform ground) C keeps a leaning town where A sends it back.
+
+#### The three settings, 16 seeds at turn 100
+
+On the new tree (the escorts in all three). Six seats summed; the paired columns are against A.
+
+| Figure | A (one focus a build) | B (no orders) | C (margin 10) | B against A | C against A |
+|---|---:|---:|---:|---|---|
+| Towns | 54 | 52 | 53 | −3% [−12%, +6%], 10 down, 6 up | −1% [−7%, +5%], 8 down, 6 up |
+| Citizens | 317 | 315 | 320 | −1% [−11%, +10%], 10 down, 6 up | +1% [−8%, +11%], 7 down, 9 up |
+| Food | 1,200 | 1,179 | 1,183 | −2% [−14%, +11%], 8 down, 8 up | −1% [−15%, +14%], 9 down, 7 up |
+| Production | 1,095 | 1,059 | 1,096 | −6% [−21%, +11%], 9 down, 7 up | 0% [−15%, +17%], 9 down, 7 up |
+| Gold | 397 | 415 | 428 | 0% [−26%, +36%], 7 down, 9 up | +6% [−18%, +37%], 6 down, 10 up |
+| Science | 782 | 744 | 823 | −7% [−17%, +4%], 10 down, 6 up | +4% [−7%, +16%], 7 down, 9 up |
+| Culture | 426 | 392 | 393 | −14% [−33%, +11%], 10 down, 6 up | −6% [−17%, +6%], 8 down, 8 up |
+| Faith | 160 | 139 | 145 | −15% [−28%, +1%], 10 down, 5 up | −9% [−20%, +3%], 12 down, 4 up |
+| Towns on the production focus | 18 | 0 | 25 | | +42% [+23%, +63%], 2 down, 14 up |
+
+| Turns 51 to 100, a turn | A | B | C |
+|---|---:|---:|---:|
+| Focus orders | 1.59 | 0 | 0.94 |
+| Back to a focus the town held in the last five turns | 0.37 | 0 | 0.20 |
+| Undoing the town's last order within four turns | 0.29 | 0 | 0.17 |
+| Accepted commands | 83.6 | 79.1 | 81.5 |
+
+The pre-BP9 behaviour (the arm free to change a town's focus whenever its answer changed) was not run: C at margin nought is close to it, and BP9's end check has its figures.
+
+- **No setting is measurably better than another.** Every interval holds nought, so at 16 seeds this is not a result, only a reading.
+- **B reads lower than A on seven of eight figures** (faith −15%, culture −14%, science −7%, production −6%), as BP10's runs did. It is the least likely to be best.
+- **C reads the same as A.** It is higher on science (+4%) and gold (+6%), lower on culture (−6%) and faith (−9%), and within a point on towns, citizens, food and production. It gives 41% fewer focus orders and 40% fewer quick undos, and holds two fifths more towns on the hammers: a lean is kept until the balanced ordering wins clearly, where A goes back at the next build when the table says so.
+- **The default stays A** (`driver.focusOrders` 1). A and C cannot be told apart at this sample size, and A is the user's own rule from BP10. Changing the default would change every game for no measured gain. The user chooses after the parameter pass; C is one knob away.
+
+### 3. Speed
+
+Seeds 7, 999 and 42, the old tree and the new one in one process a seed, a turn on each in rotation, turns 100 to 120. CPU seconds of the whole turn (the probe's own bookkeeping included, the same on both trees), and the bot's own CPU inside `nextBotDecision`. All 21 turns finished on every run; the laptop was on mains power for these runs.
+
+| Seed | Tree | CPU s a turn | Bot CPU s a turn | Commands a turn | Towns | CPU ms a command |
+|---|---|---:|---:|---:|---:|---:|
+| 7 | old | 4.27 | 3.41 | 189 | 75.8 | 23 |
+| 7 | new | 3.86 | 3.06 | 154 | 73.4 | 25 |
+| 999 | old | 3.91 | 3.01 | 163 | 71.7 | 24 |
+| 999 | new | 3.25 | 2.61 | 138 | 70.0 | 23 |
+| 42 | old | 2.43 | 1.86 | 108 | 57.4 | 23 |
+| 42 | new | 3.17 | 2.49 | 112 | 66.0 | 28 |
+
+- On seeds 7 and 999 the turn is 10% and 17% cheaper, with fewer commands. On seed 42 it is 30% dearer: the new game holds 15% more towns there, and a command costs a fifth more.
+- **The profile of a late turn** (`node:inspector`, a turn's CPU profile). Seed 7, turns 105 to 107, on the batch's tree before its last two settler fixes: the settler arm (`settlerCommand`) was 6.5% of the turn, most of it settlers waiting in their towns that weighed every site again each turn (`marchToFreeSite` 3.6%, `marchToSite` 2.1%); the escort plan and its arms were about 1%. A settler whose escort is on its way now waits without weighing the sites (`settlerCommand`'s first BP11 clause). Seed 42, turns 110 to 112, on the final code: the settler arm is 2.0% (`marchToSite` 1.1%, `marchToFreeSite` 0.4%), the escort plan 0.7% (`readEscortPlan` 0.6%) and the housekeeping arm 0.7% with the plan inside it. Nothing of this batch's is more than about 1.5% of a turn.
+
+### Not done, and proposals
+
+- **Settlers held late** (the late table above): two to eight times as many at turns 121 to 130, with a quarter of them asleep, and 12% fewer towns founded in that window on the three seeds. Part of it is the settlers the wild no longer takes; part is time spent waiting and walking in pairs. Not traced further. Two knobs bear on it for the parameter pass: `expansion.escortWaitTurns` (nought: a settler walks with a soldier only when one already stands beside its town) and `expansion.roadDangerRadius`. A run with `escortWaitTurns` at nought was queued and not reached.
+- **No soldier is built or bought for an escort** beyond the expansion chain's escort step. Whether a seat should train one when a settler waits with no soldier to spare is for the user or the parameter pass.
+- **At sea** a settler can have no soldier on its hex, and the plan sends none; a ship as escort is not built.
+- **Workers** keep the old cover reading (above). A worker version of the escort (a soldier that stands on a working worker's hex) is not built.
+- **The focus default** stays A; the user chooses after the parameter pass. `driver.focusMargin` sits with `driver.focusOrders` in the `driver` block, which the tuner does not move; if the parameter pass should tune the margin, it needs a row in `data/ai.bounds.json` and a block the tuner reads.
+- **The noise** was measured on two seeds to turn 80. A late game may move by more.
+- **The cost of the settler arm** is BP10's site search (`marchToSite`, `marchToFreeSite`), about 1.5% of a late turn on seed 42; not changed.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end, with the reason printed beside them: duel `4da3f046:337488` -> `4394b792:358774`, standard `6a878f7e:1003339` -> `6549b1b3:1032261`.
+
+### Checks
+
+- Type check clean (`npx tsc --noEmit -p .`).
+- Core, by name, on the final code: every `test/sim/ai*.test.ts` that is not slow (with the new `aiEscorts.test.ts`), `test/ui/arenaPage.test.ts` (the three new knobs appear on the panel with no page edit), `test/ui/botWorker.test.ts`, `test/sim/readings.test.ts` and `test/sim/empireYieldAtRest.test.ts`: 44 files, 975 tests passed.
+- Slow, by name, on the final code: `aiDigest`, `aiCardStamp`, `aiBot`, `aiDriver`, `aiWants`, `aiWar`, `aiDecision`, `aiGarrison`, `botWorker`, `religion`, `beads`, `barbarians`, `statecraft`, `ledgerFold` and `cityModifiers`: 15 files, 47 tests passed.
+- Tests changed for what the batch changed: `aiWar.test.ts` (the escort case: the spare soldier within the wait), `aiBounds.test.ts` and `aiPersona.test.ts` (the two `expansion` knobs), `aiWants.test.ts` (the rich record runs nine turns, because on the new board the seventh no longer puts a town back on the balanced ordering), `aiDigest.slow.test.ts` (the pins).
+- The whole core tier, the build and the whole slow tier were not run. They are the orchestrator's gate.
+
+### Files
+
+- `src/ai/bot.ts`: the escort (`coverOn`, `civilianCover`, `inOwnTown`, `settlerStride`, `roadDanger`, `roadAhead`, `EscortJob`, `EscortPlan`, `freeEscort`, `meetingHexes`, `readEscortPlan`, `escortPlan`, `escortJobs`, `hasSettler`, `escortDuty`, `walkWithSettlers`, `leaveTown`, `waitInTown`, `setOut`, `paceOf`); `escortAvailable`; `civilianDanger` and `civilianFlight` (a cover and a reason passed in); `settlerCommand` (the plan, the wait for an escort on its way, the road on a kept march, `foundWithEscort`, the walk home); `marchToSite` (a site both can reach, the road for a settler alone); `soldierCommand` (`escortDuty` early; `escortMarch` removed); `housekeeping` (`walkWithSettlers` first); `BotSitting.escorts` and `escortOrders`; the focus margin (`marginFocusCommand`, `focusReading`, `focusTable`'s `edge` and `gated`).
+- `src/ai/settlerSites.ts`: a settler asleep in its seat's own town claims a site.
+- `src/ai/aiConfig.ts` and `data/ai.json`: `expansion.escortWaitTurns` (2), `expansion.roadDangerRadius` (2), `driver.focusMargin` (10), `driver.focusOrders`' third setting; the docblock of `war.escortRadius`. `data/ai.bounds.json`: rows for the two `expansion` knobs.
+- Tests: `test/sim/aiEscorts.test.ts` (new); `test/sim/aiEndCheckLoops.test.ts` (the margin); `test/sim/aiWar.test.ts` (the escort case); `test/sim/aiBounds.test.ts` and `test/sim/aiPersona.test.ts` (the new knobs); `test/sim/aiWants.test.ts` (the rich record runs nine turns); `test/sim/aiDigest.slow.test.ts` (the pins).
+- `docs/bot-priorities.md`, and this section.

@@ -68,6 +68,9 @@ const INTEGER_LEAVES = [
   'priorities.horizonTurns',
   'expansion.siteSearchRadius',
   'expansion.hexOffersPriced',
+  // Bot batch BP11: turns a settler waits for an escort.
+  'expansion.escortWaitTurns',
+  'expansion.roadDangerRadius',
   'workers.searchRadius',
   'workers.planTopN',
   'workers.planRadius',

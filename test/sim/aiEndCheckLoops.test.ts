@@ -25,7 +25,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { botSitting, nextBotCommand, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { botSitting, focusReading, nextBotCommand, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { foundingSites, freeSiteForTown, siteClaims } from '../../src/ai/settlerSites';
 import aiJson from '../../data/ai.json';
 import type { BotCandidate, ValueTerm } from '../../src/ai/decision';
@@ -39,7 +39,11 @@ import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../../
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { type City, type GameState, type Player, addBuilding, bumpRevision, createUnit, playerById, queueItemKey } from '../../src/sim/state';
-import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
+import { foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/cities';
+import { applyCommand } from '../../src/sim/commands';
+import { createMap } from '../../src/sim/map';
+import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 import { findPath } from '../../src/sim/pathfind';
 import { researchExpansion } from '../../src/sim/tech';
 import { CONFIG } from './aiBotHelpers';
@@ -252,6 +256,83 @@ describe('fault 4: one focus a build (bot batch BP10)', () => {
     expect(readHarnessMemory(game.state).focus).toEqual([
       { cityId: city.id, turn: game.state.turn, focus: 'production', head: 'unit:warrior', basket: 3 },
     ]);
+  });
+});
+
+describe('the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2)', () => {
+  /** Every focus order seat 0 sends until it falls quiet, under one tuning. */
+  function ordersUnder(game: Game, driver: { focusOrders: number; focusMargin?: number }): number[] {
+    return withAiTuning({ driver } as never, () => {
+      const towns: number[] = [];
+      for (let step = 0; step < 80; step++) {
+        const command = nextBotCommand(game.state, 0);
+        if (command === null || command.type === 'endTurn') break;
+        if (command.type === 'setCitizenFocus') towns.push(command.cityId);
+        if (!dispatch(game, command).ok) break;
+      }
+      return towns;
+    });
+  }
+
+  /** The fixture's town put on the hammers, and the table's reading of it. */
+  function leaning(): { game: Game; city: City; edge: number } {
+    const game = grownGame(10);
+    const city = firstCity(game.state, 0);
+    expect(dispatch(game, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus: 'production' }).ok).toBe(true);
+    const reading = focusReading(game.state, city, valueContext(game.state, seat(game.state, 0)));
+    // The fixture's claim: the balanced ordering wins, by a score and not by a gate.
+    expect(reading.gated).toBe(false);
+    expect(reading.edge).toBeLessThan(0);
+    return { game, city, edge: reading.edge };
+  }
+
+  it('sends a leaning town back when the balanced ordering wins by more than the margin', () => {
+    const { game, city, edge } = leaning();
+    expect(ordersUnder(game, { focusOrders: 2, focusMargin: -edge / 2 })).toContain(city.id);
+    expect(city.focus ?? 'default').toBe('default');
+  });
+
+  it('keeps the town on its focus when the balanced ordering wins by less than the margin', () => {
+    const { game, city, edge } = leaning();
+    expect(ordersUnder(game, { focusOrders: 2, focusMargin: -edge + 1 })).not.toContain(city.id);
+    expect(city.focus).toBe('production');
+  });
+
+  it('never changes a focus on a tie, where the other setting does', () => {
+    // Uniform ground: both sheets put the citizens on the same hexes, so the
+    // lean scores nought and no gate is asked.
+    const state = newGame({ seed: 11, sizeName: 'duel', players: [{ name: 'Ada', color: '#a00' }, { name: 'Bors', color: '#00a' }] });
+    state.map = createMap({ width: 20, height: 12, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(20 * 12).fill(null);
+    state.units = [];
+    state.cities = [];
+    state.camps = [];
+    state.nextEntityId = 1;
+    const city = foundCityAt(state, 0, getTileAt(state.map, 6, 6)!);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    city.population = 3;
+    city.focus = 'production';
+    refreshCityDerived(state, city);
+    recomputeAllVisibility(state);
+    const reading = focusReading(state, city, valueContext(state, seat(state, 0)));
+    expect(reading.edge).toBe(0);
+    expect(reading.gated).toBe(false);
+    const ask = (driver: { focusOrders: number; focusMargin?: number }): boolean =>
+      withAiTuning({ driver } as never, () => {
+        const sitting = botSitting(0);
+        for (let step = 0; step < 40; step++) {
+          const command = nextBotCommand(state, 0, sitting);
+          if (command === null || command.type === 'endTurn') return false;
+          if (command.type === 'setCitizenFocus') return true;
+          if (!applyCommand(state, command).ok) return false;
+        }
+        return false;
+      });
+    expect(ask({ focusOrders: 2, focusMargin: 0 })).toBe(false);
+    expect(city.focus).toBe('production');
+    adoptFocusRoll(state, []);
+    expect(ask({ focusOrders: 1 })).toBe(true);
   });
 });
 

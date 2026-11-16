@@ -600,7 +600,9 @@ the section "BP10" of `docs/plans/performance-pass-2026-11-06.md`):
     order keeps the claim;
   - an awake settler with no claim claims the free site nearest to it within
     `expansion.siteSearchRadius`, else the nearest anywhere among the seat's
-    sites; a sleeping settler claims nothing;
+    sites; a sleeping settler in the field claims nothing (since BP11 a
+    settler asleep in one of the seat's towns claims like an awake one, because
+    it may be waiting for its escort);
   - a settler in a town's queue claims the free site nearest to that town within
     the radius.
 
@@ -660,6 +662,81 @@ the section "BP10" of `docs/plans/performance-pass-2026-11-06.md`):
   recorded position holds a lost town to check it against.
 - **Knobs**: `driver.focusOrders` (1, new; frozen with the rest of `driver.*`)
   replaces `driver.focusHoldTurns`.
+
+**Escorts for settlers, and a focus that changes by a margin** (bot batch BP11;
+`docs/flags.md` (ooooooo), the bullet "BP11"; the measurements are the section
+"BP11" of `docs/plans/performance-pass-2026-11-06.md`):
+
+- **A settler's cover is a soldier on its own hex** (`coverOn`, `bot.ts`). The
+  wild takes a civilian with no soldier on its hex (`isUnguarded`,
+  `barbarians.ts`). Before BP11 the bot counted any soldier of its own within
+  `war.escortRadius` (4) hexes, outside a town, as cover (`escortWithin`). The
+  settler's danger reading (`civilianDanger`) now asks for a soldier on the
+  hex, or the soldier the escort plan walks to its hex this turn. **A worker
+  keeps the old reading** (`civilianCover`): measured with the new one, workers
+  ran home far more often and started a fifth to two fifths fewer improvements
+  to turn 100, and the wild took as many of them.
+- **The escort plan** (`escortPlan`, read once for each revision of the board in
+  a sitting, `BotSitting.escorts`). Nothing is stored. The settlers are taken in
+  unit order, and each takes at most one soldier:
+  - **hold**: a settler in the field keeps the soldier on its hex;
+  - **chase**: a settler alone in the field takes the nearest free soldier that
+    reaches its hex this turn (or within `expansion.escortWaitTurns` turns when
+    the settler does not march);
+  - **meet**: a settler in one of the seat's towns, with a site to go to, takes
+    a free soldier on a hex beside the town and nearer the site, else one
+    already marching to such a hex, else the nearest with a route to one within
+    `expansion.escortWaitTurns` turns.
+
+  A free soldier (`freeEscort`) is a field soldier of the seat on land, as fast
+  as a settler, healthy (not asked for a chase), not needed in its town
+  (`isRedundant`) and not at a camp's door. A chase or a meet needs every town
+  of the seat held first (`townsAreHeld`).
+- **The soldier's side** (`escortDuty`, early in `soldierCommand`, after the two
+  heal arms and before every blow and march): a soldier in a job holds where its
+  job wants it (it sleeps on the settler's hex or on the hex beside the town)
+  or marches there. The old arm (`escortMarch`) sent the nearest soldier after a
+  lone settler from any distance; a soldier as fast as the settler never caught
+  one that walked on, so it is gone.
+- **The pair walks** (`walkWithSettlers`, first in housekeeping). When the
+  settler marches, its soldier walks after it in the same turn, before the wild
+  moves. A settler on a stored route walks at the end of the turn, after the
+  wild, and its soldier catches up early in the next turn. A settler with a
+  soldier on its hex sets out only when the soldier can reach the hex the
+  settler stops on this turn (`paceOf`), and otherwise waits a turn so the two
+  set out on full movement. When the soldier cannot follow even on full
+  movement (a rival's ground it may not enter), the settler goes. A settler
+  with an escort takes the best site that both have a route to (`marchToSite`).
+- **The departure** (`leaveTown`). A settler in its own town whose answer is a
+  march out steps onto the hex of its escort when the escort waits beside the
+  town, and waits in the town (asleep) while the escort is on its way. With no
+  free soldier within `expansion.escortWaitTurns` turns it leaves alone when
+  nothing hostile the seat can see stands within `expansion.roadDangerRadius`
+  of the next stretch of its road (`roadAhead`: the hexes it walks in its next
+  turn), and waits in the town when something does. A settler asleep in one of
+  its seat's towns claims a site like an awake one (`siteClaims`).
+- **The road, alone** (`setOut`, `marchToSite`). A settler alone in the field
+  does not take a site whose next stretch of road a visible hostile stands near;
+  with no site left it goes back to the nearest town and waits. A settler that
+  keeps its march stops keeping it when something hostile stands near the next
+  stretch of its stored route.
+- **The escort is the first garrison**: a settler about to found waits for the
+  soldier that reaches its hex this turn, so the new town has a defender.
+- **The expansion chain's escort step** is unchanged. It reads
+  `escortAvailable`, which now asks whether a settler has a soldier on its hex
+  or a free soldier exists, so a seat with no soldier to spare still prices one
+  when the next site is dangerous. The bot builds or buys no soldier for an
+  escort beyond that.
+- **The focus by a margin** (`driver.focusOrders` 2, `marginFocusCommand`). The
+  bot may change a town's focus at any time, through the same table as the
+  other setting, but only when the new focus wins by more than
+  `driver.focusMargin` points a turn (the lean's score against the balanced
+  ordering at nought), or when one of the table's two gates refuses a lean the
+  town has. A tie never changes a focus. The default setting is the one the
+  measurement of BP11 found best (the plan file's section "BP11").
+- **Knobs**: `expansion.escortWaitTurns` (2) and `expansion.roadDangerRadius`
+  (2), each with a row in `data/ai.bounds.json`; `driver.focusMargin` (10,
+  frozen with the rest of `driver.*`).
 
 ## Personas and tuning
 

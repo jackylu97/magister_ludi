@@ -1210,10 +1210,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * prophet is priced only for acts its arm takes. No rule changed. Duel
  * `3def2cf4:345268` -> `4da3f046:337488`, standard `b8fc7751:1046273` ->
  * `6a878f7e:1003339`.
+ *
+ * Re-cut for bot batch BP11 (`docs/flags.md` (ooooooo), the bullet "BP11").
+ * A settler's cover is a soldier on its own hex, a settler waits in its town
+ * for a soldier to walk with and leaves alone only when its next stretch of
+ * road is safe, the soldier walks after its settler in the same turn, and the
+ * escort becomes the new town's first garrison. The focus arm has a third
+ * setting, which the default does not use. No rule changed. Duel
+ * `4da3f046:337488` -> `4394b792:358774`, standard `6a878f7e:1003339` ->
+ * `6549b1b3:1032261`.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '4da3f046:337488',
-  standard: '6a878f7e:1003339',
+  duel: '4394b792:358774',
+  standard: '6549b1b3:1032261',
 };
 
 /**

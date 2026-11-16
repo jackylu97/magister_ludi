@@ -122,10 +122,29 @@ export interface AiConfig {
      *   - **0**: the bot sends no focus order, and every town keeps the
      *     balanced ordering. The user's plainer reading, kept so the two can be
      *     measured side by side.
+     *   - **2** (bot batch BP11): the bot may change a town's focus at any time,
+     *     but only when the new focus beats the one the town has by more than
+     *     `focusMargin`, and never on a tie. The user, 2026-11-15: *"maybe
+     *     having the bots change focus isn't a bad thing?"*.
      *
      * It replaces BP9's `focusHoldTurns`, a hold of five turns after an order.
      */
     focusOrders: number;
+    /**
+     * **The margin a new focus must win by** under `focusOrders` 2 (bot batch
+     * BP11), in the focus table's own unit: points a turn of the bot's value
+     * scale, the score of "work the hammers" against the balanced ordering at
+     * nought (`focusTable`, `bot.ts`).
+     *
+     * A town on the balanced ordering leans on the hammers when the lean scores
+     * more than this; a town that leans goes back when the lean scores less
+     * than minus this, or when one of the table's two gates refuses the lean
+     * (nothing the empire raises waits on hammers, or the town would not feed
+     * itself). BP9 found that the score moves from turn to turn with the price
+     * of the gold and science the lean gives up, so the margin is set above
+     * that movement (the plan file's section "BP11" has the measurement).
+     */
+    focusMargin: number;
   };
   search: {
     /**
@@ -274,6 +293,33 @@ export interface AiConfig {
      * on its border and nothing else.
      */
     hexOffersPriced: number;
+    /**
+     * **How long a settler waits in its town for a soldier to walk with it**
+     * (bot batch BP11, `docs/flags.md` (ooooooo), the bullet "BP11"; the user:
+     * *"the ai should try to escort its settler with military units"*).
+     *
+     * The wild takes a civilian that has no soldier on its own hex, so a
+     * settler leaves its town with one when it can. A settler ready to leave
+     * waits while a free soldier of the seat can reach a hex beside the town
+     * within this many turns, then steps out onto that soldier's hex and the
+     * two walk together. With no soldier that near, the settler leaves alone
+     * when nothing hostile the seat can see stands near its road, and waits in
+     * the town when something does. Nought means no settler waits for an
+     * escort; it still walks with a soldier that already stands beside the
+     * town. See `escortPlan` (`bot.ts`).
+     */
+    escortWaitTurns: number;
+    /**
+     * **How near the next stretch of a settler's road a hostile piece must
+     * stand to keep a settler with no escort from setting out** (bot batch
+     * BP11). The stretch is the hexes it walks in its next turn, and only what
+     * the seat can see counts (`roadAhead`, `bot.ts`). A raider moves two hexes
+     * and strikes the hex beside it, so two is the reach of one turn; a raider
+     * further off is read again as the settler walks, by the danger reading at
+     * `war.escortRadius`. At four, the first runs kept settlers in their towns
+     * and early expansion fell on two seeds of three.
+     */
+    roadDangerRadius: number;
   };
   /**
    * What a settler is looking for.
@@ -915,9 +961,16 @@ export interface AiConfig {
      */
     siegeExchange: number;
     /**
-     * What "a hostile is about" means to a settler, and how near a soldier has
-     * to be to count as its escort. One radius for both halves deliberately:
-     * they are the same question asked of two different pieces.
+     * What "a hostile is about" means to a civilian: how near a hostile piece
+     * must stand to a settler or a worker, to a site, or to a hex of a
+     * settler's road, to count as danger.
+     *
+     * Until bot batch BP11 it was also how near a soldier had to be to count as
+     * a civilian's escort. The wild takes any civilian with no soldier on its
+     * own hex (`isUnguarded`, `barbarians.ts`), so a soldier three hexes off was
+     * no cover, and the settlers the wild took nearly all stood alone with a
+     * raider beside them (the plan file's section "BP11"). Cover is now a
+     * soldier of ours on the civilian's own hex (`coverOn`, `bot.ts`).
      */
     escortRadius: number;
     /** Warscore below which this seat starts putting peace on the table. */

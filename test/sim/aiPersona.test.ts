@@ -230,8 +230,11 @@ describe('the persona sheet', () => {
         // Batch X6 (2026-09-09) added `hexOffersPriced` — a bound on how many
         // frontier hexes the book prices, not a gate on settling; it is listed
         // here because the register reads every key of the block. E1a made the
-        // falloff a row per age (`cityValueFalloffByAge`).
-        gates: ['cityValueFalloffByAge', 'hexOffersPriced', 'siteSearchRadius'],
+        // falloff a row per age (`cityValueFalloffByAge`). Bot batch BP11
+        // added `escortWaitTurns` and `roadDangerRadius`: when a settler waits
+        // for a soldier to walk with, and how near its road danger counts. They
+        // say when a settler sets out, not whether a town is worth settling.
+        gates: ['cityValueFalloffByAge', 'escortWaitTurns', 'hexOffersPriced', 'roadDangerRadius', 'siteSearchRadius'],
       });
     }
   });
