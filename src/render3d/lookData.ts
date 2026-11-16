@@ -2292,6 +2292,12 @@ export interface VisualTestSpec {
   };
   /** The mine, the quarry and the farm under the north-star look (`northStarWorks.js`). Sizes are in hex units. */
   works: {
+    /**
+     * `true` draws each work as its owner's age has it (`NORTH_STAR_WORK_AGES` in `northStarAssets.js`): the user,
+     * 2026-11-16, "the windmills feel out of place with the huts representing the city". `false` gives every work the
+     * one look it had before, at every age.
+     */
+    byAge: boolean;
     /** `false` draws the study's mine (the user, 2026-11-12: the new one "sticks up like a mound"). */
     newMine: boolean;
     mineSize: number; mineAt: number[]; quarrySize: number; quarryAt: number[];

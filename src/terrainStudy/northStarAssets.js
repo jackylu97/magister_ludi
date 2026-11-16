@@ -30,8 +30,41 @@ export const NORTH_STAR_GREAT_WORK_MODELS=true;
 export const NORTH_STAR_GREAT_WORKS=NORTH_STAR_GREAT_WORK_MODELS?{
  academy:'ns-academy',landmark:'ns-landmark',manufactory:'ns-manufactory',customsHouse:'ns-customs-house',citadel:'ns-citadel',holySite:'ns-holy-site',
 }:{};
+// What each work looks like in each age of its owner (the user, 2026-11-16:
+// "we should have alternate art for some of the improvements too, the windmills
+// feel out of place with the huts representing the city"). The key is the
+// improvement. A row has one entry for each of the four ages, the first age
+// first. `visualTest.works.byAge` in data/view3d.json turns the table on;
+// `false` gives every work the look it had before, at every age. An
+// improvement with no row looks the same in every age.
+// - farm: `store` is the building in the yard, and `size` is its footprint as a
+//   share of `works.barnSize`. `beside` is the model that stands in a row
+//   beside it, `count` times, at `besideSize` times `works.haystackSize`.
+//   `rack` adds the drying rack. `mill: true` lets the farm be one of the farms
+//   with a windmill (`works.windmillShare`).
+// - mine, quarry, lumbermill: the model that stands in for today's.
+// - pasture, plantation: `[model, scale]`. The pasture's is its shelter; the
+//   plantation's is its store.
+// Sizes that are not here are in `visualTest.works`.
+export const NORTH_STAR_WORK_AGES={
+ farm:[
+  {store:'ns-granary',size:.66,beside:'ns-sheaf',besideSize:1.15,count:3,rack:true},
+  {store:'ns-thatch-barn',size:1,beside:'ns-haystack',besideSize:1,count:2},
+  {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3},
+  {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
+ ],
+ mine:['ns-mine-pit','ns-mine-winch','mine','mine'],
+ quarry:['ns-quarry-cut','ns-quarry-frame','ns-quarry','ns-quarry'],
+ lumbermill:['ns-lumber-camp','ns-lumber-camp','lumbermill','lumbermill'],
+ pasture:[['ns-shelter',.72],['ns-shelter',.72],['ns-stable',.76],['ns-stable',.76]],
+ plantation:[['ns-granary',.9],['ns-thatch-barn',.6],['ns-barn',.6],['ns-barn',.6]],
+};
+// The number of age steps a row of the table has.
+export const NORTH_STAR_WORK_STEPS=4;
+// The models the table names that the list of works did not already carry.
+export const NORTH_STAR_AGED_WORK_ASSETS=['ns-granary','ns-rack','ns-thatch-barn','ns-mine-pit','ns-mine-winch','ns-quarry-cut','ns-quarry-frame','ns-shelter','ns-stable','ns-lumber-camp'];
 // The animals and the great works are loaded with the works, so the list of works carries them.
-export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];
+export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_AGED_WORK_ASSETS,...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];
 // The unit pieces of the north-star look (the user, 2026-11-14: "lets do a
 // single melee piece for now"). The key is a unit type, the value a model of
 // `scripts/terrain-study/build_northstar_units.py`. A type with no entry keeps

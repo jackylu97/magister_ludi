@@ -9,6 +9,7 @@ import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { FEATURE_IDS } from '../sim/terrainData';
 import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/improvementData';
 import { visibleResourceAt } from '../sim/tech';
+import { highestAge } from '../sim/techData';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { type FogLevels, levelAt } from './fog3d';
 import { type SuppressScope, SUPPRESS } from './instances';
@@ -18,6 +19,8 @@ import { terraceFarmGeometry } from './terraceFarmGeometry';
 import { terraceFarmSurface, TERRACE_LIFT } from './terraceFarmSurface';
 import { installHerdMotion } from './paintedAnimals';
 import { VIEW3D } from './lookData';
+// @ts-expect-error The reusable terrain art modules remain JavaScript.
+import { NORTH_STAR_WORK_AGES, NORTH_STAR_WORK_STEPS } from '../terrainStudy/northStarAssets.js';
 // @ts-expect-error The reusable approved art builder remains JavaScript.
 import { createSettlementArt } from '../terrainStudy/settlementArt.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
@@ -52,6 +55,8 @@ interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> 
 export interface PaintedWorksEntry {
   cell: number; resource: ResourceId | null; improvement: CoreImprovement | undefined; level: number;
   site?: string;
+  /** The age step the work is drawn at, 1 to 4, or 0 for a hex whose look has no steps. See `workAgeSteps`. */
+  step: number;
 }
 /** Alternate prop compositions share the same fog, batching and lifecycle. */
 export interface PaintedPropSource {
@@ -70,7 +75,7 @@ type Prop = { geometry: BufferGeometry; material: MeshStandardMaterial; matrix: 
 type Patch = { geometry: BufferGeometry; material: MeshStandardMaterial };
 type Recipe = {
   tile: Tile; original: Tile; resource: ResourceId | null; improvement: CoreImprovement | undefined;
-  site?: string;
+  site?: string; step: number;
   props: Prop[]; patches: Patch[]; placements: PaintedWorksPlacement[];
 };
 type PropBatch = { geometry: BufferGeometry; material: MeshStandardMaterial; props: Prop[]; cells: number[] };
@@ -102,6 +107,43 @@ const resourceOrdinal = new Map<ResourceId, number>(RESOURCE_IDS.map((id, index)
 const improvementOrdinal = new Map<string, number>(DRAWN_WORK_IMPROVEMENTS.map((id, index) => [id, index + 1]));
 const featureOrdinal = new Map<string, number>(FEATURE_IDS.map((id, index) => [id, index + 1]));
 
+/** The improvements that have a row in `NORTH_STAR_WORK_AGES`, so their look follows their owner's age. */
+const AGED_WORKS = new Set<string>(Object.keys(NORTH_STAR_WORK_AGES as Record<string, unknown>));
+
+/**
+ * The age step of the work on a hex: its owner's age, as a town's look is
+ * (`cityTier` in `cities3d.ts`), from 1 to `NORTH_STAR_WORK_STEPS`. The user,
+ * 2026-11-16: "the windmills feel out of place with the huts representing the
+ * city". A work on a hex that nobody owns takes the first step. The answer is 0
+ * when the look has no steps (`visualTest.works.byAge` off, or the north-star
+ * look off) and for an improvement with no row in the table, so those hexes
+ * never rebuild for an age.
+ *
+ * This is the one reading. `signPaintedWorks` asks it to decide when to draw
+ * again and `PaintedWorksLayer.build` asks it to decide what to draw, so the
+ * two cannot disagree. It returns a function of the cell, made once for a walk
+ * of the map: the owners and their ages are looked up once, not once a hex.
+ */
+export function workAgeSteps(state: GameState): (cell: number, improvement: string | undefined) => number {
+  if (!VIEW3D.visualTest.northStar || !VIEW3D.visualTest.works.byAge) return () => 0;
+  const cityOwner = new Map<number, number>();
+  for (const city of state.cities) cityOwner.set(city.id, city.ownerId);
+  const ages = new Map<number, number>();
+  return (cell, improvement) => {
+    if (!improvement || !AGED_WORKS.has(improvement)) return 0;
+    const cityId = state.tileOwner[cell];
+    const owner = cityId === null || cityId === undefined ? undefined : cityOwner.get(cityId);
+    if (owner === undefined) return 1;
+    let age = ages.get(owner);
+    if (age === undefined) {
+      const player = state.players[owner];
+      age = player ? Math.max(1, Math.min(NORTH_STAR_WORK_STEPS as number, highestAge(player.techsResearched))) : 1;
+      ages.set(owner, age);
+    }
+    return age;
+  };
+}
+
 /** Only presentation facts: hidden veins and simulation RNG never participate. */
 export function signPaintedWorks(state: GameState, seat: number | null = null): number {
   let hash = 2166136261;
@@ -110,7 +152,8 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
   // One answer per resource row rather than one per hex: whether this seat can
   // name a resource is an empire fact, and the map asks it four thousand times.
   const nameable = new Map<ResourceId, boolean>();
-  for (const tile of state.map.tiles) {
+  const stepAt = workAgeSteps(state);
+  for (const [cell, tile] of state.map.tiles.entries()) {
     const id = tile.resource;
     let resource = 0;
     if (id !== undefined) {
@@ -119,7 +162,10 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
       if (visible) resource = resourceOrdinal.get(id) ?? 0;
     }
     add(resource);
-    add(tile.improvement ? improvementOrdinal.get(improvementAt(tile)!) ?? 0 : 0);
+    const improvement = tile.improvement ? improvementAt(tile) : undefined;
+    add(improvement ? improvementOrdinal.get(improvement) ?? 0 : 0);
+    // The work's age step, so the works change when their owner enters a new age or the hex changes hands.
+    if (improvement) add(stepAt(cell, improvement));
     add(featureOrdinal.get(tile.feature) ?? 0);
   }
   for (const city of state.cities) { add(city.col); add(city.row); }
@@ -163,6 +209,7 @@ export class PaintedWorksLayer {
     const cityCells = new Set(state.cities.map(city => tileIndex(state.map, city.col, city.row)));
     const props = new Map<string, PropBatch>(), patches = new Map<string, PatchBatch>();
     const sites = this.source?.entries(state, seat);
+    const stepAt = workAgeSteps(state);
     for (const original of state.map.tiles) {
       const cell = tileIndex(state.map, original.col, original.row);
       const level = levelAt(levels, state.map, original.col, original.row);
@@ -171,9 +218,10 @@ export class PaintedWorksLayer {
       const resource = this.source || (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
       const improvement = this.source ? undefined : improvementAt(original), site = sites?.get(cell);
       if (!resource && !improvement && !site) { this.deleteRecipe(cell); continue; }
-      const entry = { cell, resource, improvement, site, level }; this.entries.push(entry);
+      const step = stepAt(cell, improvement);
+      const entry = { cell, resource, improvement, site, level, step }; this.entries.push(entry);
       let recipe = this.recipes.get(cell);
-      if (!recipe || recipe.tile !== tile || recipe.original !== original || recipe.resource !== resource || recipe.improvement !== improvement || recipe.site !== site) {
+      if (!recipe || recipe.tile !== tile || recipe.original !== original || recipe.resource !== resource || recipe.improvement !== improvement || recipe.site !== site || recipe.step !== step) {
         this.deleteRecipe(cell); recipe = this.createRecipe(original, tile, entry); this.recipes.set(cell, recipe);
       }
       this.placements.push(...recipe.placements);
@@ -259,7 +307,7 @@ export class PaintedWorksLayer {
   }
 
   private createRecipe(original: Tile, tile: Tile, entry: PaintedWorksEntry): Recipe {
-    const recipe: Recipe = { tile, original, resource: entry.resource, improvement: entry.improvement, site: entry.site, props: [], patches: [], placements: [] };
+    const recipe: Recipe = { tile, original, resource: entry.resource, improvement: entry.improvement, site: entry.site, step: entry.step, props: [], patches: [], placements: [] };
     // Resource-only cells never need field clipping. Avoid tessellating a
     // second world just to place their few instanced silhouettes.
     const terraced = entry.improvement === 'terraces';

@@ -183,6 +183,8 @@ export function signDrawnProps(entries: readonly PaintedWorksEntry[]): number {
     hash = hashText(hash, entry.resource ?? '');
     hash = hashText(hash, entry.improvement ?? '');
     hash = hashText(hash, entry.site ?? '');
+    // The age step picks the work's model, and another model casts another shadow.
+    hash = Math.imul(hash ^ entry.step, 16777619);
   }
   return hash >>> 0;
 }

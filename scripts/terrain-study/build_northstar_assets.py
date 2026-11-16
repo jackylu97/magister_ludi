@@ -13,6 +13,12 @@ nothing: `visualTest.northStar` in data/view3d.json picks which set is drawn.
 - ns-mine: a dark tunnel mouth with a timber frame in a round rock.
 - ns-quarry: pale stone cut in square steps, with a crane.
 - ns-barn, ns-haystack: the farm's building and its stacks.
+- ns-granary, ns-rack, ns-thatch-barn: the farm before the barn. A small store
+  on legs and a drying rack in the first age, a low straw barn in the second.
+- ns-mine-pit, ns-mine-winch: the mine before the pithead.
+- ns-quarry-cut, ns-quarry-frame: the quarry before the crane.
+- ns-shelter, ns-stable: the pasture's straw shed, and the stable that follows it.
+- ns-lumber-camp: the lumber camp before the saw shed.
 - ns-windmill, ns-windmill-sails: a tower mill for some farms. The sails are a
   separate model, flat in the X-Z plane round the origin, so the renderer can
   turn them about their hub (`visualTest.works.windmillHub`).
@@ -238,14 +244,128 @@ def stall():
   for y in [-.07,.07]:block((x,y,.15),(.016,.016,.30),TIMBER,.003)
  for i in range(5):block((-.12+i*.06,0,.31),(.06,.20,.022),AWNING if i%2==0 else WALL,.004)
 
-for name,author in [
+# --- Works of the earlier ages ------------------------------------------------
+# A work follows the age of its owner, as a town does (the user, 2026-11-16:
+# "the windmills feel out of place with the huts representing the city"). These
+# are the earlier steps. `NORTH_STAR_WORK_AGES` in
+# src/terrainStudy/northStarAssets.js says which model each age draws.
+BLADE=pigment('NS saw blade','aab4b8')
+def pole(a,b,r=.014,m=None,n=5):return tube([a,b],[r,r*.85],m or TIMBER,n)
+def basket(x,y,z,load,seed):
+ tube([(x,y,z),(x,y,z+.065)],[.032,.044],STRAW_DEEP,7);rock((x,y,z+.066),(.034,.034,.02),load,seed,1)
+
+def granary():
+ # The farm of the first age: a small round store on four legs, under a straw cone.
+ for x,y in [(-.07,-.07),(.07,-.07),(.07,.07),(-.07,.07)]:block((x,y,.04),(.032,.032,.08),TIMBER,.004)
+ cylinder((0,0,.092),.135,.03,TIMBER,8)
+ tube([(0,0,.105),(0,0,.19),(0,0,.25)],[.098,.118,.102],MUD,8)
+ cone(0,0,.235,.17,.045,STRAW_DEEP,8);cone(0,0,.262,.152,.21,STRAW,8)
+ block((0,-.112,.175),(.05,.02,.075),DOOR,.003)
+ pole((-.03,-.20,0),(-.03,-.115,.11),.009);pole((.03,-.20,0),(.03,-.115,.11),.009)
+def rack():
+ # A drying rack: two pairs of crossed poles, a rail, and bundles of grain hung over it.
+ for x in [-.17,.17]:
+  pole((x,-.07,0),(x,.02,.25));pole((x,.07,0),(x,-.02,.25))
+ pole((-.21,0,.218),(.21,0,.218),.012)
+ for i in range(5):
+  x=-.13+i*.065;m=STRAW if i%2==0 else STRAW_DEEP
+  block((x,0,.15),(.052,.085,.15),m,.010)
+def thatch_barn():
+ # The farm of the second age: a low, long barn with timber posts under a heavy straw roof.
+ block((0,0,.095),(.50,.30,.19),MUD,.016)
+ for x in [-.245,-.09,.09,.245]:block((x,-.152,.095),(.03,.022,.19),TIMBER,.004)
+ eaves(0,0,.18,.60,.40,STRAW_DEEP,.04);hip(0,0,.22,.57,.37,.25,STRAW,.55)
+ block((0,-.153,.08),(.13,.02,.16),DOOR,.004)
+
+def mine_pit():
+ # The mine of the first age: a hole dug into an outcrop, propped with three logs, and baskets of ore.
+ rock((0,.11,.07),(.25,.20,.18),ROCK,31)
+ rock((-.19,.13,.03),(.13,.13,.10),ROCK_LIGHT,33,1);rock((.19,.14,.02),(.12,.12,.09),ROCK,35,1)
+ block((0,-.06,.075),(.14,.12,.15),PIT,0)
+ for x in [-.09,.09]:pole((x,-.125,0),(x*.92,-.115,.20),.024,TIMBER,6)
+ pole((-.13,-.12,.195),(.13,-.12,.195),.024,TIMBER,6)
+ basket(.20,-.15,0,ORE,37);basket(.27,-.05,0,ORE,38)
+ rock((-.20,-.13,.0),(.085,.075,.05),ROCK_LIGHT,39,1)
+def mine_winch():
+ # The mine of the second age: a square shaft with a timber curb, and a windlass over it.
+ rock((-.04,.19,.05),(.24,.12,.13),ROCK,41,1);rock((.20,.17,.02),(.10,.10,.08),ROCK_LIGHT,43,1)
+ block((0,-.02,.03),(.27,.27,.06),TIMBER,.008);block((0,-.02,.061),(.19,.19,.006),PIT,0)
+ for x in [-.16,.16]:
+  pole((x,-.13,0),(x,-.02,.31),.02);pole((x,.09,0),(x,-.02,.31),.02)
+ tube([(-.20,-.02,.285),(.20,-.02,.285)],[.032,.032],TIMBER,7)
+ block((.225,-.02,.25),(.016,.016,.09),TIMBER,.002);block((.25,-.02,.21),(.05,.016,.016),TIMBER,.002)
+ tube([(0,-.02,.28),(0,-.02,.13)],[.006,.006],PIT,4)
+ tube([(0,-.02,.07),(0,-.02,.13)],[.032,.042],TIMBER,7)
+ block((-.24,-.17,.045),(.15,.11,.07),TIMBER,.008);rock((-.24,-.17,.09),(.06,.045,.03),ORE,45,1)
+ basket(.24,-.18,0,ORE,47)
+
+def quarry_cut():
+ # The quarry of the first age: a low face cut by hand, rough stone left above it, and a block on log rollers.
+ for w,d,h,x,y,m in [(.86,.70,.10,0,.04,CUT_SHADE),(.84,.22,.22,0,.28,CUT),(.22,.48,.20,-.31,.12,CUT)]:
+  block((x,y,h/2-.12),(w,d,h+.24),m,.012)
+ rock((.24,.30,.25),(.15,.09,.09),CUT_SHADE,51,1);rock((-.30,.28,.24),(.11,.10,.09),CUT_SHADE,53,1)
+ for x in [.04,.13,.22]:tube([(x,-.22,.12),(x,-.02,.12)],[.02,.02],TIMBER,6)
+ block((.13,-.12,.19),(.22,.15,.10),CUT,.010)
+ block((-.10,-.02,.135),(.11,.10,.07),CUT,.008);block((-.12,.12,.255),(.10,.09,.07),CUT,.008)
+ pole((.30,-.26,.10),(.20,-.06,.20),.012)
+def quarry_frame():
+ # The quarry of the second age: deeper steps, and two poles tied at the top to lift a block.
+ for w,d,h,x,y in [(.86,.70,.12,0,.04),(.86,.24,.27,0,.27),(.26,.70,.27,-.30,.04),(.50,.16,.39,-.16,.31)]:
+  block((x,y,h/2-.12),(w,d,h+.24),CUT if h>.2 else CUT_SHADE,.012)
+ block((.26,.04,.16),(.13,.12,.08),CUT,.008);block((-.02,.08,.16),(.12,.11,.08),CUT,.008)
+ top=(.14,-.16,.60)
+ pole((-.04,-.30,.12),top,.022,TIMBER,6);pole((.34,-.06,.12),top,.022,TIMBER,6);pole((.36,-.30,.12),top,.014)
+ tube([(.14,-.16,.58),(.14,-.16,.33)],[.006,.006],PIT,4)
+ block((.14,-.16,.28),(.11,.10,.09),CUT,.006)
+
+def straw_shed(x,y,w,d,h):
+ """An open shed: four short posts, a dark space, and a steep straw roof of two slopes that comes low. The ridge runs north to south, so the two slopes take different light and the open end faces the camera."""
+ for px in [-1,1]:
+  for py in [-1,1]:block((x+px*(w/2-.03),y+py*(d/2-.04),.05),(.028,.028,.10),TIMBER,.004)
+ block((x,y+.01,.045),(w-.09,d-.10,.09),DOOR,0)
+ eaves(x,y,.085,w+.03,d+.03,STRAW_DEEP,.03);gable(x,y,.112,w,d,h,STRAW,'y')
+ block((x,y-d/2-.002,.15),(w*.34,.012,.075),DOOR,.002)
+def shelter():
+ # The pasture of the early ages: an open straw shed and a water trough.
+ straw_shed(0,0,.34,.30,.26)
+ block((.02,-.24,.025),(.17,.055,.05),TIMBER,.006)
+def stable():
+ # The pasture of the late ages: a small stable of pale walls and tile, open at the front.
+ block((0,0,.015),(.40,.28,.03),STONE,.006)
+ block((0,.105,.115),(.36,.04,.19),WALL,.008)
+ for x in [-.16,.16]:block((x,-.005,.115),(.04,.21,.19),WALL,.008)
+ block((0,-.005,.10),(.28,.19,.15),DOOR,0)
+ eaves(0,0,.20,.44,.32,TILE_DEEP,.03);gable(0,0,.23,.42,.30,.13,TILE)
+ block((0,-.118,.115),(.03,.03,.19),TIMBER,.004)
+ block((.02,-.24,.025),(.17,.055,.05),STONE,.006)
+
+def lumber_camp():
+ # The lumber camp before the saw shed: a log on two trestles with a long saw in it, a block and axe, an open straw shed.
+ straw_shed(0,.13,.36,.26,.25)
+ for x in [-.13,.13]:
+  pole((x,-.20,0),(x,-.08,.15),.016);pole((x,-.08,0),(x,-.20,.15),.016)
+ tube([(-.23,-.14,.135),(.23,-.14,.135)],[.042,.042],TIMBER,7)
+ for x in [-.231,.231]:tube([(x-.002,-.14,.135),(x+.002,-.14,.135)],[.032,.032],STRAW,7)
+ block((.03,-.14,.215),(.012,.20,.07),BLADE,.002)
+ for y in [-.25,-.03]:block((.03,y,.235),(.016,.016,.07),TIMBER,.002)
+ cylinder((-.22,.0,.035),.045,.07,TIMBER,7);cylinder((-.22,.0,.071),.036,.004,STRAW,7)
+ block((-.22,.0,.12),(.012,.012,.10),TIMBER,.002);block((-.20,.0,.165),(.05,.012,.03),BLADE,.002)
+
+MODELS=[
  ('ns-sheaf',sheaf),('ns-logs',logs),('ns-stall',stall),
  ('ns-windmill',windmill),('ns-windmill-sails',windmill_sails),
  ('ns-house-1a',house_1a),('ns-house-1b',house_1b),('ns-house-1c',house_1c),
  ('ns-house-2a',house_2a),('ns-house-2b',house_2b),('ns-house-2c',house_2c),
  ('ns-house-3a',house_3a),('ns-house-3b',house_3b),('ns-house-3c',house_3c),
  ('ns-hall',hall),('ns-mine',mine),('ns-quarry',quarry),('ns-barn',barn),('ns-haystack',haystack),
-]:
+ ('ns-granary',granary),('ns-rack',rack),('ns-thatch-barn',thatch_barn),
+ ('ns-mine-pit',mine_pit),('ns-mine-winch',mine_winch),('ns-quarry-cut',quarry_cut),('ns-quarry-frame',quarry_frame),
+ ('ns-shelter',shelter),('ns-stable',stable),('ns-lumber-camp',lumber_camp),
+]
+# `--only=ns-rack,ns-granary` writes those models and leaves every other file as it is.
+ONLY=next((a[7:].split(',') for a in sys.argv if a.startswith('--only=')),None)
+for name,author in MODELS:
+ if ONLY and name not in ONLY:continue
  reset();author()
  bpy.ops.object.select_all(action='SELECT')
  bpy.context.view_layer.objects.active=next(o for o in bpy.context.scene.objects if o.type=='MESH')

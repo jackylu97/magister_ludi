@@ -55,6 +55,8 @@ export const SCENE_VIEWS = {
   pasture: { col: 13, row: 10, zoom: 9, label: 'The horse pasture, close' },
   herds: { col: 12, row: 8, zoom: 3.6, label: 'Herds: horses, cattle, camels, bison, elephants' },
   works: { col: 15, row: 10, zoom: 3.6, label: 'Farms, a mine and a quarry' },
+  ages: { col: 15, row: 6, zoom: 3.6, label: 'The eastern town with its works round it' },
+  agesClose: { col: 15, row: 6, zoom: 9, label: 'The eastern town with its works, close' },
   yields: { col: 16, row: 2, zoom: 3.6, label: 'Rich hexes: food, production, gold in three steps' },
   units: { col: 15, row: 13, zoom: 3.4, label: 'Pieces and a ship' },
   fog: { col: 9, row: 15, zoom: 2.4, label: 'Visible, remembered, uncharted' },
@@ -75,9 +77,10 @@ export const SCENE_RICHNESS: readonly [col: number, row: number, kind: 'food' | 
 /**
  * The scene's world. A fixture, never a saved game.
  *
- * `age` is the age both courts have reached: 1 or 2 gives them only the
+ * `age` is the age both courts have reached: 1, 2 or 3 gives them only the
  * technologies of those ages, so the towns show their earlier houses and
- * walls. Without it they know every technology.
+ * walls, and the works their earlier models. Without it, or at 4, they know
+ * every technology.
  */
 export function createSceneFixture(age?: number) {
   const state = newGame({ seed: 23, sizeName: 'duel', players: [
@@ -116,6 +119,8 @@ export function createSceneFixture(age?: number) {
   for (let row = 12; row <= 13; row++) for (let col = 15; col <= 17; col++) tile(col, row).feature = 'jungle';
   for (let row = 3; row <= 4; row++) for (let col = 10; col <= 12; col++) tile(col, row).feature = 'forest';
   tile(17, 11).hills = true;
+  // A hill for the mine and a wood for the lumber camp beside the eastern town.
+  tile(14, 7).hills = true; tile(16, 7).feature = 'forest';
   // On the shore: a hill and a wood beside the sea, and an island of one hex.
   tile(18, 5).hills = true; tile(18, 3).feature = 'forest';
   tile(20, 4).terrain = 'grassland';
@@ -149,6 +154,8 @@ export function createSceneFixture(age?: number) {
     [12, 2, 'furs'], [1, 1, 'silver'], [17, 10, 'cotton'], [4, 11, 'incense'],
     // More herds, for the `herds` view.
     [13, 11, 'cattle'], [10, 10, 'camels'], [11, 5, 'bison'], [12, 5, 'ivory'],
+    // For the works round the eastern town (the `ages` views).
+    [16, 6, 'cattle'], [15, 7, 'stone'], [17, 6, 'wine'],
   ];
   for (const [col, row, id] of resources) tile(col, row).resource = id;
   const works: [number, number, ImprovementId][] = [
@@ -158,6 +165,8 @@ export function createSceneFixture(age?: number) {
     [16, 8, 'manufactory'], [18, 5, 'customsHouse'], [5, 14, 'floatingGardens'],
     // A group of farms beside a mine and the quarry, for the `works` view.
     [15, 10, 'farm'], [16, 10, 'farm'], [15, 11, 'farm'], [17, 11, 'mine'], [16, 9, 'quarry'],
+    // Works round the eastern town, for the `ages` views: farms, a pasture, a mine, a quarry, a lumber camp, a plantation.
+    [16, 5, 'farm'], [17, 5, 'farm'], [17, 7, 'farm'], [16, 6, 'pasture'], [14, 7, 'mine'], [15, 7, 'quarry'], [16, 7, 'lumbermill'], [17, 6, 'plantation'],
     // A farm on the shore, for the `port` view.
     [18, 16, 'farm'],
     [13, 11, 'pasture'], [10, 10, 'pasture'], [11, 5, 'camp'], [12, 5, 'camp'],

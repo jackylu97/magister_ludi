@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {centre,tileShape,onTileTop} from './surface.js';
 import {surfacePatch} from './surfacePatch.js';
-import {NORTH_STAR_GREAT_WORKS} from './northStarAssets.js';
+import {NORTH_STAR_GREAT_WORKS,NORTH_STAR_WORK_AGES,NORTH_STAR_WORK_STEPS} from './northStarAssets.js';
 
 // The mine, the quarry and the farm of the north-star look (the visual test of
 // 2026-11-12, docs/flags.md (nnnnnnn), "Towns and works in the test scene").
@@ -76,8 +76,23 @@ export function northStarFarmPlan(tile,works){
  return {angle,yard:yard?.map(toHex),fields:usable.filter(p=>p!==yard).map(p=>p.map(toHex))};
 }
 
+/**
+ * What a work draws at this age of its owner: the entry of its row in
+ * `NORTH_STAR_WORK_AGES`. `step` is the owner's age, 1 to 4. With no step (the
+ * study page, or a caller that knows no owner) it is the last entry. It is
+ * nothing when the table is off (`works.byAge`) or the improvement has no row,
+ * and the caller then draws the work as it did before the table.
+ */
+export function northStarWorkAge(works,improvement,step){
+ if(!works?.byAge)return undefined;
+ const row=NORTH_STAR_WORK_AGES[improvement];
+ return row?.[Math.max(1,Math.min(NORTH_STAR_WORK_STEPS,step??NORTH_STAR_WORK_STEPS))-1];
+}
+
 export function northStarWork(works,{tile,entry,top,assets,patch,building,put,height,onBuilding}){
  const improvement=entry.improvement,c=centre(tile);
+ // A model the table names but the kit did not load is not drawn: the work keeps the model it had before.
+ const aged=northStarWorkAge(works,improvement,entry.step);
  // A mine or a quarry is one large model. It has its own floor, which reaches
  // below the ground line, so it sits into a slope with no plinth.
  const sunk=(name,[x,z],size)=>{
@@ -108,7 +123,7 @@ export function northStarWork(works,{tile,entry,top,assets,patch,building,put,he
   return true;
  }
  if(improvement==='mine')return works.newMine?sunk('ns-mine',works.mineAt,works.mineSize):false;
- if(improvement==='quarry')return sunk('ns-quarry',works.quarryAt,works.quarrySize);
+ if(improvement==='quarry')return sunk(assets[aged]?aged:'ns-quarry',works.quarryAt,works.quarrySize);
  if(improvement!=='farm')return false;
  const plan=northStarFarmPlan(tile,works),h=n=>hash(tile.col,tile.row,n);
  // Flat colour only: no rows, no strokes. Neighbouring plots never share a colour.
@@ -119,31 +134,44 @@ export function northStarWork(works,{tile,entry,top,assets,patch,building,put,he
  if(!plan.yard)return true;
  patch(plan.yard,works.yard,.007);
  const [mx,mz]=middle(plan.yard),ca=Math.cos(plan.angle),sa=Math.sin(plan.angle);
+ // The yard follows the age of the farm's owner. Before the table (`works.byAge` off) every farm is the last entry.
+ const yard=aged&&assets[aged.store]&&assets[aged.beside]?aged:{store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:works.haystacks,mill:true};
  // Some farms have a tower mill in place of the barn. Its sails are a separate
  // layer (`paintedSails.ts`), which finds the mill by this placement.
- if(assets['ns-windmill']&&h(7)<works.windmillShare){
+ if(yard.mill&&assets['ns-windmill']&&h(7)<works.windmillShare){
   const mill=assets['ns-windmill'];mill.computeBoundingBox();
   const span=mill.boundingBox.getSize(new T.Vector3());
   building('ns-windmill',mx,mz,works.windmillSize/Math.max(span.x,span.z),works.windmillYaw*(h(8)>.5?1:-1));
   return true;
  }
- const barn=assets['ns-barn'];barn.computeBoundingBox();
- const size=barn.boundingBox.getSize(new T.Vector3());
- building('ns-barn',mx,mz,works.barnSize/Math.max(size.x,size.z),-plan.angle);
- // The haystacks stand in a row beside the barn, along the strip.
- const stack=assets['ns-haystack'];stack.computeBoundingBox();
- const s=works.haystackSize/stack.boundingBox.getSize(new T.Vector3()).x;
- const inside=(x,z)=>plan.yard.every((p,i)=>{
+ const barn=assets[yard.store];barn.computeBoundingBox();
+ const size=barn.boundingBox.getSize(new T.Vector3()),barnSize=works.barnSize*yard.size;
+ building(yard.store,mx,mz,barnSize/Math.max(size.x,size.z),-plan.angle);
+ // The haystacks, or the sheaves of the first age, stand in a row beside the barn, along the strip.
+ const stack=assets[yard.beside];stack.computeBoundingBox();
+ const stackSize=works.haystackSize*yard.besideSize,s=stackSize/stack.boundingBox.getSize(new T.Vector3()).x;
+ const inside=(x,z,margin=stackSize*.35)=>plan.yard.every((p,i)=>{
   const q=plan.yard[(i+1)%plan.yard.length],cross=(q[0]-p[0])*(z-p[1])-(q[1]-p[1])*(x-p[0]);
   const turn=(q[0]-p[0])*(mz-p[1])-(q[1]-p[1])*(mx-p[0]);
-  return cross*turn>=0&&Math.abs(cross)/Math.hypot(q[0]-p[0],q[1]-p[1])>works.haystackSize*.35;
+  return cross*turn>=0&&Math.abs(cross)/Math.hypot(q[0]-p[0],q[1]-p[1])>margin;
  });
+ // The drying rack takes one side of the store, so the sheaves take the other.
+ const rack=yard.rack?assets['ns-rack']:null,sides=[1,-1];
+ if(rack){
+  rack.computeBoundingBox();
+  const rs=stackSize*1.9/rack.boundingBox.getSize(new T.Vector3()).x;
+  for(const side of [1,-1]){
+   const along=side*(barnSize*.5+stackSize*1.25),x=mx+along*ca,z=mz+along*sa;
+   if(!inside(x,z,stackSize*.5)||!onTileTop(tile,x,z,stackSize))continue;
+   put(rack,x,z,rs,-plan.angle+Math.PI/2);sides.splice(sides.indexOf(side),1);break;
+  }
+ }
  let placed=0;
- for(const side of [1,-1])for(const step of [1,2,3]){
-  if(placed>=works.haystacks)break;
-  const along=side*(works.barnSize*.5+works.haystackSize*(step-.3)*1.15),across=(h(10+placed)-.5)*.08;
+ for(const side of sides)for(const step of [1,2,3]){
+  if(placed>=yard.count)break;
+  const along=side*(barnSize*.5+stackSize*(step-.3)*1.15),across=(h(10+placed)-.5)*.08;
   const x=mx+along*ca-across*sa,z=mz+along*sa+across*ca;
-  if(!inside(x,z)||!onTileTop(tile,x,z,works.haystackSize*.6))continue;
+  if(!inside(x,z)||!onTileTop(tile,x,z,stackSize*.6))continue;
   put(stack,x,z,s*(.9+h(20+placed)*.25),h(30+placed)*6.28);placed++;
  }
  return true;

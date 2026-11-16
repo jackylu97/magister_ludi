@@ -5,7 +5,7 @@ import {
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadSettlementAssets } from '../terrainStudy/settlementAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
-import { NORTH_STAR_GREAT_WORKS, NORTH_STAR_HERDS, NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
+import { NORTH_STAR_AGED_WORK_ASSETS, NORTH_STAR_GREAT_WORKS, NORTH_STAR_HERDS, NORTH_STAR_HOUSES, NORTH_STAR_TOWN_ASSETS, NORTH_STAR_WORK_ASSETS } from '../terrainStudy/northStarAssets.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { loadVegetation, VEGETATION_SPECIES } from '../terrainStudy/vegetation.js';
 import { controls, element, slider } from './sheet';
@@ -46,6 +46,8 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = [
   // The six works of the great people (`build_northstar_great_works.py`).
   ...(Object.keys(NORTH_STAR_GREAT_WORKS as Record<string, string>).length ? [['Great works', Object.values(NORTH_STAR_GREAT_WORKS as Record<string, string>)] as const] : []),
   ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails', 'ns-sheaf', 'ns-logs', 'ns-stall']],
+  // The works of the earlier ages (`NORTH_STAR_WORK_AGES`): the farm's, the mine's, the quarry's, the pasture's and the lumber camp's.
+  ['Works of the earlier ages', NORTH_STAR_AGED_WORK_ASSETS as string[]],
 ];
 
 function releaseKit(kit: VegetationKit | undefined): void {

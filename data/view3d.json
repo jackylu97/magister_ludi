@@ -1788,6 +1788,7 @@
       "bigHouse": 0.85
     },
     "works": {
+      "byAge": true,
       "newMine": false,
       "mineSize": 1.0,
       "mineAt": [0, 0],

@@ -176,10 +176,12 @@ describe('the static shadow bake', () => {
 
 describe('the drawn-content signatures', () => {
   it('ignore an entry’s fog level and follow what stands on it', () => {
-    const base = [{ cell: 4, resource: null, improvement: 'farm' as const, level: VISIBLE }];
+    const base = [{ cell: 4, resource: null, improvement: 'farm' as const, level: VISIBLE, step: 1 }];
     expect(signDrawnProps([{ ...base[0]!, level: EXPLORED }])).toBe(signDrawnProps(base));
     expect(signDrawnProps([{ ...base[0]!, improvement: 'mine' as const }])).not.toBe(signDrawnProps(base));
     expect(signDrawnProps([{ ...base[0]!, cell: 5 }])).not.toBe(signDrawnProps(base));
+    // A work's model follows its owner's age (`workAgeSteps`), and a new model is a new shadow.
+    expect(signDrawnProps([{ ...base[0]!, step: 2 }])).not.toBe(signDrawnProps(base));
     expect(signDrawnProps([])).not.toBe(signDrawnProps(base));
   });
 
