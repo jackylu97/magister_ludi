@@ -62,6 +62,21 @@ export interface MouldedRailStyle {
   scale: { majorEvery: number; numerals: boolean; studs: boolean };
   /** The shade at the rail's foot on the table: its colour, its strength (0 to 1), how far it reaches on the south side and on the north side. */
   shade: { color: string; alpha: number; south: number; north: number };
+  /**
+   * The north rail only. The camera looks from the south, so at the north end it
+   * sees the rail's inner side and its tops, never its outer side. With the
+   * south's profile mirrored, the north rail read as flat stripes on the ground
+   * (the user, 2026-11-16: "It should really look like it's a table/board being
+   * viewed from the same angle as the camera. Maybe it can be slightly raised
+   * from the terrain"). So the north rail stands higher:
+   * - `raise` lifts the whole top, which gives a wall that faces the camera;
+   * - `lip` lifts the lip again, so its near face shows above the board;
+   * - `wall` says where the wall stands: `cut` at the hex points (it follows
+   *   them, and its shadow falls on the last row), or `behind` them (the apron
+   *   stays low and a straight wall rises where the board begins).
+   * Without this block the north rail is the south rail mirrored.
+   */
+  north?: { raise: number; lip: number; wall: string; /** The height of flat land's surface, where the wall's dark foot ends. */ ground: number; /** The shade the wall lays on the ground at its foot: how far it reaches onto the last row, its height (a little above `ground`), and its strength (0 to 1). */ shadeReach: number; shadeLift: number; shadeAlpha: number };
 }
 
 const ROOT3 = Math.sqrt(3);
@@ -165,8 +180,8 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
   const shadeMaterial = new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false });
   const period = ROOT3 * map.width;
   const scaleD = m.width / PROFILE_WIDTH, scaleY = m.rise / PROFILE_RISE;
-  const profile = PROFILE.map((p, i) => ({ ...p, d: p.d * scaleD, y: i === PROFILE.length - 1 ? -m.foot : p.y * scaleY }));
-  const apron = { chamferY: APRON.chamferY * scaleY, lipIn: APRON.lipIn * scaleD, lipOut: APRON.lipOut * scaleD, lipY: APRON.lipY * scaleY, ledgeIn: APRON.ledgeIn * scaleD, ledgeY: APRON.ledgeY * scaleY };
+  const flatProfile = PROFILE.map((p, i) => ({ ...p, d: p.d * scaleD, y: i === PROFILE.length - 1 ? -m.foot : p.y * scaleY }));
+  const flatApron = { chamferY: APRON.chamferY * scaleY, lipIn: APRON.lipIn * scaleD, lipOut: APRON.lipOut * scaleD, lipY: APRON.lipY * scaleY, ledgeIn: APRON.ledgeIn * scaleD, ledgeY: APRON.ledgeY * scaleY };
   const seamColor = new Color(m.seam), wornColor = new Color(m.worn), brass = new Color(m.brass), brassLight = new Color(m.brassLight), bed = new Color(m.bed);
 
   const positions: number[] = [], colors: number[] = [], rails: number[] = [];
@@ -179,6 +194,11 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
     const z0 = row * 1.5 + end * (1 + style.gap);
     const x0 = -ROOT3 / 2 + ROOT3 * shift;
     const at = (x: number, d: number, y: number): Point => [x, y, z0 + end * d];
+    // The north rail's own heights (see `north` on the style). Points 0 to 14 of the profile are above the ground; 8 to 14 are the lip.
+    const north = end < 0 ? m.north : undefined, raise = north?.raise ?? 0, wallAtCut = north !== undefined && north.wall !== 'behind';
+    const apronRaise = wallAtCut ? raise : 0;
+    const profile = flatProfile.map((p, i) => ({ ...p, y: p.y + (i > 14 ? 0 : (i === 0 ? apronRaise : raise) + (i >= 8 ? north?.lip ?? 0 : 0)) }));
+    const apron = { ...flatApron, chamferY: flatApron.chamferY + apronRaise, lipY: flatApron.lipY + apronRaise, ledgeY: flatApron.ledgeY + apronRaise };
     /** A flat face. `ref` says which way it looks, so the winding is right at both ends. */
     const face = (points: Point[], ref: Point, tones: Color | Color[], grain: number, seed: number): void => {
       const [a, b, c] = [points[0]!, points[1]!, points[2]!];
@@ -228,7 +248,21 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
         const band = (s0: number, y0: number, s1: number, y1: number, tone0: Color, tone1: Color, grain: number): void =>
           face([at(ax, ad + s0, y0), at(bx, bd + s0, y0), at(bx, bd + s1, y1), at(ax, ad + s1, y1)], outward(s0, y0, s1, y1), [tone0, tone0, tone1, tone1], grain, seed);
         // The cut side, dark at the foot: the shade where the rail meets the ground.
-        band(0, -m.foot, 0, apron.chamferY, toned(base, .34), toned(base, .7), .6);
+        if (apronRaise > 0) {
+          // A wall that faces the camera: dark where it meets the ground, then the wood's own tone up to the chamfer.
+          const ground = north!.ground, knee = ground + (apron.chamferY - ground) * .35;
+          band(0, -m.foot, 0, ground, toned(base, .3), toned(base, .4), .6);
+          band(0, ground, 0, knee, toned(base, .4), toned(base, .8), .8);
+          band(0, knee, 0, apron.chamferY, toned(base, .8), toned(base, 1.02), 1);
+          // The wall's shade on the ground. The board's shadow map does not show on the ground tiles, so the shade is laid
+          // here as the table's is: a strip that fades out, a little above flat land so the chart paper takes it too.
+          const reach = north!.shadeReach, lift = north!.shadeLift;
+          const strip = [at(ax, ad, lift), at(bx, bd, lift), at(bx, bd - reach, lift), at(ax, ad - reach, lift)];
+          for (const k of [0, 2, 1, 0, 3, 2]) {
+            shadePositions.push(...strip[k]!);
+            shadeColors.push(shadeColor.r, shadeColor.g, shadeColor.b, k < 2 ? north!.shadeAlpha : 0);
+          }
+        } else band(0, -m.foot, 0, apron.chamferY, toned(base, .34), toned(base, .7), .6);
         band(0, apron.chamferY, apron.lipIn, apron.lipY, toned(base, 1.08, true), toned(base, 1.08, true), .5);
         band(apron.lipIn, apron.lipY, apron.lipOut, apron.lipY, toned(base, 1), toned(base, 1), 1);
         band(apron.lipOut, apron.lipY, apron.ledgeIn, apron.ledgeY, toned(base, .72), toned(base, .72), .3);
@@ -261,7 +295,9 @@ export function buildMouldedMapEnds(map: GameMap, style: MapEndsStyle, m: Moulde
         if (member === 'board') boardJoints.push(west); else if (member === 'lip') lipJoints.push(west);
         for (let i = from; i < to; i++) {
           const p = profile[i]!, q = profile[i + 1]!, ref = outward(p.d, p.y, q.d, q.y);
-          const tone0 = toned(base, p.tone, p.worn), tone1 = toned(base, p.toneEnd ?? p.tone, p.worn);
+          // With the wall behind the points, the board's bevel is the wall: darker at its foot, on the apron.
+          const wall = i === 0 && north !== undefined && !wallAtCut;
+          const tone0 = toned(base, wall ? .55 : p.tone, p.worn), tone1 = toned(base, wall ? .95 : p.toneEnd ?? p.tone, p.worn);
           const grain = p.worn ? .5 : p.tone < .7 ? .3 : 1;
           face([at(west + half + slant(p.d), p.d, p.y), at(east - half + slant(p.d), p.d, p.y), at(east - half + slant(q.d), q.d, q.y), at(west + half + slant(q.d), q.d, q.y)], ref, [tone0, tone0, tone1, tone1], grain, seed);
           // The joint at the plank's west end: the same face, a little sunk and dark.

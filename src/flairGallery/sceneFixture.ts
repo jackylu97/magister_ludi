@@ -127,6 +127,8 @@ export function createSceneFixture(age?: number) {
   for (let row = 12; row <= 13; row++) for (let col = 15; col <= 17; col++) tile(col, row).feature = 'jungle';
   for (let row = 3; row <= 4; row++) for (let col = 10; col <= 12; col++) tile(col, row).feature = 'forest';
   tile(17, 11).hills = true;
+  // Tall things in the north's last row, to judge the map's end rail beside them.
+  tile(3, 0).terrain = 'mountain'; tile(12, 0).hills = true; tile(13, 0).hills = true; tile(14, 0).feature = 'forest';
   // A hill for the mine and a wood for the lumber camp beside the eastern town.
   tile(14, 7).hills = true; tile(16, 7).feature = 'forest';
   // On the shore: a hill and a wood beside the sea, and an island of one hex.

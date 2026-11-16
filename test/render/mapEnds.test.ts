@@ -21,20 +21,22 @@ function clearOfLastRow(x: number, z: number, map: GameMap): number {
   return d + fromCentre;
 }
 
-function measure(map: GameMap, style: MapEndsStyle): { draws: number; triangles: number; worst: number; minZ: number; maxZ: number; dispose(): void } {
+function measure(map: GameMap, style: MapEndsStyle): { draws: number; triangles: number; worst: number; shadeWorst: number; minZ: number; maxZ: number; dispose(): void } {
   const built = buildMapEnds(map, style);
-  let triangles = 0, worst = Infinity, minZ = Infinity, maxZ = -Infinity;
+  let triangles = 0, worst = Infinity, shadeWorst = Infinity, minZ = Infinity, maxZ = -Infinity;
   const meshes = built.group.children as Mesh[];
   for (const mesh of meshes) {
     const position = mesh.geometry.getAttribute('position');
     triangles += position.count / 3;
     for (let i = 0; i < position.count; i++) {
       const z = position.getZ(i);
-      worst = Math.min(worst, clearOfLastRow(position.getX(i), z, map));
+      // The shade strips are flat and transparent, and the north one lies on the last row on purpose. They are measured apart.
+      const clear = clearOfLastRow(position.getX(i), z, map);
+      if (mesh.name === 'map-ends-shade') shadeWorst = Math.min(shadeWorst, clear); else worst = Math.min(worst, clear);
       minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
     }
   }
-  return { draws: meshes.length, triangles, worst, minZ, maxZ, dispose: built.dispose };
+  return { draws: meshes.length, triangles, worst, shadeWorst, minZ, maxZ, dispose: built.dispose };
 }
 
 describe('the rails at the north and south ends of the map', () => {
@@ -51,6 +53,8 @@ describe('the rails at the north and south ends of the map', () => {
       expect(rail.triangles).toBeGreaterThan(0);
       // No vertex is over a hex of the last row; the gap is the smallest distance allowed.
       expect(rail.worst).toBeGreaterThanOrEqual(style.gap - 1e-4);
+      // The wall's shade reaches onto the last row by its own length and no more.
+      if (name === 'moulded') expect(rail.shadeWorst).toBeGreaterThanOrEqual(style.gap - (style.moulded!.north?.shadeReach ?? 0) - 1e-4);
       // There is a rail at each end: one north of the first row's points, one south of the last row's.
       expect(rail.minZ).toBeLessThan(-1);
       expect(rail.maxZ).toBeGreaterThan((height - 1) * 1.5 + 1);
@@ -73,8 +77,33 @@ describe('the rails at the north and south ends of the map', () => {
     // One rail mesh and one shade mesh for each of the three wrap copies.
     expect(moulded.draws).toBe(6);
     expect(plain.draws).toBe(12);
-    // Per wrap copy, on the largest map: under 100 triangles a column for both ends together.
-    expect(moulded.triangles / 3 / map.width).toBeLessThan(100);
+    // Per wrap copy: under 110 triangles a column for both ends together.
+    expect(moulded.triangles / 3 / map.width).toBeLessThan(110);
+  });
+
+  it('the north rail stands higher than the south rail: a wall at the cut and a taller lip', () => {
+    const map = mapOf(24, 18), built = buildMapEnds(map, { ...SHEET, style: 'moulded' });
+    const rail = (built.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!;
+    const position = rail.geometry.getAttribute('position'), north = SHEET.moulded!.north!;
+    // The highest point of each end, and the highest point on each end's cut (within a little of the hex points' line).
+    const top = { north: -Infinity, south: -Infinity }, cut = { north: -Infinity, south: -Infinity };
+    for (let i = 0; i < position.count; i++) {
+      const z = position.getZ(i), y = position.getY(i), end = z < (map.height - 1) * .75 ? 'north' : 'south';
+      top[end] = Math.max(top[end], y);
+      if (clearOfLastRow(position.getX(i), z, map) < SHEET.gap + 1e-3) cut[end] = Math.max(cut[end], y);
+    }
+    expect(top.north - top.south).toBeCloseTo(north.raise + north.lip, 4);
+    expect(cut.north - cut.south).toBeCloseTo(north.wall === 'behind' ? 0 : north.raise, 4);
+    // The wall shows above the ground by several times what the south's cut does.
+    expect(cut.north - north.ground).toBeGreaterThan(.15);
+    // Without the block, the north rail is the south rail mirrored.
+    const { north: _dropped, ...mirrored } = SHEET.moulded!;
+    const same = buildMapEnds(map, { ...SHEET, style: 'moulded', moulded: mirrored });
+    const samePosition = (same.group.children as Mesh[]).find(mesh => mesh.name === 'map-ends-rail')!.geometry.getAttribute('position');
+    let low = -Infinity, high = -Infinity;
+    for (let i = 0; i < samePosition.count; i++) { if (samePosition.getZ(i) < 10) low = Math.max(low, samePosition.getY(i)); else high = Math.max(high, samePosition.getY(i)); }
+    expect(low).toBeCloseTo(high, 5);
+    built.dispose(); same.dispose();
   });
 
   it('the moulded rail carries the grain attribute, and normals for the paint shader', () => {
