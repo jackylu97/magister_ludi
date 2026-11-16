@@ -442,3 +442,16 @@ The decisions, board by board. Iteration 3 applies them.
 - The collapsed view shows the technology's name, and a little more detail than today.
 - Try quicker ways to reach the faith screen. Two clicks through the panel is too slow.
 - The user's most-used buttons: diplomacy, trade routes and religion, then the standings.
+
+---
+
+## Queued for the redesign: diplomacy and the deal notice (the user, 2026-11-16)
+
+> "to queue with the UI redesign. We should make the diplomacy screen and deal notifier fit in with the design of the rest of the game (same UX elements and styling, it's a bit different currently). We should also grey out luxury resources for trade that the other person already has access to, and not show luxury resources that both players have access to altogether. I want to consider more diplomatic options in the future, so make sure that the UX is easily extendable."
+
+- **The diplomacy screen and the deal notice** take the same elements and styling as the rest of the game. Today they differ.
+- **Luxuries in a deal:**
+  - a luxury that the other player already has access to is shown greyed out;
+  - a luxury that both players have access to is not shown at all.
+- **Room to grow:** more diplomatic options will come, so the layout must take new kinds of deal item and new actions without a redesign.
+- A board for it joins the Scholar's Study canvas (`Diplomacy.dc.html`).
