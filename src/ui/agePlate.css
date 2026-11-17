@@ -83,7 +83,7 @@
 .age-plate-numeral {
   font-family: var(--face-display);
   font-weight: 400;
-  font-size: 120px;
+  font-size: var(--size-plate);
   line-height: 0.86;
   color: var(--plate-gilt-lit);
   animation: age-plate-seal 520ms var(--plate-ease) 220ms both;
@@ -138,7 +138,7 @@
 .age-plate-value {
   font-family: var(--face-ui);
   font-variant-numeric: lining-nums tabular-nums;
-  font-size: 20px;
+  font-size: var(--size-heading);
   font-weight: 600;
   line-height: 1;
   color: var(--plate-paper);
@@ -148,7 +148,7 @@
 .age-plate-label {
   font-family: var(--face-name);
   font-variant-caps: all-small-caps;
-  font-size: 12px;
+  font-size: var(--size-label);
   letter-spacing: 0.02em;
   color: rgba(247, 242, 225, 0.8);
   white-space: nowrap;
@@ -163,7 +163,7 @@
   border-radius: 3px;
   color: var(--plate-paper);
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 500;
   cursor: pointer;
   animation: age-plate-fade 300ms ease-out calc(760ms + var(--deed-count, 5) * 110ms + 160ms) both;

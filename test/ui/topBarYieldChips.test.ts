@@ -122,9 +122,13 @@ describe('the yield strip steps down before it overflows', () => {
   /** The `font-size` a rule sets, in px. */
   function figureSize(selector: string): number {
     const body = rule(css, selector);
-    const match = /font-size:\s*([\d.]+)px/.exec(body);
+    const match = /font-size:\s*(?:([\d.]+)px|var\(--size-([a-z]+)\))/.exec(body);
     if (!match) throw new Error(`No font-size on \`${selector}\``);
-    return Number(match[1]);
+    if (match[1] !== undefined) return Number(match[1]);
+    // A size on the type scale (batch SS8): its value is the token's, in `:root`.
+    const token = new RegExp(`--size-${match[2]}:\\s*([\\d.]+)px`).exec(css);
+    if (!token) throw new Error(`No --size-${match[2]} in :root`);
+    return Number(token[1]);
   }
 
   it('has two steps, each figure smaller than the step before it', () => {
