@@ -193,6 +193,7 @@ import {
   unitLabel,
   unweighed,
 } from './decision';
+import { inDecision } from './decisionMemo';
 import {
   type ImprovementPlan,
   buildImprovementPlan,
@@ -358,6 +359,7 @@ import {
   pathTurns,
   reachableTiles,
   tileMoveCost,
+  withFieldsHeld,
 } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
@@ -1782,6 +1784,17 @@ export function nextBotDecision(
   // takes may lean on the economy clock. `readingAtRest` tells the card
   // evaluator so, and the `empireYield` count then folds an empire once rather
   // than once a town. The answers are the same.
+  //
+  // **A decision writes nothing** (bot batch BP14), so two more scopes keep
+  // readings for the length of one decision: the search fields of each board
+  // (`withFieldsHeld`, `pathfind.ts`) and the card and effect prices on each
+  // context (`inDecision`, `decisionMemo.ts`). Each keeps an answer only where
+  // asking again would give the same one; their docblocks say why.
+  return withFieldsHeld(() => inDecision(() => decideAtRest(state, playerId, sitting)));
+}
+
+/** `decideNext`, asked inside the reader-at-rest scope. */
+function decideAtRest(state: GameState, playerId: number, sitting?: BotSitting): BotDecision | null {
   return readingAtRest(() => decideNext(state, playerId, sitting));
 }
 

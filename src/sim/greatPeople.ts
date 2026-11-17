@@ -1117,13 +1117,20 @@ export function agedActFactor(player: Player): number {
  *
  * Never negative: an empire whose treasury is being eaten alive still cannot be
  * charged for calling a scholar.
+ *
+ * **A reader at rest may hand in the books** (bot batch BP14): `readEmpireRates`
+ * (`readings.ts`) is this same fold, taken off the `readCity` lists and remembered
+ * on the economy clock, so the figure is the same. The bot prices every act of
+ * the five families several times a decision, and each fresh fold here priced
+ * every town of the empire again (3% of a late bot turn). The act itself and the
+ * interface pass nothing and fold fresh, as before.
  */
 export function actGainOf(
   state: GameState,
   playerId: number,
   voice: 'science' | 'culture',
+  rates: Readonly<{ sciencePerTurn?: number; culturePerTurn?: number }> = foldEmpireRates(state, playerId),
 ): number {
-  const rates = foldEmpireRates(state, playerId);
   const perTurn = voice === 'science' ? rates.sciencePerTurn : rates.culturePerTurn;
   return Math.max(0, Math.floor(perTurn ?? 0)) * Math.max(0, Math.floor(PEOPLE.actGainTurns));
 }

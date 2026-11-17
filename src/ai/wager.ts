@@ -80,6 +80,7 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms } from './decision';
+import { withGuard } from './decisionMemo';
 import {
   type ValueContext,
   explainEffects,
@@ -302,10 +303,14 @@ export function malicePrice(ctx: ValueContext): number {
   // Set before the walk: `explainEffects` reads a voice weight, and a voice
   // weight reads the lean, and a lean that asked for this again would recurse.
   MALICE_MEMO.set(ctx, 0);
-  let sum = 0;
-  for (const id of MALICE_IDS) sum += explainEffects(maliceDef(id).effects, ctx).total;
-  const mean = MALICE_IDS.length === 0 ? 0 : sum / MALICE_IDS.length;
-  const price = Math.max(0, -mean) * Math.max(1, ctx.ai.score.lumpTurns);
+  // Read inside a guard, because the memo holds a stand-in until it ends (bot
+  // batch BP14, `decisionMemo.ts`).
+  const price = withGuard(() => {
+    let sum = 0;
+    for (const id of MALICE_IDS) sum += explainEffects(maliceDef(id).effects, ctx).total;
+    const mean = MALICE_IDS.length === 0 ? 0 : sum / MALICE_IDS.length;
+    return Math.max(0, -mean) * Math.max(1, ctx.ai.score.lumpTurns);
+  });
   MALICE_MEMO.set(ctx, price);
   return price;
 }

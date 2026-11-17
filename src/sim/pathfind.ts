@@ -139,6 +139,7 @@ import {
   foldCardRulePercent,
 } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
+import { slateShadow } from './slate';
 import { atWar } from './wars';
 // Open borders, read at the same seam and for the same reason `atWar` is: one
 // clause in `closedBordersFor`, so the four readers of `stepCost` inherit it.
@@ -1477,6 +1478,137 @@ function standingBits(state: GameState, tile: Tile, ownerId: number): number {
  * Wrapping it in here would invent a blocker on the far side of the seam.
  */
 export function transitField(state: GameState, ownerId: number): TransitField {
+  const held = fieldsHeldFor(state);
+  if (held === null) return sweepTransitField(state, ownerId);
+  const kept = held.transit[ownerId];
+  heldFieldsTally.asked += 1;
+  if (kept !== undefined) {
+    heldFieldsTally.kept += 1;
+    if (slateShadow()) shadowField('transitField', ownerId, kept, sweepTransitField(state, ownerId));
+    return kept;
+  }
+  const fresh = sweepTransitField(state, ownerId);
+  held.transit[ownerId] = fresh;
+  return fresh;
+}
+
+// --- fields held for a reader that writes nothing (bot batch BP14) -----------
+
+/**
+ * **The two fields of a search, kept while a reader that writes nothing asks**
+ * (bot batch BP14, the decision-speed pass).
+ *
+ * Every search sweeps the board twice before its first step: `transitField`
+ * (who stands where, and what is a wall) and `zocField` (who holds ground). A
+ * bot decision asks many searches of one board that nothing moves. BP14 counted
+ * 3,069 transit sweeps and 4,267 zone sweeps in five late turns of seed 42, and
+ * 85% to 88% of them swept a board for a seat that had been swept already in
+ * the same decision.
+ *
+ * `withFieldsHeld` opens the scope, and the bot opens it around each decision
+ * (`nextBotDecision`, `src/ai/bot.ts`). Inside it each field is swept once for
+ * each board and seat, and kept until the outermost scope closes. Outside it,
+ * nothing is kept, so a command, a phase and the interface sweep fresh as
+ * before.
+ *
+ * **Why the kept field is the fresh one.** A field is a function of the board
+ * object it is asked of and the seat: `state.units`, `state.cities`,
+ * `state.wars`, `state.players` (the Great Wall's law), `state.tileOwner` and
+ * the map. A reader inside the scope writes to none of them on the real board.
+ * The boards it builds for itself (a copy with one piece moved, a copy with a
+ * town or a technology added) are new objects with their own entry, and each
+ * is written only as it is built, before any search is asked of it. The entry
+ * is also checked against the board's revision and the identity and length of
+ * the arrays it reads, so a board written in place is swept again. With the
+ * slate's shadow on (`setSlateShadow`) every kept field is swept again and
+ * compared.
+ */
+interface HeldFields {
+  revision: number;
+  units: readonly Unit[];
+  unitCount: number;
+  cities: GameState['cities'];
+  cityCount: number;
+  wars: GameState['wars'];
+  players: GameState['players'];
+  tileOwner: GameState['tileOwner'];
+  map: GameState['map'];
+  /** By seat id. */
+  transit: (TransitField | undefined)[];
+  /** By seat id. */
+  zoc: (ZocField | undefined)[];
+}
+
+let heldFields: WeakMap<GameState, HeldFields> | null = null;
+let heldDepth = 0;
+
+/**
+ * Fields asked inside the scope, and how many were answered from what it kept.
+ * For the measurement and the tests; nothing in a search reads it.
+ */
+export const heldFieldsTally = { asked: 0, kept: 0 };
+
+/**
+ * Runs `read` with the search fields kept for each board and seat. Only a
+ * reader that writes no board may open it. Nested scopes share the outer one,
+ * and everything kept is dropped when the outermost closes.
+ */
+export function withFieldsHeld<T>(read: () => T): T {
+  if (heldDepth === 0) heldFields = new WeakMap();
+  heldDepth += 1;
+  try {
+    return read();
+  } finally {
+    heldDepth -= 1;
+    if (heldDepth === 0) heldFields = null;
+  }
+}
+
+/** This board's kept fields, or `null` outside the scope. A board that changed starts afresh. */
+function fieldsHeldFor(state: GameState): HeldFields | null {
+  if (heldFields === null) return null;
+  const held = heldFields.get(state);
+  if (
+    held !== undefined &&
+    held.revision === state.revision &&
+    held.units === state.units &&
+    held.unitCount === state.units.length &&
+    held.cities === state.cities &&
+    held.cityCount === state.cities.length &&
+    held.wars === state.wars &&
+    held.players === state.players &&
+    held.tileOwner === state.tileOwner &&
+    held.map === state.map
+  ) {
+    return held;
+  }
+  const fresh: HeldFields = {
+    revision: state.revision,
+    units: state.units,
+    unitCount: state.units.length,
+    cities: state.cities,
+    cityCount: state.cities.length,
+    wars: state.wars,
+    players: state.players,
+    tileOwner: state.tileOwner,
+    map: state.map,
+    transit: [],
+    zoc: [],
+  };
+  heldFields.set(state, fresh);
+  return fresh;
+}
+
+/** The shadow check of a kept field: throws when a fresh sweep differs. */
+function shadowField(what: string, ownerId: number, kept: object, fresh: object): void {
+  const print = (field: object): string =>
+    JSON.stringify(field, (_key, value: unknown) => (value instanceof Uint8Array ? Array.from(value).join('') : value));
+  if (print(kept) === print(fresh)) return;
+  throw new Error(`field shadow: the kept ${what} for seat ${ownerId} is stale`);
+}
+
+/** `transitField`'s sweep, taken fresh. */
+function sweepTransitField(state: GameState, ownerId: number): TransitField {
   const { map } = state;
   const blocked = new Uint8Array(map.tiles.length);
   const occupied = new Uint8Array(map.tiles.length);
@@ -1573,6 +1705,23 @@ interface ZocField {
  * per hex of the map.
  */
 export function zocField(state: GameState, ownerId: number): ZocField {
+  // Kept for a reader that writes nothing (bot batch BP14); see `withFieldsHeld`.
+  const held = fieldsHeldFor(state);
+  if (held === null) return sweepZocField(state, ownerId);
+  const kept = held.zoc[ownerId];
+  heldFieldsTally.asked += 1;
+  if (kept !== undefined) {
+    heldFieldsTally.kept += 1;
+    if (slateShadow()) shadowField('zocField', ownerId, kept, sweepZocField(state, ownerId));
+    return kept;
+  }
+  const fresh = sweepZocField(state, ownerId);
+  held.zoc[ownerId] = fresh;
+  return fresh;
+}
+
+/** `zocField`'s sweep, taken fresh. */
+function sweepZocField(state: GameState, ownerId: number): ZocField {
   const { map } = state;
   const sources: Tile[] = [];
   const isSource = new Uint8Array(map.tiles.length);

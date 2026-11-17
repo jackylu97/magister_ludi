@@ -1,0 +1,189 @@
+/**
+ * **What bot batch BP14 keeps for one decision gives back only what a fresh
+ * reading would.**
+ *
+ * Two scopes keep readings for the length of one bot decision
+ * (`nextBotDecision`, `src/ai/bot.ts`):
+ *
+ *   - the card and effect prices on each context (`inDecision`,
+ *     `src/ai/decisionMemo.ts`; `explainCardEffects` and `explainEffects` in
+ *     `src/ai/value.ts`), kept under the guards open when each was taken;
+ *   - the two search fields of each board (`withFieldsHeld`,
+ *     `src/sim/pathfind.ts`; `transitField` and `zocField`).
+ *
+ * The digest pins in `aiDigest.slow.test.ts` hold for two whole games that the
+ * bots decide the same. These tests pin the rest:
+ *
+ *   - by case: what is kept, for how long, and that nothing is kept outside a
+ *     scope or handed across a guard;
+ *   - over a short game of real bot commands with both shadow checks on: every
+ *     kept answer is taken again at the moment it is handed back and must
+ *     equal it, and the memos did answer (or the walk proves nothing).
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import { valueContext } from '../../src/ai/bot';
+import {
+  decisionMemoTally,
+  inDecision,
+  keepingEpoch,
+  keepingScope,
+  setDecisionMemoShadow,
+  withGuard,
+} from '../../src/ai/decisionMemo';
+import { driveBots } from '../../src/ai/driver';
+import { explainCardEffects, explainEffects } from '../../src/ai/value';
+import { heldFieldsTally, transitField, withFieldsHeld, zocField } from '../../src/sim/pathfind';
+import { setSlateShadow, slateShadow } from '../../src/sim/slate';
+import { playerById } from '../../src/sim/state';
+import { ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
+import { createGame } from './newGameHelpers';
+
+const SEATS = [
+  { name: 'Ada', color: '#a00' },
+  { name: 'Bors', color: '#00a' },
+  { name: 'Cato', color: '#0a0', persona: 'warmonger' },
+  { name: 'Dido', color: '#aa0', persona: 'tall' },
+];
+
+function game(seed = 42) {
+  return createGame({ seed, sizeName: 'duel', players: SEATS as never, barbarians: true });
+}
+
+/** An Order whose row carries effects, so its price is a walk of them. */
+function someOrder() {
+  const id = ORDER_IDS.find((order) => (orderDef(order).effects ?? []).length > 1)!;
+  return { id, effects: orderDef(id).effects };
+}
+
+describe('the card prices kept for one decision', () => {
+  it('keeps a price inside one decision and nowhere else', () => {
+    const { state } = game();
+    const ctx = valueContext(state, playerById(state, 0)!);
+    const { id, effects } = someOrder();
+    // Outside a decision every ask is fresh: equal, and never the same object.
+    expect(keepingEpoch()).toBe(0);
+    const a = explainCardEffects(id, effects, ctx);
+    const b = explainCardEffects(id, effects, ctx);
+    expect(b).not.toBe(a);
+    expect(b).toEqual(a);
+    let first: unknown = null;
+    inDecision(() => {
+      const kept = decisionMemoTally.cardKept;
+      first = explainCardEffects(id, effects, ctx);
+      expect(explainCardEffects(id, effects, ctx)).toBe(first);
+      expect(decisionMemoTally.cardKept).toBe(kept + 1);
+      expect(first).toEqual(a);
+      // Nested scopes share the outer one.
+      inDecision(() => expect(explainCardEffects(id, effects, ctx)).toBe(first));
+    });
+    // The next decision starts empty.
+    inDecision(() => {
+      const again = explainCardEffects(id, effects, ctx);
+      expect(again).not.toBe(first);
+      expect(again).toEqual(a);
+    });
+  });
+
+  it('hands nothing across a guard', () => {
+    const { state } = game();
+    const ctx = valueContext(state, playerById(state, 0)!);
+    const { id, effects } = someOrder();
+    inDecision(() => {
+      expect(keepingScope()).toBe('');
+      const outside = explainCardEffects(id, effects, ctx);
+      let inside: unknown = null;
+      withGuard(() => {
+        expect(keepingScope()).not.toBe('');
+        // A price taken under a stand-in is kept under that guard alone.
+        inside = explainCardEffects(id, effects, ctx);
+        expect(inside).not.toBe(outside);
+        expect(explainCardEffects(id, effects, ctx)).toBe(inside);
+        // A second guard inside the first is a scope of its own.
+        withGuard(() => expect(explainCardEffects(id, effects, ctx)).not.toBe(inside));
+      });
+      expect(keepingScope()).toBe('');
+      expect(explainCardEffects(id, effects, ctx)).toBe(outside);
+      // A later guard is a new one, and does not see the first guard's prices.
+      withGuard(() => expect(explainCardEffects(id, effects, ctx)).not.toBe(inside));
+    });
+  });
+
+  it('keeps an effects price by its town and its list', () => {
+    const { state } = game();
+    const ctx = valueContext(state, playerById(state, 0)!);
+    const { effects } = someOrder();
+    const town = state.cities.find((city) => city.ownerId === 0);
+    inDecision(() => {
+      const plain = explainEffects(effects, ctx);
+      expect(explainEffects(effects, ctx)).toBe(plain);
+      // Another list with the same effects is not the same list.
+      expect(explainEffects([...effects], ctx)).not.toBe(plain);
+      if (town !== undefined) {
+        const here = explainEffects(effects, ctx, undefined, town);
+        expect(here).not.toBe(plain);
+        expect(explainEffects(effects, ctx, undefined, town)).toBe(here);
+        // A copy of the town is another town for the memo.
+        expect(explainEffects(effects, ctx, undefined, { ...town })).not.toBe(here);
+      }
+    });
+  });
+});
+
+describe('the search fields held for one decision', () => {
+  it('sweeps each board and seat once inside the scope, and afresh outside it', () => {
+    const { state } = game();
+    expect(zocField(state, 0)).not.toBe(zocField(state, 0));
+    withFieldsHeld(() => {
+      const zoc = zocField(state, 0);
+      const transit = transitField(state, 0);
+      expect(zocField(state, 0)).toBe(zoc);
+      expect(transitField(state, 0)).toBe(transit);
+      expect(zocField(state, 1)).not.toBe(zoc);
+      // A board of its own (a copy with the pieces moved) is swept for itself.
+      const copy = { ...state, units: state.units.map((unit) => ({ ...unit })) };
+      expect(zocField(copy, 0)).not.toBe(zoc);
+      expect(zocField(copy, 0)).toEqual(zoc);
+      // A board written in place is swept again.
+      const before = transitField(copy, 0);
+      copy.units.pop();
+      expect(transitField(copy, 0)).not.toBe(before);
+    });
+    const a = transitField(state, 0);
+    expect(transitField(state, 0)).not.toBe(a);
+    expect(transitField(state, 0)).toEqual(a);
+  });
+});
+
+describe('a short game of real bot commands, with both shadow checks on', () => {
+  it('hands back only what a fresh reading gives, and the memos answer', () => {
+    const played = game(7);
+    // The opening turns with no check, so the walk below reaches towns, cards
+    // and soldiers.
+    while (played.state.turn < 28 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
+    const cards = decisionMemoTally.cardKept;
+    const effects = decisionMemoTally.effectsKept;
+    const fields = heldFieldsTally.kept;
+    const slate = slateShadow();
+    setSlateShadow(true);
+    setDecisionMemoShadow(true);
+    let warnings = 0;
+    try {
+      while (played.state.turn < 36 && played.state.winnerId === null) {
+        driveBots(played, {
+          warn: () => {
+            warnings += 1;
+          },
+        });
+      }
+    } finally {
+      setDecisionMemoShadow(false);
+      setSlateShadow(slate);
+    }
+    expect(warnings).toBe(0);
+    expect(decisionMemoTally.cardKept - cards).toBeGreaterThan(0);
+    expect(decisionMemoTally.effectsKept - effects).toBeGreaterThan(50);
+    expect(heldFieldsTally.kept - fields).toBeGreaterThan(50);
+  }, 120_000);
+});

@@ -65,6 +65,7 @@ import type { AiConfig } from './aiConfig';
 // The seat's books, a type only: `armySupport.ts` is a leaf this file only names.
 import type { SeatBooks } from './armySupport';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
+import { decisionMemoShadow, decisionMemoTally, keepingEpoch, keepingScope, withGuard } from './decisionMemo';
 // **Type-only, and deliberately so.** `wants.ts` reads this module's folds at
 // runtime; this module only needs to *name* the book its context carries. The
 // import is erased at build, so the leaf stays a leaf — `statecraft.ts`'
@@ -121,7 +122,7 @@ import { atWarWithAnybody, fieldSoldiersOf, garrisonAt, garrisonOwed } from './c
 // The town's and the empire's published readings, remembered on
 // the economy clock. The bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do. See `readings.ts`.
-import { readCity, readEmpire } from '../sim/readings';
+import { readCity, readEmpire, readEmpireRates } from '../sim/readings';
 import {
   buildingProductionCost,
   // Bot batch BP7: the piece The Sword of State hands over.
@@ -1720,6 +1721,27 @@ export function explainEffects(
    */
   town?: City,
 ): Appraisal {
+  // **Kept for the decision** (bot batch BP14, `decisionMemo.ts`), as
+  // `explainCardEffects` is: the key is the context, the card and the town (the
+  // town by identity, because a caller may hand a copy of a town holding one
+  // more building), and the effects list by identity.
+  const kept = keptOn(EFFECT_PRICES_KEPT, ctx);
+  if (kept === null) return freshEffects(effects, ctx, card, town);
+  const key = `${card ?? ''}|${town?.id ?? ''}`;
+  const held = kept.get(key);
+  decisionMemoTally.effectsAsked += 1;
+  if (held !== undefined && held.town === town && sameEffects(held.effects, effects)) {
+    decisionMemoTally.effectsKept += 1;
+    if (decisionMemoShadow()) shadowKept('effects price', key, held.appraisal, freshEffects(effects, ctx, card, town));
+    return held.appraisal;
+  }
+  const appraisal = freshEffects(effects, ctx, card, town);
+  kept.set(key, { effects, town, appraisal });
+  return appraisal;
+}
+
+/** `explainEffects`' reading, taken fresh. */
+function freshEffects(effects: readonly CardEffect[], ctx: ValueContext, card?: CardId, town?: City): Appraisal {
   const terms: ValueTerm[] = [];
   for (const effect of effects) {
     // **One shape is priced as an appraisal rather than as a number** — a
@@ -5201,6 +5223,86 @@ export function explainCardEffects(
   effects: readonly CardEffect[],
   ctx: ValueContext,
   reading: CardReading = 'walk',
+): Appraisal {
+  // **Kept for the decision** (bot batch BP14, `decisionMemo.ts`): the same card
+  // on the same context and the same effects, asked again inside one decision,
+  // is the price already taken. The key is the context (by identity), the card,
+  // the reading and the effects list (by identity, or both empty).
+  const kept = keptOn(CARD_PRICES_KEPT, ctx);
+  if (kept === null) return freshCardEffects(id, effects, ctx, reading);
+  const key = `${id}|${reading}`;
+  const held = kept.get(key);
+  decisionMemoTally.cardAsked += 1;
+  if (held !== undefined && sameEffects(held.effects, effects)) {
+    decisionMemoTally.cardKept += 1;
+    if (decisionMemoShadow()) shadowKept('card price', key, held.appraisal, freshCardEffects(id, effects, ctx, reading));
+    return held.appraisal;
+  }
+  const appraisal = freshCardEffects(id, effects, ctx, reading);
+  kept.set(key, { effects, town: undefined, appraisal });
+  return appraisal;
+}
+
+/**
+ * **One decision's kept prices, on one context** (bot batch BP14): the
+ * `decisionMemo.ts` epoch and the board's revision they were taken at, and the
+ * prices by the guards open when each was taken (`keepingScope`) and then by
+ * key. A new epoch or revision starts an empty table. Maps for lookup only;
+ * nothing iterates them.
+ */
+interface KeptPrices {
+  epoch: number;
+  revision: number;
+  byScope: Map<string, Map<string, KeptPrice>>;
+}
+interface KeptPrice {
+  effects: readonly CardEffect[];
+  town: City | undefined;
+  appraisal: Appraisal;
+}
+const CARD_PRICES_KEPT = new WeakMap<ValueContext, KeptPrices>();
+const EFFECT_PRICES_KEPT = new WeakMap<ValueContext, KeptPrices>();
+
+/**
+ * This context's table for the current decision and the guards open now, or
+ * `null` outside a decision.
+ */
+function keptOn(memo: WeakMap<ValueContext, KeptPrices>, ctx: ValueContext): Map<string, KeptPrice> | null {
+  const epoch = keepingEpoch();
+  if (epoch === 0) return null;
+  let held = memo.get(ctx);
+  if (held === undefined || held.epoch !== epoch || held.revision !== ctx.state.revision) {
+    held = { epoch, revision: ctx.state.revision, byScope: new Map() };
+    memo.set(ctx, held);
+  }
+  const scope = keepingScope();
+  let table = held.byScope.get(scope);
+  if (table === undefined) {
+    table = new Map();
+    held.byScope.set(scope, table);
+  }
+  return table;
+}
+
+/** The same effects list: the same array, or two empty ones (`?? []` builds a new one each ask). */
+function sameEffects(a: readonly CardEffect[], b: readonly CardEffect[]): boolean {
+  return a === b || (a.length === 0 && b.length === 0);
+}
+
+/** The shadow check of a kept price (`setDecisionMemoShadow`): throws when the fresh price differs. */
+function shadowKept(what: string, key: string, held: Appraisal, fresh: Appraisal): void {
+  const was = JSON.stringify(held);
+  const now = JSON.stringify(fresh);
+  if (was === now) return;
+  throw new Error(`decision memo shadow: the kept ${what} for ${key} is stale\n  kept:  ${was.slice(0, 300)}\n  fresh: ${now.slice(0, 300)}`);
+}
+
+/** `explainCardEffects`' reading, taken fresh. */
+function freshCardEffects(
+  id: CardId,
+  effects: readonly CardEffect[],
+  ctx: ValueContext,
+  reading: CardReading,
 ): Appraisal {
   const stamped = reading === 'stamp' || hasFoldReadEngine(effects) ? explainStampFirst(id, effects, ctx) : null;
   // A follower or enhancer belief is always priced as a choice (bot batch BP5):
@@ -12197,6 +12299,13 @@ function chairReading(ctx: ValueContext): ChairReading {
   if (known !== undefined) return known;
   const empty: ChairReading = { bench: [], free: 0, card: 0, pace: 0 };
   CHAIR_WORTH_MEMO.set(ctx, empty);
+  // Read inside a guard: a price taken while the empty stand-in is in the memo
+  // is kept under this guard alone (bot batch BP14, `decisionMemo.ts`).
+  return withGuard(() => freshChairReading(ctx, empty));
+}
+
+/** `chairReading`'s first reading, taken while the memo holds the empty stand-in. */
+function freshChairReading(ctx: ValueContext, empty: ChairReading): ChairReading {
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return empty;
   const sc = player.statecraft;
@@ -12344,10 +12453,14 @@ function handRuleWorth(
   const held = memo.get(key);
   if (held !== undefined) return held;
   memo.set(key, 0);
-  const player = playerById(ctx.state, ctx.playerId);
-  const gain = player === undefined ? 0 : read(player, (id) => handCardPrice(id, ctx));
-  // Adding nought turns a -0 into 0, for a seat that buys no hands.
-  const worth = handsInForce(ctx) * gain + 0;
+  // Read inside a guard: a price taken while the stand-in nought is in the memo
+  // is kept under this guard alone (bot batch BP14, `decisionMemo.ts`).
+  const worth = withGuard(() => {
+    const player = playerById(ctx.state, ctx.playerId);
+    const gain = player === undefined ? 0 : read(player, (id) => handCardPrice(id, ctx));
+    // Adding nought turns a -0 into 0, for a seat that buys no hands.
+    return handsInForce(ctx) * gain + 0;
+  });
   memo.set(key, worth);
   return worth;
 }
@@ -13032,8 +13145,9 @@ export function explainActFor(
       if (aim === null) return null;
       // Turns of the empire's own science, off the act's own seam (`actGainOf`)
       // rather than a second reading of the books. Not aged, as the reducer's
-      // scholar arm is not: a rate already grows with the tree.
-      const beakers = actGainOf(state, player.id, 'science');
+      // scholar arm is not: a rate already grows with the tree. The books are
+      // handed in remembered (`readEmpireRates`, the same fold; bot batch BP14).
+      const beakers = actGainOf(state, player.id, 'science', readEmpireRates(state, player.id));
       return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
     }
     case 'engineer': {
@@ -13047,7 +13161,7 @@ export function explainActFor(
     }
     case 'artist': {
       if (here === null) return null;
-      const culture = actGainOf(state, player.id, 'culture');
+      const culture = actGainOf(state, player.id, 'culture', readEmpireRates(state, player.id));
       const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
       return appraise([
         nest(`${culture} culture into the basket`, explainLump({ culture }, ctx)),
@@ -13282,6 +13396,11 @@ function widerFitWorth(ctx: ValueContext): number {
   const held = WIDE_FIT_MEMO.get(ctx);
   if (held !== undefined) return held;
   if (WIDE_FIT_ASKING.has(ctx)) return 0;
+  return withGuard(() => widerFitReading(ctx));
+}
+
+/** `widerFitWorth`'s first reading, taken inside its guard (bot batch BP14, `decisionMemo.ts`). */
+function widerFitReading(ctx: ValueContext): number {
   WIDE_FIT_ASKING.add(ctx);
   try {
     const player = playerById(ctx.state, ctx.playerId);

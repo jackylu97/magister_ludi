@@ -2547,9 +2547,16 @@ function reachOf(
   item: PurchaseSubject,
   currency: BankCurrency,
 ): { price: number; outOfReach: boolean } | null {
+  // **The gate first, the price only where a row can stay** (bot batch BP14). Both
+  // are pure readings, so the order changes no answer: a row with no price is
+  // struck either way, and a row the gate refuses for a reason that is neither the
+  // bank nor a piece of the seat's own in the way (clause 3 below) is struck
+  // whatever it costs. Most refused rows are buildings a town holds or cannot
+  // raise, and their price is no longer folded.
+  const { refusal, shortfall } = purchaseGate(state, player.id, city.id, item, currency);
+  if (refusal !== null && shortfall === null && item.kind !== 'unit') return null;
   const price = explainPurchaseCost(state, player.id, city.id, item, currency);
   if (price === null) return null;
-  const { refusal, shortfall } = purchaseGate(state, player.id, city.id, item, currency);
   if (refusal === null) return { price: price.total, outOfReach: false };
   // 1 — the money clause: every other clause passed and only the bank is short.
   if (shortfall !== null) return { price: price.total, outOfReach: true };

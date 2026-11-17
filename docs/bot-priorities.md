@@ -935,6 +935,36 @@ the lending rule" of `docs/plans/performance-pass-2026-11-06.md`):
   figure. The receiver's last-copy clause (`asksOurLastCopy`) still counts the
   copies a seat uses, loans included.
 
+**Readings kept for one decision** (bot batch BP14, the decision-speed pass;
+`docs/flags.md`, the bullet "Queued after BP13: faster bot decisions"; the
+measurements are the section "BP14" of `docs/plans/performance-pass-2026-11-06.md`).
+No decision changes: the digest pins and the stored games of seeds 42 and 999
+hold.
+
+- **A decision writes nothing, so it keeps what it reads twice.**
+  `nextBotDecision` opens two scopes for the length of one decision:
+  - `withFieldsHeld` (`pathfind.ts`): each board's search fields
+    (`transitField`, `zocField`) are swept once for each seat and kept until the
+    decision ends. Before BP14 six searches in seven swept a board already
+    swept in the same decision.
+  - `inDecision` (`decisionMemo.ts`): a card price (`explainCardEffects`) and an
+    effects price (`explainEffects`) asked again on the same context, with the
+    same card, reading, effects list and town, is the price already taken.
+- **The guards.** Five context memos hold a stand-in value while they are first
+  read, so a reading that asks for them again does not recurse: `faithPrice`,
+  `malicePrice`, `chairReading`, `handRuleWorth` and `widerFitWorth`. Each reads
+  inside `withGuard`, and a price is kept under the guards open when it was taken
+  and handed back only under the same guards. So a price taken under a stand-in
+  is never handed to an ask outside it, and the other way round.
+- **A great person's act reads the remembered books.** `explainActFor` hands
+  `actGainOf` the empire's rates from `readEmpireRates`, the same fold remembered
+  on the economy clock, where the act folded every town again for each family.
+- **The purchasing plan asks the gate first** (`reachOf`, `wants.ts`), and
+  prices only a row the gate does not strike for good. The answers are the same.
+- **What it does not do.** Nothing is kept past one decision, nothing is stored
+  beside the state, and nothing changes a sentence the feed prints. The memos
+  have no knob.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

@@ -2912,3 +2912,183 @@ Six seats summed, both seeds summed; shares pooled. Two seeds show direction onl
 - Tests: `test/sim/borrowedLuxury.test.ts` and `test/sim/aiWorkerHold.test.ts` (new); `aiDiplomacy.test.ts` (three new), `resourceCopies.test.ts`, `explore.test.ts`, `aiDigest.slow.test.ts`, and the schema pin in fifteen files.
 - `docs/luxuries.md` and `docs/war-diplomacy.md` (the rule), `docs/bot-priorities.md`, and this section.
 - Scratch (not in the repo), in the session's scratch folder `bp13c/`: the probe `probe13c.ts` and `probe13c-detail.ts`, `digest.ts`, `queue.sh`, the tables `tables13c.py` (with BP13b's `analyse.py`), the trees `after/`, `j1/` and `j1h/`, and the after games in `out/` (`after-42.json`, `after-999.json`) and `out-detail/`.
+
+## BP14: the decision-speed pass, 2026-11-17
+
+`docs/flags.md`, the bullet "Queued after BP13: faster bot decisions, then the arena and the evolutionary tuner". The user: *"see if we can make the decisionmaking much more efficient"*, confirmed on 2026-11-17: *"yes go ahead with the bot decision speed pass"*. The rule of the batch: play does not change. Four changes, each keeping every answer the same; no knob, no data change and no rule change.
+
+### Method
+
+- **Trees.** The **base tree** is `e682002d` (the head of `decks`), a clean detached worktree. Its bot and simulation code equal `bdc74737` (BP13c): `git diff --stat bdc74737 e682002d -- src/sim src/ai data` shows card text (`statecraft/describers.ts`), two readers that only the orders screen calls (`cardIdleReason`, `cardCanPay`) and the renderer's `data/view3d.json`. The **new tree** is the working tree with this batch.
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on.
+- **Snapshots.** `snap14.ts` (scratch folder `bp14/`) plays a seed from turn 1 and saves the state with the bot's harness memories at turns 90 and 120. A restored game plays the same game: the seed 42 snapshot reached the stored digest of turn 100 (`813871d0:954523`).
+- **Profiles.** `prof14.ts` restores a snapshot and plays 11 turns under the inspector's CPU profiler (500 µs sampling). `profgroup.cjs`, `profkids.cjs`, `profparents.cjs` and `profcompare.cjs` read a profile by function name, by children and by callers.
+- **Counts.** A scratch copy of the base tree (`bp14/inst/`) wraps the readings in question in a census: calls, the calls whose key was asked before in the same revision, their time, and whether the second answer differed from the first.
+- **Timings.** `pair.ts` restores one snapshot into both trees and plays them a turn each in rotation in one process, several times over, with the first tree of each repeat alternating. CPU seconds by `process.cpuUsage`: the whole turn, and the bot's own time inside `nextBotDecision`. One game process at a time, `nice -n 15` under `caffeinate -i`.
+- **Machine.** Shared with two interface agents running browsers. The load average was 17 to 68 during step 0 and the first profiles, and 3 to 6 during the timings and the profiles below.
+
+### Step 0: did BP13c lower the yields?
+
+BP13c was measured on seeds 42 and 999, where production at turn 100 fell from 4,497 to 2,549, most of it on seed 42. The three missing seeds (1, 7, 2026) were played on the base tree with the baseline's `PROBE.ts` and stored in `/Users/jacky/code/webciv-baselines/bdc74737/six-seat-standard-t100/` with a note. Seed 42 played again gave the stored digests at turns 20, 50, 75 and 100. Before is `f10cb2fa` (BP13b), after is `bdc74737`. Six seats summed, turn 100. Paired is the geometric mean of the per-seed ratios with a 95% t interval.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 298 | 290 | −3% [−13%, +8%], 3 down, 2 up | 58→52, 64→69, 61→54, 63→61, 52→54 |
+| Citizens | 1,877 | 1,816 | −3% [−14%, +10%], 3 down, 2 up | 375→336, 442→435, 431→374, 360→382, 269→289 |
+| Food | 7,407 | 6,966 | −3% [−33%, +41%], 2 down, 3 up | 2,041→1,221, 1,675→1,741, 1,676→1,506, 1,195→1,478, 820→1,020 |
+| Production | 8,216 | 7,695 | −2% [−55%, +112%], 3 down, 2 up | 2,832→1,007, 1,665→1,542, 1,204→2,021, 1,496→1,479, 1,019→1,646 |
+| Gold | 3,396 | 3,040 | −11% [−40%, +30%], 2 down, 3 up | 936→534, 909→1,065, 592→431, 526→529, 433→481 |
+| Science | 5,798 | 5,120 | −10% [−49%, +60%], 2 down, 3 up | 1,752→758, 1,235→1,342, 794→1,144, 1,193→981, 824→895 |
+| Culture | 2,648 | 2,524 | −2% [−39%, +57%], 3 down, 2 up | 743→487, 438→648, 494→474, 625→432, 348→483 |
+| Faith | 941 | 1,120 | +21% [−37%, +131%], 1 down, 4 up | 308→159, 181→275, 154→169, 164→252, 134→265 |
+| Improvements started, turns 1 to 100 | 1,334 | 1,351 | −0% [−14%, +15%], 2 down, 3 up | 215→216, 322→339, 281→276, 294→336, 222→184 |
+| Workers built, turns 1 to 100 | 466 | 445 | −6% [−20%, +11%], 2 down, 2 up | 76→76, 104→106, 99→90, 103→109, 84→64 |
+| Workers taken (the wild and rivals) | 116 | 109 | −4% [−34%, +39%], 3 down, 2 up | 15→19, 19→18, 24→31, 22→18, 36→23 |
+| Bare worked share, turn 100 (pooled) | 23% | 20% | 4 down, 1 up | 37%→33%, 14%→12%, 26%→17%, 14%→11%, 25%→30% |
+
+- **Neither.** Over five seeds no figure moves with an interval that excludes nought, and every yield rises on two or three seeds of five. The fall BP13c saw is seed 42 alone: its before game was BP13b's outlier (2,832 production against 677 with two citizen sheets), and its after game is close to the other seeds.
+- **How sure.** Not sure that there is no effect: the intervals are wide (production −55% to +112%), so a real change of a fifth either way cannot be ruled out at this sample size. What five seeds show is that the two-seed fall was not a fall caused by the batch. The improvements, the share of them worked and the bare share moved the right way or not at all.
+- So the three changes were not turned off one by one.
+
+### 1. The profile before
+
+The base tree, turns 90 to 100 and 120 to 130, seeds 42 and 999, on the quieter machine. Shares of the profiled time. The bot's own time inside `nextBotDecision` is 72% to 77% of it, and the reducer 18% to 23%, of which the end of the turn is 14% to 19%.
+
+| Inclusive share | 42, t90 | 999, t90 | 42, t120 | 999, t120 |
+|---|---:|---:|---:|---:|
+| `valueContext` (once a sitting) | 29.5% | 28.9% | 25.7% | 26.7% |
+| of it `wantBook` (`purchasingPlan`, `draftPlan`, `faithPlan`) | 17.3% | 15.4% | 16.1% | 16.9% |
+| of it `liveChains` | 8.5% | 7.5% | 5.6% | 5.7% |
+| `techGoalTable` (its first ask in a sitting, through `reaimBeeline`) | 10.5% | 9.1% | 4.3% | 4.4% |
+| card prices (`explainCardEffects`, nested) | 15.9% | 14.4% | 18.3% | 23.3% |
+| `chairReading` (what a Wildcard chair is worth) | 8.4% | 5.2% | 0.3% | 1.4% |
+| the council (`orderDecision`, `slottingDecision`, `reslotDecision`) | 13.0% | 12.1% | 22.0% | 26.5% |
+| `cityCommand` | 6.7% | 6.1% | 7.3% | 7.4% |
+| `unitCommand` (worker, soldier, settler) | 10.8% | 8.4% | 8.1% | 7.1% |
+| `diplomacyDecision` | 3.8% | 4.2% | 4.6% | 4.7% |
+| `reaskTheMarch` | 3.4% | 2.9% | 2.7% | 2.2% |
+| path searches (`searchPath`) | 6.3% | 8.3% | 5.6% | 5.5% |
+| the two search fields (`transitField`, `zocField`) | 2.6% | 3.2% | 2.9% | 2.8% |
+| `reachOf` (the purchasing plan's gate and price) | 7.3% | 7.0% | 6.9% | 6.7% |
+| a great person's act (`explainActFor`) | 2.7% | 1.9% | 0.1% | 0.5% |
+| the escort plan (`contextEscortPlan`) | 1.6% | 1.3% | 1.6% | 0.9% |
+| the worker guards (`guardPlan`) | 2.3% | 0.7% | 1.4% | 0.9% |
+
+- **Self time is flat.** In seed 42's profile no function holds more than 2.6% of self time (`searchPath`, the collector, `slateMemo`, `liveReading`, `cityLocalEffects`, `explainCity`). The cost is spread over many readings.
+- **The first decision of a sitting is 42% of the bot's time** (seed 42, turns 90 to 95, split by decision: 36 sittings, 2.36 of 5.61 CPU seconds), most of it `valueContext` and the beeline's table. The last decision, which answers nothing and ends the turn, is another 11.5%, because it asks every arm once more.
+- **The census** (the base tree, seed 42, turns 90 to 94): of 6,153 card prices, 1,657 asked again in the same revision; of 4,267 zone sweeps and 3,069 transit sweeps, 88% and 84% swept a board already swept in the same revision; a great person's act folded the whole empire for each family on each ask. Building rows asked again inside one economy tick, across revisions, repeated 69 times in 13,611, so a longer memo would not pay there.
+- **Where the 15% rise of BP13b went.** The functions BP13b added or changed are 1.0% to 1.7% of a late turn together: `explainWorkerCraving` 0.2% to 0.4%, `rankPlanFor` 0.4% to 0.7% (with `citizenWouldWork` and `townSheetOf` inside it), `spokenFor` 0.1% to 0.3%, and `focusCommand` 0.2% to 0.3% (with `sheetTable` inside it). The plan walk (`walkImprovementPlan`, 3% to 4%) grew by about a tenth with the extra fold of each entry. The rest of the rise is the bigger games, as BP13b found: more towns, more units and more cards, read by the same code.
+
+### 2. The changes
+
+**A. The search fields are held for one decision** (`withFieldsHeld`, `transitField`, `zocField`, `src/sim/pathfind.ts`).
+
+- What: inside the scope, each board's two fields are swept once for each seat and kept until the outermost scope closes. `nextBotDecision` opens it. Outside it nothing is kept.
+- Why play is unchanged: a field is a function of the board object and the seat (`units`, `cities`, `wars`, `players`, `tileOwner`, the map). A bot decision writes nothing to the real board. The boards it builds for itself (`boardWithPieceOn`, the site ground of `plan.ts`, a peace probe, a board with a work) are new objects. Each is written only as it is built, before any search is asked of it. The entry is also checked against the revision and the identity and length of the arrays it reads, so a board written in place is swept again. With the slate's shadow on, every kept field is swept again and compared.
+- Tally, seed 42, turns 90 to 92: 2,701 asks, 2,207 kept.
+
+**B. Card and effects prices kept for one decision** (`inDecision`, `decisionMemo.ts`; `explainCardEffects`, `explainEffects`, `value.ts`).
+
+- What: a price asked again inside one decision, on the same context, with the same card, reading, effects list (by identity, or both empty) and town (by identity), is the price already taken.
+- **The guards.** Five context memos hold a stand-in value while they are first read, so that a reading which asks for them again does not recurse: `faithPrice`, `malicePrice`, `chairReading`, `handRuleWorth` and `widerFitWorth`. The census found 19 second asks in five turns whose answer differed from the first, all of this kind: The Jinshi inside the Doctrine offer (nought under the hand rule's stand-in, −1.8 to −13.1 after it), and a card that opens a chair inside the chair reading. So each of the five reads its value inside `withGuard`, which gives that reading a number of its own. A price is kept under the list of guards open when it was taken, and handed back only under the same list. A kept price saw every stand-in it read still in place, and every other memo it read already holding its final value, so asking again gives the same answer.
+- Why play is unchanged: inside one decision the board does not move, and a context memo keeps its value once it is set. The shadow check (`setDecisionMemoShadow`) takes every kept price again and throws when the two differ.
+- Tally, seed 42, turns 90 to 94: 6,153 card prices asked, 660 kept; 21,781 effects prices asked, 8,294 kept. Most of the census's 1,657 repeats cross a guard (a card priced by the draft plan and again inside the chair reading), so they cannot be shared without the fault above.
+
+**C. A great person's act reads the remembered books** (`actGainOf`, `src/sim/greatPeople.ts`; `explainActFor`, `value.ts`).
+
+- What: `actGainOf` takes the empire's rates as an optional argument, by default the fresh `foldEmpireRates`. The bot hands it `readEmpireRates`, the same fold taken off the `readCity` lists and remembered on the economy clock. The act itself and the interface pass nothing.
+- Why play is unchanged: `readEmpireRates` is `foldEmpireRates` at rest (batch P1), and the bot asks only at rest. The Universal Genius's price (`actThenWorkWorth`) asked five families' acts on every ask, each folding every town: 2.7% of seed 42's turns 90 to 100 before, 0.1% after.
+
+**D. The purchasing plan asks the gate first** (`reachOf`, `src/ai/wants.ts`).
+
+- What: `purchaseGate` is asked before `explainPurchaseCost`, and a row the gate refuses for a reason that is neither the bank nor a unit's blocker is struck without its price.
+- Why play is unchanged: both are pure readings. A row with no price is struck either way, and a row the gate refuses for such a reason was struck whatever it cost. `reachOf` fell from about 7% of a late turn to about 4%.
+
+**Tests.** `test/sim/aiDecisionMemo.test.ts` (new, core, 5 tests):
+
+- a price is kept inside one decision and nowhere else, and a nested scope shares the outer one;
+- nothing is handed across a guard, in either direction, and two guards are two scopes;
+- an effects price is kept by its town and its list;
+- the fields are swept once for each board and seat inside the scope and afresh outside it, a copy of the board gets its own field, and a board written in place is swept again;
+- a game of four bot seats on the duel board, played to turn 28 and then to turn 36 with both shadow checks on (the slate's, which disbelieves every kept field, and the decision memo's): every kept answer equals a fresh one at each hand-back, no command is refused, and the memos answered (more than 50 kept fields and effects prices, and some kept card prices).
+
+Two more checks on the late board, not in the suite: the decision memo's shadow over seed 42's turns 90 to 92 (six seats, 46 towns), and both shadows over turn 90 (60 seconds). Both gave the base tree's digests.
+
+### 3. Play is unchanged
+
+- `test/sim/aiDigest.slow.test.ts`: the pins hold unchanged (see "Pins").
+- Seeds 42 and 999, played from turn 1 on the new tree: the digests after turns 50 and 100 equal the stored games' (seed 42: `511f35d6:843434`, `813871d0:954523`; seed 999: `0186e46d:852974`, `796792fe:1011270`).
+- Every paired timing and every profile run reached the base tree's digests turn for turn (turns 90 to 100 and 120 to 130 on both seeds).
+
+### 4. Seconds a turn
+
+CPU seconds of the whole turn and of the bot inside `nextBotDecision`, the two trees in one process, a turn each in rotation, the first tree of each repeat alternating. Load average 3 to 5. The first repeat of each process carries the warm-up of both trees.
+
+| Window | Tree | Repeat 1 | Repeat 2 | Repeat 3 | Bot, repeats 1 to 3 |
+|---|---|---:|---:|---:|---|
+| 42, turns 90 to 100 (11 turns) | base | 17.28 | 12.10 | 11.16 | 13.43, 9.44, 8.75 |
+| | new | 16.39 | 10.73 | 10.79 | 12.72, 8.15, 8.23 |
+| 999, turns 90 to 100 | base | 25.45 | 17.12 | 15.97 | 19.87, 13.51, 12.59 |
+| | new | 23.67 | 15.95 | 15.34 | 18.35, 12.36, 11.94 |
+| 42, turns 120 to 125 (6 turns) | base | 22.62 | 18.74 | | 17.81, 14.60 |
+| | new | 21.05 | 16.18 | | 16.58, 12.26 |
+| 999, turns 120 to 125 | base | 44.00 | 33.43 | | 35.97, 27.27 |
+| | new | 42.42 | 27.35 | | 34.10, 21.95 |
+
+- **Turns 90 to 100: the turn is 3% to 11% cheaper, repeat by repeat, and the bot 5% to 14%.** Over the three repeats: seed 42, 6% (the bot 8%); seed 999, 6% (the bot 7%). Per turn over repeats 2 and 3: seed 42, 1.06 against 0.98 seconds; seed 999, 1.50 against 1.42.
+- **Turns 120 to 125: 4% to 18% cheaper, the bot 5% to 20%.** The warm second repeat gained more on both seeds (14% and 18%); two repeats cannot tell whether the late game gains more or the first repeat was noisier.
+- Single profile runs of turns 120 to 130 moved by up to a half between two runs of the same tree (the end of the turn, which this batch does not touch, read 5 and 10 seconds), so only the paired runs are used for seconds.
+
+The profile after, the same windows (inclusive share, before → after):
+
+| | 42, t90 | 999, t90 | 42, t120 | 999, t120 |
+|---|---|---|---|---|
+| `valueContext` | 29.5% → 26.2% | 28.9% → 25.5% | 25.7% → 24.7% | 26.7% → 25.4% |
+| `purchasingPlan` | 10.5% → 8.0% | 10.3% → 7.7% | 9.9% → 7.6% | 9.7% → 6.6% |
+| `reachOf` | 7.3% → 4.7% | 7.0% → 4.2% | 6.9% → 4.3% | 6.7% → 3.6% |
+| `chairReading` | 8.4% → 6.8% | 5.2% → 3.9% | 0.3% → 0.4% | 1.4% → 2.2% |
+| `explainActFor` | 2.7% → 0.1% | 1.9% → 0.1% | 0.1% → 0.3% | 0.5% → 0.1% |
+| `transitField` and `zocField` | 2.6% → 2.4% | 3.2% → 3.0% | 2.9% → 2.0% | 2.8% → 2.0% |
+| profiled seconds | 9.13 → 8.63 | 14.17 → 12.93 | see above | see above |
+
+### Found and left: savings that change play
+
+Each of these would make a decision read a figure other than the one it reads today, so none is built. The estimates are shares of the profiles above.
+
+- **One context for the book.** `valueContext` builds the want book, the chains and the chair reading on four contexts in turn (the prior, the engines, the constrained and the final), and each context's memos read again what the last one read, at other prices. Pricing all of it on one context would cut perhaps a third of `valueContext`: **about 8% of a late turn**.
+- **The beeline's table from the chains' node gifts.** `techGoalTable` prices every node's copies again on the final context after `liveChains` priced them on the engines context: **about 5% at turn 90**, less later.
+- **The chair reading once a sitting.** `chairReading` prices every card a hand can deal, on each context it is asked on: **3% to 7% at turn 90** while a Wildcard chair is open.
+- **Stamps kept for the sitting.** A slotting moves the economy clock, so every held card is stamped again on two boards at the next council decision. Keeping the stamps of the sitting's first reading would cut most of `slottingDecision` and `reslotDecision`: **about 10% at turns 120 to 130**, where the council is 22% to 27% of the turn.
+- **The last decision of a sitting.** It asks every arm once more and answers nothing: 11.5% of the bot's time. Skipping the arms whose last answer was nothing, while the command since cannot have changed it, needs a list of each arm's inputs, which this batch did not write.
+
+One simulation change keeps every answer but was not made: the empire reading's card lines (`explainEmpireCardYields`, inside `empireReading`) fold the whole empire again for a seat that holds a `pays` rate card (5.7% of seed 42's turns 120 to 130, about 1% elsewhere). Handing it `readEmpireRates` would give the same figure at rest, but `explainEmpireLines` is read by the yields doc's sync test and may be asked under a recursion cut, so it is left for a simulation batch.
+
+### Not done, and not measured
+
+- **The escort plan's two ways on** (BP13). On these games the plan is 0.9% to 1.6% of a late turn and the threat weights 0.2% to 0.3%, so the two ways would save under 1%. Not built.
+- **"Much less" was not reached.** The exact savings are about a tenth of a late bot turn. What is left is first-time work spread thin (part 1), and the larger savings above change play.
+- **Not measured**: 16 seeds; the duel; turns after 130; wall time (the machine was shared); the whole core tier, the build and the whole slow tier (the orchestrator's gates).
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`: duel `29663d27:358427`, standard `5be63c3e:1044882`, unchanged.
+
+### Checks
+
+- Type check clean (`nice -n 15 npm run typecheck`).
+- Narrow tests, by name, in one run: `aiDecisionMemo` (new) and the 46 files that read the code changed here or name its functions (`aiBot`, `aiWar`, `aiDiplomacy`, `aiWorkerClaims`, `aiWorkerHold`, `aiWorkerGuards`, `aiRouteMemo`, `aiEndCheckLoops`, `aiWants`, `verbs`, `test/mapgen/moduleCycles`, `aiModuleCycles`, `empireYieldAtRest`, `slateRegister`, `purchase`, `greatPeople`, `zoc`, `trade`, `pathfind`, `shoreAndDetour`, `naval`, `readings`, `aiAppraisal`, `aiCommissions`, `aiMagisterial`, `aiDevotion`, `aiCommerce`, `aiPrices`, `aiWager`, `aiCardStamp`, `aiSittingMemos`, `aiEscorts`, `aiScientific`, `aiPuppet`, `aiGarrison`, `aiBeliefChoice`, `aiThreatUpkeep`, `aiDecision`, `aiWonderRewards`, `statecraft`, `ranks`, `unrest`, `wonders`, and three deck files): 47 files, 2,164 tests passed.
+- Slow tier: `aiDigest.slow.test.ts` (the pins) and `aiWants.slow.test.ts`.
+
+### Files
+
+- `src/ai/decisionMemo.ts` (new): `inDecision`, `keepingEpoch`, `keepingScope`, `withGuard`, `decisionMemoTally`, `setDecisionMemoShadow`.
+- `src/ai/bot.ts`: `nextBotDecision` opens the two scopes; `decideAtRest`.
+- `src/ai/value.ts`: `explainCardEffects` and `explainEffects` through the kept prices (`keptOn`, `freshCardEffects`, `freshEffects`); the guards of `chairReading`, `handRuleWorth` and `widerFitWorth`; `explainActFor` hands `actGainOf` the remembered books.
+- `src/ai/prices.ts` (`faithPrice`) and `src/ai/wager.ts` (`malicePrice`): their guards.
+- `src/ai/wants.ts`: `reachOf` asks the gate first.
+- `src/sim/pathfind.ts`: `withFieldsHeld`, `heldFieldsTally`, and `transitField` and `zocField` through the held fields.
+- `src/sim/greatPeople.ts`: `actGainOf` takes the rates.
+- Tests: `test/sim/aiDecisionMemo.test.ts` (new); `test/sim/aiBot.test.ts` (the register of bot files).
+- `docs/bot-priorities.md`, and this section.
+- The baseline folder: `/Users/jacky/code/webciv-baselines/bdc74737/six-seat-standard-t100/` (seeds 1, 7 and 2026, and a note).
+- Scratch (not in the repo), in the session's scratch folder `bp14/`: `probe.ts` (the baseline's `PROBE.ts`), `step0.py`, `snap14.ts`, `prof14.ts`, `pair.ts`, `tally.ts`, `bydecision.ts`, `shadowrun.ts`, the profile readers, the queues, the snapshots in `snaps/`, the profiles in `prof/` and the logs in `logs/`. The two scratch trees (`base/` and `inst/`) were removed at the end.

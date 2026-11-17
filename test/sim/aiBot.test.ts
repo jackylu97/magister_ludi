@@ -1389,6 +1389,12 @@ describe('the bot module', () => {
     // escort plan, read at each revision of the board, does not search the same
     // routes again. It keeps nothing past the sitting and remembers nothing
     // beside the state, so it is not in `harnessMemory.ts`.
+    //
+    // Twenty-eight since bot batch BP14 (2026-11-17): `decisionMemo.ts` is a
+    // leaf with no imports. It is the scope in which a card or effects price is
+    // kept for one decision, and it names the guards under which a price may be
+    // handed back. It keeps nothing past the decision and nothing beside the
+    // state, so it is not in `harnessMemory.ts`.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1399,6 +1405,7 @@ describe('the bot module', () => {
       'council.ts',
       'dealMemory.ts',
       'decision.ts',
+      'decisionMemo.ts',
       'diplomacy.ts',
       'driver.ts',
       'focusRoll.ts',

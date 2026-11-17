@@ -17,6 +17,7 @@
 
 import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, nest, round, signed } from './decision';
+import { withGuard } from './decisionMemo';
 import type { ValueContext } from './value';
 
 import type { BuildingId } from '../sim/buildingData';
@@ -712,20 +713,24 @@ export function faithPrice(ctx: ValueContext): number {
   // want's own terms were folded at the prior and a re-entrant ask (a fold that
   // reads a faith weight while this one is still running) must not recurse.
   FAITH_PRICE_MEMO.set(ctx, table);
-  const rate = Math.max(1, ratesOf(ctx).faithPerTurn ?? 0);
-  const pool = Math.max(0, playerById(ctx.state, ctx.playerId)?.faithPool ?? 0);
-  let premium = 0;
-  for (const want of ctx.wants.faith) {
-    if (want.worth <= 0) continue;
-    const owed = Math.max(0, want.price - pool);
-    if (owed <= 0) continue;
-    const delay = want.delay + owed / rate;
-    const sooner =
-      delayDiscount(Math.max(0, want.delay + owed / (rate + 1)), ctx) - delayDiscount(delay, ctx);
-    if (sooner <= 0) continue;
-    premium += want.worth * sooner;
-  }
-  const price = Math.min(high, table + Math.max(0, premium));
+  // Read inside a guard, because the memo holds a stand-in until it ends (bot
+  // batch BP14, `decisionMemo.ts`).
+  const price = withGuard(() => {
+    const rate = Math.max(1, ratesOf(ctx).faithPerTurn ?? 0);
+    const pool = Math.max(0, playerById(ctx.state, ctx.playerId)?.faithPool ?? 0);
+    let premium = 0;
+    for (const want of ctx.wants.faith) {
+      if (want.worth <= 0) continue;
+      const owed = Math.max(0, want.price - pool);
+      if (owed <= 0) continue;
+      const delay = want.delay + owed / rate;
+      const sooner =
+        delayDiscount(Math.max(0, want.delay + owed / (rate + 1)), ctx) - delayDiscount(delay, ctx);
+      if (sooner <= 0) continue;
+      premium += want.worth * sooner;
+    }
+    return Math.min(high, table + Math.max(0, premium));
+  });
   FAITH_PRICE_MEMO.set(ctx, price);
   return price;
 }
