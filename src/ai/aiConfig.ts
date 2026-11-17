@@ -508,6 +508,22 @@ export interface AiConfig {
     smallCityPop: number[];
     /** What that premium is worth, in the one currency. */
     smallCityPremium: number;
+    /**
+     * **Whether the focus arm compares all four citizen sheets** (bot batch BP13b;
+     * the user, 2026-11-16: *"ok i see, lets use that approach"*). A switch, as a
+     * number so the arena panel shows it and the tuner may try both.
+     *
+     *   - **1** (the default): the arm prices the balanced, food, production and
+     *     gold sheets in the bot's own currency and picks the best
+     *     (`sheetTable`, `bot.ts`), with the game's starvation guard as it is.
+     *   - **0**: the arm compares the balanced sheet with the production sheet
+     *     only, as it did before BP13b (`focusTable`).
+     *
+     * Here rather than beside `driver.focusOrders` because the `driver` block is
+     * frozen for the tuner (`aiBounds.test.ts`), and a town's sheet decides how
+     * its citizens grow, which is this block's subject.
+     */
+    allFocusSheets: number;
   };
   /**
    * **The camp hunt** (bot pass 3, batch BP8; `docs/flags.md` (ooooooo) P5:

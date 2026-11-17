@@ -239,6 +239,7 @@ import {
   spareResourceCopies,
   sciencePrice,
   townProduction,
+  hammerPrice,
   hammerTerm,
   valueOfYields,
   yieldDelta,
@@ -344,7 +345,7 @@ import { improvementError, improvementErrorAt, prospectError } from '../sim/impr
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
-import { RULES, type CitizenFocus } from '../sim/rulesData';
+import { RULES, type CitizenFocus, type CitizenLean } from '../sim/rulesData';
 import { type TileYield, isWaterTerrain } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
 import {
@@ -2206,6 +2207,11 @@ function reaimBeeline(
  * chooses when the town starts a build and keeps that choice until the build is
  * finished or leaves the head of the queue (`focusRoll.ts`). With
  * `driver.focusOrders` at nought it sends no focus order at all.
+ *
+ * **Since bot batch BP13b the table holds all four sheets** (`sheetTable`): the
+ * food and gold sheets are priced beside the production sheet by the same
+ * arithmetic. `growth.allFocusSheets` at nought keeps the two-sheet table above
+ * (`focusTableFor`).
  */
 function focusCommand(
   state: GameState,
@@ -2237,7 +2243,7 @@ function focusCommand(
     const build = buildMarkOf(city);
     const chosen = focusChoiceFor(state, city.id);
     if (chosen !== null && chosen.focus === cityFocus(city) && stillOnBuild(chosen, build)) continue;
-    const table = focusTable(state, city, ctx);
+    const table = focusTableFor(state, city, ctx);
     // The choice is written down even when it is to keep the focus the town
     // has: that is the focus for this build too.
     noteFocusChoice(state, city.id, table.best, build);
@@ -2252,8 +2258,9 @@ function focusCommand(
         focus: table.best,
       },
       subject: townSubject(city),
-      summary:
-        table.best === 'production'
+      summary: table.four
+        ? sheetSentence(city, table)
+        : table.best === 'production'
           ? `${city.name} puts its people on the hills — the hammers are worth more to it than the ground they leave.`
           : `${city.name} goes back to the balanced ordering — nothing it is raising is waiting on hammers.`,
       candidates: table.candidates,
@@ -2261,6 +2268,19 @@ function focusCommand(
     };
   }
   return null;
+}
+
+/**
+ * What the four-sheet table's answer says in the feed (bot batch BP13b). The
+ * arithmetic is in the candidates; this names the sheet and its margin.
+ */
+function sheetSentence(city: City, table: FocusTable): string {
+  if (table.best === 'default') return `${city.name} goes back to the balanced ordering: no other sheet scores above it.`;
+  const score = table.sheets[table.best]?.score ?? 0;
+  return (
+    `${city.name} puts its people on the ${table.best} sheet: it scores ${round1(score)} over the balanced ` +
+    'ordering, the best of the four sheets.'
+  );
 }
 
 /**
@@ -2286,6 +2306,12 @@ function focusCommand(
  * of the gold and science it gives up, by more than the lean won or lost by,
  * so the answer flipped. The margin is the band that movement stays inside.
  * A town with a focus the bot does not use is put on the table's answer.
+ *
+ * **With all four sheets** (`growth.allFocusSheets`, bot batch BP13b) the rule is
+ * the same said once for every sheet: a town moves to the table's best sheet when
+ * that sheet scores more than `margin` above the sheet the town stands on, or when
+ * a gate refuses the sheet the town stands on. Anything else keeps the town where
+ * it is, and a tie never moves it. On two sheets this is the list above.
  */
 function marginFocusCommand(
   state: GameState,
@@ -2300,10 +2326,15 @@ function marginFocusCommand(
     if (city.ownerId !== player.id) continue;
     if (citizenFocusError(state, player.id, city) !== null) continue;
     if (own !== null && own.focused.has(city.id)) continue;
-    const table = focusTable(state, city, ctx);
+    const table = focusTableFor(state, city, ctx);
     const now = cityFocus(city);
     let to: CitizenFocus | null = null;
-    if (now === 'default') {
+    if (table.four) {
+      const standing = table.sheets[now];
+      const best = table.sheets[table.best];
+      const lead = (best?.score ?? 0) - (standing?.score ?? 0);
+      if (table.best !== now && (standing?.gated === true || lead > band)) to = table.best;
+    } else if (now === 'default') {
       if (table.best === 'production' && table.edge > band) to = 'production';
     } else if (now === 'production') {
       if (table.gated || table.edge < -band) to = 'default';
@@ -2317,8 +2348,9 @@ function marginFocusCommand(
       kind: 'focus',
       command: { type: 'setCitizenFocus', playerId: player.id, cityId: city.id, focus: to },
       subject: townSubject(city),
-      summary:
-        to === 'production'
+      summary: table.four
+        ? marginSheetSentence(city, table, now, band)
+        : to === 'production'
           ? `${city.name} puts its people on the hills: the hammers win by ${round1(table.edge)}, more than the ${round1(band)} a change must win by.`
           : table.gated
             ? `${city.name} goes back to the balanced ordering: the table refuses the lean.`
@@ -2330,18 +2362,58 @@ function marginFocusCommand(
   return null;
 }
 
+/** What a move under the margin says when the table holds four sheets (bot batch BP13b). */
+function marginSheetSentence(city: City, table: FocusTable, now: CitizenFocus, band: number): string {
+  const to = table.best === 'default' ? 'the balanced ordering' : `the ${table.best} sheet`;
+  const from = now === 'default' ? 'the balanced ordering' : `the ${now} sheet`;
+  if (table.sheets[now]?.gated === true) return `${city.name} moves to ${to}: the table refuses ${from}.`;
+  const lead = (table.sheets[table.best]?.score ?? 0) - (table.sheets[now]?.score ?? 0);
+  return `${city.name} moves to ${to}: it beats ${from} by ${round1(lead)}, more than the ${round1(band)} a change must win by.`;
+}
+
 /**
  * **The focus table of one town, for a reader outside the arm** (bot batch
  * BP11): the answer, the lean's score against the balanced ordering at nought
  * (`edge`), and whether a gate refused the lean. The tests and the
- * measurement of the margin read it.
+ * measurement of the margin read it. Since bot batch BP13b it is the table the
+ * arm reads (`focusTableFor`), so `sheets` holds every sheet it priced and
+ * `edge` and `gated` are the production sheet's.
  */
-export function focusReading(
-  state: GameState,
-  city: City,
-  ctx: ValueContext,
-): { best: CitizenFocus; edge: number; gated: boolean; candidates: BotCandidate[] } {
-  return focusTable(state, city, ctx);
+export function focusReading(state: GameState, city: City, ctx: ValueContext): FocusTable {
+  return focusTableFor(state, city, ctx);
+}
+
+/**
+ * **One town's focus table**, as the arm reads it: what each sheet it priced
+ * scores against the balanced ordering at nought, and the best of them.
+ *
+ * `edge` and `gated` are the production sheet's, which is the whole of the
+ * two-sheet table's answer. `sheets` holds every sheet priced, the balanced one at
+ * nought. `four` says which table answered.
+ */
+export interface FocusTable {
+  best: CitizenFocus;
+  edge: number;
+  gated: boolean;
+  candidates: BotCandidate[];
+  sheets: Partial<Record<CitizenFocus, { score: number; gated: boolean }>>;
+  four: boolean;
+}
+
+/**
+ * The table the seat's sheet asks for (bot batch BP13b): all four sheets
+ * (`sheetTable`) under `growth.allFocusSheets` 1, the balanced sheet against the
+ * production sheet (`focusTable`) under 0. The two-sheet table is the code that
+ * shipped before BP13b, unchanged, so the switch off plays the old arm.
+ */
+function focusTableFor(state: GameState, city: City, ctx: ValueContext): FocusTable {
+  if (ctx.ai.growth.allFocusSheets >= 1) return sheetTable(state, city, ctx);
+  const two = focusTable(state, city, ctx);
+  return {
+    ...two,
+    sheets: { default: { score: 0, gated: false }, production: { score: two.edge, gated: two.gated } },
+    four: false,
+  };
 }
 
 /** The town's build as the focus roll reads it: the head of its queue and the hammers toward it. */
@@ -2576,6 +2648,173 @@ function focusTable(
   if (best === 'production') lean.chosen = true;
   else plain.chosen = true;
   return { best, edge: lean.score, gated, candidates: [lean, plain] };
+}
+
+/** The three sheets that name a lean, in the order a tie between them is broken. */
+const LEAN_SHEETS: readonly CitizenLean[] = ['production', 'food', 'gold'];
+
+/** What a sheet's row is called in the table. */
+const SHEET_LABELS: Record<CitizenLean, string> = {
+  production: 'work the hammers',
+  food: 'work the harvest',
+  gold: 'work the coin',
+};
+
+/**
+ * **All four sheets, appraised** (bot batch BP13b; `growth.allFocusSheets` 1). The
+ * user, 2026-11-16: *"ok i see, lets use that approach"*, ruled as "the bot
+ * compares all four citizen sheets".
+ *
+ * `focusTable`'s comparison said once for each sheet a town can carry. The town's
+ * people are placed by the balanced sheet and by each of the food, production and
+ * gold sheets (`RULES.cities.citizenWeights`, `citizenFocusWeights`), through the
+ * simulation's own scorer, and each placement is priced against the balanced one
+ * in the bot's own currency:
+ *
+ *   - the yields it would make on the other hexes (`explainYields`);
+ *   - the hammer premium (`hammerTerm`) when the sheet makes more hammers, and the
+ *     premium it gives up when it makes fewer (`lostHammerTerm`), so a sheet that
+ *     leaves the hills is charged for the engines that wait longer;
+ *   - the growth it brings forward or puts off (`growthTerm`), which a food sheet
+ *     can win as well as lose;
+ *   - the two gates as they stand: the production sheet must be the chains' idea
+ *     (something this empire raises waits on hammers), and no sheet may starve the
+ *     town, which is the guard `assignCitizens` applies.
+ *
+ * The best sheet is the one that scores most above nought; a tie keeps the
+ * balanced ordering, and between two lean sheets the order of `LEAN_SHEETS` breaks
+ * it. **Finite as `focusCommand`'s docblock explains**: every reading here is a
+ * function of the board and of the sitting's frozen prices, and never of the
+ * sheet the town stands on, so acting on the answer cannot change it. The cheap
+ * half is asked first as `focusTable` asks it: where a sheet keeps no more food
+ * than the balanced one, the growth term can only subtract, so a sheet whose
+ * yields have already lost is not priced further.
+ */
+function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable {
+  const balanced = RULES.cities.citizenWeights;
+  const tiles = assignableTiles(state, city);
+  // The setup is `focusTable`'s, line for line, and its docblock says why each
+  // reading is the one it is: the ring's context hoisted, the town's books taken
+  // once, the seats to fill counted off the town's people, and the anchor read
+  // off the town's actual placement.
+  const ground = tileContextField(state, city.ownerId);
+  const books = readCity(state, city);
+  const seats = Math.min(
+    Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city),
+    tiles.length,
+  );
+  const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
+  // **Each hex folded once for the four sheets.** `rankTiles` and `bagOfTiles`
+  // each fold every hex again, and four sheets would fold the ring eight times.
+  // The ranking and the bags read the same `foldTile` answer here, in the same
+  // order and with the same tie-break, so the figures are the same ones.
+  const read = tiles.map((tile) => {
+    const folded = foldTile(tile, ground(tile));
+    return { tile, at: tileIndex(state.map, tile.col, tile.row), folded, bag: bagOfTileYield(folded) };
+  });
+  const rankBy = (weights: typeof balanced): typeof read =>
+    read
+      .map((row) => ({ row, score: yieldScore(row.folded, weights) }))
+      .sort((a, b) => b.score - a.score || a.row.at - b.row.at)
+      .map((scored) => scored.row);
+  const under = (order: typeof read): YieldBag => {
+    const bag: YieldBag = {};
+    for (const row of order.slice(0, Math.max(0, seats))) {
+      for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (row.bag[voice] ?? 0);
+    }
+    return bag;
+  };
+  const plainRank = rankBy(balanced);
+  const plainBag = under(plainRank);
+  // The town's food under a sheet is a function of the food the sheet's hexes
+  // make, so it is read once for each figure the sheets reach.
+  const fed = new Map<number, number>();
+  const foodUnder = (bag: YieldBag): number => {
+    const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
+    const held = fed.get(shift);
+    if (held !== undefined) return held;
+    const quote =
+      shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
+    const food = foldCity(state, city, [], null, quote).food;
+    fed.set(shift, food);
+    return food;
+  };
+
+  const rows: { focus: CitizenLean; candidate: BotCandidate; gated: boolean }[] = [];
+  for (const focus of LEAN_SHEETS) {
+    const bag = under(rankBy(RULES.cities.citizenFocusWeights[focus]));
+    const delta: YieldBag = {};
+    for (const voice of VOICES) delta[voice] = (bag[voice] ?? 0) - (plainBag[voice] ?? 0);
+    const terms: ValueTerm[] = [nest('what the people would make on the other hexes', explainYields(delta, ctx))];
+    const production = delta.production ?? 0;
+    const hammers = production > 0 ? hammerTerm(production, ctx) : lostHammerTerm(production, ctx);
+    if (hammers !== null) terms.push(hammers);
+    let gated = false;
+    if (foldTerms(terms) > 0 || (bag.food ?? 0) > (plainBag.food ?? 0)) {
+      const growth = growthTerm(state, city, ctx, plainRank[seats]?.tile, plainBag, bag, foodUnder);
+      if (growth !== null) terms.push(growth);
+      if (focus === 'production' && (hammers === null || hammers.value <= 0)) {
+        gated = true;
+        terms.push({ label: '× 0: nothing this empire is raising is waiting on hammers', value: 0, op: 'mul' });
+      }
+      if (foldTerms(terms) > 0 && foodUnder(bag) < foodUpkeep(city)) {
+        gated = true;
+        terms.push({ label: `× 0: ${city.name} would not feed itself on the ${focus} sheet`, value: 0, op: 'mul' });
+      }
+    }
+    rows.push({ focus, gated, candidate: { label: SHEET_LABELS[focus], score: foldTerms(terms), chosen: false, terms } });
+  }
+  const plain: BotCandidate = {
+    label: 'the balanced ordering',
+    score: 0,
+    chosen: false,
+    terms: [{ label: 'the balanced sheet, the baseline the others are measured from', value: 0 }],
+  };
+  let best: CitizenFocus = 'default';
+  let top = 0;
+  for (const row of rows) {
+    if (row.candidate.score > top) {
+      best = row.focus;
+      top = row.candidate.score;
+    }
+  }
+  const sheets: FocusTable['sheets'] = { default: { score: 0, gated: false } };
+  for (const row of rows) {
+    sheets[row.focus] = { score: row.candidate.score, gated: row.gated };
+    if (row.focus === best) row.candidate.chosen = true;
+  }
+  if (best === 'default') plain.chosen = true;
+  const lean = rows.find((row) => row.focus === 'production')!;
+  return {
+    best,
+    edge: lean.candidate.score,
+    gated: lean.gated,
+    candidates: [...rows.map((row) => row.candidate), plain],
+    sheets,
+    four: true,
+  };
+}
+
+/**
+ * **The hammer premium a sheet gives up**, as a printed term, or `null` (bot batch
+ * BP13b). `hammerTerm`'s mirror for a negative change: the same price
+ * (`hammerPrice`) over the table's weight, times the hammers lost.
+ *
+ * `hammerTerm` prices only a gain, because every candidate it was written for
+ * raises what a town makes. A sheet that moves the people off the hills lowers it,
+ * and comparing four sheets on the gain alone would favour every sheet that leaves
+ * the hills whenever engines are waiting on hammers.
+ */
+function lostHammerTerm(production: number, ctx: ValueContext): ValueTerm | null {
+  if (production >= 0) return null;
+  const price = hammerPrice(ctx);
+  const table = yieldWeight(ctx.ai, 'production', ctx.age);
+  const over = price - table;
+  if (over === 0) return null;
+  return {
+    label: `${round1(production)} hammers a turn, each worth ${round1(price)} to this empire against the table's ${round1(table)}`,
+    value: production * over,
+  };
 }
 
 /**

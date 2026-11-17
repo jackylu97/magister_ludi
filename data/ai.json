@@ -69,7 +69,8 @@
       9,
       9
     ],
-    "smallCityPremium": 9
+    "smallCityPremium": 9,
+    "allFocusSheets": 1
   },
   "camps": {
     "forceMargin": 1.5,

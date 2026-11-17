@@ -528,7 +528,8 @@ is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 row
   town, and a hex it would reach later than `workers.waitingTurns` (20) turns is not
   one it lays. Before, only the asking town's hexes counted, within
   `workers.planRadius`, and each spade on the board was charged to the town nearest
-  it. `workers.planRadius` is still read by the chain's renewal step.
+  it. `workers.planRadius` is still read by the chain's renewal step. Since bot
+  batch BP13b each spade walks the list by its own clock instead (below).
 - **A sleeping worker is asked again** (P6, `wakeIdleWorker`, housekeeping): once a
   turn (`BotSitting.roused`), and the answer is sent unless it is another sleep. A
   worker that slept when its ground was finished used to sleep on while the towns
@@ -844,6 +845,61 @@ measurements are the section "BP13" of `docs/plans/performance-pass-2026-11-06.m
   when the danger has passed.
 - **Knob**: `workers.guardTurns` (2; nought turns the guards off), with a row
   in `data/ai.bounds.json`.
+
+**The worker fixes from the bare-hex report, and four citizen sheets** (bot
+batch BP13b; `docs/flags.md` (ooooooo), the bullet "BP13b"; the report is
+`docs/plans/bare-worked-hexes-2026-11-16.md` and the measurements are the
+section "BP13b" of `docs/plans/performance-pass-2026-11-06.md`):
+
+- **The worker's choice shares the city's rule** (`rankPlanFor`,
+  `citizenWouldWork`, `plan.ts`). For each entry the worker asks the owning
+  town's own citizen scorer (`yieldScore` over the hex's yield with the
+  improvement on it, on the sheet the town carries) whether a citizen would
+  work the hex. A hex the town does not work counts when, improved, it outranks
+  the weakest hex the town works; a hex it works counts when the improvement
+  keeps or raises its score, or when it still outranks the best hex the town
+  leaves idle. Such an entry counts in full, worked today or not. Any other
+  entry counts only the part that needs no citizen (`PlanEntry.seatless`: the
+  seam it opens), and an entry with no such part is not on the list. The first
+  line of each row says which reading counted it. There is no share knob.
+- **What it reads.** The entry's improved yield and its town come with the
+  plan, which is remembered on the economy clock. The town's worked hexes,
+  scored on its sheet, are remembered while the clock and the town's focus
+  stand still (`townSheetOf`). A citizen that moves moves the clock, so the
+  reading is current at every ask. It does not see a seat a town has grown into
+  and not yet filled (one turn), and it reads `City.focus`, not the production
+  lean a town takes while a settler halts its growth.
+- **A luxury's opening is priced** (`seamOpeningTerms`). The first copy of a
+  luxury the empire cannot draw on today is worth `site.newLuxuryBonus`, through
+  the same door the site and hex arms use. Access needs no citizen, so an
+  unworked plantation keeps that much and does not fall below a worked farm by
+  accident.
+- **A march is a claim** (`spadeClaims`). A spade's march end is taken for the
+  other spades of its seat, as the hex a spade stands on already was; the plan
+  keeps the claimants by id (`ImprovementPlan.claims`), so a worker asked again
+  keeps its own target. Both are written again on every ask.
+- **The price counts the charges that will land** (`explainWorkerCraving`,
+  `spokenFor`). Each spade on the board takes its march end first, with its own
+  charges, however late it lands; a spade with no march takes the hex it stands
+  on only when that hex is seated. Then each walks the seated list by the new
+  spade's own rule (`walkTheList`): best first, at its stride, one dig a turn,
+  inside `workers.waitingTurns`. A spade queued in another town walks from that
+  town from the turn its queue would finish it (`turnsToBuild`). What no spade
+  reaches in time is left for the new one. The board's spades are walked once
+  a plan; the queues on every ask.
+- **The focus arm compares all four sheets** (`sheetTable`, `bot.ts`). The
+  balanced, food, production and gold placements are each priced against the
+  balanced one in the bot's currency: the yields, the hammer premium gained
+  (`hammerTerm`) or given up (`lostHammerTerm`), and the growth brought forward
+  or put off (`growthTerm`). The production sheet must still be the chains'
+  idea, and no sheet may starve the town. The best sheet above nought wins; a
+  tie keeps the balanced ordering. The answer does not depend on the sheet the
+  town stands on. Under `driver.focusOrders` 2 a town moves to the best sheet
+  when it leads the town's own sheet by more than the margin, or when a gate
+  refuses the town's sheet.
+- **Knob**: `growth.allFocusSheets` (1; nought is the two-sheet table that
+  shipped before BP13b), with a row in `data/ai.bounds.json`. It is in
+  `growth` rather than `driver` because `driver.*` is frozen for the tuner.
 
 ## Personas and tuning
 

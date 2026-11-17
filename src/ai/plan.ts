@@ -90,10 +90,13 @@ import {
 
 import {
   assignableTiles,
+  cityFocus,
   hasResource,
   improvementWouldOpenResource,
   tileCopies,
+  tileOwnerCityId,
   tileOwnerPlayerId,
+  turnsToBuild,
   yieldScore,
 } from '../sim/cities';
 // `improvementCountsAs`, `improvementForResource`, `isGreatPersonWork` and
@@ -115,8 +118,9 @@ import {
   seatSeesSleepingVein,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
+import { readCity } from '../sim/readings';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
-import { RULES } from '../sim/rulesData';
+import { type CitizenFocus, type CitizenWeights, RULES } from '../sim/rulesData';
 import { economyStamp, slateShadow } from '../sim/slate';
 import {
   type City,
@@ -124,6 +128,7 @@ import {
   type Player,
   type Unit,
   capitalCityOf,
+  cityById,
   createCity,
   playerById,
 } from '../sim/state';
@@ -150,7 +155,23 @@ export interface PlanEntry {
   /** Weighted value per turn, in the one currency. Folds from `terms`. */
   value: number;
   terms: ValueTerm[];
-  /** True while no worker of this empire is already standing on the hex. */
+  /**
+   * The part of `value` that needs no citizen on the hex (bot batch BP13b), and the
+   * terms it folds from: what the spade opens under the hex (`seamOpeningTerms`),
+   * or the whole of a survey. A seam the empire can draw on pays whether or not
+   * anybody works the hex; a farm's food does not.
+   */
+  seatless: number;
+  seatlessTerms: ValueTerm[];
+  /**
+   * The hex's yield with the improvement on it, through the owning town's own
+   * context, and that town's id (bot batch BP13b). `rankPlanFor` asks that town's
+   * citizen scorer about this yield. Both are `null` for a survey, and the town is
+   * `null` on ground no town owns.
+   */
+  improved: TileYield | null;
+  town: number | null;
+  /** True while no spade of this empire stands on the hex or marches to it. */
   unclaimed: boolean;
 }
 
@@ -159,6 +180,12 @@ export interface ImprovementPlan {
   entries: PlanEntry[];
   /** By `tileIndex`. The entry standing on a hex, when there is one. */
   byTile: Map<number, PlanEntry>;
+  /**
+   * By `tileIndex`, the spades of this empire that claim the hex: the ones standing
+   * on it and the ones whose march ends on it (bot batch BP13b). Written again on
+   * every ask, like `unclaimed`.
+   */
+  claims: Map<number, number[]>;
 }
 
 /**
@@ -184,11 +211,13 @@ export interface ImprovementPlan {
  *     `stepIsSeen`'s docblock;
  *   - the seams this empire holds (`hasResource`).
  *
- * The one read of a piece's position is `unclaimed`, through `workerHexes`, and a
- * plain order leaves the clock still while it moves a worker. So `unclaimed` is written
- * again on every ask, and it is the only thing that is. A reader must not hold a plan
- * across a command, because the next ask writes that bit on the same entries. No reader
- * writes anything else on a plan, and none keeps one past its own call.
+ * The reads of a piece's position are the claims, through `spadeClaims`: the hex a
+ * spade stands on and the hex its march ends on (bot batch BP13b). A plain order
+ * leaves the clock still while it moves a worker, so `unclaimed` and the plan's
+ * `claims` are written again on every ask, and they are the only things that are. A
+ * reader must not hold a plan across a command, because the next ask writes them
+ * on the same plan. No reader writes anything else on a plan, and none keeps one
+ * past its own call.
  *
  * What would make this wrong is a new read of a piece's position under an entry, or
  * a write to one of the fields above that does not move the clock. The shadow check
@@ -201,16 +230,17 @@ export function buildImprovementPlan(
 ): ImprovementPlan {
   const memo = memoOf(ctx);
   const economy = economyStamp(state);
-  const occupied = workerHexes(state, player.id);
+  const claims = spadeClaims(state, player.id);
   const held = memo.plan;
   if (held !== null && held.state === state && held.playerId === player.id && held.economy === economy) {
     for (const entry of held.plan.entries) {
-      entry.unclaimed = !occupied.has(tileIndex(state.map, entry.col, entry.row));
+      entry.unclaimed = !claims.has(tileIndex(state.map, entry.col, entry.row));
     }
-    if (slateShadow()) shadowCheckPlan(state, player, ctx, occupied, held.plan);
+    held.plan.claims = claims;
+    if (slateShadow()) shadowCheckPlan(state, player, ctx, claims, held.plan);
     return held.plan;
   }
-  const plan = walkImprovementPlan(state, player, ctx, occupied);
+  const plan = walkImprovementPlan(state, player, ctx, claims);
   memo.plan = { state, playerId: player.id, economy, plan };
   return plan;
 }
@@ -220,11 +250,11 @@ function shadowCheckPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  occupied: ReadonlySet<number>,
+  claims: Map<number, number[]>,
   held: ImprovementPlan,
 ): void {
   const remembered = JSON.stringify(held.entries);
-  const fresh = JSON.stringify(walkImprovementPlan(state, player, ctx, occupied).entries);
+  const fresh = JSON.stringify(walkImprovementPlan(state, player, ctx, claims).entries);
   if (remembered === fresh) return;
   throw new Error(
     `plan shadow: seat ${player.id}'s improvement plan is stale at turn ${state.turn}` +
@@ -238,7 +268,7 @@ function walkImprovementPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  occupied: ReadonlySet<number>,
+  claims: Map<number, number[]>,
 ): ImprovementPlan {
   // A row the leader, the cards or the tree refuse is refused on every hex, so it is
   // asked once here, and each hex asks only about its ground. Nothing writes during
@@ -257,7 +287,7 @@ function walkImprovementPlan(
     if (byTile.has(at)) continue;
     const best = bestEntryOn(state, player, ctx, tile, roster, ground);
     if (best === null) continue;
-    best.unclaimed = !occupied.has(at);
+    best.unclaimed = !claims.has(at);
     byTile.set(at, best);
   }
   // Best first, then by tile index — both facts about the board rather than
@@ -266,7 +296,7 @@ function walkImprovementPlan(
   const entries = [...byTile.entries()]
     .sort((a, b) => b[1].value - a[1].value || a[0] - b[0])
     .map(([, entry]) => entry);
-  return { entries, byTile };
+  return { entries, byTile, claims };
 }
 
 /**
@@ -315,15 +345,43 @@ function groundInReach(state: GameState, player: Player): Tile[] {
  */
 const REACH = 3;
 
-/** Which hexes already have one of this empire's workers standing on them. */
-function workerHexes(state: GameState, playerId: number): Set<number> {
-  const held = new Set<number>();
+/**
+ * **Which hexes this empire's spades have claimed, and which spades** (bot batch
+ * BP13b; the user, 2026-11-16: *"a march should count as a claim"*).
+ *
+ * A hex is claimed by every piece with charges that stands on it, as before, and by
+ * every spade whose march ends on it. Before BP13b only the first counted, so the
+ * plan offered the same best hex to every worker of the seat: two or three walked
+ * to it, the first laid it, and the others were re-aimed when they saw it laid,
+ * often after several turns of walking.
+ *
+ * A march claims only for a piece that lays ground (`laysGround`): a prophet's or a
+ * great person's walk is not a claim on a farm. The ids are kept so that a spade can
+ * tell its own claim from another's (`rankPlanFor`), and in the units' order, which
+ * is the order of the state's array.
+ */
+function spadeClaims(state: GameState, playerId: number): Map<number, number[]> {
+  const claims = new Map<number, number[]>();
+  const claim = (at: number, unitId: number): void => {
+    const held = claims.get(at);
+    if (held === undefined) claims.set(at, [unitId]);
+    else if (!held.includes(unitId)) held.push(unitId);
+  };
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     if (unit.chargesLeft === undefined) continue;
-    held.add(tileIndex(state.map, unit.col, unit.row));
+    claim(tileIndex(state.map, unit.col, unit.row), unit.id);
+    const end = marchEndOf(unit);
+    if (end !== null && laysGround(unitDef(unit.type))) claim(tileIndex(state.map, end.col, end.row), unit.id);
   }
-  return held;
+  return claims;
+}
+
+/** Where a piece's standing march ends, or `null` when it carries none. */
+function marchEndOf(unit: Unit): { col: number; row: number } | null {
+  const path = unit.path;
+  if (path === undefined || path.length === 0) return null;
+  return path[path.length - 1] ?? null;
 }
 
 /** The best thing a spade could do on one hex, or `null` for nothing at all. */
@@ -337,9 +395,13 @@ function bestEntryOn(
 ): PlanEntry | null {
   let best: PlanEntry | null = null;
   const standing = hexStanding(state, tile);
+  // The hex as it stands, read once: each entry's yield with its improvement on is
+  // this plus the entry's own delta (bot batch BP13b, `PlanEntry.improved`).
+  let bare: TileYield | undefined;
   for (const improvement of roster) {
     if (improvementGroundError(state, player.id, tile, improvement, standing) !== null) continue;
-    const entry = pricedEntry(state, player, ctx, tile, improvement, ground);
+    bare ??= foldTile(tile, ground(tile));
+    const entry = pricedEntry(state, player, ctx, tile, improvement, ground, bare);
     if (best === null || entry.value > best.value) best = entry;
   }
   const survey = surveyEntry(state, player, ctx, tile);
@@ -363,7 +425,15 @@ function improvementEntry(
   return pricedEntry(state, player, ctx, tile, improvement, ground);
 }
 
-/** One improvement the gate has taken on one hex, priced through the owning town's own context. */
+/**
+ * One improvement the gate has taken on one hex, priced through the owning town's own context.
+ *
+ * `bare` is the hex's own fold as it stands, through the same context. When it is
+ * given, the entry carries the hex's yield with the improvement on it and the
+ * owning town (`PlanEntry.improved`, `PlanEntry.town`), which is what the worker's
+ * citizen test reads. The great person's ring (`rankWorkSites`) passes none: a work
+ * is not asked that question.
+ */
 function pricedEntry(
   state: GameState,
   player: Player,
@@ -371,6 +441,7 @@ function pricedEntry(
   tile: Tile,
   improvement: ImprovementId,
   ground: TileContextField,
+  bare?: TileYield,
 ): PlanEntry {
   const delta = improvementYieldDelta(tile, improvement, ground(tile));
   const yields = explainYields(bagOfTileYield(delta), ctx);
@@ -382,11 +453,19 @@ function pricedEntry(
   // does not know which — which is the fallback `hammerPrice` states.
   const hammers = hammerTerm(delta.production ?? 0, ctx);
   if (hammers !== null) terms.push(hammers);
-  for (const term of seamOpeningTerms(state, player, ctx, tile, improvement)) {
+  // What the spade opens under the hex is the part of the entry that needs no
+  // citizen (bot batch BP13b), so it is kept apart as well as folded in.
+  const seams = seamOpeningTerms(state, player, ctx, tile, improvement);
+  for (const term of seams) {
     terms.push(term);
   }
   for (const term of plannedRiderTerms(ctx, tile, improvement, ground(tile))) {
     terms.push(term);
+  }
+  let improved: TileYield | null = null;
+  if (bare !== undefined) {
+    improved = emptyTileYield();
+    for (const key of TILE_YIELD_KEYS) improved[key] = bare[key] + delta[key];
   }
   return {
     col: tile.col,
@@ -395,6 +474,10 @@ function pricedEntry(
     label: `${name} at (${tile.col},${tile.row})`,
     value: foldTerms(terms),
     terms,
+    seatless: foldTerms(seams),
+    seatlessTerms: seams,
+    improved,
+    town: improved === null ? null : tileOwnerCityId(state, tile.col, tile.row),
     unclaimed: true,
   };
 }
@@ -436,9 +519,17 @@ function pricedEntry(
  *     researched the node sees a bare hill. `openedResource` asks this too, so
  *     the line below is an early out rather than the rule — it reads the row's
  *     own public gate and states nothing of its own;
- *   · **strategic kinds only**, which falls out of `newResourceTerms` — a
- *     luxury's signature is already paid by the site and hex arms, and paying it
- *     again for the spade would be one silk counted twice.
+ *   · **strategic and luxury kinds.** A luxury joined in bot batch BP13b. Before
+ *     it, this file left a luxury out on the grounds that the site and hex arms
+ *     already pay its signature. Those arms price *owning* the ground, and their
+ *     decisions are made; the spade's decision is whether to open it. With the
+ *     worker's citizen test (`rankPlanFor`), an unworked plantation would
+ *     otherwise count for nothing and fall below any worked farm. So the first
+ *     copy of a luxury this empire cannot draw on today is priced here, through
+ *     the same door and at the same `site.newLuxuryBonus` the other two arms use.
+ *     Access needs no citizen, so this is part of the entry's `seatless` value.
+ *     A second copy of a luxury the empire already draws on pays nothing new here,
+ *     as `newResourceTerms` says; what it could fetch in a deal is not priced.
  */
 function seamOpeningTerms(
   state: GameState,
@@ -449,7 +540,8 @@ function seamOpeningTerms(
 ): ValueTerm[] {
   const seam = tile.resource;
   if (seam === undefined) return [];
-  if (resourceDef(seam).kind !== 'strategic') return [];
+  const kind = resourceDef(seam).kind;
+  if (kind !== 'strategic' && kind !== 'luxury') return [];
   if (!resourceIsVisibleTo(seam, player.techsResearched)) return [];
   // Would this spade actually open it? The simulation answers, by asking
   // `openedResource` of the hex as it stands and again of a copy with the
@@ -882,6 +974,7 @@ function surveyEntry(
       value: 0,
     },
   ];
+  // The assay is a purse paid to the empire, so the whole entry needs no citizen.
   return {
     col: tile.col,
     row: tile.row,
@@ -889,6 +982,10 @@ function surveyEntry(
     label: `survey the hill at (${tile.col},${tile.row})`,
     value: assay.total,
     terms,
+    seatless: assay.total,
+    seatlessTerms: terms,
+    improved: null,
+    town: null,
     unclaimed: true,
   };
 }
@@ -988,8 +1085,13 @@ interface PlanMemo {
   seats: Map<number, Set<number>>;
   /** Per node, what its renewals and reveals would pay this empire's towns. */
   renewals: Map<TechId, RenewalFold>;
-  /** The remaining charges of every spade of this seat on the board (batch BP8). */
-  spades: number | null;
+  /**
+   * The seated hexes the spades on the board will lay inside the look-ahead, and the
+   * plan they were walked over (bot batch BP13b, `spokenFor`).
+   */
+  spoken: { plan: ImprovementPlan; taken: ReadonlySet<number> } | null;
+  /** Per town, its worked hexes scored on the sheet it carries (bot batch BP13b, `townSheetOf`). */
+  sheets: Map<number, TownSheet>;
   /**
    * Batch X1e's three: the tree walked once (`reachableTechs`), the board it
    * would be read against (`siteGround`), and per hex the improvements a
@@ -1019,7 +1121,8 @@ function memoOf(ctx: ValueContext): PlanMemo {
   const fresh: PlanMemo = {
     seats: new Map(),
     renewals: new Map(),
-    spades: null,
+    spoken: null,
+    sheets: new Map(),
     reachable: null,
     siteGround: null,
     siteGroundEconomy: -1,
@@ -1062,13 +1165,16 @@ function bagOfTileYield(delta: TileYield): YieldBag {
  *     would work (`citizenSeats`, `population + 2` deep). Before batch BP8 only
  *     this town's own hexes counted, so a new town that could not raise a worker
  *     soon had its bare hexes priced by nobody;
- *   · **less what the spades already out, and the ones queued, will lay.** The
- *     remaining charges of every spade of this seat (`Unit.chargesLeft`), and the
- *     charges of a spade queued in another of its towns, come off the front of
- *     the empire's list, which is best first. Before batch BP8 each spade was
- *     charged to the town nearest it, so one worker standing by a town talked
- *     that town out of a second while ground elsewhere waited, and two towns
- *     could queue a spade each for the same ground;
+ *   · **less what the spades already out, and the ones queued, will lay** (bot
+ *     batch BP13b; the user, 2026-11-16: *"a worker's payoff should count the
+ *     charges that will actually land"*). Each spade of this seat on the board,
+ *     and each spade queued in another of its towns, walks the same list by its
+ *     own landing clock, with its own remaining charges, inside the same
+ *     look-ahead, and takes the entries it would lay (`spokenFor`). What it
+ *     cannot reach in time stays open for the new one. From batch BP8 to BP13b
+ *     the charges came off the front of the list all at once, as if each landed
+ *     at once on the best hex, so a spade two continents away covered a town's
+ *     ground;
  *   · **inside the next `workers.waitingTurns` turns, at the turn it lands.** The
  *     spade walks out of this town and digs one hex at a time; a hex it would
  *     reach past the bound is not one it lays. Each entry is discounted by
@@ -1088,54 +1194,85 @@ export function explainWorkerCraving(
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return appraise([]);
   const def = unitDef(spade);
-  const here = tileHex(centre);
   const seats = empireSeats(state, ctx);
-  const stride = Math.max(1, def.movement);
   const bound = Math.max(1, ctx.ai.workers.waitingTurns);
   const terms: ValueTerm[] = [];
-
-  let charges = Math.max(1, def.charges ?? 1);
   // What the spades already on the board, and the ones queued in other towns,
-  // will have taken by the time this one is standing. Counted off the front of
-  // the same ranked list, because that is the order they will take them in.
-  let spoken = spokenFor(state, city, ctx);
-  let clock = 0;
-  let from = here;
-
-  for (const entry of plan.entries) {
-    if (charges <= 0) break;
-    if (!entry.unclaimed) continue;
-    const tile = getTileAt(state.map, entry.col, entry.row);
-    if (!tile) continue;
-    const at = tileIndex(state.map, entry.col, entry.row);
-    if (!seats.has(at)) continue;
-    // A survey spends no charge at all (`prospectAt` takes the turn and nothing
-    // else), which is why the cost is read off the row rather than assumed.
-    const cost = entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
-    if (cost > 0 && spoken >= cost) {
-      spoken -= cost;
-      continue;
-    }
-    if (cost > charges) continue;
-    const step = wrappedDistance(state.map, from, tileHex(tile));
-    // The walk, then the turn the spade spends with its hands in the ground: a
-    // build takes the whole of a worker's movement (`buildImprovementAt`).
-    const landing = clock + Math.ceil(step / stride) + 1;
-    // A hex it would reach past the bound is not one this spade lays; a nearer
-    // entry further down the list may still be.
-    if (landing > bound) continue;
+  // will have laid inside the look-ahead, each by its own clock.
+  const taken = spokenFor(plan, state, city, ctx, seats);
+  const walk: SpadeWalk = {
+    from: tileHex(centre),
+    clock: 0,
+    charges: Math.max(1, def.charges ?? 1),
+    stride: Math.max(1, def.movement),
+  };
+  walkTheList(plan, state, seats, taken, walk, bound, (entry, landing) => {
     const discount = delayTerm(landing, ctx, 'the spade has to walk out and dig');
-    if (discount.value <= 0) continue;
-    clock = landing;
-    charges -= cost;
-    from = tileHex(tile);
+    if (discount.value <= 0) return false;
     terms.push({
-      label: `${entry.label} — ${round(entry.value)} a turn, ${round(clock)} turns out`,
+      label: `${entry.label} — ${round(entry.value)} a turn, ${round(landing)} turns out`,
       value: entry.value * discount.value,
       parts: [{ label: entry.label, value: entry.value }, discount],
     });
-  }
+    return true;
+  });
   return appraise(terms);
+}
+
+/** One spade on the craving's walk: where it is, the turn it is free, what it holds. */
+interface SpadeWalk {
+  from: ReturnType<typeof tileHex>;
+  clock: number;
+  charges: number;
+  stride: number;
+}
+
+/**
+ * **One spade's walk down the list** (bot batch BP13b): best first, the seated
+ * entries nobody has taken, each one it can pay for and land inside `bound`.
+ *
+ * The rule the new spade's walk always had, now shared by every spade the craving
+ * counts. The spade walks from where it is to the entry, then spends a turn digging
+ * (a build takes the whole of a worker's movement, `buildImprovementAt`), so the
+ * landing turn is the clock plus the walk at its stride plus one. A hex it would
+ * reach past the bound is not one it lays; a nearer entry further down the list may
+ * still be. `accept` may refuse an entry the walk would take (the new spade refuses
+ * one its delay prices at nothing). A taken entry joins `taken`, so a later walk
+ * skips it.
+ */
+function walkTheList(
+  plan: ImprovementPlan,
+  state: GameState,
+  seats: ReadonlySet<number>,
+  taken: Set<number>,
+  walk: SpadeWalk,
+  bound: number,
+  accept?: (entry: PlanEntry, landing: number) => boolean,
+): void {
+  for (const entry of plan.entries) {
+    if (walk.charges <= 0) break;
+    const at = tileIndex(state.map, entry.col, entry.row);
+    if (!seats.has(at) || taken.has(at)) continue;
+    const tile = getTileAt(state.map, entry.col, entry.row);
+    if (!tile) continue;
+    // A survey spends no charge at all (`prospectAt` takes the turn and nothing
+    // else), which is why the cost is read off the row rather than assumed.
+    const cost = entryChargeCost(entry);
+    if (cost > walk.charges) continue;
+    const hex = tileHex(tile);
+    const landing = walk.clock + Math.ceil(wrappedDistance(state.map, walk.from, hex) / walk.stride) + 1;
+    if (landing > bound) continue;
+    if (accept !== undefined && !accept(entry, landing)) continue;
+    taken.add(at);
+    walk.clock = landing;
+    walk.charges -= cost;
+    walk.from = hex;
+  }
+}
+
+/** The charges one entry costs: its row's `chargeCost`, nothing for a survey. */
+function entryChargeCost(entry: PlanEntry): number {
+  return entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
 }
 
 /** Every hex a citizen of this seat works or will work next, over all its towns. */
@@ -1184,42 +1321,115 @@ function citizenSeats(state: GameState, city: City, ctx: ValueContext): Set<numb
 }
 
 /**
- * **How much of the empire's list the spades already out, and the ones queued,
- * will have taken**, in charges (batch BP8).
+ * **Which of the empire's seated entries the spades already out, and the ones
+ * queued, will lay inside the look-ahead** (bot batch BP8; by each spade's own
+ * clock since bot batch BP13b), as a set of tile indices.
  *
- * Every spade of this seat on the board counts its **remaining** charges
- * (`Unit.chargesLeft`), which is what it has left to give and not what it was
- * built with. A spade queued in another of the seat's towns counts its row's
- * charges, because it will stand soon and the ground it will take is not this
- * one's to take; the asking town's own queue is the question being asked, so it
- * does not count. The charges come off the front of the empire's list, best
- * first, which is the stated crude half: a spade far from the best hexes takes
- * them anyway on this reading.
+ * Every spade of this seat on the board walks with its **remaining** charges
+ * (`Unit.chargesLeft`), at its own stride, in two steps:
  *
- * The spades on the board are counted once per sitting; the queues are read on
- * every ask, because a town choosing a spade in this sitting changes them.
+ *   1. **its march first.** A spade on a march (`spadeClaims`) is going to the
+ *      hex its march ends on to lay it. It reaches that hex at its stride, lays
+ *      the entry there if the plan holds one, and spends that entry's charges on
+ *      it, seated or not, however late it lands: no other spade of the seat goes
+ *      for a claimed hex. A spade with no march stands on its claim and is not
+ *      bound to lay it, so its hex counts here only when the hex is seated,
+ *      where the spade would lay it the next turn. Every spade takes its claim
+ *      before any spade walks on, so one spade's walk never takes another's
+ *      claim. So a charge is counted once: the claim's entry and the rest of the
+ *      spade's charges are never both taken off the list;
+ *   2. **then the list**, from its claim at the turn it is free there, by the walk
+ *      the new spade takes (`walkTheList`): best first, each entry it can land
+ *      inside `workers.waitingTurns`.
+ *
+ * A spade queued in another of the seat's towns walks from that town with its
+ * row's charges, from the turn the town would finish it: the turns of each row
+ * ahead of it in the queue and its own (`turnsToBuild`, the town's own reading).
+ * The asking town's own queue is the question being asked, so it does not count.
+ *
+ * What each spade takes is what the craving's walk would lay with it, which is
+ * the stated crude half: a real worker ranks by worth over the walk
+ * (`rankPlanFor`) and may lay unseated ground too, and the distance is the map's,
+ * not the route's.
+ *
+ * **When it is read, and how it can be stale.** The board's spades are walked once
+ * a plan: again whenever the economy clock moves and the plan is rebuilt, and not
+ * between two asks on the same plan. A spade ordered to march in this sitting
+ * keeps its old claim in this reading until the next rebuild or the next sitting,
+ * which is the bargain the count of charges had before (once a sitting). The
+ * queues are read on every ask, because a town choosing a spade in this sitting
+ * changes them.
  */
-function spokenFor(state: GameState, city: City, ctx: ValueContext): number {
+function spokenFor(
+  plan: ImprovementPlan,
+  state: GameState,
+  city: City,
+  ctx: ValueContext,
+  seats: ReadonlySet<number>,
+): Set<number> {
   const memo = memoOf(ctx);
-  if (memo.spades === null) {
-    let charges = 0;
+  const bound = Math.max(1, ctx.ai.workers.waitingTurns);
+  if (memo.spoken === null || memo.spoken.plan !== plan) {
+    const taken = new Set<number>();
+    const walks: SpadeWalk[] = [];
     for (const unit of state.units) {
       if (unit.ownerId !== ctx.playerId) continue;
-      if (!laysGround(unitDef(unit.type))) continue;
-      charges += chargesLeft(unit);
+      const def = unitDef(unit.type);
+      if (!laysGround(def)) continue;
+      const tile = getTileAt(state.map, unit.col, unit.row);
+      if (!tile) continue;
+      const stride = Math.max(1, def.movement);
+      const end = marchEndOf(unit);
+      const claimTile = end === null ? tile : getTileAt(state.map, end.col, end.row) ?? tile;
+      const claimHex = tileHex(claimTile);
+      const walk: SpadeWalk = {
+        from: claimHex,
+        clock: Math.ceil(wrappedDistance(state.map, tileHex(tile), claimHex) / stride),
+        charges: chargesLeft(unit),
+        stride,
+      };
+      const at = tileIndex(state.map, claimTile.col, claimTile.row);
+      const entry = plan.byTile.get(at);
+      const committed = end !== null || seats.has(at);
+      if (committed && entry !== undefined && !taken.has(at) && entryChargeCost(entry) <= walk.charges) {
+        taken.add(at);
+        walk.charges -= entryChargeCost(entry);
+        walk.clock += 1;
+      }
+      walks.push(walk);
     }
-    memo.spades = charges;
+    for (const walk of walks) walkTheList(plan, state, seats, taken, walk, bound);
+    memo.spoken = { plan, taken };
   }
-  let queued = 0;
+  const taken = new Set(memo.spoken.taken);
   for (const town of state.cities) {
     if (town.ownerId !== ctx.playerId || town.id === city.id) continue;
-    for (const item of town.queue) {
+    const centre = getTileAt(state.map, town.col, town.row);
+    if (!centre) continue;
+    // Most queues hold no spade, and timing a queue costs a fold of the town
+    // for each row, so a queue is timed only when a spade is in it.
+    if (!town.queue.some((item) => item.kind === 'unit' && laysGround(unitDef(item.id)))) continue;
+    const quote = readCity(state, town);
+    let ready = 0;
+    for (let index = 0; index < town.queue.length; index++) {
+      const item = town.queue[index]!;
+      const turns = turnsToBuild(state, town, item, index, quote);
+      // A row the town cannot finish holds up everything behind it.
+      if (turns === null) break;
+      ready += turns;
+      if (ready > bound) break;
       if (item.kind !== 'unit') continue;
       const row = unitDef(item.id);
-      if (laysGround(row)) queued += Math.max(1, row.charges ?? 1);
+      if (!laysGround(row)) continue;
+      walkTheList(plan, state, seats, taken, {
+        from: tileHex(centre),
+        clock: ready,
+        charges: Math.max(1, row.charges ?? 1),
+        stride: Math.max(1, row.movement),
+      }, bound);
     }
   }
-  return memo.spades + queued;
+  return taken;
 }
 
 /**
@@ -1251,8 +1461,20 @@ function laysGround(def: UnitDef): boolean {
  * distance alone and so sent a worker past a wheat field to reach a tundra hex
  * that happened to be nearer.
  *
- * Only `unclaimed` entries, so two workers standing in one town do not both walk
- * to the same wheat.
+ * **Only hexes no other spade has claimed** (`PlanEntry.unclaimed`, the plan's
+ * `claims`), so two workers do not both walk to the same wheat. A claim is a spade
+ * standing on the hex or a spade's march ending on it (bot batch BP13b). The piece's
+ * own hex and its own march end are its own claim, so a worker asked again keeps
+ * its target in view.
+ *
+ * **Counted in full only where a citizen will work it** (bot batch BP13b; the user,
+ * 2026-11-16: *"the most valuable unimproved hex should be worked over a less
+ * valuable unimproved hex"*, ruled as "the choice shares the city's rule"). Each
+ * entry asks the owning town's own citizen scorer whether a citizen would work the
+ * hex with the improvement on it (`citizenWouldWork`). If yes, the entry counts in
+ * full, whether or not a citizen stands on the hex today. If no, only the part that
+ * needs no citizen counts (`PlanEntry.seatless`: the seam it opens), and an entry
+ * with no such part is not on the list. The first line of each row says which.
  */
 export function rankPlanFor(
   plan: ImprovementPlan,
@@ -1264,18 +1486,42 @@ export function rankPlanFor(
   if (!from) return [];
   const here = tileHex(from);
   const at = tileIndex(state.map, unit.col, unit.row);
+  const end = marchEndOf(unit);
+  const ownEnd = end === null ? -1 : tileIndex(state.map, end.col, end.row);
   const ranked: { entry: PlanEntry; score: number; distance: number; terms: ValueTerm[] }[] = [];
   for (const entry of plan.entries) {
     const tile = getTileAt(state.map, entry.col, entry.row);
     if (!tile) continue;
     const on = tileIndex(state.map, entry.col, entry.row);
-    // The hex the piece is standing on is never "claimed by somebody else" — it
-    // is claimed by *this* piece, which is the one worker allowed to want it.
-    if (!entry.unclaimed && on !== at) continue;
+    // The hex the piece is standing on, and the hex its own march ends on, are
+    // never "claimed by somebody else": they are claimed by *this* piece, which is
+    // the one worker allowed to want them.
+    if (on !== at && on !== ownEnd && claimedByAnother(plan, on, unit.id)) continue;
+    let counted = entry.value;
+    let body: readonly ValueTerm[] = entry.terms;
+    const head: ValueTerm[] = [];
+    if (entry.improvement !== null) {
+      const seat = citizenWouldWork(state, ctx, entry);
+      // A line that scores nothing, at the head of the fold: it says which reading
+      // the row was counted by and changes no figure.
+      head.push({ label: seat.label, value: 0 });
+      if (!seat.works) {
+        counted = entry.seatless;
+        body = entry.seatlessTerms;
+        if (entry.value !== entry.seatless) {
+          head.push({
+            label: `the ${round(entry.value - entry.seatless)} a turn it would pay a citizen counts for nothing`,
+            value: 0,
+          });
+        }
+      }
+    }
+    if (counted <= 0) continue;
     const distance = wrappedDistance(state.map, here, tileHex(tile));
     const discount = 1 + distance * ctx.ai.workers.walkDiscount;
     const terms: ValueTerm[] = [
-      ...entry.terms,
+      ...head,
+      ...body,
       {
         label:
           distance === 0
@@ -1285,7 +1531,7 @@ export function rankPlanFor(
         op: 'div',
       },
     ];
-    ranked.push({ entry, score: entry.value / discount, distance, terms });
+    ranked.push({ entry, score: counted / discount, distance, terms });
   }
   ranked.sort(
     (a, b) =>
@@ -1294,6 +1540,196 @@ export function rankPlanFor(
       tileIndex(state.map, a.entry.col, a.entry.row) - tileIndex(state.map, b.entry.col, b.entry.row),
   );
   return ranked;
+}
+
+/** True when a spade other than `unitId` stands on this hex or marches to it. */
+function claimedByAnother(plan: ImprovementPlan, at: number, unitId: number): boolean {
+  const claimants = plan.claims.get(at);
+  if (claimants === undefined) return false;
+  return claimants.some((id) => id !== unitId);
+}
+
+/** A hex and its score on one sheet, as the citizen scorer orders them. */
+interface ScoredHex {
+  at: number;
+  score: number;
+}
+
+/**
+ * Does `a` take a seat before `b`? The simulation's own order (`chooseCitizens`):
+ * the higher score first, and on a tie the lower tile index.
+ */
+function outranks(a: ScoredHex, b: ScoredHex): boolean {
+  return a.score > b.score || (a.score === b.score && a.at < b.at);
+}
+
+/**
+ * **One town's worked hexes, scored on the sheet the town carries** (bot batch
+ * BP13b), remembered on the context while the economy clock and the town's focus
+ * stand still.
+ *
+ * The sheet is `RULES.cities.citizenWeights` for a town on the balanced ordering
+ * and the town's focus sheet otherwise (`citizenFocusWeights`), read off
+ * `City.focus`. The scorer is the simulation's own (`yieldScore` over `foldTile` in
+ * the town's context), so the reading is the one `assignCitizens` makes. The town's
+ * own hex is not a seat.
+ */
+interface TownSheet {
+  economy: number;
+  focus: CitizenFocus;
+  weights: CitizenWeights;
+  /** Worked hex index to its score on the sheet. */
+  worked: Map<number, number>;
+  /** The worked hex every other worked hex outranks, or `null` when the town works none. */
+  weakest: ScoredHex | null;
+  /** The hexes the town may work at all (`assignableTiles`). */
+  assignable: Set<number>;
+  /** The best hex the town may work and does not; read only when a question needs it. */
+  idle: ScoredHex | null | undefined;
+}
+
+function townSheetOf(state: GameState, ctx: ValueContext, town: City): TownSheet {
+  const memo = memoOf(ctx).sheets;
+  const economy = economyStamp(state);
+  const focus = cityFocus(town);
+  const held = memo.get(town.id);
+  if (held !== undefined && held.economy === economy && held.focus === focus) return held;
+  const weights = focus === 'default' ? RULES.cities.citizenWeights : RULES.cities.citizenFocusWeights[focus];
+  const ground = cityContext(state, town);
+  const worked = new Map<number, number>();
+  let weakest: ScoredHex | null = null;
+  for (const cell of town.workedTiles) {
+    if (cell.col === town.col && cell.row === town.row) continue;
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (!tile) continue;
+    const hex: ScoredHex = {
+      at: tileIndex(state.map, tile.col, tile.row),
+      score: yieldScore(foldTile(tile, ground), weights),
+    };
+    worked.set(hex.at, hex.score);
+    if (weakest === null || outranks(weakest, hex)) weakest = hex;
+  }
+  const assignable = new Set<number>();
+  for (const tile of assignableTiles(state, town)) assignable.add(tileIndex(state.map, tile.col, tile.row));
+  const sheet: TownSheet = { economy, focus, weights, worked, weakest, assignable, idle: undefined };
+  memo.set(town.id, sheet);
+  return sheet;
+}
+
+/** The best hex this town may work and does not, on its sheet, or `null`. */
+function idleHexOf(state: GameState, town: City, sheet: TownSheet): ScoredHex | null {
+  if (sheet.idle !== undefined) return sheet.idle;
+  const ground = cityContext(state, town);
+  let best: ScoredHex | null = null;
+  for (const tile of assignableTiles(state, town)) {
+    const at = tileIndex(state.map, tile.col, tile.row);
+    if (sheet.worked.has(at)) continue;
+    const hex: ScoredHex = { at, score: yieldScore(foldTile(tile, ground), sheet.weights) };
+    if (best === null || outranks(hex, best)) best = hex;
+  }
+  sheet.idle = best;
+  return best;
+}
+
+/** The sheet's name, as a sentence says it. */
+function sheetWords(focus: CitizenFocus): string {
+  return focus === 'default' ? 'balanced' : focus;
+}
+
+/** A tile index as the feed prints a hex. */
+function hexWords(state: GameState, at: number): string {
+  const tile = state.map.tiles[at];
+  return tile === undefined ? `#${at}` : `(${tile.col},${tile.row})`;
+}
+
+/**
+ * **Would a citizen work this hex with the improvement on it?** (bot batch BP13b,
+ * the ruling "the choice shares the city's rule".) The worker's question, put to the
+ * owning town's own citizen scorer, and the sentence that says the answer.
+ *
+ *   - **A hex the town does not work today**: yes when the hex, improved, outranks
+ *     the weakest hex the town works, on the town's sheet. A citizen would then move
+ *     onto it.
+ *   - **A hex the town works today**: yes when the improvement keeps its score or
+ *     raises it, or when the improved hex still outranks the best hex the town could
+ *     work instead. A row that takes away what the sheet weighs (a lumbermill that
+ *     costs a forest its food) can send the citizen off.
+ *   - **No** on ground no town of this seat owns, on a hex outside the ones the town
+ *     may work (`assignableTiles`), and in a town that works no hex but its own.
+ *
+ * **What it reads, and when it can be stale.** The hex's improved yield and its
+ * town come with the plan entry, which is remembered on the economy clock. The
+ * town's worked hexes, scored on its sheet, are remembered on the context while
+ * the clock and the town's focus stand still (`townSheetOf`). A citizen moved by
+ * `assignCitizens` moves the clock, and the focus is in the key, so the reading is
+ * the town as it stands at every ask. Two things it does not read:
+ *
+ *   - a town that has grown since it was last assigned has an empty seat until the
+ *     turn's sweep fills it (`focusTable`'s seat count explains why), and this
+ *     reading compares against the hexes worked, so a hex that would fill that
+ *     seat is seen one turn late;
+ *   - the production lean a town takes while growth is halted (a settler at the
+ *     head of its queue, `citizenLean` in `cities.ts`) is not the town's sheet
+ *     here, because the build is short and the improvement outlives it.
+ */
+export function citizenWouldWork(
+  state: GameState,
+  ctx: ValueContext,
+  entry: PlanEntry,
+): { works: boolean; label: string } {
+  const where = `(${entry.col},${entry.row})`;
+  const name = entry.improvement === null ? 'survey' : improvementDef(entry.improvement).name;
+  const town = entry.town === null ? undefined : cityById(state, entry.town);
+  if (town === undefined || town.ownerId !== ctx.playerId || entry.improved === null) {
+    return { works: false, label: `no town of ours can put a citizen on ${where}` };
+  }
+  const sheet = townSheetOf(state, ctx, town);
+  const at = tileIndex(state.map, entry.col, entry.row);
+  if (!sheet.assignable.has(at)) {
+    return { works: false, label: `${where} is not a hex ${town.name} may work` };
+  }
+  const mine: ScoredHex = { at, score: yieldScore(entry.improved, sheet.weights) };
+  const on = `on ${town.name}'s ${sheetWords(sheet.focus)} sheet`;
+  const now = sheet.worked.get(at);
+  if (now !== undefined) {
+    if (mine.score >= now) {
+      return {
+        works: true,
+        label: `a citizen of ${town.name} works ${where}, and with the ${name} it scores ${round(mine.score)} ${on}, up from ${round(now)}`,
+      };
+    }
+    const idle = idleHexOf(state, town, sheet);
+    if (idle === null || outranks(mine, idle)) {
+      return {
+        works: true,
+        label: `a citizen of ${town.name} works ${where}, and with the ${name} it still beats every hex the town leaves idle ${on}`,
+      };
+    }
+    return {
+      works: false,
+      label:
+        `with the ${name} on it, ${where} scores ${round(mine.score)} ${on}, under ${hexWords(state, idle.at)} ` +
+        `at ${round(idle.score)}: its citizen would move off`,
+    };
+  }
+  const weakest = sheet.weakest;
+  if (weakest === null) {
+    return { works: false, label: `${town.name} works no hex but its own, so no citizen would move to ${where}` };
+  }
+  if (outranks(mine, weakest)) {
+    return {
+      works: true,
+      label:
+        `with the ${name} on it, a citizen of ${town.name} would work ${where}: it scores ${round(mine.score)} ${on}, ` +
+        `over the weakest hex the town works, ${hexWords(state, weakest.at)} at ${round(weakest.score)}`,
+    };
+  }
+  return {
+    works: false,
+    label:
+      `with the ${name} on it, ${where} scores ${round(mine.score)} ${on}, not over the weakest hex the town works, ` +
+      `${hexWords(state, weakest.at)} at ${round(weakest.score)}: no citizen would move to it`,
+  };
 }
 
 /**

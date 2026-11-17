@@ -545,7 +545,11 @@ describe('the bot defends itself', () => {
     // settler on turn nineteen. Swept 8–32 again: turns 16 to 18 read as the
     // addendum says (a settler in the quiet world, a soldier under the column),
     // and seventeen is the middle of that run.
-    const game = grownGame(17);
+    // Re-sited a seventh time for bot batch BP13b, whose workers lay only hexes a
+    // citizen will work, so the duel's towns develop differently. Swept 8 to 32
+    // again: turns 10 to 14 read as the addendum says (a worker or a granary in
+    // the quiet world, a warrior under the column), and twelve is the middle.
+    const game = grownGame(12);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
@@ -622,7 +626,10 @@ describe('the bot defends itself', () => {
     // the strike from there. Since batch BP8 the camp wants a force sized to
     // its guard (`campForce`), so two more spare pieces stand by the town: the
     // seat can make the force whole, and the first piece marches.
-    const game = grownGame(12);
+    // Re-sited for bot batch BP13b: on its board at turn 12 a real camp five hexes
+    // off is worth more than the test's own, and the piece marches there. Turns
+    // 13 to 18 march to the test's camp; fifteen is the middle.
+    const game = grownGame(15);
     const { map } = game.state;
     const city = firstCity(game.state, 0);
     const home = getTileAt(map, city.col, city.row)!;

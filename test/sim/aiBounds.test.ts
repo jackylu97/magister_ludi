@@ -79,6 +79,8 @@ const INTEGER_LEAVES = [
   // Bot batch BP13: turns ahead a hostile's march counts as a danger to a worker.
   'workers.guardTurns',
   'growth.smallCityPop',
+  // Bot batch BP13b: a switch, 1 compares all four citizen sheets and 0 two.
+  'growth.allFocusSheets',
   'military.campHuntRadius',
   'military.garrisonPerCity',
   'military.armyPerCity',

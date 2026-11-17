@@ -187,12 +187,25 @@ describe('fault 4: one focus a build (bot batch BP10)', () => {
   }
 
   it('undoes a focus the bot did not give, as before', () => {
-    // The fixture's own claim: on this board the arm sends the town back.
+    // The fixture's own claim: on this board the arm moves the town off the
+    // production sheet. Since bot batch BP13b it moves it to the best of the four
+    // sheets, which the table names, and not always to the balanced ordering.
     const { game, city } = leaning();
     expect(city.queue.length, 'the town is building something').toBeGreaterThan(0);
+    const best = focusReading(game.state, city, valueContext(game.state, seat(game.state, 0))).best;
+    expect(best).not.toBe('production');
     expect(focusOrders(game)).toContain(city.id);
     // And the order is written down against the town's build.
-    expect(focusChoiceFor(game.state, city.id)).toMatchObject({ focus: 'default', head: buildOf(city).head });
+    expect(focusChoiceFor(game.state, city.id)).toMatchObject({ focus: best, head: buildOf(city).head });
+  });
+
+  it('with two sheets, sends the town back to the balanced ordering', () => {
+    // `growth.allFocusSheets` at nought: the table that shipped before BP13b.
+    withAiTuning({ growth: { allFocusSheets: 0 } } as never, () => {
+      const { game, city } = leaning();
+      expect(focusOrders(game)).toContain(city.id);
+      expect(focusChoiceFor(game.state, city.id)).toMatchObject({ focus: 'default', head: buildOf(city).head });
+    });
   });
 
   it('leaves a town on the focus the bot chose for the build it is on', () => {
@@ -261,9 +274,15 @@ describe('fault 4: one focus a build (bot batch BP10)', () => {
 });
 
 describe('the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2)', () => {
+  /**
+   * The two-sheet table (`growth.allFocusSheets` 0), which these first tests were
+   * written for. The four-sheet rule has its own tests below.
+   */
+  const TWO = { growth: { allFocusSheets: 0 } };
+
   /** Every focus order seat 0 sends until it falls quiet, under one tuning. */
-  function ordersUnder(game: Game, driver: { focusOrders: number; focusMargin?: number }): number[] {
-    return withAiTuning({ driver } as never, () => {
+  function ordersUnder(game: Game, driver: { focusOrders: number; focusMargin?: number }, sheets = TWO): number[] {
+    return withAiTuning({ ...sheets, driver } as never, () => {
       const towns: number[] = [];
       for (let step = 0; step < 80; step++) {
         const command = nextBotCommand(game.state, 0);
@@ -275,17 +294,46 @@ describe('the focus changes only by a clear margin (bot batch BP11, driver.focus
     });
   }
 
-  /** The fixture's town put on the hammers, and the table's reading of it. */
+  /** The fixture's town put on the hammers, and the two-sheet table's reading of it. */
   function leaning(): { game: Game; city: City; edge: number } {
     const game = grownGame(10);
     const city = firstCity(game.state, 0);
     expect(dispatch(game, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus: 'production' }).ok).toBe(true);
-    const reading = focusReading(game.state, city, valueContext(game.state, seat(game.state, 0)));
+    const reading = withAiTuning(TWO as never, () => focusReading(game.state, city, valueContext(game.state, seat(game.state, 0))));
     // The fixture's claim: the balanced ordering wins, by a score and not by a gate.
     expect(reading.gated).toBe(false);
     expect(reading.edge).toBeLessThan(0);
     return { game, city, edge: reading.edge };
   }
+
+  /**
+   * The same town under all four sheets (bot batch BP13b), and how far the
+   * table's best sheet leads the production sheet the town stands on.
+   */
+  function leaningFour(): { game: Game; city: City; best: string; lead: number } {
+    const game = grownGame(10);
+    const city = firstCity(game.state, 0);
+    expect(dispatch(game, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus: 'production' }).ok).toBe(true);
+    const reading = focusReading(game.state, city, valueContext(game.state, seat(game.state, 0)));
+    expect(reading.four).toBe(true);
+    expect(reading.sheets.production?.gated).toBe(false);
+    expect(reading.best).not.toBe('production');
+    const lead = (reading.sheets[reading.best]?.score ?? 0) - (reading.sheets.production?.score ?? 0);
+    expect(lead).toBeGreaterThan(0);
+    return { game, city, best: reading.best, lead };
+  }
+
+  it('with four sheets, moves the town to the best sheet when it leads by more than the margin', () => {
+    const { game, city, best, lead } = leaningFour();
+    expect(ordersUnder(game, { focusOrders: 2, focusMargin: lead / 2 }, { growth: { allFocusSheets: 1 } })).toContain(city.id);
+    expect(city.focus ?? 'default').toBe(best);
+  });
+
+  it('with four sheets, keeps the town where it is when the best sheet leads by less than the margin', () => {
+    const { game, city, lead } = leaningFour();
+    expect(ordersUnder(game, { focusOrders: 2, focusMargin: lead + 1 }, { growth: { allFocusSheets: 1 } })).not.toContain(city.id);
+    expect(city.focus).toBe('production');
+  });
 
   it('sends a leaning town back when the balanced ordering wins by more than the margin', () => {
     const { game, city, edge } = leaning();

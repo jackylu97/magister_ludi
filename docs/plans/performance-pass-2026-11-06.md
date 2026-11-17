@@ -2609,3 +2609,187 @@ CPU seconds a turn at turns 100 to 120, the whole turn with the probe's own book
 - `src/ai/aiConfig.ts` and `data/ai.json`: `workers.guardTurns` (2). `data/ai.bounds.json`: its row.
 - Tests: `test/sim/aiWorkerGuards.test.ts` and `test/sim/aiRouteMemo.test.ts` (new), `test/sim/aiDiplomacy.test.ts` (six new), `test/sim/aiBounds.test.ts` (the knob), `test/sim/aiDigest.slow.test.ts` (the pins).
 - `docs/bot-priorities.md`, and this section.
+
+## BP13b: the worker fixes from the bare-hex report, and four citizen sheets, 2026-11-16
+
+`docs/flags.md` (ooooooo), the bullet "BP13b: the three worker fixes from the bare-hex report". The user: *"the worker should target the highest value hexes, which is what it should be doing now no? a march should count as a claim, and a worker's payoff should count the charges that will actually land."* The report is `docs/plans/bare-worked-hexes-2026-11-16.md`. Bot changes only: no file under `src/sim/` and no rules data changed; one new bot knob.
+
+### Method
+
+- **Trees.** The **before tree** is `aa403039` (BP13 merged into the render merge), a clean detached worktree. Its bot and simulation files are BP13's (`626ccfcb`). The **after tree** is the before tree with this batch's five source and data files copied in. The **final tree** is the after tree with one change that keeps every answer the same: the four-sheet table folds each hex once (part 4). On all five seeds the final tree reached the after tree's digest at turn 100.
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on, to the end of turn 100.
+- **The probe** is `play13b.ts` in the scratch folder `bp13b/`: BP13's `play13.ts` with the bare-hex study's readings added. It sends no command. It plays several trees, or one tree under several tunings, in one process, a turn on each in rotation. It records per turn the CPU of the whole turn and of `nextBotDecision`, accepted commands by type, units lost to the wild, worker-turns by state, re-aimed worker marches and focus orders; every improvement a worker starts, with whether its hex is worked before and six turns later; and at turns 50, 75 and 100 the bare worked hexes (the report's definition: a worked hex, not a town's own, with no improvement and at least one legal improvement), the workers sharing a march end, the yields and the towns by focus.
+- **Seeds**: 42, 999, 1, 7 and 2026. The four-sheet switch off was played on 42 and 999. One game process at a time, each at `nice -n 15` under `caffeinate -i`.
+- **Machine**: the laptop, shared with other jobs (load average 4 to 38). CPU figures compare only inside one process.
+- **Shared baseline.** The before tree's five games, the guards-off games of step 0 and the probe are stored in `/Users/jacky/code/webciv-baselines/aa403039/` (`six-seat-standard-t100/` and `six-seat-standard-t100-guard0/`), each with a `NOTES.md`. The after and final games are in the scratch folder `bp13b/out/`.
+
+### Step 0: BP13's open question
+
+BP13 saw improvements started fall by a tenth on seeds 42 and 999 (530 to 478, turns 1 to 100) and could not tell whether the worker guards or the deals change caused it. The committed tree was played again, as committed and with `workers.guardTurns` at nought (a tuning in the probe, not an edit of the data file).
+
+**The answer.** The guards changed the game, not the deals: with the guards off, both seeds send the BP12 tree's commands, turn for turn, to turn 48 (seed 42) and turn 33 (seed 999), and hold the same towns, workers and improvements to about turn 70. With the guards off, the committed tree starts 524 improvements, against 478 with them. But the loss is on one seed only (999: 330 against 277; 42: 194 against 201), and the path is not workers held back from work. So two seeds cannot show a cost of the guards that is more than the noise of two games parting.
+
+| Seeds 42 and 999, turns 1 to 100 | BP12 tree (`9164452f`) | Committed (`aa403039`) | Committed, guards off |
+|---|---:|---:|---:|
+| Improvements started | 530 | 478 | 524 |
+| seed 42, seed 999 | 212, 318 | 201, 277 | 194, 330 |
+| Worker-turns | 2,155 | 1,958 | 2,144 |
+| Share of worker-turns working | 19.4% | 19.1% | 19.2% |
+| Workers that came | | 173 | 171 |
+| Workers held at turns 50, 75, 100 | 21, 43, 45 | 15, 35, 57 | 21, 42, 47 |
+| Towns at turns 50, 75, 100 | 45, 81, 122 | 46, 67, 139 | 45, 81, 126 |
+| Workers taken by the wild | 36 | 29 | 38 |
+| Soldiers killed by the wild | 78 | 93 | 71 |
+| Bare worked share at turns 50, 75, 100 | | 51%, 32%, 37% | 44%, 33%, 31% |
+
+- **The path.** The same number of workers came (173 against 171) and the same share of worker-turns was spent working (19%). What differs is *when*: the guarded games held fewer workers and fewer towns at turns 50 and 75, and more workers at turn 100. The games part early, at turn 17 on seed 42 (a worker steps back from a raider instead of laying a farm) and at turn 31 on seed 999 (a guard's march), and grow apart from there. Soldiers killed by the wild rose by about a third with the guards on, as BP13 found.
+- **One fault found** (`stepback.ts`, a count on the committed tree that sends nothing): of 52 step-backs in the two games, 12 were ordered out again in the same turn, and 7 of those ended the turn back on the hex they had fled. None laid anything after. The step back is undone because the guard plan is read once a sitting and the worker, now in its town, has no threat and walks back to its best hex.
+- **Proposal, not built** (no clear case on improvements): a worker that stepped back this turn stays where it stepped to until the next sitting (a set on `BotSitting`, read in `workerCommand`). It changes safety, not the improvement count: the undone step-backs laid nothing either way.
+
+### 1. The worker's choice shares the city's rule
+
+- **The rule** (`rankPlanFor`, `citizenWouldWork`, `plan.ts`). For each entry, the worker asks the owning town's own citizen scorer whether a citizen would work the hex with the improvement on it: `yieldScore` with `RULES.cities.citizenWeights` or the town's focus sheet, over the hex's yield with the improvement on it (`PlanEntry.improved`, the plan's own `improvementYieldDelta` in the owner's context added to the hex's fold).
+  - A hex the town does not work counts when it outranks the weakest hex the town works on that sheet (the higher score, and on a tie the lower tile index, which is `chooseCitizens`' order).
+  - A hex the town works counts when the improvement keeps or raises its score, or when it still outranks the best hex the town leaves idle. A row that takes away what the sheet weighs (a lumbermill that costs a forest its food) can send the citizen off.
+  - No on ground no town of the seat owns, on a hex outside the town's `assignableTiles`, and in a town that works no hex but its own.
+- **What counts.** If yes, the entry counts in full, worked today or not. If no, only the part that needs no citizen counts (`PlanEntry.seatless`: the seam it opens, `seamOpeningTerms`, with the strategic copies; the whole of a survey). An entry with no such part leaves the list, so a worker with nothing left that a citizen would use sleeps, and `wakeIdleWorker` asks it again each turn. The first line of every row says which reading counted it, at nought, so the fold is unchanged.
+- **There is no share knob.**
+- **What it reads, and when it can be stale.** The improved yield and the owning town come with the plan entry, which is remembered on the economy clock. The town's worked hexes, scored on its sheet, are remembered on the context while the clock and the town's focus stand still (`townSheetOf`). A citizen moved by `assignCitizens` moves the clock, and the focus is in the key, so the reading is the town as it stands at each ask. Two things are not read: a seat a town has grown into and not yet filled (one turn late), and the production lean a town takes while a settler halts its growth (the build is short; the improvement outlives it).
+- **A luxury's opening.** The plan priced a luxury's own pay at nothing, so under the rule an unworked plantation would have counted for nothing and fallen below any worked farm. `seamOpeningTerms` now prices the first copy of a luxury the empire cannot draw on today (`hasResource`, the access reading the strategic seam already used) at `site.newLuxuryBonus` (14), through `newResourceTerms`, the door the site and hex arms use. Access needs no citizen, so it is part of `seatless`. A second copy of a luxury the empire already draws on still adds nothing; what it could fetch in a deal is not priced.
+- **The craving's seats are unchanged** (`citizenSeats`, population + 2 deep on the balanced sheet). It is a different question (which hexes a new worker's charges are for) and was not ruled; see "Choices left".
+
+### 2. A march is a claim
+
+- `spadeClaims` replaces `workerHexes`: a hex is claimed by each piece with charges that stands on it, as before, and by each spade whose march ends on it. The plan keeps the claimants by id (`ImprovementPlan.claims`), written again on every ask with `unclaimed`, so the shadow check still holds.
+- `rankPlanFor` skips a hex another spade claims; the piece's own hex and its own march end are its own claim, so a worker asked again keeps its target in view.
+- **The craving does not count a charge twice** (part 3): a claim is taken by its claimant, with that claimant's charges.
+
+### 3. The price counts the charges that will land
+
+- `explainWorkerCraving` asks `spokenFor` which of the seated entries the spades already out, and the ones queued, will lay. Each spade on the board:
+  1. takes its march end first, with the entry's charges, however late it lands, because no other spade of the seat goes for a claimed hex. A spade with no march takes the hex it stands on only when that hex is seated, where it would lay it the next turn. Every spade takes its claim before any spade walks on;
+  2. then walks the seated list by the new spade's own rule (`walkTheList`): best first, at its stride, one dig a turn, each entry it can pay for and land inside `workers.waitingTurns`.
+- A spade queued in another town walks from that town from the turn the queue would finish it (the sum of `turnsToBuild` for its row and each row ahead of it). A queue with no spade in it is not timed.
+- What no spade reaches in time is left for the new one. Before, every remaining charge came off the front of the list at once, so a spade far away covered a town's ground.
+- **When it is read.** The board's spades are walked once a plan (again when the economy clock moves); the queues on every ask. A spade ordered to march in the sitting keeps its old claim in this reading until the next plan, the bargain the count of charges had before (once a sitting).
+
+### 4. The bot compares all four citizen sheets
+
+- `sheetTable` (`bot.ts`) prices the balanced, food, production and gold placements, each against the balanced one in the bot's currency: the yields (`explainYields`), the hammer premium gained (`hammerTerm`) or given up (`lostHammerTerm`, new: the same price over the table, times the hammers lost), and the growth brought forward or put off (`growthTerm`, which a food sheet can win). The production sheet must still be the chains' idea, and no sheet may starve the town (the guard `assignCitizens` applies). The best sheet above nought wins; a tie keeps the balanced ordering; between lean sheets the order production, food, gold breaks a tie.
+- **Finite**: every reading is a function of the board and the sitting's frozen prices, never of the sheet the town stands on, so acting on the answer cannot change it (a test sets each of the four focuses and reads the same table).
+- Under `driver.focusOrders` 2 a town moves to the best sheet when it leads the town's own sheet by more than the margin, or when a gate refuses the town's sheet. On two sheets this is BP11's rule.
+- **The switch**: `growth.allFocusSheets` (1), with a row in `data/ai.bounds.json` (0 to 1, whole). At nought the arm reads the two-sheet table that shipped before (`focusTable`, unchanged). It is in `growth` because `driver.*` is frozen for the tuner (`aiBounds.test.ts`); the arena panel shows it through the sheet walk (`test/ui/arenaPage.test.ts` passed with no page edit).
+- **The speed fix** (the final tree): the four sheets read each hex's fold once, and the town's food under a sheet once for each food figure, where `rankTiles` and `bagOfTiles` fold the ring again for each sheet. The figures are the same; seed 42 reached the same digest at turn 100 and its bot CPU at turns 90 to 100 fell by 8% (same game, one process).
+
+### 5. Before and after, five seeds to turn 100
+
+Seeds 42, 999, 1, 7 and 2026, six seats summed. The play figures are the after tree's games; the final tree played the same games (the same digests at turn 100 on all five seeds). Shares are pooled over the seeds; "seeds up/down" is the after tree against the before tree seed by seed, with the geometric mean of the ratios for counts. With five seeds a direction on all five is a reading worth having; anything else is noise.
+
+| Figure | Before | After | Seeds |
+|---|---:|---:|---|
+| Bare worked share, turn 50 | 49% | 47% | 1 up, 4 down |
+| Bare worked share, turn 75 | 36% | 32% | 2 up, 3 down |
+| Bare worked share, turn 100 | 35% | 23% | 0 up, 5 down |
+| Improvements started, turns 1 to 100 | 1,187 | 1,334 | +12%, 4 up, 1 down |
+| of those to turn 94, worked six turns later | 74% | 83% | 4 up, 1 down |
+| of those to turn 94, on a hex worked when started | 52% | 58% | 4 up, 1 down |
+| Workers that came | 428 | 466 | +9%, 3 up, 1 down |
+| Workers taken by the wild | 98 | 113 | +15%, 3 up, 2 down |
+| Worker-turns | 5,366 | 5,691 | +7%, 4 up, 1 down |
+| Share of worker-turns working | 17% | 19% | 3 up, 2 down |
+| Re-aimed worker marches | 1,231 | 752 | −37%, 0 up, 5 down |
+| Workers sharing a march end, turn 100 | 57 | 0 | 0 up, 5 down |
+| Soldiers killed by the wild | 224 | 254 | +2%, 2 up, 3 down |
+| Focus orders | 541 | 777 | +44%, 5 up, 0 down |
+| Towns, turn 100 | 311 | 298 | −4%, 1 up, 3 down |
+| Citizens | 1,773 | 1,877 | +5%, 3 up, 2 down |
+| Food | 6,510 | 7,407 | +9%, 3 up, 2 down |
+| Production | 6,997 | 8,216 | +17%, 3 up, 2 down |
+| Gold | 2,499 | 3,396 | +38%, 4 up, 1 down |
+| Science | 4,501 | 5,798 | +26%, 4 up, 1 down |
+| Culture | 2,452 | 2,648 | +10%, 3 up, 2 down |
+| Faith | 943 | 941 | +2%, 3 up, 2 down |
+
+Per seed, the bare worked share at turn 100 and the improvements started: 42: 42% to 37%, 201 to 215; 999: 33% to 14%, 277 to 322; 1: 37% to 26%, 195 to 281; 7: 30% to 14%, 276 to 294; 2026: 34% to 25%, 238 to 222.
+
+- **The bare worked share fell on every seed at turn 100**, from 35% to 23%; at turns 50 and 75 it moved little (49% to 47%, 36% to 32%). The report's aim on the proposal page was under 10%.
+- **The improvements land where citizens are**: 83% of the improvements started are worked six turns later, against 74%; 12% more were started, from 9% more workers.
+- **The march claim works**: no two workers share a march end at turn 100 (57 before), and re-aimed marches fell by 37%.
+- **Workers taken by the wild rose by 15%**, about as much as the worker-turns and the workers (24% of the workers that came, against 23%).
+- **The yields at turn 100 rose on most seeds** (gold and science on four of five), with 4% fewer towns. Two of these readings come from the four-sheet switch rather than the worker fixes (part 6).
+- Towns by focus at turn 100, five seeds: before 210 balanced and 101 production; after 191 balanced, 88 production, 19 gold and none on food.
+
+### 6. The four-sheet switch, seeds 42 and 999
+
+The after tree with `growth.allFocusSheets` at nought (the two-sheet table) beside the before and after trees, in one process a seed.
+
+| Figure | Before | After, four sheets | After, two sheets |
+|---|---:|---:|---:|
+| Bare worked share, turns 50, 75, 100 | 51%, 32%, 37% | 52%, 32%, 25% | 55%, 33%, 26% |
+| Improvements started | 478 | 537 | 466 |
+| worked six turns later | 72% | 83% | 88% |
+| Workers that came | 173 | 180 | 156 |
+| Re-aimed worker marches | 401 | 279 | 289 |
+| Workers sharing a march end, turn 100 | 24 | 0 | 2 |
+| Focus orders | 224 | 325 | 198 |
+| Towns, turn 100 | 139 | 122 | 117 |
+| Citizens | 744 | 817 | 658 |
+| Food | 2,698 | 3,716 | 2,770 |
+| Production | 2,644 | 4,497 | 2,123 |
+| Gold | 1,161 | 1,845 | 1,282 |
+| Science | 1,875 | 2,987 | 1,733 |
+| Culture | 786 | 1,181 | 912 |
+| Faith | 329 | 489 | 342 |
+
+- **The worker fixes do the bare-hex work on both settings**: the share at turn 100 is 25% and 26%, the march claim holds, and more of the improvements are worked six turns later.
+- **The yields part on the switch**: on both seeds the four-sheet games end turn 100 with more citizens, production and science than the two-sheet games, and on seed 42 with more food too (on 999 the two-sheet game has more food, 1,861 against 1,675). Most of the gap is seed 42, where the four-sheet game made 2,832 production against 677. Two seeds cannot tell a gain from two games parting.
+
+### 7. Speed
+
+CPU seconds a turn at turns 90 to 100, the whole turn with the probe's bookkeeping and the bot's own CPU inside `nextBotDecision`, the before and final trees in one process a seed (the final tree plays the after tree's games):
+
+| Seed | Before | Final | Bot, before and final | Commands a turn, before and final | Towns at turn 100, before and final |
+|---|---:|---:|---:|---:|---:|
+| 42 | 1.75 | 2.45 | 1.39, 1.93 | 103, 95 | 69, 58 |
+| 999 | 2.45 | 3.26 | 1.87, 2.63 | 106, 128 | 70, 64 |
+| 1 | 3.38 | 4.25 | 2.64, 3.62 | 130, 113 | 49, 61 |
+| 7 | 3.21 | 3.61 | 2.48, 2.91 | 103, 111 | 63, 63 |
+| 2026 | 4.16 | 3.18 | 3.29, 2.48 | 121, 103 | 60, 52 |
+| Mean | 2.99 | 3.35 (+15%, 4 up, 1 down) | 2.34, 2.71 (+19%) | | |
+
+- **What the new code costs.** A CPU profile of the final tree on seed 999's turn-90 state, turns 90 to 92: every function this batch added or changed is small. `explainWorkerCraving` 0.3% of the turns, `rankPlanFor` 0.3% (with `citizenWouldWork` and `townSheetOf` inside it), `focusCommand` 0.2% (`sheetTable` 0.1%), `spokenFor` 0.1%, `spadeClaims` 0.1%. The plan's walk is 2.5% against 2.3% on the before tree (the extra fold of each hex for `PlanEntry.improved`). Together about 1.5% of a late turn.
+- **Paired from one state.** The same turn-90 state played three turns on each tree in one process: seed 42, before 15.2 s and final 14.4 s; seed 999, before 10.3 s and final 9.6 s. Two profiles of the same seed 42 state, four sheets and two, read 6.5 s and 9.8 s, the other way round from the paired run, so a three-turn window says little beyond "not dearer".
+- **So most of the rise at turns 90 to 100 is the games.** The final games are richer at turn 100 (production +17%, gold +38%, science +26%), and on seeds 42 and 1 a command costs a third to a half more (17 ms against 26 ms, 26 ms against 38 ms). Five seeds cannot separate a cost of the code from a richer board further than the profile does.
+- **The four-sheet table's speed fix** (final against after, seed 42, one process, the same game): the whole turn at turns 90 to 100 fell from 2.28 s to 2.14 s and the bot's CPU from 1.85 s to 1.71 s.
+
+### Not done, and choices left
+
+- **The bare share is not under 10%.** It is 23% at turn 100 on five seeds, from 35%. At turns 50 and 75 it barely moved (49% to 47%, 36% to 32%): new towns are mostly bare (the report's table 3), and early seats hold too few charges, which the citizen test cannot help.
+- **Workers taken by the wild rose by 15%**, with 9% more workers. Fix 4 of the report (the wild's toll) is still open.
+- **The step back undone in the same turn** (step 0): proposed, not built.
+- **The craving's seats and the worker's test differ.** The craving counts a town's worked hexes and the next two by the balanced sheet (`citizenSeats`, unchanged); the worker counts a hex in full only when a citizen would work it now, on the town's sheet. So the craving may price a hex a town will work after it grows that no worker lays until it does. Not ruled; a choice for the user.
+- **A worker no longer lays ground ahead of growth.** With nothing a citizen would work, it sleeps and is asked again each turn, rather than improve a hex a town will work later. This is the ruling read strictly; the user may prefer a share for the next citizen's hex.
+- **The board's spades in the craving** take entries best first by the straight distance, as the new spade's walk always did. A real worker ranks by worth over the walk and may lay unseated seams too, so the reading is a little optimistic about what the board's spades cover.
+- **The lost hammer premium** (`lostHammerTerm`) is this batch's reading of "the bot's own currency": a sheet that makes fewer hammers is charged the premium the hammers carried, as a sheet that makes more is paid it. Without it the four-sheet table would favour any sheet that leaves the hills whenever engines wait on hammers. A choice for the user.
+- **The four-sheet switch is on.** The food sheet held no town at any turn-100 reading; the gold sheet held 19 of 298.
+- **Not measured**: 16 seeds (the brief asked for five at most); turns after 100; the bare-hex report's plain-plan yardstick; per-seat shares.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end with the reason printed beside them: duel `c19609c9:365065` -> `96597c87:340143`, standard `eb076b82:1079375` -> `109baaf6:1053026`. Both runs reported no warning and no stall.
+
+### Checks
+
+- Type check clean (`nice -n 15 npx tsc --noEmit -p .`).
+- Narrow tests, by name: `aiWorkerClaims` (new, 11; all 11 fail on the before tree), `aiBot` (two fixtures grown by play re-sited, below), `aiAppraisal`, `aiCampHunt`, `aiPersona`, `aiSittingMemos`, `aiWants` (two focus claims reworked for four sheets), `aiEndCheckLoops` (the BP10 and BP11 focus tests run with two sheets as written; three new four-sheet versions beside them), `aiWorkerGuards`, `aiWar`, `aiBounds` (the new knob), `aiModuleCycles`, `test/ui/arenaPage.test.ts` (the knob appears on the panel with no page edit) and `test/ui/botWorker.test.ts` (no new memory on the state): all passed.
+- `aiBot.test.ts`' two fixtures on the duel grown by play: "raises a soldier over an economy building when a column is next door" moved from turn 17 to 12 (swept 8 to 32: turns 10 to 14 read as the test says), and "marches a free soldier to the door of a held camp" from turn 12 to 15 (at turn 12 a real camp five hexes off is worth more than the test's; turns 13 to 18 hold).
+- Slow tier: `aiDigest.slow.test.ts` twice (the pins), and `aiWants.slow.test.ts` once (its two focus claims reworked for four sheets as in the core file). The other slow files, the whole core tier and the build are the orchestrator's.
+
+### Files
+
+- `src/ai/plan.ts`: `PlanEntry.seatless`, `seatlessTerms`, `improved`, `town`; `ImprovementPlan.claims`; `spadeClaims` and `marchEndOf` (in place of `workerHexes`); `pricedEntry`'s hex fold; `seamOpeningTerms` with luxuries; `rankPlanFor` with the claims and the citizen test; `citizenWouldWork`, `townSheetOf`, `idleHexOf`, `outranks`, `claimedByAnother`; `explainWorkerCraving`, `walkTheList`, `entryChargeCost` and `spokenFor` by each spade's clock; `PlanMemo.spoken` and `sheets`.
+- `src/ai/bot.ts`: `sheetTable`, `lostHammerTerm`, `focusTableFor`, `FocusTable`, `sheetSentence`, `marginSheetSentence`; `focusCommand`, `marginFocusCommand` and `focusReading` through `focusTableFor`. `focusTable` unchanged.
+- `src/ai/aiConfig.ts` and `data/ai.json`: `growth.allFocusSheets` (1). `data/ai.bounds.json`: its row.
+- Tests: `test/sim/aiWorkerClaims.test.ts` (new); `aiBot.test.ts`, `aiBounds.test.ts`, `aiEndCheckLoops.test.ts`, `aiWants.test.ts`, `aiWants.slow.test.ts`, `aiDigest.slow.test.ts`.
+- `docs/bot-priorities.md`, and this section.
+- Scratch (not in the repo): the probe `play13b.ts`, the step-back count `stepback.ts`, the timings `pair13b.ts` and `prof13.ts`, the tables `analyse.py` and `tables.py`, and the games in `out/` of the session's scratch folder `bp13b/`.

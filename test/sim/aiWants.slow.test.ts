@@ -104,10 +104,12 @@ describe('the focus arm, over a played duel', () => {
     // hammers at t29 while an engine is waiting on them and puts a town back at
     // t53 when the engine is standing — which is the whole of the arm's
     // sentence, in both directions, on a board nobody arranged.
+    // Since bot batch BP13b the lean may be any of the three sheets
+    // (`growth.allFocusSheets`), so the claim is a lean and a way back.
     const steps = focusSteps();
     expect(steps.length).toBeGreaterThan(0);
     const words = steps.map((step) => (step.decision.command as { focus?: string }).focus);
-    expect(words).toContain('production');
+    expect(words.some((word) => word !== 'default')).toBe(true);
     expect(words).toContain('default');
     // A command this bot proposes is a command the rules take — the discipline
     // every arm keeps, and the reason `driver.ts` treats a refusal as a bug.
@@ -174,11 +176,18 @@ describe('the focus arm, over a played duel', () => {
     for (const step of steps) expect(step.ok).toBe(true);
   });
 
-  it('prints both readings and folds each candidate from its own terms', () => {
+  it('prints every sheet and folds each candidate from its own terms', () => {
+    // Four rows since bot batch BP13b: the three lean sheets and the balanced
+    // ordering they are measured from.
     const steps = focusSteps();
     expect(steps.length).toBeGreaterThan(0);
     for (const step of steps) {
-      expect(step.decision.candidates.length).toBe(2);
+      expect(step.decision.candidates.map((candidate) => candidate.label)).toEqual([
+        'work the hammers',
+        'work the harvest',
+        'work the coin',
+        'the balanced ordering',
+      ]);
       expect(step.decision.candidates.filter((candidate) => candidate.chosen).length).toBe(1);
       for (const candidate of step.decision.candidates) {
         expect(foldTerms(candidate.terms)).toBe(candidate.score);

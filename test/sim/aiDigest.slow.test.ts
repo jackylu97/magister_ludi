@@ -1241,9 +1241,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * changed. Duel `98ab65ea:361047` -> `c19609c9:365065`, standard
  * `8c45d70b:1032553` -> `eb076b82:1079375`.
  */
+/**
+ * Re-cut for bot batch BP13b (`docs/flags.md` (ooooooo), the bullet "BP13b").
+ * A worker counts a hex in full only where a citizen would work it with the
+ * improvement on it, on the town's own sheet, and otherwise only the seam it
+ * opens, a luxury's first copy now among them; a worker's march end is a claim
+ * for the other workers of its seat; the price of a new worker counts the
+ * charges the spades out and queued will land inside the look-ahead, each by
+ * its own clock; and the focus arm compares all four citizen sheets
+ * (`growth.allFocusSheets`). No rule changed. Duel `c19609c9:365065` ->
+ * `96597c87:340143`, standard `eb076b82:1079375` -> `109baaf6:1053026`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'c19609c9:365065',
-  standard: 'eb076b82:1079375',
+  duel: '96597c87:340143',
+  standard: '109baaf6:1053026',
 };
 
 /**

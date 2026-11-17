@@ -24,6 +24,7 @@
   "workers.guardTurns": { "min": 0, "max": 3, "integer": true },
   "growth.smallCityPop": { "min": 4, "max": 16, "integer": true },
   "growth.smallCityPremium": { "min": 0, "max": 30 },
+  "growth.allFocusSheets": { "min": 0, "max": 1, "integer": true },
   "camps.forceMargin": { "min": 1, "max": 3 },
   "camps.assaultAppetite": { "min": 0, "max": 1 },
   "camps.marchReach": { "min": 4, "max": 20, "integer": true },

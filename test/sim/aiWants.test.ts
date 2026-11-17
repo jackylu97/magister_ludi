@@ -1413,15 +1413,16 @@ describe('the hammer price', () => {
 
 describe('the focus arm', () => {
   /**
-   * The arm on the rich board above: in six turns it leans a town on the
-   * hammers and later puts towns back, so both directions are reached without a
-   * long game. The played-duel versions of these claims, on boards nobody
-   * arranged, are in `aiWants.slow.test.ts`.
+   * The arm on the rich board above: in six turns it leans a town onto a sheet
+   * and later puts towns back, so both directions are reached without a long
+   * game. Since bot batch BP13b the lean may be any of the three sheets
+   * (`growth.allFocusSheets`). The played-duel versions of these claims, on
+   * boards nobody arranged, are in `aiWants.slow.test.ts`.
    */
   it('points towns both ways, once a town a sitting, never at the focus it has, and the rules accept each', () => {
     const focus = richSittings().filter((sat) => sat.decision.kind === 'focus');
     const words = focus.map((sat) => (sat.decision.command as { focus: string }).focus);
-    expect(words).toContain('production');
+    expect(words.some((word) => word !== 'default')).toBe(true);
     expect(words).toContain('default');
     const asked = new Set<string>();
     for (const sat of focus) {
@@ -1437,18 +1438,26 @@ describe('the focus arm', () => {
     }
   });
 
-  it('prints both readings and folds each candidate, and every part, from its own terms', () => {
+  it('prints every sheet and folds each candidate, and every part, from its own terms', () => {
+    // Four rows since bot batch BP13b: the three lean sheets and the balanced
+    // ordering they are measured from.
     const focus = richSittings().filter((sat) => sat.decision.kind === 'focus');
     expect(focus.length).toBeGreaterThan(0);
     for (const { decision } of focus) {
-      expect(decision.candidates.length).toBe(2);
+      expect(decision.candidates.map((candidate) => candidate.label)).toEqual([
+        'work the hammers',
+        'work the harvest',
+        'work the coin',
+        'the balanced ordering',
+      ]);
       expect(decision.candidates.filter((candidate) => candidate.chosen).length).toBe(1);
       for (const candidate of decision.candidates) {
         expect(foldTerms(candidate.terms)).toBe(candidate.score);
         expect(partFoldFailures(candidate.terms, candidate.label)).toEqual([]);
+        if (candidate.label !== 'the balanced ordering') {
+          expect(candidate.terms[0]!.label).toContain('what the people would make');
+        }
       }
-      const lean = decision.candidates.find((candidate) => candidate.label === 'work the hammers')!;
-      expect(lean.terms[0]!.label).toContain('what the people would make');
       expect(decision.summary.length).toBeGreaterThan(0);
     }
   });
