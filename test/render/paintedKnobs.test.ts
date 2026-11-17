@@ -95,8 +95,11 @@ describe('the painted performance knobs', () => {
     // `canvas` arrived with the same audit (finding 8): `maxPixelRatio` is the
     // 1.5 cap the renderer used to hold as a literal, and `pixelBudget` is new,
     // the most drawing-buffer pixels the painted game asks for.
+    // `build.workers` arrived with the third render speed pass and held no
+    // literal: the most board workers that build the land at once.
     expect(SHEET).toEqual({
       canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000 },
+      build: { workers: 4 },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
         counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3,

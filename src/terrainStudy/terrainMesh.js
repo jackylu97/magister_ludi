@@ -18,14 +18,19 @@ function triangulate(points) {
   }
   // A live face is tested against many later points. Its circumcircle is
   // immutable; compute it once instead of repeating the determinant/divides.
+  // The point is read once for each insertion, not once for each live face, and
+  // an edge's key is a number rather than a string (the third render speed
+  // pass). A Map keeps insertion order for either kind of key, so the faces
+  // come out in the same order.
   let faces = [face(n,n+1,n+2)];
+  const stride=p.length+1;
   for(let i=0;i<n;i++){
-    const edges=new Map(),keep=[];
+    const edges=new Map(),keep=[],x=p[i][0],y=p[i][1];
     for(const current of faces){
-      const circle=current.circle,[x,y]=p[i];
+      const circle=current.circle;
       if(!circle||(x-circle[0])**2+(y-circle[1])**2>circle[2]){keep.push(current);continue}
       for(let j=0;j<3;j++){
-        const a=current.indices[j],b=current.indices[(j+1)%3],key=a<b?`${a},${b}`:`${b},${a}`;
+        const a=current.indices[j],b=current.indices[(j+1)%3],key=a<b?a*stride+b:b*stride+a;
         if(edges.has(key))edges.delete(key);else edges.set(key,[a,b]);
       }
     }

@@ -940,7 +940,16 @@ function foldMarks(marks: readonly Mark[]): number {
  * Forty such cells on a developed map is the whole of what a fog move cost after
  * the recipes were cached. A null recipe is the cache saying *nothing here*.
  */
-type GroundRecipe = { terraced: boolean; key: number; geometry: BufferGeometry | null };
+type GroundRecipe = {
+  terraced: boolean; key: number; geometry: BufferGeometry | null;
+  /**
+   * The marks array the recipe was clipped from. The road and border plans keep a
+   * hex's marks array when nothing near it changed, and never change an array
+   * they have handed out, so the same array has the same fold and need not be
+   * folded again when the plan object is new.
+   */
+  marks: readonly Mark[];
+};
 
 /**
  * Where the ground ink stands in the queue of things painted on the ground.
@@ -972,6 +981,28 @@ type GroundRecipe = { terraced: boolean; key: number; geometry: BufferGeometry |
  * top of the crop for exactly the reason the border does.
  */
 const GROUND_INK_OFFSET = -2;
+
+/**
+ * A hex's tessellated top, made once for each prepared hex and kept.
+ *
+ * Every hex whose ink is clipped again is tessellated first (`terrainMesh`),
+ * and the border line and the border tint clip the same hexes at the same turn
+ * end: about a fifth of the tint's rebuild at a turn-130 turn end (the third
+ * render speed pass). The top depends only on the prepared hex, which never
+ * changes after the board is built, and the clip only reads it. It never
+ * reaches the GPU, so there is nothing to dispose; it goes with its hex.
+ */
+const groundTops = new WeakMap<Tile, BufferGeometry>();
+function groundTop(tile: Tile): BufferGeometry {
+  let top = groundTops.get(tile);
+  if (!top) {
+    const [made, skirt] = terrainMesh(tile) as BufferGeometry[];
+    skirt!.dispose();
+    top = made!;
+    groundTops.set(tile, top);
+  }
+  return top;
+}
 
 /**
  * Turns a projected tint mark's colour into colour and alpha: the alpha falls
@@ -1064,11 +1095,11 @@ export class PaintedGroundLayer {
       const tile = prepared.tiles[cell]!, level = levelAt(levels, state.map, tile.col, tile.row);
       if (level === HIDDEN) continue;
       let recipe = this.recipes.get(cell);
-      const key = recipe && !planned ? recipe.key : foldMarks(marks);
+      const key = recipe && (!planned || recipe.marks === marks) ? recipe.key : foldMarks(marks);
       const terraced = state.map.tiles[cell]?.improvement === 'terraces';
       if (!recipe || recipe.key !== key || recipe.terraced !== terraced) {
         recipe?.geometry?.dispose(); this.recipes.delete(cell);
-        const terrain = (terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as BufferGeometry[];
+        const terrain = terraced ? terraceFarmSurface(tile) as BufferGeometry[] : [groundTop(tile)];
         let pieces: BufferGeometry[] = [];
         try {
           pieces = this.tint
@@ -1090,12 +1121,13 @@ export class PaintedGroundLayer {
             pieces.push(this.tint ? fadeGeometry(geometry, mark.fade) : geometry);
           }
         }
-        finally { terrain.forEach(g => g.dispose()); }
-        if (!pieces.length) { this.recipes.set(cell, { key, terraced, geometry: null }); continue; }
+        // The kept hex tops are the board's for good (see `groundTop`); only a terrace's surface is made here.
+        finally { if (terraced) terrain.forEach(g => g.dispose()); }
+        if (!pieces.length) { this.recipes.set(cell, { key, terraced, geometry: null, marks }); continue; }
         const geometry = mergeGeometries(pieces)!; pieces.forEach(g => g.dispose());
         geometry.setAttribute('groundExplored', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count), 1));
-        recipe = { key, terraced, geometry }; this.recipes.set(cell, recipe);
-      }
+        recipe = { key, terraced, geometry, marks }; this.recipes.set(cell, recipe);
+      } else recipe.marks = marks;
       if (!recipe.geometry) continue;
       this.cells.add(cell);
       const id = `${Math.floor(tile.col / 12)},${Math.floor(tile.row / 12)}`;

@@ -110,3 +110,44 @@ describe('garrison icon hover lifecycle', () => {
     f.banners.dispose();
   });
 });
+
+// A projection reads the canvas's size, and a read after a style write makes the browser lay the page out at once.
+// With the two interleaved, a pan laid the page out once a town on every frame (render speed pass, third pass).
+describe('banner placement on a drawn frame', () => {
+  it('projects every banner before it moves any of them, and moves each to its own point', () => {
+    vi.stubGlobal('document', { createElement: () => new ElementSurface(), createElementNS: () => new ElementSurface() });
+    const game = createGame({ seed: 7, sizeName: 'duel', players: [{ name: 'Ada', color: '#a00', isHuman: true }] });
+    const state = game.state;
+    state.map = createMap({ width: 16, height: 10, terrain: 'grassland' });
+    state.units = []; state.cities = []; state.tileOwner = state.map.tiles.map(() => null);
+    resetVisibility(state);
+    for (const col of [2, 6, 10]) foundCityAt(state, 0, getTileAt(state.map, col, 3)!);
+    state.visibility[0]!.fill(VISIBLE);
+    const events: string[] = [];
+    const container = new ElementSurface();
+    const banners = createCityBanners({ container: container as unknown as HTMLElement,
+      renderer: { projectCell: (col: number) => { events.push(`read ${col}`); return { x: col * 10, y: 50, onScreen: col !== 10 }; } } as unknown as MapView,
+      getGame: () => game, localPlayerId: () => 0, onOpenCity: vi.fn(), openCity: () => null,
+      onSelectPiece: vi.fn(), onHoverPiece: vi.fn(), onHoverCity: vi.fn() });
+    const roots = [...container.children];
+    expect(roots).toHaveLength(3);
+    const placed = new Map<ElementSurface, string>();
+    for (const root of roots) {
+      const style = root.style as unknown as Record<string, unknown>;
+      for (const key of ['display', 'transform']) {
+        let value = '';
+        Object.defineProperty(style, key, { configurable: true, get: () => value,
+          set: (next: string) => { events.push(`write ${key}`); value = next; if (key === 'transform') placed.set(root, next); } });
+      }
+    }
+    events.length = 0;
+    banners.reposition();
+    const firstWrite = events.findIndex(event => event.startsWith('write'));
+    expect(events.filter(event => event.startsWith('read'))).toHaveLength(3);
+    expect(events.slice(firstWrite).some(event => event.startsWith('read'))).toBe(false);
+    const transforms = [...placed.values()].sort();
+    expect(transforms).toEqual(['translate(-50%, -100%) translate(20px, 50px)', 'translate(-50%, -100%) translate(60px, 50px)']);
+    expect(roots.filter(root => (root.style as unknown as { display: string }).display === 'none')).toHaveLength(1);
+    banners.dispose();
+  });
+});

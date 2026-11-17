@@ -9,6 +9,14 @@ export function indexGeometry(geometry){
  if(attrs.some(([,a])=>a.isInterleavedBufferAttribute)||Object.keys(geometry.morphAttributes).length)return geometry;
  const streams=attrs.map(([,a])=>({size:a.itemSize,bits:a.array instanceof Float32Array?new Uint32Array(a.array.buffer,a.array.byteOffset,a.array.length):a.array}));
  const position=streams[attrs.findIndex(([name])=>name==='position')];
+ // The normal joins the position in the hash where there is one. The ground is
+ // flat-shaded, so each corner is shared by several faces with different
+ // normals, and a hash on the position alone sent every one of them down the
+ // same probe chain, to be told apart by the full comparison (a fifth of the
+ // board build, the third render speed pass). Which tuples are equal, and the
+ // order in which each first appears, do not depend on the hash, so the index
+ // and the attributes come out the same.
+ const normalAt=attrs.findIndex(([name])=>name==='normal'),normal=normalAt>=0&&streams[normalAt].bits instanceof Uint32Array?streams[normalAt]:null;
  let capacity=1;while(capacity<count*1.5)capacity*=2;
  const table=new Uint32Array(capacity),canonical=new Uint32Array(count),unique=new Uint32Array(count),indices=new Uint32Array(count),mask=capacity-1;
  let total=0;
@@ -22,6 +30,7 @@ export function indexGeometry(geometry){
   // Hashing the many fog/pigment/UV inputs again on every vertex costs more
   // than resolving the occasional coincident corner with different shading.
   for(let j=0;j<position.size;j++)hash=Math.imul(hash^position.bits[i*position.size+j],16777619);
+  if(normal)for(let j=0;j<normal.size;j++)hash=Math.imul(hash^normal.bits[i*normal.size+j],16777619);
   hash^=hash>>>16;let slot=hash&mask;
   while(table[slot]&&!equal(i,table[slot]-1))slot=(slot+1)&mask;
   if(!table[slot]){table[slot]=i+1;canonical[i]=total;unique[total++]=i;}

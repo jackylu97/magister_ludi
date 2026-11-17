@@ -51,10 +51,21 @@ function releaseAfterUpload(geometry) {
 }
 
 /** Build only from a real map and ready assets. No study plans, DOM or loaders. */
-export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null) {
+/** The far view's region of a hex: 18 by 18 hexes, three by three land chunks. A part of a split build owns whole regions. */
+export function paintedRegionKey(col, row) { return `${Math.floor(col / 18)},${Math.floor(row / 18)}`; }
+
+export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null, part = null) {
   // `progress(done, total, stage)` names each step as it starts, so a long
   // build on a slow machine shows that it goes on (the worker forwards these to
   // the loading sheet). Only the land step counts: `done` of `total` chunks.
+  //
+  // `part` (`{regions}`, a set of `paintedRegionKey`s) builds the land and the
+  // far view of those regions only, for a build split across several workers
+  // (`paintedBoardAsync.js`). Every exported batch carries `order`: [step, rank,
+  // count], where the rank is the land chunk that made it (or, for the far
+  // view, the chunk that first added to its region) and the count runs on in
+  // the order this build made them. Sorted by `order`, the batches of all the
+  // parts are the batches one whole build makes, in its order.
   if (!preparedMap) progress(0, 0, 'shape');
   const renderMap = preparedMap || prepareTerrainMap(map, { wrap: true });
   const group = new T.Group();
@@ -70,6 +81,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const pickMeshes = [], nearProps = [], farProps = [], visibilityBatches = [];
   const sources = new Map(), instanceBases = new WeakMap();
   const chunks = new Map(), mapProps = new Map(), mapSurfaces = new Map();
+  // The land chunk that first added to each far region, for `order`; and the chunk being built.
+  const mapPropRanks = new Map(), mapSurfaceRanks = new Map();
+  let chunkIndex = -1;
   if (!prepared) progress(0, 0, 'mountains');
   const ranges = prepared ? null : createMountainRanges(renderMap);
   // The thinner rivers of the visual test version paint a pale line on each
@@ -251,6 +265,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     }
     mesh.customDepthMaterial = depthMaterials.get(key);
   }
+  // The `order` of the next batch (see `part` above).
+  let orderStep = 0, orderRank = 0, orderCount = 0;
   function addCopies(mesh, list, surface = false, detail = 'always', preparedCells = null) {
     const cells = new Set(), meshes = [];
     if (!preparedCells) for (const name of ['paintedCell', 'paintedOther']) {
@@ -266,7 +282,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     }
     // Include both banks of shared river sectors, even across chunk/wrap edges.
     const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
-      casts: !!mesh.userData.paintedCasts };
+      casts: !!mesh.userData.paintedCasts, order: [orderStep, orderRank, orderCount++] };
     visibilityBatches.push(batch); showBatch(batch);
   }
   function normalize(geometry, cell, grade, turfStrength, material) {
@@ -365,9 +381,16 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       const key = `${Math.floor(tile.col / 6)},${Math.floor(tile.row / 6)}`;
       if (!chunks.has(key)) chunks.set(key, []); chunks.get(key).push(tile);
     }
-    let completed = 0;
-    progress(0, chunks.size, 'land');
+    const owns = tiles => !part || part.regions.has(paintedRegionKey(tiles[0].col, tiles[0].row));
+    let completed = 0, owned = 0;
+    for (const tiles of chunks.values()) if (owns(tiles)) owned++;
+    // The prepared terrain is complete once the land step starts (the land step reads it and changes nothing on
+    // it), so it rides with this first land report: the page can work with it while the land is still being built.
+    progress(0, owned, 'land', renderMap);
     for (const tiles of chunks.values()) {
+      chunkIndex++;
+      if (!owns(tiles)) continue;
+      orderStep = 0; orderRank = chunkIndex;
       const surfaces = new Map(), farSurfaces = new Map(), props = new Map();
       let cell = 0, activeTile;
       function push(source, geometry, farGeometry, grade = NEVER, bucket = surfaces) {
@@ -406,8 +429,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         // retain the study's low draw count while culling those unseen copies.
         // The far copy also stands the family's map-scale sculpt where one
         // exists: same place, same pose, same pigment, a tenth of the facets.
-        const farKey = `${Math.floor(activeTile.col / 18)},${Math.floor(activeTile.row / 18)}`;
-        if (!mapProps.has(farKey)) mapProps.set(farKey, new Map());
+        const farKey = paintedRegionKey(activeTile.col, activeTile.row);
+        if (!mapProps.has(farKey)) { mapProps.set(farKey, new Map()); mapPropRanks.set(farKey, chunkIndex); }
         for (const [batches, sculpt] of [[props, geometry], [mapProps.get(farKey), distantGeometry.get(geometry) || geometry]]) {
           const key = sculpt.uuid + material.uuid;
           if (!batches.has(key)) batches.set(key, { geometry: sculpt, material, matrices: [], tints: [], cells: [], grades: [], reservationDistances: [] });
@@ -551,20 +574,25 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         if (farSurfaces.has(material)) {
           // The overview uses the exact same distant faces in larger spatial
           // batches. Close views and static shadow baking retain 6×6 chunks.
-          const key = `${Math.floor(tiles[0].col / 18)},${Math.floor(tiles[0].row / 18)}`;
-          if (!mapSurfaces.has(key)) mapSurfaces.set(key, new Map());
+          const key = paintedRegionKey(tiles[0].col, tiles[0].row);
+          if (!mapSurfaces.has(key)) { mapSurfaces.set(key, new Map()); mapSurfaceRanks.set(key, chunkIndex); }
           const batches = mapSurfaces.get(key);
           if (!batches.has(material)) batches.set(material, []);
           batches.get(material).push(...farSurfaces.get(material));
         }
       }
       propMeshes(props, nearProps, false);
-      progress(++completed, chunks.size, 'land');
+      progress(++completed, owned, 'land');
     }
     progress(0, 0, 'overview');
-    for (const batches of mapSurfaces.values())
+    for (const [key, batches] of mapSurfaces) {
+      orderStep = 1; orderRank = mapSurfaceRanks.get(key);
       for (const [material, list] of batches) batchMesh(material, list, false, 'far');
-    for (const batches of mapProps.values()) propMeshes(batches, farProps, true);
+    }
+    for (const [key, batches] of mapProps) {
+      orderStep = 2; orderRank = mapPropRanks.get(key);
+      propMeshes(batches, farProps, true);
+    }
   }
   group.updateMatrixWorld(true);
   // Board transforms never animate. Match the study's static matrix path;
@@ -582,6 +610,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   });
   return {
     group, renderMap, pickMeshes, fogTexture: fog.texture, fogUniforms: fog.uniforms,
+    // The three wrap copies, so a pass whose camera cannot see one can leave it out (`copyCulling.ts`).
+    copies,
     replaceHillRelief(cells) { return relief.replace(ownedGeometry, cells); },
     /**
      * The table's paper: one merged hexagon fan at the ground datum that draws
@@ -627,12 +657,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // Canonical batches only. Wrapping, shader hooks and fog callbacks are
     // rebound by the consumer, never serialized as Three.js scene objects.
     exportBatches() {
-      return visibilityBatches.map(({meshes, detail, surface, cells, casts}) => {
+      return visibilityBatches.map(({meshes, detail, surface, cells, casts, order}) => {
         const mesh = meshes[1];
         // The batch's own cast fact, not the live flag: a board prepared while
         // shadows were off would otherwise hydrate into a world that throws
         // none, whatever the consumer asks for.
-        return {geometry: mesh.geometry, source: sources.get(mesh.material), detail, surface, cells,
+        return {geometry: mesh.geometry, source: sources.get(mesh.material), detail, surface, cells, order,
           mountainPick: !!mesh.userData.paintedPickOnly, castShadow: casts,
           base: instanceBases.get(mesh.geometry), count: mesh.count,
           matrix: mesh.instanceMatrix, color: mesh.instanceColor};

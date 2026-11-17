@@ -26,6 +26,15 @@ import {createOrganicRivers} from './organicRivers';
  * paint reads it the same way on every copy of the board.
  */
 export function bakeSeaDistances(map, knobs, organicRivers) {
+ return seaDistanceTexture(bakeSeaDistanceData(map, knobs, organicRivers));
+}
+
+/**
+ * The numbers of the bake, with no texture: what `bakeSeaDistances` makes its
+ * texture from. A worker can run this (`seaDistances.worker.js`) and hand the
+ * numbers to the page, which makes the same texture from them.
+ */
+export function bakeSeaDistanceData(map, knobs, organicRivers) {
  const field = knobs.field;
  const mouths = organicRivers ? createOrganicRivers(map, organicRivers).mouths : [];
  const coast = createFreeCoast(map, knobs, mouths);
@@ -99,9 +108,14 @@ export function bakeSeaDistances(map, knobs, organicRivers) {
    data[at + 2] = half(mouth); data[at + 3] = half(1);
   }
  }
+ return {data, width, height, originX, originZ, period, spanZ, mouthCount: mouths.length};
+}
+
+/** The texture of a bake made by `bakeSeaDistanceData`, here or in a worker. */
+export function seaDistanceTexture({data, width, height, originX, originZ, period, spanZ, mouthCount}) {
  const texture = new DataTexture(data, width, height, RGBAFormat, HalfFloatType);
  texture.wrapS = RepeatWrapping; texture.wrapT = ClampToEdgeWrapping;
  texture.magFilter = texture.minFilter = LinearFilter; texture.generateMipmaps = false;
  texture.needsUpdate = true;
- return {texture, width, height, originX, originZ, period, spanZ, mouthCount: mouths.length};
+ return {texture, width, height, originX, originZ, period, spanZ, mouthCount};
 }
