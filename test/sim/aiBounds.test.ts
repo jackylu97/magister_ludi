@@ -76,6 +76,8 @@ const INTEGER_LEAVES = [
   'workers.searchRadius',
   'workers.planTopN',
   'workers.planRadius',
+  // Bot batch BP13: turns ahead a hostile's march counts as a danger to a worker.
+  'workers.guardTurns',
   'growth.smallCityPop',
   'military.campHuntRadius',
   'military.garrisonPerCity',

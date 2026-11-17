@@ -787,6 +787,64 @@ bullet "BP12"; the trace and the measurements are the section "BP12" of
 - **Knob**: `expansion.escortCallTurns` (6), with a row in
   `data/ai.bounds.json`.
 
+**Deals the receiver signs, a cheaper escort plan, and guards for workers**
+(bot batch BP13; `docs/flags.md` (ooooooo), the bullet "BP13"; the
+measurements are the section "BP13" of `docs/plans/performance-pass-2026-11-06.md`):
+
+- **A bot puts a paper to a bot only when the receiver's own reading signs
+  it.** The swap arm (`swapDecision`, `writeSwap`) asks the receiver's verdict
+  (`dealVerdict`, the three clauses `answerProposal` answers with: the paper
+  pays, something arrives, no last copy is asked) on the receiver's own sheet
+  and context (`receiverReader`). The receiver's full context is built only
+  when its cards count copies lent or deal partners; without such a card the
+  verdict reads nothing else of the context. Before BP13 more than four
+  papers in five were sent back, almost all for the receiver's last copy,
+  which the writer did not ask about.
+- **The papers already standing count.** A copy offered in a paper still on
+  the table is promised, so the seat does not offer its second copy of a kind
+  in another paper; it does not ask for a kind it has already asked for; and
+  it leaves a receiver alone when another seat's paper already asks it for the
+  same kind or offers it the same kind (`standingRefusal`).
+- **A person is asked the plain swap, as before.** The refusal memory
+  (`dealMemory.ts`) still governs what a person is asked again.
+- **The escort plan's cost** (`routeMemo.ts`). The plan is read at each
+  revision of the board while the seat holds a settler. Its route searches are
+  kept for the sitting and given back only while every input of the search is
+  the same: the searcher and its movement profile; every hex's owner, road and
+  feature, every town, every piece of another seat, the wars and the deals that
+  open a border; who stands on the goal; and the seat's own pieces on a shore
+  hex inside the ellipse the search can have read. A plan whose inputs have not
+  moved is kept too (`escortPlanInputs`), and the settlers' claims and the
+  threat to each town are kept while their own inputs stand (`EscortKeep`).
+  The plan decides exactly what it did: the digest pins held with this change
+  alone. It is about a third cheaper (about 4% of a late turn to about 3%).
+- **Soldiers guard a threatened worker** (`guardPlan`; the user, 2026-11-16:
+  *"the bots should have logic to move soldiers to protect workers if they
+  sense a hostile unit"*). Read once a sitting. A worker standing in the fields
+  of an empire the seat is at war with is the war's case and walks home as
+  before (`inWarFields`); the guards leave it alone. A threat is a combatant of the
+  wild, or of an empire the seat is at war with, that the seat can see and
+  that could walk onto a worker's hex within `workers.guardTurns` turns by its
+  own route and full allowance (`hostileReach`). For each threatened worker,
+  soonest threat first: a soldier of ours already on its hex holds there;
+  else the nearest free soldier that arrives no later than the hostile walks
+  onto the hex; else one walks onto the hex between. A free soldier
+  (`freeGuard`) is a field soldier, healthy, not a town's last defender and
+  not in a threatened town (`isRedundant`), not at a camp's door, not a
+  settler's escort, and at home: inside the seat's borders and not marching
+  out of them. The guard's clause in `soldierCommand` comes right after the
+  escort's, before every blow and march; `guardWorkers` (housekeeping) sends a
+  guard that is asleep or dug in, and lets a soldier asleep on an
+  unthreatened worker's hex go back to its own arms.
+- **The worker keeps working.** A worker whose guard is coming is covered: it
+  works on, and stays on its hex this turn rather than walk off while a hostile
+  could take it. One that a hostile could take in its next move with no guard
+  coming steps back to a soldier or a town it can reach this turn
+  (`stepBack`), or runs for a town (`civilianFlight`), and goes back to work
+  when the danger has passed.
+- **Knob**: `workers.guardTurns` (2; nought turns the guards off), with a row
+  in `data/ai.bounds.json`.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

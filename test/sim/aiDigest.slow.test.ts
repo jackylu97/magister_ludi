@@ -1229,9 +1229,21 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * rule changed. Duel `4394b792:358774` -> `98ab65ea:361047`, standard
  * `6549b1b3:1032261` -> `8c45d70b:1032553`.
  */
+/**
+ * Re-cut for bot batch BP13 (`docs/flags.md` (ooooooo), the bullet "BP13").
+ * The escort plan's route memo and kept readings (part 2) moved neither pin:
+ * both held with that change alone. Two changes of play moved them: a bot puts
+ * a swap to another bot only when the receiver's own reading signs it, and
+ * counts the papers already standing (part 1); and a soldier at home is sent
+ * onto the hex of a worker a visible hostile could reach, while a worker with
+ * no guard coming steps back (part 3, `workers.guardTurns`), except a worker
+ * in the fields of an empire at war, which walks home as before. No rule
+ * changed. Duel `98ab65ea:361047` -> `c19609c9:365065`, standard
+ * `8c45d70b:1032553` -> `eb076b82:1079375`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '98ab65ea:361047',
-  standard: '8c45d70b:1032553',
+  duel: 'c19609c9:365065',
+  standard: 'eb076b82:1079375',
 };
 
 /**

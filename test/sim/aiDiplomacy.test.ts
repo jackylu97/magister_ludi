@@ -619,3 +619,123 @@ describe('a seat under The Forbidden Silks (batch DT7)', () => {
     expect(dealSideError(state, 1, 0, counter!.take, false)).toBeNull();
   });
 });
+
+// --- 4. a paper the receiver signs (bot batch BP13) ---------------------------
+
+/**
+ * **Seat 0's next paper, with the receivers' own readings** (bot batch BP13):
+ * the harness's door, where the swap arm is handed each bot rival's context as
+ * its own sitting would read it.
+ */
+function signedPaper(game: Game): BotDecision | null {
+  const state = game.state;
+  return diplomacyDecision(state, playerById(state, 0)!, ctxFor(state, 0), (rival) => valueContext(state, rival));
+}
+
+/**
+ * Three seats, one town each along a row, for the papers already standing:
+ * seat 0 holds two wine, seats 1 and 2 two silk each.
+ */
+function threeSeats(): Game {
+  const game = createGame({
+    seed: 17,
+    sizeName: 'duel',
+    players: [
+      { name: 'Ada', color: '#a00' },
+      { name: 'Bors', color: '#00a' },
+      { name: 'Cato', color: '#0a0' },
+    ],
+  });
+  const state = game.state;
+  state.map = createMap({ width: 24, height: 10, terrain: 'grassland' });
+  resetVisibility(state);
+  state.tileOwner = new Array<number | null>(24 * 10).fill(null);
+  state.units = [];
+  state.cities = [];
+  state.camps = [];
+  state.nextEntityId = 1;
+  const towns = [3, 12, 21].map((col, seat) => {
+    const town = foundCityAt(state, seat, at(state.map, col, 4));
+    claimBlock(state, town, [col - 1, col, col + 1], [3, 4, 5]);
+    return town;
+  });
+  giveLuxury(state, towns[0]!, 2, 3, 'wine');
+  giveLuxury(state, towns[0]!, 4, 5, 'wine');
+  giveLuxury(state, towns[1]!, 11, 3, 'silk');
+  giveLuxury(state, towns[1]!, 13, 5, 'silk');
+  giveLuxury(state, towns[2]!, 20, 3, 'silk');
+  giveLuxury(state, towns[2]!, 22, 5, 'silk');
+  bumpRevision(state);
+  return game;
+}
+
+describe('a bot puts a paper to a bot only when the receiver\'s own reading signs it', () => {
+  it('does not ask a bot for its only copy, and writes the swap it would sign', () => {
+    // The plain arm writes the silk swap first (`does not write the same swap
+    // again…` above); the receiver holds one silk, and its own last-copy clause
+    // would send it back.
+    const game = swapBench({ silk: 1, spices: 2 });
+    const paper = signedPaper(game)!;
+    expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['spices'] } });
+    const refused = paper.candidates.find((row) => row.rejected !== undefined)!;
+    expect(refused.rejected).toContain('would send it back: it asks for the only silk they hold');
+  });
+
+  it('and the receiver signs what was written', () => {
+    const game = swapBench({ silk: 2 });
+    const paper = signedPaper(game)!;
+    expect(paper.command.type).toBe('proposeDeal');
+    expect(dispatch(game, paper.command).ok).toBe(true);
+    const answer = answerAudience(game, { seatId: 1, askerId: 0, dealId: game.state.dealProposals[0]!.id });
+    expect(answer!.command.type).toBe('acceptDeal');
+  });
+
+  it('writes nothing to a bot that holds one copy of everything asked', () => {
+    const game = swapBench({ silk: 1 });
+    const paper = signedPaper(game);
+    expect(paper === null || paper.command.type !== 'proposeDeal').toBe(true);
+  });
+
+  it('still asks a person the plain swap', () => {
+    const game = swapBench({ silk: 1, spices: 2 }, true);
+    const paper = signedPaper(game)!;
+    expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['silk'] } });
+  });
+});
+
+describe('the papers already standing (bot batch BP13)', () => {
+  it('does not promise one copy twice, nor ask for a kind it has already asked for', () => {
+    const game = threeSeats();
+    const first = signedPaper(game)!;
+    expect(first.command).toMatchObject({ type: 'proposeDeal', targetId: 1 });
+    expect(dispatch(game, first.command).ok).toBe(true);
+    // Two wine, one already offered to seat 1: the second would be its last.
+    // And silk is already asked for. So nothing goes to seat 2.
+    const second = signedPaper(game);
+    expect(second === null || second.command.type !== 'proposeDeal').toBe(true);
+  });
+
+  it('leaves a receiver alone when another paper already asks it for the same kind', () => {
+    const game = threeSeats();
+    // Seat 2 has asked seat 1 for silk already; seat 1 holds two, so after that
+    // paper it would hold one, and its own clause would refuse to lend it.
+    const theirs = game.state.cities.find((city) => city.ownerId === 2)!;
+    giveLuxury(game.state, theirs, 21, 3, 'spices');
+    giveLuxury(game.state, theirs, 22, 3, 'spices');
+    bumpRevision(game.state);
+    expect(
+      dispatch(game, {
+        type: 'proposeDeal',
+        playerId: 2,
+        targetId: 1,
+        give: { luxuries: ['spices'] },
+        take: { luxuries: ['silk'] },
+      } as unknown as Command).ok,
+    ).toBe(true);
+    const paper = signedPaper(game)!;
+    // Seat 0 asks seat 2 instead, which still holds two silk.
+    expect(paper.command).toMatchObject({ type: 'proposeDeal', targetId: 2 });
+    const crowded = paper.candidates.find((row) => (row.rejected ?? '').includes('another empire'));
+    expect(crowded?.rejected).toContain('already asks the');
+  });
+});

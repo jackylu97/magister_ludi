@@ -162,12 +162,17 @@ export function nearestFreeSite(
  * **Every site a settler of this seat is for**, in the order the module
  * docblock gives: marches, then awake settlers with no march, then queued
  * settlers, each in the board's own order (units, then towns and their queues).
+ *
+ * `queued` false leaves the queues' claims out (bot batch BP13). They come
+ * last and change no settler's claim, so a reader that looks only at the
+ * settlers' own claims (the escort plan) gets the same rows for them.
  */
 export function siteClaims(
   state: GameState,
   playerId: number,
   sites: readonly FoundingSite[],
   radius: number,
+  queued = true,
 ): SiteClaim[] {
   const claims: SiteClaim[] = [];
   const standing: Unit[] = [];
@@ -191,6 +196,7 @@ export function siteClaims(
       nearestFreeSite(state, playerId, sites, claims, here, null);
     if (site !== null) claims.push({ col: site.col, row: site.row, by: 'standing', unitId: unit.id, cityId: null });
   }
+  if (!queued) return claims;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const centre = getTileAt(state.map, city.col, city.row);
