@@ -789,3 +789,14 @@ intriguing aspect about the game to people"*
   - The tablet in the picture shows the live total: what the card pays now.
   - A card whose effect starts with a figure has no red initial, and gets no
     ornament in its place.
+
+- **The Surveyors' Charter and SS8 (2026-11-17).** The user: *"drop the
+  aqueduct desctiption. ss8 can proceed"*.
+  - The Surveyors' Charter no longer prints what the Aqueduct does. The
+    Aqueduct's name stays a keyword link, which shows its full text. This is a
+    stated exception to the note of 2026-09-05 that a charter says what its
+    building does: the Aqueduct is an ordinary building that the charter only
+    opens early.
+  - SS8 is built now: type sizes, top bar labels, sheet motion and wording, as
+    the build table states. It also takes the design checker's finding that
+    `index.html` has a flat type hierarchy.
