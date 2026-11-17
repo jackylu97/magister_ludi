@@ -315,7 +315,7 @@
                    turning it off; the ☰ menu is where it is asked for again. -->
               <div class="row check landing-tutorial">
                 <input id="tutorial-toggle" type="checkbox" checked />
-                <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
+                <label for="tutorial-toggle">Tutorial: walk me through my first turns</label>
               </div>
 
               <!-- The hot-seat harness. It is the switch at the top of this card
@@ -326,7 +326,7 @@
                    (CLAUDE.md, Direction: hot-seat is a harness). -->
               <div class="row check landing-hotseat" hidden>
                 <input id="hot-seat" type="checkbox" />
-                <label for="hot-seat">Hot-seat — every seat is a person</label>
+                <label for="hot-seat">Hot-seat: every seat is a person</label>
               </div>
 
               <p class="landing-hint">
@@ -842,11 +842,11 @@
           </button>
         </div>
         <ul class="help-list">
-          <li><b>Left click</b> a unit to select it — again to cycle a stack · a city to open it</li>
+          <li><b>Left click</b> a unit to select it. Click again to cycle through a stack, or click a city to open it.</li>
           <li>
-            <b>Right click</b> a tile to move there, an enemy to attack it — hover
-            first for the odds. <kbd>M</kbd> then <b>left click</b> does both, for
-            trackpads
+            <b>Right click</b> a tile to move there, or an enemy to attack it. Hover
+            over the enemy first to see the odds. On a trackpad, press <kbd>M</kbd>
+            and then <b>left click</b> to do the same.
           </li>
           <li>
             A move ordered with <b>no movement left</b> is still taken: the whole
@@ -854,8 +854,8 @@
           </li>
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li>
-            <kbd>T</kbd> opens the star chart — click a star to research it,
-            <b>shift-click</b> to queue it behind what you are already learning
+            <kbd>T</kbd> opens the star chart. Click a star to research it, or
+            <b>shift-click</b> it to queue it after what you are learning now.
           </li>
           <li>
             <kbd>Y</kbd> yield glyphs · <kbd>R</kbd> resource marks ·
@@ -888,9 +888,9 @@
             origin city and begins
           </li>
           <li>
-            <kbd>Enter</kbd> ends your turn, stopping first on anything left
-            undone — an idle unit, a city building nothing, no research chosen, a
-            draft unanswered. <kbd>Shift</kbd><kbd>Enter</kbd> ends it anyway
+            <kbd>Enter</kbd> ends your turn. It stops first on anything left
+            undone: an idle unit, a city building nothing, no research chosen or a
+            draft unanswered. <kbd>Shift</kbd><kbd>Enter</kbd> ends it anyway.
           </li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
@@ -1206,7 +1206,7 @@
             <h2 class="statecraft-title">Faith</h2>
           </div>
           <p class="statecraft-hint">
-            start rites in your towns and see what your faith pays — <kbd>Esc</kbd> to close
+            Start rites in your towns and see what your faith pays. <kbd>Esc</kbd> closes.
           </p>
           <button id="religion-close" class="statecraft-close" type="button" aria-label="Close">
             ×
@@ -1241,7 +1241,7 @@
             <h2 class="statecraft-title">Every <em>Table</em></h2>
           </div>
           <p class="statecraft-hint">
-            pick a shelf, or search &mdash; <kbd>Esc</kbd> to close
+            Pick a shelf, or search. <kbd>Esc</kbd> closes.
           </p>
           <button id="compendium-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1277,7 +1277,7 @@
             <h2 class="statecraft-title">Caravans &amp; <em>Roads</em></h2>
           </div>
           <p class="statecraft-hint">
-            a caravan runs one route at a time &mdash; <kbd>Esc</kbd> to close
+            A caravan runs one route at a time. <kbd>Esc</kbd> closes.
           </p>
           <button id="trade-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1312,7 +1312,7 @@
             <h2 class="statecraft-title">Three <em>Bars</em></h2>
           </div>
           <p class="statecraft-hint">
-            stake one &mdash; nobody is told which &mdash; <kbd>Esc</kbd> to close
+            Stake one. Nobody is told which. <kbd>Esc</kbd> to close.
           </p>
           <button id="wager-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1344,7 +1344,7 @@
             <h2 class="statecraft-title">Your <em>Civ</em></h2>
           </div>
           <p class="statecraft-hint">
-            what you hold, what it pays and what only you may raise &mdash; <kbd>Esc</kbd> to close
+            What you hold, what it pays and what only you may raise. <kbd>Esc</kbd> closes.
           </p>
           <button id="leader-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1379,7 +1379,7 @@
             <h2 class="statecraft-title">The <em>Census</em></h2>
           </div>
           <p class="statecraft-hint">
-            close the book &mdash; <kbd>Esc</kbd> to close
+            <kbd>Esc</kbd> closes the book.
           </p>
           <button id="census-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1460,7 +1460,7 @@
             <h2 class="statecraft-title">The Bead <em>Race</em></h2>
           </div>
           <p class="statecraft-hint">
-            the last bead is golden &mdash; <kbd>Esc</kbd> to close
+            The last bead is golden. <kbd>Esc</kbd> closes.
           </p>
           <button id="beads-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
@@ -1958,7 +1958,7 @@
             </button>
           </div>
           <div id="log-list" class="log-list"></div>
-          <p class="hint">A courtesy, not a record — a save carries the command log.</p>
+          <p class="hint">A courtesy, not a record: a save carries the command log.</p>
         </div>
       </div>
 

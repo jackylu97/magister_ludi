@@ -56,6 +56,25 @@
  * and load reuse the booted screens, so they close them and keep their listeners
  * (`test/ui/screenLifecycle.test.ts` is the register).
  *
+ * How a sheet comes and goes (batch SS8, the Ornament board)
+ * -----------------------------------------------------------
+ * A sheet **settles**: it rises from 8 px below in 240 ms on
+ * `cubic-bezier(0.16, 1, 0.3, 1)`, a curve that slows into place without an
+ * overshoot, while the ground fades in. That is the stylesheet's, on the class
+ * every sheet on this frame wears (`.statecraft-sheet`).
+ *
+ * It **leaves** the same way back: it sinks the same 8 px and fades in 160 ms.
+ * `hidden` still goes on the moment `close` runs, so the screen state is right
+ * at once and nothing waits on the picture: the overlay keeps being drawn under
+ * `is-leaving`, and `inert`, so no press or key can reach the sheet on its way
+ * out, and every press lands on the board behind it. The class comes off when
+ * the animation ends, or after `LEAVE_FALLBACK_MS` if no animation runs. A sheet
+ * opened again while it leaves drops the class and settles from where it is.
+ *
+ * Opening never waits either: the sheet is painted, and the keyboard is on its
+ * ×, before the first frame of the rise. With reduced motion the sheet only
+ * fades in and out, and does not move.
+ *
  * The two screens that are not on this frame, and why
  * ---------------------------------------------------
  * The **star chart** (`techTree.ts`) and the **Abacus** (`abacusScreen.ts`) are
@@ -136,10 +155,45 @@ interface ModalShellOptions {
   onDispose?: () => void;
 }
 
+/** The class that keeps a closed overlay drawn while it fades out. See the docblock. */
+const LEAVING = 'is-leaving';
+
+/**
+ * How long a leaving overlay may stay drawn if its animation never reports
+ * that it ended (no animation, or a stylesheet that has none). Longer than the
+ * stylesheet's 160 ms, so it never cuts an animation short.
+ */
+const LEAVE_FALLBACK_MS = 400;
+
 export function createModalShell(options: ModalShellOptions): ModalShell {
   const { overlay, body, closeButton, trigger } = options;
   /** The control the keyboard goes back to on close: the door it left, or the trigger. */
   let returnTo: HTMLElement | null = trigger ?? null;
+  /** The fallback timer of a leave in progress, or `undefined`. */
+  let leaveTimer: number | undefined;
+
+  /** Stops drawing a closed overlay: the leave has ended, or the sheet opens again. */
+  function endLeave(): void {
+    if (leaveTimer !== undefined) {
+      window.clearTimeout(leaveTimer);
+      leaveTimer = undefined;
+    }
+    overlay.classList.remove(LEAVING);
+    overlay.inert = false;
+  }
+
+  /** Keeps the just-closed overlay drawn, inert, while it fades out. */
+  function startLeave(): void {
+    endLeave();
+    overlay.inert = true;
+    overlay.classList.add(LEAVING);
+    leaveTimer = window.setTimeout(endLeave, LEAVE_FALLBACK_MS);
+  }
+
+  /** The leave's own animation has ended on the overlay. */
+  function onAnimationEnd(event: AnimationEvent): void {
+    if (event.target === overlay && overlay.classList.contains(LEAVING)) endLeave();
+  }
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -170,6 +224,7 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
     const active = document.activeElement;
     returnTo = allDoors().find((door) => door === active) ?? trigger ?? null;
     options.onOpen?.();
+    endLeave();
     overlay.hidden = false;
     setExpanded();
     options.onShow?.();
@@ -188,6 +243,7 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
   function close(): void {
     if (!isOpen()) return;
     overlay.hidden = true;
+    startLeave();
     setExpanded();
     options.onClose?.();
     returnTo?.focus({ preventScroll: true });
@@ -215,6 +271,7 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
 
   closeButton.addEventListener('click', close);
   overlay.addEventListener('mousedown', onGround);
+  overlay.addEventListener('animationend', onAnimationEnd);
   window.addEventListener('keydown', onKeyDown, true);
   setExpanded();
 
@@ -234,7 +291,9 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
     dispose(): void {
       closeButton.removeEventListener('click', close);
       overlay.removeEventListener('mousedown', onGround);
+      overlay.removeEventListener('animationend', onAnimationEnd);
       window.removeEventListener('keydown', onKeyDown, true);
+      endLeave();
       overlay.hidden = true;
       options.onDispose?.();
       body?.replaceChildren();
