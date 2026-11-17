@@ -764,3 +764,13 @@ intriguing aspect about the game to people"*
   built from their approved boards as they are, without the emblem card's
   language, so that the user can compare the two looks in play. The survey's
   frontispiece stays a later choice.
+
+- **The built card face: three choices (2026-11-17).** The user, on the built
+  face: *"it looks good. feel free to shorten the 8 cards. live total. no red
+  initial is fine"*.
+  - The eight cards whose text does not fit the face (seven charters and the
+    Doctrine The House of Worship) get shorter text. Their meaning does not
+    change.
+  - The tablet in the picture shows the live total: what the card pays now.
+  - A card whose effect starts with a figure has no red initial, and gets no
+    ornament in its place.
