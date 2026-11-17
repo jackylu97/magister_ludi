@@ -585,3 +585,30 @@ The user's comments on the revised board decide the open choices:
   slot colours the routes figure; beads sit on the left with renown; S opens
   Standings; the game menu loses its Statecraft row.
 - **The faith dot, made exact (2026-11-17):** the user: *"enough faith to buy a prophet is the right interpretation"*. The dot shows when the seat has the faith to buy a prophet now, not when a prophet stands on the map.
+
+## Requests of 2026-11-17, after the corner panel landed
+
+The user: *"ok, lets get rid of the visual test section in the hamburger menu.
+Let's also do a pass on the orders screen - right now its hard to scroll and
+see all your cards, and the way they're slotted on the left gets cramped as you
+get larger governments. Could we do a few options for usability/readability?
+Also, the leader screen could use some work, it's too large and gets cut off
+currently. Also, i dont want to confuse new players. Let's have the religion
+pane stay grayed out until divination is researched, and lets have the trade
+route screen be greyed out until currency is researched. The diplomacy screen
+also could be more condensed, could we do a layout pass where the user doesn't
+have to scroll down to see the deals, and overall make the screen a bit more
+compact when there are lots of luxuries and options available."*
+
+- **SS9a, build:** the visual test section leaves the game menu. The Faith door
+  is greyed until the seat has researched Divination, and the Routes door until
+  it has researched Currency. A greyed door says in plain words what opens it.
+- **SS9b, build:** the leader screen fits the window and is not cut off.
+- **SS6, build, with new requirements:** the diplomacy screen is more compact.
+  The deals are in view with no scrolling, and the screen stays compact with
+  many luxuries and options. These join the approved SS6 board and the luxury
+  rule of SS4.
+- **Orders screen, design first:** a few options for usability and readability.
+  The problems: it is hard to scroll and see all the cards, and the chairs on
+  the left get cramped with a large government. Nothing is built until the user
+  picks one.
