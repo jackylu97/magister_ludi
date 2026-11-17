@@ -30,6 +30,8 @@
  *
  * Every card is the emblem face (`orderFace.ts`). What a card says it pays is
  * `orderLive.ts`, which picks the right existing reading for the card's kind.
+ * The two layers over the table, H for the whole hand and D for the binder,
+ * are `ordersLayers.ts`; the board's six moments are `ordersMotion.ts`.
  *
  * Seating is click then click
  * ---------------------------
@@ -112,10 +114,12 @@ import {
   tabletOfFigure,
 } from './orderLive';
 import {
+  type OrderFaceState,
   chairTabNode,
   dressOrderFace,
   emptyChairFace,
   fitOrderFace,
+  orderFaceNode,
   registerFaceNode,
 } from './orderFace';
 import {
@@ -133,6 +137,24 @@ import {
   validate,
 } from './statecraftStaging';
 import { setYieldText, yieldMarkNode } from './yieldMark';
+import { charterTechOf } from './charterTech';
+import { techDef } from '../sim/techData';
+import {
+  type BinderEntry,
+  allOrders,
+  binderNode,
+  handViewNode,
+  keyMark,
+  layHandView,
+} from './ordersLayers';
+import {
+  ORDERS_MOTION,
+  animateLanding,
+  flyToHand,
+  placeGhost,
+  settleConfirmed,
+  showPreview,
+} from './ordersMotion';
 
 // --- the position word (kept from the old screen) ----------------------------
 
@@ -240,6 +262,9 @@ export const ORDERS_WORDS = {
   exhaustedTitle:
     'The culture meter is full, but you already hold every card your decks can offer at your band. No draft is charged; the culture stays banked until there is a card to deal.',
   hand: 'Your hand',
+  handOpens: 'opens it',
+  deckCount: (count: number) => `${count} in your deck ·`,
+  binderOpens: 'opens the binder',
   handEmpty: 'Your hand is empty.',
   noOrders: 'You hold no Orders yet. Culture pays for the first draft.',
   countsTwice: 'counts twice',
@@ -390,6 +415,29 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   let focusKey: string | null = null;
   /** A card to mark once after a redraw (`openAt`). */
   let markCard: OrderId | null = null;
+  /** The layer open over the table: the whole hand (H), the binder (D), or none. */
+  let layer: 'hand' | 'binder' | null = null;
+  /** The binder's filters and its scroll, kept while the sheet is open. */
+  let binderFilter = allOrders();
+  let binderScroll = 0;
+  /** Where the pointer was last seen over the sheet, for the card that follows it. */
+  let pointer: { x: number; y: number } | null = null;
+  /** True when the held card was picked up by the pointer, so it follows the pointer. */
+  let ghostArmed = false;
+  /** The card that follows the pointer while one is held (moment 2). */
+  let ghost: HTMLElement | null = null;
+  /** A landing to play after the next draw (moment 3): the chair, and where the card flew from. */
+  let landing: { index: number; from: DOMRect } | null = null;
+  /** A swapped-out card's slide to the hand after the next draw (moment 6). */
+  let slide: { card: OrderId; from: DOMRect } | null = null;
+  /** The full face shown on hover or focus (moment 1), and its timer. */
+  let preview: HTMLElement | null = null;
+  let previewSource: HTMLElement | null = null;
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** What each card's full face shows when it is lifted, for this draw. */
+  let previewStates = new Map<string, OrderFaceState>();
+  /** The faces Confirm just made law, to settle once they are on the page (moment 4). */
+  let settling: HTMLElement[] = [];
 
   // The head's tools: what your cards pay, Revert and Confirm. Built once and
   // filled on every draw, so the buttons keep their place in the tab order.
@@ -404,6 +452,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   if (head !== null) head.insertBefore(tools, closeButton);
   sheetNode?.classList.add('orders-sheet');
   body.classList.add('orders-body');
+  // The layer the moving and lifted cards are drawn in: the sheet itself, so a
+  // card can travel from the hand to a chair over everything between.
+  const layerHost = sheetNode ?? body;
 
   /** Stops every count still running. The start of a draw, and the way out. */
   function stopCounting(): void {
@@ -536,13 +587,24 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return { state, seat, sc, arrangement: ensureStaging(sc, seat) };
   }
 
+  /**
+   * Notes whether a click came from the pointer, so the card picked up
+   * follows it (moment 2). A click from the keyboard (Enter) has no pointer.
+   */
+  function notePointer(event: MouseEvent | null): void {
+    ghostArmed = event !== null && event.detail > 0;
+    if (ghostArmed && event !== null) pointer = { x: event.clientX, y: event.clientY };
+  }
+
   /** Picks a card up from the hand, or puts the held one back. */
-  function take(id: OrderId): void {
+  function take(id: OrderId, event: MouseEvent | null = null): void {
     if (held === id) {
       putBack();
+      draw();
       return;
     }
     if (held !== null) putBack();
+    notePointer(event);
     held = id;
     beforeLift = null;
     focusKey = `hand:${id}`;
@@ -554,7 +616,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * staged removal, then the card is held. A sealed card answers with the
    * reducer's own sentence and does not move.
    */
-  function lift(index: number): void {
+  function lift(index: number, event: MouseEvent | null = null): void {
     const ctx = context();
     if (ctx === null) return;
     const entry = ctx.arrangement[index];
@@ -566,6 +628,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       return;
     }
     if (held !== null) putBack();
+    notePointer(event);
     beforeLift = staged;
     staged = remove(ctx.arrangement, index);
     held = entry.card;
@@ -596,7 +659,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * swap it with the card in an occupied one. With nothing in hand: pick up
    * the card in the chair. Edits the arrangement; sends nothing.
    */
-  function drop(index: number): void {
+  function drop(index: number, event: MouseEvent | null = null): void {
     const ctx = context();
     if (ctx === null) return;
     const { state, seat, arrangement } = ctx;
@@ -607,10 +670,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       return;
     }
     if (held === null) {
-      if (arrangement[index]) lift(index);
+      if (arrangement[index]) lift(index, event);
       return;
     }
     let base = arrangement;
+    const swapped = arrangement[index]?.card ?? null;
     if (arrangement[index]) {
       const problem = removeError(state, seat, arrangement, index);
       if (problem !== null) {
@@ -625,6 +689,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       refuse(problem);
       return;
     }
+    // Where the card flies from (moment 3): the card following the pointer, or
+    // the card in the hand. And the card it replaces slides to the hand (6).
+    const from = ghost?.isConnected === true ? ghost.getBoundingClientRect() : body.querySelector(`[data-nav="hand:${held}"] .order-face`)?.getBoundingClientRect();
+    landing = from === undefined ? null : { index, from };
+    const out = body.querySelector(`[data-chair="${index}"] .order-face`)?.getBoundingClientRect();
+    slide = swapped !== null && out !== undefined ? { card: swapped, from: out } : null;
     staged = place(base, index, held, state.turn);
     // No figure here: the figure is Confirm's (the reveal ruling).
     held = null;
@@ -634,7 +704,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /** Confirm: sign the arrangement, then redraw with the count-ups. */
-  function confirm(): void {
+  function confirmStaging(): void {
     justConfirmed = commitStaging();
     countTotal = justConfirmed.length > 0;
     held = null;
@@ -657,7 +727,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   revertButton.addEventListener('click', revert);
-  confirmButton.addEventListener('click', confirm);
+  confirmButton.addEventListener('click', confirmStaging);
 
   // --- the head -------------------------------------------------------------
 
@@ -754,7 +824,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       });
       card.classList.add('orders-doctrine');
       card.dataset.card = id;
+      card.dataset.nav = `doctrine:${id}`;
+      card.dataset.preview = 'register';
       card.tabIndex = 0;
+      if (live !== null && isDoctrineId(id)) {
+        previewStates.set(id, { where: 'played', liveLine: live.line, unmet: live.unmet, tablet: live.tablet });
+      }
       if (live?.unmet !== null && live?.unmet !== undefined) card.dataset.unmet = 'true';
       register.append(card);
     }
@@ -854,12 +929,23 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         });
         face.append(tab);
         button.append(face);
+        button.dataset.preview = 'chair';
+        button.dataset.card = id;
+        previewStates.set(id, {
+          where: 'played',
+          sealedTurns,
+          staged: filled.staged,
+          liveLine: reading.line,
+          unmet: reading.unmet,
+          tablet: reading.tablet,
+        });
         button.setAttribute('aria-label', `${orderDef(id).name}, chair ${index + 1}, ${reading.line.text}`);
         button.title = sealedTurns > 0 ? ORDERS_WORDS.sealed(sealedTurns) : orderDef(id).name;
         cell.dataset.state = filled.staged ? 'staged' : 'seated';
         cell.dataset.live = reading.kind;
         if (justConfirmed.includes(id)) {
           counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));
+          settling.push(face);
         }
         if (markCard === id) cell.classList.add('is-marked');
       } else {
@@ -882,7 +968,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         cell.classList.add('is-faded');
         if (refused !== null) button.title = refused;
       }
-      button.addEventListener('click', () => drop(index));
+      button.addEventListener('click', (event) => drop(index, event));
       cell.prepend(button);
       row!.append(cell);
     });
@@ -912,6 +998,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const count = hand.filter((id) => orderType(id) === type).length;
       if (count > 0) label.append(element('span', 'orders-hand-type', `${chairWord(type)} ${count}`));
     }
+    const opens = element('span', 'orders-hand-key');
+    opens.append(keyMark('H'), ` ${ORDERS_WORDS.handOpens}`);
+    label.append(opens);
+    const binder = element('span', 'orders-hand-deck', `${ORDERS_WORDS.deckCount(sc.orders.length)} `);
+    binder.append(keyMark('D'), ` ${ORDERS_WORDS.binderOpens}`);
+    label.append(binder);
     block.append(label);
     const cards = element('div', spread ? 'orders-spread' : 'orders-rail');
     if (sc.orders.length === 0 || hand.length === 0) {
@@ -933,11 +1025,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       dressOrderFace(face, id, { where: 'hand', inControl: true });
       face.dataset.form = 'hand';
       button.append(face);
+      button.dataset.preview = 'hand';
       button.setAttribute('aria-label', `${orderDef(id).name}, in your hand`);
       button.title = orderDef(id).name;
-      if (held === id) button.classList.add('is-held');
+      if (held === id) button.classList.add(ghostArmed ? 'is-carried' : 'is-held');
       if (markCard === id) button.classList.add('is-marked');
-      button.addEventListener('click', () => take(id));
+      button.addEventListener('click', (event) => take(id, event));
       cards.append(button);
     });
     block.append(cards);
@@ -982,6 +1075,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   function paint(): void {
     stopCounting();
+    hidePreview();
+    previewStates = new Map();
+    settling = [];
+    const binderGrid = body.querySelector<HTMLElement>('.orders-binder-grid');
+    if (binderGrid !== null) binderScroll = binderGrid.scrollTop;
     const active = document.activeElement;
     const activeKey = active instanceof HTMLElement && body.contains(active) ? (active.dataset.nav ?? null) : null;
     if (focusKey === null) focusKey = activeKey;
@@ -1008,6 +1106,17 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     cloth.append(drawRegister(state, seat, sc, sheet ?? undefined));
     cloth.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined));
     cloth.append(drawHand(sc, hand, spread));
+    if (layer === 'hand') {
+      cloth.append(
+        handViewNode(hand, held, (id, event) => {
+          layer = null;
+          take(id, event);
+        }),
+      );
+    } else if (layer === 'binder') {
+      cloth.append(drawBinder(state, seat, sc, arrangement, sheet ?? undefined));
+    }
+    sheetNode?.setAttribute('data-layer', layer ?? 'none');
     body.append(cloth);
 
     // The ceremony belongs to the signature: spent by the draw that played it.
@@ -1023,19 +1132,228 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     });
     const rail = body.querySelector<HTMLElement>('.orders-rail');
     if (rail !== null) layRail(rail);
+    const view = body.querySelector<HTMLElement>('.orders-handview');
+    if (view !== null) layHandView(view);
+    const grid = body.querySelector<HTMLElement>('.orders-binder-grid');
+    if (grid !== null) {
+      fitGrid(grid);
+      grid.scrollTop = binderScroll;
+    }
+    markCutRegister();
+    paintGhost();
+    playMoments();
 
     if (focusKey !== null) {
       body.querySelector<HTMLElement>(`[data-nav="${CSS.escape(focusKey)}"]`)?.focus({ preventScroll: true });
+    } else if (layer !== null && !body.contains(document.activeElement)) {
+      body.querySelector<HTMLElement>('.orders-veil [data-nav]')?.focus({ preventScroll: true });
     }
     focusKey = null;
     markCard = null;
   }
 
+  // --- the binder (D) --------------------------------------------------------
+
+  /** Every Order the seat holds, as the binder shows it: its chair, and its reading when it pays. */
+  function drawBinder(
+    state: GameState,
+    seat: number,
+    sc: PlayerStatecraft,
+    arrangement: StagedSlots,
+    impact: CardImpactSheet | undefined,
+  ): HTMLElement {
+    const sorted = sc.orders
+      .map((id, at) => ({ id, at }))
+      .sort((a, b) => typeRank(a.id) - typeRank(b.id) || a.at - b.at)
+      .map((entry) => entry.id);
+    const entries: BinderEntry[] = sorted.map((id) => {
+      const index = arrangement.findIndex((entry) => entry?.card === id);
+      const entry = index >= 0 ? arrangement[index]! : null;
+      const tech = charterTechOf(id);
+      return {
+        id,
+        chair: index >= 0 ? index + 1 : null,
+        staged: entry?.staged === true,
+        live: entry !== null && !entry.staged ? seatedOrderLive(state, seat, id, impact) : null,
+        opened: tech === null ? null : techDef(tech).name,
+      };
+    });
+    const decks = playerById(state, seat)?.decks ?? [];
+    return binderNode(
+      entries,
+      decks,
+      binderFilter,
+      (entry, event) => {
+        layer = null;
+        if (entry.chair === null) take(entry.id, event);
+        else drop(entry.chair - 1, event);
+      },
+      (grid) => {
+        if (grid.isConnected) fitGrid(grid);
+      },
+    );
+  }
+
+  /** Fits the binder's faces now, and again once the card fonts have loaded. */
+  function fitGrid(grid: HTMLElement): void {
+    const faces = [...grid.querySelectorAll<HTMLElement>('.order-face')];
+    for (const face of faces) fitOrderFace(face);
+    void document.fonts?.ready.then(() => {
+      for (const face of faces) if (face.isConnected) fitOrderFace(face);
+    });
+  }
+
+  // --- the motion -------------------------------------------------------------
+
+  /**
+   * A register card whose effect is longer than its four lines is cut with a
+   * fade, and lifts to a full face on hover or focus (the build spec's
+   * "Register text").
+   */
+  function markCutRegister(): void {
+    for (const card of body.querySelectorAll<HTMLElement>('.orders-register .order-face[data-form="wide"]')) {
+      const sub = card.querySelector<HTMLElement>('.of-sub');
+      const cut = sub !== null && sub.scrollHeight > sub.clientHeight + 1;
+      card.toggleAttribute('data-overflow', cut);
+    }
+  }
+
+  /** The card that follows the pointer while one is held (moment 2). */
+  function paintGhost(): void {
+    if (held === null || !ghostArmed || pointer === null || layer !== null) {
+      ghost?.remove();
+      ghost = null;
+      return;
+    }
+    if (ghost === null || ghost.dataset.card !== held) {
+      ghost?.remove();
+      ghost = element('div', 'orders-ghost');
+      ghost.dataset.card = held;
+      ghost.setAttribute('aria-hidden', 'true');
+      const face = element('div');
+      dressOrderFace(face, held, { where: 'hand', inControl: true });
+      face.dataset.form = 'hand';
+      ghost.append(face);
+      layerHost.append(ghost);
+    }
+    placeGhost(ghost, layerHost, pointer.x, pointer.y);
+  }
+
+  /** The moments a redraw plays: a landing, a swapped card's slide, and Confirm's settling. */
+  function playMoments(): void {
+    if (landing !== null) {
+      const face = body.querySelector<HTMLElement>(`[data-chair="${landing.index}"] .order-face`);
+      if (face !== null) animateLanding(face, landing.from);
+      landing = null;
+    }
+    if (slide !== null) {
+      const target = body.querySelector<HTMLElement>(`[data-nav="hand:${slide.card}"]`);
+      if (target !== null) {
+        const copy = element('div');
+        dressOrderFace(copy, slide.card, { where: 'hand', inControl: true });
+        copy.dataset.form = 'hand';
+        copy.style.setProperty('--order-face-width', `${target.offsetWidth}px`);
+        flyToHand(layerHost, copy, slide.from, target);
+      }
+      slide = null;
+    }
+    for (const face of settling) settleConfirmed(face);
+    settling = [];
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    pointer = { x: event.clientX, y: event.clientY };
+    if (ghost !== null) placeGhost(ghost, layerHost, event.clientX, event.clientY);
+  }
+
+  function onPointerLeave(): void {
+    ghost?.remove();
+    ghost = null;
+  }
+
+  /** Takes the lifted face away, and stops a lift that is waiting. */
+  function hidePreview(): void {
+    if (previewTimer !== null) clearTimeout(previewTimer);
+    previewTimer = null;
+    preview?.remove();
+    preview = null;
+    previewSource?.querySelector('.order-face')?.removeAttribute('data-lifted');
+    previewSource = null;
+  }
+
+  /**
+   * **A card lifts to its full face** on hover or keyboard focus. A hand card
+   * at once (moment 1); a played card whose text is cut, and a register card,
+   * after the build spec's 300 ms. A played card that is already the full
+   * face lifts itself, so its text scrolls inside it.
+   */
+  function onPreviewEnter(event: Event): void {
+    const source = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-preview]') : null;
+    if (source === null || source === previewSource) return;
+    if (held !== null && source.dataset.preview !== 'hand') return;
+    hidePreview();
+    const card = source.dataset.card;
+    if (card === undefined) return;
+    previewSource = source;
+    const kind = source.dataset.preview;
+    if (kind === 'hand') {
+      liftNow(source, card, 'hand');
+      return;
+    }
+    const face = source.matches('.order-face') ? source : source.querySelector<HTMLElement>('.order-face');
+    if (face === null) return;
+    const compact = face.dataset.compact !== undefined;
+    if (!compact && !face.hasAttribute('data-overflow')) return;
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      if (previewSource !== source) return;
+      if (kind === 'chair' && !compact) face.setAttribute('data-lifted', '');
+      else liftNow(source, card, kind === 'register' ? 'register' : 'chair');
+    }, ORDERS_MOTION.previewDelayMs);
+  }
+
+  function onPreviewLeave(event: Event): void {
+    if (previewSource === null) return;
+    const next = (event as PointerEvent | FocusEvent).relatedTarget;
+    if (next instanceof Node && previewSource.contains(next)) return;
+    hidePreview();
+  }
+
+  /** Shows the full face of `card` beside its source. */
+  function liftNow(source: HTMLElement, card: string, kind: 'hand' | 'chair' | 'register'): void {
+    const state: OrderFaceState = previewStates.get(card) ?? { where: 'hand' };
+    const face = orderFaceNode(card as OrderId, { ...state, inControl: true });
+    face.setAttribute('data-lifted', '');
+    const inRail = source.closest('.orders-rail') !== null;
+    const place = kind === 'register' ? 'below' : inRail ? 'above' : 'beside';
+    preview = showPreview(layerHost, source.getBoundingClientRect(), face, place);
+    fitOrderFace(face);
+  }
+
+  /** The end of a visit: no layer, no lifted card, nothing following the pointer. */
+  function endVisit(): void {
+    hidePreview();
+    ghost?.remove();
+    ghost = null;
+    layer = null;
+    landing = null;
+    slide = null;
+    binderFilter = allOrders();
+  }
+
+  layerHost.addEventListener('pointermove', onPointerMove);
+  layerHost.addEventListener('pointerleave', onPointerLeave);
+  layerHost.addEventListener('pointerover', onPreviewEnter);
+  layerHost.addEventListener('pointerout', onPreviewLeave);
+  layerHost.addEventListener('focusin', onPreviewEnter);
+  layerHost.addEventListener('focusout', onPreviewLeave);
+
   // --- the keyboard ---------------------------------------------------------
 
-  /** Moves the keyboard to the nearest card or chair in the arrow's direction. */
+  /** Moves the keyboard to the nearest card or chair in the arrow's direction, inside the open layer if there is one. */
   function moveFocus(key: string): boolean {
-    const items = [...body.querySelectorAll<HTMLElement>('[data-nav]')];
+    const scope = body.querySelector<HTMLElement>('.orders-veil') ?? body;
+    const items = [...scope.querySelectorAll<HTMLElement>('[data-nav]')];
     if (items.length === 0) return false;
     const current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const from = current !== null && items.includes(current) ? current : null;
@@ -1066,10 +1384,32 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return true;
   }
 
+  /** Opens a layer, or closes it when it is the one open. */
+  function toggleLayer(which: 'hand' | 'binder'): void {
+    layer = layer === which ? null : which;
+    if (layer === 'binder') binderScroll = 0;
+    focusKey = null;
+    draw();
+  }
+
   function onKey(event: KeyboardEvent): boolean {
     if (event.altKey || event.ctrlKey || event.metaKey) return false;
+    // Esc closes the open layer first, even from the binder's search box.
+    if (event.key === 'Escape' && layer !== null) {
+      event.preventDefault();
+      event.stopPropagation();
+      layer = null;
+      draw();
+      return true;
+    }
     const target = event.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return false;
+    if (event.key === 'h' || event.key === 'H' || event.key === 'd' || event.key === 'D') {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleLayer(event.key.toLowerCase() === 'h' ? 'hand' : 'binder');
+      return true;
+    }
     if (event.key === 'Escape' && held !== null) {
       event.preventDefault();
       event.stopPropagation();
@@ -1083,7 +1423,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       event.stopPropagation();
       return moveFocus(event.key);
     }
-    if (/^[1-9]$/.test(event.key)) {
+    if (/^[1-9]$/.test(event.key) && layer === null) {
       const index = Number(event.key) - 1;
       const chair = body.querySelector<HTMLElement>(`[data-nav="chair:${index}"]`);
       if (chair === null) return false;
@@ -1121,6 +1461,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       clearRefusal();
       commitStaging();
       discardStaging();
+      endVisit();
     },
     /**
      * The game is going away (the landing screen). The arrangement is thrown
@@ -1131,6 +1472,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       stopCounting();
       clearRefusal();
       discardStaging();
+      endVisit();
+      layerHost.removeEventListener('pointermove', onPointerMove);
+      layerHost.removeEventListener('pointerleave', onPointerLeave);
+      layerHost.removeEventListener('pointerover', onPreviewEnter);
+      layerHost.removeEventListener('pointerout', onPreviewLeave);
+      layerHost.removeEventListener('focusin', onPreviewEnter);
+      layerHost.removeEventListener('focusout', onPreviewLeave);
       tools.remove();
     },
   });

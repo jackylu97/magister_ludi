@@ -29,6 +29,8 @@ import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
 import { firstFigure, orderFaceModel } from '../../src/ui/orderFace';
 import { LIVE_WORDS, stagedLive, tabletOfFigure, tabletOfText } from '../../src/ui/orderLive';
 import { ORDERS_WORDS } from '../../src/ui/statecraftScreen';
+import { type BinderEntry, LAYER_WORDS, allOrders, binderAdmits } from '../../src/ui/ordersLayers';
+import { ORDERS_MOTION } from '../../src/ui/ordersMotion';
 import { braceBody, between, uiSource } from './sourceHelpers';
 
 const STYLES = import.meta.glob(['../../src/ui/statecraftScreen.css', '../../src/ui/orderFace.css'], {
@@ -46,6 +48,8 @@ function style(tail: string): string {
 
 const SCREEN = uiSource('statecraftScreen.ts');
 const LIVE = uiSource('orderLive.ts');
+const LAYERS = uiSource('ordersLayers.ts');
+const MOTION = uiSource('ordersMotion.ts');
 
 describe('what a card says it pays', () => {
   it('lifts a stamp figure into the tablet with its yield, and a meter with none', () => {
@@ -175,6 +179,8 @@ describe('no row is named', () => {
     for (const [tail, source] of [
       ['statecraftScreen.ts', SCREEN],
       ['orderLive.ts', LIVE],
+      ['ordersLayers.ts', LAYERS],
+      ['ordersMotion.ts', MOTION],
       ['statecraftScreen.css', style('statecraftScreen.css')],
     ] as const) {
       for (const id of cards) expect(names(source, id), `${tail} names ${id}`).toBe(false);
@@ -184,6 +190,118 @@ describe('no row is named', () => {
         expect(names(source, id), `${tail} names ${id}`).toBe(false);
         expect(names(source, leaderDef(id).name), `${tail} names a figure`).toBe(false);
       }
+    }
+  });
+});
+
+describe('the hand and the deck (part B)', () => {
+  const live = ORDER_IDS.filter((id) => orderIsDealt(id));
+  const entry = (id: (typeof live)[number], chair: number | null): BinderEntry => ({
+    id,
+    chair,
+    staged: false,
+    live: null,
+    opened: null,
+  });
+
+  it('filters the binder by type, deck, rarity, the seated ones and a name', () => {
+    const military = live.find((id) => orderDef(id).type === 'military')!;
+    const economic = live.find((id) => orderDef(id).type === 'economic' && orderDef(id).decks.length > 0)!;
+    const filter = allOrders();
+    expect(binderAdmits(entry(military, null), filter)).toBe(true);
+    filter.type = 'military';
+    expect(binderAdmits(entry(military, null), filter)).toBe(true);
+    expect(binderAdmits(entry(economic, null), filter)).toBe(false);
+    const other = allOrders();
+    other.deck = orderDef(economic).decks[0]!;
+    expect(binderAdmits(entry(economic, null), other)).toBe(true);
+    other.deck = 'generic';
+    expect(binderAdmits(entry(economic, null), other)).toBe(false);
+    const rarity = allOrders();
+    rarity.rarity = orderDef(economic).rarity;
+    expect(binderAdmits(entry(economic, null), rarity)).toBe(true);
+    const seated = allOrders();
+    seated.seated = true;
+    expect(binderAdmits(entry(economic, 3), seated)).toBe(true);
+    expect(binderAdmits(entry(economic, null), seated)).toBe(false);
+    const find = allOrders();
+    find.find = orderDef(economic).name.slice(0, 6).toUpperCase();
+    expect(binderAdmits(entry(economic, null), find)).toBe(true);
+    find.find = 'no card is called this';
+    expect(binderAdmits(entry(economic, null), find)).toBe(false);
+  });
+
+  it('keeps the board’s timings for the six moments', () => {
+    expect(ORDERS_MOTION.liftMs).toBe(120);
+    expect(ORDERS_MOTION.liftRise).toBe(16);
+    expect(ORDERS_MOTION.previewDelayMs).toBe(300);
+    expect(ORDERS_MOTION.tiltDeg).toBe(5);
+    expect(ORDERS_MOTION.landingMs).toBe(180);
+    expect(ORDERS_MOTION.landingWidenMs).toBe(80);
+    expect(ORDERS_MOTION.crossFadeMs).toBe(120);
+    expect(ORDERS_MOTION.settleMs).toBe(120);
+    expect(ORDERS_MOTION.swapMs).toBe(180);
+    const css = style('statecraftScreen.css');
+    expect(css).toContain('transition: translate 120ms ease-out;');
+    expect(css).toContain('translate: 0 -16px;');
+    expect(css).toContain('animation: orders-preview-in 120ms ease-out both;');
+  });
+
+  it('gives every moment its less-motion form', () => {
+    // The landing becomes a cross-fade in place; the settle and the slide do
+    // nothing; the card that follows the pointer is not tilted.
+    expect(braceBody(MOTION, 'export function animateLanding(')).toContain('if (!wantsMotion()) {');
+    expect(braceBody(MOTION, 'export function settleConfirmed(')).toContain('if (!wantsMotion()) return;');
+    expect(braceBody(MOTION, 'export function flyToHand(')).toContain('if (!wantsMotion()) return;');
+    expect(braceBody(MOTION, 'export function placeGhost(')).toContain(
+      "wantsMotion() ? `rotate(${ORDERS_MOTION.tiltDeg}deg)` : 'none'",
+    );
+    const css = style('statecraftScreen.css');
+    const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reduced).toContain('.orders-preview {\n    animation: none;');
+    expect(reduced).toContain('translate: none;');
+    expect(reduced).toContain('.order-face.is-shaking {\n    animation: none;');
+  });
+
+  it('opens the whole hand with H and the binder with D, and Esc closes a layer first', () => {
+    const keys = braceBody(SCREEN, 'function onKey(event: KeyboardEvent)');
+    const layerFirst = keys.indexOf("event.key === 'Escape' && layer !== null");
+    const typing = keys.indexOf('target instanceof HTMLInputElement');
+    expect(layerFirst).toBeGreaterThan(-1);
+    // Esc closes the binder even from its search box, so it is asked first.
+    expect(typing).toBeGreaterThan(layerFirst);
+    expect(keys).toContain("toggleLayer(event.key.toLowerCase() === 'h' ? 'hand' : 'binder');");
+    // The number keys seat a card only while no layer is open.
+    expect(keys).toContain('/^[1-9]$/.test(event.key) && layer === null');
+  });
+
+  it('picks a card up from either layer and closes it, so the chairs can be seen', () => {
+    expect(SCREEN).toContain('handViewNode(hand, held, (id, event) => {\n          layer = null;\n          take(id, event);');
+    const binder = braceBody(SCREEN, 'function drawBinder(');
+    expect(binder).toContain('layer = null;');
+    expect(binder).toContain('if (entry.chair === null) take(entry.id, event);');
+    expect(binder).toContain('else drop(entry.chair - 1, event);');
+  });
+
+  it('lifts a hand card at once, and a cut or compact card after the pause', () => {
+    const enter = braceBody(SCREEN, 'function onPreviewEnter(event: Event)');
+    expect(enter).toContain("if (kind === 'hand') {");
+    expect(enter).toContain('ORDERS_MOTION.previewDelayMs');
+    expect(enter).toContain("if (!compact && !face.hasAttribute('data-overflow')) return;");
+  });
+
+  it('labels the hand with its counts and the two keys, in plain words', () => {
+    expect(ORDERS_WORDS.handOpens).toBe('opens it');
+    expect(ORDERS_WORDS.binderOpens).toBe('opens the binder');
+    expect(ORDERS_WORDS.deckCount(40)).toBe('40 in your deck ·');
+    expect(LAYER_WORDS.handNote(30)).toBe('30 Orders, sorted by type · click one to pick it up ·');
+    expect(LAYER_WORDS.binderNote(40)).toBe('40 Orders, every one a full face · scroll for the rest ·');
+    expect(LAYER_WORDS.inChair(3)).toBe('in chair 3');
+  });
+
+  it('names no function after a platform dialog', () => {
+    for (const source of [SCREEN, LAYERS, MOTION]) {
+      expect(source).not.toMatch(/function (confirm|alert|prompt)\(/);
     }
   });
 });

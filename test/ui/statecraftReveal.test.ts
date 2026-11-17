@@ -310,7 +310,7 @@ describe('rearranging is a placement like any other', () => {
    * the reducer's own sentence, which is what keeps a sealed card where it is.
    */
   it('never sends a command of its own', () => {
-    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number)'), SCREEN.indexOf('function putBack('));
+    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number,'), SCREEN.indexOf('function putBack('));
     expect(lift).toContain('removeError(');
     expect(lift).toContain('remove(ctx.arrangement, index)');
     expect(lift).not.toContain('options.send(');

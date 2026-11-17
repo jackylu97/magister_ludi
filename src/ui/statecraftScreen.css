@@ -23,6 +23,7 @@
 }
 
 #statecraft-overlay .orders-sheet {
+  position: relative;
   width: 100%;
   max-width: none;
   height: 100%;
@@ -585,30 +586,95 @@
   outline-offset: 2px;
 }
 
-/* The rail: one overlapped rank of card tops, cut to 28 px. */
+/* The rail: one overlapped rank of card tops, cut to 28 px at the foot. A
+   card may rise out of the top (moment 1), so the cut is a clip on the foot
+   and the sides only. */
 .orders-rail {
   --order-face-width: 104px;
   position: relative;
   height: 28px;
   margin-top: 0;
-  overflow: hidden;
   padding-top: 8px;
   box-sizing: content-box;
+  clip-path: inset(-400px -12px 0 -12px);
 }
 
 .orders-rail .orders-handcard {
   position: absolute;
   top: 8px;
-  transition: top 120ms ease-out;
 }
 
 .orders-rail .orders-handcard .order-face {
   box-shadow: -2px 2px 0 rgba(29, 26, 32, 0.55);
 }
 
-.orders-rail .orders-handcard.is-held,
-.orders-rail .orders-handcard:focus-visible {
-  top: 0;
+/* Moment 1: the hand card under the pointer, or with the keyboard on it,
+   rises 16 px in 120 ms. A card held from the keyboard stays risen. */
+.orders-handcard {
+  transition: translate 120ms ease-out;
+}
+
+.orders-handcard:hover,
+.orders-handcard:focus-visible,
+.orders-handcard.is-held {
+  translate: 0 -16px;
+}
+
+/* A card held by the pointer follows the pointer (moment 2); its place in the
+   hand is left faint. */
+.orders-handcard.is-carried {
+  opacity: 0.3;
+}
+
+/* A risen card in the rail comes to the front of the rank. The rail sets each
+   card's stacking inline, in rank order. */
+.orders-rail .orders-handcard:hover,
+.orders-rail .orders-handcard:focus-visible,
+.orders-rankcard:hover,
+.orders-rankcard:focus-visible {
+  z-index: 100 !important;
+}
+
+/* The hand label's two keys, and the deck's count at the right. */
+.orders-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid rgba(247, 242, 225, 0.5);
+  border-radius: 3px;
+  background: rgba(247, 242, 225, 0.08);
+  box-shadow: none;
+  color: var(--fg);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+}
+
+.orders-hand-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orders-hand-label > .orders-hand-deck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.orders-hand-label > .orders-hand-deck::before {
+  content: none;
 }
 
 /* Twelve or fewer, with the table in one row: the hand lies side by side. */
@@ -620,16 +686,275 @@
   margin-top: 12px;
 }
 
-.orders-spread .orders-handcard.is-held {
-  translate: 0 -16px;
+/* --- the layers: the whole hand (H) and the binder (D) --------------------- */
+
+.orders-veil {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 16px;
+  background: rgba(20, 18, 24, 0.82);
+  color: var(--fg);
+}
+
+.orders-veil-head {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.orders-veil-title {
+  margin: 0;
+  color: var(--y-gold-lit);
+  font-family: var(--face-card-title);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.orders-veil-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(247, 242, 225, 0.65);
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+}
+
+.orders-ranks {
+  --order-face-width: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  margin-top: 16px;
+}
+
+.orders-rank {
+  position: relative;
+  height: 162px;
+}
+
+.orders-rankcard {
+  position: absolute;
+  top: 0;
+}
+
+.orders-rankcard .order-face {
+  box-shadow: -2px 2px 0 rgba(29, 26, 32, 0.55);
+}
+
+.orders-rankcard:hover .order-face,
+.orders-rankcard:focus-visible .order-face {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 2px;
+}
+
+.orders-chips {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.orders-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(247, 242, 225, 0.4);
+  border-radius: 14px;
+  background: none;
+  color: rgba(247, 242, 225, 0.9);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.orders-chip em {
+  color: rgba(247, 242, 225, 0.6);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-chip.is-on {
+  border-color: var(--y-gold-lit);
+  background: var(--y-gold-lit);
+  color: var(--ink);
+}
+
+.orders-chip.is-on em {
+  color: var(--ink-soft);
+}
+
+.orders-chip-swatch {
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--type-wildcard);
+}
+
+.orders-chip-swatch[data-ink='military'] {
+  background: var(--type-military);
+}
+
+.orders-chip-swatch[data-ink='economic'] {
+  background: var(--type-economic);
+}
+
+.orders-chip-swatch[data-ink='civic'] {
+  background: var(--type-civic);
+}
+
+.orders-chip-rule {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: rgba(247, 242, 225, 0.25);
+}
+
+.orders-find {
+  width: 200px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid rgba(247, 242, 225, 0.4);
+  border-radius: 3px;
+  background: rgba(247, 242, 225, 0.06);
+  color: var(--fg);
+  font-family: var(--face-ui);
+  font-size: 12px;
+}
+
+.orders-find::placeholder {
+  color: rgba(247, 242, 225, 0.55);
+}
+
+.orders-binder-grid {
+  /* Six full faces to a row inside the cloth (the board's binder). */
+  --order-face-width: 200px;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(auto-fill, var(--order-face-width));
+  justify-content: space-between;
+  gap: 28px 10px;
+  min-height: 0;
+  padding: 14px 6px 14px 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(247, 242, 225, 0.4) transparent;
+  scrollbar-width: thin;
+}
+
+.orders-bindercard {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.orders-bindercard:focus-visible {
+  outline: none;
+}
+
+.orders-bindercard:focus-visible .order-face,
+.orders-bindercard:hover .order-face {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 3px;
+}
+
+.orders-binder-chair {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  bottom: -9px;
+  padding: 0 7px;
+  transform: translateX(-50%);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.orders-binder-none {
+  color: var(--fg2);
+  font-family: var(--face-card-text);
+  font-size: 14px;
+}
+
+/* --- the lifted face, the card that follows the pointer, and the slide ----- */
+
+.orders-preview {
+  --order-face-width: 210px;
+  position: absolute;
+  z-index: 60;
+  pointer-events: none;
+  animation: orders-preview-in 120ms ease-out both;
+}
+
+@keyframes orders-preview-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.orders-ghost {
+  --order-face-width: 104px;
+  position: absolute;
+  z-index: 70;
+  transform-origin: 50% 20%;
+  pointer-events: none;
+}
+
+.orders-ghost .order-face {
+  box-shadow: 9px 12px 0 rgba(29, 26, 32, 0.55);
+}
+
+.orders-fly {
+  position: absolute;
+  z-index: 65;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .orders-chair .order-face,
   .orders-chair .order-face-chair,
   .orders-chair .orders-malice,
-  .orders-rail .orders-handcard {
+  .orders-handcard {
     transition: none;
+  }
+
+  /* Less motion: the full face appears, and the card does not rise. */
+  .orders-preview {
+    animation: none;
+  }
+
+  .orders-handcard:hover,
+  .orders-handcard:focus-visible,
+  .orders-handcard.is-held {
+    translate: none;
   }
 
   .order-face.is-shaking {

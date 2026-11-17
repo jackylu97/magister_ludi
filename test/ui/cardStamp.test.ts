@@ -493,7 +493,7 @@ describe('the table and its chairs', () => {
     expect(TABLE).toContain("counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));");
     expect(SCREEN).toContain('justConfirmed = commitStaging();');
     expect(SCREEN).toContain('justConfirmed = [];');
-    const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number)'), SCREEN.indexOf('function confirm(')));
+    const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number,'), SCREEN.indexOf('function confirmStaging(')));
     expect(drop.length).toBeGreaterThan(200);
     expect(drop).not.toContain('countUp');
     expect(drop).not.toContain('justConfirmed =');
@@ -534,7 +534,7 @@ describe('the table and its chairs', () => {
    * `removeError`'s, which is how the seal rules survive the gesture.
    */
   it('lifts a seated card through the staging’s own remove', () => {
-    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number)'), SCREEN.indexOf('function putBack('));
+    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number,'), SCREEN.indexOf('function putBack('));
     expect(lift).toContain('removeError(ctx.state, ctx.seat, ctx.arrangement, index)');
     expect(lift).toContain('refuse(problem);');
     expect(lift).toContain('staged = remove(ctx.arrangement, index);');

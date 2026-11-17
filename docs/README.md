@@ -1633,8 +1633,26 @@ Eight root pages, all named in `vite.config.ts` inputs:
   - Text that does not fit a card never spills outside it: it is cut with a
     fade at the foot, and it scrolls inside the card when the card is lifted
     or has the keyboard's focus.
-  - Not built yet: the whole hand on H, the binder on D and the six moments'
-    motion (part B), and the compact forms for smaller windows (part C).
+  - The hand label says what the hand holds by type, "H opens it", and how
+    many Orders the deck holds, "D opens the binder" (part B). Both layers
+    are drawn by `src/ui/ordersLayers.ts` inside the cloth, and Esc closes a
+    layer before the sheet. H shows the whole hand in ranks of up to fifteen;
+    a click picks a card up and closes the view. D shows every Order as a
+    full face, six to a row, with filters by chair type, deck, rarity and
+    seat, and a box that finds a card by its words (`binderAdmits`); a seated
+    card carries its chair's number, and a click picks the card up.
+  - The six moments are `src/ui/ordersMotion.ts`, with the board's timings
+    (`ORDERS_MOTION`): a hand card rises 16 px and its full face opens beside
+    it; a card picked up with the pointer follows it, tilted 5 degrees; it
+    lands in 180 ms on a short arc and widens over the last 80 ms; Confirm
+    settles the edge and the art in 120 ms while the figures count up; a
+    sealed card shakes; a swapped card slides back to the hand in 180 ms. With
+    less motion each has the board's quiet form: no rise and no tilt, a
+    cross-fade in place, and no slide.
+  - A card whose text is cut lifts on hover or focus after 300 ms: a played
+    card at full size lets its text scroll, and a register card opens its
+    full Doctrine face under it. The compact forms use the same lift.
+  - Not built yet: the compact forms for smaller windows (part C).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

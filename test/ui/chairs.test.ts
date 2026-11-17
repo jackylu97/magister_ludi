@@ -215,7 +215,7 @@ describe('the council, read off the source', () => {
     expect(TABLE).toContain('if (refused !== null) button.title = refused;');
     // A click on a refusing chair says the same sentence in the hint and in
     // the manicule line.
-    const drop = braceBody(SCREEN, 'function drop(index: number)');
+    const drop = braceBody(SCREEN, 'function drop(index: number,');
     expect(drop).toContain('const problem = placeError(state, seat, base, held, index);');
     expect(drop).toContain('refuse(problem);');
     expect(braceBody(SCREEN, 'function refuse(message: string)')).toContain('options.onRefuse?.(message);');
