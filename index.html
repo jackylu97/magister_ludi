@@ -737,8 +737,10 @@
           <dd id="info-seed">—</dd>
         </dl>
 
-        <!-- The renderer's own switches (shadows) and its stats line are appended
-             here by main.ts, because only the 3D pipeline has any. -->
+        <!-- The "Display" settings (shadows, the time of day, stopping the
+             motion when idle) are appended here by main.ts, because only the
+             3D pipeline has any. Developer tools join them only with
+             ?profile. -->
         <div id="menu-extras"></div>
 
         <!-- The Compendium: every unit, building, card and rule, read off the
@@ -1019,7 +1021,8 @@
            empireDrawer.ts puts them in. Routes and Faith carry a live figure.
            The name, the note and the key show only in the open card, where the
            four become rows; at rest the title and the accessible name say
-           them. -->
+           them. Routes and Faith are greyed while their sheet has nothing to
+           show (batch SS9a), and then the note says what opens them. -->
       <div id="empire-quick" class="empire-quick" role="group" aria-label="Screens">
         <button id="quick-diplomacy" class="quick-button is-diplomacy" type="button" aria-haspopup="dialog" aria-controls="diplomacy-overlay" aria-keyshortcuts="W">
           <span class="quick-mark" aria-hidden="true"></span>
@@ -1029,6 +1032,7 @@
         <button id="quick-routes" class="quick-button is-routes" type="button" aria-haspopup="dialog" aria-controls="trade-overlay" aria-keyshortcuts="E">
           <span class="quick-mark" aria-hidden="true"></span>
           <span class="quick-name">Routes</span>
+          <span id="quick-routes-note" class="quick-note"></span>
           <span id="quick-routes-figure" class="quick-figure"></span>
           <kbd class="drawer-key quick-key" aria-hidden="true">E</kbd>
         </button>

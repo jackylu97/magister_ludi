@@ -2941,6 +2941,11 @@ button.seat:active {
   }
 }
 
+/* The heading over the game menu's display settings (batch SS9a). */
+.menu-heading {
+  margin: 0 0 4px;
+}
+
 /* The 3D renderer's own stats line: numbers, therefore mono. */
 #stats {
   margin: 4px 0 0;
@@ -3696,6 +3701,27 @@ kbd {
   animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
+/* A greyed door (batch SS9a): Faith before Divination, Routes before Currency,
+   while the sheet behind it has nothing to show. The mark dims and the figure
+   and the line go; a press, the key or the title says what opens it. It stays
+   a button with `aria-disabled`, so the keyboard can reach the words. */
+.quick-button.is-greyed {
+  color: var(--ink-faint);
+}
+
+.quick-button.is-greyed .quick-mark {
+  opacity: 0.45;
+}
+
+.quick-button.is-greyed .quick-figure,
+.quick-button.is-greyed .quick-line {
+  display: none;
+}
+
+.quick-button.is-greyed:hover {
+  background: none;
+}
+
 /* --- the open card ------------------------------------------------------------
    The four marks become four rows of the card's one shape: the mark 14 px in,
    the name at the 48 px edge, a note, the figure, the key. An ink rule above
@@ -3755,6 +3781,17 @@ kbd {
 }
 
 .empire-corner.is-open .quick-line {
+  display: none;
+}
+
+/* A greyed row keeps its name in the faint ink, and its note says what opens
+   it, the technology's name in bold. The note takes the key box's room so it
+   is not cut; the key still says the same words, and the title names it. */
+.empire-corner.is-open .quick-button.is-greyed .quick-name {
+  color: var(--ink-faint);
+}
+
+.empire-corner.is-open .quick-button.is-greyed .quick-key {
   display: none;
 }
 

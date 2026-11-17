@@ -47,7 +47,7 @@ import {
   playerById,
   realPlayers,
 } from '../../src/sim/state';
-import { draftCost, nextDraftCost } from '../../src/sim/statecraft';
+import { draftCost, nextDraftCost, ref, stripRefs } from '../../src/sim/statecraft';
 import { GOVERNMENT_TIERS, type OrderId } from '../../src/sim/statecraftData';
 import { availableTechs, playerScience } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
@@ -65,11 +65,14 @@ import {
   cultureOwedWords,
   draftFigures,
   draftGlance,
+  doorGate,
   draftTierWords,
   draftTitle,
   empireGlance,
+  faithDoorGate,
   faithFigure,
   governmentWords,
+  greyedLabel,
   leaderWords,
   panelLabel,
   panelStep,
@@ -80,6 +83,7 @@ import {
   researchNextWords,
   researchRateWords,
   researchTurnsMark,
+  routesDoorGate,
   statecraftOwed,
   supplyFingerprint,
   tierWords,
@@ -607,6 +611,81 @@ describe('the prophet reading', () => {
   });
 });
 
+describe('the greyed doors (batch SS9a)', () => {
+  it('greys Faith on a fresh seat, and names Divination from the next-rung reading', () => {
+    const state = solo();
+    const gate = faithDoorGate(state, 0)!;
+    expect(gate).not.toBeNull();
+    expect(gate.tech).toBe('divination');
+    expect(stripRefs(gate.words)).toBe('Opens when you research Divination');
+    expect(stripRefs(gate.line)).toBe('Faith opens when you research Divination');
+    expect(stripRefs(gate.note)).toBe('opens with Divination');
+    // The describers' keyword ref for the technology, and no number in the prose.
+    expect(gate.words).toContain(ref('tech', 'divination', 'Divination'));
+    for (const words of [gate.words, gate.line, gate.note]) expect(stripRefs(words)).not.toMatch(/\d/);
+    expect(greyedLabel(gate)).toBe('Faith, not open yet. Faith opens when you research Divination');
+  });
+
+  it('opens Faith with Divination, and early for a seat with faith of its own', () => {
+    const state = solo();
+    const player = seatOf(state);
+    player.techsResearched.push('divination' as TechId);
+    bumpRevision(state);
+    expect(faithDoorGate(state, 0)).toBeNull();
+    // A ruin, a leader or a card that brings faith before Divination.
+    const early = solo();
+    seatOf(early).faithPool = 15;
+    bumpRevision(early);
+    expect(faithDoorGate(early, 0)).toBeNull();
+  });
+
+  it('greys Routes until the caravan’s technology, Currency, or a route slot', () => {
+    const state = bench();
+    town(state, 4, 4);
+    const gate = routesDoorGate(state, 0)!;
+    expect(gate.tech).toBe('currency');
+    expect(stripRefs(gate.line)).toBe('Routes opens when you research Currency');
+    // Currency opens it, whether or not a market stands yet.
+    seatOf(state).techsResearched.push('currency' as TechId);
+    bumpRevision(state);
+    expect(routesDoorGate(state, 0)).toBeNull();
+    // A slot from a building before Currency opens it early.
+    const early = bench();
+    const town2 = town(early, 4, 4);
+    town2.buildings.push('market');
+    bumpRevision(early);
+    expect(routesDoorGate(early, 0)).toBeNull();
+  });
+
+  it('puts both gates in the panel’s reading, and the keys ask the same one', () => {
+    const state = solo();
+    const glance = empireGlance(state, 0)!;
+    expect(glance.gates.faith).toEqual(faithDoorGate(state, 0));
+    expect(glance.gates.routes).toEqual(routesDoorGate(state, 0));
+    expect(doorGate(state, 0, 'faith')).toEqual(glance.gates.faith);
+    expect(doorGate(state, 0, 'routes')).toEqual(glance.gates.routes);
+    const main = uiSource('main.ts');
+    expect(main).toContain("else if (!greyedDoorRefuses('faith')) religion?.open();");
+    expect(main).toContain("else if (!greyedDoorRefuses('routes')) trade?.open();");
+    expect(main).toContain('onGreyed: (line) => controls.guide(`☞ ${line}.`),');
+  });
+
+  it('draws a greyed door dimmed with no figure, reachable, and never silent', () => {
+    const drawer = uiSource('empireDrawer.ts');
+    const paint = braceBody(drawer, 'function paintGate(');
+    expect(paint).toContain("button.classList.toggle('is-greyed', gate !== null);");
+    expect(paint).toContain("button.setAttribute('aria-disabled', 'true');");
+    expect(paint).toContain('setDescriptorText(note, gate.note, { linked: false });');
+    // No technology id is compared in the panel: the readings name it.
+    expect(braceBody(drawer, 'export function faithDoorGate(')).not.toMatch(/'divination'/);
+    expect(braceBody(drawer, 'export function routesDoorGate(')).not.toMatch(/'currency'/);
+    const css = uiSource('style.css');
+    expect(css).toContain('.quick-button.is-greyed .quick-mark {\n  opacity: 0.45;');
+    expect(css).toContain('.quick-button.is-greyed .quick-figure,\n.quick-button.is-greyed .quick-line {\n  display: none;');
+    expect(uiSource('index.html')).toContain('id="quick-routes-note"');
+  });
+});
+
 describe('the marks’ names and keys', () => {
   it('names each mark and its key in its title and accessible name, in the board’s order', () => {
     expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
@@ -834,8 +913,9 @@ describe('the panel’s own wiring', () => {
     expect(drawer).toContain('close,');
   });
 
-  it('opens each mark’s own screen', () => {
-    expect(drawer).toContain("quick[name].addEventListener('click', () => options.openQuick[name](), { signal });");
+  it('opens each mark’s own screen, unless the door is greyed', () => {
+    expect(drawer).toContain('if (gate !== null) options.onGreyed?.(stripRefs(gate.line));');
+    expect(drawer).toContain('else options.openQuick[name]();');
     expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
   });
 

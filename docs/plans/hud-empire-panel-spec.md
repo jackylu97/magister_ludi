@@ -86,6 +86,12 @@ Spacing (the board): 12 px at both ends; 12 px between figures in a group; 16 px
 
 Each mark is its sheet's trigger (`modalShell.ts`), so the keyboard goes back to it when the sheet closes. No sheet has a second door.
 
+**Greyed doors (batch SS9a; the user, 2026-11-17: "i dont want to confuse new players").** A door is greyed while the sheet behind it has nothing to show:
+- **Faith** opens as soon as the pantheon has a place (`pantheonSlots`) or a god held or waiting, the seat knows a rite (`availableRites`), it founded a religion, or it has faith banked or coming in. Divination is the normal way: it opens the first places and teaches the first rites. The technology named is `explainNextRung`'s own (kind `closed`).
+- **Routes** opens as soon as the seat has researched the technology that unlocks the roster's caravan row (`UNIT_UNLOCK_TECH`, Currency), or it has a route slot or a route running.
+- Greyed: the mark is dimmed, with no figure, line or dot. The title says "Opens when you research Divination" with the describers' keyword ref. A press on the mark, or the H or E key, prints "Faith opens when you research Divination." on the guidance line and opens nothing. The button stays reachable with `aria-disabled`. The open card's row says "opens with Divination", with the technology in bold.
+- Other ways into the two sheets are not gated: the End Turn idle-cart and "Renew rites" prompts, a trader's "Start route", a town's Routes row and its rites. Each needs the feature to exist first.
+
 ## 4. The open card
 
 A click or tap on the banner or on any part of the top that is not a line, Enter on the banner, or Q opens it; the card grows **down in place**. It covers the commission chips until it closes (the chips are hidden while it is open, so their tabs do not show past its edge). It closes on Q again, a second click on the top's ground, Escape, a press outside the card, or any card or screen opening (a line, a mark or a row opens one). It is one card in the screen registry (`screens.opening('drawer')`).

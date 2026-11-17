@@ -46,6 +46,7 @@ const SOURCES = import.meta.glob(
     '../../index.html',
     '../../src/art/dockMarks.ts',
     '../../src/flairGallery/marks.ts',
+    '../../src/render3d/visualTest.ts',
   ],
   {
     eager: true,
@@ -572,6 +573,46 @@ describe('the Compendium, from the menu and the ? card', () => {
       "}).observe(compendiumOverlayEl, { attributes: true, attributeFilter: ['hidden'] });",
     );
     expect(main).not.toContain('compendiumButton.addEventListener');
+  });
+});
+
+/**
+ * **The game menu keeps player settings only** (batch SS9a; the user,
+ * 2026-11-17: "lets get rid of the visual test section in the hamburger
+ * menu"). Shadows, the time of day and stopping the motion stay, under a
+ * "Display" heading. The numbered visual test switches went; the `?vtest=`
+ * option stays for the flair gallery and developers, and the developer tools
+ * that sat beside the switches show only with `?profile`.
+ */
+describe('the game menu', () => {
+  const main = source('main.ts');
+  const panel = main.slice(main.indexOf('function build3DPanel('), main.indexOf('function build3DPanel(') + 6000);
+
+  it('has no visual test section', () => {
+    expect(main).not.toContain('buildVisualTestPanel');
+    expect(main).not.toContain("legend.textContent = 'Visual test';");
+    expect(main).not.toContain('VISUAL_SWITCHES');
+    expect(main).not.toContain('visual-test-measure');
+  });
+
+  it('keeps the three display settings under a plain heading', () => {
+    const heading = panel.indexOf("heading.textContent = 'Display';");
+    expect(heading).toBeGreaterThan(-1);
+    for (const setting of ["label.textContent = 'Shadows';", "lightLabel.textContent = 'Time of day ';", "restLabel.textContent = 'Stop the motion when idle';"]) {
+      expect(panel.indexOf(setting), setting).toBeGreaterThan(heading);
+    }
+  });
+
+  it('shows the developer tools only with the profile option', () => {
+    expect(panel).toContain("const profiling = new URLSearchParams(location.search).has('profile');");
+    const tools = panel.slice(panel.indexOf('if (profiling) {'));
+    expect(tools.indexOf("benchmark.textContent = 'Benchmark full map';")).toBeGreaterThan(-1);
+    expect(panel).toContain('if (profiling) menuExtrasEl.append(stats);');
+    expect(panel).toContain('if (profiling) menuExtrasEl.append(loadingStats);');
+  });
+
+  it('keeps the vtest option itself, read off the address', () => {
+    expect(source('visualTest.ts')).toContain("get('vtest')");
   });
 });
 

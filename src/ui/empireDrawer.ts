@@ -87,7 +87,15 @@ import type { Game } from '../sim/game';
 import { seatName } from '../sim/leaderData';
 import { type PurchasableItem, explainPurchaseCost, purchaseError } from '../sim/purchase';
 import { readEmpire } from '../sim/readings';
-import { type NextRung, explainNextRung, hasReligionOffer, nextBeliefPool, nextRungWords } from '../sim/religion';
+import {
+  type NextRung,
+  availableRites,
+  explainNextRung,
+  hasReligionOffer,
+  nextBeliefPool,
+  nextRungWords,
+  pantheonSlots,
+} from '../sim/religion';
 import {
   type GameState,
   type Player,
@@ -96,15 +104,16 @@ import {
   foundedReligion,
   playerById,
 } from '../sim/state';
-import { hasStatecraftOffer, nextDraftCost } from '../sim/statecraft';
+import { hasStatecraftOffer, nextDraftCost, ref, stripRefs } from '../sim/statecraft';
 import { GOVERNMENT_TIERS } from '../sim/statecraftData';
 import { availableTechs, playerScience, researchPlan } from '../sim/tech';
-import { techDef } from '../sim/techData';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
+import { type TechId, UNIT_UNLOCK_TECH, techDef } from '../sim/techData';
+import { routeSlots, usedRouteSlots } from '../sim/trade';
+import { UNIT_TYPE_IDS, type UnitTypeId, caravanTypeId, unitDef } from '../sim/unitData';
 import { dealtWagers, openWagerDeal, wagerClaimedBy } from '../sim/wagers';
 import { element, requireElement } from './dom';
 import { figure, signedFigure, turnsLabel } from './figures';
-import { openKeyword } from './keywords';
+import { openKeyword, setDescriptorText } from './keywords';
 import { researchProgress } from './researchProgress';
 import { techCostFor } from './techPrice';
 import { routeFigures } from './topBar';
@@ -268,6 +277,8 @@ interface EmpireGlance {
   supply: CopyCount[];
   /** What lights the banner's dot, in `OwedDecision` order. */
   owed: OwedDecision[];
+  /** The two doors that can be greyed, and why; `null` while a door is open. */
+  gates: Readonly<Record<GatedDoor, DoorGate | null>>;
 }
 
 /** Research, read the way the star chart's `renderStatus` reads it. */
@@ -415,6 +426,99 @@ export function faithFigure(reading: NextRung, banked: number, prophet: ProphetG
   return { text: figure(banked), fraction: null, met: false, words, note, dot };
 }
 
+// --- the greyed doors ----------------------------------------------------------
+
+/**
+ * Why the Faith or the Routes door is greyed: the technology that normally
+ * opens it, in the words the mark's title, the click and the open row print.
+ * Each carries the describers' keyword ref for the technology; a plain-text
+ * sink takes `stripRefs`.
+ */
+export interface DoorGate {
+  door: GatedDoor;
+  tech: TechId;
+  /** "Opens when you research [[tech:divination|Divination]]": after the mark's name in its title. */
+  words: string;
+  /** "Faith opens when you research …": the line a click or the key prints. */
+  line: string;
+  /** "opens with …": the open card's row note. */
+  note: string;
+}
+
+/** The two doors that can be greyed. */
+export type GatedDoor = 'faith' | 'routes';
+
+function gateFor(door: GatedDoor, tech: TechId): DoorGate {
+  const name = ref('tech', tech, techDef(tech).name);
+  return {
+    door,
+    tech,
+    words: `Opens when you research ${name}`,
+    line: `${QUICK_NAMES[door].name} opens when you research ${name}`,
+    note: `opens with ${name}`,
+  };
+}
+
+/**
+ * The Faith door is greyed while the Faith sheet has nothing to show (batch
+ * SS9a; the user, 2026-11-17: "i dont want to confuse new players. Let's have
+ * the religion pane stay grayed out until divination is researched").
+ *
+ * The rule, exactly: the door opens as soon as any of these is true, and is
+ * greyed while none is:
+ *
+ * - the pantheon has a place for a god (`pantheonSlots`), or a god held or
+ *   waiting for a name;
+ * - the seat knows a rite (`availableRites`);
+ * - the seat founded a religion;
+ * - the seat has faith banked, or faith coming in a turn.
+ *
+ * Divination is the normal way the first two come true: it opens the
+ * pantheon's first places and teaches the first rites. The technology the
+ * words name is the next-rung reading's own (`explainNextRung`, kind
+ * `closed`), so the door and the Faith sheet's empty place name the same one,
+ * and nothing here compares a technology's id. A ruin, a leader or a card that
+ * brings faith early opens the door early.
+ */
+export function faithDoorGate(state: GameState, playerId: number, reading?: NextRung): DoorGate | null {
+  const player = playerById(state, playerId);
+  if (player === undefined) return null;
+  if (pantheonSlots(state, playerId) > 0) return null;
+  if (player.pantheon.beliefs.length > 0 || player.pantheon.pending !== undefined) return null;
+  if (availableRites(state, playerId).length > 0) return null;
+  if (foundedReligion(state, playerId) !== undefined) return null;
+  if (player.faithPool > 0 || readEmpire(state, playerId).totals.faith > 0) return null;
+  const next = reading ?? explainNextRung(state, playerId, 0);
+  return next.kind === 'closed' ? gateFor('faith', next.tech) : null;
+}
+
+/**
+ * The Routes door is greyed while the trade sheet has nothing to show (batch
+ * SS9a; the user: "lets have the trade route screen be greyed out until
+ * currency is researched").
+ *
+ * The rule, exactly: the door opens as soon as the seat can field a caravan
+ * (it has researched the technology that unlocks the roster's caravan row,
+ * found by its `trades` marker: Currency), or it has a route slot, or a route
+ * running. A wonder or a card that gives a slot before Currency opens it
+ * early. The technology is the caravan row's own unlock (`UNIT_UNLOCK_TECH`),
+ * so nothing here names Currency.
+ */
+export function routesDoorGate(state: GameState, playerId: number): DoorGate | null {
+  const player = playerById(state, playerId);
+  if (player === undefined) return null;
+  if (routeSlots(state, playerId) > 0 || usedRouteSlots(state, playerId) > 0) return null;
+  const caravan = caravanTypeId();
+  const tech = caravan === null ? undefined : UNIT_UNLOCK_TECH.get(caravan);
+  if (tech === undefined || player.techsResearched.includes(tech)) return null;
+  return gateFor('routes', tech);
+}
+
+/** Either door's gate, by name: what the H and E keys ask before they open a sheet. */
+export function doorGate(state: GameState, playerId: number, door: GatedDoor): DoorGate | null {
+  return door === 'faith' ? faithDoorGate(state, playerId) : routesDoorGate(state, playerId);
+}
+
 /**
  * Everything the corner panel prints for this seat, or `null` for a seat that
  * is not there.
@@ -432,20 +536,18 @@ export function empireGlance(state: GameState, playerId: number): EmpireGlance |
   const bar = routeFigures(state, playerId);
   // The bank as the next-rung reading floors it, so "41" and "41/72" agree.
   const banked = Math.max(0, Math.floor(player.faithPool));
+  const rung = explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith);
   return {
     playerId,
     seatName: seatName(state, playerId),
     research: researchGlance(state, player),
     draft,
-    faith: faithFigure(
-      explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith),
-      banked,
-      prophetGlance(state, playerId),
-    ),
+    faith: faithFigure(rung, banked, prophetGlance(state, playerId)),
     routes: { text: bar.routes, words: bar.routesSpoken, free: bar.routeSpare },
     wager: wagerGlance(state, playerId),
     supply,
     owed,
+    gates: { faith: faithDoorGate(state, playerId, rung), routes: routesDoorGate(state, playerId) },
   };
 }
 
@@ -599,6 +701,11 @@ export function quickLabel(name: QuickButton, words = ''): string {
   return `${label}${words === '' ? '' : `: ${words}`}. Opens ${sheet} (${key})`;
 }
 
+/** A greyed mark's accessible name: "Faith, not open yet. Faith opens when you research Divination". */
+export function greyedLabel(gate: DoorGate): string {
+  return `${QUICK_NAMES[gate.door].name}, not open yet. ${stripRefs(gate.line)}`;
+}
+
 // --- the surface -------------------------------------------------------------
 
 interface EmpireDrawerOptions {
@@ -622,6 +729,11 @@ interface EmpireDrawerOptions {
   openWager: () => void;
   /** The four marks' doors: Diplomacy (W), Routes (E), Faith (H), Standings (S). */
   openQuick: Readonly<Record<QuickButton, () => void>>;
+  /**
+   * A greyed door was pressed: says, in plain words, what opens it. `main.ts`
+   * prints it on the guidance line, where the H and E keys print the same.
+   */
+  onGreyed?: (line: string) => void;
 }
 
 export interface EmpireDrawer {
@@ -674,6 +786,7 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     standings: requireElement<HTMLButtonElement>('quick-standings'),
   };
   const routesFigure = requireElement('quick-routes-figure');
+  const routesNote = requireElement('quick-routes-note');
   const faithFigureEl = requireElement('quick-faith-figure');
   const faithNote = requireElement('quick-faith-note');
   const faithLine = requireElement('quick-faith-line');
@@ -693,6 +806,9 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   }
 
   let open = false;
+  // The two doors' gates as the last render read them. A press on a greyed
+  // door says what opens it instead of opening an empty sheet.
+  let gates: Readonly<Record<GatedDoor, DoorGate | null>> = { faith: null, routes: null };
 
   // What the last render drew for. `-1` is "nothing drawn yet".
   let drawnState: GameState | null = null;
@@ -806,7 +922,15 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   leaderRow.addEventListener('click', () => options.openLeader(), { signal });
   wagerRow.addEventListener('click', () => options.openWager(), { signal });
   for (const name of QUICK_BUTTONS) {
-    quick[name].addEventListener('click', () => options.openQuick[name](), { signal });
+    quick[name].addEventListener(
+      'click',
+      () => {
+        const gate = name === 'faith' || name === 'routes' ? gates[name] : null;
+        if (gate !== null) options.onGreyed?.(stripRefs(gate.line));
+        else options.openQuick[name]();
+      },
+      { signal },
+    );
   }
   // One listener for the whole list, because the rows are rebuilt when the
   // counts change. A resource opens its Compendium entry.
@@ -876,21 +1000,56 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     );
   }
 
+  /**
+   * A door greyed or open. Greyed: the mark dims, the figure, the line and the
+   * dot go, the title and the accessible name say what opens it, and the open
+   * card's row note says it with the technology in bold. The button stays in
+   * the keyboard's path with `aria-disabled`, so a press is never silent: it
+   * prints the same words (`onGreyed`).
+   */
+  function paintGate(door: GatedDoor, gate: DoorGate | null, note: HTMLElement): boolean {
+    const button = quick[door];
+    button.classList.toggle('is-greyed', gate !== null);
+    if (gate === null) {
+      button.removeAttribute('aria-disabled');
+      return false;
+    }
+    button.setAttribute('aria-disabled', 'true');
+    button.title = quickTitle(door, stripRefs(gate.words));
+    button.setAttribute('aria-label', greyedLabel(gate));
+    setDescriptorText(note, gate.note, { linked: false });
+    return true;
+  }
+
   function paintQuick(glance: EmpireGlance): void {
     const { faith, routes } = glance;
-    routesFigure.textContent = routes.text;
-    routesFigure.classList.toggle('is-free', routes.free);
-    quick.routes.title = quickTitle('routes', routes.words);
-    quick.routes.setAttribute('aria-label', quickLabel('routes', routes.words));
+    gates = glance.gates;
+    if (paintGate('routes', glance.gates.routes, routesNote)) {
+      routesFigure.textContent = '';
+      routesFigure.classList.remove('is-free');
+    } else {
+      routesNote.textContent = '';
+      routesFigure.textContent = routes.text;
+      routesFigure.classList.toggle('is-free', routes.free);
+      quick.routes.title = quickTitle('routes', routes.words);
+      quick.routes.setAttribute('aria-label', quickLabel('routes', routes.words));
+    }
 
-    faithFigureEl.textContent = faith.text;
-    faithFigureEl.classList.toggle('is-met', faith.met);
-    faithNote.textContent = faith.note;
-    faithLine.hidden = faith.fraction === null;
-    faithLine.style.width = `${((faith.fraction ?? 0) * 100).toFixed(1)}%`;
-    quick.faith.classList.toggle('is-owed', faith.dot);
-    quick.faith.title = quickTitle('faith', faith.words);
-    quick.faith.setAttribute('aria-label', quickLabel('faith', faith.words));
+    if (paintGate('faith', glance.gates.faith, faithNote)) {
+      faithFigureEl.textContent = '';
+      faithFigureEl.classList.remove('is-met');
+      faithLine.hidden = true;
+      quick.faith.classList.remove('is-owed');
+    } else {
+      faithFigureEl.textContent = faith.text;
+      faithFigureEl.classList.toggle('is-met', faith.met);
+      faithNote.textContent = faith.note;
+      faithLine.hidden = faith.fraction === null;
+      faithLine.style.width = `${((faith.fraction ?? 0) * 100).toFixed(1)}%`;
+      quick.faith.classList.toggle('is-owed', faith.dot);
+      quick.faith.title = quickTitle('faith', faith.words);
+      quick.faith.setAttribute('aria-label', quickLabel('faith', faith.words));
+    }
 
     quick.diplomacy.title = quickTitle('diplomacy');
     quick.diplomacy.setAttribute('aria-label', quickLabel('diplomacy'));

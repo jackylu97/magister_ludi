@@ -68,9 +68,6 @@ import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
 import type { Renderer3D } from './render3d/renderer3d';
 import type { PaintedBuildReport } from './render3d/paintedBoardAsync.js';
-import {
-  BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
-} from './render3d/visualTest';
 import { probeGraphics } from './render3d/canvasSetup';
 import {
   describeImprovement,
@@ -155,7 +152,7 @@ import {
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
 import { type Surface, type SurfaceKind, createScreenRegistry } from './ui/screenRegistry';
-import { type EmpireDrawer, createEmpireDrawer } from './ui/empireDrawer';
+import { type EmpireDrawer, type GatedDoor, createEmpireDrawer, doorGate } from './ui/empireDrawer';
 import { type CommissionRail, createCommissionRail } from './ui/commissionRail';
 import { commissionCounters } from './ui/commissionGoal';
 import { type ToastStack, createToastStack } from './ui/toasts';
@@ -211,6 +208,7 @@ import {
   explainOfferSize,
   rarityDrawWeight,
   slotTypesOf,
+  stripRefs,
 } from './sim/statecraft';
 import { adoptionWords, councilChange, offerChairsOf } from './ui/chairs';
 import {
@@ -2263,15 +2261,28 @@ function keepCanvases(keep: 'toon3d' | 'canvas2d'): void {
 }
 
 /**
- * The 3D-only controls: a shadow switch and a stats line.
+ * The 3D-only controls, under a "Display" heading in the game menu: shadows,
+ * and on the painted board the time of day and stopping the motion when idle.
  *
- * They live in the setup popover, with the other session-rare knobs, and are
- * built here rather than sitting in `index.html` because only one of the three
+ * They live in the game menu, with the other session-rare knobs, and are built
+ * here rather than sitting in `index.html` because only one of the three
  * renderers has them at all. Shadows are exposed because they are the one
  * setting that can turn a smooth board into a slideshow on a weak GPU, and the
  * player is the only one who can tell whether they are worth it on theirs.
+ *
+ * The "Visual test" switches left the menu in batch SS9a (the user,
+ * 2026-11-17: "lets get rid of the visual test section in the hamburger
+ * menu"). The `?vtest=` URL option and the code behind it stay, for the flair
+ * gallery's test scene and for developers. The developer tools that sat beside
+ * them (the board benchmark, the stats line and the loading figures) show only
+ * with `?profile`.
  */
 function build3DPanel(renderer: Renderer3D): () => void {
+  const profiling = new URLSearchParams(location.search).has('profile');
+  const heading = document.createElement('p');
+  heading.className = 'eyebrow menu-heading';
+  heading.textContent = 'Display';
+  menuExtrasEl.append(heading);
   const row = document.createElement('div');
   row.className = 'row check';
   const toggle = document.createElement('input');
@@ -2321,17 +2332,16 @@ function build3DPanel(renderer: Renderer3D): () => void {
       if (rest.checked) url.searchParams.set('rest', '1'); else url.searchParams.delete('rest');
       history.replaceState(null, '', url);
     };
-    buildVisualTestPanel(renderer, () => report());
-    const benchmark = document.createElement('button'), result = document.createElement('pre');
-    benchmark.textContent = 'Benchmark full map'; result.id = 'terrain-benchmark-results';
-    result.style.cssText = 'white-space:pre-wrap;max-height:260px;overflow:auto;font-size:10px';
-    benchmark.onclick = async () => {
-      benchmark.disabled = true; result.textContent = 'Measuring play zoom, overview and map seam…';
-      try { result.textContent = JSON.stringify(await renderer.benchmarkTerrain(), null, 2); }
-      finally { benchmark.disabled = false; report(); }
-    };
-    menuExtrasEl.append(benchmark,result);
-    if (new URLSearchParams(location.search).has('profile')) {
+    if (profiling) {
+      const benchmark = document.createElement('button'), result = document.createElement('pre');
+      benchmark.textContent = 'Benchmark full map'; result.id = 'terrain-benchmark-results';
+      result.style.cssText = 'white-space:pre-wrap;max-height:260px;overflow:auto;font-size:10px';
+      benchmark.onclick = async () => {
+        benchmark.disabled = true; result.textContent = 'Measuring play zoom, overview and map seam…';
+        try { result.textContent = JSON.stringify(await renderer.benchmarkTerrain(), null, 2); }
+        finally { benchmark.disabled = false; report(); }
+      };
+      menuExtrasEl.append(benchmark,result);
       const movement = document.createElement('button');
       movement.textContent = 'Benchmark movement updates';
       movement.onclick = async () => {
@@ -2355,10 +2365,10 @@ function build3DPanel(renderer: Renderer3D): () => void {
   const loadingStats = document.createElement('pre');
   loadingStats.id = 'terrain-loading-results';
   loadingStats.style.cssText = 'white-space:pre-wrap;font-size:10px';
-  if (new URLSearchParams(location.search).has('profile')) menuExtrasEl.append(loadingStats);
+  if (profiling) menuExtrasEl.append(loadingStats);
   const stats = document.createElement('p');
   stats.id = 'stats';
-  menuExtrasEl.append(stats);
+  if (profiling) menuExtrasEl.append(stats);
 
   toggle.addEventListener('change', () => {
     renderer.setShadows(toggle.checked);
@@ -2389,75 +2399,6 @@ function build3DPanel(renderer: Renderer3D): () => void {
       report();
     });
   };
-}
-
-/**
- * The "Visual test" switches (batch V1, `docs/flags.md` item (nnnnnnn)): one
- * checkbox for each of the eight visual changes, and beside the border switch
- * a selector for how the border is drawn, in the game menu under "Time of day". A change is applied to the running
- * board at once and written back to the URL's `vtest` option, the same way the
- * time of day writes `light`, so a reload keeps it. The line under the switches
- * gives the last frame's draw calls, triangles and time, so the cost of a
- * switch can be read off as it is flipped.
- */
-function buildVisualTestPanel(renderer: Renderer3D, report: () => void): void {
-  const section = document.createElement('fieldset');
-  section.className = 'visual-test';
-  section.style.cssText = 'border:1px solid currentColor;padding:6px 8px;margin:6px 0';
-  const legend = document.createElement('legend');
-  legend.textContent = 'Visual test';
-  section.append(legend);
-  const state = visualTest();
-  const write = (): void => {
-    const url = new URL(location.href); url.searchParams.set('vtest', formatVisualTest(visualTest()));
-    history.replaceState(null, '', url);
-    // Two frames on: the first draws the change, the second reads its cost.
-    requestAnimationFrame(() => requestAnimationFrame(() => { line.textContent = costLine(); report(); }));
-  };
-  for (const def of VISUAL_SWITCHES) {
-    const row = document.createElement('label');
-    row.style.cssText = 'display:flex;gap:6px;align-items:center';
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = state[def.key];
-    box.dataset.vtest = String(def.id);
-    box.onchange = () => { setVisualTest({ [def.key]: box.checked }); write(); };
-    const rebuilds = def.rebuild === 'board' ? ' (rebuilds the board)' : '';
-    row.append(box, `${def.id}. ${def.label}${rebuilds}`);
-    if (def.key === 'borders') {
-      const style = document.createElement('select');
-      style.setAttribute('aria-label', 'Border style');
-      style.dataset.vtestBorder = '';
-      for (const one of BORDER_STYLES) {
-        const option = document.createElement('option'); option.value = one.key; option.textContent = one.label; style.append(option);
-      }
-      style.value = state.border;
-      style.onchange = () => { setVisualTest({ border: style.value as BorderStyleKey }); write(); };
-      row.append(style);
-    }
-    section.append(row);
-  }
-  const line = document.createElement('p');
-  line.id = 'visual-test-cost';
-  line.style.cssText = 'font-size:10px;margin:4px 0 0';
-  const costLine = (): string => {
-    const s = renderer.stats;
-    return `${s.drawCalls} draws · ${Math.round(s.triangles / 1000)}k triangles · ${renderer.lastFrameMs.toFixed(1)} ms to submit`;
-  };
-  line.textContent = costLine();
-  // The line reads the last frame drawn, so a press asks for a fresh frame
-  // first: the menu covers the board, and the board may not have drawn since.
-  const measure = document.createElement('button');
-  measure.id = 'visual-test-measure';
-  measure.type = 'button';
-  measure.className = 'btn btn-quiet';
-  measure.textContent = 'Measure this view';
-  measure.onclick = () => {
-    renderer.invalidate();
-    requestAnimationFrame(() => requestAnimationFrame(() => { line.textContent = costLine(); }));
-  };
-  section.append(line, measure);
-  menuExtrasEl.append(section);
 }
 
 /**
@@ -5093,8 +5034,23 @@ async function boot(initial: Game | null): Promise<void> {
       faith: () => religion?.open(),
       standings: () => victory?.open(),
     },
+    // A greyed door (Faith before Divination, Routes before Currency, batch
+    // SS9a) says what opens it on the guidance line, as its key does.
+    onGreyed: (line) => controls.guide(`☞ ${line}.`),
   });
   gameDisposers.push(() => empireDrawer?.dispose());
+
+  /**
+   * Whether a key may open a greyed door's sheet. A greyed door's key prints
+   * what opens it, the way a press on the mark does, and opens nothing.
+   * Closing a sheet that is already up is never refused.
+   */
+  function greyedDoorRefuses(door: GatedDoor): boolean {
+    const gate = doorGate(game.state, controls.localPlayerId(), door);
+    if (gate === null) return false;
+    controls.guide(`☞ ${stripRefs(gate.line)}.`);
+    return true;
+  }
 
   /**
    * The commission chips (batch C): one per seated commission, under the corner
@@ -5307,7 +5263,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (typing) return;
     event.preventDefault();
     if (religion?.isOpen === true) religion.close();
-    else religion?.open();
+    else if (!greyedDoorRefuses('faith')) religion?.open();
   });
 
   // `W` opens the Diplomacy screen — the Diplomacy mark's hotkey, wired here
@@ -5356,7 +5312,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (typing) return;
     event.preventDefault();
     if (trade?.isOpen === true) trade.close();
-    else trade?.open();
+    else if (!greyedDoorRefuses('routes')) trade?.open();
   };
   window.addEventListener('keydown', onTradeKey);
   gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));
