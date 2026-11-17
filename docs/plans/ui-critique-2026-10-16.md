@@ -744,3 +744,16 @@ intriguing aspect about the game to people"*
   - Build order: the card face first, as one module generated from a card's
     data, shown in the flair gallery; then the orders screen; then the draft
     offer in the same face.
+
+- **The orders screen's final board is approved (2026-11-17). Batch SS10
+  part 2.** The user: *"you're free to proceed with the orders page."* The
+  board is `docs/plans/mockups/scholars-study/orders-screen-final-board.html`,
+  with its build spec. It is built after the card face module (part 1). Part 3
+  is the draft offer in the same face.
+- **Where else the card's look can go (asked 2026-11-17).** The user: *"could
+  you look for other spots where the aesthetic here could be extended to the
+  rest of the game?"* A designer surveys every surface of the game and
+  proposes where the emblem card's language (engraved devices, rubrication,
+  rarity as the richness of a border, the period faces, seals and cord) should
+  spread, ranked by gain and work. Nothing is built from it until the user
+  picks.
