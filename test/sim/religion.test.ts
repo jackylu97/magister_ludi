@@ -5590,8 +5590,7 @@ describe("the second beliefs pass", () => {
       "+1 production, +1 faith on every hex with a Pasture",
     ]);
     expect(said("marvelsOfTheFaith")).toEqual([
-      "+5 science per city that follows you and holds a wonder",
-      "+5 culture per city that follows you and holds a wonder",
+      "+5 science and +5 culture per city that follows you and holds a wonder",
     ]);
     expect(said("theScriptoria")).toEqual([
       "+1 science per faith building in a city that follows you",

@@ -237,7 +237,8 @@ describe('Devotion batch DV1: the hex and town cards', () => {
     // Batch DS5 (`docs/plans/deck-simplification-2026-11-10.md`) removed the
     // drawback: proclamations no longer press 15 faith less.
     expect(kinds).toEqual(['percentYields', 'percentYields']);
-    expect(words('theSettledFaith')).toHaveLength(2);
+    // The two percentages name the same towns, so they print as one sentence.
+    expect(words('theSettledFaith')).toEqual(['+15% science and +15% culture in every devout city']);
   });
 
   it('The Settled Faith pays nothing in a town whose religion its owner is not paid by', () => {
@@ -758,7 +759,7 @@ describe('Devotion batch DV2: the shared cards', () => {
     expect(said[0]).toBe('Charter');
     expect(said[1]).toBe('opens Scholasticism for you to research');
     expect(said[2]).toBe(
-      'once you know Scholasticism, you may build the Cathedral School: ' +
+      'Scholasticism lets you build the Cathedral School: ' +
         '+2 science per building in this city that supplies faith; ' +
         '+2 science per building in this city that supplies faith, while it is keeping a rite',
     );
@@ -769,8 +770,7 @@ describe('Devotion batch DV2: the shared cards', () => {
 describe('Devotion batch DV2: the word "devout" (feature E)', () => {
   it('prints a town that follows its owner’s religion as devout, and the other half in full', () => {
     expect(words('theSettledFaith').slice(0, 2)).toEqual([
-      '+15% science in every devout city',
-      '+15% culture in every devout city',
+      '+15% science and +15% culture in every devout city',
     ]);
     expect(words('theDeaconries')).toEqual(['+1 happiness in every devout city per 4 citizens there']);
     // Convert It or Tax It (shared with Dominion) keeps its text; only its

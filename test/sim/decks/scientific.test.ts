@@ -705,9 +705,14 @@ describe('the live rows’ effects', () => {
         (effect: CardEffect) =>
           effect.kind !== 'pays' || (effect.basis ?? 'flat') !== 'flat' || Object.keys(effect).length > 2,
       );
+      // Each effect is asked on its own, because the describers join effects
+      // that say the same thing of two yields, or of the same cities, into one
+      // sentence.
+      for (const effect of speaking) {
+        expect(describeEffects([effect]).length, `${id} prints nothing for a ${effect.kind} effect`).toBeGreaterThan(0);
+      }
       const clauses = describeEffects(effects);
-      expect(clauses.length, `${id} says ${speaking.length} things and prints ${clauses.length}`)
-        .toBeGreaterThanOrEqual(speaking.length);
+      if (speaking.length > 0) expect(clauses.length, id).toBeGreaterThan(0);
       for (const clause of clauses) expect(clause.text, id).toBeTruthy();
     }
   });

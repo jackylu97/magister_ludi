@@ -218,8 +218,7 @@ describe('Magisterial batch MG7: the rows', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(words(SED)).toEqual(['adopting a government grants a great person to call']);
     expect(words(PANDECTS)).toEqual([
-      '+5% science in every city per Doctrine you hold',
-      '+5% production in every city per Doctrine you hold',
+      '+5% science and +5% production in every city per Doctrine you hold',
     ]);
     expect(words(BULL)).toEqual([
       'Commission',

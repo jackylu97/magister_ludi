@@ -771,6 +771,21 @@ intriguing aspect about the game to people"*
   - The eight cards whose text does not fit the face (seven charters and the
     Doctrine The House of Worship) get shorter text. Their meaning does not
     change.
+    - Done for seven of the eight (2026-11-17), in the describers and not
+      on the rows, so every card of the same kind got shorter words:
+      a charter technology's gifts ("Mechanics gives the Onager trait:
+      Catapult and Trebuchet +1 range"), two yields paid for one count
+      ("+1 science and +1 culture per …", with "at most +30% each"), plain
+      gains in the same cities ("+3 happiness and +30% production toward
+      buildings, in every city with an Assembly Hall"), and bought buildings
+      opened in the same cities (The House of Worship is one sentence).
+      `test/fixtures/cardText.json` holds every changed text.
+    - The Surveyors' Charter still does not fit at 11 px. It opens a
+      technology, the Aqueduct before Engineering and the Qanat, and it
+      prints what each does. Shorter words alone do not close the gap. It
+      needs a decision. Two measured options: do not print what the Aqueduct
+      does (the text then fits at 12 px), or print the whole card as one
+      sentence (11.5 px).
   - The tablet in the picture shows the live total: what the card pays now.
   - A card whose effect starts with a figure has no red initial, and gets no
     ornament in its place.

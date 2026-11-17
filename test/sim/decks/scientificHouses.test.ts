@@ -269,12 +269,10 @@ describe('the rows', () => {
     ]);
     expect(said('theDoctorate')).toEqual(['gaining a great scholar grants 8 extra turns of culture']);
     expect(said('theRoyalAcademies')).toEqual([
-      '+5% production per empire building you hold',
-      '+5% culture per empire building you hold',
+      '+5% production and +5% culture per empire building you hold',
     ]);
     expect(said('theQueenOfCities')).toEqual([
-      '+100% food in every city of 15 or more citizens',
-      '+100% production in every city of 15 or more citizens',
+      '+100% food and +100% production in every city of 15 or more citizens',
     ]);
     expect(said('theHumanists')).toEqual([
       '50% of the science in every city with a University is gained again as culture',

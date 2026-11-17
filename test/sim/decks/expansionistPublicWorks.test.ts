@@ -276,8 +276,7 @@ describe('the Expansionist batch E11: the rows', () => {
       'Gains +1 production in your capital and +1 culture each time you finish a public work',
     ]);
     expect(said('thePublicGood')).toEqual([
-      '+1% science per public work you hold (at most +25% science)',
-      '+1% culture per public work you hold (at most +25% culture)',
+      '+1% science and +1% culture per public work you hold (at most +25% each)',
     ]);
     expect(said('theToppingOut')).toEqual([
       'completing a building (an empire building) grants each of your cities production equal to 5 times its population',

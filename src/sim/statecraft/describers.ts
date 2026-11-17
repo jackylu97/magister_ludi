@@ -526,7 +526,64 @@ export function describeEffects(
     describeEffect(effects[at]!, clauses, subject);
     at += 1;
   }
-  return collapseClauses(clauses);
+  return joinSharedCities(collapseClauses(clauses));
+}
+
+/** A plain figure and what it is of: "+3 happiness", "+30% production toward buildings", "+1 food, +1 gold". */
+const PLAIN_GAIN = /^[+\-−]\d+(?:\.\d+)?%? [a-z][a-z ]*(?:, [+\-−]\d+(?:\.\d+)?%? [a-z][a-z ]*)*$/;
+
+/** Where a clause starts to name its cities. */
+const CITIES_TAIL = /,? in (?:every |your capital$|this city$)/;
+
+/**
+ * **Clauses next to each other that name the same cities are one sentence**:
+ * The Senate Charter's "+3 happiness in every city with an Assembly Hall" and
+ * "+30% production toward buildings, in every city with an Assembly Hall" read
+ * "+3 happiness and +30% production toward buildings, in every city with an
+ * Assembly Hall".
+ *
+ * It joins only plain gains (`PLAIN_GAIN`: a figure and what it is of) whose
+ * words for the cities are the same to the letter, so the sentence says what
+ * the two said. A clause with a count, a cap or a condition of its own before
+ * the cities is left as it is.
+ */
+function joinSharedCities(clauses: readonly CardClause[]): CardClause[] {
+  const split = (clause: CardClause): { gain: string; cities: string; comma: boolean } | null => {
+    if (clause.deferred === true || clause.keyword !== undefined) return null;
+    const at = clause.text.search(CITIES_TAIL);
+    if (at <= 0) return null;
+    const gain = clause.text.slice(0, at);
+    const cities = clause.text.slice(at).replace(/^,? in /, '');
+    // A gain on a kind of hex ("+1 gold on every floodplain hex") keeps its own clause.
+    if (!PLAIN_GAIN.test(gain) || gain.includes(' on ') || cities.includes(' per ')) return null;
+    return { gain, cities, comma: clause.text.startsWith(', in ', at) };
+  };
+  const out: CardClause[] = [];
+  for (let at = 0; at < clauses.length; ) {
+    const head = split(clauses[at]!);
+    const gains: string[] = [];
+    // The comma a gain had before its cities ("toward buildings, in every
+    // city") stays, so the cities are still read as where the gain is paid.
+    let comma = false;
+    let run = 0;
+    while (head !== null && at + run < clauses.length) {
+      const next = split(clauses[at + run]!);
+      if (next === null || next.cities !== head.cities) break;
+      gains.push(next.gain);
+      comma = comma || next.comma;
+      run += 1;
+    }
+    if (head === null || run < 2) {
+      out.push(clauses[at]!);
+      at += 1;
+      continue;
+    }
+    out.push({
+      text: `${gains.slice(0, -1).join(', ')} and ${gains[gains.length - 1]}${comma ? ',' : ''} in ${head.cities}`,
+    });
+    at += run;
+  }
+  return out;
 }
 
 /**
@@ -551,6 +608,8 @@ function describeFold(
 ): number {
   return (
     everyVoiceFold(effects, at, out, subject) ||
+    sharedCountFold(effects, at, out, subject) ||
+    scopedHousesFold(effects, at, out) ||
     greatWorkRunFold(effects, at, out) ||
     slotPositionFold(effects, at, out) ||
     scaledCombatFold(effects, at, out)
@@ -591,6 +650,112 @@ function everyVoiceFold(
   }
   for (const voice of VOICES) if (!voices.includes(voice)) return 0;
   describePays(head, out, subject, EVERY_YIELD);
+  return run;
+}
+
+/**
+ * **One count, paid in two or more voices**: the Assembly Hall's two clauses
+ * as one, "+1 science and +1 culture per wildcard Order you have seated".
+ *
+ * The rows are the same but for `to`, as `everyVoiceFold`'s are, and this fold
+ * takes the runs that do not hold every voice. Each row is worded on its own
+ * first, and the fold happens only when every sentence is its own figure
+ * followed by the same words. A cap names its voice ("at most +45% gold"), so
+ * the folded sentence says the cap once for all of them: "(at most +45%
+ * each)".
+ */
+function sharedCountFold(
+  effects: readonly CardEffect[],
+  at: number,
+  out: CardClause[],
+  subject: ClauseSubject,
+): number {
+  const head = effects[at];
+  if (head === undefined || head.kind !== 'pays' || head.basis !== 'count') return 0;
+  if (head.where === 'hex' || head.to === undefined) return 0;
+  // Where the cap stood in a sentence, while the sentences are compared.
+  const CAP = '\u0000';
+  let capFigure = '';
+  const figures: string[] = [];
+  const voices: string[] = [];
+  let rest: string | undefined;
+  let run = 0;
+  while (at + run < effects.length) {
+    const next = effects[at + run];
+    if (next === undefined || next.kind !== 'pays' || next.to === undefined) break;
+    if (voices.includes(next.to) || !sameBut(next, head, 'to')) break;
+    const said: CardClause[] = [];
+    describePays(next, said, subject);
+    const figure = payoutWords(next);
+    const text = said.length === 1 ? said[0]!.text : undefined;
+    if (text === undefined || !text.startsWith(`${figure} `)) break;
+    let tail = text.slice(figure.length);
+    if (next.max !== undefined) {
+      const most = payoutWords(next, next.max);
+      const cap = ` (at most ${most})`;
+      if (tail.split(cap).length !== 2) break;
+      tail = tail.replace(cap, CAP);
+      capFigure = most.slice(0, most.indexOf(' '));
+    }
+    if (rest === undefined) rest = tail;
+    else if (tail !== rest) break;
+    figures.push(figure);
+    voices.push(next.to);
+    run += 1;
+  }
+  if (run < 2 || rest === undefined) return 0;
+  out.push({ text: `${listWords(figures)}${rest.replace(CAP, ` (at most ${capFigure} each)`)}` });
+  return run;
+}
+
+/**
+ * **Several bought buildings opened in the same cities, as one sentence**:
+ * The House of Worship's four clauses as "every devout city may buy with faith
+ * the Mosque (…), the Wat (…), the Gurdwara (…) and the Dar-e Mehr (…)".
+ *
+ * The fold takes a run of two or more `unlocksBuilding` rows that name the
+ * same cities, where every building is bought and never built and is sold for
+ * the same currency. The lead says the cities and the currency once, so three
+ * sentences each building's own list would repeat are left out:
+ *
+ *   - "it is bought with faith and never built": the lead says "may buy with
+ *     faith", as a charter's clause does (`charterBuildingClause`);
+ *   - "it may be raised only in a city that keeps the faith that opened it":
+ *     the cities the lead names are the cities this card opens the building
+ *     in (`cardScopeOpensBuilding`);
+ *   - the city of a fact about the building's own city ("in this city", or
+ *     "in every city with a Dar-e Mehr" on the Dar-e Mehr): the fact stands in
+ *     brackets after the building, so its city is the building's.
+ */
+function scopedHousesFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
+  const head = effects[at];
+  if (head === undefined || head.kind !== 'unlocksBuilding' || head.scope === undefined) return 0;
+  const scope = JSON.stringify(head.scope);
+  const houses: string[] = [];
+  let run = 0;
+  while (at + run < effects.length) {
+    const next = effects[at + run];
+    if (next === undefined || next.kind !== 'unlocksBuilding') break;
+    if (next.scope === undefined || JSON.stringify(next.scope) !== scope) break;
+    const id = next.building;
+    if (buildingDef(id).purchaseOnly !== true || buildingBank(id) !== buildingBank(head.building)) break;
+    const skip = new Set([boughtNotBuiltWords(id), FOLLOWING_ONLY_WORDS]);
+    const own = ` in ${cityScopeWords({ test: 'hasBuilding', building: id })}`;
+    const facts = describeBuildingRow(id)
+      .filter((clause) => clause.deferred !== true && !skip.has(clause.text))
+      .map((clause) => {
+        for (const city of [' in this city', own]) {
+          if (clause.text.endsWith(city)) return clause.text.slice(0, -city.length);
+        }
+        return clause.text;
+      });
+    houses.push(`${theBuilding(id)}${facts.length === 0 ? '' : ` (${facts.join('; ')})`}`);
+    run += 1;
+  }
+  if (run < 2) return 0;
+  out.push({
+    text: `${cityScopeWords(head.scope)} may buy with ${buildingBank(head.building)} ${listWords(houses)}`,
+  });
   return run;
 }
 
@@ -1098,11 +1263,14 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
  * The first clause says only what the charter opens. Since batch DS8 the
  * Charter keyword carries the rule that drafting it is the whole of it, and
  * the technology's own Compendium page says that only an empire holding the
- * charter may research it. Each gift is led by "once you know", because a
- * charter gives nothing until the research is done. The gifts come in this
- * order:
+ * charter may research it. Each gift names the technology as the thing that
+ * gives it ("Optics lets you build the Specularium"), because a charter gives
+ * nothing until the research is done. The words are short so that the whole
+ * card fits the card face (the ruling at the end of
+ * `docs/plans/ui-critique-2026-10-16.md`: the long cards get shorter text and
+ * keep their meaning). The gifts come in this order:
  *
- *   - the line traits (`describeTrait`, batch S1);
+ *   - the line traits (`charterTraitClause`, batch S1);
  *   - each building the technology names in its `unlocks`, in the building's
  *     own words (`describeBuildingRow`, as a card's `unlocksBuilding` clause
  *     prints it), batch S4;
@@ -1119,19 +1287,18 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
 function charterTechClauses(tech: TechId): CardClause[] {
   const def = techDef(tech);
   const name = ref('tech', tech, def.name);
-  const known = `once you know ${name}, `;
   const clauses: CardClause[] = [
     {
       text: `opens ${name} for you to research`,
     },
   ];
   for (const trait of def.traits ?? []) {
-    clauses.push(...describeTrait(trait, known));
+    clauses.push(charterTraitClause(name, trait));
   }
   for (const building of def.unlocks.buildings ?? []) {
     const does = liveWords(describeBuildingRow(building));
     clauses.push({
-      text: `${known}you may build ${theBuilding(building)}${does === '' ? '' : `: ${does}`}`,
+      text: `${name} lets you build ${theBuilding(building)}${does === '' ? '' : `: ${does}`}`,
     });
   }
   // **A building the tree opens later, opened early** (Scientific batch S5,
@@ -1145,7 +1312,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
     const gate = BUILDING_UNLOCK_TECH.get(effect.building);
     const before = gate === undefined ? '' : ` before ${ref('tech', gate, techDef(gate).name)}`;
     clauses.push({
-      text: `${known}you may build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
+      text: `${name} lets you build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
     });
   }
   // **A unit the tree opens later, opened early** (Devotion batch DV2,
@@ -1163,7 +1330,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
     const how = bank === undefined ? 'train' : 'call';
     const paid = bank === undefined ? '' : ` with ${bank}`;
     clauses.push({
-      text: `${known}you may ${how} the ${ref('unit', effect.unit, row.name)}${paid}${before}`,
+      text: `${name} lets you ${how} the ${ref('unit', effect.unit, row.name)}${paid}${before}`,
     });
   }
   for (const work of IMPROVEMENT_IDS) {
@@ -1173,7 +1340,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
       .filter((part) => part !== '')
       .join('; ');
     clauses.push({
-      text: `${known}your workers may build the ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
+      text: `${name} lets your workers build the ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
     });
   }
   const rest = (def.effects ?? []).filter(
@@ -1183,9 +1350,36 @@ function charterTechClauses(tech: TechId): CardClause[] {
   );
   for (const clause of describeEffects(rest)) {
     if (clause.deferred === true) continue;
-    clauses.push({ text: `${known}${clause.text}` });
+    clauses.push({ text: `with ${name}, ${clause.text}` });
   }
   return clauses;
+}
+
+/**
+ * **One line trait on a charter's card**: "Mechanics gives the Onager trait:
+ * Catapult and Trebuchet +1 range". `tech` is the technology's name, already a
+ * keyword mark.
+ *
+ * The effects are the short lines the star chart prints
+ * (`describeTraitLines`). Each line names every unit the trait reaches, and a
+ * trait reaches exactly the units of its line (`UnitFilter.line`). So the
+ * sentence does not also say that the trait stays through every upgrade: the
+ * unit panel and the Compendium's technology page say that.
+ *
+ * A second line about the same units does not repeat their names: a figure
+ * follows the first line as it is ("…; +1 range"), and a rule follows as
+ * "they …".
+ */
+function charterTraitClause(tech: string, trait: TechTrait): CardClause {
+  const reach = `${lineReachWords(trait.line)} `;
+  const lines = describeTraitLines(trait).map((line, at) => {
+    if (at === 0 || !line.text.startsWith(reach)) return line.text;
+    const rest = line.text.slice(reach.length);
+    return /^[+\-−]?\d/.test(rest) ? rest : `they ${rest}`;
+  });
+  return {
+    text: `${tech} gives the ${trait.name} trait${lines.length === 0 ? '' : `: ${lines.join('; ')}`}`,
+  };
 }
 
 /** The live clauses of a list, joined with semicolons. Struck halves are left out. */
@@ -1213,7 +1407,7 @@ function workGroundWords(row: ImprovementDef): string {
     // The Qanat (Scientific batch S5): land that refuses hills is flat land.
     parts.push('on flat land');
   }
-  if (row.onePerTown === true) parts.push('one in each city');
+  if (row.onePerTown === true) parts.push('one per city');
   return parts.join(', ');
 }
 
@@ -1231,22 +1425,22 @@ function workDoesWords(row: ImprovementDef): string {
 /**
  * **One line trait, in words** (Scientific batch S1): a clause that names the
  * trait, the line and the units the line reaches, then the trait's effects in
- * the ordinary clauses. `lead` goes in front of the first clause ("once you
- * know Mechanics, ").
+ * the ordinary clauses.
  *
  * Each effect names the trait's line in its `class`, so its own clause says
  * which units it reaches ("units of the Catapult line: +1 range") and reads
  * correctly on its own.
  *
- * The charter card and the unit panel print these sentences. The star chart
- * and the Compendium's technology page print the short lines of
- * `describeTraitLines` instead (batch TT3).
+ * The unit panel prints these sentences. The star chart and the Compendium's
+ * technology page print the short lines of `describeTraitLines` instead (batch
+ * TT3), and so does a charter's card, which has less room
+ * (`charterTraitClause`).
  */
-export function describeTrait(trait: TechTrait, lead = ''): CardClause[] {
+export function describeTrait(trait: TechTrait): CardClause[] {
   const line = unitDef(trait.line).name;
   return [
     {
-      text: `${lead}the ${line} line (${lineReachWords(trait.line)}) gains the ${trait.name} trait and keeps it through every upgrade`,
+      text: `the ${line} line (${lineReachWords(trait.line)}) gains the ${trait.name} trait and keeps it through every upgrade`,
     },
     ...describeEffects(trait.effects),
   ];

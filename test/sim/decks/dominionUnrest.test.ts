@@ -407,19 +407,16 @@ describe('Dominion D4: the words', () => {
       '+1 authority capacity per hex with a Citadel in your borders',
     ]);
     expect(said('theHallOfTheSlain')).toEqual([
-      '+1% production per 2 units you have lost this game (at most +30% production)',
-      '+1% culture per 2 units you have lost this game (at most +30% culture)',
+      '+1% production and +1% culture per 2 units you have lost this game (at most +30% each)',
     ]);
     expect(said('theProvincialCensus')).toEqual([
       'pacifying a city grants science equal to 20 times its population',
     ]);
     expect(said('spearWonLand')).toEqual([
-      '+3% production per city you have captured this game',
-      '+3% science per city you have captured this game',
+      '+3% production and +3% science per city you have captured this game',
     ]);
     expect(said('theBakufu')).toEqual([
-      '+25% science in every city with a great general standing in it',
-      '+25% culture in every city with a great general standing in it',
+      '+25% science and +25% culture in every city with a great general standing in it',
     ]);
     expect(said('paxRomana')).toEqual(['a city you capture is pacified at once']);
     expect(said('dominionTheProconsuls')).toEqual([

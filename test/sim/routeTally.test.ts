@@ -270,16 +270,13 @@ describe('the four cards the tally opened', () => {
     const said = (id: string): string[] =>
       describeCard(id as OrderId).map((clause) => stripRefs(clause.text));
     expect(said('theHomeMarket')).toEqual([
-      '+30% food in every city 2 or more trade routes of your own end at',
-      '+30% production in every city 2 or more trade routes of your own end at',
+      '+30% food and +30% production in every city 2 or more trade routes of your own end at',
     ]);
     expect(said('theLeagueOfCities')).toEqual([
       '+20% production in every city a trade route sets out from',
     ]);
     expect(said('theCharteredMetropolis')).toEqual([
-      '+35% food in every city 3 or more trade routes set out from',
-      '+35% production in every city 3 or more trade routes set out from',
-      '+35% culture in every city 3 or more trade routes set out from',
+      '+35% food, +35% production and +35% culture in every city 3 or more trade routes set out from',
     ]);
     expect(said('theCosmopolitanCourt')).toEqual([
       '+1 renown per turn in every city with a culture building, ' +

@@ -278,8 +278,7 @@ describe('the register', () => {
       '+25% production toward empire buildings, in every city with a Library',
     ]);
     expect(said('theRoyalEstates')).toEqual([
-      '+2 food in every city per empire building you hold there',
-      '+2 production in every city per empire building you hold there',
+      '+2 food and +2 production in every city per empire building you hold there',
     ]);
     expect(said('theCommonTables')).toEqual(['+2 food in every city per building there that supplies science']);
     expect(said('theFreeCities')).toEqual([
@@ -287,19 +286,16 @@ describe('the register', () => {
     ]);
     expect(said('enduringInstitutions')).toEqual(['+20% production in every city holding an empire building']);
     expect(said('theQuietFaculties')).toEqual([
-      '+25% food in every city working an Academy',
-      '+20% production in every city working an Academy',
+      '+25% food and +20% production in every city working an Academy',
     ]);
     expect(said('theRollOfScholars')).toEqual([
-      '+4% production per great scholar you have gained this game (at most +28% production)',
-      '+4% culture per great scholar you have gained this game (at most +28% culture)',
+      '+4% production and +4% culture per great scholar you have gained this game (at most +28% each)',
     ]);
     expect(said('thePalaceSchools')).toEqual([
       'newly created military units in every city holding an empire building gain +4 combat strength',
     ]);
     expect(said('theRoundCity')).toEqual([
-      '+1% production per citizen in your capital (at most +30% production)',
-      '+1% culture per citizen in your capital (at most +30% culture)',
+      '+1% production and +1% culture per citizen in your capital (at most +30% each)',
     ]);
     expect(said('theCityArchitects')).toEqual([
       '+25% production toward wonders, in every city of 8 or more citizens',

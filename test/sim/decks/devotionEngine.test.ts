@@ -322,8 +322,7 @@ describe('Devotion batch DV3: The Book of Life', () => {
     const probe: CardPaysEffect = { kind: 'pays', where: 'city', basis: 'count', count: 'faithSpent' };
     expect(countOf(state, 0, 'theBookOfLife' as OrderId, probe)).toBe(321);
     expect(words('theBookOfLife')).toEqual([
-      '+1% science in every city per 150 faith you have spent (at most +30% science)',
-      '+1% culture in every city per 150 faith you have spent (at most +30% culture)',
+      '+1% science and +1% culture in every city per 150 faith you have spent (at most +30% each)',
     ]);
   });
 });
@@ -436,8 +435,7 @@ describe('Devotion batch DV3: The Creed', () => {
     // One god of its own, and the follower and the enhancer belief.
     expect(townPays(state, capital, 'theCreed', 'faith')).toBe(9);
     expect(words('theCreed')).toEqual([
-      '+3 faith in your capital per god or belief you hold',
-      '+3 culture in your capital per god or belief you hold',
+      '+3 faith and +3 culture in your capital per god or belief you hold',
     ]);
   });
 });
@@ -544,7 +542,7 @@ describe('Devotion batch DV3: the shared The Rising Nave', () => {
     expect(ordersForDecks(['devotion'])).not.toContain('theRisingNave');
     expect(ordersForDecks(['magisterial'])).not.toContain('theRisingNave');
     expect(words('theRisingNave')[0]).toBe(
-      '+1 faith in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there',
+      '+1 faith and +1 culture in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there',
     );
   });
 });
