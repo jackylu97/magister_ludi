@@ -622,3 +622,11 @@ compact when there are lots of luxuries and options available."*
   panel) and meet the requirements above: the deals in view with no scrolling,
   and a compact screen with many luxuries and options. The user picks one, then
   it is built.
+
+- **The corner panel's banner, design pass (2026-11-17).** The user, after
+  playing SS2b: *"the banner in the corner panel also looks bad. Could we do a
+  design pass where we have the icon show much more prominently? that also
+  would give more space to click to expand"*. A designer draws a few variants
+  of the banner area with the seat's charge (its icon) much larger; the larger
+  area is also the handle that grows the card. Nothing is built until the user
+  picks one.
