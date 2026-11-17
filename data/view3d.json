@@ -1448,9 +1448,9 @@
           "tone": 0.85,
           "ripple": 0.0015,
           "smear": 0.004,
-          "whileMoving": true,
+          "whileMoving": false,
           "settleMs": 150,
-          "works": true
+          "works": false
         },
         "cellScale": 1.05,
         "cellWarp": 0.7,

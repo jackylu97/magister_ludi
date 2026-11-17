@@ -1,7 +1,7 @@
 /**
  * The two choices that trade a little of the mirror's picture for speed while
  * the player pans (the third render speed pass): `mirror.whileMoving` and
- * `mirror.works` in `data/view3d.json`. Both are on by default, which is the
+ * `mirror.works` in `data/view3d.json`. Both were on at first, which is the
  * picture as it was. These tests drive the real frame loop with WebGL stubbed
  * out, as `motionRest.test.ts` does, and look at when the mirror is drawn and
  * what it is told to leave out.
@@ -55,9 +55,16 @@ describe('the mirror while the camera moves', () => {
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); Object.assign(MIRROR, kept); VTEST_UNIFORMS.vtestSeaPattern.value = pattern; });
 
-  it('is on by default: the shipped picture, with the mirror drawn on every frame of a pan and the works in it', () => {
-    expect(MIRROR.whileMoving).toBe(true);
-    expect(MIRROR.works).toBe(true);
+  it('ships with both choices taken, as the user ruled on 2026-11-17', () => {
+    // docs/flags.md, "The two mirror choices are both taken": no reflections while the camera moves,
+    // and the works do not reflect. Each is one setting to revert in data/view3d.json.
+    expect(MIRROR.whileMoving).toBe(false);
+    expect(MIRROR.works).toBe(false);
+  });
+
+  it('with both settings on, draws the mirror on every frame of a pan with the works in it', () => {
+    MIRROR.whileMoving = true;
+    MIRROR.works = true;
     const f = fixture();
     for (let i = 0; i < 30; i++) { clock += 16; f.pan(); f.frame(); }
     expect(f.drawn()).toBe(30);
@@ -87,6 +94,7 @@ describe('the mirror while the camera moves', () => {
   });
 
   it('with works off, tells the mirror to leave the works out', () => {
+    MIRROR.whileMoving = true; // the mirror must be drawn in this pan for the test to read what it leaves out
     MIRROR.works = false;
     const f = fixture();
     clock += 16; f.pan(); f.frame();
