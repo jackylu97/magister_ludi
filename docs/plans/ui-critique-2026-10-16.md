@@ -707,3 +707,10 @@ intriguing aspect about the game to people"*
     24 px rows. A chip still shows the greyed state and the loan (the turns
     left on the chip; the lender in its title and when it is selected), and a
     refused item still gives the reducer's sentence.
+
+- **The orders screen, fourth round (2026-11-17).** Round three page:
+  https://claude.ai/artifact/9TdMM8xTGgWk8WptF9VJPM. The user: *"doctrines
+  should also be fairly prominent i'm realizing. i like A and C, i think A
+  slightly better, except with the effect text appearing on the card, styled a
+  bit better."* Way A (bigger played cards) is the base, with the effect text
+  on the card itself in a better style, and the Doctrines prominent.

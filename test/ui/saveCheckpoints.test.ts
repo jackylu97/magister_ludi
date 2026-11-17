@@ -93,7 +93,9 @@ describe('loading through a checkpoint', () => {
     expect(loaded.payload.turn).toBe(game.state.turn);
   });
 
-  it('walks only the commands after the checkpoint, in the worker or here, to the same bytes', async () => {
+  // A longer limit than the default 5 s: this test does real work and timed out on a loaded machine
+  // (three main gates on 2026-11-17), while it passes alone.
+  it('walks only the commands after the checkpoint, in the worker or here, to the same bytes', { timeout: 30_000 }, async () => {
     const { game, storage, checkpoints } = await autosaved(8);
     const at = game.log.length;
     // The game goes on past the autosave and is saved again with no checkpoint

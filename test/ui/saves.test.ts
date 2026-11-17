@@ -758,7 +758,9 @@ describe('createAutosaver', () => {
     expect(warnings[0]).toMatch(/^Autosave failed\./);
   });
 
-  it('stops building saves after one is too large, until reset', async () => {
+  // A longer limit than the default 5 s: this test does real work and timed out on a loaded machine
+  // (three main gates on 2026-11-17), while it passes alone.
+  it('stops building saves after one is too large, until reset', { timeout: 30_000 }, async () => {
     // A log only grows, so a save over the cap will be over it next turn too;
     // before this guard the autosaver stringified the whole log every turn to
     // fail again. A refused quota is different: the player can free space.
