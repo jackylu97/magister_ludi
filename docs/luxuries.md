@@ -202,6 +202,17 @@ the line amber pays in the town that digs it. **The ground is untouched**: a len
 seam is a caravan leaving, and the tile goes on paying its owner exactly what its
 row prints. Lending your last copy is legal — the signature simply moves.
 
+**An empire lends only the copies it owns** (ruled 2026-11-17, schema 244: "a
+borrowed luxury cannot be lent on"). A copy lent to you counts for your access and
+for what the luxury pays you, and you cannot lend it to another empire. The deal
+gate (`dealSideError`) reads `lendableCopies`: your own copies, less the ones you
+lend already, and never more than `availableCopies`. An empire with its own silk and
+a borrowed silk may lend one silk (its own), and then no more. The refusal reads
+"The Ada have silk only on loan, and a borrowed luxury cannot be lent to another
+empire". A deal that outlives the copy under it (a pillaged plantation, or a town
+ceded in the same peace) still pays the receiver until it ends; the giver's own
+count floors at nought.
+
 ---
 
 ## Balance flags from play

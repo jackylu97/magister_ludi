@@ -50,6 +50,7 @@ import type { GameState, Unit } from './state';
 import {
   availableCopies,
   capitalCityOf,
+  lendableCopies,
   payOccasionRiders,
   refreshCityDerived,
   resourceCopies,
@@ -391,7 +392,9 @@ function reseatEmpire(state: GameState, playerId: number): void {
  *     bargains and is refused a third; lending the **last** copy stays legal,
  *     which is `lentCopiesAwayBy`'s stated ruling and not an oversight. Only
  *     luxuries: iron and horses are what an army is made of, and trading the
- *     strategic table is a design decision nobody has taken;
+ *     strategic table is a design decision nobody has taken. **Only copies it
+ *     owns** (the ruling of 2026-11-17): a copy somebody lent this empire can
+ *     be used and not lent, so the count asked is `lendableCopies`;
  *   · **no law against lending**: a seat under The Forbidden Silks may name no
  *     luxury (`luxuryLendingBan`, batch DT7);
  *   · **a right of way both may write** — the mutual technology gate below;
@@ -440,18 +443,20 @@ export function dealSideError(
     if (banned !== null) return banned;
     if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
     seen.push(id);
-    // **Available copies, not controlled ones** (batch R1, ruling 4 — "only
-    // trade away available copies"). `availableCopies` is `resourceCopies` with
-    // the empire's own commitments taken off, so the lending arithmetic stays in
-    // one subtraction: a copy a war elephant is standing on is not a copy
-    // anybody may promise across a table, and an empire cannot lend the same
-    // copy twice or lend one it is already using.
-    if (availableCopies(state, giverId, id) < 1) {
-      const held = resourceCopies(state, giverId, id);
+    // **Copies it owns, not copies it holds** (the ruling of 2026-11-17: a
+    // borrowed luxury cannot be lent on). `lendableCopies` counts the empire's
+    // own copies that are not lent already, and no more than `availableCopies`
+    // (batch R1, ruling 4: "only trade away available copies"). So an empire
+    // cannot lend the same copy twice, lend one a unit is using, or lend one
+    // somebody lent it. Before the ruling this asked `availableCopies`, which
+    // counts the copies lent in.
+    if (lendableCopies(state, giverId, id) < 1) {
       const name = resourceDef(id).name.toLowerCase();
-      return held > 0
-        ? `The ${giver.name} have no ${name} to spare — every copy is already spoken for`
-        : `The ${giver.name} have no ${name} to lend`;
+      if (resourceCopies(state, giverId, id) === 0) return `The ${giver.name} have no ${name} to lend`;
+      if (availableCopies(state, giverId, id) < 1) {
+        return `The ${giver.name} have no ${name} to spare — every copy is already spoken for`;
+      }
+      return `The ${giver.name} have ${name} only on loan, and a borrowed luxury cannot be lent to another empire`;
     }
   }
 

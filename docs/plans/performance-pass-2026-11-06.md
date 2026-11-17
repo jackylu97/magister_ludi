@@ -2793,3 +2793,122 @@ CPU seconds a turn at turns 90 to 100, the whole turn with the probe's bookkeepi
 - Tests: `test/sim/aiWorkerClaims.test.ts` (new); `aiBot.test.ts`, `aiBounds.test.ts`, `aiEndCheckLoops.test.ts`, `aiWants.test.ts`, `aiWants.slow.test.ts`, `aiDigest.slow.test.ts`.
 - `docs/bot-priorities.md`, and this section.
 - Scratch (not in the repo): the probe `play13b.ts`, the step-back count `stepback.ts`, the timings `pair13b.ts` and `prof13.ts`, the tables `analyse.py` and `tables.py`, and the games in `out/` of the session's scratch folder `bp13b/`.
+
+## BP13c and the lending rule, 2026-11-17
+
+`docs/flags.md`, the bullets "BP13c: after the worker fixes. Ruled 2026-11-17" and "A borrowed luxury cannot be lent on. Ruled 2026-11-17". One game rule changes (schema 244): an empire lends only the luxury copies it owns. The rest is bot changes, with no new knob.
+
+### Method
+
+- **Trees.** The **before** games are the stored baseline of `f10cb2fa` (`/Users/jacky/code/webciv-baselines/f10cb2fa/six-seat-standard-t100/final-42.json` and `final-999.json`), not played again. The simulation and bot files of the working tree's base equal that commit's; later commits changed only the renderer and the interface. The **after** tree is the working tree with this batch, copied to the scratch folder `bp13c/after/`.
+- **The game** is the baseline's: six seats with two decks each, standard map, barbarians on, to the end of turn 100. Seeds 42 and 999, one game process at a time, each at `nice -n 15` under `caffeinate -i`.
+- **The probe** is `bp13c/probe13c.ts`: the baseline's `PROBE.ts` with every key it records unchanged, and three new keys. `w.steps` counts each worker's accepted orders in a turn: a step back, any order after it, a hold, and whether the worker ended the turn on the hex it fled. `dealsLive` and `luxLent` count the deals in force and the luxuries lent in them at the end of each turn. It sends no command.
+- **Two seeds show direction only.** The before games did not record the new keys, so those rows have no before figure.
+- **Attribution of the pins.** `bp13c/digest.ts` plays the two pinned digest games of `aiDigest.slow.test.ts` on a tree and prints each digest twice: as the tree prints it, and with the schema number read as 243. Three trees: `j1` (the lending rule and its bot readings only, `src/ai/bot.ts` as at `f10cb2fa`), `j1h` (`j1` with the step-back hold) and `after` (everything).
+
+### 1. A borrowed luxury cannot be lent on
+
+- **The cause.** `dealSideError` (`src/sim/diplomacy.ts`) asked `availableCopies`, which is `resourceCopies` less the copies units hold. `resourceCopies` is the empire's own copies less the copies it lends, floored at nought, plus the copies lent to it (`netCopies`). So a copy lent in counted as a copy the empire could lend. A scratch test with three seats (C owns one silk and lends it to A; A offers it to B) was accepted, and the copies read 1 / 1 / 0, and again 1 / 2 / 0 for a second lend. The `resourceCopies` docblock states the invariant this broke: two empires can never hold three copies between them where there were two.
+- **The fix.** `lendableCopies` (`src/sim/cities.ts`): the copies the empire owns and has not lent already (`ownedCopiesKept`, the ground's copies less the copies lent away, floored at nought), and never more than `availableCopies`. `dealSideError` asks it, so the proposal, the signing (`answerDealError`) and a peace paper when it is written all read it. `resourceCopies` still counts the copies an empire uses, loans included, so access and what the luxury pays are unchanged. `resourceCopies` and the new count read the same ground (`groundCopies`, the memo on the economy clock that `resourceCopies` had).
+- **The sentence** a player sees, beside the other two refusals of the same clause: "The Ada have silk only on loan, and a borrowed luxury cannot be lent to another empire". It has no identifier and no number. The other two are unchanged ("no silk to lend" when the empire uses none; "no silk to spare" when a unit holds every copy).
+- **Every caller.** `availableCopies` is read by the build gate and the upgrade ladder (strategic copies, which cannot be lent), by the bot's spare strategic copies (`spareResourceCopies`), and by the interface's spare figure. None of them lends, so none changes. The deal gate was the one reader that lends, and it now reads `lendableCopies`.
+- **A deal standing on a borrowed copy** (a save from before the rule) resolves cleanly when the loan under it ends: the lender's own count floors at nought, the receiver keeps the copy until the lender's deal ends, and no new deal can lend it. A test writes such a register and ends the two loans in turn.
+- **The bots** never write a paper the gate refuses. The swap arm (`swapDecision`) counts a kind as spare only when one copy of it is the seat's own and not promised in a standing paper; the counter (`counterTerms`) offers only such a copy; and the two Commerce forecasts that count copies a seat could lend (`luxuryLoansLost`, the `copiesLent` count in `commerceCountAhead`) read `lendableCopies`. Without the counter's clause, a bot holding two silk on loan and two spices of its own lost its counter to the gate (the test fails).
+- **Saves.** The project's practice for a rule that refuses a command it used to accept is a schema bump with no migration (v238 is the same case: a Boon could be seated, and a log that did so is refused at that command). So `SCHEMA_VERSION` is 244, with an entry in its docblock: a v243 save is refused and does not replay, for the reason given under v119 in `docs/history/schema-changelog.md` (the branch starts its saves afresh). The schema number is part of every state's print, so every pin over a whole state moves: the two digest pins and the two boards of `explore.test.ts` (length unchanged; with the number printed as 243 they give the old hashes exactly), and fifteen tests that pin the number.
+- **Tests.** `test/sim/borrowedLuxury.test.ts` (new, 6; four fail on the old rule, the three-seat case, the signing and the two invariant runs, and the other two read the new count): the three-seat case through the reducer, with the state byte-identical after the refusal; an own copy beside a borrowed one (the own copy may go, then nothing); a paper refused at the signing when the own copy went to another deal first; a pre-rule register resolving as its loans end; and the invariant over 40 seeded sequences of 24 deals each among three and among four seats, with time passing so deals run out: the usable copies never add up to more than the ground's copies, and no seat lends more copies than its ground supplies. `test/sim/aiDiplomacy.test.ts` (three new): no swap offers a kind held only on loan; a seat with its own copy beside two loans lends its own, and the receiver signs; the counter offers its own spices and never the borrowed silk. `test/sim/resourceCopies.test.ts`: the source pin of the memo now reads `groundCopies`.
+
+### 2. A worker that steps back stays there for the turn
+
+- **Why it was sent out again.** The guard clause of `workerCommand` sends a worker that a hostile could take in its next move, with no guard coming, back to a soldier or a town it can reach this turn (`stepBack`). The step back is one `moveUnit`. A worker that reached its town with movement left raised the idle-unit blocker, so the same sitting asked `workerCommand` again. In its own town the guard reading answers nothing (`workerGuard` returns `null` for a worker in its own town), so the worker took the improvement plan's answer and walked back out, often to the hex it fled. A worker still on its way was asked again by `reaskTheMarch` at its new hex, with the same result where that hex read no threat. The guard plan is read once a sitting, so nothing in the sitting remembered the danger.
+- **The fix** (`BotSitting.steppedBack`, `holdAfterStepBack`). When the guard clause sends a worker back (by `stepBack`, or by `civilianFlight` from the same clause), the sitting remembers the worker. Any later ask in the sitting gets the worker's ordinary answer with every march replaced by a sleep. A worker that has arrived may still lay or survey the hex it stands on; a worker still walking keeps walking, because `reaskTheMarch` does not let a sleep cancel a march. The next sitting asks it afresh: `wakeIdleWorker` asks a sleeping worker once a turn.
+- **Test** (`test/sim/aiWorkerHold.test.ts`, 2 of 5; both fail before): a worker one hex from its town, a hostile two hexes off, no guard. It steps back into the town, is asked again with movement in hand, and sends no march; the next turn, with the hostile gone, it goes back to work. Before the fix the second answer was "Walks 1 hexes to (4,4) for Farm".
+
+### 3. Sleeping workers and new workers
+
+The user: *"is the sleeped worker every awoken? If not the fix should be to wake villagers before deciding to build new ones"*. Three questions, each read in the code and pinned by a test (`test/sim/aiWorkerHold.test.ts`).
+
+- **(a) Is the sleeping worker asked before a town decides its build? It was not.** `decideNext` answers the blockers in `firstBlocker`'s order (`src/ui/turnBlockers.ts`): idle units, idle traders, then each town with an empty queue (`cityProduction`), then research. A sleeping worker raises no blocker, and `wakeIdleWorker` ran in `housekeeping`, which comes after every blocker. So every empty queue was filled before any sleeping worker was asked. **Fixed**: `wakeIdleWorker` runs before an empty queue's blocker is answered, and at the top of `housekeeping`, ahead of the town on a conversion (`projectIdleCommand`, the one other place a town re-decides its build). The test (fails before): a sleeping worker with ground to lay and a town with an empty queue; the worker's order now comes before the town's `setCityProduction` (before: the town's order was second in the sitting and the worker's fourth).
+- **(b) Does the price of a new worker count a sleeping worker's charges? It did.** `explainWorkerCraving` takes off what the seat's spades will lay (`spokenFor`), and `spokenFor` walks every unit of the seat that lays ground, with its own remaining charges, asleep or awake. The test: a town's craving falls when a worker stands beside it, and reads the same when that worker sleeps. One caveat, left as it was: the craving counts the next two citizens' hexes (`citizenSeats`), while the worker counts only hexes a citizen would work now (BP13b's ruling). So a sleeping worker with nothing a citizen would work still covers, in the craving, ground it will not lay until the town grows.
+- **(c) Can another path add a worker while one sleeps? No.** The gold book's only unit rows are soldiers for a town short of its garrison (`garrisonWorth` answers `null` for anything else). The faith book (`faithPlan`) leaves out any row the seat already owns one of unless its worth counts the ones it holds (`alreadyCounted`: settlers and land soldiers), so it offers no worker while the seat has one, asleep or awake. A worker levy is wanted only while a town queues a worker (`levyPieceWant`), so it follows the queue's price. The test: a town with an Almshouse and the faith to buy a worker; the faith book offers a worker until a sleeping worker stands in the empire, and the gold book never does.
+- **(3) `growth.allFocusSheets`** stays on (1).
+
+### 4. Before and after, seeds 42 and 999 to turn 100
+
+Six seats summed, both seeds summed; shares pooled. Two seeds show direction only. A dash is a figure the before probe did not record.
+
+| Seeds 42 and 999 | Before (`f10cb2fa`) | After | Per seed, before to after |
+|---|---:|---:|---|
+| Workers that came, turns 1 to 100 | 180 | 182 | 76, 104 to 76, 106 |
+| Workers taken by the wild | 31 | 33 | 14, 17 to 18, 15 |
+| Step-backs (a worker sent back from a threat) | - | 98 | 52, 46 |
+| of those ordered out again in the same turn | - | 0 | |
+| of those ending the turn on the hex fled | - | 0 | |
+| Holds sent (a march the hold replaced, worker in its shelter) | - | 34 | 13, 21 |
+| Worker-turns whose last order was a step back (after: or a hold) | 29 | 98 | |
+| Improvements started, turns 1 to 100 | 537 | 555 | 215, 322 to 216, 339 |
+| of those to turn 94, worked six turns later | 83% | 87% | |
+| Bare worked share, turns 50, 75, 100 | 52%, 32%, 25% | 50%, 31%, 21% | |
+| Worker-turns | 2,130 | 2,294 | |
+| Deals proposed | 38 | 46 | 15, 23 to 19, 27 |
+| Deals signed | 35 | 42 | 13, 22 to 17, 25 |
+| Deals sent back | 3 | 4 | |
+| Deals in force, mean of turns 50 to 100 | - | 10.9 | |
+| Luxuries lent in them, mean of turns 50 to 100 | - | 21.8 | |
+| Luxuries lent at turn 100 | - | 42 | |
+| Towns, turn 100 | 122 | 121 | 58, 64 to 52, 69 |
+| Citizens | 817 | 771 | 375, 442 to 336, 435 |
+| Food | 3,716 | 2,962 | 2,041, 1,675 to 1,221, 1,741 |
+| Production | 4,497 | 2,549 | 2,832, 1,665 to 1,007, 1,542 |
+| Gold | 1,845 | 1,599 | 936, 909 to 534, 1,065 |
+| Science | 2,987 | 2,100 | 1,752, 1,235 to 758, 1,342 |
+| Culture | 1,181 | 1,135 | 743, 438 to 487, 648 |
+| Faith | 489 | 434 | 308, 181 to 159, 275 |
+
+- **No step-back is undone in the same turn** (0 of 98; BP13b counted 12 of 52 re-ordered and 7 back on the fled hex on its before tree, `aa403039`). 34 times a worker reached its shelter with movement left and the hold kept it there.
+- **The step-backs that remain repeat across turns.** Of the 98, 26 were a worker that started the turn in its own town, walked out to work, and stepped back in the same turn (a second probe pass, `probe13c-detail.ts`, the same games). A worker in its own town reads no threat (`workerGuard` answers `null` there), so the next sitting sends it out into the danger it fled. Not ruled; see "Not done".
+- **The lending rule does not change these games' deals**: the bots never lent a borrowed copy in the pinned games (below). Deals proposed and signed rose a little (46 and 42 against 38 and 35), which is the games parting, not the rule.
+- **Yields at turn 100 fell, mostly on seed 42** (production 2,832 to 1,007; on seed 999 1,665 to 1,542). BP13b already found seed 42's production an outlier of its four-sheet game (2,832 against 677 with two sheets). The games part early (a held worker and a woken worker change the order of commands from the first threat), and two seeds cannot tell a cost from two games parting. Improvements started, the share worked six turns later and the bare share at turn 100 all moved the right way on both seeds.
+- **Speed**: the after games took 68 s and 82 s for 100 turns, one process each, on a quieter machine than the baseline's. No timing comparison is made.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end with the reason printed beside them: duel `96597c87:340143` -> `29663d27:358427`, standard `109baaf6:1053026` -> `5be63c3e:1044882`. Which part moved them (`bp13c/digest.ts`, each digest with the schema number read as 243):
+
+| Tree | Duel | Standard |
+|---|---|---|
+| `j1`: the lending rule and its bot readings | `96597c87:340143` (the old pin) | `109baaf6:1053026` (the old pin) |
+| `j1h`: `j1` and the step-back hold | `c9dd7d83:358792` | `f1058f13:1044882` |
+| after: `j1h` and the sleeping workers asked first | `745de5e8:358427` | `f1058f13:1044882` |
+
+- **The lending rule changes no decision in the pinned games**: no bot lent a borrowed copy in them. The rule moves both pins only through the schema number.
+- **The step-back case occurs in both pinned games**, and the hold moves both.
+- **The sleeping workers asked first** move the duel and not the standard board.
+- No warning and no stall on either board.
+
+### Checks
+
+- Type check clean (`nice -n 15 npm run typecheck`).
+- Narrow tests, by name: `borrowedLuxury` (new, 6), `aiWorkerHold` (new, 5), `aiDiplomacy` (three new), `deals`, `deals.slow`, `resourceCopies` (one source pin reworded), `explore` (the two boards), `aiBot`, `aiWar`, `aiWorkerGuards`, `aiWorkerClaims`, `aiEscorts`, `aiEndCheckLoops`, `aiSittingMemos`, `aiPuppet`, `aiWants`, `aiCampHunt`, `aiLevy`, `aiCommerce`, `aiThreatUpkeep`, `aiRouteRun`, `aiAppraisal`, `aiBounds`, `aiModuleCycles`, `empireYieldAtRest`, `test/mapgen/moduleCycles` and `test/mapgen/resources`, the Commerce deck files that propose deals, the fifteen files whose schema pin moved, and `religion.slow`'s schema test: all passed. `test/ui/dealPanel.test.ts` (another agent's file) passed with the new rule as that agent wrote it.
+- Slow tier: `aiDigest.slow.test.ts` twice (the pins). The whole core tier and the build are the orchestrator's.
+
+### Not done, and choices left
+
+- **The before tree's step-back counts are not measured.** The stored baseline games do not record them and the brief said not to play the before tree again. BP13b's count on its own before tree (`aa403039`) is 12 of 52 re-ordered and 7 back on the fled hex. Two more games on `f10cb2fa` with `probe13c.ts` would give the figure for this baseline (about three minutes).
+- **Deals in force and luxuries lent have no before figure** for the same reason.
+- **A worker in its own town reads no threat.** The hold covers the rest of the turn only. The next sitting sends a worker out of its town into the danger it fled, and it steps back again (26 of the 98 step-backs). A worker in a town could read the threat to the hex it would walk to. Not ruled; a choice for the user.
+- **A peace's second signature does not ask the deal gate again.** `proposePeaceError` checks a paper's terms when it is written, and a bare offer that signs it checks nothing (`applyPeaceOffer` then runs `settlePeacePair`). So a paper written while a copy was the giver's own still lends it after the copy went to another deal, and a lump the treasury no longer holds is still paid. Older than this batch, and the same for coin and towns; not changed here.
+- **A deal that outlives the copy under it still pays the receiver** until it ends: a pillaged plantation, a town ceded in the same peace, or a save from before the rule. The giver's count floors at nought. Making the receiver lose the copy at once is a rule change nobody has ruled.
+- **The interface's spare figure.** The Deal panel's `spare` (`src/ui/diplomacyScreen.ts`, `dealSide`) still reads `availableCopies`, so an empire with its own silk and a borrowed silk shows two spare where it may lend one. The row is refused correctly, by `dealSideError`. For the agent rebuilding the screen: `lendableCopies` is the figure; and the docblock of "the luxury rule" in `test/ui/dealPanel.test.ts` still says a borrowed copy may be lent.
+
+### Files
+
+- `src/sim/cities.ts`: `groundCopies`, `keptCopies`, `ownedCopiesKept`, `lendableCopies`; `resourceCopies` and `netCopies` through them.
+- `src/sim/diplomacy.ts`: `dealSideError` asks `lendableCopies`, with the new sentence.
+- `src/sim/deals.ts`: the two docblocks that state the rule.
+- `src/sim/state.ts`: `SCHEMA_VERSION` 244 and its entry.
+- `src/ai/bot.ts`: `BotSitting.steppedBack`, `holdAfterStepBack`, `workerChoice` (the rest of `workerCommand`, split out); `wakeIdleWorker` asked before an empty queue's blocker and at the top of `housekeeping`.
+- `src/ai/diplomacy.ts`: `swapDecision`'s spare and `counterTerms` read `lendableCopies`.
+- `src/ai/value.ts`: `luxuryLoansLost` and the `copiesLent` forecast read `lendableCopies`.
+- Tests: `test/sim/borrowedLuxury.test.ts` and `test/sim/aiWorkerHold.test.ts` (new); `aiDiplomacy.test.ts` (three new), `resourceCopies.test.ts`, `explore.test.ts`, `aiDigest.slow.test.ts`, and the schema pin in fifteen files.
+- `docs/luxuries.md` and `docs/war-diplomacy.md` (the rule), `docs/bot-priorities.md`, and this section.
+- Scratch (not in the repo), in the session's scratch folder `bp13c/`: the probe `probe13c.ts` and `probe13c-detail.ts`, `digest.ts`, `queue.sh`, the tables `tables13c.py` (with BP13b's `analyse.py`), the trees `after/`, `j1/` and `j1h/`, and the after games in `out/` (`after-42.json`, `after-999.json`) and `out-detail/`.

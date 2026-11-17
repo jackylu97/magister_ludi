@@ -1406,10 +1406,15 @@ describe('determinism', () => {
    * length at both seeds: 242 became 243, and that is all. Nobody here finishes a
    * wonder. Checked with the change in place and the version printed as 242, which
    * gives the hashes before the batch exactly.
+   *
+   * Bot batch BP13c (a borrowed luxury cannot be lent on, schema 244) moved the hash
+   * and not the length at both seeds: 243 became 244, and that is all. Nobody here
+   * signs a deal. Checked with the change in place and the version printed as 243,
+   * which gives the hashes before the batch exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'bc4aa9d5:190677',
-    2026: '1ca89414:190843',
+    11: '74a75562:190677',
+    2026: '17086b0f:190843',
   };
 
   for (const seed of [11, 2026]) {

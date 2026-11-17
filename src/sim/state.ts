@@ -567,8 +567,21 @@ import {
  * has one more chair, so its council and everything it pays move. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v244 (branch `decks`; bot batch BP13c, `docs/flags.md`, the bullet "A borrowed
+ * luxury cannot be lent on. Ruled 2026-11-17"): **an empire lends only the copies
+ * it owns.** No field joins or leaves the state. The rule that changes: the deal
+ * gate (`dealSideError`) asks `lendableCopies` (`cities.ts`), the empire's own
+ * copies that are not lent already, in place of `availableCopies`, which counts
+ * the copies lent to it. A borrowed copy can be used and not lent, so a proposal
+ * or a signature that lends one is now refused.
+ *
+ * **A v243 save is refused and does not replay.** A log that lent on a borrowed
+ * copy is refused at that command, and a bot that wrote such a paper writes
+ * another. The branch migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 243;
+export const SCHEMA_VERSION = 244;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
