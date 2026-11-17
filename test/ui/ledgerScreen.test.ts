@@ -44,7 +44,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DECK_TALLY_LABEL,
+  DECK_TALLY_LABEL_TITLE,
   EMPIRE_GOLD_CLASS,
+  LEDGER_BAND3_TITLE,
+  LEDGER_LAST_TURNS,
+  LEDGER_PLATE_NOTE,
+  curveTicks,
+  lastTurnsRows,
+  sharePercent,
+  turnTicks,
   LEDGER_BAND3_EMPTY,
   LEDGER_BAND3_EYEBROW,
   LEDGER_BAND3_FOOTNOTE,
@@ -1078,7 +1086,7 @@ describe('the Ledger’s palette', () => {
     const screen = source('ledgerScreen.ts');
     // The head of band 1, a bar's slice, the legend's swatch, a curve's band —
     // four surfaces, one function, and no colour named on this page.
-    for (const surface of ['drawBar', 'drawLegend', 'drawSpark']) {
+    for (const surface of ['drawBar', 'drawLegend', 'drawBands']) {
       const at = screen.indexOf(`function ${surface}(`);
       expect(at, surface).toBeGreaterThan(-1);
       expect(screen.slice(at, screen.indexOf('\n}', at)), surface).toContain('paintLedgerInk(');
@@ -1098,7 +1106,9 @@ describe('the Ledger’s palette', () => {
     const screen = source('ledgerScreen.ts');
     // One legend, and it is the sheet's rather than band 1's: two keys saying
     // the same eight words would be the sheet answering the same question twice.
-    expect(screen).toContain('drawProduced(), drawLegend()');
+    // Since batch SS5 the legend is the last thing on the sheet, under the
+    // fold-out plate (the Ledger board).
+    expect(screen).toContain('body.replaceChildren(closeButton, book, drawPlate(), drawLegend());');
     expect(screen.match(/element\('ul', 'ldg-key'\)/g)).toHaveLength(1);
     // Every class, by the table rather than by a written list: a legend that
     // named seven of eight would be a bar with an unexplained colour in it.
@@ -1112,6 +1122,8 @@ describe('the Ledger’s palette', () => {
     expect(legend.indexOf('statecraft')).toBeLessThan(legend.indexOf('great people'));
     expect(legend.indexOf('great people')).toBeLessThan(legend.indexOf('religion'));
     expect(legend).not.toMatch(/\d/);
+    expect(LEDGER_PLATE_NOTE).not.toMatch(/\d/);
+    expect(body).toContain('LEDGER_PLATE_NOTE');
   });
 });
 
@@ -1169,6 +1181,15 @@ describe('the curve’s ring buffer', () => {
     }
   });
 
+  it('keeps the other five classes as "the rest", from the same fold, so a row adds to its total', () => {
+    const { state, playerId } = bench();
+    const taken = ledgerSample(state, playerId);
+    for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      const parts = taken.deck[key] + taken.people[key] + taken.religion[key] + taken.rest![key];
+      expect(parts, key).toBe(taken.totals[key]);
+    }
+  });
+
   it('draws a chart off a ring that predates the two new series', () => {
     // A sample is view state and is never saved, so the only way an old shape
     // reaches the chart is a page kept open across a reload of this module —
@@ -1181,7 +1202,7 @@ describe('the curve’s ring buffer', () => {
   });
 
   it('says out loud that the curve is the session’s and not the save’s', () => {
-    expect(LEDGER_CURVE_FOOTNOTE).toContain('this page is open');
+    expect(LEDGER_CURVE_FOOTNOTE).toContain('while the game is open');
     expect(LEDGER_CURVE_FOOTNOTE).toContain('save');
     expect(LEDGER_CURVE_FOOTNOTE).not.toMatch(/\d/);
   });
@@ -1243,15 +1264,146 @@ describe('the band that prints the lifetime tally', () => {
     expect(LEDGER_BAND3_FOOTNOTE).toContain('once a turn');
   });
 
-  it('draws the rows off the pure builder, in statecraft’s ink, through the one stamp printer', () => {
-    const drawn = region(source('ledgerScreen.ts'), 'function drawProduced()', 'function draw()');
-    expect(drawn).toContain('deckTallyRows(options.getState(), options.getPlayerId())');
+  it('draws the rows off the pure builder as ruled columns, with the fold in statecraft’s ink', () => {
+    // Batch SS5 (the Ledger board): one row a card and one column a yield, so
+    // the six figures stand in the columns the turn's table above uses, and the
+    // foot is the simulation's own fold (`totalPaid`, from `foldDeckLedger`).
+    const drawn = region(source('ledgerScreen.ts'), 'function drawProduced()', 'function drawPlate()');
+    expect(drawn).toContain('const { rows, total, totalPaid } = deckTallyRows(options.getState(), options.getPlayerId());');
     expect(drawn).toContain('LEDGER_BAND3_EMPTY');
-    expect(drawn).toContain('DECK_TALLY_LABEL');
+    expect(drawn).toContain('DECK_TALLY_LABEL_TITLE');
     expect(drawn).toContain('LEDGER_BAND3_FOOTNOTE');
-    const line = region(source('ledgerScreen.ts'), 'function drawStampLine(', 'function drawProduced()');
-    expect(line).toContain("paintLedgerInk(name, 'deck')");
-    expect(line).toContain('landCardStamp(stamp, reading)');
+    expect(drawn).toContain("paintLedgerInk(label, 'deck')");
+    expect(drawn).toContain("for (const key of VOICES) line.append(cell('td', row.paid[key] ?? 0");
+    expect(drawn).toContain("cell('td', totalPaid[key] ?? 0");
+    expect(LEDGER_BAND3_TITLE).toBe('What the deck has produced');
+    expect(DECK_TALLY_LABEL_TITLE).toBe('All cards, so far');
+  });
+
+  it('gives each row its six figures and says when a card is out of its chair', () => {
+    const { state, playerId } = bench();
+    const sc = playerById(state, playerId)!.statecraft;
+    sc.yieldTallies = [
+      {
+        card: 'theLampKeptLit',
+        paid: { food: 0, production: 0, gold: 0, science: 75, culture: 0, faith: 0 },
+      },
+    ];
+    // Out of every chair, and not a Doctrine.
+    sc.slots = sc.slots.map((slot) => (slot?.card === 'theLampKeptLit' ? null : slot));
+    sc.doctrines = sc.doctrines.filter((id) => id !== ('theLampKeptLit' as never));
+    bumpRevision(state);
+    const out = deckTallyRows(state, playerId);
+    expect(out.rows[0]!.paid).toEqual(sc.yieldTallies[0]!.paid);
+    // Not in any chair and not a Doctrine: "out of its chair".
+    expect(out.rows[0]!.seated).toBe(false);
+    sc.slots.push({ card: 'theLampKeptLit', sealedUntil: state.turn } as never);
+    expect(deckTallyRows(state, playerId).rows[0]!.seated).toBe(true);
+    expect(out.totalPaid).toEqual(foldDeckLedger(sc.yieldTallies));
+    expect(source('ledgerScreen.ts')).toContain("element('span', 'ldg-aside', 'out of its chair')");
+  });
+});
+
+// --- the account book (batch SS5) -------------------------------------------
+
+describe('the open yield’s curve and its last eight turns', () => {
+  it('rules the curve at round figures from nought, at most four lines', () => {
+    expect(curveTicks(0, 127)).toEqual([0, 50, 100]);
+    expect(curveTicks(0, 0)).toEqual([0, 0.5, 1]);
+    expect(curveTicks(0, 9)).toEqual([0, 5]);
+    expect(curveTicks(-20, 80)).toEqual([-50, 0, 50]);
+    for (const [low, high] of [[0, 3], [0, 470], [0, 12345], [-40, 10]] as const) {
+      const ticks = curveTicks(low, high);
+      expect(ticks.length, `${low}..${high}`).toBeLessThanOrEqual(5);
+      expect(ticks).toContain(0);
+    }
+  });
+
+  it('names the turns along the foot, never on top of the ends', () => {
+    // Turn 50 is too close to the first turn's own place to carry a label.
+    expect(turnTicks(48, 91)).toEqual([60, 70, 80]);
+    expect(turnTicks(1, 4)).toEqual([]);
+    for (const turn of turnTicks(10, 150)) {
+      expect(turn).toBeGreaterThan(10);
+      expect(turn).toBeLessThan(150);
+    }
+  });
+
+  it('reads the last eight turns off the samples themselves', () => {
+    const rows = Array.from({ length: 12 }, (_, at) => {
+      const one = sample(80 + at);
+      one.totals.production = 100 + at;
+      one.deck.production = 20;
+      one.people.production = 5;
+      one.rest = { ...one.totals, production: 75 + at };
+      return one;
+    });
+    const last = lastTurnsRows(rows, 'production');
+    expect(last).toHaveLength(LEDGER_LAST_TURNS);
+    expect(last.map((row) => row.turn)).toEqual([84, 85, 86, 87, 88, 89, 90, 91]);
+    for (const row of last) expect(row.deck + row.people + row.religion + row.rest!).toBe(row.total);
+    // A sample from before batch SS5 has no "rest", and the row says so rather than guessing.
+    expect(lastTurnsRows([sample(3)], 'production')[0]!.rest).toBeNull();
+  });
+
+  it('gives a source its share of what came in, and upkeep none', () => {
+    expect(sharePercent(31, 127)).toBe(24);
+    expect(sharePercent(0, 127)).toBe(0);
+    expect(sharePercent(-37, 100)).toBe(0);
+    expect(sharePercent(5, 0)).toBe(0);
+  });
+});
+
+describe('the account book’s markup', () => {
+  const screen = source('ledgerScreen.ts');
+
+  it('opens as a book: the turn on the left page, the open yield on the right, the plate and the key at the foot', () => {
+    const draw = region(screen, 'function draw(): void {', 'const shell = createModalShell({');
+    expect(draw).toContain("left.append(titles, drawThisTurn(), drawProduced(), pageFoot(state.turn, 'left'));");
+    expect(draw).toContain("right.append(drawOpenVoice(), drawCurve(), pageFoot(state.turn, 'right'));");
+    // The × goes first in the part that scrolls, so it scrolls with the book
+    // and never covers a figure, and the keyboard reaches it first.
+    expect(draw).toContain('body.replaceChildren(closeButton, book, drawPlate(), drawLegend());');
+    const html = raw('index.html');
+    const sheet = html.slice(html.indexOf('id="ledger-overlay"'), html.indexOf('<!-- ================= the capture sheet'));
+    expect(sheet).toContain('id="ledger-close"');
+  });
+
+  it('opens one yield from the chip, the tabs at the page’s edge, or a row of the plate', () => {
+    expect(screen).toContain('return focus ?? VOICES[0]!;');
+    const tabs = region(screen, 'function drawTabs(', 'function draw(): void {');
+    expect(tabs).toContain('for (const key of VOICES)');
+    expect(tabs).toContain("tab.setAttribute('aria-pressed', String(key === open));");
+    expect(tabs).toContain('choose(key, `tab-${key}`)');
+    const plate = region(screen, 'function drawPlate(', 'function drawTabs(');
+    expect(plate).toContain('choose(voice.key, `plate-${voice.key}`)');
+    // The plate marks each yield with its drawn mark, as the top bar does.
+    expect(plate).toContain('voiceMark(voice.key)');
+    expect(screen).toContain('mark.append(yieldMarkNode(key, true));');
+  });
+
+  it('draws the open yield’s curve with the sparkline’s own two functions', () => {
+    const plate = region(screen, 'function drawCurvePlate(', 'function pageFoot(');
+    expect(plate).toContain('stackedSeries(samples, key)');
+    expect(plate).toContain('sparkPoints(values, WIDTH, HEIGHT, low, ceiling)');
+    expect(plate).toContain('curveTicks(low, high)');
+    expect(plate).toContain('turnTicks(first.turn, last.turn)');
+  });
+
+  it('prints each total as the fold’s own figure, never a sum taken on the page', () => {
+    const turn = region(screen, 'function drawThisTurn()', 'function drawOpenVoice()');
+    expect(turn).toContain("cell('td', voice.total,");
+    const open = region(screen, 'function drawOpenVoice()', 'function drawCurve()');
+    expect(open).toContain("cell('td', voice.total, 'is-total')");
+    const plate = region(screen, 'function drawPlate(', 'function drawTabs(');
+    expect(plate).toContain('netFigure(voice.total)');
+  });
+
+  it('rules its tables as the board does: red money rules and a double rule under each total', () => {
+    const css = raw('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toContain('border-left: 1px solid rgba(171, 61, 30, 0.42);');
+    expect(css).toMatch(/\.ldg-table tfoot tr \{\s*border-top: 3px double var\(--ink\);/);
+    expect(css).toContain('grid-template-columns: 150px 56px minmax(0, 1fr) 300px 120px;');
   });
 });
 

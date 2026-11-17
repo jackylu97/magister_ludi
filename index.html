@@ -1479,13 +1479,13 @@
 
     <!-- ================= the Ledger ============================
          Where this turn's yield came from, and which way the curve is
-         heading. The eighth member of the parchment-sheet family
-         (docs/history/loop-review.md §3): three bands — this turn split by source
-         class, the session's curve per voice, and the lifetime tally, which
-         is a labelled hole until the schema carries one. Built by
-         src/ui/ledgerScreen.ts on each open; nothing on it is stored except
-         the curve, which is this page's and not the save's. Reached from any
-         yield chip in the top bar.
+         heading. A parchment sheet laid out as an account book since batch
+         SS5 (the Ledger board): this turn by source and what the deck has
+         produced on the left page; the open yield, its curve and its last
+         eight turns on the right; the fold-out plate with each yield's bar
+         and curve at the foot. Built by src/ui/ledgerScreen.ts on each open;
+         nothing on it is stored except the curve, which is this page's and
+         not the save's. Reached from any yield chip in the top bar.
          ============================================================ -->
     <div
       id="ledger-overlay"
@@ -1496,16 +1496,15 @@
       hidden
     >
       <div class="statecraft-sheet ledger-sheet">
-        <header class="statecraft-head">
-          <div class="statecraft-head-titles">
-            <h2 class="statecraft-title">The <em>Ledger</em></h2>
-          </div>
-          <p class="statecraft-hint"><kbd>Esc</kbd> to close</p>
-          <button id="ledger-close" class="statecraft-close" type="button" aria-label="Close">
-            &times;
-          </button>
-        </header>
-        <div id="ledger-body" class="statecraft-body ledger-body"></div>
+        <!-- The book: its two pages, the fold-out plate and the legend, all
+             drawn by src/ui/ledgerScreen.ts. The title is on the left page.
+             Each draw moves the × into the top of the part that scrolls, at
+             the right page's top corner, and puts the yield tabs at the right
+             page's edge. -->
+        <div id="ledger-body" class="ledger-body"></div>
+        <button id="ledger-close" class="statecraft-close ledger-close" type="button" aria-label="Close">
+          &times;
+        </button>
       </div>
     </div>
 

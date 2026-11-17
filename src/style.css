@@ -243,15 +243,19 @@
      · **Grey, twice over.** The rule's own grey is the hairline ink (0.14) and
        a slice of it beside seven saturated inks is a slice nobody can see, so
        "other" wears the same grey at the faint weight, which is the lightest
-       one a 16px bar still shows. */
+       one a 16px bar still shows.
+
+     Since batch SS5 three inks are the Ledger board's own: religion a rose a
+     step brighter than the faith voice (#a8467e), the great people in deep
+     gilt, so the name reads on paper, and "other" in the faded text ink. */
   --ldg-tiles: #7a5a33;
   --ldg-buildings: var(--line-forge);
   --ldg-deck: var(--grape);
-  --ldg-religion: var(--y-faith);
-  --ldg-people: var(--gilt);
+  --ldg-religion: #a8467e;
+  --ldg-people: var(--deep-gilt);
   --ldg-trade: var(--teal);
   --ldg-wonders: var(--cobalt);
-  --ldg-other: var(--ink-line);
+  --ldg-other: var(--ink-faint);
 
   /* --- faces ------------------------------------------------------------ */
   --face-display: 'Newsreader Centred', 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
@@ -11944,11 +11948,17 @@ p.city-trade-link {
     grid-template-columns: 1fr;
   }
 
-  /* The Ledger's bands stack with them: six sparklines side by side under a
-     narrow sheet is six charts none of which can be read. Same breakpoint, and
-     in the same query, for the reason written above it. */
-  .ldg-sparks {
-    grid-template-columns: 1fr;
+  /* The Ledger's plate stacks with them: a bar and a curve side by side under
+     a narrow sheet are two charts neither of which can be read. Same
+     breakpoint, and in the same query, for the reason written above it. */
+  .ldg-sparks .ldg-plate-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .ldg-sparks .ldg-bar,
+  .ldg-sparks .ldg-spark,
+  .ldg-sparks .ldg-plate-out {
+    grid-column: 1 / -1;
   }
 
   .bead-body {
@@ -19996,271 +20006,791 @@ body.compendium-page {
 /* ===========================================================================
    THE LEDGER  —  where this turn's yield comes from, and where the curve goes
    ===========================================================================
-   The eighth parchment sheet (`src/ui/ledgerScreen.ts`, `docs/loop-review.md`
-   §3). It joins the capped-overlay rule above with the other seven and then
-   says almost nothing else about the paper: unlike the Reliquary it does *not*
-   narrow, because three bands of six rows are exactly what 1240px is for.
+   `src/ui/ledgerScreen.ts`. An account book since batch SS5 (the Ledger board,
+   `docs/plans/mockups/scholars-study/Ledger.dc.html`): two pages, ruled in the
+   money rules' red with a double rule under each total; this turn by source and
+   what the deck has produced on the left; the open yield, its curve and its
+   last eight turns on the right, with a tab for each yield at the page's edge;
+   and the fold-out plate at the foot with each yield's bar and curve. It keeps
+   the shared paper's cap and scrolls inside itself.
 
    **Eight inks, one per class** (the user's ruling of 2026-09-15,
-   `docs/flags.md` (vvvvv)). It was ink at seven weights with the deck's grape
-   among them, on the argument that the seven were the same kind of thing — and
-   the argument was wrong about what the sheet is for. A player opening it is
-   asking *which* of eight is carrying a voice, and seven greys answer that
-   question only with a key held up against a bar. The palette is at the head of
-   this file (`--ldg-*`), the mapping is `src/ui/ledgerInk.ts`, and every rule
-   below paints from `--ldg-ink` rather than naming a class — so the colours are
-   one block to retune and a ninth class is one line in two files. */
+   `docs/flags.md` (vvvvv)). The palette is at the head of this file (`--ldg-*`),
+   the mapping is `src/ui/ledgerInk.ts`, and every rule below paints from
+   `--ldg-ink` rather than naming a class, so the colours are one block to
+   retune and a ninth class is one line in two files. */
+#ledger-overlay .ledger-sheet {
+  position: relative;
+  /* Room on the right for the yield tabs, which stand outside the book. */
+  width: min(1340px, calc(100% - 56px));
+  padding: 0;
+  background: var(--parchment);
+}
+
 #ledger-overlay .ledger-body {
-  gap: 20px;
-  padding-bottom: 6px;
+  /* The × stands in here, so it scrolls with the book. */
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   overflow-y: auto;
+}
+
+/* The yield tints: the open column, the open plate row, the curve's last
+   eight turns and the tabs read them. */
+[data-voice='food'] { --ldg-voice: var(--y-food); }
+[data-voice='production'] { --ldg-voice: var(--y-prod); }
+[data-voice='gold'] { --ldg-voice: var(--y-gold); }
+[data-voice='science'] { --ldg-voice: var(--y-sci); }
+[data-voice='culture'] { --ldg-voice: var(--y-cul); }
+[data-voice='faith'] { --ldg-voice: var(--y-faith); }
+
+.ldg-voice-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ldg-voice, var(--ink-soft));
+}
+
+.ldg-voice-icon .yield-mark {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+/* --- the book ------------------------------------------------------------- */
+.ldg-book {
+  position: relative;
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* The gutter between the two pages. */
+.ldg-book::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(29, 26, 32, 0.18);
+  content: '';
+}
+
+.ldg-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 30px 34px 52px 36px;
+  background: linear-gradient(90deg, var(--parchment) 0%, var(--parchment) 88%, #ebe3cd 100%);
+}
+
+.ldg-page.is-right {
+  padding: 30px 40px 52px 34px;
+  background: linear-gradient(270deg, var(--parchment) 0%, var(--parchment) 88%, #ebe3cd 100%);
+}
+
+.ldg-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#ledger-overlay .ldg-title {
+  margin: 0;
+  font-size: 44px;
+}
+
+.ldg-subtitle,
+.ldg-page-foot,
+.ldg-col,
+.ldg-col-name {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.ldg-subtitle {
+  font-size: 13.5px;
+}
+
+.ldg-page-foot {
+  position: absolute;
+  bottom: 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.ldg-page-foot.is-left {
+  left: 36px;
+}
+
+.ldg-page-foot.is-right {
+  right: 36px;
+}
+
+.ldg-figure,
+.ldg-num {
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .ldg-band {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.ldg-band + .ldg-band {
+  padding-top: 14px;
+}
+
+.ldg-heading {
+  margin: 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.ldg-open-title {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  margin: 0;
+  padding: 10px 50px 0 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
 }
 
-/* Band 3: the labelled hole. Ruled off above like the other two and set in the
-   quiet voice, so it reads as a shelf waiting for its figures rather than as a
-   band that failed to draw. */
-.ldg-band.is-empty {
-  padding-top: 4px;
-  border-top: var(--border-thin) dashed var(--ink-line);
+.ldg-open-title .yield-mark {
+  width: 24px;
+  height: 24px;
 }
 
-/* The aggregate at the head of band 1 — the same reading the Statecraft screen's
-   ceremony counts up (`deckAggregate`), landed rather than played because this
-   sheet is a place a player comes to read. Label left, figure beside it, on one
-   baseline: it is a sentence with a number in it. The stamp's own seat is
-   quieted where the stamp is styled, beside the other two surfaces that borrow
-   it. */
+/* The × stands at the top of the right page, and scrolls with the book: kept
+   in place, it covered the figures that passed under it. */
+#ledger-overlay .ledger-close {
+  position: absolute;
+  z-index: 2;
+  top: 30px;
+  right: 40px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--edge);
+  background: var(--parchment);
+}
+
+/* The aggregate at the head of the left page: your cards, in statecraft's ink. */
 .ldg-deck {
   display: flex;
-  align-items: baseline;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: -2px 0 0;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
 }
 
-/* The label in statecraft's own ink — the head of the sheet says which class the
-   figure beside it belongs to before a word of it is read. */
 .ldg-deck-label {
-  font-family: var(--face-num);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--ldg-ink, var(--ink-soft));
 }
 
 .ldg-deck-none {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--ink-faint);
 }
 
-.ldg-rows,
-.ldg-sparks {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Six sparklines are a grid, not a column: they are read against each other. */
-.ldg-sparks {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px 20px;
-}
-
-.ldg-row,
-.ldg-spark-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* The chip a player clicked to get here, picked out — the sheet answers the
-   question they actually asked before it answers the other five. */
-.ldg-row.is-focused,
-.ldg-spark-row.is-focused {
-  padding: 4px 8px;
-  margin: -4px -8px;
-  border-radius: var(--radius-sm);
-  background: var(--table);
-}
-
-.ldg-row-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.ldg-voice {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+/* --- the ruled tables ------------------------------------------------------ */
+.ldg-table {
+  width: 100%;
+  border-collapse: collapse;
   font-family: var(--face-ui);
-  font-size: 0.86rem;
-  color: var(--ink-soft);
-}
-
-.ldg-voice-icon {
-  display: inline-flex;
-  width: 15px;
-  height: 15px;
-}
-
-.ldg-total {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: 1.05rem;
+  font-size: 14px;
   color: var(--ink);
 }
 
-/* The bar itself: one ruled box, the slices flexed by their own figures, so a
-   share is a width and never a number this file worked out. */
-.ldg-bar {
-  display: flex;
+/* A caption only a screen reader is given. */
+.ldg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  height: 16px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
-  background: var(--parchment);
+  clip: rect(0 0 0 0);
 }
 
-.ldg-slice {
-  min-width: 2px;
-  border-right: 1px solid var(--parchment);
+.ldg-table thead th {
+  padding: 0 10px 7px 8px;
+  vertical-align: bottom;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.ldg-slice:last-child {
-  border-right: none;
+.ldg-table thead th.is-first {
+  padding-left: 0;
+  text-align: left;
 }
 
-/* An empire that makes nothing of a voice: the box, ruled and empty, rather
-   than no box at all — an absent bar reads as a bar that failed to draw. */
-.ldg-bar-empty {
-  flex: 1 1 auto;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0 5px,
-    var(--rule) 5px 6px
-  );
+.ldg-col-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  width: 100%;
 }
 
-/* **Eight inks, one rule.** A slice and a swatch are painted from `--ldg-ink`,
-   which `src/ui/ledgerInk.ts` writes onto the element out of the palette at the
-   head of this file — so the eight colour rules that used to live here (plain
-   ink at seven weights, and the deck's grape) are one rule now, and a ninth
-   class would need no edit on this page at all.
+.ldg-col-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
 
-   The fallback is the rule's own grey rather than nothing: a surface that
-   somehow arrived unpainted should draw as a slice of *something*, not as a
-   transparent gap in a bar that is meant to be a whole. */
-.ldg-slice,
+/* The money rules: a red line down every figure column. */
+.ldg-table td,
+.ldg-table thead th:not(.is-first) {
+  border-left: 1px solid rgba(171, 61, 30, 0.42);
+}
+
+.ldg-table tbody tr {
+  border-top: 1px solid var(--rule);
+}
+
+.ldg-row-name {
+  padding: 5px 8px 5px 0;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ldg-num {
+  padding: 5px 10px 5px 8px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The open yield's column, tinted. */
+.ldg-table .is-open {
+  background: color-mix(in srgb, var(--ldg-voice, var(--ink)) 6%, transparent);
+}
+
+.ldg-nil {
+  color: var(--ink-faint);
+}
+
+.ldg-debit {
+  color: var(--rubric);
+}
+
+.ldg-aside {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* Each source keeps its ink in a small square (the board). */
+.ldg-class {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ldg-class.is-deck .ldg-class-name {
+  font-weight: 600;
+  color: var(--ldg-ink, var(--ink));
+}
+
 .ldg-swatch {
-  background: var(--ldg-ink, var(--rule));
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 1px;
+}
+
+.ldg-swatch.is-blank {
+  background: transparent;
+}
+
+/* The total under the double rule. */
+.ldg-table tfoot tr {
+  border-top: 3px double var(--ink);
+}
+
+.ldg-total-name {
+  padding: 8px 8px 2px 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ldg-total-name.is-deck {
+  font-size: 15px;
+  color: var(--ldg-ink, var(--ink));
+}
+
+.ldg-num.is-total {
+  padding: 8px 10px 2px 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ldg-produced .ldg-num.is-total {
+  font-size: 15px;
+}
+
+.ldg-card-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ldg-produced .ldg-aside {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* The board's sample cards have short names. Live names such as "The Farming
+   Garrisons", with "out of its chair" beside them, push the faith column off
+   the page. So a card's name may wrap here, and "out of its chair" moves to
+   the next line as one piece. */
+.ldg-produced tbody .ldg-row-name {
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* The open yield's share column, in the faded ink. */
+.ldg-share .is-share {
+  padding-right: 0;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.ldg-share thead th.is-share {
+  padding-right: 0;
+}
+
+.ldg-last tbody tr.is-latest .ldg-num,
+.ldg-last tbody tr.is-latest .ldg-row-name {
+  font-weight: 700;
+}
+
+.ldg-last .ldg-num.is-total {
+  padding: 5px 10px 5px 8px;
+  font-size: 14px;
+}
+
+.ldg-last thead .ldg-class {
+  justify-content: flex-end;
 }
 
 .ldg-caption {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
 }
 
-/* What went out again. Vermilion, because it is the one figure on the sheet
-   that is not income — the same alarm every other ledger in the interface uses
-   for a charge. */
-.ldg-out {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  color: var(--vermilion);
+.ldg-note {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
 }
 
-/* The legend, once, at the foot of the sheet: the eight inks, then the sentence
-   that says which three of them the curves shade. Ruled off above like the
-   bands, because it is about all three of them and belongs to none. */
+/* --- the open yield's curve, a ruled plate --------------------------------- */
+.ldg-curve-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.ldg-curve {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ldg-curve-recent {
+  fill: color-mix(in srgb, var(--ldg-voice, var(--ink)) 6%, transparent);
+}
+
+.ldg-curve-rule {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.ldg-curve-age {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.ldg-curve-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.ldg-curve-money {
+  fill: none;
+  stroke: rgba(171, 61, 30, 0.42);
+  stroke-width: 1;
+}
+
+.ldg-curve-axis {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.ldg-curve-end {
+  fill: var(--ink);
+}
+
+.ldg-curve-label {
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-variant-numeric: lining-nums tabular-nums;
+  fill: var(--ink-faint);
+}
+
+/* "last eight" moves into the gap between the line and the bands. When there
+   is no gap, a parchment halo keeps it readable over a band. */
+.ldg-curve-recent-label {
+  paint-order: stroke;
+  stroke: var(--parchment);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.ldg-curve-value {
+  font-family: var(--face-ui);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  fill: var(--ink);
+}
+
+.ldg-curve-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.ldg-curve-key .ldg-swatch {
+  margin-right: 6px;
+}
+
+.ldg-curve-span {
+  margin-left: auto;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--ink-faint);
+}
+
+/* The shaded classes under a total — statecraft, the great people and
+   religion, stacked from the axis in the inks their slices wear (the ruling of
+   2026-09-15). One rule: the band is handed its own ink. Shaded, with the edge
+   at full strength, so the total's own line shows through. */
+.ldg-spark-band {
+  fill: var(--ldg-ink, var(--rule));
+  fill-opacity: 0.3;
+  stroke: var(--ldg-ink, var(--rule));
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- the yield tabs at the right page's edge -------------------------------- */
+.ldg-tabs {
+  position: absolute;
+  top: 96px;
+  left: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.ldg-tab {
+  display: flex;
+  align-items: center;
+  width: 38px;
+  height: 46px;
+  padding: 0 0 0 10px;
+  border: 0;
+  border-radius: 0 5px 5px 0;
+  background: var(--ldg-voice, var(--ink));
+  box-shadow: inset 6px 0 6px -6px rgba(29, 26, 32, 0.5);
+  color: var(--parchment);
+  cursor: pointer;
+}
+
+.ldg-tab.is-open {
+  width: 48px;
+  padding-left: 14px;
+}
+
+.ldg-tab .yield-mark {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.ldg-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* --- the fold-out plate ----------------------------------------------------- */
+.ldg-plate {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0;
+  margin: 0 36px;
+  padding: 20px 34px 6px;
+  border-top: 1px dashed rgba(29, 26, 32, 0.45);
+}
+
+.ldg-plate-row {
+  display: grid;
+  grid-template-columns: 150px 56px minmax(0, 1fr) 300px 120px;
+  column-gap: 24px;
+  align-items: center;
+  padding: 5px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.ldg-plate-row.is-head {
+  align-items: end;
+  padding: 0 0 6px;
+  border-top: 0;
+}
+
+.ldg-plate-title {
+  grid-column: 1 / span 2;
+}
+
+.ldg-plate-row .ldg-col {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.ldg-plate-row.is-open {
+  background: color-mix(in srgb, var(--ldg-voice, var(--ink)) 6%, transparent);
+}
+
+.ldg-sparks {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 3px double var(--ink);
+}
+
+.ldg-plate-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--face-ui);
+  font-size: 14px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ldg-plate-row.is-open .ldg-plate-name {
+  font-weight: 600;
+}
+
+.ldg-plate-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ldg-plate-name:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.ldg-plate-total {
+  font-family: var(--face-ui);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.ldg-plate-out {
+  font-family: var(--face-ui);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* A bar is the whole of what came in this turn, a slice a source (the board:
+   14 px tall, a hair between slices). */
+.ldg-bar {
+  display: flex;
+  gap: 1px;
+  height: 14px;
+}
+
+.ldg-slice {
+  flex: 1 0 0;
+  min-width: 1px;
+}
+
+.ldg-bar-empty {
+  flex: 1;
+  border-bottom: 1px dashed var(--ink-line);
+}
+
+/* **Eight inks, one rule.** A slice and a swatch are painted from `--ldg-ink`,
+   which `paintLedgerInk` writes onto the element out of the palette at the head
+   of this file. */
+.ldg-slice,
+.ldg-swatch {
+  background: var(--ldg-ink, var(--rule));
+}
+
+.ldg-swatch.is-blank {
+  background: transparent;
+}
+
+/* The plate's curve. `preserveAspectRatio: none` stretches the box to whatever
+   width the grid gives it, so every stroke is drawn with a non-scaling width. */
+.ldg-spark {
+  display: block;
+  width: 100%;
+  height: 44px;
+  overflow: visible;
+}
+
+.ldg-spark-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ldg-spark-axis {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* An age turned here: a dashed tick in the faded ink. */
+.ldg-spark-tick {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- the legend, once, at the foot ---------------------------------------- */
 .ldg-legend {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 8px;
-  border-top: var(--border-thin) solid var(--ink-line);
+  margin: 0 36px 22px;
+  padding: 6px 34px 0;
 }
 
 .ldg-key {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: 2px 0 0;
-  padding: 0;
+  gap: 6px 22px;
+  margin: 0;
+  padding: 6px 0 0;
   list-style: none;
 }
 
 .ldg-key-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   font-family: var(--face-ui);
-  font-size: 0.76rem;
-  color: var(--ink-soft);
+  font-size: 13px;
+  color: var(--ink);
 }
 
-.ldg-swatch {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--ink);
-  border-radius: 2px;
+.ldg-key-item .ldg-swatch {
+  margin-right: 7px;
 }
 
-/* The curve. `preserveAspectRatio: none` stretches the box to whatever width
-   the grid gives it, so every stroke in here is drawn with a non-scaling width
-   — a hairline that thickened as the band widened would be the only line in
-   this interface whose weight depended on the window. */
-.ldg-spark {
-  width: 100%;
-  height: 44px;
-  border-bottom: var(--border-thin) solid var(--ink-line);
-}
+/* Narrower windows: the two pages stand one above the other, and the plate's
+   columns narrow. */
+@media (max-width: 1200px) {
+  .ldg-book {
+    grid-template-columns: 1fr;
+  }
 
-.ldg-spark-line {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
+  .ldg-book::after {
+    display: none;
+  }
 
-/* The three shaded classes under the total — statecraft, the great people and
-   religion, stacked from the axis, each in the ink its slice wears one band up
-   (the ruling of 2026-09-15). One rule again: the band is handed its own ink,
-   so a fourth series would be a line in `LEDGER_CURVE_SERIES` and nothing here.
+  .ldg-page,
+  .ldg-page.is-right {
+    padding: 24px 28px 44px;
+    background: var(--parchment);
+  }
 
-   Shaded rather than solid, and the edge drawn in the same ink at full strength:
-   a stack of solids at this size is a block of colour you cannot see the total's
-   own line through, and the line is what the chart is *for*. */
-.ldg-spark-band {
-  fill: var(--ldg-ink, var(--rule));
-  fill-opacity: 0.26;
-  stroke: var(--ldg-ink, var(--rule));
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
+  .ldg-page.is-right {
+    border-top: 1px solid rgba(29, 26, 32, 0.18);
+  }
 
-/* An age turned here. The lightest ink in the palette: it is an axis mark, and
-   an axis that competes with its own curve is a chart with two subjects. */
-.ldg-spark-tick {
-  stroke: var(--rule);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+  #ledger-overlay .ledger-close {
+    top: 24px;
+    right: 28px;
+  }
+
+  .ldg-plate {
+    margin: 0 20px;
+    padding: 16px 8px 6px;
+  }
+
+  .ldg-plate-row {
+    grid-template-columns: 120px 44px minmax(0, 1fr) 200px 90px;
+    column-gap: 14px;
+  }
+
+  .ldg-legend {
+    margin: 0 20px 18px;
+    padding: 6px 8px 0;
+  }
 }
 
 /* ===================== the capture sheet ==================================

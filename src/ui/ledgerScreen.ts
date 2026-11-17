@@ -7,28 +7,33 @@
  * this turn. A card's stamp says what one card did; nothing said what the deck
  * did, what the empire did, or which way either was heading.
  *
- * Three bands
- * -----------
- *   1. **This turn, by source class.** Six stacked bars, one per voice, split by
- *      where the yield came from — under the **aggregate**, "your cards: +31⚒
- *      +18🔬 +40🎵", which is the deck's whole slice in one figure per voice and
- *      is the very reading Confirm counts up on the Statecraft screen
- *      (`foldDeck`, one function so the two cannot disagree).
- *   2. **The curve.** Six sparklines of the per-turn total across the session,
- *      with the three classes an empire *chose* — statecraft, its great people,
- *      its religion — shaded under the line in their own inks and stacked from
- *      the axis, so a glance says which of the three carried the voice
- *      (`LEDGER_CURVE_SERIES`, the user's ruling of 2026-09-15).
- *   3. **What the deck has produced** — the lifetime tally, per card (batch S2,
- *      `docs/flags.md` (bbbbbb)). One row a card that has ever paid, its six
- *      voices on a stamp — the interface's one printer for "what a card paid" —
- *      and the fold of the rows under them in the same shape as band 1's head.
- *      The rows are `PlayerStatecraft.yieldTallies`, which the yield phase adds
- *      to once a turn from band 1's own deck slice split by card
- *      (`recordDeckTally`, `src/sim/ledgerFold.ts`), so what this band says a
- *      card has paid is what band 1 said it paid, turn after turn. It stood as a
- *      labelled hole until the field existed; the empty state is now an empire
- *      whose deck has not paid yet, and it says so.
+ * An account book (batch SS5)
+ * ---------------------------
+ * Laid out as the Ledger board draws it
+ * (`docs/plans/mockups/scholars-study/Ledger.dc.html`): two pages ruled in red,
+ * with a double rule under each total, and a fold-out plate at the foot.
+ *
+ *   - **The left page, this turn.** The **aggregate**, "your cards: +31⚒ +18🔬
+ *     +40🎵", which is the deck's whole slice in one figure per voice and is the
+ *     very reading Confirm counts up on the Statecraft screen (`foldDeck`, one
+ *     function so the two cannot disagree). Under it, one row a source class and
+ *     one column a voice, upkeep on a row of its own, and each voice's total.
+ *     Then **what the deck has produced**: the lifetime tally, per card (batch
+ *     S2, `docs/flags.md` (bbbbbb)), one row a card that has ever paid, and the
+ *     simulation's fold of the rows under them. The rows are
+ *     `PlayerStatecraft.yieldTallies`, which the yield phase adds to once a turn
+ *     from this turn's own deck slice split by card (`recordDeckTally`,
+ *     `src/sim/ledgerFold.ts`), so what a row says a card has paid is what the
+ *     turn's table said it paid, turn after turn.
+ *   - **The right page, one voice.** The voice the chip named, or the one a tab
+ *     at the page's edge opens: its sources with their shares, the caption, the
+ *     session's **curve** as a ruled plate, and its last eight turns. The curve
+ *     shades the three classes an empire *chose* (statecraft, its great people,
+ *     its religion) under the line in their own inks, stacked from the axis
+ *     (`LEDGER_CURVE_SERIES`, the user's ruling of 2026-09-15).
+ *   - **The fold-out plate.** One row a voice: its total, this turn's bar by
+ *     source, its curve over the session, and what went out again. The user's
+ *     ruling of 2026-11-16 kept these graphs ("I like the graphs as a visual").
  *
  * No new fold (rule 5)
  * --------------------
@@ -146,7 +151,8 @@ import {
 } from '../sim/ledgerFold';
 import type { CardYieldTally } from '../sim/statecraft/draft';
 import { type CardId, cardName } from '../sim/statecraftData';
-import { highestAge } from '../sim/techData';
+import { eraNumeral, highestAge } from '../sim/techData';
+import { seatName } from '../sim/leaderData';
 import { type GameState, playerById } from '../sim/state';
 import { type YieldKey, YIELD_GLYPH, YIELD_NAME, figure, signedFigure } from './figures';
 import { yieldMarkNode } from './yieldMark';
@@ -384,6 +390,13 @@ export interface LedgerSample {
   deck: Record<YieldKey, number>;
   people: Record<YieldKey, number>;
   religion: Record<YieldKey, number>;
+  /**
+   * The other five classes together, from the same fold: the "the rest" column
+   * of the last eight turns (batch SS5, the Ledger board). A sum of the fold's
+   * own columns, so a row's four parts add to its total. Optional, for a ring
+   * from before this batch.
+   */
+  rest?: Record<YieldKey, number>;
 }
 
 /**
@@ -440,11 +453,16 @@ export function ledgerSample(state: GameState, playerId: number): LedgerSample {
   const deck = {} as Record<YieldKey, number>;
   const people = {} as Record<YieldKey, number>;
   const religion = {} as Record<YieldKey, number>;
+  const rest = {} as Record<YieldKey, number>;
+  const shaded: readonly LedgerClass[] = LEDGER_CURVE_SERIES;
   for (const voice of reading) {
     totals[voice.key] = voice.total;
     deck[voice.key] = voice.byClass.deck;
     people[voice.key] = voice.byClass.people;
     religion[voice.key] = voice.byClass.religion;
+    let others = 0;
+    for (const cls of LEDGER_CLASSES) if (!shaded.includes(cls)) others += voice.byClass[cls];
+    rest[voice.key] = others;
   }
   const player = playerById(state, playerId);
   return {
@@ -454,6 +472,7 @@ export function ledgerSample(state: GameState, playerId: number): LedgerSample {
     deck,
     people,
     religion,
+    rest,
   };
 }
 
@@ -522,9 +541,77 @@ export function ledgerCurveLegend(): string {
   return `Under each turn's total the curves shade ${first}, then ${second}, then ${third}, stacked up from the foot.`;
 }
 
-/** The footnote under band 2 — the honest reading, in plain words. */
+/**
+ * Where the open yield's curve puts its rules across: nought, and round steps
+ * up to the highest figure, at most four lines (the Ledger board draws 0, 50 and
+ * 100 under a curve that ends at 127). A step of 1, 2 or 5 times a power of
+ * ten, the way a ruled account book is ruled. Pure, so a curve with nothing in
+ * it, or one in the red, still gets a sensible scale.
+ */
+export function curveTicks(low: number, high: number): number[] {
+  const top = Math.max(high, 1);
+  const bottom = Math.min(low, 0);
+  const rough = (top - bottom) / 3;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 5, 10].map((m) => m * power).find((m) => m >= rough) ?? 10 * power;
+  const ticks: number[] = [];
+  // From the round figure at or under the lowest point, so a curve in the red
+  // has a rule under it too. `+ 0` turns a negative nought into nought.
+  for (let at = Math.floor(bottom / step) * step; at <= top; at += step) ticks.push(at + 0);
+  return ticks;
+}
+
+/**
+ * The turns the curve names along its foot: each tenth turn inside the span,
+ * none so close to either end that its label would sit on the end's own.
+ */
+export function turnTicks(first: number, last: number): number[] {
+  const span = last - first;
+  if (span < 4) return [];
+  const step = span > 120 ? 50 : span > 40 ? 10 : 5;
+  const ticks: number[] = [];
+  for (let turn = Math.ceil(first / step) * step; turn < last; turn += step) {
+    if (turn - first < span * 0.06 || last - turn < span * 0.12) continue;
+    ticks.push(turn);
+  }
+  return ticks;
+}
+
+/** How many turns "the last eight turns" holds. */
+export const LEDGER_LAST_TURNS = 8;
+
+/**
+ * One row of "the last eight turns" for the open yield: the turn, the three
+ * classes an empire chose, the rest, and the total, every figure read off the
+ * sample itself. `rest` is `null` for a sample from before batch SS5.
+ */
+export function lastTurnsRows(
+  samples: readonly LedgerSample[],
+  key: YieldKey,
+): { turn: number; deck: number; people: number; religion: number; rest: number | null; total: number }[] {
+  return samples.slice(-LEDGER_LAST_TURNS).map((sample) => ({
+    turn: sample.turn,
+    deck: sample.deck?.[key] ?? 0,
+    people: sample.people?.[key] ?? 0,
+    religion: sample.religion?.[key] ?? 0,
+    rest: sample.rest?.[key] ?? null,
+    total: sample.totals[key] ?? 0,
+  }));
+}
+
+/**
+ * A class's share of what came in: its positive figure against the sum of the
+ * positive figures (the bar's own whole), as a whole percent. Upkeep is named
+ * beside the bar rather than inside it, so it has no share.
+ */
+export function sharePercent(value: number, positiveWhole: number): number {
+  if (value <= 0 || positiveWhole <= 0) return 0;
+  return Math.round((value * 100) / positiveWhole);
+}
+
+/** The footnote under the curve and the last turns — the honest reading, in plain words. */
 export const LEDGER_CURVE_FOOTNOTE =
-  'The curve is kept only while this page is open. Reload or load a save and it starts again from that turn.';
+  'The curve and these rows are kept only while the game is open. Reload, or load a save, and they start again from that turn.';
 
 /** Band 2 before there is anything to draw. */
 const LEDGER_CURVE_EMPTY = 'End a turn and the curve starts here.';
@@ -533,6 +620,9 @@ const LEDGER_CURVE_EMPTY = 'End a turn and the curve starts here.';
 
 /** Band 3's eyebrow — the brief's own words, and the doc of record's. */
 export const LEDGER_BAND3_EYEBROW = 'what the deck has produced';
+
+/** The same words as the left page's heading, in the heading's case (the Ledger board). */
+export const LEDGER_BAND3_TITLE = `${LEDGER_BAND3_EYEBROW.charAt(0).toUpperCase()}${LEDGER_BAND3_EYEBROW.slice(1)}`;
 
 /**
  * Band 3 before any card has paid — a new empire, or a save from before the
@@ -553,11 +643,18 @@ export const LEDGER_BAND3_FOOTNOTE =
 /** What the fold at the foot of band 3 is called. `DECK_LABEL`'s twin, lifetime. */
 export const DECK_TALLY_LABEL = 'all cards, so far';
 
+/** The same words in the total row's case (the Ledger board). */
+export const DECK_TALLY_LABEL_TITLE = `${DECK_TALLY_LABEL.charAt(0).toUpperCase()}${DECK_TALLY_LABEL.slice(1)}`;
+
 /** One row of band 3: the card, its name, and its lifetime figure as a stamp. */
 interface DeckTallyRow {
   card: CardId;
   name: string;
   reading: StampReading;
+  /** The same figure as six columns: the tally row's own bag (batch SS5's table). */
+  paid: Readonly<Record<YieldKey, number>>;
+  /** True while the card is in a chair or held as a Doctrine. "Out of its chair" otherwise. */
+  seated: boolean;
 }
 
 /**
@@ -572,14 +669,21 @@ interface DeckTallyRow {
 export function deckTallyRows(
   state: GameState,
   playerId: number,
-): { rows: DeckTallyRow[]; total: StampReading } {
-  const tallies: readonly CardYieldTally[] = playerById(state, playerId)?.statecraft.yieldTallies ?? [];
+): { rows: DeckTallyRow[]; total: StampReading; totalPaid: Readonly<Record<YieldKey, number>> } {
+  const sc = playerById(state, playerId)?.statecraft;
+  const tallies: readonly CardYieldTally[] = sc?.yieldTallies ?? [];
+  const seatedCards = new Set<string>();
+  for (const slot of sc?.slots ?? []) if (slot) seatedCards.add(slot.card);
+  for (const doctrine of sc?.doctrines ?? []) seatedCards.add(doctrine);
   const rows = tallies.map((row) => ({
     card: row.card,
     name: cardName(row.card),
     reading: stampOfVoices(row.paid),
+    paid: row.paid,
+    seated: seatedCards.has(row.card),
   }));
-  return { rows, total: stampOfVoices(foldDeckLedger(tallies)) };
+  const totalPaid = foldDeckLedger(tallies);
+  return { rows, total: stampOfVoices(totalPaid), totalPaid };
 }
 
 // --- the sheet --------------------------------------------------------------
@@ -616,47 +720,115 @@ function svg<K extends keyof SVGElementTagNameMap>(
 }
 
 /**
+ * A figure in a ruled column, or the faint dash a nil is (the Ledger board).
+ * A share smaller than one whole unit prints "<1": a town's multiplied gain is
+ * shared out in fractions, and a "0" beside a share of nine percent would read
+ * as an error.
+ */
+function cell(tag: 'td' | 'th', value: number | null, className = ''): HTMLTableCellElement {
+  const node = element(tag, `ldg-num${className ? ` ${className}` : ''}`) as HTMLTableCellElement;
+  if (value === null || value === 0) node.append(element('span', 'ldg-nil', '–'));
+  // A fraction would print as "0" (or "−0" in the upkeep row) beside a share
+  // that is not nothing, so it prints as less than one, with its sign.
+  else if (value > 0 && value < 1) node.textContent = '<1';
+  else if (value < 0 && value > -1) node.textContent = '−<1';
+  else node.textContent = netFigure(value);
+  return node;
+}
+
+/** "Production", for a heading: the yield's name as the sentence starts it. */
+function voiceTitle(key: YieldKey): string {
+  const name = YIELD_NAME[key];
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+}
+
+/** A class's name with its small square of ink, as every row and key prints it. */
+function classLabel(cls: LedgerClass, text = LEDGER_CLASS_NAME[cls]): HTMLElement {
+  const label = element('span', cls === 'deck' ? 'ldg-class is-deck' : 'ldg-class');
+  const swatch = element('i', 'ldg-swatch');
+  swatch.setAttribute('aria-hidden', 'true');
+  paintLedgerInk(swatch, cls);
+  label.append(swatch, element('span', 'ldg-class-name', text));
+  if (cls === 'deck') paintLedgerInk(label, 'deck');
+  return label;
+}
+
+/** A yield's drawn mark, in the yield's own ink (`data-voice`, the stylesheet's six rules). */
+function voiceMark(key: YieldKey): HTMLElement {
+  const mark = element('span', 'ldg-voice-icon');
+  mark.dataset.voice = key;
+  mark.append(yieldMarkNode(key, true));
+  return mark;
+}
+
+/** A column head: the yield's mark and its name in the label's small caps. */
+function voiceHead(key: YieldKey, open: boolean): HTMLTableCellElement {
+  const head = element('th', open ? 'ldg-col is-open' : 'ldg-col') as HTMLTableCellElement;
+  head.scope = 'col';
+  head.dataset.voice = key;
+  const inner = element('span', 'ldg-col-head');
+  inner.append(voiceMark(key), element('span', 'ldg-col-name', YIELD_NAME[key].toLowerCase()));
+  head.append(inner);
+  return head;
+}
+
+/** A table with a hidden caption, so a screen reader is told what the columns are. */
+function table(caption: string, className: string): HTMLTableElement {
+  const node = element('table', `ldg-table ${className}`) as HTMLTableElement;
+  node.append(element('caption', 'ldg-sr', caption));
+  return node;
+}
+
+/**
  * One voice's stacked bar.
  *
  * **Positives only**, and the charges are named beside it rather than drawn into
  * it: gold is the one voice with negative lines (three of the four
  * `explainEmpireGold` lines are bills), and a stacked bar with a negative
  * segment in it is a bar that no longer means "this is the whole". So the bar is
- * what came in, the `−12` after it is what went out again, and the total on the
+ * what came in, the upkeep after it is what went out again, and the total on the
  * left is still the net figure the chip shows.
  */
 function drawBar(voice: LedgerVoice): HTMLElement {
   const bar = element('div', 'ldg-bar');
   let positive = 0;
   for (const cls of LEDGER_CLASSES) positive += Math.max(0, voice.byClass[cls]);
+  const parts: string[] = [];
   if (positive <= 0) {
     bar.append(element('span', 'ldg-bar-empty'));
-    return bar;
+  } else {
+    for (const cls of LEDGER_CLASSES) {
+      const value = voice.byClass[cls];
+      if (value <= 0) continue;
+      const slice = element('span', `ldg-slice is-${cls}`);
+      paintLedgerInk(slice, cls);
+      slice.style.flexGrow = String(value);
+      slice.title = `${LEDGER_CLASS_NAME[cls]} ${figure(value)}`;
+      parts.push(`${LEDGER_CLASS_NAME[cls]} ${figure(value)}`);
+      bar.append(slice);
+    }
   }
-  for (const cls of LEDGER_CLASSES) {
-    const value = voice.byClass[cls];
-    if (value <= 0) continue;
-    const slice = element('span', `ldg-slice is-${cls}`);
-    paintLedgerInk(slice, cls);
-    slice.style.flexGrow = String(value);
-    slice.title = `${LEDGER_CLASS_NAME[cls]} ${figure(value)}`;
-    bar.append(slice);
-  }
+  bar.setAttribute('role', 'img');
+  bar.setAttribute(
+    'aria-label',
+    `${YIELD_NAME[voice.key]} this turn: ${parts.length > 0 ? parts.join(', ') : 'nothing yet'}`,
+  );
   return bar;
 }
 
 /**
  * **The legend, once, at the foot of the sheet** — the eight inks with their
- * names, and one line saying what the curves shade.
+ * names, and one line saying what the curves shade, the tick and the bars.
  *
  * At the foot rather than under band 1 (where the key stood until 2026-09-15)
- * because there are two things being coloured now: the bars and the curves. Two
+ * because there are two things being coloured: the bars and the curves. Two
  * keys saying the same eight words would be the sheet telling a player twice
  * that grape is statecraft, and the ruling asks for a legend *once*.
  */
 function drawLegend(): HTMLElement {
   const foot = element('section', 'ldg-legend');
   const key = element('ul', 'ldg-key');
+  key.setAttribute('aria-label', 'The key to the eight inks');
   for (const cls of LEDGER_CLASSES) {
     const item = element('li', `ldg-key-item is-${cls}`);
     const swatch = element('span', 'ldg-swatch');
@@ -666,19 +838,47 @@ function drawLegend(): HTMLElement {
     key.append(item);
   }
   foot.append(key);
-  foot.append(element('p', 'hint', ledgerCurveLegend()));
+  foot.append(element('p', 'ldg-note', `${ledgerCurveLegend()} ${LEDGER_PLATE_NOTE}`));
   return foot;
 }
 
+/** What the legend adds about the tick and the bars, in the board's words. */
+export const LEDGER_PLATE_NOTE =
+  'The dashed tick is the turn an age opened. Each bar is the whole of what came in this turn, and upkeep is named beside it.';
+
 /**
- * One voice's sparkline: the total as a line, and under it the three classes an
- * empire *chose* — statecraft, its great people and its religion — shaded in
- * their own inks and stacked from the axis (the ruling of 2026-09-15).
- *
- * Each band is drawn as its own closed shape between the curve below it and its
- * own, rather than as three areas dropped to the axis on top of each other: the
- * inks are shaded, and three translucent fills laid over one another would mix
- * into two colours the palette does not contain.
+ * The three shaded bands of a curve, each between the curve under it and its
+ * own, drawn into `frame`. Each band is its own closed shape rather than three
+ * areas dropped to the axis on top of each other: the inks are shaded, and three
+ * translucent fills laid over one another would mix into colours the palette
+ * does not contain.
+ */
+function drawBands(
+  frame: SVGElement,
+  stackPoints: readonly [number, number][][],
+  floor: readonly [number, number][],
+): void {
+  LEDGER_CURVE_SERIES.forEach((cls, at) => {
+    const top = stackPoints[at]!;
+    const under = at === 0 ? floor : stackPoints[at - 1]!;
+    if (top.length === 0) return;
+    const shape = top.map(([x, y], step) => `${step === 0 ? 'M' : 'L'} ${x} ${y}`);
+    for (let step = under.length - 1; step >= 0; step -= 1) {
+      const [x, y] = under[step]!;
+      shape.push(`L ${x} ${y}`);
+    }
+    shape.push('Z');
+    const band = svg('path', { class: `ldg-spark-band is-${cls}`, d: shape.join(' ') });
+    paintLedgerInk(band, cls);
+    frame.append(band);
+  });
+}
+
+/**
+ * One voice's sparkline in the fold-out plate: the total as a line, and under
+ * it the three classes an empire *chose* — statecraft, its great people and its
+ * religion — shaded in their own inks and stacked from the axis (the ruling of
+ * 2026-09-15). A dashed tick where an age turned.
  */
 function drawSpark(samples: readonly LedgerSample[], key: YieldKey): SVGElement {
   const WIDTH = 240;
@@ -725,43 +925,157 @@ function drawSpark(samples: readonly LedgerSample[], key: YieldKey): SVGElement 
     );
   }
 
-  // The bands, from the axis up, each between the curve under it and its own.
-  LEDGER_CURVE_SERIES.forEach((cls, at) => {
-    const top = stackPoints[at]!;
-    const under = at === 0 ? floor : stackPoints[at - 1]!;
-    if (top.length === 0) return;
-    const shape = top.map(([x, y], step) => `${step === 0 ? 'M' : 'L'} ${x} ${y}`);
-    for (let step = under.length - 1; step >= 0; step -= 1) {
-      const [x, y] = under[step]!;
-      shape.push(`L ${x} ${y}`);
-    }
-    shape.push('Z');
-    const band = svg('path', { class: `ldg-spark-band is-${cls}`, d: shape.join(' ') });
-    paintLedgerInk(band, cls);
-    frame.append(band);
-  });
+  drawBands(frame, stackPoints, floor);
   if (totalPoints.length > 0) {
     const line = totalPoints.map(([x, y], at) => `${at === 0 ? 'M' : 'L'} ${x} ${y}`);
     frame.append(svg('path', { class: 'ldg-spark-line', d: line.join(' ') }));
   }
+  frame.append(svg('path', { class: 'ldg-spark-axis', d: `M0 ${HEIGHT}H${WIDTH}` }));
   return frame;
 }
 
-function voiceName(key: YieldKey): HTMLElement {
-  const name = element('span', 'ldg-voice');
-  const mark = element('span', 'ldg-voice-icon');
-  mark.append(yieldMarkNode(key, true));
-  name.append(mark, document.createTextNode(YIELD_NAME[key]));
-  return name;
+/**
+ * The open yield's curve, as a ruled plate on the right page (the Ledger
+ * board): the axis and its rules, the turns along the foot, the last eight
+ * turns shaded, a dashed tick where an age opened, the three chosen classes
+ * stacked under the total, and the total's last figure at the end of the line.
+ * The same points as the plate's sparkline (`sparkPoints`, `stackedSeries`),
+ * in a larger box.
+ */
+function drawCurvePlate(samples: readonly LedgerSample[], key: YieldKey): SVGElement {
+  const VIEW_W = 646;
+  const VIEW_H = 146;
+  const LEFT = 44;
+  const TOP = 10;
+  const WIDTH = 560;
+  const HEIGHT = 110;
+  const last = samples[samples.length - 1]!;
+  const first = samples[0]!;
+  const totals = samples.map((sample) => sample.totals[key] ?? 0);
+  let high = 1;
+  let low = 0;
+  for (const value of totals) {
+    if (value > high) high = value;
+    if (value < low) low = value;
+  }
+  const ticks = curveTicks(low, high);
+  const ceiling = Math.max(high, ticks[ticks.length - 1] ?? high);
+  low = Math.min(low, ticks[0] ?? low);
+  const frame = svg('svg', {
+    class: 'ldg-curve',
+    viewBox: `0 0 ${VIEW_W} ${VIEW_H}`,
+    role: 'img',
+    'aria-label': `${YIELD_NAME[key]} a turn from turn ${first.turn} to turn ${last.turn}, ending at ${netFigure(last.totals[key] ?? 0)}`,
+  });
+  const plot = svg('g', { transform: `translate(${LEFT} ${TOP})` });
+  frame.append(plot);
+  const xOf = (at: number): number =>
+    samples.length === 1 ? WIDTH : (WIDTH * at) / (samples.length - 1);
+  const yOf = (value: number): number => HEIGHT - (HEIGHT * (value - low)) / (ceiling - low || 1);
+
+  // The last eight turns, shaded in the yield's own tint.
+  if (samples.length > LEDGER_LAST_TURNS) {
+    const from = xOf(samples.length - LEDGER_LAST_TURNS);
+    plot.append(svg('rect', { class: 'ldg-curve-recent', x: String(from), y: '0', width: String(WIDTH - from), height: String(HEIGHT) }));
+  }
+  // The rules across, at the round figures.
+  const rules = ticks.filter((tick) => tick !== 0).map((tick) => `M0 ${yOf(tick)}H${WIDTH}`);
+  if (rules.length > 0) plot.append(svg('path', { class: 'ldg-curve-rule', d: rules.join('') }));
+  // A dashed tick where an age opened, named once.
+  let named = false;
+  for (let at = 1; at < samples.length; at += 1) {
+    if (samples[at]!.age === samples[at - 1]!.age) continue;
+    const x = xOf(at);
+    plot.append(svg('path', { class: 'ldg-curve-age', d: `M${x} 0V${HEIGHT}` }));
+    if (!named) {
+      const label = svg('text', { class: 'ldg-curve-label', x: String(x + 5), y: '11' });
+      label.textContent = `Æra ${eraNumeral(samples[at]!.age)} opens`;
+      plot.append(label);
+      named = true;
+    }
+  }
+  // The bands and the total, through the sparkline's own two functions.
+  const stacks = stackedSeries(samples, key);
+  const points = (values: readonly number[]): [number, number][] =>
+    sparkPoints(values, WIDTH, HEIGHT, low, ceiling);
+  drawBands(plot, stacks.map(points), points(samples.map(() => 0)));
+  const line = points(totals).map(([x, y], at) => `${at === 0 ? 'M' : 'L'} ${x} ${y}`);
+  plot.append(svg('path', { class: 'ldg-curve-line', d: line.join(' ') }));
+  // The money rules either side, and the axis.
+  plot.append(svg('path', { class: 'ldg-curve-money', d: `M0 0V${HEIGHT}M${WIDTH} 0V${HEIGHT}` }));
+  plot.append(svg('path', { class: 'ldg-curve-axis', d: `M0 ${yOf(0)}H${WIDTH}` }));
+  const endY = yOf(last.totals[key] ?? 0);
+  plot.append(svg('circle', { class: 'ldg-curve-end', cx: String(WIDTH), cy: String(endY), r: '3' }));
+  const end = svg('text', { class: 'ldg-curve-value', x: String(WIDTH + 8), y: String(endY + 5) });
+  end.textContent = netFigure(last.totals[key] ?? 0);
+  plot.append(end);
+  // The figures up the side and the turns along the foot.
+  for (const tick of ticks) {
+    const label = svg('text', { class: 'ldg-curve-label', x: '-8', y: String(yOf(tick) + 4), 'text-anchor': 'end' });
+    label.textContent = netFigure(tick);
+    plot.append(label);
+  }
+  for (const turn of turnTicks(first.turn, last.turn)) {
+    const at = samples.findIndex((sample) => sample.turn >= turn);
+    if (at < 0) continue;
+    const label = svg('text', { class: 'ldg-curve-label', x: String(xOf(at)), y: String(HEIGHT + 17), 'text-anchor': 'middle' });
+    label.textContent = String(turn);
+    plot.append(label);
+  }
+  const lastTurn = svg('text', { class: 'ldg-curve-label', x: String(WIDTH), y: String(HEIGHT + 17), 'text-anchor': 'end' });
+  lastTurn.textContent = `turn ${last.turn}`;
+  plot.append(lastTurn);
+  if (samples.length > LEDGER_LAST_TURNS) {
+    // The board sets "last eight" halfway down the plot, in the clear space
+    // between the line and the bands. When the bands climb that high, the
+    // label moves to the middle of whatever gap the window does have, so it
+    // never sits on a stroke.
+    const from = samples.length - LEDGER_LAST_TURNS;
+    const lineLow = Math.max(...points(totals).slice(from).map(([, y]) => y));
+    const top = stacks[stacks.length - 1];
+    const bandHigh = top ? Math.min(...points(top).slice(from).map(([, y]) => y)) : HEIGHT;
+    const y = bandHigh - lineLow >= 18 ? (lineLow + bandHigh) / 2 + 4 : 58;
+    const recent = svg('text', { class: 'ldg-curve-label ldg-curve-recent-label', x: String(xOf(from) + 6), y: String(y) });
+    recent.textContent = 'last eight';
+    plot.append(recent);
+  }
+  return frame;
+}
+
+/** A small-caps page foot: "turn 91". */
+function pageFoot(turn: number, side: 'left' | 'right'): HTMLElement {
+  const foot = element('p', `ldg-page-foot is-${side}`, 'turn ');
+  foot.append(element('span', 'ldg-figure', figure(turn)));
+  return foot;
+}
+
+/** The yield's own tint, through one custom property the stylesheet resolves. */
+function paintVoice(node: HTMLElement, key: YieldKey): void {
+  node.dataset.voice = key;
 }
 
 export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
   const { overlay, body, closeButton } = options;
-  /** Which voice the chip that opened the sheet named. A fact about a click. */
+  /**
+   * Which voice the right page shows. The chip that opened the sheet names it,
+   * and the tabs at the page's edge and the plate's rows change it. A fact
+   * about this conversation, forgotten on the way out.
+   */
   let focus: YieldKey | null = null;
+  /** The voice the right page is open at: the chosen one, or the first. */
+  function openVoice(): YieldKey {
+    return focus ?? VOICES[0]!;
+  }
+
+  /** Changes the open voice, and gives the keyboard back to the control that did it. */
+  function choose(key: YieldKey, keep: string): void {
+    focus = key;
+    draw();
+    overlay.querySelector<HTMLElement>(`[data-keep="${keep}"]`)?.focus({ preventScroll: true });
+  }
 
   /**
-   * The aggregate at the head of band 1 — the same figure, from the same
+   * The aggregate at the head of the left page — the same figure, from the same
    * function, that Confirm counts up one screen over (`foldDeck`).
    *
    * Landed rather than played: this sheet is a place a player comes to *read*,
@@ -773,7 +1087,7 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     // is one class's figure, and it is the one the sheet is most often opened
     // for. The stamp beside it stays plain ink — it is a *figure*, and the
     // stamp's own printer decides how a figure looks everywhere it lands.
-    const label = element('span', 'ldg-deck-label', DECK_LABEL);
+    const label = element('span', 'ldg-deck-label', 'Your cards');
     paintLedgerInk(label, 'deck');
     line.append(label);
     const reading = foldDeck(state, playerId);
@@ -789,119 +1103,362 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     return line;
   }
 
+  /**
+   * The left page's first table: each source a row, each yield a column, the
+   * open yield's column tinted, upkeep on a row of its own in red, and this
+   * turn's totals under the double rule. Every figure is `explainLedger`'s
+   * (the classes of the fold the top bar's chips are), and the total is each
+   * voice's own `total`, never a sum taken here.
+   */
   function drawThisTurn(): HTMLElement {
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    const open = openVoice();
     const band = element('section', 'ldg-band');
-    band.append(element('p', 'eyebrow', 'this turn, and who made it'));
-    band.append(drawDeckLine(options.getState(), options.getPlayerId()));
-    const rows = element('ul', 'ldg-rows');
-    const reading = explainLedger(options.getState(), options.getPlayerId());
-    for (const voice of reading) {
-      const row = element('li', voice.key === focus ? 'ldg-row is-focused' : 'ldg-row');
-      const head = element('div', 'ldg-row-head');
-      head.append(voiceName(voice.key));
-      head.append(element('span', 'ldg-total', netFigure(voice.total)));
-      row.append(head);
-      row.append(drawBar(voice));
-      let out = 0;
-      for (const cls of LEDGER_CLASSES) out += Math.min(0, voice.byClass[cls]);
-      const caption = element('p', 'ldg-caption', ledgerCaption(voice));
-      if (out < 0) {
-        const spent = element('span', 'ldg-out', `− ${figure(-out)} out again`);
-        spent.title = 'Maintenance and upkeep, charged against the empire';
-        caption.append(document.createTextNode(' · '), spent);
+    band.append(element('h3', 'ldg-heading', 'This turn, and who made it'));
+    band.append(drawDeckLine(state, playerId));
+    const reading = explainLedger(state, playerId);
+    const grid = table('This turn: each source, and what it made of each yield', 'ldg-sources');
+    const head = element('thead');
+    const headRow = element('tr');
+    const corner = element('th', 'ldg-col is-first', 'who made it') as HTMLTableCellElement;
+    corner.scope = 'col';
+    headRow.append(corner);
+    for (const voice of reading) headRow.append(voiceHead(voice.key, voice.key === open));
+    head.append(headRow);
+    const rows = element('tbody');
+    for (const cls of LEDGER_CLASSES) {
+      const row = element('tr');
+      const name = element('th', 'ldg-row-name') as HTMLTableCellElement;
+      name.scope = 'row';
+      name.append(classLabel(cls));
+      row.append(name);
+      for (const voice of reading) {
+        const value = Math.max(0, voice.byClass[cls]);
+        const node = cell('td', value, voice.key === open ? 'is-open' : '');
+        if (value > 0) node.title = `${LEDGER_CLASS_NAME[cls]}: ${figure(value)} ${YIELD_NAME[voice.key]}`;
+        row.append(node);
       }
-      row.append(caption);
       rows.append(row);
     }
-    band.append(rows);
+    // Upkeep: what went out again, named beside the whole rather than inside it.
+    const outs = reading.map((voice) => {
+      let out = 0;
+      for (const cls of LEDGER_CLASSES) out += Math.min(0, voice.byClass[cls]);
+      return out;
+    });
+    if (outs.some((out) => out < 0)) {
+      const row = element('tr', 'is-out');
+      const name = element('th', 'ldg-row-name') as HTMLTableCellElement;
+      name.scope = 'row';
+      const label = element('span', 'ldg-class is-out');
+      label.append(element('i', 'ldg-swatch is-blank'), element('span', 'ldg-class-name', 'out again'));
+      name.append(label, document.createTextNode(' '), element('span', 'ldg-aside', 'upkeep'));
+      row.append(name);
+      reading.forEach((voice, at) => {
+        const node = element('td', voice.key === open ? 'ldg-num is-open' : 'ldg-num') as HTMLTableCellElement;
+        if (outs[at]! < 0) {
+          node.append(element('span', 'ldg-debit', signedFigure(outs[at]!)));
+          node.title = 'Maintenance and upkeep, charged against the empire';
+        }
+        row.append(node);
+      });
+      rows.append(row);
+    }
+    const foot = element('tfoot');
+    const totalRow = element('tr');
+    const label = element('th', 'ldg-total-name', 'This turn') as HTMLTableCellElement;
+    label.scope = 'row';
+    totalRow.append(label);
+    for (const voice of reading) totalRow.append(cell('td', voice.total, voice.key === open ? 'is-open is-total' : 'is-total'));
+    foot.append(totalRow);
+    grid.append(head, rows, foot);
+    band.append(grid);
     return band;
   }
 
-  function drawCurve(): HTMLElement {
+  /**
+   * The right page's head and its first table: the open yield by source, a turn
+   * and as a share of what came in, and the caption in the sheet's own words.
+   */
+  function drawOpenVoice(): HTMLElement {
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    const key = openVoice();
+    const voice = explainLedger(state, playerId).find((one) => one.key === key)!;
     const band = element('section', 'ldg-band');
-    band.append(element('p', 'eyebrow', 'the curve, turn by turn'));
+    const title = element('h3', 'ldg-open-title');
+    title.append(voiceMark(key), document.createTextNode(`${voiceTitle(key)}, this turn`));
+    band.append(title);
+    let positive = 0;
+    let out = 0;
+    for (const cls of LEDGER_CLASSES) {
+      positive += Math.max(0, voice.byClass[cls]);
+      out += Math.min(0, voice.byClass[cls]);
+    }
+    const grid = table(`${YIELD_NAME[key]} this turn, by source, with each source's share`, 'ldg-share');
+    const head = element('thead');
+    const headRow = element('tr');
+    for (const [text, cls] of [['who made it', 'is-first'], ['a turn', ''], ['share', 'is-share']] as const) {
+      const th = element('th', `ldg-col ${cls}`, text) as HTMLTableCellElement;
+      th.scope = 'col';
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const rows = element('tbody');
+    for (const cls of LEDGER_CLASSES) {
+      const row = element('tr');
+      const name = element('th', 'ldg-row-name') as HTMLTableCellElement;
+      name.scope = 'row';
+      name.append(classLabel(cls));
+      row.append(name, cell('td', Math.max(0, voice.byClass[cls])));
+      row.append(element('td', 'ldg-num is-share', `${sharePercent(voice.byClass[cls], positive)}%`));
+      rows.append(row);
+    }
+    if (out < 0) {
+      const row = element('tr', 'is-out');
+      const name = element('th', 'ldg-row-name') as HTMLTableCellElement;
+      name.scope = 'row';
+      const label = element('span', 'ldg-class is-out');
+      label.append(element('i', 'ldg-swatch is-blank'), element('span', 'ldg-class-name', 'out again'));
+      name.append(label, document.createTextNode(' '), element('span', 'ldg-aside', 'upkeep'));
+      const debit = element('td', 'ldg-num');
+      debit.append(element('span', 'ldg-debit', signedFigure(out)));
+      row.append(name, debit, element('td', 'ldg-num is-share'));
+      rows.append(row);
+    }
+    const foot = element('tfoot');
+    const totalRow = element('tr');
+    const label = element('th', 'ldg-total-name', 'This turn') as HTMLTableCellElement;
+    label.scope = 'row';
+    totalRow.append(label, cell('td', voice.total, 'is-total'), element('td', 'ldg-num'));
+    foot.append(totalRow);
+    grid.append(head, rows, foot);
+    band.append(grid);
+    const caption = ledgerCaption(voice);
+    band.append(element('p', 'ldg-caption', `${caption.charAt(0).toUpperCase()}${caption.slice(1)}.`));
+    return band;
+  }
+
+  /**
+   * The open yield's curve and its last eight turns, from the session's ring.
+   * Before the first turn ends there is nothing to draw, and the page says so.
+   */
+  function drawCurve(): HTMLElement {
+    const key = openVoice();
+    const band = element('section', 'ldg-band');
+    band.append(element('h3', 'ldg-heading', 'The curve, turn by turn'));
     const samples = options.history();
     if (samples.length === 0) {
-      band.append(element('p', 'hint', LEDGER_CURVE_EMPTY));
-      band.append(element('p', 'hint', LEDGER_CURVE_FOOTNOTE));
+      band.append(element('p', 'ldg-note', LEDGER_CURVE_EMPTY));
+      band.append(element('p', 'ldg-note', LEDGER_CURVE_FOOTNOTE));
       return band;
     }
-    const grid = element('ul', 'ldg-sparks');
-    for (const key of VOICES) {
-      const item = element('li', key === focus ? 'ldg-spark-row is-focused' : 'ldg-spark-row');
-      const head = element('div', 'ldg-row-head');
-      head.append(voiceName(key));
-      const last = samples[samples.length - 1]!;
-      head.append(element('span', 'ldg-total', netFigure(last.totals[key] ?? 0)));
-      item.append(head);
-      item.append(drawSpark(samples, key));
-      item.append(
-        element(
-          'p',
-          'ldg-caption',
-          `${figure(samples.length)} ${samples.length === 1 ? 'turn' : 'turns'} · to turn ${figure(last.turn)}`,
-        ),
-      );
-      grid.append(item);
+    const figure_ = element('figure', 'ldg-curve-figure');
+    figure_.append(drawCurvePlate(samples, key));
+    const legend = element('figcaption', 'ldg-curve-key');
+    for (const cls of LEDGER_CURVE_SERIES) {
+      const none = samples.every((sample) => (sample[cls]?.[key] ?? 0) <= 0);
+      legend.append(classLabel(cls, none ? `${LEDGER_CLASS_NAME[cls]}, none yet` : LEDGER_CLASS_NAME[cls]));
     }
+    const last = samples[samples.length - 1]!;
+    legend.append(
+      element(
+        'span',
+        'ldg-curve-span',
+        `${figure(samples.length)} ${samples.length === 1 ? 'turn' : 'turns'}, to turn ${figure(last.turn)}`,
+      ),
+    );
+    figure_.append(legend);
+    band.append(figure_);
+
+    band.append(element('h3', 'ldg-heading', 'The last eight turns'));
+    const grid = table(
+      `${YIELD_NAME[key]} over the last eight turns, with the three sources that you chose`,
+      'ldg-last',
+    );
+    const head = element('thead');
+    const headRow = element('tr');
+    const turn = element('th', 'ldg-col is-first', 'turn') as HTMLTableCellElement;
+    turn.scope = 'col';
+    headRow.append(turn);
+    for (const cls of LEDGER_CURVE_SERIES) {
+      const th = element('th', 'ldg-col') as HTMLTableCellElement;
+      th.scope = 'col';
+      th.append(classLabel(cls));
+      headRow.append(th);
+    }
+    for (const text of ['the rest', YIELD_NAME[key].toLowerCase()]) {
+      const th = element('th', 'ldg-col', text) as HTMLTableCellElement;
+      th.scope = 'col';
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const rows = element('tbody');
+    const lines = lastTurnsRows(samples, key);
+    lines.forEach((line, at) => {
+      const row = element('tr', at === lines.length - 1 ? 'is-latest' : '');
+      const label = element('th', 'ldg-row-name ldg-figure', figure(line.turn)) as HTMLTableCellElement;
+      label.scope = 'row';
+      row.append(label, cell('td', line.deck), cell('td', line.people), cell('td', line.religion));
+      row.append(cell('td', line.rest), cell('td', line.total, 'is-total'));
+      rows.append(row);
+    });
+    grid.append(head, rows);
     band.append(grid);
-    band.append(element('p', 'hint', LEDGER_CURVE_FOOTNOTE));
+    band.append(element('p', 'ldg-note', LEDGER_CURVE_FOOTNOTE));
     return band;
   }
 
   /**
-   * A label in statecraft's ink and a stamp beside it, on one baseline — the
-   * shape of band 1's head (`drawDeckLine`), used for every row of band 3 and
-   * for its fold, so a card's lifetime figure and the deck's lifetime figure
-   * read as the same kind of sentence the turn's figure does.
-   */
-  function drawStampLine(label: string, reading: StampReading): HTMLElement {
-    const line = element('p', 'ldg-deck');
-    const name = element('span', 'ldg-deck-label', label);
-    paintLedgerInk(name, 'deck');
-    line.append(name);
-    if (stampFigures(reading).length === 0) {
-      line.append(element('span', 'ldg-deck-none', 'nothing yet'));
-    } else {
-      const stamp = cardStampNode();
-      landCardStamp(stamp, reading);
-      line.append(stamp);
-    }
-    line.title = `${label}: ${stampFigures(reading).length === 0 ? 'nothing yet' : stampText(stampFigures(reading))}`;
-    return line;
-  }
-
-  /**
-   * Band 3: the lifetime tally, one line a card, and the fold of them under a
-   * rule. Rows in the state's own order — the order the cards first paid —
-   * because that is history and a reader can watch a new card join at the foot.
+   * What the deck has produced: the lifetime tally, one row a card in the
+   * state's own order (the order the cards first paid, which is history), its
+   * six voices in the ruled columns, and the simulation's fold of them under
+   * the double rule (`foldDeckLedger`, through `deckTallyRows`; rule 5).
    */
   function drawProduced(): HTMLElement {
-    const { rows, total } = deckTallyRows(options.getState(), options.getPlayerId());
+    const { rows, total, totalPaid } = deckTallyRows(options.getState(), options.getPlayerId());
+    const open = openVoice();
     const band = element('section', rows.length === 0 ? 'ldg-band is-empty' : 'ldg-band');
-    band.append(element('p', 'eyebrow', LEDGER_BAND3_EYEBROW));
+    band.append(element('h3', 'ldg-heading', LEDGER_BAND3_TITLE));
     if (rows.length === 0) {
-      band.append(element('p', 'hint', LEDGER_BAND3_EMPTY));
+      band.append(element('p', 'ldg-note', LEDGER_BAND3_EMPTY));
       return band;
     }
-    const list = element('ul', 'ldg-rows ldg-tally');
+    const grid = table('What the deck has produced: each card, and what it has paid of each yield', 'ldg-produced');
+    const head = element('thead');
+    const headRow = element('tr');
+    const corner = element('th', 'ldg-col is-first', 'card') as HTMLTableCellElement;
+    corner.scope = 'col';
+    headRow.append(corner);
+    for (const key of VOICES) headRow.append(voiceHead(key, key === open));
+    head.append(headRow);
+    const list = element('tbody');
     for (const row of rows) {
-      const item = element('li', 'ldg-tally-row');
-      item.dataset.card = row.card;
-      item.append(drawStampLine(row.name, row.reading));
-      list.append(item);
+      const line = element('tr', 'ldg-tally-row');
+      line.dataset.card = row.card;
+      const name = element('th', 'ldg-row-name') as HTMLTableCellElement;
+      name.scope = 'row';
+      name.append(element('span', 'ldg-card-name', row.name));
+      if (!row.seated) name.append(document.createTextNode(' '), element('span', 'ldg-aside', 'out of its chair'));
+      name.title = `${row.name}: ${stampFigures(row.reading).length === 0 ? 'nothing yet' : stampText(stampFigures(row.reading))}`;
+      line.append(name);
+      for (const key of VOICES) line.append(cell('td', row.paid[key] ?? 0, key === open ? 'is-open' : ''));
+      list.append(line);
     }
-    band.append(list);
-    const foot = element('div', 'ldg-legend');
-    foot.append(drawStampLine(DECK_TALLY_LABEL, total));
-    band.append(foot);
-    band.append(element('p', 'hint', LEDGER_BAND3_FOOTNOTE));
+    const foot = element('tfoot');
+    const totalRow = element('tr');
+    const label = element('th', 'ldg-total-name is-deck', DECK_TALLY_LABEL_TITLE) as HTMLTableCellElement;
+    label.scope = 'row';
+    paintLedgerInk(label, 'deck');
+    label.title = `${DECK_TALLY_LABEL}: ${stampFigures(total).length === 0 ? 'nothing yet' : stampText(stampFigures(total))}`;
+    totalRow.append(label);
+    for (const key of VOICES) totalRow.append(cell('td', totalPaid[key] ?? 0, key === open ? 'is-open is-total' : 'is-total'));
+    foot.append(totalRow);
+    grid.append(head, list, foot);
+    band.append(grid);
+    band.append(element('p', 'ldg-note', LEDGER_BAND3_FOOTNOTE));
     return band;
+  }
+
+  /**
+   * The fold-out plate at the foot: one row a yield, with its total, this
+   * turn's bar by source, the session's curve, and what went out again. The
+   * open yield's row is tinted, and a row's name opens it on the right page.
+   */
+  function drawPlate(): HTMLElement {
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    const open = openVoice();
+    const samples = options.history();
+    const plate = element('section', 'ldg-plate');
+    const head = element('div', 'ldg-plate-row is-head');
+    head.append(element('h3', 'ldg-heading ldg-plate-title', 'The graphs'));
+    head.append(element('span', 'ldg-col', 'this turn, by source'));
+    const last = samples[samples.length - 1];
+    head.append(
+      element(
+        'span',
+        'ldg-col',
+        last === undefined
+          ? 'the curve'
+          : `the curve, ${figure(samples.length)} ${samples.length === 1 ? 'turn' : 'turns'} to turn ${figure(last.turn)}`,
+      ),
+    );
+    head.append(element('span', 'ldg-col', 'out again'));
+    plate.append(head);
+    const list = element('ul', 'ldg-sparks');
+    for (const voice of explainLedger(state, playerId)) {
+      const row = element('li', voice.key === open ? 'ldg-plate-row is-open' : 'ldg-plate-row');
+      paintVoice(row, voice.key);
+      const name = element('button', 'ldg-plate-name');
+      name.type = 'button';
+      name.dataset.keep = `plate-${voice.key}`;
+      name.setAttribute('aria-pressed', String(voice.key === open));
+      name.append(voiceMark(voice.key), document.createTextNode(voiceTitle(voice.key)));
+      name.addEventListener('click', () => choose(voice.key, `plate-${voice.key}`));
+      row.append(name);
+      row.append(element('span', 'ldg-plate-total ldg-figure', netFigure(voice.total)));
+      row.append(drawBar(voice));
+      if (samples.length === 0) row.append(element('span', 'ldg-note', LEDGER_CURVE_EMPTY));
+      else row.append(drawSpark(samples, voice.key));
+      let out = 0;
+      for (const cls of LEDGER_CLASSES) out += Math.min(0, voice.byClass[cls]);
+      const spent = element('span', 'ldg-plate-out');
+      if (out < 0) {
+        spent.append(element('span', 'ldg-debit', out > -1 ? '−<1' : signedFigure(out)), document.createTextNode(' upkeep'));
+        spent.title = 'Maintenance and upkeep, charged against the empire';
+      } else spent.append(element('span', 'ldg-nil', '–'));
+      row.append(spent);
+      list.append(row);
+    }
+    plate.append(list);
+    return plate;
+  }
+
+  /** The tabs at the right page's edge: one a yield, the open one pulled out. */
+  function drawTabs(): HTMLElement {
+    const open = openVoice();
+    const tabs = element('div', 'ldg-tabs');
+    tabs.setAttribute('role', 'group');
+    tabs.setAttribute('aria-label', 'Open one yield');
+    for (const key of VOICES) {
+      const tab = element('button', key === open ? 'ldg-tab is-open' : 'ldg-tab');
+      tab.type = 'button';
+      tab.dataset.keep = `tab-${key}`;
+      paintVoice(tab, key);
+      tab.setAttribute('aria-label', YIELD_NAME[key]);
+      tab.setAttribute('aria-pressed', String(key === open));
+      tab.title = YIELD_NAME[key];
+      tab.append(yieldMarkNode(key, true));
+      tab.addEventListener('click', () => choose(key, `tab-${key}`));
+      tabs.append(tab);
+    }
+    return tabs;
   }
 
   function draw(): void {
-    body.replaceChildren();
-    body.append(drawThisTurn(), drawCurve(), drawProduced(), drawLegend());
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    paintVoice(body, openVoice());
+    const book = element('div', 'ldg-book');
+    const left = element('div', 'ldg-page is-left');
+    const titles = element('div', 'ldg-titles');
+    const title = element('h2', 'statecraft-title ldg-title', 'The ');
+    title.append(element('em', '', 'Ledger'));
+    titles.append(title, element('span', 'ldg-subtitle', `${seatName(state, playerId)} · turn ${figure(state.turn)}`));
+    left.append(titles, drawThisTurn(), drawProduced(), pageFoot(state.turn, 'left'));
+    const right = element('div', 'ldg-page is-right');
+    right.append(drawOpenVoice(), drawCurve(), pageFoot(state.turn, 'right'));
+    book.append(left, right);
+    // The × goes first in the part that scrolls, at the top right of the book
+    // (the board sets it in the right page's heading row). It scrolls away
+    // with the page because a fixed × covered the figures of the last eight
+    // turns as they passed under it. Escape, a press on the ground and the
+    // tabs, which stay in view, still close or change the sheet.
+    body.replaceChildren(closeButton, book, drawPlate(), drawLegend());
+    overlay.querySelector('.ldg-tabs')?.remove();
+    body.parentElement?.append(drawTabs());
   }
 
   /**
@@ -909,11 +1466,11 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
    * ×, Escape and a press on the ground all arrive at one `close`, and the
    * disposer is the game's.
    *
-   * The one thing this sheet keeps for itself is the **voice the chip that
-   * opened it named**: a fact about a click, written down before the shell shows
-   * the sheet and forgotten on the way out. Because the shell repaints a sheet
-   * that is already up, pressing a second chip while the Ledger stands picks out
-   * that voice instead of doing nothing.
+   * The one thing this sheet keeps for itself is the **voice the right page is
+   * open at**: the chip that opened it names it, written down before the shell
+   * shows the sheet and forgotten on the way out. Because the shell repaints a
+   * sheet that is already up, pressing a second chip while the Ledger stands
+   * opens that voice instead of doing nothing.
    *
    * There is no trigger: this sheet is reached from any of six yield chips
    * rather than from one control, so there is no `aria-expanded` to mirror and
@@ -927,6 +1484,9 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     onOpen: () => options.onOpen?.(),
     onClose: () => {
       focus = null;
+    },
+    onDispose: () => {
+      overlay.querySelector('.ldg-tabs')?.remove();
     },
   });
 
