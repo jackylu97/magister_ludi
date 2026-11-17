@@ -612,3 +612,13 @@ compact when there are lots of luxuries and options available."*
   The problems: it is hard to scroll and see all the cards, and the chairs on
   the left get cramped with a large government. Nothing is built until the user
   picks one.
+
+- **Diplomacy: design first, by Fable (2026-11-17).** The user: *"let's have
+  fable do the diplomacy screen too, i want it to have similar design elements
+  as the rest of the game (it's designed differently and sticks out currently),
+  and I want a couple ideas in terms of layout"*. So SS6 is not built from the
+  earlier board yet. A designer draws two or three layouts that share the
+  design elements of the other screens (the Ledger, the Reliquary, the corner
+  panel) and meet the requirements above: the deals in view with no scrolling,
+  and a compact screen with many luxuries and options. The user picks one, then
+  it is built.
