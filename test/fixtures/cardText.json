@@ -7771,8 +7771,8 @@
     "text": "opens Surveying for you to research"
    },
    {
-    "raw": "[[tech:surveying|Surveying]] lets you build the [[building:aqueduct|Aqueduct]] before [[tech:engineering|Engineering]]: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
-    "text": "Surveying lets you build the Aqueduct before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water"
+    "raw": "[[tech:surveying|Surveying]] lets you build the [[building:aqueduct|Aqueduct]] before [[tech:engineering|Engineering]]",
+    "text": "Surveying lets you build the Aqueduct before Engineering"
    },
    {
     "raw": "[[tech:surveying|Surveying]] lets your workers build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",

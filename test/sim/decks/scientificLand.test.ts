@@ -596,7 +596,9 @@ describe('the words', () => {
     expect(said('theSurveyorsCharter')).toEqual([
       'Charter',
       'opens Surveying for you to research',
-      expect.stringMatching(/^Surveying lets you build the Aqueduct before Engineering: /),
+      // An ordinary building opened early is named and not described: its
+      // keyword link and its Compendium page say what it does.
+      'Surveying lets you build the Aqueduct before Engineering',
       'Surveying lets your workers build the Qanat: on flat land; your farms beside it count as having fresh water',
     ]);
     // Batch DS6: the Niter Beds clause went, and the Grenadier is one scaled line.

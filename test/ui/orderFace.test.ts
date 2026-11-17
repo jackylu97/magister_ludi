@@ -77,10 +77,10 @@ const LIVE_CARDS: readonly OrderFaceCardId[] = [
 /**
  * **The live cards whose effect is longer than the card**, even at 11 px
  * beside the short picture, by the estimate. The flair gallery measures them
- * on the page ("Every live card, measured"). The Surveyors' Charter does not
- * fit there either: it opens a technology, a building before its time and a
- * work, and it prints what each one does. Songs of the Fallen fits when
- * measured, because the estimate errs on the long side. A card joining this
+ * on the page ("Every live card, measured"). Both fit when measured (The
+ * Surveyors' Charter at 12 px and Songs of the Fallen at 11.5 px, each beside
+ * the short picture), because the estimate errs on the long side. So every
+ * live card fits the face on the page. A card joining this
  * list needs a decision (shorter words, or a different face for long cards),
  * not a smaller font.
  *

@@ -1276,7 +1276,8 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
  *     own words (`describeBuildingRow`, as a card's `unlocksBuilding` clause
  *     prints it), batch S4;
  *   - each building and unit the technology opens before the tree does (its
- *     `unlocksBuilding` and `unlocksUnit` effects), batches S5 and DV2;
+ *     `unlocksBuilding` and `unlocksUnit` effects), batches S5 and DV2. An
+ *     ordinary building opened early is named and not described;
  *   - each worker row whose `requiresTech` is the technology (the Physic
  *     Garden), batch S4;
  *   - the technology's own card effects (Herbals' happiness, Printing's trade
@@ -1305,12 +1306,24 @@ function charterTechClauses(tech: TechId): CardClause[] {
   // **A building the tree opens later, opened early** (Scientific batch S5,
   // Surveying's Aqueduct; the triage's reading 29): an `unlocksBuilding`
   // effect on the technology, said with the node that opens it for everyone.
+  //
+  // **An ordinary building opened early is named and not described** (the
+  // user's ruling of 2026-11-17, at the end of
+  // `docs/plans/ui-critique-2026-10-16.md`: "drop the aqueduct description").
+  // The building is in the tree for every empire, its name is a keyword link,
+  // and its Compendium page prints what it does. What the card adds is only
+  // the earlier date. A building that no ordinary technology opens exists
+  // only through the charter, so it still prints its facts (the playthrough
+  // note of 2026-09-05). A retired building has no page to link to, so it
+  // prints its facts too.
   const early: BuildingId[] = [];
   for (const effect of def.effects ?? []) {
     if (effect.kind !== 'unlocksBuilding') continue;
     early.push(effect.building);
-    const does = liveWords(describeBuildingRow(effect.building));
     const gate = BUILDING_UNLOCK_TECH.get(effect.building);
+    const ordinary =
+      gate !== undefined && !isCharterTech(gate) && buildingDef(effect.building).retired !== true;
+    const does = ordinary ? '' : liveWords(describeBuildingRow(effect.building));
     const before = gate === undefined ? '' : ` before ${ref('tech', gate, techDef(gate).name)}`;
     clauses.push({
       text: `${name} lets you build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
