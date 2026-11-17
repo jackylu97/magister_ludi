@@ -1305,9 +1305,9 @@
     },
     "borders": {
       "level": true,
-      "holeMax": 8,
+      "holeMax": 0,
       "fillNeighbours": 4,
-      "fillPasses": 2,
+      "fillPasses": 0,
       "tintWidth": 0.34,
       "tintAlpha": 0.42,
       "tintLift": 0.012,

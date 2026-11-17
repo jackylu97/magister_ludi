@@ -699,16 +699,25 @@ export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, st
   const result: GroundPlan = new Map();
   if (!kept) return result;
   const ruled = style.kind === 'ruled' || style.kind === 'wash';
+  // With `level`, a gap line round a hill is laid on the ground like the glow,
+  // not drawn as a flat strip. A flat strip stands at the highest ground along
+  // its edge, and each corner rises to the next edge's height. Where a hill's
+  // ground climbs along an edge, the whole ring then stood at the hill's height,
+  // above the ground at the low end of each edge, and read as a second border
+  // lifted off the hex (the user, 2026-11-16). The line is only `gapWidth` wide
+  // and lies on the hex's own edge, so on the ground it cannot smear.
+  const draped = (e: Edge): boolean => !ruled && prepared.tiles[e.cell]!.hills === true;
   const band = (set: EdgeSet, inside: readonly (number | undefined)[], from: number, to: number, alpha: number, flat: boolean): void => {
     for (const edge of set.edges) {
       const previous = set.incoming.get(edge.ka) ?? edge, next = set.outgoing.get(edge.kb) ?? edge;
       const polygon: Point[] = [rail(edge.a, previous.normal, edge.normal, from), rail(edge.b, edge.normal, next.normal, from),
         rail(edge.b, edge.normal, next.normal, to), rail(edge.a, previous.normal, edge.normal, to)];
-      if (flat && (ruled || style.level)) {
+      if (flat && (ruled || style.level) && !draped(edge)) {
         // A ruled gap line, straight and level like the border it belongs to. With `level` it runs at the ground's own height along the edge, so it does not smear down the side of a hill.
         const height = (e: Edge): number => ruled ? borderHeight(prepared, e.cell) : edgeHeight(prepared, e.cell, e.a, e.b, e.normal);
         const own = height(edge);
-        const ha = Math.max(own, height(previous)), hb = Math.max(own, height(next));
+        // A draped neighbour lies on its own ground, so it does not raise this strip's end.
+        const ha = draped(previous) ? own : Math.max(own, height(previous)), hb = draped(next) ? own : Math.max(own, height(next));
         const mark = marking(polygon, playerColor(state, edge.owner), ruled ? style.ruledLift ?? .02 : .013) as Mark;
         mark.deck = 0; mark.heights = [ha, hb, hb, ha];
         mark.fade = { a: edge.a, normal: edge.normal, from, to: from + 1e3, alpha };
