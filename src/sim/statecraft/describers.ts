@@ -129,6 +129,7 @@ import { type ModelClass, type UnitTypeId, isUnitTypeId, unitDef, unitLine } fro
 import { RANK_IDS, type RankId, rankName } from '../ranks';
 import { SLOT_WORDS } from './council';
 import { anyCardDef } from './evaluator';
+import type { CardIdleReason } from './evaluator';
 import { CITY_SCOPED_COUNTS, PERIODIC_FLOOR, PERIODIC_PROBE, VOICES, oneOfAKind } from './evaluator';
 
 const METER = STATECRAFT.meter;
@@ -8032,6 +8033,88 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   knowsUniqueTech:
     'while you know a technology no other empire knows (charter technologies do not count)',
 };
+
+/**
+ * **Each empire condition said as the fact that keeps it shut** (batch SS10,
+ * part 2): the reason line under a card that pays nothing now. The words of
+ * `CONDITION_WORDS` turned round, with no figure in them, because the card's
+ * own sentence already prints the figure.
+ */
+const UNMET_CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
+  cityCountAtMost: 'you hold too many cities',
+  cityCountAtLeast: 'you hold too few cities',
+  authorityNegative: 'your authority is not negative',
+  authorityPositive: 'you have no spare authority',
+  happinessNegative: 'your happiness is not negative',
+  atWar: 'you are at peace',
+  atPeace: 'you are at war',
+  keepingRite: 'no city of yours is keeping a rite',
+  atWarWithOpusBuilder: 'you are not at war with an empire raising the Magnum Opus',
+  rivalHoldsMoreTowns: 'no empire you have met holds more towns than you',
+  noMetEmpireAhead: 'an empire you have met knows more technologies than you',
+  knowsUniqueTech: 'another empire knows every technology you know',
+};
+
+/** The words for a route's crossing, before "trade routes". */
+const ROUTE_CROSSING_WORDS: Record<'domestic' | 'international', string> = {
+  domestic: 'domestic',
+  international: 'foreign',
+};
+
+/** The verb for the end of a route a scope names: "starts at", "ends at", "touches". */
+const ROUTE_END_WORDS: Record<'origin' | 'destination' | 'eitherEnd', string> = {
+  origin: 'starts at',
+  destination: 'ends at',
+  eitherEnd: 'touches',
+};
+
+/**
+ * One town of a scope's kind, for a reason line: `eachWords`, with a
+ * qualifier that starts "while it is" said as "that is", because "no city
+ * while it is building a wonder" does not read.
+ */
+function idleTownWords(scope: CityScope): string {
+  return eachWords(scope).replace(/ while it is /, ' that is ');
+}
+
+/**
+ * **Why a card pays nothing now, in words** (batch SS10, part 2): the reason
+ * line the orders screen prints under "+0 now". `reason` is the evaluator's
+ * `cardIdleReason`. Null when there is no reason, and null when the words
+ * would carry a figure: the reason line is prose, and prose prints no numbers.
+ */
+export function idleReasonWords(reason: CardIdleReason | null): string | null {
+  if (reason === null) return null;
+  let words: string;
+  switch (reason.kind) {
+    case 'condition':
+      words = UNMET_CONDITION_WORDS[reason.when.test];
+      break;
+    case 'noTown': {
+      const town = idleTownWords(reason.scope);
+      words = town.startsWith('your ') ? `you do not hold ${town}` : `you have no ${town}`;
+      break;
+    }
+    case 'noRoute':
+      words =
+        reason.crossing === undefined
+          ? 'you have no trade routes'
+          : `you have no ${ROUTE_CROSSING_WORDS[reason.crossing]} trade routes`;
+      break;
+    case 'noRouteEnd': {
+      const town = idleTownWords(reason.scope);
+      const article = town.startsWith('your ') ? '' : `${indefinite(stripRefs(town))} `;
+      words = `none of your trade routes ${ROUTE_END_WORDS[reason.end]} ${article}${town}`;
+      break;
+    }
+    default: {
+      const unhandled: never = reason;
+      void unhandled;
+      return null;
+    }
+  }
+  return /\d/.test(stripRefs(words)) ? null : words;
+}
 
 // --- commissions ------------------------------------------------------------
 

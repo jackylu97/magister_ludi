@@ -2033,6 +2033,128 @@ export function knowsUniqueTech(state: GameState, playerId: number): boolean {
   return false;
 }
 
+// --- why a card pays nothing now ---------------------------------------------
+
+/**
+ * **The gate that keeps a card from paying now** (batch SS10, part 2). The
+ * orders screen prints "+0 now" on a card that pays yields but pays nothing
+ * this turn, and under it the reason. This is the reason as data; the words
+ * are `idleReasonWords` in `describers.ts`.
+ *
+ *   - `condition`: a `conditionRule`'s empire condition does not hold;
+ *   - `noTown`: a clause paid in towns names a kind of town the empire has none of;
+ *   - `noRoute`: a clause paid on trade routes, and the empire has no route of
+ *     that crossing;
+ *   - `noRouteEnd`: it has routes, but none starts, ends or touches the kind of
+ *     town the clause names.
+ */
+export type CardIdleReason =
+  | { kind: 'condition'; when: EmpireCondition }
+  | { kind: 'noTown'; scope: CityScope }
+  | { kind: 'noRoute'; crossing?: 'domestic' | 'international' }
+  | { kind: 'noRouteEnd'; end: 'origin' | 'destination' | 'eitherEnd'; scope: CityScope };
+
+/** True when one of these effects, or one inside a condition, pays a yield or a meter. */
+function effectsPay(effects: readonly CardEffect[]): boolean {
+  for (const effect of effects) {
+    if (effect.kind === 'pays') return true;
+    if (effect.kind === 'conditionRule' && effectsPay(effect.then)) return true;
+  }
+  return false;
+}
+
+/**
+ * **Does this card pay yields or meters at all?** True when it carries a
+ * `pays` clause, open or behind a condition. The orders screen asks it of a
+ * card whose reading is empty: such a card pays nothing *now* ("+0 now"),
+ * while a card with no `pays` clause is a rule that is simply in force.
+ */
+export function cardCanPay(id: CardId): boolean {
+  return effectsPay(anyCardDef(id).effects);
+}
+
+/** The live routes of one empire, as their two ends, for one crossing or both. */
+function routeEndsOf(
+  state: GameState,
+  playerId: number,
+  crossing: 'domestic' | 'international' | undefined,
+): { from: City; to: City }[] {
+  const ends: { from: City; to: City }[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId || unit.trade === undefined) continue;
+    const pair = routeCities(state, unit);
+    if (pair === null) continue;
+    if (crossing !== undefined && routeIsInternational(pair.from, pair.to) !== (crossing === 'international')) continue;
+    ends.push(pair);
+  }
+  return ends;
+}
+
+/**
+ * The closed gate of one `pays` clause, or null when it has none that can be
+ * named. Only two shapes have one: a clause paid in a named kind of town, and
+ * a clause paid on trade routes.
+ */
+function paysGate(state: GameState, playerId: number, effect: CardPaysEffect): CardIdleReason | null {
+  if (effect.where === 'city' && effect.scope !== undefined) {
+    return countCitiesAdmitted(state, playerId, effect.scope) === 0 ? { kind: 'noTown', scope: effect.scope } : null;
+  }
+  if (effect.where !== 'route') return null;
+  const ends = routeEndsOf(state, playerId, effect.crossing);
+  if (ends.length === 0) return effect.crossing === undefined ? { kind: 'noRoute' } : { kind: 'noRoute', crossing: effect.crossing };
+  for (const end of ['origin', 'destination', 'eitherEnd'] as const) {
+    const scope = effect[end];
+    if (scope === undefined) continue;
+    const met = ends.some(({ from, to }) => {
+      const atFrom = cityScopeAdmits(state, from, scope, playerId);
+      const atTo = cityScopeAdmits(state, to, scope, playerId);
+      return end === 'origin' ? atFrom : end === 'destination' ? atTo : atFrom || atTo;
+    });
+    if (!met) return { kind: 'noRouteEnd', end, scope };
+  }
+  return null;
+}
+
+/** Collects the closed gate of every paying clause, and counts the ones with none. */
+function closedGates(
+  state: GameState,
+  playerId: number,
+  effects: readonly CardEffect[],
+  out: { reasons: CardIdleReason[]; unexplained: number },
+): void {
+  for (const effect of effects) {
+    if (effect.kind === 'conditionRule') {
+      if (!effectsPay(effect.then)) continue;
+      if (!askCondition(state, playerId, effect.when)) {
+        out.reasons.push({ kind: 'condition', when: effect.when });
+        continue;
+      }
+      closedGates(state, playerId, effect.then, out);
+      continue;
+    }
+    if (effect.kind !== 'pays') continue;
+    const reason = paysGate(state, playerId, effect);
+    if (reason === null) out.unexplained += 1;
+    else out.reasons.push(reason);
+  }
+}
+
+/**
+ * **Why this card pays nothing now**, for a card the caller already knows pays
+ * nothing this turn. The first closed gate, in the card's own clause order.
+ *
+ * Null when the card pays nothing at all (a rule), and null when one of its
+ * paying clauses is open, or closed for a reason no shape here can name. A
+ * card that pays nothing although a clause is open is not explained by a gate,
+ * so naming another clause's gate would be a guess.
+ */
+export function cardIdleReason(state: GameState, playerId: number, id: CardId): CardIdleReason | null {
+  const out: { reasons: CardIdleReason[]; unexplained: number } = { reasons: [], unexplained: 0 };
+  closedGates(state, playerId, anyCardDef(id).effects, out);
+  if (out.unexplained > 0) return null;
+  return out.reasons[0] ?? null;
+}
+
 /**
  * Does this town have the Magnum Opus at the front of its queue? Found by the
  * row's marker (`BuildingDef.endsTheGame`), never by name. The one reading

@@ -41,7 +41,7 @@ import { playerById } from '../../src/sim/state';
 import type { GameState } from '../../src/sim/state';
 import { found, game } from '../sim/statecraftHelpers';
 
-const SOURCES = import.meta.glob(['../../src/ui/*.ts', '../../src/style.css'], {
+const SOURCES = import.meta.glob(['../../src/ui/*.ts', '../../src/style.css', '../../src/ui/orderFace.css'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -196,12 +196,10 @@ describe('the offices are ordered, and the word says which', () => {
 
   /** And the screen draws that array, by index, with no sort of its own. */
   it('draws the column in array index order', () => {
-    const slots = SCREEN.slice(
-      SCREEN.indexOf('function drawSlots('),
-      SCREEN.indexOf('function drawAggregate('),
-    );
-    expect(SCREEN).toContain('layout.forEach((type, index) => {');
-    expect(slots).not.toContain('.sort(');
+    const table = SCREEN.slice(SCREEN.indexOf('function drawTable('), SCREEN.indexOf('// --- the hand'));
+    expect(table.length).toBeGreaterThan(200);
+    expect(table).toContain('layout.forEach((type, index) => {');
+    expect(table).not.toContain('.sort(');
   });
 
   /** The ordinal is counted within the flavour, and the teens are the teens. */
@@ -264,10 +262,12 @@ describe('the offices are ordered, and the word says which', () => {
     expect(deckReadsSlotPosition(player.statecraft)).toBe(false);
     player.statecraft.doctrines.push('theArthashastra' as never);
     expect(deckReadsSlotPosition(player.statecraft)).toBe(true);
-    // The plate says which chair it is, behind the same gate as the ordinal.
-    const plate = SCREEN.slice(SCREEN.indexOf('if (positions) {'), SCREEN.indexOf('if (malice !== null) {\n        button.classList'));
-    expect(plate).toContain("chairReadingsAt(state, seat, index) === 2");
-    expect(plate).toContain("element('span', 'sc-slot-position', 'counts twice')");
+    // The chair's tab says which chair it is, behind the same gate as the
+    // ordinal (the orders screen, batch SS10 part 2).
+    expect(SCREEN).toContain(
+      'if (positions && chairReadingsAt(state, seat, index) === 2) note.push(ORDERS_WORDS.countsTwice);',
+    );
+    expect(SCREEN).toContain("countsTwice: 'counts twice',");
   });
 
   it('asks the effects rather than answering false', () => {
@@ -288,14 +288,15 @@ describe('the offices are ordered, and the word says which', () => {
     expect(SCREEN).toContain('return POSITION_READING_COUNTS.includes(effect.count);');
     // Batch A's reader is a modifier, not a count: the gate opens on it by kind.
     expect(SCREEN).toContain("if (effect.kind === 'slotPosition') return true;");
-    // And the office line prints it only behind the gate.
+    // And the chair's tab prints it only behind the gate.
     expect(SCREEN).toContain('const positions = deckReadsSlotPosition(sc);');
-    expect(SCREEN).toContain('if (positions) {');
-    expect(SCREEN).toContain("element('span', 'sc-slot-position', slotPositionWord(layout, index))");
-    // Every number in this interface is tabular mono — an ordinal included.
-    const rule = STYLE.slice(STYLE.indexOf('.sc-slot-position {'), STYLE.indexOf('.sc-slot-military {'));
+    expect(SCREEN).toContain('if (positions) note.push(slotPositionWord(layout, index));');
+    // Every number in this interface is tabular mono, an ordinal included: the
+    // tab is set in the mono face (`orderFace.css`).
+    const css = raw('orderFace.css');
+    const rule = css.slice(css.indexOf('.of-ctab {'), css.indexOf('}', css.indexOf('.of-ctab {')));
     expect(rule.length).toBeGreaterThan(0);
-    expect(rule).toContain('font-family: var(--face-num)');
+    expect(rule).toContain('font-family: var(--face-num');
     expect(rule).toContain('font-variant-numeric: tabular-nums');
   });
 });
@@ -309,12 +310,9 @@ describe('rearranging is a placement like any other', () => {
    * the reducer's own sentence, which is what keeps a sealed card where it is.
    */
   it('never sends a command of its own', () => {
-    const lift = SCREEN.slice(
-      SCREEN.indexOf('function lift(id: OrderId)'),
-      SCREEN.indexOf('function drop(index: number)'),
-    );
+    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number)'), SCREEN.indexOf('function putBack('));
     expect(lift).toContain('removeError(');
-    expect(lift).toContain('remove(arrangement, index)');
+    expect(lift).toContain('remove(ctx.arrangement, index)');
     expect(lift).not.toContain('options.send(');
     // One seam signs anything on this screen, and it is Confirm's.
     expect(source('statecraftScreen.ts').match(/options\.send\(/g) ?? []).toHaveLength(1);

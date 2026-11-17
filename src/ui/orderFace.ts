@@ -76,8 +76,10 @@ import { type CardClause, describeCard, stripRefs } from '../sim/statecraft';
 import {
   type ChairType,
   type DeckId,
+  type CardId,
   type DoctrineId,
   type OrderId,
+  cardDef,
   doctrineDef,
   isDoctrineId,
   orderDef,
@@ -137,6 +139,25 @@ export interface OrderFaceState {
    * dagger.
    */
   unmet?: { reason?: string } | null;
+  /**
+   * **The figure tablet, from the caller's live reading** (batch SS10, part 2):
+   * what the card pays now, as the final board draws it ("+15" and the gold
+   * mark, "3 / 4" for a commission, a grey "+0" for a card that pays nothing
+   * now). Null draws no tablet: a rule card, or a card played this visit and
+   * not yet confirmed. Left out, the face falls back to the first figure of the
+   * card's own sentence (`firstFigure`), for places with no live reading: the
+   * hand, the binder and the flair gallery.
+   */
+  tablet?: FirstFigure | null;
+  /**
+   * True when the face sits inside a control, such as the orders screen's
+   * chair and hand buttons. A keyword is then bold and not a link, because the
+   * click belongs to the control. Left out, the host's own tag decides
+   * (`keywordsAllowedIn`).
+   */
+  inControl?: boolean;
+  /** A small gilt tag on the top border, in the caller's words ("played, not confirmed"). */
+  tag?: string;
 }
 
 // --- the red ink, the tablet and the initial ----------------------------------
@@ -338,7 +359,7 @@ export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): Orde
     keyword,
     clauses,
     initial,
-    tablet: firstFigure(plainAll),
+    tablet: state.tablet !== undefined ? state.tablet : firstFigure(plainAll),
     rays: !unmet,
     caption,
     foot,
@@ -628,7 +649,10 @@ function headNodes(model: OrderFaceModel, linked: boolean): HTMLElement[] {
     if (model.tablet.yield !== null) tablet.append(yieldMarkNode(model.tablet.yield));
     picture.append(tablet);
   }
-  return [plate, motto, picture];
+  // The hand form's name, under the device. The stylesheet shows it only in
+  // that form, where the motto is hidden (batch SS10, part 2).
+  const handName = element('span', 'of-hand-name', model.name);
+  return [plate, motto, picture, handName];
 }
 
 /** The subscription: every effect clause, the first opened by the initial, then the reason. */
@@ -675,7 +699,7 @@ function colophonNode(model: OrderFaceModel, state: OrderFaceState): HTMLElement
 export function dressOrderFace(host: HTMLElement, id: OrderFaceCardId, state: OrderFaceState): OrderFaceModel {
   installOrderFaceMarks(document.documentElement);
   const model = orderFaceModel(id, state);
-  const linked = keywordsAllowedIn(host);
+  const linked = state.inControl === true ? false : keywordsAllowedIn(host);
   host.classList.add('order-face');
   host.dataset.frame = model.frame;
   host.dataset.ink = model.ink;
@@ -706,6 +730,7 @@ export function dressOrderFace(host: HTMLElement, id: OrderFaceCardId, state: Or
     wax.append(element('b', undefined, String(sealed)));
     host.append(wax);
   }
+  if (state.tag !== undefined && state.tag !== '') host.append(element('span', 'of-tag', state.tag));
   return model;
 }
 
@@ -728,6 +753,120 @@ export function emptyChairFace(type: ChairType, word: string): HTMLElement {
   mark.style.setProperty('--of-chair-mark', slotMarkUrl(type));
   chair.append(mark, element('span', 'of-chair-word', word));
   return chair;
+}
+
+// --- the chair's tab --------------------------------------------------------------
+
+/** What a chair's tab says: its type, its number, and the seal's turns left. */
+export interface ChairTab {
+  type: ChairType;
+  /** The chair's number, counted from 1 in the council's own order. */
+  number: number;
+  /** The type in words, as the plates print it ("Military"). */
+  word: string;
+  /** Turns left on the seal. Above zero draws the lock and the turns. */
+  sealedTurns?: number;
+  /** A short extra word after the type, such as a position the law reads. */
+  note?: string;
+}
+
+/**
+ * **The chair's tab** (batch SS10, part 2): a small plate centred on the
+ * card's bottom border, with the chair type's mark, the chair's number and
+ * type, and a lock with the turns left while the seal holds. The final board
+ * puts it across the card's foot, so a chair needs no line of its own under
+ * the card. The caller appends it to the card or to the empty chair.
+ */
+export function chairTabNode(tab: ChairTab): HTMLElement {
+  installOrderFaceMarks(document.documentElement);
+  const node = element('span', 'of-ctab');
+  node.dataset.ink = tab.type;
+  const mark = drawn('of-ctab-mark');
+  mark.style.setProperty('--of-chair-mark', slotMarkUrl(tab.type));
+  node.append(mark, element('span', 'of-ctab-words', `${tab.number} ${tab.word}`));
+  if (tab.note !== undefined && tab.note !== '') node.append(element('span', 'of-ctab-note', tab.note));
+  const sealed = tab.sealedTurns ?? 0;
+  if (sealed > 0) {
+    const lock = element('span', 'of-ctab-lock');
+    lock.append(drawn('of-lock'), document.createTextNode(`${sealed}t`));
+    node.append(lock);
+  }
+  return node;
+}
+
+// --- the register's wide form ----------------------------------------------------
+
+/**
+ * The suit drawn in the government's device. A government belongs to no deck;
+ * the final board draws it with the crown, so the register opens with the one
+ * card that is the empire's head.
+ */
+export const GOVERNMENT_SUIT: SuitId = 'crowns';
+
+/** What a card in the register is drawn from. */
+export interface RegisterFace {
+  /** The card: a Doctrine (a deck's, or an older one a save still holds), or the government. */
+  id: CardId;
+  kind: 'doctrine' | 'government';
+  /** The plate's words: "Doctrine", or the government's tier ("Tier 31"). */
+  plate: string;
+  /** The live plate on the top border, built by the caller, or null for none. */
+  live: HTMLElement | null;
+  /** Words for a government with no law of its own. */
+  noLaw?: string;
+}
+
+/**
+ * **A card in the gilt register, laid wide** (batch SS10, part 2): the final
+ * board's form for the government and each Doctrine. The Doctrine frame, with
+ * the device in a picture at the left and the name and the effect at the
+ * right. The effect has no initial, as the board says for the wide form, and
+ * its figures are in rubric as on every face. The live plate sits on the top
+ * border at the right.
+ */
+export function registerFaceNode(face: RegisterFace): HTMLElement {
+  installOrderFaceMarks(document.documentElement);
+  const card = element('article', 'order-face');
+  const linked = keywordsAllowedIn(card);
+  card.dataset.form = 'wide';
+  card.dataset.frame = 'doctrine';
+  card.dataset.ink = 'gilt';
+  card.dataset.register = face.kind;
+  const name = cardDef(face.id).name;
+  // A deck's Doctrine wears its decks' suits; an older Doctrine of no deck the
+  // lozenge seal (an empty list); the government the crown.
+  const suits: readonly SuitId[] =
+    face.kind === 'government'
+      ? [GOVERNMENT_SUIT]
+      : isDoctrineId(face.id)
+        ? doctrineDef(face.id).decks.map((deck) => DECK_SUIT[deck])
+        : [];
+  const inner = element('div', 'of-in');
+  const plate = element('span', 'of-plate', face.plate);
+  plate.setAttribute('aria-hidden', 'true');
+  const picture = element('div', 'of-pict');
+  picture.append(deviceNode(suits, true));
+  const right = element('div', 'of-rt');
+  const head = element('div', 'of-mh');
+  head.append(element('span', 'of-name', name));
+  right.append(head);
+  const sub = element('div', 'of-sub');
+  const clauses = describeCard(face.id).filter((clause) => clause.keyword === undefined);
+  if (clauses.length === 0 && face.noLaw !== undefined) sub.append(element('span', 'of-clause is-none', face.noLaw));
+  for (const clause of clauses) {
+    const line = element('span', clause.deferred === true ? 'of-clause is-deferred' : 'of-clause');
+    setDescriptorText(line, clause.text, { linked });
+    rubricate(line);
+    sub.append(line);
+  }
+  right.append(sub);
+  inner.append(element('span', 'sr-only', `${face.plate} · ${name}`), plate, picture, right);
+  card.append(inner);
+  if (face.live !== null) {
+    face.live.classList.add('of-livep');
+    card.append(face.live);
+  }
+  return card;
 }
 
 // --- the fit, measured --------------------------------------------------------------

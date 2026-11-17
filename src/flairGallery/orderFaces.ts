@@ -26,6 +26,7 @@ import {
   CHAIR_TYPES,
   DECK_IDS,
   DOCTRINE_IDS,
+  GOVERNMENT_IDS,
   ORDER_IDS,
   type OrderId,
   type OrderRarity,
@@ -40,9 +41,11 @@ import { counterFigure } from '../ui/goalCounter';
 import {
   type OrderFaceCardId,
   type OrderFaceState,
+  chairTabNode,
   emptyChairFace,
   fitOrderFace,
   orderFaceNode,
+  registerFaceNode,
 } from '../ui/orderFace';
 import { block, button, controls, element, markCell, markGrid, slider } from './sheet';
 
@@ -268,6 +271,16 @@ export function drawOrderFaces(into: HTMLElement): void {
     drawStates(statePlate);
   }
 
+  // --- 4b. the orders screen's forms (batch SS10, part 2) ---
+  const screenBlock = block(
+    into,
+    'The orders screen’s forms — src/ui/orderFace.ts',
+    'The forms the orders screen adds, on real rows: the hand form at 104 and 130 wide; a played card with the chair’s tab on its foot, sealed and not; a card played this visit with its gilt tag; an empty chair with its tab; and the gilt register, with the government and a Doctrine laid wide on a 104 px row.',
+  );
+  const screenPlate = plate(screenBlock);
+  screenPlate.dataset.plate = 'screen-forms';
+  drawScreenForms(screenPlate);
+
   // --- 5. the hand, fanned ---
   const handBlock = block(
     into,
@@ -284,7 +297,7 @@ export function drawOrderFaces(into: HTMLElement): void {
   const longBlock = block(
     into,
     'The longest effects',
-    'The ten live Orders with the longest effects, at true size, each fitted on the page: 13 px on up to five lines, then down to 11 px, then a shorter picture. A card that still does not fit is ruled red at its foot, with its text left visible.',
+    'The ten live Orders with the longest effects, at true size, each fitted on the page: 13 px on up to five lines, then down to 11 px, then a shorter picture. A card that still does not fit is cut with a fade at its foot, and its text scrolls inside the card when the card is lifted or focused. Nothing spills outside a card.',
   );
   const longPlate = plate(longBlock);
   longPlate.dataset.plate = 'longest';
@@ -335,6 +348,54 @@ export function drawOrderFaces(into: HTMLElement): void {
     });
   }
   fitAll();
+}
+
+/**
+ * The orders screen's forms (batch SS10, part 2), on real rows chosen by what
+ * each row is. The chair numbers and turns are samples.
+ */
+function drawScreenForms(into: HTMLElement): void {
+  const live = liveOrders();
+  const first = live[0]!;
+  const rare = live.find((id) => orderDef(id).rarity === 'rare') ?? first;
+  for (const width of [104, 130]) {
+    const face = card(rare, { where: 'hand' });
+    face.dataset.form = 'hand';
+    face.style.setProperty('--order-face-width', `${width}px`);
+    figure(into, face, `in the hand, ${width} wide`);
+  }
+  const economic = live.find((id) => orderType(id) === 'economic') ?? first;
+  const seated = card(economic, { where: 'played', liveLine: paysLine({ gold: 15 }), tablet: { figure: '+15', yield: 'gold' } });
+  seated.append(chairTabNode({ type: 'economic', number: 3, word: 'Economic' }));
+  figure(into, seated, 'in a chair, with its tab');
+  const military = live.find((id) => orderType(id) === 'military') ?? first;
+  const sealed = card(military, { where: 'played', sealedTurns: 3, liveLine: { kind: 'standing', text: 'in force' }, tablet: null });
+  sealed.append(chairTabNode({ type: 'military', number: 2, word: 'Military', sealedTurns: 3 }));
+  figure(into, sealed, 'sealed: the lock and the turns on the tab');
+  const civic = live.find((id) => orderType(id) === 'civic') ?? first;
+  const staged = card(civic, {
+    where: 'played',
+    staged: true,
+    tablet: null,
+    tag: 'played, not confirmed',
+    liveLine: { kind: 'waiting', text: 'awaits your seal: on Confirm' },
+  });
+  staged.append(chairTabNode({ type: 'civic', number: 7, word: 'Civic' }));
+  figure(into, staged, 'played this visit, not confirmed');
+  const empty = emptyChairFace('wildcard', 'An empty chair.\nIt takes any card.\nIt pays nothing.');
+  empty.style.whiteSpace = 'pre-line';
+  empty.style.position = 'relative';
+  empty.append(chairTabNode({ type: 'wildcard', number: 11, word: 'Wildcard' }));
+  figure(into, empty, 'an empty chair');
+  const register = element('div', 'of-register-sample');
+  const doctrine = liveDoctrines()[0];
+  const lead = element('span', undefined, 'next draft');
+  register.append(registerFaceNode({ id: GOVERNMENT_IDS[0]!, kind: 'government', plate: 'Tier 5', live: lead }));
+  if (doctrine !== undefined) {
+    const plateWords = element('span', undefined, 'in force');
+    register.append(registerFaceNode({ id: doctrine, kind: 'doctrine', plate: 'Doctrine', live: plateWords }));
+  }
+  figure(into, register, 'the gilt register, laid wide');
 }
 
 /** The states row: every state the face has, on real rows. */

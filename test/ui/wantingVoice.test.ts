@@ -208,8 +208,10 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   // The loan line on a card ("would bring Silk — needs The Silk Road", batch
   // R6) left the sheet with The Silk Road's luxury loan in batch TT1
   // (`docs/flags.md` (iiiiiii)).
-  // The Statecraft sheet's arrangement.
-  { file: 'statecraftScreen.ts', says: 'an arrangement that will not seal', carries: "element('p', 'sc-commit-problem wanting', problem)" },
+  // The orders screen's arrangement (batch SS10 part 2), and a refusal in the
+  // head's hint line.
+  { file: 'statecraftScreen.ts', says: 'an arrangement that will not seal', carries: "problem !== null ? 'orders-changes wanting' : 'orders-changes'" },
+  { file: 'statecraftScreen.ts', says: 'a refusal in place of the hint', carries: "hintNode.classList.toggle('wanting', refusal !== null);" },
   // The Reliquary's rail of calls.
   { file: 'reliquaryScreen.ts', says: 'a call the bank cannot pay for', carries: "call.disabled ? 'rel-call-note wanting' : 'rel-call-note'" },
   // The Faith sheet's Rites tab (batch UX9): the faith the bank is short of for

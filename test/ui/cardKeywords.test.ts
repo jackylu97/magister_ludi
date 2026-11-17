@@ -137,12 +137,13 @@ describe('every surface that prints a card prints its keyword', () => {
     );
   });
 
-  it('prints the collection’s clauses as descriptors, with the keyword set as a label', () => {
-    const screen = uiSource('statecraftScreen.ts');
-    expect(screen).toContain('drawOrderFace(button, id, describeCard(id));');
-    const list = braceBody(screen, 'function clauseList(');
-    expect(list).toContain("if (clause.keyword !== undefined) item.classList.add('is-keyword');");
-    expect(list).toContain('setDescriptorText(item, clause.text, { linked });');
+  it('prints the orders screen’s clauses as descriptors, with the keyword set as a label', () => {
+    // Since batch SS10 part 2 every card on the orders screen is the emblem
+    // face, which sets the keyword as a label in the picture's corner.
+    const face = uiSource('orderFace.ts');
+    expect(uiSource('statecraftScreen.ts')).toContain('dressOrderFace(face, id, {');
+    expect(face).toContain('setDescriptorText(label, model.keyword.text, { linked });');
+    expect(face).toContain('setDescriptorText(line, clause.text, { linked });');
     expect(uiSource('style.css')).toContain('.sc-clause.is-keyword {');
   });
 
@@ -196,7 +197,9 @@ describe('a Scaler’s value on its face', () => {
     expect(braceBody(uiSource('offerCard.ts'), 'function faceBody(')).toContain(
       'if (option.scaler !== undefined) nodes.push(scalerFigureNode(option.scaler));',
     );
-    expect(uiSource('statecraftScreen.ts')).toContain('if (scaler !== null) button.append(scalerFigureNode(scaler));');
+    // The orders screen prints a seated Scaler's value as its live line and in
+    // its tablet (batch SS10 part 2).
+    expect(uiSource('orderLive.ts')).toContain('const value = scalerFace(state, seat, id);');
     const css = uiSource('style.css');
     const value = css.slice(css.indexOf('.scaler-value {'), css.indexOf('}', css.indexOf('.scaler-value {')));
     expect(value).toContain('font-variant-numeric: tabular-nums');

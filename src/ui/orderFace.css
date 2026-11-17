@@ -16,6 +16,20 @@
  * rubric are the board's, which are a shade warmer than the interface's.
  */
 
+/*
+ * The six colours the final board of the orders screen added as tokens
+ * (`docs/plans/mockups/scholars-study/orders-screen-final-board.html`, the
+ * build spec's "Colours"). They live here because only the cards use them.
+ */
+:root {
+  --card-paper: #f8f1dc;
+  --card-paper-shade: #efe4c6;
+  --gilt-bright: #e8c35e;
+  --gilt-shade: #b47d12;
+  --wax-shade: #6d1d12;
+  --doctrine-ink: #9a6c0c;
+}
+
 .order-face,
 .order-face-chair {
   --of-width: var(--order-face-width, 210px);
@@ -23,8 +37,8 @@
   --of-rule: max(1px, var(--of-u));
   --of-ink-text: var(--ink, #1d1a20);
   --of-ink: var(--type-wildcard, #4a2a72);
-  --of-paper: #f8f1dc;
-  --of-paper-deep: #efe4c6;
+  --of-paper: var(--card-paper);
+  --of-paper-deep: var(--card-paper-shade);
   --of-rubric: #a8321a;
   position: relative;
   flex: none;
@@ -480,11 +494,22 @@
 }
 
 /* A card whose effect does not fit at 11 px even beside the short picture.
-   The text is left visible, and the box's foot is ruled in red, so the card
-   is seen to need a decision. */
+   Nothing may spill outside a card (the user, 2026-11-17), so the text is cut
+   with a fade at the foot. When the card is lifted or has the keyboard's
+   focus, the text scrolls inside the card, so it can always be read whole. */
 .order-face[data-overflow] .of-sub {
-  overflow: visible;
-  box-shadow: inset 0 calc(var(--of-u) * -2) 0 var(--of-rubric);
+  -webkit-mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
+  mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
+}
+
+.order-face[data-overflow][data-lifted] .of-sub,
+.order-face[data-overflow]:focus-within .of-sub,
+.order-face[data-overflow]:focus-visible .of-sub {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  -webkit-mask: none;
+  mask: none;
 }
 
 /* --- the colophon: the live line --------------------------------------------- */
@@ -695,4 +720,300 @@
   color: var(--ink-soft, #56505a);
   font-family: var(--face-ui, 'Instrument Sans', system-ui, sans-serif);
   font-size: 1.2em;
+}
+
+/* --- the forms the orders screen adds (batch SS10, part 2) ------------------- */
+
+/*
+ * The final board's build spec ("The card, by form"). `data-form` picks one;
+ * with none the face is the full 210 by 258 form, scaled by its width.
+ */
+
+/* A gilt tag on the top border: "played, not confirmed". */
+.order-face .of-tag {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: -1.1em;
+  padding: 0 0.8em;
+  transform: translateX(-50%);
+  border-radius: 0.2em;
+  background: var(--y-gold-lit, #ecc154);
+  color: var(--of-ink-text);
+  font-family: var(--face-ui, 'Instrument Sans', system-ui, sans-serif);
+  font-size: max(11px, 1.1em);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.64;
+  white-space: nowrap;
+}
+
+/* Lifted: a longer hard shadow, as a card held off the table. */
+.order-face[data-lifted] {
+  z-index: 20;
+  box-shadow: 0.9em 1.2em 0 rgba(29, 26, 32, 0.55);
+}
+
+.order-face[data-staged][data-lifted] {
+  box-shadow: 0.9em 1.2em 0 rgba(29, 26, 32, 0.3);
+}
+
+/* --- the chair's tab, across the card's foot --- */
+
+.of-ctab {
+  --of-ctab-ink: var(--type-wildcard, #4a2a72);
+  --of-ctab-ground: var(--type-wildcard-ground, #e6dfee);
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: -10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 17px;
+  padding: 0 7px;
+  transform: translateX(-50%);
+  border: 1px solid var(--ink, #1d1a20);
+  border-radius: 2px;
+  background: var(--of-ctab-ground);
+  color: var(--ink, #1d1a20);
+  font-family: var(--face-num, 'IBM Plex Mono', monospace);
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.of-ctab[data-ink='military'] {
+  --of-ctab-ink: var(--type-military, #a8361b);
+  --of-ctab-ground: var(--type-military-ground, #f2ddd2);
+}
+
+.of-ctab[data-ink='economic'] {
+  --of-ctab-ink: var(--type-economic, #b5791b);
+  --of-ctab-ground: var(--type-economic-ground, #f3e5c8);
+}
+
+.of-ctab[data-ink='civic'] {
+  --of-ctab-ink: var(--type-civic, #4f78be);
+  --of-ctab-ground: var(--type-civic-ground, #dfe6f3);
+}
+
+.of-ctab .of-ctab-mark {
+  width: 12px;
+  height: 12px;
+  background-color: var(--of-ctab-ink);
+  -webkit-mask: var(--of-chair-mark) center / contain no-repeat;
+  mask: var(--of-chair-mark) center / contain no-repeat;
+}
+
+.of-ctab .of-ctab-note {
+  color: var(--ink-soft, #56505a);
+  font-weight: 500;
+}
+
+.of-ctab .of-ctab-lock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--sealing-wax, #8f2a1c);
+}
+
+.of-ctab .of-lock {
+  width: 11px;
+  height: 11px;
+  background-color: currentColor;
+  -webkit-mask: var(--of-mark-lock) center / contain no-repeat;
+  mask: var(--of-mark-lock) center / contain no-repeat;
+}
+
+/* --- the hand form: the plate, the device and the name --- */
+
+/*
+ * The board's "in the hand" state: 104 by 162, the tier plate, the device
+ * and the name, and no effect. Its lengths are the board's pixels at 104
+ * wide, so the 130 by 202 hand of a short council is the same card scaled.
+ */
+.order-face[data-form='hand'] {
+  --of-h: calc(var(--of-width) / 104);
+  width: var(--of-width);
+  height: calc(var(--of-h) * 162);
+  padding: calc(var(--of-h) * 5);
+  border-width: max(1.5px, calc(var(--of-h) * 2));
+  border-radius: calc(var(--of-h) * 6);
+  box-shadow: calc(var(--of-h) * 3) calc(var(--of-h) * 3) 0 var(--of-ink-text);
+}
+
+.order-face[data-form='hand'][data-frame='uncommon'] {
+  background:
+    repeating-linear-gradient(45deg, rgba(29, 26, 32, 0.34) 0 1px, transparent 1px calc(var(--of-h) * 3)),
+    var(--of-paper);
+}
+
+.order-face[data-form='hand'][data-frame='rare'] {
+  background:
+    radial-gradient(circle, #7f5b0e 0 0.7px, transparent 0.9px) 0 0 / 4px 4px,
+    linear-gradient(135deg, #e2b243, var(--gilt, #c8901f) 45%, var(--gilt-bright) 60%, var(--gilt-shade));
+}
+
+.order-face[data-form='hand'] .of-in {
+  border-radius: 0;
+  background: var(--of-paper);
+}
+
+.order-face[data-form='hand'] .of-plate {
+  top: calc(var(--of-h) * -8);
+  height: auto;
+  padding: 0 calc(var(--of-h) * 6);
+  font-size: calc(var(--of-h) * 11);
+  letter-spacing: 0.06em;
+  line-height: calc(var(--of-h) * 14);
+}
+
+.order-face[data-form='hand'] .of-motto,
+.order-face[data-form='hand'] .of-sub,
+.order-face[data-form='hand'] .of-colo,
+.order-face[data-form='hand'] .of-orn,
+.order-face[data-form='hand'] .of-tablet,
+.order-face[data-form='hand'] .of-keyword,
+.order-face[data-form='hand'] .of-cn {
+  display: none;
+}
+
+.order-face[data-form='hand'] .of-pict {
+  order: 1;
+  width: calc(var(--of-h) * 84);
+  height: calc(var(--of-h) * 84);
+  margin-top: calc(var(--of-h) * 10);
+  overflow: visible;
+  border: 0;
+  outline: 0;
+  background: none;
+}
+
+.order-face[data-form='hand'] .of-device {
+  width: 100%;
+  height: 100%;
+}
+
+/* The name moves under the device, alone, in the period capitals. */
+.order-face[data-form='hand'] .of-hand-name {
+  order: 2;
+  display: block;
+  margin-top: calc(var(--of-h) * 2);
+  padding: 0 calc(var(--of-h) * 4);
+  font-family: var(--face-card-title);
+  font-size: calc(var(--of-h) * 12.5);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.order-face:not([data-form='hand']) .of-hand-name {
+  display: none;
+}
+
+/* --- the wide form: the register's government and Doctrines --- */
+
+.order-face[data-form='wide'] {
+  --order-face-width: 210px;
+  --of-pict-w: 64px;
+  width: auto;
+  height: 100%;
+  min-width: 0;
+  padding: 7px;
+  border-width: 1.6px;
+  border-radius: 5px;
+  box-shadow: 3.5px 3.5px 0 var(--of-ink-text);
+}
+
+.order-face[data-form='wide'] .of-in {
+  flex-direction: row;
+  align-items: stretch;
+  text-align: left;
+}
+
+.order-face[data-form='wide'] .of-pict {
+  flex: none;
+  width: var(--of-pict-w);
+  height: auto;
+  margin: 4px 0 4px 4px;
+}
+
+.order-face[data-form='wide'] .of-device {
+  width: calc(var(--of-pict-w) * 1.12);
+  height: calc(var(--of-pict-w) * 1.12);
+}
+
+.order-face[data-form='wide'] .of-plate {
+  left: calc(var(--of-pict-w) / 2 + 5px);
+  top: -8px;
+  height: 15px;
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.order-face[data-form='wide'] .of-rt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 7px 10px 1px 9px;
+}
+
+.order-face[data-form='wide'] .of-mh {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--of-ink-text);
+}
+
+.order-face[data-form='wide'] .of-name {
+  overflow: hidden;
+  min-width: 0;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+}
+
+.order-face[data-form='wide'] .of-sub {
+  margin-top: 2px;
+  padding: 0;
+  font-size: 12.5px;
+  line-height: 1.15;
+}
+
+.order-face[data-form='wide'] .of-clause.is-none {
+  color: var(--ink-soft, #56505a);
+  font-style: italic;
+}
+
+/* The live plate on the top border at the right: "+12", "in force", the draft. */
+.order-face[data-form='wide'] .of-livep {
+  position: absolute;
+  z-index: 5;
+  right: 8px;
+  top: -9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 17px;
+  max-width: calc(100% - var(--of-pict-w) - 24px);
+  padding: 0 7px;
+  border: 1px solid #5b4008;
+  background: var(--of-paper);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Cut with a fade, never spilled. Lifted, a register card shows its whole text. */
+.order-face[data-form='wide'][data-overflow] .of-sub {
+  -webkit-mask: linear-gradient(#000 calc(100% - 1em), transparent);
+  mask: linear-gradient(#000 calc(100% - 1em), transparent);
 }
