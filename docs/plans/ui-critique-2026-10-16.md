@@ -650,3 +650,13 @@ intriguing aspect about the game to people"*
   roguelike deckbuilders.
 - The usability gains of the first round stay: every chair and card can be
   seen without long scrolling, and a card's text can be read.
+
+- **The banner, second round (2026-11-17).** Options page:
+  https://claude.ai/artifact/Eo15sVSRB8ymkvZr8C2Rfa. The user: *"ok i like
+  option B for the corner banner, except we need to center the "Q" indicator in
+  the UX. Could we combine this with the pennant? the flag doesn't need to be so
+  long so we still have the Q indicator, lets make the pennant wider too bto
+  leave space for the user to click"*. So: variant B (the corner seal) is the
+  base; its shape becomes a pennant like variant C's, shorter and wider, so
+  that the Q key mark still fits under it, centred on it; the wider flag is the
+  click area.
