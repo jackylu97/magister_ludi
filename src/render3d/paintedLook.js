@@ -12,7 +12,7 @@ import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
 import {NORTH_STAR_TOWN_ASSETS,NORTH_STAR_WORK_ASSETS} from '../terrainStudy/northStarAssets.js';
 import {VIEW3D} from './lookData';
-import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,VTEST_UNIFORMS,shareUniforms,installClouds} from './visualTestLook';
+import {SEA_GLSL,SEA_UNIFORMS,TILE_GLSL,TILE_UNIFORMS,VTEST_UNIFORMS,shareUniforms} from './visualTestLook';
 
 // Brush marks on the ground (the user, 2026-11-13: the strokes should "look
 // more painted instead of vector art"). The two grain textures are read
@@ -108,15 +108,7 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // All asset loading finished above, before the live renderer's lighting changes.
  lighting=createLighting(renderer,scene,camera,{unitStencil:true});
  const style=createPainterlyStyle(renderer,lighting,paintTexture);
- // Every material the style registers also takes the visual test version's
- // cloud shadows (switch 7), except the chart paper: uncharted ground is a map
- // on a table, and a cloud does not fall on a map.
- const clouded=new WeakSet();
- const register=(material,options={})=>{
-  style.register(material,options);
-  if(!options.chart&&!clouded.has(material)){clouded.add(material);installClouds(material)}
-  return material;
- };
+ const register=(material,options={})=>style.register(material,options);
  const shadowKnobs=VIEW3D.painted.shadows;
  // The canonical-period lookup is NOT installed here. Registration would be
  // early enough to save a recompile, but the board clones several of these

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { GameMap } from '../../src/sim/map';
 import {
-  VISUAL_SWITCHES, allOff, allOn, changedSwitches, formatVisualTest, parseVisualTest,
+  RETIRED_SWITCH_IDS, VISUAL_SWITCHES, allOff, allOn, changedSwitches, formatVisualTest, parseVisualTest,
 } from '../../src/render3d/visualTest';
 import { pinScaleFor } from '../../src/render3d/visualTestLook';
 import { planPaintedRoads, territoryHoles, territoryRegion, type BorderStyle } from '../../src/render3d/paintedGround';
@@ -26,10 +26,10 @@ import { prepareTerrainMap, setRiverStyle } from '../../src/terrainStudy/surface
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
 
 describe('the vtest URL option', () => {
-  it('turns everything on but the cloud shadows and the quieter pins when it is missing, empty or "all"', () => {
+  it('turns everything on but the quieter pins when it is missing, empty or "all"', () => {
     for (const value of [null, undefined, '', 'all', ' ALL ']) {
       const state = parseVisualTest(value);
-      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(!['clouds', 'pins'].includes(def.key));
+      for (const def of VISUAL_SWITCHES) expect(state[def.key]).toBe(def.key !== 'pins');
       expect(state.border).toBe('drape');
     }
   });
@@ -70,9 +70,32 @@ describe('the vtest URL option', () => {
     expect(changed.map((def) => def.key)).toEqual(['rivers', 'organicRivers', 'pins']);
   });
 
-  it('numbers the fourteen switches 1 to 14, each once', () => {
-    expect(VISUAL_SWITCHES.map((def) => def.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-    expect(new Set(VISUAL_SWITCHES.map((def) => def.key)).size).toBe(14);
+  it('numbers the thirteen switches 1 to 14, each once, with 7 left unused', () => {
+    expect(VISUAL_SWITCHES.map((def) => def.id)).toEqual([1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14]);
+    expect(new Set(VISUAL_SWITCHES.map((def) => def.key)).size).toBe(13);
+  });
+
+  // Number 7 was the cloud shadows, removed on 2026-11-16. An old address that names it must turn nothing on,
+  // and no later switch may take the number.
+  it('keeps the retired numbers out of use', () => {
+    expect(RETIRED_SWITCH_IDS).toContain(7);
+    for (const id of RETIRED_SWITCH_IDS) expect(VISUAL_SWITCHES.some((def) => def.id === id)).toBe(false);
+    expect(VISUAL_SWITCHES.filter((def) => parseVisualTest('7')[def.key])).toEqual([]);
+    expect(VISUAL_SWITCHES.filter((def) => parseVisualTest('6,7,8')[def.key]).map((def) => def.id)).toEqual([6, 8]);
+  });
+
+  // The user asked for the cloud shadows to go (2026-11-14). While the code stayed, every painted material still
+  // carried their uniforms and a branch, and the calm sea still worked out two noise values it then multiplied by
+  // zero. This pins that none of it comes back by accident.
+  it('leaves nothing of the cloud shadows in the shaders or the settings', async () => {
+    const FS_SPECIFIER = 'node:fs';
+    const fs = (await import(/* @vite-ignore */ FS_SPECIFIER)) as { readFileSync(path: string, encoding: string): string };
+    for (const path of ['src/render3d/visualTestLook.ts', 'src/render3d/paintedLook.js', 'src/terrainStudy/painterly.js', 'src/render3d/renderer3d.ts']) {
+      expect(fs.readFileSync(path, 'utf8')).not.toMatch(/vtestCloud|installClouds|CLOUD_GLSL|visualOn\('clouds'\)/);
+    }
+    const settings = VIEW3D.visualTest as unknown as Record<string, unknown>;
+    expect(settings['clouds']).toBeUndefined();
+    expect(Object.keys(VIEW3D.visualTest.coast.open.sun).filter((key) => key.startsWith('cloud'))).toEqual([]);
   });
 });
 

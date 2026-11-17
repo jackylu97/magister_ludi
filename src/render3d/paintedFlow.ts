@@ -27,11 +27,46 @@ import { VIEW3D } from './lookData';
 // @ts-expect-error The river module is plain JavaScript with no declaration file.
 import { createOrganicRivers } from './organicRivers';
 import { declareUniforms, shareUniforms } from './visualTestLook';
+import { cullWrapCopies } from './wrapCulling';
 
 const RIVERS = VIEW3D.visualTest.organicRivers, FLOW = RIVERS.flow;
 const FLOW_UNIFORMS = ['vtestTime', 'vtestIdle'] as const;
 const ROOT3 = Math.sqrt(3);
 type Glint = { x: number; z: number; dx: number; dz: number; half: number; seed: number };
+type Placed = { glint: Glint; y: number; col: number; row: number };
+
+/**
+ * Every glint of a board, with the ground height it rides at and the hex it
+ * stands on, by the board's map.
+ *
+ * The rivers' line and the ground under it are facts of the board, and the
+ * board's map lives as long as the board. The layer used to trace every river
+ * again (`createOrganicRivers`) on each build, which is each time the works
+ * rebuild, and so each time the seat's sight moved: about a quarter of a second
+ * of the turn-end sync at turn 130, measured on a loaded machine. Now a build
+ * only asks the fog which glints to keep.
+ */
+const placedByBoard = new WeakMap<GameMap, readonly Placed[]>();
+
+function placedGlints(prepared: GameMap): readonly Placed[] {
+  const known = placedByBoard.get(prepared);
+  if (known) return known;
+  const glints = (createOrganicRivers(prepared, RIVERS) as { flow(): Glint[] }).flow();
+  const period = ROOT3 * prepared.width, wrap = (x: number): number => ((x % period) + period) % period;
+  const placed: Placed[] = [];
+  for (const glint of glints) {
+    const row = Math.round(glint.z / 1.5), col = Math.round(wrap(glint.x) / ROOT3 - (row % 2) * .5);
+    const tile = prepared.tiles[row * prepared.width + ((col % prepared.width) + prepared.width) % prepared.width];
+    if (!tile || row < 0 || row >= prepared.height) continue;
+    const cx = ROOT3 * (tile.col + (tile.row % 2) * .5);
+    let lx = wrap(glint.x) - cx; if (lx > period / 2) lx -= period; if (lx < -period / 2) lx += period;
+    const ground = surfaceHeight(tile, lx, glint.z - tile.row * 1.5) as number;
+    // A hex that was not told the river's line stands uncut; the water is still at the cut's depth.
+    placed.push({ glint, y: (tile as { riverCarve?: unknown }).riverCarve ? ground : ground - RIVERS.cutDepth, col: tile.col, row: tile.row });
+  }
+  placedByBoard.set(prepared, placed);
+  return placed;
+}
 
 export class PaintedFlowLayer {
   readonly group = new Group();
@@ -60,19 +95,8 @@ transformed.z *= flowShow;`);
   build(prepared: GameMap, levels: FogLevels, map: GameMap, organic: boolean): void {
     this.clear();
     if (!organic || !FLOW.length) return;
-    const glints = (createOrganicRivers(prepared, RIVERS) as { flow(): Glint[] }).flow();
     const period = ROOT3 * prepared.width, wrap = (x: number): number => ((x % period) + period) % period;
-    const kept: { glint: Glint; y: number }[] = [];
-    for (const glint of glints) {
-      const row = Math.round(glint.z / 1.5), col = Math.round(wrap(glint.x) / ROOT3 - (row % 2) * .5);
-      const tile = prepared.tiles[row * prepared.width + ((col % prepared.width) + prepared.width) % prepared.width];
-      if (!tile || row < 0 || row >= prepared.height || levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
-      const cx = ROOT3 * (tile.col + (tile.row % 2) * .5);
-      let lx = wrap(glint.x) - cx; if (lx > period / 2) lx -= period; if (lx < -period / 2) lx += period;
-      const ground = surfaceHeight(tile, lx, glint.z - tile.row * 1.5) as number;
-      // A hex that was not told the river's line stands uncut; the water is still at the cut's depth.
-      kept.push({ glint, y: (tile as { riverCarve?: unknown }).riverCarve ? ground : ground - RIVERS.cutDepth });
-    }
+    const kept = placedGlints(prepared).filter((placed) => levelAt(levels, map, placed.col, placed.row) !== HIDDEN);
     if (!kept.length) return;
     const geometry = this.geometry = new BufferGeometry();
     // A flat dash, one unit long in x and one wide in z, with pointed ends.
@@ -92,11 +116,13 @@ transformed.z *= flowShow;`);
     for (const at of [-period, 0, period]) {
       const copy = at === 0 ? mesh : new InstancedMesh(geometry, this.material, 0);
       if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.count = mesh.count; }
-      // The glints move in the shader, so measured bounds would be wrong. The layer is small and is never culled.
-      copy.frustumCulled = false; copy.castShadow = false; copy.receiveShadow = false;
+      copy.castShadow = false; copy.receiveShadow = false;
       copy.position.x = at;
       this.group.add(copy); this.meshes.push(copy);
     }
+    // A glint travels half of `travel` either way along its river in the shader. The bounds are widened by that, so
+    // each copy is culled like any other mesh (`wrapCulling.ts`).
+    cullWrapCopies(this.meshes, FLOW.travel / 2 + FLOW.length + .1);
   }
 
   private clear(): void {

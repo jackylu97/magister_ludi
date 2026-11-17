@@ -12,6 +12,11 @@
  * and the light by age left the test version, and numbers 4 and 5 now name the
  * organic rivers and the organic roads.
  *
+ * Number 7 was the drifting cloud shadows. The user asked for them to go
+ * (2026-11-14), and the render speed pass of 2026-11-16 removed the switch and
+ * its shader code. The number stays unused (`RETIRED_SWITCH_IDS`), so an old
+ * `?vtest=` address that names 7 turns nothing on instead of another switch.
+ *
  * The URL option `?vtest=` sets the switches when the page loads, for
  * screenshots:
  * - `all` turns every switch on, with the border drawn `wash`;
@@ -24,7 +29,7 @@
  */
 
 /** The on/off switches, by key. */
-export type VisualSwitch = 'sea' | 'rivers' | 'borders' | 'organicRivers' | 'organicRoads' | 'pins' | 'clouds' | 'idle' | 'grounding' | 'light' | 'tiles' | 'gradient' | 'grade' | 'miniature';
+export type VisualSwitch = 'sea' | 'rivers' | 'borders' | 'organicRivers' | 'organicRoads' | 'pins' | 'idle' | 'grounding' | 'light' | 'tiles' | 'gradient' | 'grade' | 'miniature';
 
 /**
  * How the border line of switch 3 is drawn:
@@ -65,7 +70,6 @@ export const VISUAL_SWITCHES: readonly VisualSwitchDef[] = [
   { id: 4, key: 'organicRivers', label: 'Organic rivers', rebuild: 'board' },
   { id: 5, key: 'organicRoads', label: 'Organic roads', rebuild: 'roads' },
   { id: 6, key: 'pins', label: 'Quieter resource pins', rebuild: 'lens' },
-  { id: 7, key: 'clouds', label: 'Drifting cloud shadows', rebuild: 'none' },
   { id: 8, key: 'idle', label: 'Small idle motion', rebuild: 'smoke' },
   { id: 9, key: 'grounding', label: 'Grounding shade', rebuild: 'none' },
   { id: 10, key: 'light', label: 'Rim light and deeper cool shade', rebuild: 'none' },
@@ -74,6 +78,13 @@ export const VISUAL_SWITCHES: readonly VisualSwitchDef[] = [
   { id: 13, key: 'grade', label: 'Colour grade', rebuild: 'none' },
   { id: 14, key: 'miniature', label: 'Miniature blur', rebuild: 'none' },
 ];
+
+/**
+ * Numbers that named a switch which has been removed. They are never given to
+ * a new switch, so an old address cannot turn on something it did not mean.
+ * 7 was the cloud shadows.
+ */
+export const RETIRED_SWITCH_IDS: readonly number[] = [7];
 
 /** The border switch's number in `?vtest=`, which takes a style after a colon. */
 export const BORDER_SWITCH_ID = 3;
@@ -96,9 +107,7 @@ export function allOn(): VisualTestState {
   // back, so the border switch is off unless its number is given.
   // On 2026-11-14 the user asked for the border's inward glow, so the switch is on again, in the draped style.
   state.borders = true;
-  // The user asked for the cloud shadows to go (2026-11-14: "lets get rid of the cloud shadows"). The switch stays, off unless its number is given.
-  state.clouds = false;
-  // And for the quieter pins to go ("also remove the quieter resource pins"): a pin keeps its full size at every zoom and does not fade on an improved hex.
+  // The user asked for the quieter pins to go ("also remove the quieter resource pins"): a pin keeps its full size at every zoom and does not fade on an improved hex.
   state.pins = false;
   return state;
 }

@@ -287,6 +287,14 @@ transformed += aHullNormal * uUnitOutlineWidth;
       // single-sided quad that ends up back-facing simply vanishes, and that
       // failure is much more expensive to debug than this is to enable.
       side: DoubleSide,
+      // One pass, not three's two. three draws a transparent double-sided
+      // material twice for each object, back faces and then front faces, and
+      // changes `side` and asks for the program again between the two. Every
+      // quad of one of these meshes faces the same way (a decal lies flat, a
+      // bar faces the camera), so one of the two passes drew no pixel. The
+      // render speed pass of 2026-11-16 measured the two passes as an extra
+      // draw call and two program lookups for each object on every frame.
+      forceSinglePass: true,
     });
     this.overlayCache.set(key, material);
     return material;

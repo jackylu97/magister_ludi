@@ -56,6 +56,7 @@ import { hashUnit } from './hash';
 import { seenTileYields } from './lens3d';
 import { VIEW3D } from './lookData';
 import { VTEST_UNIFORMS } from './visualTestLook';
+import { cullWrapQuads } from './wrapCulling';
 
 const LIGHT = VIEW3D.visualTest.yieldLight;
 export const YIELD_LIGHT_KINDS = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;
@@ -482,11 +483,16 @@ export class PaintedYieldLightLayer {
     geometry.instanceCount = quads.length;
     for (const offset of [-period, 0, period]) {
       const mesh = new Mesh(geometry, this.material);
-      // The quads move in the shader, so the bounds three would measure are wrong; the layer is small and is never culled.
-      mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false;
+      mesh.castShadow = false; mesh.receiveShadow = false;
       mesh.position.x = offset; mesh.renderOrder = 6;
       this.group.add(mesh); this.meshes.push(mesh);
     }
+    // The quads are placed by `aAt`, not by the plane's own vertices, and they move in the shader: a quad rises by
+    // `rise` at most, drifts sideways by under half a hex unit, and a billboard turns its corners anywhere round its
+    // centre. The bounds are the centres widened by that, so each copy is culled like any other mesh (`wrapCulling.ts`).
+    let largest = 0;
+    for (const one of size) largest = Math.max(largest, one);
+    cullWrapQuads(this.meshes, geometry, geometry.getAttribute('aAt') as InstancedBufferAttribute, largest * 1.5 + LIGHT.rise + .45);
   }
 
   private clear(): void {

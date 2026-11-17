@@ -52,7 +52,7 @@ export async function drawPaintedWorld(into: HTMLElement): Promise<() => void> {
     state.cities[1]!.ownerId = value ? 1 : 0; renderer.setGameState(state);
   });
   // The visual test version's switches (batch V1, `render3d/visualTest.ts`):
-  // the new sea, rivers, roads, border, pins, clouds and idle motion all draw
+  // the new sea, rivers, roads, border, pins and idle motion all draw
   // on this same world, so they are reviewed here too.
   const tested = visualTest();
   for (const def of VISUAL_SWITCHES) checkbox(knobs, `${def.id}. ${def.label}`, tested[def.key], value => setVisualTest({ [def.key]: value }));

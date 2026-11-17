@@ -39,7 +39,7 @@ import type { UnitTypeId } from '../sim/unitData';
  * - `idle`: `0` turns the small idle motion off (switch 8), to see what holds still;
  * - `towns`: `old` draws every town round the one hall of before (it turns
  *   `visualTest.town.byAge` off for this page);
- * - `still`: `1` (the default) holds the clock that moving water, clouds and
+ * - `still`: `1` (the default) holds the clock that moving water and
  *   pieces read, so two screenshots differ only by a switch; `0` lets it run.
  * The panel's last line gives the frame's draw calls and triangles.
  *

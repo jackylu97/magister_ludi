@@ -293,6 +293,9 @@ describe('the reveal: a comparison, never a countdown', () => {
     const gate = loop.slice(loop.indexOf('const revealing ='), loop.indexOf('const refreshState'));
     expect(gate).toContain('(this.paintedBoard?.revealing ?? 0) > 0');
     expect(gate.indexOf('advanceReveal')).toBeGreaterThan(gate.indexOf('const revealing ='));
-    expect(gate).toContain('!revealing) return;');
+    // The reasons to draw other than motion are one flag since the render speed pass (2026-11-16), which also
+    // times `visualTest.motionRestSeconds` from them; `revealing` is one of those reasons.
+    expect(gate).toMatch(/const asked = [^;]*\|\| revealing;/);
+    expect(gate).toContain('if (!moving && !asked) return;');
   });
 });

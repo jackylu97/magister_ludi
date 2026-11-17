@@ -9,7 +9,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { badgeAnchors, placePiece } from '../../src/render3d/pieces';
 import { badgeCenterY } from '../../src/render3d/badges3d';
 import { type Unit } from '../../src/sim/state';
-import { installPaintedSurface, samplePaintedSurface, samplePaintedWorld, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
+import { installPaintedSurface, samplePaintedSurface, samplePaintedWorld, surfaceSamplerBuilds, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
 // The study remains JavaScript; these tests exercise its production adapter.
 // @ts-expect-error No declarations for the standalone art modules.
 import { prepareTerrainMap, neighbour, surfaceHeight, terrainMapWraps } from '../../src/terrainStudy/surface.js';
@@ -102,6 +102,36 @@ describe('painted gameplay surface', () => {
     expect(samplePaintedSurface(ordinary.tiles[8]!)).toBeUndefined();
     uninstallPaintedSurface(map);
     expect(samplePaintedSurface(map.tiles[8]!)).toBeUndefined();
+  });
+
+  // The works layer installs the surface again on every rebuild of a map with a terrace on it. Each install used to
+  // drop every chunk's sampler, and the placements after it built them all again: 2.2 s of a 4.6 s turn-end sync at
+  // turn 130 (render speed pass, 2026-11-16). A chunk that has not changed keeps its sampler; a chunk whose triangles
+  // changed (a hill cut rewrites the index) builds a new one, so the heights always follow the ground.
+  it('keeps a chunk\'s sampler across installs until the chunk itself changes', () => {
+    const map = createMap({ width: 6, height: 4, terrain: 'grassland' });
+    map.tiles[8]!.hills = true;
+    const { renderMap, meshes } = buildFixture(map);
+    const tile = map.tiles[8]!, c = cellCenter(tile.col, tile.row);
+    const height = samplePaintedSurface(tile, .1, -.1)!;
+    const built = surfaceSamplerBuilds();
+    expect(built).toBeGreaterThan(0);
+    installPaintedSurface(map, renderMap, meshes);
+    expect(samplePaintedSurface(tile, .1, -.1)).toBe(height);
+    expect(surfaceSamplerBuilds()).toBe(built);
+    // Cut the chunk's faces away, as `paintedRelief.ts` does: the index changes in place and its version rises.
+    const chunk = meshes.find(mesh => {
+      const ray = new Raycaster(new Vector3(c.x + .1 - (mesh.parent?.position.x ?? 0), 10, c.z - .1), new Vector3(0, -1, 0));
+      return mesh.parent?.position.x === 0 && ray.intersectObject(new Mesh(mesh.geometry), false).length > 0;
+    })!;
+    const geometry = chunk.geometry;
+    if (!geometry.index) geometry.setIndex([...Array(geometry.getAttribute('position').count).keys()]);
+    const index = geometry.index!;
+    for (let i = 0; i < index.count; i += 3) { index.setX(i + 1, index.getX(i)); index.setX(i + 2, index.getX(i)); }
+    index.needsUpdate = true;
+    installPaintedSurface(map, renderMap, meshes);
+    expect(samplePaintedSurface(tile, .1, -.1)).toBeUndefined();
+    expect(surfaceSamplerBuilds()).toBeGreaterThan(built);
   });
 
   it('picks original tiles and reports the visible wrap copy, including indexed geometry', () => {

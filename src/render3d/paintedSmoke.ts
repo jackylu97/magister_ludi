@@ -23,6 +23,7 @@ import { type FogLevels, levelAt } from './fog3d';
 import { hashUnit } from './hash';
 import { VIEW3D } from './lookData';
 import { declareUniforms, shareUniforms } from './visualTestLook';
+import { cullWrapCopies } from './wrapCulling';
 
 const IDLE = VIEW3D.visualTest.idle;
 const ROOT3 = Math.sqrt(3);
@@ -106,19 +107,20 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
     });
     geometry.setAttribute('smokeSeed', new InstancedBufferAttribute(seeds, 2));
     mesh.instanceMatrix.needsUpdate = true;
-    // The puffs move in the shader, so the bounds three would measure are
-    // wrong; the layer is small and is simply never culled.
-    mesh.frustumCulled = false;
     mesh.castShadow = false;
     mesh.receiveShadow = false;
     const period = ROOT3 * state.map.width;
     for (const offset of [-period, 0, period]) {
       const copy = offset === 0 ? mesh : new InstancedMesh(geometry, this.material, 0);
-      if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.count = mesh.count; copy.frustumCulled = false; }
+      if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.count = mesh.count; }
       copy.position.x = offset;
       this.group.add(copy);
       this.meshes.push(copy);
     }
+    // The puffs move in the shader: they drift sideways, rise and grow. The
+    // bounds are widened by the farthest a puff can go, so each copy is culled
+    // like any other mesh (`wrapCulling.ts`).
+    cullWrapCopies(this.meshes, Math.abs(IDLE.smokeDrift) * 1.6 + IDLE.smokeRise + IDLE.smokeSize * 1.5 + .1);
   }
 
   private clear(): void {
