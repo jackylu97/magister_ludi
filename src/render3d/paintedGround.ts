@@ -120,6 +120,22 @@ function edgeHeight(prepared: GameMap, cell: number, a: Point, b: Point, normal:
   }
   return highest;
 }
+/**
+ * `edgeHeight` for one edge of a border plan, kept for each prepared map. An
+ * edge's ends and normal are fixed by its hex and its side, so the height is a
+ * fact of the board, like `borderHeight`. It is asked three times for each band
+ * of each edge (the edge and the edges either side), and it samples the ground
+ * twenty-seven times, so it was most of the border plan's time.
+ */
+const edgeHeights = new WeakMap<GameMap, Map<number, number>>();
+function edgeHeightOf(prepared: GameMap, edge: Edge): number {
+  let known = edgeHeights.get(prepared);
+  if (!known) { known = new Map(); edgeHeights.set(prepared, known); }
+  const key = edge.cell * 6 + edge.side;
+  let height = known.get(key);
+  if (height === undefined) { height = edgeHeight(prepared, edge.cell, edge.a, edge.b, edge.normal); known.set(key, height); }
+  return height;
+}
 function borderHeight(prepared: GameMap, cell: number): number {
   let known = borderHeights.get(prepared);
   if (!known) { known = new Map(); borderHeights.set(prepared, known); }
@@ -171,6 +187,8 @@ export function territoryRegion(owner: readonly (number | undefined)[], prepared
 /** The holes in each seat's land, as cell sets. Pure; exported for its test. */
 export function territoryHoles(owner: readonly (number | undefined)[], prepared: GameMap, holeMax: number): Map<number, Set<number>> {
   const holes = new Map<number, Set<number>>();
+  // Every pocket holds at least one hex, so with no room for one there is nothing to walk.
+  if (holeMax < 1) return holes;
   const seen = new Map<number, Set<number>>();
   const width = prepared.width;
   for (let cell = 0; cell < owner.length; cell++) {
@@ -219,13 +237,75 @@ export function planPaintedRoads(state: GameState, prepared: GameMap, organic: O
   const styleKey = organic ? `organic:${JSON.stringify(organic)}` : undefined;
   const memo = memoised(roadPlans.get(prepared), state, signature, styleKey);
   if (memo) return memo;
-  if (organic) {
-    const plan = planOrganicRoads(state, prepared, organic);
-    roadPlans.set(prepared, { state, signature, plan, style: styleKey });
-    return plan;
+  const plan = planRoadCells(state, prepared, organic, styleKey);
+  roadPlans.set(prepared, { state, signature, plan, style: styleKey });
+  return plan;
+}
+
+/**
+ * The road plan, kept one hex at a time.
+ *
+ * A hex's road marks depend on the prepared tile under it and its neighbours
+ * (fixed for a board), the style, and its links: which of its six neighbours
+ * are paved land hexes. Nothing else in the state reaches them. So each hex's
+ * marks are kept with the links they were drawn for, and a change plans again
+ * only the hexes whose links moved: the hex that was paved or unpaved, and its
+ * paved neighbours. Every other hex keeps the marks it had, the same objects.
+ * Planning the whole map again took about 600 ms at a turn end at turn 130.
+ *
+ * The plan comes out in cell order, as a full plan does, because the ground
+ * layer merges a region's ink in the order the plan lists it.
+ * `test/render/paintedRoadPlan.test.ts` holds the output equal to a full plan
+ * over a road laid, a road pillaged, a town founded and a change of owner.
+ */
+type RoadCells = { map: GameMap; style: string | undefined; cells: Map<number, { links: number; marks: Mark[] }> };
+const roadCells = new WeakMap<GameMap, RoadCells>();
+
+/** The links of a paved land hex, one bit for each direction; -1 for a hex that draws no road. */
+function roadLinks(state: GameState, prepared: GameMap, cell: number): number {
+  const original = state.map.tiles[cell]!;
+  if (original.road === undefined || water(original)) return -1;
+  const tile = prepared.tiles[cell]!;
+  let links = 0;
+  for (let d = 0; d < 6; d++) {
+    const other = neighbour(tile, prepared, d) as Tile | null;
+    if (!other) continue;
+    const next = state.map.tiles[other.row * prepared.width + other.col]!;
+    if (next.road !== undefined && !water(next)) links |= 1 << d;
   }
-  const result: GroundPlan = new Map();
+  return links;
+}
+
+function planRoadCells(state: GameState, prepared: GameMap, organic: OrganicRoadStyle | null, style: string | undefined): GroundPlan {
+  let kept = roadCells.get(prepared);
+  // A new map or a new style keeps nothing: the marks were drawn for another.
+  if (!kept || kept.map !== state.map || kept.style !== style) {
+    kept = { map: state.map, style, cells: new Map() };
+    roadCells.set(prepared, kept);
+  }
+  const links: [cell: number, links: number][] = [], stale: number[] = [];
   for (let cell = 0; cell < state.map.tiles.length; cell++) {
+    const mask = roadLinks(state, prepared, cell);
+    if (mask < 0) continue;
+    links.push([cell, mask]);
+    if (kept.cells.get(cell)?.links !== mask) stale.push(cell);
+  }
+  const fresh = organic ? planOrganicRoads(state, prepared, organic, stale) : planStraightRoads(state, prepared, stale);
+  const result: GroundPlan = new Map(), cells = new Map<number, { links: number; marks: Mark[] }>();
+  for (const [cell, mask] of links) {
+    const marks = fresh.get(cell) ?? kept.cells.get(cell)!.marks;
+    cells.set(cell, { links: mask, marks });
+    result.set(cell, marks);
+  }
+  // Only the paved hexes stay, so a pillaged road leaves nothing behind.
+  kept.cells = cells;
+  return result;
+}
+
+/** The plain road plan (switch 5 off) for the listed cells: a straight spoke to each linked edge. */
+function planStraightRoads(state: GameState, prepared: GameMap, cells: readonly number[]): GroundPlan {
+  const result: GroundPlan = new Map();
+  for (const cell of cells) {
     const original = state.map.tiles[cell]!, tile = prepared.tiles[cell]!;
     if (original.road === undefined || water(original)) continue;
     const c = centre(tile) as { x: number; z: number }, paths: Point[][] = [], decks: Mark[] = [];
@@ -255,7 +335,6 @@ export function planPaintedRoads(state: GameState, prepared: GameMap, organic: O
       ...decks,
     ]);
   }
-  roadPlans.set(prepared, { state, signature, plan: result });
   return result;
 }
 
@@ -295,11 +374,11 @@ export interface OrganicRoadStyle {
  * A road still reads as joined or not joined: a link is drawn exactly where the
  * old spoke was, and nowhere else.
  */
-function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoadStyle): GroundPlan {
+function planOrganicRoads(state: GameState, prepared: GameMap, style: OrganicRoadStyle, cells: readonly number[]): GroundPlan {
   const result: GroundPlan = new Map();
   const width = prepared.width;
   const bed = new Color(style.bed), core = new Color(style.core), plank = new Color(style.bridge), rail = new Color(style.rail);
-  for (let cell = 0; cell < state.map.tiles.length; cell++) {
+  for (const cell of cells) {
     const original = state.map.tiles[cell]!, tile = prepared.tiles[cell]!;
     if (original.road === undefined || water(original)) continue;
     const c = centre(tile) as { x: number; z: number };
@@ -563,7 +642,82 @@ function ribbonQuads(points: readonly Point[], half: number, offset = 0, wander 
   return quads;
 }
 
-type Edge = { cell: number; owner: number; a: Point; b: Point; ka: number; kb: number; normal: Point };
+type Edge = { cell: number; owner: number; /** Which of the hex's six edges, 0 to 5. */ side: number; a: Point; b: Point; ka: number; kb: number; normal: Point };
+
+/**
+ * The border plans, kept one edge at a time.
+ *
+ * A border edge's marks depend on the board (fixed), the style, the seats of
+ * the hexes near it and the seats' inks. So each plan keeps, for each edge, the
+ * marks it handed out and the hexes they went to, with the owner and outline
+ * arrays the plan was drawn from. The next plan compares those arrays with the
+ * new ones, and plans again only the edges near a hex whose seat changed
+ * (`BORDER_REACH`). Every other edge hands out the very marks it handed out
+ * before. The plan is put together edge by edge in the order a full plan walks
+ * them, so its hexes, their order and the order of each hex's marks are a full
+ * plan's: the ground layer merges a region's ink in that order.
+ * `test/render/paintedBorderPlan.test.ts` holds the output equal to a full plan
+ * over several changes. A full plan took about 570 ms at a turn end at turn 130.
+ */
+type Handed = [cell: number, mark: Mark][];
+type BorderKept = {
+  map: GameMap; players: GameState['players']; style: string | undefined;
+  owner: readonly (number | undefined)[]; region: readonly (number | undefined)[];
+  edges: Map<number, Handed>;
+};
+type BorderKeeping = { kept: BorderKept; last: BorderKept | null; near: Set<number> | null };
+const borderLines = new WeakMap<GameMap, BorderKept>();
+const borderTints = new WeakMap<GameMap, BorderKept>();
+
+/**
+ * How many hexes from a hex whose seat changed an edge's marks can move. An
+ * edge reads the seats of its own hex and of the hexes round its two corners
+ * (one hex away), and a draped band is handed to each hex of its seat that its
+ * bounds cross, which `spread` looks for up to three hexes away. Four leaves a
+ * hex to spare.
+ */
+const BORDER_REACH = 4;
+
+/**
+ * Starts a kept plan for the arrays given. With the last plan for the same map,
+ * players and style, it also says which hexes are near a change; with none,
+ * `near` is null and every edge is planned.
+ */
+function keepBorder(store: WeakMap<GameMap, BorderKept>, prepared: GameMap, state: GameState, style: string | undefined,
+  owner: readonly (number | undefined)[], region: readonly (number | undefined)[]): BorderKeeping {
+  const before = store.get(prepared);
+  const kept: BorderKept = { map: state.map, players: state.players, style, owner, region, edges: new Map() };
+  store.set(prepared, kept);
+  if (!before || before.map !== state.map || before.players !== state.players || before.style !== style) return { kept, last: null, near: null };
+  let frontier: number[] = [];
+  for (let cell = 0; cell < owner.length; cell++) if (owner[cell] !== before.owner[cell] || region[cell] !== before.region[cell]) frontier.push(cell);
+  const near = new Set(frontier);
+  for (let ring = 0; ring < BORDER_REACH && frontier.length; ring++) {
+    const next: number[] = [];
+    for (const cell of frontier) for (let d = 0; d < 6; d++) {
+      const other = neighbour(prepared.tiles[cell]!, prepared, d) as Tile | null;
+      if (!other) continue;
+      const index = other.row * prepared.width + other.col;
+      if (!near.has(index)) { near.add(index); next.push(index); }
+    }
+    frontier = next;
+  }
+  return { kept, last: before, near };
+}
+
+/**
+ * Hands one edge's marks to the plan: the ones it handed last time when no hex
+ * near it changed seat, else the ones `make` hands now. `set` tells apart the
+ * edge lists one plan walks (the lines, the pockets, the gaps).
+ */
+function handOut(result: GroundPlan, edge: Edge, set: number, prepared: GameMap, keeping: BorderKeeping,
+  make: (hand: (cell: number, mark: Mark) => void) => void): void {
+  const key = (set * prepared.tiles.length + edge.cell) * 6 + edge.side;
+  let handed = keeping.last && keeping.near && !keeping.near.has(edge.cell) ? keeping.last.edges.get(key) : undefined;
+  if (!handed) { const fresh: Handed = []; make((cell, mark) => { fresh.push([cell, mark]); }); handed = fresh; }
+  keeping.kept.edges.set(key, handed);
+  for (const [cell, mark] of handed) { const marks = result.get(cell) ?? []; marks.push(mark); result.set(cell, marks); }
+}
 /** Integer vertex identity joins concave corners and the cylindrical wrap seam. */
 export function planPaintedTerritory(state: GameState, prepared: GameMap, style: BorderStyle | null = null): GroundPlan {
   const signature = signTerritory(state);
@@ -597,7 +751,7 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap, style:
         const [u, v] = corners[d]!, [uu, vv] = corners[(d + 1) % 6]!;
         const a: Point = [c.x + u * apothem, c.z + v / 2], b: Point = [c.x + uu * apothem, c.z + vv / 2];
         const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const edge: Edge = { cell, owner: seat, a, b, ka: vertexKey(tile, d, seat), kb: vertexKey(tile, (d + 1) % 6, seat),
+        const edge: Edge = { cell, owner: seat, side: d, a, b, ka: vertexKey(tile, d, seat), kb: vertexKey(tile, (d + 1) % 6, seat),
           normal: [-(b[1] - a[1]) / length, (b[0] - a[0]) / length] };
         set.edges.push(edge); set.outgoing.set(edge.ka, edge); set.incoming.set(edge.kb, edge);
       }
@@ -609,7 +763,8 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap, style:
   const offsets = [TERRITORY_INSET, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH, TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH] as number[];
   const ruled = style?.kind === 'ruled' || style?.kind === 'wash';
   const inked = style?.kind === 'wash' ? [TERRITORY_INSET, TERRITORY_INSET + (style.inkWidth ?? .03)] : offsets;
-  for (const edge of lines.edges) {
+  const keeping = keepBorder(borderLines, prepared, state, styleKey, owner, region);
+  for (const edge of lines.edges) handOut(result, edge, 0, prepared, keeping, hand => {
     const previous = lines.incoming.get(edge.ka)!, next = lines.outgoing.get(edge.kb)!;
     const a = inked.map(d => rail(edge.a, previous.normal, edge.normal, d));
     const b = inked.map(d => rail(edge.b, edge.normal, next.normal, d));
@@ -620,19 +775,19 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap, style:
         // Straight along the edge at the hexes' own heights. A ruled line is
         // not clipped to the ground, so it belongs to its own hex only.
         const level = !ruled;
-        const own = level ? edgeHeight(prepared, edge.cell, edge.a, edge.b, edge.normal) : borderHeight(prepared, edge.cell);
-        const ha = Math.max(own, level ? edgeHeight(prepared, previous.cell, previous.a, previous.b, previous.normal) : borderHeight(prepared, previous.cell));
-        const hb = Math.max(own, level ? edgeHeight(prepared, next.cell, next.a, next.b, next.normal) : borderHeight(prepared, next.cell));
+        const own = level ? edgeHeightOf(prepared, edge) : borderHeight(prepared, edge.cell);
+        const ha = Math.max(own, level ? edgeHeightOf(prepared, previous) : borderHeight(prepared, previous.cell));
+        const hb = Math.max(own, level ? edgeHeightOf(prepared, next) : borderHeight(prepared, next.cell));
         const mark = marking(polygon, colors[band], level ? .013 : style!.ruledLift ?? .02) as Mark;
         mark.deck = 0; mark.heights = [ha, hb, hb, ha];
-        const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
+        hand(edge.cell, mark);
         continue;
       }
       // Concave mitres can cross into the next owned hex. Distribute by bounds,
       // then clip; assigning a whole edge to one hex would leave a broken join.
-      spread(prepared, polygon, region, edge.owner, result, shifted => marking(shifted, colors[band], .013) as Mark);
+      spread(prepared, polygon, region, edge.owner, hand, shifted => marking(shifted, colors[band], .013) as Mark);
     }
-  }
+  });
   territoryPlans.set(prepared, { state, signature, plan: result, style: styleKey });
   // The gaps inside an outline: an owned hex's edges toward a hex the outline
   // closed over. Only asked for with the style, for the faint gap line.
@@ -662,7 +817,7 @@ function rail(p: Point, a: Point, b: Point, distance: number): Point {
  * clips each to its own hex.
  */
 function spread(prepared: GameMap, polygon: Point[], inside: readonly (number | undefined)[], seat: number,
-  result: GroundPlan, make: (polygon: Point[], shift: number) => Mark): void {
+  hand: (cell: number, mark: Mark) => void, make: (polygon: Point[], shift: number) => Mark): void {
   const minRow = Math.max(0, Math.floor((Math.min(...polygon.map(p => p[1])) - 1) / 1.5));
   const maxRow = Math.min(prepared.height - 1, Math.ceil((Math.max(...polygon.map(p => p[1])) + 1) / 1.5));
   for (let row = minRow; row <= maxRow; row++) {
@@ -672,8 +827,7 @@ function spread(prepared: GameMap, polygon: Point[], inside: readonly (number | 
       const canonical = mod(col, prepared.width), cell = row * prepared.width + canonical;
       if (inside[cell] !== seat) continue;
       const shift = (canonical - col) * root3;
-      const mark = make(polygon.map(([x, z]) => [x + shift, z]), shift);
-      const marks = result.get(cell) ?? []; marks.push(mark); result.set(cell, marks);
+      hand(cell, make(polygon.map(([x, z]) => [x + shift, z]), shift));
     }
   }
 }
@@ -699,41 +853,51 @@ export function planPaintedTerritoryTint(state: GameState, prepared: GameMap, st
   const result: GroundPlan = new Map();
   if (!kept) return result;
   const ruled = style.kind === 'ruled' || style.kind === 'wash';
-  const band = (set: EdgeSet, inside: readonly (number | undefined)[], from: number, to: number, alpha: number, flat: boolean): void => {
-    for (const edge of set.edges) {
+  // With `level`, a gap line round a hill is laid on the ground like the glow,
+  // not drawn as a flat strip. A flat strip stands at the highest ground along
+  // its edge, and each corner rises to the next edge's height. Where a hill's
+  // ground climbs along an edge, the whole ring then stood at the hill's height,
+  // above the ground at the low end of each edge, and read as a second border
+  // lifted off the hex (the user, 2026-11-16). The line is only `gapWidth` wide
+  // and lies on the hex's own edge, so on the ground it cannot smear.
+  const draped = (e: Edge): boolean => !ruled && prepared.tiles[e.cell]!.hills === true;
+  const keeping = keepBorder(borderTints, prepared, state, styleKey, kept.owner, kept.region);
+  const band = (set: EdgeSet, index: number, inside: readonly (number | undefined)[], from: number, to: number, alpha: number, flat: boolean): void => {
+    for (const edge of set.edges) handOut(result, edge, index, prepared, keeping, hand => {
       const previous = set.incoming.get(edge.ka) ?? edge, next = set.outgoing.get(edge.kb) ?? edge;
       const polygon: Point[] = [rail(edge.a, previous.normal, edge.normal, from), rail(edge.b, edge.normal, next.normal, from),
         rail(edge.b, edge.normal, next.normal, to), rail(edge.a, previous.normal, edge.normal, to)];
-      if (flat && (ruled || style.level)) {
+      if (flat && (ruled || style.level) && !draped(edge)) {
         // A ruled gap line, straight and level like the border it belongs to. With `level` it runs at the ground's own height along the edge, so it does not smear down the side of a hill.
-        const height = (e: Edge): number => ruled ? borderHeight(prepared, e.cell) : edgeHeight(prepared, e.cell, e.a, e.b, e.normal);
+        const height = (e: Edge): number => ruled ? borderHeight(prepared, e.cell) : edgeHeightOf(prepared, e);
         const own = height(edge);
-        const ha = Math.max(own, height(previous)), hb = Math.max(own, height(next));
+        // A draped neighbour lies on its own ground, so it does not raise this strip's end.
+        const ha = draped(previous) ? own : Math.max(own, height(previous)), hb = draped(next) ? own : Math.max(own, height(next));
         const mark = marking(polygon, playerColor(state, edge.owner), ruled ? style.ruledLift ?? .02 : .013) as Mark;
         mark.deck = 0; mark.heights = [ha, hb, hb, ha];
         mark.fade = { a: edge.a, normal: edge.normal, from, to: from + 1e3, alpha };
-        const marks = result.get(edge.cell) ?? []; marks.push(mark); result.set(edge.cell, marks);
-        continue;
+        hand(edge.cell, mark);
+        return;
       }
-      spread(prepared, polygon, inside, edge.owner, result, (shifted, shift) => {
+      spread(prepared, polygon, inside, edge.owner, hand, (shifted, shift) => {
         const mark = marking(shifted, playerColor(state, edge.owner), style.tintLift) as Mark;
         // A flat line keeps its alpha all the way across: its fade ends far away.
         mark.fade = { a: [edge.a[0] + shift, edge.a[1]], normal: edge.normal, from, to: flat ? from + 1e3 : to, alpha };
         return mark;
       });
-    }
+    });
   };
   // The wash sits against its one thin ink line; the other styles' tint sits
   // inside their two-ink line.
   const wash = style.kind === 'wash';
   const from = wash ? TERRITORY_INSET + (style.inkWidth ?? .03) : TERRITORY_INSET + TERRITORY_PRIMARY_WIDTH + TERRITORY_SECONDARY_WIDTH;
-  band(kept.lines, kept.region, from, from + (wash ? style.washWidth ?? .2 : style.tintWidth), wash ? style.washAlpha ?? .3 : style.tintAlpha, false);
-  if (kept.pockets && kept.pocket) band(kept.pockets, kept.pocket, 0, style.gapWidth, style.gapAlpha, true);
+  band(kept.lines, 0, kept.region, from, from + (wash ? style.washWidth ?? .2 : style.tintWidth), wash ? style.washAlpha ?? .3 : style.tintAlpha, false);
+  if (kept.pockets && kept.pocket) band(kept.pockets, 1, kept.pocket, 0, style.gapWidth, style.gapAlpha, true);
   // The gap's own glow: the border's inward glow at a smaller size, so the gap reads as an edge of the land and not as a stray line.
   if (kept.gaps && (style.gapGlowWidth ?? 0) > 0) {
     // Not on a hill: draped down a hill's steep side, the band becomes a tall dark patch.
     const flatLand = kept.owner.map((seat, cell) => prepared.tiles[cell]!.hills ? undefined : seat);
-    band(kept.gaps, flatLand, 0, style.gapGlowWidth!, style.gapGlowAlpha ?? 0, false);
+    band(kept.gaps, 2, flatLand, 0, style.gapGlowWidth!, style.gapGlowAlpha ?? 0, false);
   }
   tintPlans.set(prepared, { state, signature, plan: result, style: styleKey });
   return result;

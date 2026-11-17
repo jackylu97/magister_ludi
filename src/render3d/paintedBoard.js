@@ -52,6 +52,10 @@ function releaseAfterUpload(geometry) {
 
 /** Build only from a real map and ready assets. No study plans, DOM or loaders. */
 export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null) {
+  // `progress(done, total, stage)` names each step as it starts, so a long
+  // build on a slow machine shows that it goes on (the worker forwards these to
+  // the loading sheet). Only the land step counts: `done` of `total` chunks.
+  if (!preparedMap) progress(0, 0, 'shape');
   const renderMap = preparedMap || prepareTerrainMap(map, { wrap: true });
   const group = new T.Group();
   group.name = 'painted-board';
@@ -66,10 +70,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const pickMeshes = [], nearProps = [], farProps = [], visibilityBatches = [];
   const sources = new Map(), instanceBases = new WeakMap();
   const chunks = new Map(), mapProps = new Map(), mapSurfaces = new Map();
+  if (!prepared) progress(0, 0, 'mountains');
   const ranges = prepared ? null : createMountainRanges(renderMap);
   // The thinner rivers of the visual test version paint a pale line on each
   // bank (`setRiverStyle` in `surface.js`; the worker is told the style).
   const thinRivers = riverStyle(), riverKnobs = VIEW3D.visualTest.rivers;
+  if (!prepared) progress(0, 0, 'colours');
   const painter = prepared ? null : createTerrainPainter(renderMap, ranges), waterPainter = prepared ? null
     : createWaterPainter(renderMap, {bank: thinRivers && !thinRivers.organic ? {color: riverKnobs.bank, inner: riverKnobs.bankInner, outer: riverKnobs.bankOuter} : null,
       river: thinRivers && !thinRivers.organic && VIEW3D.visualTest.northStar && riverKnobs.water ? {channel: riverKnobs.water, light: riverKnobs.light} : null,
@@ -79,14 +85,17 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const seaKnobs = VIEW3D.visualTest.sea;
   // The organic rivers of switch 4: one painted ribbon a run, clipped onto
   // each bank hex's ground and pushed with the water, so no draw call is added.
+  if (!prepared) progress(0, 0, 'rivers');
   const organicRivers = !prepared && thinRivers?.organic ? createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers) : null;
   // The free river's cut: each hex near the river is told the river's line
   // before any ground is meshed, so the ground drops to the water there.
   if (organicRivers) for (const tile of renderMap.tiles) { const carve = organicRivers.carve(tile); if (carve) tile.riverCarve = carve; else delete tile.riverCarve; }
   // A free coast: each hex beside the shore is told the waterline before any
   // ground is meshed, so the ground slopes under the water along it.
+  if (!prepared) progress(0, 0, 'coast');
   const freeCoast = !prepared && coastStyle() ? createFreeCoast(renderMap, VIEW3D.visualTest.coast, organicRivers?.mouths ?? []) : null;
   if (!prepared) for (const tile of renderMap.tiles) { const coast = freeCoast?.carve(tile); if (coast) tile.coast = coast; else delete tile.coast; }
+  if (!prepared) progress(0, 0, 'sea');
   const seaField = prepared ? null : createSeaField(renderMap, {shoreReach: seaKnobs.shoreReach, edgeReach: seaKnobs.edgeReach, wraps: true,
     coast: freeCoast, cutRivers: !thinRivers?.organic});
   const ground = materials.ground, water = materials.water, features = materials.features;
@@ -357,6 +366,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       if (!chunks.has(key)) chunks.set(key, []); chunks.get(key).push(tile);
     }
     let completed = 0;
+    progress(0, chunks.size, 'land');
     for (const tiles of chunks.values()) {
       const surfaces = new Map(), farSurfaces = new Map(), props = new Map();
       let cell = 0, activeTile;
@@ -549,8 +559,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         }
       }
       propMeshes(props, nearProps, false);
-      progress(++completed, chunks.size);
+      progress(++completed, chunks.size, 'land');
     }
+    progress(0, 0, 'overview');
     for (const batches of mapSurfaces.values())
       for (const [material, list] of batches) batchMesh(material, list, false, 'far');
     for (const batches of mapProps.values()) propMeshes(batches, farProps, true);

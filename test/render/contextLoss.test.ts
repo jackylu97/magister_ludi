@@ -86,7 +86,7 @@ describe('the painted rebuild', () => {
       paintedLook: {}, state,
       tearDownPaintedLook: vi.fn(() => { order.push('tear down'); }),
       installPaintedLook: vi.fn(async (daylight: string) => { order.push(`install ${daylight}`); return true; }),
-      preparePaintedMap: vi.fn(async (map: unknown, progress: (n: number) => void) => { order.push('prepare'); expect(map).toBe(state.map); progress(50); await prepared; }),
+      preparePaintedMap: vi.fn(async (map: unknown, progress: (n: number, stage: string) => void) => { order.push('prepare'); expect(map).toBe(state.map); progress(50, 'land'); await prepared; }),
       rebuildBoard: vi.fn((map: unknown) => { order.push('board'); expect(map).toBe(state.map); }),
       setGameState: vi.fn(function (this: Internals, next: unknown) { order.push(`state (was ${this.state === null ? 'null' : 'set'})`); this.state = next; }),
     });
@@ -103,7 +103,8 @@ describe('the painted rebuild', () => {
     await Promise.resolve(); await Promise.resolve();
     // Still rebuilding: nothing may draw the half-built board.
     expect(f.r.contextLost).toBe(true);
-    expect(f.heard.progress).toHaveBeenCalledWith(50);
+    // The step goes with the percentage, so the loading sheet can name it.
+    expect(f.heard.progress).toHaveBeenCalledWith(50, 'land');
     f.release();
     await done;
     expect(f.order).toEqual(['tear down', 'install golden', 'prepare', 'board', 'state (was null)', 'restored']);

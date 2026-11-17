@@ -71,6 +71,12 @@ export interface PaintedBoard extends BuiltBoard {
   suppressTile(cell: number, scope: 0 | 1 | 2): boolean;
   unsuppressTile(cell: number): boolean;
 }
-export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number) => void, preparedMap?: GameMap | null): PaintedBoard;
+/**
+ * The steps of a board build, in order, as `progress` names them: the hills
+ * shaped, the mountain ranges, the colours, the rivers, the coast, the sea, the
+ * land (the one step that counts, chunk by chunk), and the far view.
+ */
+export type PaintedBuildStage = 'shape' | 'mountains' | 'colours' | 'rivers' | 'coast' | 'sea' | 'land' | 'overview';
+export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage) => void, preparedMap?: GameMap | null): PaintedBoard;
 /** The surface attributes whose arrays are dropped after their first upload. */
 export const RELEASED_AFTER_UPLOAD: readonly string[];

@@ -25,6 +25,7 @@ import {
   loadingRows,
   loadingStageLabel,
   loadingStages,
+  paintingDetail,
   refusalSentence,
   replayDetail,
 } from '../../src/ui/loadingSheet';
@@ -65,6 +66,16 @@ describe('the stages a journey walks', () => {
     // Only the running stage carries a bar and a detail; the rest draw neither.
     expect(rows.map((row) => row.fraction)).toEqual([null, null, 0.4, null]);
     expect(rows.filter((row) => row.detail !== '')).toHaveLength(0);
+  });
+
+  it('names the step the terrain worker has reached, in a first-time player’s words', () => {
+    // The build has no time limit, so a slow one shows each step as it starts.
+    expect(paintingDetail('rivers')).toBe('the rivers');
+    expect(paintingDetail('land')).toBe('the land');
+    expect(paintingDetail('packing')).toBe('finishing');
+    expect(paintingDetail(undefined)).toBe('');
+    const rows = loadingRows(loadingStages('new'), 'painting', 0, paintingDetail('coast'));
+    expect(rows[0]!.detail).toBe('the coast');
   });
 
   it('counts the replay in turns, against the turn the file’s label expects', () => {
@@ -215,7 +226,7 @@ describe('the sheet on the page', () => {
     expect(main).toContain('loading.replayed(turn, expected)');
     // The third and fourth: the terrain worker's own percentage, which used to
     // be written into the Begin button's label and is now the sheet's.
-    expect(main).toContain('function terrainBuildProgress(percent: number): void {\n  loading.painted(percent);\n}');
+    expect(main).toContain('function terrainBuildProgress(percent: number, stage: PaintedBuildReport): void {\n  loading.painted(percent, stage);\n}');
     expect(main).not.toContain('`Painting the world… ${percent}%`');
   });
 

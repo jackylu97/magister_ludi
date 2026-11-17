@@ -15,12 +15,20 @@ import type { TerrainId } from '../sim/terrainData';
  *
  * Render on demand
  * ----------------
- * A frame is drawn only when something changed: the camera moved, the selection
+ * A frame is drawn when something changed: the camera moved, the selection
  * changed, the board was rebuilt, a piece is mid-walk, or the camera is mid-pan
- * to a player's units. Idle cost is one `requestAnimationFrame` that returns
- * immediately. A 4X spends most of its time with a still board and a thinking
- * player, and burning a GPU to redraw an unchanged diorama sixty times a second
- * is exactly the kind of thing that makes a browser game hot to the touch.
+ * to a player's units. A 4X spends most of its time with a still board and a
+ * thinking player, so the loop does not redraw an unchanged board at the
+ * display's rate.
+ *
+ * The board's own motion is the exception. While the painted look's sea or its
+ * idle motion (smoke, birds, sails, herds, the yield light) is on, the loop also
+ * draws `visualTest.motionFps` full frames a second for that motion alone, for
+ * as long as the game is open. With the menu's option to stop the motion when
+ * idle (`setMotionRest`), those frames stop `visualTest.motionRestSeconds` after
+ * the last input or change, and the idle cost is then one
+ * `requestAnimationFrame` that returns at once. The motion's clock pauses while
+ * it rests, so the motion goes on from where it stopped. See `loop`.
  */
 
 import {
@@ -138,7 +146,7 @@ import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
 // @ts-expect-error The browser helper is JavaScript, with no standalone declaration.
 import { shadowTargetBytes as untypedShadowTargetBytes } from './paintedShadows.js';
 import { PAINTED_CHART } from './paintedFogLook';
-import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
+import { buildPaintedBoardAsync, type PaintedBuildMetrics, type PaintedBuildReport } from './paintedBoardAsync.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
 import { PaintedCityLayer } from './paintedCities';
@@ -165,6 +173,8 @@ import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
 
 const DEG = Math.PI / 180;
+/** The inputs that wake a resting motion (`setMotionRest`). A camera move or a game change wakes it through the frame it asks for. */
+const ACTIVITY_EVENTS = ['pointermove', 'pointerdown', 'wheel', 'keydown'] as const;
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const PAINTED_IMPROVEMENTS = new Set<ImprovementId>(PAINTED_WORK_IMPROVEMENTS);
@@ -303,7 +313,7 @@ export interface GraphicsResetListener {
   /** The context is gone. Nothing draws until `restored` or `failed`. */
   lost(): void;
   /** The rebuild's progress, 0 to 100, while the board is rebuilt off-thread. */
-  progress(percent: number): void;
+  progress(percent: number, stage: PaintedBuildReport): void;
   /** The board is back and drawing. */
   restored(): void;
   /** The rebuild failed; the board stays blank until the page is reloaded. */
@@ -428,8 +438,29 @@ export class Renderer3D implements MapView {
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
   private lastMotionFrame = 0;
-  /** When the last frame drawn for any reason but motion was drawn: what `visualTest.motionRestSeconds` counts from. */
-  private lastActiveFrame = 0;
+  /**
+   * When the player last gave input (a pointer move or press, a wheel turn, a
+   * key) or the loop last drew a frame for a reason other than motion. The
+   * rest of `visualTest.motionRestSeconds` counts from it.
+   */
+  private lastActivity = 0;
+  /** The menu's option to stop the motion when idle. Off by default. See `setMotionRest`. */
+  private motionRest = false;
+  /** When the last frame of any kind was drawn. */
+  private lastDrawn = 0;
+  /**
+   * While the motion rests: when the last frame before the rest was drawn, so
+   * the clock can go on from that frame's time when the motion wakes. Null
+   * while the motion runs.
+   */
+  private restingSince: number | null = null;
+  /**
+   * Milliseconds the motion has rested in all, taken off the motion's clock.
+   * It stays 0 while the option is off, so the clock is the page's own.
+   */
+  private restedMs = 0;
+  /** The window's input listener. Bound once, so `dispose` removes the same function. */
+  private readonly onActivity = (): void => this.noteActivity();
   private paintedUnits: PaintedUnitKit | null = null;
   private readonly walkerModels = new Map<number, PaintedUnitModel>();
   private readonly unitOutlines = new Map<number, MeshBasicMaterial>();
@@ -647,6 +678,9 @@ export class Renderer3D implements MapView {
     // time `onContextRestored` runs, three has rebuilt its internal state.
     canvas.addEventListener('webglcontextlost', this.onContextLost);
     canvas.addEventListener('webglcontextrestored', this.onContextRestored);
+    // Any input wakes a resting motion, over the board or over a panel. On the
+    // window, because the panels cover parts of the canvas. See `setMotionRest`.
+    if (typeof window !== 'undefined') for (const type of ACTIVITY_EVENTS) window.addEventListener(type, this.onActivity, { passive: true, capture: true });
     // No tone mapping: the palette is already muted, and a filmic curve would
     // pull the highlights grey and undo the work.
     this.renderer.shadowMap.enabled = this.shadows;
@@ -765,7 +799,7 @@ export class Renderer3D implements MapView {
   }
 
   /** Prepare off-thread before handing a new game to the synchronous layers. */
-  async preparePaintedMap(map: GameMap, onProgress?: (percent: number) => void): Promise<void> {
+  async preparePaintedMap(map: GameMap, onProgress?: (percent: number, stage: PaintedBuildReport) => void): Promise<void> {
     this.boardBuild?.abort();
     this.preparedBoard?.board.dispose(); this.preparedBoard = null;
     if (!this.paintedLook || !this.running) return;
@@ -1115,6 +1149,20 @@ export class Renderer3D implements MapView {
    */
   setClock(seconds: number | null): void { this.fixedClock = seconds; this.redraw(); }
   private fixedClock: number | null = null;
+
+  /**
+   * The menu's option to stop the board's motion when idle (the user,
+   * 2026-11-17: "Motion stopping after a few seconds is fine"). On, the
+   * motion frames stop `visualTest.motionRestSeconds` after the last input or
+   * change, and start again at the next one. Off (the default), the motion
+   * runs for as long as the game is open. The toggle itself counts as input,
+   * so turning the option on never stops the motion at once.
+   */
+  setMotionRest(on: boolean): void { this.motionRest = on; this.noteActivity(); }
+  get motionRestOn(): boolean { return this.motionRest; }
+
+  /** The player gave input: a resting motion starts again on the next display frame. */
+  noteActivity(): void { this.lastActivity = performance.now(); }
 
   /** Opt-in art review; never adds a building or changes the command log. */
   setCityWallPreview(enabled: boolean): void {
@@ -4241,17 +4289,25 @@ export class Renderer3D implements MapView {
     // a time uniform on geometry that is already there, so a frame drawn for it
     // rebuilds nothing. It is drawn at `visualTest.motionFps`, not at the
     // display's rate, because everything that moves here moves slowly.
-    // `visualTest.motionRestSeconds`, when above 0, stops the motion frames
-    // that long after the last frame drawn for another reason, so a board left
-    // alone costs nothing. It is a choice for the user and is 0 (off) by default.
-    const rest = VIEW3D.visualTest.motionRestSeconds;
-    const awake = !(rest > 0) || now - this.lastActiveFrame < rest * 1000;
+    // With the menu's option on (`setMotionRest`), the motion frames stop
+    // `visualTest.motionRestSeconds` after the last input or the last frame
+    // drawn for another reason, so a board left alone costs nothing. The
+    // option is off by default, and 0 seconds never rests.
+    const rest = this.motionRest ? VIEW3D.visualTest.motionRestSeconds : 0;
+    const awake = !(rest > 0) || now - this.lastActivity < rest * 1000;
     const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('idle')) && awake
       && now - this.lastMotionFrame >= 1000 / Math.max(1, VIEW3D.visualTest.motionFps);
     if (moving) this.lastMotionFrame = now;
     const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || revealing;
+    // The motion has gone to rest: keep the time of the last frame drawn, which
+    // is the time the motion's clock stopped at.
+    if (!awake && this.restingSince == null) this.restingSince = this.lastDrawn;
     if (!moving && !asked) return;
-    if (asked) this.lastActiveFrame = now;
+    if (asked) this.lastActivity = now;
+    // The motion wakes: the time it rested comes off its clock, so the first
+    // frame shows the motion where the last frame before the rest left it.
+    if (this.restingSince != null) { this.restedMs += now - this.restingSince; this.restingSince = null; }
+    this.lastDrawn = now;
 
     const refreshState = this.stateDirty;
     this.stateDirty = false;
@@ -4283,7 +4339,8 @@ export class Renderer3D implements MapView {
       // on screen instead of flashing the near one.
       this.paintedBoard?.updateDetail(pixels);
       this.paintedLook.setContactDetail(pixels);
-      const clock = this.fixedClock ?? now / 1000;
+      // The page's clock less the time the motion has rested (0 while the option is off).
+      const clock = this.fixedClock ?? (now - this.restedMs) / 1000;
       this.paintedLook.updateTime(clock);
       // The visual test version's clock and the pins' size for this zoom
       // (switches 1, 6 and 8). Two number writes; nothing is rebuilt.
@@ -4390,7 +4447,7 @@ export class Renderer3D implements MapView {
       if (generation !== this.recoveries) return;
       const map = this.state?.map ?? null;
       if (map) {
-        await this.preparePaintedMap(map, percent => this.contextListener?.progress(percent));
+        await this.preparePaintedMap(map, (percent, stage) => this.contextListener?.progress(percent, stage));
         if (generation !== this.recoveries || !this.running) return;
         // Whatever map is current now: a different one (a load that landed
         // during the rebuild) is built on the main thread by `rebuildBoard`.
@@ -4440,6 +4497,7 @@ export class Renderer3D implements MapView {
     this.running = false;
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
+    if (typeof window !== 'undefined') for (const type of ACTIVITY_EVENTS) window.removeEventListener(type, this.onActivity, { capture: true });
     this.unwatchPixelRatio();
     this.boardBuild?.abort(); this.boardBuild = null;
     this.preparedBoard?.board.dispose(); this.preparedBoard = null;

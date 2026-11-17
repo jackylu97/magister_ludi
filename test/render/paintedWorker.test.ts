@@ -113,7 +113,7 @@ describe('painted worker transfer', () => {
     expect(factory).not.toHaveBeenCalled();
   });
 
-  it.each(['error','messageerror','build','post','timeout'])('releases workers on %s failure instead of silently blocking on fallback', async mode => {
+  it.each(['error','messageerror','build','post'])('releases workers on %s failure instead of silently blocking on fallback', async mode => {
     vi.useFakeTimers();
     const {map,assets,materials} = fixture(), worker = fakeWorker();
     if (mode === 'post') vi.mocked(worker.postMessage).mockImplementation(() => { throw new Error('post failed'); });
@@ -122,7 +122,35 @@ describe('painted worker transfer', () => {
     if (mode === 'error') worker.onerror?.call(worker,{message:'worker failed',preventDefault(){}} as ErrorEvent);
     if (mode === 'messageerror') worker.onmessageerror?.call(worker,{} as MessageEvent);
     if (mode === 'build') worker.onmessage?.call(worker,{data:{type:'error',message:'build failed'}} as MessageEvent);
-    if (mode === 'timeout') await vi.advanceTimersByTimeAsync(120_000);
     await rejected; expect(worker.terminate).toHaveBeenCalledOnce(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // There was a fixed limit of 120 s, and a busy machine sent the player back
+  // to the title with no game. A slow build is not a failure: only an error is.
+  it('has no time limit: a build that takes many minutes still lands, and passes on every step it reports', async () => {
+    vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance']});
+    const {map,assets,materials} = fixture(), worker = fakeWorker();
+    const reports: [number, string][] = [];
+    const pending = buildPaintedBoardAsync(map,assets,materials,true,{workerFactory:() => worker, onProgress:(percent, stage) => reports.push([percent, stage])});
+    const settled = vi.fn(); pending.then(settled, settled);
+    expect(vi.getTimerCount()).toBe(0);
+    // Ten silent minutes on one step, then the land step counts, slowly.
+    worker.onmessage?.call(worker,{data:{type:'progress',percent:0,stage:'shape'}} as MessageEvent);
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    for (const percent of [0, 50, 100]) {
+      worker.onmessage?.call(worker,{data:{type:'progress',percent,stage:'land'}} as MessageEvent);
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+    }
+    expect(settled).not.toHaveBeenCalled();
+    expect(worker.terminate).not.toHaveBeenCalled();
+    expect(reports).toEqual([[0,'shape'],[0,'land'],[50,'land'],[100,'land']]);
+    // The worker's real result: a board built here, packed as the worker packs it.
+    const reference = buildPaintedBoard(map,assets,materials); owned.push(reference);
+    const kit = packPaintedKit(assets,materials), batches = packPaintedBatches(reference.exportBatches(), kit.bindings);
+    worker.onmessage?.call(worker,{data:{type:'complete',batches,terrain:packTerrainMap(reference.renderMap),buildMs:1}} as MessageEvent);
+    const {board, metrics} = await pending; owned.push(board);
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(metrics.longestSilenceMs).toBeGreaterThanOrEqual(10 * 60_000);
+    expect(metrics.stageMs?.shape).toBeGreaterThanOrEqual(10 * 60_000);
   });
 });
