@@ -667,3 +667,11 @@ intriguing aspect about the game to people"*
   would lok like on smaller screens?"* Layout B (the treaty desk) is the base.
   The next drawing shows it at smaller window sizes. The leader screen (SS9b)
   is approved: *"the leaader screen looks great, approved"*.
+
+- **The orders screen, third round (2026-11-17).** Round two page:
+  https://claude.ai/artifact/GuJDZkFbEvGKmDDzZz1gtT. The user: *"i like A for
+  the orders screen, but not a strong preference. The biggest thing missing is a
+  spot to see the effects of your cards. THat should be fairly prominent once
+  the card is played to see its effect."* Read as: the first direction (the
+  hand) is the base, held loosely. A played card's effect must be easy to see
+  on the table, prominently, without lifting each card.
