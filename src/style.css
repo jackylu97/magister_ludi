@@ -21787,12 +21787,33 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
-/* --- your leader ------------------------------------------------------- */
+/* --- your leader (batch SS9b: the sheet fits the window) -------------------
+   The user, 2026-11-17: "the leader screen could use some work, it's too
+   large and gets cut off currently". The sheet is capped at the window like
+   every parchment sheet, and its body is now the region that scrolls, so
+   nothing runs under the window's edge and the × in the head stays in reach.
+   It is also more compact, in the Scholar's Study language: hairline rules in
+   place of the heavy ink boxes, the two rules and the two uniques side by side,
+   and four type steps (17 px Fraunces for the two titles, 14 px Fraunces for a
+   rule's name, 13 px for a clause, 12 px for notes and figures). Every rule is
+   under `#leader-overlay`, because the landing's civ step shares some classes. */
+/* The sheet's own class, as the Reliquary's: the cap stays the paper's one rule
+   (`.statecraft-overlay .statecraft-sheet`), and this only sets the width. */
+#leader-overlay .leader-sheet {
+  width: min(1120px, 100%);
+}
+
+#leader-overlay .leader-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Room for the scroll bar, so it never sits on the ledger's edge. */
+  padding-right: 4px;
+}
 
 .leader-sheet-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
+  gap: 16px 24px;
   align-items: start;
 }
 
@@ -21804,13 +21825,36 @@ body.compendium-page {
 
 .leader-held {
   display: grid;
-  gap: 10px;
 }
 
+/* Each block is a ruled section of the page, not a box (the boards' rule). */
 .leader-hold {
-  padding: 10px 12px;
-  background: var(--parchment);
-  border: var(--border-thin) solid var(--ink);
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.leader-held > .leader-hold:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* Two blocks side by side: the two rules, then the two uniques. One column on a
+   narrow window, where each would be too thin to read. */
+.leader-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 20px;
+  border-top: 1px solid var(--rule);
+}
+
+.leader-pair > .leader-hold {
+  border-top: 0;
+}
+
+@media (min-width: 1000px) {
+  .leader-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* A row not yet reached is greyed whole: it is a promise rather than a holding,
@@ -21819,35 +21863,46 @@ body.compendium-page {
   opacity: 0.62;
 }
 
+#leader-overlay .eyebrow {
+  margin: 0;
+}
+
 /* The figure's name with the seat's canton beside it (batch H7): the landing's
-   canton, at the landing's size, on the sheet that reads the choice back. */
+   canton, smaller, on the sheet that reads the choice back. */
 .leader-hold-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 4px;
+  gap: 10px;
 }
 
 .leader-hold-head .leader-canton {
   flex: 0 0 auto;
-  width: 24px;
-  height: 28px;
+  width: 20px;
+  height: 24px;
 }
 
 .leader-hold-name {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 18px;
   margin: 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-/* A rule's own title, over its clauses. */
+/* A rule's own name, over its clauses. */
 .leader-hold-title {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 1.15;
-  margin: 1px 0 5px;
+  margin: 2px 0 4px;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+#leader-overlay .leader-hold-clauses {
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 /* The two inks the board flies for this seat, said in the row's own words with
@@ -21856,14 +21911,14 @@ body.compendium-page {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 4px 0 0;
-  font-size: 12.5px;
+  margin: 2px 0 0 30px;
+  font-size: 12px;
   color: var(--ink-soft);
 }
 
 .leader-ink-chip {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border: 1px solid var(--ink);
   border-radius: 2px;
   background: var(--chip-ink, var(--parchment));
@@ -21872,11 +21927,11 @@ body.compendium-page {
 /* What a rule is putting in the books this turn — the ledger's own lines,
    gathered under the rule that carries them. A label, and its figure right. */
 .leader-now {
-  margin-top: 7px;
-  border-top: 1px solid var(--rule);
-  padding-top: 6px;
   display: grid;
-  gap: 3px;
+  gap: 2px;
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--rule);
 }
 
 .leader-now-line {
@@ -21885,7 +21940,7 @@ body.compendium-page {
   justify-content: space-between;
   gap: 10px;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .leader-now-label {
@@ -21898,31 +21953,34 @@ body.compendium-page {
   white-space: nowrap;
 }
 
+#leader-overlay .leader-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
 .leader-now > .leader-note {
   margin: 0;
-  font-size: 12.5px;
 }
 
 /* The row's own line, with the roster's name drawn as a keyword. */
 .leader-unique-line {
-  margin: 1px 0 0;
-  font-size: 14px;
-}
-
-.leader-unique > .leader-note {
-  font-size: 12.5px;
+  margin: 2px 0 0;
+  font-size: 13px;
 }
 
 /* The towns the figure founds, in its own order; a name already standing is
    inked solid, the rest wait. */
-.leader-cities {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
+#leader-overlay .leader-cities {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  font-size: 12.5px;
+  gap: 2px 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--ink-faint);
 }
 
@@ -21931,17 +21989,27 @@ body.compendium-page {
   font-weight: 600;
 }
 
+/* What the leader gives this turn: the right column, set off by a hairline. */
 .leader-ledger {
-  padding: 12px 14px;
-  background: var(--parchment);
-  border: var(--border-thin) solid var(--ink);
+  padding: 0 0 0 24px;
+  border-left: 1px solid var(--rule);
+}
+
+@media (max-width: 899px) {
+  .leader-ledger {
+    padding: 12px 0 0;
+    border-top: 1px solid var(--rule);
+    border-left: 0;
+  }
 }
 
 .leader-ledger-title {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 20px;
   margin: 2px 0 8px;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .leader-ledger-table {
@@ -21950,35 +22018,41 @@ body.compendium-page {
   font-size: 13px;
 }
 
+/* The column heads in the boards' small capitals, as the Ledger's tables. */
 .leader-ledger-table th {
-  text-align: left;
-  font-family: var(--face-num);
+  padding: 0 3px 5px;
+  border-bottom: 1px solid var(--ink);
+  font-family: var(--face-name);
+  font-size: 13px;
   font-weight: 500;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
+  text-align: left;
   color: var(--ink-soft);
-  border-bottom: var(--border-thin) solid var(--ink);
-  padding: 5px 3px;
 }
 
 .leader-ledger-table th.num,
-.leader-ledger-figure {
+.leader-ledger-table td.num {
   text-align: right;
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
+.leader-ledger-table th.num {
+  font-family: var(--face-name);
+}
+
 .leader-ledger-table td {
-  padding: 6px 3px;
+  padding: 4px 3px;
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
 
 .leader-ledger-total td {
+  padding-top: 6px;
+  border-top: 3px double var(--ink);
   border-bottom: 0;
-  border-top: var(--border-thin) solid var(--ink);
   font-weight: 600;
 }
 

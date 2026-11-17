@@ -57,6 +57,7 @@ import { element } from './dom';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
+import { setYieldText } from './yieldMark';
 
 /**
  * The word the evaluator writes at the head of every line a figure pays
@@ -405,7 +406,7 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
       for (const line of row.lines) {
         const item = element('p', 'leader-now-line');
         item.append(element('span', 'leader-now-label', line.source));
-        item.append(element('span', 'num leader-now-figure', lineFigure(line)));
+        item.append(yieldFigure('span', 'num leader-now-figure', lineFigure(line)));
         now.append(item);
       }
     }
@@ -448,11 +449,22 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     return bagText(line.yields) || '—';
   }
 
+  /**
+   * A figure with the yield glyphs drawn as the interface's marks
+   * (`setYieldText`), as the top bar and the Ledger draw them, rather than as
+   * the emoji the glyph table holds (batch SS9b).
+   */
+  function yieldFigure(tag: 'span' | 'td', className: string, text: string): HTMLElement {
+    const node = element(tag, className);
+    setYieldText(node, text);
+    return node;
+  }
+
   /** One ledger row: the label, and the figure it puts in the books this turn. */
   function drawLedgerLine(line: LeaderLedgerLine): HTMLElement {
     const item = element('tr', 'leader-ledger-row');
     item.append(element('td', 'leader-ledger-source', line.source));
-    item.append(element('td', 'num leader-ledger-figure', lineFigure(line)));
+    item.append(yieldFigure('td', 'num leader-ledger-figure', lineFigure(line)));
     return item;
   }
 
@@ -480,10 +492,17 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
 
     const sheet = element('div', 'leader-sheet-grid');
 
+    // The two rules side by side, then the two uniques side by side (batch
+    // SS9b): the same blocks in the same order, in half the height, so the
+    // sheet fits a 720 px window with the towns still in view.
     const held = element('section', 'leader-held');
     held.append(drawHead(state, seat));
-    leaderAbilityRows(state, seat).forEach((row, at) => held.append(drawAbility(row, at)));
-    for (const row of leaderUniqueRows(state, seat)) held.append(drawUnique(row));
+    const rules = element('div', 'leader-pair');
+    leaderAbilityRows(state, seat).forEach((row, at) => rules.append(drawAbility(row, at)));
+    held.append(rules);
+    const uniques = element('div', 'leader-pair');
+    for (const row of leaderUniqueRows(state, seat)) uniques.append(drawUnique(row));
+    held.append(uniques);
     held.append(drawCities(leaderCityRows(state, seat)));
     sheet.append(held);
 
@@ -510,7 +529,7 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
       for (const line of lines) table.append(drawLedgerLine(line));
       const total = element('tr', 'leader-ledger-total');
       total.append(element('td', '', 'Yields from the seat'));
-      total.append(element('td', 'num', bagText(foldLeaderLedger(lines)) || '—'));
+      total.append(yieldFigure('td', 'num', bagText(foldLeaderLedger(lines)) || '—'));
       table.append(total);
       ledger.append(table);
     }

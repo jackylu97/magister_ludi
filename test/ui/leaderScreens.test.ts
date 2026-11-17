@@ -428,6 +428,31 @@ describe('the sheet’s furniture', () => {
     expect(block).toContain('hidden');
   });
 
+  it('fits the window: its body scrolls inside the sheet, and the × stays in the head (batch SS9b)', () => {
+    // The user, 2026-11-17: "the leader screen could use some work, it's too
+    // large and gets cut off currently". The paper's cap kept the sheet inside
+    // the window but nothing in it scrolled, so the towns ran under its foot.
+    const css = uiSource('style.css');
+    expect(css).toContain('#leader-overlay .leader-body {\n  overflow-y: auto;');
+    // The sheet's own class carries its width, so the cap stays the paper's
+    // one rule (`religionScreen.test.ts`, "the paper").
+    expect(css).not.toContain('#leader-overlay .statecraft-sheet {');
+    const html = uiSource('index.html');
+    expect(html).toContain('<div class="statecraft-sheet leader-sheet">');
+    expect(html).toContain('<div id="leader-body" class="statecraft-body leader-body"></div>');
+    const sheet = html.slice(html.indexOf('id="leader-overlay"'), html.indexOf('id="leader-body"'));
+    expect(sheet).toContain('id="leader-close"');
+    // More compact: the two rules and the two uniques side by side, as ruled
+    // sections rather than boxes.
+    const code = uiSource('leaderSheet.ts');
+    expect(code).toContain("const rules = element('div', 'leader-pair');");
+    expect(code).toContain("const uniques = element('div', 'leader-pair');");
+    expect(css).toMatch(/\.leader-hold \{\n  padding: 10px 0;\n  border-top: 1px solid var\(--rule\);/);
+    // The figures wear the drawn yield marks, not the glyph table's emoji.
+    expect(code).toContain("yieldFigure('td', 'num leader-ledger-figure', lineFigure(line))");
+    expect(code).toContain('setYieldText(node, text);');
+  });
+
   it('registers in the disposal register and nowhere by name', () => {
     const main = uiSource('main.ts');
     expect(main).toContain('gameDisposers.push(() => leaderSheet?.dispose());');
