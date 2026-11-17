@@ -634,7 +634,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /** Confirm: sign the arrangement, then redraw with the count-ups. */
-  function confirm(): void {
+  function confirmStaging(): void {
     justConfirmed = commitStaging();
     countTotal = justConfirmed.length > 0;
     held = null;
@@ -657,7 +657,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   revertButton.addEventListener('click', revert);
-  confirmButton.addEventListener('click', confirm);
+  confirmButton.addEventListener('click', confirmStaging);
 
   // --- the head -------------------------------------------------------------
 
