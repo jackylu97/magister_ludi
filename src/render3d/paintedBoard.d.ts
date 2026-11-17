@@ -1,4 +1,4 @@
-import type { BufferGeometry, DataTexture, InstancedBufferAttribute, Mesh, MeshStandardMaterial } from 'three';
+import type { BufferGeometry, DataTexture, Group, InstancedBufferAttribute, Mesh, MeshStandardMaterial } from 'three';
 import type { GameMap } from '../sim/map';
 import type { BuiltBoard } from './board3d';
 
@@ -40,12 +40,16 @@ export interface PaintedBoardBatch {
   /** What the batch casts when shadows are on, never the live flag. */
   castShadow: boolean;
   cells?: number[];
+  /** Where the batch stands in a whole build's order: [step, rank, count]. See `buildPaintedBoard`'s `part`. */
+  order?: [number, number, number];
 }
 export interface PaintedBoard extends BuiltBoard {
   replaceHillRelief(cells: ReadonlySet<number>): boolean;
   exportBatches(): PaintedBoardBatch[];
   renderMap: GameMap;
   pickMeshes: Mesh[];
+  /** The three wrap copies (x = −W, 0, +W), in that order. See `copyCulling.ts`. */
+  readonly copies: readonly Group[];
   fogTexture: DataTexture;
   /** The register's live knobs, so a review page can move one without a rebuild. */
   fogUniforms: Record<string, { value: unknown }>;
@@ -77,6 +81,8 @@ export interface PaintedBoard extends BuiltBoard {
  * land (the one step that counts, chunk by chunk), and the far view.
  */
 export type PaintedBuildStage = 'shape' | 'mountains' | 'colours' | 'rivers' | 'coast' | 'sea' | 'land' | 'overview';
-export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage) => void, preparedMap?: GameMap | null): PaintedBoard;
+/** The far view's region of a hex (18 by 18 hexes). A part of a split build owns whole regions. */
+export function paintedRegionKey(col: number, row: number): string;
+export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage, prepared?: GameMap) => void, preparedMap?: GameMap | null, part?: {regions: ReadonlySet<string>} | null): PaintedBoard;
 /** The surface attributes whose arrays are dropped after their first upload. */
 export const RELEASED_AFTER_UPLOAD: readonly string[];

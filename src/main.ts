@@ -2424,6 +2424,7 @@ if (artAsked === 'painted' || artAsked === 'toon3d') {
 async function createRenderer(
   mode: ArtMode,
   game: Game,
+  firstSeat: number,
 ): Promise<{ view: MapView; report: () => void }> {
   // Asked before a 3D renderer is built, on a throwaway canvas. three.js r185
   // needs WebGL2, and the painted look renders into half-float targets: without
@@ -2472,6 +2473,13 @@ async function createRenderer(
         // on them.
         await renderer.warmPrograms();
       }
+      // The seat the board will be shown to, before the first state: the layers
+      // are then built once, for that seat's eyes. Without it the first build
+      // drew every layer for the whole map, and the controls' first seat built
+      // them all again a moment later (on the Giant map, about 25 s of the load,
+      // the third render speed pass). The controls still send the seat; the
+      // same seat again changes nothing.
+      renderer.setFogSeat(firstSeat);
       renderer.setGameState(game.state);
       performance.mark('magisterludi:state-layers-built');
       const report = build3DPanel(renderer);
@@ -2528,7 +2536,7 @@ async function boot(initial: Game | null): Promise<void> {
   // `adoptGame` and must keep these instances' close handlers connected.
   disposeGameScreens();
   let game: Game = initial ?? (await createGameAsync(currentConfig()));
-  const { view: renderer, report } = await createRenderer(artMode(), game);
+  const { view: renderer, report } = await createRenderer(artMode(), game, initial === null ? 0 : resumeSeat(game.state));
   // A lost WebGL context (a GPU switch, a driver update, memory pressure) does
   // not touch the game, so the renderer rebuilds the board from the state. The
   // loading sheet covers the board meanwhile and `isInputBlocked` holds the

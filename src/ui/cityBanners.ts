@@ -306,7 +306,7 @@ import { badgeClassFor } from '../render3d/board3d';
 import { VIEW3D, shade } from '../render3d/lookData';
 import { hpBarFill, hpBarFillWidth, signUnits, unitColor } from '../render3d/pieces';
 import { dressRoundel, roundelZoom } from './unitRoundels';
-import type { MapView } from './mapView';
+import type { MapView, ScreenPoint } from './mapView';
 
 interface CityBannersOptions {
   /** An element covering the viewport, above the canvas. */
@@ -1720,11 +1720,19 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
    * the flagpole, so the pieces standing on the hex keep their own roundels
    * underneath it at every zoom. See "Where the plate hangs".
    */
+  /** The points of one `reposition`, kept between calls so a frame allocates no list. */
+  const placed: [number, Banner, ScreenPoint | null][] = [];
   function reposition(): void {
     const project = renderer.projectCityBanner ?? renderer.projectCell;
     if (!project) return;
-    for (const [cityId, banner] of banners) {
-      const point = project.call(renderer, banner.col, banner.row, BANNER_RISE);
+    // Every point first, then every write. A projection reads the canvas's
+    // size, and a read after a style write makes the browser lay the page out
+    // again at once: with the two interleaved, a pan laid the page out once for
+    // each town on every frame. The canvas does not move when a banner does, so
+    // the points are the same either way.
+    placed.length = 0;
+    for (const [cityId, banner] of banners) placed.push([cityId, banner, project.call(renderer, banner.col, banner.row, BANNER_RISE)]);
+    for (const [cityId, banner, point] of placed) {
       if (!point || !point.onScreen) {
         clearBannerHover(cityId);
         banner.root.style.display = 'none';
@@ -1737,6 +1745,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         point.x,
       )}px, ${Math.round(point.y)}px)`;
     }
+    placed.length = 0;
   }
 
   refresh();

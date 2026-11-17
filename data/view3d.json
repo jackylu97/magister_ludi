@@ -1135,6 +1135,9 @@
       "maxPixelRatio": 1.5,
       "pixelBudget": 4500000
     },
+    "build": {
+      "workers": 4
+    },
     "shadows": {
       "staticMapSize": 4096,
       "staticMapTiers": {
@@ -1444,7 +1447,10 @@
           "strength": 0.55,
           "tone": 0.85,
           "ripple": 0.0015,
-          "smear": 0.004
+          "smear": 0.004,
+          "whileMoving": true,
+          "settleMs": 150,
+          "works": true
         },
         "cellScale": 1.05,
         "cellWarp": 0.7,

@@ -163,12 +163,13 @@ import { PaintedYieldLightLayer, type YieldLightHex, type YieldLightPick } from 
 import { VISIBLE as SEEN_NOW } from '../sim/visibility';
 import { PaintedFlowLayer } from './paintedFlow';
 import { SeaMirror } from './seaMirror';
+import { CopyCulling } from './copyCulling';
 import { buildMapEnds } from './mapEnds';
 // @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
-import { bakeSeaDistances } from './seaDistances.js';
+import { bakeSeaDistances, seaDistanceTexture } from './seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
-import { setRiverStyle, setCoastStyle } from '../terrainStudy/surface.js';
-import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
+import { setRiverStyle, setCoastStyle, riverStyle as surfaceRiverStyle, coastStyle as surfaceCoastStyle, packTerrainMap } from '../terrainStudy/surface.js';
+import { installPaintedSurface, uninstallPaintedSurface, warmPaintedSurface } from './paintedSurface';
 import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
 
@@ -283,6 +284,9 @@ export const SCENE_LAYER_NAMES = [
   'units', 'cities', 'tints', 'territory', 'roads', 'improvements', 'sites',
   'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
 ] as const;
+
+/** An early bake of the sea's distances, and what it was made from. See `Renderer3D.prebakeSeaDistances`. */
+interface PrebakedSea { map: GameMap; coast: unknown; organic: unknown; pending: Promise<void>; baked: ReturnType<typeof bakeSeaDistances> | null }
 
 /** A free coastline is part of the new sea: the sea switch, and `coast.free` in the data (`freeCoast.js`). */
 function coastStyleOf(): boolean {
@@ -422,6 +426,12 @@ export class Renderer3D implements MapView {
   private seaDistances: Texture | null = null;
   /** The sea as a mirror (`seaMirror.ts`): made on the first frame that wants it. `mirrorOn` is the scene page's switch. */
   private seaMirror: SeaMirror | null = null;
+  /** Leaves the board's wrap copies a pass cannot see out of that pass. See `copyCulling.ts`. */
+  readonly copyCulling = new CopyCulling();
+  /** The camera's target and frustum on the last drawn frame, when it last moved, and when the mirror is due back. See `mirror.whileMoving`. */
+  private mirrorCamera: [number, number, number] = [NaN, NaN, NaN];
+  private mirrorMovedAt = -Infinity;
+  private mirrorSettleAt: number | null = null;
   /** The rails at the north and south ends of the map (`mapEnds.ts`), one set a board. */
   private mapEnds: ReturnType<typeof buildMapEnds> | null = null;
   mirrorOn = true;
@@ -808,8 +818,13 @@ export class Renderer3D implements MapView {
     const controller = new AbortController(), shadows = this.shadows;
     this.boardBuild = controller;
     try {
+      // The sea's distances are baked from the prepared terrain while the workers build the land, so the
+      // page's own time waiting for them is not idle and the board's arrival does not wait on the bake.
       const result = await buildPaintedBoardAsync(map, this.paintedLook.assets, this.paintedLook.materials, shadows,
-        {signal: controller.signal, onProgress});
+        {signal: controller.signal, onProgress, onTerrain: renderMap => this.prebakeSeaDistances(renderMap)});
+      // The early bake usually finished long before the board; if not, the board waits for it here rather than
+      // baking a second time on the page.
+      await this.prebakedSea?.pending;
       if (!this.running || controller.signal.aborted || this.boardBuild !== controller) {
         result.board.dispose(); throw new DOMException('Board build cancelled', 'AbortError');
       }
@@ -985,6 +1000,29 @@ export class Renderer3D implements MapView {
   }
 
   /** Asks for `warmLatePrograms` once, when the browser is next idle. */
+  /** The map whose ground samplers the idle warm-up is building or has built. */
+  private surfaceWarmFor: GameMap | null = null;
+  /**
+   * Builds the ground chunks' height samplers in idle time once the board is
+   * up (`warmPaintedSurface`), a few milliseconds at a time. The layers are
+   * built for the seat's own eyes at load, so a chunk the seat has not seen has
+   * no sampler yet, and a turn that showed new ground built them inside the
+   * turn end. Stops when the map changes or the renderer stops.
+   */
+  private scheduleSurfaceWarm(): void {
+    const map = this.map;
+    this.surfaceWarmFor = map;
+    if (!map) return;
+    const idle = typeof requestIdleCallback === 'function';
+    const schedule = (): void => { if (idle) requestIdleCallback(step); else setTimeout(step, 50); };
+    const step = (deadline?: IdleDeadline): void => {
+      if (!this.running || this.map !== map) return;
+      const until = performance.now() + 8;
+      if (!warmPaintedSurface(map, () => (deadline ? deadline.timeRemaining() < 2 : performance.now() > until))) schedule();
+    };
+    schedule();
+  }
+
   private scheduleLatePrograms(): void {
     this.lateProgramsScheduled = true;
     const run = (): void => this.warmLatePrograms();
@@ -1074,6 +1112,37 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * The bake of `bakeSeaDistances`, made early for the prepared terrain a
+   * board build hands over as its land step starts, with the inputs it was
+   * made from. It is made in a worker (`seaDistances.worker.js`), so the page
+   * is not held while the land is built; `baked` is its texture once it has
+   * come back, and null if the worker failed. Used only if the board that lands
+   * stands on that very map and the inputs are the same; otherwise the bake is
+   * made again on the page, as before.
+   */
+  private prebakedSea: PrebakedSea | null = null;
+  private prebakeSeaDistances(renderMap: GameMap): void {
+    this.prebakedSea?.baked?.texture.dispose();
+    this.prebakedSea = null;
+    if (!coastStyleOf() || typeof Worker === 'undefined') return;
+    const coast = VIEW3D.visualTest.coast, organic = visualOn('organicRivers') ? VIEW3D.visualTest.organicRivers : null;
+    const entry: PrebakedSea = { map: renderMap, coast, organic, pending: Promise.resolve(), baked: null };
+    entry.pending = new Promise<void>(resolve => {
+      let worker: Worker;
+      try { worker = new Worker(new URL('./seaDistances.worker.js', import.meta.url), { type: 'module' }); } catch { resolve(); return; }
+      const done = (): void => { worker.onmessage = worker.onerror = null; worker.terminate(); resolve(); };
+      worker.onmessage = ({ data }) => {
+        if (data?.type === 'baked' && this.prebakedSea === entry) entry.baked = seaDistanceTexture(data.baked);
+        done();
+      };
+      worker.onerror = event => { event.preventDefault(); done(); };
+      try {
+        worker.postMessage({ terrain: packTerrainMap(renderMap), knobs: coast, organicRivers: organic, riverStyle: surfaceRiverStyle(), coastStyle: surfaceCoastStyle() });
+      } catch { done(); }
+    });
+    this.prebakedSea = entry;
+  }
+  /**
    * The sea's distances for the board in place (`seaDistances.js`): made for a
    * board with a free coast, and dropped for any other, where the sea's paint
    * reads the numbers on its own vertices as before.
@@ -1082,8 +1151,13 @@ export class Renderer3D implements MapView {
     this.seaDistances?.dispose();
     this.seaDistances = null;
     VTEST_UNIFORMS.vtestSeaFieldOn.value = 0;
-    if (!this.paintedBoard || !coastStyleOf()) return;
-    const baked = bakeSeaDistances(this.paintedBoard.renderMap, VIEW3D.visualTest.coast, visualOn('organicRivers') ? VIEW3D.visualTest.organicRivers : null);
+    const early = this.prebakedSea;
+    this.prebakedSea = null;
+    if (!this.paintedBoard || !coastStyleOf()) { early?.baked?.texture.dispose(); return; }
+    const coast = VIEW3D.visualTest.coast, organic = visualOn('organicRivers') ? VIEW3D.visualTest.organicRivers : null;
+    const reuse = early?.baked && early.map === this.paintedBoard.renderMap && early.coast === coast && early.organic === organic;
+    if (early?.baked && !reuse) early.baked.texture.dispose();
+    const baked = reuse ? early!.baked! : bakeSeaDistances(this.paintedBoard.renderMap, coast, organic);
     this.seaDistances = baked.texture;
     VTEST_UNIFORMS.vtestSeaField.value = baked.texture;
     VTEST_UNIFORMS.vtestSeaFieldShape.value.set(baked.originX, baked.originZ, 1 / baked.period, 1 / baked.spanZ);
@@ -4300,7 +4374,10 @@ export class Renderer3D implements MapView {
     const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('idle')) && awake
       && now - this.lastMotionFrame >= 1000 / Math.max(1, VIEW3D.visualTest.motionFps);
     if (moving) this.lastMotionFrame = now;
-    const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || revealing;
+    // A frame drawn without the mirror while the camera moved (`mirror.whileMoving` off) is followed by one with it,
+    // once the camera has been still for `mirror.settleMs`.
+    const settled = this.mirrorSettleAt !== null && now >= this.mirrorSettleAt;
+    const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || settled || revealing;
     // The motion has gone to rest: keep the time of the last frame drawn, which
     // is the time the motion's clock stopped at.
     if (!awake && this.restingSince == null) this.restingSince = this.lastDrawn;
@@ -4358,31 +4435,70 @@ export class Renderer3D implements MapView {
       this.paintedLook.updateDynamicShadows(this.view.target, this.view.shadowRadius, this.view.groundReach);
       this.renderer.info.autoReset = false;
       this.renderer.info.reset();
-      // The mirror's picture first, so the water can read it in this frame. Its draws count in the frame's totals.
-      // Of the board itself only the stones reflect, so the rocks off the coast have a reflection (the user, 2026-11-13) and the ground costs nothing. The lists are made once for each board.
-      if (this.mirrorBoardFor !== this.board) this.listMirrorBoard();
-      const mirrorWanted = this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5;
-      // Only the water reads the mirror's picture, so a frame with no water in view has no use for one. See `waterInView`.
-      const mirrorUsed = mirrorWanted && this.waterInView();
-      if (mirrorWanted && !mirrorUsed) this.mirrorSkips++;
-      if (mirrorUsed) {
-        this.seaMirror ??= new SeaMirror();
-        // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
-        // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
-        const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
-          this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
-        const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
-          this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
-          this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group, this.paintedYieldLight?.group];
-        this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground]);
-      } else this.seaMirror?.off();
-      this.paintedLook.render();
+      // The scene's matrices, once a frame. The mirror pass and the main pass draw the same scene and nothing moves
+      // between them, so the second pass need not walk the scene's 4,500 objects again (it used to: 9,040 visits a frame at turn 130).
+      this.scene.updateMatrixWorld();
+      this.scene.matrixWorldAutoUpdate = false;
+      // The board's wrap copies a pass cannot see are left out of it (`copyCulling.ts`), except in a pass that draws a shadow map.
+      const copies = this.paintedBoard?.copies ?? [];
+      // And the layers whose three copies are siblings in one group (`FlatLayer`), culled the same way.
+      const period = this.paintedBoard?.wrapWidth ?? 0;
+      const flat = [this.units, this.paintedWorks, this.paintedSites, this.paintedCities, this.paintedRoads, this.paintedTerritory,
+        this.paintedTerritoryTint].map(layer => layer ? { group: layer.group, period } : null);
+      const map = this.renderer.shadowMap;
+      const shadowPass = (): boolean => map.enabled && (map.autoUpdate || map.needsUpdate);
+      try {
+        // The mirror's picture first, so the water can read it in this frame. Its draws count in the frame's totals.
+        // Of the board itself only the stones reflect, so the rocks off the coast have a reflection (the user, 2026-11-13) and the ground costs nothing. The lists are made once for each board.
+        if (this.mirrorBoardFor !== this.board) this.listMirrorBoard();
+        const mirrorKnobs = VIEW3D.visualTest.coast.open.mirror;
+        // Whether the camera moved within the last `settleMs`. Only read when `mirror.whileMoving` is false, which is not the default.
+        const target = this.view.target, frustum = this.view.camera.top;
+        if (target.x !== this.mirrorCamera[0] || target.z !== this.mirrorCamera[1] || frustum !== this.mirrorCamera[2]) {
+          this.mirrorCamera = [target.x, target.z, frustum]; this.mirrorMovedAt = now;
+        }
+        const moving = !mirrorKnobs.whileMoving && now - this.mirrorMovedAt < mirrorKnobs.settleMs;
+        this.mirrorSettleAt = moving ? this.mirrorMovedAt + mirrorKnobs.settleMs : null;
+        const mirrorWanted = this.mirrorOn && mirrorKnobs.on && !moving && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5;
+        // Only the water reads the mirror's picture, so a frame with no water in view has no use for one. See `waterInView`.
+        const mirrorUsed = mirrorWanted && this.waterInView();
+        if (mirrorWanted && !mirrorUsed) this.mirrorSkips++;
+        if (mirrorUsed) {
+          this.seaMirror ??= new SeaMirror();
+          // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
+          // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
+          const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
+            this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
+          const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
+            this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
+            this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group, this.paintedYieldLight?.group];
+          // With `mirror.works` false (not the default), the works stay out of the mirror.
+          if (!mirrorKnobs.works) ground.push(this.paintedWorks?.group);
+          const bakes = shadowPass();
+          try {
+            this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground],
+              { aimed: mirror => this.copyCulling.hide(copies, mirror, bakes, flat, period), shadowPass: bakes });
+          } finally {
+            this.copyCulling.restore();
+          }
+        } else this.seaMirror?.off();
+        this.copyCulling.hide(copies, this.view.camera, shadowPass(), flat, period);
+        try {
+          this.paintedLook.render();
+        } finally {
+          this.copyCulling.restore();
+        }
+      } finally {
+        this.scene.matrixWorldAutoUpdate = true;
+      }
     } else this.renderer.render(this.scene, this.view.camera);
     this.lastDrawCalls = this.renderer.info.render.calls;
     this.lastTriangles = this.renderer.info.render.triangles;
     this.lastRenderMs = performance.now() - renderStarted;
     // Once a board has been drawn, the gestures' programs in idle time.
     if (!this.lateProgramsScheduled && this.board && this.state) this.scheduleLatePrograms();
+    // And the ground's height samplers, in idle time too. See `scheduleSurfaceWarm`.
+    if (this.paintedBoard && this.state && this.map && this.surfaceWarmFor !== this.map) this.scheduleSurfaceWarm();
     // After the draw, so anything the listener projects sees the camera the
     // frame was rendered with rather than the one before it.
     this.frameListener?.();

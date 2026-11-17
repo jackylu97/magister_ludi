@@ -2037,8 +2037,22 @@ interface PaintedFogSpec {
   chartSoak: number;
 }
 
+/**
+ * How the painted board is built at load. `workers` is the most board workers
+ * that build the land and the far view at once: the board is cut into its far
+ * view's regions (18 by 18 hexes, three by three land chunks), each worker
+ * builds some of them, and the page puts the pieces back in the order one
+ * worker would have made them, so the board is the same. The page uses fewer
+ * when the device has fewer cores or the map fewer regions; 1 is the old one
+ * worker. See `buildPaintedBoardAsync`.
+ */
+interface PaintedBuildSpec {
+  workers: number;
+}
+
 interface PaintedSpec {
   canvas: PaintedCanvasSpec;
+  build: PaintedBuildSpec;
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
   contact: PaintedContactSpec;
@@ -2489,7 +2503,20 @@ export interface VisualTestSpec {
         glints: number; glintCells: number; glintSize: number; glintSpeed: number; glintHalo: number; glintUp: number;
       };
       /** The sea as a mirror (`seaMirror.ts`): whether it is drawn, what reflects (`pieces`: ships, pieces and towns; `all`: the whole scene), the picture's size as a share of the screen, how much of it shows on the water and how dark, and its ripple and upward smear as shares of the picture. */
-      mirror: { on: boolean; what: string; scale: number; strength: number; tone: number; ripple: number; smear: number };
+      mirror: { on: boolean; what: string; scale: number; strength: number; tone: number; ripple: number; smear: number;
+        /**
+         * Two choices that trade a little of the picture for speed while the
+         * player pans (the third render speed pass). Both `true` is the picture
+         * as it was. `whileMoving: false` leaves the mirror out of every frame on
+         * which the camera moved, so the sea shows no reflections during a pan,
+         * and draws it again on the first frame after the camera comes to rest.
+         * `settleMs` is how long the camera must be still before the mirror
+         * comes back, so a slow drag does not flash it on between two pointer
+         * moves. `works: false` leaves the farms, mines, herds and fishing boats
+         * out of the mirror at all times; the towns, pieces and stones still
+         * reflect.
+         */
+        whileMoving: boolean; settleMs: number; works: boolean };
       pattern: number; cellScale: number; cellWarp: number; cellSpeed: number; cellTone: number; patchLight: number; patchDark: number;
       swellRows: number; swellBend: number; swellBreak: number; swellSpeed: number };
     /** Rocks off the coast: the share of shore water hexes that have any, the most on one hex, how near and far from the waterline they stand, their size, and the foam ring round each. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BufferGeometry, ConeGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
+import { BackSide, BufferGeometry, ConeGeometry, DoubleSide, FrontSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createMap, type GameMap, type Tile } from '../../src/sim/map';
 import { cellCenter, tileTopY, wrapWidth } from '../../src/render3d/layout';
@@ -9,7 +9,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { badgeAnchors, placePiece } from '../../src/render3d/pieces';
 import { badgeCenterY } from '../../src/render3d/badges3d';
 import { type Unit } from '../../src/sim/state';
-import { installPaintedSurface, samplePaintedSurface, samplePaintedWorld, surfaceSamplerBuilds, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
+import { installPaintedSurface, paintedGroundHit, samplePaintedSurface, samplePaintedWorld, surfacePickGridBuilds, surfaceSamplerBuilds, uninstallPaintedSurface, warmPaintedSurface } from '../../src/render3d/paintedSurface';
 // The study remains JavaScript; these tests exercise its production adapter.
 // @ts-expect-error No declarations for the standalone art modules.
 import { prepareTerrainMap, neighbour, surfaceHeight, terrainMapWraps } from '../../src/terrainStudy/surface.js';
@@ -187,6 +187,143 @@ describe('painted gameplay surface', () => {
       const cell = mesh.geometry.getAttribute('paintedCell').getX(actual.face!.a);
       expect(pickTile(map, { origin, direction })?.tile).toBe(map.tiles[cell]);
     }
+  });
+
+  // The pointer's pick runs on every pointer move, and a drag pans on every pointer move too. three's raycast tested
+  // every triangle of each chunk the ray's box test let through: about 20 ms a pick at turn 130 (render speed pass,
+  // third pass). The pick now tests only the triangles under the ray's path, and it must find the very hit three finds.
+  it('finds the same ground hit as three\'s raycast, testing only the triangles under the ray', () => {
+    const map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+    for (const cell of [9, 10, 17, 18, 19, 26, 33]) map.tiles[cell]!.hills = true;
+    const { meshes } = buildFixture(map);
+    // One chunk indexed and one drawn from its back, so both of three's triangle walks and both sides are covered.
+    const indexed = meshes[0]!.geometry;
+    if (!indexed.index) indexed.setIndex([...Array(indexed.getAttribute('position').count).keys()]);
+    const back = new MeshBasicMaterial({ side: BackSide }), front = new MeshBasicMaterial({ side: FrontSide });
+    dispose.push(() => { back.dispose(); front.dispose(); });
+    meshes[3]!.material = front; meshes[4]!.material = front; meshes[5]!.material = front;
+    meshes[6]!.material = back;
+    for (const mesh of meshes) mesh.updateWorldMatrix(true, false);
+    installPaintedSurface(map, prepareTerrainMap(map, { wrap: true }), meshes);
+    const built = surfacePickGridBuilds();
+    let seed = 7;
+    const random = (): number => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const period = wrapWidth(map);
+    let hits = 0;
+    for (let n = 0; n < 400; n++) {
+      // Rays from above, steep and shallow, from every side, over all three copies and past the map's edges.
+      const target = new Vector3((random() * 1.6 - .3) * period * 1.5 - period * .5, .1 + random() * .6, random() * 11 - 1.5);
+      const tilt = .2 + random() * 1.3, turn = random() * Math.PI * 2;
+      const direction = new Vector3(Math.cos(turn) * Math.cos(tilt), -Math.sin(tilt), Math.sin(turn) * Math.cos(tilt)).normalize();
+      const origin = target.clone().addScaledVector(direction, -6);
+      const expected = new Raycaster(origin, direction).intersectObjects(meshes, false)[0];
+      const actual = paintedGroundHit(map, { origin, direction });
+      if (!expected) { expect(actual).toBeUndefined(); continue; }
+      hits++;
+      expect(actual?.object).toBe(expected.object);
+      expect(actual?.face?.a).toBe(expected.face!.a);
+      expect(actual?.distance).toBe(expected.distance);
+      expect(actual?.point.toArray()).toEqual(expected.point.toArray());
+    }
+    expect(hits).toBeGreaterThan(200);
+    // One grid a geometry: the three wrap copies of a chunk share it.
+    const geometries = new Set(meshes.map(mesh => mesh.geometry)).size;
+    expect(surfacePickGridBuilds() - built).toBeLessThanOrEqual(geometries);
+    // A cut chunk (the index rewritten in place, as `paintedRelief.ts` does) builds its grid again and picks what it now holds.
+    const index = indexed.index!;
+    for (let i = 0; i < index.count; i += 3) { index.setX(i + 1, index.getX(i)); index.setX(i + 2, index.getX(i)); }
+    index.needsUpdate = true;
+    const before = surfacePickGridBuilds();
+    for (let n = 0; n < 60; n++) {
+      const origin = new Vector3(random() * period, 4, random() * 8 - 1), direction = new Vector3(.1, -1, .7).normalize();
+      const expected = new Raycaster(origin, direction).intersectObjects(meshes, false)[0];
+      expect(paintedGroundHit(map, { origin, direction })?.face?.a).toBe(expected?.face?.a);
+    }
+    expect(surfacePickGridBuilds()).toBeGreaterThan(before);
+  });
+
+  // The terrace shelves are an instanced batch registered as ground. Every height a piece stood at near one raycast
+  // every instance and every triangle of the shelf: about half of the pieces' rebuild at a turn-130 turn end (third
+  // pass). The pick and the height now walk the instances as three does and test only the triangles under the ray.
+  it('finds the same hit on an instanced shelf as three\'s raycast, for picks and for heights', () => {
+    const map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+    const fixture = buildFixture(map);
+    const shelf = new ConeGeometry(.6, .5, 12, 3); shelf.translate(0, .45, 0);
+    const material = new MeshBasicMaterial({ side: DoubleSide });
+    const shelves: InstancedMesh[] = [];
+    for (const copy of [-1, 0, 1]) {
+      const mesh = new InstancedMesh(shelf, material, 4);
+      for (const [i, cell] of [9, 12, 26, 35].entries()) {
+        const c = cellCenter(cell % 8, Math.floor(cell / 8));
+        mesh.setMatrixAt(i, new Matrix4().makeRotationY(i).setPosition(c.x, 0, c.z));
+      }
+      mesh.computeBoundingSphere(); mesh.position.x = copy * wrapWidth(map); mesh.updateMatrixWorld(true);
+      shelves.push(mesh);
+    }
+    const all = [...fixture.meshes, ...shelves];
+    installPaintedSurface(map, fixture.renderMap, all);
+    dispose.push(() => { shelf.dispose(); material.dispose(); shelves.forEach(mesh => mesh.dispose()); });
+    let seed = 3, onShelf = 0;
+    const random = (): number => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const period = wrapWidth(map);
+    for (let n = 0; n < 300; n++) {
+      const target = new Vector3(random() * period * 1.4 - period * .2, .3, random() * 8 - .5);
+      const tilt = .3 + random() * 1.2, turn = random() * Math.PI * 2;
+      const direction = new Vector3(Math.cos(turn) * Math.cos(tilt), -Math.sin(tilt), Math.sin(turn) * Math.cos(tilt)).normalize();
+      const origin = target.clone().addScalar(0).addScaledVector(direction, -5);
+      const expected = new Raycaster(origin, direction).intersectObjects(all, false)[0];
+      const actual = paintedGroundHit(map, { origin, direction });
+      expect(actual?.object).toBe(expected?.object);
+      expect(actual?.distance).toBe(expected?.distance);
+      expect(actual?.instanceId).toBe(expected?.instanceId);
+      expect(actual?.point.toArray()).toEqual(expected?.point.toArray());
+      if (expected && shelves.includes(expected.object as InstancedMesh)) onShelf++;
+    }
+    expect(onShelf).toBeGreaterThan(4);
+    // Heights straight down onto the shelves alone: the nearest hit three's raycast finds, from the registration's own
+    // starting height (a box's top plus one, as `installPaintedSurface` takes it).
+    const alone = createMap({ width: 8, height: 6, terrain: 'grassland' });
+    installPaintedSurface(alone, prepareTerrainMap(alone, { wrap: true }), shelves);
+    dispose.push(() => uninstallPaintedSurface(alone));
+    let top = 1;
+    for (const mesh of shelves) { mesh.computeBoundingBox(); top = Math.max(top, mesh.boundingBox!.clone().applyMatrix4(mesh.matrixWorld).max.y + 1); }
+    let landed = 0;
+    for (const cell of [9, 12, 26, 35]) for (const [x, z] of [[0, 0], [.2, -.1], [-.31, .22], [.5, .05]]) {
+      const c = cellCenter(cell % 8, Math.floor(cell / 8));
+      // The query wraps x into the canonical period the way `samplePaintedWorld` does.
+      const wx = (((c.x + x!) % period) + period) % period;
+      const down = new Raycaster(new Vector3(wx, top, c.z + z!), new Vector3(0, -1, 0)).intersectObjects(shelves, false)[0];
+      expect(samplePaintedWorld(alone, c.x + x!, c.z + z!)).toBe(down?.point.y);
+      if (down) landed++;
+    }
+    expect(landed).toBeGreaterThan(8);
+  });
+
+  // The layers are built for the seat's eyes at load, so a chunk the seat has not seen has no height sampler yet, and
+  // a turn end that showed new ground built them inside its sync. The renderer warms them in idle time (third pass).
+  it('warms the samplers a slice at a time, and a warmed height is the height a cold query gives', () => {
+    const map = createMap({ width: 12, height: 6, terrain: 'grassland' });
+    for (const cell of [13, 14, 27, 40, 41]) map.tiles[cell]!.hills = true;
+    const cold = createMap({ width: 12, height: 6, terrain: 'grassland' });
+    for (const cell of [13, 14, 27, 40, 41]) cold.tiles[cell]!.hills = true;
+    buildFixture(cold);
+    const expected = cold.tiles.map(tile => samplePaintedSurface(tile, .07, -.11));
+    buildFixture(map);
+    const before = surfaceSamplerBuilds(), gridsBefore = surfacePickGridBuilds();
+    // One sampler a slice, then the rest.
+    let calls = 0;
+    expect(warmPaintedSurface(map, () => calls++ > 0)).toBe(false);
+    expect(surfaceSamplerBuilds() - before).toBe(1);
+    expect(warmPaintedSurface(map, () => false)).toBe(true);
+    const built = surfaceSamplerBuilds();
+    // The pick grids come with them, so the pointer's first pick over a chunk builds nothing.
+    expect(surfacePickGridBuilds()).toBeGreaterThan(gridsBefore);
+    expect(built - before).toBeGreaterThan(1);
+    // Only the canonical copy's chunks: a third of the registered ground.
+    expect(built - before).toBeLessThan(18);
+    expect(map.tiles.map(tile => samplePaintedSurface(tile, .07, -.11))).toEqual(expected);
+    expect(surfaceSamplerBuilds()).toBe(built);
+    expect(warmPaintedSurface(map, () => false)).toBe(true);
   });
 
   it('places stacked pieces and their badge targets at the surface under the actual offset', () => {

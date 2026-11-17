@@ -26,10 +26,14 @@ function fixture() {
     state: null, map: null, board: null, mirrorBoardFor: null, mirrorOn: false,
     animations: { pending: false }, glows: { pending: false }, walkers: new Map(), fallers: new Map(),
     vignette: { step: () => false, place: vi.fn() },
-    view: { stepPan: () => false, camera: { right: 1, left: -1 }, target: {}, shadowRadius: 1, groundReach: 1 },
+    view: { stepPan: () => false, camera: { right: 1, left: -1 }, target: { x: 0, z: 0 }, frustum: 14, shadowRadius: 1, groundReach: 1 },
+    // The scene's one matrix walk a frame, and the wrap copies' culling (third render speed pass).
+    scene: { updateMatrixWorld: vi.fn(), matrixWorldAutoUpdate: true }, copyCulling: { hide: vi.fn(), restore: vi.fn() },
+    mirrorCamera: [NaN, NaN, NaN], mirrorMovedAt: -Infinity, mirrorSettleAt: null,
     paintedBoard: null, paintedLook, fixedClock: null,
     canvas: { clientWidth: 800, clientHeight: 600 },
-    renderer: { getPixelRatio: () => 1, getDrawingBufferSize: vi.fn(), info: { reset: vi.fn(), render: { calls: 0, triangles: 0 } } },
+    renderer: { getPixelRatio: () => 1, getDrawingBufferSize: vi.fn(), info: { reset: vi.fn(), render: { calls: 0, triangles: 0 } },
+      shadowMap: { enabled: true, autoUpdate: false, needsUpdate: false } },
     frameListener: null, lateProgramsScheduled: true,
     applyLight: vi.fn(), cityFocusAnchor: () => null,
     // The class's own starting values, which `Object.create` does not run.

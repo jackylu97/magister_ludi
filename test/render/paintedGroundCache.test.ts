@@ -1,13 +1,15 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BufferGeometry, Mesh } from 'three';
 import { createWorldFixture } from '../../src/flairGallery/worldFixture';
 import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory, type GroundPlan } from '../../src/render3d/paintedGround';
 import { EXPLORED, VISIBLE } from '../../src/sim/visibility';
 // @ts-expect-error Approved terrain JavaScript.
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
+// @ts-expect-error Approved terrain JavaScript.
+import * as terrainMeshModule from '../../src/terrainStudy/terrainMesh.js';
 
 const cleanup: (() => void)[] = [];
-afterEach(() => { cleanup.splice(0).reverse().forEach(dispose => dispose()); });
+afterEach(() => { cleanup.splice(0).reverse().forEach(dispose => dispose()); vi.restoreAllMocks(); });
 const world = () => { const state = createWorldFixture(); return { state, prepared: prepareTerrainMap(state.map, { wrap: true }) }; };
 const ground = (): PaintedGroundLayer => {
   const layer = new PaintedGroundLayer('test-ground', () => {}); cleanup.push(() => layer.dispose()); return layer;
@@ -84,6 +86,52 @@ describe('the painted ground batches', () => {
     const after = geometries(layer);
     expect(after).not.toEqual(before);
     expect(layer.cells.has(cell)).toBe(true);
+  });
+
+  // The road and border plans keep a hex's marks array when nothing near it changed, so a new plan object is mostly
+  // arrays the layer has drawn already. Folding them again cost 20 to 50 ms at a turn-130 turn end (render speed pass,
+  // third pass). An array the layer drew is not folded again; a new array is, so a change still reaches the ink.
+  it('does not fold again a marks array it has drawn, when the plan object is new', () => {
+    const { state, prepared } = world(), layer = ground();
+    const plan = planPaintedTerritory(state, prepared);
+    layer.build(state, prepared, plan, state.visibility[0]);
+    const before = geometries(layer);
+    let reads = 0;
+    const watched = new Map([...plan].map(([cell, marks]) => {
+      for (const mark of marks) {
+        const polygon = mark.polygon;
+        Object.defineProperty(mark, 'polygon', { configurable: true, get: () => { reads++; return polygon; } });
+      }
+      return [cell, marks];
+    }));
+    layer.build(state, prepared, watched, state.visibility[0]);
+    expect(reads).toBe(0);
+    expect(geometries(layer)).toEqual(before);
+    // A new array for one hex, with its first mark moved: that hex is folded and clipped again.
+    const [cell, marks] = [...watched][0]!;
+    const moved = marks.map(mark => ({ ...mark, polygon: mark.polygon }));
+    moved[0]!.polygon = moved[0]!.polygon.map(([x, z]) => [x + .05, z]);
+    const changed = new Map(watched); changed.set(cell, moved);
+    layer.build(state, prepared, changed, state.visibility[0]);
+    expect(geometries(layer)).not.toEqual(before);
+  });
+
+  // The border line and the border tint clip the same hexes at the same turn end, and each clip tessellated the hex
+  // first: a fifth of the tint's rebuild at turn 130 (third pass). A hex's top is made once and kept for the board.
+  it('tessellates a hex once for every layer and build that clips ink to it', () => {
+    const { state, prepared } = world();
+    const tessellate = vi.spyOn(terrainMeshModule, 'terrainMesh');
+    const plan = planPaintedTerritory(state, prepared);
+    ground().build(state, prepared, plan, state.visibility[0]);
+    const first = tessellate.mock.calls.length;
+    expect(first).toBeGreaterThan(0);
+    // A second layer over the same hexes, and a plan whose every mark moved: no hex is tessellated again.
+    const second = ground();
+    second.build(state, prepared, plan, state.visibility[0]);
+    const moved = new Map([...plan].map(([cell, marks]) => [cell, marks.map(mark => ({ ...mark, polygon: mark.polygon.map(([x, z]) => [x + .01, z] as [number, number]) }))]));
+    second.build(state, prepared, moved, state.visibility[0]);
+    expect(second.group.children.length).toBeGreaterThan(0);
+    expect(tessellate.mock.calls.length).toBe(first);
   });
 
   /** One cell's ink changing re-merges one region, and leaves the rest alone. */

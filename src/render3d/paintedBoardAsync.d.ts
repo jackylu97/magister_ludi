@@ -13,6 +13,15 @@ export interface PaintedBuildMetrics {
   stageMs?: Partial<Record<PaintedBuildReport, number>>;
   /** The longest wait between two reports from the worker, in milliseconds. */
   longestSilenceMs?: number;
+  /** How many workers built parts of the board at once (`paintedBuildParts`). */
+  parts?: number;
 }
+/** A part of a split build: the far view's regions it builds, and whether it sends the prepared terrain. */
+export interface PaintedBuildPart { regions: string[]; terrain: boolean }
+export function paintedBuildParts(map: GameMap, count: number): (PaintedBuildPart | null)[];
+export function paintedBuildWorkers(): number;
 export function buildPaintedBoardAsync(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows: boolean,
-  options?: {signal?: AbortSignal; onProgress?: (percent: number, stage: PaintedBuildReport) => void; workerFactory?: () => Worker}): Promise<{board: PaintedBoard; metrics: PaintedBuildMetrics}>;
+  options?: {signal?: AbortSignal; onProgress?: (percent: number, stage: PaintedBuildReport) => void;
+    /** Called with the prepared terrain as soon as the land step starts, on the map the board will be built on. */
+    onTerrain?: ((renderMap: GameMap) => void) | null;
+    workerFactory?: () => Worker; workers?: number}): Promise<{board: PaintedBoard; metrics: PaintedBuildMetrics}>;

@@ -22,8 +22,12 @@ export function surfacePatch(top,polygon,color,lift=.007){
  const minX=Math.min(...polygon.map(p=>p[0])),maxX=Math.max(...polygon.map(p=>p[0]));
  const minZ=Math.min(...polygon.map(p=>p[1])),maxZ=Math.max(...polygon.map(p=>p[1]));
  for(let i=0;i<p.count;i+=3){
-  let face=[0,1,2].map(j=>[p.getX(i+j),p.getY(i+j),p.getZ(i+j)]);
-  if(Math.max(...face.map(v=>v[0]))<minX||Math.min(...face.map(v=>v[0]))>maxX||Math.max(...face.map(v=>v[2]))<minZ||Math.min(...face.map(v=>v[2]))>maxZ)continue;
+  // The bounds test reads the corners straight from the buffer: most triangles
+  // of the hex lie outside a mark, and building their corner lists first made
+  // the reject cost several small arrays each (the third render speed pass).
+  const x0=p.getX(i),x1=p.getX(i+1),x2=p.getX(i+2),z0=p.getZ(i),z1=p.getZ(i+1),z2=p.getZ(i+2);
+  if(Math.max(x0,x1,x2)<minX||Math.min(x0,x1,x2)>maxX||Math.max(z0,z1,z2)<minZ||Math.min(z0,z1,z2)>maxZ)continue;
+  let face=[[x0,p.getY(i),z0],[x1,p.getY(i+1),z1],[x2,p.getY(i+2),z2]];
   for(let e=0;e<polygon.length&&face.length;e++){
    const a=polygon[e],b=polygon[(e+1)%polygon.length],next=[];
    const side=v=>sign*((b[0]-a[0])*(v[2]-a[1])-(b[1]-a[1])*(v[0]-a[0]));
