@@ -684,3 +684,20 @@ intriguing aspect about the game to people"*
   centred under it. Built larger than drawn (the drawing was 44 px wide with a
   26 px charge), and with the look of a thing to press: the solid ink shadow
   and the small move on hover that End Turn has, as take 3 drew.
+
+- **Diplomacy: layout B is approved (2026-11-17). Batch SS6.** The user: *"ok
+  the diplomacy layout looks great, lets run with it"*. The board is
+  `docs/plans/mockups/scholars-study/diplomacy-options.html`, the second round
+  at its top: layout B (the treaty desk) as one responsive system. The banner's
+  board is `corner-banner-options.html` in the same folder.
+  - Sheet: the window less 56 px wide, at most 1180 px; the window less 90 px
+    high, at most 860 px; centred.
+  - Under 1100 px of sheet width: the rail of courts is a strip of shields, and
+    the right column folds into one line with a drawer.
+  - Under 720 px of sheet height: 22 px rows and the short head.
+  - The paper stays in the middle with the propose control at its foot. Only a
+    side's luxury list scrolls, inside its tray.
+  - Taken as drawn, because the user chose none: the short loan note
+    ("loan 9t · French"), the drawer on a narrow window, the title, the
+    envoy's last word, Declare war under "Other acts", gold and rights above
+    luxuries, and the deal notice.
