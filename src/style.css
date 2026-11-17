@@ -263,6 +263,24 @@
   --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --face-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  /* --- the type scale (batch SS8, the Type board) --------------------------
+     Nine sizes, one a role. Text never goes under 11 px, and a sentence never
+     under 12 px: a hint is a sentence. The small steps (11 to 16) are the dense
+     interface, where a size is a role and not a level; the clear steps are from
+     a name to a heading (1.25x), a heading to a sheet title (1.6x), and a title
+     to the display face (1.375x). The board names them `--type-*`; here they
+     are `--size-*`, because `--type-*` already names the four chair-type inks.
+     `test/ui/typeScale.test.ts` pins the values and the floor. */
+  --size-plate: 120px;
+  --size-display: 44px;
+  --size-title: 32px;
+  --size-heading: 20px;
+  --size-name: 16px;
+  --size-body: 14px;
+  --size-ui: 13px;
+  --size-label: 12px;
+  --size-note: 11px;
+
   /* --- component recipe ------------------------------------------------- */
   /* Since batch SS1 the recipe has two halves (the Main and Ornament boards).
 
@@ -367,7 +385,7 @@ body {
    tests know it. A label is never red. */
 .eyebrow {
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 400;
   font-variant-caps: all-small-caps;
   font-variant-numeric: lining-nums tabular-nums;
@@ -764,7 +782,7 @@ body {
   color: var(--parchment);
   border-top: var(--border) solid var(--ink);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
   white-space: pre-wrap;
 }
@@ -933,11 +951,11 @@ body {
 .landing-menu-sub {
   display: block;
   margin-top: 2px;
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 400;
+  letter-spacing: 0.04em;
   opacity: 0.82;
 }
 
@@ -952,7 +970,7 @@ body {
 .landing-key {
   flex: 0 0 auto;
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
@@ -1019,7 +1037,7 @@ body {
   flex: 0 0 auto;
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   white-space: nowrap;
   color: var(--ink-soft);
 }
@@ -1057,10 +1075,11 @@ body {
   border: 0;
   background: transparent;
   color: var(--ink);
-  font-family: var(--face-num);
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 400;
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
@@ -1101,7 +1120,7 @@ body {
 .landing-summary {
   margin: 12px 0 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
@@ -1140,7 +1159,7 @@ body {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--parchment);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .btn.landing-next:hover:not(:disabled) {
@@ -1190,11 +1209,11 @@ body {
   border-radius: 999px;
   background: var(--vermilion);
   color: var(--parchment);
-  font-family: var(--face-num);
-  font-size: 9px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
   font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* The setup card borrows the HUD card's recipe — and its row, label and field
@@ -1213,7 +1232,7 @@ body {
   z-index: auto;
   padding: 16px 18px 18px;
   display: block;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* Both cards say what they are for: the eyebrow, the display-face title, and —
@@ -1280,7 +1299,8 @@ body {
 .landing-card .row.check label {
   width: auto;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-variant-caps: normal;
+  font-size: var(--size-ui);
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -1311,7 +1331,7 @@ body {
 .btn-reseed {
   flex: 0 0 auto;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
@@ -1374,7 +1394,7 @@ body {
   border-left: var(--border-thin) solid var(--ink);
   border-right: var(--border-thin) solid var(--ink);
   font-family: var(--face-num);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-variant-numeric: tabular-nums;
   line-height: 1.45;
   text-align: center;
@@ -1446,7 +1466,7 @@ body {
   background: var(--vermilion);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-label);
   line-height: 1.45;
   white-space: pre-wrap;
 }
@@ -1470,7 +1490,7 @@ body {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
   color: var(--ink);
 }
@@ -1512,7 +1532,7 @@ body {
   background: var(--ink);
   color: var(--parchment);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   /* A hard shadow onto the board, exactly as every parchment card throws one:
      the bar sits *on* the table, it is not painted onto it. */
   box-shadow: 0 4px 0 rgba(29, 26, 32, 0.3);
@@ -1576,7 +1596,7 @@ body {
 .topbar-figure-mark {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 /* Renown wears gilt, the colour gold wears: renown and money are the two
@@ -1782,7 +1802,7 @@ body {
    `filter: saturate(0.9)` used to sit here to mute the `☺`/`⚜` characters'
    own colour — a currentColor mask has no colour of its own to mute. */
 .civ-meter-icon {
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 /* A meter in surplus that is actually paying for something speaks in the food
@@ -1858,7 +1878,7 @@ body {
 .civ-yields.is-tighter .civ-yield,
 .civ-yields.is-tighter .civ-yield-icon,
 .civ-yields.is-tighter .civ-meter {
-  font-size: 10.5px;
+  font-size: var(--size-note);
 }
 
 .civ-yields.is-tighter .civ-meter-icon {
@@ -1927,7 +1947,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   padding: 1px 0;
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink);
 }
 
@@ -1941,7 +1961,7 @@ body {
 .meter-line-value {
   flex: none;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
@@ -1964,7 +1984,7 @@ body {
   gap: 10px;
   margin-top: 6px;
   padding-bottom: 2px;
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
   color: var(--ink);
 }
@@ -1990,7 +2010,7 @@ body {
   margin-top: 5px;
   padding-top: 5px;
   border-top: var(--border-thin) solid var(--ink);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
 }
 
@@ -2011,7 +2031,7 @@ body {
   background: transparent;
   color: var(--parchment);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -2118,7 +2138,7 @@ body {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.35;
   text-align: left;
   color: var(--ink);
@@ -2129,7 +2149,7 @@ body {
 .toast-turn {
   flex: none;
   font-family: var(--face-name);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-variant-caps: all-small-caps;
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: 0.04em;
@@ -2149,7 +2169,7 @@ body {
   display: inline-block;
   width: 15.5px;
   height: 15.5px;
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 15.5px;
   text-align: center;
   color: var(--ink-faint);
@@ -2227,7 +2247,7 @@ button.toast:active {
   background: var(--table);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   cursor: pointer;
 }
@@ -2282,7 +2302,7 @@ button.toast:active {
   border-radius: 4px;
   background: transparent;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
   text-align: left;
   color: var(--ink);
@@ -2292,7 +2312,7 @@ button.toast:active {
   flex: none;
   min-width: 18px;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--ink-faint);
@@ -2307,7 +2327,7 @@ button.toast:active {
   align-self: center;
   width: 14px;
   height: 14px;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 14px;
 }
 
@@ -2349,7 +2369,7 @@ button.log-entry:active {
   background: var(--vermilion);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 8.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 1;
@@ -2422,7 +2442,7 @@ button.log-entry:active {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -2470,7 +2490,7 @@ button.log-entry:active {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -2504,7 +2524,7 @@ button.log-entry:active {
    never shuffles the list under the pointer. */
 .lens-option-tick {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--vermilion);
   visibility: hidden;
@@ -2522,7 +2542,7 @@ button.log-entry:active {
   padding-left: 7px;
   border-left: var(--border-thin) solid var(--table);
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink-faint);
 }
@@ -2559,7 +2579,8 @@ button.log-entry:active {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-variant-caps: normal;
+  font-size: var(--size-label);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -2630,7 +2651,7 @@ button.log-entry:active {
   border: var(--border-thin) solid rgba(29, 26, 32, 0.28);
   border-radius: var(--radius-sm);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -2638,7 +2659,7 @@ button.log-entry:active {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 11.5px;
+  font-size: var(--size-label);
   line-height: 1.55;
   color: var(--ink-soft);
 }
@@ -2681,11 +2702,11 @@ button.log-entry:active {
 
 .hud-card label {
   width: 34px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -2702,7 +2723,7 @@ button.log-entry:active {
   background: #fffdf4;
   color: var(--ink);
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2725,7 +2746,7 @@ button.log-entry:active {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.25;
@@ -2738,7 +2759,7 @@ button.log-entry:active {
   border-color: var(--ink);
   background: var(--cinnabar);
   color: var(--parchment);
-  font-size: 13px;
+  font-size: var(--size-ui);
   padding: 7px 10px;
 }
 
@@ -2792,7 +2813,7 @@ button.log-entry:active {
   flex: none;
   align-items: baseline;
   margin: 0 0 0 auto;
-  font-size: 13px;
+  font-size: var(--size-ui);
   white-space: nowrap;
 }
 
@@ -2813,12 +2834,10 @@ button.log-entry:active {
 
 /* "Turn 14" counts, so it is mono. */
 .status-turn {
-  font-family: var(--face-num);
-  font-size: 11px;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--on-ink-soft);
 }
 
@@ -2831,7 +2850,7 @@ button.log-entry:active {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--size-body);
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
@@ -2850,7 +2869,7 @@ button.log-entry:active {
    face, not in a colour that competes with your own turn. */
 .status-waiting {
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   color: var(--on-ink-soft);
 }
@@ -2893,7 +2912,7 @@ button.seat {
   background: var(--seat-color);
   color: var(--parchment);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.3;
@@ -2959,7 +2978,7 @@ button.seat:active {
 #stats {
   margin: 4px 0 0;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
@@ -3010,24 +3029,24 @@ button.seat:active {
 
 .restart-ask {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
   color: var(--vermilion);
 }
 
 .info-list dt {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
 .info-list dd {
   margin: 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3047,7 +3066,7 @@ button.seat:active {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 80;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--size-ui);
   letter-spacing: -0.01em;
 }
 
@@ -3055,7 +3074,7 @@ button.seat:active {
 #info #info-water,
 #info #info-unit {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 /* What a seam still wants, under the resource it is a clause about: the
@@ -3072,7 +3091,7 @@ button.seat:active {
   display: block;
   margin-top: 2px;
   font-family: var(--face-ui);
-  font-size: 10px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -3186,12 +3205,12 @@ button.seat:active {
 .yield-line-figures {
   flex: none;
   min-width: 62px;
-  font-size: 10px;
+  font-size: var(--size-note);
 }
 
 .yield-line-source {
   font-family: var(--face-ui);
-  font-size: 10px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -3208,7 +3227,7 @@ button.seat:active {
 .hint {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.5;
   color: var(--ink-soft);
 }
@@ -3220,7 +3239,7 @@ kbd {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
@@ -3430,7 +3449,7 @@ kbd {
   background: var(--parchment);
   color: var(--ink-soft);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   line-height: 1;
 }
@@ -3511,7 +3530,7 @@ kbd {
   display: flex;
   align-items: baseline;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 16px;
 }
 
@@ -3562,7 +3581,7 @@ kbd {
   flex: none;
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 16px;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -3615,7 +3634,7 @@ kbd {
   justify-content: space-between;
   gap: 8px;
   padding: 4px 8px 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 16px;
   color: var(--ink-soft);
 }
@@ -3644,11 +3663,11 @@ kbd {
 #culture-figures {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .drawer-owed {
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   color: var(--vermilion);
 }
@@ -3671,7 +3690,7 @@ kbd {
   background: var(--parchment);
   color: var(--ink-soft);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   line-height: 1;
 }
@@ -3680,7 +3699,7 @@ kbd {
   border-color: transparent;
   background: none;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 400;
 }
 
@@ -3708,7 +3727,7 @@ kbd {
   background: none;
   color: var(--ink);
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -3850,7 +3869,7 @@ kbd {
   margin-left: calc(var(--empire-text-edge) - var(--empire-axis) - 8px);
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
 }
 
@@ -3860,7 +3879,7 @@ kbd {
   margin-left: 8px;
   overflow: hidden;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 400;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -3937,7 +3956,7 @@ kbd {
   flex: none;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -3946,7 +3965,7 @@ kbd {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -3973,14 +3992,14 @@ kbd {
   margin: 0;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
   line-height: 20px;
 }
 
 .drawer-supply-caption {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-label);
   font-weight: 400;
   color: var(--ink-faint);
 }
@@ -4010,7 +4029,7 @@ kbd {
   background: none;
   color: var(--ink);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 20px;
   text-align: left;
   cursor: pointer;
@@ -4028,7 +4047,7 @@ kbd {
 }
 
 .drawer-supply-row .res-copies {
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
 }
 
@@ -4040,7 +4059,7 @@ kbd {
   display: flex;
   justify-content: flex-end;
   margin: 0;
-  font-size: 11px;
+  font-size: var(--size-label);
   line-height: 16px;
   color: var(--ink-faint);
 }
@@ -4052,7 +4071,7 @@ kbd {
 .res-copies {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--ink);
 }
@@ -4211,7 +4230,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
 .commission-name {
   overflow: hidden;
   font-family: var(--face-name);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -4222,7 +4241,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
   overflow: hidden;
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   line-height: 1.3;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -4258,7 +4277,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
   border-radius: var(--paper-radius);
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.4;
   color: var(--ink);
 }
@@ -4272,7 +4291,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
 .commission-pop-name {
   margin: 0 0 4px;
   font-family: var(--face-name);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
 }
 
@@ -4293,7 +4312,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
   backdrop-filter: blur(2px);
   color: var(--ink-soft);
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   text-align: left;
   cursor: pointer;
 }
@@ -4333,7 +4352,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
 .goal-figure {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 .goal-pips {
@@ -4369,7 +4388,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
 .goal-note {
   margin: 2px 0 0;
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-label);
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -4402,7 +4421,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
 .scaler-value {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 /* The card the commission chip opened the sheet at, marked for the moment. */
@@ -4463,7 +4482,7 @@ body:has(.empire-corner.is-open) #hud-commissions {
   border-radius: var(--radius-sm);
   background: var(--table);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-label);
   font-weight: 600;
   line-height: 1.35;
 }
@@ -4594,11 +4613,11 @@ body:has(.empire-corner.is-open) #hud-commissions {
 /* The Lens's two lines: a mono eyebrow that never changes, then what the
    board is showing. */
 .turn-tool-label {
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
+  letter-spacing: 0.06em;
   color: var(--ink-soft);
 }
 
@@ -4620,11 +4639,11 @@ body:has(.empire-corner.is-open) #hud-commissions {
   padding: 1px 3px;
   border: 1.5px solid currentColor;
   border-radius: 4px;
-  font-family: var(--face-num);
-  font-size: 7.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--y-food);
 }
 
@@ -4672,7 +4691,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
      `.btn-primary`. Parchment on cinnabar is 4.57:1. */
   border: var(--border) solid var(--ink);
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: var(--size-name);
   letter-spacing: 0.01em;
   white-space: nowrap;
   box-shadow: var(--played-shadow);
@@ -4688,7 +4707,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   border-color: rgba(247, 242, 225, 0.75);
   background: transparent;
   color: var(--parchment);
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 /* The button while the seat still has unfinished business (see
@@ -4766,7 +4785,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   background: var(--vermilion);
   color: #fff;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   line-height: 1.3;
@@ -4795,7 +4814,7 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.35;
 }
 
@@ -4850,7 +4869,7 @@ body.has-diplomatic-offers .end-turn-list {
 
 .end-turn-list-foot {
   margin: 5px 0 0;
-  font-size: 10px;
+  font-size: var(--size-label);
 }
 
 /* --- move mode -------------------------------------------------------------
@@ -5035,7 +5054,7 @@ body.has-diplomatic-offers .end-turn-list {
   background: var(--cinnabar);
   color: var(--parchment);
   font-family: var(--face-display);
-  font-size: 2rem;
+  font-size: var(--size-title);
   font-weight: 400;
   line-height: 1.05;
   text-align: center;
@@ -5204,7 +5223,7 @@ body.has-diplomatic-offers .end-turn-list {
   background: var(--banner-color);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -5445,7 +5464,7 @@ body.has-diplomatic-offers .end-turn-list {
   background: var(--ink);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   line-height: 18px;
 }
@@ -5527,7 +5546,7 @@ body.has-diplomatic-offers .end-turn-list {
   padding-left: 8px;
   border-left: 2px solid rgba(247, 242, 225, 0.3);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: #d9c99a;
 }
@@ -5596,7 +5615,7 @@ body.has-diplomatic-offers .end-turn-list {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
   color: var(--ink);
   /* The same thin-hairline treatment the star chart's stage wears, in the ink
@@ -5655,7 +5674,7 @@ body.has-diplomatic-offers .end-turn-list {
 #unit-panel h3 {
   margin: 14px 0 6px;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 400;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
@@ -5699,7 +5718,7 @@ body.has-diplomatic-offers .end-turn-list {
   padding-top: var(--topbar-h);
   pointer-events: none;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
   color: var(--ink);
   /* The room the tile readout needs at the bottom of the town rail's column
@@ -5877,7 +5896,7 @@ body.has-diplomatic-offers .end-turn-list {
   background: var(--parchment);
   color: var(--vermilion);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -5894,7 +5913,7 @@ body.has-diplomatic-offers .end-turn-list {
 
 .city-short-figure {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
 }
 
@@ -6094,17 +6113,17 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-meter-name {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
 .city-meter-rate {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ink);
@@ -6127,7 +6146,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -6135,7 +6154,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-meter-fig {
   flex: none;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -6150,7 +6169,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   gap: 3px 8px;
   margin: 3px 0 0;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -6182,7 +6201,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   pointer-events: none;
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.4;
 }
 
@@ -6205,7 +6224,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
    SS1). */
 .city-chip-card-name {
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 400;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
@@ -6254,7 +6273,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-chip-row-percent {
   margin-left: 5px;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
 }
@@ -6326,13 +6345,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-disc-name {
   flex: 1 1 auto;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
 .city-disc-fig {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -6367,7 +6386,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-prod-turns {
   flex: none;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -6387,7 +6406,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-prod-waiting {
   margin: 4px 0 0;
   font-family: var(--face-display);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-faint);
 }
 
@@ -6409,7 +6428,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -6432,11 +6451,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
    first, because the tabs already left the air. */
 .city-shelf-head {
   margin: 8px 0 1px;
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -6464,7 +6483,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -6489,14 +6508,14 @@ body:has(.city-mode:not([hidden])) #hud-context {
   left: 50%;
   bottom: calc(14px + 46px);
   transform: translateX(-50%);
-  max-width: 30rem;
+  max-width: 34rem;
   margin: 0;
   padding: 4px 10px;
   pointer-events: none;
   border: 1px dashed var(--ink-line);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--parchment) 86%, transparent);
-  font-size: 11px;
+  font-size: var(--size-label);
   text-align: center;
   color: var(--ink-soft);
 }
@@ -6511,12 +6530,12 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-size {
   display: inline-block;
   margin-top: 2px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -6577,7 +6596,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   justify-content: space-between;
   gap: 8px;
   padding: 1px 0;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -6646,11 +6665,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-yield-label {
-  font-family: var(--face-num);
-  font-size: 8px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -6687,16 +6706,17 @@ body:has(.city-mode:not([hidden])) #hud-context {
   align-items: baseline;
   gap: 4px 8px;
   margin: 0 0 6px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
 .city-specialists-count {
-  font-size: 10px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -6713,7 +6733,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-specialist-name {
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
@@ -6725,7 +6745,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-focus {
   margin: 0 0 6px;
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -6764,7 +6784,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--y-gold);
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   box-shadow: var(--paper-shadow);
@@ -6850,7 +6870,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -6904,7 +6924,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -6933,7 +6953,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   gap: 5px;
   margin-top: 6px;
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   letter-spacing: normal;
   text-transform: none;
   color: var(--ink-soft);
@@ -6979,7 +6999,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-queue-list li::before {
   content: counter(queue);
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--ink-soft);
 }
@@ -6995,7 +7015,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .city-queue-cost {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -7005,7 +7025,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
    along the town is. */
 .city-queue-banked {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint, var(--ink-soft));
   font-style: italic;
@@ -7021,7 +7041,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -7126,7 +7146,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   border-radius: var(--radius-sm);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7144,7 +7164,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: none;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: normal;
   text-align: left;
@@ -7180,15 +7200,17 @@ p.city-trade-link {
   align-items: baseline;
   gap: 2px 8px;
   margin: 2px 0 1px;
-  font-family: var(--face-num);
-  font-size: 9px;
+  font-family: var(--face-name);
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.04em;
+  font-variant-caps: all-small-caps;
+  font-weight: 500;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
 .price-head-rule {
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .price-head-banks {
@@ -7204,7 +7226,7 @@ p.city-trade-link {
   justify-content: center;
   min-width: 4.8em;
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   letter-spacing: normal;
@@ -7263,7 +7285,7 @@ p.city-trade-link {
 }
 
 .price-cell-need {
-  font-size: 9px;
+  font-size: var(--size-note);
 }
 
 /* Cannot be bought here: a dash. The reason is a line at the head of the shelf
@@ -7285,7 +7307,7 @@ p.city-trade-link {
 .refusal-mark {
   margin: 0 1px;
   font-family: var(--face-num);
-  font-size: 8px;
+  font-size: var(--size-note);
   font-style: normal;
   font-weight: 600;
   line-height: 0;
@@ -7296,7 +7318,7 @@ p.city-trade-link {
 .refusal-line {
   margin: 1px 0;
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-label);
   line-height: 1.35;
 }
 
@@ -7329,7 +7351,7 @@ p.city-trade-link {
   gap: 6px;
   margin: 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--ink-soft);
@@ -7382,7 +7404,7 @@ p.city-trade-link {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   box-shadow: var(--paper-shadow);
   cursor: pointer;
@@ -7450,7 +7472,7 @@ p.city-trade-link {
 .city-buildable-yield {
   flex: 0 0 auto;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -7463,7 +7485,7 @@ p.city-trade-link {
   min-width: 5.8em;
   text-align: right;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -7523,7 +7545,7 @@ p.city-trade-link {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-weight: 700;
   letter-spacing: 0.04em;
   opacity: 0;
@@ -7564,16 +7586,16 @@ p.city-trade-link {
   padding: 0 0 6px;
   border-bottom: 1px solid var(--rule);
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   color: var(--ink);
 }
 
 .city-supply-label {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -7612,7 +7634,7 @@ p.city-trade-link {
 .city-not-yet > summary::after,
 .city-shelf-fold > summary::after {
   content: '▸';
-  font-size: 9px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -7629,7 +7651,7 @@ p.city-trade-link {
 
 .city-not-yet > summary .city-not-yet-name {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--ink-soft);
 }
@@ -7640,7 +7662,7 @@ p.city-trade-link {
 
 .city-not-yet-count {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -7656,7 +7678,7 @@ p.city-trade-link {
 
 .city-not-yet-row > .city-not-yet-name {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--ink-soft);
 }
@@ -7664,7 +7686,7 @@ p.city-trade-link {
 .city-not-yet-why {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-label);
   line-height: 1.3;
 }
 
@@ -7688,7 +7710,7 @@ p.city-trade-link {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   pointer-events: none;
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
 }
 
@@ -7719,7 +7741,7 @@ p.city-trade-link {
   padding-top: 5px;
   border-top: 1px solid var(--rule);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -7738,15 +7760,16 @@ p.city-trade-link {
   gap: 8px;
   margin: 7px 0 0;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
 }
 
 .info-card-adds-label {
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
 }
 
 /* A city-screen note in the hover card (batch UX7), where a native tooltip
@@ -7774,7 +7797,7 @@ p.city-trade-link {
 .city-faith-headline {
   margin: 3px 0 4px;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink);
 }
@@ -7782,7 +7805,7 @@ p.city-trade-link {
 .city-rite-kept {
   margin: 4px 0;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -7806,7 +7829,7 @@ p.city-trade-link {
   min-width: 0;
   overflow: hidden;
   font-family: var(--face-display);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7819,7 +7842,7 @@ p.city-trade-link {
   grid-column: 1 / -1;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-label);
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -7846,7 +7869,7 @@ p.city-trade-link {
   justify-self: start;
   font: inherit;
   font-family: var(--face-display);
-  font-size: 14px;
+  font-size: var(--size-body);
   color: var(--ink);
   background: none;
   border: 0;
@@ -7862,7 +7885,7 @@ p.city-trade-link {
 }
 .city-levy-figure {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -7871,7 +7894,7 @@ p.city-trade-link {
   grid-column: 1 / -1;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -7887,7 +7910,7 @@ p.city-trade-link {
 .city-levy-cost {
   margin: 5px 0 0;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -7924,11 +7947,11 @@ p.city-trade-link {
 .unit-owner {
   display: inline-block;
   margin-top: 2px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--unit-color, var(--ink-soft));
 }
 
@@ -7984,18 +8007,18 @@ p.city-trade-link {
 }
 
 .unit-stat-label {
-  font-family: var(--face-num);
-  font-size: 8px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
 .unit-note {
   margin: 9px 0 0;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
@@ -8015,11 +8038,11 @@ p.city-trade-link {
 
 .unit-ledger-heading {
   margin: 6px 0 2px;
-  font-family: var(--face-num);
-  font-size: 8px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
 
@@ -8034,7 +8057,7 @@ p.city-trade-link {
   justify-content: space-between;
   gap: 10px;
   padding: 2px 0;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 .unit-ledger-lines li + li {
@@ -8058,18 +8081,18 @@ p.city-trade-link {
 
 .unit-trait-words {
   margin: 6px 0 0;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink-soft);
 }
 
 .unit-trait-source {
   display: block;
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
+  letter-spacing: 0.06em;
   color: var(--deck-charter);
 }
 
@@ -8082,7 +8105,7 @@ p.city-trade-link {
   padding-left: 7px;
   border-left: 2px solid var(--lapis);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ink);
@@ -8110,7 +8133,7 @@ p.city-trade-link {
 .unit-action-note {
   flex: 0 0 auto;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   opacity: 0.75;
@@ -8231,7 +8254,7 @@ p.city-trade-link {
   align-self: center;
   margin: 0;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-label);
   letter-spacing: 0.04em;
   color: rgba(247, 242, 225, 0.45);
 }
@@ -8326,11 +8349,11 @@ p.city-trade-link {
 
 .tech-plan-label {
   flex: none;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.08em;
   color: var(--gilt);
 }
 
@@ -8377,7 +8400,7 @@ p.city-trade-link {
   border-radius: 999px;
   background: #16141a;
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: var(--size-note);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -8399,13 +8422,13 @@ p.city-trade-link {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--parchment);
 }
 
 .tech-plan-turns {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: rgba(247, 242, 225, 0.55);
 }
@@ -8421,7 +8444,7 @@ p.city-trade-link {
   border-radius: var(--radius-sm);
   background: transparent;
   color: rgba(247, 242, 225, 0.45);
-  font-size: 10px;
+  font-size: var(--size-note);
   line-height: 1;
   cursor: pointer;
 }
@@ -8648,18 +8671,18 @@ p.city-trade-link {
 
 /* ÆRA I — the age numerals, gilt, letterspaced like an inscription. */
 .tech-era {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-ui);
+  font-weight: 500;
+  letter-spacing: 0.1em;
   color: var(--gilt);
 }
 
 .tech-era-name {
   font-family: var(--face-display);
   font-style: italic;
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: rgba(247, 242, 225, 0.6);
 }
 
@@ -8683,7 +8706,7 @@ p.city-trade-link {
   background: #1e1b22;
   color: var(--parchment);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   text-align: left;
   cursor: pointer;
 }
@@ -8749,7 +8772,7 @@ p.city-trade-link {
    card is read in a chart of twenty-two, not centred alone like the dial. */
 .tech-node-glyph {
   flex: none;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--gilt);
 }
 
@@ -8758,13 +8781,13 @@ p.city-trade-link {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--size-body);
   letter-spacing: -0.01em;
 }
 
 .tech-node-star {
   color: var(--gilt);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* Figures are mono, always. */
@@ -8773,7 +8796,7 @@ p.city-trade-link {
   gap: 8px;
   margin-top: 2px;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
 }
 
@@ -8801,7 +8824,7 @@ p.city-trade-link {
 
 .tech-node-progress {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   color: rgba(247, 242, 225, 0.7);
 }
 
@@ -8833,7 +8856,7 @@ p.city-trade-link {
   border: 1px solid rgba(247, 242, 225, 0.4);
   border-radius: 3px;
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
@@ -8854,7 +8877,7 @@ p.city-trade-link {
 
 .tech-unlock-note {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   color: rgba(247, 242, 225, 0.5);
 }
 
@@ -8942,9 +8965,7 @@ p.city-trade-link {
   display: block;
   margin-top: 4px;
   font-family: var(--face-ui);
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--size-label);
   color: rgba(247, 242, 225, 0.7);
 }
 
@@ -9066,12 +9087,12 @@ p.city-trade-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-ui);
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--deck-charter-lit);
 }
 
@@ -9081,7 +9102,7 @@ p.city-trade-link {
 
 .tech-shelf-words {
   font-family: var(--face-display);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-style: italic;
   color: rgba(247, 242, 225, 0.62);
 }
@@ -9099,12 +9120,12 @@ p.city-trade-link {
   border-radius: 999px;
   background: #241e1a;
   color: var(--deck-charter-lit);
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
   cursor: pointer;
   animation: tech-tab-in 200ms ease-out both;
@@ -9123,7 +9144,7 @@ p.city-trade-link {
 }
 
 .tech-shelf-tab-count {
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   color: var(--parchment);
@@ -9131,7 +9152,7 @@ p.city-trade-link {
 
 .tech-shelf-tab-arrow {
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   letter-spacing: 0;
 }
 
@@ -9201,16 +9222,16 @@ p.city-trade-link {
 }
 
 .tech-lead small {
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
+  letter-spacing: 0.06em;
 }
 
 .tech-lead b {
   font-family: var(--face-num);
-  font-size: 20px;
+  font-size: var(--size-heading);
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -9238,12 +9259,12 @@ p.city-trade-link {
   align-items: center;
   gap: 5px;
   margin-top: 3px;
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
   line-height: 1.3;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--deck-charter-lit);
 }
 
@@ -9258,7 +9279,7 @@ p.city-trade-link {
   justify-content: space-between;
   gap: 10px;
   padding: 2px 0;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 .info-card-ledger li + li {
@@ -9292,7 +9313,7 @@ p.city-trade-link {
 .info-card-gifts li.info-card-trait-words {
   display: block;
   padding-left: 21px;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   font-style: italic;
   line-height: 1.3;
   color: rgba(247, 242, 225, 0.62);
@@ -9303,7 +9324,7 @@ p.city-trade-link {
   display: block;
   margin-top: 5px;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-variant-caps: all-small-caps;
   line-height: 1;
   letter-spacing: 0.06em;
@@ -9445,7 +9466,7 @@ p.city-trade-link {
   transform: translate(-100%, -50%);
   padding-right: 12px;
   font-family: var(--face-name);
-  font-size: 16px;
+  font-size: var(--size-name);
   font-weight: 500;
 }
 
@@ -9523,21 +9544,21 @@ p.city-trade-link {
    thing: a label for everything under it. */
 .combat-comparison {
   margin: 0 0 6px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
 .combat-head {
   margin: 0 0 6px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -9567,11 +9588,11 @@ p.city-trade-link {
 }
 
 .combat-strength-label {
-  font-family: var(--face-ui);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9610,7 +9631,7 @@ p.city-trade-link {
   justify-content: space-between;
   gap: 6px;
   font-family: var(--face-ui);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -9647,7 +9668,7 @@ p.city-trade-link {
 .combat-side-label {
   grid-area: label;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9658,7 +9679,7 @@ p.city-trade-link {
 .combat-damage {
   grid-area: damage;
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -9714,7 +9735,7 @@ p.city-trade-link {
 .combat-after {
   grid-area: after;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -9723,7 +9744,7 @@ p.city-trade-link {
 .combat-note {
   margin: 6px 0 0;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
@@ -9732,7 +9753,7 @@ p.city-trade-link {
 .combat-blocked {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -9757,7 +9778,7 @@ p.city-trade-link {
   background: var(--ink);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -9860,7 +9881,7 @@ p.city-trade-link {
   box-shadow: var(--paper-shadow);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
   pointer-events: none;
 }
@@ -9925,7 +9946,7 @@ p.city-trade-link {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--size-body);
   letter-spacing: -0.01em;
 }
 
@@ -9933,7 +9954,7 @@ p.city-trade-link {
    card is read beside a chart of twenty-two and not centred alone. */
 .info-card-glyph {
   flex: none;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--y-gold);
 }
 
@@ -9942,11 +9963,11 @@ p.city-trade-link {
    tables use. */
 .info-card-kind {
   flex: none;
-  font-family: var(--face-num);
-  font-size: 8px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -9958,7 +9979,7 @@ p.city-trade-link {
   gap: 8px;
   margin-top: 3px;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
@@ -9981,7 +10002,7 @@ p.city-trade-link {
 
 .info-card-rate {
   margin-left: auto;
-  font-size: 9.5px;
+  font-size: var(--size-note);
   color: var(--ink-faint);
 }
 
@@ -10005,18 +10026,18 @@ p.city-trade-link {
 
 .info-card-stat-value {
   font-family: var(--face-num);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
 .info-card-stat-label {
-  font-family: var(--face-num);
-  font-size: 7.5px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -10027,7 +10048,7 @@ p.city-trade-link {
   padding: 0 0 0 11px;
   display: grid;
   gap: 2px;
-  font-size: 10.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -10066,7 +10087,7 @@ p.city-trade-link {
 .info-card-state {
   margin: 6px 0 0;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
@@ -10096,7 +10117,7 @@ p.city-trade-link {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--size-body);
   letter-spacing: -0.01em;
 }
 
@@ -10110,7 +10131,7 @@ p.city-trade-link {
 .unit-card-payoff {
   margin: 3px 0 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -10120,7 +10141,7 @@ p.city-trade-link {
 /* What it leaves behind, one clause a line, in `describeCard`'s words. */
 .unit-card-clause {
   margin: 3px 0 0;
-  font-size: 10.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -10136,7 +10157,7 @@ p.city-trade-link {
 .unit-card-blocked {
   margin: 5px 0 0;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-label);
   letter-spacing: 0.04em;
 }
 
@@ -10145,11 +10166,11 @@ p.city-trade-link {
    room for. */
 .info-card-heading {
   margin: 8px 0 3px;
-  font-family: var(--face-num);
-  font-size: 8px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
 
@@ -10178,7 +10199,7 @@ p.city-trade-link {
   border: 1px solid var(--ink-line);
   border-radius: 3px;
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
@@ -10218,13 +10239,13 @@ p.city-trade-link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 .info-card-gift-note {
   flex: none;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -10234,7 +10255,7 @@ p.city-trade-link {
   margin: 8px 0 0;
   font-family: var(--face-display);
   font-style: italic;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -10336,7 +10357,7 @@ p.city-trade-link {
 /* The queue row's schedule, beside its price: both figures, both mono. */
 .city-queue-turns {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
 }
@@ -10472,7 +10493,7 @@ p.city-trade-link {
   background: transparent;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   cursor: pointer;
 }
 
@@ -10484,7 +10505,7 @@ p.city-trade-link {
 
 .offer-look-key {
   font-family: var(--face-num);
-  font-size: 8.5px;
+  font-size: var(--size-note);
   letter-spacing: 0.06em;
   opacity: 0.75;
 }
@@ -10492,7 +10513,7 @@ p.city-trade-link {
 .offer-foot-note {
   margin: 0;
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: var(--size-label);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
@@ -10617,7 +10638,7 @@ p.city-trade-link {
    the label's own face, a step down and a shade back. */
 .offer-answer-pass .offer-answer-figure {
   font-family: var(--face-ui);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   letter-spacing: normal;
   opacity: 0.9;
 }
@@ -10629,7 +10650,7 @@ p.city-trade-link {
    button rather than floating in the middle of the taller one's space. */
 .offer-answer-note {
   align-self: start;
-  font-size: 9.5px;
+  font-size: var(--size-note);
   line-height: 1.4;
 }
 
@@ -10872,7 +10893,7 @@ p.city-trade-link {
 }
 
 .offer-options[data-face='tarot'] .offer-payoff {
-  font-size: 10px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -11004,7 +11025,7 @@ p.city-trade-link {
 
 .offer-chair-words {
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
   line-height: 1.3;
@@ -11243,7 +11264,7 @@ p.city-trade-link {
 
 .suit-seat .suit-cartouche-numeral {
   font-family: var(--face-num);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 500;
   letter-spacing: 0.5px;
 }
@@ -11375,12 +11396,12 @@ p.city-trade-link {
   gap: 6px;
   margin-top: auto;
   padding-top: 0.5em;
-  font-family: var(--face-num);
-  font-size: max(7px, 0.5625em);
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: max(10px, 0.76em);
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0.14em;
   color: var(--card-ink, var(--ink));
 }
 
@@ -11450,7 +11471,7 @@ p.city-trade-link {
   left: 50%;
   width: 20px;
   height: 20px;
-  font-size: 0.66rem;
+  font-size: var(--size-note);
   transform: translateX(-50%);
 }
 
@@ -11584,12 +11605,12 @@ p.city-trade-link {
 
 .suit-row-meta {
   flex: none;
-  font-family: var(--face-num);
-  font-size: 9.5px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -11682,7 +11703,7 @@ p.city-trade-link {
 }
 
 .save-row-menu .btn {
-  font-size: 11px;
+  font-size: var(--size-note);
   padding: 5px 6px;
   white-space: nowrap;
 }
@@ -11819,11 +11840,11 @@ p.city-trade-link {
   border-radius: 3px;
   background: var(--ink);
   color: var(--parchment);
-  font-family: var(--face-num);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 .save-badge[hidden] {
@@ -11833,13 +11854,13 @@ p.city-trade-link {
 .save-when {
   margin-left: auto;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
 .save-meta {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   letter-spacing: 0.02em;
   color: var(--ink-soft);
 }
@@ -11856,7 +11877,7 @@ p.city-trade-link {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   line-height: 1;
   cursor: pointer;
 }
@@ -11884,14 +11905,14 @@ p.city-trade-link {
 .save-ask {
   flex: 1;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 700;
   color: var(--vermilion);
 }
 
 .save-row.is-asking .btn {
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: var(--size-note);
   padding: 4px 9px;
 }
 
@@ -11989,7 +12010,7 @@ p.city-trade-link {
   margin: 0;
   padding-top: 6px;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-faint);
 }
 
@@ -12001,7 +12022,7 @@ p.city-trade-link {
   border: 1px solid var(--edge);
   border-radius: var(--paper-radius);
   background: var(--table);
-  font-size: 16px;
+  font-size: var(--size-name);
   line-height: 1;
   color: var(--ink);
   cursor: pointer;
@@ -13255,7 +13276,7 @@ p.city-trade-link {
 .offer-lede {
   margin: 6px 0 0;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13281,12 +13302,12 @@ p.city-trade-link {
   padding: 1px 7px;
   border: var(--border-thin) solid var(--ink-line);
   border-radius: 999px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  font-variant-numeric: lining-nums tabular-nums;
   color: var(--ink-soft);
 }
 
@@ -13408,7 +13429,7 @@ p.city-trade-link {
 .rel-faith-title {
   margin: 0;
   font-family: var(--face-display);
-  font-size: 20px;
+  font-size: var(--size-heading);
 }
 
 /* The name, editable in place. Renaming changes no rule, so it is dressed as
@@ -13435,7 +13456,7 @@ p.city-trade-link {
 .rel-faith-count,
 .rel-faith-how {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -13479,7 +13500,7 @@ p.city-trade-link {
   background: #fdfaef;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -13497,7 +13518,7 @@ p.city-trade-link {
 
 .faith-tab-count {
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   opacity: 0.72;
@@ -13536,7 +13557,7 @@ p.city-trade-link {
 }
 
 .faith-rites-note {
-  font-size: 11px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13558,7 +13579,7 @@ p.city-trade-link {
   background: #fdfaef;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -13596,13 +13617,13 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-rite-chip-mark {
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1;
 }
 
 .faith-rite-chip-kept {
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   opacity: 0.75;
@@ -13626,7 +13647,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-rite-say {
   margin: 0;
   min-height: 22px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13649,7 +13670,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-rite-say-leave {
   margin-left: auto;
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13673,11 +13694,11 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 5px 10px;
   border-bottom: 1px solid rgba(29, 26, 32, 0.15);
   background: var(--parchment);
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -13685,6 +13706,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin-left: auto;
   letter-spacing: 0.04em;
   text-transform: none;
+  font-variant-caps: normal;
 }
 
 /* One town: rank, name, what it keeps, what it adds or pays, and its control. */
@@ -13696,7 +13718,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   min-height: 30px;
   padding: 3px 10px;
   border-bottom: 1px solid rgba(29, 26, 32, 0.09);
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .faith-town.is-free {
@@ -13714,7 +13736,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-town-rank {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--teal);
@@ -13734,7 +13756,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: none;
   color: var(--ink);
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -13749,12 +13771,12 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-town-label {
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .faith-town-faith {
   margin-left: 5px;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -13797,7 +13819,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: var(--teal);
   color: #fff;
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: var(--size-note);
   font-weight: 600;
 }
 
@@ -13818,7 +13840,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-town-left {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -13840,7 +13862,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-figure:not(.is-main) {
-  font-size: 10px;
+  font-size: var(--size-note);
   font-weight: 500;
   color: var(--ink-soft);
 }
@@ -13849,7 +13871,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 400;
   color: var(--ink-soft);
 }
@@ -13861,7 +13883,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-town-act {
   justify-self: end;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -13888,7 +13910,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-town-empty {
   margin: 0;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13933,12 +13955,12 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-menu-name {
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .faith-menu-says {
   display: block;
-  font-size: 11px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13949,7 +13971,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-menu-foot {
   margin: 0;
   padding-top: 7px;
-  font-size: 11.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -13966,7 +13988,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border: var(--border-thin) solid var(--y-faith);
   border-radius: 8px;
   background: #f9eff1;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .faith-line-bank {
@@ -13991,7 +14013,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 8px 12px;
   border: 1.5px dashed rgba(29, 26, 32, 0.4);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .faith-realm-title {
@@ -14046,21 +14068,21 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-head-bank,
 .faith-head-none {
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
 .faith-head-match {
   margin: 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   color: var(--teal);
 }
 
 .faith-head-note {
   margin: 4px 0 0;
-  font-size: 11.5px;
+  font-size: var(--size-label);
   line-height: 1.4;
   color: var(--ink-soft);
 }
@@ -14110,7 +14132,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 0;
   list-style: none;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.35;
 }
 
@@ -14145,7 +14167,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-shelf-title {
   margin: 0;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 400;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
@@ -14153,14 +14175,14 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-shelf-note {
-  font-size: 11.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
 .faith-shelf-total {
   margin-left: auto;
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -14168,7 +14190,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-shelf-empty {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -14211,13 +14233,13 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-radius: 50%;
   background: var(--line-ink, var(--ink));
   color: var(--parchment);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0;
 }
 
 .faith-card-note {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--size-label);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -14239,7 +14261,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border: 1px solid rgba(29, 26, 32, 0.25);
   border-radius: 3px;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   line-height: 1.5;
   color: var(--ink);
 }
@@ -14249,7 +14271,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   padding: 2px 5px;
   border: 1.5px solid var(--ink);
   border-radius: 4px;
-  font-size: 10.5px;
+  font-size: var(--size-note);
 }
 
 .faith-chip.is-more {
@@ -14277,7 +14299,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-card-where-words {
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -14291,7 +14313,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-card-quiet {
-  font-size: 11px;
+  font-size: var(--size-note);
   font-style: italic;
   text-align: center;
   color: var(--ink-soft);
@@ -14349,7 +14371,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-ghost-text {
-  font-size: 11px;
+  font-size: var(--size-label);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -14401,7 +14423,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border: 1.5px solid var(--ink-line);
   border-radius: 999px;
   background: #fdfaef;
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -14430,7 +14452,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-count-label {
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -14470,7 +14492,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 .faith-section-note {
-  font-size: 11px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -14501,7 +14523,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   gap: 8px;
   padding: 4px 0;
   border-bottom: 1px solid var(--rule);
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .faith-follower-name {
@@ -14519,7 +14541,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-follower-owner,
 .faith-follower-reason {
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -14542,7 +14564,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   flex-direction: column;
   gap: 2px;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -14563,7 +14585,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-follower-press {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--ink-faint);
@@ -14575,7 +14597,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-rivals-empty {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -14583,7 +14605,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -14607,13 +14629,13 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-clergy-name {
   margin: 0;
   font-family: var(--face-name);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
 }
 
 .faith-clergy-says {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--size-label);
   line-height: 1.4;
   color: var(--ink-soft);
 }
@@ -14628,7 +14650,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .faith-clergy-price {
   margin-top: auto;
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
 }
@@ -14715,7 +14737,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   align-items: baseline;
   flex-wrap: wrap;
   margin: 0 0 2px;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
 }
 
@@ -14769,7 +14791,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--size-body);
   letter-spacing: -0.01em;
 }
 
@@ -14813,7 +14835,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-card-name {
   font-family: var(--face-display);
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .faith-card-faith.is-foreign .faith-card-name {
@@ -14834,14 +14856,14 @@ button.faith-rite-chip:hover:not(.is-on) {
    no hovering a hover card, and the ledger is what this card was asked for. */
 .faith-card-ledger {
   margin: 1px 0 0;
-  font-size: 10.5px;
+  font-size: var(--size-note);
   line-height: 1.35;
   color: var(--ink-faint);
 }
 
 .faith-card-none {
   margin: 0;
-  font-size: 10.5px;
+  font-size: var(--size-label);
   color: var(--ink-faint);
 }
 
@@ -15496,11 +15518,11 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .city-buildable-eyebrow {
   margin-left: 6px;
-  font-family: var(--face-ui);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: var(--inscription-tracking);
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--deep-gilt);
 }
 
@@ -15619,12 +15641,12 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-radius: 999px;
   background: none;
   color: var(--badge-ink, var(--ink-soft));
-  font-family: var(--face-num);
-  font-size: calc(0.58rem * var(--offer-scale, 1));
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: calc(0.78rem * var(--offer-scale, 1));
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   line-height: 1.5;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -15757,7 +15779,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 2px 0 0;
   color: var(--ink-faint);
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
 }
@@ -15780,7 +15802,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .triumph-name {
   margin: 2px 0 0;
   font-family: var(--face-display);
-  font-size: 2rem;
+  font-size: var(--size-title);
   font-weight: 400;
   line-height: 1.05;
 }
@@ -15792,7 +15814,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 8px 0 0;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   line-height: 1.45;
 }
 
@@ -15800,7 +15822,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 6px 0 0;
   color: var(--ink-soft);
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-style: italic;
   line-height: 1.4;
 }
@@ -15848,7 +15870,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .triumph-pays-word {
   color: var(--ink-soft);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -15873,7 +15895,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: var(--cinnabar);
   color: var(--parchment);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   cursor: pointer;
 }
@@ -15888,7 +15910,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border: 1px solid currentcolor;
   border-radius: 3px;
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   opacity: 0.85;
 }
 
@@ -15896,7 +15918,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 0;
   color: var(--ink-faint);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
 }
 
@@ -15959,7 +15981,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 10px 0 0;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
 }
 
@@ -16023,7 +16045,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .cmp-sections {
@@ -16053,7 +16075,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: none;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   text-align: left;
   cursor: pointer;
 }
@@ -16074,7 +16096,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .cmp-section-count {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
 }
@@ -16146,7 +16168,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   background: none;
   color: var(--ink-soft);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   text-align: left;
   cursor: pointer;
 }
@@ -16255,13 +16277,13 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .cmp-row-label {
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
 .cmp-row-value {
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--ink);
@@ -16276,7 +16298,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .cmp-clause {
   position: relative;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.5;
   color: var(--ink);
 }
@@ -16317,7 +16339,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-left: 3px solid var(--vermilion);
   background: color-mix(in srgb, var(--vermilion) 7%, transparent);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -16335,7 +16357,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .cmp-written-p {
   margin: 0 0 10px;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.6;
   color: var(--ink);
 }
@@ -16347,7 +16369,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .cmp-flavor {
   margin: 8px 0 0;
   font-family: var(--face-name);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-style: italic;
   color: var(--ink-soft);
 }
@@ -16364,12 +16386,12 @@ button.faith-rite-chip:hover:not(.is-on) {
 .cmp-flavor-label,
 .flavor-label {
   margin-right: 6px;
-  font-family: var(--face-ui);
-  font-size: 9px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
   font-style: normal;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
 
@@ -16416,7 +16438,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .btn-tiny {
   flex: 0 0 auto;
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: var(--size-note);
 }
 
 .trade-book {
@@ -16509,7 +16531,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-radius: 3px 3px 0 0;
   background: var(--table);
   color: var(--ink-soft);
-  font: 500 11px/1 var(--face-ui);
+  font: 500 var(--size-note)/1 var(--face-ui);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
@@ -16526,7 +16548,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   content: '❧';
   display: inline-block;
   font-family: var(--face-display);
-  font-size: 12px;
+  font-size: var(--size-label);
   letter-spacing: 0;
   color: var(--ink-faint);
   transform: scaleX(-1);
@@ -16619,7 +16641,7 @@ button.faith-rite-chip:hover:not(.is-on) {
 .trade-card.is-best .trade-card-pair::before {
   content: '❧ ';
   color: var(--vermilion);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .trade-card-pair {
@@ -16704,7 +16726,7 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-radius: 2px;
   background: none;
   color: var(--ink-soft);
-  font: 500 10.5px/1 var(--face-ui);
+  font: 500 var(--size-note)/1 var(--face-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -16750,7 +16772,7 @@ button.trade-chip {
   border: 0;
   background: none;
   color: var(--ink-soft);
-  font: 500 10.5px/1 var(--face-ui);
+  font: 500 var(--size-note)/1 var(--face-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
@@ -16803,13 +16825,13 @@ button.trade-chip {
 .trade-price {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .trade-price small {
   margin-left: 4px;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -16825,7 +16847,7 @@ button.trade-chip {
   border: 1.5px solid var(--ink);
   background: var(--ink);
   color: var(--parchment);
-  font: 600 11px/1 var(--face-ui);
+  font: 600 var(--size-note)/1 var(--face-ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -16864,13 +16886,13 @@ button.trade-chip {
 .trade-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .trade-table th {
   padding: 4px 8px 6px 0;
   border-bottom: 1px solid var(--rule);
-  font: 500 10.5px/1 var(--face-ui);
+  font: 500 var(--size-note)/1 var(--face-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: left;
@@ -16894,7 +16916,7 @@ button.trade-chip {
 
 .trade-table td .trade-send {
   padding: 5px 8px 4px;
-  font-size: 10.5px;
+  font-size: var(--size-note);
 }
 
 .trade-table td .trade-send + .trade-send {
@@ -16923,7 +16945,7 @@ button.trade-chip {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -16956,7 +16978,7 @@ button.trade-chip {
   display: inline-block;
   width: 14px;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-faint);
 }
 
@@ -16966,14 +16988,14 @@ button.trade-chip {
 
 .trade-origin-count {
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-faint);
 }
 
 .trade-origin-slots {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -17006,7 +17028,7 @@ button.trade-chip {
 .trade-reason-title small {
   margin-left: 8px;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-faint);
 }
 
@@ -17022,7 +17044,7 @@ button.trade-chip {
 
 .trade-reason-list b {
   font-family: var(--face-name);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 500;
   color: var(--ink);
 }
@@ -17362,7 +17384,7 @@ body.compendium-page {
 .bead-age-title {
   margin: 0;
   font-family: var(--face-display);
-  font-size: 1.25rem;
+  font-size: var(--size-heading);
   font-weight: 400;
 }
 
@@ -17412,7 +17434,7 @@ body.compendium-page {
 .bead-card-name {
   margin: 0;
   font-family: var(--face-name);
-  font-size: 1rem;
+  font-size: var(--size-name);
   font-weight: 600;
 }
 
@@ -17561,7 +17583,7 @@ body.compendium-page {
   background: transparent;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 700;
   box-shadow: var(--paper-shadow);
   cursor: pointer;
@@ -17649,7 +17671,7 @@ body.compendium-page {
   margin: 4px 0 0;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.4;
 }
 
@@ -17725,7 +17747,7 @@ body.compendium-page {
   max-width: 62ch;
   color: var(--ink-soft);
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
 }
 
@@ -17735,7 +17757,7 @@ body.compendium-page {
   margin: 14px 0 0;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -17770,7 +17792,7 @@ body.compendium-page {
 .bead-banner-deed {
   color: var(--ink-soft);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.4;
 }
 
@@ -17854,7 +17876,7 @@ body.compendium-page {
   background: var(--parchment);
   box-shadow: var(--paper-shadow);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.5;
   color: var(--ink);
 }
@@ -17884,7 +17906,7 @@ body.compendium-page {
   font-family: var(--face-name);
   font-variant-caps: all-small-caps;
   font-variant-numeric: lining-nums tabular-nums;
-  font-size: 13px;
+  font-size: var(--size-ui);
   letter-spacing: 0.04em;
   color: var(--ink-faint);
 }
@@ -17989,7 +18011,7 @@ body.compendium-page {
   border-bottom: var(--border-thin) solid var(--ink);
   font-family: var(--face-name);
   font-style: italic;
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-soft);
 }
 
@@ -18017,7 +18039,7 @@ body.compendium-page {
 .pamphlet-line {
   margin: 0 0 6px;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.55;
   color: var(--ink-soft);
 }
@@ -18061,11 +18083,11 @@ body.compendium-page {
   display: none;
   margin: 0;
   padding: 12px 8px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-align: center;
   color: var(--ink-faint);
 }
@@ -18130,7 +18152,7 @@ body.compendium-page {
   flex: 1 1 auto;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-label);
   line-height: 1.5;
   color: var(--ink-soft);
 }
@@ -18234,7 +18256,7 @@ body.compendium-page {
    because it is a sentence rather than a figure. */
 .card-stamp-occasion {
   font-family: var(--face-name);
-  font-size: 0.68rem;
+  font-size: var(--size-note);
   font-style: italic;
   color: var(--ink-soft);
 }
@@ -18535,11 +18557,11 @@ body.compendium-page {
 }
 
 .card-stamp[data-face='opened'] .card-stamp-occasion {
-  font-family: var(--face-num);
-  font-size: 0.55em;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: 0.74em;
   font-style: normal;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--deck-charter-lit);
 }
 
@@ -18745,7 +18767,7 @@ body.compendium-page {
   background: none;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -18810,7 +18832,7 @@ body.compendium-page {
 .rel-family-count {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .rel-family.is-empty .rel-family-count {
@@ -18876,7 +18898,7 @@ body.compendium-page {
   overflow: hidden;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 600;
   line-height: 1.1;
   color: var(--ink);
@@ -18912,12 +18934,12 @@ body.compendium-page {
   left: -4px;
   padding: 2px 0;
   background: var(--vermilion);
-  font-family: var(--face-num);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-note);
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-align: center;
-  text-transform: uppercase;
   color: var(--parchment);
 }
 
@@ -19067,7 +19089,7 @@ body.compendium-page {
 .rel-deed,
 .gp-ceremony-deed {
   font-family: var(--face-num);
-  font-size: 0.66rem;
+  font-size: var(--size-note);
   line-height: 1.4;
   letter-spacing: 0.02em;
   color: var(--ink-soft);
@@ -19082,7 +19104,7 @@ body.compendium-page {
 .rel-count {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-variant-numeric: lining-nums tabular-nums;
   color: var(--ink);
 }
@@ -19104,7 +19126,7 @@ body.compendium-page {
   max-width: 26rem;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   line-height: 1.5;
   text-align: center;
   color: var(--ink-soft);
@@ -19140,7 +19162,7 @@ body.compendium-page {
   max-width: 92ch;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -19157,7 +19179,7 @@ body.compendium-page {
   gap: 8px;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   color: var(--ink);
 }
 
@@ -19194,7 +19216,7 @@ body.compendium-page {
 .rel-renown-empty {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-soft);
 }
 
@@ -19270,7 +19292,7 @@ body.compendium-page {
 }
 
 .rel-ledger-sources .rel-ledger-line {
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 400;
   color: var(--ink-soft);
 }
@@ -19351,7 +19373,7 @@ body.compendium-page {
   align-items: center;
   gap: 8px;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink);
 }
 
@@ -19383,7 +19405,7 @@ body.compendium-page {
 .renown-odds-bag {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -19437,12 +19459,12 @@ body.compendium-page {
   padding: 3px 0;
   background: var(--vermilion);
   box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.4);
-  font-family: var(--face-num);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-align: center;
-  text-transform: uppercase;
   color: var(--parchment);
   transform: rotate(-7deg);
 }
@@ -19710,7 +19732,7 @@ body.compendium-page {
 
 #ledger-overlay .ldg-title {
   margin: 0;
-  font-size: 44px;
+  font-size: var(--size-display);
 }
 
 .ldg-subtitle,
@@ -19731,7 +19753,7 @@ body.compendium-page {
   position: absolute;
   bottom: 16px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .ldg-page-foot.is-left {
@@ -19817,7 +19839,7 @@ body.compendium-page {
 
 .ldg-deck-none {
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   color: var(--ink-faint);
 }
 
@@ -19826,7 +19848,7 @@ body.compendium-page {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   color: var(--ink);
 }
 
@@ -19842,7 +19864,7 @@ body.compendium-page {
 .ldg-table thead th {
   padding: 0 10px 7px 8px;
   vertical-align: bottom;
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 500;
   text-align: right;
   white-space: nowrap;
@@ -19862,7 +19884,7 @@ body.compendium-page {
 }
 
 .ldg-col-name {
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 500;
   letter-spacing: 0.03em;
 }
@@ -19942,7 +19964,7 @@ body.compendium-page {
   padding: 8px 8px 2px 0;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 16px;
+  font-size: var(--size-name);
   font-weight: 600;
   text-align: left;
 }
@@ -19954,7 +19976,7 @@ body.compendium-page {
 
 .ldg-num.is-total {
   padding: 8px 10px 2px 8px;
-  font-size: 16px;
+  font-size: var(--size-name);
   font-weight: 700;
 }
 
@@ -19965,12 +19987,12 @@ body.compendium-page {
 .ldg-card-name {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 500;
 }
 
 .ldg-produced .ldg-aside {
-  font-size: 12px;
+  font-size: var(--size-label);
   white-space: nowrap;
 }
 
@@ -20002,7 +20024,7 @@ body.compendium-page {
 
 .ldg-last .ldg-num.is-total {
   padding: 5px 10px 5px 8px;
-  font-size: 14px;
+  font-size: var(--size-body);
 }
 
 .ldg-last thead .ldg-class {
@@ -20083,7 +20105,7 @@ body.compendium-page {
 
 .ldg-curve-label {
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-variant-numeric: lining-nums tabular-nums;
   fill: var(--ink-faint);
 }
@@ -20099,7 +20121,7 @@ body.compendium-page {
 
 .ldg-curve-value {
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 700;
   font-variant-numeric: lining-nums tabular-nums;
   fill: var(--ink);
@@ -20210,7 +20232,7 @@ body.compendium-page {
 }
 
 .ldg-plate-row .ldg-col {
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -20236,7 +20258,7 @@ body.compendium-page {
   border: 0;
   background: none;
   font-family: var(--face-ui);
-  font-size: 14px;
+  font-size: var(--size-body);
   color: var(--ink);
   text-align: left;
   cursor: pointer;
@@ -20265,7 +20287,7 @@ body.compendium-page {
 
 .ldg-plate-out {
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-faint);
 }
 
@@ -20353,7 +20375,7 @@ body.compendium-page {
   display: inline-flex;
   align-items: center;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink);
 }
 
@@ -20430,7 +20452,7 @@ body.compendium-page {
 .capture-lead {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -20463,7 +20485,7 @@ body.compendium-page {
 .capture-choice-title {
   margin: 0;
   font-family: var(--face-name);
-  font-size: 16px;
+  font-size: var(--size-name);
   font-weight: 600;
   color: var(--ink);
 }
@@ -20491,7 +20513,7 @@ body.compendium-page {
 .capture-figure-label {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -20500,7 +20522,7 @@ body.compendium-page {
 .capture-figure-value {
   margin: 0;
   font-family: var(--face-num);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -20619,7 +20641,7 @@ body.compendium-page {
 }
 
 .wager-bar-label {
-  font-size: 12px;
+  font-size: var(--size-label);
   letter-spacing: 0.06em;
   text-transform: lowercase;
   color: var(--ink-faint);
@@ -20677,20 +20699,20 @@ body.compendium-page {
   justify-content: space-between;
   gap: 8px;
   font-family: var(--face-display);
-  font-size: 16px;
+  font-size: var(--size-name);
   margin: 0 0 2px;
 }
 
 .abacus-wager-stake {
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.06em;
   color: var(--wager-ink, var(--ink));
 }
 
 .abacus-wager-note {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -20710,7 +20732,7 @@ body.compendium-page {
 }
 
 .abacus-wager-label {
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
@@ -20729,7 +20751,7 @@ body.compendium-page {
   grid-template-columns: minmax(56px, 1fr) 2fr auto 14px;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .abacus-wager-row.is-met .abacus-wager-seat {
@@ -20796,7 +20818,7 @@ body.compendium-page {
 }
 
 .census-stat-rate {
-  font-size: 20px;
+  font-size: var(--size-heading);
   color: var(--ink-soft);
 }
 
@@ -20847,7 +20869,7 @@ body.compendium-page {
 }
 
 .census-you {
-  font-size: 11px;
+  font-size: var(--size-note);
   letter-spacing: 0.06em;
   color: var(--ink-faint);
 }
@@ -20902,7 +20924,7 @@ body.compendium-page {
 
 .census-triumph-text {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -20932,7 +20954,7 @@ body.compendium-page {
   padding-top: 10px;
   border-top: 1px solid var(--rule);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -20959,7 +20981,7 @@ body.compendium-page {
 .abacus-census-taker {
   font-family: var(--face-display);
   font-style: italic;
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-soft);
 }
 
@@ -20982,7 +21004,7 @@ body.compendium-page {
   grid-template-columns: 22px minmax(56px, 1fr) 2fr auto 14px;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .abacus-census-row.is-you .abacus-census-seat {
@@ -21084,7 +21106,7 @@ body.compendium-page {
   z-index: auto;
   padding: 16px 18px 18px;
   display: block;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .leader-title {
@@ -21183,7 +21205,7 @@ body.compendium-page {
 .leader-name {
   display: block;
   font-family: var(--face-display);
-  font-size: 16px;
+  font-size: var(--size-name);
   line-height: 1.1;
 }
 
@@ -21194,10 +21216,11 @@ body.compendium-page {
 .leader-face-id {
   display: block;
   margin-top: 3px;
-  font-family: var(--face-num);
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 400;
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -21210,7 +21233,7 @@ body.compendium-page {
   padding: 0;
   display: grid;
   gap: 3px;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* **The four lines a figure is.** Each one a label over what it says, so a
@@ -21229,10 +21252,11 @@ body.compendium-page {
 
 .leader-line-label {
   display: block;
-  font-family: var(--face-num);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 400;
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -21246,7 +21270,7 @@ body.compendium-page {
 }
 
 .leader-line-clauses > .leader-clause.is-deferred {
-  font-size: 11.5px;
+  font-size: var(--size-label);
   line-height: 1.35;
 }
 
@@ -21265,7 +21289,7 @@ body.compendium-page {
   z-index: auto;
   display: block;
   padding: 16px 18px 18px;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* Reviewed leader banner in the setup detail card. */
@@ -21287,10 +21311,11 @@ body.compendium-page {
 
 .leader-detail-id {
   margin: 3px 0 4px;
-  font-family: var(--face-num);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 400;
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -21300,7 +21325,7 @@ body.compendium-page {
   flex-wrap: wrap;
   gap: 12px;
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -21433,13 +21458,13 @@ body.compendium-page {
   margin: 2px 0 4px;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
-  font-size: 14px;
+  font-size: var(--size-body);
   font-weight: 600;
   line-height: 1.25;
 }
 
 #leader-overlay .leader-hold-clauses {
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
 }
 
@@ -21450,7 +21475,7 @@ body.compendium-page {
   align-items: center;
   gap: 6px;
   margin: 2px 0 0 30px;
-  font-size: 12px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -21478,7 +21503,7 @@ body.compendium-page {
   justify-content: space-between;
   gap: 10px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .leader-now-label {
@@ -21493,7 +21518,7 @@ body.compendium-page {
 
 #leader-overlay .leader-note {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.45;
   color: var(--ink-faint);
 }
@@ -21505,7 +21530,7 @@ body.compendium-page {
 /* The row's own line, with the roster's name drawn as a keyword. */
 .leader-unique-line {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* The towns the figure founds, in its own order; a name already standing is
@@ -21517,7 +21542,7 @@ body.compendium-page {
   margin: 4px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--size-label);
   line-height: 1.5;
   color: var(--ink-faint);
 }
@@ -21553,7 +21578,7 @@ body.compendium-page {
 .leader-ledger-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 /* The column heads in the boards' small capitals, as the Ledger's tables. */
@@ -21561,7 +21586,7 @@ body.compendium-page {
   padding: 0 3px 5px;
   border-bottom: 1px solid var(--ink);
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: var(--size-ui);
   font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
@@ -21645,7 +21670,7 @@ body.compendium-page {
 .marquee-star {
   position: absolute;
   color: #f3e6c8;
-  font-size: 14px;
+  font-size: var(--size-body);
   line-height: 1;
   opacity: 0.85;
 }
@@ -21693,7 +21718,7 @@ body.compendium-page {
   top: -9px;
   transform: translateX(-50%);
   color: #ffd166;
-  font-size: 13px;
+  font-size: var(--size-ui);
   padding: 0 6px;
 }
 
@@ -21781,7 +21806,7 @@ body.compendium-page {
   gap: 8px;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   color: var(--ink-faint);
 }
 
@@ -21792,7 +21817,7 @@ body.compendium-page {
   width: 12px;
   text-align: center;
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: var(--size-label);
 }
 
 .loading-stage-label {
@@ -21802,7 +21827,7 @@ body.compendium-page {
 .loading-stage-detail {
   flex: 0 0 auto;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -21849,7 +21874,7 @@ body.compendium-page {
 .loading-refusal-sentence {
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 13px;
+  font-size: var(--size-ui);
   line-height: 1.45;
   color: var(--ink);
 }
@@ -21861,7 +21886,7 @@ body.compendium-page {
 .loading-refusal-detail {
   margin: 0;
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
   color: var(--ink-faint);

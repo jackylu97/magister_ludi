@@ -475,7 +475,8 @@ describe('Skip', () => {
     expect(link).toContain('grid-row: 1;');
     expect(link).toContain('border: 0;');
     expect(link).toContain('background: none;');
-    expect(link).toContain('font-size: 11px;');
+    // 11 px, through the type scale's note size (batch SS8; `typeScale.test.ts` pins its value).
+    expect(link).toContain('font-size: var(--size-note);');
     expect(css).toMatch(/\.tutorial-card > \.tutorial-actions \{\s*grid-column: 1 \/ -1;/);
     // A step with no button hides its row. The row has a `display` of its own,
     // so the stylesheet has to restate that a hidden row is not drawn.

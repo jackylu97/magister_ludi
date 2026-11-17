@@ -24,7 +24,7 @@
   box-shadow: var(--shadow-sm);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: var(--size-label);
   font-weight: 400;
   line-height: 1.45;
   letter-spacing: 0;
@@ -82,7 +82,7 @@
   background: transparent;
   color: var(--ink-soft);
   font-family: var(--face-ui);
-  font-size: 16px;
+  font-size: var(--size-name);
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
@@ -124,13 +124,13 @@
 }
 
 .kwc-row-label {
-  font-size: 11px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
 .kwc-row-value {
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -175,7 +175,7 @@
   border-left: 3px solid var(--vermilion);
   background: color-mix(in srgb, var(--vermilion) 7%, transparent);
   font-family: var(--face-num);
-  font-size: 10.5px;
+  font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
@@ -202,7 +202,7 @@
 }
 
 .kwc-hint {
-  font-size: 10.5px;
+  font-size: var(--size-label);
   color: var(--ink-soft);
 }
 
@@ -215,7 +215,7 @@
   box-shadow: 2px 2px 0 var(--ink);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
   line-height: 1.4;
   cursor: pointer;
