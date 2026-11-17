@@ -529,3 +529,28 @@ items in multiple places. Give me 3 options"*
 - What stays from SS2: the card grows in place on a click or Q, the live
   figures come from the game's own readings, and every screen is reachable by a
   key.
+
+### The user's comments on the three options (2026-11-17)
+
+Options page: https://claude.ai/artifact/MGrda9cDan7VtugHxkBreB. The user
+prefers A, finds B *"worse than A strictly"*, and asked to see A and C again
+with these comments applied.
+
+- **A, the two top lines:** *"clicking mathematics should open the tech tree,
+  clicking the 'next draft' should open the orders screen. Could we have these
+  look more like clickable buttons? Clicking the banner or anywhere else in the
+  panel should enlarge it."*
+- **A, the faith figure:** *"What should the faith panel show when all pantheons
+  have been taken? Should the second number just show the cost of a prophet? or
+  maybe just the number of rites running? these both feel unintutive to the
+  player even thought they're both helpful."* Open: the next drawing proposes
+  the states.
+- **A, the top bar:** *"i like how much real estate is left on the top bar. It
+  might be better to have the renown go on the left side, move the age and turn
+  counter to the right, and have nothing in the middle (left/right aligned
+  scheme with no middle)."*
+- **A, the row of keys and names in the open card** (W Diplomacy, E Routes,
+  H Faith, S Standings): *"this row feels awkward to me"*.
+- **C, the routes and faith lines:** *"what if routes/faith only showed on
+  hover, and the panel expanded on hover? is that hard to implement in a way
+  that it's fast/responsive"*.
