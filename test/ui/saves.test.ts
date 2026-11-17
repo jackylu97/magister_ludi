@@ -15,7 +15,7 @@
  * browser — a file picker, a download — are in `savesPanel.ts` and are not here.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { type GameConfig, SCHEMA_VERSION, hasEndedTurn } from '../../src/sim/state';
 import {
@@ -49,6 +49,10 @@ import {
   writeSave,
 } from '../../src/ui/saves';
 import { createGame, newGame } from '../sim/newGameHelpers';
+
+// Every test in this file does real save work. The default 5 s limit failed on a loaded machine in
+// four main gates on 2026-11-17, each time on a different test, and each passed alone.
+vi.setConfig({ testTimeout: 30_000 });
 
 /**
  * `localStorage` in eleven lines. The real one satisfies `SaveStorage`

@@ -49,6 +49,10 @@ import {
 import { createGame } from '../sim/newGameHelpers';
 import { grownGames } from '../sim/grownGameHelpers';
 
+// Every test in this file does real save work. The default 5 s limit failed on a loaded machine in
+// four main gates on 2026-11-17, each time on a different test, and each passed alone.
+vi.setConfig({ testTimeout: 30_000 });
+
 const CONFIG: GameConfig = {
   seed: 20261006,
   sizeName: 'duel',
