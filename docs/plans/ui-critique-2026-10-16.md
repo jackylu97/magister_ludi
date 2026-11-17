@@ -723,3 +723,24 @@ intriguing aspect about the game to people"*
   played card a tidy text panel. The user wants the effect to be part of the
   card's art: an arcane card of a Renaissance card game, with the bonus text
   worked into its design. This round is about the card's face only.
+
+- **The Order card's face is approved: face 1, the emblem (2026-11-17). Batch
+  SS10.** The user: *"i'm sold, face 1 is great, please build it. it look sgreat
+  i'm excited"*. The board is
+  `docs/plans/mockups/scholars-study/order-card-faces.html` (round five),
+  "Face 1, the emblem": the name as the motto, the suit as an engraved device in
+  a framed picture field, the effect as the subscription beneath, opened by a
+  red initial, the first figure lifted into a small tablet in the picture, the
+  live line as a colophon at the foot, rarity as the richness of the border, a
+  Doctrine in the heaviest gilt frame, a seal as red cord and wax.
+  - Taken as drawn, because the user approved the page as it stands: EB
+    Garamond for the effect and IM Fell English for names and plates, on cards
+    only; rubric red for figures and yield words; the taller card (210 by 258).
+  - The screen it sits in is round four's structure
+    (`orders-screen-round4.html` in the same folder): the cloth, the played
+    cards in rows, the gilt register of Doctrines with the government card, the
+    hand, H for the whole hand and D for the binder. A last board redraws that
+    screen with the taller face before the screen is built.
+  - Build order: the card face first, as one module generated from a card's
+    data, shown in the flair gallery; then the orders screen; then the draft
+    offer in the same face.
