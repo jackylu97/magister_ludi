@@ -276,7 +276,7 @@ describe('the landing screen', () => {
     expect(INDEX).toContain('aria-label="One seat more"');
     // The harness, in the fine print, off by default.
     expect(INDEX).toContain('id="hot-seat"');
-    expect(INDEX).toContain('Hot-seat — every seat is a person');
+    expect(INDEX).toContain('Hot-seat: every seat is a person');
     expect(INDEX).not.toMatch(/id="hot-seat"[^>]*checked/);
   });
 
