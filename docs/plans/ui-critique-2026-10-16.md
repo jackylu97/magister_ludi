@@ -584,3 +584,4 @@ The user's comments on the revised board decide the open choices:
   banked, with "banked/cost" only while the next god has a price; a free route
   slot colours the routes figure; beads sit on the left with renown; S opens
   Standings; the game menu loses its Statecraft row.
+- **The faith dot, made exact (2026-11-17):** the user: *"enough faith to buy a prophet is the right interpretation"*. The dot shows when the seat has the faith to buy a prophet now, not when a prophet stands on the map.
