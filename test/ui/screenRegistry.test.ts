@@ -241,6 +241,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['bead', 'news'],
   ['confirm', 'news'],
   ['ceremony', 'news'],
+  // The age plate (batch SS7): raised when the world's age turns over.
+  ['agePlate', 'news'],
 ];
 
 /** Every `screens.opening('…')` in `main.ts`. */
@@ -326,6 +328,8 @@ describe('the register in main.ts', () => {
       'createConfirmCard',
       'createGreatPersonCeremony',
       'createDiplomacyOffers',
+      // The age plate (batch SS7) draws its own overlay.
+      'createAgePlate',
     ]) {
       builders.add(own);
     }
