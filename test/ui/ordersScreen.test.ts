@@ -28,7 +28,7 @@ import {
 import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
 import { firstFigure, orderFaceModel } from '../../src/ui/orderFace';
 import { LIVE_WORDS, stagedLive, tabletOfFigure, tabletOfText } from '../../src/ui/orderLive';
-import { ORDERS_WORDS } from '../../src/ui/statecraftScreen';
+import { ORDERS_FORMS, ORDERS_WORDS, ordersLayout } from '../../src/ui/statecraftScreen';
 import { type BinderEntry, LAYER_WORDS, allOrders, binderAdmits } from '../../src/ui/ordersLayers';
 import { ORDERS_MOTION } from '../../src/ui/ordersMotion';
 import { braceBody, between, uiSource } from './sourceHelpers';
@@ -303,5 +303,96 @@ describe('the hand and the deck (part B)', () => {
     for (const source of [SCREEN, LAYERS, MOTION]) {
       expect(source).not.toMatch(/function (confirm|alert|prompt)\(/);
     }
+  });
+});
+
+describe('the screen fills the window, and the layout fits it (part C)', () => {
+  it('fills the window on the shared frame, with no pale sheet round the cloth', () => {
+    const css = style('statecraftScreen.css');
+    expect(css).toContain('#statecraft-overlay {\n  place-items: stretch;\n  padding: 0;\n  background: var(--lampblack);');
+    const sheet = css.slice(css.indexOf('#statecraft-overlay .orders-sheet {'), css.indexOf('}', css.indexOf('#statecraft-overlay .orders-sheet {')));
+    expect(sheet).toContain('height: 100%;');
+    expect(sheet).toContain('border: 0;');
+    expect(sheet).toContain('var(--lampblack)');
+    // Still the shared frame: one `close`, `hidden` as the whole state.
+    expect(SCREEN).toContain('createModalShell({');
+  });
+
+  it('gives the board’s windows the board’s card forms, and names in the hand where the height allows', () => {
+    const worst = ordersLayout({ width: 1440, height: 900 }, 11, 30);
+    expect(worst.form).toBe('full');
+    expect(worst.hand).toBe('strip');
+    expect(worst.handCard.height).toBeGreaterThanOrEqual(120);
+    const early = ordersLayout({ width: 1440, height: 900 }, 5, 2);
+    expect(early.form).toBe('large');
+    expect(early.hand).toBe('spread');
+    expect(early.handCard).toEqual({ width: 130, height: 202 });
+    const small = ordersLayout({ width: 1280, height: 720 }, 11, 30);
+    expect(small.form).toBe('compact');
+    expect(small.hand).toBe('strip');
+    const narrow = ordersLayout({ width: 1024, height: 768 }, 11, 30);
+    expect(narrow.form).toBe('narrow');
+    expect(narrow.hand).toBe('strip');
+    const wide = ordersLayout({ width: 1920, height: 1080 }, 11, 30);
+    expect(wide.form).toBe('full');
+    expect(wide.hand).toBe('spread');
+    expect(wide.handRanks).toBe(2);
+  });
+
+  it('never scrolls the page and never sets a name under 11 px, on any window from 1024 by 700 up', () => {
+    for (const width of [1024, 1100, 1240, 1280, 1366, 1440, 1600, 1920, 2560]) {
+      for (const height of [700, 720, 768, 800, 900, 1080, 1440]) {
+        for (const chairs of [1, 3, 5, 6, 7, 9, 11, 12]) {
+          for (const hand of [0, 2, 12, 30, 40]) {
+            const layout = ordersLayout({ width, height }, chairs, hand);
+            const tight = height < 780 || width < 1240;
+            const frame = tight ? { head: 44, top: 8, side: 16, bottom: 12 } : { head: 52, top: 12, side: 24, bottom: 16 };
+            const room = Math.min(1640, width - 2 * frame.side);
+            const cols = Math.min(6, chairs);
+            const card = ORDERS_FORMS[layout.form];
+            const where = `${width}x${height}, ${chairs} chairs, ${hand} in hand`;
+            expect(cols * card.width + (cols - 1) * 10, where).toBeLessThanOrEqual(room);
+            const table = layout.rows * card.height + (layout.rows - 1) * 14;
+            const handHeight =
+              layout.hand === 'rail' ? 28 : layout.handRanks * layout.handCard.height + (layout.handRanks - 1) * 12;
+            expect(frame.head + frame.top + 104 + 12 + table + 12 + 18 + handHeight + frame.bottom, where).toBeLessThanOrEqual(
+              height,
+            );
+            // A named hand card's name is 12.5 px at 104 wide: it stays at 11 or more.
+            if (layout.hand === 'spread') expect((12.5 * layout.handCard.width) / 104, where).toBeGreaterThanOrEqual(11);
+            if (layout.hand === 'strip') expect(layout.handCard.height, where).toBeGreaterThanOrEqual(120);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps every text at 11 px or more in the screen’s and the face’s new rules', () => {
+    // No size under 11 px anywhere. The compact card takes the full face's
+    // scale from its width variable, not from a font size.
+    for (const tail of ['statecraftScreen.css', 'orderFace.css']) {
+      const small = [...style(tail).matchAll(/font-size:\s*([\d.]+)px/g)].filter((match) => Number(match[1]) < 11);
+      expect(small.map((match) => match[0]), tail).toEqual([]);
+    }
+    const face = style('orderFace.css');
+    expect(face).toContain('font-size: max(11px, calc(var(--of-h) * 12.5));');
+    expect(face).toContain('font-size: max(11px, calc(var(--of-h) * 11));');
+  });
+
+  it('draws the compact forms as the same emblem, smaller, with the full face’s text sizes', () => {
+    const face = style('orderFace.css');
+    expect(face).toContain(".order-face[data-compact],\n.order-face-chair[data-compact] {\n  --of-width: 210px;\n  width: 187px;\n  height: 180px;");
+    expect(face).toContain(".order-face[data-compact='narrow'],\n.order-face-chair[data-compact='narrow'] {\n  width: 145px;\n  height: 206px;");
+    expect(SCREEN).toContain("if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;");
+  });
+
+  it('lets more than four Doctrines give up their pictures to their words', () => {
+    expect(SCREEN).toContain("register.toggleAttribute('data-many', sc.doctrines.length > 4);");
+    expect(style('statecraftScreen.css')).toContain('.orders-register[data-many] .orders-doctrine .of-pict {\n  display: none;');
+  });
+
+  it('draws the screen again when the window changes size, and lets go of the listener', () => {
+    expect(SCREEN).toContain("window.addEventListener('resize', onWindowResize);");
+    expect(SCREEN).toContain("window.removeEventListener('resize', onWindowResize);");
   });
 });

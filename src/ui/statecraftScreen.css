@@ -3,39 +3,96 @@
  *
  * The values are the final board's build spec
  * (`docs/plans/mockups/scholars-study/orders-screen-final-board.html`): the
- * sheet 24 px in from the window's sides, 16 px under the top bar and 16 px
- * from the foot; the head 52 px; the cloth 12 px under the head with 16 px
- * inside; the register 104 px; the table 12 px under it, 10 px between cards
- * and 14 px between rows; the hand's label 18 px and its rail 28 px.
+ * head 52 px; the register 104 px; the table 12 px under it, 10 px between
+ * cards and 14 px between rows; the hand's label 18 px.
  *
- * The sheet borrows the parchment paper (`.statecraft-overlay`) and its one
- * cap rule, and sets nothing on `.statecraft-sheet`: every rule here is under
- * the sheet's own class, `.orders-sheet`, or the overlay's id.
+ * **Full screen** (part C1). The user, after playing part A: *"i think its
+ * awkward that this whole thing lives in a frame within a modal, lets have it
+ * be full screen like the tech tree screen, the white modal bezels look bad"*
+ * (`docs/plans/ui-critique-2026-10-16.md`, "The orders screen is full
+ * screen"). So the cloth is the whole window, as the star chart's ink is: the
+ * overlay covers the top bar and the corner panel, the sheet fills it, and
+ * the head sits on the cloth in the cloth's own ink. The gilt rule is drawn
+ * just inside the window's edge.
+ *
+ * It stays on the shared frame (`modalShell.ts`, `.statecraft-overlay`): the
+ * frame decides nothing about size, so a full-window sheet keeps `hidden` as
+ * the whole state, one `close`, the keyboard's return and `dispose`. Every
+ * rule here is under the sheet's own class, `.orders-sheet`, or the overlay's
+ * id, and none is set on `.statecraft-sheet`.
  *
  * The cards are `orderFace.css`. This file places them and draws the table
- * round them.
+ * round them. Which card form and which hand a window gets is decided in
+ * `statecraftScreen.ts` (`ordersLayout`) and arrives as data attributes.
  */
 
-/* --- the sheet and the head --------------------------------------------- */
+/* --- the frame: the whole window ---------------------------------------- */
 
 #statecraft-overlay {
-  padding: 58px 24px 16px;
+  place-items: stretch;
+  padding: 0;
+  background: var(--lampblack);
 }
 
 #statecraft-overlay .orders-sheet {
+  --fg: rgba(247, 242, 225, 0.92);
+  --fg2: rgba(247, 242, 225, 0.6);
   position: relative;
   width: 100%;
   max-width: none;
   height: 100%;
-  padding: 0 24px 24px;
+  max-height: none;
+  padding: 0 24px 16px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(1400px 600px at 50% 0, rgba(200, 144, 31, 0.1), transparent 70%),
+    var(--lampblack);
+  box-shadow:
+    inset 0 0 0 4px var(--lampblack),
+    inset 0 0 0 5px rgba(200, 144, 31, 0.55);
+  color: var(--fg);
+  animation: offer-fade 160ms ease-out both;
 }
 
+/* Two faint gilt circles on the cloth, as the board's table is drawn. */
+#statecraft-overlay .orders-sheet::before,
+#statecraft-overlay .orders-sheet::after {
+  position: absolute;
+  border: 1px solid rgba(200, 144, 31, 0.28);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+
+#statecraft-overlay .orders-sheet::before {
+  left: -18%;
+  top: 34%;
+  width: 70%;
+  aspect-ratio: 1;
+}
+
+#statecraft-overlay .orders-sheet::after {
+  right: -24%;
+  top: -40%;
+  width: 62%;
+  aspect-ratio: 1;
+}
+
+/* --- the head, on the cloth ---------------------------------------------- */
+
+/* Laid out as the star chart's head: the title at the left in parchment, a
+   quiet hint, the tools at the right and a square close, over a gilt rule. */
 #statecraft-overlay .statecraft-head {
+  position: relative;
+  z-index: 2;
   align-items: center;
   flex: none;
   gap: 16px;
   height: 52px;
   padding: 0;
+  border-bottom: 1.5px solid rgba(200, 144, 31, 0.35);
 }
 
 #statecraft-overlay .statecraft-head-titles {
@@ -44,8 +101,14 @@
 
 #statecraft-overlay .statecraft-title {
   margin: 0;
+  color: var(--parchment);
   font-size: 28px;
   font-weight: 500;
+}
+
+/* The red initial, lifted for the dark ground as the star chart lifts its. */
+#statecraft-overlay .statecraft-title::first-letter {
+  color: var(--vermilion-lit);
 }
 
 #statecraft-overlay .statecraft-hint {
@@ -59,16 +122,38 @@
   white-space: nowrap;
 }
 
-/* The hint in faded ink. A refusal (the game's own sentence, in place of the
-   hint for four seconds) wears `.wanting` instead. */
+/* The hint in the cloth's faded ink. A refusal (the game's own sentence, in
+   place of the hint for four seconds) wears `.wanting`, lifted for the dark
+   ground. */
 #statecraft-overlay .statecraft-hint:not(.wanting) {
-  color: var(--ink-soft);
+  color: var(--fg2);
 }
 
+#statecraft-overlay .statecraft-hint.wanting,
+#statecraft-overlay .orders-changes.wanting {
+  color: var(--vermilion-lit);
+}
+
+/* The square close, as the star chart's. */
 #statecraft-overlay .statecraft-close {
-  border-color: var(--ink);
-  background: var(--parchment);
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(247, 242, 225, 0.45);
+  background: transparent;
+  color: var(--parchment);
   font-weight: 700;
+}
+
+#statecraft-overlay .statecraft-close:hover {
+  border-color: var(--gilt);
+  background: transparent;
+  color: var(--gilt);
+}
+
+/* Focus on the dark ground: a gilt ring, clear of the control. */
+#statecraft-overlay .statecraft-head :focus-visible {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 2px;
 }
 
 .orders-head-tools {
@@ -91,14 +176,14 @@
 }
 
 .orders-pay-label {
-  color: var(--ink-soft);
+  color: var(--fg2);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .orders-pay-none {
-  color: var(--ink-faint);
+  color: var(--fg2);
   font-family: var(--face-ui);
   font-weight: 500;
 }
@@ -115,34 +200,35 @@
   margin: 0;
 }
 
+/* The yields' inks lifted for the dark ground, as the board's cloth draws them. */
 .orders-pay-figure[data-yield='food'] {
-  color: var(--y-food);
+  color: #7fd06c;
 }
 
 .orders-pay-figure[data-yield='production'] {
-  color: var(--y-prod);
+  color: #eda75f;
 }
 
 .orders-pay-figure[data-yield='gold'] {
-  color: var(--y-gold);
+  color: var(--y-gold-lit);
 }
 
 .orders-pay-figure[data-yield='science'] {
-  color: var(--y-sci);
+  color: #82aef2;
 }
 
 .orders-pay-figure[data-yield='culture'] {
-  color: var(--y-cul);
+  color: #cf9fee;
 }
 
 .orders-pay-figure[data-yield='faith'] {
-  color: var(--y-faith);
+  color: #e08fc0;
 }
 
 .orders-changes {
   max-width: 240px;
   overflow: hidden;
-  color: var(--ink-soft);
+  color: var(--fg2);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -152,80 +238,115 @@
   flex: none;
   height: 32px;
   padding: 0 16px;
-  border-color: var(--ink);
+  border-color: rgba(247, 242, 225, 0.55);
+  background: transparent;
+  color: var(--parchment);
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
   box-shadow: none;
 }
 
-.orders-head-tools .orders-confirm {
-  box-shadow: 3px 3px 0 var(--ink);
+.orders-head-tools .btn:hover:not(:disabled) {
+  border-color: var(--gilt);
+  background-image: none;
+  color: var(--y-gold-lit);
+}
+
+/* Confirm keeps the cinnabar and the hard shadow, the shadow in gilt so it
+   reads on the dark ground. */
+.orders-head-tools .orders-confirm:not(:disabled) {
+  border-color: var(--cinnabar);
+  background: var(--cinnabar);
+  color: var(--parchment);
+  box-shadow: 3px 3px 0 rgba(200, 144, 31, 0.6);
+}
+
+.orders-head-tools .orders-confirm:hover:not(:disabled) {
+  color: var(--parchment);
 }
 
 .orders-head-tools .btn:disabled {
-  border-color: var(--edge);
+  border-color: rgba(247, 242, 225, 0.2);
   background: none;
-  color: var(--ink-faint);
+  color: rgba(247, 242, 225, 0.4);
   box-shadow: none;
 }
 
 /* --- the cloth ------------------------------------------------------------ */
 
 #statecraft-overlay .orders-body {
+  position: relative;
+  z-index: 1;
   gap: 0;
   padding-top: 0;
 }
 
+/* The table keeps a maximum width and is centred on a very wide window; the
+   cloth itself runs to the window's edges. */
 .orders-cloth {
-  --fg: rgba(247, 242, 225, 0.92);
-  --fg2: rgba(247, 242, 225, 0.6);
   position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  width: 100%;
+  max-width: 1640px;
   min-height: 0;
-  margin-top: 12px;
-  padding: 16px;
-  overflow: hidden;
-  border-radius: 3px;
-  background:
-    radial-gradient(1200px 520px at 50% 0, rgba(200, 144, 31, 0.1), transparent 70%),
-    var(--lampblack);
-  box-shadow:
-    inset 0 0 0 1px var(--ink),
-    inset 0 0 0 4px var(--lampblack),
-    inset 0 0 0 5px rgba(200, 144, 31, 0.55);
+  margin: 12px auto 0;
   color: var(--fg);
-}
-
-/* Two faint gilt circles on the cloth, as the board's table is drawn. */
-.orders-cloth::before,
-.orders-cloth::after {
-  position: absolute;
-  border: 1px solid rgba(200, 144, 31, 0.28);
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
-}
-
-.orders-cloth::before {
-  left: -18%;
-  top: 30%;
-  width: 70%;
-  aspect-ratio: 1;
-}
-
-.orders-cloth::after {
-  right: -24%;
-  top: -40%;
-  width: 62%;
-  aspect-ratio: 1;
 }
 
 .orders-cloth > * {
   position: relative;
   z-index: 1;
+}
+
+/* A tight window (part C): a shorter head and narrower margins. */
+#statecraft-overlay .orders-sheet[data-tight] {
+  padding: 0 16px 12px;
+}
+
+#statecraft-overlay .orders-sheet[data-tight] .statecraft-head {
+  height: 44px;
+}
+
+#statecraft-overlay .orders-sheet[data-tight] .statecraft-title {
+  font-size: 24px;
+}
+
+.orders-sheet[data-tight] .orders-cloth {
+  margin-top: 8px;
+}
+
+/* On a tight window the register's government is 200 wide with a 56 px
+   picture; under 1240 wide it is 180 and the register cards have no picture. */
+.orders-sheet[data-tight] .orders-register .order-face.orders-gov {
+  width: 200px;
+}
+
+.orders-sheet[data-tight] .orders-register .order-face[data-form='wide'] {
+  --of-pict-w: 56px;
+}
+
+.orders-sheet[data-narrow] .orders-register .order-face.orders-gov {
+  width: 180px;
+}
+
+.orders-sheet[data-narrow] .orders-register .order-face[data-form='wide'] .of-pict {
+  display: none;
+}
+
+.orders-sheet[data-narrow] .orders-register .order-face[data-form='wide'] .of-plate {
+  left: 48px;
+}
+
+/* More than four Doctrines: they give up their pictures to their words. */
+.orders-register[data-many] .orders-doctrine .of-pict {
+  display: none;
+}
+
+.orders-register[data-many] .orders-doctrine .of-plate {
+  left: 48px;
 }
 
 /* --- the register ------------------------------------------------------- */
@@ -234,7 +355,10 @@
   display: flex;
   flex: none;
   gap: 8px;
+  width: 100%;
+  max-width: var(--orders-table-max, none);
   height: 104px;
+  margin-inline: auto;
   padding-top: 9px;
   box-sizing: content-box;
   margin-top: -9px;
@@ -290,6 +414,16 @@
   max-width: calc(100% - 78px);
 }
 
+/* On a tight window the government card is narrower: a shorter bar, so the
+   words, the bar and the turns still fit. */
+.orders-sheet[data-tight] .orders-gov .orders-draft .orders-bar {
+  width: 22px;
+}
+
+.orders-sheet[data-tight] .orders-register .orders-gov .of-livep {
+  max-width: calc(100% - 64px);
+}
+
 .orders-draft .orders-bar {
   flex: none;
   width: 44px;
@@ -326,12 +460,14 @@
 /* --- the table ---------------------------------------------------------- */
 
 .orders-table {
-  --order-face-width: 210px;
+  --order-face-width: var(--orders-card-w, 210px);
   display: flex;
   flex: none;
   flex-direction: column;
   gap: 14px;
-  margin-top: 12px;
+  width: 100%;
+  max-width: var(--orders-table-max, none);
+  margin: 12px auto 0;
 }
 
 .orders-row {
@@ -339,11 +475,7 @@
   gap: 10px;
 }
 
-/* Six chairs or fewer: the large face in one row, spread over the cloth. */
-.orders-sheet[data-table='one-row'] .orders-table {
-  --order-face-width: 244px;
-}
-
+/* Six chairs or fewer: one row, spread over the cloth. */
 .orders-sheet[data-table='one-row'] .orders-row {
   justify-content: space-between;
 }
@@ -427,8 +559,8 @@
   justify-content: center;
   gap: 8px;
   box-sizing: border-box;
-  width: var(--order-face-width);
-  height: calc(var(--order-face-width) * 258 / 210);
+  width: var(--orders-card-w, 210px);
+  height: var(--orders-card-h, 258px);
   padding: 0 14px;
   border: 1.6px dashed var(--vermilion);
   border-radius: 5px;
@@ -590,7 +722,7 @@
    card may rise out of the top (moment 1), so the cut is a clip on the foot
    and the sides only. */
 .orders-rail {
-  --order-face-width: 104px;
+  --order-face-width: var(--orders-hand-w, 104px);
   position: relative;
   height: 28px;
   margin-top: 0;
@@ -677,21 +809,39 @@
   content: none;
 }
 
-/* Twelve or fewer, with the table in one row: the hand lies side by side. */
+/* An indexed rank (part C): the whole card in view, overlapped, each name
+   set down the edge left in view. */
+.orders-rail.is-strip {
+  height: var(--orders-hand-h);
+  padding-top: 0;
+  clip-path: none;
+}
+
+.orders-rail.is-strip .orders-handcard {
+  top: 0;
+}
+
+/* Named cards side by side, in as many ranks as the height allows. */
 .orders-spread {
-  --order-face-width: 130px;
+  --order-face-width: var(--orders-hand-w, 130px);
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 0;
 }
 
 /* --- the layers: the whole hand (H) and the binder (D) --------------------- */
 
+.orders-sheet[data-tight] .orders-veil {
+  inset: 0 -16px -12px;
+}
+
 .orders-veil {
   position: absolute;
   z-index: 30;
-  inset: 0;
+  /* The layers fill the window under the head (part C1): past the sheet's
+     side and foot margins, to the window's edges. */
+  inset: 0 -24px -16px;
   display: flex;
   flex-direction: column;
   padding: 20px 16px 16px;

@@ -867,9 +867,9 @@
   top: calc(var(--of-h) * -8);
   height: auto;
   padding: 0 calc(var(--of-h) * 6);
-  font-size: calc(var(--of-h) * 11);
+  font-size: max(11px, calc(var(--of-h) * 11));
   letter-spacing: 0.06em;
-  line-height: calc(var(--of-h) * 14);
+  line-height: max(14px, calc(var(--of-h) * 14));
 }
 
 .order-face[data-form='hand'] .of-motto,
@@ -905,12 +905,161 @@
   margin-top: calc(var(--of-h) * 2);
   padding: 0 calc(var(--of-h) * 4);
   font-family: var(--face-card-title);
-  font-size: calc(var(--of-h) * 12.5);
+  font-size: max(11px, calc(var(--of-h) * 12.5));
   line-height: 1.1;
   text-wrap: balance;
 }
 
 .order-face:not([data-form='hand']) .of-hand-name {
+  display: none;
+}
+
+/*
+ * **The indexed hand card** (part C): the hand form with its plate and its
+ * name set down a strip at the left edge, so an overlapped rank of cards
+ * shows every name on the part of each card left in view. The final board
+ * drew it (`.hs`, "the hand as one rank of indexed cards").
+ */
+.order-face[data-form='hand'][data-strip] .of-in {
+  display: grid;
+  grid-template-columns: calc(var(--of-h) * 34) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  justify-items: center;
+}
+
+.order-face[data-form='hand'][data-strip] .of-plate {
+  position: static;
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: calc(var(--of-h) * 6);
+  transform: none;
+}
+
+.order-face[data-form='hand'][data-strip] .of-hand-name {
+  grid-column: 1;
+  grid-row: 2;
+  max-height: 100%;
+  margin: calc(var(--of-h) * 6) 0;
+  padding: 0;
+  overflow: hidden;
+  font-size: max(11px, calc(var(--of-h) * 12));
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.order-face[data-form='hand'][data-strip] .of-pict {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: calc(var(--of-h) * 62);
+  height: calc(var(--of-h) * 62);
+  margin-top: calc(var(--of-h) * 16);
+}
+
+/*
+ * **The compact forms** (part C, the build spec's "The card, by form"). The
+ * same emblem with the same parts in the same order, and a short picture
+ * band. The card keeps the full face's scale: its `--of-width` is the full
+ * face's 210 px, so its em (a 21st of it) and every text in it are the sizes
+ * they are on the full face, and only the card's own box is smaller. Compact: 187 by 180, the picture band 44. Narrow: 145 by 206, the
+ * band 40, and the name may take two lines. The corner flourishes are left
+ * out. A text that does not fit is cut with the fade, and the card lifts to
+ * its full face on hover or focus (`statecraftScreen.ts`).
+ */
+.order-face[data-compact],
+.order-face-chair[data-compact] {
+  --of-width: 210px;
+  width: 187px;
+  height: 180px;
+}
+
+.order-face[data-compact='narrow'],
+.order-face-chair[data-compact='narrow'] {
+  width: 145px;
+  height: 206px;
+}
+
+.order-face[data-compact] {
+  --of-cord-y: 6.2em;
+}
+
+.order-face[data-compact] .of-orn {
+  display: none;
+}
+
+.order-face[data-compact] .of-motto {
+  height: auto;
+  min-height: 1.7em;
+  margin-top: 0.9em;
+}
+
+.order-face[data-compact] .of-name {
+  font-size: 1.25em;
+}
+
+.order-face[data-compact='narrow'] .of-motto {
+  justify-content: center;
+  padding: 0 0.5em;
+}
+
+.order-face[data-compact='narrow'] .of-rule {
+  display: none;
+}
+
+.order-face[data-compact='narrow'] .of-name {
+  font-size: 1.15em;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+.order-face[data-compact] .of-pict,
+.order-face[data-compact][data-picture] .of-pict {
+  height: 4.4em;
+}
+
+.order-face[data-compact='narrow'] .of-pict,
+.order-face[data-compact='narrow'][data-picture] .of-pict {
+  height: 4em;
+}
+
+.order-face[data-compact] .of-device,
+.order-face[data-compact][data-picture] .of-device {
+  width: 6.8em;
+  height: 6.8em;
+}
+
+.order-face[data-compact='narrow'] .of-device,
+.order-face[data-compact='narrow'][data-picture] .of-device {
+  width: 6.2em;
+  height: 6.2em;
+}
+
+.order-face[data-compact] .of-sub {
+  margin-top: 0.4em;
+  padding: 0 0.8em;
+}
+
+.order-face[data-compact] .of-initial {
+  font-size: 2.5em;
+}
+
+.order-face[data-compact] .of-colo {
+  width: calc(100% - 2.4em);
+  height: 1.57em;
+  margin-bottom: 0.7em;
+  font-size: 1.15em;
+}
+
+.order-face[data-compact='narrow'] .of-colo {
+  width: calc(100% - 1.2em);
+  font-size: 1.1em;
+}
+
+.order-face[data-compact='narrow'] .of-colo::before,
+.order-face[data-compact='narrow'] .of-colo::after {
   display: none;
 }
 
