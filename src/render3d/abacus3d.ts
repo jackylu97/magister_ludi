@@ -62,15 +62,19 @@ import {
   AmbientLight,
   Box3,
   type BufferGeometry,
+  CanvasTexture,
   Color,
   DirectionalLight,
   Group,
   HemisphereLight,
+  Matrix4,
   Mesh,
   OrthographicCamera,
   PCFShadowMap,
   PlaneGeometry,
   Scene,
+  Sprite,
+  SpriteMaterial,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -99,6 +103,7 @@ const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const ABACUS = VIEW3D.abacus;
 const FRAME = ABACUS.frame;
+const CLOSE = ABACUS.close;
 const DEG = Math.PI / 180;
 
 // --- the pure arithmetic ----------------------------------------------------
@@ -218,6 +223,33 @@ export function slidePosition(from: number, to: number, t: number): number {
   return over + (to - over) * (1 - (1 - u) ** 3);
 }
 
+/**
+ * **Where the golden bead comes to rest** (batch SS7, the Opus close).
+ *
+ * It lands as the next earned bead, so its place is `beadX` for one more bead
+ * earned, pushed right by the half-width it has gained from being drawn larger.
+ * Without the push a larger bead would sink into the earned bead beside it.
+ */
+export function goldenRestX(layout: RodLayout, index: number, scale: number): number {
+  return beadX(layout, index, index + 1) + (scale - 1) * layout.halfThickness;
+}
+
+/**
+ * **The turn of the Opus close**: out to `degrees` and back, over `t` from 0 to
+ * 1, in radians. `(1 − cos 2πt) / 2` starts and ends at rest and peaks at the
+ * middle, so the frame neither jerks into the turn nor out of it.
+ */
+export function turnYaw(t: number, degrees: number): number {
+  const clamped = Math.max(0, Math.min(1, t));
+  return ((1 - Math.cos(clamped * Math.PI * 2)) / 2) * degrees * DEG;
+}
+
+/** `easeInOutCubic`: the camera's move, which starts and stops gently. */
+function easeInOut(t: number): number {
+  const u = Math.max(0, Math.min(1, t));
+  return u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
+}
+
 /** The scoring family with this id, or a loud error. */
 export function familyOf(id: FamilyId): AbacusFamily {
   const family = ABACUS.families.find((entry) => entry.id === id);
@@ -258,6 +290,36 @@ interface RodView {
   y: number;
   beads: BeadView[];
   earned: FamilyId[];
+}
+
+/**
+ * **The golden bead on the frame** (batch SS7). Before the Opus close the frame
+ * never drew it: only the register under the frame showed it, in its golden
+ * slot. On the close it lights at the start of the winner's unearned beads,
+ * larger than the rest and with a halo, and then slides home with the frame's
+ * own slide.
+ */
+interface GoldenView {
+  rod: number;
+  /** Which bead on the rod it is: the first of the unearned ones. */
+  index: number;
+  glow: Sprite;
+  /** Seconds into the lighting, and how long the lighting takes. */
+  elapsed: number;
+  seconds: number;
+  /** Where it stood, and where it stands once lit (moved left by what it gained in width). */
+  fromX: number;
+  litX: number;
+}
+
+/** The camera move of the Opus close: which rod, and how far in, from 0 to 1. */
+interface FocusView {
+  rod: number;
+  from: number;
+  to: number;
+  amount: number;
+  elapsed: number;
+  seconds: number;
 }
 
 /** What a player's DOM label needs: two projected points and a fade. */
@@ -321,6 +383,23 @@ export class AbacusStage {
   private lastFrame = 0;
   private running = false;
   private disposed = false;
+
+  /** The golden bead, once the Opus close has lit it. */
+  private golden: GoldenView | null = null;
+  /** The halo's soft disc, drawn once on first use. */
+  private glowMap: CanvasTexture | null = null;
+  /** The camera move, at rest at nought until the Opus close asks for it. */
+  private focus: FocusView = { rod: 0, from: 0, to: 0, amount: 0, elapsed: 0, seconds: 0 };
+  /** The turn of the Opus close while it runs, or null. */
+  private turning: { elapsed: number; seconds: number } | null = null;
+  /** The turn's own share of the frame's yaw this frame, in radians. */
+  private turnAngle = 0;
+  /** The camera as `fit` left it, which the camera move starts from. */
+  private baseFrustum = 1;
+  private readonly basePosition = new Vector3();
+  private readonly baseRight = new Vector3(1, 0, 0);
+  private readonly baseUp = new Vector3(0, 1, 0);
+  private readonly baseView = new Matrix4();
 
   constructor(canvas: HTMLCanvasElement, players: readonly AbacusPlayer[]) {
     this.players = players;
@@ -454,10 +533,174 @@ export class AbacusStage {
     return true;
   }
 
+  // --- the Opus close ------------------------------------------------------
+
+  /**
+   * **Lights the golden bead** on a rod: the first of its unearned beads turns
+   * gold, grows to `close.goldenScale` and takes its halo, over `seconds` (0 for
+   * at once). It moves left by the width it gains, so it never presses into the
+   * waiting bead beside it.
+   *
+   * Returns false when the rod has no unearned bead left to light, or a golden
+   * bead is already lit: there is one golden bead in a game.
+   */
+  lightGolden(rodIndex: number, seconds: number): boolean {
+    const rod = this.rods[rodIndex];
+    if (!rod || this.golden || rod.earned.length >= rod.beads.length) return false;
+    const index = rod.earned.length;
+    const bead = rod.beads[index]!;
+    bead.elapsed = null;
+    bead.mesh.material = this.materials.get(CLOSE.goldenColor);
+    const glow = new Sprite(
+      new SpriteMaterial({
+        map: this.glowTexture(),
+        color: CLOSE.glowColor,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0,
+      }),
+    );
+    // In the bead's own units, so it grows with the bead it is the halo of.
+    const size = this.layout.beadRadius * CLOSE.glowRadius * 2;
+    glow.scale.set(size, size, 1);
+    bead.mesh.add(glow);
+    const gain = (CLOSE.goldenScale - 1) * this.layout.halfThickness;
+    this.golden = {
+      rod: rodIndex,
+      index,
+      glow,
+      elapsed: 0,
+      seconds: Math.max(0, seconds),
+      fromX: bead.x,
+      litX: bead.x - gain,
+    };
+    this.applyGolden();
+    return true;
+  }
+
+  /**
+   * **Slides the golden bead home**: the frame's own slide (`slidePosition`,
+   * the overshoot and the knock that fires `onStrike`), to the place after the
+   * earned beads. The earned count does not move: the golden bead is not one of
+   * the beads the threshold counts.
+   */
+  slideGolden(): boolean {
+    const golden = this.golden;
+    if (!golden) return false;
+    // A slide asked for before the lighting finished lands the lighting first.
+    golden.elapsed = golden.seconds;
+    this.applyGolden();
+    const bead = this.rods[golden.rod]?.beads[golden.index];
+    if (!bead) return false;
+    bead.from = bead.x;
+    bead.to = goldenRestX(this.layout, golden.index, CLOSE.goldenScale);
+    bead.elapsed = 0;
+    bead.struck = false;
+    return true;
+  }
+
+  /**
+   * **Moves the camera in on a rod**, to `amount` (0 is the fitted view, 1 is
+   * `close.zoom` times closer), over `seconds`. The DOM labels are projected
+   * through the live camera, so they follow without being told.
+   */
+  focusRod(rodIndex: number, amount: number, seconds: number): void {
+    const from = this.focus.amount;
+    this.focus = { rod: rodIndex, from, to: amount, amount: from, elapsed: 0, seconds: Math.max(0, seconds) };
+    if (this.focus.seconds === 0) {
+      this.focus.amount = amount;
+      this.applyFocus();
+    }
+  }
+
+  /** **Turns the frame** `close.turnDegrees` on its turntable and back, over `seconds`. */
+  turn(seconds: number): void {
+    this.turning = { elapsed: 0, seconds: Math.max(0.001, seconds) };
+  }
+
+  /** How far into its turn the frame is, from 0 (facing) to 1 (turned furthest). */
+  get turnAmount(): number {
+    const peak = CLOSE.turnDegrees * DEG;
+    return peak === 0 ? 0 : Math.abs(this.turnAngle) / peak;
+  }
+
+  /** The halo's soft disc: white at the middle, clear at the rim, tinted by the material. */
+  private glowTexture(): CanvasTexture {
+    if (this.glowMap) return this.glowMap;
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    if (context) {
+      const half = size / 2;
+      const gradient = context.createRadialGradient(half, half, 0, half, half, half);
+      gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.45, 'rgba(255,255,255,0.5)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, size, size);
+    }
+    this.glowMap = new CanvasTexture(canvas);
+    return this.glowMap;
+  }
+
+  /** The golden bead's size, halo and place for how far its lighting has gone. */
+  private applyGolden(): void {
+    const golden = this.golden;
+    if (!golden) return;
+    const bead = this.rods[golden.rod]?.beads[golden.index];
+    if (!bead) return;
+    const t = golden.seconds === 0 ? 1 : Math.min(1, golden.elapsed / golden.seconds);
+    const lit = 1 - (1 - t) ** 3;
+    bead.mesh.scale.setScalar(1 + (CLOSE.goldenScale - 1) * lit);
+    (golden.glow.material as SpriteMaterial).opacity = CLOSE.glowOpacity * lit;
+    // Only while it stands: once it slides, the slide owns its place.
+    if (bead.elapsed === null) {
+      bead.x = golden.fromX + (golden.litX - golden.fromX) * lit;
+      bead.mesh.position.x = bead.x;
+    }
+  }
+
+  /** Takes the golden bead off the frame again: its halo, its size and its gold. */
+  private clearGolden(): void {
+    const golden = this.golden;
+    if (!golden) return;
+    golden.glow.removeFromParent();
+    (golden.glow.material as SpriteMaterial).dispose();
+    const bead = this.rods[golden.rod]?.beads[golden.index];
+    bead?.mesh.scale.setScalar(1);
+    this.golden = null;
+  }
+
+  /**
+   * The camera for the move's present amount: closer by up to `close.zoom`, and
+   * slid toward the rod by up to `close.focusPan` of the way, both measured from
+   * the camera `fit` left.
+   */
+  private applyFocus(): void {
+    const amount = this.focus.amount;
+    const y = this.layout.rodY[this.focus.rod] ?? 0;
+    const target = new Vector3(0, y, 0).applyMatrix4(this.baseView);
+    const pan = amount * CLOSE.focusPan;
+    this.camera.position
+      .copy(this.basePosition)
+      .addScaledVector(this.baseRight, target.x * pan)
+      .addScaledVector(this.baseUp, target.y * pan);
+    const frustum = this.baseFrustum / (1 + (CLOSE.zoom - 1) * amount);
+    this.camera.left = -frustum * this.aspect;
+    this.camera.right = frustum * this.aspect;
+    this.camera.top = frustum;
+    this.camera.bottom = -frustum;
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld();
+  }
+
   /** Puts a rod straight into a given state, with no animation. For the seed. */
   seed(rodIndex: number, earned: readonly FamilyId[]): void {
     const rod = this.rods[rodIndex];
     if (!rod) return;
+    if (this.golden?.rod === rodIndex) this.clearGolden();
     rod.earned = earned.slice(0, rod.beads.length);
     rod.beads.forEach((bead, index) => {
       const family = rod.earned[index];
@@ -495,6 +738,26 @@ export class AbacusStage {
       right: this.project(reach, y, 0),
       opacity: Math.max(0, Math.min(1, (facing - label.fadeFrom) / label.fadeSpan)),
     };
+  }
+
+  /**
+   * **Where a rod's labels go when the camera has moved in on it** (the Opus
+   * close): just inside the two stiles and a little above the rod, as the
+   * Moments board draws the winner's name and tally once the gutters have left
+   * the view.
+   */
+  insideLabelPlacement(rodIndex: number): { left: { x: number; y: number }; right: { x: number; y: number } } {
+    // Above the beads' rims as the low camera sees them (a bead seen from 24°
+    // shows its face above its radius), and still short of the rod above or
+    // the top rail.
+    const y = (this.layout.rodY[rodIndex] ?? 0) + this.layout.pitch * 0.62;
+    const reach = frameMetrics().innerHalfSpan - ABACUS.rod.finialSize;
+    return { left: this.project(-reach, y, 0), right: this.project(reach, y, 0) };
+  }
+
+  /** How far the camera has moved in, from 0 (the fitted view) to 1. */
+  get focusAmount(): number {
+    return this.focus.amount;
   }
 
   private project(x: number, y: number, z: number): { x: number; y: number } {
@@ -650,6 +913,7 @@ export class AbacusStage {
 
   /** Takes the rods off the frame and gives their geometry back. */
   private clearRods(): void {
+    this.clearGolden();
     for (const child of [...this.rodGroup.children]) this.rodGroup.remove(child);
     for (const geometry of this.rodGeometries) geometry.dispose();
     this.rodGeometries = [];
@@ -765,6 +1029,14 @@ export class AbacusStage {
     this.camera.far = 600;
     this.camera.updateProjectionMatrix();
     this.applyLight(center);
+
+    // The view the Opus close's camera move starts from, kept for every resize.
+    this.baseFrustum = this.frustum;
+    this.basePosition.copy(this.camera.position);
+    this.baseRight.copy(right);
+    this.baseUp.copy(up);
+    this.baseView.copy(this.camera.matrixWorldInverse);
+    if (this.focus.amount !== 0) this.applyFocus();
   }
 
   private applyLight(center: Vector3): void {
@@ -817,6 +1089,30 @@ export class AbacusStage {
     } else {
       this.object.rotation.set(0, this.yaw, 0);
     }
+    this.turnAngle = 0;
+    if (this.turning) {
+      // The Opus close's turn, laid over the sway rather than in place of it,
+      // so the frame leaves its breath and comes back to it without a jump.
+      this.turning.elapsed += dt;
+      const t = this.turning.elapsed / this.turning.seconds;
+      this.turnAngle = turnYaw(t, CLOSE.turnDegrees);
+      this.object.rotation.y += this.turnAngle;
+      if (t >= 1) this.turning = null;
+    }
+
+    const focus = this.focus;
+    if (focus.amount !== focus.to) {
+      focus.elapsed += dt;
+      const t = focus.seconds === 0 ? 1 : focus.elapsed / focus.seconds;
+      focus.amount = t >= 1 ? focus.to : focus.from + (focus.to - focus.from) * easeInOut(t);
+      this.applyFocus();
+    }
+
+    const golden = this.golden;
+    if (golden && golden.elapsed < golden.seconds) {
+      golden.elapsed = Math.min(golden.seconds, golden.elapsed + dt);
+      this.applyGolden();
+    }
 
     const slide = ABACUS.slide;
     for (const rod of this.rods) {
@@ -843,6 +1139,8 @@ export class AbacusStage {
     this.running = false;
     this.disposed = true;
     this.clearRods();
+    this.glowMap?.dispose();
+    this.glowMap = null;
     for (const geometry of this.frameGeometries) geometry.dispose();
     this.frameGeometries.length = 0;
     this.materials.dispose();

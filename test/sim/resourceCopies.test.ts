@@ -704,8 +704,11 @@ describe('the committed reading is on no clock at all', () => {
     for (const name of ['resolveCommitments', 'committedCopies', 'availableCopies']) {
       expect(bodyOf(name), name).not.toContain('slateMemo');
     }
-    // The map sweep underneath it is still remembered, where it belongs.
-    expect(bodyOf('resourceCopies')).toContain("slateMemo(state, 'economy'");
+    // The map sweep underneath it is still remembered, where it belongs. Since
+    // batch BP13c the sweep is `groundCopies`, which `resourceCopies` and the
+    // count an empire may lend (`ownedCopiesKept`) both read.
+    expect(bodyOf('resourceCopies')).toContain('groundCopies(');
+    expect(bodyOf('groundCopies')).toContain("slateMemo(state, 'economy'");
     // And the argument is written down beside the code, not only here.
     expect(SOURCE).toContain('This is not on the slate, and that is deliberate');
   });

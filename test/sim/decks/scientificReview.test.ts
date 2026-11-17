@@ -197,8 +197,7 @@ describe('the three new cards', () => {
         '+20% food in your capital; +20% culture in your capital',
     ]);
     expect(words('theCuratorsOfWorks')).toEqual([
-      '+1 science in every city per public work standing there',
-      '+1 happiness in every city per public work standing there',
+      '+1 science and +1 happiness in every city per public work standing there',
     ]);
     expect(words('theMountainObservatories')).toEqual([
       '+3 science in every city with a mountain hex inside its borders',

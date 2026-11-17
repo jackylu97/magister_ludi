@@ -15,7 +15,7 @@
  * browser — a file picker, a download — are in `savesPanel.ts` and are not here.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { type GameConfig, SCHEMA_VERSION, hasEndedTurn } from '../../src/sim/state';
 import {
@@ -51,8 +51,10 @@ import {
 import { createGame, newGame } from '../sim/newGameHelpers';
 
 // Every test in this file does real save work. The default 5 s limit failed on a loaded machine in
-// four main gates on 2026-11-17, each time on a different test, and each passed alone.
-vi.setConfig({ testTimeout: 30_000 });
+// several main gates on 2026-11-17, each time on a different test, and each passed alone. The limit is
+// given to each describe block: a file-level `vi.setConfig` did not hold in the full run, where test
+// files share one module registry.
+const SLOW = { timeout: 30_000 } as const;
 
 /**
  * `localStorage` in eleven lines. The real one satisfies `SaveStorage`
@@ -136,7 +138,7 @@ function playedGame(overrides: Partial<GameConfig> = {}): Game {
   return game;
 }
 
-describe('makeSavePayload', () => {
+describe('makeSavePayload', SLOW, () => {
   it('carries both versions, the clock, and the sim’s own {config, log}', async () => {
     const game = playedGame();
     const payload = makeSavePayload(game, 'Rome', 1_700_000_000_000);
@@ -159,7 +161,7 @@ describe('makeSavePayload', () => {
   });
 });
 
-describe('slot keys and names', () => {
+describe('slot keys and names', SLOW, () => {
   it('namespaces every key it owns', async () => {
     expect(storageKey(AUTOSAVE_SLOT)).toBe(`${SAVE_KEY_PREFIX}autosave`);
     expect(storageKey(QUICKSAVE_SLOT)).toBe(`${SAVE_KEY_PREFIX}quicksave`);
@@ -185,7 +187,7 @@ describe('slot keys and names', () => {
   });
 });
 
-describe('slotSummary', () => {
+describe('slotSummary', SLOW, () => {
   it('says how far along and which world, in that order', async () => {
     const storage = fakeStorage();
     await writeSave(
@@ -205,7 +207,7 @@ describe('slotSummary', () => {
   });
 });
 
-describe('memorySaveStorage', () => {
+describe('memorySaveStorage', SLOW, () => {
   it('is an ordinary shelf, so the private-window path is the tested one', async () => {
     // The fallback a browser that refuses `localStorage` gets. Nothing
     // downstream branches on it, which is only safe because it behaves exactly
@@ -223,7 +225,7 @@ describe('memorySaveStorage', () => {
   });
 });
 
-describe('writeSave', () => {
+describe('writeSave', SLOW, () => {
   it('stores the payload under its namespaced key', async () => {
     const storage = fakeStorage();
     const game = playedGame();
@@ -300,7 +302,7 @@ describe('writeSave', () => {
   });
 });
 
-describe('readSlot / listSaves', () => {
+describe('readSlot / listSaves', SLOW, () => {
   it('derives the shelf label without replaying the game', async () => {
     const storage = fakeStorage();
     const game = playedGame({ seed: 99, sizeName: 'duel' });
@@ -467,7 +469,7 @@ describe('readSlot / listSaves', () => {
   });
 });
 
-describe('loadSave', () => {
+describe('loadSave', SLOW, () => {
   it('round-trips to a byte-identical state that keeps playing in lockstep', async () => {
     const game = playedGame();
     const json = JSON.stringify(makeSavePayload(game, 'Rome', 42));
@@ -614,7 +616,7 @@ describe('loadSave', () => {
   });
 });
 
-describe('resumeSeat', () => {
+describe('resumeSeat', SLOW, () => {
   it('sits a solo game down at seat 0', async () => {
     const game = createGame(config({ players: [{ name: 'Ada', color: '#e8503a', isHuman: true }] }));
     expect(resumeSeat(game.state)).toBe(0);
@@ -650,7 +652,7 @@ describe('resumeSeat', () => {
   });
 });
 
-describe('createAutosaver', () => {
+describe('createAutosaver', SLOW, () => {
   /** A defer the test drives by hand, so "later" is a line of the test. */
   function manualDefer(): { defer: (task: () => void) => void; run: () => void; waiting: () => number } {
     const tasks: Array<() => void> = [];

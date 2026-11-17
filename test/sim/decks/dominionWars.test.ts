@@ -608,7 +608,7 @@ describe('Dominion D6 — words and the bot', () => {
     // Since Dominion batch D11 an institution. The D6 words are pinned by the
     // borrowed reward above.
     expect(words('dominionTheCapturedMarvel')).toContain(
-      "Reward: +30% science in every captured city containing a wonder or founded as another empire's capital",
+      "Reward: +30% science and +30% culture in every captured city containing a wonder or founded as another empire's capital",
     );
     expect(words('vaeVictis')).toBe('what your Orders pay for capturing a city is paid twice');
     expect(words('lootedArt')).toBe(

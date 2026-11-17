@@ -368,6 +368,24 @@ export const DECK_MARKS: Readonly<Record<DeckFace, LineMark>> = {
 };
 
 /**
+ * **The sign of the work**: the Magnum Opus, drawn as the alchemists' squared
+ * circle (a circle, a square in it, a triangle in that, and a small circle in
+ * the triangle). Beat one of the Opus close shows it over the town that
+ * finished the work (batch SS7; the paths are the Moments board's, unchanged).
+ * The inner figures are drawn lighter than the house weight, as the board draws
+ * them, so the square and the triangle do not close up at small sizes.
+ */
+export const OPUS_MARK: LineMark = {
+  note: 'the squared circle: a circle, a square, a triangle and a circle within',
+  paths: [
+    ink(dot(32, 32, 27)),
+    { d: poly(12.91, 12.91, 51.09, 12.91, 51.09, 51.09, 12.91, 51.09), width: 4.5 },
+    { d: poly(32, 12.91, 51.09, 51.09, 12.91, 51.09), width: 4.5 },
+    { d: dot(32, 39.29, 11.8), width: 4.5 },
+  ],
+};
+
+/**
  * A path drawn lighter than the house weight: the wreath's leaves. At the house
  * weight a leaf this small closes up into a blot, and the outline is what makes
  * it read as a leaf.
@@ -490,4 +508,9 @@ export function slotMarkDataUri(slot: ChairType, color = '#000'): string {
  */
 export function deckMarkDataUri(face: DeckFace, color = '#000'): string {
   return markUri(`deck|${face}|${color}`, DECK_MARKS[face], color);
+}
+
+/** The sign of the work, as a `data:` URI. See `OPUS_MARK`. */
+export function opusMarkDataUri(color = '#000'): string {
+  return markUri(`opus|${color}`, OPUS_MARK, color);
 }

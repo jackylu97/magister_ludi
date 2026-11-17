@@ -466,19 +466,26 @@ describe('the charters', () => {
     expect(eligibleFor(g.state, playerById(g.state, 1)!, tierOne)).not.toContain('theBronzeFoundersCharter');
   });
 
-  it('prints the research it opens, then each trait in the technology’s own words', () => {
+  it('prints the research it opens, then each trait in one sentence with the units it reaches', () => {
     const said = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(said('theMechanistsCharter')).toEqual([
       'Charter',
       'opens Mechanics for you to research',
-      'once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade',
-      'units of the Catapult line: +1 range',
-      'once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade',
-      'units of the Archer line may move after attacking',
+      'Mechanics gives the Onager trait: Catapult and Trebuchet +1 range',
+      'Mechanics gives the Repeating Crossbow trait: Archer to Crossbowman move after attacking',
     ]);
-    expect(said('theBronzeFoundersCharter')).toContain('+2 combat strength for units of the Spearman line');
-    expect(said('theBronzeFoundersCharter')).toContain('+2 combat strength for units of the War Chariot line');
-    // The technology says the same of itself, without the lead.
+    expect(said('theBronzeFoundersCharter')).toContain(
+      'Casting gives the Hoplite trait: Spearman to Pikeman +2 combat strength',
+    );
+    expect(said('theBronzeFoundersCharter')).toContain(
+      'Casting gives the Maryannu trait: War Chariot to Knight +2 combat strength',
+    );
+    // A second line about the same units does not repeat their names.
+    expect(said('theNavalGunnersCharter')).toContain(
+      'Naval Gunnery gives the Galleass trait: Gun Galley and Frigate +3 combat strength; ' +
+        'they blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing',
+    );
+    // The technology says each trait of itself in full sentences, as the unit panel does.
     expect(describeCard('navalGunnery' as never).map((clause) => clause.text)).toEqual([
       'the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade',
       '+3 combat strength for units of the Gun Galley line',

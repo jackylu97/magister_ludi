@@ -663,12 +663,27 @@ function lentHoldings(state: GameState, playerId: number): ResourceHolding[] {
  * three questions, one subtraction, so an empire can never read as holding a
  * kind on one surface and not on another. Two empires can never hold three
  * copies between them where there were two.
+ *
+ * This is the count an empire **uses**. The count it may **lend** is smaller
+ * when part of this figure is a loan: a borrowed copy can be used and not lent
+ * (the ruling of 2026-11-17). `lendableCopies` is that count, and the deal gate
+ * reads it.
  */
 export function resourceCopies(
   state: GameState,
   playerId: number,
   resourceId: ResourceId,
 ): number {
+  return netCopies(state, playerId, resourceId, groundCopies(state, playerId, resourceId));
+}
+
+/**
+ * The copies of one resource this empire's own ground supplies, with the cards
+ * that add to them, and nothing a deal moved. The first term of
+ * `resourceCopies`, split out so that the count it may lend reads the same
+ * ground (`ownedCopiesKept`).
+ */
+function groundCopies(state: GameState, playerId: number, resourceId: ResourceId): number {
   // **Remembered on the economy clock**, and for `controlledHoldings`' reason
   // word for word: this is a walk of the whole map, and it is asked once per
   // candidate row the bot weighs — `buildError` and `buildingError` both gate on
@@ -697,7 +712,7 @@ export function resourceCopies(
   // Assays pays per mined deposit, and what the memo has to remember is that
   // count — a fact about the board — so that the law can still be applied
   // outside it. Both are ground facts; neither reads a card.
-  const mine = ownCopies(
+  return ownCopies(
     slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
       sweepOwnCopies(state, playerId, resourceId),
     ),
@@ -705,7 +720,6 @@ export function resourceCopies(
     playerId,
     resourceId,
   );
-  return netCopies(state, playerId, resourceId, mine);
 }
 
 /**
@@ -769,9 +783,29 @@ function netCopies(
   resourceId: ResourceId,
   mine: number,
 ): number {
-  const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
   const lentIn = lentCopiesHeld(state, playerId)[resourceId] ?? 0;
-  return Math.max(0, mine - lentAway) + lentIn;
+  return keptCopies(state, playerId, resourceId, mine) + lentIn;
+}
+
+/**
+ * The empire's own copies less the copies it lends away, floored at nought.
+ * The floor is for a deal that outlives the copy under it (a pillaged
+ * plantation, a save from before the lending rule): the giver reads nought, and
+ * never a negative count it could lend out of.
+ */
+function keptCopies(state: GameState, playerId: number, resourceId: ResourceId, mine: number): number {
+  const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
+  return Math.max(0, mine - lentAway);
+}
+
+/**
+ * **The copies of one resource this empire owns and has not lent**: its own
+ * ground's copies less the copies its deals lend away, floored at nought. The
+ * copies lent to it are not in this count. It is `resourceCopies` without the
+ * loans that came in.
+ */
+export function ownedCopiesKept(state: GameState, playerId: number, resourceId: ResourceId): number {
+  return keptCopies(state, playerId, resourceId, groundCopies(state, playerId, resourceId));
 }
 
 /**
@@ -797,8 +831,8 @@ export function lentCopyPercent(state: GameState, playerId: number): number {
  *
  * Read by the luxury counts (`uniqueLuxuries`, `luxuryCopies`,
  * `duplicateLuxuries`, `monopolyLuxuries`) and by Corner the Market's figure.
- * **The deal gate does not read it** (`availableCopies` reads `resourceCopies`),
- * and neither do the bots' last-copy checks, so one copy is never lent twice.
+ * **The deal gate does not read it** (it reads `lendableCopies`), and neither
+ * do the bots' last-copy checks, so one copy is never lent twice.
  * A seat with no such card reads `resourceCopies` exactly.
  */
 export function countedLuxuryCopies(
@@ -1002,8 +1036,9 @@ export function committedCopies(
  * less what is already spoken for, floored at nothing.
  *
  * The figure the build gate compares against (`buildError` in `tech.ts`), the
- * upgrade ladder stops at, and a bargain may promise (`dealSideError` in
- * `diplomacy.ts`, ruling 4 — "only trade away available copies"). Floored
+ * upgrade ladder stops at, and a bargain may promise no more than (ruling 4 —
+ * "only trade away available copies"). The deal gate itself reads
+ * `lendableCopies` below, which also leaves out the copies lent in. Floored
  * because ruling 3 lets an empire run past its holdings: lose the mine under
  * four horsemen and you keep the horsemen, you simply build no more until you
  * are back in the black. A negative number is not a debt anybody can pay off, it
@@ -1058,6 +1093,33 @@ export function availableCopies(
 ): number {
   const held = resourceCopies(state, playerId, resourceId);
   return Math.max(0, held - committedCopies(state, playerId, resourceId, replacing));
+}
+
+/**
+ * **The copies of one resource this empire may lend in a deal**: the copies it
+ * owns and has not lent already (`ownedCopiesKept`), and never more than it
+ * could spend (`availableCopies`).
+ *
+ * The ruling of 2026-11-17 (`docs/flags.md`, "A borrowed luxury cannot be lent
+ * on"; the user: *"yes, no trading lent luxuries"*). An empire lends only
+ * copies it owns. A borrowed copy can be used (access, and what the luxury
+ * pays) and not lent. Before the rule the deal gate asked `availableCopies`,
+ * which counts the copies lent in, so an empire that held a luxury only on loan
+ * could lend it to a third empire. The giver kept its access, the receiver
+ * gained one, and one copy served three empires.
+ *
+ * The second bound keeps ruling 4 of batch R1 ("only trade away available
+ * copies"): a copy a unit holds is not a copy to lend. No unit needs a luxury
+ * today, so for every luxury the game ships this is `ownedCopiesKept`.
+ *
+ * `dealSideError` (`diplomacy.ts`) is the one gate that reads it, and the bots'
+ * checks of what they may lend read it too, so a bot never writes a paper the
+ * gate refuses.
+ */
+export function lendableCopies(state: GameState, playerId: number, resourceId: ResourceId): number {
+  const kept = ownedCopiesKept(state, playerId, resourceId);
+  if (kept === 0) return 0;
+  return Math.min(kept, availableCopies(state, playerId, resourceId));
 }
 
 /**

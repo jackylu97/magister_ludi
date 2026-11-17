@@ -1252,9 +1252,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * (`growth.allFocusSheets`). No rule changed. Duel `c19609c9:365065` ->
  * `96597c87:340143`, standard `eb076b82:1079375` -> `109baaf6:1053026`.
  */
+/**
+ * Re-cut for bot batch BP13c (`docs/flags.md`, the bullets "BP13c" and "A
+ * borrowed luxury cannot be lent on"). One rule changed: an empire lends only
+ * the luxury copies it owns (schema 244, so every state's print moves). With
+ * that rule alone, and the schema number read as 243, both games gave the old
+ * pins exactly: no bot lent a borrowed copy in them. Two changes of play moved
+ * them: a worker that steps back from a threat holds where it stepped to for
+ * the rest of the sitting (both boards), and a sleeping worker is asked before
+ * a town chooses its build (the duel only). Duel `96597c87:340143` ->
+ * `29663d27:358427`, standard `109baaf6:1053026` -> `5be63c3e:1044882`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '96597c87:340143',
-  standard: '109baaf6:1053026',
+  duel: '29663d27:358427',
+  standard: '5be63c3e:1044882',
 };
 
 /**

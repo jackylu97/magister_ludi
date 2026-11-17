@@ -509,20 +509,18 @@ describe("the card table", () => {
       "killing a unit grants +10 science",
       "killing a unit grants +10 culture",
     ]);
-    expect(said("councilOfElders")).toEqual(["+2 food in every city", "+1 renown per turn in every city"]);
+    expect(said("councilOfElders")).toEqual(["+2 food and +1 renown per turn in every city"]);
     expect(said("priestKing")).toEqual(["+1 science, +1 faith in every city"]);
     expect(said("tyranny")).toEqual(["+5 authority capacity", "your units cost 30% less gold in maintenance"]);
     expect(said("republic")).toEqual(["+1 trade route", "+1 culture in every city per 5 citizens there"]);
     expect(said("aristocracy")).toEqual(["+2 science in every city", "great people cost 15% less renown"]);
     expect(said("imperium")).toEqual([
       "all units: +1 movement",
-      "+10% science in every captured city",
-      "+10% culture in every captured city",
+      "+10% science and +10% culture in every captured city",
     ]);
     expect(said("merchantLeague")).toEqual(["+1 trade route", "trade routes pay +50%"]);
     expect(said("divineMandate")).toEqual([
-      "+20% culture in every city containing a wonder",
-      "+20% faith in every city containing a wonder",
+      "+20% culture and +20% faith in every city containing a wonder",
     ]);
     expect(said("theSultanate")).toEqual(["your seated Military cards are 30% stronger"]);
     expect(said("theEstates")).toEqual(["your seated Economic cards pay 30% more"]);
@@ -2318,7 +2316,9 @@ describe("determinism", () => {
     // a record the bots read; no rule reads it.
     // 243 since batch BP7 (bot pass 3): the Forbidden City gives whoever holds
     // its town one more Wildcard chair.
-    expect(SCHEMA_VERSION).toBe(243);
+    // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
+    // a borrowed copy cannot be lent on.
+    expect(SCHEMA_VERSION).toBe(244);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -4852,8 +4852,7 @@ describe("the Orders pass of 2026-08-29", () => {
       "new cities are founded with a Granary",
     ]);
     expect(said("theChoir")).toEqual([
-      "+3 culture in every city with a Temple",
-      "+1 happiness in every city with a Temple",
+      "+3 culture and +1 happiness in every city with a Temple",
     ]);
     // 2026-08-31: the ratified text asks for a mountain *inside the borders*,
     // which is a different question from one in the ring of six.
@@ -5248,8 +5247,7 @@ describe("the balance pass of 2026-08-31", () => {
     ]);
     expect(said("theWanderingCourt")).toEqual([
       "-15% all yields in your capital",
-      "+3 food, +3 production, +3 science, +3 culture, +3 faith in every city but your capital",
-      "+3 happiness in every city but your capital",
+      "+3 food, +3 production, +3 science, +3 culture, +3 faith and +3 happiness in every city but your capital",
     ]);
     expect(said("theClosedRealm")).toEqual([
       "your happiness is held at +5 whatever your cities ask for — not built yet",
@@ -5602,8 +5600,7 @@ describe("the ratified cards of the Themes Build", () => {
     // Raised by the card-shapes pass of 2026-09-04: the Wild Hunt's counter
     // card now pays like the payoff it always was, in both voices.
     expect(said("theLastHunt")).toEqual([
-      "+4 culture per barbarian camp you have cleared",
-      "+4 science per barbarian camp you have cleared",
+      "+4 culture and +4 science per barbarian camp you have cleared",
     ]);
     expect(said("theSaintsFields")).toEqual([
       "+3 faith on every hex carrying a great person's work",
@@ -5634,8 +5631,7 @@ describe("the ratified cards of the Themes Build", () => {
       "+25% production toward Cathedrals",
     ]);
     expect(said("theShipwrightShores")).toEqual([
-      "+3 production in every coastal city",
-      "+30% production toward ships, in every coastal city",
+      "+3 production and +30% production toward ships, in every coastal city",
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove, boring*), and its unbuilt
     // half cut with it — a row nobody will be dealt promises nothing.
@@ -7223,8 +7219,7 @@ describe("the cards pass of 2026-09-05", () => {
       "all units cost 1 more gold in maintenance",
     ]);
     expect(said("theCongregation")).toEqual([
-      "+1 culture per city that follows you",
-      "+1 science per city that follows you",
+      "+1 culture and +1 science per city that follows you",
     ]);
   });
 
@@ -7266,8 +7261,7 @@ describe("the cards pass of 2026-09-05", () => {
     // forever; the name follows the data.
     expect(doctrineDef("theSeaCharter").name).toBe("The Merchant Scholars");
     expect(said("theSeaCharter")).toEqual([
-      "+2% science in every city per trade route you run",
-      "+2% culture in every city per trade route you run",
+      "+2% science and +2% culture in every city per trade route you run",
     ]);
   });
 });
@@ -7762,9 +7756,11 @@ describe("a charter carries the description of the building it opens", () => {
         .map((entry) => entry.text)
         // "unlocks the Assay House" — or "unlocks The Vizier's Hall", for a row
         // whose own name carries the article (batch S2, `theBuilding`).
-        .filter((text) => text.includes("unlocks "));
-      // A card may open several rows, one clause each (The House of Worship). A
-      // retired row prints no mark, and that card opens one row, so it takes the first.
+        // "every devout city may buy with faith the Mosque (…), the Wat (…)" is
+        // The House of Worship, which opens four bought rows in one sentence.
+        .filter((text) => text.includes("unlocks ") || text.includes(" may buy with "));
+      // A card may open several rows (The House of Worship). A retired row
+      // prints no mark, and that card opens one row, so it takes the first.
       const clause =
         clauses.find((text) => text.includes(`[[building:${building}|`)) ?? clauses[0];
       expect(clause, card).toBeDefined();
@@ -7784,8 +7780,18 @@ describe("a charter carries the description of the building it opens", () => {
         (entry) => entry.deferred !== true,
       );
       expect(row.length, building).toBeGreaterThan(0);
-      for (const entry of row)
-        expect(said, `${card} → ${building}`).toContain(stripRefs(entry.text));
+      // The sentence that lists several bought rows says the cities and the
+      // bank once, in its lead. So it leaves out each row's two sentences
+      // about how and where it is bought, and the words for the row's own city.
+      const listed = said.includes(" may buy with ");
+      const ownCity = new RegExp(
+        ` in (?:this city|every city with (?:a|an|the) ${buildingDef(building).name})$`,
+      );
+      for (const entry of row) {
+        const text = stripRefs(entry.text);
+        if (listed && (text.startsWith("it is bought with ") || text.startsWith("it may be raised only "))) continue;
+        expect(said, `${card} → ${building}`).toContain(listed ? text.replace(ownCity, "") : text);
+      }
       // A deferred half is printed struck through where it is printed, and
       // there is no striking half of a sentence — so it stays out of this one.
       for (const entry of describeBuildingRow(building)) {
@@ -11563,7 +11569,7 @@ describe("D2b — counts and reach", () => {
     bumpRevision(g.state);
     expect(trickle()).toBe(2);
     expect(stripRefs(describeCard("theProvincialStages" as never)[0]!.text)).toBe(
-      "+2 renown per turn in every city but your capital with 2 or more culture buildings",
+      "+2 renown per turn and +5 food in every city but your capital with 2 or more culture buildings",
     );
   });
 

@@ -901,6 +901,40 @@ section "BP13b" of `docs/plans/performance-pass-2026-11-06.md`):
   shipped before BP13b), with a row in `data/ai.bounds.json`. It is in
   `growth` rather than `driver` because `driver.*` is frozen for the tuner.
 
+**A worker that steps back holds, sleeping workers first, and no lending of a
+borrowed copy** (bot batch BP13c; `docs/flags.md`, the bullets "BP13c" and "A
+borrowed luxury cannot be lent on"; the measurements are the section "BP13c and
+the lending rule" of `docs/plans/performance-pass-2026-11-06.md`):
+
+- **A worker that steps back stays there for the turn** (`BotSitting.steppedBack`,
+  `holdAfterStepBack`). When the guard clause of `workerCommand` sends a worker
+  back (`stepBack`, or `civilianFlight` from the same clause), the sitting
+  remembers it. A later ask in the same sitting (the idle-unit blocker when the
+  worker reaches its town with movement left, `wakeIdleWorker`,
+  `reaskTheMarch`) gets the worker's ordinary answer with any march replaced by
+  a sleep. A build or a survey on its own hex is kept. The next sitting asks it
+  afresh. Before BP13c the worker in its town read no threat there and walked
+  back out to work.
+- **A sleeping worker is asked before a town chooses its build.**
+  `wakeIdleWorker` runs before an empty queue's blocker is answered
+  (`decideNext`) and at the top of `housekeeping`, ahead of the town on a
+  conversion (`projectIdleCommand`). Before BP13c it ran in `housekeeping`
+  only, after every empty queue was filled.
+- **The price of a new worker counts a sleeping worker.** It did before BP13c
+  too, and a test now pins it: `spokenFor` walks every spade of the seat,
+  asleep or awake, with its charges. The gold book has no worker row (its only
+  unit rows are soldiers for an empty town, `garrisonWorth`). The faith book
+  leaves out any civilian row the seat already owns one of (`ownsAny`), so it
+  offers no worker while one sleeps. A worker levy is wanted only while a town
+  queues a worker (`levyPieceWant`), so it follows the queue's price.
+- **A bot never lends a borrowed copy.** The rule is the simulation's
+  (`lendableCopies`, `dealSideError`). The swap arm counts a kind as spare only
+  when one copy of it is the seat's own and not yet promised, the counter
+  offers only such a copy, and the two Commerce forecasts that count copies the
+  seat could lend (`luxuryLoansLost`, the `copiesLent` count) read the same
+  figure. The receiver's last-copy clause (`asksOurLastCopy`) still counts the
+  copies a seat uses, loans included.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged

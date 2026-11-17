@@ -38,7 +38,7 @@ import { answerAudience } from '../../src/ai/driver';
 import { applyCommand } from '../../src/sim/commands';
 import { type Command } from '../../src/sim/commands';
 import type { DealTerms } from '../../src/sim/deals';
-import { foundCityAt, hasResource, resourceCopies } from '../../src/sim/cities';
+import { foundCityAt, hasResource, lendableCopies, resourceCopies } from '../../src/sim/cities';
 import { dealSideError } from '../../src/sim/diplomacy';
 import { type Game, dispatch } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
@@ -737,5 +737,131 @@ describe('the papers already standing (bot batch BP13)', () => {
     expect(paper.command).toMatchObject({ type: 'proposeDeal', targetId: 2 });
     const crowded = paper.candidates.find((row) => (row.rejected ?? '').includes('another empire'));
     expect(crowded?.rejected).toContain('already asks the');
+  });
+});
+
+// --- a borrowed luxury cannot be lent on (bot batch BP13c) -------------------
+
+/** A live loan of one luxury from `from` to `to`, written into the register as a signed deal leaves it. */
+function loan(state: GameState, from: number, to: number, id: 'silk' | 'wine' | 'spices'): void {
+  const [a, b] = from < to ? [from, to] : [to, from];
+  const gives = { luxuries: [id] };
+  state.deals.push({
+    id: 800 + state.deals.length,
+    a,
+    b,
+    terms: { a: from === a ? gives : {}, b: from === b ? gives : {} },
+    untilTurn: state.turn + 20,
+  });
+  bumpRevision(state);
+}
+
+/**
+ * Four bot seats, one town each along a row. Seat 0 holds two wine, both on
+ * loan (from seats 1 and 2, who dig their own). Seat 3 holds two silk and no
+ * wine, so it is the one seat a wine swap could be put to.
+ */
+function borrowedWine(ownWine: number): Game {
+  const game = createGame({
+    seed: 17,
+    sizeName: 'duel',
+    players: [
+      { name: 'Ada', color: '#a00' },
+      { name: 'Bors', color: '#00a' },
+      { name: 'Cato', color: '#0a0' },
+      { name: 'Dido', color: '#aa0' },
+    ],
+  });
+  const state = game.state;
+  state.map = createMap({ width: 32, height: 10, terrain: 'grassland' });
+  resetVisibility(state);
+  state.tileOwner = new Array<number | null>(32 * 10).fill(null);
+  state.units = [];
+  state.cities = [];
+  state.camps = [];
+  state.nextEntityId = 1;
+  const towns = [3, 11, 19, 27].map((col, seat) => {
+    const town = foundCityAt(state, seat, at(state.map, col, 4));
+    claimBlock(state, town, [col - 1, col, col + 1], [3, 4, 5]);
+    return town;
+  });
+  for (let i = 0; i < ownWine; i++) giveLuxury(state, towns[0]!, 2 + 2 * i, 3, 'wine');
+  giveLuxury(state, towns[1]!, 10, 3, 'wine');
+  giveLuxury(state, towns[2]!, 18, 3, 'wine');
+  giveLuxury(state, towns[3]!, 26, 3, 'silk');
+  giveLuxury(state, towns[3]!, 28, 5, 'silk');
+  loan(state, 1, 0, 'wine');
+  loan(state, 2, 0, 'wine');
+  return game;
+}
+
+describe('a bot never lends a borrowed copy (bot batch BP13c)', () => {
+  it('offers no wine it holds twice when both copies are on loan', () => {
+    const game = borrowedWine(0);
+    const state = game.state;
+    expect(resourceCopies(state, 0, 'wine')).toBe(2);
+    expect(lendableCopies(state, 0, 'wine')).toBe(0);
+    const paper = signedPaper(game);
+    const gives = paper?.command.type === 'proposeDeal' ? halves(paper).give.luxuries ?? [] : [];
+    expect(gives).not.toContain('wine');
+  });
+
+  it('lends its own wine when it holds one beside the loans, and the rules take the paper', () => {
+    const game = borrowedWine(1);
+    const state = game.state;
+    expect(resourceCopies(state, 0, 'wine')).toBe(3);
+    expect(lendableCopies(state, 0, 'wine')).toBe(1);
+    const paper = signedPaper(game)!;
+    expect(paper.command).toMatchObject({ type: 'proposeDeal', targetId: 3 });
+    expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['silk'] } });
+    expect(dispatch(game, paper.command).ok).toBe(true);
+    const answer = answerAudience(game, { seatId: 3, askerId: 0, dealId: state.dealProposals[0]!.id });
+    expect(answer!.command.type).toBe('acceptDeal');
+    // Its own copy went; the two it uses are still the loans, and they stay.
+    expect(lendableCopies(state, 0, 'wine')).toBe(0);
+    expect(resourceCopies(state, 0, 'wine')).toBe(2);
+  });
+
+  it('counters with a copy of its own and never with a borrowed one', () => {
+    // A person (seat 0) asks the bot (seat 1) what it would give for coin. The
+    // bot holds two silk, both on loan from seat 2, and two spices of its own.
+    const state = newGame({
+      seed: 17,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#a00', isHuman: true },
+        { name: 'Bors', color: '#00a' },
+        { name: 'Cato', color: '#0a0' },
+      ],
+    });
+    state.map = createMap({ width: 24, height: 10, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(24 * 10).fill(null);
+    state.units = [];
+    state.cities = [];
+    state.camps = [];
+    state.nextEntityId = 1;
+    const towns = [3, 12, 21].map((col, seat) => {
+      const town = foundCityAt(state, seat, at(state.map, col, 4));
+      claimBlock(state, town, [col - 1, col, col + 1], [3, 4, 5]);
+      return town;
+    });
+    giveLuxury(state, towns[1]!, 11, 3, 'spices');
+    giveLuxury(state, towns[1]!, 13, 5, 'spices');
+    giveLuxury(state, towns[2]!, 20, 3, 'silk');
+    giveLuxury(state, towns[2]!, 22, 5, 'silk');
+    loan(state, 2, 1, 'silk');
+    loan(state, 2, 1, 'silk');
+    playerById(state, 0)!.gold = 400;
+    playerById(state, 1)!.gold = 0;
+    bumpRevision(state);
+    expect(resourceCopies(state, 1, 'silk')).toBe(2);
+    expect(lendableCopies(state, 1, 'silk')).toBe(0);
+
+    const counter = counterTerms(state, 1, 0, { gold: 400 }, {}, ctxFor(state, 1));
+    expect(counter).not.toBeNull();
+    expect(counter!.take.luxuries ?? []).not.toContain('silk');
+    expect(counter!.take.luxuries ?? []).toContain('spices');
+    expect(dealSideError(state, 1, 0, counter!.take, false)).toBeNull();
   });
 });

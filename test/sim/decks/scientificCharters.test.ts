@@ -445,7 +445,7 @@ describe('what each building does', () => {
 describe('the words', () => {
   const said = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
 
-  it('prints the research, then each gift led by “once you know”, with nothing struck through', () => {
+  it('prints the research, then each gift as a thing the technology gives, with nothing struck through', () => {
     for (const { charter, tech, building } of GIFTS) {
       const clauses = describeCard(charter);
       expect(clauses.some((clause) => clause.deferred === true), charter).toBe(false);
@@ -456,7 +456,7 @@ describe('the words', () => {
       expect(words[1], charter).toBe(`opens ${name} for you to research`);
       if (building !== undefined) {
         expect(
-          words.some((text) => text.startsWith(`once you know ${name}, you may build the ${buildingDef(building).name}: `)),
+          words.some((text) => text.startsWith(`${name} lets you build the ${buildingDef(building).name}: `)),
           charter,
         ).toBe(true);
       }
@@ -467,12 +467,12 @@ describe('the words', () => {
     expect(said('theHerbalistsCharter')).toEqual([
       'Charter',
       'opens Herbals for you to research',
-      'once you know Herbals, your workers may build the Physic Garden: +2 science; on flat land with fresh water, one in each city',
-      'once you know Herbals, +2 happiness per hex with a Physic Garden in your borders',
+      'Herbals lets your workers build the Physic Garden: +2 science; on flat land with fresh water, one per city',
+      'with Herbals, +2 happiness per hex with a Physic Garden in your borders',
     ]);
   });
 
   it('says Printing’s trade route beside the press', () => {
-    expect(said('thePrintersCharter')).toContain('once you know Printing, +1 trade route');
+    expect(said('thePrintersCharter')).toContain('with Printing, +1 trade route');
   });
 });

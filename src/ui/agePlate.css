@@ -1,0 +1,257 @@
+/* --- the age plate (batch SS7) ----------------------------------------------
+
+   `src/ui/agePlate.ts`. The board is "The age plate" on
+   docs/plans/mockups/scholars-study/Moments.dc.html, and the sizes, inks and
+   faces here are its inline styles: a lapis plate of 820 by 462 in a gilt
+   double frame, the numeral in lit gilt, the name and the line in parchment,
+   and a row of deeds under a gilt hairline.
+
+   Lapis and gilt come from the painted frontispiece. Only the big moments wear
+   them: the turn card, this plate and the Opus close. */
+
+.age-plate-overlay {
+  --plate-lapis: var(--deep-lapis);
+  --plate-gilt: var(--gilt);
+  --plate-gilt-lit: var(--y-gold-lit);
+  --plate-paper: var(--parchment);
+  --plate-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: fixed;
+  z-index: 42;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: auto;
+  background: rgba(29, 26, 32, 0.72);
+  animation: offer-fade 160ms ease-out both;
+}
+
+.age-plate-overlay[hidden] {
+  display: none;
+}
+
+.age-plate {
+  position: relative;
+  box-sizing: border-box;
+  width: min(820px, 100%);
+  min-height: min(462px, calc(100vh - 32px));
+  border-radius: 3px;
+  background: var(--plate-lapis);
+  box-shadow:
+    0 2px 0 rgba(29, 26, 32, 0.1),
+    0 24px 40px -22px rgba(29, 26, 32, 0.7);
+  overflow: hidden;
+  display: flex;
+  animation: age-plate-settle 640ms var(--plate-ease) both;
+}
+
+/* The double frame: a two-pixel rule ten pixels in, and a hairline seven
+   pixels inside that at three quarters. */
+.age-plate-frame,
+.age-plate-frame::after {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid var(--plate-gilt);
+}
+
+.age-plate-frame {
+  inset: 10px;
+  border-width: 2px;
+  border-radius: 2px;
+}
+
+.age-plate-frame::after {
+  content: '';
+  /* 17 px from the plate's edge: 10 to the outer rule, 2 for its width, then 5. */
+  inset: 5px;
+  border-radius: 1px;
+  opacity: 0.75;
+}
+
+.age-plate-inner {
+  position: relative;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 48px 34px;
+  text-align: center;
+}
+
+.age-plate-numeral {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 120px;
+  line-height: 0.86;
+  color: var(--plate-gilt-lit);
+  animation: age-plate-seal 520ms var(--plate-ease) 220ms both;
+}
+
+.age-plate-name {
+  margin: 6px 0 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 38px;
+  line-height: 1.1;
+  color: var(--plate-paper);
+}
+
+.age-plate-line {
+  margin: 10px 0 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 18px;
+  line-height: 1.4;
+  color: rgba(247, 242, 225, 0.88);
+}
+
+.age-plate-deeds {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 18px 0 0;
+  padding: 14px 0 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 30px;
+  border-top: 1px solid rgba(200, 144, 31, 0.5);
+}
+
+.age-plate-deed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: age-plate-rise 420ms var(--plate-ease) calc(760ms + var(--deed-at, 0) * 110ms) both;
+}
+
+.age-plate-mark {
+  display: block;
+  width: 32px;
+  height: 32px;
+  color: var(--plate-gilt-lit);
+}
+
+.age-plate-value {
+  font-family: var(--face-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--plate-paper);
+  white-space: nowrap;
+}
+
+.age-plate-label {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: rgba(247, 242, 225, 0.8);
+  white-space: nowrap;
+}
+
+.age-plate-continue {
+  margin-top: 14px;
+  height: 34px;
+  padding: 0 18px;
+  background: none;
+  border: 1px solid rgba(236, 193, 84, 0.8);
+  border-radius: 3px;
+  color: var(--plate-paper);
+  font-family: var(--face-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  animation: age-plate-fade 300ms ease-out calc(760ms + var(--deed-count, 5) * 110ms + 160ms) both;
+}
+
+.age-plate-continue:hover {
+  background: rgba(236, 193, 84, 0.14);
+}
+
+.age-plate-continue:focus-visible {
+  outline: 2px solid var(--plate-gilt-lit);
+  outline-offset: 2px;
+}
+
+@keyframes age-plate-settle {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Pressed in like a seal: it arrives large, dips a little under its size, and
+   settles. */
+@keyframes age-plate-seal {
+  0% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes age-plate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes age-plate-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Less motion: a fade, in the same order. */
+@media (prefers-reduced-motion: reduce) {
+  .age-plate {
+    animation: age-plate-fade 240ms ease-out both;
+  }
+
+  .age-plate-numeral {
+    animation: age-plate-fade 240ms ease-out 200ms both;
+  }
+
+  .age-plate-deed {
+    animation: age-plate-fade 240ms ease-out calc(440ms + var(--deed-at, 0) * 110ms) both;
+  }
+
+  .age-plate-continue {
+    animation: age-plate-fade 240ms ease-out calc(440ms + var(--deed-count, 5) * 110ms) both;
+  }
+}
+
+/* A short window: the numeral and the gaps give way first. */
+@media (max-height: 620px) {
+  .age-plate-numeral {
+    font-size: 88px;
+  }
+
+  .age-plate-inner {
+    padding: 26px 40px 28px;
+  }
+}

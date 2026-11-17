@@ -357,8 +357,7 @@ describe('the Expansionist batch E2: the words', () => {
       'Gains +1 production in your capital and +1 gold each time one of your cities grows past its largest size',
     ]);
     expect(said('theBookOfSettlements')).toEqual([
-      '+3% production per city you have founded this game (at most +30% production)',
-      '+3% gold per city you have founded this game (at most +30% gold)',
+      '+3% production and +3% gold per city you have founded this game (at most +30% each)',
     ]);
     expect(said('theFreedomOfTheCity')).toEqual([
       'a city reaching 15 citizens for the first time grants production equal to 40 times its population',

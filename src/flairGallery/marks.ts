@@ -33,9 +33,11 @@ import { SEAL_MARK, SUIT_IDS, SUIT_MARKS, suitMarkDataUri } from '../ui/suitFace
 import {
   CARD_LINE_MARKS,
   DECK_MARKS,
+  OPUS_MARK,
   SLOT_MARKS,
   cardLineMarkDataUri,
   deckMarkDataUri,
+  opusMarkDataUri,
   slotMarkDataUri,
 } from '../art/lineMarks';
 import {
@@ -254,6 +256,15 @@ function lineFamily(into: HTMLElement): void {
   for (const [id, mark] of Object.entries(DECK_MARKS)) {
     markCell(decks, id, deckMarkDataUri(id as keyof typeof DECK_MARKS), mark.note);
   }
+
+  const opus = markGrid(
+    block(
+      into,
+      'The sign of the work: src/art/lineMarks.ts',
+      'The Magnum Opus, as beat one of the Opus close shows it over the town that finished the work (batch SS7, the Moments board).',
+    ),
+  );
+  markCell(opus, 'opus', opusMarkDataUri(), OPUS_MARK.note);
 
   const lines = markGrid(
     block(

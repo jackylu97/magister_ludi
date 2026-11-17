@@ -136,6 +136,7 @@ import {
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
+  lendableCopies,
   otherCarryingRoutes,
   ownedTiles,
   resourceCopies,
@@ -9365,11 +9366,15 @@ function foreignRoutesLost(ctx: ValueContext): number {
  * **The Forbidden Silks**: each copy this seat lends now runs out and cannot be lent
  * again, and each kind it holds twice could have been lent. Both are priced at the
  * coin a turn a luxury fetches at this bot's own table (`war.luxuryGptBaseline`).
+ * A kind counts as one it could lend only when one of the copies is its own
+ * (`lendableCopies`): a borrowed copy cannot be lent on.
  */
 function luxuryLoansLost(ctx: ValueContext): number {
   let copies = lentCopyCount(ctx.state, ctx.playerId);
   for (const id of controlledResources(ctx.state, ctx.playerId, 'luxury')) {
-    if (resourceCopies(ctx.state, ctx.playerId, id) >= 2) copies += 1;
+    if (resourceCopies(ctx.state, ctx.playerId, id) >= 2 && lendableCopies(ctx.state, ctx.playerId, id) >= 1) {
+      copies += 1;
+    }
   }
   return copies * Math.max(0, ctx.ai.war.luxuryGptBaseline) * voiceWeight(ctx, 'gold');
 }
@@ -9701,9 +9706,11 @@ function commerceCountAhead(
   const table = ctx.ai.score.commerce.countForecast;
   switch (effect.count) {
     case 'copiesLent': {
+      // Every copy of a kind past the first, and only the copies of its own: a
+      // borrowed copy cannot be lent on (`lendableCopies`).
       let spare = 0;
       for (const id of controlledResources(state, playerId, 'luxury')) {
-        spare += Math.max(0, resourceCopies(state, playerId, id) - 1);
+        spare += Math.min(lendableCopies(state, playerId, id), Math.max(0, resourceCopies(state, playerId, id) - 1));
       }
       return {
         more: Math.min(spare, Math.max(0, table.copiesLent)),

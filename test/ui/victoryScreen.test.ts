@@ -14,18 +14,32 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { explainScore, foldScore } from '../../src/sim/score';
+import { explainScore, foldScore, opusBuildingId } from '../../src/sim/score';
 import { RULES } from '../../src/sim/rulesData';
 import { seatName } from '../../src/sim/leaderData';
+import { buildingDef } from '../../src/sim/buildingData';
+import type { BeadCardId } from '../../src/sim/beadData';
 import { bumpRevision, playerById, realPlayers } from '../../src/sim/state';
 import {
   deckWords,
+  headText,
+  opusCity,
   opusName,
+  seatTitle,
   victoryHead,
   victoryPage,
+  weightText,
+  wonByOpus,
 } from '../../src/ui/victoryScreen';
 import { found, game } from '../sim/statecraftHelpers';
 import { uiSource } from './sourceHelpers';
+
+/** The bead the Opus row mints on completion, read off the row as the game reads it. */
+function goldenBeadId(): BeadCardId {
+  const grant = (buildingDef(opusBuildingId()!).onComplete ?? []).find((entry) => entry.grant === 'bead');
+  if (grant === undefined || grant.grant !== 'bead') throw new Error('the Opus mints no bead');
+  return grant.bead;
+}
 
 function bench() {
   const { state } = game();
@@ -58,6 +72,12 @@ describe('the standings page', () => {
     expect(page.weights[at]).toBe(RULES.score.perTown);
   });
 
+  it('prints a fractional weight as the rules write it, never rounded to nought', () => {
+    expect(weightText(RULES.score.perTown)).toBe(`× ${RULES.score.perTown}`);
+    expect(weightText(RULES.score.perDeckYield.food)).toBe(`× ${RULES.score.perDeckYield.food}`);
+    expect(weightText(0.02)).toBe('× 0.02');
+  });
+
   it('orders the columns by their own fold, and marks the local seat', () => {
     const state = bench();
     const page = victoryPage(state, 0);
@@ -72,33 +92,51 @@ describe('the standings page', () => {
     }
   });
 
-  it('says where the world stands until somebody has won', () => {
+  it('says that no empire has finished the work until somebody has won', () => {
     const state = bench();
     const head = victoryHead(state, 0);
     expect(head.won).toBe(false);
-    expect(head.headline).toContain(opusName());
-    // No masthead name until there is a winner to put in it: the sheet already
-    // wears its title in its own header.
-    expect(head.name).toBe('');
+    expect(headText(head)).toContain(opusName());
+    // The work's name is its own piece, so the sheet can set it in red.
+    expect(head.parts.filter((part) => part.work === true).map((part) => part.text)).toEqual([opusName()]);
   });
 
-  it('names the winner the same way on every screen, and marks the column', () => {
+  it('names the winner, the work and its town: "yours" to the winner, "theirs" to the rest', () => {
     const state = bench();
+    const town = found(state, 1);
+    town.buildings.push(opusBuildingId()!);
+    state.players[1]!.beads.push({ id: goldenBeadId(), kind: 'grant', family: 'culture', turn: state.turn });
     state.winnerId = 1;
     bumpRevision(state);
+    expect(wonByOpus(state)).toBe(true);
+    expect(opusCity(state, 1)?.id).toBe(town.id);
+
     const mine = victoryHead(state, 1);
     const theirs = victoryHead(state, 0);
     expect(mine.won).toBe(true);
-    expect(mine.headline).toBe(`${seatName(state, 1)} has finished ${opusName()}.`);
-    // The world's announcement is one sentence; only the line under it is about
-    // the reader.
-    expect(theirs.headline).toBe(mine.headline);
-    expect(theirs.text).not.toBe(mine.text);
-    expect(theirs.eyebrow).not.toBe(mine.eyebrow);
+    expect(headText(mine)).toBe(`You finished ${opusName()} in ${town.name}. The game is yours.`);
+    expect(headText(theirs)).toBe(
+      `${seatTitle(state, 1)} finished ${opusName()} in ${town.name}. The game is theirs.`,
+    );
+    // Words only: the figures live in the table (hard rule 7).
+    expect(headText(theirs)).not.toMatch(/\d/);
 
     const page = victoryPage(state, 0);
     expect(page.columns.filter((column) => column.winner)).toHaveLength(1);
     expect(page.columns.find((column) => column.winner)!.playerId).toBe(1);
+  });
+
+  it('says "the last empire standing" for a game won without the Opus', () => {
+    const state = bench();
+    state.winnerId = 1;
+    bumpRevision(state);
+    // No golden bead on the winner's rod: the Opus did not close this game.
+    expect(wonByOpus(state)).toBe(false);
+    expect(headText(victoryHead(state, 1))).toBe('Yours is the last empire standing. The game is yours.');
+    expect(headText(victoryHead(state, 0))).toBe(
+      `${seatTitle(state, 1)} is the last empire standing. The game is theirs.`,
+    );
+    expect(seatTitle(state, 1)).toContain(seatName(state, 1));
   });
 
   it('writes the deck’s line off the reading’s own marked lines', () => {

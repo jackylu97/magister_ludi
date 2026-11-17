@@ -764,3 +764,39 @@ intriguing aspect about the game to people"*
   built from their approved boards as they are, without the emblem card's
   language, so that the user can compare the two looks in play. The survey's
   frontispiece stays a later choice.
+
+- **The built card face: three choices (2026-11-17).** The user, on the built
+  face: *"it looks good. feel free to shorten the 8 cards. live total. no red
+  initial is fine"*.
+  - The eight cards whose text does not fit the face (seven charters and the
+    Doctrine The House of Worship) get shorter text. Their meaning does not
+    change.
+    - Done for seven of the eight (2026-11-17), in the describers and not
+      on the rows, so every card of the same kind got shorter words:
+      a charter technology's gifts ("Mechanics gives the Onager trait:
+      Catapult and Trebuchet +1 range"), two yields paid for one count
+      ("+1 science and +1 culture per …", with "at most +30% each"), plain
+      gains in the same cities ("+3 happiness and +30% production toward
+      buildings, in every city with an Assembly Hall"), and bought buildings
+      opened in the same cities (The House of Worship is one sentence).
+      `test/fixtures/cardText.json` holds every changed text.
+    - The Surveyors' Charter still does not fit at 11 px. It opens a
+      technology, the Aqueduct before Engineering and the Qanat, and it
+      prints what each does. Shorter words alone do not close the gap. It
+      needs a decision. Two measured options: do not print what the Aqueduct
+      does (the text then fits at 12 px), or print the whole card as one
+      sentence (11.5 px).
+  - The tablet in the picture shows the live total: what the card pays now.
+  - A card whose effect starts with a figure has no red initial, and gets no
+    ornament in its place.
+
+- **The Surveyors' Charter and SS8 (2026-11-17).** The user: *"drop the
+  aqueduct desctiption. ss8 can proceed"*.
+  - The Surveyors' Charter no longer prints what the Aqueduct does. The
+    Aqueduct's name stays a keyword link, which shows its full text. This is a
+    stated exception to the note of 2026-09-05 that a charter says what its
+    building does: the Aqueduct is an ordinary building that the charter only
+    opens early.
+  - SS8 is built now: type sizes, top bar labels, sheet motion and wording, as
+    the build table states. It also takes the design checker's finding that
+    `index.html` has a flat type hierarchy.

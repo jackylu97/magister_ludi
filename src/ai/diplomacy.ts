@@ -100,7 +100,7 @@ import type { CountKind } from '../sim/statecraftData';
 import { voiceWeight } from './prices';
 
 import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
-import { controlledResources, hasResource, lentCopyPercent, resourceCopies } from '../sim/cities';
+import { controlledResources, hasResource, lendableCopies, lentCopyPercent, resourceCopies } from '../sim/cities';
 import { cityBaseStrength } from '../sim/combat';
 import { explainTerrainDefense } from '../sim/terrainData';
 import { foldEmpireRates } from '../sim/yields/empire';
@@ -1525,6 +1525,9 @@ export function counterTerms(
       if (ai.war.luxuryGoldBaseline > budget) break;
       // Never a last copy — `asksOurLastCopy` from the other side of the table.
       if (resourceCopies(state, botSeat, id) < 2) continue;
+      // And only a copy of its own: a borrowed copy cannot be lent on (the
+      // ruling of 2026-11-17), and the gate below would refuse the counter.
+      if (lendableCopies(state, botSeat, id) < 1) continue;
       if (hasResource(state, askerSeat, id)) continue;
       counter.take.luxuries = [...(counter.take.luxuries ?? []), id];
       budget -= ai.war.luxuryGoldBaseline;
@@ -2246,8 +2249,13 @@ function swapDecision(
   const standing = state.dealProposals.filter((row) => row.by === player.id);
   const promised = (id: ResourceId): number =>
     standing.reduce((count, row) => count + ((row.give.luxuries ?? []).includes(id) ? 1 : 0), 0);
+  // A spare is a kind held twice, of which one copy is its own and not yet
+  // promised: a borrowed copy can be used and not lent (the ruling of
+  // 2026-11-17), so a seat holding a kind only on loan offers none of it.
   const spare = controlledResources(state, player.id, 'luxury').filter(
-    (id) => resourceCopies(state, player.id, id) - promised(id) >= 2,
+    (id) =>
+      resourceCopies(state, player.id, id) - promised(id) >= 2 &&
+      lendableCopies(state, player.id, id) - promised(id) >= 1,
   );
   if (spare.length === 0) return null;
   const asked = new Set(standing.flatMap((row) => row.take.luxuries ?? []));

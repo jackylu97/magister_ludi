@@ -675,7 +675,9 @@ describe('determinism', () => {
     // a record the bots read; no rule reads it.
     // 243 since batch BP7 (bot pass 3): the Forbidden City gives whoever holds
     // its town one more Wildcard chair.
-    expect(SCHEMA_VERSION).toBe(243);
+    // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
+    // a borrowed copy cannot be lent on.
+    expect(SCHEMA_VERSION).toBe(244);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

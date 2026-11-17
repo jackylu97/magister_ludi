@@ -50,8 +50,10 @@ import { createGame } from '../sim/newGameHelpers';
 import { grownGames } from '../sim/grownGameHelpers';
 
 // Every test in this file does real save work. The default 5 s limit failed on a loaded machine in
-// four main gates on 2026-11-17, each time on a different test, and each passed alone.
-vi.setConfig({ testTimeout: 30_000 });
+// several main gates on 2026-11-17, each time on a different test, and each passed alone. The limit is
+// given to each describe block: a file-level `vi.setConfig` did not hold in the full run, where test
+// files share one module registry.
+const SLOW = { timeout: 30_000 } as const;
 
 const CONFIG: GameConfig = {
   seed: 20261006,
@@ -81,7 +83,7 @@ async function autosaved(turns: number) {
   return { game, storage, store, checkpoints };
 }
 
-describe('loading through a checkpoint', () => {
+describe('loading through a checkpoint', SLOW, () => {
   it('lands on the same bytes as the full replay when the checkpoint covers the whole log', async () => {
     const { game, storage, checkpoints } = await autosaved(12);
     const factory = vi.fn(fakeWorkerFactory());
@@ -142,7 +144,7 @@ describe('loading through a checkpoint', () => {
   });
 });
 
-describe('a checkpoint that does not fit is ignored', () => {
+describe('a checkpoint that does not fit is ignored', SLOW, () => {
   /** Loads the autosave with the stored record changed by `spoil`, and checks the full replay ran. */
   async function loadSpoiled(spoil: (record: CheckpointRecord) => unknown, buildId = 'test-build') {
     const { game, storage, store } = await autosaved(6);
@@ -231,7 +233,7 @@ describe('a checkpoint that does not fit is ignored', () => {
   });
 });
 
-describe('the pieces', () => {
+describe('the pieces', SLOW, () => {
   it('the comparison sees what JSON hides', () => {
     expect(bytes({ a: 1, b: 2 })).not.toBe(bytes({ b: 2, a: 1 }));
     expect(bytes({ a: undefined })).not.toBe(bytes({}));

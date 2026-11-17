@@ -66,7 +66,8 @@ export interface DealTerms {
    *
    * A row names a kind **once**, and one row lends **one copy** — an empire
    * that wants to lend its second amber signs a second bargain. See
-   * `lentCopiesAwayBy` for why the count is the whole of the rule.
+   * `lentCopiesAwayBy` for why the count is the whole of the rule. The copy
+   * must be the giver's own: a copy lent to it cannot be lent on.
    */
   luxuries?: ResourceId[];
   /**
@@ -335,6 +336,11 @@ export type LentCopies = Partial<Record<ResourceId, number>>;
  * one-for-one swap of duplicates a *good* bargain and lending your last wine an
  * expensive one. The bot only ever trades duplicates (P3); a human may do the
  * other thing.
+ *
+ * **Only a copy it owns** (the ruling of 2026-11-17: a borrowed luxury cannot be
+ * lent on). A copy lent to this empire can be used and not lent, so every row
+ * counted here stands on a copy of the giver's own ground when it is signed
+ * (`lendableCopies` in `cities.ts`, asked by `dealSideError`).
  */
 export function lentCopiesAwayBy(state: GameState, playerId: number): LentCopies {
   const copies: LentCopies = {};

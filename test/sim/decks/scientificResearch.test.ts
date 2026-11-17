@@ -213,8 +213,7 @@ describe('the register', () => {
       'completing a technology grants renown equal to 5% of the science it cost you, favouring a great scholar',
     ]);
     expect(said('theCharterRolls')).toEqual([
-      '+3 production in your capital per charter you have drafted',
-      '+3 culture in your capital per charter you have drafted',
+      '+3 production and +3 culture in your capital per charter you have drafted',
     ]);
     expect(said('theRoyalCharterCommission')).toEqual([
       'Commission',
@@ -225,8 +224,7 @@ describe('the register', () => {
       'completing a technology grants each of your cities production equal to 3 times its population',
     ]);
     expect(said('theSumOfKnowledge')).toEqual([
-      '+1 production in your capital per technology you know',
-      '+1 culture in your capital per technology you know',
+      '+1 production and +1 culture in your capital per technology you know',
     ]);
     expect(said('theGreatCatalogue')).toEqual([
       '+10% production toward The Magnum Opus per charter technology you know (at most +40%)',

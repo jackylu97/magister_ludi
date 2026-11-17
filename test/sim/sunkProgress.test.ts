@@ -400,7 +400,9 @@ describe('the schema says so', () => {
     // a record the bots read; no rule reads it.
     // 243 since batch BP7 (bot pass 3): the Forbidden City gives whoever holds
     // its town one more Wildcard chair.
-    expect(SCHEMA_VERSION).toBe(243);
+    // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
+    // a borrowed copy cannot be lent on.
+    expect(SCHEMA_VERSION).toBe(244);
   });
 
   it('says in the changelog what a v110 log does now', () => {

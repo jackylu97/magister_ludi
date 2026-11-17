@@ -191,8 +191,7 @@ describe('the three new cards', () => {
     );
     expect(foldBuildingPackage(onTemple).food).toBe(2);
     expect(words('theTempleStorehouses')).toEqual([
-      '+2 food in every city with a Temple',
-      '+2 happiness in every city with a Temple',
+      '+2 food and +2 happiness in every city with a Temple',
     ]);
   });
 });

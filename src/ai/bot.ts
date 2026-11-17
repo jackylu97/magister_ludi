@@ -834,6 +834,16 @@ export interface BotSitting {
   guards: GuardPlan | null;
   /** The guard orders `guardWorkers` has sent this turn, as `unit>col,row`. Membership only. */
   guardOrders: Set<string>;
+  /**
+   * **The workers that stepped back from a threat this turn** (bot batch BP13c;
+   * `docs/flags.md`, the bullet "BP13c"). A worker in this set stays where it
+   * stepped to until the next sitting: `workerCommand` sends it no march.
+   * BP13b found that of 52 step-backs, 12 were ordered out again in the same
+   * turn and 7 ended the turn on the hex they fled. The guard plan is read once
+   * a sitting, and a worker that reached its town read no threat there, so it
+   * walked back to work. Membership only; nothing iterates it.
+   */
+  steppedBack: Set<number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -856,6 +866,7 @@ export function botSitting(playerId: number): BotSitting {
     escortOrders: new Set<string>(),
     guards: null,
     guardOrders: new Set<string>(),
+    steppedBack: new Set<number>(),
   };
 }
 
@@ -1824,6 +1835,17 @@ function decideNext(
   if (abroad !== null) return abroad;
 
   if (blocker !== null) {
+    // **A sleeping worker is asked before a town chooses its build** (bot
+    // batch BP13c; the user, 2026-11-17: *"the fix should be to wake villagers
+    // before deciding to build new ones"*). The idle units come before the
+    // empty queues in `firstBlocker`, but a sleeping worker raises no blocker,
+    // and `housekeeping` asked it only after every town had chosen. The price
+    // of a new worker counts its charges either way (`explainWorkerCraving`);
+    // asking it first puts it to work before the town decides.
+    if (blocker.kind === 'cityProduction') {
+      const spade = wakeIdleWorker(state, player, sitting);
+      if (spade !== null) return spade;
+    }
     const answer = answerBlocker(state, player, blocker, sitting);
     if (answer !== null) return answer;
   }
@@ -2022,6 +2044,12 @@ function housekeeping(
       candidates: faces.candidates,
     };
   }
+  // **A worker asleep while ground waits** (batch BP8, P6). See `wakeIdleWorker`.
+  // Asked before the town on a conversion re-decides its build below (bot batch
+  // BP13c), for the reason the empty queue's clause in `decideNext` gives.
+  const spade = wakeIdleWorker(state, player, sitting);
+  if (spade !== null) return spade;
+
   // **A town idling on a conversion**, which blocks nothing at all and is the
   // one thing `firstBlocker` structurally cannot see. See `projectIdleCommand`.
   const idle = projectIdleCommand(state, player, sitting);
@@ -2045,9 +2073,7 @@ function housekeeping(
   const rousted = wakeIdleSettler(state, player, sitting);
   if (rousted !== null) return rousted;
 
-  // **A worker asleep while ground waits** (batch BP8, P6). See `wakeIdleWorker`.
-  const spade = wakeIdleWorker(state, player, sitting);
-  if (spade !== null) return spade;
+  // The sleeping workers were asked at the top (bot batch BP13c).
 
   // **The campaign wakes its own army** — the trench's sibling of the arm above,
   // and the finding W1 could not have been built without. See `wakeTheCampaign`.
@@ -3036,6 +3062,14 @@ function wakeIdleSettler(
  * (`BotSitting.roused`), so a worker with nothing to do costs one ask a turn.
  * A caller with no sitting of this seat's gets nothing, for `reaskTheMarch`'s
  * reason.
+ *
+ * **Asked before any town of the seat chooses its build** (bot batch BP13c):
+ * before an empty queue's blocker is answered (`decideNext`) and at the top of
+ * `housekeeping`, ahead of the town on a conversion. Before BP13c it was asked
+ * in `housekeeping` only, after every empty queue had been filled. The price of
+ * a new worker counted the sleeping worker's charges then too (`spokenFor`
+ * walks every spade of the seat, asleep or not), so the town's choice is the
+ * same reading; the worker now goes to work before the town decides.
  */
 function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
   const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
@@ -9267,6 +9301,13 @@ function workerCommand(
 ): UnitChoice | null {
   const ai = aiFor(player);
   const ctx = seatContext(state, player, sitting);
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  // **A worker that stepped back stays there for the turn** (bot batch BP13c).
+  // It is asked again like any worker, and it may still work the hex it stands
+  // on, but no march is sent until the next sitting. See `holdAfterStepBack`.
+  if (own !== null && own.steppedBack.has(unit.id)) {
+    return holdAfterStepBack(state, unit, workerChoice(state, player, unit, ctx, ai, null));
+  }
   // **A worker in danger** (bot batch BP13; the user, 2026-11-16: *"the bots
   // should have logic to move soldiers to protect workers if they sense a
   // hostile unit"*). The soldier comes to the worker, so a worker with a guard
@@ -9275,8 +9316,58 @@ function workerCommand(
   const guarded = workerGuard(state, player, unit, sitting);
   if (guarded !== null && guarded.job === null && guarded.threat.turns <= 1) {
     const why = `${dangerWords(state, guarded.threat)} could take it, and no soldier of ours can come in time`;
-    return stepBack(state, player, unit, why) ?? civilianFlight(state, player, unit, why);
+    const back = stepBack(state, player, unit, why) ?? civilianFlight(state, player, unit, why);
+    // Remembered for the sitting, so a later arm that asks this worker again
+    // (the idle-unit blocker once it arrives, `reaskTheMarch` while it walks)
+    // does not send it back out (bot batch BP13c).
+    if (back !== null && own !== null) own.steppedBack.add(unit.id);
+    return back;
   }
+  return workerChoice(state, player, unit, ctx, ai, guarded);
+}
+
+/**
+ * **A worker that stepped back this turn holds where it is** (bot batch BP13c;
+ * `docs/flags.md`, the bullet "BP13c": *"A worker that steps back from a threat
+ * stays there for the turn. It is not ordered out again in the same turn."*).
+ *
+ * The worker's ordinary answer, with any march replaced by a stand-down. A
+ * build or a survey on the hex it stands on is kept once it has arrived,
+ * because it does not move the worker. A stand-down is a sleep: `wakeIdleWorker`
+ * asks the worker again at the next sitting, when the threat is read afresh.
+ * While the worker still walks to its shelter, every answer is the stand-down,
+ * which is not sent (`reaskTheMarch` does not let a stand-down cancel a march),
+ * so the step back completes.
+ */
+function holdAfterStepBack(state: GameState, unit: Unit, choice: UnitChoice | null): UnitChoice | null {
+  const walking = unit.path !== undefined && unit.path.length > 0;
+  if (!walking && choice !== null && choice.command.type !== 'moveUnit') return choice;
+  const why =
+    'Stays where it stepped back to until the next turn: a worker that steps back from a threat is not sent out again in the same turn.';
+  // A worker already asleep stays asleep. `standDown` has no answer for it, and
+  // the sleep below is the answer `wakeIdleWorker` does not send.
+  return (
+    standDown(state, unit, why) ?? {
+      command: { type: 'sleepUnit', playerId: unit.ownerId, unitId: unit.id },
+      summary: `${why} Sleeps.`,
+      candidates: [chosenAt('sleep', 0)],
+    }
+  );
+}
+
+/**
+ * The worker's answer after the danger clause: the war's flight, then the
+ * improvement plan. `guarded` is the worker's guard reading, or `null` for a
+ * worker that stepped back this turn (its danger was read when it stepped).
+ */
+function workerChoice(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  ctx: ValueContext,
+  ai: AiConfig,
+  guarded: { threat: GuardThreat; job: GuardJob | null } | null,
+): UnitChoice | null {
   // **A worker at war goes home first** (§13.4). Asked before the improvement
   // plan is even built, and for two reasons: a hex it cannot live to finish is
   // worth nothing at all, and the user's own complaint was a worker that went on

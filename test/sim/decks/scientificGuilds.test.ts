@@ -170,8 +170,7 @@ describe("The Scholars' Guild", () => {
 
   it('is said in a first-time player’s words', () => {
     expect(describeCard(GUILD).map((clause) => stripRefs(clause.text))).toEqual([
-      '+1 food in every city per scholar in the trades there',
-      '+1 production in every city per scholar in the trades there',
+      '+1 food and +1 production in every city per scholar in the trades there',
     ]);
     // A row naming no trade counts every citizen in the trades.
     const all = describeEffects([{ ...guildsmen('city'), to: 'culture' }]).map((clause) => stripRefs(clause.text));

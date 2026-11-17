@@ -77,23 +77,18 @@ const LIVE_CARDS: readonly OrderFaceCardId[] = [
 /**
  * **The live cards whose effect is longer than the card**, even at 11 px
  * beside the short picture, by the estimate. The flair gallery measures them
- * on the page ("Every live card, measured"): the first eight do not fit there
- * either, and the last two fit when measured, because the estimate errs on the
- * long side. A card joining this list needs a decision (shorter words, or a
- * different face for long cards), not a smaller font.
+ * on the page ("Every live card, measured"). Both fit when measured (The
+ * Surveyors' Charter at 12 px and Songs of the Fallen at 11.5 px, each beside
+ * the short picture), because the estimate errs on the long side. So every
+ * live card fits the face on the page. A card joining this
+ * list needs a decision (shorter words, or a different face for long cards),
+ * not a smaller font.
+ *
+ * Ten cards stood here until the describers were given shorter words for a
+ * charter technology's gifts and for clauses that share a count or their
+ * cities (the ruling at the end of `docs/plans/ui-critique-2026-10-16.md`).
  */
-const TOO_LONG: readonly string[] = [
-  'theMechanistsCharter',
-  'theAlchemistsCharter',
-  'theHerbalistsCharter',
-  'theBronzeFoundersCharter',
-  'theSurveyorsCharter',
-  'theNavalGunnersCharter',
-  'theSenateCharter',
-  'theHouseOfWorship',
-  'songsOfTheFallen',
-  'allRoadsLeadToRome',
-];
+const TOO_LONG: readonly string[] = ['theSurveyorsCharter', 'songsOfTheFallen'];
 
 describe('the first figure, the red ink and the initial', () => {
   it('lifts the first figure the describers print, with the yield word after it', () => {

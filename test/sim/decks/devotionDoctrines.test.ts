@@ -1918,9 +1918,14 @@ describe('The House of Worship (batch DT15)', () => {
 
   it('says what it does, naming the towns', () => {
     const clauses = describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text));
-    expect(clauses).toHaveLength(HOUSES.length);
-    expect(clauses[0]).toContain('unlocks the Mosque in any devout city');
-    expect(clauses[3]).toContain('unlocks the Dar-e Mehr in any devout city');
+    // One sentence names the towns and the bank once, then each house with
+    // what it gives. It was four sentences until the card face needed shorter
+    // text (`scopedHousesFold`).
+    expect(clauses).toEqual([
+      'every devout city may buy with faith the Mosque (+2 production, +3 faith; +1 authority capacity), ' +
+        'the Wat (+1 faith per 2 citizens; +3 happiness), ' +
+        'the Gurdwara (+3 food, +3 faith; +1 science per 3 citizens) and the Dar-e Mehr (+25% faith)',
+    ]);
   });
 
   it('puts a house in the bots’ faith book in a devout town, and only there', () => {

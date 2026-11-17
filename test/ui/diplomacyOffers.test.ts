@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { dispatch } from '../../src/sim/game';
 import { bumpRevision } from '../../src/sim/state';
-import { pendingCourtOffers } from '../../src/ui/diplomacyOffers';
+import { offerNoticeLine, offerPaper, pendingCourtOffers } from '../../src/ui/diplomacyOffers';
+import { uiSource } from './sourceHelpers';
 import { createGame } from '../sim/newGameHelpers';
 
 function fixture() {
@@ -42,5 +43,24 @@ describe('nonblocking diplomatic reminders', () => {
     expect(JSON.stringify(game.state)).toBe(before);
     dispatch(game, { type: 'declinePeace', playerId: 0, targetId: 1 });
     expect(pendingCourtOffers(game.state, 0)).toEqual([]);
+  });
+  it('words each offer in one line of terms, and names the paper the sheet opens (batch SS6)', () => {
+    const game = fixture();
+    expect(dispatch(game, { type: 'proposeDeal', playerId: 1, targetId: 0, give: { gold: 10 }, take: { goldPerTurn: 2 } }).ok).toBe(true);
+    const [trade] = pendingCourtOffers(game.state, 0);
+    expect(offerNoticeLine(game.state, 0, trade!)).toBe('offers 10 gold for 2 gold a turn');
+    expect(offerPaper(trade!)).toBe(game.state.dealProposals[0]!.id);
+    dispatch(game, { type: 'declareWar', playerId: 1, targetId: 0 });
+    expect(dispatch(game, { type: 'proposePeace', playerId: 1, targetId: 0 }).ok).toBe(true);
+    const peace = pendingCourtOffers(game.state, 0).find((offer) => offer.kind === 'peace')!;
+    expect(offerNoticeLine(game.state, 0, peace)).toBe('offers peace');
+    expect(offerPaper(peace)).toBe('peace');
+  });
+
+  it('opens the offer on the sheet\'s paper, and never blocks the turn', () => {
+    const notice = uiSource('diplomacyOffers.ts');
+    expect(notice).toContain('options.review(offer.by, offerPaper(offer))');
+    expect(notice).toContain("'You can end the turn without an answer.'");
+    expect(uiSource('main.ts')).toContain('review: (id, offer) => diplomacy?.open(id, offer),');
   });
 });

@@ -1,0 +1,256 @@
+/* --- the standings (batch SS7) ----------------------------------------------
+
+   `src/ui/victoryScreen.ts`. The board is "The last page" on
+   docs/plans/mockups/scholars-study/Moments.dc.html, and the sizes, faces and
+   inks here are its inline styles: a sheet of 1040, the title at 34, one line
+   in Fraunces with the work's name in red, the two doors beside it, and a
+   table with the rules of an account page: thin lines between rows, tabular
+   figures, and a double rule above the total.
+
+   The sheet and its body carry their own classes, so the shared cap on
+   `.statecraft-sheet` stays the one rule every sheet has. The Abacus's door
+   in the head keeps its own rule in style.css. */
+
+#victory-overlay .standings-sheet {
+  width: min(1040px, 100%);
+  padding: 22px 28px 20px;
+}
+
+/* The fixed head holds the title, the Abacus's door and the ×. The line and the
+   two doors under it are drawn into the body, and the rule runs under them. */
+#victory-overlay .standings-sheet-head {
+  align-items: center;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+#victory-overlay .standings-sheet-head .statecraft-title {
+  font-size: 34px;
+}
+
+#victory-overlay .standings-body {
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.standings-head {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.standings-line {
+  margin: 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.standings-work {
+  color: var(--rubric);
+}
+
+.standings-doors {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+.standings-door {
+  height: 36px;
+  padding: 0 14px;
+  background: var(--parchment);
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  box-shadow: var(--paper-shadow);
+  font-family: var(--face-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.standings-door:hover {
+  background: var(--table);
+}
+
+/* The table scrolls inside its own frame, so the line, the doors and the ×
+   stay in view at any window height. */
+.standings-table-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--face-ui);
+}
+
+.standings-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.standings-table thead th {
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+
+.standings-table thead .standings-row-label,
+.standings-table thead .standings-worth {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.standings-table thead .standings-row-label {
+  text-align: left;
+  padding: 0 10px 8px 0;
+}
+
+.standings-table thead .standings-worth {
+  text-align: right;
+  padding: 0 14px 8px 0;
+}
+
+.standings-seat {
+  text-align: right;
+  padding: 0 0 8px 18px;
+}
+
+.standings-seat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.standings-swatch {
+  display: block;
+  width: 10px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+.standings-you {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.standings-row {
+  border-top: 1px solid var(--rule);
+}
+
+.standings-row .standings-row-label {
+  text-align: left;
+  padding: 4px 10px 4px 0;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.standings-row .standings-worth {
+  text-align: right;
+  padding: 4px 14px 4px 0;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.standings-count {
+  text-align: right;
+  padding: 4px 0 4px 18px;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+.standings-value {
+  text-align: right;
+  padding: 4px 0 4px 12px;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* The double rule above the total: the account page's own sign that what
+   follows is the sum of what is above. */
+.standings-table tfoot tr {
+  border-top: 3px double var(--ink);
+}
+
+.standings-table tfoot .standings-row-label {
+  text-align: left;
+  padding: 7px 10px 0 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.standings-total {
+  text-align: right;
+  padding: 7px 0 0 12px;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* What statecraft paid the reader, voice by voice: the reading under the
+   table, quiet, in the column heads' voice. */
+.standings-deck {
+  flex: none;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.standings-deck-label {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.standings-deck-figures {
+  font-family: var(--face-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* A narrow window: the doors go under the line rather than squeezing it. */
+@media (max-width: 860px) {
+  .standings-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}

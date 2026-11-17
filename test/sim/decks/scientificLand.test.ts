@@ -592,17 +592,21 @@ describe('the other cards on a board', () => {
 // --- the words ---------------------------------------------------------------------
 
 describe('the words', () => {
-  it('says each charter’s gifts, led by “once you know”', () => {
+  it('says each charter’s gifts as things the technology gives', () => {
     expect(said('theSurveyorsCharter')).toEqual([
       'Charter',
       'opens Surveying for you to research',
-      expect.stringMatching(/^once you know Surveying, you may build the Aqueduct before Engineering: /),
-      'once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water',
+      // An ordinary building opened early is named and not described: its
+      // keyword link and its Compendium page say what it does.
+      'Surveying lets you build the Aqueduct before Engineering',
+      'Surveying lets your workers build the Qanat: on flat land; your farms beside it count as having fresh water',
     ]);
     // Batch DS6: the Niter Beds clause went, and the Grenadier is one scaled line.
     const alchemists = said('theAlchemistsCharter');
     expect(alchemists.some((text) => text.includes('Niter'))).toBe(false);
-    expect(alchemists).toContain('+1 combat strength for units of the Warrior line per charter technology you know');
+    expect(alchemists).toContain(
+      'Chemistry gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter technology you know',
+    );
   });
 
   it('says the new cards plainly, with no struck half', () => {
