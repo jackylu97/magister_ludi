@@ -406,3 +406,48 @@ describe('the wiring that spans files', () => {
     expect(main).toContain('gameDisposers.push(() => diplomacy?.dispose());');
   });
 });
+
+describe('the treaty desk\'s frame (batch SS6)', () => {
+  const css = Object.values(
+    import.meta.glob('../../src/ui/diplomacyScreen.css', { eager: true, query: '?raw', import: 'default' }),
+  )[0] as string;
+  /** The text of one `@container` block, brace-matched. */
+  const block = (query: string): string => {
+    const at = css.indexOf(query);
+    expect(at, query).toBeGreaterThan(-1);
+    let depth = 0;
+    for (let i = css.indexOf('{', at); i < css.length; i++) {
+      if (css[i] === '{') depth++;
+      if (css[i] === '}' && --depth === 0) return css.slice(at, i + 1);
+    }
+    return '';
+  };
+
+  it('sizes the sheet by the board\'s rule on its own class, and leaves the shared cap alone', () => {
+    expect(css).toContain('width: min(calc(100vw - 56px), 1180px);');
+    expect(css).toContain('height: min(calc(100vh - 90px), 860px);');
+    expect(css).toContain('container: dp-sheet / size;');
+    expect(css).not.toMatch(/\.statecraft-sheet \{/);
+    expect(uiSource('index.html')).toContain('<div class="statecraft-sheet dp-sheet">');
+  });
+
+  it('folds the rail and the column on a sheet under 1100 px wide, and keeps the paper', () => {
+    const narrow = block('@container dp-sheet (max-width: 1099px)');
+    expect(narrow).toContain('grid-template-columns: 56px minmax(0, 1fr);');
+    expect(narrow).toMatch(/\.dp-colm \{[^}]*position: absolute;/);
+    expect(narrow).toMatch(/\.dp-colm\.is-open \{[^}]*display: flex;/);
+    expect(narrow).toMatch(/\.dp-fold \{[^}]*display: flex;/);
+    expect(narrow).not.toContain('.dp-paper');
+  });
+
+  it('sets the denser rows and the short head on a sheet under 720 px high', () => {
+    const short = block('@container dp-sheet (max-height: 719px)');
+    expect(short).toContain('height: 56px;');
+    expect(short).toMatch(/\.dp-chip \{[^}]*height: 24px;/);
+  });
+
+  it('shuts the drawer on Escape before it shuts the sheet', () => {
+    const screen = uiSource('diplomacyScreen.ts');
+    expect(screen).toContain("if (event.key === 'Escape' && drawerOpen && body.querySelector('.dp-fold')?.getClientRects().length) {");
+  });
+});

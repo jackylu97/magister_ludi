@@ -1400,6 +1400,11 @@
          Religion overlay gives: systems that ask a player for one decision at a
          time must not look like different games. Built by
          `src/ui/diplomacyScreen.ts`.
+
+         Since batch SS6 the sheet is the treaty desk the user approved: the
+         rail of courts, the desk (a tray on each side and the paper between
+         them), and the column of standing and deals. Its own class sizes it;
+         the line under the title is written on every draw.
          ============================================================ -->
     <div
       id="diplomacy-overlay"
@@ -1409,19 +1414,20 @@
       aria-label="Diplomacy"
       hidden
     >
-      <div class="statecraft-sheet">
-        <header class="statecraft-head">
-          <div class="statecraft-head-titles">
-            <h2 class="statecraft-title">Foreign courts</h2>
+      <div class="statecraft-sheet dp-sheet">
+        <header class="statecraft-head dp-head">
+          <div class="statecraft-head-titles dp-titles">
+            <h2 class="statecraft-title">Foreign <em>courts</em></h2>
+            <p class="dp-facts"></p>
           </div>
-          <p class="statecraft-hint">
-            Diplomacy &mdash; <kbd>Esc</kbd> to close
+          <p class="statecraft-hint dp-hint">
+            Choose a court, then fill the paper. <kbd>Esc</kbd> closes.
           </p>
           <button id="diplomacy-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
           </button>
         </header>
-        <div id="diplomacy-body" class="statecraft-body"></div>
+        <div id="diplomacy-body" class="statecraft-body dp-body"></div>
       </div>
     </div>
 

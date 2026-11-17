@@ -60,6 +60,7 @@ import { drawPieceInks } from './pieceInks';
 import { drawRankStall } from './ranks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
 import { requireElement } from '../ui/dom';
+import { drawCourtMarks } from './courtMarks';
 
 const indexNav = requireElement<HTMLElement>('index');
 const sheet = requireElement<HTMLElement>('sheet');
@@ -401,6 +402,16 @@ drawPaletteAndRamp(
   glow.href = '/flair.html?review=units&unit=siege&group=siege&light=golden&detail=game';
   root.append(element('br'), glow);
 }
+
+// --- court marks (batch SS6) -------------------------------------------------
+
+drawCourtMarks(
+  open(
+    'court-marks',
+    'Court Marks',
+    'The envelope, the crossed blades and the arrow of the diplomacy sheet and the deal notice by the turn button.',
+  ),
+);
 
 // --- the index, and the atlas ----------------------------------------------
 

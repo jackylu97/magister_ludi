@@ -5186,7 +5186,8 @@ async function boot(initial: Game | null): Promise<void> {
     host: requireElement('hud-end-turn'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    review: id => diplomacy?.open(id),
+    // The offer opens on the sheet's paper (batch SS6), as "Read" does there.
+    review: (id, offer) => diplomacy?.open(id, offer),
   });
   gameDisposers.push(() => { diplomacyOffers?.dispose(); diplomacyOffers = null; });
   warDispatch=createWarDispatch({

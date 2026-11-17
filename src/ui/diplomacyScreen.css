@@ -1,90 +1,1282 @@
-/* The approved foreign-courts study, within the shared game modal frame. */
-#diplomacy-overlay .statecraft-sheet { width:min(1320px,96vw); max-width:1320px; height:90vh; max-height:940px; background:#f4f0e3; color:#30372e; }
-#diplomacy-overlay .statecraft-head { background:#f4f0e3; border-bottom:1px solid #c9c3b0; padding:20px 28px; }
-/* The margin is set for Newsreader (batch SS1b): the capitals' middle is level with the ×'s. */
-#diplomacy-overlay .statecraft-title { font:400 38px/1 var(--face-display); letter-spacing:-.025em; margin-top:-5px; }
-#diplomacy-overlay .statecraft-hint { font-size:11px; color:#807e6d; }
-#diplomacy-body { padding:0; min-height:0; flex:1; }
-#diplomacy-body .sc-split { display:flex; height:100%; min-height:0; gap:0; }
-#diplomacy-body .diplo-column { flex:0 0 235px; min-width:0; padding:23px 14px; background:#e9e6d8; border-right:1px solid #c9c4b3; gap:12px; }
-#diplomacy-body .sc-eyebrow { padding:0 9px; }
-#diplomacy-body .sc-column-body { display:flex; flex-direction:column; gap:6px; overflow:auto; }
-#diplomacy-body .diplo-seat { background:transparent; border:1px solid transparent; padding:15px 10px; border-radius:5px; gap:9px; }
-#diplomacy-body .diplo-seat:hover { background:#f4f0e4; }
-#diplomacy-body .diplo-seat.is-active { background:#f9f5e9; border-color:#a5a68f; box-shadow:0 3px 8px #36351a08; }
-#diplomacy-body .diplo-row-head { display:grid; grid-template-columns:38px 1fr; gap:4px 12px; align-items:center; }
-#diplomacy-body .diplo-row-head .diplo-seal { grid-row:1 / 4; }
-#diplomacy-body .diplo-name { font:400 22px/1.1 var(--face-display); }
-#diplomacy-body .diplo-people { font-size:10px; color:#7d7d6c; }
-#diplomacy-body .diplo-status { grid-column:2; margin:4px 0 0; font:500 10px var(--face-ui); color:#54725b; }
-#diplomacy-body .is-war .diplo-status { color:#993f31; }
-#diplomacy-body .diplo-marks { margin-left:50px; }.diplo-seal { display:grid; place-items:center; width:38px; height:49px; background:var(--court); border:0; clip-path:polygon(0 0,100% 0,100% 81%,50% 100%,0 81%); flex:none; }
-.diplo-seal-mark { display:block; width:68%; height:68%; background:var(--metal); mask:var(--charge) center/contain no-repeat; -webkit-mask:var(--charge) center/contain no-repeat; }
-#diplomacy-body .diplo-foot { margin-top:auto; padding:18px 9px 0; border-color:#c9c5b1; }
-#diplomacy-body .hint { color:#7e7e6c; font-size:11px; line-height:1.65; }
-#diplomacy-body .diplo-stock { font:10px var(--face-num); color:#717663; margin:6px 0; }
-#diplomacy-body .diplo-table { min-width:0; flex:1; overflow:auto; padding:22px 26px; display:flex; flex-direction:column; gap:16px; }
-#diplomacy-body .diplo-head { border:0; padding:0; gap:12px; }
-#diplomacy-body .diplo-head-titles { gap:7px; }
-#diplomacy-body .diplo-head-titles>.eyebrow { margin:2px 0 0 59px; }
-#diplomacy-body .diplo-head-line { align-items:center; gap:14px; }
-#diplomacy-body .diplo-head-name { font:400 32px/1.1 var(--face-display); }
-#diplomacy-body .diplo-head-status { margin-left:59px; color:#607256; font-size:10px; }
-#diplomacy-body .diplo-head.is-war .diplo-head-status { color:#993f31; }
-/* War weariness (batch WC2): the happiness your losses to this empire cost,
-   set like the status line above it, in the war colour because it is a cost. */
-#diplomacy-body .diplo-head-weariness { margin:0 0 0 59px; color:#993f31; font:10px var(--face-num); font-variant-numeric:tabular-nums; }
-#diplomacy-body .diplo-head .diplo-seal { width:45px; height:56px; }
-#diplomacy-body .diplo-head>.diplo-row-verbs { margin-left:auto; }
-#diplomacy-body .diplo-head .btn { font-size:10px; color:#965b47; border:0; padding:6px; }
-#diplomacy-body .diplo-tabs { display:flex; gap:25px; border-bottom:1px solid #cec9b7; }
-#diplomacy-body .diplo-tabs button { background:none; border:0; border-bottom:2px solid transparent; color:#7b7c6b; padding:0 0 12px; font-size:11px; cursor:pointer; }
-#diplomacy-body .diplo-tabs button[aria-current=page] { color:#303f34; border-bottom-color:#546447; font-weight:600; }
-#diplomacy-body .diplo-dialogue { border-left:2px solid #a39066; padding:4px 0 4px 19px; }
-#diplomacy-body .diplo-dialogue>.eyebrow { margin:0; }
-#diplomacy-body .diplo-dialogue blockquote { margin:9px 0; font:400 26px/1.2 var(--face-display); }
-#diplomacy-body .diplo-dialogue .hint { margin:0; }
-#diplomacy-body .diplo-trade-title h3 { font:400 25px var(--face-display); margin:0; }
-#diplomacy-body .diplo-trade-title p { margin:4px 0 0; font-size:10px; }
-#diplomacy-body .diplo-board { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 225px; gap:18px; align-items:start; }
-#diplomacy-body .diplo-side { gap:13px; }
-#diplomacy-body .diplo-side-head { display:block; padding:9px 0; border-top:1px solid #bab7a2; border-bottom:0; }
-#diplomacy-body .diplo-side-head .eyebrow { margin:0; }
-#diplomacy-body .diplo-side-name { font:400 22px var(--face-display); margin:5px 0; }
-#diplomacy-body .diplo-side-purse { font:10px var(--face-num); color:#8c8068; }
-#diplomacy-body .diplo-group { gap:7px; }
-#diplomacy-body .diplo-group-head { font-size:9px; letter-spacing:.12em; color:#7d806a; }
-#diplomacy-body .diplo-check { position:relative; display:grid; grid-template-columns:14px minmax(0,1fr) auto; gap:4px 7px; align-items:center; padding:9px; border:1px solid #cec8b4; border-radius:4px; background:#f8f4e8; cursor:pointer; min-height:48px; }
-#diplomacy-body .diplo-check.is-selected { background:#e1e7d3; border-color:#7b8c68; box-shadow:inset 0 -2px #7b8c68; }
-#diplomacy-body .diplo-check.is-disabled { opacity:.55; cursor:default; }
-#diplomacy-body .diplo-check input { margin:0; accent-color:#637858; width:13px; height:13px; }
-#diplomacy-body .diplo-check-label { font:500 11px var(--face-ui); color:#444b38; }
-#diplomacy-body .diplo-check-note { grid-column:2 / -1; margin:0; font:9px/1.3 var(--face-ui); color:#83816c; }
-/* The luxury rule (batch SS4): a luxury the other side holds only on loan is drawn greyed, dashed and still pressable, with who lent it and the turns left. Only the row changes; the screen's look is a later batch. */
-#diplomacy-body .diplo-check.is-greyed:not(.is-selected) { background:transparent; border-style:dashed; }
-#diplomacy-body .diplo-check.is-greyed:not(.is-selected) .diplo-check-label,
-#diplomacy-body .diplo-check.is-greyed:not(.is-selected) .diplo-copy { color:#83816c; }
-#diplomacy-body .diplo-loan-turns { font-family:var(--face-num); font-variant-numeric:tabular-nums; white-space:nowrap; }
-#diplomacy-body .diplo-copy { grid-column:3; grid-row:1 / 3; text-align:right; font:15px var(--face-num); color:#49523d; }
-#diplomacy-body .diplo-copy small { display:block; font:8px var(--face-ui); color:#898773; margin-top:3px; }
-#diplomacy-body .diplo-field { justify-content:space-between; }
-#diplomacy-body .diplo-field-input { width:75px; min-width:0; padding:7px; background:#faf7ec; border-color:#c9c3ac; border-radius:4px; }
-#diplomacy-body .diplo-middle { padding:16px; background:#e9ebdf; border:1px solid #c5c8b2; border-radius:5px; gap:10px; }
-#diplomacy-body .is-draft { padding:4px 0 8px; background:none; border:0; }
-#diplomacy-body .diplo-half { padding:9px 0; }
-#diplomacy-body .diplo-half+.diplo-half { border:0; margin-top:4px; }
-#diplomacy-body .diplo-half-head { font:10px var(--face-ui); color:#868873; margin:0 0 6px; }
-#diplomacy-body .diplo-half-line { font:400 21px/1.3 var(--face-display); color:#46513d; }
-#diplomacy-body .diplo-middle .btn { width:100%; white-space:normal; min-height:36px; padding:9px 7px; border-radius:4px; font:500 10px/1.3 var(--face-ui); letter-spacing:0; text-transform:none; }
-#diplomacy-body .btn-primary { background:#405846; color:#fcf7e6; border-color:#405846; }
-#diplomacy-body .btn-quiet { background:transparent; border:1px solid #bac1ab; color:#646d54; }
-#diplomacy-body button:disabled { opacity:.45; cursor:default; }
-#diplomacy-body .diplo-middle .diplo-note { border-top:1px solid #c8ccb8; padding-top:10px; font-size:10px; }
-#diplomacy-body .diplo-warning { color:#906344; font-size:11px; line-height:1.6; }
-#diplomacy-body .diplo-papers { padding:12px 0; border-color:#cec9b7; }
-#diplomacy-body .diplo-paper:not(.is-draft) { background:#faf6eb; border:1px solid #cbc4ae; padding:14px; gap:6px; }
-#diplomacy-body .diplo-paper-head { font:400 23px var(--face-display); }
-#diplomacy-body .diplo-war-notice { background:#ede0d5; color:#8c4939; border:1px solid #c7a28c; border-radius:4px; padding:11px 14px; font-size:11px; line-height:1.6; margin:0; }
-#diplomacy-overlay button:focus-visible,#diplomacy-overlay input:focus-visible { outline:2px solid #9d7135; outline-offset:3px; }
-@media(max-width:1150px) { #diplomacy-body .diplo-column { flex-basis:200px; } #diplomacy-body .diplo-board { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } #diplomacy-body .diplo-middle { grid-column:1 / -1; } #diplomacy-body .is-draft { display:grid; grid-template-columns:1fr 1fr; gap:15px; } #diplomacy-body .diplo-table { padding:18px; } }
-@media(max-width:700px) { #diplomacy-body .sc-split { display:block; overflow:auto; } #diplomacy-body .diplo-column { padding:10px; border-right:0; } #diplomacy-body .diplo-column>.sc-eyebrow,#diplomacy-body .diplo-foot { display:none; } #diplomacy-body .sc-column-body { flex-direction:row; overflow:auto; } #diplomacy-body .diplo-seat { min-width:195px; } #diplomacy-body .diplo-table { overflow:visible; } #diplomacy-overlay .statecraft-head { padding:16px; } #diplomacy-overlay .statecraft-hint { display:none; } }
+/* The Diplomacy sheet as the treaty desk (batch SS6, layout B of
+   docs/plans/mockups/scholars-study/diplomacy-options.html, approved by the
+   user). Three parts: the rail of courts, the desk (a tray on each side and
+   the deal as a paper between them) and the column of standing and deals.
+
+   The values are the board's: the spacing scale 4, 8, 12, 16, 24, 32, the
+   28 px buttons, and the game's own ink and parchment tokens. The three board
+   colours that are not tokens are named once on the sheet.
+
+   The sheet has its own class for its size and layout. The shared cap rule
+   (`.statecraft-overlay .statecraft-sheet`, max-height 100%) stays the one
+   rule every sheet wears, the lesson of batch SS9b. */
+
+#diplomacy-overlay .dp-sheet {
+  --dp-desk: #e3dac2;
+  --dp-on: #eadfc2;
+  --dp-chip: #fbf8ec;
+  /* The board's size rule: the window less 56 px wide, at most 1180, and the
+     window less 90 px high, at most 860, centred on the board. */
+  width: min(calc(100vw - 56px), 1180px);
+  height: min(calc(100vh - 90px), 860px);
+  align-self: center;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ink-line);
+  background: var(--vellum);
+  box-shadow: 0 18px 50px -10px rgba(0, 0, 0, 0.55);
+  /* Part 2's narrow and short rules ask the sheet's own size. */
+  container: dp-sheet / size;
+}
+
+/* ---------- the head */
+
+#diplomacy-overlay .dp-head {
+  position: relative;
+  flex: none;
+  align-items: baseline;
+  gap: 18px;
+  height: 80px;
+  padding: 18px 64px 14px 24px;
+  border-bottom: 1px solid var(--rule);
+}
+
+#diplomacy-overlay .dp-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  min-width: 0;
+}
+
+#diplomacy-overlay .dp-head .statecraft-title {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.dp-facts {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font: 400 13px/1 var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dp-facts b {
+  font: 500 12px var(--face-num);
+  font-variant-caps: normal;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+#diplomacy-overlay .dp-hint {
+  flex: none;
+  margin-left: auto;
+  padding-top: 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+#diplomacy-overlay .dp-head .statecraft-close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  background: var(--parchment);
+}
+
+/* ---------- the three parts */
+
+#diplomacy-overlay .dp-body {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dp-grid {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr) 236px;
+  gap: 20px;
+  min-height: 0;
+  padding: 16px 24px 18px;
+}
+
+.dp-hd {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font: 600 16px/1.2 var(--face-name);
+  color: var(--ink);
+}
+
+.dp-hd-note {
+  margin-left: auto;
+  font: 400 12px var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.dp-none {
+  margin: 0;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* ---------- the rail of courts */
+
+.dp-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dp-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dp-court {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 8px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dp-court:hover {
+  background: rgba(247, 242, 225, 0.6);
+}
+
+.dp-court.is-sel {
+  border: 1.5px solid var(--ink);
+  background: var(--parchment);
+  box-shadow: var(--paper-shadow);
+}
+
+.dp-court-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dp-court-name b {
+  overflow: hidden;
+  font: 600 13.5px/1.2 var(--face-name);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dp-court-status {
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dp-court.is-war .dp-court-status {
+  color: var(--war-red);
+}
+
+.dp-court.is-truce .dp-court-status {
+  color: var(--deep-gilt);
+}
+
+.dp-court-marks {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dp-court-wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--rubric);
+}
+
+.dp-court-figure,
+.dp-court-count {
+  font: 500 12px var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-court-count {
+  color: var(--ink-soft);
+}
+
+/* The court's shield, cut from the seat's colour with its charge in the
+   metal. Two sizes: the rail's and the column's. */
+.dp-seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 26px;
+  background: var(--court);
+  clip-path: polygon(0 0, 100% 0, 100% 81%, 50% 100%, 0 81%);
+}
+
+.dp-seal.is-large {
+  width: 34px;
+  height: 44px;
+}
+
+.dp-seal-mark {
+  display: block;
+  width: 70%;
+  height: 70%;
+  background: var(--metal);
+  -webkit-mask: var(--charge) center / contain no-repeat;
+  mask: var(--charge) center / contain no-repeat;
+}
+
+.dp-short {
+  display: none;
+}
+
+/* The hover label of the shield strip (a sheet under 1100 px wide). */
+.dp-tip {
+  position: absolute;
+  z-index: 6;
+  padding: 5px 9px;
+  border-radius: var(--paper-radius);
+  background: var(--ink);
+  color: var(--parchment);
+  font: 500 12px var(--face-ui);
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dp-tip[hidden] {
+  display: none;
+}
+
+/* ---------- the desk */
+
+.dp-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dp-main > .dp-desk {
+  flex: 1;
+}
+
+/* The right column folded into one line, shown only on a narrow sheet. */
+.dp-fold {
+  display: none;
+}
+
+.dp-fold-name {
+  margin: 0;
+  font: 400 21px/1.1 var(--face-display);
+  color: var(--ink);
+}
+
+.dp-fold-sub {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+}
+
+.dp-fold.is-war .dp-fold-sub {
+  color: var(--war-red);
+}
+
+.dp-fchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--ink);
+  border-radius: var(--paper-radius);
+  background: var(--dp-chip);
+  color: var(--ink);
+  font: 500 12px var(--face-ui);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dp-fchip b {
+  font: 500 11.5px var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.dp-fchip.is-on {
+  background: var(--dp-on);
+}
+
+.dp-fchip .dp-envelope {
+  color: var(--rubric);
+}
+
+.dp-fchip u {
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+#diplomacy-overlay .dp-fold .dp-btn.is-quiet-war {
+  margin-left: auto;
+  height: 24px;
+  padding: 0 4px;
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--edge);
+  text-underline-offset: 3px;
+}
+
+/* The drawer's ×, drawn only while the column is a drawer. */
+#diplomacy-overlay .dp-drawer-close {
+  display: none;
+}
+
+.dp-desk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 10px 14px 14px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--dp-desk);
+}
+
+.dp-desk.is-empty {
+  justify-content: center;
+  align-items: center;
+}
+
+.dp-acts {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.dp-act {
+  flex: none;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 500 12.5px var(--face-ui);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.dp-act.is-cur {
+  height: 27px;
+  margin-bottom: -1px;
+  border-color: var(--ink);
+  background: var(--parchment);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.dp-act.is-off {
+  color: var(--ink-faint);
+}
+
+.dp-d3 {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 216px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ---------- a tray */
+
+.dp-tray {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dp-colh {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 0 5px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.dp-colh b {
+  font: 600 16px/1.2 var(--face-name);
+  white-space: nowrap;
+}
+
+.dp-colh span {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  font: 400 12.5px var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dp-group {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Only a long group scrolls, inside its tray: the luxuries, and the towns in
+   a peace. Gold and the rights stay in view. */
+.dp-group.is-luxuries,
+.dp-group.is-towns {
+  flex: 0 1 auto;
+}
+
+.dp-group.is-luxuries .dp-chips,
+.dp-group.is-towns .dp-chips {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 2px;
+}
+
+.dp-gl {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 0 4px;
+  font: 400 12.5px/1 var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.dp-gl-note {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+}
+
+.dp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+}
+
+.dp-hid {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 2px 4px 0;
+  font: italic 11.5px/1.35 var(--face-ui);
+  color: var(--ink-faint);
+}
+
+/* ---------- a chip (layout C's chips, in layout B's trays) */
+
+.dp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 9px 0 7px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--dp-chip);
+  color: var(--ink);
+  font: 500 12.5px var(--face-ui);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button.dp-chip:hover {
+  border-color: var(--ink-line);
+}
+
+.dp-chip .res-mark {
+  width: 13px;
+  height: 13px;
+  color: var(--ink-soft);
+}
+
+.dp-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-chip-count {
+  font: 500 11.5px var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.dp-chip-note {
+  overflow: hidden;
+  font: italic 11px var(--face-ui);
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+}
+
+.dp-chip.is-on {
+  border-color: var(--ink);
+  background: var(--dp-on);
+  font-weight: 600;
+}
+
+.dp-chip.is-on .res-mark {
+  color: var(--rubric);
+}
+
+/* Held by the other side only on loan: greyed, and still picked like any
+   other chip (the luxury rule, batch SS4). */
+.dp-chip.is-greyed {
+  border-style: dashed;
+  border-color: var(--ink-line);
+  background: transparent;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+.dp-chip.is-greyed.is-on {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--dp-on);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Refused by the reducer: cannot be picked; a press says why. */
+.dp-chip.is-refused {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: help;
+}
+
+.dp-chip.is-refused .dp-chip-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-line);
+}
+
+/* Gold, opened: the name (press it to take the gold back), a stepper and the
+   figure. A figure the reducer refuses keeps the field and dashes the edge. */
+.dp-chip.is-open {
+  gap: 4px;
+  padding: 0 4px 0 2px;
+  cursor: default;
+}
+
+.dp-chip.is-open.is-refused {
+  border-color: var(--war-red);
+  background: var(--dp-on);
+  color: var(--ink);
+}
+
+.dp-chip-toggle {
+  height: 22px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dp-chip-toggle:hover {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-line);
+}
+
+.dp-step {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  background: var(--parchment);
+  color: var(--ink);
+  font: 500 12px/1 var(--face-num);
+  cursor: pointer;
+}
+
+.dp-step:disabled {
+  color: var(--ink-line);
+  cursor: default;
+}
+
+.dp-amount {
+  width: 48px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--ink-line);
+  border-radius: 2px;
+  background: var(--dp-chip);
+  color: var(--ink);
+  font: 500 12px/16px var(--face-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.dp-amount::-webkit-outer-spin-button,
+.dp-amount::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+/* A list with more below than it shows fades at its foot (`markOverflow`). */
+.dp-body .is-overflow {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+}
+
+/* The reducer's sentence for the last refused chip pressed. */
+.dp-say {
+  flex: none;
+  margin: 6px 0 0;
+  font: italic 11.5px/1.35 var(--face-ui);
+  color: var(--war-red);
+}
+
+/* ---------- the paper */
+
+.dp-paper {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+  box-shadow: var(--paper-shadow);
+}
+
+.dp-paper-title {
+  flex: none;
+  margin: 0;
+  font: 400 21px/1.15 var(--face-display);
+  color: var(--ink);
+}
+
+.dp-runs {
+  flex: none;
+  margin: 4px 0 6px;
+  font: 400 12.5px var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+/* A peace's line is a sentence, so it is set as one. */
+.dp-runs.is-sentence {
+  font: italic 11.5px/1.35 var(--face-ui);
+  font-variant-caps: normal;
+  letter-spacing: 0;
+}
+
+.dp-clauses {
+  flex: 1 1 auto;
+  min-height: 24px;
+  overflow-y: auto;
+}
+
+.dp-cl-head {
+  margin: 10px 0 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--ink);
+  font: 600 14px var(--face-name);
+}
+
+.dp-clauses-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dp-clauses-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 26px;
+  border-bottom: 1px solid var(--rule);
+  font: 400 16px/1.2 var(--face-display);
+}
+
+.dp-clauses-list li.is-nil {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.dp-strike {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-faint);
+  font: 13px/1 var(--face-ui);
+  cursor: pointer;
+}
+
+.dp-strike:hover {
+  background: var(--dp-on);
+  color: var(--ink);
+}
+
+.dp-docfoot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 3px double var(--ink);
+}
+
+.dp-word {
+  margin: 0;
+}
+
+.dp-word-label {
+  display: block;
+  margin-bottom: 2px;
+  font: 400 12px var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.dp-quote {
+  margin: 0;
+  font: italic 400 15px/1.3 var(--face-display);
+  color: var(--ink);
+}
+
+.dp-warn {
+  margin: 0;
+  font: italic 11.5px/1.35 var(--face-ui);
+  color: var(--ink-soft);
+}
+
+.dp-docfoot .dp-say {
+  margin: 0;
+}
+
+.dp-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ---------- buttons: the board's 28 px */
+
+#diplomacy-overlay .dp-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+  color: var(--ink);
+  font: 500 12.5px var(--face-ui);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+#diplomacy-overlay .dp-btn.is-primary {
+  border-color: var(--ink);
+  background: var(--cinnabar);
+  color: var(--parchment);
+  font-weight: 600;
+}
+
+#diplomacy-overlay .dp-btn.is-quiet {
+  height: 20px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--edge);
+  text-underline-offset: 3px;
+}
+
+#diplomacy-overlay .dp-btn.is-quiet.is-idle {
+  visibility: hidden;
+}
+
+#diplomacy-overlay .dp-btn:disabled {
+  background: var(--table);
+  color: var(--ink-line);
+  border-color: var(--edge);
+}
+
+#diplomacy-overlay .dp-btn.is-primary:disabled {
+  background: var(--table);
+  color: var(--ink-faint);
+}
+
+#diplomacy-overlay .dp-btn.is-small {
+  width: auto;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+#diplomacy-overlay .dp-btn.is-war {
+  width: auto;
+  color: var(--war-red);
+}
+
+/* A court mark (`src/art/courtMarks.ts`): the picture masks the ink of the
+   text beside it. Its size is the mark's own box, set on the node. */
+.court-mark {
+  flex: none;
+  display: inline-block;
+  width: var(--court-mark-w, 16px);
+  height: var(--court-mark-h, 12px);
+  background-color: currentColor;
+  -webkit-mask: var(--court-mark) center / contain no-repeat;
+  mask: var(--court-mark) center / contain no-repeat;
+}
+
+/* ---------- the right column */
+
+.dp-colm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dp-colm > .dp-hd {
+  flex: none;
+  margin-top: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.dp-who-block {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dp-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dp-who-names {
+  min-width: 0;
+}
+
+.dp-rname {
+  margin: 0;
+  font: 400 24px/1.1 var(--face-display);
+  color: var(--ink);
+}
+
+.dp-people {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.dp-ln {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 26px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12.5px;
+}
+
+.dp-ln span {
+  color: var(--ink-soft);
+}
+
+.dp-ln b {
+  font-weight: 600;
+  text-align: right;
+}
+
+.dp-ln.is-war b {
+  color: var(--war-red);
+}
+
+.dp-ln.is-truce b {
+  color: var(--deep-gilt);
+}
+
+.dp-weary {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--war-red);
+}
+
+.dp-deals {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dp-deal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12.5px;
+}
+
+.dp-deal-terms span {
+  display: block;
+}
+
+.dp-deal-left {
+  font: 500 12px var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-wait {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--ink);
+  border-radius: var(--paper-radius);
+  background: var(--dp-chip);
+  font-size: 12.5px;
+}
+
+.dp-wait.is-mine {
+  border-color: var(--edge);
+  background: transparent;
+}
+
+.dp-wait .dp-envelope {
+  flex: none;
+  color: var(--rubric);
+}
+
+.dp-wait-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dp-wait-text b {
+  font-weight: 600;
+}
+
+.dp-other {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.dp-other .dp-hd {
+  width: 100%;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ink);
+}
+
+/* ---------- a sheet under 1100 px wide (the board's rule)
+   The rail becomes a 56 px strip of shields, with the names on hover and the
+   selected court's name in the fold line. The right column folds into that
+   line above the desk, and its "Standing and deals" button opens the column as
+   a drawer over their tray. The paper and the propose control stay in view. */
+
+@container dp-sheet (max-width: 1099px) {
+  .dp-grid {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    padding-left: 16px;
+  }
+
+  .dp-rail {
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dp-rail-hd {
+    font: 400 12px/1 var(--face-name);
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+
+  .dp-long {
+    display: none;
+  }
+
+  .dp-short {
+    display: inline;
+  }
+
+  .dp-rail-list {
+    align-items: center;
+    gap: 3px;
+    padding: 2px;
+  }
+
+  .dp-court {
+    position: relative;
+    justify-content: center;
+    width: 46px;
+    height: 40px;
+    padding: 0;
+    border-color: transparent;
+  }
+
+  .dp-court-name,
+  .dp-court-count,
+  .dp-court-figure {
+    display: none;
+  }
+
+  .dp-court-marks {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+  }
+
+  .dp-court-wait .dp-envelope {
+    width: 12px;
+    height: 9px;
+  }
+
+  .dp-court.is-war::after,
+  .dp-court.is-truce::after {
+    content: '';
+    position: absolute;
+    right: 9px;
+    bottom: 2px;
+    left: 9px;
+    height: 2px;
+    background: var(--war-red);
+  }
+
+  .dp-court.is-truce::after {
+    background: var(--deep-gilt);
+  }
+
+  .dp-fold {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .dp-d3 {
+    grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr);
+  }
+
+  .dp-colm {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    display: none;
+    width: 300px;
+    padding: 14px 18px 16px;
+    border-left: 1px solid var(--ink);
+    background: var(--vellum);
+    box-shadow: -14px 0 28px -14px rgba(29, 26, 32, 0.55);
+  }
+
+  .dp-colm.is-open {
+    display: flex;
+  }
+
+  .dp-colm .dp-who {
+    padding-right: 36px;
+  }
+
+  #diplomacy-overlay .dp-drawer-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    display: block;
+    background: var(--parchment);
+  }
+}
+
+/* ---------- a sheet under 720 px high: the denser rows and the short head */
+
+@container dp-sheet (max-height: 719px) {
+  #diplomacy-overlay .dp-head {
+    height: 56px;
+    padding: 10px 64px 8px 24px;
+  }
+
+  #diplomacy-overlay .dp-head .statecraft-title {
+    font-size: 30px;
+  }
+
+  #diplomacy-overlay .dp-head .statecraft-close {
+    top: 13px;
+  }
+
+  .dp-grid {
+    padding-top: 12px;
+    padding-bottom: 14px;
+  }
+
+  .dp-rail-list {
+    gap: 4px;
+  }
+
+  .dp-court {
+    height: 40px;
+  }
+
+  .dp-desk {
+    gap: 10px;
+  }
+
+  .dp-gl {
+    padding: 7px 0 3px;
+  }
+
+  .dp-chips {
+    gap: 5px;
+  }
+
+  .dp-chip {
+    height: 24px;
+  }
+
+  .dp-paper {
+    padding: 12px 14px;
+  }
+
+  .dp-paper-title {
+    font-size: 18px;
+  }
+
+  .dp-runs {
+    margin: 2px 0 0;
+  }
+
+  .dp-cl-head {
+    margin-top: 8px;
+  }
+
+  .dp-clauses-list li {
+    min-height: 22px;
+    font-size: 15px;
+  }
+
+  .dp-docfoot {
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .dp-quote {
+    font-size: 14px;
+  }
+
+  #diplomacy-overlay .dp-btn {
+    height: 26px;
+  }
+
+  #diplomacy-overlay .dp-btn.is-quiet {
+    height: 18px;
+  }
+
+  .dp-colm {
+    gap: 6px;
+  }
+
+  .dp-colm > .dp-hd {
+    margin-top: 6px;
+  }
+
+  .dp-ln {
+    height: 24px;
+  }
+
+  .dp-deal {
+    padding: 3px 0;
+  }
+}

@@ -31,6 +31,19 @@
  * the old shape could not do at all was show a player the paper they were
  * building; the middle column is that.
  *
+ * The treaty desk (batch SS6)
+ * ---------------------------
+ * The user approved layout B of
+ * `docs/plans/mockups/scholars-study/diplomacy-options.html`, with layout C's
+ * chips. The sheet has three parts: the rail of courts on the left, the desk
+ * in the middle, and a column on the right with where you stand, the deals in
+ * force, the offers waiting and Declare war. On the desk, each side's tray holds
+ * what it can give as chips, and the paper between the trays is the deal, with
+ * the propose control fixed at its foot. A picked chip stays in its tray,
+ * filled, and appears on the paper as a clause with a × that takes it back. An
+ * offer from them opens on the same paper with Accept, Decline and "Change the
+ * terms".
+ *
  * There is no relation *meter* and no opinion: v1 has none
  * (`docs/war-diplomacy.md`, section 6), and a screen that implied one would be
  * promising a system nobody has built.
@@ -69,7 +82,6 @@
  */
 
 import { leaderBannerInk } from '../art/leaderBanners';
-import { warSealDataUri } from '../art/newsMarks';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { seatName, seatPeople } from '../sim/leaderData';
@@ -89,6 +101,8 @@ import {
 import { hasPeaceOffer, peaceTermsOn, truceTurnsLeft, warBetween } from '../sim/wars';
 import {
   type DealTerms,
+  bordersOpenTo,
+  dealIsOngoing,
   dealTurnsLeft,
   dealsBetween,
   otherSeatOf,
@@ -97,7 +111,7 @@ import {
   termsAreEmpty,
 } from '../sim/deals';
 import {
-  availableCopies,
+  lendableCopies,
   capitalCityOf,
   controlledHoldings,
   resourceCopies,
@@ -105,12 +119,16 @@ import {
 import { lentCopiesToPlayer } from '../sim/deals';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { wearinessBetween } from '../sim/weariness';
-import { figure, signedMeterFigure } from './figures';
+import { RULES } from '../sim/rulesData';
+import { readEmpire } from '../sim/readings';
+import { figure, signedFigure, signedMeterFigure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { seatInks } from '../art/seatInks';
+import { type CourtMarkId, COURT_MARKS, courtMarkDataUri } from '../art/courtMarks';
+import { resourceMarkNode } from './resourceMark';
 import './diplomacyScreen.css';
 
 // --- the row model ----------------------------------------------------------
@@ -157,6 +175,11 @@ interface DiplomacyRow {
   bargains: number;
   /** Papers standing on the table between you, written by either hand. */
   papers: number;
+  /**
+   * Offers from them waiting for this seat's answer: their bargains put to
+   * you, and their standing peace (batch SS6). The envelope on the rail.
+   */
+  waiting: number;
   /**
    * The happiness your losses to them are costing you in war weariness, or
    * nought (`wearinessBetween`, `src/sim/weariness.ts`; batch WC2). The same
@@ -212,6 +235,9 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
         (paper) =>
           (paper.by === seat && paper.to === id) || (paper.by === id && paper.to === seat),
       ).length,
+      waiting:
+        state.dealProposals.filter((paper) => paper.by === id && paper.to === seat).length +
+        (hasPeaceOffer(state, id, seat) && !hasPeaceOffer(state, seat, id) ? 1 : 0),
       weariness: wearinessBetween(state, seat, id).happiness,
       met: hasMetSeat(state, seat, id),
     });
@@ -317,9 +343,11 @@ interface DealChoice {
   cityId?: number;
   copies?: number;
   /**
-   * Copies of this luxury that could actually be promised — controlled, less
-   * what this empire's own army and queues have spoken for (ruling 4, "only
-   * trade away available copies").
+   * Copies of this luxury that could actually be promised: `lendableCopies`,
+   * the copies this empire owns and has not lent, never more than it could
+   * spend (ruling 4, "only trade away available copies", and the ruling "A
+   * borrowed luxury cannot be lent on"). A borrowed copy counts in `copies`
+   * and never here.
    *
    * Beside `copies` rather than instead of it, because the two answer different
    * questions and a player at the table asks both: *how much of this do I have*
@@ -341,11 +369,19 @@ interface DealChoice {
    */
   onLoan?: LoanNote;
   /**
-   * A luxury row whose giver holds **only a borrowed copy**. The reducer accepts
-   * it (`dealSideError` asks `availableCopies`, which counts copies lent in), so
-   * the row is offered as usual, and this says where the copy came from.
+   * The turns left on the soonest of the receiver's loans, beside `onLoan`
+   * (batch SS6): the figure a chip prints, "5t". Absent when `onLoan` is.
+   */
+  onLoanTurns?: number;
+  /**
+   * A luxury row whose giver holds **only a borrowed copy**. The user's ruling
+   * "A borrowed luxury cannot be lent on" (`docs/flags.md`) has the reducer
+   * refuse it, so the row carries `dealSideError`'s sentence in `error`, and
+   * this says where the copy came from.
    */
   borrowed?: LoanNote;
+  /** The turns left on the giver's soonest borrowed copy, beside `borrowed`. */
+  borrowedTurns?: number;
 }
 
 /** What one column of the panel offers — one empire's side of the bargain. */
@@ -360,6 +396,12 @@ interface DealSideModel {
    * off (`luxuryRowShow`).
    */
   luxuries: DealChoice[];
+  /**
+   * The luxuries this empire holds that the table leaves off, because the
+   * other side has its own copy (`luxuryRowShow`, batch SS4). The tray says
+   * so in one line: "Not shown: Gold and Honey. You both own them."
+   */
+  hidden: string[];
   /**
    * What this empire holds of luxuries, whatever the table shows: kinds, and
    * copies (`resourceCopies`, lent copies counted as the copies ruling counts
@@ -521,7 +563,7 @@ export function dealPanel(state: GameState, seat: number, targetId: number): Dea
  * One function so the panel and any later chronicle line agree about whose
  * promise is whose.
  */
-function sideOfPeace(
+export function sideOfPeace(
   terms: { a: DealTerms; b: DealTerms },
   seat: number,
   other: number,
@@ -652,6 +694,7 @@ function dealSide(
 ): DealSideModel {
   const giver = playerById(state, giverId);
   const luxuries: DealChoice[] = [];
+  const hidden: string[] = [];
   const other = giverId === seat ? receiverId : giverId;
   const holdings = controlledHoldings(state, giverId, 'luxury');
   const stock = {
@@ -663,7 +706,10 @@ function dealSide(
     // is drawn at all, and whether it is drawn greyed.
     const theirs = luxuryHold(state, receiverId, holding.id);
     const show = luxuryRowShow(theirs);
-    if (show === 'hidden') continue;
+    if (show === 'hidden') {
+      hidden.push(resourceDef(holding.id).name);
+      continue;
+    }
     const mine = luxuryHold(state, giverId, holding.id);
     const copies = resourceCopies(state, giverId, holding.id);
     // **What may actually be promised** (batch R1, ruling 4 — "only trade away
@@ -680,11 +726,15 @@ function dealSide(
     // stays because the rule is the reducer's, not this list's: the day a
     // luxury gates a unit the panel already agrees with the refusal.
     // The reducer's own sentence for this one term, asked through a probe side
-    // (`dealSideError`): the Forbidden Silks' ban (batch DT7) and a copy that is
-    // already spoken for are both its words, so the row greys before a player
-    // writes a paper the reducer would throw out.
+    // (`dealSideError`): the Forbidden Silks' ban (batch DT7), a copy that is
+    // already spoken for and a copy that is only borrowed are all its words, so
+    // the row greys before a player writes a paper the reducer would throw out.
+    //
+    // What can be given is `lendableCopies`, the reading the gate asks, and not
+    // `availableCopies`: an empire with its own silk and a borrowed silk can use
+    // two and lend one (the ruling "A borrowed luxury cannot be lent on").
     const error = dealSideError(state, giverId, receiverId, { luxuries: [holding.id] }, war);
-    const spare = error !== null ? 0 : availableCopies(state, giverId, holding.id);
+    const spare = error !== null ? 0 : lendableCopies(state, giverId, holding.id);
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
@@ -693,10 +743,11 @@ function dealSide(
       // A **spare** is what the panel marks, not what it enforces: an empire
       // may lend its last copy and simply hand the contentment across, which is
       // the ruling. The mark is there so a player can see which lending costs
-      // them nothing — and since the copies ruling it is exact, because
-      // `resourceCopies` has already taken off everything promised elsewhere:
-      // two amber with one lent reads as one, and the mark goes out.
-      note: spare > 1 ? 'spare' : null,
+      // them nothing: a copy can be given, and one is still held after it.
+      // `copies` is `resourceCopies`, which has already taken off everything
+      // promised elsewhere and counts a borrowed copy, so one own silk and one
+      // borrowed silk is a spare (the borrowed one stays).
+      note: spare >= 1 && copies > 1 ? 'spare' : null,
       // A kind with no **net** copy left is not in `controlledHoldings` at all,
       // so the list still does most of the gating. What it cannot see since
       // batch R1 is a copy this empire's own army has spoken for, and that is
@@ -704,10 +755,16 @@ function dealSide(
       // player reads why before the refusal rather than after it.
       error,
       ...(show === 'onLoan'
-        ? { onLoan: loanNote(state, seat, other, receiverId, theirs.loans, 'receiver') }
+        ? {
+            onLoan: loanNote(state, seat, other, receiverId, theirs.loans, 'receiver'),
+            onLoanTurns: soonestLoan(theirs.loans),
+          }
         : {}),
       ...(mine.own === 0 && mine.loans.length > 0
-        ? { borrowed: loanNote(state, seat, other, giverId, mine.loans, 'giver') }
+        ? {
+            borrowed: loanNote(state, seat, other, giverId, mine.loans, 'giver'),
+            borrowedTurns: soonestLoan(mine.loans),
+          }
         : {}),
     });
   }
@@ -733,6 +790,7 @@ function dealSide(
     name: seatName(state, giverId),
     gold: giver?.gold ?? 0,
     luxuries,
+    hidden,
     stock,
     openBorders: {
       label: 'Open borders',
@@ -756,18 +814,148 @@ function dealSide(
  * paper written about a place that has gone.
  */
 export function termLines(state: GameState, terms: DealTerms): string[] {
-  const lines: string[] = [];
-  const gold = terms.gold ?? 0;
-  if (gold > 0) lines.push(`${figure(gold)} gold`);
-  const perTurn = terms.goldPerTurn ?? 0;
-  if (perTurn > 0) lines.push(`${figure(perTurn)} gold a turn`);
-  for (const id of terms.luxuries ?? []) lines.push(resourceDef(id).name);
-  if (terms.openBorders === true) lines.push('Open borders');
-  for (const cityId of terms.cities ?? []) {
-    lines.push(state.cities.find((city) => city.id === cityId)?.name ?? 'a town');
-  }
+  const lines = termItems(state, terms).map((item) => item.text);
   if (lines.length === 0) lines.push('Nothing');
   return lines;
+}
+
+/**
+ * One clause of a side's terms, as the paper prints it, with the key that
+ * takes it back off the table (batch SS6): `gold`, `goldPerTurn`,
+ * `luxury:<id>`, `openBorders` or `city:<id>`.
+ */
+export interface TermItem {
+  key: string;
+  text: string;
+}
+
+/**
+ * The clauses of a side's terms, in `termLines`' order and words. `termLines`
+ * is these words, with "Nothing" for an empty side; the paper draws these, so
+ * each clause can be taken back on its own.
+ */
+export function termItems(state: GameState, terms: DealTerms): TermItem[] {
+  const items: TermItem[] = [];
+  const gold = terms.gold ?? 0;
+  if (gold > 0) items.push({ key: 'gold', text: `${figure(gold)} gold` });
+  const perTurn = terms.goldPerTurn ?? 0;
+  if (perTurn > 0) items.push({ key: 'goldPerTurn', text: `${figure(perTurn)} gold a turn` });
+  for (const id of terms.luxuries ?? []) items.push({ key: `luxury:${id}`, text: resourceDef(id).name });
+  if (terms.openBorders === true) items.push({ key: 'openBorders', text: 'Open borders' });
+  for (const cityId of terms.cities ?? []) {
+    items.push({
+      key: `city:${cityId}`,
+      text: state.cities.find((city) => city.id === cityId)?.name ?? 'a town',
+    });
+  }
+  return items;
+}
+
+/**
+ * Takes one clause back off a side's terms (batch SS6, the × on the paper).
+ * Presence is the state on a term, exactly as in the register: a side with
+ * nothing left on a line has the line deleted rather than set to nothing.
+ */
+export function removeTerm(terms: DealTerms, key: string): void {
+  if (key === 'gold') delete terms.gold;
+  else if (key === 'goldPerTurn') delete terms.goldPerTurn;
+  else if (key === 'openBorders') delete terms.openBorders;
+  else if (key.startsWith('luxury:')) {
+    const id = key.slice('luxury:'.length);
+    const kept = (terms.luxuries ?? []).filter((held) => held !== id);
+    if (kept.length > 0) terms.luxuries = kept;
+    else delete terms.luxuries;
+  } else if (key.startsWith('city:')) {
+    const id = Number(key.slice('city:'.length));
+    const kept = (terms.cities ?? []).filter((held) => held !== id);
+    if (kept.length > 0) terms.cities = kept;
+    else delete terms.cities;
+  }
+}
+
+/** The turns left on the loan that ends first. Called only with loans. */
+function soonestLoan(loans: readonly LuxuryLoan[]): number {
+  return loans.reduce((least, loan) => Math.min(least, loan.turnsLeft), loans[0]?.turnsLeft ?? 0);
+}
+
+/**
+ * The shortest form of a loan for a chip: the turns left on the loan that ends
+ * first, "5t" (batch SS6). The lender and the whole sentence are in the chip's
+ * title.
+ */
+export function loanTurnsMark(turns: number): string {
+  return `${figure(turns)}t`;
+}
+
+/** A loan note as one plain sentence, for a chip's title: "They have it only on loan from you · 5 turns left". */
+export function loanSentence(note: LoanNote): string {
+  return `${note.head} ${note.parts.map((part) => `${part.from} · ${part.turns}`).join('; ')}`;
+}
+
+/**
+ * "Not shown: Gold and Honey. You both own them." The tray's one line about the
+ * luxuries the table leaves off (batch SS4's rule), or `null` when none are.
+ */
+export function hiddenLuxuriesLine(names: readonly string[]): string | null {
+  if (names.length === 0) return null;
+  const list =
+    names.length === 1
+      ? names[0]!
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]!}`;
+  return `Not shown: ${list}. You both own ${names.length === 1 ? 'it' : 'them'}.`;
+}
+
+/**
+ * The reducer's sentence for one coin term on one side, or `null` when it
+ * stands (batch SS6). The gold chip's field asks it on every figure typed, so a
+ * lump larger than the treasury reads as refused before it is sent.
+ */
+export function coinTermError(
+  state: GameState,
+  giverId: number,
+  receiverId: number,
+  key: 'gold' | 'goldPerTurn',
+  amount: number,
+  war: boolean,
+): string | null {
+  return dealSideError(state, giverId, receiverId, { [key]: amount }, war);
+}
+
+/**
+ * The reducer's sentence for a whole draft, your side first, or `null` when
+ * both sides stand (batch SS6). The propose control is greyed with it, so a
+ * paper the reducer would throw out is not sent.
+ */
+export function draftError(
+  state: GameState,
+  seat: number,
+  targetId: number,
+  draft: { give: DealTerms; take: DealTerms },
+  war: boolean,
+): string | null {
+  return (
+    dealSideError(state, seat, targetId, draft.give, war) ??
+    dealSideError(state, targetId, seat, draft.take, war)
+  );
+}
+
+/**
+ * The line under the paper's title (batch SS6): how long the paper runs.
+ * A peace says when it takes effect; an exchange with a lasting term runs the
+ * deal length (`rules.war.dealTurns`) from this turn; a paper of coin and towns
+ * alone is paid once.
+ */
+export function paperRunsLine(
+  turn: number,
+  peace: boolean,
+  give: DealTerms,
+  take: DealTerms,
+): string {
+  if (peace) return 'A peace ends the war the moment you have both signed it.';
+  if (termsAreEmpty(give) && termsAreEmpty(take)) return 'Nothing on the table';
+  if (!dealIsOngoing(give, take)) return 'Paid once, on signing';
+  const length = RULES.war.dealTurns;
+  return `Runs ${figure(length)} turns, to turn ${figure(turn + length)}`;
 }
 
 /**
@@ -844,7 +1032,7 @@ type CounterQuestion = 'work' | 'give';
 export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: string } {
   if(answer.accepted) return answer.peace
     ? {quote:'Let the fighting end. We have an agreement.',detail:'Peace agreed. The war has ended and the agreed terms have taken effect.'}
-    : {quote:'A fair exchange. My merchants will see it done.',detail:'Agreement signed. You can review its terms in Agreements.'};
+    : {quote:'A fair exchange. My merchants will see it done.',detail:'Agreement signed. Its terms are listed under In force.'};
   if(answer.peace) return {quote:'Not yet. I am not ready to end this war.',detail:'Peace declined. You remain at war; revise the terms below or return later.'};
   if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They have only one copy of ${answer.lastCopy}. Choose another luxury or ask for revised terms.`};
   return {quote:'These terms do not suit us. What else can you offer?',detail:'Offer declined. Add something they need, reduce your request, or ask what would make this work.'};
@@ -946,11 +1134,52 @@ interface DiplomacyScreenOptions {
 
 export interface DiplomacyScreen {
   readonly isOpen: boolean;
-  open(targetId?: number): void;
+  /**
+   * Opens the sheet on a court. `offer` opens one of their offers on the
+   * paper (a bargain's id, or `'peace'`), as the deal notice does (batch SS6).
+   */
+  open(targetId?: number, offer?: number | 'peace'): void;
   close(): void;
   toggle(): void;
   refresh(): void;
   dispose(): void;
+}
+
+/**
+ * A court's shield: cut from the seat's colour, with its charge in the metal
+ * (`heraldryFor`). Two sizes, the rail's and the column's. Exported for the
+ * deal notice by the turn button, so the two places that name a court draw it
+ * the same way (batch SS6).
+ */
+export function courtSeal(state: GameState, playerId: number, size: 'small' | 'large'): HTMLElement {
+  const player = playerById(state, playerId);
+  const inks = seatInks(player);
+  const badge = element('span', `dp-seal is-${size}`);
+  badge.style.setProperty('--court', inks.primary);
+  badge.style.setProperty('--metal', leaderBannerInk(player?.leader, inks.primary, inks.secondary));
+  const mark = element('span', 'dp-seal-mark');
+  mark.style.setProperty(
+    '--charge',
+    `url("${heraldryMarkDataUri(heraldryFor(playerId, player?.charge, player?.leader))}")`,
+  );
+  badge.setAttribute('aria-hidden', 'true');
+  badge.append(mark);
+  return badge;
+}
+
+/**
+ * A court mark (`src/art/courtMarks.ts`) as a span that masks `currentColor`
+ * through the mark, so it takes the ink of the text beside it. Its size is the
+ * board's box, handed to the stylesheet as two custom properties so a rule
+ * may draw it smaller. Exported for the deal notice.
+ */
+export function courtMarkNode(id: CourtMarkId, className: string): HTMLElement {
+  const node = element('span', `court-mark is-${id} ${className}`);
+  node.setAttribute('aria-hidden', 'true');
+  node.style.setProperty('--court-mark', `url("${courtMarkDataUri(id)}")`);
+  node.style.setProperty('--court-mark-w', `${COURT_MARKS[id].width}px`);
+  node.style.setProperty('--court-mark-h', `${COURT_MARKS[id].height}px`);
+  return node;
 }
 
 function button(className: string, label: string): HTMLButtonElement {
@@ -981,6 +1210,20 @@ function readAmount(value: string): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+/**
+ * What the stepper beside a gold field adds or takes away. An interface
+ * convenience, not a rule: any whole figure can be typed.
+ */
+const AMOUNT_STEP = { gold: 10, goldPerTurn: 1 } as const;
+
+/** An offer from the other empire, opened on the paper (batch SS6). */
+type OfferOnPaper = { seatId: number; paper: number | 'peace' };
+
+/** Terms copied, so a draft written from an offer never shares arrays with the register. */
+function copyTerms(terms: DealTerms): DealTerms {
+  return JSON.parse(JSON.stringify(terms)) as DealTerms;
+}
+
 export function createDiplomacyScreen(options: DiplomacyScreenOptions): DiplomacyScreen {
   const { overlay, body, closeButton, trigger } = options;
 
@@ -988,14 +1231,13 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   const drafts = new Map<number, DealDraft>();
 
   /**
-   * Which empire's table the right-hand pane is showing.
+   * Which empire's table the desk is showing.
    *
    * A fact about *this* opening, exactly as the Trade sheet's chooser and sort
    * are: a sheet opened tomorrow starts on the first empire on the roster rather
    * than on whoever the player last argued with.
    */
   let selectedId: number | null = null;
-  let activeView: 'audience'|'agreements' = 'audience';
   let draftSeat = options.getPlayerId();
   let draftGame = options.getState();
 
@@ -1016,6 +1258,46 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   let audiencesAsked = 0;
   /** The counter last brought back, and which question brought it. */
   let counter: { seatId: number; question: CounterQuestion; answer: CounterAnswer } | null = null;
+  /**
+   * The offer open on the paper in place of the draft, or `null` (batch SS6).
+   * "Read" in the right column opens one; answering it, changing its terms or
+   * going back to your own paper puts it away.
+   */
+  let reading: OfferOnPaper | null = null;
+  /**
+   * The gold chips whose amount field is open, by `seat:half:key` (batch SS6).
+   * A field opens empty when the chip is picked, and the term is written only
+   * once a figure above nothing is typed, so "open" cannot be read off the
+   * draft alone.
+   */
+  const openAmounts = new Set<string>();
+  /**
+   * The last refused chip pressed, and the reducer's sentence for it, shown in
+   * its tray under the group that holds the chip.
+   */
+  let refusal: { seatId: number; half: 'give' | 'take'; group: string; text: string } | null = null;
+  /** A control to focus after the next draw, by its `data-focus` key. */
+  let focusAfter: string | null = null;
+  /**
+   * The "Standing and deals" drawer, open or shut (batch SS6). Only a sheet
+   * under 1100 px wide folds the right column into a drawer; a wider sheet
+   * shows the column whatever this says.
+   */
+  let drawerOpen = false;
+  /** The hover label of the shield strip, one per draw. See `showTip`. */
+  let tip: HTMLElement | null = null;
+  /**
+   * While an offer of theirs is open on the paper, its terms are shown in the
+   * trays and on the paper as if they were your draft. The first edit (a chip,
+   * a figure, a ×) makes them your draft: this is that step, set on every
+   * draw, and `null` when no offer is open.
+   */
+  let adoptOffer: (() => void) | null = null;
+
+  /** Turns the open offer into your draft before an edit. See `adoptOffer`. */
+  function takeOffer(): void {
+    adoptOffer?.();
+  }
 
   function draftFor(playerId: number): DealDraft {
     let draft = drafts.get(playerId);
@@ -1026,149 +1308,189 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     return draft;
   }
 
-  /** The empire the pane is drawing: the chosen one, or the first on the sheet. */
+  /** The empire the desk is drawing: the chosen one, or the first on the sheet. */
   function chosenRow(rows: DiplomacyRow[]): DiplomacyRow | null {
     return rows.find((row) => row.playerId === selectedId) ?? rows[0] ?? null;
   }
 
-  function seal(playerId: number): HTMLElement {
-    const player=playerById(options.getState(),playerId);
-    const inks=seatInks(player);
-    const badge=element('span','diplo-seal');
-    badge.style.setProperty('--court',inks.primary);badge.style.setProperty('--metal',leaderBannerInk(player?.leader, inks.primary, inks.secondary));
-    const mark=element('span','diplo-seal-mark');
-    mark.style.setProperty('--charge',`url("${heraldryMarkDataUri(heraldryFor(playerId,player?.charge, player?.leader))}")`);
-    badge.setAttribute('aria-hidden','true');badge.append(mark);return badge;
+  /** Forgets the per-table talk when the player turns to another empire. */
+  function forgetTalk(): void {
+    envoy = null;
+    counter = null;
+    reading = null;
+    refusal = null;
   }
 
-  /** A small counted mark — a figure and what it counts. Never a sentence. */
-  function countMark(count: number, label: string): HTMLElement {
-    const chip = element('span', 'diplo-mark');
-    chip.append(element('span', 'diplo-mark-figure', figure(count)));
-    chip.append(element('span', 'diplo-mark-label', label));
-    return chip;
+  function seal(playerId: number, size: 'small' | 'large'): HTMLElement {
+    return courtSeal(options.getState(), playerId, size);
+  }
+
+  /** A section heading in the sheet's voice, with an optional note at its right. */
+  function heading(text: string, note?: string): HTMLElement {
+    const head = element('h3', 'dp-hd', text);
+    if (note !== undefined) head.append(element('span', 'dp-hd-note', note));
+    return head;
   }
 
   /**
-   * One empire's card in the roster: the swatch and the name, where you stand,
-   * and the one thing about the relation a player must not have to click to
-   * find out (`rosterNote`).
-   *
-   * A button rather than an article, because the roster's whole job in the new
-   * shape is to choose whose table is on the right — the Civ trade sheet's
-   * bones, where the seat you are treating with is picked once and the paper is
-   * written beside it, instead of a bargain unfolding inside a row and pushing
-   * every other empire down the page.
+   * The fact line in the sheet's head: whose screen, the turn, how many courts
+   * are met, and the treasury with its rate (`readEmpire`, the top bar's own
+   * fold). Figures in mono, words in small capitals, as the board draws it.
    */
-  function drawSeatCard(row: DiplomacyRow, active: boolean): HTMLElement {
-    const card = button(`diplo-seat is-${row.relation}${active ? ' is-active' : ''}`, '');
-    card.setAttribute('aria-pressed', String(active));
+  function paintFacts(state: GameState, seat: number, met: number): void {
+    const line = overlay.querySelector<HTMLElement>('.dp-facts');
+    if (!line) return;
+    const gold = playerById(state, seat)?.gold ?? 0;
+    const rate = readEmpire(state, seat).totals.gold;
+    const parts: (string | HTMLElement)[] = [
+      `${seatName(state, seat)} · turn `,
+      element('b', '', figure(state.turn)),
+      ' · ',
+      element('b', '', figure(met)),
+      met === 1 ? ' court met · treasury ' : ' courts met · treasury ',
+      element('b', '', figure(gold)),
+      ' gold, ',
+      element('b', '', signedFigure(rate)),
+      ' a turn',
+    ];
+    line.replaceChildren(...parts);
+  }
 
-    const head = element('span', 'diplo-row-head');
-    const swatch = seal(row.playerId);
-    head.append(swatch);
-    head.append(element('span', 'diplo-name', row.name));
-    // A war seal beside the name says the war (batch SS1, the Ornament board).
-    // Hidden from a screen reader: the status beside it says "at war".
-    if (row.relation === 'war') {
-      const warSeal = element('span', 'diplo-war-seal');
-      warSeal.setAttribute('aria-hidden', 'true');
-      warSeal.style.backgroundImage = `url("${warSealDataUri()}")`;
-      head.append(warSeal);
-    }
-    head.append(element('span','diplo-people',row.people));
-    head.append(element('span', 'diplo-status', row.status));
-    card.append(head);
-
+  /**
+   * One court on the rail: the shield, the name, where you stand, and two
+   * marks. The envelope says an offer from them waits for your answer; the
+   * figure counts the deals in force. Everything a mark stands for is also in
+   * the row's title, with `rosterNote`'s one sentence.
+   */
+  function drawCourt(row: DiplomacyRow, active: boolean): HTMLElement {
+    const court = button(`dp-court is-${row.relation}${active ? ' is-sel' : ''}`, '');
+    court.setAttribute('aria-pressed', String(active));
+    court.dataset.focus = `court:${row.playerId}`;
+    const said = [row.name, row.status];
     const note = rosterNote(row);
-    if (note !== null) card.append(element('span', 'hint diplo-note', note));
-
-    if (row.papers > 0 || row.bargains > 0) {
-      const marks = element('span', 'diplo-marks');
-      if (row.papers > 0) marks.append(countMark(row.papers, 'on the table'));
-      if (row.bargains > 0) marks.append(countMark(row.bargains, 'running'));
-      card.append(marks);
+    if (note !== null) said.push(note);
+    if (row.bargains > 0) said.push(`${figure(row.bargains)} in force`);
+    // The hover label of the strip says the name, the standing and the one
+    // note; the count is the title's alone, as the strip draws no figure.
+    const label = said.slice(0, note !== null ? 3 : 2).map((part) => part.replace(/\.$/, '')).join(' · ');
+    court.title = said.join('. ');
+    court.addEventListener('pointerenter', () => showTip(court, label));
+    court.addEventListener('focus', () => showTip(court, label));
+    court.addEventListener('pointerleave', hideTip);
+    court.addEventListener('blur', hideTip);
+    court.append(seal(row.playerId, 'small'));
+    const names = element('span', 'dp-court-name');
+    names.append(element('b', '', row.name), element('span', 'dp-court-status', row.status));
+    court.append(names);
+    const marks = element('span', 'dp-court-marks');
+    if (row.waiting > 0) {
+      const wait = element('span', 'dp-court-wait');
+      wait.append(courtMarkNode('envelope', 'dp-envelope'));
+      if (row.waiting > 1) wait.append(element('span', 'dp-court-figure', figure(row.waiting)));
+      marks.append(wait);
     }
-
-    card.addEventListener('click', () => {
+    if (row.bargains > 0) marks.append(element('span', 'dp-court-count', figure(row.bargains)));
+    if (marks.childElementCount > 0) court.append(marks);
+    court.addEventListener('click', () => {
       selectedId = row.playerId;
-      activeView='audience';
       // What one empire said is about one table: choosing another empire's puts
       // the last answer away rather than leaving it to be found again later.
-      envoy = null;
-      counter = null;
+      forgetTalk();
       draw();
     });
-    return card;
+    return court;
   }
 
   /**
-   * The left column: every empire this seat has **met**, and nobody else.
+   * The hover label beside a shield, while the rail is the narrow strip of
+   * shields (the board's rule for a sheet under 1100 px wide). One element
+   * for the sheet, placed beside the court it names, because a label inside
+   * the rail would be cut off by the rail's own scroll. At full width the
+   * names are on the rail and no label shows.
+   */
+  function showTip(court: HTMLElement, label: string): void {
+    const names = court.querySelector<HTMLElement>('.dp-court-name');
+    if (!tip || !names || getComputedStyle(names).display !== 'none') return;
+    const box = court.getBoundingClientRect();
+    const frame = body.getBoundingClientRect();
+    tip.textContent = label;
+    tip.style.left = `${box.right - frame.left + 8}px`;
+    tip.style.top = `${box.top - frame.top + box.height / 2}px`;
+    tip.hidden = false;
+  }
+
+  function hideTip(): void {
+    if (tip) tip.hidden = true;
+  }
+
+  /**
+   * The rail: every empire this seat has **met**, and nobody else.
    *
    * `metDiplomacyRows` is the whole of that gate (the user's ruling,
    * 2026-09-03) and it is a reading rather than a rule — see its docblock.
    */
-  function drawRoster(rows: DiplomacyRow[], chosen: DiplomacyRow | null): HTMLElement {
-    const column = element('section', 'sc-column diplo-column');
-    column.append(element('p', 'eyebrow sc-eyebrow', 'Known courts'));
-
-    const scroller = element('div', 'sc-column-body');
+  function drawRail(rows: DiplomacyRow[], chosen: DiplomacyRow | null): HTMLElement {
+    const rail = element('section', 'dp-rail');
+    rail.setAttribute('aria-label', 'The courts');
+    // Two words for one heading: the strip of shields (a sheet under 1100 px
+    // wide) is too narrow for "The courts" and shows "Courts".
+    const head = element('h3', 'dp-hd dp-rail-hd');
+    const short = element('span', 'dp-short', 'Courts');
+    short.setAttribute('aria-hidden', 'true');
+    head.append(element('span', 'dp-long', 'The courts'), short);
+    rail.append(head);
+    const list = element('div', 'dp-rail-list');
+    list.dataset.scroll = 'rail';
     if (rows.length === 0) {
-      scroller.append(
+      list.append(
         element(
           'p',
-          'sc-none',
+          'dp-none',
           'You have met nobody yet. Send somebody out to look: an empire whose land, ' +
             'town or people you find appears here.',
         ),
       );
     }
-    for (const row of rows) {
-      scroller.append(drawSeatCard(row, row.playerId === chosen?.playerId));
-    }
-    column.append(scroller);
-
-    const foot = element('div', 'diplo-foot');
-    const seat = options.getPlayerId();
-    const stock=dealSide(options.getState(),seat,chosen?.playerId??seat,false,seat).stock;
-    foot.append(element('p','eyebrow','Your luxuries'));
-    foot.append(element('p','diplo-stock',`${figure(stock.kinds)} kinds · ${figure(stock.copies)} copies`));
-    // The hint says what the rows' own figure counts (batch R4). "A spare is a
-    // copy you can offer while keeping one" described the old `held − 1` note
-    // and would now describe nothing on the screen.
-    foot.append(element('p','hint','Only luxuries cross a table — a strategic resource cannot be traded. Counts include active exchanges, and what you can offer is what none of your own units is already using.'));
-    column.append(foot);
-    return column;
+    for (const row of rows) list.append(drawCourt(row, row.playerId === chosen?.playerId));
+    rail.append(list);
+    return rail;
   }
 
   /**
-   * The head of the right pane: whose table this is, and the two verbs that
-   * change the relation itself.
-   *
-   * A refused verb is **drawn and disabled with its reason on the hover**
-   * rather than hidden, which is this interface's rule everywhere a gate exists
-   * (the Trade sheet's greyed rows, the city panel's greyed buys): a button
-   * that vanishes is a rule a player cannot learn.
+   * The head of the right column: whose court this is, and where you stand
+   * with them. Relation, the two borders (`bordersOpenTo`), and the war
+   * weariness your losses to them cost (`wearinessLine`) when they cost any.
    */
   function drawTableHead(row: DiplomacyRow): HTMLElement {
-    const head = element('header', `diplo-head is-${row.relation}`);
-
-    const titles = element('div', 'diplo-head-titles');
-    const line = element('p', 'diplo-head-line');
-    const swatch = seal(row.playerId);
-    line.append(swatch);
-    line.append(element('span', 'diplo-head-name', row.name));
-    titles.append(line);
-    // The people is a fact under the name, not a label over it (batch SS1).
-    titles.append(element('p','eyebrow title-fact',`The court of the ${row.people}`));
-    titles.append(element('p', 'diplo-head-status', row.status));
+    const state = options.getState();
+    const seat = options.getPlayerId();
+    const head = element('header', `dp-who-block is-${row.relation}`);
+    const who = element('div', 'dp-who');
+    who.append(seal(row.playerId, 'large'));
+    const names = element('div', 'dp-who-names');
+    names.append(element('h3', 'dp-rname', row.name), element('p', 'dp-people', `the ${row.people}`));
+    who.append(names);
+    head.append(who);
+    const lines = element('div', 'dp-lns');
+    const line = (label: string, value: string, className = ''): void => {
+      const node = element('div', `dp-ln${className}`);
+      node.append(element('span', '', label), element('b', '', value));
+      lines.append(node);
+    };
+    line('Relation', row.status, ` is-${row.relation}`);
+    line('Their borders', bordersOpenTo(state, row.playerId, seat) ? 'Open to you' : 'Closed to you');
+    line('Your borders', bordersOpenTo(state, seat, row.playerId) ? 'Open to them' : 'Closed to them');
     const weary = wearinessLine(row);
-    if (weary !== null) titles.append(element('p', 'diplo-head-weariness', weary));
-    head.append(titles);
+    if (weary !== null) lines.append(element('p', 'dp-weary', weary));
+    head.append(lines);
+    return head;
+  }
 
-    const verbs = element('div', 'diplo-row-verbs');
-
-    const declare = button('btn btn-quiet btn-tiny', 'Declare war');
+  /** Declare war, with the confirm the ruling asks for. `key` keeps the focus. */
+  function declareButton(row: DiplomacyRow, key: string): HTMLButtonElement {
+    const declare = button('btn dp-btn is-war', '');
+    declare.dataset.focus = key;
+    declare.append(courtMarkNode('war', 'dp-war-mark'), document.createTextNode('Declare war'));
     if (row.declareError !== null) {
       declare.disabled = true;
       declare.title = row.declareError;
@@ -1177,224 +1499,496 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       declare.addEventListener('click', () => {
         options.askConfirm(declareConfirm(row.people), () => {
           options.declareWar(row.playerId);
+          forgetTalk();
           draw();
         });
       });
     }
-    if(row.relation!=='war')verbs.append(declare);
+    return declare;
+  }
 
-    const peace = button(
-      row.theyOffered && !row.weOffered ? 'btn btn-primary btn-tiny' : 'btn btn-quiet btn-tiny',
-      peaceButtonLabel(row),
-    );
-    if (row.peaceError !== null) {
-      peace.disabled = true;
-      peace.title = row.peaceError;
-    } else {
-      const standing = !row.weOffered;
-      peace.title = standing
-        ? 'Put a standing offer of peace on the table'
-        : 'Take your offer back off the table';
-      peace.addEventListener('click', () => {
-        options.offerPeace(row.playerId, standing);
-        // A peace put up is a paper like any other, and it is answered at once
-        // (§12). Taking one back is not a question, so nobody is asked.
-        if (standing) askAudienceFor(row.playerId, true);
+  /** The first offer from them that waits for an answer, for the fold line's Read. */
+  function firstWaiting(row: DiplomacyRow, model: DealPanelModel): number | 'peace' | null {
+    if (row.theyOffered && !row.weOffered) return 'peace';
+    return model.proposals.find((paper) => !paper.mine)?.id ?? null;
+  }
+
+  /**
+   * The right column folded into one line above the desk, for a sheet under
+   * 1100 px wide (batch SS6): the court's shield, name and standing, the
+   * "Standing and deals" button that opens the column as a drawer over their
+   * tray, a note when an offer waits, and Declare war. A wider sheet hides
+   * this line and shows the column.
+   */
+  function drawFold(row: DiplomacyRow, model: DealPanelModel): HTMLElement {
+    const fold = element('div', `dp-fold is-${row.relation}`);
+    fold.append(seal(row.playerId, 'small'), element('h3', 'dp-fold-name', row.name));
+    fold.append(element('span', 'dp-fold-sub', `the ${row.people} · ${row.status}`));
+    const open = button(`dp-fchip is-button${drawerOpen ? ' is-on' : ''}`, '');
+    open.dataset.focus = 'drawer';
+    open.setAttribute('aria-expanded', String(drawerOpen));
+    open.setAttribute('aria-controls', 'diplomacy-standing');
+    open.append(element('span', '', 'Standing and deals'), element('b', '', figure(model.active.length)), courtMarkNode('arrow', 'dp-arrow'));
+    open.title = `${figure(model.active.length)} in force`;
+    open.addEventListener('click', () => {
+      drawerOpen = !drawerOpen;
+      focusAfter = drawerOpen ? 'drawer-close' : 'drawer';
+      draw();
+    });
+    fold.append(open);
+    const waiting = firstWaiting(row, model);
+    if (waiting !== null) {
+      const read = button('dp-fchip is-wait', '');
+      read.dataset.focus = 'fold-read';
+      read.append(courtMarkNode('envelope', 'dp-envelope'), element('span', '', row.waiting > 1 ? `${figure(row.waiting)} offers waiting` : 'Offer waiting'), element('u', '', 'Read'));
+      read.addEventListener('click', () => {
+        reading = { seatId: row.playerId, paper: waiting };
+        drawerOpen = false;
         draw();
       });
+      fold.append(read);
     }
-    if(row.relation==='war' && (row.weOffered || row.theyOffered)) verbs.append(peace);
-    head.append(verbs);
-    return head;
+    if (row.relation !== 'war') {
+      const declare = declareButton(row, 'fold-declare');
+      declare.classList.add('is-quiet-war');
+      fold.append(declare);
+    }
+    return fold;
   }
 
   /**
-   * The right pane: one empire's table, in three columns.
-   *
-   * The shape the user asked for (2026-09-03: *"steal inspiration from civ and
-   * make our trade screen a bit more similar"*): what you may offer on the left,
-   * what they may offer on the right, and **the paper being written between
-   * them** — which is the half the old panel did not draw at all. A player
-   * ticking boxes in two columns could not read back what they had built until
-   * they had sent it.
-   *
-   * Every greyed control carries the simulation's own sentence on its hover
-   * (`dealPanel`), and every write is a command handed out through `options` —
-   * this file never touches the state, which is the bargain
-   * `diplomacyScreen.test.ts` pins by reading the source.
+   * The act tabs over the desk. Exchange is the act at peace and Peace terms
+   * the act at war; the other is drawn greyed with the reducer's sentence, so
+   * a player can see both exist. The row has room for the acts to come.
    */
-  function drawTable(row: DiplomacyRow | null): HTMLElement {
-    const pane = element('div', 'sc-pane diplo-table');
-    if (row === null) {
-      pane.append(element('p', 'sc-none', 'There is nobody to bargain with yet.'));
-      return pane;
+  function drawActs(row: DiplomacyRow, model: DealPanelModel): HTMLElement {
+    const acts = element('nav', 'dp-acts');
+    acts.setAttribute('aria-label', 'Acts');
+    const exchange = button(`dp-act${model.peace ? ' is-off' : ' is-cur'}`, 'Exchange');
+    const peace = button(`dp-act${model.peace ? ' is-cur' : ' is-off'}`, 'Peace terms');
+    exchange.setAttribute('aria-current', model.peace ? 'false' : 'true');
+    peace.setAttribute('aria-current', model.peace ? 'true' : 'false');
+    if (model.peace) {
+      exchange.setAttribute('aria-disabled', 'true');
+      exchange.title =
+        bargainSeatError(options.getState(), options.getPlayerId(), row.playerId) ?? 'Not at war';
+    } else {
+      peace.setAttribute('aria-disabled', 'true');
+      peace.title = row.peaceError ?? 'Not at war';
     }
-    const state = options.getState();
-    const seat = options.getPlayerId();
-    const model = dealPanel(state, seat, row.playerId);
-    const draft = draftFor(row.playerId);
-
-    trimTownTerms(draft.give,model.yours.cities);trimTownTerms(draft.take,model.theirs.cities);
-    pane.append(drawTableHead(row));
-    if(model.peace) pane.append(element('p','diplo-war-notice',`At war with the ${row.people}. Your forces may be attacked immediately. Peace requires agreement from both sides.`));
-    const tabs=element('nav','diplo-tabs');tabs.setAttribute('aria-label','Diplomacy sections');
-    for(const tab of ['audience','agreements'] as const) {
-      const label=tab==='audience'?(model.peace?'Peace negotiations':'Audience & trade'):`Agreements ${figure(model.active.length)}${model.proposals.length||model.peacePaper?' · Offer waiting':''}`;
-      const action=button('',label);action.setAttribute('aria-current',activeView===tab?'page':'false');
-      action.addEventListener('click',()=>{activeView=tab;draw();});tabs.append(action);
-    }
-    pane.append(tabs);
-    if(activeView==='agreements') {pane.append(drawPapers(model,row));pane.append(element('p','hint',dealFootSentence()));return pane;}
-    const dialogue=element('div','diplo-dialogue');dialogue.setAttribute('role','status');dialogue.setAttribute('aria-live','polite');
-    let quote=model.peace?'You have my attention. Speak.':'Let us put something useful on the table.';
-    let detail=model.peace?'You may include towns in the terms. Nothing changes hands until peace is agreed.':'Choose a luxury on either side to add one copy to the offer.';
-    let label='In audience';
-    if(considering===row.playerId) {
-      quote='One moment. Let me consider it.';detail='Their answer will appear here.';
-    } else if(envoy?.seatId===row.playerId) {
-      ({quote,detail}=audienceCopy(envoy.answer));label=envoy.answer.accepted?'Agreement reached':'Offer declined';
-    } else if(counter?.seatId===row.playerId) {
-      label='Their answer';quote=counter.answer.terms?'These are terms I could agree to.':model.peace?'I am not ready to offer terms.':'There is no exchange I can offer you today.';
-      detail=counter.answer.terms?'The proposed terms are on the table. You can edit them before sending.':'No counteroffer was made. You can revise your offer or return later.';
-    }
-    dialogue.append(element('p','eyebrow',label),element('blockquote','',`“${quote}”`),element('p','hint',detail));pane.append(dialogue);
-    if(model.peacePaper||model.proposals.length) {
-      // An incoming paper remains readable before any acceptance, even on the audience tab.
-      const standing=drawPapers({...model,active:[]},row);pane.append(standing);
-    }
-    const title=element('div','diplo-trade-title');title.append(element('h3','',model.peace?'Terms for peace':'Build an exchange'));
-    title.append(element('p','hint',model.peace?'Towns transfer permanently if peace is agreed.':'Gold is paid once; recurring terms expire as shown in Agreements.'));pane.append(title);
-    const board = element('div', 'diplo-board');
-    board.append(drawSide(model, model.yours, draft, 'give', 'You offer'));
-    board.append(drawSide(model, model.theirs, draft, 'take', 'You receive'));
-    board.append(drawMiddle(state, model, draft, row));
-    pane.append(board);
-    return pane;
+    acts.append(exchange, peace);
+    return acts;
   }
 
-  /** A titled block inside one side of the table. */
-  function group(title: string): HTMLElement {
-    const block = element('section', 'diplo-group');
-    block.append(element('p', 'eyebrow diplo-group-head', title));
-    return block;
+  /** A titled group of chips inside a tray. */
+  function group(label: string, note: string | null, className: string): { block: HTMLElement; chips: HTMLElement } {
+    const block = element('section', `dp-group ${className}`);
+    const head = element('p', 'dp-gl');
+    head.append(element('span', '', label));
+    if (note !== null) head.append(element('span', 'dp-gl-note', note));
+    block.append(head);
+    const chips = element('div', 'dp-chips');
+    block.append(chips);
+    return { block, chips };
   }
 
   /**
-   * One side of the table: everything that empire may put on it, in the order a
-   * treaty is read out — coin, then seams, then rights, then towns.
+   * One side's tray: everything that empire may put on the table, as chips,
+   * in the board's order. Gold and rights first, then luxuries (only this
+   * group scrolls when a side has more than fit), then towns.
    *
    * Every group is drawn even when it is empty, and an empty one says why. A
-   * column that dropped its own headings would be a different shape on every
+   * tray that dropped its own headings would be a different shape on every
    * relation, and a player could never learn where to look for a thing.
    */
-  function drawSide(
+  function drawTray(
+    row: DiplomacyRow,
     model: DealPanelModel,
     side: DealSideModel,
     draft: DealDraft,
     half: 'give' | 'take',
-    heading: string,
   ): HTMLElement {
     const terms = draft[half];
-    const column = element('div', 'diplo-side');
+    const tray = element('section', `dp-tray is-${half}`);
+    tray.setAttribute('aria-label', half === 'give' ? 'You can give' : 'They can give');
+    const head = element('div', 'dp-colh');
+    head.append(element('b', '', half === 'give' ? 'You can give' : 'They can give'), element('span', '', side.name));
+    tray.append(head);
 
-    const head = element('div', 'diplo-side-head');
-    head.append(element('p','eyebrow',heading));
-    head.append(element('h4', 'diplo-side-name', side.name));
-    head.append(element('p','diplo-stock',`${figure(side.stock.kinds)} kinds · ${figure(side.stock.copies)} luxury copies`));
-    head.append(element('span', 'diplo-side-purse', `${figure(side.gold)} in hand`));
-    column.append(head);
+    const coin = group('Gold', `${figure(side.gold)} in hand`, 'is-gold');
+    coin.chips.append(amountChip(row, model, side, draft, half, 'gold', 'Gold, once', null));
+    coin.chips.append(
+      amountChip(row, model, side, draft, half, 'goldPerTurn', 'Gold a turn', `${figure(RULES.war.dealTurns)} turns`),
+    );
+    tray.append(coin.block);
 
-    const coin = group('coin');
-    coin.append(
-      amountField('Gold', terms.gold ?? 0, (value) => {
-        // Presence is the state on a term, exactly as it is in the register:
-        // a zero is *deleted* rather than written, so a paper with nothing on
-        // this line is the empty object it would have been.
-        if (value > 0) terms.gold = value;
-        else delete terms.gold;
+    const rights = group('Rights', null, 'is-rights');
+    rights.chips.append(
+      choiceChip(row, half, side.openBorders, 'openBorders', terms.openBorders === true, half === 'give' ? 'they may cross' : 'you may cross', (on) => {
+        if (on) terms.openBorders = true;
+        else delete terms.openBorders;
       }),
     );
-    coin.append(
-      amountField('Gold a turn', terms.goldPerTurn ?? 0, (value) => {
-        if (value > 0) terms.goldPerTurn = value;
-        else delete terms.goldPerTurn;
-      }),
-    );
-    // Coin follows the resource and town choices below.
+    tray.append(rights.block);
 
-    const seams = group('luxuries');
-    if (side.luxuries.length === 0) {
-      seams.append(element('p', 'hint diplo-none', 'No luxuries held.'));
+    const towns = group('Towns', model.peace ? 'given for good' : 'only in a peace', 'is-towns');
+    if (model.peace) {
+      if (side.cities.length === 0) towns.chips.append(element('p', 'dp-hid', 'There is no town to give.'));
+      for (const choice of side.cities) {
+        const cityId = choice.cityId;
+        if (cityId === undefined) continue;
+        towns.chips.append(
+          choiceChip(row, half, choice, `city:${cityId}`, (terms.cities ?? []).includes(cityId), null, (on) => {
+            const held = (terms.cities ?? []).filter((kept) => kept !== cityId);
+            if (on) held.push(cityId);
+            if (held.length > 0) terms.cities = held;
+            else delete terms.cities;
+          }),
+        );
+      }
+      towns.chips.dataset.scroll = `towns:${half}`;
+      tray.append(towns.block);
     }
+
+    const seams = group('Luxuries', `one copy, lent ${figure(RULES.war.dealTurns)} turns`, 'is-luxuries');
+    seams.block.title = 'Only luxuries cross a table: a strategic resource cannot be traded.';
+    seams.chips.dataset.scroll = `luxuries:${half}`;
+    if (side.luxuries.length === 0) seams.chips.append(element('p', 'dp-hid', 'No luxuries held.'));
     for (const choice of side.luxuries) {
       const id = choice.id;
       if (id === undefined) continue;
-      seams.append(
-        checkRow(choice, (terms.luxuries ?? []).includes(id), (on) => {
-          const held = (terms.luxuries ?? []).filter((held) => held !== id);
+      seams.chips.append(
+        choiceChip(row, half, choice, `luxury:${id}`, (terms.luxuries ?? []).includes(id), null, (on) => {
+          const held = (terms.luxuries ?? []).filter((kept) => kept !== id);
           if (on) held.push(id);
           if (held.length > 0) terms.luxuries = held;
           else delete terms.luxuries;
         }),
       );
     }
-    column.append(seams);
+    const hidden = hiddenLuxuriesLine(side.hidden);
+    if (hidden !== null) seams.chips.append(element('p', 'dp-hid', hidden));
+    tray.append(seams.block);
 
-    const rights = group('rights');
-    rights.append(
-      checkRow(side.openBorders, terms.openBorders === true, (on) => {
-        if (on) terms.openBorders = true;
-        else delete terms.openBorders;
-      }),
-    );
-    column.append(rights);
+    if (!model.peace) tray.append(towns.block);
 
-    const towns = group('towns');
-    if (!model.peace) {
-      towns.append(element('p', 'hint diplo-none', 'Towns change hands only in a peace.'));
-    } else if (side.cities.length === 0) {
-      towns.append(element('p', 'hint diplo-none', 'There is no town to give.'));
+    if (refusal !== null && refusal.seatId === row.playerId && refusal.half === half) {
+      const say = element('p', 'dp-say', refusal.text);
+      say.setAttribute('role', 'status');
+      const under = tray.querySelector(`.dp-group.${refusal.group}`);
+      if (under) under.after(say);
+      else tray.append(say);
     }
-    for (const choice of side.cities) {
-      const cityId = choice.cityId;
-      if (cityId === undefined) continue;
-      towns.append(
-        checkRow(choice, (terms.cities ?? []).includes(cityId), (on) => {
-          const held = (terms.cities ?? []).filter((kept) => kept !== cityId);
-          if (on) held.push(cityId);
-          if (held.length > 0) terms.cities = held;
-          else delete terms.cities;
-        }),
-      );
-    }
-    if(model.peace) {column.insertBefore(towns,seams);towns.append(element('p','hint','Towns and their territory change owner permanently.'));}
-    column.append(coin);
-    return column;
+    return tray;
   }
 
   /**
-   * The middle column: the paper as it stands, and the button that sends it.
+   * One chip for a term a side may put on the table: a luxury, the right of
+   * way, or a town.
    *
-   * `termLines` is the same function the standing papers and the running
-   * bargains are printed with, so what a player reads while writing a bargain is
-   * word for word what the other seat will read when it lands.
+   * A luxury chip carries its mark, its name and the copies it can offer, and
+   * a short note: "last" on a last copy, and the turns left on a copy the
+   * other side holds only on loan (the luxury rule, batch SS4). A chip the
+   * other side holds on loan is greyed, and still picked like any other,
+   * because a copy lent now still counts when that loan ends. Picked, it names
+   * the lender as well. The whole sentence is in its title.
+   *
+   * A chip the reducer refuses (`dealSideError`, `openBordersError`, a seat of
+   * government) cannot be picked: a press shows the reducer's sentence in the
+   * tray instead. It stays focusable, so a keyboard can reach the reason.
    */
-  function drawMiddle(
-    state: GameState,
-    model: DealPanelModel,
-    draft: DealDraft,
+  function choiceChip(
     row: DiplomacyRow,
+    half: 'give' | 'take',
+    choice: DealChoice,
+    key: string,
+    checked: boolean,
+    hint: string | null,
+    write: (on: boolean) => void,
   ): HTMLElement {
-    const middle = element('div', 'diplo-middle');
-    middle.append(element('p', 'eyebrow diplo-group-head', 'on the table'));
+    const picked = checked && choice.error === null;
+    const chip = button(`dp-chip${picked?' is-on':''}${choice.error!==null?' is-refused':''}${choice.onLoan?' is-greyed':''}`, '');
+    chip.dataset.focus = `chip:${half}:${key}`;
+    chip.setAttribute('aria-pressed', String(picked));
+    if (choice.id !== undefined) chip.append(resourceMarkNode(choice.id));
+    chip.append(element('span', 'dp-chip-name', choice.label));
+    const titles: string[] = [];
+    let short: string | null = hint;
+    if (choice.copies !== undefined) {
+      // **The figure is what can be offered, not what is held** (batch R4,
+      // ruling 4: "only trade away available copies"). `spare` is
+      // `lendableCopies`, which is `dealSideError`'s own reading, so the chip
+      // and the refusal are one answer. The held count is in the title when
+      // the two differ ("2 held" for one own copy and one borrowed). "last"
+      // reads the held count: giving this copy leaves none.
+      const spare = choice.spare ?? choice.copies;
+      chip.append(element('b', 'dp-chip-count', figure(spare)));
+      // A refused chip says why in the reducer's own words (`dealSideError`).
+      const note = choice.error !== null ? choice.error
+        : spare < 1 ? 'None to offer'
+        : choice.copies === 1 ? 'Last copy'
+        : spare < choice.copies ? `${figure(choice.copies)} held`
+        : null;
+      if (note !== null) titles.push(note);
+      if (choice.copies === 1 && choice.error === null) short = 'last';
+      // The luxury rule's two notes (batch SS4): the other side holds it only
+      // on loan (the chip is greyed), or the giver's own copy is borrowed.
+      if (choice.borrowed && choice.borrowedTurns !== undefined) {
+        short = loanTurnsMark(choice.borrowedTurns);
+        titles.push(loanSentence(choice.borrowed));
+      }
+      if (choice.onLoan && choice.onLoanTurns !== undefined) {
+        short = loanTurnsMark(choice.onLoanTurns);
+        if (picked) short += ` · ${choice.onLoan.parts.map((part) => part.from).join(', ')}`;
+        titles.push(loanSentence(choice.onLoan));
+      }
+    } else if (choice.population !== undefined) {
+      chip.append(element('b', 'dp-chip-count', figure(choice.population)));
+      titles.push(choice.error ?? `Population ${figure(choice.population)}`);
+    } else if (choice.error !== null) {
+      titles.push(choice.error);
+    }
+    if (short !== null) chip.append(element('i', 'dp-chip-note', short));
+    if (titles.length > 0) chip.title = titles.join('. ');
+    if (choice.error !== null) {
+      chip.setAttribute('aria-disabled', 'true');
+      chip.addEventListener('click', () => {
+        const group = key.startsWith('luxury:') ? 'is-luxuries' : key.startsWith('city:') ? 'is-towns' : 'is-rights';
+        refusal = { seatId: row.playerId, half, group, text: choice.error ?? '' };
+        draw();
+      });
+    } else {
+      chip.addEventListener('click', () => {
+        takeOffer();
+        write(!picked);
+        refusal = null;
+        draw();
+      });
+    }
+    return chip;
+  }
 
-    const paper = element('article', 'diplo-paper is-draft');
-    paper.append(drawHalf('You give', termLines(state, draft.give)));
-    paper.append(drawHalf('You receive', termLines(state, draft.take)));
-    middle.append(paper);
+  /**
+   * A gold chip. Gold is not on or off, so the chip opens a small amount field
+   * when picked: a stepper and a typed figure, read with `readAmount` as the
+   * old fields were. A figure the reducer refuses (more than the treasury
+   * holds) marks the chip with `coinTermError`'s sentence. Pressing the chip's
+   * name again takes the gold back off the paper.
+   */
+  function amountChip(
+    row: DiplomacyRow,
+    model: DealPanelModel,
+    side: DealSideModel,
+    draft: DealDraft,
+    half: 'give' | 'take',
+    key: 'gold' | 'goldPerTurn',
+    label: string,
+    note: string | null,
+  ): HTMLElement {
+    const terms = draft[half];
+    const value = terms[key] ?? 0;
+    const openKey = `${row.playerId}:${half}:${key}`;
+    const focusKey = `amount:${half}:${key}`;
+    if (value <= 0 && !openAmounts.has(openKey)) {
+      const chip = button('dp-chip is-amount', '');
+      chip.dataset.focus = `chip:${half}:${key}`;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.append(element('span', 'dp-chip-name', label));
+      if (note !== null) chip.append(element('i', 'dp-chip-note', note));
+      chip.addEventListener('click', () => {
+        takeOffer();
+        openAmounts.add(openKey);
+        refusal = null;
+        focusAfter = focusKey;
+        draw();
+      });
+      return chip;
+    }
+    const receiver = half === 'give' ? row.playerId : options.getPlayerId();
+    const errorOf = (amount: number): string | null =>
+      amount > 0 ? coinTermError(options.getState(), side.playerId, receiver, key, amount, model.peace) : null;
+    const wrap = element('span', 'dp-chip is-amount is-on is-open');
+    const mark = (amount: number): void => {
+      const error = errorOf(amount);
+      wrap.classList.toggle('is-refused', error !== null);
+      wrap.title = error ?? '';
+    };
+    // Presence is the state on a term, exactly as it is in the register: a
+    // zero is *deleted* rather than written, so a paper with nothing on this
+    // line is the empty object it would have been.
+    const write = (amount: number): void => {
+      if (amount > 0) terms[key] = amount;
+      else delete terms[key];
+    };
+    const name = button('dp-chip-toggle', label);
+    name.dataset.focus = `chip:${half}:${key}`;
+    name.setAttribute('aria-pressed', 'true');
+    name.title = 'Take it off the paper';
+    name.addEventListener('click', () => {
+      takeOffer();
+      delete terms[key];
+      openAmounts.delete(openKey);
+      draw();
+    });
+    const less = button('dp-step', '−');
+    less.setAttribute('aria-label', `Less ${label.toLowerCase()}`);
+    less.dataset.focus = `less:${half}:${key}`;
+    less.disabled = value <= 0;
+    less.addEventListener('click', () => {
+      takeOffer();
+      write(Math.max(0, (terms[key] ?? 0) - AMOUNT_STEP[key]));
+      draw();
+    });
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.value = value > 0 ? String(value) : '';
+    input.className = 'dp-amount';
+    input.dataset.focus = focusKey;
+    input.setAttribute('aria-label', label);
+    // No full redraw on input, deliberately: rebuilding the sheet under a
+    // cursor is how a number field loses focus mid-figure. The paper beside it
+    // is redrawn, so the clause and the propose control follow every figure.
+    input.addEventListener('input', () => {
+      const amount = readAmount(input.value);
+      takeOffer();
+      write(amount);
+      mark(amount);
+      less.disabled = amount <= 0;
+      repaintPaper();
+    });
+    const more = button('dp-step', '+');
+    more.setAttribute('aria-label', `More ${label.toLowerCase()}`);
+    more.dataset.focus = `more:${half}:${key}`;
+    more.addEventListener('click', () => {
+      takeOffer();
+      write((terms[key] ?? 0) + AMOUNT_STEP[key]);
+      draw();
+    });
+    wrap.append(name, less, input, more);
+    // The note ("20 turns") moves to the title while the field is open, so the
+    // open chip still fits a tray at the narrowest sheet.
+    if (note !== null) name.title = `Take it off the paper. ${note}`;
+    mark(value);
+    return wrap;
+  }
 
+  /** One side's clauses on the paper, each with the × that takes it back. */
+  function clauseList(heading: string, items: TermItem[], half: 'give' | 'take', draft: DealDraft | null): HTMLElement {
+    const block = element('div', 'dp-cl');
+    block.append(element('p', 'dp-cl-head', heading));
+    const list = element('ul', 'dp-clauses-list');
+    if (items.length === 0) list.append(element('li', 'is-nil', 'Nothing'));
+    for (const item of items) {
+      const line = element('li', '');
+      line.append(element('span', 'dp-clause', item.text));
+      if (draft !== null) {
+        const take = button('dp-strike', '×');
+        take.setAttribute('aria-label', `Take ${item.text} off the paper`);
+        take.dataset.focus = `clause:${half}:${item.key}`;
+        take.addEventListener('click', () => {
+          takeOffer();
+          removeTerm(draft[half], item.key);
+          if (item.key === 'gold' || item.key === 'goldPerTurn') {
+            openAmounts.delete(`${selectedId ?? ''}:${half}:${item.key}`);
+          }
+          draw();
+        });
+        line.append(take);
+      }
+      list.append(line);
+    }
+    block.append(list);
+    return block;
+  }
+
+  /**
+   * The verdict line at the paper's foot: the envoy's last word. While their
+   * answer is on its way it says so; after a paper it is the answer; after a
+   * counter question it is what they would sign. The longer sentence under
+   * each answer (`audienceCopy`) is the line's title.
+   */
+  function drawVerdict(row: DiplomacyRow, model: DealPanelModel): HTMLElement {
+    let label = 'Their last word';
+    let quote = model.peace ? 'You have my attention. Speak.' : 'Let us put something useful on the table.';
+    let detail = model.peace
+      ? 'You may include towns in the terms. Nothing changes hands until peace is agreed.'
+      : 'Choose a luxury on either side to add one copy to the offer.';
+    if (considering === row.playerId) {
+      label = 'Their answer';
+      quote = 'One moment. Let me consider it.';
+      detail = 'Their answer will appear here.';
+    } else if (envoy?.seatId === row.playerId) {
+      ({ quote, detail } = audienceCopy(envoy.answer));
+      label = envoy.answer.accepted ? 'Agreement reached' : 'Offer declined';
+    } else if (counter?.seatId === row.playerId) {
+      label = 'Their answer';
+      quote = counter.answer.terms
+        ? 'These are terms I could agree to.'
+        : model.peace
+          ? 'I am not ready to offer terms.'
+          : 'There is no exchange I can offer you today.';
+      detail = counter.answer.terms
+        ? 'The proposed terms are on the table. You can edit them before sending.'
+        : 'No counteroffer was made. You can revise your offer or return later.';
+    }
+    const word = element('div', `dp-word${envoy?.seatId === row.playerId && !envoy.answer.accepted ? ' is-declined' : ''}`);
+    word.setAttribute('role', 'status');
+    word.setAttribute('aria-live', 'polite');
+    word.title = detail;
+    word.append(element('span', 'dp-word-label', label), element('p', 'dp-quote', `“${quote}”`));
+    return word;
+  }
+
+  /**
+   * The paper between the trays: the deal as it stands, and the control that
+   * sends it, fixed at the foot.
+   *
+   * `termItems` gives the same words `termLines` prints for the standing papers
+   * and the deals in force, so what a player reads while writing a bargain is
+   * word for word what the other seat will read when it lands. Each clause has
+   * a × that takes it back off the table.
+   */
+  function drawPaper(state: GameState, model: DealPanelModel, draft: DealDraft, row: DiplomacyRow): HTMLElement {
+    if (reading !== null && reading.seatId === row.playerId) {
+      const offer = drawOffer(state, model, row, reading.paper, draft);
+      if (offer !== null) return offer;
+      reading = null;
+    }
+    const paper = element('article', 'dp-paper');
+    paper.setAttribute('aria-label', 'The paper');
+    paper.append(
+      element('h3', 'dp-paper-title', model.peace ? `Peace with the ${row.people}` : `An exchange with the ${row.people}`),
+      element('p', `dp-runs${model.peace ? ' is-sentence' : ''}`, paperRunsLine(state.turn, model.peace, draft.give, draft.take)),
+    );
+    const clauses = element('div', 'dp-clauses');
+    clauses.dataset.scroll = 'paper';
+    clauses.append(clauseList(`${model.yours.name} gives`, termItems(state, draft.give), 'give', draft));
+    clauses.append(clauseList(`${model.theirs.name} gives`, termItems(state, draft.take), 'take', draft));
+    paper.append(clauses);
+
+    const foot = element('div', 'dp-docfoot');
+    foot.append(drawVerdict(row, model));
     const empty = termsAreEmpty(draft.give) && termsAreEmpty(draft.take);
-    const send = button('btn btn-primary btn-tiny', dealButtonLabel(model, empty));
+    const refused = empty ? null : draftError(state, options.getPlayerId(), row.playerId, draft, model.peace);
+    const note = model.blocked ?? refused;
+    if (note !== null) foot.append(element('p', 'dp-say', note));
+    const last = model.yours.luxuries.filter((c) => c.copies === 1 && c.id && (draft.give.luxuries ?? []).includes(c.id));
+    if (last.length) {
+      foot.append(
+        element(
+          'p',
+          'dp-warn',
+          `You are offering your last copy of ${last.map((c) => c.label).join(', ')}. You will lose access while the exchange runs.`,
+        ),
+      );
+    }
+
+    const verbs = element('div', 'dp-btns');
+    const send = button('btn dp-btn is-primary', dealButtonLabel(model, empty));
+    send.dataset.focus = 'send';
     if (model.blocked !== null) {
       send.disabled = true;
       send.title = model.blocked;
@@ -1404,49 +1998,210 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     } else if (empty && !model.peace) {
       send.disabled = true;
       send.title = 'Put something on the table first';
+    } else if (refused !== null) {
+      send.disabled = true;
+      send.title = refused;
     } else {
+      if (model.peace) {
+        send.title =
+          'These terms become the peace. Writing new terms takes back whatever either of you had already signed.';
+      }
       send.addEventListener('click', () => {
-        const prior=new Set(options.getState().dealProposals.map(p=>p.id));
+        const prior = new Set(options.getState().dealProposals.map((p) => p.id));
         if (model.peace) options.offerPeace(row.playerId, true, { give: draft.give, take: draft.take });
         else options.proposeDeal(row.playerId, draft.give, draft.take);
         // **The answer, at once** (§12). The paper has just been logged, so the
         // empire it was put to is asked before anything else happens — which is
         // the whole of the audience: a player who proposes gets an answer while
         // they are still standing at the table.
-        if(model.peace || options.getState().dealProposals.some(p=>p.by===options.getPlayerId()&&p.to===row.playerId&&!prior.has(p.id)))askAudienceFor(row.playerId, model.peace, true);
+        if (model.peace || options.getState().dealProposals.some((p) => p.by === options.getPlayerId() && p.to === row.playerId && !prior.has(p.id))) {
+          askAudienceFor(row.playerId, model.peace, true);
+        }
         draw();
       });
     }
-    middle.append(send);
-
-    middle.append(drawCounterVerbs(model, draft, row));
-
+    verbs.append(send);
+    verbs.append(...drawCounterVerbs(model, draft, row));
     // Clearing is the interface's own verb and the only one on this sheet that
     // is: the draft is not a command and nothing in the simulation has heard of
     // it, so taking it back off the table asks nobody's permission.
-    if (!empty) {
-      const clear = button('btn btn-quiet btn-tiny', 'Clear the table');
-      clear.addEventListener('click', () => {
-        draft.give = {};
-        draft.take = {};
+    const clear = button('btn dp-btn is-quiet', 'Clear the table');
+    clear.dataset.focus = 'clear';
+    if (empty) clear.classList.add('is-idle');
+    clear.disabled = empty;
+    clear.addEventListener('click', () => {
+      draft.give = {};
+      draft.take = {};
+      openAmounts.clear();
+      draw();
+    });
+    verbs.append(clear);
+    foot.append(verbs);
+    paper.append(foot);
+    return paper;
+  }
+
+  /**
+   * The terms of an offer of theirs, from your side (`give` is what you would
+   * hand over), or `null` when it is no longer there. A copy, so the offer in
+   * the register is never edited through the trays.
+   */
+  function offerDraft(state: GameState, row: DiplomacyRow, which: number | 'peace'): DealDraft | null {
+    const seat = options.getPlayerId();
+    if (which === 'peace') {
+      if (!row.theyOffered || row.weOffered) return null;
+      const standing = peaceTermsOn(state, seat, row.playerId);
+      if (standing === null) return { give: {}, take: {} };
+      return {
+        give: copyTerms(sideOfPeace(standing, seat, row.playerId)),
+        take: copyTerms(sideOfPeace(standing, row.playerId, seat)),
+      };
+    }
+    const raw = state.dealProposals.find((paper) => paper.id === which && paper.by === row.playerId && paper.to === seat);
+    return raw ? { give: copyTerms(raw.take), take: copyTerms(raw.give) } : null;
+  }
+
+  /**
+   * An offer from the other empire, opened on the paper (batch SS6): their
+   * bargain, or their peace. Their terms are loaded on the paper and shown in
+   * the trays, and the title says whose they are ("as the Tang wrote it"). The
+   * answers sit at the foot: Accept and Decline (for a peace, the peace button
+   * and "Send them home"), and "Change the terms", which makes their terms
+   * your draft to edit and send as your own proposal. Any edit to a chip or a
+   * clause does the same. Their offer stands until it is answered.
+   *
+   * `null` when the offer is no longer there.
+   */
+  function drawOffer(
+    state: GameState,
+    model: DealPanelModel,
+    row: DiplomacyRow,
+    which: number | 'peace',
+    shown: DealDraft,
+  ): HTMLElement | null {
+    const seat = options.getPlayerId();
+    const verbs = element('div', 'dp-btns');
+    let title: string;
+    let runs: string;
+    if (which === 'peace') {
+      if (!row.theyOffered || row.weOffered) return null;
+      title = `Peace, as the ${row.people} wrote it`;
+      runs = paperRunsLine(state.turn, true, shown.give, shown.take);
+      const accept = button('btn dp-btn is-primary', peaceButtonLabel(row));
+      accept.dataset.focus = 'offer-accept';
+      if (row.peaceError !== null) {
+        accept.disabled = true;
+        accept.title = row.peaceError;
+      } else {
+        accept.title = 'Sign their terms. The war ends now.';
+        accept.addEventListener('click', () => {
+          options.offerPeace(row.playerId, true);
+          // A peace put up is a paper like any other, and it is answered at
+          // once (§12).
+          askAudienceFor(row.playerId, true);
+          reading = null;
+          draw();
+        });
+      }
+      verbs.append(accept);
+      // The third answer, and the one a peace offer never had: a paper put to
+      // you may be **refused**, which takes it off the table (§12).
+      const home = button('btn dp-btn', 'Send them home');
+      home.dataset.focus = 'offer-decline';
+      const declineError = model.peacePaper?.declineError ?? declinePeaceError(state, seat, row.playerId);
+      if (declineError !== null) {
+        home.disabled = true;
+        home.title = declineError;
+      } else {
+        home.title = `Refuse the ${row.people}' terms and take them off the table`;
+        home.addEventListener('click', () => {
+          options.declinePeace(row.playerId);
+          forgetTalk();
+          draw();
+        });
+      }
+      verbs.append(home);
+    } else {
+      const proposal = model.proposals.find((paper) => paper.id === which && !paper.mine);
+      if (!proposal) return null;
+      title = `An exchange, as the ${row.people} wrote it`;
+      runs = paperRunsLine(state.turn, false, shown.give, shown.take);
+      const accept = button('btn dp-btn is-primary', 'Accept');
+      accept.dataset.focus = 'offer-accept';
+      if (proposal.acceptError !== null) {
+        accept.disabled = true;
+        accept.title = proposal.acceptError;
+      } else {
+        accept.addEventListener('click', () => {
+          options.answerDeal(proposal.id, true);
+          reading = null;
+          draw();
+        });
+      }
+      const decline = button('btn dp-btn', 'Decline');
+      decline.dataset.focus = 'offer-decline';
+      decline.addEventListener('click', () => {
+        options.answerDeal(proposal.id, false);
+        reading = null;
         draw();
       });
-      middle.append(clear);
+      verbs.append(accept, decline);
     }
+    const change = button('btn dp-btn', 'Change the terms');
+    change.dataset.focus = 'offer-change';
+    change.title = 'Make their terms your paper, to edit and send as your own proposal';
+    change.addEventListener('click', () => {
+      takeOffer();
+      focusAfter = 'send';
+      draw();
+    });
+    const back = button('btn dp-btn is-quiet', 'Back to your paper');
+    back.dataset.focus = 'offer-back';
+    back.addEventListener('click', () => {
+      reading = null;
+      draw();
+    });
+    verbs.append(change, back);
 
-    const last=model.yours.luxuries.filter(c=>c.copies===1&&c.id&&(draft.give.luxuries??[]).includes(c.id));
-    if(last.length)middle.append(element('p','diplo-warning',`You are offering your last copy of ${last.map(c=>c.label).join(', ')}. You will lose access while the exchange runs.`));
-    if (model.peace) {
-      middle.append(
-        element(
-          'p',
-          'hint diplo-note',
-          'These terms become the peace. Writing new terms takes back whatever either of you ' +
-            'had already signed. A peace ends the war the moment you have both signed it.',
-        ),
-      );
+    const paper = element('article', 'dp-paper is-offer');
+    paper.setAttribute('aria-label', 'Their offer');
+    paper.append(element('h3', 'dp-paper-title', title), element('p', `dp-runs${which === 'peace' ? ' is-sentence' : ''}`, runs));
+    const clauses = element('div', 'dp-clauses');
+    clauses.dataset.scroll = 'paper';
+    clauses.append(clauseList(`${model.yours.name} gives`, termItems(state, shown.give), 'give', shown));
+    clauses.append(clauseList(`${model.theirs.name} gives`, termItems(state, shown.take), 'take', shown));
+    paper.append(clauses);
+    const foot = element('div', 'dp-docfoot');
+    const word = element('div', 'dp-word is-waiting');
+    word.append(element('span', 'dp-word-label', 'Waiting for your answer'));
+    foot.append(word, verbs);
+    paper.append(foot);
+    return paper;
+  }
+
+  /** Redraws the paper alone, so a figure being typed keeps its field and its cursor. */
+  function repaintPaper(): void {
+    const state = options.getState();
+    const row = chosenRow(metDiplomacyRows(state, options.getPlayerId()));
+    if (!row) return;
+    const old = body.querySelector('.dp-paper');
+    old?.replaceWith(drawPaper(state, dealPanel(state, options.getPlayerId(), row.playerId), draftFor(row.playerId), row));
+    markOverflow();
+  }
+
+  /**
+   * Fades the foot of a list that has more below it than it shows (the
+   * paper's clauses, a long luxury group), so a cut row reads as "scroll for
+   * more" rather than as a fault. Asked after layout, on every draw.
+   */
+  function markOverflow(): void {
+    for (const node of body.querySelectorAll<HTMLElement>('[data-scroll]')) {
+      const mark = (): void => {
+        node.classList.toggle('is-overflow', node.scrollTop + node.clientHeight < node.scrollHeight - 1);
+      };
+      mark();
+      node.onscroll = mark;
     }
-    return middle;
   }
 
   /**
@@ -1461,16 +2216,12 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    * interface's rule everywhere a gate exists: a button that vanishes is a rule
    * a player cannot learn.
    */
-  function drawCounterVerbs(
-    model: DealPanelModel,
-    draft: DealDraft,
-    row: DiplomacyRow,
-  ): HTMLElement {
-    const verbs = element('div', 'diplo-row-verbs');
+  function drawCounterVerbs(model: DealPanelModel, draft: DealDraft, row: DiplomacyRow): HTMLElement[] {
     const offering = !termsAreEmpty(draft.give);
     const anything = offering || !termsAreEmpty(draft.take);
 
-    const work = button('btn btn-quiet btn-tiny', 'What would make this work?');
+    const work = button('btn dp-btn', 'What would make this work?');
+    work.dataset.focus = 'work';
     if (model.blocked !== null) {
       work.disabled = true;
       work.title = model.blocked;
@@ -1484,9 +2235,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         draw();
       });
     }
-    verbs.append(work);
 
-    const gift = button('btn btn-quiet btn-tiny', 'What would you give for this?');
+    const gift = button('btn dp-btn', 'What would you give for this?');
+    gift.dataset.focus = 'gift';
     if (model.blocked !== null) {
       gift.disabled = true;
       gift.title = model.blocked;
@@ -1502,8 +2253,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         draw();
       });
     }
-    verbs.append(gift);
-    return verbs;
+    return [work, gift];
   }
 
   /**
@@ -1598,187 +2348,108 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     if (answer.terms !== null) {
       draft.give = answer.terms.give;
       draft.take = answer.terms.take;
+      openAmounts.clear();
     }
-  }
-
-  /** One half of the paper in the middle: a heading and its promises. */
-  function drawHalf(heading: string, lines: string[]): HTMLElement {
-    const half = element('div', 'diplo-half');
-    half.append(element('p', 'diplo-half-head', heading));
-    const list = element('ul', 'diplo-half-lines');
-    for (const line of lines) list.append(element('li', 'diplo-half-line', line));
-    half.append(list);
-    return half;
   }
 
   /**
-   * The papers under the table: the peace being signed, whatever either seat has
-   * proposed, and the bargains already running with their clocks.
-   *
-   * The peace paper comes first when there is one: it is what the row's own
-   * "Accept peace" button would be signing, and a player must be able to read it
-   * before they press that.
+   * "The Tang offer you" and "Lapis Lazuli for 6 gold a turn": one offer as one
+   * line, the heading apart so it can be set bold.
    */
-  function drawPapers(model: DealPanelModel, row: DiplomacyRow): HTMLElement {
-    const block = element('section', 'diplo-papers');
-    block.append(element('p', 'eyebrow diplo-group-head', 'the papers'));
-
-    if (model.peacePaper !== null) {
-      const paper = element('article', 'diplo-paper');
-      paper.append(element('p', 'diplo-paper-head', model.peacePaper.heading));
-      paper.append(element('p', 'hint', `You give: ${model.peacePaper.give.join(' · ')}`));
-      paper.append(element('p', 'hint', `You receive: ${model.peacePaper.take.join(' · ')}`));
-      paper.append(
-        element(
-          'p',
-          'hint',
-          model.peacePaper.mine
-            ? 'Your terms stand. The war ends the moment they sign them.'
-            : 'Answer these terms with the peace button above, write your own on the table, ' +
-              'or send their envoy home.',
-        ),
-      );
-      // The third answer, and the one a peace offer never had: a paper put to
-      // you may be **refused**, which takes it off the table (§12). Only theirs
-      // — your own is taken back with the peace button's Withdraw face.
-      if (!model.peacePaper.mine) {
-        const verbs = element('div', 'diplo-row-verbs');
-        const send = button('btn btn-quiet btn-tiny', 'Send them home');
-        if (model.peacePaper.declineError !== null) {
-          send.disabled = true;
-          send.title = model.peacePaper.declineError;
-        } else {
-          send.title = `Refuse the ${row.people}' terms and take them off the table`;
-          send.addEventListener('click', () => {
-            options.declinePeace(row.playerId);
-            envoy = null;
-            counter = null;
-            draw();
-          });
-        }
-        verbs.append(send);
-        paper.append(verbs);
-      }
-      block.append(paper);
-    }
-    for (const proposal of model.proposals) block.append(drawProposal(proposal));
-    for (const deal of model.active) block.append(drawActiveDeal(deal));
-
-    if (model.peacePaper === null && model.proposals.length === 0 && model.active.length === 0) {
-      block.append(
-        element('p', 'hint diplo-none', `Nothing stands between you and the ${row.people}.`),
-      );
-    }
-    return block;
+  function offerLine(head: string, give: string[], take: string[], tail = ''): [string, string] {
+    const gives = give.filter((line) => line !== 'Nothing');
+    const asks = take.filter((line) => line !== 'Nothing');
+    const what = gives.length > 0 ? ` ${gives.join(', ')}` : '';
+    return [head, `${what}${asks.length > 0 ? ` for ${asks.join(', ')}` : ''}${tail}`];
   }
 
-  /** A labelled whole-number field. Writes on every keystroke; never redraws. */
-  function amountField(
-    label: string,
-    value: number,
-    write: (amount: number) => void,
-  ): HTMLElement {
-    const wrap = element('label', 'diplo-field');
-    wrap.append(element('span', 'diplo-field-label', label));
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.min = '0';
-    input.step = '1';
-    input.value = value > 0 ? String(value) : '';
-    input.setAttribute('aria-label',label);
-    input.className = 'diplo-field-input';
-    // No redraw on input, deliberately: rebuilding the sheet under a cursor is
-    // how a number field loses focus mid-figure. The draft is read when the
-    // button is pressed, and the button's own greying is refreshed then.
-    input.addEventListener('input', () => {
-      write(readAmount(input.value));
-      const row=chosenRow(metDiplomacyRows(options.getState(),options.getPlayerId()));
-      if(row) {
-        const old=body.querySelector('.diplo-middle');
-        old?.replaceWith(drawMiddle(options.getState(),dealPanel(options.getState(),options.getPlayerId(),row.playerId),draftFor(row.playerId),row));
-      }
-    });
-    wrap.append(input);
-    return wrap;
+  /** One waiting offer in the right column, with the button that answers it. */
+  function waitRow(text: [string, string], action: HTMLButtonElement, mine: boolean): HTMLElement {
+    const wait = element('div', `dp-wait${mine ? ' is-mine' : ''}`);
+    if (!mine) wait.append(courtMarkNode('envelope', 'dp-envelope'));
+    const words = element('span', 'dp-wait-text');
+    words.append(element('b', '', text[0]), document.createTextNode(text[1]));
+    wait.append(words, action);
+    return wait;
   }
 
   /**
-   * One tick-box row, drawn **and disabled with its reason** when the term is
-   * refused — the greyed-button rule this whole interface keeps.
+   * The right column: where you stand (`drawTableHead`), the deals in force
+   * with their turns left, the offers waiting for your answer and your own
+   * offers still standing, and the other acts. Declare war sits here, away from
+   * the propose control.
    */
-  /** A loan line under a luxury's name: the words, then each loan's turns as a figure. */
-  function loanLine(note: LoanNote, kind: string): HTMLElement {
-    const line = element('small', `diplo-check-note diplo-loan ${kind}`, note.head);
-    note.parts.forEach((part, at) => {
-      line.append(document.createTextNode(`${at === 0 ? ' ' : '; '}${part.from} · `));
-      line.append(element('span', 'diplo-loan-turns', part.turns));
+  function drawColumn(row: DiplomacyRow, model: DealPanelModel): HTMLElement {
+    const column = element('aside', `dp-colm${drawerOpen ? ' is-open' : ''}`);
+    column.id = 'diplomacy-standing';
+    column.setAttribute('aria-label', 'Standing and deals');
+    // The drawer's own ×, drawn only while the column is a drawer (a sheet
+    // under 1100 px wide).
+    const shut = button('statecraft-close dp-drawer-close', '×');
+    shut.setAttribute('aria-label', 'Close standing and deals');
+    shut.dataset.focus = 'drawer-close';
+    shut.addEventListener('click', () => {
+      drawerOpen = false;
+      focusAfter = 'drawer';
+      draw();
     });
-    return line;
-  }
+    column.append(shut);
+    column.append(drawTableHead(row));
 
-  function checkRow(
-    choice: DealChoice,
-    checked: boolean,
-    write: (on: boolean) => void,
-  ): HTMLElement {
-    const wrap = element('label', `diplo-check${checked?' is-selected':''}${choice.error?' is-disabled':''}${choice.onLoan?' is-greyed':''}`);
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = checked && choice.error === null;
-    if (choice.error !== null) {
-      input.disabled = true;
-      wrap.title = choice.error;
-    } else {
-      input.addEventListener('change', () => {
-        write(input.checked);
+    const force = heading('In force', 'turns left');
+    force.title = dealFootSentence();
+    column.append(force);
+    const deals = element('div', 'dp-deals');
+    deals.dataset.scroll = 'deals';
+    if (model.active.length === 0) deals.append(element('p', 'dp-none', `Nothing stands between you and the ${row.people}.`));
+    for (const deal of model.active) {
+      const line = element('div', 'dp-deal');
+      const terms = element('span', 'dp-deal-terms');
+      terms.append(
+        element('span', '', `You give ${deal.give.join(', ')}`),
+        element('span', '', `You receive ${deal.take.join(', ')}`),
+      );
+      const left = element('b', 'dp-deal-left', figure(deal.turnsLeft));
+      left.title = deal.turnsLeft === 1 ? 'One turn left' : `${figure(deal.turnsLeft)} turns left`;
+      line.append(terms, left);
+      deals.append(line);
+    }
+    column.append(deals);
+
+    const waiting: HTMLElement[] = [];
+    if (row.theyOffered && !row.weOffered) {
+      const read = button('btn dp-btn is-small', 'Read');
+      read.append(courtMarkNode('arrow', 'dp-arrow'));
+      read.dataset.focus = 'read:peace';
+      read.addEventListener('click', () => {
+        reading = { seatId: row.playerId, paper: 'peace' };
+        drawerOpen = false;
         draw();
       });
+      const text: [string, string] = model.peacePaper && !model.peacePaper.mine
+        ? offerLine(model.peacePaper.heading, model.peacePaper.take, model.peacePaper.give, ', for peace')
+        : [rosterNote(row) ?? 'They have offered peace.', ''];
+      waiting.push(waitRow(text, read, false));
     }
-    wrap.append(input);
-    wrap.append(element('span', 'diplo-check-label', choice.label));
-    if(choice.copies!==undefined) {
-      // **The headline figure is what can be offered, not what is held** (batch
-      // R4, ruling 4 — "only trade away available copies"). The row used to lead
-      // with the held count and note `held − 1` beside it, on the reasoning that
-      // a spare is a copy you can give while keeping one. That was the whole
-      // rule while a copy could only be lent; since batch R1 a copy can also be
-      // carrying a unit, and a table leading with the held count quotes a number
-      // the reducer may be about to refuse. `spare` is `availableCopies`, which
-      // is `dealSideError`'s own reading, so the row and the refusal are one
-      // answer.
-      //
-      // The held count appears **only when it differs**. Today it never does —
-      // no shipped luxury gates a unit, since ivory went strategic — and a
-      // second figure that always equals the first is the bookkeeping this
-      // batch is meant to remove, not add.
-      const spare = choice.spare ?? choice.copies;
-      const count=element('span','diplo-copy',figure(spare));count.append(element('small','','to offer'));wrap.append(count);
-      // A refused row says why in the reducer's own words (`dealSideError`),
-      // under the name rather than only on hover (batch SS4).
-      const note = choice.error !== null ? choice.error
-        : spare < 1 ? 'None to offer'
-        : choice.copies === 1 ? 'Last copy'
-        : spare < choice.copies ? `${figure(choice.copies)} held`
-        : null;
-      if (note !== null) wrap.append(element('small','diplo-check-note',note));
-      // The luxury rule's two lines (batch SS4): the other side holds it only
-      // on loan (the row is greyed), or the giver's own copy is borrowed.
-      if (choice.onLoan) wrap.append(loanLine(choice.onLoan, 'is-on-loan'));
-      if (choice.borrowed) wrap.append(loanLine(choice.borrowed, 'is-borrowed'));
-    } else if(choice.population!==undefined) wrap.append(element('span','diplo-check-note',choice.error??`Population ${figure(choice.population)}`));
-    else if (choice.note !== null) wrap.append(element('span', 'diplo-check-note', choice.note));
-    return wrap;
-  }
+    for (const proposal of model.proposals) {
+      if (proposal.mine) continue;
+      const read = button('btn dp-btn is-small', 'Read');
+      read.append(courtMarkNode('arrow', 'dp-arrow'));
+      read.dataset.focus = `read:${proposal.id}`;
+      read.addEventListener('click', () => {
+        reading = { seatId: row.playerId, paper: proposal.id };
+        drawerOpen = false;
+        draw();
+      });
+      waiting.push(waitRow(offerLine(proposal.heading, proposal.give, proposal.take), read, false));
+    }
+    if (waiting.length > 0) column.append(heading('Waiting for your answer'), ...waiting);
 
-  /** A standing paper, with the verbs that answer it. */
-  function drawProposal(proposal: DealProposalRow): HTMLElement {
-    const card = element('article', 'diplo-paper');
-    card.append(element('p', 'diplo-paper-head', proposal.heading));
-    card.append(element('p', 'hint', `${proposal.mine?'You give':'You receive'}: ${proposal.give.join(' · ')}`));
-    card.append(element('p', 'hint', `${proposal.mine?'You receive':'You give'}: ${proposal.take.join(' · ')}`));
-    const verbs = element('div', 'diplo-row-verbs');
-    if (proposal.mine) {
-      const take = button('btn btn-quiet btn-tiny', 'Withdraw');
+    const mine: HTMLElement[] = [];
+    for (const proposal of model.proposals) {
+      if (!proposal.mine) continue;
+      const take = button('btn dp-btn is-small', 'Withdraw');
+      take.dataset.focus = `withdraw:${proposal.id}`;
       if (proposal.withdrawError !== null) {
         take.disabled = true;
         take.title = proposal.withdrawError;
@@ -1788,45 +2459,76 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
           draw();
         });
       }
-      verbs.append(take);
-    } else {
-      const accept = button('btn btn-primary btn-tiny', 'Accept');
-      if (proposal.acceptError !== null) {
-        accept.disabled = true;
-        accept.title = proposal.acceptError;
+      mine.push(waitRow(offerLine(proposal.heading, proposal.give, proposal.take), take, true));
+    }
+    if (row.relation === 'war' && row.weOffered) {
+      const peace = button('btn dp-btn is-small', peaceButtonLabel(row));
+      peace.dataset.focus = 'peace';
+      if (row.peaceError !== null) {
+        peace.disabled = true;
+        peace.title = row.peaceError;
       } else {
-        accept.addEventListener('click', () => {
-          options.answerDeal(proposal.id, true);
+        peace.title = 'Take your offer back off the table';
+        peace.addEventListener('click', () => {
+          options.offerPeace(row.playerId, false);
           draw();
         });
       }
-      verbs.append(accept);
-      const decline = button('btn btn-quiet btn-tiny', 'Decline');
-      decline.addEventListener('click', () => {
-        options.answerDeal(proposal.id, false);
-        draw();
-      });
-      verbs.append(decline);
+      const text: [string, string] = model.peacePaper?.mine
+        ? offerLine(model.peacePaper.heading, model.peacePaper.give, model.peacePaper.take, ', for peace')
+        : ['Your offer of peace stands.', ''];
+      mine.push(waitRow(text, peace, true));
     }
-    card.append(verbs);
-    return card;
+    if (mine.length > 0) column.append(heading('Your offers'), ...mine);
+
+    if (row.relation !== 'war') {
+      const other = element('div', 'dp-other');
+      other.append(heading('Other acts'));
+      other.append(declareButton(row, 'declare'));
+      column.append(other);
+    }
+    return column;
   }
 
-  /** A bargain already running, and what is left of it. */
-  function drawActiveDeal(deal: ActiveDealRow): HTMLElement {
-    const card = element('article', 'diplo-paper is-live');
-    card.append(
-      element(
-        'p',
-        'diplo-paper-head',
-        deal.turnsLeft === 1
-          ? 'In force — one turn left'
-          : `In force — ${figure(deal.turnsLeft)} turns left`,
-      ),
-    );
-    card.append(element('p', 'hint', `You give: ${deal.give.join(' · ')}`));
-    card.append(element('p', 'hint', `You receive: ${deal.take.join(' · ')}`));
-    return card;
+  /**
+   * The desk: the act tabs, and one empire's table under them. A tray on each
+   * side and the deal as a paper between them, with the propose control fixed
+   * at the paper's foot.
+   *
+   * The shape the user asked for (2026-09-03: *"steal inspiration from civ and
+   * make our trade screen a bit more similar"*), laid out as the treaty desk the
+   * user approved for batch SS6. Every greyed control carries the simulation's
+   * own sentence, and every write is a command handed out through `options`:
+   * this file never touches the state, which is the bargain
+   * `diplomacyScreen.test.ts` pins by reading the source.
+   */
+  function drawDesk(state: GameState, row: DiplomacyRow, model: DealPanelModel, draft: DealDraft): HTMLElement {
+    const offer = reading !== null && reading.seatId === row.playerId ? offerDraft(state, row, reading.paper) : null;
+    if (offer === null) reading = null;
+    adoptOffer =
+      offer === null
+        ? null
+        : () => {
+            drafts.set(row.playerId, offer);
+            reading = null;
+            envoy = null;
+            counter = null;
+            openAmounts.clear();
+            adoptOffer = null;
+          };
+    const shown = offer ?? draft;
+    const main = element('div', 'dp-main');
+    main.append(drawFold(row, model));
+    const desk = element('section', `dp-desk${offer !== null ? ' is-reading' : ''}`);
+    desk.setAttribute('aria-label', `The table with the ${row.people}`);
+    desk.append(drawActs(row, model));
+    const d3 = element('div', 'dp-d3');
+    d3.append(drawTray(row, model, model.yours, shown, 'give'));
+    d3.append(drawPaper(state, model, shown, row));
+    d3.append(drawTray(row, model, model.theirs, shown, 'take'));
+    desk.append(d3);
+    main.append(desk);
+    return main;
   }
 
   function draw(): void {
@@ -1834,29 +2536,68 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     // shows first), and every gesture below only exists while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
-    if(draftGame!==state||draftSeat!==seat) {drafts.clear();envoy=null;considering=null;audiencesAsked+=1;counter=null;selectedId=null;activeView='audience';draftGame=state;draftSeat=seat;}
-    const activeElement=document.activeElement;
-    const focusIndex=activeElement instanceof HTMLElement && body.contains(activeElement)?Array.from(body.querySelectorAll('button,input')).indexOf(activeElement):-1;
-    const scroll=body.querySelector('.diplo-table')?.scrollTop??0;
+    if (draftGame !== state || draftSeat !== seat) {
+      drafts.clear();
+      forgetTalk();
+      considering = null;
+      audiencesAsked += 1;
+      openAmounts.clear();
+      selectedId = null;
+      draftGame = state;
+      draftSeat = seat;
+    }
+    // The focus and the scrolled lists are kept by key across the redraw, so a
+    // chip picked with the keyboard keeps the focus, and a long luxury list
+    // stays where it was scrolled.
+    const active = document.activeElement;
+    const focusKey =
+      focusAfter ?? (active instanceof HTMLElement && body.contains(active) ? (active.dataset.focus ?? null) : null);
+    focusAfter = null;
+    const scrolls = new Map<string, number>();
+    for (const node of body.querySelectorAll<HTMLElement>('[data-scroll]')) {
+      scrolls.set(node.dataset.scroll ?? '', node.scrollTop);
+    }
     body.replaceChildren();
 
-    // Only the empires this seat has met (the ruling). The roster and the table
-    // read the same list, so the pane can never be drawing a relation the
-    // column beside it is hiding.
+    // Only the empires this seat has met (the ruling). The rail and the desk
+    // read the same list, so the desk can never be drawing a relation the rail
+    // beside it is hiding.
     const rows = metDiplomacyRows(state, seat);
     const chosen = chosenRow(rows);
+    if (chosen?.playerId !== selectedId) reading = null;
     selectedId = chosen?.playerId ?? null;
+    paintFacts(state, seat, rows.length);
 
-    // The split is an element *inside* the sheet's body rather than the body
-    // itself — the Trade and Statecraft sheets' own shape, and not a stylistic
-    // echo: `.statecraft-body` is a column, and a `.sc-split` worn by the body
-    // would inherit that and stack the two panes.
-    const split = element('div', 'sc-split');
-    split.append(drawRoster(rows, chosen));
-    split.append(drawTable(chosen));
-    body.append(split);
-    const table=body.querySelector('.diplo-table');if(table)table.scrollTop=scroll;
-    if(focusIndex>=0)body.querySelectorAll<HTMLElement>('button,input')[focusIndex]?.focus({preventScroll:true});
+    const grid = element('div', 'dp-grid');
+    tip = element('div', 'dp-tip');
+    tip.hidden = true;
+    tip.setAttribute('aria-hidden', 'true');
+    grid.append(drawRail(rows, chosen));
+    if (chosen === null) {
+      const empty = element('section', 'dp-desk is-empty');
+      empty.append(element('p', 'dp-none', 'There is nobody to bargain with yet.'));
+      grid.append(empty);
+    } else {
+      const model = dealPanel(state, seat, chosen.playerId);
+      const draft = draftFor(chosen.playerId);
+      trimTownTerms(draft.give, model.yours.cities);
+      trimTownTerms(draft.take, model.theirs.cities);
+      grid.append(drawDesk(state, chosen, model, draft));
+      grid.append(drawColumn(chosen, model));
+    }
+    body.append(grid, tip);
+
+    for (const node of body.querySelectorAll<HTMLElement>('[data-scroll]')) {
+      const top = scrolls.get(node.dataset.scroll ?? '');
+      if (top !== undefined) node.scrollTop = top;
+    }
+    markOverflow();
+    if (focusKey !== null) {
+      const target = Array.from(body.querySelectorAll<HTMLElement>('[data-focus]')).find(
+        (node) => node.dataset.focus === focusKey,
+      );
+      target?.focus({ preventScroll: true });
+    }
   }
 
   /**
@@ -1866,7 +2607,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    *
    * What it hangs on the shell is the Trade sheet's rule for its own chooser:
    * **which empire was on the table is a fact about this opening**, so a sheet
-   * opened tomorrow starts at the top of the roster. The half-written papers are
+   * opened tomorrow starts at the top of the rail. The half-written papers are
    * not — a draft is the player's own work and outlives the screen.
    */
   const shell = createModalShell({
@@ -1879,6 +2620,13 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     draw,
     onKey: (event) => {
       if(event.defaultPrevented)return true;
+      // Escape shuts the "Standing and deals" drawer before it shuts the sheet.
+      if (event.key === 'Escape' && drawerOpen && body.querySelector('.dp-fold')?.getClientRects().length) {
+        drawerOpen = false;
+        focusAfter = 'drawer';
+        draw();
+        return true;
+      }
       if(event.key!=='Tab')return false;
       const nodes=Array.from(overlay.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),[tabindex="0"]')).filter(el=>el.getClientRects().length);
       const first=nodes[0],last=nodes[nodes.length-1];
@@ -1888,8 +2636,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     },
     onClose: () => {
       selectedId = null;
-      envoy = null;
-      counter = null;
+      forgetTalk();
+      openAmounts.clear();
+      drawerOpen = false;
     },
   });
 
@@ -1897,16 +2646,20 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     get isOpen(): boolean {
       return shell.isOpen;
     },
-    open(targetId?: number) {
+    open(targetId?: number, offer?: number | 'peace') {
       const state = options.getState(), seat = options.getPlayerId();
       if (draftGame !== state || draftSeat !== seat) {
-        drafts.clear(); envoy = null; counter = null; selectedId = null;
+        drafts.clear(); forgetTalk(); openAmounts.clear(); selectedId = null;
         draftGame = state; draftSeat = seat;
       }
-      if (targetId !== undefined) selectedId = targetId;
-      activeView = 'audience';
-      const table = body.querySelector('.diplo-table');
-      if (table) table.scrollTop = 0;
+      if (targetId !== undefined && targetId !== selectedId) {
+        selectedId = targetId;
+        forgetTalk();
+      }
+      if (targetId !== undefined && offer !== undefined) {
+        reading = { seatId: targetId, paper: offer };
+        drawerOpen = false;
+      }
       if (shell.isOpen) shell.refresh(); else shell.open();
     },
     close: shell.close,
