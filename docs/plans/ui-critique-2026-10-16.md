@@ -714,3 +714,12 @@ intriguing aspect about the game to people"*
   slightly better, except with the effect text appearing on the card, styled a
   bit better."* Way A (bigger played cards) is the base, with the effect text
   on the card itself in a better style, and the Doctrines prominent.
+
+- **The orders screen, fifth round: the card itself (2026-11-17).** Round four
+  page: https://claude.ai/artifact/TJukDPfW1EpeYmdK3KLSkt. The user: *"sorry
+  not what i meant, i want the bonus text to be incorporated into the card
+  design more artfullly, remember these should feel like arcane cards, a
+  renaissance card game or something along those lines"*. Round four made the
+  played card a tidy text panel. The user wants the effect to be part of the
+  card's art: an arcane card of a Renaissance card game, with the bonus text
+  worked into its design. This round is about the card's face only.
