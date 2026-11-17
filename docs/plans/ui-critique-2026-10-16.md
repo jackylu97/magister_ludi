@@ -630,3 +630,23 @@ compact when there are lots of luxuries and options available."*
   of the banner area with the seat's charge (its icon) much larger; the larger
   area is also the handle that grows the card. Nothing is built until the user
   picks one.
+
+### The orders screen, second round (2026-11-17)
+
+Options page: https://claude.ai/artifact/TBJA3XLCXeMmneKpvPGEka. The user:
+*"1 is the best of these options for the order screen, but i still dont quite
+like it. my issues: they no longer feel like cards, and they no longer feel
+occult/themed. If anything, i want to find ways for the art direction to come
+across even more strongly. how about: can we think of a few ways to make the
+cards still feel like a deck, like you're building a hand out of a set of
+cards? And then the orders screen is like playing those cards, i want to make
+the design language remind players of roguelike deckbuilders, which could be an
+intriguing aspect about the game to people"*
+
+- Option 1's structure (the council on top, every card in view) is the base.
+- The second round draws a few ways to make the Orders feel like a deck and a
+  hand, and seating feel like playing a card, with the occult art direction
+  stronger than today, not weaker. The language should remind a player of
+  roguelike deckbuilders.
+- The usability gains of the first round stay: every chair and card can be
+  seen without long scrolling, and a card's text can be read.
