@@ -2104,8 +2104,42 @@ interface AbacusSpec {
   motion: AbacusMotionSpec;
   camera: AbacusCameraSpec;
   label: AbacusLabelSpec;
+  /** The Opus close's two new things: the golden bead and the camera move. */
+  close: AbacusCloseSpec;
   /** The scoring families, in the order a cycling control walks them. */
   families: readonly AbacusFamily[];
+}
+
+/**
+ * **The Opus close on the Abacus** (batch SS7, the Moments board). The close
+ * uses the frame as it is and adds two things: a golden bead that lights at the
+ * start of the winner's unearned beads and slides home, and a camera that moves
+ * in on the winner's rod. Then the frame turns on its turntable and back.
+ *
+ * The beat durations belong to the page that plays them (`opusClose.ts`); what
+ * is here is how the object looks while they play.
+ */
+interface AbacusCloseSpec {
+  /** The golden bead's body. Brighter than the commerce bead's gilt, so the two never read as one. */
+  goldenColor: number;
+  /** How much larger than its neighbours the golden bead is drawn. */
+  goldenScale: number;
+  /** The halo behind the golden bead. */
+  glowColor: number;
+  /** The halo's radius, as a multiple of the bead's radius. */
+  glowRadius: number;
+  /** The halo's opacity at its centre. */
+  glowOpacity: number;
+  /** How far the camera moves in on the winner's rod: the frustum is divided by this. */
+  zoom: number;
+  /**
+   * How far the camera slides toward the winner's rod as it moves in, from 0
+   * (it stays on the frame's middle) to 1 (the rod is in the middle of the
+   * view). Short of 1, so the other rods stay in sight.
+   */
+  focusPan: number;
+  /** How far the frame turns on its turntable before it turns back, in degrees. */
+  turnDegrees: number;
 }
 
 /** The frame, in world units — the units the board is in, one hex = 1. */
@@ -3171,6 +3205,11 @@ export const VIEW3D: View3DData = {
     motion: viewJson.abacus.motion,
     camera: viewJson.abacus.camera,
     label: viewJson.abacus.label,
+    close: {
+      ...viewJson.abacus.close,
+      goldenColor: named(viewJson.abacus.close.goldenColor, 'abacus.close.goldenColor'),
+      glowColor: named(viewJson.abacus.close.glowColor, 'abacus.close.glowColor'),
+    },
     families: parseFamilies(viewJson.abacus.families),
   },
   units: {

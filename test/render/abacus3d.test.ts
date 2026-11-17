@@ -9,8 +9,10 @@ import {
   cssHex,
   familyOf,
   frameMetrics,
+  goldenRestX,
   rodLayout,
   slidePosition,
+  turnYaw,
 } from '../../src/render3d/abacus3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { beadShape, chamferedBar, extrudeProfile, rodFinial } from '../../src/render3d/geometry';
@@ -363,5 +365,62 @@ describe('the abacus shapes', () => {
     // little inside the nominal radius — but nowhere near the axis.
     expect(closest).toBeGreaterThan(bore * 0.9);
     bead.dispose();
+  });
+});
+
+/**
+ * **The Opus close on the frame** (batch SS7). The golden bead and the turn are
+ * pure arithmetic, so they are pinned here; the look values are in
+ * `data/view3d.json`'s `abacus.close`, resolved through the palette.
+ */
+describe('the Opus close', () => {
+  const close = VIEW3D.abacus.close;
+
+  it('lands the golden bead after the earned beads, pushed right by the width it gained', () => {
+    const layout = rodLayout(3);
+    for (const index of [0, 6, 7, PER_ROD - 1]) {
+      const plain = beadX(layout, index, index + 1);
+      const golden = goldenRestX(layout, index, close.goldenScale);
+      expect(golden).toBeCloseTo(plain + (close.goldenScale - 1) * layout.halfThickness, 10);
+      // Its left edge, drawn larger, still clears the earned bead before it.
+      if (index > 0) {
+        const neighbour = beadX(layout, index - 1, index + 1);
+        expect(golden - layout.halfThickness * close.goldenScale).toBeGreaterThan(
+          neighbour + layout.halfThickness - 1e-9,
+        );
+      }
+    }
+  });
+
+  it('turns out to its angle and back, at rest at both ends', () => {
+    const peak = (close.turnDegrees * Math.PI) / 180;
+    expect(turnYaw(0, close.turnDegrees)).toBeCloseTo(0, 10);
+    expect(turnYaw(1, close.turnDegrees)).toBeCloseTo(0, 10);
+    expect(turnYaw(0.5, close.turnDegrees)).toBeCloseTo(peak, 10);
+    // Past either end is the end, not an extrapolation.
+    expect(turnYaw(1.4, close.turnDegrees)).toBeCloseTo(0, 10);
+    // Slow at the ends: the first and last steps are the smallest.
+    const step = (t: number): number => Math.abs(turnYaw(t + 0.05, close.turnDegrees) - turnYaw(t, close.turnDegrees));
+    expect(step(0)).toBeLessThan(step(0.2));
+    expect(step(0.95)).toBeLessThan(step(0.75));
+  });
+
+  it('draws the golden bead brighter than the commerce bead, larger than the rest, from the palette', () => {
+    const raw = viewJson.abacus.close;
+    for (const name of [raw.goldenColor, raw.glowColor]) {
+      expect(name).not.toMatch(/^#/);
+      expect(VIEW3D.palette[name]).toBeTypeOf('number');
+    }
+    // Not a commerce bead: the board's own warning.
+    expect(close.goldenColor).not.toBe(familyOf('commerce').color);
+    expect(close.goldenScale).toBeGreaterThan(1);
+    expect(close.glowOpacity).toBeGreaterThan(0);
+    expect(close.glowOpacity).toBeLessThanOrEqual(1);
+    // The camera moves in, and stops short of the rod at the middle of the view.
+    expect(close.zoom).toBeGreaterThan(1);
+    expect(close.focusPan).toBeGreaterThanOrEqual(0);
+    expect(close.focusPan).toBeLessThanOrEqual(1);
+    // The board's angle.
+    expect(close.turnDegrees).toBe(30);
   });
 });

@@ -119,9 +119,10 @@ import {
   summaryStrip,
 } from './ui/landingFlow';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
-import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
-import { type VictoryScreen, createVictoryScreen } from './ui/victoryScreen';
+import { type BeadsScreen, createBeadsScreen, isGoldenBead } from './ui/beadsScreen';
+import { type VictoryScreen, createVictoryScreen, wonByOpus } from './ui/victoryScreen';
 import { type AgePlate, agePlateReading, createAgePlate } from './ui/agePlate';
+import { type OpusClose, createOpusClose, opusCloseReading } from './ui/opusClose';
 import {
   type BeadModal,
   type BeadNews,
@@ -507,6 +508,8 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 /* The age plate (batch SS7): news raised when the world's age turns over. */
 const agePlateOverlayEl = requireElement<HTMLElement>('age-plate-overlay');
+/* The Opus close (batch SS7): news raised when the Magnum Opus is finished. */
+const opusCloseOverlayEl = requireElement<HTMLElement>('opus-close-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
    (uuuuu)), the fifteenth of the family. Raised by a decided game and opened
    from the corner panel's Standings mark or `S` on any other turn. */
@@ -1061,6 +1064,12 @@ let pendingCensus: CensusRecord | null = null;
  */
 let agePlate: AgePlate | null = null;
 let pendingAgePlate: BeadAge | null = null;
+/**
+ * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
+ * that a game closed by the Magnum Opus ends on, before the standings. Held
+ * here for the age plate's reason.
+ */
+let opusClose: OpusClose | null = null;
 
 /** Drops news about a game nobody is playing any more. */
 function clearBeadNews(): void {
@@ -1257,6 +1266,14 @@ screens.register({
   kind: 'news',
   isOpen: () => agePlate?.isOpen ?? false,
   close: () => agePlate?.clear(),
+});
+// Closed by `clear` for the same reason: a sweep must not raise the standings
+// the close was about to hand over to.
+screens.register({
+  name: 'opusClose',
+  kind: 'news',
+  isOpen: () => opusClose?.isOpen ?? false,
+  close: () => opusClose?.clear(),
 });
 
 /**
@@ -3047,6 +3064,18 @@ async function boot(initial: Game | null): Promise<void> {
   });
   gameDisposers.push(() => agePlate?.dispose());
 
+  /**
+   * The Opus close (batch SS7, `opusClose.ts`): raised by `onVictory` for a game
+   * the Magnum Opus closed. When its beats end, or a key cuts them short, the
+   * standings rise.
+   */
+  opusClose = createOpusClose({
+    overlay: opusCloseOverlayEl,
+    onOpen: () => screens.opening('opusClose'),
+    onFinished: () => victory?.open(),
+  });
+  gameDisposers.push(() => opusClose?.dispose());
+
   /*
    * The standings sheet is **built further down**, after the top bar, because
    * the shell keeps the keyboard's return path on the control that opened a
@@ -4028,10 +4057,27 @@ async function boot(initial: Game | null): Promise<void> {
       (triumphSheet?.isOpen ?? false) ||
       (beadSheet?.isOpen ?? false) ||
       (agePlate?.isOpen ?? false) ||
+      (opusClose?.isOpen ?? false) ||
       (victory?.isOpen ?? false) ||
       confirmCard.isOpen
     );
   }
+
+  /**
+   * The Abacus's rods: one per seat, read off the live roster rather than off
+   * a snapshot, and off `realPlayers`, for `renderSeats`' reason. `beads` is
+   * `Player.beads` itself, the earned record in the order it was earned. The
+   * Abacus screen and the Opus close (batch SS7) string the same rods.
+   */
+  const abacusRows = (): AbacusRow[] =>
+    realPlayers(game.state).map((player) => ({
+      playerId: player.id,
+      name: seatName(game.state, player.id),
+      // The diorama ink, not the panel colour: the label swatch belongs to the
+      // same table the frame is standing on. Same call the pieces make.
+      color: playerPieceColor(player.color, player.id),
+      beads: player.beads,
+    }));
 
   /**
    * Raises the next piece of Bead Race news, if the screen is clear.
@@ -4301,6 +4347,10 @@ async function boot(initial: Game | null): Promise<void> {
       const rod = seat?.beads ?? [];
       const rods = beadRodsFor(awards, rod);
       awards.forEach((award, index) => {
+        // The golden bead's announcement is the Opus close, which ends on that
+        // bead sliding home (batch SS7): a bead sheet for it too would tell the
+        // same moment twice.
+        if (isGoldenBead(award)) return;
         pendingBeadNews.push({
           id: award.id,
           name: award.name,
@@ -4381,11 +4431,18 @@ async function boot(initial: Game | null): Promise<void> {
     onVictory: (playerId) => {
       const player = game.state.players[playerId];
       if (!player) return;
-      // Two volumes, one moment, `reportTriumphs`' own split: the splash is the
-      // flourish over the board and the sheet is the thing with a button on it.
-      // The sheet is raised for **every** seat, not only the winner — a player
-      // who lost is entitled to be told, by name, rather than to find a line in
-      // the chronicle three scrolls down.
+      // **A game the Magnum Opus closed ends on the Opus close** (batch SS7):
+      // nigredo, albedo and the Abacus page, and then the standings, which the
+      // close raises itself. It is raised for every seat, as the sheet is.
+      if (opusClose && wonByOpus(game.state)) {
+        opusClose.play(opusCloseReading(game.state, abacusRows()));
+        return;
+      }
+      // Any other win: two volumes, one moment, `reportTriumphs`' own split: the
+      // splash is the flourish over the board and the sheet is the thing with a
+      // button on it. The sheet is raised for **every** seat, not only the
+      // winner — a player who lost is entitled to be told, by name, rather than
+      // to find a line in the chronicle three scrolls down.
       splash.announceVictory(seatName(game.state, playerId));
       // The sheet reads the decided game itself — `state.winnerId` is already
       // written by the time this fires (`closeTheGreatWork`), and every figure
@@ -4833,15 +4890,7 @@ async function boot(initial: Game | null): Promise<void> {
     // The door in the standings sheet's header (batch UX1: the Abacus left
     // the top bar). `A` opens it from anywhere.
     trigger: victoryAbacusButton,
-    rows: (): AbacusRow[] =>
-      realPlayers(game.state).map((player) => ({
-        playerId: player.id,
-        name: seatName(game.state, player.id),
-        // The diorama ink, not the panel colour: the label swatch belongs to the
-        // same table the frame is standing on. Same call the pieces make.
-        color: playerPieceColor(player.color, player.id),
-        beads: player.beads,
-      })),
+    rows: abacusRows,
     // The registry closes the other cards and screens, the standings sheet
     // among them, which is where the Abacus's door is. That happens before the
     // Abacus remembers who had the keyboard, so closing the Abacus gives the
@@ -6067,6 +6116,7 @@ async function boot(initial: Game | null): Promise<void> {
     splash.clear();
     offerCard.clear();
     agePlate?.clear();
+    opusClose?.clear();
   };
 
   window.addEventListener('resize', () => renderer.resize());

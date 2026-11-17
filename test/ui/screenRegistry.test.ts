@@ -243,6 +243,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['ceremony', 'news'],
   // The age plate (batch SS7): raised when the world's age turns over.
   ['agePlate', 'news'],
+  // The Opus close (batch SS7): raised when the Magnum Opus is finished.
+  ['opusClose', 'news'],
 ];
 
 /** Every `screens.opening('…')` in `main.ts`. */
@@ -328,8 +330,9 @@ describe('the register in main.ts', () => {
       'createConfirmCard',
       'createGreatPersonCeremony',
       'createDiplomacyOffers',
-      // The age plate (batch SS7) draws its own overlay.
+      // The age plate and the Opus close (batch SS7) draw their own overlays.
       'createAgePlate',
+      'createOpusClose',
     ]) {
       builders.add(own);
     }

@@ -107,6 +107,24 @@ const STAGE_FAMILY: Record<BeadFamily, FamilyId> = {
 };
 
 /**
+ * **A rod's beads as the frame draws them**: in the order they were earned,
+ * cut to the frame's size, in the look file's family ids.
+ *
+ * The frame is cut for a fixed number of beads (`beadsPerRod`), which is a fact
+ * about the object and not about the rules, so a longer run is cut here rather
+ * than overflowing the rod. The golden bead is left off: drawn in its row's
+ * family ink it would read as one more ordinary bead. The register's golden
+ * slot shows it on this screen, and the Opus close (`opusClose.ts`) lights it
+ * on the frame itself. Both pages ask this one function.
+ */
+export function frameBeads(beads: readonly EarnedBead[], perRod: number): FamilyId[] {
+  return beads
+    .filter((earned) => !isGoldenBead(earned))
+    .slice(0, perRod)
+    .map((earned) => STAGE_FAMILY[earned.family]);
+}
+
+/**
  * One player's rod.
  *
  * `beads` is `Player.beads` — every bead this empire has clacked, in the order
@@ -291,15 +309,7 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
    */
   function seedRods(table: readonly AbacusRow[]): void {
     const perRod = abacus?.beadsPerRod ?? 0;
-    table.forEach((row, index) =>
-      abacus?.seed(
-        index,
-        row.beads
-          .filter((earned) => !isGoldenBead(earned))
-          .slice(0, perRod)
-          .map((earned) => STAGE_FAMILY[earned.family]),
-      ),
-    );
+    table.forEach((row, index) => abacus?.seed(index, frameBeads(row.beads, perRod)));
   }
 
   // --- the register --------------------------------------------------------
