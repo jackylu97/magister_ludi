@@ -701,3 +701,9 @@ intriguing aspect about the game to people"*
     ("loan 9t · French"), the drawer on a narrow window, the title, the
     envoy's last word, Declare war under "Other acts", gold and rights above
     luxuries, and the deal notice.
+  - **Chips for the trade items (2026-11-17).** The user: *"lets do chips for
+    the trade items, i like that a bit better"*. In layout B's trays, the items
+    a side can give are chips, as layout C of the first round drew them, not
+    24 px rows. A chip still shows the greyed state and the loan (the turns
+    left on the chip; the lender in its title and when it is selected), and a
+    refused item still gives the reducer's sentence.
