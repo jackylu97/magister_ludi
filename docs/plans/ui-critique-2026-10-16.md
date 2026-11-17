@@ -554,3 +554,33 @@ with these comments applied.
 - **C, the routes and faith lines:** *"what if routes/faith only showed on
   hover, and the panel expanded on hover? is that hard to implement in a way
   that it's fast/responsive"*.
+
+### The corner panel: option A revised is approved (2026-11-17). Batch SS2b.
+
+The user: *"ok lets go with option A, please take a look at my comments"*. The
+board is the section "Option A, revised" of
+https://claude.ai/artifact/MGrda9cDan7VtugHxkBreB; its source is kept in the
+repo as `docs/plans/mockups/scholars-study/corner-panel-options.html`.
+
+The user's comments on the revised board decide the open choices:
+
+- **The two top lines:** underlined names with an arrow (*"i like this one"*),
+  not the raised keys the main drawing used. The technology's name opens the
+  star chart. "Next draft" opens Statecraft. The banner and every other part of
+  the card that is not a button grow the card.
+- **The open card:** four ordinary rows for the four screens: mark, name,
+  figure, key (*"this one for sure"*). No row of names under the marks.
+- **The faith dot:** *"why is this state needed when the previous one exists?
+  pantheons are drafted regardless of player input, but i can see this being
+  useful for a prophet. I think we should use this dot for when a prophet is
+  available and no more dot after all religion beliefs have been chosen."* So:
+  no dot for a god that waits for a name. The dot shows when the seat can call
+  a prophet. Once every belief of the seat's religion is chosen, the dot never
+  shows.
+- **The top bar:** two groups with nothing in the middle. Left: yields, meters,
+  renown and beads. Right: turn and age, then the ? and menu buttons. The three
+  tabs leave the bar.
+- **Taken as drawn (the user did not comment):** the faith number is the faith
+  banked, with "banked/cost" only while the next god has a price; a free route
+  slot colours the routes figure; beads sit on the left with renown; S opens
+  Standings; the game menu loses its Statecraft row.
