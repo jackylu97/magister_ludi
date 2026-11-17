@@ -6,15 +6,16 @@
  * houses are not loaded, and a farm's plots stay on their hex.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { BoxGeometry, Float32BufferAttribute, MeshStandardMaterial } from 'three';
+import { BoxGeometry, Float32BufferAttribute, type InstancedMesh, MeshStandardMaterial } from 'three';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { PaintedCityLayer, type PaintedCityAssets } from '../../src/render3d/paintedCities';
+import { PaintedSmokeLayer } from '../../src/render3d/paintedSmoke';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, type GameMap } from '../../src/sim/map';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility, VISIBLE } from '../../src/sim/visibility';
 // @ts-expect-error No declarations for the shared study geometry.
-import { centre, prepareTerrainMap } from '../../src/terrainStudy/surface.js';
+import { centre, prepareTerrainMap, setRiverStyle } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error No declarations for the shared study geometry.
 import { NORTH_STAR_TOWN_AGES, NORTH_STAR_TOWN_ASSETS } from '../../src/terrainStudy/northStarAssets.js';
 // @ts-expect-error No declarations for the shared study geometry.
@@ -38,7 +39,8 @@ function assets(names: readonly string[]): PaintedCityAssets {
   })) } as PaintedCityAssets;
 }
 
-function fixture(names: readonly string[]) {
+/** `riverEdges` puts a river along those edges of the town's hex (bit d is the edge whose normal points at d × 60°). */
+function fixture(names: readonly string[], riverEdges = 0) {
   const state = newGame({ seed: 9, sizeName: 'duel', players: [
     { name: 'Red', color: '#ac3333', isHuman: true }, { name: 'Blue', color: '#3344ac', isHuman: true },
   ] });
@@ -47,6 +49,7 @@ function fixture(names: readonly string[]) {
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
   resetVisibility(state);
   const tile = getTileAt(state.map, 3, 2)!;
+  tile.riverEdges = riverEdges;
   const city = foundCityAt(state, 0, tile);
   state.visibility[0]!.fill(VISIBLE);
   const prepared = prepareTerrainMap(state.map, { wrap: true }) as GameMap;
@@ -109,6 +112,58 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('the north-star town', () => {
     expect(smoke.x).toBeGreaterThan(Math.min(...xs)); expect(smoke.x).toBeLessThan(Math.max(...xs));
     expect(smoke.z).toBeGreaterThan(Math.min(...zs)); expect(smoke.z).toBeLessThan(Math.max(...zs));
     expect(smoke.y).toBeGreaterThan(centre.y);
+  });
+
+  // The user, 2026-11-16: "i see like 2 huts in my capital in a fresh game, and there's no central building for
+  // the smoke to come out of (the smoke is there but the building isnt)". A start is often on a river. A river
+  // along the back of the hex refused the centre's address, so no centre stood and the smoke fell back to a fixed
+  // place over the empty spot. It also refused house addresses, and each refused address was a house lost.
+  it('stands its centre, its smoke and its full count of houses on a hex with a river along the back', () => {
+    const byAge = town.byAge;
+    try {
+      town.byAge = true;
+      // The game's river: painted on joined ground, with every prop kept a clearance back from its edge
+      // (`riverStyleOf` in `renderer3d.ts`).
+      setRiverStyle({ crest: 0, toe: 0, corner: .0008, organic: true, clearance: VIEW3D.visualTest.organicRivers.propClearance });
+      cleanups.push(() => { setRiverStyle(null); });
+      // Edges 4 and 5 face the back of the hex, where the centre's own address is.
+      const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]], (1 << 4) | (1 << 5));
+      f.state.players[0]!.techsResearched = TECH_IDS.filter(id => techDef(id).age <= 1 && techDef(id).charter !== true);
+      expect(f.city.population).toBe(1);
+      f.layer.build(f.state, f.prepared, f.state.visibility[0]!, true);
+      const pieces = f.layer.placements.filter(p => p.cityId === f.city.id);
+      const ages = NORTH_STAR_TOWN_AGES as { centre: string }[];
+      const centre = pieces.filter(p => p.kind === 'civic');
+      expect(centre.map(p => p.asset)).toEqual([ages[0]!.centre]);
+      const smoke = f.layer.smokeAnchors.get(f.city.id)!;
+      expect(smoke).toBeTruthy();
+      const xs = centre[0]!.footprint.map(p => p.x), zs = centre[0]!.footprint.map(p => p.z);
+      expect(smoke.x).toBeGreaterThan(Math.min(...xs)); expect(smoke.x).toBeLessThan(Math.max(...xs));
+      expect(smoke.z).toBeGreaterThan(Math.min(...zs)); expect(smoke.z).toBeLessThan(Math.max(...zs));
+      const houses = pieces.filter(p => p.kind === 'house');
+      expect(houses).toHaveLength(Math.max(town.minHouses, 1 + town.housesOverPopulation));
+      // A town that grows moves nothing that stands: the centre and the first houses keep their places.
+      f.city.population = 4;
+      f.layer.build(f.state, f.prepared, f.state.visibility[0]!, true);
+      const grown = f.layer.placements.filter(p => p.cityId === f.city.id);
+      expect(grown.filter(p => p.kind === 'civic')).toEqual(centre);
+      const grownHouses = grown.filter(p => p.kind === 'house');
+      expect(grownHouses.length).toBeGreaterThan(houses.length);
+      expect(grownHouses.slice(0, houses.length)).toEqual(houses);
+    } finally { town.byAge = byAge; }
+  });
+
+  it('gives no smoke to a town with no centre building, rather than smoke over an empty place', () => {
+    const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
+    const other = foundCityAt(f.state, 1, getTileAt(f.state.map, 6, 4)!);
+    const smoke = new PaintedSmokeLayer(() => undefined);
+    cleanups.push(() => smoke.dispose());
+    const puffs = (): number => (smoke.group.children[1] as InstancedMesh | undefined)?.count ?? 0;
+    const each = Math.max(1, Math.round(VIEW3D.visualTest.idle.smokePuffs));
+    smoke.build(f.state, null, new Map(), true, [], new Map([[f.city.id, { x: 0, y: 1, z: 0 }], [other.id, { x: 5, y: 1, z: 5 }]]));
+    expect(puffs()).toBe(2 * each);
+    smoke.build(f.state, null, new Map(), true, [], new Map([[f.city.id, { x: 0, y: 1, z: 0 }], [other.id, null]]));
+    expect(puffs()).toBe(each);
   });
 
   it('gives back the hall of before in every age when the switch is off', () => {

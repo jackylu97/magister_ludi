@@ -65,13 +65,14 @@ transformed = transformed * smokeSize + vec3(vtestSmoke.w * smokeRise * (.6 + sm
    * `chimneys` are more places that smoke, each the top of a chimney in world
    * units with the hex it stands on (the manufactory's tall chimney). They
    * follow the same fog rule as a town. `anchors` is where a town's smoke
-   * starts, by city id, for the towns that say so.
+   * starts, by city id, for the towns that say so. A town whose anchor is
+   * null has no centre building to smoke from, so it has no smoke.
    */
   build(state: GameState | null, levels: FogLevels, heights: ReadonlyMap<number, number>, on: boolean, chimneys: readonly SmokeSource[] = [],
-    anchors: ReadonlyMap<number, { x: number; y: number; z: number }> = new Map()): void {
+    anchors: ReadonlyMap<number, { x: number; y: number; z: number } | null> = new Map()): void {
     this.clear();
     if (!state || !on) return;
-    const towns = state.cities.filter((city) => levelAt(levels, state.map, city.col, city.row) === VISIBLE);
+    const towns = state.cities.filter((city) => levelAt(levels, state.map, city.col, city.row) === VISIBLE && anchors.get(city.id) !== null);
     const stacks = chimneys.filter((stack) => levelAt(levels, state.map, stack.col, stack.row) === VISIBLE);
     const puffs = Math.max(1, Math.round(IDLE.smokePuffs));
     const count = (towns.length + stacks.length) * puffs;

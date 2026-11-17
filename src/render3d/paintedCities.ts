@@ -74,8 +74,11 @@ type CityRecipe = {
   parts: { geometry: BufferGeometry; matrices: Matrix4[] }[];
   patches: BufferGeometry[]; placements: PaintedCityPlacement[];
   anchor: PaintedCityAnchor; tallest: number;
-  /** Where the town's smoke starts: the smoke hole or chimney of its centre building. Absent for the study's town. */
-  smoke?: PaintedCityAnchor;
+  /**
+   * Where the town's smoke starts: the smoke hole or chimney of its centre building. Null for a north-star
+   * town where no centre fits, which then has no smoke. Absent for the study's town.
+   */
+  smoke?: PaintedCityAnchor | null;
 };
 type CityBatch = { inputs: readonly unknown[]; meshes: Mesh[]; geometry?: BufferGeometry };
 /**
@@ -152,8 +155,11 @@ export class PaintedCityLayer {
   readonly group = new Group();
   readonly flagAnchors = new Map<number, PaintedCityAnchor>();
   readonly cityHeights = new Map<number, number>();
-  /** Where each north-star town's smoke starts, in world units, by city id (`PaintedSmokeLayer` reads it). */
-  readonly smokeAnchors = new Map<number, PaintedCityAnchor>();
+  /**
+   * Where each north-star town's smoke starts, in world units, by city id (`PaintedSmokeLayer` reads it).
+   * Null for a town with no centre building, which has no smoke.
+   */
+  readonly smokeAnchors = new Map<number, PaintedCityAnchor | null>();
   readonly placements: PaintedCityPlacement[] = [];
   private readonly geometry = paintedCityGeometry();
   private readonly northStar = northStarTownGeometry();
@@ -260,7 +266,7 @@ export class PaintedCityLayer {
       this.placements.push(...recipe.placements);
       this.flagAnchors.set(city.id, recipe.anchor);
       this.cityHeights.set(city.id, recipe.tallest);
-      if (recipe.smoke) this.smokeAnchors.set(city.id, recipe.smoke);
+      if (recipe.smoke !== undefined) this.smokeAnchors.set(city.id, recipe.smoke);
     }
     // A town razed takes its cut with it; a town merely out of sight keeps it,
     // because the fog will hand it back and nothing about the stones moved.
@@ -466,13 +472,26 @@ export class PaintedCityLayer {
       // What this age's town is made of (`NORTH_STAR_TOWN_AGES`). The tier is the look's, so the centre and the
       // houses change with the fingerprint (`signCities`) and at no other time.
       const age = this.townAge(look.tier);
-      const middle = stand('civic', age.centre, town.hall, (look.capital ? town.capitalHall : 1) * age.centreSize);
+      const big = [...town.big], lots = [...town.lots], pockets = [...town.pockets];
+      // The centre stands at the hall's address. A river or a beach along the back of the hex can refuse that
+      // address, because nothing stands within a clearance of a river edge or on a beach (`onTileTop`). Many
+      // starts are on a river, so the centre then takes the first big address or lot that fits it, at the
+      // hall's size, and the houses take the addresses that are left. The hex decides this, so a town that
+      // grows never moves its centre.
+      const centreSize = (look.capital ? town.capitalHall : 1) * age.centreSize;
+      let middle = stand('civic', age.centre, town.hall, centreSize);
+      for (const pool of [big, lots]) for (let i = 0; !middle && i < pool.length; i++) {
+        const [x, z] = pool[i]!;
+        middle = stand('civic', age.centre, [x!, z!, town.hall[2]!, town.hall[3]!], centreSize);
+        if (middle) pool.splice(i, 1);
+      }
+      // The smoke leaves the centre's own smoke hole or chimney, wherever the centre was fitted. A town with no
+      // centre has no smoke (null), rather than smoke over an empty place.
+      recipe.smoke = null;
       if (middle) {
-        // The smoke leaves the centre's own smoke hole or chimney, wherever the centre was fitted.
         const [sx, sy, sz] = age.smoke as [number, number, number], p = transform(sx * middle.scale, sz * middle.scale, middle.yaw);
         recipe.smoke = { x: middle.x + p.x, y: middle.y + sy * middle.scale, z: middle.z + p.z };
       }
-      const big = [...town.big], pockets = [...town.pockets];
       if (grand) {
         const raise = (kind: PaintedCityPlacement['kind'], name: CityAssetName): void => {
           // An obelisk is narrow and takes a pocket. The other two want a big
@@ -486,11 +505,14 @@ export class PaintedCityLayer {
         if (look.shrine && look.tier >= CITY.shrine.fromTier) raise('shrine', 'monument-obelisk');
         for (let i = 0; i < look.wonders; i++) raise('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!);
       }
-      const large = big.length, addresses = [...big, ...town.lots, ...pockets];
-      const houses = Math.min(addresses.length, Math.max(town.minHouses, city.population + town.housesOverPopulation));
-      for (let i = 0; i < houses; i++) {
+      const large = big.length, addresses = [...big, ...lots, ...pockets];
+      // The count is of houses that stand. An address that the hex refuses (a river edge, a beach) passes to
+      // the next one, so a town on a river still has its count. The refusal is the hex's own, so the houses
+      // that stand before a town grows stand in the same places after it.
+      const houses = Math.max(town.minHouses, city.population + town.housesOverPopulation);
+      for (let i = 0, standing = 0; i < addresses.length && standing < houses; i++) {
         const name = age.houses[Math.floor(hash(i) * age.houses.length)]!;
-        stand('house', name, addresses[i]!, i < large ? town.bigHouse : 1, (hash(i + 40) - .5) * 2 * town.yawJitter);
+        if (stand('house', name, addresses[i]!, i < large ? town.bigHouse : 1, (hash(i + 40) - .5) * 2 * town.yawJitter)) standing++;
       }
       if (walled) {
         const stone = look.tier >= CITY.wall.fromTier;
