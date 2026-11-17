@@ -493,7 +493,7 @@ describe('the table and its chairs', () => {
     expect(TABLE).toContain("counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));");
     expect(SCREEN).toContain('justConfirmed = commitStaging();');
     expect(SCREEN).toContain('justConfirmed = [];');
-    const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number)'), SCREEN.indexOf('function confirm(')));
+    const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number)'), SCREEN.indexOf('function confirmStaging(')));
     expect(drop.length).toBeGreaterThan(200);
     expect(drop).not.toContain('countUp');
     expect(drop).not.toContain('justConfirmed =');
