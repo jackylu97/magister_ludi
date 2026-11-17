@@ -40,7 +40,8 @@
  *     (`ReplayWatcher` in `sim/game.ts`), against the turn the file's label
  *     says it is heading for.
  *   · **Painting the world** — the terrain worker's own percentage, which the
- *     Begin button used to print.
+ *     Begin button used to print, and the name of the step it has reached
+ *     (`paintingDetail`).
  *   · **Placing the pieces** — the state handed to the layers, up until a frame
  *     has actually been presented (`first-board-frame`).
  *
@@ -69,6 +70,7 @@
  * why Escape is obeyed here and swallowed everywhere else on it.
  */
 
+import type { PaintedBuildReport } from '../render3d/paintedBoardAsync.js';
 import { type ModalShell, createModalShell } from './modalShell';
 
 type LoadingStageId = 'opening' | 'replaying' | 'painting' | 'placing';
@@ -142,6 +144,28 @@ export function loadingRows(
     fraction: index === at ? fraction : null,
     detail: index === at ? detail : '',
   }));
+}
+
+/**
+ * The words beside *Painting the world* for the step the terrain worker has
+ * reached. The build has no time limit, and on a slow machine the Giant map
+ * takes minutes, so the sheet names each step as it starts: the player can see
+ * that the work goes on, and the bar counts the one step that can count.
+ */
+const PAINTING_WORDS: Record<PaintedBuildReport, string> = {
+  shape: 'the hills',
+  mountains: 'the mountains',
+  colours: 'the colours',
+  rivers: 'the rivers',
+  coast: 'the coast',
+  sea: 'the sea',
+  land: 'the land',
+  overview: 'the far view',
+  packing: 'finishing',
+};
+
+export function paintingDetail(stage: PaintedBuildReport | undefined): string {
+  return stage === undefined ? '' : PAINTING_WORDS[stage] ?? '';
 }
 
 /** "turn 84 of 121", or nothing at all when the file's label named no turn. */
@@ -246,8 +270,11 @@ interface LoadingSheet {
   begin(journey: LoadingJourney): void;
   /** The log has reached a turn. Moves to (or stays on) *Replaying the game*. */
   replayed(turn: number, expected: number): void;
-  /** The terrain worker's own percentage. `100` hands over to *Placing the pieces*. */
-  painted(percent: number): void;
+  /**
+   * The terrain worker's own percentage and the step it has reached (see
+   * `paintingDetail`). `100` hands over to *Placing the pieces*.
+   */
+  painted(percent: number, stage?: PaintedBuildReport): void;
   /**
    * The load will not finish. The stage list is replaced by the refusal and the
    * sheet is sealed until the player dismisses it — raising it first if this
@@ -418,9 +445,9 @@ export function createLoadingSheet(options: LoadingSheetOptions): LoadingSheet {
         replayDetail(turn, expected),
       );
     },
-    painted(percent): void {
+    painted(percent, stage): void {
       if (percent >= 100) move('placing', null, '');
-      else move('painting', percent / 100, '');
+      else move('painting', percent / 100, paintingDetail(stage));
     },
     refuse(said): void {
       refusal = said;

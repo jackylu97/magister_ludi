@@ -277,4 +277,20 @@ describe('painted cities in the live game', () => {
     const palette = (f.assets.material as MeshStandardMaterial).color;
     expect(palette.equals(new Color('white'))).toBe(true);
   });
+
+  // The works draw with the same material, and their instances carry colours.
+  // three needs a different program for an instanced mesh without colours, so a
+  // town drawn between two works made it change program twice. White multiplies
+  // nothing, so the town looks the same with it.
+  it('gives every town instance a white colour, so towns and works draw with one program', () => {
+    const f = fixture('hill', 0); f.city.population = 4; f.city.buildings.push('palisade'); f.build();
+    const towns: InstancedMesh[] = [];
+    f.layer.group.traverse(object => { if (object instanceof InstancedMesh && object.material === f.assets.material) towns.push(object); });
+    expect(towns.length).toBeGreaterThan(0);
+    for (const mesh of towns) {
+      expect(mesh.instanceColor).not.toBeNull();
+      expect(mesh.instanceColor!.count).toBe(mesh.count);
+      expect([...mesh.instanceColor!.array as Float32Array].every(value => value === 1)).toBe(true);
+    }
+  });
 });

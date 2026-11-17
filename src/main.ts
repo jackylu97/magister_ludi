@@ -67,6 +67,7 @@ import { unitHealthBonus } from './sim/resourceEffects';
 import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
 import type { Renderer3D } from './render3d/renderer3d';
+import type { PaintedBuildReport } from './render3d/paintedBoardAsync.js';
 import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from './render3d/visualTest';
@@ -1555,10 +1556,12 @@ async function beginGame(
  * rather than sitting beside it (the ruling), so the button keeps saying
  * "Preparing the world…" and the progress is on the paper. A hundred percent is
  * the seam into the last stage: the board is built, and what is left is the
- * state reaching the layers and a frame being drawn.
+ * state reaching the layers and a frame being drawn. The step the worker has
+ * reached goes with each report, so the sheet can name it: the build has no
+ * time limit, and a slow one has to look like work that goes on.
  */
-function terrainBuildProgress(percent: number): void {
-  loading.painted(percent);
+function terrainBuildProgress(percent: number, stage: PaintedBuildReport): void {
+  loading.painted(percent, stage);
 }
 
 /** One report per turn out of the replay worker (`sim/game.ts`'s watcher). */
@@ -2245,6 +2248,11 @@ function daylightChoice(): string {
   return new URLSearchParams(location.search).get('light') ?? 'day';
 }
 
+/** Whether the board's motion stops when idle: the menu's option, kept as `?rest=1`. Off by default. */
+function motionRestChoice(): boolean {
+  return new URLSearchParams(location.search).get('rest') === '1';
+}
+
 /** Drops the canvases the chosen renderer will not draw into. */
 function keepCanvases(keep: 'toon3d' | 'canvas2d'): void {
   const ids =
@@ -2290,6 +2298,29 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
+    // The option to stop the board's motion when idle (the user, 2026-11-17:
+    // "Motion stopping after a few seconds is fine"). Off by default. It is
+    // kept in the URL as `rest`, the way the time of day keeps `light`, so a
+    // reload keeps it.
+    const restRow = document.createElement('div');
+    restRow.className = 'row check';
+    const rest = document.createElement('input');
+    rest.type = 'checkbox';
+    rest.id = 'motion-rest';
+    rest.checked = motionRestChoice();
+    const restLabel = document.createElement('label');
+    restLabel.htmlFor = 'motion-rest';
+    restLabel.textContent = 'Stop the motion when idle';
+    restLabel.title = 'The sea, the smoke, the birds and the sails stop after a few seconds with no input, and start again when you move the pointer or press a key. This saves power.';
+    restRow.append(rest, restLabel);
+    menuExtrasEl.append(restRow);
+    renderer.setMotionRest(rest.checked);
+    rest.onchange = () => {
+      renderer.setMotionRest(rest.checked);
+      const url = new URL(location.href);
+      if (rest.checked) url.searchParams.set('rest', '1'); else url.searchParams.delete('rest');
+      history.replaceState(null, '', url);
+    };
     buildVisualTestPanel(renderer, () => report());
     const benchmark = document.createElement('button'), result = document.createElement('pre');
     benchmark.textContent = 'Benchmark full map'; result.id = 'terrain-benchmark-results';
@@ -2563,7 +2594,7 @@ async function boot(initial: Game | null): Promise<void> {
   // controls. See `Renderer3D.recoverContext`.
   if ('setContextListener' in renderer) (renderer as Renderer3D).setContextListener({
     lost: () => { graphicsResetting = true; loading.begin('new'); },
-    progress: (percent) => loading.painted(percent),
+    progress: (percent, stage) => loading.painted(percent, stage),
     restored: () => { graphicsResetting = false; loading.finish(); },
     failed: (error) => {
       graphicsResetting = false;

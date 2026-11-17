@@ -1195,7 +1195,7 @@
     "northStar": true,
     "land": "study",
     "motionFps": 24,
-    "motionRestSeconds": 0,
+    "motionRestSeconds": 3,
     "sea": {
       "style": "bands",
       "bands": {

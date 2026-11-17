@@ -273,3 +273,151 @@ What the figures say: on this machine the frame is limited by the CPU's work for
 - **The road and border plans re-plan the whole map** when one road or one border changes: 626 ms and 572 ms of the 1,365 ms turn-end sync that is left (under load). Both are memoised on their signature, so they run only on a real change, but they are not incremental. Making them incremental means keeping the plan for each hex and planning again only the hexes near a change; the border outline joins edges across the whole map, so that one is not a small job.
 - **The board never idles.** With the sea and the idle motion on, the loop draws 21 to 24 full frames a second for as long as the game is open, mirror and contact pass included. The module docblock of `renderer3d.ts` still says "Idle cost is one `requestAnimationFrame` that returns immediately", which was true before the motion frames. Section 6 has the two settings that bring the idle cost down.
 - **The units go into the mirror whole**: their outlines, their x-ray ghosts, their badges and their health bars are all drawn into the mirror's picture. Leaving any of them out would change the picture where they reflect, so it was not done.
+
+## Second pass
+
+The ruling: `docs/flags.md`, "Rendering speed, second pass. Ruled 2026-11-17." Five items: the works and towns material, the motion at rest, the road plan, the terrain build's time limit, and the border plan. The coordinator added a sixth during the pass: a test of the first pass that failed only when other test files ran before it.
+
+### Method
+
+- The same as section 1: the unchanged code (`git archive` of `decks` at `276e193b`, the commit that turned the border outline rule off) served beside the changed code, the same saves, the same scripts. Only one dev server ran at a time (ports 5243 and 5244), each with its own dependency cache.
+- The saves were made again in the page with the same seed (20261116): the turn-130 game came out as before, with 71 towns and 444 units.
+- The load average was between 9 and 35 during the runs. The "before" runs had the higher load. Where a time is compared, the table says how much of the fall the load explains. Counts do not depend on load.
+- Scripts and results: `/private/tmp/claude-501/-Users-jacky-code-webciv/c4da3ce5-796a-4aa7-8603-c5fc07da6b1d/scratchpad/renderperf2/` (`measure2.mjs`, `shots2.mjs`, `shots3.mjs`, `giant.mjs`, `runs/`). Pictures: `pics/` there.
+
+### 1. The works and towns material
+
+- **Cause, as the first pass said.** The towns (`paintedCities.ts`) and the works (`paintedWorks.ts`) draw with one material. The works' instanced meshes carry instance colours and the towns' did not. three needs another program for an instanced mesh with no colours (`needsProgramChange` compares `instanceColor` with null), and it sorts opaque meshes by material and then by depth, so towns and works mixed in one view changed program back and forth.
+- **Change.** `paintedCities.ts` gives every town instance a white colour. The shader multiplies the vertex colour by the instance colour (`vColor.rgb *= instanceColor.rgb`), and a product with 1.0 is exact, so no pixel moves.
+- **Counts** (program lookups a frame, middle zoom, turn 130):
+
+| | Before | After |
+|---|---|---|
+| All materials, mirror on | 92 | 74 |
+| All materials, mirror off | 10 | 0 |
+| The works and towns material, mirror on | 20 | 2 |
+| The works and towns material, mirror off | 10 | 0 |
+
+  The 2 left with the mirror on are the mirror's clipping plane (section 7). Turn 1 has no towns: 16 and 0 before and after. Draws are the same (952).
+- **Test.** `test/render/paintedCities.test.ts`, "gives every town instance a white colour, so towns and works draw with one program".
+
+### 2. The motion rests when idle
+
+- **Change.**
+  - `data/view3d.json`: `visualTest.motionRestSeconds` is 3 (0 never rests). Its type and docblock are in `lookData.ts`.
+  - The game menu has a new option beside the time of day, "Stop the motion when idle", off by default. It is kept in the URL as `?rest=1`, the way the time of day keeps `light` (`motionRestChoice` and `build3DPanel` in `main.ts`).
+  - `renderer3d.ts`: `setMotionRest(on)` and `noteActivity()`. A pointer move or press, a wheel turn or a key on the window wakes the motion. A camera move and a game change wake it through the frame they ask for. When the motion stops, the loop keeps the time of the last frame drawn. When it wakes, the time it rested comes off the motion's clock (`restedMs`), so the first frame shows the motion exactly where the last frame before the rest left it. With the option off, `restedMs` stays 0 and the clock is the page's own, to the last bit.
+  - The module docblock of `renderer3d.ts` now says what is true: the board draws `motionFps` frames a second for its motion while the sea or the idle motion is on, and stops only with the option on.
+- **Counts** (turn 130, idle board):
+
+| | Frames drawn a second |
+|---|---|
+| Option off (the default), before and after | 20.5 and 20 |
+| Option on, the first 3 s | 20 |
+| Option on, after 3 s with no input | 0 |
+| The second after a pointer move sent through the DevTools protocol | 13 (the second began a little before the move arrived) |
+
+  The motion's clock, frame by frame, across a rest woken by a key: the last frame before the rest drew at 2,023 ms with the clock at 59.6486 s; the next frame drew at 4,520 ms with the clock at 59.6486 s, and the frames after it step by 0.05 s as before. No leap.
+- **Tests.** `test/render/motionRest.test.ts`: the motion runs while the option is off, with the page's clock; it stops after the rest time and starts on the next input, on a game change and on a camera frame; the first frame after a rest shows the clock it stopped at; the window listener and the menu option are wired.
+
+### 3. The road plan
+
+- **Cause.** `planPaintedRoads` was memoised on `signRoadCells`, so any road laid or pillaged planned all 240 road hexes again. With the organic roads (switch 5) a hex's plan is heavy: taut road heights solved over 240 passes, sides, kerbs and bridges, 49,721 marks on the turn-130 map.
+- **Change** (`paintedGround.ts`). A hex's road marks depend only on the board under it and its neighbours (fixed), the style, and its links (which of its six neighbours are paved land). So the plan keeps each hex's marks with the links they were drawn for, and plans again only the hexes whose links moved (`planRoadCells`, `roadLinks`). The plan still comes out in cell order. A new map or a new style keeps nothing.
+- **Counts** (turn 130):
+
+| | Before | After |
+|---|---|---|
+| A road laid and taken away again (two plans), in the page | 1,694 to 1,751 ms | 16 ms |
+| A plan from nothing (a new map), in the page | 787 to 989 ms | 435 to 698 ms (the same work; the after run had less load) |
+| `rebuildRoads` at the turn end, 130 to 131 (4 roads laid) | 963 ms, of which the layer 45 ms | 43 ms, of which the layer 32 ms |
+| Road hexes clipped again by the layer at that turn end | 2 of 237 | 2 of 237 |
+
+- **Test.** `test/render/paintedRoadPlan.test.ts`, for the straight and the organic roads: after a road laid, a road pillaged, a town founded with a road laid into it and a road hex changing hands, the plan equals a plan made from nothing (same cells, same order, marks equal field by field), and every hex out of reach of the change keeps the very marks object it had. A new map plans every hex again.
+
+### 4. The terrain build's time limit
+
+- **Found.** The limit struck again during this pass: a turn-1 standard map on the unchanged code stopped at "Terrain construction timed out" under a load of about 30 (its next try built in 117.6 s, just inside the limit).
+- **Change.**
+  - `paintedBoardAsync.js`: no time limit. A build fails only on an error: the worker's own error message, its `error` event, a message it cannot read, or a failed post.
+  - `paintedBoard.js` names each step as it starts (`progress(done, total, stage)`): the hills, the mountains, the colours, the rivers, the coast, the sea, the land (the one step that counts, chunk by chunk), the far view. The worker adds "packing". The page records how long each step took and the longest wait between two reports (`PaintedBuildMetrics.stageMs`, `longestSilenceMs`).
+  - The loading sheet shows the step's name beside "Painting the world" (`paintingDetail` in `loadingSheet.ts`), so a slow build reads as work that goes on, and the bar counts the land step as before.
+- **The guard for a stuck build: none.** A limit cannot tell a slow build from a stuck one. The worker reports as each step starts, but a step in progress says nothing, so any limit on silence is a longer fixed limit that a slow enough machine still reaches. The build has no waits on anything outside itself, so it ends or it fails, and a failure arrives as one of the errors above. The longest silence measured (below) is there for anyone who wants to set a silence limit later.
+- **Counts.** The Giant map (180 by 112, 8 seats, turn 1), load about 17, which the first pass could not load at all:
+
+| Step | Seconds |
+|---|---|
+| The hills | 8.0 |
+| The mountains | 1.3 |
+| The colours | 0.4 |
+| The rivers | 5.9 |
+| The coast | 0.5 |
+| The sea | 0.1 |
+| The land | 162.2 |
+| The far view | 7.2 |
+| Packing | 3.2 |
+| **The worker in all** | **185.5** (the old limit was 120) |
+
+  The longest silence between two reports was 8.0 s (the hills). The sheet's line changed 77 times in the 177 s it showed "Painting the world". The board was up 224 s after Continue was pressed, with 20,160 hexes and no error.
+- **Tests.** `test/render/paintedWorker.test.ts`: the "timeout" failure case is gone; a new case holds a build ten minutes silent on one step and then fifteen more on the land step, and it still lands, passes on every report, and records the silence. `test/ui/loadingSheet.test.ts`: the step's words, and the pin on `terrainBuildProgress`. `test/render/contextLoss.test.ts`: the rebuild after a lost context passes the step on too.
+
+### 5. The border plan
+
+The border agent finished during this pass, so the coordinator asked for the change itself, not only the plan.
+
+- **Cause.** `planPaintedTerritory` was memoised on `signTerritory`, so any hex changing hands planned every border edge again. A CPU profile of the plan from nothing (the unchanged code) put 87 % of its time in `edgeHeight`: with the game's `level` style, each band of each edge asks the height of the edge and of the edges either side, and each asks the ground 27 times.
+- **Change** (`paintedGround.ts`).
+  - `edgeHeightOf` keeps each edge's height for the board, by hex and side, as `borderHeight` already did for hexes. An edge's ends and normal are fixed by its hex and side, so the numbers are the same.
+  - `keepBorder` and `handOut`: each plan keeps the marks each edge handed out, with the owner and outline arrays it was drawn from. The next plan finds the hexes whose seat changed, and plans again only the edges within `BORDER_REACH` (4) hexes of one. An edge reads the seats round its two corners (one hex away), and a draped band is handed to hexes of its seat up to three hexes away (`spread`), so 4 leaves a hex to spare. Every other edge hands out the marks it handed out before, and the plan is put together edge by edge in a full plan's order. The tint plan does the same for its three edge lists. A new map, new players or a new style keeps nothing.
+  - `territoryHoles` returns at once when `holeMax` is below 1 (the game's data since `276e193b`): no pocket can be that small.
+- **Counts** (turn 130):
+
+| | Before | After |
+|---|---|---|
+| The line plan from nothing (every edge planned), in the page | 537 to 564 ms | 5 ms (the heights kept for the board) |
+| The tint plan from nothing | 21 ms | 11 ms |
+| `rebuildTerritory` at the turn end, 130 to 131 (18 hexes changed hands) | 1,035 ms | 173 ms |
+| of which the two plans | 639 ms | 19 ms |
+| of which the two layers (unchanged code) | 41 + 355 ms | 17 + 137 ms |
+| Border and tint hexes clipped again by the layers at that turn end | 47 of 567, 130 of 835 | the same |
+
+  The first plan of a board still asks every height once; it runs at load, with the board build.
+- **Tests.** `test/render/paintedBorderPlan.test.ts`, for six styles (none, the game's, the outline rule on, draped over the relief, ruled, ruled with a wash): after a hex changing hands, a hex lost, a hole opening, a town captured and a town founded with its ring, the line plan and the tint plan equal plans made from nothing, and the hexes more than eight hexes from the change keep the very marks objects they had; the same after sixteen random changes in a row; another game on the same board plans every edge again.
+
+### The turn-end sync
+
+The one state sync after the turn resolves, turn 130 to 131:
+
+| | Before | After |
+|---|---|---|
+| The sync | 2,511 ms | 305 ms |
+| The longest frame of the turn | 2,933 ms | 400 ms |
+
+The after run had less load: `units.build`, which this pass did not touch, fell from 359 to 155 ms, so about 2.3 times of the fall is load. The plans' own fall (road 918 to 11 ms, border 639 to 19 ms) is far larger than that.
+
+### 6. The river glint test that failed after other files
+
+- **Cause.** `test/render/wrapCulling.test.ts` counted the river traces with `vi.mock` of `organicRivers.js`. The suite runs with `isolate: false` (`vite.config.ts`), so a worker keeps its modules from one test file to the next. When an earlier file in the same worker had already loaded `paintedFlow.ts`, it kept the real `createOrganicRivers`, and the mocked count read 0. It was not the cache key: the flow layer's cache is a `WeakMap` on the prepared board, and each test makes its own board.
+- **Reproduced** in one worker: a copy of the old test run after a file that loads `paintedFlow.ts` failed with the same message; the new test passed in the same run.
+- **Change.** The test counts with `vi.spyOn` on the module's export, which every importer reads at call time, and restores it after each test. No `vi.mock` is left in the suite. `npm run test:render` then passed the test in both of its runs (the second run passed all 1,411 tests).
+
+### The proof that the picture is the same
+
+Held clock, interface hidden, `Math.random` seeded; the unchanged code against all the changes, pixel by pixel:
+
+| Case | Closest | Middle | Farthest | Closest, inland |
+|---|---|---|---|---|
+| Turn 130 | 0 | 0 | 0 | 0 |
+| Turn 1 | 0 | 0 | 0 | 0 |
+| Turn 131 after a real turn end in the page, against a fresh load of turn 131 on the unchanged code | 0 | 0 | 0 | not taken |
+
+The last row is the one that tests the kept plans in the game: the changed code ended turn 130 in the page, so its road and border plans were updated one change at a time (4 roads laid, 18 hexes changed hands), and the unchanged code loaded the game's own autosave of turn 131 and planned everything from nothing. Both looked at the seat's capital with the overlays (selection rings, paths) hidden. The largest difference in any channel was 0 in every comparison. Pictures: `pics/std-t130-…-before.png` and `…-after.png`, `pics/std-t1-…`, `pics/turned-…`.
+
+### Not measured, and still open
+
+- GPU time, as in section 1. Frame times under load were not used as evidence.
+- The Giant map on the unchanged code: the first pass showed it stops at 120 s, and the standard map's timeout during this pass is the same fault.
+- The first border plan of a board, with no heights kept yet: it runs once, during the load.
+- **Open: the tint layer clips its marks one at a time.** At the turn end the tint layer took 137 to 355 ms to clip 130 hexes again: `PaintedGroundLayer.build` projects each tint mark on its own (`projectMarkings(terrain, [mark])`) to give it its fade. Projecting a hex's marks together and fading the pieces after would be faster, but the pieces' order and so the merged geometry could change, so it needs its own picture check.
+- **Open: the road layer folds every hex's marks again** when the plan object is new (`foldMarks`, about 20 to 50 ms at turn 130). Kept marks are the same objects now, so the layer could skip the fold for an unchanged marks array.
+- **Open: the mirror's clipping plane** still costs 2 program lookups a frame for each material drawn in both passes (section 7).

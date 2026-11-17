@@ -2254,13 +2254,15 @@ export interface VisualTestSpec {
   /** Frames a second the board draws while something on it moves by itself. */
   motionFps: number;
   /**
-   * Seconds after the last frame drawn for any other reason (a command, a
-   * camera move, the pointer, a walk) after which the board stops drawing its
-   * own motion frames, until something else asks for a frame again. 0 keeps
-   * the motion running for as long as the game is open, which is the picture
-   * the user approved. A choice of the render speed pass of 2026-11-16, off by
-   * default: on a still board it takes the idle cost from `motionFps` full
-   * frames a second to none (`docs/plans/render-performance-2026-11-16.md`).
+   * How long the board waits before it stops drawing its own motion frames,
+   * while the menu's option to stop the motion when idle is on: seconds after
+   * the last input (a pointer move or press, a wheel turn, a key) or the last
+   * frame drawn for another reason (a command, a camera move, a walk). The
+   * motion starts again at the next of these. 0 never stops it, even with the
+   * option on. The option is off by default, so the motion runs for as long as
+   * the game is open, which is the picture the user approved. On a still board
+   * the option takes the idle cost from `motionFps` full frames a second to
+   * none (`docs/plans/render-performance-2026-11-16.md`).
    */
   motionRestSeconds: number;
   sea: {

@@ -1,5 +1,5 @@
 import {
-  Box3, BufferGeometry, Color, DoubleSide, Group, InstancedMesh, Matrix4,
+  Box3, BufferGeometry, Color, DoubleSide, Group, InstancedBufferAttribute, InstancedMesh, Matrix4,
   Mesh, MeshStandardMaterial, Quaternion, Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -291,6 +291,13 @@ export class PaintedCityLayer {
       for (const offset of [-period, 0, period]) {
         const mesh = new InstancedMesh(geometry, this.assets.material, matrices.length);
         matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+        // A white colour for each instance. The works share this material and
+        // their instances carry colours. three needs a different program for an
+        // instanced mesh with colours than for one without, and it draws the
+        // material's meshes sorted by depth, so towns and works mixed in one
+        // view made it change program about ten times a frame. A colour of one
+        // multiplies nothing, so the picture is the same (`paintedCities.test.ts`).
+        mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(matrices.length * 3).fill(1), 3);
         mesh.position.x = offset; mesh.castShadow = shadows; mesh.receiveShadow = true;
         mesh.userData.paintedCityCells = cells;
         mesh.computeBoundingSphere(); this.group.add(mesh); meshes.push(mesh);

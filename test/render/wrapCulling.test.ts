@@ -19,12 +19,12 @@ import * as organic from '../../src/render3d/organicRivers.js';
 // @ts-expect-error The terrain modules remain JavaScript.
 import { prepareTerrainMap, setRiverStyle } from '../../src/terrainStudy/surface.js';
 
-vi.mock('../../src/render3d/organicRivers.js', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, (...args: unknown[]) => unknown>>();
-  return { ...actual, createOrganicRivers: vi.fn(actual['createOrganicRivers']) };
-});
-
-afterEach(() => { setRiverStyle(null); vi.clearAllMocks(); });
+// The traces are counted with a spy on the module's export, not with `vi.mock`. The suite runs with
+// `isolate: false` (`vite.config.ts`), so when an earlier file in the same worker had already loaded
+// `paintedFlow.ts`, a `vi.mock` here could not reach it: the flow layer kept the real function and the
+// count read 0 (it failed inside `npm run test:render` and passed alone). A spy replaces the export on
+// the one module object every importer reads, whatever ran before.
+afterEach(() => { setRiverStyle(null); vi.restoreAllMocks(); });
 
 /** A frustum over the given span of x, looking straight down at the board. */
 function frustumOver(fromX: number, toX: number, depth: number): Frustum {
@@ -107,7 +107,7 @@ describe('the river glints', () => {
   // time the works rebuild. Now it traces once a board and asks the fog which glints to keep.
   it('are traced once for a board however often the layer is built, and follow the fog', () => {
     const { map, prepared } = riverBoard();
-    const traced = organic.createOrganicRivers as ReturnType<typeof vi.fn>;
+    const traced = vi.spyOn(organic, 'createOrganicRivers');
     const flow = new PaintedFlowLayer();
     const count = (): number => (flow.group.children[1] as InstancedMesh | undefined)?.count ?? 0;
     flow.build(prepared, null, map, true);
