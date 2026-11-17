@@ -121,6 +121,7 @@ import {
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
 import { type VictoryScreen, createVictoryScreen } from './ui/victoryScreen';
+import { type AgePlate, agePlateReading, createAgePlate } from './ui/agePlate';
 import {
   type BeadModal,
   type BeadNews,
@@ -504,6 +505,8 @@ const captureOverlayEl = requireElement<HTMLElement>('capture-overlay');
 const captureBodyEl = requireElement<HTMLElement>('capture-body');
 const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
+/* The age plate (batch SS7): news raised when the world's age turns over. */
+const agePlateOverlayEl = requireElement<HTMLElement>('age-plate-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
    (uuuuu)), the fifteenth of the family. Raised by a decided game and opened
    from the corner panel's Standings mark or `S` on any other turn. */
@@ -1050,13 +1053,23 @@ let pendingBeadAge: BeadAge | null = null;
  * the table it went onto and the age's own bars.
  */
 let pendingCensus: CensusRecord | null = null;
+/**
+ * The age plate (batch SS7, `agePlate.ts`) and the age it waits to show.
+ *
+ * Queued through the same pump as the bead news, behind any bead sheet and in
+ * front of the wager sheet it announces. Held here for the bead sheet's reason.
+ */
+let agePlate: AgePlate | null = null;
+let pendingAgePlate: BeadAge | null = null;
 
 /** Drops news about a game nobody is playing any more. */
 function clearBeadNews(): void {
   pendingBeadNews = [];
   pendingBeadAge = null;
   pendingCensus = null;
+  pendingAgePlate = null;
   beadSheet?.clear();
+  agePlate?.clear();
 }
 
 /**
@@ -1237,6 +1250,14 @@ screens.register({
 });
 screens.register(held('confirm', 'news', () => confirmCard));
 screens.register(held('ceremony', 'news', () => ceremony));
+// Closed by `clear`, which tells nobody: a sweep must not raise the wager sheet
+// the plate was standing in front of.
+screens.register({
+  name: 'agePlate',
+  kind: 'news',
+  isOpen: () => agePlate?.isOpen ?? false,
+  close: () => agePlate?.clear(),
+});
 
 /**
  * Opens the load list. Its module has no open hook of its own, so its three
@@ -3014,6 +3035,18 @@ async function boot(initial: Game | null): Promise<void> {
     onClosed: () => pumpBeadNews(),
   });
 
+  /**
+   * The age plate (batch SS7, `agePlate.ts`): news, raised by `pumpBeadNews`
+   * when the world's age turns over. Closing it lets the wager sheet behind it
+   * come up.
+   */
+  agePlate = createAgePlate({
+    overlay: agePlateOverlayEl,
+    onOpen: () => screens.opening('agePlate'),
+    onClosed: () => pumpBeadNews(),
+  });
+  gameDisposers.push(() => agePlate?.dispose());
+
   /*
    * The standings sheet is **built further down**, after the top bar, because
    * the shell keeps the keyboard's return path on the control that opened a
@@ -3994,6 +4027,7 @@ async function boot(initial: Game | null): Promise<void> {
       offerCard.isOpen ||
       (triumphSheet?.isOpen ?? false) ||
       (beadSheet?.isOpen ?? false) ||
+      (agePlate?.isOpen ?? false) ||
       (victory?.isOpen ?? false) ||
       confirmCard.isOpen
     );
@@ -4021,6 +4055,15 @@ async function boot(initial: Game | null): Promise<void> {
       pendingBeadNews = [];
       screens.opening('bead');
       beadSheet.show(news);
+      return;
+    }
+    // **The age plate first** (batch SS7): the numeral, the age's name and the
+    // seat's deeds, in front of the wager sheet that the plate's line
+    // announces. Its own close calls back here, so the wager sheet follows.
+    if (pendingAgePlate !== null && agePlate) {
+      const age = pendingAgePlate;
+      pendingAgePlate = null;
+      agePlate.show(agePlateReading(game.state, controls.localPlayerId(), age));
       return;
     }
     // **The age's own sheet is the wager's now** (batch G2, `docs/wager.md`
@@ -4083,8 +4126,10 @@ async function boot(initial: Game | null): Promise<void> {
     onNotify: (entry, seatId) => {
       notificationLog.push(seatId, entry);
       // Only the seat actually at the keyboard gets a card. The log is written
-      // for everyone, because a seat comes back to it.
-      if (seatId === controls.localPlayerId()) toasts?.show(entry);
+      // for everyone, because a seat comes back to it. An age opening gets no
+      // card: the age plate is its announcement (batch SS7), and the
+      // chronicle keeps the line.
+      if (seatId === controls.localPlayerId() && entry.mark !== 'age') toasts?.show(entry);
       notifications?.refresh();
     },
     // The commit funnel, straight through to the guide: a tutorial step is
@@ -4277,6 +4322,9 @@ async function boot(initial: Game | null): Promise<void> {
      * what `pumpBeadNews` is for.
      */
     onBeadAgeOpened: (age) => {
+      // The plate, then the wager sheet (batch SS7). The plate is raised for
+      // every seat; the wager sheet only for a seat that owes it an answer.
+      pendingAgePlate = age;
       pendingBeadAge = age;
       pumpBeadNews();
     },
@@ -6018,6 +6066,7 @@ async function boot(initial: Game | null): Promise<void> {
     cancelPendingEndTurn();
     splash.clear();
     offerCard.clear();
+    agePlate?.clear();
   };
 
   window.addEventListener('resize', () => renderer.resize());

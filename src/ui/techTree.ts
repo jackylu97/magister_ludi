@@ -206,7 +206,7 @@ import {
 } from './charterTech';
 import { priceLineFigure, techCostFor, techPriceList } from './techPrice';
 import { wantsMotion } from './motion';
-import { HAMMER, PROJECT_GLYPHS, turnsLabel } from './figures';
+import { AGE_NAMES, HAMMER, PROJECT_GLYPHS, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
 import { keywordNode, setDescriptorText } from './keywords';
@@ -227,17 +227,10 @@ import { resourceMarkNode } from './resourceMark';
 import { yieldElement as element } from './yieldMark';
 
 /**
- * ÆRA I … IV — the ages, in the numerals the specimen sets them in, and the
- * names `docs/tech-tree.md` Part 1 rules them by (the tree pass of 2026-08-30:
- * Omens · Heroes · Empire · Cathedrals; Magister arrives with its own nodes).
+ * ÆRA I … IV — the ages, in the numerals the specimen sets them in. Their names
+ * are `AGE_NAMES` in `figures.ts`, which the age plate reads too.
  */
 const AGE_NUMERALS: Record<TechAge, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
-const AGE_NAMES: Record<TechAge, string> = {
-  1: 'Omens',
-  2: 'Heroes',
-  3: 'Empire',
-  4: 'Cathedrals',
-};
 
 /** How a gift's mark is drawn: which class the small box beside it wears. */
 const GIFT_MARK: Record<TechGift['kind'], string> = {

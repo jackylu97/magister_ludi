@@ -37,6 +37,7 @@
 
 import type { MeterId } from '../sim/meters';
 import type { ProjectPayout } from '../sim/projectData';
+import type { TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { roundYield } from '../sim/yieldFormat';
 
@@ -402,6 +403,11 @@ const ROMAN_ERA: readonly (readonly [number, string])[] = [
 ];
 
 export function eraWord(age: number): string {
+  return `Æra ${eraNumeralWord(age)}`;
+}
+
+/** The Roman numeral alone, "III", for a surface that sets it apart from the word. */
+export function eraNumeralWord(age: number): string {
   let left = Math.max(1, Math.round(age));
   let out = '';
   for (const [value, mark] of ROMAN_ERA) {
@@ -410,6 +416,25 @@ export function eraWord(age: number): string {
       left -= value;
     }
   }
-  return `Æra ${out}`;
+  return out;
+}
+
+/**
+ * The names of the four ages, as `docs/tech-tree.md` Part 1 gives them (the
+ * tree pass of 2026-08-30). The star chart prints them on its bands and the age
+ * plate prints them as "The Age of Empire". They live here so the two surfaces
+ * read one table.
+ */
+export const AGE_NAMES: Readonly<Record<TechAge, string>> = {
+  1: 'Omens',
+  2: 'Heroes',
+  3: 'Empire',
+  4: 'Cathedrals',
+};
+
+/** "The Age of Empire": an age by its name. */
+export function ageTitle(age: number): string {
+  const name = AGE_NAMES[age as TechAge];
+  return name === undefined ? eraWord(age) : `The Age of ${name}`;
 }
 
