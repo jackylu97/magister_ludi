@@ -476,6 +476,16 @@ export interface AiConfig {
      * prints a zero-valued label instead of a guess.)
      */
     workDefenseValue: number;
+    /**
+     * **How many turns ahead a hostile's march counts as a danger to a worker**
+     * (bot batch BP13, `workerThreat`). A visible hostile that could walk onto
+     * a worker's hex within this many turns, by its own route and its full
+     * allowance, sends the nearest free soldier that can arrive first to stand
+     * on the worker's hex. A worker such a hostile could take in its next move
+     * with no soldier coming steps back to a soldier or a town. 0 turns the
+     * guards off.
+     */
+    guardTurns: number;
   };
   /**
    * What a citizen is worth beyond the ground it works — the compounding half.

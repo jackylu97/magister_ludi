@@ -1375,6 +1375,13 @@ describe('the bot module', () => {
     // still free, read off the live board. The build arm, the faith purchase and
     // the settler's own arm all read it, so a settler is raised and sent only
     // for a site no other settler of the seat is for. It stores nothing.
+    //
+    // Twenty-seven since bot batch BP13 (2026-11-16): `routeMemo.ts` is a leaf
+    // that keeps one seat's route searches for its sitting and gives a kept
+    // answer back only while every input of the search is the same, so the
+    // escort plan, read at each revision of the board, does not search the same
+    // routes again. It keeps nothing past the sitting and remembers nothing
+    // beside the state, so it is not in `harnessMemory.ts`.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1393,6 +1400,7 @@ describe('the bot module', () => {
       'musterRoll.ts',
       'plan.ts',
       'prices.ts',
+      'routeMemo.ts',
       'routes.ts',
       'scopeReach.ts',
       'settlerSites.ts',

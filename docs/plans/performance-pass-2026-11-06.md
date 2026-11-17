@@ -2374,3 +2374,238 @@ On seeds 7, 999 and 42 the final code plays the same game as the measured tree (
 - `src/ai/aiConfig.ts` and `data/ai.json`: `expansion.escortCallTurns` (6). `data/ai.bounds.json`: its row.
 - Tests: `test/sim/aiEscorts.test.ts` (five new), `test/sim/aiEndCheckLoops.test.ts` (two new), `test/sim/aiBounds.test.ts` and `test/sim/aiPersona.test.ts` (the new knob), `test/sim/aiDigest.slow.test.ts` (the pins), `test/sim/aiCardStamp.slow.test.ts` (a worn copy of the last recorded position, below).
 - `docs/bot-priorities.md`, and this section.
+
+## BP13: refused deals, the escort plan's cost, and soldiers that guard workers, 2026-11-16
+
+`docs/flags.md` (ooooooo), the bullet "BP13: refused deals, the escort plan's cost, and soldiers that guard workers". The user: *"Let's fix the refused deal and escort plan points. … the bots should have logic to move soldiers to protect workers if they sense a hostile unit."* Bot changes only: no file under `src/sim/` and no rules data changed; one new bot knob.
+
+### Method
+
+- **Trees.** The **old tree** is `9164452f` (BP12 and docs commits; `9dc92d40` after it changes only `docs/flags.md`), a detached worktree. The **new tree** is the old tree with this batch's files copied in. For part 2 alone, two timed copies (`inst2.py`) wrap the escort plan in a CPU timer: one of the old code, one of the part 2 code without parts 1 and 3.
+- **The game** is the end check's: six seats with two decks each, standard map, barbarians on.
+- **Seeds.** The coordinator asked for fewer seeds because the machine was overloaded. Two seeds were played to turn 120 on both trees, 42 and 999; seeds 7, 1 and 2026 were cut when the battery ran low (9% at 20:05). The play tables are a first reading on two seeds; a 16-seed check is a later job. Seed 7 was used for the escort plan's timing (part 2).
+- **The probe** is `play13.ts` in the session's scratch folder `bp13/`. It plays the old and the new tree in one process, a turn on each in rotation, and records per turn the CPU of the whole turn and of `nextBotDecision`, the accepted commands by type, units lost to the wild by kind, worker-turns by state (from the last order each worker got in the turn and its summary), deals in force, and every deal paper in turns 50 to the end of the window, with the facts the receiver's clauses read at the proposal and at the answer, and the answer. The hooks send nothing: the old tree's seed 42 reached `4653d278:986102` at turn 110, the digest of a game played with no probe.
+- **Profiles.** `snap.ts` plays a seed to turn 110 and saves the state with the bot's harness memories (`readHarnessMemory`); `prof13.ts` restores it and plays turns 110 to 112 with a CPU profile; `pair13.ts` restores it into two trees and plays them a turn each in rotation, so both see the same load. A restored game plays the same game as an uninterrupted one (the digest above).
+- **Seconds** are CPU seconds (`process.cpuUsage`). The laptop ran on battery (73% at the start, 23% at 19:25) and was shared with other jobs: the load average ran from 8 to 47. Every run was niced (`nice -n 15`), one game process at a time from 16:30. CPU figures compare only between the two trees of one process.
+- **Paired figures**: for each seed the ratio of the new tree's six-seat total to the old tree's, the geometric mean of the ratios with a 95% t interval, and the seeds down and up. With four seeds an interval is wide.
+
+### 1. Refused deals
+
+#### The reproduction
+
+Seed 999, old tree, turns 50 to 136 (the game ended at 136, when seat 3 finished the Opus), every paper a bot wrote. The only paper the bots write is the swap of one luxury held twice for one held none of (`swapDecision`); peace offers were counted apart.
+
+| Fate of the paper | Papers |
+|---|---:|
+| Sent back: it asked for the receiver's **last copy**, and the receiver held one copy when it was written | 102 |
+| The same, and the same paper had been sent back before (written again after the refusal memory lapsed or the holdings moved) | 26 |
+| Sent back: the receiver held two when it was written, but lent one elsewhere before it answered | 2 |
+| Sent back by the rules at the signing: the writer's copy was already lent in another paper ("The S1 have no dyes to lend") | 2 |
+| Sent back on price: what was offered reached the receiver first by another paper | 1 |
+| Signed | 38 |
+| Not answered before the game ended | 1 |
+| **All** | 172 (2.0 a turn; 22% signed) |
+
+- **The cause is one clause the writer never asked.** A receiver refuses a paper that asks for a kind it holds once (`asksOurLastCopy`). The writer checked that clause only after a paper had been sent back once, and only to decide whether to sweeten it. 128 of the 133 refusals were that clause at the moment of writing.
+- **The price never refuses a swap the bot writes.** A kind the receiver lacks arrives at the baseline, the kind it lends leaves at the baseline less what its cards pay back, and a new partner only adds; so the paper reads nought or more on any sheet. Only the hard clauses decide.
+- **Re-sending**: 122 distinct papers in 172. A refused paper came back when the refusal memory (`war.refusalMemoryTurns`, 20) lapsed or the receiver's holdings changed.
+- **Concurrency** is the small rest: the writer offered its second copy of a kind in two papers at once, and a receiver was asked for the same kind by two seats.
+- **Peace offers are not the problem**: 8 peace papers in 86 game-turns on seed 999, none sent back; on seeds 42 and 999 at turns 50 to 100, 0.02 a turn and no envoy sent home.
+
+#### The fix
+
+- **The receiver's own reading** (`dealVerdict`, `diplomacy.ts`). `answerProposal`'s three clauses are one function now, and the writer asks it of a bot receiver before it writes (`writeSwap`), on the receiver's sheet and context (`receiverReader`). Both seats run the same code, so a paper goes to a bot only when the reading the receiver answers with signs it. The receiver's full context (`valueContext`, as its own sitting builds it, with `seatBooks`) is built only when its cards count copies lent or deal partners; without such a card the reading needs nothing else from the context and gives the same answer, so the writer does not pay a whole book for every paper. A paper the receiver would refuse is not written, and its row says why ("the S2 would send it back: it asks for the only tea they hold"). The same paper is offered again only when the receiver's reading changes, which is the "until something changes" of the brief.
+- **The papers already standing** (`swapDecision`, `standingRefusal`). A copy the writer has offered in a paper still on the table is promised, so it offers no second copy of a kind it holds twice, and it does not ask for a kind it has already asked for. It leaves a bot receiver alone when another seat's standing paper already asks it for the same kind (the receiver answers papers in order and would be left one copy) or already offers it the same kind.
+- **A person is asked as before.** A human seat gets the plain swap, then once more with coin after a refusal, then nothing about that swap for 20 turns or until the person's holdings move (`dealMemory.ts`). Only the writer's own promised copies apply to a person too, so a bot no longer offers a person a copy it has already offered elsewhere. **What a person sees today**: the paper stands until it is answered, and the ✉ offers button reads "1 offer waiting" with a row "S0 · Trade offer"; the row opens the Diplomacy screen at that seat, where the person signs or sends it back. An offer does not stop the person ending the turn. A bot writes at most one paper to a seat at a time.
+
+#### Before and after
+
+Seeds 42 and 999, turns 50 to 100 (102 game-turns on each tree):
+
+| A turn, six seats | Old tree | New tree |
+|---|---:|---:|
+| Papers proposed | 1.92 | 0.41 |
+| signed | 0.28 | 0.36 |
+| sent back | 1.62 | 0.05 |
+| Deal commands (propose, sign, send back) | 3.82 | 0.82 |
+| Share signed | 15% | 88% |
+| Deals in force | 4.53 | 5.03 |
+| Luxuries lent in them | 9.06 | 10.06 |
+| Gold a turn in them; open borders | 0; 0 | 0; 0 |
+| Peace offers; envoys sent home | 0.02; 0 | 0.06; 0 |
+
+| Fate of the papers, turns 50 to 100 | Old tree | New tree |
+|---|---:|---:|
+| Signed | 29 | 37 |
+| Sent back: their last copy at the proposal | 152 | 0 |
+| the same, written again | 8 | 0 |
+| Sent back: their last copy only at the answer (their copy went to another paper since) | 6 | 5 |
+| Sent back by the rules: the copy offered was gone | 1 | 0 |
+
+- **Signed deals did not fall: they rose by 29%** (0.28 to 0.36 a turn), and the deals and luxuries in force rose by a tenth. The deal commands fell from 3.8 to 0.8 a turn, about three commands a turn fewer.
+- **What is still sent back** is a copy the receiver lent between the paper and its answer, to a paper of a seat that wrote after this check (5 in 102 game-turns).
+
+### 2. The escort plan's cost
+
+Done first and alone, so the pins could prove it decides the same.
+
+#### The profile before
+
+Seed 42, turns 110 to 112, old tree, CPU-timed copy (`readEscortPlan` wrapped in `process.cpuUsage`): **234 reads in three turns, 4.2% to 5.4% of the turns' CPU** in four runs (BP12's profiler figure was 5.7%). Where it went, by the CPU profile:
+
+| Part of a read | Share of the plan |
+|---|---:|
+| `findPath` (a chase, a settler's route to its claim) | 42% |
+| `findPathToFirst` (a soldier to the hexes beside a waiting settler's town) | 16% |
+| `pathTurns` (each route's turns; it sweeps every piece for the zone of control at each call) | 14% |
+| `siteClaims`, `freeEscort` (a walk of every town for each soldier), `garrisonReserve`, the meeting hexes' `canStopOn`, the rest | 28% |
+
+| Who asked for a read | Reads | ms a read |
+|---|---:|---:|
+| `walkWithSettlers` (housekeeping, after every command) | 146 | 3.3 |
+| `escortDuty` (each soldier's decision) | 58 | 7.7 |
+| `settlerCommand` | 19 | 16.9 |
+| the settler price (`pricedEscortPlan`, a second cache of its own) | 11 | 9.9 |
+
+**167 of the 234 reads gave the same plan as the read before them.** Most commands move one of the seat's own pieces and leave every route the plan asks about as it was, so the route searches repeat.
+
+#### The change
+
+Six changes in `src/ai/bot.ts` and `src/ai/settlerSites.ts`, and a new leaf, `src/ai/routeMemo.ts`. None changes what the plan decides.
+
+1. **A route memo for the sitting** (`routeMemo.ts`: `memoPath`, `memoPathToFirst`, `memoTurns`). The plan and `escortDuty` ask their searches through it. A kept answer is given back only while every input of the search is the same (below). 75% of the plan's searches on these turns were answered from it.
+2. **One plan, one memo, for each context**, keyed on the context's site list (`contextEscortPlan`). Before, the settler price and the arms kept a plan each and could read the same plan twice at one revision.
+3. **A plan whose inputs have not moved is kept** (`escortPlanInputs`): a number key of every input the plan reads. It kept the plan for about one ask in five (47 of 224).
+4. **The settlers' claims and the threat to each town are kept** while their own inputs stand (`EscortKeep`, `keptClaims`, `sweepLook`), and the claims of towns' queues, which change no settler's claim, are not read (`siteClaims(…, false)`).
+5. **A soldier that can be in no job is not asked about the plan** (`mayEscort` in `escortDuty`).
+6. **Smaller exact savings**: the garrison counts in one walk of the pieces (`townsAreHeld`, `sweepLook`); each unit's movement profile read once a revision and passed to `canStopOn` (`moverOf`).
+
+#### Why the answers are the same, where BP12's two attempts were not
+
+A kept search is given back only while all of its inputs, read from `pathfind.ts`, are the same:
+
+- **the searcher**: its id, owner, type and hex, and its movement profile, the object `moveProfile` builds for the search (what the seat's cards, technologies and resources do to its steps); a count of turns also reads its movement left;
+- **every hex's owner, road and feature, every town, every piece of another seat, the pairs at war, the deals that open a border, and the turn**: the walls of `transitField`, the zone of control, closed borders, and the price of each step. When any of these moves, the memo is emptied;
+- **who stands on the goal hexes**: `canStopOn` counts them against the stacking cap;
+- **the seat's own pieces on a shore hex that the search can have looked at**, for a mover that may take to the water: a step across a shore ends the march, and the search asks `canStopOn` of the landing hex.
+
+Nothing else that a search reads can change between two commands of one sitting. The seat's own pieces add nothing to the walls (`pieceBits` answers 0 for them) and nothing to the zone of control, so one of them that moves changes a search only at a goal or a landing. *Which* landings: the search is A* with a heuristic of `distance × floor`, where the floor is the mover's cheapest step, so every hex it takes off its heap lies inside the ellipse `distance from the start + distance to the goal ≤ route cost ÷ floor`, and it asks questions only of those hexes and their neighbours. A search that found no route, or that ended on a goal other than its first, can have read every hex it could reach, so for it every shore piece of the seat counts. A test walks every step of a generated map and checks that none costs less than the floor the memo uses.
+
+The plan-level key holds every input `readEscortPlan` reads: the board above, every own piece's hex and type, each settler's and field soldier's health, health stamp, movement left, sleep and march, the towns in unrest, the camps, the empire's bonus to a piece's health, and the threat weights.
+
+BP12's first attempt kept a plan while a fingerprint of every unit stood: exact, but it held for 13 reads of 234, because nearly every command moves a piece. Its second kept routes by piece, place, movement left and goals; a route also depends on the pieces of other seats (one killed opens a road) and on the seat's own pieces at the goal and at a landing, so seed 7 parted. This memo keys on those too, and on nothing else.
+
+**The evidence:**
+
+- The digest pins held with part 2 alone: duel `98ab65ea:361047`, standard `8c45d70b:1032553` (`aiDigest.slow.test.ts`, 2 tests passed).
+- Every timing run on the seed 42 snapshot gave the old tree's digests at turns 110, 111 and 112 (`4653d278:986102`, `128bff1b:991329`, `dbeb4944:1000121`).
+- `test/sim/aiRouteMemo.test.ts` walks a board with a lake, a coast, pieces of another seat and movers that may embark through 160 random moves, and after each one compares every kept answer with a fresh search: over 2,000 comparisons, over 1,000 of them answered from the memo, all equal.
+
+#### The profile after
+
+CPU of the escort plan against the CPU of the turns, the old and the part 2 code in one process on the restored game (the threat weights, read at every revision by whichever arm asks first, are taken before the timer on both):
+
+| Seed, turns 110 to 112 | Old tree | Part 2 | Reads, old and new | Same digests |
+|---|---:|---:|---:|---|
+| 42 | 4.2% (0.77 of 18.1 s) | 3.0% (0.53 of 18.0 s) | 234, 177 of 224 asks | yes |
+| 7 | 4.1% (1.29 of 31.3 s) | 2.9% (1.00 of 35.0 s) | 351, 262 of 326 asks | yes |
+
+Five earlier runs of seed 42 on the way, with the threat weights inside the timer, read 4.4% to 5.4% for the old code; the final code read 2.8% to 3.7% under the same conditions.
+
+- **About a third cheaper, not under 2%.** The searches are mostly answered from the memo (75%), but the plan is still read at most revisions: the plan key kept it for one ask in five, because most commands move a settler or a field soldier, and every one of those is an input. What is left per read is about a third route searches the memo cannot keep (a searcher that moved, the first search of a sitting) and two thirds the plan's own walks. See "Not done".
+
+### 3. Soldiers guard a threatened worker
+
+#### The design
+
+Soldier-side, so the worker keeps working (BP11 found that making workers wait for a soldier on their own hex cost a fifth to two fifths of improvements). All of it is in `bot.ts`, in the section "worker guards".
+
+- **What counts as hostile** (`guardHostile`): a combatant of the wild, or of an empire the seat is at war with, that the seat can see (`isVisibleTo`). Under a card that keeps the wild from stealing this seat's civilians (`barbariansPassive`, the rule the wild itself reads), the wild does not count.
+- **The threat, by the hostile's own movement** (`hostileReach`, `workerThreat`): the hostile's own route (`findPathToFirst` with its own movement profile) to the nearest hex beside the worker, then the step onto the worker, counted by `pathTurns` with its full allowance. A threat is a hostile that could walk onto the worker within `workers.guardTurns` (2) turns; 1 means in its next move. A hostile two hexes off behind a ridge is no threat. At most `search.pathProbes` hostiles are asked for each worker, nearest first, and only those a march of that many turns could cover at a road's price.
+- **A worker in enemy fields is the war's case** (`inWarFields`, the first clause of `civilianDanger`): it walks home as before, and no guard is sent into an enemy's land for it. Added after the gate's core run, where `aiWar.test.ts`' worker in enemy fields got the step-back sentence instead.
+- **Read once a sitting** (`guardPlan`, `BotSitting.guards`), at the first ask, off the board as it stands then. The hostiles do not move inside a seat's turn: the wild moves in the resolution, the other seats in their own turns. A worker that walks during the turn is read again at its new hex, with no guard.
+- **Which soldiers are free** (`freeGuard`): a field soldier on land, healthy (`military.healBelowHealth`), not a town's last defender and not in a threatened town (`isRedundant`), not at a camp's door (a hunt's force), not a settler's escort (the escort plan), and **at home**: inside the seat's own borders, and not marching out of them. That last clause is the campaign's: a piece on a campaign or out at a camp stands beyond the borders, and the workers work inside them.
+- **The assignment** (`readGuardPlan`), soonest threat first, then by id; one soldier a worker:
+  - a soldier of ours already on the worker's hex holds there (`hold`);
+  - else the nearest free soldier whose route onto the worker's hex takes no more turns than the hostile needs (`march`);
+  - else the nearest free soldier that can reach the hex between in that time, the last hex of the hostile's road (`screen`).
+- **The soldier** (`guardDuty`, in `soldierCommand` right after the escort and before every blow and march): on its job hex it holds; anywhere else it marches there. `guardWorkers` (housekeeping, right after the escorts) sends a guard that is asleep or dug in, once a turn.
+- **The worker** (`workerCommand`, `workerGuard`): with a guard coming it is covered, so the old flight rule (a hostile within `war.escortRadius` and no soldier within it) does not send it home. It works on; when a hostile could take it in its next move it works the hex it stands on, or waits, rather than walk off before its soldier arrives. With no guard coming and a hostile that could take it in its next move, it **steps back** (`stepBack`) to a soldier of ours or a town it can reach this turn, or runs for a town (`civilianFlight`). Next turn it is asked again and goes back to work when the danger has passed.
+- **Release**: the plan is read again each sitting, so a guard with no threat left has no job and its own arms take it back. A soldier asleep on the hex of a worker that has no threat now is asked its own arm once a turn (`guardWorkers`), and a march or a blow is sent.
+- **Cost**: one reading a sitting; a few route searches for each worker with a hostile near it and for each guard sought.
+- **Knob**: `workers.guardTurns` (2), integer, with a row in `data/ai.bounds.json` (0 to 3); nought turns the guards off. It appears on the arena page through the sheet walk.
+- **Tests**: `test/sim/aiWorkerGuards.test.ts` (new, 5): the nearest free soldier marches onto the worker and the worker works on; with no soldier the worker steps back to its town; a soldier already on the hex holds; a hostile behind a ridge is no danger; the knob at nought turns it off. The first three fail on the old tree.
+
+#### Before and after
+
+Seeds 42 and 999, turns 1 to 100:
+
+| Six seats, two seeds | Old tree | New tree |
+|---|---:|---:|
+| Workers taken by the wild | 36 | 29 |
+| Workers taken by a rival | 1 | 0 |
+| Soldiers killed by the wild | 78 | 93 |
+| Improvements started | 530 | 478 |
+| Improvements standing at turn 100 | 532 | 477 |
+| Worker-turns | 2,155 | 1,958 |
+| of which working (a spade on its hex) | 419 (19.4%) | 374 (19.1%) |
+| walking or on a march | 1,595 (74%) | 1,416 (72%) |
+| running home (`civilianFlight`) | 71 (3.3%) | 53 (2.7%) |
+| stepping back (`stepBack`) | 0 | 40 (2.0%) |
+| standing or asleep | 70 | 75 |
+| Guard orders, seed 999 to turn 120 | 0 | 42 marches, 22 holds |
+
+- **Workers taken by the wild fell by a fifth** (36 to 29), on both seeds (21 to 19, 15 to 10). Running and stepping back together are 4.7% of worker-turns against 3.3%.
+- **Improvements fell by a tenth** (530 to 478 started), and that breaks the brief's limit on these two seeds. The share of worker-turns spent working is the same (19.1% against 19.4%); the fall is in worker-turns (9% fewer), so the new games held fewer workers. Parts 1 and 3 both change the game from turn 20 on, and this run cannot tell which one moved the worker count; a run with `workers.guardTurns` at nought on the same seeds would, and was not made (the battery).
+- **Soldiers killed by the wild rose by a fifth** (78 to 93): guards stand where the raiders strike.
+- **Cost**: the guard plan is read once a sitting. On seed 42 at turns 100 to 120 the whole turn was 5% cheaper on the new tree; on seed 999 it was 6% dearer with 24% more commands (below).
+
+### 4. Play at turn 100, and seconds a turn
+
+Seeds 42 and 999, the old tree against the new, six seats summed. With two seeds every interval is far too wide to mean anything; the figures are a first reading only.
+
+| Turn 100 | Old tree | New tree | Seed 42, seed 999 |
+|---|---:|---:|---|
+| Towns | 61 | 70 | 49 to 69, 73 to 71 |
+| Citizens | 374 | 372 | |
+| Food | 1,382 | 1,349 | |
+| Production | 1,584 | 1,322 | down on both |
+| Gold | 570 | 580 | |
+| Science | 997 | 938 | down on both |
+| Culture | 434 | 393 | |
+| Faith | 193 | 164 | |
+
+CPU seconds a turn at turns 100 to 120, the whole turn with the probe's own bookkeeping, the two trees in one process (seed 7 was cut; see "Seeds"):
+
+| Seed | Old tree | New tree | Bot CPU, old and new | Commands a turn, old and new |
+|---|---:|---:|---:|---:|
+| 42 | 3.56 | 3.37 | 2.80, 2.63 | 119, 122 |
+| 999 | 9.24 | 9.75 | 7.35, 7.63 | 120, 149 |
+
+### Not done, and proposals
+
+- **The escort plan is not under 2%.** It fell from 4.1% to 4.2% of the turns' CPU to 2.9% to 3.0% (seeds 42 and 7, turns 110 to 112, the two trees in one process), about a third cheaper. What is left is about a third searches the memo cannot keep and two thirds the plan's own walks, read at most new revisions. Two ways on, not built: track which pieces each job depends on, so a move of a piece no job can use keeps the plan (70% of the reads gave the same plan); and keep the threat weights (`threatWeights`, read at every revision by whichever arm asks first) across revisions while their inputs stand. Both are for the decision-speed batch the flags queue after BP13 (BP14).
+- **Seeds.** Two seeds (42 and 999) for the play tables, against four to six asked; seeds 7, 1 and 2026 were cut when the battery ran low (9% at 20:05). The speed table has seeds 42 and 999 only. A 16-seed check is a later job.
+- **Improvements fell by a tenth on the two seeds**, against the brief's limit. Not yet separated from the deals change; the next step is the same seeds with `workers.guardTurns` at nought.
+- **A guard left behind.** A guard asleep on a worker's hex is let go when the worker has no threat; one whose worker walked off while it slept stays asleep until a hostile comes into its sight or another arm wakes it.
+- **Peace offers** are unchanged: they were not a cause of the waste.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end with the reason printed beside them: duel `98ab65ea:361047` -> `c19609c9:365065`, standard `8c45d70b:1032553` -> `eb076b82:1079375`. With part 2 alone both old pins held. The duel pin moved once more (from `59f22059:356663`) when a worker in enemy fields was left to the war flight; the standard pin did not move.
+
+### Checks
+
+- Type check clean (`nice -n 15 npx tsc --noEmit -p .`).
+- Narrow tests, by name: `aiWorkerGuards` (new, 5), `aiRouteMemo` (new, 5), `aiDiplomacy` (27, 6 of them new), `aiEscorts`, `aiEndCheckLoops`, `aiBounds` and `test/ui/arenaPage.test.ts` (the new knob appears on the panel with no page edit): all passed. `aiDigest.slow.test.ts` with part 2 alone: 2 passed on the old pins; with all three parts it gave the two new digests, which are now the literals (the duel literal from the run after the enemy-fields fix, which passed on the standard board).
+- The whole core tier, the build and the slow bot files are the orchestrator's.
+
+### Files
+
+- `src/ai/routeMemo.ts` (new): the route memo (`memoPath`, `memoPathToFirst`, `memoTurns`, `moverOf`, `boardEpoch`, `searchFloor`).
+- `src/ai/bot.ts`: the escort plan's cost (`contextEscortPlan`, `escortPlanInputs`, `EscortKeep`, `keptClaims`, `SweepLook`, `sweepLook`, `redundantIn`, `mayEscort`, `freeEscort`'s `look`, `meetingHexes`' mover, `townsAreHeld` in one walk); the worker guards (`GuardThreat`, `GuardJob`, `GuardPlan`, `guardHostile`, `hostileReach`, `workerThreat`, `freeGuard`, `guardPlan`, `readGuardPlan`, `guardDuty`, `guardWorkers`, `workerGuard`, `dangerWords`, `stepBack`; `soldierCommand`, `workerCommand`, `housekeeping`, `BotSitting.guards`, `BotSitting.guardOrders`); the receiver context handed to `diplomacyDecision`.
+- `src/ai/diplomacy.ts`: `PaperReader`, `contextReader`, `receiverReader`, `dealVerdict`, `verdictReason`, `standingRefusal`; `answerProposal` through `dealVerdict`; `swapDecision` and `writeSwap` (the receiver's reading, the papers standing); `diplomacyDecision`'s `rivalContext`.
+- `src/ai/settlerSites.ts`: `siteClaims` without the queues' claims.
+- `src/ai/aiConfig.ts` and `data/ai.json`: `workers.guardTurns` (2). `data/ai.bounds.json`: its row.
+- Tests: `test/sim/aiWorkerGuards.test.ts` and `test/sim/aiRouteMemo.test.ts` (new), `test/sim/aiDiplomacy.test.ts` (six new), `test/sim/aiBounds.test.ts` (the knob), `test/sim/aiDigest.slow.test.ts` (the pins).
+- `docs/bot-priorities.md`, and this section.

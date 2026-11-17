@@ -95,6 +95,8 @@ import {
   nest,
 } from './decision';
 import { type ValueContext, explainCountStep } from './value';
+import { effectsOfKind } from '../sim/statecraft/evaluator';
+import type { CountKind } from '../sim/statecraftData';
 import { voiceWeight } from './prices';
 
 import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
@@ -152,6 +154,12 @@ export function diplomacyDecision(
   state: GameState,
   player: Player,
   ctx: ValueContext,
+  /**
+   * Another seat's context as its own sitting would read it now (bot batch
+   * BP13), for the swap arm to ask a bot receiver's own reading of a paper
+   * before writing it. Absent, the arm writes as it did before BP13.
+   */
+  rivalContext?: (rival: Player) => ValueContext,
 ): BotDecision | null {
   const answered = answerProposals(state, player, ctx);
   if (answered !== null) return answered;
@@ -163,7 +171,7 @@ export function diplomacyDecision(
   if (razed !== null) return razed;
   const war = declareDecision(state, player, ctx);
   if (war !== null) return war;
-  return swapDecision(state, player, ctx);
+  return swapDecision(state, player, ctx, rivalContext);
 }
 
 // --- who counts -------------------------------------------------------------
@@ -570,6 +578,60 @@ function explainStanding(
 // --- what a paper is worth --------------------------------------------------
 
 /**
+ * **What a paper's reading reads of a seat's context** (bot batch BP13): the
+ * board, the seat, its sheet, what one more step of a counted line pays it
+ * (`explainCountStep`), and its price of a coin (`voiceWeight`). The functions
+ * below read a context through this and nothing else, so another seat can ask
+ * a seat's own reading of a paper (`receiverReader`) without building that
+ * seat's whole book when the reading does not need it.
+ */
+interface PaperReader {
+  state: GameState;
+  playerId: number;
+  ai: AiConfig;
+  countStep(count: CountKind, step: number): Appraisal;
+  goldWeight(): number;
+}
+
+/** A seat's own context, as a paper reader: the reading the seat itself takes. */
+function contextReader(ctx: ValueContext): PaperReader {
+  return {
+    state: ctx.state,
+    playerId: ctx.playerId,
+    ai: ctx.ai,
+    countStep: (count, step) => explainCountStep(count, step, ctx),
+    goldWeight: () => voiceWeight(ctx, 'gold'),
+  };
+}
+
+/**
+ * **Another seat's own reading of a paper, asked by the seat that would write
+ * it** (bot batch BP13). The same functions the receiver answers with
+ * (`dealVerdict`), on the receiver's sheet. Its full context (`contextOf`, the
+ * one `valueContext` builds) is built only when the reading needs it: a
+ * counted line of the receiver's cards that pays by the copies it has lent or
+ * by its deal partners (`explainCountStep` on `copiesLent` or `dealPartners`),
+ * whose worth is in the receiver's prices. Without such a line that step pays
+ * nothing whatever the prices, so the reading is the same with or without the
+ * context, and the price of a coin is read only beside such a step.
+ */
+function receiverReader(state: GameState, receiver: Player, contextOf: () => ValueContext): PaperReader {
+  let ctx: ValueContext | null = null;
+  const full = (): ValueContext => (ctx ??= contextOf());
+  const counted = (count: CountKind): boolean =>
+    effectsOfKind(state, receiver.id, 'pays').some(
+      ({ effect }) => effect.basis === 'count' && effect.count === count,
+    );
+  return {
+    state,
+    playerId: receiver.id,
+    ai: aiConfigFor(receiver.persona, receiver.id),
+    countStep: (count, step) => (step > 0 && counted(count) ? explainCountStep(count, step, full()) : appraise([])),
+    goldWeight: () => voiceWeight(full(), 'gold'),
+  };
+}
+
+/**
  * What one half of a bargain is worth **to the empire receiving it**, in coin.
  *
  * Coin rather than the value vector's currency, and deliberately: every term a
@@ -608,7 +670,7 @@ function explainStanding(
  */
 function explainSide(
   terms: DealTerms,
-  ctx: ValueContext,
+  ctx: PaperReader,
   lacking: ((id: ResourceId) => boolean) | null,
   what: string,
 ): Appraisal {
@@ -663,9 +725,9 @@ function explainSide(
  * already turns a tribute into coin by. `sign` is −1 for a term that takes
  * away from what leaves.
  */
-function dealCoinTerm(label: string, perTurn: Appraisal, sign: 1 | -1, ctx: ValueContext): ValueTerm {
+function dealCoinTerm(label: string, perTurn: Appraisal, sign: 1 | -1, ctx: PaperReader): ValueTerm {
   const rate = ctx.ai.war.luxuryGoldBaseline / Math.max(1, ctx.ai.war.luxuryGptBaseline);
-  const coin = Math.max(Number.EPSILON, voiceWeight(ctx, 'gold'));
+  const coin = Math.max(Number.EPSILON, ctx.goldWeight());
   const parts: ValueTerm[] = [
     nest('what it pays this seat’s cards a turn, in points', perTurn),
     { label: `÷ ${round1(coin)} points a coin`, value: coin, op: 'div' },
@@ -679,7 +741,7 @@ function dealCoinTerm(label: string, perTurn: Appraisal, sign: 1 | -1, ctx: Valu
  * **What lending `copies` luxuries pays this seat back**, as negative terms on
  * the giving side (Commerce batch T9). See `explainSide`.
  */
-function lendingTerms(copies: number, ctx: ValueContext): ValueTerm[] {
+function lendingTerms(copies: number, ctx: PaperReader): ValueTerm[] {
   const terms: ValueTerm[] = [];
   const kept = lentCopyPercent(ctx.state, ctx.playerId) / 100;
   if (kept > 0) {
@@ -688,7 +750,7 @@ function lendingTerms(copies: number, ctx: ValueContext): ValueTerm[] {
       value: -kept * copies * ctx.ai.war.luxuryGoldBaseline,
     });
   }
-  const step = explainCountStep('copiesLent', copies, ctx);
+  const step = ctx.countStep('copiesLent', copies);
   if (step.total > 0) {
     terms.push(dealCoinTerm('less what the copies lent pay this seat’s cards, over a deal', step, -1, ctx));
   }
@@ -709,11 +771,11 @@ function newPartnerTerm(
   partner: number | undefined,
   take: DealTerms,
   give: DealTerms,
-  ctx: ValueContext,
+  ctx: PaperReader,
 ): ValueTerm | null {
   if (partner === undefined || !dealIsOngoing(take, give)) return null;
   if (dealPartnerSeats(state, player.id).includes(partner)) return null;
-  const step = explainCountStep('dealPartners', 1, ctx);
+  const step = ctx.countStep('dealPartners', 1);
   if (step.total <= 0) return null;
   return dealCoinTerm('a new deal partner, which this seat’s cards count, over a deal', step, 1, ctx);
 }
@@ -735,7 +797,7 @@ function explainPaper(
   player: Player,
   take: DealTerms,
   give: DealTerms,
-  ctx: ValueContext,
+  ctx: PaperReader,
   partner?: number,
 ): { appraisal: Appraisal; taken: number; given: number } {
   const side = explainSide(take, ctx, (id) => !hasResource(state, player.id, id), 'to us');
@@ -779,6 +841,80 @@ function asksOurLastCopy(
 }
 
 // --- answering a paper somebody put to us -----------------------------------
+
+/** A seat's reading of a bargain put to it: its three clauses and the figures behind them. */
+interface DealVerdict {
+  /** The paper is worth something, something arrives, and it asks for no last copy. */
+  accepting: boolean;
+  appraisal: Appraisal;
+  /** What arrives, in coin. */
+  arriving: number;
+  /** What leaves, in coin. */
+  given: number;
+  /** The seam it asks for that this seat holds one copy of, or `null`. */
+  lastCopy: ResourceId | null;
+}
+
+/**
+ * **The receiver's reading of a bargain** (`answerProposal`'s three clauses,
+ * split out in bot batch BP13): the paper must not cost more than it brings,
+ * something must arrive, and it must not ask for a seam this seat holds once.
+ * `player` is the seat the paper is put to; `paper.give` is what the writer
+ * hands over, so it is what arrives.
+ *
+ * Two callers ask it: the receiver answering (`answerProposal`, on its own
+ * context), and the writer before it writes (`writeSwap`, on the receiver's
+ * reader, `receiverReader`). Both run this same code, so a bot puts a paper to
+ * another bot only when the receiver's own reading takes it.
+ */
+function dealVerdict(
+  state: GameState,
+  player: Player,
+  paper: { by: number; give: DealTerms; take: DealTerms },
+  reader: PaperReader,
+): DealVerdict {
+  const read = explainPaper(state, player, paper.give, paper.take, reader, paper.by);
+  const lastCopy = asksOurLastCopy(state, player, paper.take);
+  const accepting = read.appraisal.total >= 0 && read.taken > 0 && lastCopy === null;
+  return { accepting, appraisal: read.appraisal, arriving: read.taken, given: read.given, lastCopy };
+}
+
+/**
+ * **Why a paper to this receiver would meet the papers already standing with
+ * it**, or `null` (bot batch BP13). A receiver answers its papers in the order
+ * they were put (`answerProposals`), so a paper from another seat that asks
+ * for the same kind of it is answered first and may leave it one copy, which
+ * its own last-copy clause then refuses to lend; and a paper that offers it
+ * the kind this one offers may arrive first, so this one would arrive with
+ * nothing new. Counted as the receiver counts copies (`resourceCopies`).
+ */
+function standingRefusal(
+  state: GameState,
+  receiver: Player,
+  wanted: ResourceId,
+  offered: ResourceId,
+  others: readonly DealProposal[],
+): string | null {
+  const them = seatPeople(state, receiver.id);
+  let asked = 0;
+  for (const row of others) {
+    if ((row.take.luxuries ?? []).includes(wanted)) asked += 1;
+    if ((row.give.luxuries ?? []).includes(offered)) {
+      return `another empire's paper already offers the ${them} ${resourceDef(offered).name.toLowerCase()}`;
+    }
+  }
+  if (asked > 0 && resourceCopies(state, receiver.id, wanted) - asked <= 1) {
+    return `another empire's paper already asks the ${them} for ${resourceDef(wanted).name.toLowerCase()}, and they would be left one copy`;
+  }
+  return null;
+}
+
+/** The receiver's reason for a paper it would send back, in the words `answerProposal` prints. */
+function verdictReason(verdict: DealVerdict): string {
+  if (verdict.lastCopy !== null) return `it asks for the only ${resourceDef(verdict.lastCopy).name.toLowerCase()} they hold`;
+  if (verdict.arriving <= 0) return 'nothing on the table arrives worth anything to them';
+  return 'it costs them more than it brings';
+}
 
 /**
  * The standing proposals put to this seat, answered — accepted when the paper
@@ -824,12 +960,9 @@ export function answerProposal(
   row: DealProposal,
   ctx: ValueContext,
 ): BotDecision {
-  // From this seat's side the proposer's `give` is what arrives.
-  const read = explainPaper(state, player, row.give, row.take, ctx, row.by);
-  const paper = read.appraisal;
-  const arriving = read.taken;
-  const lastCopy = asksOurLastCopy(state, player, row.take);
-  const accepting = paper.total >= 0 && arriving > 0 && lastCopy === null;
+  const verdict = dealVerdict(state, player, row, contextReader(ctx));
+  const { appraisal: paper, arriving, lastCopy, accepting } = verdict;
+  const read = { given: verdict.given };
   const refusal = answerDealError(state, player.id, row.id, accepting);
   // A decline is always legal for the seat that was asked, so a refusal here is
   // only ever the acceptance's — the coin was spent, the mine was pillaged.
@@ -1133,7 +1266,7 @@ function readPeaceOffer(
           player,
           sideOf(paper, enemy.id, player.id),
           sideOf(paper, player.id, enemy.id),
-          ctx,
+          contextReader(ctx),
           enemy.id,
         ).appraisal;
   const fair = value.total >= -owed;
@@ -1369,7 +1502,7 @@ export function counterTerms(
     appraisal: appraise([]),
   };
   const askingForNothing = termsAreEmpty(counter.take) && !termsAreEmpty(counter.give);
-  const read = explainPaper(state, bot, counter.give, counter.take, ctx, askerSeat);
+  const read = explainPaper(state, bot, counter.give, counter.take, contextReader(ctx), askerSeat);
 
   if (askingForNothing) {
     // **What would you give for this?** — the bot's own side, down to even.
@@ -1431,7 +1564,7 @@ export function counterTerms(
     if (dealSideError(state, askerSeat, botSeat, counter.give, peace) !== null) return null;
   }
 
-  const settled = explainPaper(state, bot, counter.give, counter.take, ctx, askerSeat);
+  const settled = explainPaper(state, bot, counter.give, counter.take, contextReader(ctx), askerSeat);
   counter.appraisal = appraise([
     nest('the counter, from our side', settled.appraisal),
     { label: `the bar this seat signs at is ${round1(bar)}`, value: 0 },
@@ -2084,15 +2217,40 @@ function nearestTownInReach(
  *
  * Seats in roster order and resources in the table's own order, so which of two
  * equally good swaps is offered is a fact the replay reproduces.
+ *
+ * **Since bot batch BP13 a bot receiver's own reading decides** (`dealVerdict`
+ * on `receiverReader`, given `rivalContext`). The end check of bot pass 3 found
+ * about three papers a turn and one in seven signed; on seed 999 at turns 50 to
+ * 136, 130 of 133 refusals were the receiver's last copy, which this arm did
+ * not ask about before the first paper (`docs/plans/performance-pass-2026-11-06.md`,
+ * the section "BP13"). A person is still asked the plain swap. The papers this
+ * seat and others already have standing count too: a copy offered once is
+ * promised, a kind asked for once is not asked again, and a receiver another
+ * paper already asks for the same kind is left alone (`standingRefusal`).
  */
-function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotDecision | null {
+function swapDecision(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  rivalContext?: (rival: Player) => ValueContext,
+): BotDecision | null {
   // A swap lends a luxury, so a seat under The Forbidden Silks has none to offer
   // (batch DT7). `writeSwap` would refuse each paper one at a time.
   if (luxuryLendingBan(state, player.id) !== null) return null;
+  // **The papers already standing** (bot batch BP13). A copy this seat has
+  // offered in a paper still on the table is promised: two papers signed in
+  // the same turn would lend both copies of a kind it meant to hold twice. And
+  // a kind it has already asked for would arrive twice. Before BP13 the
+  // receiver refused the second signing only when the rules did (the copy was
+  // gone), and the seat kept no copy of its own.
+  const standing = state.dealProposals.filter((row) => row.by === player.id);
+  const promised = (id: ResourceId): number =>
+    standing.reduce((count, row) => count + ((row.give.luxuries ?? []).includes(id) ? 1 : 0), 0);
   const spare = controlledResources(state, player.id, 'luxury').filter(
-    (id) => resourceCopies(state, player.id, id) >= 2,
+    (id) => resourceCopies(state, player.id, id) - promised(id) >= 2,
   );
   if (spare.length === 0) return null;
+  const asked = new Set(standing.flatMap((row) => row.take.luxuries ?? []));
   const rows: BotCandidate[] = [];
   for (const enemy of rivalsOf(state, player)) {
     const seats = bargainSeatError(state, player.id, enemy.id);
@@ -2100,14 +2258,29 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
       rows.push({ label: `the ${seatPeople(state, enemy.id)}`, score: 0, chosen: false, terms: [], rejected: seats });
       continue;
     }
+    // A bot receiver's own reading decides (`dealVerdict`); a person is asked
+    // the plain swap, as before BP13.
+    const reader =
+      rivalContext !== undefined && !enemy.isHuman ? receiverReader(state, enemy, () => rivalContext(enemy)) : null;
+    // The papers other seats have standing with this receiver: what they ask of
+    // it leaves it, and what they offer it may arrive first.
+    const others = state.dealProposals.filter((row) => row.to === enemy.id && row.by !== player.id);
     for (const wanted of controlledResources(state, enemy.id, 'luxury')) {
       if (hasResource(state, player.id, wanted)) continue;
+      if (asked.has(wanted)) continue;
       for (const offered of spare) {
         if (hasResource(state, enemy.id, offered)) continue;
         const give: DealTerms = { luxuries: [offered] };
         const take: DealTerms = { luxuries: [wanted] };
         const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
-        const written = writeSwap(state, player, enemy, give, take, ctx);
+        if (reader !== null) {
+          const crowded = standingRefusal(state, enemy, wanted, offered, others);
+          if (crowded !== null) {
+            rows.push({ label, score: 0, chosen: false, terms: [], rejected: crowded });
+            continue;
+          }
+        }
+        const written = writeSwap(state, player, enemy, give, take, ctx, reader);
         if (written.rejected !== undefined) {
           rows.push({ label, score: 0, chosen: false, terms: [], rejected: written.rejected });
           continue;
@@ -2167,6 +2340,8 @@ function writeSwap(
   give: DealTerms,
   take: DealTerms,
   ctx: ValueContext,
+  /** A bot receiver's own reading (bot batch BP13), or `null` for a person or a caller with none. */
+  reader: PaperReader | null = null,
 ): WrittenSwap {
   const memory = readDealRefusal(
     state,
@@ -2212,7 +2387,15 @@ function writeSwap(
   }
   const refusal = proposeDealError(state, player.id, enemy.id, written.give, written.take);
   if (refusal !== null) return { ...written, rejected: refusal };
-  const read = explainPaper(state, player, written.take, written.give, ctx, enemy.id).appraisal;
+  // **The receiver's own reading** (bot batch BP13): the paper goes only when
+  // the code the receiver will answer with says it signs.
+  if (reader !== null) {
+    const verdict = dealVerdict(state, enemy, { by: player.id, give: written.give, take: written.take }, reader);
+    if (!verdict.accepting) {
+      return { ...written, rejected: `the ${seatPeople(state, enemy.id)} would send it back: ${verdictReason(verdict)}` };
+    }
+  }
+  const read = explainPaper(state, player, written.take, written.give, contextReader(ctx), enemy.id).appraisal;
   const lines =
     written.sweetener === null
       ? read.terms
