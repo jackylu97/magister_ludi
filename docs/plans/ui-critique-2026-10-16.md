@@ -757,3 +757,10 @@ intriguing aspect about the game to people"*
   rarity as the richness of a border, the period faces, seals and cord) should
   spread, ranked by gain and work. Nothing is built from it until the user
   picks.
+
+- **SS7 is built now, in the approved look (2026-11-17).** The user, asked
+  whether to hold it for the arcane look: *"build ss7 now. I want to see which
+  aesthetic i like better"*. So the big moments and the full-screen abacus are
+  built from their approved boards as they are, without the emblem card's
+  language, so that the user can compare the two looks in play. The survey's
+  frontispiece stays a later choice.
