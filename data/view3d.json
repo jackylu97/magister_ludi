@@ -32,7 +32,8 @@
     "warRed": "#9b1b3a",
     "wildRed": "#7a1f2b",
     "cream": "#efe3c8",
-    "inkBlue": "#5d7fd6"
+    "inkBlue": "#5d7fd6",
+    "goldLeaf": "#e9b934"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -1022,6 +1023,16 @@
       "reach": 0.18,
       "fadeFrom": 0.55,
       "fadeSpan": 0.3
+    },
+    "close": {
+      "goldenColor": "goldLeaf",
+      "goldenScale": 1.28,
+      "glowColor": "goldLeaf",
+      "glowRadius": 2.4,
+      "glowOpacity": 0.55,
+      "zoom": 1.3,
+      "focusPan": 0.5,
+      "turnDegrees": 30
     },
     "families": [
       {
