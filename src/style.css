@@ -290,14 +290,23 @@
      panels — one number so nothing can drift out of alignment with it. */
   --topbar-h: 42px;
 
-  /* The corner panel's size at rest (batch SS2b, "Option A, revised" with the
-     underlined lines: 248 by 131, two 36 px lines 4 apart inside 8 px of
-     padding, a 36 px mark row, the hairline and the card's edge). The
-     commission chips start 8 px under it and take its width, both read off
-     these two numbers so neither can drift away from the panel. The open panel
-     grows down over the chips. */
-  --empire-panel-w: 248px;
-  --empire-panel-h: 131px;
+  /* The corner panel's size at rest. Batch SS2b drew it 248 by 131. Batch SS2c
+     hung the seat's pennant in it, 56 px wide (`--empire-banner-w`, the one
+     value to tune): the card is 24 px wider, so the longest technology name
+     ("Military Architecture") and the open card's notes ("0 of 3 bars met")
+     still fit after the pennant's column, and its top part is as tall as the
+     pennant's foot, the Q key and the arrow (`--empire-top-h`, 98 px at 56,
+     where the two lines need 92). The commission chips start 8 px under it and
+     take its width, both read off these numbers so neither can drift away
+     from the panel. The open panel grows down over the chips. */
+  --empire-banner-w: 56px;
+  --empire-panel-w: 272px;
+  /* The pennant's foot (its canton and swallowtail, 1.06 of its width, less
+     the 1 px it starts above the card), then 3 px, the 20 px Q key, 4 px, the
+     8 px arrow and 5 px. */
+  --empire-top-h: calc(var(--empire-banner-w) * 1.06 + 39px);
+  /* The top part, the 36 px mark row, its hairline and the card's two edges. */
+  --empire-panel-h: calc(var(--empire-top-h) + 39px);
 
   /* End Turn's own rendered height, built from exactly the numbers `.btn-end`
      is: its padding, its border, and one line of 16px content at the `.btn`
@@ -3226,10 +3235,21 @@ kbd {
 
    The board's spacing: one 4 px step for every padding, gap and height (the
    hairlines are not counted); the card 16 px from the left and 12 px under the
-   bar; a line 24 px high with a 4 px bar under it; one text edge at 48 px in
-   the open card; four type sizes (14 px Fraunces for row titles, 13 px for
+   bar; a line 24 px high with a 4 px bar under it; one text edge, after the
+   pennant's column (`--empire-text-edge`, 69 px since batch SS2c); four type sizes (14 px Fraunces for row titles, 13 px for
    line names, 12 px for notes, 12 px mono for every figure). */
 .empire-corner {
+  /* The pennant's measures (batch SS2c), all from `--empire-banner-w`. The
+     handle column: 2 px of card, the pennant, 3 px before the lines. */
+  --empire-handle-w: calc(var(--empire-banner-w) + 5px);
+  /* The pennant's centre line, where the Q key and the arrow hang. */
+  --empire-axis: calc(2px + var(--empire-banner-w) / 2);
+  /* The one text edge: the lines' words, and the open card's row names. */
+  --empire-text-edge: calc(var(--empire-handle-w) + 8px);
+  /* The pennant's parts, in the board's proportions. */
+  --banner-gap: 13px;
+  --banner-frame: calc(var(--empire-banner-w) * 0.84);
+  --banner-foot: calc(var(--empire-banner-w) * 0.22);
   position: fixed;
   top: calc(var(--topbar-h) + 12px);
   left: 16px;
@@ -3263,18 +3283,29 @@ kbd {
   cursor: pointer;
 }
 
-/* The banner column, the card's toggle for the keyboard: 40 px wide (12 of
-   padding, the 20 px banner, then the 8 px gap), the banner at its head and the
-   arrow at its foot. */
+/* --- the pennant (batch SS2c) ------------------------------------------------
+   Take 2 of the banner board, "hung from the bar", built larger and pressable
+   (the user, 2026-11-17: "i want the banner to be fairly bigger and look
+   someehwat 'clickable'"). A short swallowtail pennant in the seat's colour
+   hangs from under the top bar across the 12 px gap and onto the card, inside
+   its left edge. Its canton is parchment with the charge in ink, framed in the
+   seat's second colour, and a thin ink edge runs round the pennant, so a seat
+   whose first colour is nearly the parchment's still reads on the card.
+
+   One value sets the size: `--empire-banner-w` (`:root`). The canton, the
+   charge, the foot, the column, the Q key and the arrow under the foot, the
+   text edge and the card's height all follow it. The drawing was 44 px wide
+   with a 26 px charge; this is 56 px with a 34 px charge. */
+/* The handle column, the card's toggle for the keyboard and the pennant's
+   column. It runs from the card's top to the row of four marks; its height is
+   the pennant's foot, the Q key and the arrow (`--empire-top-h`). */
 .empire-panel {
-  display: flex;
+  position: relative;
   flex: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
   box-sizing: border-box;
-  width: 40px;
-  padding: 12px 8px 12px 12px;
+  width: var(--empire-handle-w);
+  min-height: var(--empire-top-h);
+  padding: 0;
   border: 0;
   border-radius: var(--paper-radius) 0 0 0;
   background: none;
@@ -3283,58 +3314,99 @@ kbd {
   cursor: pointer;
 }
 
+/* Hovered, the column takes the paper wash, as the lines do. */
+.empire-panel:hover {
+  background: #fdfaef;
+}
+
 .empire-panel:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
-/* The seat's banner: the board's bookmark, 20 by 28, in the seat's own
-   colour, with the seat's charge in ink on a parchment canton. The board's
-   canton is 6 px square and plain; this one is 12 px, so the charge the panel
-   has always carried can still be read (the heraldry rule keeps a charge off
-   seat ink). `--banner-mark` starts as a transparent picture, so the mask
-   hides everything until the first render writes the charge. */
+/* The pennant. It starts 1 px under the bar's foot, so the bar and its hard
+   shadow lie over its top (the bar is z-index 20, the card 12): it hangs from
+   the bar. The solid ink shadow is the one every pressable thing in this
+   interface stands on; a `drop-shadow` because the pennant is cut to its
+   shape. `--banner-mark` starts as a transparent picture, so the mask hides the
+   charge until the first render writes it. */
 .empire-banner {
   --banner-mark: linear-gradient(transparent, transparent);
-  position: relative;
-  flex: none;
-  width: 20px;
-  height: 28px;
+  position: absolute;
+  top: calc(-1 * var(--banner-gap) - 1px);
+  left: 2px;
+  width: var(--empire-banner-w);
+  height: calc(var(--banner-gap) + var(--banner-frame) + var(--banner-foot));
+  filter: drop-shadow(2px 2px 0 var(--ink));
+  transition: transform 60ms ease-out, filter 60ms ease-out;
 }
 
+/* The thin ink edge: the whole pennant's shape, with the field laid 1 px
+   inside it. The swallowtail's notch is as deep as the foot. */
 .empire-banner::before {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(var(--parchment), var(--parchment)) 4px 3px / 12px 12px no-repeat,
-    var(--seat-ink, var(--grape));
-  /* The board's path: M2 1H18V27L10 21.5L2 27Z, in a 20 by 28 box. */
-  clip-path: polygon(10% 3.571%, 90% 3.571%, 90% 96.429%, 50% 76.786%, 10% 96.429%);
+  background: rgba(29, 26, 32, 0.5);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - var(--banner-foot)), 0 100%);
   content: '';
 }
 
-.empire-banner-charge {
+.empire-banner-field {
   position: absolute;
-  top: 4px;
-  left: 5px;
-  width: 10px;
-  height: 10px;
+  inset: 0 1px 1px;
+  background: var(--seat-ink, var(--grape));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - var(--banner-foot) + 1px), 0 100%);
+}
+
+/* The canton: parchment, framed in the seat's second colour. */
+.empire-banner-canton {
+  position: absolute;
+  top: var(--banner-gap);
+  left: calc((100% - var(--banner-frame)) / 2);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--banner-frame);
+  height: var(--banner-frame);
+  border: 1.5px solid var(--seat-second, var(--ink));
+  background: var(--parchment);
+}
+
+.empire-banner-charge {
+  width: calc(var(--banner-frame) * 0.72);
+  height: calc(var(--banner-frame) * 0.72);
   background-color: var(--ink);
   -webkit-mask: var(--banner-mark) center / contain no-repeat;
   mask: var(--banner-mark) center / contain no-repeat;
 }
 
+/* Hovered, it moves 1 px down and right and its shadow shortens, as the
+   pressable things do, and its edge darkens. Pressed, it lies flat. */
+.empire-panel:hover .empire-banner {
+  transform: translate(1px, 1px);
+  filter: drop-shadow(1px 1px 0 var(--ink));
+}
+
+.empire-panel:hover .empire-banner::before {
+  background: rgba(29, 26, 32, 0.8);
+}
+
+.empire-panel:active .empire-banner {
+  transform: translate(2px, 2px);
+  filter: none;
+}
+
 /* The red dot: a decision is waiting (a card, a charter, a belief, or a
-   strategic resource with none spare). It pulses for the reason the chronicle's
-   unread badge does: a still dot on a control nobody has learned to read yet is
-   decoration. */
+   strategic resource with none spare). On the canton's top-right corner, half
+   outside it. It pulses for the reason the chronicle's unread badge does: a
+   still dot on a control nobody has learned to read yet is decoration. */
 .empire-banner.is-owed::after {
   position: absolute;
-  top: -3px;
-  right: -4px;
+  top: calc(var(--banner-gap) - 5px);
+  right: calc((100% - var(--banner-frame)) / 2 - 5px);
   box-sizing: border-box;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border: 1.5px solid var(--parchment);
   border-radius: 50%;
   background: var(--vermilion);
@@ -3342,19 +3414,47 @@ kbd {
   animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
-/* The board's triangle under the banner: down while closed, up while open. */
+/* The Q key and the arrow, on the pennant's centre line under its foot. */
+.empire-panel-key {
+  position: absolute;
+  top: calc(var(--banner-frame) + var(--banner-foot) + 2px);
+  left: calc(var(--empire-axis) - 10px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: var(--parchment);
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .empire-panel-arrow {
-  flex: none;
+  position: absolute;
+  top: calc(var(--banner-frame) + var(--banner-foot) + 26px);
+  left: calc(var(--empire-axis) - 5px);
   width: 10px;
   height: 8px;
   background: var(--ink-soft);
   clip-path: polygon(10% 12.5%, 50% 87.5%, 90% 12.5%);
 }
 
+.empire-panel:hover .empire-panel-key {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
 .empire-panel:hover .empire-panel-arrow {
   background: var(--ink);
 }
 
+/* Open, the arrow turns to point up; the pennant and the key stay. */
 .empire-panel.is-open .empire-panel-arrow {
   clip-path: polygon(10% 87.5%, 50% 12.5%, 90% 87.5%);
 }
@@ -3732,10 +3832,11 @@ kbd {
   border-top-color: var(--ink);
 }
 
+/* The mark on the pennant's centre line, the name at the one text edge. */
 .empire-corner.is-open .quick-button {
   justify-content: flex-start;
   gap: 0;
-  padding: 0 12px 0 14px;
+  padding: 0 12px 0 calc(var(--empire-axis) - 8px);
 }
 
 .empire-corner.is-open .quick-button + .quick-button {
@@ -3746,7 +3847,7 @@ kbd {
 .empire-corner.is-open .quick-name {
   display: block;
   flex: none;
-  margin-left: 18px;
+  margin-left: calc(var(--empire-text-edge) - var(--empire-axis) - 8px);
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
   font-size: 14px;
@@ -3798,7 +3899,7 @@ kbd {
 .empire-corner.is-open .quick-button.is-owed::after {
   top: 8px;
   right: auto;
-  left: 28px;
+  left: calc(var(--empire-axis) + 6px);
 }
 
 .empire-drawer[hidden] {
@@ -3812,7 +3913,7 @@ kbd {
   box-sizing: border-box;
   width: 100%;
   height: 36px;
-  padding: 0 12px 0 48px;
+  padding: 0 12px 0 var(--empire-text-edge);
   border: 0;
   border-top: 1px solid var(--rule);
   background: none;
@@ -3860,7 +3961,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 12px 12px 48px;
+  padding: 8px 12px 12px var(--empire-text-edge);
   border-top: 1px solid var(--rule);
 }
 
@@ -3965,6 +4066,11 @@ kbd {
   .empire-bar.is-prompting,
   .quick-button.is-owed::after {
     animation: none;
+  }
+
+  /* The pennant still moves 1 px on a hover, but at once. */
+  .empire-banner {
+    transition: none;
   }
 }
 

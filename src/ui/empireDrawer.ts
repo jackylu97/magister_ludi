@@ -959,15 +959,17 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
 
   function paintBanner(glance: EmpireGlance): void {
     const player = playerById(getGame().state, glance.playerId);
-    // The seat's own colour fills the bookmark the board draws, and the seat's
-    // charge sits in ink on its parchment canton (the heraldry rule: a charge
-    // never sits straight on seat ink). The canton is larger than the board's
-    // six pixels, so the charge can be read; it was on the panel before.
+    // The seat's pennant (batch SS2c): its own colour fills the field, and its
+    // charge sits in ink on the parchment canton (the heraldry rule: a charge
+    // never sits straight on seat ink). The canton is framed in the seat's
+    // second colour, which with the pennant's thin ink edge keeps a light seat
+    // such as Hypatia's papyrus visible on the parchment card.
     const uri = heraldryMarkDataUri(heraldryFor(glance.playerId, player?.charge, player?.leader));
     banner.style.setProperty('--banner-mark', `url("${uri}")`);
-    const ink = seatInks(player).primary;
-    if (ink.length > 0) banner.style.setProperty('--seat-ink', ink);
+    const inks = seatInks(player);
+    if (inks.primary.length > 0) banner.style.setProperty('--seat-ink', inks.primary);
     else banner.style.removeProperty('--seat-ink');
+    banner.style.setProperty('--seat-second', inks.secondary);
   }
 
   function paintTop(glance: EmpireGlance): void {

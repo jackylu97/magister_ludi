@@ -707,11 +707,19 @@ describe('the markup', () => {
   const quick = corner.slice(corner.indexOf('id="empire-quick"'), corner.indexOf('id="empire-drawer"'));
   const drawer = corner.slice(corner.indexOf('id="empire-drawer"'));
 
-  it('makes the banner the toggle that controls the open part, with the arrow under it', () => {
+  it('makes the pennant the toggle that controls the open part, with the Q key and the arrow under it', () => {
     expect(banner).toContain('aria-expanded="false"');
     expect(banner).toContain('aria-controls="empire-drawer"');
     expect(banner).toContain('id="empire-banner"');
+    for (const part of ['empire-banner-field', 'empire-banner-canton', 'empire-banner-charge']) {
+      expect(banner, part).toContain(`class="${part}"`);
+    }
+    expect(banner).toContain('<kbd class="empire-panel-key" aria-hidden="true">Q</kbd>');
     expect(banner).toContain('class="empire-panel-arrow"');
+    // The two colours are the seat's own (`seatInks`), the charge its heraldry.
+    const paint = braceBody(uiSource('empireDrawer.ts'), 'function paintBanner(');
+    expect(paint).toContain('heraldryFor(glance.playerId, player?.charge, player?.leader)');
+    expect(paint).toContain("banner.style.setProperty('--seat-second', inks.secondary);");
   });
 
   it('makes the two lines buttons: the technology opens the star chart, the next draft Statecraft', () => {
@@ -791,16 +799,20 @@ describe('the stylesheet', () => {
     return css.slice(at, css.indexOf('}', at));
   };
 
-  it('sizes the card at rest as the board does: 248 by 131, 16 px from the left, 12 px under the bar', () => {
-    expect(css).toContain('--empire-panel-w: 248px;');
-    expect(css).toContain('--empire-panel-h: 131px;');
+  it('sizes the card from the pennant: 272 wide, 16 px from the left, 12 px under the bar', () => {
+    // Batch SS2c: the pennant is one value, and the card's width, its top
+    // part's height and its text edge follow it.
+    expect(css).toContain('--empire-banner-w: 56px;');
+    expect(css).toContain('--empire-panel-w: 272px;');
+    expect(css).toContain('--empire-top-h: calc(var(--empire-banner-w) * 1.06 + 39px);');
+    expect(css).toContain('--empire-panel-h: calc(var(--empire-top-h) + 39px);');
     const corner = rule('.empire-corner');
     expect(corner).toContain('top: calc(var(--topbar-h) + 12px);');
     expect(corner).toContain('left: 16px;');
     expect(corner).toContain('width: var(--empire-panel-w);');
     expect(corner).toContain('flex-direction: column;');
-    // What adds up to 131: two 36 px lines (24 + 4 + a 4 px bar + 4) 4 apart
-    // inside 8 px of padding, a 36 px mark row, the hairline and the edge.
+    // The two lines: two 36 px lines (24 + 4 + a 4 px bar + 4) 4 apart inside
+    // 8 px of padding, 92 px, shorter than the pennant's column.
     expect(rule('.empire-lines')).toContain('padding: 8px 8px 8px 0;');
     expect(rule('.empire-lines')).toContain('gap: 4px;');
     expect(rule('.empire-line-head')).toContain('height: 24px;');
@@ -808,9 +820,11 @@ describe('the stylesheet', () => {
     expect(rule('.empire-line')).toContain('padding: 0 0 4px;');
     expect(rule('.empire-bar')).toContain('height: 4px;');
     expect(rule('.quick-button')).toContain('height: 36px;');
-    // The banner column: 12 of padding, the 20 px banner, 8 of gap.
-    expect(rule('.empire-panel')).toContain('width: 40px;');
-    expect(rule('.empire-panel')).toContain('padding: 12px 8px 12px 12px;');
+    // The handle column: the pennant and 5 px, as tall as its foot, key and arrow.
+    expect(rule('.empire-panel')).toContain('width: var(--empire-handle-w);');
+    expect(rule('.empire-panel')).toContain('min-height: var(--empire-top-h);');
+    expect(rule('.empire-corner')).toContain('--empire-handle-w: calc(var(--empire-banner-w) + 5px);');
+    expect(rule('.empire-corner')).toContain('--empire-text-edge: calc(var(--empire-handle-w) + 8px);');
   });
 
   it('opens downward in place: the open part has no position of its own', () => {
@@ -824,10 +838,26 @@ describe('the stylesheet', () => {
     expect(css).toContain('body:has(.empire-corner.is-open) #hud-commissions {\n  visibility: hidden;');
   });
 
-  it('draws the board’s parts: the bookmark, the underlined lines, the bars and the four marks', () => {
-    expect(rule('.empire-banner')).toContain('width: 20px;');
-    expect(rule('.empire-banner')).toContain('height: 28px;');
+  it('draws the board’s parts: the pennant, the underlined lines, the bars and the four marks', () => {
+    // The pennant hangs from the bar, 1 px under it, and stands on the solid
+    // ink shadow of a pressable thing; hovered it moves 1 px, pressed it lies flat.
+    const banner = rule('.empire-banner');
+    expect(banner).toContain('width: var(--empire-banner-w);');
+    expect(banner).toContain('top: calc(-1 * var(--banner-gap) - 1px);');
+    expect(banner).toContain('filter: drop-shadow(2px 2px 0 var(--ink));');
+    expect(rule('.empire-panel:hover .empire-banner')).toContain('transform: translate(1px, 1px);');
+    expect(rule('.empire-panel:active .empire-banner')).toContain('filter: none;');
+    // The swallowtail, the field in the seat's colour, the canton framed in the
+    // second colour, the charge in ink.
+    expect(rule('.empire-banner::before')).toContain('50% calc(100% - var(--banner-foot))');
+    expect(rule('.empire-banner-field')).toContain('background: var(--seat-ink, var(--grape));');
+    expect(rule('.empire-banner-canton')).toContain('border: 1.5px solid var(--seat-second, var(--ink));');
+    expect(rule('.empire-banner-canton')).toContain('background: var(--parchment);');
+    expect(rule('.empire-banner-charge')).toContain('background-color: var(--ink);');
     expect(rule('.empire-banner.is-owed::after')).toContain('background: var(--vermilion);');
+    // The Q key and the arrow on the pennant's centre line.
+    expect(rule('.empire-panel-key')).toContain('left: calc(var(--empire-axis) - 10px);');
+    expect(rule('.empire-panel-arrow')).toContain('left: calc(var(--empire-axis) - 5px);');
     expect(rule('.empire-line-title,\n.empire-line-arrow')).toContain('text-decoration: underline;');
     expect(css).toContain('.empire-line:hover .empire-line-title,\n.empire-line:hover .empire-line-arrow {\n  text-decoration-color: var(--ink);');
     expect(rule('.empire-bar.is-research .empire-bar-fill')).toContain('var(--lapis)');
@@ -855,9 +885,11 @@ describe('the stylesheet', () => {
   it('turns the marks into rows of the card’s one shape while it is open', () => {
     expect(rule('.quick-name,\n.quick-note,\n.quick-key')).toContain('display: none;');
     expect(rule('.empire-corner.is-open .empire-quick')).toContain('flex-direction: column;');
-    expect(rule('.empire-corner.is-open .quick-name')).toContain('margin-left: 18px;');
+    // One text edge, after the pennant's column: the marks on its centre line.
+    expect(rule('.empire-corner.is-open .quick-name')).toContain('margin-left: calc(var(--empire-text-edge) - var(--empire-axis) - 8px);');
+    expect(rule('.empire-corner.is-open .quick-button')).toContain('padding: 0 12px 0 calc(var(--empire-axis) - 8px);');
     expect(rule('.empire-corner.is-open .quick-key')).toContain('display: grid;');
-    expect(rule('.drawer-row')).toContain('padding: 0 12px 0 48px;');
+    expect(rule('.drawer-row')).toContain('padding: 0 12px 0 var(--empire-text-edge);');
     expect(rule('.drawer-row')).toContain('height: 36px;');
     // The lines grow their figures and keys only while the card is open.
     expect(rule('.empire-line-detail')).toContain('display: none;');
