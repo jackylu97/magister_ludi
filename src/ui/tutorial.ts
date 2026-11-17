@@ -162,13 +162,14 @@ interface TutorialStep {
 export const STEPS: readonly TutorialStep[] = [
   {
     id: 'welcome',
-    // The Standings tab at the right end of the top bar (batch UX1): it carries
-    // the seat's bead count and opens every empire's score, which is where the
-    // Abacus opens from now that it has no button in the bar.
-    anchor: '.topbar-tab.is-standings',
+    // The bead figure in the top bar's left group (batch SS2b; it was on the
+    // Standings tab until the tabs left the bar). It opens the Bead Race; the
+    // standings and the Abacus are behind the Standings mark in the corner
+    // panel, which the body names.
+    anchor: '.topbar-bank.is-beads',
     title: 'Welcome',
     body:
-      'You lead a small people. Settle cities, learn ideas, and earn beads, mostly by meeting the goals each new age sets. Your beads are counted on the Standings tab, top right. Press it to see every empire\'s score, and from there the Abacus, where each empire\'s beads sit on a rod. A full rod opens the game\'s final project, and finishing that project wins.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads, mostly by meeting the goals each new age sets. Your beads are counted here, in the top bar. The Standings mark at the foot of the panel in the top left shows every empire\'s score, and from there the Abacus, where each empire\'s beads sit on a rod. A full rod opens the game\'s final project, and finishing that project wins.',
     advance: { kind: 'next' },
   },
   {
@@ -190,21 +191,15 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'openChart',
-    // The corner panel's top part while the panel is shut, and its Research
-    // row once it is open (batch UX3, re-laid in batch SS2). The Research row
-    // is the way to the tree, but it is hidden until the panel opens, so the
-    // ring starts on the top part and moves to the row when the player opens
-    // the panel; `main.ts` re-places the card whenever the panel opens or
-    // closes. The lookup returns the first match in document order: the top
-    // part comes first, so it wins while the panel is shut, and it stops
-    // matching once its `aria-expanded` is true, which leaves the row.
-    anchor: '#empire-panel:not([aria-expanded="true"]), #hud-research',
+    // The corner panel's research line (batch SS2b): it opens the tree in one
+    // click, open card or shut, so the ring stays on it.
+    anchor: '#hud-research',
     title: 'Open the technology tree',
     // "A tree with nodes", never the chart's own theatre (the pamphlet audit,
     // 2026-09-03): a first-time player has not learned that the stars *are* the
     // technologies, so the three tree steps describe the thing, not the drawing.
     body:
-      'Your empire\'s banner is at the top left, beside what you are researching. Click it to open the panel, then click Research to open the technology tree. Every idea you can learn is a node on the tree, and the lines between nodes show which ideas need which.',
+      'Your empire\'s banner is at the top left. Beside it is what you are researching: click that line to open the technology tree. Every idea you can learn is a node on the tree, and the lines between nodes show which ideas need which.',
     advance: { kind: 'event', event: 'techChartOpened' },
   },
   {

@@ -201,11 +201,12 @@ describe("the top bar's turn line", () => {
 });
 
 /**
- * **The bar, left to right** (batch UX1, `docs/plans/hud-empire-panel-spec.md`
- * §2): the six yields and the meters chip, the turn line, the seat strip, the
- * three tabs, then ? and ☰. The markup holds the containers in that order and
- * `topBar.ts` fills them; the Abacus, the Lens, the chronicle and the
- * Compendium have left the bar.
+ * **The bar, left to right** (batch SS2b, `docs/plans/hud-empire-panel-spec.md`
+ * §2): two groups with nothing between them. Left: the six yields, the meters
+ * chip, renown and beads. Right: the seat strip, the turn line, then ? and ☰.
+ * The markup holds the containers in that order and `topBar.ts` fills them;
+ * the Abacus, the Lens, the chronicle, the Compendium and the three tabs have
+ * left the bar.
  */
 describe('the top bar, left to right', () => {
   const html = source('index.html');
@@ -215,9 +216,9 @@ describe('the top bar, left to right', () => {
   it('holds its items in reading order', () => {
     const order = [
       'id="civ-yields"',
-      'id="status"',
+      'id="topbar-banks"',
       'id="seat-strip"',
-      'id="topbar-tabs"',
+      'id="status"',
       'id="help-button"',
       'id="menu-button"',
     ].map((marker) => header.indexOf(marker));
@@ -225,8 +226,8 @@ describe('the top bar, left to right', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it('has let the Abacus, the Lens, the chronicle and the Compendium go', () => {
-    for (const gone of ['abacus-button', 'lens-button', 'log-button', 'compendium-button']) {
+  it('has let the Abacus, the Lens, the chronicle, the Compendium and the three tabs go', () => {
+    for (const gone of ['abacus-button', 'lens-button', 'log-button', 'compendium-button', 'topbar-tabs']) {
       expect(header, gone).not.toContain(`id="${gone}"`);
     }
     // Two buttons are left at the right end, and nothing else.
@@ -267,72 +268,48 @@ describe('the top bar, left to right', () => {
     expect(source('main.ts')).not.toContain('onOpenStatecraft');
   });
 
-  it('builds the three tabs in order: Diplomacy, Trade, Standings', () => {
+  it('ends the left group with renown and then beads, and builds no tabs', () => {
     const bar = source('topBar.ts');
-    expect(bar).toContain('tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);');
-    expect(bar).toContain('standingsGroup.append(standingsTab, renownItem, beadsItem);');
-    // Each tab says its own name, which stays readable to a screen reader when
-    // the stylesheet hides it below about 1200 px.
-    for (const name of ['Diplomacy', 'Trade', 'Standings']) {
-      expect(bar).toContain(`tabLabel('${name}')`);
+    expect(bar).toContain('banks.replaceChildren(renownItem, beadsItem);');
+    for (const gone of ['diplomacyTab', 'tradeTab', 'standingsTab', 'standingsGroup', 'tabLabel(', 'routesCard']) {
+      expect(bar, gone).not.toContain(gone);
     }
   });
 });
 
 /**
- * **Each tab's door.** Every tab is a real button (Standings is a group of
- * three), so Enter and Space press it with no handler of its own, and each
- * names the sheet it opens in `aria-controls`.
+ * **One door each** (batch SS2b). Diplomacy, Trade and the Standings left the
+ * bar: each is a mark in the corner panel, which is its sheet's trigger
+ * (`empireDrawer.test.ts`). The bar keeps the doors that are figures: renown
+ * opens the Reliquary and the beads the Bead Race.
  */
-describe('the tabs and their doors', () => {
+describe('the doors left on the bar', () => {
   const bar = source('topBar.ts');
   const main = source('main.ts');
 
-  it('opens Diplomacy from its tab, through the same door W uses', () => {
-    expect(bar).toContain("sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay')");
-    expect(bar).toContain("if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());");
-    // The sheet's own opening closes whatever else is up (the screen registry,
-    // batch UX2), so the door only opens it.
-    expect(main).toContain('onOpenDiplomacy: () => diplomacy?.open(),');
-    expect(main).toContain('trigger: civYields.diplomacyTab,');
-  });
-
-  it('opens Trade from its tab, which carries the routes figure and its ledger card', () => {
-    expect(bar).toContain("sheetButton('topbar-tab is-trade', 'trade-overlay')");
-    expect(bar).toContain("if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());");
-    expect(bar).toContain('info.bind(tradeTab, () => routesCard());');
-    expect(main).toContain('onOpenTrade: () => trade?.open(),');
-  });
-
-  it('gives Standings three doors: the sheet, the Reliquary and the bead ledger', () => {
-    expect(bar).toContain("sheetButton('topbar-tab-part is-sheet', 'victory-overlay')");
-    expect(bar).toContain("if (onOpenStandings) standingsTab.addEventListener('click', () => onOpenStandings());");
+  it('opens the Reliquary from the renown figure and the Bead Race from the beads', () => {
+    expect(bar).toContain("sheetButton('topbar-bank is-renown', 'reliquary-overlay')");
+    expect(bar).toContain("sheetButton('topbar-bank is-beads', 'beads-overlay')");
     expect(bar).toContain("if (onOpenReliquary) renownItem.addEventListener('click', () => onOpenReliquary());");
     expect(bar).toContain("if (onOpenBeads) beadsItem.addEventListener('click', () => onOpenBeads());");
     expect(bar).toContain('info.bind(renownItem, () => renownCard());');
     expect(bar).toContain('info.bind(beadsItem, () => beadsCard());');
-    expect(main).toContain('onOpenStandings: () => victory?.open(),');
-    expect(main).toContain('trigger: civYields.standingsTab,');
     expect(main).toContain('onOpenReliquary: () => reliquary?.open(),');
     expect(main).toContain('onOpenBeads: () => beads?.open(),');
   });
 
-  it('leaves the screens about this empire to the corner panel’s rows, and keeps the bar’s tabs', () => {
-    // The dock kept Statecraft, Religion and Leader until batch UX3. Since batch
-    // SS2 the corner panel's open part has Culture and Leader as rows, Faith is
-    // one of its four quick buttons, and the quick buttons are also doors onto
-    // Diplomacy, Trade and the Standings, beside the bar's own three tabs.
+  it('gives Diplomacy, Trade and the Standings their one door in the corner panel', () => {
+    for (const trigger of ['trigger: quickDiplomacyButton,', 'trigger: quickRoutesButton,', 'trigger: quickStandingsButton,']) {
+      expect(main, trigger).toContain(trigger);
+    }
     const html = source('index.html');
-    const drawer = html.slice(html.indexOf('<div id="empire-drawer"'), html.indexOf('<!-- ================= the star chart'));
-    for (const door of ['id="drawer-culture"', 'id="drawer-leader"']) {
-      expect(drawer, door).toContain(door);
-    }
-    for (const gone of ['diplomacy-overlay', 'trade-overlay', 'victory-overlay', 'religion-overlay']) {
-      expect(drawer, gone).not.toContain(gone);
-    }
     const quick = html.slice(html.indexOf('id="empire-quick"'), html.indexOf('<div id="empire-drawer"'));
     for (const door of ['diplomacy-overlay', 'trade-overlay', 'religion-overlay', 'victory-overlay']) {
       expect(quick, door).toContain(`aria-controls="${door}"`);
+    }
+    const drawer = html.slice(html.indexOf('<div id="empire-drawer"'), html.indexOf('<!-- ================= the star chart'));
+    for (const gone of ['diplomacy-overlay', 'trade-overlay', 'victory-overlay', 'religion-overlay']) {
+      expect(drawer, gone).not.toContain(gone);
     }
     for (const gone of ['hudDock.diplomacyButton', 'hudDock.tradeButton', 'hudDock.standingsButton']) {
       expect(main, gone).not.toContain(gone);
@@ -341,9 +318,9 @@ describe('the tabs and their doors', () => {
 });
 
 /**
- * **The tabs' figures**, read off a real state through `tabFigures`: every
- * number is the simulation's, printed short on the tab and in full in its
- * accessible name.
+ * **The bar's and the Routes mark's figures**, read off a real state through
+ * `tabFigures`: every number is the simulation's, printed short and in full in
+ * the accessible name.
  */
 describe("the tabs' figures", () => {
   it('prints the routes, the renown pool and the beads, short', () => {
@@ -411,22 +388,19 @@ describe('the meters chip', () => {
 });
 
 /**
- * **The tabs' marks are the drawings their screens already wore** (batch R2,
- * `docs/flags.md` item (iii), for the cart). The routes chip and the dock's
- * buttons wore these drawings; the tabs wear them now, masked in the bar's own
- * colour. A typed glyph creeping back is the failure this pins: it would show
- * as an emoji beside drawn marks, and nothing would throw.
+ * **The screens' marks are the drawings their screens already wore** (batch
+ * R2, `docs/flags.md` item (iii), for the cart). The bar's tabs wore them until
+ * batch SS2b; the corner panel's marks wear them now, masked in `currentColor`.
  */
-describe('the tabs’ marks', () => {
-  it('are the drawn marks, masked in the bar’s own colour', () => {
-    const bar = source('topBar.ts');
-    expect(bar).toContain('tabMark(diplomacyMarkDataUri())');
-    expect(bar).toContain('tabMark(tradeMarkDataUri())');
-    expect(bar).toContain('tabMark(standingsMarkDataUri())');
-    expect(bar).toContain("mark.style.setProperty('--tab-mark', `url(\"${uri}\")`);");
-    expect(source('style.css')).toMatch(/\.topbar-tab-mark \{[^}]*mask-image: var\(--tab-mark\)/);
+describe('the screens’ marks', () => {
+  it('are the drawn marks, on the corner panel now that the tabs are gone', () => {
+    const drawer = source('empireDrawer.ts');
+    expect(drawer).toContain('diplomacy: () => diplomacyMarkDataUri(),');
+    expect(drawer).toContain('routes: () => tradeMarkDataUri(),');
+    expect(drawer).toContain('standings: () => standingsMarkDataUri(),');
+    expect(source('style.css')).toMatch(/\.quick-mark \{[^}]*mask: var\(--quick-mark\)/);
     // The typed arrows are gone from the bar.
-    expect(bar).not.toContain("'⇄'");
+    expect(source('topBar.ts')).not.toContain("'⇄'");
   });
 
   it('are one drawing per screen, the same the flair gallery shows', () => {
@@ -448,28 +422,36 @@ describe('the tabs’ marks', () => {
 /**
  * **Width** (`docs/plans/hud-audit.md`, problem 1): nothing may scroll out of
  * sight at 1024 px. The strip steps its figures down by measurement
- * (`topBarYieldChips.test.ts`); the tabs drop their printed names below about
- * 1200 px, and only from sight.
+ * (`topBarYieldChips.test.ts`); below about 1200 px the bar's gaps close up.
  */
 describe('the bar at narrow widths', () => {
   const css = source('style.css');
 
-  it('hides the tab names below about 1200 px, from sight and not from a screen reader', () => {
+  it('closes the bar’s gaps below about 1200 px, and never steps the strip by width', () => {
     const at = css.indexOf('@media (max-width: 1199px)');
     expect(at).toBeGreaterThan(-1);
     const block = css.slice(at, css.indexOf('\n}\n', at));
-    const label = block.slice(block.indexOf('.topbar-tab-label {'));
-    expect(label).toContain('clip-path: inset(50%)');
-    expect(label.slice(0, label.indexOf('}'))).not.toMatch(/display:\s*none/);
-    // The breakpoint is about the fixed-text names only, never the strip.
+    expect(block).toContain('gap: 10px;');
+    // The strip steps by measurement, never by a breakpoint.
     expect(block).not.toMatch(/\.civ-yield|\.civ-meter/);
   });
 
-  it('lets only the strip shrink, and centres the turn line in what is left', () => {
+  it('lets only the strip shrink, and pushes the right group to the right edge', () => {
     expect(css).toMatch(/\.civ-yields \{[^}]*flex: 0 1 auto;/);
-    expect(css).toMatch(/\.topbar-tabs \{[^}]*flex: none;/);
+    expect(css).toMatch(/\.topbar-banks \{[^}]*flex: none;/);
     expect(css).toMatch(/\.topbar-tools \{[^}]*flex: none;/);
-    expect(css).toMatch(/\.status \{[^}]*margin: 0 auto;/);
+    // Nothing in the middle: the turn line's left margin takes the free room.
+    expect(css).toMatch(/\.status \{[^}]*margin: 0 0 0 auto;/);
+  });
+
+  it('spaces the bar as the board states it', () => {
+    // 12 px at both ends, 16 px between the groups' parts, 12 px between the
+    // figures of a group, 8 px between ? and ☰.
+    expect(css).toMatch(/#topbar \{[^}]*gap: 16px;[^}]*padding: 0 12px;/);
+    expect(css).toMatch(/\.topbar-banks \{[^}]*gap: 12px;/);
+    expect(css).toMatch(/\.topbar-tools \{[^}]*gap: 8px;/);
+    expect(css).toMatch(/\.civ-meters \{[^}]*margin-left: 4px;/);
+    expect(css).toMatch(/\.civ-yields \{[^}]*margin: 0 -5px;/);
   });
 });
 
@@ -597,12 +579,14 @@ describe('the ? card says where the moved things are', () => {
   const html = source('index.html');
   const help = html.slice(html.indexOf('id="help-overlay"'), html.indexOf('id="help-compendium"'));
 
-  it('names the keys, the tabs, and the two buttons beside End Turn', () => {
-    // Q and L since batch UX3: the empire drawer, pinned, and the leader sheet.
-    for (const key of ['C', 'H', 'W', 'E', 'A', 'V', 'Q', 'L']) {
+  it('names the keys, the corner panel’s marks, and the two buttons beside End Turn', () => {
+    // Q and L since batch UX3: the corner panel and the leader sheet. S since
+    // batch SS2b: the standings sheet.
+    for (const key of ['C', 'H', 'W', 'E', 'S', 'A', 'V', 'Q', 'L']) {
       expect(help, key).toContain(`<kbd>${key}</kbd>`);
     }
-    expect(help).toContain('<b>Diplomacy</b>, <b>Trade</b> and <b>Standings</b>');
+    expect(help).toContain('marks open <b>Diplomacy</b>');
+    expect(help).not.toContain('tabs at the');
     expect(help).toContain('beside End Turn');
     expect(help).toContain('opens the Abacus');
     // Nothing still points at a bar button that is gone.

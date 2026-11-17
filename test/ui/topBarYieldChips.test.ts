@@ -78,34 +78,29 @@ describe('the top-bar yield strip', () => {
 });
 
 /**
- * The tabs at the right end of the bar (batch UX1) carry figures too — the
- * routes, renown and bead counts that used to be strip chips — and the same
- * rule holds for them: a figure never wraps and a tab never shrinks below its
- * content. Only the strip shrinks (`#topbar`'s own docblock).
+ * Renown and beads at the end of the left group (batch SS2b; they were on the
+ * Standings tab, and the routes figure on the Trade tab, before the tabs left
+ * the bar) carry figures too, and the same rule holds for them: a figure never
+ * wraps and the group never shrinks below its content. Only the strip shrinks
+ * (`#topbar`'s own docblock).
  */
-describe('the top-bar tabs', () => {
+describe('renown and beads on the bar', () => {
   const css = source('src/style.css');
 
-  it('never wraps a tab, a part of one, or a figure on one', () => {
-    for (const selector of [
-      '.topbar-tab',
-      '.topbar-tab-part',
-      '.topbar-tab-figure,\n.topbar-figure-value',
-    ]) {
+  it('never wraps a figure or the button it is on', () => {
+    for (const selector of ['.topbar-bank', '.topbar-figure-value']) {
       expect(rule(css, selector)).toMatch(/white-space:\s*nowrap/);
     }
   });
 
-  it('never shrinks a tab: only the strip gives', () => {
-    expect(rule(css, '.topbar-tabs')).toMatch(/flex:\s*none/);
-    expect(rule(css, '.topbar-tab')).toMatch(/flex:\s*none/);
+  it('never shrinks the group: only the strip gives', () => {
+    expect(rule(css, '.topbar-banks')).toMatch(/flex:\s*none/);
     expect(rule(css, '.civ-yields')).toMatch(/flex:\s*0 1 auto/);
   });
 
-  it('prints every tab figure in tabular mono', () => {
-    expect(rule(css, '.topbar-tab-figure,\n.topbar-figure-value')).toMatch(
-      /font-variant-numeric:\s*tabular-nums/,
-    );
+  it('prints every figure in tabular mono', () => {
+    expect(rule(css, '.topbar-figure-value')).toMatch(/font-variant-numeric:\s*tabular-nums/);
+    expect(rule(css, '.topbar-bank')).toMatch(/font-variant-numeric:\s*tabular-nums/);
   });
 });
 

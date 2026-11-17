@@ -190,13 +190,13 @@ describe('where the chips live', () => {
     const css = uiSource('style.css');
     const rail = css.slice(css.indexOf('\n#hud-commissions {'));
     const body = rail.slice(0, rail.indexOf('}'));
-    // The panel's bottom (12px under the bar, 56 tall) plus 10px: 120px at the
-    // bar's 42px.
-    expect(body).toContain('top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 10px);');
-    expect(body).toContain('left: 14px;');
+    // The panel's bottom (12px under the bar) plus 8px, 16px from the left,
+    // and 8px between chips: the corner panel board's spacing (batch SS2b).
+    expect(body).toContain('top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 8px);');
+    expect(body).toContain('left: 16px;');
     expect(body).toContain('width: var(--empire-panel-w);');
     expect(css).toContain('--commission-chip-h: 38px;');
-    expect(css).toContain('--commission-chip-gap: 6px;');
+    expect(css).toContain('--commission-chip-gap: 8px;');
     expect(css).toContain('body:has(.city-mode:not([hidden])) #hud-commissions,');
     // Nothing moves down by the chips' height any more: the column below them
     // is empty.

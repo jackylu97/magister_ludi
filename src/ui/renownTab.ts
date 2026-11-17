@@ -7,8 +7,8 @@
  * people are going to be available to draft"*, and *"we can collapse the full
  * renown breakdown per city (i.e. tenochtitlan: +13)"*.
  *
- * Two surfaces print them: the hover card on the renown figure of the top
- * bar's Standings tab (`topBar.ts`), and the Reliquary, the sheet that figure
+ * Two surfaces print them: the hover card on the renown figure in the top
+ * bar's left group (`topBar.ts`), and the Reliquary, the sheet that figure
  * opens (`reliquaryScreen.ts`). The hover card cannot be clicked, so a town's
  * line opens to its sources only on the Reliquary.
  *

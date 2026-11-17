@@ -90,9 +90,10 @@ describe('the renown figure', () => {
   });
 
   it('is composed by the top bar through that one function, never by hand', () => {
-    // The Standings tab prints the pool alone (batch UX1, spec §2: `✦57`). The
-    // whole figure, pool over its rung with the rate in parens, is the tab's
-    // tooltip, and it still comes out of `poolFigure`.
+    // The renown figure in the bar prints the pool alone (batch UX1, spec §2:
+    // `✦57`; on the Standings tab until batch SS2b). The whole figure, pool
+    // over its rung with the rate in parens, is its tooltip, and it still comes
+    // out of `poolFigure`.
     const source = sourceOf('topBar.ts');
     expect(source).toContain('const pool = player?.renownPool ?? 0;');
     expect(source).toContain('renownThreshold(state, player)');

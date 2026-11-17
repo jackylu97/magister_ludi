@@ -290,12 +290,14 @@
      panels — one number so nothing can drift out of alignment with it. */
   --topbar-h: 42px;
 
-  /* The corner panel's size at rest (batch SS2, the Corner board: 248 by
-     118). The commission chips start 10px under it and take its width, both
-     read off these two numbers so neither can drift away from the panel. The
-     open panel grows down over the chips. */
+  /* The corner panel's size at rest (batch SS2b, "Option A, revised" with the
+     underlined lines: 248 by 131, two 36 px lines 4 apart inside 8 px of
+     padding, a 36 px mark row, the hairline and the card's edge). The
+     commission chips start 8 px under it and take its width, both read off
+     these two numbers so neither can drift away from the panel. The open panel
+     grows down over the chips. */
   --empire-panel-w: 248px;
-  --empire-panel-h: 118px;
+  --empire-panel-h: 131px;
 
   /* End Turn's own rendered height, built from exactly the numbers `.btn-end`
      is: its padding, its border, and one line of 16px content at the `.btn`
@@ -1465,9 +1467,15 @@ body {
 }
 
 /* --- the top bar ----------------------------------------------------------
-   A slim ink strip across the whole window (batch UX1, spec §2). Left: the six
-   yields and the meters chip. Middle: the turn line. Right: the seat strip in
-   hot-seat play, the Diplomacy, Trade and Standings tabs, then ? and ☰.
+   A slim ink strip across the whole window, in two groups with nothing between
+   them (batch SS2b, "Option A, revised" of the corner panel board). Left: the
+   six yields, the meters chip, renown and beads. Right: the seat strip in
+   hot-seat play, the turn line, then ? and ☰. The screens have no tabs here:
+   each has one door, a mark in the corner panel.
+
+   Spacing as the board states it: 12 px at both ends, 12 px between figures in
+   a group, 16 px between the yields, the meters chip and renown, and between
+   the turn line and the two buttons, 8 px between the two buttons.
 
    It is the only chrome the game shows unasked, so it is a bar rather than a
    card — the board begins under its bottom edge (see #viewport) instead of
@@ -1488,7 +1496,7 @@ body {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   height: var(--topbar-h);
   padding: 0 12px;
   border-bottom: var(--border) solid var(--ink);
@@ -1501,155 +1509,56 @@ body {
   box-shadow: 0 4px 0 rgba(29, 26, 32, 0.3);
 }
 
-/* ? and ☰, at the far right. The turn line's auto margins push the tabs and
-   these to the right edge, so this needs no margin of its own. */
+/* ? and ☰, at the far right, 8 px apart. The turn line's auto margin pushes
+   the right group to the right edge, so this needs no margin of its own. */
 .topbar-tools {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-/* --- the three tabs --------------------------------------------------------
-   Diplomacy, Trade and Standings: the screens about the other empires, as
-   labelled tabs at the right end of the bar (built by `topBar.ts`). A tab is
-   the bar's quiet button: a parchment outline on ink, filled when pressed or
-   while its sheet is open. Its mark is the drawing the dock wore for the same
-   screen, masked in `currentColor`.
-
-   Standings is a group of three buttons inside one outline, because a button
-   cannot hold another button: the label opens the standings sheet, the renown
-   figure the Reliquary and the bead figure the bead ledger. Each part has its
-   own hover wash and its own focus ring (`#topbar :focus-visible`). */
-.topbar-tabs {
+/* --- renown and beads -------------------------------------------------------
+   The end of the left group: the two other things the empire banks, as plain
+   figures with their marks, as the board draws them (they were on the
+   Standings tab until batch SS2b). Each is a button: renown opens the
+   Reliquary and the beads the Bead Race. The hover wash and its padding are
+   the yield chips' (`.civ-yield-clickable`), with the matching negative margin
+   so the wash does not move the row. */
+.topbar-banks {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
 }
 
-.topbar-tab {
+.topbar-bank {
   display: flex;
-  flex: none;
   align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 9px;
-  border: var(--border-thin) solid var(--on-ink-soft);
+  gap: 4px;
+  margin: -2px -4px;
+  padding: 2px 4px;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: rgba(247, 242, 225, 0.06);
+  background: none;
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   white-space: nowrap;
-}
-
-button.topbar-tab {
   cursor: pointer;
 }
 
-button.topbar-tab:hover,
-.topbar-tab-part:hover {
+.topbar-bank:hover,
+.topbar-bank[aria-expanded='true'] {
   background: rgba(247, 242, 225, 0.14);
 }
 
-/* Pressed, or its sheet is open: filled, the bar's own press (`.icon-btn`). */
-button.topbar-tab:active,
-button.topbar-tab[aria-expanded='true'],
-.topbar-tab-part:active,
-.topbar-tab-part[aria-expanded='true'] {
-  background: var(--parchment);
-  color: var(--ink);
-}
-
-/* The group's own outline holds the three parts; the parts draw no border of
-   their own except a hairline between them. Not `overflow: hidden`, which
-   would clip the parts' focus rings: the end parts round their own corners
-   to match the outline instead. */
-.topbar-tab.is-standings {
-  gap: 0;
-  padding: 0;
-}
-
-.topbar-tab-part {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 100%;
-  padding: 0 8px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.topbar-tab-part + .topbar-tab-part {
-  border-left: 1px solid var(--on-ink-line);
-}
-
-.topbar-tab-part:first-child {
-  border-radius: 4px 0 0 4px;
-}
-
-.topbar-tab-part:last-child {
-  border-radius: 0 4px 4px 0;
-}
-
-/* Inside the outline rather than outside it, so a focused part's ring does
-   not run over its neighbours. */
-#topbar .topbar-tab-part:focus-visible {
-  outline-offset: -3px;
-}
-
-/* The printed name: the bar's mono eyebrow, quieter than the figures. */
-.topbar-tab-label {
-  font-family: var(--face-num);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--on-ink-soft);
-}
-
-button.topbar-tab:hover .topbar-tab-label,
-.topbar-tab-part:hover .topbar-tab-label {
-  color: var(--parchment);
-}
-
-button.topbar-tab:active .topbar-tab-label,
-button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
-.topbar-tab-part:active .topbar-tab-label,
-.topbar-tab-part[aria-expanded='true'] .topbar-tab-label {
-  color: var(--ink-soft);
-}
-
-.topbar-tab-mark {
-  flex: none;
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  background-color: currentColor;
-  -webkit-mask-image: var(--tab-mark);
-  mask-image: var(--tab-mark);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-
-/* A figure on a tab: tabular mono, like every number in this interface. */
-.topbar-tab-figure,
+/* A figure on the bar: tabular mono, like every number in this interface. */
 .topbar-figure-value {
   font-family: var(--face-num);
-  font-size: 12px;
-  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1661,61 +1570,28 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
   font-size: 12px;
 }
 
-/* A route slot is free: the quiet good ink, never the alarm vermilion. */
-.topbar-tab.is-trade.is-good .topbar-tab-figure {
-  color: var(--y-food-lit);
-}
-
 /* Renown wears gilt, the colour gold wears: renown and money are the two
    things on this bar an empire banks. */
-.topbar-tab-figure.is-renown {
+.topbar-bank.is-renown {
   color: var(--y-gold-lit);
 }
 
 /* The bead wears lit gilt on the bar, as the renown laurel does (the Main
    board). */
-.topbar-tab-figure.is-beads .topbar-figure-mark {
+.topbar-bank.is-beads .topbar-figure-mark {
   color: var(--y-gold-lit);
 }
 
 /* A great person is waiting to be called: a glow, the quiet good state. */
-.topbar-tab-figure.is-renown.is-good .topbar-figure-value {
+.topbar-bank.is-renown.is-good .topbar-figure-value {
   text-shadow: 0 0 10px rgba(236, 193, 84, 0.75);
 }
 
-/* Below about 1200 px the three tabs give up their printed names and keep
-   their marks and figures. A width breakpoint is honest here, as it is not
-   for the yield strip: a tab's name is fixed text, so whether it fits is a
-   question about the window, while the strip's width depends on its digits
-   and is measured instead (`fitStrip`). The name is hidden from sight only;
-   a screen reader still reads it, so every tab keeps its accessible name. */
+/* Narrower than about 1200 px the bar's gaps close up a little, so the yields
+   keep their full size for longer. */
 @media (max-width: 1199px) {
   #topbar {
     gap: 10px;
-  }
-
-  .topbar-tab-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .topbar-tab,
-  .topbar-tab-part {
-    gap: 4px;
-  }
-
-  button.topbar-tab {
-    padding: 0 7px;
-  }
-
-  .topbar-tab-part {
-    padding: 0 6px;
   }
 }
 
@@ -1740,7 +1616,10 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
   gap: clamp(6px, 1vw, 12px);
   /* Room inside the scroll box for a chip's focus ring, which `overflow-x`
      would otherwise clip. Small enough that the strip, meters chip and all,
-     stays inside the 42 px bar. */
+     stays inside the 42 px bar. The negative margin gives the side padding
+     back, so the first yield starts 12 px from the bar's edge and renown sits
+     the bar's own 16 px after the meters chip. */
+  margin: 0 -5px;
   padding: 4px 5px;
   min-width: 0;
   overflow-x: auto;
@@ -1840,6 +1719,9 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
+  /* 16 px from the last yield, as the board spaces the bar's groups: the
+     strip's own 12 px gap and these 4. */
+  margin-left: 4px;
   padding: 1px 2px;
   border: var(--border-thin) solid var(--on-ink-line);
   border-radius: var(--radius-sm);
@@ -2893,11 +2775,14 @@ button.log-entry:active {
    yields and the tabs and pushes the tabs and the tools to the right edge.
    `topBar.ts` writes it: "Turn 91 · Æra II · 9 left". */
 
+/* The first item of the bar's right group: its left margin takes all the
+   free room, so nothing stands in the middle of the bar (batch SS2b). In a
+   hot-seat game the seat strip comes first and takes that margin instead. */
 .status {
   display: flex;
   flex: none;
   align-items: baseline;
-  margin: 0 auto;
+  margin: 0 0 0 auto;
   font-size: 13px;
   white-space: nowrap;
 }
@@ -2980,6 +2865,15 @@ button.log-entry:active {
 .seats[hidden],
 .seats:empty {
   display: none;
+}
+
+/* Shown, the seat strip heads the right group (see `.status`). */
+.seats:not([hidden]):not(:empty) {
+  margin-left: auto;
+}
+
+.seats:not([hidden]):not(:empty) + .status {
+  margin-left: 0;
 }
 
 button.seat {
@@ -3317,15 +3211,23 @@ kbd {
 }
 
 /* --- top-left: the corner panel -------------------------------------------
-   One card (batch SS2, the Corner board's variant A): the top part names the
-   technology being learnt and the next draft; four quick buttons sit under it
-   and never move; a click or Q opens the card downward in place, over the
-   commission chips, until it closes. Sizes and inks are the board's.
-   `src/ui/empireDrawer.ts` has the rules. */
+   One card (batch SS2b, "Option A, revised" of
+   docs/plans/mockups/scholars-study/corner-panel-options.html, with the user's
+   choices in docs/plans/ui-critique-2026-10-16.md). The top part is the banner
+   and two lines that are buttons, drawn as underlined names with an arrow. Four
+   marks sit under it with no words. A click on any other part of the top, or
+   Q, opens the card downward in place, over the commission chips, and the four
+   marks become four rows. `src/ui/empireDrawer.ts` has the rules.
+
+   The board's spacing: one 4 px step for every padding, gap and height (the
+   hairlines are not counted); the card 16 px from the left and 12 px under the
+   bar; a line 24 px high with a 4 px bar under it; one text edge at 48 px in
+   the open card; four type sizes (14 px Fraunces for row titles, 13 px for
+   line names, 12 px for notes, 12 px mono for every figure). */
 .empire-corner {
   position: fixed;
   top: calc(var(--topbar-h) + 12px);
-  left: 14px;
+  left: 16px;
   /* Over the commission chips (11). Open, it is also over the toasts (16): a
      centred toast reaches the corner on a narrow window, and the open card is
      what the player is reading (batch UX4's rule). Still under the bar (20). */
@@ -3348,25 +3250,32 @@ kbd {
   border-color: var(--ink);
 }
 
-/* The top part: one button. */
-.empire-panel {
+/* The top part. Its ground grows the card: a press on it that is not on one of
+   the two lines toggles the card (`empireDrawer.ts`), so it wears the pointer
+   everywhere. */
+.empire-top {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  box-sizing: border-box;
-  width: 100%;
-  padding: 8px 10px 9px 12px;
-  border: 0;
-  border-radius: var(--paper-radius) var(--paper-radius) 0 0;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
-.empire-panel:hover {
-  background: #fdfaef;
+/* The banner column, the card's toggle for the keyboard: 40 px wide (12 of
+   padding, the 20 px banner, then the 8 px gap), the banner at its head and the
+   arrow at its foot. */
+.empire-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 40px;
+  padding: 12px 8px 12px 12px;
+  border: 0;
+  border-radius: var(--paper-radius) 0 0 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
 }
 
 .empire-panel:focus-visible {
@@ -3428,55 +3337,128 @@ kbd {
   animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
-.empire-bars {
+/* The board's triangle under the banner: down while closed, up while open. */
+.empire-panel-arrow {
+  flex: none;
+  width: 10px;
+  height: 8px;
+  background: var(--ink-soft);
+  clip-path: polygon(10% 12.5%, 50% 87.5%, 90% 12.5%);
+}
+
+.empire-panel:hover .empire-panel-arrow {
+  background: var(--ink);
+}
+
+.empire-panel.is-open .empire-panel-arrow {
+  clip-path: polygon(10% 87.5%, 50% 12.5%, 90% 87.5%);
+}
+
+/* --- the two lines --------------------------------------------------------
+   Each is a button: an underlined name with an arrow, its turns, and a 4 px
+   bar. The underline goes ink on hover, over a wash, as the board's third
+   treatment draws it. 8 px of padding inside the line, so the wash has room
+   and the words start at the card's 48 px edge. */
+.empire-lines {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  padding: 8px 8px 8px 0;
 }
 
-.empire-bar-row {
+.empire-line {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 0 4px;
+  border: 0;
+  border-radius: var(--paper-radius);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.empire-line:hover {
+  background: #fdfaef;
+}
+
+.empire-line:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.empire-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 24px;
+  margin-bottom: 4px;
+  padding: 0 8px;
+}
+
+.empire-line-name {
   display: flex;
   align-items: baseline;
-  gap: 6px;
   min-width: 0;
-}
-
-.empire-bar-row.is-draft {
-  padding-top: 2px;
-}
-
-/* The technology's name (the star chart writes it) and "Next draft". */
-.empire-bar-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
   font-size: 13px;
-  /* 1.2, so the top part is the board's 71 px and the card at rest 118. */
-  line-height: 1.2;
+  line-height: 16px;
+}
+
+/* The name and the arrow after it, underlined as one. The name gives way
+   first, so the arrow stays in sight. */
+.empire-line-title,
+.empire-line-arrow {
+  text-decoration: underline;
+  text-decoration-color: var(--edge);
+  text-underline-offset: 3px;
+}
+
+/* The name clips a long technology with an ellipsis. The padding keeps its
+   underline inside the clipped box, 3 px under the letters as on the arrow;
+   the negative margin gives the room back. */
+.empire-line-title {
+  min-width: 0;
+  margin-bottom: -4px;
+  padding-bottom: 4px;
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.empire-bar-name.is-research {
-  font-size: 13.5px;
+.empire-line-arrow {
+  flex: none;
+  white-space: pre;
+}
+
+.empire-line:hover .empire-line-title,
+.empire-line:hover .empire-line-arrow {
+  text-decoration-color: var(--ink);
+}
+
+/* The technology is the heavier of the two names, as the board sets it. */
+.empire-line.is-research .empire-line-title {
   font-weight: 600;
 }
 
 /* Nothing chosen to research: the star chart says "Choose research…", and the
    name takes the gilt the bar's nudge has. */
-.empire-panel:has(.empire-bar.is-prompting) .empire-bar-name.is-research {
+#hud-research.is-prompting .empire-line-title {
   font-style: italic;
   color: var(--deep-gilt);
 }
 
-.empire-bar-turns {
+.empire-line-turns {
   flex: none;
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  font-size: 11.5px;
-  line-height: 1;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -3487,6 +3469,10 @@ kbd {
   overflow: hidden;
   border-radius: 2px;
   background: rgba(29, 26, 32, 0.12);
+}
+
+.empire-line .empire-bar {
+  margin: 0 8px;
 }
 
 .empire-bar-fill {
@@ -3517,45 +3503,109 @@ kbd {
   background: var(--gilt);
 }
 
-/* The board's triangle: down while closed, up while open. */
-.empire-panel-arrow {
+/* What the line grows in the open card: its figures and notes, and its key. */
+.empire-line-detail {
+  display: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-soft);
+}
+
+.empire-corner.is-open .empire-line-detail {
+  display: flex;
+}
+
+.empire-line-notes {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.empire-line-note:empty {
+  display: none;
+}
+
+/* "277/650 · +118 a turn": the separators belong to the parts that are there,
+   so an empty part leaves no stray dot. */
+.drawer-figure-part:not(:empty)::before {
+  content: ' · ';
+}
+
+#research-figures,
+#culture-figures {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.drawer-owed {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vermilion);
+}
+
+.drawer-owed[hidden] {
+  display: none;
+}
+
+/* The key hint: the board's small box, 20 px square. */
+.drawer-key {
+  display: grid;
   flex: none;
-  width: 10px;
-  height: 8px;
-  background: var(--ink-soft);
-  clip-path: polygon(10% 12.5%, 50% 87.5%, 90% 12.5%);
+  place-items: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: var(--parchment);
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.empire-panel.is-open .empire-panel-arrow {
-  clip-path: polygon(10% 87.5%, 50% 12.5%, 90% 87.5%);
+.drawer-key.is-arrow {
+  border-color: transparent;
+  background: none;
+  font-family: var(--face-ui);
+  font-size: 14px;
+  font-weight: 400;
 }
 
-/* --- the four quick buttons ------------------------------------------------
-   Diplomacy, Routes, Faith and Standings, always there and one click each. The
-   mark over the word, as variant A draws them; Routes and Faith carry variant
-   C's live figure beside the mark. */
+/* --- the four marks ---------------------------------------------------------
+   Diplomacy, Routes, Faith and Standings, with no words at rest: the cells are
+   44, flexible, flexible and 44 px wide and 36 high, so the two plain marks are
+   square and the two figures share the middle. The name, the note and the key
+   are hidden here; the title and the accessible name say them. */
 .empire-quick {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 44px;
   border-top: 1px solid var(--rule);
 }
 
 .quick-button {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 6px;
   min-width: 0;
-  height: 44px;
+  height: 36px;
   padding: 0;
   border: 0;
   background: none;
   color: var(--ink);
-  font-family: var(--face-ui);
-  font-size: 11px;
+  font-family: var(--face-num);
+  font-size: 12px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
@@ -3581,16 +3631,10 @@ kbd {
   border-bottom-right-radius: var(--paper-radius);
 }
 
-.quick-button:active {
-  transform: translateY(1px);
-}
-
-.quick-head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 16px;
+.quick-name,
+.quick-note,
+.quick-key {
+  display: none;
 }
 
 .quick-mark {
@@ -3605,32 +3649,44 @@ kbd {
 
 /* The live figure: tabular mono, like every number in the HUD. */
 .quick-figure {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
 
-.quick-figure.is-long {
-  font-size: 10.5px;
-}
-
-.quick-figure[hidden] {
+.quick-figure:empty {
   display: none;
 }
 
-.quick-label {
-  line-height: 1.15;
-  white-space: nowrap;
+/* A route slot is free: verdigris, the quiet good ink. No dot. */
+.quick-figure.is-free {
+  color: var(--teal);
 }
 
-/* The Faith button's dot, and the only one on the row: a god is waiting to be
-   named. An affordable rite never lights it (`docs/flags.md` (ssssss) 4.7). */
+/* The faith banked meets the next god's price: the figure takes faith's rose. */
+.quick-figure.is-met {
+  color: var(--y-faith);
+}
+
+/* The thin line under the Faith mark, filling toward the next god's price.
+   Only while the next god has a price. */
+.quick-line {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--y-faith);
+}
+
+.quick-line[hidden] {
+  display: none;
+}
+
+/* The Faith mark's dot, the only one on the row: the seat has the faith to
+   call a prophet now, and its religion still has a belief to choose (the
+   user's ruling of 2026-11-17). A god waiting for a name lights none here. */
 .quick-button.is-owed::after {
   position: absolute;
-  top: 5px;
+  top: 6px;
   right: 8px;
   width: 7px;
   height: 7px;
@@ -3640,9 +3696,74 @@ kbd {
   animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
-/* --- the open part -----------------------------------------------------------
-   Research, Culture, Leader, the age wager and Supply, each under a hairline.
-   It grows the card downward; nothing above it moves. */
+/* --- the open card ------------------------------------------------------------
+   The four marks become four rows of the card's one shape: the mark 14 px in,
+   the name at the 48 px edge, a note, the figure, the key. An ink rule above
+   them. Leader and the age wager follow in the same shape. */
+.empire-corner.is-open .empire-quick {
+  display: flex;
+  flex-direction: column;
+  border-top-color: var(--ink);
+}
+
+.empire-corner.is-open .quick-button {
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0 12px 0 14px;
+}
+
+.empire-corner.is-open .quick-button + .quick-button {
+  border-top: 1px solid var(--rule);
+  border-left: 0;
+}
+
+.empire-corner.is-open .quick-name {
+  display: block;
+  flex: none;
+  margin-left: 18px;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.empire-corner.is-open .quick-note {
+  display: block;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.empire-corner.is-open .quick-figure {
+  margin-left: auto;
+  padding-left: 8px;
+}
+
+.empire-corner.is-open .quick-key {
+  display: grid;
+  margin-left: auto;
+}
+
+.empire-corner.is-open .quick-figure ~ .quick-key {
+  margin-left: 8px;
+}
+
+.empire-corner.is-open .quick-line {
+  display: none;
+}
+
+.empire-corner.is-open .quick-button.is-owed::after {
+  top: 8px;
+  right: auto;
+  left: 28px;
+}
+
 .empire-drawer[hidden] {
   display: none;
 }
@@ -3653,23 +3774,19 @@ kbd {
   gap: 8px;
   box-sizing: border-box;
   width: 100%;
-  padding: 7px 12px;
+  height: 36px;
+  padding: 0 12px 0 48px;
   border: 0;
   border-top: 1px solid var(--rule);
   background: none;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
 }
 
-.drawer-row.is-section {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.drawer-row:hover {
+.drawer-row:hover,
+.empire-corner.is-open .quick-button:hover {
   background: #fdfaef;
 }
 
@@ -3678,21 +3795,8 @@ kbd {
   outline-offset: -2px;
 }
 
-.drawer-row:active {
-  transform: translateY(1px);
-}
-
-.drawer-row-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
 .drawer-row-name {
   flex: none;
-  width: 82px;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
   font-size: 14px;
@@ -3700,90 +3804,14 @@ kbd {
   white-space: nowrap;
 }
 
-/* Research and Culture are doors to a sheet: the title is underlined, as the
-   board draws them, and the figures sit under it. */
-.drawer-row.is-section .drawer-row-name {
-  width: auto;
-  align-self: flex-start;
-  text-decoration: underline;
-  text-decoration-color: var(--edge);
-  text-underline-offset: 3px;
-}
-
 .drawer-row-note {
   flex: 1;
   min-width: 0;
-  font-size: 12.5px;
-  line-height: 1.3;
-  color: var(--ink-soft);
-}
-
-.drawer-row:not(.is-section) .drawer-row-note {
   overflow: hidden;
+  font-size: 12px;
+  color: var(--ink-soft);
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-/* "186/190 · +91 a turn · next: Mathematics": the separators belong to the
-   parts that are there, so an empty part leaves no stray dot. */
-.drawer-figure-part:not(:empty)::before {
-  content: ' · ';
-}
-
-#research-figures {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: 11.5px;
-}
-
-/* The research row's two other states, written by the star chart: nothing
-   chosen (the old research card's gilt nag) and the whole tree researched. */
-#hud-research.is-prompting .drawer-row-name {
-  color: var(--deep-gilt);
-}
-
-.drawer-owed {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--vermilion);
-}
-
-.drawer-owed[hidden] {
-  display: none;
-}
-
-/* A card waiting: the Culture row's title wears the dot the banner has. */
-.drawer-row.is-owed .drawer-row-name::after {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 5px;
-  border-radius: 50%;
-  background: var(--vermilion);
-  vertical-align: 0.12em;
-  content: '';
-  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
-}
-
-/* The key hint: the board's small box. */
-.drawer-key {
-  flex: none;
-  padding: 0 5px;
-  border: 1px solid var(--edge);
-  border-radius: 3px;
-  background: var(--parchment);
-  color: var(--ink-soft);
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 17px;
-}
-
-.drawer-key.is-arrow {
-  border-color: transparent;
-  background: none;
-  font-size: 14px;
-  font-weight: 400;
 }
 
 /* Supply: every strategic resource held, as spare over held, in red when none
@@ -3794,23 +3822,39 @@ kbd {
 .drawer-supply-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 9px 12px 10px;
+  gap: 4px;
+  padding: 8px 12px 12px 48px;
   border-top: 1px solid var(--rule);
 }
 
 .drawer-supply-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0;
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
   font-size: 14px;
   font-weight: 600;
+  line-height: 20px;
+}
+
+.drawer-supply-caption {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.drawer-supply-caption[hidden] {
+  visibility: hidden;
 }
 
 .drawer-supply {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 18px;
+  gap: 0 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -3828,7 +3872,8 @@ kbd {
   background: none;
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 20px;
   text-align: left;
   cursor: pointer;
 }
@@ -3846,7 +3891,7 @@ kbd {
 
 .drawer-supply-row .res-copies {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .drawer-supply-empty {
@@ -3855,15 +3900,11 @@ kbd {
 
 .drawer-supply-foot {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-end;
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 16px;
   color: var(--ink-faint);
-}
-
-.drawer-supply-caption[hidden] {
-  visibility: hidden;
 }
 
 /* The figure pair, in the house voice every number in this interface is set
@@ -3885,14 +3926,8 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .empire-banner.is-owed::after,
   .empire-bar.is-prompting,
-  .quick-button.is-owed::after,
-  .drawer-row.is-owed .drawer-row-name::after {
+  .quick-button.is-owed::after {
     animation: none;
-  }
-
-  .quick-button:active,
-  .drawer-row:active {
-    transform: none;
   }
 }
 
@@ -3905,13 +3940,13 @@ kbd {
    opens. */
 :root {
   --commission-chip-h: 38px;
-  --commission-chip-gap: 6px;
+  --commission-chip-gap: 8px;
 }
 
 #hud-commissions {
   position: fixed;
-  top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 10px);
-  left: 14px;
+  top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 8px);
+  left: 16px;
   z-index: 11;
   width: var(--empire-panel-w);
 }
@@ -8996,7 +9031,7 @@ p.city-trade-link {
 
 /* The corner panel is parchment, so the seal after a charter technology's
    name is the parchment sepia with a parchment hole. */
-.empire-bar-name .charter-seal {
+.empire-line-title .charter-seal {
   --seal-hole: var(--parchment);
   margin-left: 4px;
   color: var(--deck-charter);
@@ -15368,9 +15403,9 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 /* --- renown, great people and their Triumphs -----------------------------
-   The fifth Entry XVIII bucket (`docs/great-people.md`). Its figure is on the
-   top bar's Standings tab (styled with the tabs, `.topbar-tab-figure.is-renown`);
-   this block is the checklist inside that figure's hover card. */
+   The fifth Entry XVIII bucket (`docs/great-people.md`). Its figure is in the
+   top bar's left group (`.topbar-bank.is-renown`); this block is the checklist
+   inside that figure's hover card. */
 
 /* The checklist's heading: the inscription voice the panels already use, ruled
    off from the ledger above it because it is a second, independent list rather
@@ -17245,8 +17280,8 @@ button.trade-chip {
 }
 
 /* The routes figure and its drawn cart moved from the yield strip to the top
-   bar's Trade tab in batch UX1; they are styled with the tabs
-   (`.topbar-tab-mark`, `.topbar-tab-figure`). */
+   bar's Trade tab in batch UX1, and to the corner panel's Routes mark in batch
+   SS2b (`.quick-figure`). */
 
 /* =========================================================================
    The Compendium, as a page (compendium.html).

@@ -719,18 +719,16 @@ describe('the wiring', () => {
     }
   });
 
-  it('opens the tree from the empire panel, and rings the research section once the drawer is open', () => {
-    // The research card is gone (batch UX3). Its section is inside the empire
-    // drawer, hidden until the drawer opens, so the step rings the panel while
-    // the drawer is shut and the section once it is open. The panel precedes
-    // the drawer in the document, so the lookup's first match is the panel for
-    // as long as it is not expanded.
+  it('opens the tree from the corner panel’s research line, which is always in sight', () => {
+    // Batch SS2b: the research line is a button at rest, so the tree is one
+    // click away whether the card is open or shut, and the ring stays on it.
     const open = STEPS.find((step) => step.id === 'openChart')!;
-    expect(open.anchor).toBe('#empire-panel:not([aria-expanded="true"]), #hud-research');
+    expect(open.anchor).toBe('#hud-research');
     const html = source('index.html');
-    expect(html.indexOf('id="empire-panel"')).toBeLessThan(html.indexOf('id="hud-research"'));
+    const top = html.slice(html.indexOf('id="empire-top"'), html.indexOf('id="empire-quick"'));
+    expect(top).toContain('id="hud-research"');
     expect(open.body).toContain('banner');
-    expect(open.body).toContain('Research');
+    expect(open.body).toContain('researching');
     // And the card is re-placed whenever the drawer opens or closes.
     expect(source('main.ts')).toContain('onChange: () => tutorial.refresh(),');
     // The close step points at the bar that replaced the card.
@@ -751,14 +749,14 @@ describe('the wiring', () => {
     expect([...bar.matchAll(/meters\.append\(/g)].length).toBe(1);
   });
 
-  it('points the welcome at the Standings tab, where the beads are counted now', () => {
-    // Batch UX1 took the Abacus button out of the bar. The Standings tab
-    // carries the seat's bead count and opens the standings sheet, which is
-    // where the Abacus opens from, so the welcome rings that tab instead.
+  it('points the welcome at the bead figure, and names the Standings mark where the Abacus is', () => {
+    // Batch SS2b took the tabs out of the bar. The beads sit in its left group,
+    // and the standings sheet, where the Abacus opens from, is behind the
+    // corner panel's Standings mark.
     const welcome = STEPS.find((step) => step.id === 'welcome');
-    expect(welcome?.anchor).toBe('.topbar-tab.is-standings');
-    expect(source('ui/topBar.ts')).toContain("element('div', 'topbar-tab is-standings')");
-    expect(welcome?.body).toContain('Standings tab');
+    expect(welcome?.anchor).toBe('.topbar-bank.is-beads');
+    expect(source('ui/topBar.ts')).toContain("sheetButton('topbar-bank is-beads', 'beads-overlay')");
+    expect(welcome?.body).toContain('Standings mark');
     expect(welcome?.body).toContain('Abacus');
     // The closing step sends the player to the menu for the Compendium, since
     // the book beside the question mark is gone from the bar.

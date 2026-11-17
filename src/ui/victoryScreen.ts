@@ -252,8 +252,9 @@ interface VictoryScreenOptions {
   trigger?: HTMLElement | null;
   /**
    * The other controls that open this sheet, for the focus return and the
-   * `aria-expanded` mirror (batch SS2: the corner panel's quick button beside
-   * a bar tab). See `modalShell.ts`.
+   * `aria-expanded` mirror. Batch SS2 used it for a bar tab beside the corner
+   * panel's quick button; since batch SS2b each sheet has one door, so nothing
+   * passes it today. See `modalShell.ts`.
    */
   doors?: () => readonly (HTMLElement | null | undefined)[];
   getState: () => GameState;

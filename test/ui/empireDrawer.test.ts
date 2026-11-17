@@ -1,21 +1,21 @@
 /**
- * The corner panel (batch SS2, `src/ui/empireDrawer.ts`; the board is
- * `docs/plans/mockups/scholars-study/Corner.dc.html`, variant A with variant
- * C's live figures on Routes and Faith).
+ * The corner panel (batch SS2b, `src/ui/empireDrawer.ts`; the board is "Option
+ * A, revised" in `docs/plans/mockups/scholars-study/corner-panel-options.html`,
+ * with the user's choices in `docs/plans/ui-critique-2026-10-16.md`).
  *
  * This suite has no DOM, so the pure halves are driven directly and the wiring
  * is read from the sources:
  *
- *   1. **opening and closing**: a click or Q toggles the card, and Escape, a
- *      press outside and any screen opening close it;
+ *   1. **opening and closing**: a click on the card's ground or Q toggles it,
+ *      and Escape, a press outside and any screen opening close it;
  *   2. **the red dot**: its four causes, each on its own;
  *   3. **the readings**: research, the draft meter, the age wager, the Supply
  *      counts and the two live figures, each against the simulation's own;
- *   4. **the words**: the top part's accessible name and the rows' lines;
- *   5. **the wiring**: the markup (the card grows down in place and the four
- *      buttons sit outside the part that grows), the stylesheet, `main.ts`
- *      (the screen registry, the disposal register, the doors) and the Q and L
- *      keys in `controls.ts`.
+ *   4. **the words**: the banner's accessible name and the rows' lines;
+ *   5. **the wiring**: the markup (two line buttons, four marks that become
+ *      rows, the open part last), the stylesheet, `main.ts` (the screen
+ *      registry, the disposal register, the one door each) and the Q, L and S
+ *      keys.
  *
  * It replaced `hudDock.test.ts` and `holdingsRail.test.ts` in batch UX3, and
  * the side drawer's depth rule in batch SS2.
@@ -25,14 +25,23 @@ import { describe, expect, it } from 'vitest';
 import { braceBody, uiSource } from './sourceHelpers';
 
 import { foundCityAt, turnsToFill } from '../../src/sim/cities';
+import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { readEmpire } from '../../src/sim/readings';
-import { type NextRung, explainNextRung, nextRungWords } from '../../src/sim/religion';
+import {
+  type NextRung,
+  explainNextRung,
+  nextBeliefPool,
+  nextRungWords,
+  poolSlotsFor,
+  religionBeliefPool,
+} from '../../src/sim/religion';
 import { resourceDef } from '../../src/sim/resourceData';
 import {
   type City,
   type GameState,
   type Player,
+  type Religion,
   bumpRevision,
   createUnit,
   playerById,
@@ -41,24 +50,32 @@ import {
 import { draftCost, nextDraftCost } from '../../src/sim/statecraft';
 import { GOVERNMENT_TIERS, type OrderId } from '../../src/sim/statecraftData';
 import { availableTechs, playerScience } from '../../src/sim/tech';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { drawWagers } from '../../src/sim/wagers';
 import { resetVisibility } from '../../src/sim/visibility';
 import {
   CLOSE_HINT,
   OWED_WORDS,
+  type ProphetGlance,
   QUICK_BUTTONS,
+  QUICK_NAMES,
   SUPPLY_CAPTION,
   SUPPLY_EMPTY,
   beliefOwed,
   cultureOwedWords,
   draftFigures,
   draftGlance,
+  draftTierWords,
+  draftTitle,
   empireGlance,
   faithFigure,
+  governmentWords,
   leaderWords,
   panelLabel,
   panelStep,
+  prophetGlance,
+  quickLabel,
+  quickTitle,
   researchGlance,
   researchNextWords,
   researchRateWords,
@@ -187,12 +204,14 @@ describe('the red dot', () => {
     expect(cultureOwedWords(glance.draft)).toBe('a charter is ready to be sworn');
   });
 
-  it('lights for a belief to choose, which is also the Faith button’s dot', () => {
+  it('lights for a belief to choose, but no longer on the Faith mark', () => {
+    // The user, 2026-11-17: a god waiting for a name is no dot on the Faith
+    // mark. The banner still counts it, as the End Turn blocker does.
     const state = solo();
     seatOf(state).pantheon.pending = { options: [] };
     const glance = empireGlance(state, 0)!;
     expect(glance.owed).toEqual(['belief']);
-    expect(glance.faith.owed).toBe(true);
+    expect(glance.faith.dot).toBe(false);
     // The draft meter's owed line is Statecraft's alone.
     expect(cultureOwedWords(glance.draft)).toBeNull();
   });
@@ -296,8 +315,9 @@ describe('the draft meter', () => {
     expect(glance.banked).toBe(30);
     expect(glance.fraction).toBeCloseTo(30.6 / cost);
     expect(glance.turns).toBe(turnsToFill(cost - 30.6, readEmpire(state, 0).totals.culture));
-    // The turns are on the top part, beside the draft's bar; the row names the tier.
-    expect(draftFigures(glance)).toBe(`30/${cost} · ${tierWords(glance)}`);
+    // The turns are on the line, beside the draft's bar; the detail names the tier.
+    expect(draftFigures(glance)).toBe(`30/${cost}`);
+    expect(draftTierWords(glance)).toBe('Tier 5');
   });
 
   it('quotes the price the seat pays, discounts included (Magisterial batch MG5, The Open Door)', () => {
@@ -318,7 +338,7 @@ describe('the draft meter', () => {
     expect(glance.cost).toBe(cost);
     expect(glance.cost).toBe(nextDraftCost(state, player));
     expect(glance.fraction).toBeCloseTo(30 / cost);
-    expect(draftFigures(glance)).toBe(`30/${cost} · ${tierWords(glance)}`);
+    expect(draftFigures(glance)).toBe(`30/${cost}`);
   });
 
   it('names the tier and the next tier a government is offered at', () => {
@@ -330,11 +350,20 @@ describe('the draft meter', () => {
     expect(glance.tier).toBe(5);
     expect(glance.nextGovernment).toBe(next);
     expect(tierWords(glance)).toBe(`Tier 5 · next government at ${next}`);
+    // The open line prints the next government on a line of its own.
+    expect(governmentWords(glance)).toBe(`next government at ${next}`);
     // Past the last government there is nothing more to name.
     player.statecraft.drafts = GOVERNMENT_TIERS[GOVERNMENT_TIERS.length - 1]! + 1;
     const late = draftGlance(state, player);
     expect(late.nextGovernment).toBeNull();
     expect(tierWords(late)).toBe(`Tier ${late.tier}`);
+    expect(governmentWords(late)).toBe('');
+  });
+
+  it('titles the line with the board’s tooltip: Statecraft, the next draft and the key', () => {
+    const state = solo();
+    const glance = draftGlance(state, seatOf(state));
+    expect(draftTitle(glance)).toMatch(/^Statecraft: (next draft in \d+ turns?|next draft this turn|no culture being made) \(C\)$/);
   });
 });
 
@@ -472,36 +501,120 @@ describe('the words', () => {
   });
 });
 
-describe('the live figures on Routes and Faith (variant C’s)', () => {
-  it('prints the top bar’s own routes figure, running against the cap', () => {
+describe('the live figures on Routes and Faith', () => {
+  it('prints the bar’s own routes figure, running against the cap, and marks a free slot', () => {
     const state = solo();
     const glance = empireGlance(state, 0)!;
     const bar = tabFigures(state, 0);
-    expect(glance.routes.text).toBe(bar.routes);
-    expect(glance.routes.words).toBe(bar.routesSpoken);
+    expect(glance.routes).toEqual({ text: bar.routes, words: bar.routesSpoken, free: bar.routeSpare });
     expect(glance.routes.text).toMatch(/^\d+\/\d+$/);
   });
 
-  it('prints the faith banked against the next god’s price, out of the Faith sheet’s reading', () => {
+  it('prints the faith banked, out of the Faith sheet’s reading and the purchase gate', () => {
     const state = solo();
     const glance = empireGlance(state, 0)!;
     const reading = explainNextRung(state, 0, readEmpire(state, 0).totals.faith);
-    expect(glance.faith).toEqual(faithFigure(reading));
-    expect(glance.faith.words).toBe(nextRungWords(reading));
+    const banked = Math.max(0, Math.floor(seatOf(state).faithPool));
+    expect(glance.faith).toEqual(faithFigure(reading, banked, prophetGlance(state, 0)));
+    expect(glance.faith.words.startsWith(nextRungWords(reading))).toBe(true);
   });
 
-  it('has a figure only where the reading has a pair, and a dot for a god waiting', () => {
-    const open: NextRung = { kind: 'open', rung: 2, cost: 60, banked: 51, perTurn: 14, turns: 1 };
-    expect(faithFigure(open)).toEqual({ text: '51/60', words: nextRungWords(open), owed: false });
-    expect(faithFigure({ kind: 'full' }).text).toBe('full');
-    expect(faithFigure({ kind: 'waiting' })).toEqual({
-      text: '',
-      words: nextRungWords({ kind: 'waiting' }),
-      owed: true,
-    });
-    const closed = faithFigure({ kind: 'closed', tech: TECH_IDS[0]! });
-    expect(closed.text).toBe('');
-    expect(closed.owed).toBe(false);
+  const unready: ProphetGlance = { callable: false, price: 200, complete: false };
+
+  it('shows banked over price while the next god has a price, with the line, rose once met', () => {
+    const open: NextRung = { kind: 'open', rung: 2, cost: 72, banked: 41, perTurn: 14, turns: 3 };
+    const saving = faithFigure(open, 41, unready);
+    expect(saving).toMatchObject({ text: '41/72', met: false, dot: false, note: 'next god' });
+    expect(saving.fraction).toBeCloseTo(41 / 72);
+    expect(saving.words).toBe(nextRungWords(open));
+    const met = faithFigure({ ...open, banked: 73, turns: 0 }, 73, unready);
+    expect(met).toMatchObject({ text: '73/72', met: true, fraction: 1 });
+  });
+
+  it('prints the one number in every other state, and names the next thing in its title', () => {
+    const waiting = faithFigure({ kind: 'waiting' }, 73, unready);
+    expect(waiting).toMatchObject({ text: '73', fraction: null, met: false, dot: false, note: 'god waiting' });
+    expect(waiting.words).toBe(`${nextRungWords({ kind: 'waiting' })}. A prophet costs 200 faith`);
+    const full = faithFigure({ kind: 'full' }, 141, unready);
+    expect(full).toMatchObject({ text: '141', fraction: null, note: 'pantheon full' });
+    const closed: NextRung = { kind: 'closed', tech: TECH_IDS[0]! };
+    const shut = faithFigure(closed, 12, unready);
+    expect(shut).toMatchObject({ text: '12', fraction: null, note: 'place closed' });
+    expect(shut.words.startsWith(nextRungWords(closed))).toBe(true);
+  });
+
+  it('lights the dot only for a prophet the seat can call, and never once its religion is full', () => {
+    const full: NextRung = { kind: 'full' };
+    const callable = faithFigure(full, 214, { callable: true, price: 200, complete: false });
+    expect(callable.dot).toBe(true);
+    expect(callable.note).toBe('call a prophet');
+    expect(callable.words).toBe(`${nextRungWords(full)}. You have the faith to call a prophet`);
+    const done = faithFigure(full, 400, { callable: true, price: 200, complete: true });
+    expect(done.dot).toBe(false);
+    expect(done.words).toBe(nextRungWords(full));
+  });
+});
+
+describe('the prophet reading', () => {
+  it('is the purchase gate’s own answer in the seat’s towns, and the capital’s price', () => {
+    const state = bench();
+    const capital = town(state, 4, 4);
+    const prophet = { kind: 'unit', id: 'prophet' } as const;
+    seatOf(state).faithPool = 0;
+    bumpRevision(state);
+    const poor = prophetGlance(state, 0);
+    expect(poor.callable).toBe(false);
+    expect(poor.price).toBe(explainPurchaseCost(state, 0, capital.id, prophet, 'faith')!.total);
+    // Rich in faith but without the technology prophets need: the gate says
+    // no, so there is no dot.
+    seatOf(state).faithPool = 10_000;
+    bumpRevision(state);
+    expect(purchaseError(state, 0, capital.id, prophet, 'faith')).not.toBeNull();
+    expect(prophetGlance(state, 0).callable).toBe(false);
+    seatOf(state).techsResearched.push('theHighTemple' as TechId);
+    bumpRevision(state);
+    expect(purchaseError(state, 0, capital.id, prophet, 'faith')).toBeNull();
+    expect(prophetGlance(state, 0).callable).toBe(true);
+  });
+
+  it('finds the prophet by its marker and asks the gate, never a price beside it', () => {
+    const drawer = uiSource('empireDrawer.ts');
+    const reading = braceBody(drawer, 'export function prophetGlance(');
+    expect(reading).toContain("purchaseError(state, playerId, town.id, item, 'faith') === null");
+    expect(reading).not.toContain('faithPool');
+    expect(braceBody(drawer, 'function prophetTypes(')).toContain('def.prophesies === true');
+  });
+
+  it('says the religion is complete once every belief it can hold is chosen', () => {
+    const state = bench();
+    town(state, 4, 4);
+    expect(prophetGlance(state, 0).complete).toBe(false);
+    const religion = {
+      id: 'r1',
+      founderId: 0,
+      name: 'Test',
+      pantheon: [],
+      follower: [],
+      enhancer: [],
+      foundedTurn: 1,
+    } as unknown as Religion;
+    state.religions.push(religion);
+    expect(prophetGlance(state, 0).complete).toBe(false);
+    religion.follower = religionBeliefPool(religion, 'follower').slice(0, poolSlotsFor(state, religion, 'follower'));
+    religion.enhancer = religionBeliefPool(religion, 'enhancer').slice(0, poolSlotsFor(state, religion, 'enhancer'));
+    expect(nextBeliefPool(state, religion)).toBeNull();
+    expect(prophetGlance(state, 0).complete).toBe(true);
+  });
+});
+
+describe('the marks’ names and keys', () => {
+  it('names each mark and its key in its title and accessible name, in the board’s order', () => {
+    expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
+    expect(QUICK_BUTTONS.map((name) => QUICK_NAMES[name].key)).toEqual(['W', 'E', 'H', 'S']);
+    expect(quickTitle('standings')).toBe('Standings (S)');
+    expect(quickTitle('routes', 'Trade: 1 of 3 routes running')).toBe('Routes (E): Trade: 1 of 3 routes running');
+    expect(quickLabel('diplomacy')).toBe('Diplomacy. Opens the Diplomacy sheet (W)');
+    expect(quickLabel('faith', 'The pantheon is full')).toBe('Faith: The pantheon is full. Opens the Faith sheet (H)');
   });
 });
 
@@ -510,34 +623,48 @@ describe('the live figures on Routes and Faith (variant C’s)', () => {
 describe('the markup', () => {
   const html = uiSource('index.html');
   const corner = html.slice(html.indexOf('<div id="empire-corner"'), html.indexOf('<!-- ================= the star chart'));
-  const panel = corner.slice(corner.indexOf('id="empire-panel"'), corner.indexOf('</button>', corner.indexOf('id="empire-panel"')));
+  const top = corner.slice(corner.indexOf('id="empire-top"'), corner.indexOf('id="empire-quick"'));
+  const banner = top.slice(top.indexOf('id="empire-panel"'), top.indexOf('</button>', top.indexOf('id="empire-panel"')));
   const quick = corner.slice(corner.indexOf('id="empire-quick"'), corner.indexOf('id="empire-drawer"'));
   const drawer = corner.slice(corner.indexOf('id="empire-drawer"'));
 
-  it('makes the top part one button that controls the open part', () => {
-    expect(panel).toContain('aria-expanded="false"');
-    expect(panel).toContain('aria-controls="empire-drawer"');
-    // The technology's name (the star chart writes it), two bars and their
-    // turns, and nothing else that could be pressed.
-    for (const id of ['tech-current', 'empire-research-bar', 'empire-research-turns', 'empire-draft-fill', 'empire-draft-turns']) {
-      expect(panel, id).toContain(`id="${id}"`);
-    }
-    expect(panel).toContain('Next draft');
-    expect(panel).not.toContain('<button');
+  it('makes the banner the toggle that controls the open part, with the arrow under it', () => {
+    expect(banner).toContain('aria-expanded="false"');
+    expect(banner).toContain('aria-controls="empire-drawer"');
+    expect(banner).toContain('id="empire-banner"');
+    expect(banner).toContain('class="empire-panel-arrow"');
   });
 
-  it('grows in place: the open part is the card’s last child, under the four buttons', () => {
-    const order = ['id="empire-panel"', 'id="empire-quick"', 'id="empire-drawer"'].map((marker) => corner.indexOf(marker));
+  it('makes the two lines buttons: the technology opens the star chart, the next draft Statecraft', () => {
+    const research = top.slice(top.indexOf('id="hud-research"'), top.indexOf('id="drawer-culture"'));
+    const draft = top.slice(top.indexOf('id="drawer-culture"'));
+    expect(research).toContain('aria-controls="tech-overlay"');
+    for (const id of ['tech-current', 'empire-research-bar', 'empire-research-turns', 'research-figures', 'research-rate', 'research-next']) {
+      expect(research, id).toContain(`id="${id}"`);
+    }
+    expect(research).toContain('>T</kbd>');
+    expect(draft).toContain('aria-controls="statecraft-overlay"');
+    for (const id of ['empire-draft-fill', 'empire-draft-turns', 'culture-figures', 'culture-tier', 'culture-government', 'culture-owed']) {
+      expect(draft, id).toContain(`id="${id}"`);
+    }
+    expect(draft).toContain('>C</kbd>');
+    // Underlined names with an arrow (the user's pick), not raised keys.
+    expect((top.match(/class="empire-line-arrow"/g) ?? []).length).toBe(2);
+    expect(top).toContain('>Next draft</span');
+  });
+
+  it('grows in place: the marks under the top part, the open part last', () => {
+    const order = ['id="empire-top"', 'id="empire-quick"', 'id="empire-drawer"'].map((marker) => corner.indexOf(marker));
     for (const at of order) expect(at).toBeGreaterThan(-1);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
-    // The four buttons are not in the part that grows, so opening it cannot move them.
+    // The four marks are not in the part that grows, so opening it cannot move them.
     for (const name of QUICK_BUTTONS) {
       expect(quick, name).toContain(`id="quick-${name}"`);
       expect(drawer, name).not.toContain(`id="quick-${name}"`);
     }
   });
 
-  it('gives each quick button its sheet, in the board’s order, and the live figure to two', () => {
+  it('gives each mark its sheet, in the board’s order, with the name and key its open row shows', () => {
     const controls = ['diplomacy-overlay', 'trade-overlay', 'religion-overlay', 'victory-overlay'];
     let from = 0;
     QUICK_BUTTONS.forEach((name, at) => {
@@ -547,33 +674,24 @@ describe('the markup', () => {
       const button = quick.slice(start, quick.indexOf('</button>', start));
       expect(button, name).toContain(`aria-controls="${controls[at]}"`);
       expect(button, name).toContain('class="quick-mark"');
+      expect(button, name).toContain(`<span class="quick-name">${QUICK_NAMES[name].name}</span>`);
+      expect(button, name).toContain(`>${QUICK_NAMES[name].key}</kbd>`);
     });
-    expect(quick).toContain('id="quick-routes-figure"');
-    expect(quick).toContain('id="quick-faith-figure"');
-    expect(quick).toContain('>Diplomacy</span>');
-    expect(quick).toContain('>Routes</span>');
-    expect(quick).toContain('>Faith</span>');
-    expect(quick).toContain('>Standings</span>');
-  });
-
-  it('keeps the old research card’s row id and figures for the star chart', () => {
-    const research = drawer.slice(drawer.indexOf('id="hud-research"'), drawer.indexOf('id="drawer-culture"'));
-    for (const id of ['research-figures', 'research-rate', 'research-next']) {
-      expect(research, id).toContain(`id="${id}"`);
+    for (const id of ['quick-routes-figure', 'quick-faith-figure', 'quick-faith-note', 'quick-faith-line']) {
+      expect(quick, id).toContain(`id="${id}"`);
     }
-    expect(research).toContain('aria-controls="tech-overlay"');
-    expect(research).toContain('>T</kbd>');
   });
 
-  it('orders the open part as the board does: Research, Culture, Leader, wager, Supply', () => {
-    const order = ['id="hud-research"', 'id="drawer-culture"', 'id="drawer-leader"', 'id="drawer-wager"', 'id="drawer-supply"', 'id="drawer-close-hint"'].map(
+  it('orders the open part as the board does: Leader, the wager, Supply', () => {
+    const order = ['id="drawer-leader"', 'id="drawer-wager"', 'id="drawer-supply"', 'id="drawer-close-hint"'].map(
       (marker) => drawer.indexOf(marker),
     );
     for (const at of order) expect(at).toBeGreaterThan(-1);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
-    // Faith is a quick button now, so it has no row; and there is no × to press.
+    // The four screens are the marks' rows, and there is no × to press.
     expect(drawer).not.toContain('id="drawer-faith"');
     expect(drawer).not.toContain('id="drawer-close"');
+    expect(drawer).toContain('>L</kbd>');
   });
 
   it('has retired the dock, its popover column, the research card and the resources card', () => {
@@ -594,19 +712,29 @@ describe('the stylesheet', () => {
     return css.slice(at, css.indexOf('}', at));
   };
 
-  it('sizes the card at rest as the board does, 248 by 118, 12px under the bar', () => {
+  it('sizes the card at rest as the board does: 248 by 131, 16 px from the left, 12 px under the bar', () => {
     expect(css).toContain('--empire-panel-w: 248px;');
-    expect(css).toContain('--empire-panel-h: 118px;');
+    expect(css).toContain('--empire-panel-h: 131px;');
     const corner = rule('.empire-corner');
     expect(corner).toContain('top: calc(var(--topbar-h) + 12px);');
-    expect(corner).toContain('left: 14px;');
+    expect(corner).toContain('left: 16px;');
     expect(corner).toContain('width: var(--empire-panel-w);');
     expect(corner).toContain('flex-direction: column;');
+    // What adds up to 131: two 36 px lines (24 + 4 + a 4 px bar + 4) 4 apart
+    // inside 8 px of padding, a 36 px mark row, the hairline and the edge.
+    expect(rule('.empire-lines')).toContain('padding: 8px 8px 8px 0;');
+    expect(rule('.empire-lines')).toContain('gap: 4px;');
+    expect(rule('.empire-line-head')).toContain('height: 24px;');
+    expect(rule('.empire-line-head')).toContain('margin-bottom: 4px;');
+    expect(rule('.empire-line')).toContain('padding: 0 0 4px;');
+    expect(rule('.empire-bar')).toContain('height: 4px;');
+    expect(rule('.quick-button')).toContain('height: 36px;');
+    // The banner column: 12 of padding, the 20 px banner, 8 of gap.
+    expect(rule('.empire-panel')).toContain('width: 40px;');
+    expect(rule('.empire-panel')).toContain('padding: 12px 8px 12px 12px;');
   });
 
   it('opens downward in place: the open part has no position of its own', () => {
-    // The side drawer sat at the panel's right edge plus 6px. The open part is
-    // in the card's own column now, so it can only grow the card down.
     expect(css).not.toContain('left: calc(14px + var(--empire-panel-w) + 6px);');
     expect(css).not.toMatch(/\n\.empire-drawer \{[^}]*position:/);
     // Open, the card is over the toasts and the chips, and still under the bar.
@@ -617,24 +745,44 @@ describe('the stylesheet', () => {
     expect(css).toContain('body:has(.empire-corner.is-open) #hud-commissions {\n  visibility: hidden;');
   });
 
-  it('draws the board’s parts: the bookmark, the two bars, the triangle and the four buttons', () => {
+  it('draws the board’s parts: the bookmark, the underlined lines, the bars and the four marks', () => {
     expect(rule('.empire-banner')).toContain('width: 20px;');
     expect(rule('.empire-banner')).toContain('height: 28px;');
     expect(rule('.empire-banner.is-owed::after')).toContain('background: var(--vermilion);');
-    expect(rule('.empire-bar')).toContain('height: 4px;');
+    expect(rule('.empire-line-title,\n.empire-line-arrow')).toContain('text-decoration: underline;');
+    expect(css).toContain('.empire-line:hover .empire-line-title,\n.empire-line:hover .empire-line-arrow {\n  text-decoration-color: var(--ink);');
     expect(rule('.empire-bar.is-research .empire-bar-fill')).toContain('var(--lapis)');
     expect(rule('.empire-bar.is-draft .empire-bar-fill')).toContain('var(--grape)');
-    expect(rule('.empire-quick')).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
-    expect(rule('.quick-button')).toContain('height: 44px;');
+    expect(rule('.empire-quick')).toContain('grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 44px;');
+    expect(rule('.quick-figure.is-free')).toContain('color: var(--teal);');
+    expect(rule('.quick-figure.is-met')).toContain('color: var(--y-faith);');
+    expect(rule('.quick-line')).toContain('height: 2px;');
+    expect(rule('.quick-button.is-owed::after')).toContain('background: var(--vermilion);');
     expect(css).toContain('.empire-panel.is-open .empire-panel-arrow {');
     // And the panel writes all of it from one place.
     const paint = braceBody(uiSource('empireDrawer.ts'), 'function paintTop(');
     expect(paint).toContain("banner.classList.toggle('is-owed', glance.owed.length > 0);");
     expect(paint).toContain("panel.setAttribute('aria-label', panelLabel(glance));");
+    const quick = braceBody(uiSource('empireDrawer.ts'), 'function paintQuick(');
+    expect(quick).toContain("routesFigure.classList.toggle('is-free', routes.free);");
+    expect(quick).toContain("faithFigureEl.classList.toggle('is-met', faith.met);");
+    expect(quick).toContain("quick.faith.classList.toggle('is-owed', faith.dot);");
     const setOpen = braceBody(uiSource('empireDrawer.ts'), 'function setOpen(');
     expect(setOpen).toContain("corner.classList.toggle('is-open', next);");
     expect(setOpen).toContain("panel.setAttribute('aria-expanded', String(next));");
     expect(setOpen).toContain('drawer.hidden = !next;');
+  });
+
+  it('turns the marks into rows of the card’s one shape while it is open', () => {
+    expect(rule('.quick-name,\n.quick-note,\n.quick-key')).toContain('display: none;');
+    expect(rule('.empire-corner.is-open .empire-quick')).toContain('flex-direction: column;');
+    expect(rule('.empire-corner.is-open .quick-name')).toContain('margin-left: 18px;');
+    expect(rule('.empire-corner.is-open .quick-key')).toContain('display: grid;');
+    expect(rule('.drawer-row')).toContain('padding: 0 12px 0 48px;');
+    expect(rule('.drawer-row')).toContain('height: 36px;');
+    // The lines grow their figures and keys only while the card is open.
+    expect(rule('.empire-line-detail')).toContain('display: none;');
+    expect(rule('.empire-corner.is-open .empire-line-detail')).toContain('display: flex;');
   });
 
   it('stands the card and the chips down on the city screen', () => {
@@ -660,7 +808,17 @@ describe('the panel’s own wiring', () => {
     expect((code.match(/options\.onOpen\(\)/g) ?? []).length).toBe(1);
   });
 
-  it('puts the keyboard back on the top part when it closes with the keyboard on a row', () => {
+  it('grows the card from any part of the top that is not one of the two lines', () => {
+    expect(drawer).toContain("top.addEventListener(\n    'click',");
+    expect(drawer).toContain("if (target?.closest('.empire-line')) return;");
+    // The banner is a button inside the top part, so its click arrives there:
+    // no second listener on it that would toggle twice.
+    expect(drawer).not.toContain("panel.addEventListener('click'");
+    // The draft line is Statecraft's door; the research line is the star chart's own.
+    expect(drawer).toContain("draftLine.addEventListener('click', () => options.openStatecraft(), { signal });");
+  });
+
+  it('puts the keyboard back on the banner when it closes with the keyboard on a row', () => {
     const setOpen = braceBody(drawer, 'function setOpen(');
     expect(setOpen).toContain('const heldKeyboard = drawer.contains(document.activeElement);');
     expect(setOpen).toContain('panel.focus({ preventScroll: true });');
@@ -676,7 +834,7 @@ describe('the panel’s own wiring', () => {
     expect(drawer).toContain('close,');
   });
 
-  it('opens each quick button’s own screen', () => {
+  it('opens each mark’s own screen', () => {
     expect(drawer).toContain("quick[name].addEventListener('click', () => options.openQuick[name](), { signal });");
     expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
   });
@@ -714,7 +872,7 @@ describe('main.ts', () => {
     expect(main).toContain('empireDrawer?.render();');
   });
 
-  it('wires every row and quick button to the screen it names', () => {
+  it('wires every line, mark and row to the screen it names', () => {
     for (const door of [
       'openStatecraft: () => statecraft?.open(),',
       'openLeader: () => leaderSheet?.open(),',
@@ -729,20 +887,33 @@ describe('main.ts', () => {
     }
   });
 
-  it('makes each quick button a door its sheet gives the keyboard back to', () => {
-    expect(main).toContain('trigger: quickFaithButton,');
-    expect(main).toContain('trigger: quickRoutesButton,');
-    expect(main).toContain('doors: () => [meterCards?.tradeTab],');
-    expect(main).toContain('doors: () => [quickDiplomacyButton],');
-    expect(main).toContain('doors: () => [quickStandingsButton],');
+  it('makes each mark and the draft line the one door its sheet gives the keyboard back to', () => {
+    for (const trigger of [
+      'trigger: quickFaithButton,',
+      'trigger: quickRoutesButton,',
+      'trigger: quickDiplomacyButton,',
+      'trigger: quickStandingsButton,',
+      'trigger: draftLineButton,',
+    ]) {
+      expect(main, trigger).toContain(trigger);
+    }
+    // One door each: no sheet keeps a second door in the bar.
+    expect(main).not.toContain('doors: () => [');
     const shell = uiSource('modalShell.ts');
     expect(shell).toContain('returnTo = allDoors().find((door) => door === active) ?? trigger ?? null;');
     expect(shell).toContain('returnTo?.focus({ preventScroll: true });');
   });
 
-  it('keeps the bar’s three tabs, so a sheet has two doors until the bar is redesigned', () => {
+  it('has taken the three tabs out of the bar and the Statecraft row out of the menu', () => {
     const bar = uiSource('topBar.ts');
-    expect(bar).toContain('tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);');
+    for (const gone of ['diplomacyTab', 'tradeTab', 'standingsTab', 'onOpenDiplomacy', 'onOpenTrade', 'onOpenStandings']) {
+      expect(bar, gone).not.toContain(gone);
+    }
+    expect(main).not.toContain('civYields.diplomacyTab');
+    expect(main).not.toContain('menuStatecraftButton');
+    const html = uiSource('index.html');
+    expect(html).not.toContain('id="topbar-tabs"');
+    expect(html).not.toContain('id="menu-statecraft"');
   });
 
   it('re-places the tutorial’s ring when the card opens or closes', () => {
@@ -754,7 +925,7 @@ describe('main.ts', () => {
   });
 });
 
-describe('the Q and L keys', () => {
+describe('the Q, L and S keys', () => {
   const controls = uiSource('controls.ts');
   const main = uiSource('main.ts');
 
@@ -780,10 +951,25 @@ describe('the Q and L keys', () => {
     }
   });
 
-  it('lists both on the ? card', () => {
+  it('binds S to the standings sheet, and leaves Cmd + S and Ctrl + S to the browser', () => {
+    const at = main.indexOf('const onStandingsKey = (event: KeyboardEvent): void => {');
+    expect(at).toBeGreaterThan(-1);
+    const handler = main.slice(at, main.indexOf('\n  };', at));
+    expect(handler).toContain("if (event.key !== 's' && event.key !== 'S') return;");
+    expect(handler).toContain('if (event.ctrlKey || event.metaKey || event.altKey) return;');
+    expect(handler).toContain('if (isInputBlocked()) return;');
+    expect(handler).toContain('else victory?.open();');
+    expect(main).toContain("gameDisposers.push(() => window.removeEventListener('keydown', onStandingsKey));");
+    // Nothing else binds S: the board's own switch has no branch for it.
+    expect(controls).not.toContain("event.key === 's'");
+    expect(controls).not.toContain("event.key === 'S'");
+  });
+
+  it('lists all three on the ? card', () => {
     const html = uiSource('index.html');
     const help = html.slice(html.indexOf('id="help-overlay"'), html.indexOf('id="help-compendium"'));
     expect(help).toContain('<kbd>Q</kbd>');
     expect(help).toContain('<kbd>L</kbd> your leader');
+    expect(help).toContain('<kbd>S</kbd> the Standings');
   });
 });

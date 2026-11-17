@@ -379,9 +379,9 @@ const statusEl = requireElement<HTMLElement>('status');
    `getElementById` gave both of these the landing's control. */
 const seatsEl = requireElement<HTMLElement>('seat-strip');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
-/* The three tabs at the right end of the bar: Diplomacy, Trade and Standings.
-   `topBar.ts` builds them into this container (batch UX1). */
-const topbarTabsEl = requireElement<HTMLElement>('topbar-tabs');
+/* Renown and beads, at the end of the bar's left group. `topBar.ts` builds
+   them into this container (batch SS2b; they were on the Standings tab). */
+const topbarBanksEl = requireElement<HTMLElement>('topbar-banks');
 /* The two meter cards, hung under the left end of the bar. The meters chip that
    opens them is built by `topBar.ts` inside #civ-yields, so the triggers are its
    to make and the panels are the page's. */
@@ -424,23 +424,24 @@ const lensOptionsEl = requireElement<HTMLElement>('lens-options');
 const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
-/* The corner panel, top-left (batch SS2; see `src/ui/empireDrawer.ts`): one
-   card with a top part that opens it downward in place, four quick buttons and
-   the open part's rows. Static markup that module fills. */
+/* The corner panel, top-left (batch SS2b; see `src/ui/empireDrawer.ts`): one
+   card with a banner and two line buttons, four marks, and the open part's
+   rows. Static markup that module fills. */
 const empireCornerEl = requireElement<HTMLElement>('empire-corner');
 const empirePanelEl = requireElement<HTMLButtonElement>('empire-panel');
 const empireDrawerEl = requireElement<HTMLElement>('empire-drawer');
-/* The quick buttons: each is a door onto its sheet, so each sheet takes it as
-   its trigger or as one of its other doors (`modalShell.ts`). */
+/* The four marks: each is its sheet's one door, so each sheet takes it as its
+   trigger (`modalShell.ts`). The bar's tabs left in batch SS2b. */
 const quickDiplomacyButton = requireElement<HTMLButtonElement>('quick-diplomacy');
 const quickRoutesButton = requireElement<HTMLButtonElement>('quick-routes');
 const quickFaithButton = requireElement<HTMLButtonElement>('quick-faith');
 const quickStandingsButton = requireElement<HTMLButtonElement>('quick-standings');
-/* The panel's Research row: one button that opens the star chart. It keeps the
-   old research card's id, so it is handed to `createTechTree`, whose
-   `renderStatus` writes the technology's name on the panel's top part and the
-   figures on this row. */
+/* The panel's research line: one button that opens the star chart. It keeps
+   the old research card's id, so it is handed to `createTechTree`, whose
+   `renderStatus` writes the technology's name and the figures on it. */
 const researchSection = requireElement<HTMLButtonElement>('hud-research');
+/* The panel's "Next draft" line: Statecraft's one door, and its trigger. */
+const draftLineButton = requireElement<HTMLButtonElement>('drawer-culture');
 const techCurrentEl = requireElement<HTMLElement>('tech-current');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
@@ -459,9 +460,9 @@ const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
    empire drawer's Faith row, by the End Turn blocker, and by `H`. */
 const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
 const religionBodyEl = requireElement<HTMLElement>('religion-body');
-/* Trade's overlay and body — Religion's sibling sheet, opened from the bar's
-   Trade tab, from `E`, from a routed caravan's sheet, and from a city panel's
-   Routes row. */
+/* Trade's overlay and body — Religion's sibling sheet, opened from the corner
+   panel's Routes mark, from `E`, from a routed caravan's sheet, and from a city
+   panel's Routes row. */
 const tradeOverlayEl = requireElement<HTMLElement>('trade-overlay');
 const tradeBodyEl = requireElement<HTMLElement>('trade-body');
 /* The wager's deal sheet — raised by the End Turn blocker on the one turn an
@@ -507,7 +508,7 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
    (uuuuu)), the fifteenth of the family. Raised by a decided game and opened
-   from the bar's Standings tab on any other turn. */
+   from the corner panel's Standings mark or `S` on any other turn. */
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 const victoryBodyEl = requireElement<HTMLElement>('victory-body');
 /**
@@ -536,7 +537,6 @@ const menuSaveButton = requireElement<HTMLButtonElement>('menu-save');
 const menuSaveAsButton = requireElement<HTMLButtonElement>('menu-save-as');
 const menuLoadButton = requireElement<HTMLButtonElement>('menu-load');
 const menuExportButton = requireElement<HTMLButtonElement>('menu-export');
-const menuStatecraftButton = requireElement<HTMLButtonElement>('menu-statecraft');
 const menuTutorialButton = requireElement<HTMLButtonElement>('menu-tutorial');
 const tutorialToggle = requireElement<HTMLInputElement>('tutorial-toggle');
 const saveAsForm = requireElement<HTMLFormElement>('save-as');
@@ -2941,8 +2941,8 @@ async function boot(initial: Game | null): Promise<void> {
     // Cities change on almost everything — founding, growth, production, a seat
     // change — so every view of them is refreshed wherever the main panel is,
     // the empire's per-turn totals in the top bar included. The strip writes
-    // the turn line in the middle of the bar too (who the turn is waiting for
-    // included) and the figures on the Trade and Standings tabs.
+    // the turn line too (who the turn is waiting for included) and the renown
+    // and bead figures.
     civYields.render();
     // The empire panel and its drawer change on the same facts the strip above
     // just read: research, the draft meter, what is owed, and the Supply counts
@@ -3068,8 +3068,9 @@ async function boot(initial: Game | null): Promise<void> {
   /*
    * The standings sheet is **built further down**, after the top bar, because
    * the shell keeps the keyboard's return path on the control that opened a
-   * sheet and the bar's Standings tab has to exist before the sheet can be
-   * told about it (`leaderSheet`'s reason exactly). Its disposer is here, in the
+   * sheet. It was the bar's Standings tab, which had to exist first; since
+   * batch SS2b it is the corner panel's Standings mark, which is markup, and
+   * the order is kept (`leaderSheet`'s reason exactly). Its disposer is here, in the
    * order the register has always carried it: a closure over the holder, run
    * long after the holder is filled.
    */
@@ -4077,7 +4078,7 @@ async function boot(initial: Game | null): Promise<void> {
     // §5/§11). It used to be the Bead Race's table wearing a banner; what an age
     // asks of everybody is the three bars it sets. The table itself is retired
     // with the deeds (batch Q1) and what is one press away behind the same three
-    // doors — the bead figure on the Standings tab, an Abacus rod, `V` — is the
+    // doors — the bead figure in the top bar, an Abacus rod, `V` — is the
     // bead ledger.
     //
     // Raised only for a seat that still owes the table an answer, which is
@@ -4240,7 +4241,7 @@ async function boot(initial: Game | null): Promise<void> {
     onOfferGreatPerson: showGreatPersonOffer,
     /**
      * The spend ceremony — the card rises, the legacy counts, the deed appears,
-     * the card descends into the renown figure on the bar's Standings tab
+     * the card descends into the renown figure in the top bar
      * (`greatPersonCeremony.ts`).
      *
      * Raised on the accepted command and nowhere else. It is news, so the HUD's
@@ -4637,6 +4638,9 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: statecraftOverlayEl,
     body: statecraftBodyEl,
     closeButton: requireElement('statecraft-close'),
+    // The corner panel's "Next draft" line, the sheet's one door (batch
+    // SS2b): it carries the `aria-expanded` mirror and gets the keyboard back.
+    trigger: draftLineButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     send: (commands) => controls.sendStatecraft(commands),
@@ -4669,7 +4673,7 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: religionOverlayEl,
     body: religionBodyEl,
     closeButton: requireElement('religion-close'),
-    // The corner panel's Faith button (batch SS2), one click from rest.
+    // The corner panel's Faith mark, one click from rest.
     trigger: quickFaithButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
@@ -4729,10 +4733,8 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: tradeOverlayEl,
     body: tradeBodyEl,
     closeButton: requireElement('trade-close'),
-    // The corner panel's Routes button (batch SS2), and the bar's Trade tab
-    // as the other door. The bar is built after this sheet, so it is asked late.
+    // The corner panel's Routes mark, the sheet's one door (batch SS2b).
     trigger: quickRoutesButton,
-    doors: () => [meterCards?.tradeTab],
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     buyRoute: (fromCityId, toCityId, mode) => {
@@ -4846,7 +4848,7 @@ async function boot(initial: Game | null): Promise<void> {
     // The registry closes the other cards and screens, the standings sheet
     // among them, which is where the Abacus's door is. That happens before the
     // Abacus remembers who had the keyboard, so closing the Abacus gives the
-    // keyboard to the Standings tab rather than to a hidden sheet.
+    // keyboard to the Standings mark rather than to a hidden sheet.
     onOpen: () => screens.opening('abacus'),
     // A rod is the door to the cards behind it. The bead ledger's opening
     // closes the Abacus.
@@ -4875,7 +4877,7 @@ async function boot(initial: Game | null): Promise<void> {
    * and the Opus's door. It was the *table* until batch Q1 retired the deeds.
    *
    * Statecraft's sibling in every respect — see `beadsScreen.ts` — and reached
-   * three ways: the bead figure on the bar's Standings tab, a rod on the
+   * three ways: the bead figure in the top bar, a rod on the
    * Abacus, and `V`.
    * Nothing on it is stored, so it is built on each open off the live state.
    */
@@ -4968,7 +4970,7 @@ async function boot(initial: Game | null): Promise<void> {
    * The spend ceremony, raised by `controls`' `onGreatPersonSpent` and by
    * nothing else — a refused command never reaches it.
    *
-   * The card descends into the **renown figure** on the bar's Standings tab,
+   * The card descends into the **renown figure** in the bar's left group,
    * which is the Reliquary's door, so the gesture and the way back are the same
    * place. `civYields.renownChip` is asked for the element each time rather
    * than captured, because the strip outlives no game and a stale node would
@@ -5030,10 +5032,11 @@ async function boot(initial: Game | null): Promise<void> {
    */
   const civYields: CivYieldStrip = createCivYieldStrip({
     container: civYieldsEl,
-    // The turn line in the middle of the bar, and the three tabs at its right
-    // end (batch UX1). The strip writes both on every render.
+    // The turn line at the head of the bar's right group, and renown and beads
+    // at the end of its left group (batch SS2b). The strip writes both on
+    // every render.
     turnLine: statusEl,
-    tabs: topbarTabsEl,
+    banks: topbarBanksEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     happiness: {
@@ -5050,10 +5053,8 @@ async function boot(initial: Game | null): Promise<void> {
     // through the registry, like every other card.
     onOpenPopover: () => screens.opening('meters'),
     // The doors on the bar. Each sheet's own opening closes whatever else is
-    // up, so a door only has to open its sheet.
-    onOpenDiplomacy: () => diplomacy?.open(),
-    onOpenTrade: () => trade?.open(),
-    onOpenStandings: () => victory?.open(),
+    // up, so a door only has to open its sheet. Diplomacy, Trade and the
+    // Standings have no door here any more: each is a mark in the corner panel.
     onOpenBeads: () => beads?.open(),
     onOpenReliquary: () => reliquary?.open(),
     // Every yield chip's door, culture's included since batch UX1: the Ledger
@@ -5067,10 +5068,10 @@ async function boot(initial: Game | null): Promise<void> {
   meterCards = civYields;
 
   /**
-   * The corner panel (batch SS2). See `src/ui/empireDrawer.ts` for the design;
-   * this is the wiring. Each row and quick button opens its screen, and the
-   * screen's own opening folds the card through the registry. Research is the
-   * one door not wired here: the star chart owns the Research row's click
+   * The corner panel (batch SS2b). See `src/ui/empireDrawer.ts` for the
+   * design; this is the wiring. Each line, mark and row opens its screen, and
+   * the screen's own opening folds the card through the registry. Research is
+   * the one door not wired here: the star chart owns the research line's click
    * (`statusCard` above).
    */
   empireDrawer = createEmpireDrawer({
@@ -5116,10 +5117,9 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: diplomacyOverlayEl,
     body: diplomacyBodyEl,
     closeButton: requireElement('diplomacy-close'),
-    // The bar's Diplomacy tab (batch UX1; it was the dock's third door).
-    trigger: civYields.diplomacyTab,
-    // The corner panel's Diplomacy button is this sheet's other door (batch SS2).
-    doors: () => [quickDiplomacyButton],
+    // The corner panel's Diplomacy mark, the sheet's one door (batch SS2b; it
+    // was the bar's Diplomacy tab and the dock's third door before that).
+    trigger: quickDiplomacyButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     // Every verb below sends through `controls`, so the board's own funnel has
@@ -5263,8 +5263,8 @@ async function boot(initial: Game | null): Promise<void> {
    * `docs/flags.md` item (uuuuu)), and the sheet a won game is announced on.
    *
    * Built here, after the bar, for the leader sheet's reason exactly: the
-   * shell hands the keyboard back to the control that opened a sheet, and the
-   * Standings tab has to exist before the sheet can be told about it.
+   * shell hands the keyboard back to the control that opened a sheet. That
+   * control is the corner panel's Standings mark since batch SS2b.
    *
    * `toTitle` is `showLanding` itself rather than a journey of this sheet's
    * own: leaving a finished game is the same walk from anywhere else in the
@@ -5274,10 +5274,9 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: victoryOverlayEl,
     body: victoryBodyEl,
     closeButton: requireElement('victory-close'),
-    // The Standings tab's own button (batch UX1; it was the dock's sixth door).
-    trigger: civYields.standingsTab,
-    // The corner panel's Standings button is this sheet's other door (batch SS2).
-    doors: () => [quickStandingsButton],
+    // The corner panel's Standings mark, the sheet's one door (batch SS2b; it
+    // was the bar's Standings tab and the dock's sixth door before that).
+    trigger: quickStandingsButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     toTitle: () => showLanding(),
@@ -5311,7 +5310,7 @@ async function boot(initial: Game | null): Promise<void> {
     else religion?.open();
   });
 
-  // `W` opens the Diplomacy screen — the Diplomacy tab's hotkey, wired here
+  // `W` opens the Diplomacy screen — the Diplomacy mark's hotkey, wired here
   // beside `H` and for its stated reason exactly: a screen with no unit and no
   // tile behind it belongs where its screen is built, not in `controls.ts`'s
   // board switch. `D` reads as a direction and `G` is the 2D grid's already;
@@ -5361,6 +5360,31 @@ async function boot(initial: Game | null): Promise<void> {
   };
   window.addEventListener('keydown', onTradeKey);
   gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));
+
+  // `S` opens the standings sheet (batch SS2b): the corner panel's Standings
+  // mark is its one door, and every other mark in that row has a key. Wired
+  // here beside `E` and for its reasons, and swept with the boot like `E`.
+  // Nothing else binds S (`controls.ts`'s board switch has no branch for it).
+  // A press with a modifier is the browser's: Cmd + S and Ctrl + S save the
+  // page, and must not open a sheet instead.
+  const onStandingsKey = (event: KeyboardEvent): void => {
+    if (event.key !== 's' && event.key !== 'S') return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (isInputBlocked()) return;
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+    if (typing) return;
+    event.preventDefault();
+    if (victory?.isOpen === true) victory.close();
+    else victory?.open();
+  };
+  window.addEventListener('keydown', onStandingsKey);
+  gameDisposers.push(() => window.removeEventListener('keydown', onStandingsKey));
 
   /**
    * The two city views. Both are pure readers of the simulation plus one
@@ -5833,11 +5857,6 @@ async function boot(initial: Game | null): Promise<void> {
     // closes the cards under a screen.
     openSaves();
   });
-
-  // The menu's own door to Statecraft — see the button's comment in
-  // `index.html`. Same pattern as Load: the screen comes up, and its opening
-  // closes the menu.
-  menuStatecraftButton.addEventListener('click', () => statecraft?.open());
 
   // The guide, from the top: the sequence *and* every one-time note, because a
   // player asking for it again is almost always showing the game to somebody

@@ -297,11 +297,14 @@ describe("the leaders' draft", () => {
 
   it('takes the dot off the leader’s door: nothing behind it is ever owed', () => {
     // The dock's fifth door until batch UX3; the empire drawer's Leader row
-    // since, and the corner panel's since batch SS2. The only dots are on
-    // Culture (a card) and on the Faith button (a belief to choose).
+    // since, and the corner panel's since batch SS2. The only dots are the
+    // banner's and the Faith mark's. Since batch SS2b the Faith mark's dot is
+    // a prophet the seat can call, and never a god waiting for a name (the
+    // user's ruling of 2026-11-17, which replaces `docs/flags.md` (ssssss) 4.7
+    // for this mark).
     const drawer = uiSource('empireDrawer.ts');
     expect(drawer).not.toContain('leaderBlocker');
-    expect(drawer).toContain("quick.faith.classList.toggle('is-owed', faith.owed);");
+    expect(drawer).toContain("quick.faith.classList.toggle('is-owed', faith.dot);");
     expect(drawer).not.toMatch(/leaderRow\.classList/);
   });
 });

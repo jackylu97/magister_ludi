@@ -2,28 +2,31 @@
  * The top bar: everything on it except the ? and ☰ buttons, which are plain
  * markup in `index.html`.
  *
- * Left to right (batch UX1; the spec is `docs/plans/hud-empire-panel-spec.md`
- * §2, the drawing `docs/plans/mockups/hud-e2-final.html`):
+ * Two groups with nothing between them (batch SS2b; the board is "Option A,
+ * revised" in `docs/plans/mockups/scholars-study/corner-panel-options.html`,
+ * and the spec is `docs/plans/hud-empire-panel-spec.md` §2):
  *
- *   - **The six yields**, summed over every city the local seat owns. Each chip
- *     opens the Ledger on its own yield, culture included: Statecraft has its
- *     own doors (the dock, the ☰ menu and `C`), so one gesture on this row
- *     means one thing.
+ *   - **Left: the six yields**, summed over every city the local seat owns.
+ *     Each chip opens the Ledger on its own yield, culture included: Statecraft
+ *     has its own doors (the corner panel's "Next draft" line and `C`), so one
+ *     gesture on this row means one thing.
  *   - **One meters chip**, happiness and authority side by side. Each half is
  *     its own button with its own hover card and its own breakdown card.
- *   - **The turn line**, in the middle: the turn, the world's age and the turns
- *     left before the age closes. Once this seat has ended its turn it names
- *     who the turn is waiting for instead of the age.
- *   - **Three labelled tabs** at the right end, the screens about the other
- *     empires: Diplomacy, Trade (carrying the routes figure) and Standings
- *     (carrying the renown and bead figures). On Standings each figure is its
- *     own button: renown opens the Reliquary, the beads open the bead ledger,
- *     and the tab's label opens the standings sheet.
+ *   - **Renown and beads**, the two other things the empire banks: renown
+ *     opens the Reliquary, the beads open the Bead Race.
+ *   - **Right: the turn line**: the turn, the world's age and the turns left
+ *     before the age closes. Once this seat has ended its turn it names who
+ *     the turn is waiting for instead of the age. The ? and ☰ buttons after
+ *     it are plain markup.
  *
- * The yields and the meters chip go into `#civ-yields`, the turn line into
- * `#status` and the tabs into `#topbar-tabs`. All three containers outlive a
- * game; each new strip empties and refills them, so a listener bound here dies
- * with the elements it was bound to.
+ * The bar has no tabs for the screens any more. Diplomacy, Trade and the
+ * Standings each have one door, a mark in the corner panel, and a key (W, E,
+ * S). The routes figure the Trade tab carried is on the Routes mark.
+ *
+ * The yields and the meters chip go into `#civ-yields`, renown and beads into
+ * `#topbar-banks`, and the turn line into `#status`. All three containers
+ * outlive a game; each new strip empties and refills them, so a listener bound
+ * here dies with the elements it was bound to.
  *
  * A pure read, and deliberately a UI-layer one. `foldCity` is the same
  * function the city panel, the banners and the turn pipeline use, and
@@ -125,18 +128,13 @@ import { ABILITY_TECH, eraNumeral, highestAge, techDef } from '../sim/techData';
 import { hasAbility } from '../sim/tech';
 import { seatName } from '../sim/leaderData';
 import { currentWorldAge, worldAgeCountdown } from '../sim/worldClock';
-import {
-  diplomacyMarkDataUri,
-  standingsMarkDataUri,
-  tradeMarkDataUri,
-} from '../art/dockMarks';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
 import { beadMarkNode } from './newsMark';
 import { type Popover, createPopover } from './popover';
 import { tradeLedger } from './tradeScreen';
-import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
+import { YIELD_GLYPH, yieldMarkNode } from './yieldMark';
 import { element } from './dom';
 
 /**
@@ -332,7 +330,7 @@ export interface CivYieldStrip {
   /** Shuts both breakdown cards and any hover card. Esc, a new game, a screen. */
   close(): void;
   /**
-   * The renown figure on the Standings tab.
+   * The renown figure in the bar's left group.
    *
    * The spend ceremony's card descends into it (`greatPersonCeremony.ts`), so
    * the ceremony needs the element. It is handed out here rather than looked up
@@ -340,24 +338,6 @@ export interface CivYieldStrip {
    * without anything failing.
    */
   readonly renownChip: HTMLElement;
-  /**
-   * The Diplomacy tab. The Diplomacy sheet takes it as its trigger, which keeps
-   * the tab's `aria-expanded` in step with the sheet and gives the keyboard back
-   * to the tab when the sheet closes.
-   */
-  readonly diplomacyTab: HTMLButtonElement;
-  /**
-   * The Standings tab's own button: its mark and label, not the two figures
-   * beside it. The standings sheet takes it as its trigger, for the Diplomacy
-   * tab's reason.
-   */
-  readonly standingsTab: HTMLButtonElement;
-  /**
-   * The Trade tab. The trade sheet's trigger is the corner panel's Routes
-   * button (batch SS2), so this tab is one of its other doors: it keeps the
-   * `aria-expanded` mirror and gets the keyboard back when it opened the sheet.
-   */
-  readonly tradeTab: HTMLButtonElement;
 }
 
 /** The three elements one meter's click-through breakdown card is made of. */
@@ -375,27 +355,18 @@ interface CivYieldStripOptions {
    */
   container: HTMLElement;
   /**
-   * `#status`: the turn line in the middle of the bar. Filled once with one
-   * element, whose text is rewritten on each render.
+   * `#status`: the turn line, first in the bar's right group. Filled once with
+   * one element, whose text is rewritten on each render.
    */
   turnLine: HTMLElement;
-  /** `#topbar-tabs`: the Diplomacy, Trade and Standings tabs. Filled once. */
-  tabs: HTMLElement;
+  /** `#topbar-banks`: the renown and bead figures, last in the left group. Filled once. */
+  banks: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
   happiness: MeterCardElements;
   authority: MeterCardElements;
   /** Told whenever one of these cards opens, so the HUD's others can shut. */
   onOpenPopover?: () => void;
-  /** Opens the Diplomacy sheet. The Diplomacy tab's door, and `W`'s. */
-  onOpenDiplomacy?: () => void;
-  /** Opens the Trade sheet. The Trade tab's door, and `E`'s. */
-  onOpenTrade?: () => void;
-  /**
-   * Opens the standings sheet: every empire's score. The Standings tab's own
-   * door; the Abacus opens from that sheet and from `A`.
-   */
-  onOpenStandings?: () => void;
   /** Opens the bead ledger (the Bead Race). The bead figure's door, and `V`'s. */
   onOpenBeads?: () => void;
   /**
@@ -411,13 +382,13 @@ interface CivYieldStripOptions {
    * Every one of the six yield chips takes it, culture included. Culture used
    * to open Statecraft instead, so the same click did different things on
    * neighbouring numbers (`docs/plans/hud-audit.md`, problem 1). Statecraft
-   * keeps its own doors: the dock, the ☰ menu and `C`.
+   * keeps its own doors: the corner panel's "Next draft" line and `C`.
    */
   onOpenLedger?: (key: YieldKey) => void;
 }
 
 /**
- * What the turn line in the middle of the bar says.
+ * What the turn line at the head of the bar's right group says.
  *
  * Worked out here, with no DOM, so the suite can check it against a real state.
  * The age and its countdown are read off `worldClock.ts` and only formatted
@@ -464,20 +435,40 @@ export function turnLineOf(state: GameState, localPlayerId: number): TurnLine {
 }
 
 /**
- * The figures the Trade and Standings tabs carry, with no DOM.
+ * The routes figure the corner panel's Routes mark carries, with no DOM: the
+ * routes running against the routes the empire's markets allow, out of
+ * `tradeLedger`, the same ledger the trade sheet prints. The mark prints it
+ * short; `routesSpoken` says it in full.
  *
- * Every number is the simulation's own. The routes count is `tradeLedger`'s,
- * the same ledger the Trade tab's hover card prints. Renown is the seat's
- * banked pool, with `renown.ts`'s rung and rate. The beads are the seat's own
- * record against `data/beads.json`'s threshold. The tabs print them short; the
- * title and the `…Spoken` names say the same numbers in full.
+ * Kept apart from `bankFigures` because asking for it costs a flood of the
+ * empire's territory (`tradeLedger` asks `explainEmpireGold`), and since batch
+ * SS2b the bar itself has no routes figure: the corner panel asks once a
+ * refresh, and the bar does not ask at all (`topBarCost.test.ts`).
  */
-interface TabFigures {
+interface RouteFigures {
   /** "1/3": routes running, against the routes the empire's markets allow. */
   routes: string;
   routesSpoken: string;
   /** True while a route slot is free. */
   routeSpare: boolean;
+}
+
+export function routeFigures(state: GameState, playerId: number): RouteFigures {
+  const ledger = tradeLedger(state, playerId);
+  return {
+    routes: `${figure(ledger.used)}/${figure(ledger.slots)}`,
+    routesSpoken: `Trade: ${figure(ledger.used)} of ${figure(ledger.slots)} routes running`,
+    routeSpare: ledger.used < ledger.slots,
+  };
+}
+
+/**
+ * The figures the bar's renown and bead buttons carry, with no DOM. Renown is
+ * the seat's banked pool, with `renown.ts`'s rung and rate. The beads are the
+ * seat's own record against `data/beads.json`'s threshold. The bar prints them
+ * short; the title and the `…Spoken` names say the same numbers in full.
+ */
+interface BankFigures {
   /** "57": renown banked toward the next great person. */
   renown: string;
   /** "Renown 57/633 (+39)": the pool over its rung, the rate in parens. */
@@ -490,17 +481,13 @@ interface TabFigures {
   beadsSpoken: string;
 }
 
-export function tabFigures(state: GameState, playerId: number): TabFigures {
+export function bankFigures(state: GameState, playerId: number): BankFigures {
   const player = playerById(state, playerId);
-  const ledger = tradeLedger(state, playerId);
   const pool = player?.renownPool ?? 0;
   const rung = player ? renownThreshold(state, player) : 0;
   const rate = player ? renownPerTurn(state, playerId) : 0;
   const beadCount = player?.beads.length ?? 0;
   return {
-    routes: `${figure(ledger.used)}/${figure(ledger.slots)}`,
-    routesSpoken: `Trade: ${figure(ledger.used)} of ${figure(ledger.slots)} routes running`,
-    routeSpare: ledger.used < ledger.slots,
     renown: netFigure(pool),
     renownTitle: `${RENOWN_GLYPH} Renown ${poolFigure(pool, rate, rung)}, toward the next great person. Click for the Reliquary`,
     renownSpoken: `Renown: ${netFigure(pool)} of ${figure(rung)}, ${signedFigure(rate)} a turn. Opens the Reliquary`,
@@ -508,6 +495,15 @@ export function tabFigures(state: GameState, playerId: number): TabFigures {
     beads: `${figure(beadCount)}/${figure(BEAD_RULES.threshold)}`,
     beadsSpoken: `Beads: ${figure(beadCount)} of ${figure(BEAD_RULES.threshold)}. Opens the Bead Race`,
   };
+}
+
+/**
+ * Both readings at once, under the name the two tabs' figures had until batch
+ * SS2b. Nothing in the interface asks for it any more; the tests read the
+ * figures through it.
+ */
+export function tabFigures(state: GameState, playerId: number): RouteFigures & BankFigures {
+  return { ...routeFigures(state, playerId), ...bankFigures(state, playerId) };
 }
 
 /**
@@ -536,15 +532,12 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   const {
     container,
     turnLine,
-    tabs,
+    banks,
     getGame,
     localPlayerId,
     happiness,
     authority,
     onOpenPopover,
-    onOpenDiplomacy,
-    onOpenTrade,
-    onOpenStandings,
     onOpenBeads,
     onOpenReliquary,
     onOpenLedger,
@@ -724,28 +717,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     return box;
   }
 
-  // --- the three tabs at the right end --------------------------------------
-
-  /**
-   * A tab's drawn mark: the drawing the HUD dock wore for the same screen
-   * (`src/art/dockMarks.ts`), masked in the bar's own colour like every other
-   * mark on it. One drawing per screen wherever its door is.
-   */
-  function tabMark(uri: string): HTMLElement {
-    const mark = element('span', 'topbar-tab-mark');
-    mark.setAttribute('aria-hidden', 'true');
-    mark.style.setProperty('--tab-mark', `url("${uri}")`);
-    return mark;
-  }
-
-  /**
-   * A tab's printed name. Below about 1200 px wide the stylesheet hides it from
-   * sight (the tab keeps its mark and its figures) but not from a screen reader,
-   * so every tab keeps its accessible name at every width.
-   */
-  function tabLabel(text: string): HTMLElement {
-    return element('span', 'topbar-tab-label', text);
-  }
+  // --- renown and beads, the end of the left group --------------------------
 
   /** A button that opens one of the full-screen sheets. */
   function sheetButton(className: string, controls: string): HTMLButtonElement {
@@ -756,46 +728,10 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     return button;
   }
 
-  // Diplomacy: a mark and a label. No figure, because how the world stands with
-  // this empire is not one number; the sheet lists every empire it has met.
-  // The sheet takes this tab as its trigger (handed out as `diplomacyTab`),
-  // which keeps `aria-expanded` in step with it.
-  const diplomacyTab = sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay');
-  diplomacyTab.setAttribute('aria-expanded', 'false');
-  diplomacyTab.setAttribute('aria-keyshortcuts', 'W');
-  diplomacyTab.title = 'Diplomacy (W): every empire you have met, and where you stand with each';
-  diplomacyTab.append(tabMark(diplomacyMarkDataUri()), tabLabel('Diplomacy'));
-  if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());
-
-  // Trade: the label and the routes figure in one button. The figure is the
-  // routes running against the routes the empire's markets allow. Its hover
-  // card is the trade ledger (`routesCard`), the one the routes chip carried
-  // before the chip became this tab.
-  const tradeTab = sheetButton('topbar-tab is-trade', 'trade-overlay');
-  tradeTab.setAttribute('aria-keyshortcuts', 'E');
-  tradeTab.title = 'Trade (E): routes running, against the routes your markets allow';
-  const routesValue = element('span', 'topbar-tab-figure', '—');
-  tradeTab.append(tabMark(tradeMarkDataUri()), tabLabel('Trade'), routesValue);
-  if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());
-  info.bind(tradeTab, () => routesCard());
-
-  // Standings: three buttons inside one outline. A button cannot hold another
-  // button, so the tab is a labelled group: the label opens the standings sheet,
-  // the renown figure opens the Reliquary, and the bead figure opens the bead
-  // ledger. Each part has its own hover state, focus ring and accessible name.
-  const standingsGroup = element('div', 'topbar-tab is-standings');
-  standingsGroup.setAttribute('role', 'group');
-  standingsGroup.setAttribute('aria-label', 'Standings');
-  const standingsTab = sheetButton('topbar-tab-part is-sheet', 'victory-overlay');
-  standingsTab.setAttribute('aria-expanded', 'false');
-  standingsTab.title = 'The standings: every empire\'s score, line by line. The Abacus opens from there, or with A';
-  standingsTab.append(tabMark(standingsMarkDataUri()), tabLabel('Standings'));
-  if (onOpenStandings) standingsTab.addEventListener('click', () => onOpenStandings());
-
   // Renown: the pool banked toward the next great person, printed short. The
   // rung and the rate are in the hover card (`renownCard`), the tooltip and the
   // accessible name. The spend ceremony's card lands on this button.
-  const renownItem = sheetButton('topbar-tab-part topbar-tab-figure is-renown', 'reliquary-overlay');
+  const renownItem = sheetButton('topbar-bank is-renown', 'reliquary-overlay');
   {
     const icon = element('span', 'topbar-figure-mark');
     icon.append(renownMarkNode());
@@ -808,7 +744,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
   // Beads: earned against the number that opens the Magnum Opus. A ratio, not a
   // rate: nothing accrues, every bead is an announced event.
-  const beadsItem = sheetButton('topbar-tab-part topbar-tab-figure is-beads', 'beads-overlay');
+  const beadsItem = sheetButton('topbar-bank is-beads', 'beads-overlay');
   {
     // The glass bead on its wire, drawn (batch SS1), in place of `◉`.
     const icon = element('span', 'topbar-figure-mark');
@@ -822,10 +758,11 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   if (onOpenBeads) beadsItem.addEventListener('click', () => onOpenBeads());
   info.bind(beadsItem, () => beadsCard());
 
-  standingsGroup.append(standingsTab, renownItem, beadsItem);
-  tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);
+  // Renown and beads sit together at the end of the left group: both are
+  // things the empire banks (the board, "3. The top bar").
+  banks.replaceChildren(renownItem, beadsItem);
 
-  // --- the turn line, in the middle -----------------------------------------
+  // --- the turn line, first in the right group -------------------------------
 
   /**
    * The turn, the world's age and its countdown, as one focusable line.
@@ -992,54 +929,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     }
     box.append(rods);
     if (onOpenBeads) box.append(element('p', 'hint', '☞ Press V for the whole ledger.'));
-    return box;
-  }
-
-  /**
-   * The summary ledger: what trade is paying, line by line, folding to gold.
-   *
-   * Gold is the one voice that totals because it is the one all three sources
-   * share — a route's food and hammers land in one town's own basket and are
-   * quoted on that route's line. See `tradeLedger`.
-   */
-  function routesCard(): Node {
-    const { state } = getGame();
-    const playerId = localPlayerId();
-    const ledger = tradeLedger(state, playerId);
-    const box = element('div');
-    const head = element('div', 'info-card-head');
-    head.append(element('span', 'info-card-name', 'Trade'));
-    head.append(
-      element(
-        'span',
-        'info-card-kind',
-        `${figure(ledger.used)} of ${figure(ledger.slots)} route${ledger.slots === 1 ? '' : 's'}`,
-      ),
-    );
-    box.append(head);
-
-    if (ledger.lines.length === 0) {
-      box.append(
-        element('p', 'hint', 'No caravan is on the road. A market opens a route; a trader carries it.'),
-      );
-    } else {
-      const list = element('ul', 'meter-lines ledger');
-      for (const line of ledger.lines) {
-        const item = element('li', 'meter-line');
-        item.append(element('span', 'meter-line-source', line.source));
-        const value = element('span', 'meter-line-value');
-        setYieldText(value, line.figures);
-        item.append(value);
-        list.append(item);
-      }
-      box.append(list);
-    }
-    const total = element('div', 'meter-total ledger-total');
-    total.append(element('span', 'meter-line-source', 'Treasury, per turn'));
-    const value = element('span', 'meter-line-value');
-    setYieldText(value, `${signedFigure(ledger.total)}${YIELD_GLYPH.gold}`);
-    total.append(value);
-    box.append(total);
     return box;
   }
 
@@ -1584,15 +1473,10 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         if (el.textContent !== text) el.textContent = text;
       }
 
-      // The tabs' figures. Each is written only when its text changed, like the
-      // yields above, because this runs after every accepted command.
-      const figures = tabFigures(state, playerId);
-      if (routesValue.textContent !== figures.routes) routesValue.textContent = figures.routes;
-      tradeTab.setAttribute('aria-label', figures.routesSpoken);
-      // The quiet good ink while a route slot is free: something the player can
-      // act on is true here. Never the alarm vermilion, which is kept for a meter
-      // in deficit.
-      tradeTab.classList.toggle('is-good', figures.routeSpare);
+      // Renown and beads. Each is written only when its text changed, like the
+      // yields above, because this runs after every accepted command. The
+      // routes figure is the corner panel's Routes mark's now.
+      const figures = bankFigures(state, playerId);
       if (renownValue.textContent !== figures.renown) renownValue.textContent = figures.renown;
       renownItem.title = figures.renownTitle;
       renownItem.setAttribute('aria-label', figures.renownSpoken);
@@ -1655,7 +1539,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
       // The digits half of the fit (see `fitStrip`). The yields and the meters
       // are the strip's own text, so the strip is asked rather than a signature
-      // being assembled by hand. The tabs' figures and the turn line sit
+      // being assembled by hand. Renown, beads and the turn line sit
       // outside it; when they change width the strip's own box changes width,
       // and the observer above re-fits it. Reading text forces no layout; the
       // fit below does, which is why it waits for the text to have changed.
@@ -1674,8 +1558,5 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       info.hide();
     },
     renownChip: renownItem,
-    diplomacyTab,
-    standingsTab,
-    tradeTab,
   };
 }

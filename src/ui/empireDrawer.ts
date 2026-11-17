@@ -1,29 +1,30 @@
 /**
- * The corner panel (batch SS2): the Corner board's variant A, with variant C's
- * live figures on two of its buttons. The board is
- * `docs/plans/mockups/scholars-study/Corner.dc.html`; the user's ruling is in
- * `docs/plans/ui-critique-2026-10-16.md`, "iteration 3". The file keeps its old
- * name, because the screen registry, the tutorial and the tests know it.
+ * The corner panel (batch SS2b): "Option A, revised" of
+ * `docs/plans/mockups/scholars-study/corner-panel-options.html`, with the
+ * user's choices from `docs/plans/ui-critique-2026-10-16.md` ("The corner
+ * panel: option A revised is approved"). The file keeps its old name, because
+ * the screen registry, the tutorial and the tests know it.
  *
  * The panel is one card in the top-left corner, 248 px wide, in three parts:
  *
- * - **The top part** (`#empire-panel`) is one button: the seat's banner, the
- *   technology being learnt and the next draft, each with its turns and a bar.
- *   A click, a tap, Enter or Q opens the card **downward, in place**. It does
- *   not open to the side any more (the user: "What i don't like about the
- *   corner panel is that it opens to the side").
- * - **Four quick buttons** (`#empire-quick`) are always there and never move:
- *   Diplomacy, Routes, Faith and Standings, the screens the user opens most.
- *   Each opens its sheet in one click. Routes carries the routes running
- *   against the cap and Faith carries the faith banked against the next god's
- *   price (variant C's figures). Faith used to be two clicks away.
- * - **The open part** (`#empire-drawer`) holds the rows: Research (T), Culture
- *   (C), Leader (L), the age wager and the Supply counts. It covers the
- *   commission chips until it closes, as the board draws it.
+ * - **The top part** (`#empire-top`): the seat's banner with the arrow under it,
+ *   and two lines. Each line is a button, drawn as an underlined name with an
+ *   arrow (the user chose this over the raised keys of the main drawing): the
+ *   technology being learnt opens the star chart (T), and "Next draft" opens
+ *   Statecraft (C). Each line has its turns and a bar. The banner
+ *   (`#empire-panel`, the card's one toggle for the keyboard) and every other
+ *   part of the top grow the card **downward, in place**, as Q does.
+ * - **Four marks** (`#empire-quick`) with no words at rest: Diplomacy (W),
+ *   Routes (E) with the routes running against the cap, Faith (H) with the
+ *   faith banked, and Standings (S). Each opens its sheet. The name and the key
+ *   are in each mark's title and accessible name. Open, the same four buttons
+ *   become four rows of the card's one shape: mark, name, figure, key.
+ * - **The open part** (`#empire-drawer`): Leader (L) and the age wager in the
+ *   same shape, then the Supply counts. It covers the commission chips until it
+ *   closes.
  *
- * There is no hover peek any more. The board opens the card on a click, and a
- * card that grew on hover would cover the chips every time the pointer crossed
- * the corner on its way to a quick button.
+ * Each screen has one door here, and the top bar has none for them (the user:
+ * "we probably don't need these menu items in multiple places").
  *
  * What is pure and what is not
  * ----------------------------
@@ -35,35 +36,35 @@
  * Who writes what
  * ---------------
  * The star chart (`techTree.ts`, `renderStatus`) writes the technology's name
- * into the top part (`#tech-current`), and the figures, the title and the
- * prompting state of the Research row (`#hud-research`, `#research-figures`).
- * It also owns the Research row's click. This module writes everything else:
- * the banner, both bars and their turns, the quick buttons' figures, the
- * research rate and "next", the culture row, the Leader and wager notes and the
- * Supply list. The top part's research bar and the star chart agree because
- * both go through `researchProgress` at the star chart's own rate.
+ * (`#tech-current`), the research line's figures (`#research-figures`), its
+ * title, its accessible name and its prompting state, and it owns the line's
+ * click. This module writes everything else: the banner, both bars and their
+ * turns, the research rate and "next", the draft line's detail, the marks'
+ * figures and names, and the rows. The research bar and the star chart agree
+ * because both go through `researchProgress` at the star chart's own rate.
  *
- * The figures on the quick buttons are the game's own readings: Routes is the
- * top bar's Trade figure (`tabFigures`, which reads `tradeLedger`, the trade
- * sheet's ledger), and Faith is `explainNextRung`, the reading the Faith
- * sheet's empty place and the old Faith row printed as a sentence
- * (`nextRungWords`). Nothing here composes a total of its own.
+ * The figures are the game's own readings. Routes is `routeFigures` (which
+ * reads `tradeLedger`, the trade sheet's ledger), asked once a refresh. Faith
+ * is the faith banked, with `explainNextRung`'s price beside it while the next
+ * god has one, and its sentence is `nextRungWords`. The faith dot is the purchase
+ * gate's own answer for a prophet (`purchaseError`), and the prophet's price is
+ * `explainPurchaseCost`'s fold. Nothing here composes a total of its own.
  *
  * The screen registry
  * -------------------
  * The open card is registered as a card in the screen registry
  * (`screenRegistry.ts`). Opening it calls `onOpen`, which `main.ts` wires to
  * `screens.opening('drawer')`, so the open card closes the other cards and
- * screens, and any card or screen opening closes it. A quick button opens a
- * screen, so a press on one also folds the card back up.
+ * screens, and any card or screen opening closes it. A line, a mark or a row
+ * opens a screen, so a press on one also folds the card back up.
  *
  * Keyboard
  * --------
- * Opening the card moves the keyboard to the first row (Research), Tab and
- * Shift-Tab wrap inside the whole card (the top part, the quick buttons and the
- * rows), and closing it while the keyboard is inside puts the keyboard back on
- * the top part. Every listener is bound with one `AbortController` and removed
- * by `dispose`, which `main.ts` puts in `gameDisposers`.
+ * Opening the card moves the keyboard to the research line, Tab and Shift-Tab
+ * wrap inside the whole card, and closing it while the keyboard is in the open
+ * part puts the keyboard back on the banner. Every listener is bound with one
+ * `AbortController` and removed by `dispose`, which `main.ts` puts in
+ * `gameDisposers`.
  *
  * Supply: why the counts are not always on the board
  * --------------------------------------------------
@@ -84,20 +85,29 @@ import { yieldMarkDataUri } from '../art/yieldMarks';
 import { turnsToFill } from '../sim/cities';
 import type { Game } from '../sim/game';
 import { seatName } from '../sim/leaderData';
+import { type PurchasableItem, explainPurchaseCost, purchaseError } from '../sim/purchase';
 import { readEmpire } from '../sim/readings';
-import { type NextRung, explainNextRung, hasReligionOffer, nextRungWords } from '../sim/religion';
-import { type GameState, type Player, playerById } from '../sim/state';
+import { type NextRung, explainNextRung, hasReligionOffer, nextBeliefPool, nextRungWords } from '../sim/religion';
+import {
+  type GameState,
+  type Player,
+  capitalCityOf,
+  citiesOf,
+  foundedReligion,
+  playerById,
+} from '../sim/state';
 import { hasStatecraftOffer, nextDraftCost } from '../sim/statecraft';
 import { GOVERNMENT_TIERS } from '../sim/statecraftData';
 import { availableTechs, playerScience, researchPlan } from '../sim/tech';
 import { techDef } from '../sim/techData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { dealtWagers, openWagerDeal, wagerClaimedBy } from '../sim/wagers';
 import { element, requireElement } from './dom';
 import { figure, signedFigure, turnsLabel } from './figures';
 import { openKeyword } from './keywords';
 import { researchProgress } from './researchProgress';
 import { techCostFor } from './techPrice';
-import { tabFigures } from './topBar';
+import { routeFigures } from './topBar';
 import { type CopyCount, copiesFigureNode, strategicHoldings } from './resourceCopies';
 
 // --- opening and closing -----------------------------------------------------
@@ -105,9 +115,10 @@ import { type CopyCount, copiesFigureNode, strategicHoldings } from './resourceC
 /**
  * What can happen to the card.
  *
- * - `toggle`: a click or tap on the top part, Enter on it, or Q.
+ * - `toggle`: a click or tap on the banner or on any part of the top that is
+ *   not one of the two lines, Enter on the banner, or Q.
  * - `close`: Escape, a press outside the card, or another card or screen
- *   opening (a quick button opens one).
+ *   opening (a line, a mark or a row opens one).
  */
 export type PanelEvent = 'toggle' | 'close';
 
@@ -125,18 +136,18 @@ export function panelStep(open: boolean, event: PanelEvent): boolean {
  * Delegates to `hasStatecraftOffer`, the simulation's own definition of
  * "something is waiting". This function only adds what a missing seat means:
  * nothing is waiting for a seat that is not there. It feeds the banner's dot
- * and the Culture row's owed line.
+ * and the draft line's owed line.
  */
 export function statecraftOwed(player: Player | undefined): boolean {
   return player !== undefined && hasStatecraftOffer(player);
 }
 
 /**
- * Is a belief waiting to be chosen? The Faith button's dot.
+ * Is a god waiting to be named? One of the banner's causes.
  *
- * Only a decision lights it, never a rite the seat could afford, which would be
- * true on most turns (`docs/flags.md` (ssssss) 4.7). Delegates to
- * `hasReligionOffer` for `statecraftOwed`'s reason.
+ * It no longer lights the Faith mark (the user, 2026-11-17: "pantheons are
+ * drafted regardless of player input"). The End Turn blocker and the banner
+ * still say it. Delegates to `hasReligionOffer` for `statecraftOwed`'s reason.
  */
 export function beliefOwed(player: Player | undefined): boolean {
   return player !== undefined && hasReligionOffer(player);
@@ -149,7 +160,7 @@ export function beliefOwed(player: Player | undefined): boolean {
  */
 type OwedDecision = 'card' | 'charter' | 'belief' | 'supply';
 
-/** Each cause, in the words the panel's accessible name uses. */
+/** Each cause, in the words the banner's accessible name uses. */
 export const OWED_WORDS: Readonly<Record<OwedDecision, string>> = {
   card: 'a card to pick',
   charter: 'a charter to swear',
@@ -200,22 +211,48 @@ interface WagerGlance {
   met: number;
 }
 
-/** The figure on the Faith button, and what it says aloud. */
-interface FaithFigure {
-  /** "51/60", "full", or nothing at all when no figure is true. */
-  text: string;
-  /** The simulation's own sentence (`nextRungWords`): the title and the name. */
-  words: string;
-  /** True when a god is waiting to be named, which is the button's dot. */
-  owed: boolean;
+/**
+ * What the Faith mark needs to know about a prophet, out of the purchase
+ * gate's own readings.
+ */
+export interface ProphetGlance {
+  /**
+   * True when a town of this seat could call a prophet now: `purchaseError`
+   * takes the purchase in the faith bank in at least one town. This is the
+   * Faith mark's dot (the user, 2026-11-17: "enough faith to buy a prophet is
+   * the right interpretation").
+   */
+  callable: boolean;
+  /** The price in the seat's capital (`explainPurchaseCost`'s fold), or `null` with no town or no prophet row. */
+  price: number | null;
+  /** True once every belief the seat's religion can hold is chosen. Then the dot never shows. */
+  complete: boolean;
 }
 
-/** The figure on the Routes button: the top bar's Trade figure. */
+/** The figure on the Faith mark, and what it says aloud. */
+interface FaithFigure {
+  /** "41/72" while the next god has a price, else the faith banked alone: "141". */
+  text: string;
+  /** How full the thin line under the mark is, 0 to 1, or `null` when the next god has no price. */
+  fraction: number | null;
+  /** True when the faith banked meets the next god's price: the figure takes the rose ink. */
+  met: boolean;
+  /** The whole reading as sentences, for the title and the accessible name. */
+  words: string;
+  /** The open card's Faith row note: "next god", "pantheon full". */
+  note: string;
+  /** The red dot: a prophet can be called now, and the religion has room for another belief. */
+  dot: boolean;
+}
+
+/** The figure on the Routes mark: the routes running against the cap. */
 interface RoutesFigure {
   /** "1/3": routes running, against the routes the empire's markets allow. */
   text: string;
   /** "Trade: 1 of 3 routes running". */
   words: string;
+  /** True while a route slot is free: the figure takes the verdigris ink. No dot. */
+  free: boolean;
 }
 
 /** Everything the corner panel prints for one seat. */
@@ -295,21 +332,87 @@ export function wagerGlance(state: GameState, playerId: number): WagerGlance {
 }
 
 /**
- * The Faith button's figure, out of the next-rung reading.
- *
- * "51/60" is the faith banked against the next god's price, both of them the
- * reading's own figures. The other three states have no such pair: a god
- * waiting to be named (the dot says so), a full pantheon, and a pantheon whose
- * next place a technology has still to open. Those print no figure, or the one
- * word, and the button's title and name carry the reading's whole sentence.
+ * The roster's prophet rows: the units that carry the `prophesies` marker and
+ * sell in the faith bank. Read by the marker, never by a name.
  */
-export function faithFigure(reading: NextRung): FaithFigure {
-  const words = nextRungWords(reading);
-  if (reading.kind === 'open') {
-    return { text: `${figure(reading.banked)}/${figure(reading.cost)}`, words, owed: false };
+function prophetTypes(): UnitTypeId[] {
+  return UNIT_TYPE_IDS.filter((id) => {
+    const def = unitDef(id);
+    return def.prophesies === true && def.purchase?.currency === 'faith';
+  });
+}
+
+/**
+ * Can this seat call a prophet now, what does one cost, and is its religion
+ * already full?
+ *
+ * "Now" is the purchase gate's whole answer (`purchaseError`), asked in each of
+ * the seat's towns until one takes it: the bank, the one-a-turn rule and the
+ * room on the town's hex are all its clauses, so a town that could not take the
+ * piece does not light the dot. The price is `explainPurchaseCost`'s fold in
+ * the capital, for the words only. Nothing here compares a price with a bank.
+ */
+export function prophetGlance(state: GameState, playerId: number): ProphetGlance {
+  const religion = foundedReligion(state, playerId);
+  const complete = religion !== undefined && nextBeliefPool(state, religion) === null;
+  const types = prophetTypes();
+  const towns = citiesOf(state, playerId);
+  const capital = capitalCityOf(state, playerId) ?? towns[0];
+  let price: number | null = null;
+  let callable = false;
+  for (const type of types) {
+    const item: PurchasableItem = { kind: 'unit', id: type };
+    if (price === null && capital !== undefined) {
+      price = explainPurchaseCost(state, playerId, capital.id, item, 'faith')?.total ?? null;
+    }
+    if (!callable) {
+      callable = towns.some((town) => purchaseError(state, playerId, town.id, item, 'faith') === null);
+    }
   }
-  if (reading.kind === 'full') return { text: 'full', words, owed: false };
-  return { text: '', words, owed: reading.kind === 'waiting' };
+  return { callable, price, complete };
+}
+
+/**
+ * The Faith mark's figure, out of the next-rung reading, the faith banked and
+ * the prophet reading.
+ *
+ * The rule the board states: **the number is always the faith banked**. A
+ * second number, "banked/price", shows only while the next god has a price,
+ * with a thin line under the mark that fills toward it, and the figure takes
+ * the rose ink once the price is met. Every other state (a god waiting to be
+ * named, a full pantheon, a place a technology has still to open) prints the
+ * one number, and the title says what the next thing is.
+ *
+ * The dot is the prophet's alone: it shows when a prophet can be called now and
+ * the religion still has room for a belief. Once every belief is chosen it
+ * never shows. A god waiting for a name lights no dot here.
+ */
+export function faithFigure(reading: NextRung, banked: number, prophet: ProphetGlance): FaithFigure {
+  const dot = prophet.callable && !prophet.complete;
+  const sentences = [nextRungWords(reading)];
+  if (dot) sentences.push('You have the faith to call a prophet');
+  else if (!prophet.complete && reading.kind !== 'open' && prophet.price !== null) {
+    sentences.push(`A prophet costs ${figure(prophet.price)} faith`);
+  }
+  const words = sentences.join('. ');
+  if (reading.kind === 'open') {
+    return {
+      text: `${figure(reading.banked)}/${figure(reading.cost)}`,
+      fraction: reading.cost <= 0 ? 1 : Math.min(1, reading.banked / reading.cost),
+      met: reading.banked >= reading.cost,
+      words,
+      note: dot ? 'call a prophet' : 'next god',
+      dot,
+    };
+  }
+  const note = dot
+    ? 'call a prophet'
+    : reading.kind === 'waiting'
+      ? 'god waiting'
+      : reading.kind === 'closed'
+        ? 'place closed'
+        : 'pantheon full';
+  return { text: figure(banked), fraction: null, met: false, words, note, dot };
 }
 
 /**
@@ -326,14 +429,20 @@ export function empireGlance(state: GameState, playerId: number): EmpireGlance |
   if (draft.owed !== null) owed.push(draft.owed);
   if (belief) owed.push('belief');
   if (supply.some((row) => row.spare === 0)) owed.push('supply');
-  const bar = tabFigures(state, playerId);
+  const bar = routeFigures(state, playerId);
+  // The bank as the next-rung reading floors it, so "41" and "41/72" agree.
+  const banked = Math.max(0, Math.floor(player.faithPool));
   return {
     playerId,
     seatName: seatName(state, playerId),
     research: researchGlance(state, player),
     draft,
-    faith: faithFigure(explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith)),
-    routes: { text: bar.routes, words: bar.routesSpoken },
+    faith: faithFigure(
+      explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith),
+      banked,
+      prophetGlance(state, playerId),
+    ),
+    routes: { text: bar.routes, words: bar.routesSpoken, free: bar.routeSpare },
     wager: wagerGlance(state, playerId),
     supply,
     owed,
@@ -358,14 +467,14 @@ function turnsPhrase(turns: number | null, never: string): string {
   return turns === 1 ? '1 turn' : `${turns} turns`;
 }
 
-/** The research half of the panel's accessible name. */
+/** The research half of the banner's accessible name. */
 function researchWords(research: ResearchGlance): string {
   if (research.stage === 'choosing') return 'nothing being researched';
   if (research.stage === 'finished') return 'every technology researched';
   return `researching ${research.name}, ${turnsPhrase(research.turns, 'no science being made')}`;
 }
 
-/** The draft half of the panel's accessible name. */
+/** The draft half of the banner's accessible name. */
 function draftWords(draft: DraftGlance): string {
   if (draft.turns === null) return 'no culture being made';
   if (draft.turns === 0) return 'next draft this turn';
@@ -373,7 +482,7 @@ function draftWords(draft: DraftGlance): string {
 }
 
 /**
- * The top part's accessible name: "Your empire: researching Code of Laws, 1
+ * The banner's accessible name: "Your empire: researching Code of Laws, 1
  * turn; next draft in 2 turns", and what is waiting, when anything is.
  */
 export function panelLabel(glance: EmpireGlance): string {
@@ -388,7 +497,7 @@ export function tierWords(draft: DraftGlance): string {
   return draft.nextGovernment === null ? tier : `${tier} · next government at ${draft.nextGovernment}`;
 }
 
-/** The Culture row's red line, or `null` when nothing is owed. */
+/** The draft line's red line, or `null` when nothing is owed. */
 export function cultureOwedWords(draft: DraftGlance): string | null {
   if (draft.owed === 'charter') return 'a charter is ready to be sworn';
   if (draft.owed === 'card') return 'a card awaits';
@@ -396,11 +505,29 @@ export function cultureOwedWords(draft: DraftGlance): string | null {
 }
 
 /**
- * The Culture row's line: "120/450 · Tier 14 · next government at 18". The
- * draft's turns are on the top part already, beside its bar.
+ * The draft line's figures: "120/450", the culture banked against the next
+ * draft's price. The board prints "120/450 · Tier 14" on the first detail
+ * line, with the figures in mono and the tier in words (`draftTierWords`).
+ * The draft's turns are on the line already, beside its bar, and the next
+ * government has a line of its own (`governmentWords`).
  */
 export function draftFigures(draft: DraftGlance): string {
-  return `${figure(draft.banked)}/${figure(draft.cost)} · ${tierWords(draft)}`;
+  return `${figure(draft.banked)}/${figure(draft.cost)}`;
+}
+
+/** "Tier 14": the drafts taken so far, after the draft line's figures. */
+export function draftTierWords(draft: DraftGlance): string {
+  return `Tier ${draft.tier}`;
+}
+
+/** "next government at 18", or nothing past the last government. */
+export function governmentWords(draft: DraftGlance): string {
+  return draft.nextGovernment === null ? '' : `next government at ${draft.nextGovernment}`;
+}
+
+/** The draft line's title, the board's tooltip: "Statecraft: next draft in 7 turns (C)". */
+export function draftTitle(draft: DraftGlance): string {
+  return `Statecraft: ${draftWords(draft)} (C)`;
 }
 
 /** The research rate after the star chart's figures: "+91 a turn", or nothing. */
@@ -420,15 +547,14 @@ export function wagerWords(wager: WagerGlance): string {
 }
 
 /**
- * The Leader row's note: the seat's name. It was the old drawer's heading,
- * which the open card no longer has; the board's "your civ" is the row's
- * accessible name instead, because both do not fit in 248 px.
+ * The Leader row's note: the seat's name. The open card has no heading, so the
+ * row says whose civ it is; "your civ" is in the row's accessible name.
  */
 export function leaderWords(name: string): string {
   return name;
 }
 
-/** The turns after the top part's research bar: "1t", or a mark for the two other states. */
+/** The turns after the research line's name: "1t", or a mark for the two other states. */
 export function researchTurnsMark(research: ResearchGlance): string {
   if (research.stage === 'choosing') return '—';
   if (research.stage === 'finished') return '✦';
@@ -446,16 +572,39 @@ export function supplyFingerprint(rows: readonly CopyCount[], playerId: number):
   return `${playerId}|${rows.map((row) => `${row.id}:${row.spare}/${row.held}`).join(',')}`;
 }
 
-/** The four quick buttons, in the board's order, and the screen each opens. */
+/** The four marks, in the board's order, and the screen each opens. */
 export const QUICK_BUTTONS = ['diplomacy', 'routes', 'faith', 'standings'] as const;
 export type QuickButton = (typeof QUICK_BUTTONS)[number];
+
+/** Each mark's name and key, as its title, its accessible name and its open row print them. */
+export const QUICK_NAMES: Readonly<Record<QuickButton, { name: string; key: string; sheet: string }>> = {
+  diplomacy: { name: 'Diplomacy', key: 'W', sheet: 'the Diplomacy sheet' },
+  routes: { name: 'Routes', key: 'E', sheet: 'the trade routes' },
+  faith: { name: 'Faith', key: 'H', sheet: 'the Faith sheet' },
+  standings: { name: 'Standings', key: 'S', sheet: 'the standings sheet' },
+};
+
+/**
+ * A mark's title: its name and key, then what its figure means. "Routes (E):
+ * Trade: 1 of 3 routes running". The board's hover shows the name and the key.
+ */
+export function quickTitle(name: QuickButton, words = ''): string {
+  const { name: label, key } = QUICK_NAMES[name];
+  return words === '' ? `${label} (${key})` : `${label} (${key}): ${words}`;
+}
+
+/** A mark's accessible name: "Faith: Next god: 72 faith · 41 banked. Opens the Faith sheet (H)". */
+export function quickLabel(name: QuickButton, words = ''): string {
+  const { name: label, key, sheet } = QUICK_NAMES[name];
+  return `${label}${words === '' ? '' : `: ${words}`}. Opens ${sheet} (${key})`;
+}
 
 // --- the surface -------------------------------------------------------------
 
 interface EmpireDrawerOptions {
   /** The whole card, `#empire-corner`. */
   corner: HTMLElement;
-  /** The top part, `#empire-panel`: one button. */
+  /** The banner, `#empire-panel`: the card's toggle for the keyboard. */
   panel: HTMLButtonElement;
   /** The open part, `#empire-drawer`. Hidden with `hidden` while closed. */
   drawer: HTMLElement;
@@ -465,20 +614,20 @@ interface EmpireDrawerOptions {
   onOpen: () => void;
   /** The card opened or closed, so the tutorial's ring can move with it. */
   onChange?: () => void;
-  /** The Culture row's door (C). */
+  /** The draft line's door (C). */
   openStatecraft: () => void;
   /** The Leader row's door (L). */
   openLeader: () => void;
   /** The age wager row's door: the wager's one standing way in. */
   openWager: () => void;
-  /** The four quick buttons' doors: Diplomacy (W), Routes (E), Faith (H), Standings. */
+  /** The four marks' doors: Diplomacy (W), Routes (E), Faith (H), Standings (S). */
   openQuick: Readonly<Record<QuickButton, () => void>>;
 }
 
 export interface EmpireDrawer {
   /** True while the card is open. What the screen registry and Escape ask. */
   readonly isOpen: boolean;
-  /** Opens the card, or closes it when it is open. Q, and a press on the top part. */
+  /** Opens the card, or closes it when it is open. Q, and a press on the card's ground. */
   toggle(): void;
   /** Closes it. Safe on a closed card. */
   close(): void;
@@ -491,7 +640,7 @@ export interface EmpireDrawer {
 /** Controls that can hold the keyboard inside the card. */
 const FOCUSABLE = 'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
 
-/** Each quick button's mark: the top bar's tab marks, and the faith yield's candle. */
+/** Each mark's drawing: the screens' own marks, and the faith yield's candle. */
 const QUICK_MARKS: Readonly<Record<QuickButton, () => string>> = {
   diplomacy: () => diplomacyMarkDataUri(),
   routes: () => tradeMarkDataUri(),
@@ -502,14 +651,22 @@ const QUICK_MARKS: Readonly<Record<QuickButton, () => string>> = {
 export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   const { corner, panel, drawer, getGame, localPlayerId } = options;
 
-  // The top part's parts. The technology's name is the star chart's.
+  // The top part. The research line's name and figures are the star chart's.
+  const top = requireElement('empire-top');
   const banner = requireElement('empire-banner');
   const researchBar = requireElement('empire-research-bar');
   const researchFill = requireElement('empire-research-fill');
   const researchTurns = requireElement('empire-research-turns');
+  const researchRate = requireElement('research-rate');
+  const researchNext = requireElement('research-next');
+  const draftLine = requireElement<HTMLButtonElement>('drawer-culture');
   const draftFill = requireElement('empire-draft-fill');
   const draftTurns = requireElement('empire-draft-turns');
-  // The quick buttons.
+  const cultureFigures = requireElement('culture-figures');
+  const cultureTier = requireElement('culture-tier');
+  const cultureGovernment = requireElement('culture-government');
+  const cultureOwed = requireElement('culture-owed');
+  // The four marks.
   const quick: Record<QuickButton, HTMLButtonElement> = {
     diplomacy: requireElement<HTMLButtonElement>('quick-diplomacy'),
     routes: requireElement<HTMLButtonElement>('quick-routes'),
@@ -518,12 +675,9 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   };
   const routesFigure = requireElement('quick-routes-figure');
   const faithFigureEl = requireElement('quick-faith-figure');
-  // The open part's parts. The research row's figures are the star chart's.
-  const researchRate = requireElement('research-rate');
-  const researchNext = requireElement('research-next');
-  const culture = requireElement<HTMLButtonElement>('drawer-culture');
-  const cultureFigures = requireElement('culture-figures');
-  const cultureOwed = requireElement('culture-owed');
+  const faithNote = requireElement('quick-faith-note');
+  const faithLine = requireElement('quick-faith-line');
+  // The open part.
   const leaderRow = requireElement<HTMLButtonElement>('drawer-leader');
   const leaderNote = requireElement('drawer-leader-note');
   const wagerRow = requireElement<HTMLButtonElement>('drawer-wager');
@@ -573,12 +727,14 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     panel.setAttribute('aria-expanded', String(next));
     if (next) {
       options.onOpen();
-      // The first row rather than the top part: a card that opens with the
-      // keyboard on its own toggle opens with nothing to read.
-      drawer.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
+      // The research line rather than the banner: a card that opens with the
+      // keyboard on its own toggle opens with nothing to read, and the line
+      // has just grown its figures.
+      top.querySelector<HTMLElement>('.empire-line')?.focus({ preventScroll: true });
     } else if (heldKeyboard) {
-      // Closing with the keyboard on a row puts it back on the top part. A row
-      // that opened a screen has its keyboard taken by that screen next.
+      // Closing with the keyboard on a row of the open part puts it back on
+      // the banner. A row that opened a screen has its keyboard taken by that
+      // screen next.
       panel.focus({ preventScroll: true });
     }
     options.onChange?.();
@@ -595,8 +751,19 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     setOpen(panelStep(open, 'close'));
   }
 
-  // A click, a tap, Enter and Space all arrive here as the button's click.
-  panel.addEventListener('click', () => toggle(), { signal });
+  // The top's ground grows the card: the banner, the arrow, and every gap
+  // between and around the two lines. A press on a line is the line's own (it
+  // opens a screen). The banner is a button, so Enter and Space on it arrive
+  // here as its click.
+  top.addEventListener(
+    'click',
+    (event) => {
+      const target = event.target as Element | null;
+      if (target?.closest('.empire-line')) return;
+      toggle();
+    },
+    { signal },
+  );
 
   // A press outside the card closes it. Captured, so the card has folded before
   // the board starts a drag under it, and so a handler that stops the press
@@ -633,9 +800,9 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
 
   // --- the doors -----------------------------------------------------------
 
-  // The research row's click is the star chart's own (`techTree.ts`). Each of
+  // The research line's click is the star chart's own (`techTree.ts`). Each of
   // these opens a screen, and the screen's opening closes the card.
-  culture.addEventListener('click', () => options.openStatecraft(), { signal });
+  draftLine.addEventListener('click', () => options.openStatecraft(), { signal });
   leaderRow.addEventListener('click', () => options.openLeader(), { signal });
   wagerRow.addEventListener('click', () => options.openWager(), { signal });
   for (const name of QUICK_BUTTONS) {
@@ -687,47 +854,51 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     researchBar.classList.toggle('is-finished', research.stage === 'finished');
     researchFill.style.width = `${(research.fraction * 100).toFixed(1)}%`;
     researchTurns.textContent = researchTurnsMark(research);
+    researchRate.textContent = researchRateWords(research);
+    researchNext.textContent = researchNextWords(research);
     draftFill.style.width = `${(draft.fraction * 100).toFixed(1)}%`;
     draftTurns.textContent = turnsLabel(draft.turns);
     panel.setAttribute('aria-label', panelLabel(glance));
+
+    // The draft line's detail, shown while the card is open.
+    const owedLine = cultureOwedWords(draft);
+    cultureFigures.textContent = draftFigures(draft);
+    cultureTier.textContent = draftTierWords(draft);
+    cultureGovernment.textContent = governmentWords(draft);
+    cultureOwed.hidden = owedLine === null;
+    cultureOwed.textContent = owedLine ?? '';
+    draftLine.classList.toggle('is-owed', owedLine !== null);
+    draftLine.title = draftTitle(draft);
+    draftLine.setAttribute(
+      'aria-label',
+      `Statecraft: next draft ${draft.banked} of ${draft.cost}, ${turnsPhrase(draft.turns, 'no culture being made')}; ` +
+        `${tierWords(draft)}${owedLine === null ? '' : `; ${owedLine}`}. Opens Statecraft (C).`,
+    );
   }
 
   function paintQuick(glance: EmpireGlance): void {
     const { faith, routes } = glance;
     routesFigure.textContent = routes.text;
-    routesFigure.classList.toggle('is-long', routes.text.length > 5);
-    quick.routes.setAttribute('aria-label', `${routes.words}. Opens the trade routes (E)`);
-    quick.routes.title = `${routes.words} (E)`;
+    routesFigure.classList.toggle('is-free', routes.free);
+    quick.routes.title = quickTitle('routes', routes.words);
+    quick.routes.setAttribute('aria-label', quickLabel('routes', routes.words));
+
     faithFigureEl.textContent = faith.text;
-    faithFigureEl.hidden = faith.text === '';
-    faithFigureEl.classList.toggle('is-long', faith.text.length > 5);
-    quick.faith.classList.toggle('is-owed', faith.owed);
-    quick.faith.setAttribute('aria-label', `Faith: ${faith.words}. Opens the Faith sheet (H)`);
-    quick.faith.title = `${faith.words} (H)`;
-    quick.diplomacy.setAttribute('aria-label', 'Diplomacy. Opens the Diplomacy sheet (W)');
-    quick.diplomacy.title = 'Diplomacy (W)';
-    quick.standings.setAttribute('aria-label', 'Standings. Opens the standings sheet');
-    quick.standings.title = 'Standings';
+    faithFigureEl.classList.toggle('is-met', faith.met);
+    faithNote.textContent = faith.note;
+    faithLine.hidden = faith.fraction === null;
+    faithLine.style.width = `${((faith.fraction ?? 0) * 100).toFixed(1)}%`;
+    quick.faith.classList.toggle('is-owed', faith.dot);
+    quick.faith.title = quickTitle('faith', faith.words);
+    quick.faith.setAttribute('aria-label', quickLabel('faith', faith.words));
+
+    quick.diplomacy.title = quickTitle('diplomacy');
+    quick.diplomacy.setAttribute('aria-label', quickLabel('diplomacy'));
+    quick.standings.title = quickTitle('standings');
+    quick.standings.setAttribute('aria-label', quickLabel('standings'));
   }
 
   function paintRows(glance: EmpireGlance): void {
-    const { research, draft } = glance;
-    // The research row's rate and next. Its figures are the star chart's.
-    researchRate.textContent = researchRateWords(research);
-    researchNext.textContent = researchNextWords(research);
-
-    // The culture row.
-    const owedLine = cultureOwedWords(draft);
-    cultureFigures.textContent = draftFigures(draft);
-    cultureOwed.hidden = owedLine === null;
-    cultureOwed.textContent = owedLine ?? '';
-    culture.classList.toggle('is-owed', owedLine !== null);
-    culture.setAttribute(
-      'aria-label',
-      `Culture: next draft ${draft.banked} of ${draft.cost}, ${turnsPhrase(draft.turns, 'no culture being made')}; ` +
-        `${tierWords(draft)}${owedLine === null ? '' : `; ${owedLine}`}. Opens Statecraft.`,
-    );
-
     leaderNote.textContent = leaderWords(glance.seatName);
     leaderRow.setAttribute('aria-label', `Leader: ${glance.seatName}, your civ. Opens your civ's sheet (L)`);
     wagerNote.textContent = wagerWords(glance.wager);

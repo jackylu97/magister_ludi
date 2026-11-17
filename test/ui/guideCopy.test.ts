@@ -328,7 +328,9 @@ describe('the guide names no retired system', () => {
     }
     const reads = (file: string, words: string): boolean =>
       literals.some((line) => line.file === file && line.text.includes(words));
-    expect(reads('tutorial.ts', 'Standings tab')).toBe(true);
+    // The welcome step's own words: proof the tutorial's table is read. It
+    // named the Standings tab until batch SS2b took the tabs out of the bar.
+    expect(reads('tutorial.ts', 'Standings mark')).toBe(true);
     // The overlay's foot note is built inside `createPamphletOverlay`, not in a table.
     expect(reads('pamphlet.ts', 'Put it away freely')).toBe(true);
   });

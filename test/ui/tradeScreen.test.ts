@@ -914,12 +914,14 @@ describe('the sheet’s frame and its doors', () => {
     expect(source('tradeScreen.ts')).not.toMatch(/let\s+isOpen\s*=/);
   });
 
-  it('opens from the top bar’s Trade tab, the unit sheet and `E`', () => {
+  it('opens from the corner panel’s Routes mark, the unit sheet and `E`', () => {
     const main = source('main.ts');
-    // Batch UX1 made the routes chip and the dock's fourth button one door:
-    // the Trade tab at the right end of the bar, carrying the routes figure.
-    const bar = source('topBar.ts');
-    expect(bar).toContain("if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());");
+    // Batch UX1 made the routes chip and the dock's fourth button one door,
+    // the Trade tab; batch SS2b moved that door and its routes figure to the
+    // corner panel's Routes mark, the sheet's trigger.
+    expect(source('topBar.ts')).not.toContain('tradeTab');
+    expect(main).toContain('routes: () => trade?.open(),');
+    expect(main).toContain('trigger: quickRoutesButton,');
     expect(main).toContain('onOpenTrade: () => trade?.open(),');
     expect(main).not.toContain('hudDock.tradeButton');
     expect(main).toContain("if (event.key !== 'e' && event.key !== 'E') return;");
@@ -927,11 +929,10 @@ describe('the sheet’s frame and its doors', () => {
     expect(main).toContain(
       "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
     );
-    // The tab wears the drawn cart rather than a typed glyph.
-    expect(bar).toContain('tabMark(tradeMarkDataUri())');
-    expect(bar).not.toContain("'⇄'");
-    // Since batch SS2 the corner panel's Routes button is the sheet's second
-    // door (the user: trade routes are among the buttons opened most). It wears
+    // The bar keeps no typed glyph for trade either.
+    expect(source('topBar.ts')).not.toContain("'⇄'");
+    // Since batch SS2b the corner panel's Routes mark is the sheet's one door
+    // (the user: trade routes are among the buttons opened most). It wears
     // the same drawn cart, from the one drawing in `dockMarks.ts`, never a glyph
     // of its own; and it opens the sheet through `main.ts`, like every door,
     // never by reaching for the sheet itself.

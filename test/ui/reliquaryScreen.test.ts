@@ -550,12 +550,13 @@ describe('the Reliquary screen', () => {
 describe('the renown figure is the door', () => {
   const BAR = source('topBar.ts');
 
-  it('is a real button on the Standings tab, so the keyboard needs no wiring of its own', () => {
+  it('is a real button in the bar’s left group, so the keyboard needs no wiring of its own', () => {
     // Batch UX1 moved renown off the yield strip onto the top bar's Standings
-    // tab. The figure is a `<button>` now, so Enter and Space press it
+    // tab, and batch SS2b into the left group with the beads when the tabs
+    // left the bar. The figure is a `<button>`, so Enter and Space press it
     // natively; the old chip needed a role and a keydown handler to fake that.
     expect(BAR).toContain(
-      "const renownItem = sheetButton('topbar-tab-part topbar-tab-figure is-renown', 'reliquary-overlay');",
+      "const renownItem = sheetButton('topbar-bank is-renown', 'reliquary-overlay');",
     );
     expect(BAR).toContain(
       "if (onOpenReliquary) renownItem.addEventListener('click', () => onOpenReliquary());",

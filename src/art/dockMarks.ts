@@ -5,9 +5,10 @@
  * Where they are worn
  * -------------------
  * They were drawn for the HUD dock, a row of square buttons under the research
- * card. The dock is gone: since batch UX1 the banner, the cart and the ranking
- * are the marks on the top bar's Diplomacy, Trade and Standings tabs
- * (`topBar.ts`), and since batch UX3 the empire drawer opens Statecraft from
+ * card. The dock is gone: the banner, the cart and the ranking were the marks
+ * on the top bar's Diplomacy, Trade and Standings tabs from batch UX1, and are
+ * the corner panel's Diplomacy, Routes and Standings marks since batch SS2b
+ * (`empireDrawer.ts`); since batch UX3 the empire drawer opens Statecraft from
  * its culture section, so the scroll is shown only in the flair gallery
  * (`src/flairGallery/marks.ts`). It is kept for the next surface that needs a
  * mark for Statecraft. The file keeps its name so the history reads straight.
@@ -108,7 +109,8 @@ export function diplomacyMarkDataUri(color = '#000'): string {
 }
 
 /**
- * **The cart** — the Trade sheet's door (the Trade tab's mark since batch UX1),
+ * **The cart** — the Trade sheet's door (the Trade tab's mark from batch UX1,
+ * the corner panel's Routes mark since batch SS2b),
  * and the third mark in this set (batch R2, the user's ruling of 2026-09-09:
  * *"The trade screen should have an icon next to the statecraft/religion/
  * diplomacy buttons"*).
@@ -167,7 +169,8 @@ export function tradeMarkDataUri(color = '#000'): string {
  * Three rules and not a counting frame, which was the first drawing: a frame's
  * two uprights and two rods come out at a button's scale as a shape with dots
  * in it, where descending rules read as an order of finish at any size. It is
- * the Standings tab's mark since batch UX1; the Abacus opens from the standings
+ * the Standings tab's mark from batch UX1 and the corner panel's Standings
+ * mark since batch SS2b; the Abacus opens from the standings
  * sheet, not from this mark.
  *
  * Same grid, same weight, same caps and joins as the three beside it, so it

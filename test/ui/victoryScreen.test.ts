@@ -135,14 +135,16 @@ describe('the sheet itself', () => {
     expect(main).toContain('toTitle: () => showLanding(),');
   });
 
-  it('is raised by the decided game and by the top bar’s Standings tab', () => {
-    // The dock's sixth door until batch UX1; the Standings tab's own button
-    // since, which the sheet gives the keyboard back to.
+  it('is raised by the decided game, the corner panel’s Standings mark and S', () => {
+    // The dock's sixth door until batch UX1, the bar's Standings tab until
+    // batch SS2b, and the corner panel's Standings mark since, which the sheet
+    // gives the keyboard back to.
     const main = uiSource('main.ts');
     expect(main).toContain('victory = createVictoryScreen({');
-    expect(main).toContain('trigger: civYields.standingsTab,');
+    expect(main).toContain('trigger: quickStandingsButton,');
     expect(main).toContain('victory?.open();');
-    expect(main).toContain('onOpenStandings: () => victory?.open(),');
+    expect(main).toContain('standings: () => victory?.open(),');
+    expect(main).toContain("if (event.key !== 's' && event.key !== 'S') return;");
     expect(main).toContain("onOpen: () => screens.opening('standings'),");
     expect(main).not.toContain('hudDock.standingsButton');
   });

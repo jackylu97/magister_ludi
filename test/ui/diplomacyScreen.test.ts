@@ -343,32 +343,28 @@ describe('the wiring that spans files', () => {
   // The sources come from the suite's shared glob (`sourceHelpers.ts`).
   const source = uiSource;
 
-  it('gives the top bar a Diplomacy tab and mounts it', () => {
-    // The dock's third door until batch UX1; the first of the bar's three tabs
-    // since. A tab constructed and never mounted is a door nobody can open, so
-    // the pin reads the mount as well as the build.
-    const bar = source('topBar.ts');
-    expect(bar).toContain(
-      "const diplomacyTab = sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay');",
-    );
-    expect(bar).toContain('tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);');
-    // The dock that held it is gone (batch UX3), and the empire drawer that
-    // replaced it carries no door to the other empires.
-    expect(source('index.html')).not.toMatch(/id="(hud-dock|drawer)-diplomacy"/);
+  it('gives the sheet one door: the Diplomacy mark in the corner panel', () => {
+    // The dock's third door until batch UX1, the first of the bar's three tabs
+    // until batch SS2b, and the corner panel's first mark since. The mark is
+    // markup, so it cannot be built and never mounted.
+    const html = source('index.html');
+    const quick = html.slice(html.indexOf('id="empire-quick"'), html.indexOf('id="empire-drawer"'));
+    expect(quick).toContain('id="quick-diplomacy" class="quick-button is-diplomacy"');
+    expect(quick).toContain('aria-controls="diplomacy-overlay"');
+    expect(source('topBar.ts')).not.toContain('diplomacyTab');
+    // The dock is gone (batch UX3), and the open card's rows carry no second door.
+    expect(html).not.toMatch(/id="(hud-dock|drawer)-diplomacy"/);
   });
 
-  it('opens the sheet from that tab, through the same door `W` uses', () => {
+  it('opens the sheet from that mark, through the same door `W` uses', () => {
     const main = source('main.ts');
-    expect(source('topBar.ts')).toContain(
-      "if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());",
-    );
-    // The tab and `W` open the sheet, and the sheet's own opening closes
+    // The mark and `W` open the sheet, and the sheet's own opening closes
     // whatever else is up (the screen registry, batch UX2).
-    expect(main).toContain('onOpenDiplomacy: () => diplomacy?.open(),');
+    expect(main).toContain('diplomacy: () => diplomacy?.open(),');
     expect(main).toContain('else diplomacy?.open();');
     expect(main).toContain("onOpen: () => screens.opening('diplomacy'),");
-    // The sheet gives the keyboard back to the tab.
-    expect(main).toContain('trigger: civYields.diplomacyTab,');
+    // The sheet gives the keyboard back to the mark.
+    expect(main).toContain('trigger: quickDiplomacyButton,');
   });
 
   it('sends every write as a command, and never touches the state itself', () => {
