@@ -1,0 +1,439 @@
+/**
+ * **The Order card's emblem face** (batch SS10, part 1), drawn by the game's
+ * own builder (`src/ui/orderFace.ts`) for real rows.
+ *
+ * The board is `docs/plans/mockups/scholars-study/order-card-faces.html`,
+ * "Face 1, the emblem". This section shows:
+ *
+ *   - the board's own sample cards, built. Their names are read from the
+ *     board's file, so this page names no row;
+ *   - a sample across the six decks, the four types and the three rarities,
+ *     chosen from the data by what each row is;
+ *   - the four frames and the states, at true size and at 2x;
+ *   - the ten Orders with the longest effects, measured on the page;
+ *   - every live card measured, on request, with the sizes they settle on;
+ *   - the corner marks the face draws, at the usual three sizes.
+ *
+ * The live lines on these cards are samples, as they are on the board: the
+ * face prints what the caller hands it and composes nothing itself.
+ */
+
+import './orderFaces.css';
+
+import { ORDER_FACE_MARKS, type OrderFaceMarkId, orderFaceMarkUri } from '../art/orderFaceMarks';
+import { commissionCounterWords, describeCard, stripRefs } from '../sim/statecraft';
+import {
+  CHAIR_TYPES,
+  DECK_IDS,
+  DOCTRINE_IDS,
+  ORDER_IDS,
+  type OrderId,
+  type OrderRarity,
+  doctrineDef,
+  isDoctrineId,
+  orderDef,
+  orderIsDealt,
+  orderType,
+} from '../sim/statecraftData';
+import { stampOfYields, stampText } from '../ui/cardStamp';
+import { counterFigure } from '../ui/goalCounter';
+import {
+  type OrderFaceCardId,
+  type OrderFaceState,
+  emptyChairFace,
+  fitOrderFace,
+  orderFaceNode,
+} from '../ui/orderFace';
+import { block, button, controls, element, markCell, markGrid, slider } from './sheet';
+
+/** A live Order: dealt, and not retired. */
+function liveOrders(): OrderId[] {
+  return ORDER_IDS.filter((id) => orderIsDealt(id));
+}
+
+/** A live Doctrine of a deck. */
+function liveDoctrines(): OrderFaceCardId[] {
+  return DOCTRINE_IDS.filter((id) => doctrineDef(id).retired !== true && doctrineDef(id).decks.length > 0);
+}
+
+/** A row's effect in plain words, the keyword clause left out. */
+function effectWords(id: OrderFaceCardId): string {
+  return describeCard(id)
+    .filter((clause) => clause.keyword === undefined)
+    .map((clause) => stripRefs(clause.text))
+    .join(' ');
+}
+
+/** A sample "pays" line, from the card stamp's own composer. */
+function paysLine(yields: Partial<Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number>>) {
+  const voices = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0, ...yields };
+  return { kind: 'pays' as const, text: `pays ${stampText(stampOfYields(voices).figures)} this turn` };
+}
+
+/** A commission's first counter, in the game's own words, at a sample count. */
+function counterLine(id: OrderId, have: number): OrderFaceState['liveLine'] {
+  const goal = orderDef(id).commission?.goals[0];
+  if (goal === undefined) return null;
+  const need = goal.count;
+  const done = Math.min(have, need);
+  return {
+    kind: 'counter',
+    text: `${counterFigure({ label: '', have: done, need })} ${commissionCounterWords(goal)}`,
+    progress: { done, of: need },
+  };
+}
+
+/** A plate of cards on the board's lampblack, with a caption under each. */
+function plate(into: HTMLElement, width?: number): HTMLElement {
+  const node = element('div', 'of-plate5');
+  if (width !== undefined) node.style.setProperty('--order-face-width', `${width}px`);
+  into.append(node);
+  return node;
+}
+
+/** One card on a plate, with its caption. Returns the card. */
+function figure(into: HTMLElement, card: HTMLElement, caption: string): HTMLElement {
+  const cell = element('figure', 'of-figure');
+  cell.append(card, element('figcaption', undefined, caption));
+  into.append(cell);
+  return card;
+}
+
+/** Every card the section has drawn, so they can be fitted once the fonts are in. */
+const drawnCards: HTMLElement[] = [];
+
+function card(id: OrderFaceCardId, state: OrderFaceState): HTMLElement {
+  const node = orderFaceNode(id, state);
+  drawnCards.push(node);
+  return node;
+}
+
+/** The fit a card settled on, in words, for its caption. */
+function fitWords(node: HTMLElement): string {
+  const fit = fitOrderFace(node);
+  const parts = [`${fit.size} px`];
+  if (fit.picture === 'short') parts.push('short picture');
+  if (fit.name !== 'full') parts.push(`name ${fit.name}`);
+  if (fit.colophon !== 'one') parts.push(`live line ${fit.colophon}`);
+  if (fit.over) parts.push('does not fit');
+  return parts.join(' · ');
+}
+
+// --- the board's own cards ---------------------------------------------------
+
+/**
+ * The board's sample cards, by the names its Face 1 section prints, looked up
+ * in the data. The first five are the 2x plate; the sixth is the card the
+ * board shows played and not confirmed.
+ */
+async function boardCardIds(): Promise<OrderFaceCardId[]> {
+  const { default: html } = await import('../../docs/plans/mockups/scholars-study/order-card-faces.html?raw');
+  const start = html.indexOf('<b>Face 1</b>');
+  const end = html.indexOf('<b>Face 2</b>');
+  const section = html.slice(start, end);
+  const names: string[] = [];
+  for (const match of section.matchAll(/class="motto"><i><\/i><span>([^<]+)<\/span>/g)) {
+    if (!names.includes(match[1]!)) names.push(match[1]!);
+  }
+  const rows: OrderFaceCardId[] = [...liveOrders(), ...liveDoctrines()];
+  return names.flatMap((name) => {
+    const id = rows.find((row) => (isDoctrineId(row) ? doctrineDef(row) : orderDef(row)).name === name);
+    return id === undefined ? [] : [id];
+  });
+}
+
+/** The states the board draws its five cards in, in the board's order. */
+function boardStates(ids: readonly OrderFaceCardId[]): OrderFaceState[] {
+  return ids.map((id, index): OrderFaceState => {
+    if (index === 0) return { where: 'played', liveLine: paysLine({ gold: 15 }) };
+    if (index === 1) {
+      return {
+        where: 'played',
+        unmet: { reason: 'no trade partner is at war' },
+        liveLine: { kind: 'pays', text: '+0 now' },
+      };
+    }
+    if (index === 2) return { where: 'played', liveLine: counterLine(id as OrderId, 3) };
+    if (index === 3) return { where: 'played', liveLine: { kind: 'standing', text: 'in force' } };
+    if (index === 4) return { where: 'played', liveLine: paysLine({ food: 14, production: 14 }) };
+    return { where: 'played', staged: true, liveLine: { kind: 'waiting', text: 'awaits your seal: on Confirm' } };
+  });
+}
+
+const BOARD_CAPTIONS = [
+  'A short effect.',
+  'A long effect, its condition not met.',
+  'A commission with its counter.',
+  'The board’s rule card. This effect prints a figure, so the build gives it a tablet.',
+  'A Doctrine: the richest frame.',
+  'Played, not confirmed.',
+];
+
+// --- the sample across the decks ---------------------------------------------
+
+/**
+ * One live Order for each deck and rarity, with the types cycled so all four
+ * appear: the first row of each deck and rarity whose type is the next one
+ * the sample still lacks, or any row of that deck and rarity.
+ */
+function deckSample(): OrderId[][] {
+  const live = liveOrders().filter((id) => orderDef(id).decks.length === 1);
+  const rarities: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
+  const types = ['military', 'economic', 'civic', 'wildcard'] as const;
+  let turn = 0;
+  return DECK_IDS.map((deck) =>
+    rarities.flatMap((rarity) => {
+      const pool = live.filter((id) => orderDef(id).decks[0] === deck && orderDef(id).rarity === rarity);
+      const wanted = types[turn % types.length]!;
+      turn += 1;
+      const pick = pool.find((id) => orderType(id) === wanted) ?? pool[0];
+      return pick === undefined ? [] : [pick];
+    }),
+  );
+}
+
+// --- the section ---------------------------------------------------------------
+
+export function drawOrderFaces(into: HTMLElement): void {
+  // --- 1. the board's cards ---
+  const boardBlock = block(
+    into,
+    'The board’s cards, built — src/ui/orderFace.ts',
+    'The cards the board draws for Face 1, found by the names its file prints, at 2x. The words are the describers’ own, so they differ from the board’s paraphrase. The live lines are samples, as on the board.',
+  );
+  const boardPlate = plate(boardBlock, 420);
+  boardPlate.dataset.plate = 'board';
+  const boardTrue = plate(boardBlock);
+  boardTrue.dataset.plate = 'board-true';
+  void boardCardIds().then((ids) => {
+    const states = boardStates(ids);
+    ids.forEach((id, index) => {
+      const target = index < 5 ? boardPlate : boardTrue;
+      figure(target, card(id, states[index]!), BOARD_CAPTIONS[index] ?? '');
+    });
+    // The same five at true size, after the staged card.
+    ids.slice(0, 5).forEach((id, index) => {
+      figure(boardTrue, card(id, states[index]!), BOARD_CAPTIONS[index] ?? '');
+    });
+    fitAll();
+  });
+
+  // --- 2. across the decks ---
+  const deckBlock = block(
+    into,
+    'Across the decks',
+    'One live Order of each deck at each rarity, with the four types cycled through, at true size. The suit shows the deck, the ink the type, the border the rarity.',
+  );
+  const knobs = controls(deckBlock);
+  const deckPlate = plate(deckBlock);
+  deckPlate.dataset.plate = 'decks';
+  slider(
+    knobs,
+    'card width',
+    { min: 150, max: 420, step: 5, value: 210 },
+    (value) => `${value}px`,
+    (value) => deckPlate.style.setProperty('--order-face-width', `${value}px`),
+  );
+  for (const row of deckSample()) {
+    for (const id of row) {
+      figure(deckPlate, card(id, { where: 'hand' }), `${orderDef(id).rarity} · ${orderType(id)}`);
+    }
+  }
+
+  // --- 3. the frames at 2x ---
+  const frameBlock = block(
+    into,
+    'The four frames, at 2x',
+    'Common: a plain double rule. Uncommon: a hatched band and corner flourishes. Rare: a gilt band with a punched pattern, a gilt ground, a black tier plate, the sun and the moon. A Doctrine: the heaviest gilt frame.',
+  );
+  const framePlate = plate(frameBlock, 420);
+  framePlate.dataset.plate = 'frames';
+  const economic = liveOrders().filter((id) => orderType(id) === 'economic' && orderDef(id).decks.length === 1);
+  for (const rarity of ['common', 'uncommon', 'rare'] as const) {
+    const pick = economic.find((id) => orderDef(id).rarity === rarity);
+    if (pick !== undefined) figure(framePlate, card(pick, { where: 'hand' }), rarity);
+  }
+  const doctrine = liveDoctrines()[0];
+  if (doctrine !== undefined) figure(framePlate, card(doctrine, { where: 'hand' }), 'Doctrine');
+
+  // --- 4. the states ---
+  const stateBlock = block(
+    into,
+    'The states, at true size and at 2x',
+    'In the hand; played and paying; sealed, with the turns left; played this visit and not confirmed; its condition not met (no rays, the reason under the effect); a commission’s counter; and an empty chair of each type.',
+  );
+  for (const width of [210, 420]) {
+    const statePlate = plate(stateBlock, width);
+    statePlate.dataset.plate = `states-${width}`;
+    drawStates(statePlate);
+  }
+
+  // --- 5. the hand, fanned ---
+  const handBlock = block(
+    into,
+    'The hand',
+    'One face in the hand and in a chair. The hand shows the top of each card, which is the name and the picture.',
+  );
+  const fan = element('div', 'of-fan');
+  for (const id of deckSample().flat().slice(0, 6)) fan.append(card(id, { where: 'hand' }));
+  const handPlate = plate(handBlock);
+  handPlate.dataset.plate = 'hand';
+  handPlate.append(fan);
+
+  // --- 6. the longest texts ---
+  const longBlock = block(
+    into,
+    'The longest effects',
+    'The ten live Orders with the longest effects, at true size, each fitted on the page: 13 px on up to five lines, then down to 11 px, then a shorter picture. A card that still does not fit is ruled red at its foot, with its text left visible.',
+  );
+  const longPlate = plate(longBlock);
+  longPlate.dataset.plate = 'longest';
+  const longest = [...liveOrders()]
+    .sort((a, b) => effectWords(b).length - effectWords(a).length)
+    .slice(0, 10);
+  const longCards = longest.map((id) => figure(longPlate, card(id, { where: 'hand' }), ''));
+
+  // --- 7. every card, measured ---
+  const measureBlock = block(
+    into,
+    'Every live card, measured',
+    'Builds every live Order and Doctrine off the page, fits each one, and counts the sizes they settle on.',
+  );
+  const report = element('pre', 'of-report');
+  const measureKnobs = controls(measureBlock);
+  button(measureKnobs, 'Measure every card', () => {
+    report.textContent = measureEveryCard();
+  });
+  measureBlock.append(report);
+  if (new URLSearchParams(location.search).has('measure')) {
+    void document.fonts.ready.then(() => {
+      report.textContent = measureEveryCard();
+    });
+  }
+
+  // --- 8. the marks ---
+  const marksBlock = block(
+    into,
+    'The corner marks — src/art/orderFaceMarks.ts',
+    'The board’s corner drawings, drawn again on the 24-unit grid: the uncommon flourish, the rare star, and the sun and the moon of the rare picture and the Doctrine.',
+  );
+  const grid = markGrid(marksBlock);
+  grid.dataset.plate = 'marks';
+  for (const id of Object.keys(ORDER_FACE_MARKS) as OrderFaceMarkId[]) {
+    markCell(grid, id, orderFaceMarkUri(id), ORDER_FACE_MARKS[id].note);
+  }
+
+  function fitAll(): void {
+    void document.fonts.ready.then(() => {
+      for (const node of drawnCards) {
+        const caption = node.parentElement?.querySelector('figcaption');
+        const words = fitWords(node);
+        if (caption !== null && caption !== undefined && longCards.includes(node)) {
+          caption.textContent = `${node.querySelector('.of-name')?.textContent ?? ''} · ${words}`;
+        }
+      }
+    });
+  }
+  fitAll();
+}
+
+/** The states row: every state the face has, on real rows. */
+function drawStates(into: HTMLElement): void {
+  const live = liveOrders();
+  const paying = live.find((id) => orderDef(id).rarity === 'uncommon' && orderType(id) === 'economic') ?? live[0]!;
+  const military = live.find((id) => orderType(id) === 'military' && orderDef(id).rarity === 'common') ?? paying;
+  // A rare card with a short effect, so the reason line has room under it.
+  const conditional =
+    live.find(
+      (id) => orderType(id) === 'civic' && orderDef(id).rarity === 'rare' && effectWords(id).length < 90,
+    ) ?? paying;
+  const commission = live.find((id) => orderDef(id).commission !== undefined) ?? paying;
+  const charter = live.find((id) => orderDef(id).charter !== undefined) ?? paying;
+  figure(into, card(paying, { where: 'hand' }), 'In the hand');
+  figure(into, card(paying, { where: 'played', liveLine: paysLine({ gold: 15 }) }), 'Played');
+  figure(
+    into,
+    card(military, { where: 'played', sealedTurns: 3, liveLine: { kind: 'standing', text: 'in force' } }),
+    'Sealed',
+  );
+  figure(
+    into,
+    card(charter, { where: 'played', staged: true, liveLine: { kind: 'waiting', text: 'on Confirm' } }),
+    'Not confirmed',
+  );
+  figure(
+    into,
+    card(conditional, {
+      where: 'played',
+      unmet: { reason: 'the condition is not met' },
+      liveLine: { kind: 'pays', text: '+0 now' },
+    }),
+    'Condition not met',
+  );
+  figure(into, card(commission, { where: 'played', liveLine: counterLine(commission, 1) }), 'A counter');
+  for (const type of CHAIR_TYPES) figure(into, emptyChairFace(type, 'empty'), `Empty ${type} chair`);
+}
+
+/**
+ * Builds every live card off the page, fits it, and reports the sizes in a
+ * few lines. Also left on `window` for a script that captures the page.
+ */
+function measureEveryCard(): string {
+  const stage = element('div', 'of-measure');
+  document.body.append(stage);
+  const ids: OrderFaceCardId[] = [...liveOrders(), ...liveDoctrines()];
+  const counts = new Map<string, number>();
+  const over: string[] = [];
+  const short: string[] = [];
+  const names: string[] = [];
+  let smallest = Infinity;
+  const misses: string[] = [];
+  const rows: unknown[] = [];
+  for (const id of ids) {
+    const node = orderFaceNode(id, { where: 'hand' });
+    stage.append(node);
+    const estimate = { size: Number.parseFloat(node.style.getPropertyValue('--of-text')) * 10, picture: node.dataset.picture, over: node.dataset.overflow === 'true' };
+    const fit = fitOrderFace(node);
+    const key = `${fit.size} px${fit.picture === 'short' ? ', short picture' : ''}${fit.over ? ', does not fit' : ''}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const name = node.querySelector('.of-name')?.textContent ?? String(id);
+    if (fit.over) over.push(name);
+    else if (fit.picture === 'short') short.push(name);
+    if (fit.name !== 'full' && fit.name !== 'long') names.push(`${name} (${fit.name})`);
+    if (fit.colophon !== 'one') names.push(`${name} (foot ${fit.colophon})`);
+    if (!fit.over) smallest = Math.min(smallest, fit.size);
+    // An estimate that promised more room than the page has is the one worth knowing.
+    const estimateRank = (estimate.over ? 100 : 0) + (estimate.picture === 'short' ? 10 : 0) + (13 - estimate.size);
+    const fitRank = (fit.over ? 100 : 0) + (fit.picture === 'short' ? 10 : 0) + (13 - fit.size);
+    if (fitRank > estimateRank) misses.push(`${name}: estimated ${estimate.size}${estimate.picture === 'short' ? ' short' : ''}, measured ${fit.size}${fit.picture === 'short' ? ' short' : ''}${fit.over ? ' over' : ''}`);
+    const title = node.querySelector<HTMLElement>('.of-name');
+    const motto = node.querySelector<HTMLElement>('.of-motto');
+    const nameOver =
+      title !== null && motto !== null && title.getBoundingClientRect().width > motto.clientWidth - 2;
+    if (nameOver) names.push(`${name} (does not fit)`);
+    rows.push({ id, name, estimate, fit, nameOver });
+    node.remove();
+  }
+  stage.remove();
+  const result = {
+    cards: ids.length,
+    counts: Object.fromEntries(counts),
+    smallest,
+    over,
+    short,
+    names,
+    misses,
+    rows,
+  };
+  (window as unknown as { orderFaceReport?: unknown }).orderFaceReport = result;
+  return [
+    `${ids.length} cards`,
+    ...[...counts.entries()].map(([key, count]) => `${count} at ${key}`),
+    `smallest text that fits: ${smallest} px`,
+    `short picture: ${short.join('; ') || 'none'}`,
+    `does not fit: ${over.join('; ') || 'none'}`,
+    `names stepped past long: ${names.join('; ') || 'none'}`,
+    `estimate short of the page: ${misses.length}`,
+    ...misses,
+  ].join('\n');
+}

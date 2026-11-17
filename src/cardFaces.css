@@ -1,0 +1,121 @@
+/*
+ * The two text faces of the Order cards (batch SS10).
+ *
+ * The user approved the emblem face for Orders and Doctrines on 2026-11-17,
+ * with its two faces "taken as drawn"
+ * (`docs/plans/ui-critique-2026-10-16.md`, the last bullet; the board is
+ * `docs/plans/mockups/scholars-study/order-card-faces.html`):
+ *
+ *   - EB Garamond for the effect, with lining figures so a number stays plain;
+ *   - IM Fell English and its small capitals for the name, the tier plate and
+ *     the red initial.
+ *
+ * They are used on the cards only. The rest of the interface keeps its four
+ * faces, which each page loads from Google Fonts in its head.
+ *
+ * Why a file of its own
+ * ---------------------
+ * A page loads these faces only when it shows a card. The card's stylesheet
+ * (`src/ui/orderFace.css`) imports this file, so a page that never builds a
+ * card never asks for the fonts, and no page head has to change. This is the
+ * way `src/displayFace.css` declares 'Newsreader Centred': the same Google
+ * Fonts files, declared here with `@font-face`.
+ *
+ * The faces are the ones Google's stylesheet declares for
+ * `EB+Garamond:ital,wght@0,400..700;1,400..600`, `IM+Fell+English:ital@0;1`
+ * and `IM+Fell+English+SC` (EB Garamond v33, IM Fell English v14, IM Fell
+ * English SC v16): EB Garamond's roman and italic in the Latin and Latin
+ * Extended ranges, and the two Fell families in Latin, which is the only range
+ * Google serves for them. Latin Extended carries the dagger that marks a
+ * reason line. If a request changes, change these faces with it.
+ *
+ * The two tokens
+ * --------------
+ * `--face-card-text` sets the effect and the colophon. `--face-card-title`
+ * sets the name, the tier plate and the initial. Both end in a real fallback
+ * stack, so a card whose fonts fail to load still reads as a book page.
+ */
+
+:root {
+  --face-card-text: 'EB Garamond', Garamond, 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --face-card-title: 'IM Fell English SC', 'IM Fell English', Garamond, 'Iowan Old Style', Georgia, serif;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ebgaramond/v33/SlGUmQSNjdsmc35JDF1K5GR7SDk_YAPIlWk.woff2)
+    format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ebgaramond/v33/SlGUmQSNjdsmc35JDF1K5GR1SDk_YAPI.woff2)
+    format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ebgaramond/v33/SlGWmQSNjdsmc35JDF1K5GRweDU1ZyHKpWiGIg.woff2)
+    format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ebgaramond/v33/SlGWmQSNjdsmc35JDF1K5GRweDs1ZyHKpWg.woff2)
+    format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/imfellenglish/v14/Ktk1ALSLW8zDe0rthJysWrnLsAzHEKOYd4xI5g.woff2)
+    format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/imfellenglish/v14/Ktk3ALSLW8zDe0rthJysWrnLsAzHFZOafYtq5Mzh.woff2)
+    format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IM Fell English SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/imfellenglishsc/v16/a8IENpD3CDX-4zrWfr1VY879qFF05pZ7PIIPoUgxzQ.woff2)
+    format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

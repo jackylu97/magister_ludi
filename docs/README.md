@@ -1555,6 +1555,40 @@ Eight root pages, all named in `vite.config.ts` inputs:
   rules refuse a city on and never on a hex the fog view has not charted; the
   sticky info card's Recommended row says why in plain words, out of the same
   reading. Clicking one does nothing a click on the hex would not.
+- **The Order card's emblem face** (batch SS10, part 1; the user approved
+  "Face 1, the emblem" on 2026-11-17, `docs/plans/ui-critique-2026-10-16.md`;
+  the board is `docs/plans/mockups/scholars-study/order-card-faces.html`).
+  `src/ui/orderFace.ts` builds the face of an Order or a Doctrine from its row
+  and a state object (`where` hand or played, `sealedTurns`, `staged`,
+  `liveLine`, `unmet`); `emptyChairFace` draws an empty chair at the same size.
+  The flair gallery shows it (`flair.html#order-face`, or
+  `flair.html?review=order-face` alone). No live screen uses it yet.
+  - The name is the motto, in IM Fell English small capitals. The deck's suit
+    is an engraved device in the type's ink (gilt for a Doctrine). The effect
+    is `describeCard`'s clauses in EB Garamond, printed through
+    `setDescriptorText`; the keyword clause is a label in the picture's lower
+    left corner. The tier is a numeral on a plate at the head.
+  - Three readings come from the effect's own structure, as pure functions:
+    the **red ink** (`rubricRuns`: a figure as the describers print one, and
+    the six yield keys of `CITY_YIELD_KEYS` as words), the **tablet**
+    (`firstFigure`: the first figure, with the yield word after it) and the
+    **initial** (`effectInitial`: the first letter, none when the effect starts
+    with a figure). A card with no figure has no tablet.
+  - The rarity is the border: a plain double rule, a hatched band with corner
+    flourishes, a gilt band with the sun, the moon and stars; a Doctrine has
+    the heaviest gilt frame. The frames are CSS (`src/ui/orderFace.css`) and
+    the corner marks are drawn once (`src/art/orderFaceMarks.ts`).
+  - One custom property, `--order-face-width`, sizes the face (210px by
+    default; the board's 210 × 258 is `21em × 25.8em`). The effect starts at
+    13 px on up to five lines and steps down to 11 px, then the picture
+    shortens (`fitOrderFace` measures on the page; `estimateOrderFaceFit` is
+    the first guess, set never to be larger than the measured fit). A card
+    that still does not fit is marked `data-overflow` and its text stays
+    visible. Eight live cards do not fit today (seven charters and The House
+    of Worship); `test/ui/orderFace.test.ts` names them.
+  - The two card faces load with the card's stylesheet (`src/cardFaces.css`,
+    imported by `orderFace.css`), from Google's files, under the tokens
+    `--face-card-text` and `--face-card-title`. No page head changes.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

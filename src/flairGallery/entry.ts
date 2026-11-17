@@ -17,6 +17,19 @@ if (review === 'scene') {
   const root = section(document.getElementById('sheet')!, 'leader-banners', 'Leader banners',
     'Historical references, simplified for the map.').root;
   void import('./leaderBanners').then(module => module.drawLeaderBanners(root));
+} else if (review === 'order-face') {
+  // The Order card's emblem face alone (batch SS10), with no WebGL stall
+  // loaded beside it: the page a capture script opens.
+  document.body.classList.add('focused-works-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'Order card face'));
+  const cabinet = element('a', undefined, 'Full art cabinet'); cabinet.href = '/flair.html#order-face'; nav.append(cabinet);
+  const root = section(document.getElementById('sheet')!, 'order-face', 'Order Card Face',
+    'The emblem face for Orders and Doctrines, built from real rows.').root;
+  void Promise.all([import('../ui/keywordCards'), import('./orderFaces')]).then(([cards, module]) => {
+    cards.mountKeywordCards();
+    module.drawOrderFaces(root);
+  });
 } else if (review === 'elephants') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;

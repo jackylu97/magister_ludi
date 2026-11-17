@@ -55,6 +55,7 @@ import {
 } from './marks';
 import { drawCaravan } from './caravan';
 import { drawCardFaces } from './cardFaces';
+import { drawOrderFaces } from './orderFaces';
 import { drawPieceInks } from './pieceInks';
 import { drawRankStall } from './ranks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
@@ -123,6 +124,18 @@ drawCardFaces(
     'card-faces',
     'Card Faces',
     'An Order as the draft deals it, the council seats it and the collection lists it: the suit shows the deck, the ink shows the type, and the frame and the ornament at the top show the rarity.',
+  ),
+);
+
+// --- 3c. the Order card's emblem face ---------------------------------------
+
+// Batch SS10: the Order card's new face, the emblem, built from a card's data
+// by `src/ui/orderFace.ts`. Not on the live screens yet.
+drawOrderFaces(
+  open(
+    'order-face',
+    'Order Card Face',
+    'The emblem face the user approved for Orders and Doctrines: the name as the motto, the suit as an engraved device, the effect beneath with a red initial, and the live line at the foot. Built from real rows. The orders screen does not use it yet.',
   ),
 );
 
