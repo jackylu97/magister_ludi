@@ -1,0 +1,73 @@
+/*
+ * The flair section of the Order card's emblem face (`orderFaces.ts`). Only the
+ * table the cards sit on: the face itself is `src/ui/orderFace.css`.
+ *
+ * The plate is the board's lampblack `plate5`, with its gilt inner rule, so a
+ * card here sits on the ground the board drew it on.
+ */
+
+.of-plate5 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 28px;
+  max-width: 100%;
+  padding: 32px 28px 24px;
+  border-radius: 3px;
+  background: var(--lampblack, #1e1b22);
+  box-shadow:
+    inset 0 0 0 1px var(--ink, #1d1a20),
+    inset 0 0 0 4px var(--lampblack, #1e1b22),
+    inset 0 0 0 5px rgba(200, 144, 31, 0.55);
+  line-height: 1.2;
+}
+
+.of-plate5 + .of-plate5 {
+  margin-top: 16px;
+}
+
+.of-figure {
+  margin: 0;
+}
+
+.of-figure figcaption {
+  max-width: var(--order-face-width, 210px);
+  margin-top: 16px;
+  color: rgba(247, 242, 225, 0.78);
+  font-family: var(--face-ui, 'Instrument Sans', system-ui, sans-serif);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+/* The hand as a rail of card tops: the rail's edge crops each card under its
+   picture, so only the name and the picture show. */
+.of-fan {
+  display: flex;
+  gap: 12px;
+  height: calc(var(--order-face-width, 210px) * 0.66);
+  overflow: hidden;
+  padding: 14px 0 0 4px;
+  border-bottom: 1px solid rgba(200, 144, 31, 0.55);
+}
+
+.of-fan > .order-face:nth-child(even) {
+  transform: translateY(8px);
+}
+
+.of-report {
+  max-width: 100%;
+  margin: 12px 0 0;
+  overflow-x: auto;
+  font-family: var(--face-num, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Where every card is built to be measured: on the page, out of sight. */
+.of-measure {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 400px;
+}

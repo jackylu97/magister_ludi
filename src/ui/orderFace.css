@@ -1,0 +1,698 @@
+@import '../cardFaces.css';
+
+/*
+ * The Order card's emblem face (batch SS10, `orderFace.ts`). The values are
+ * the board's (`docs/plans/mockups/scholars-study/order-card-faces.html`,
+ * "Face 1, the emblem"), and the board's 210 × 258 is `21em × 25.8em` here.
+ *
+ * One custom property sets the size: `--order-face-width`, set on the card
+ * or on anything round it (210px when nothing sets it). The face's font size
+ * is a 21st of it, so every length below in em scales with the card,
+ * and `--of-u` is one board pixel at the current width (1px at 210 wide), for
+ * the lengths the board gives in pixels: the rules and the effect's margins.
+ *
+ * The inks are the game's tokens (`style.css`), with the board's values behind
+ * them for a page that does not load that sheet. The card's own paper and its
+ * rubric are the board's, which are a shade warmer than the interface's.
+ */
+
+.order-face,
+.order-face-chair {
+  --of-width: var(--order-face-width, 210px);
+  --of-u: calc(var(--of-width) / 210);
+  --of-rule: max(1px, var(--of-u));
+  --of-ink-text: var(--ink, #1d1a20);
+  --of-ink: var(--type-wildcard, #4a2a72);
+  --of-paper: #f8f1dc;
+  --of-paper-deep: #efe4c6;
+  --of-rubric: #a8321a;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 21em;
+  height: 25.8em;
+  font-size: calc(var(--of-width) / 21);
+}
+
+.order-face[data-ink='military'],
+.order-face-chair[data-ink='military'] {
+  --of-ink: var(--type-military, #a8361b);
+}
+
+.order-face[data-ink='economic'],
+.order-face-chair[data-ink='economic'] {
+  --of-ink: var(--type-economic, #b5791b);
+}
+
+.order-face[data-ink='civic'],
+.order-face-chair[data-ink='civic'] {
+  --of-ink: var(--type-civic, #4f78be);
+}
+
+.order-face[data-ink='wildcard'],
+.order-face-chair[data-ink='wildcard'] {
+  --of-ink: var(--type-wildcard, #4a2a72);
+}
+
+/* A Doctrine: the frame in deep gilt, the device in gilt. */
+.order-face[data-ink='gilt'] {
+  --of-ink: #9a6c0c;
+  --of-device: var(--gilt, #c8901f);
+}
+
+.order-face {
+  --of-device: var(--of-ink);
+  --of-text: 1.3em;
+  /* The board puts the cord at 11.7em, across the foot of the picture, where
+     it hides the tablet; here it crosses just above the tablet. */
+  --of-cord-y: 10.6em;
+  padding: 0.5em;
+  border: 0.16em solid var(--of-ink);
+  border-radius: 0.5em;
+  background: var(--of-paper);
+  box-shadow: 0.35em 0.35em 0 var(--of-ink-text);
+  color: var(--of-ink-text);
+  font-family: var(--face-card-text);
+  font-variant-numeric: lining-nums;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.order-face *,
+.order-face-chair * {
+  box-sizing: border-box;
+}
+
+/* --- rarity is the richness of the border band ------------------------------ */
+
+/* Common: the plain double rule (the type's border and the ink rule inside). */
+
+/* Uncommon: a hatched band, and the corner flourishes. */
+.order-face[data-frame='uncommon'] {
+  background:
+    repeating-linear-gradient(45deg, rgba(29, 26, 32, 0.34) 0 var(--of-rule), transparent var(--of-rule) 0.32em),
+    var(--of-paper);
+}
+
+/* Rare: a gilt band with a punched pattern. A Doctrine: the same, wider. */
+.order-face[data-frame='rare'],
+.order-face[data-frame='doctrine'] {
+  background:
+    radial-gradient(circle at 50% 50%, #7f5b0e 0 0.07em, transparent 0.09em) 0 0 / 0.42em 0.42em,
+    linear-gradient(135deg, #e2b243, #c8901f 45%, #e8c35e 60%, #b47d12);
+}
+
+.order-face[data-frame='doctrine'] {
+  padding: 0.8em;
+  border-color: #7f5b0e;
+}
+
+.order-face .of-in {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  border: var(--of-rule) solid var(--of-ink-text);
+  border-radius: 0.15em;
+  background: radial-gradient(120% 90% at 30% 15%, #fcf7e7, var(--of-paper) 55%, var(--of-paper-deep));
+}
+
+/* --- the corner marks ------------------------------------------------------- */
+
+.order-face .of-orn,
+.order-face .of-cn {
+  position: absolute;
+  z-index: 4;
+  width: 1.5em;
+  height: 1.5em;
+  background-color: var(--of-ink-text);
+  -webkit-mask: var(--of-mark) center / contain no-repeat;
+  mask: var(--of-mark) center / contain no-repeat;
+  pointer-events: none;
+}
+
+.order-face .of-orn.is-a {
+  left: 0.75em;
+  top: 0.75em;
+}
+
+.order-face .of-orn.is-b {
+  right: 0.75em;
+  top: 0.75em;
+  transform: scaleX(-1);
+}
+
+.order-face .of-orn.is-c {
+  left: 0.75em;
+  bottom: 0.75em;
+  transform: scaleY(-1);
+}
+
+.order-face .of-orn.is-d {
+  right: 0.75em;
+  bottom: 0.75em;
+  transform: scale(-1);
+}
+
+.order-face[data-frame='uncommon'] .of-orn {
+  --of-mark: var(--of-mark-flourish);
+}
+
+.order-face[data-frame='rare'] .of-orn {
+  --of-mark: var(--of-mark-star);
+}
+
+/* A Doctrine's corners: the sun and the moon above, a star in each foot. The
+   marks stand upright, so they are not mirrored. */
+.order-face[data-frame='doctrine'] .of-orn {
+  transform: none;
+}
+
+.order-face[data-frame='doctrine'] .of-orn.is-a {
+  --of-mark: var(--of-mark-sun);
+  left: 1.05em;
+  top: 1.05em;
+}
+
+.order-face[data-frame='doctrine'] .of-orn.is-b {
+  --of-mark: var(--of-mark-moon);
+  right: 1.05em;
+  top: 1.05em;
+}
+
+.order-face[data-frame='doctrine'] .of-orn.is-c,
+.order-face[data-frame='doctrine'] .of-orn.is-d {
+  --of-mark: var(--of-mark-star);
+  bottom: 1.05em;
+}
+
+.order-face[data-frame='doctrine'] .of-orn.is-c {
+  left: 1.05em;
+}
+
+.order-face[data-frame='doctrine'] .of-orn.is-d {
+  right: 1.05em;
+}
+
+/* The sun and the moon in the picture's top corners: a rare card and a Doctrine. */
+.order-face .of-cn {
+  z-index: 1;
+  top: 0.4em;
+}
+
+.order-face .of-cn.is-sun {
+  --of-mark: var(--of-mark-sun);
+  left: 0.4em;
+}
+
+.order-face .of-cn.is-moon {
+  --of-mark: var(--of-mark-moon);
+  right: 0.4em;
+}
+
+/* --- the tier plate ----------------------------------------------------------- */
+
+.order-face .of-plate {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: -0.75em;
+  height: 1.45em;
+  padding: 0 0.7em;
+  transform: translateX(-50%);
+  border: var(--of-rule) solid var(--of-ink-text);
+  background: var(--of-paper);
+  font-family: var(--face-card-title);
+  font-size: 1.1em;
+  letter-spacing: 0.14em;
+  line-height: 1.4em;
+  white-space: nowrap;
+}
+
+.order-face[data-frame='rare'] .of-plate {
+  background: var(--of-ink-text);
+  color: #f3d98a;
+}
+
+.order-face[data-frame='doctrine'] .of-plate {
+  border-color: #5b4008;
+  background: #7f5b0e;
+  color: #fdf3d0;
+}
+
+/* --- the motto: the name between two rules ----------------------------------- */
+
+.order-face .of-motto {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+  height: 1.9em;
+  margin-top: 1.05em;
+  padding: 0 0.9em;
+}
+
+.order-face .of-rule {
+  flex: 1;
+  min-width: 0;
+  height: var(--of-rule);
+  background: var(--of-ink-text);
+}
+
+.order-face .of-name {
+  font-family: var(--face-card-title);
+  font-size: 1.3em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* The board: a name over 21 letters drops to 11.4 px. A name that still does
+   not fit takes 11 px with no tracking (`fitOrderFace`). */
+.order-face[data-name='long'] .of-name {
+  font-size: 1.14em;
+  letter-spacing: 0.02em;
+}
+
+.order-face[data-name='tight'] .of-name {
+  font-size: 1.1em;
+  letter-spacing: 0;
+}
+
+/* --- the picture ----------------------------------------------------------- */
+
+.order-face .of-pict {
+  position: relative;
+  flex: none;
+  width: calc(100% - 1.4em);
+  height: 9.2em;
+  margin-top: 0.25em;
+  overflow: hidden;
+  border: var(--of-rule) solid var(--of-ink-text);
+  outline: var(--of-rule) solid var(--of-ink-text);
+  outline-offset: 0.14em;
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.2) 0 var(--of-rule), transparent var(--of-rule) 0.34em),
+    var(--of-paper);
+}
+
+.order-face[data-frame='rare'] .of-pict,
+.order-face[data-frame='doctrine'] .of-pict {
+  background:
+    radial-gradient(circle, #7f5b0e 0 0.06em, transparent 0.08em) 0 0 / 0.4em 0.4em,
+    linear-gradient(135deg, #e6ba50, #cf9a28 50%, #e8c35e);
+}
+
+/* A long effect takes a shorter picture: three em off the field, and the
+   device a size smaller, so the effect gains about two lines. */
+.order-face[data-picture='short'] .of-pict {
+  height: 6.2em;
+}
+
+.order-face .of-device {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10.4em;
+  height: 10.4em;
+  transform: translate(-50%, -50%);
+}
+
+.order-face[data-picture='short'] .of-device {
+  width: 7.6em;
+  height: 7.6em;
+}
+
+.order-face .of-rays {
+  fill: none;
+  stroke: var(--of-device);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.order-face .of-disc {
+  fill: var(--of-paper);
+}
+
+.order-face .of-hatch {
+  fill: none;
+  stroke: var(--of-device);
+  stroke-width: 0.9;
+  opacity: 0.34;
+}
+
+.order-face .of-ring {
+  fill: none;
+  stroke: var(--of-device);
+  stroke-width: 1.4;
+}
+
+.order-face .of-ring-inner {
+  fill: none;
+  stroke: var(--of-device);
+  stroke-width: 0.7;
+}
+
+.order-face .of-suit {
+  color: var(--of-device);
+}
+
+.order-face .of-suit-shadow {
+  color: var(--of-ink-text);
+  opacity: 0.3;
+}
+
+/* The tablet: the first figure, lifted into the picture's lower right corner. */
+.order-face .of-tablet,
+.order-face .of-keyword {
+  position: absolute;
+  z-index: 2;
+  bottom: 0.3em;
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  padding: 0.05em 0.45em;
+  border: var(--of-rule) solid var(--of-ink-text);
+  background: var(--of-paper);
+  line-height: 1.1;
+}
+
+.order-face .of-tablet {
+  right: 0.3em;
+}
+
+.order-face .of-tablet b {
+  color: var(--of-rubric);
+  font-size: 1.45em;
+  font-variant-numeric: lining-nums;
+  font-weight: 600;
+}
+
+.order-face .of-tablet .yield-mark {
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.order-face[data-unmet] .of-tablet b {
+  color: var(--ink-faint, #625e5b);
+}
+
+/* The keyword (Commission, Charter, Scaler, Boon), in the opposite corner,
+   the height of the tablet, in small capitals. */
+.order-face .of-keyword {
+  left: 0.3em;
+  min-height: 1.75em;
+  font-size: 1.1em;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.order-face .of-keyword .kw {
+  font-weight: 600;
+}
+
+/* --- the subscription: the effect ------------------------------------------- */
+
+.order-face .of-sub {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin-top: calc(var(--of-u) * 7.15);
+  padding: 0 calc(var(--of-u) * 13);
+  overflow: hidden;
+  font-size: var(--of-text);
+  line-height: 1.2;
+  text-align: left;
+}
+
+.order-face .of-clause {
+  display: block;
+}
+
+.order-face .of-clause + .of-clause {
+  margin-top: 0.15em;
+}
+
+.order-face .of-clause.is-deferred {
+  color: var(--ink-faint, #625e5b);
+  text-decoration: line-through;
+}
+
+/* The red ink: figures and yield words, and the named things in small
+   capitals. */
+.order-face .of-n,
+.order-face .of-yw {
+  color: var(--of-rubric);
+  font-variant-numeric: lining-nums;
+  font-weight: 600;
+}
+
+.order-face .of-sub .kw {
+  color: inherit;
+  font-variant: small-caps;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.order-face .of-initial {
+  float: left;
+  padding: 0.08em 0.08em 0 0;
+  color: var(--of-rubric);
+  font-family: var(--face-card-title);
+  font-size: 2.9em;
+  font-variant: normal;
+  font-weight: 400;
+  line-height: 0.74;
+  text-transform: uppercase;
+}
+
+.order-face .of-why {
+  display: block;
+  clear: both;
+  margin-top: 0.2em;
+  color: var(--ink-soft, #56505a);
+  /* The board's 0.92 of the effect, and never under 11 board pixels. */
+  font-size: max(0.92em, calc(var(--of-u) * 11));
+  font-style: italic;
+}
+
+/* A card whose effect does not fit at 11 px even beside the short picture.
+   The text is left visible, and the box's foot is ruled in red, so the card
+   is seen to need a decision. */
+.order-face[data-overflow] .of-sub {
+  overflow: visible;
+  box-shadow: inset 0 calc(var(--of-u) * -2) 0 var(--of-rubric);
+}
+
+/* --- the colophon: the live line --------------------------------------------- */
+
+.order-face .of-colo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  width: calc(100% - 4.4em);
+  height: 2em;
+  margin-bottom: 0.3em;
+  border-top: var(--of-rule) solid var(--of-ink-text);
+  font-size: 1.2em;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.order-face .of-colo::before,
+.order-face .of-colo::after {
+  flex: none;
+  width: 0.3em;
+  height: 0.3em;
+  background: var(--of-ink);
+  content: '';
+  transform: rotate(45deg);
+}
+
+.order-face .of-live,
+.order-face .of-foot {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-face .of-foot {
+  color: var(--ink-soft, #56505a);
+}
+
+/* A live line longer than one line: two lines at 11 px in the same height,
+   and an ellipsis after the second (`fitColophon`). The height and the margin
+   are the one-line colophon's, written in the smaller em, so the effect above
+   keeps the same room. */
+.order-face[data-colophon] .of-colo {
+  height: calc(2.4em / 1.1);
+  margin-bottom: calc(0.36em / 1.1);
+  font-size: 1.1em;
+  line-height: 1.05;
+  white-space: normal;
+}
+
+.order-face[data-colophon] .of-live,
+.order-face[data-colophon] .of-foot {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  text-align: center;
+}
+
+.order-face .of-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  font-style: normal;
+  font-variant-numeric: lining-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-face .of-sig .yield-mark {
+  width: 0.95em;
+  height: 0.95em;
+  margin: 0;
+}
+
+.order-face .of-sig[data-yield='food'] {
+  color: var(--y-food, #306f29);
+}
+
+.order-face .of-sig[data-yield='production'] {
+  color: var(--y-prod, #94500f);
+}
+
+.order-face .of-sig[data-yield='gold'] {
+  color: var(--y-gold, #7f5b0e);
+}
+
+.order-face .of-sig[data-yield='science'] {
+  color: var(--y-sci, #2757b8);
+}
+
+.order-face .of-sig[data-yield='culture'] {
+  color: var(--y-cul, #7b3fa8);
+}
+
+.order-face .of-sig[data-yield='faith'] {
+  color: var(--y-faith, #994074);
+}
+
+.order-face[data-unmet] .of-sig {
+  color: var(--ink-soft, #56505a);
+}
+
+/* A commission's count: beads on a wire. */
+.order-face .of-beads {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12em;
+  padding: 0 0.3em;
+  background: linear-gradient(var(--of-ink-text), var(--of-ink-text)) center / 100% var(--of-rule) no-repeat;
+  vertical-align: middle;
+}
+
+.order-face .of-beads i {
+  width: 0.62em;
+  height: 0.62em;
+  border: var(--of-rule) solid var(--of-ink-text);
+  border-radius: 50%;
+  background: var(--of-paper);
+}
+
+.order-face .of-beads i.is-on {
+  background: radial-gradient(circle at 35% 30%, #f2d27a, #c8901f 60%, #7f5b0e);
+}
+
+/* --- the states ---------------------------------------------------------------- */
+
+/* Played this visit and not confirmed: a dashed edge, no shadow, faint art. */
+.order-face[data-staged] {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.order-face[data-staged] .of-device,
+.order-face[data-staged] .of-sub,
+.order-face[data-staged] .of-tablet,
+.order-face[data-staged] .of-keyword {
+  opacity: 0.55;
+}
+
+/* A seal: a red cord across the picture and the wax with the turns left. */
+.order-face .of-cord {
+  position: absolute;
+  z-index: 6;
+  left: -0.2em;
+  right: -0.2em;
+  top: var(--of-cord-y);
+  height: 0.5em;
+  background: repeating-linear-gradient(115deg, #8f2a1c 0 0.22em, #6d1d12 0.22em 0.44em);
+  box-shadow: 0 var(--of-rule) 0 rgba(29, 26, 32, 0.4);
+}
+
+.order-face .of-wax {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: calc(var(--of-cord-y) - 1.25em);
+  display: grid;
+  place-items: center;
+  width: 3em;
+  height: 3em;
+  transform: translateX(-50%);
+  border-radius: 46% 54% 50% 50% / 52% 48% 54% 46%;
+  background: radial-gradient(circle at 38% 32%, #b8432f, #8f2a1c 60%, #6d1d12);
+  box-shadow:
+    0.1em 0.16em 0 rgba(29, 26, 32, 0.5),
+    inset 0 0 0 0.32em rgba(0, 0, 0, 0.13);
+  color: #f6dccb;
+  font-family: var(--face-card-title);
+}
+
+.order-face .of-wax b {
+  font-size: 1.5em;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.order-face[data-picture='short'] {
+  --of-cord-y: 7.6em;
+}
+
+/* --- an empty chair ------------------------------------------------------------ */
+
+/* The board's empty chair: a card-shaped slot, dashed in the chair type's ink,
+   with the type's mark faint inside and a word under it. */
+.order-face-chair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  border: 0.2em dashed var(--of-ink);
+  border-radius: 0.6em;
+  color: var(--of-ink);
+}
+
+.order-face-chair .of-chair-mark {
+  width: 4em;
+  height: 4em;
+  opacity: 0.55;
+  background-color: currentColor;
+  -webkit-mask: var(--of-chair-mark) center / contain no-repeat;
+  mask: var(--of-chair-mark) center / contain no-repeat;
+}
+
+.order-face-chair .of-chair-word {
+  color: var(--ink-soft, #56505a);
+  font-family: var(--face-ui, 'Instrument Sans', system-ui, sans-serif);
+  font-size: 1.2em;
+}
