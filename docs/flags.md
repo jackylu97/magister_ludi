@@ -86,6 +86,7 @@ The two audits are `docs/audit/bot-pass-3-card-values.md` (faults B1 to B10) and
   - Order of importance: the frame rate while the player pans, then the load time of a new game, then the pause at a turn end.
   - Small changes to the picture are allowed (for example a water mirror that leaves out small props). Each one comes with a before and after picture for the user, and each is one setting to revert.
   - A change that keeps the picture identical needs no approval. A change that alters it is shown first.
+  - **The two mirror choices are both taken. Ruled 2026-11-17.** The user, after the before and after pictures: *"i'm fine with both A and B for reflections."* So `visualTest.coast.open.mirror.whileMoving` is false (no reflections while the camera moves; they return after `settleMs`) and `visualTest.coast.open.mirror.works` is false (farms, mines, herds and fishing boats do not reflect). Each is one setting to revert.
 - **Rendering speed, second pass. Ruled 2026-11-17.** The user: *"Motion stopping after a few seconds is fine"* and *"you can delegate a subagent to continue with the performance improvements"*. The first pass is `docs/plans/render-performance-2026-11-16.md`.
   - Motion (smoke, birds, water, sails) stops after a few seconds with no input, by the setting `visualTest.motionRestSeconds`. It is an option in the menu, off by default, as the question to the user put it.
   - The road plan and the border plan stop re-planning the whole map on a change.
