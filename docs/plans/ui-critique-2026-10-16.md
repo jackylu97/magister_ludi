@@ -800,3 +800,12 @@ intriguing aspect about the game to people"*
   - SS8 is built now: type sizes, top bar labels, sheet motion and wording, as
     the build table states. It also takes the design checker's finding that
     `index.html` has a flat type hierarchy.
+
+- **The orders screen is full screen (2026-11-17).** The user, after playing
+  part A: *"i think its awkward that this whole thing lives in a frame within a
+  modal, lets have it be full screen like the tech tree screen, the white modal
+  bezels look bad"*. The cloth fills the window, as the star chart does. There
+  is no parchment sheet round it and no white border. The head (what your cards
+  pay, Revert, Confirm, close) sits on the cloth. The room this frees goes
+  first to the hand, so that card names are in view more often, and then to
+  larger cards on small windows.
