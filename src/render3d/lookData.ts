@@ -2253,6 +2253,16 @@ interface View3DData {
 export interface VisualTestSpec {
   /** Frames a second the board draws while something on it moves by itself. */
   motionFps: number;
+  /**
+   * Seconds after the last frame drawn for any other reason (a command, a
+   * camera move, the pointer, a walk) after which the board stops drawing its
+   * own motion frames, until something else asks for a frame again. 0 keeps
+   * the motion running for as long as the game is open, which is the picture
+   * the user approved. A choice of the render speed pass of 2026-11-16, off by
+   * default: on a still board it takes the idle cost from `motionFps` full
+   * frames a second to none (`docs/plans/render-performance-2026-11-16.md`).
+   */
+  motionRestSeconds: number;
   sea: {
     /** `bands` is the coast after A Short Hike: sand, a lapping foam line, crisp shallows, then coast and ocean in a crisp step. `soft` is the earlier look. */
     style: string;
@@ -2415,7 +2425,6 @@ export interface VisualTestSpec {
   };
   /** Also: `onTop` draws every pin over the scene; `shield` gives the strategic pin its taller shield; `markScale` sets every resource mark back from its rim, and `shieldMarkScale`, `shieldMarkLift` place the mark on the shield. */
   pins: { nearPixels: number; farPixels: number; farScale: number; improvedScale: number; improvedFade: number; fadeTo: string; onTop: boolean; smooth: boolean; badgeTrim: number; shield: boolean; markScale: number; shieldMarkScale: number; shieldMarkLift: number };
-  clouds: { scale: number; speed: number; cover: number; softness: number; strength: number };
   idle: {
     bobHeight: number; bobSpeed: number; bobRoll: number;
     smokePuffs: number; smokeAt: number[]; smokeRise: number; smokeSize: number; smokeSpeed: number; smokeDrift: number; smokeColor: string;
@@ -2458,9 +2467,7 @@ export interface VisualTestSpec {
     open: { shelfFine: number; scallop: number; scallopScale: number; scale: number; drift: number; levels: number[]; light: number; dark: number; line: number; lineWidth: number; ripples: number; strokes: number;
       /**
        * Pattern 5, calm water under the sun. `calmColor` and `deepen` make the
-       * open water a deeper, quieter blue. `cloud…` are the clouds it mirrors:
-       * strength, size, how much longer they are than deep, the noise values
-       * their soft edge runs between, and their drift. `sky`, `skyColor` and
+       * open water a deeper, quieter blue. `sky`, `skyColor` and
        * `skyFrom` pale the water toward the top of the screen; `near` and
        * `nearTo` deepen it toward the bottom. The sun's road is placed on the
        * screen (`x`, `y` from the bottom left; `width`, `height` as shares of
@@ -2473,7 +2480,7 @@ export interface VisualTestSpec {
        * strong the upright rays are beside the level ones.
        */
       sun: {
-        calmColor: string; deepen: number; cloud: number; cloudScale: number; cloudSquash: number; cloudFrom: number; cloudTo: number; cloudDrift: number;
+        calmColor: string; deepen: number;
         skyColor: string; sky: number; skyFrom: number; near: number; nearTo: number;
         x: number; y: number; width: number; height: number; strength: number; warm: number; color: string; spread: number;
         strokes: number; strokeLength: number; strokeRows: number; strokePixels: number; strokeFill: number; strokeDrift: number; strokeFlicker: number; strokeStrength: number; strokeColor: string; river: number;

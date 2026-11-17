@@ -17,6 +17,7 @@ import {
 import { hashUnit } from './hash';
 import { VIEW3D } from './lookData';
 import { declareUniforms, shareUniforms } from './visualTestLook';
+import { cullWrapCopies } from './wrapCulling';
 
 const BIRDS = VIEW3D.visualTest.birds;
 const BIRD_UNIFORMS = ['vtestTime', 'vtestIdle'] as const;
@@ -102,11 +103,14 @@ transformed *= step(.5, vtestIdle);`);
     for (const at of [-period, 0, period]) {
       const copy = at === 0 ? mesh : new InstancedMesh(geometry, this.material, 0);
       if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.count = mesh.count; }
-      // The birds move in the shader, so measured bounds would be wrong. The layer is small and is never culled.
-      copy.frustumCulled = false; copy.castShadow = false; copy.receiveShadow = false;
+      copy.castShadow = false; copy.receiveShadow = false;
       copy.position.x = at;
       this.group.add(copy); this.meshes.push(copy);
     }
+    // The birds move in the shader: half a line either way along their heading (a line is one period long), a wing
+    // beat and a slow rise and fall. The bounds are widened by that, so each copy is culled like any other mesh
+    // (`wrapCulling.ts`).
+    cullWrapCopies(this.meshes, period / 2 + BIRDS.size * 2 + .6 + .2);
   }
 
   private clear(): void {

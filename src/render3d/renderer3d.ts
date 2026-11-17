@@ -30,14 +30,17 @@ import {
   DirectionalLight,
   DoubleSide,
   FrontSide,
+  Frustum,
   Group,
   HemisphereLight,
+  Matrix4,
   Mesh,
   type MeshBasicMaterial,
   MeshDepthMaterial,
   type Object3D,
   PCFShadowMap,
   Scene,
+  Sphere,
   type Texture,
   Vector3,
   WebGLRenderer,
@@ -165,6 +168,13 @@ const DEG = Math.PI / 180;
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const PAINTED_IMPROVEMENTS = new Set<ImprovementId>(PAINTED_WORK_IMPROVEMENTS);
+/**
+ * How far past a sea or lake hex's centre its painted water can show, in hex
+ * radii: the hex itself (one radius) and one more for the free coastline,
+ * which can move the shore part of the way into the land hex next to it. Read
+ * by `listMirrorBoard`; a wider reach only skips the mirror less often.
+ */
+const MIRROR_WATER_REACH = 2;
 
 /** A 32-bit FNV-1a step over a string, for the shadow signatures below. */
 function hashText(hash: number, text: string): number {
@@ -406,12 +416,20 @@ export class Renderer3D implements MapView {
   /** The board's meshes that stay out of the mirror, and the board they were listed for. */
   private mirrorBoardHidden: Object3D[] = [];
   private mirrorBoardFor: unknown = null;
+  /** Bounds round the board's sea and lakes, in every wrap copy. Made with `mirrorBoardHidden`, for `waterInView`. */
+  private mirrorWaterBounds: Sphere[] = [];
+  private readonly mirrorFrustum = new Frustum();
+  private readonly mirrorViewProjection = new Matrix4();
+  /** Frames the mirror pass was skipped because no water was in view. For the cost report and for tests. */
+  mirrorSkips = 0;
   /** The scene page's `mirror=all`: the whole scene reflects, whatever the data says. */
   mirrorAll = false;
   /** Stops listening to the visual test switches. */
   private unwatchVisualTest: () => void = () => undefined;
   /** When the last frame drawn for motion alone was drawn. See `loop`. */
   private lastMotionFrame = 0;
+  /** When the last frame drawn for any reason but motion was drawn: what `visualTest.motionRestSeconds` counts from. */
+  private lastActiveFrame = 0;
   private paintedUnits: PaintedUnitKit | null = null;
   private readonly walkerModels = new Map<number, PaintedUnitModel>();
   private readonly unitOutlines = new Map<number, MeshBasicMaterial>();
@@ -1091,7 +1109,7 @@ export class Renderer3D implements MapView {
   get lastFrameMs(): number { return this.lastRenderMs; }
 
   /**
-   * Holds the clock that moving water, clouds and pieces read at one time, or
+   * Holds the clock that moving water and pieces read at one time, or
    * lets it run again with `null`. The visual test scene (`flair.html?review=scene`)
    * holds it, so two screenshots of one view differ only by a switch.
    */
@@ -2332,10 +2350,7 @@ export class Renderer3D implements MapView {
       // The uncharted register, once per board: the paper the diorama is set
       // down on. Registered with the painterly style first, so the page wears
       // the same grain as everything else on the table.
-      // `chart` keeps the visual test version's cloud shadows off the paper.
-      board.createChartTable(material => this.paintedLook!.registerMaterial(material, { chart: true }));
-      // The cloud pattern repeats once a map width (switch 7).
-      VTEST_UNIFORMS.vtestPeriod.value = board.wrapWidth;
+      board.createChartTable(material => this.paintedLook!.registerMaterial(material));
       if (VIEW3D.visualTest.mapEnds?.on) {
         this.mapEnds = buildMapEnds(map, VIEW3D.visualTest.mapEnds, material => this.paintedLook!.registerMaterial(material));
         // A child of the board's group, so a frame's cost counts the rails with the board.
@@ -4120,6 +4135,65 @@ export class Renderer3D implements MapView {
     this.visibilitySignatures = visibility;
   }
 
+  /**
+   * The board's lists for the mirror pass, once for each board: the meshes that
+   * stay out of the mirror (everything but the stones), and bounds round the
+   * sea and the lakes for `waterInView`.
+   *
+   * The bounds come from the map, not from the water meshes. A water mesh is
+   * a chunk of the board, and it holds the rivers too, which run through
+   * almost every chunk of land; a river keeps its own paint and never reads
+   * the mirror. The sea's paint is drawn on ocean, coast and lake hexes and,
+   * where the free coastline moves the shore, a little way under the land next
+   * to them. So each block of 2 by 2 hexes with such a hex in it gets a sphere
+   * round its hex centres, widened by `MIRROR_WATER_REACH`.
+   */
+  private listMirrorBoard(): void {
+    this.mirrorBoardFor = this.board;
+    this.mirrorBoardHidden = [];
+    this.mirrorWaterBounds = [];
+    this.board?.group.traverse(object => {
+      const mesh = object as { isMesh?: boolean; userData: { paintedFamily?: string } };
+      if (mesh.isMesh && !/^limestone$/.test(mesh.userData.paintedFamily ?? '')) this.mirrorBoardHidden.push(object);
+    });
+    const map = this.map;
+    if (!map || !this.board) return;
+    const blocks = new Map<number, { minX: number; maxX: number; minZ: number; maxZ: number }>();
+    for (const tile of map.tiles) {
+      if (tile.terrain !== 'ocean' && tile.terrain !== 'coast' && tile.terrain !== 'lake') continue;
+      const key = Math.floor(tile.row / 2) * map.width + Math.floor(tile.col / 2), c = cellCenter(tile.col, tile.row);
+      const block = blocks.get(key);
+      if (!block) blocks.set(key, { minX: c.x, maxX: c.x, minZ: c.z, maxZ: c.z });
+      else { block.minX = Math.min(block.minX, c.x); block.maxX = Math.max(block.maxX, c.x); block.minZ = Math.min(block.minZ, c.z); block.maxZ = Math.max(block.maxZ, c.z); }
+    }
+    const period = wrapWidth(map);
+    for (const block of blocks.values()) {
+      const radius = Math.hypot(block.maxX - block.minX, block.maxZ - block.minZ) / 2 + MIRROR_WATER_REACH * VIEW3D.board.hexRadius;
+      for (const offset of [-period, 0, period]) {
+        this.mirrorWaterBounds.push(new Sphere(new Vector3((block.minX + block.maxX) / 2 + offset, 0, (block.minZ + block.maxZ) / 2), radius));
+      }
+    }
+  }
+
+  /**
+   * True when some of the sea or a lake can be in the camera's view.
+   *
+   * The mirror pass draws the scene a second time, and only the sea's paint
+   * reads its picture. On a frame with no sea and no lake in view (an inland
+   * view at a close zoom) the pass would draw a picture nothing reads, so it is
+   * skipped, and the picture on screen is the same. See `listMirrorBoard` for
+   * the bounds; a few hundred sphere tests a frame, against the second draw of
+   * hundreds of objects they can save.
+   */
+  private waterInView(): boolean {
+    const camera = this.view.camera;
+    camera.updateMatrixWorld();
+    this.mirrorViewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this.mirrorFrustum.setFromProjectionMatrix(this.mirrorViewProjection);
+    for (const sphere of this.mirrorWaterBounds) if (this.mirrorFrustum.intersectsSphere(sphere)) return true;
+    return false;
+  }
+
   private loop(): void {
     if (!this.running) return;
     requestAnimationFrame(this.loop);
@@ -4163,14 +4237,21 @@ export class Renderer3D implements MapView {
     // what is left over would throw that frame away.
     const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
     if (revealing) this.paintedBoard!.advanceReveal(now);
-    // The visual test version's motion (the sea, the clouds, the idle motion):
+    // The visual test version's motion (the sea and the idle motion):
     // a time uniform on geometry that is already there, so a frame drawn for it
     // rebuilds nothing. It is drawn at `visualTest.motionFps`, not at the
     // display's rate, because everything that moves here moves slowly.
-    const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('clouds') || visualOn('idle'))
+    // `visualTest.motionRestSeconds`, when above 0, stops the motion frames
+    // that long after the last frame drawn for another reason, so a board left
+    // alone costs nothing. It is a choice for the user and is 0 (off) by default.
+    const rest = VIEW3D.visualTest.motionRestSeconds;
+    const awake = !(rest > 0) || now - this.lastActiveFrame < rest * 1000;
+    const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('idle')) && awake
       && now - this.lastMotionFrame >= 1000 / Math.max(1, VIEW3D.visualTest.motionFps);
     if (moving) this.lastMotionFrame = now;
-    if (!moving && !this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !hadGlows && !panned && !fading && !revealing) return;
+    const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || revealing;
+    if (!moving && !asked) return;
+    if (asked) this.lastActiveFrame = now;
 
     const refreshState = this.stateDirty;
     this.stateDirty = false;
@@ -4205,7 +4286,7 @@ export class Renderer3D implements MapView {
       const clock = this.fixedClock ?? now / 1000;
       this.paintedLook.updateTime(clock);
       // The visual test version's clock and the pins' size for this zoom
-      // (switches 1, 6, 7 and 8). Two number writes; nothing is rebuilt.
+      // (switches 1, 6 and 8). Two number writes; nothing is rebuilt.
       VTEST_UNIFORMS.vtestTime.value = clock;
       this.renderer.getDrawingBufferSize(VTEST_UNIFORMS.vtestViewport.value);
       VTEST_UNIFORMS.vtestPinScale.value = visualOn('pins') ? pinScaleFor(pixels) : 1;
@@ -4219,21 +4300,18 @@ export class Renderer3D implements MapView {
       this.renderer.info.autoReset = false;
       this.renderer.info.reset();
       // The mirror's picture first, so the water can read it in this frame. Its draws count in the frame's totals.
-      if (this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5) {
+      // Of the board itself only the stones reflect, so the rocks off the coast have a reflection (the user, 2026-11-13) and the ground costs nothing. The lists are made once for each board.
+      if (this.mirrorBoardFor !== this.board) this.listMirrorBoard();
+      const mirrorWanted = this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on && this.seaDistances && VTEST_UNIFORMS.vtestSeaPattern.value > 4.5;
+      // Only the water reads the mirror's picture, so a frame with no water in view has no use for one. See `waterInView`.
+      const mirrorUsed = mirrorWanted && this.waterInView();
+      if (mirrorWanted && !mirrorUsed) this.mirrorSkips++;
+      if (mirrorUsed) {
         this.seaMirror ??= new SeaMirror();
         // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
         // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
         const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
           this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
-        // Of the board itself only the stones reflect, so the rocks off the coast have a reflection (the user, 2026-11-13) and the ground costs nothing. The list is made once for each board.
-        if (this.mirrorBoardFor !== this.board) {
-          this.mirrorBoardFor = this.board;
-          this.mirrorBoardHidden = [];
-          this.board?.group.traverse(object => {
-            const mesh = object as { isMesh?: boolean; userData: { paintedFamily?: string } };
-            if (mesh.isMesh && !/^limestone$/.test(mesh.userData.paintedFamily ?? '')) this.mirrorBoardHidden.push(object);
-          });
-        }
         const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
           this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
           this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group, this.paintedYieldLight?.group];

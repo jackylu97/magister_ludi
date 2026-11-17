@@ -2461,6 +2461,10 @@ export class TileIcons {
       map: texture,
       ...tileIconFlags(),
       side: DoubleSide,
+      // One pass: every glyph of a mesh lies flat on the hexes, so three's
+      // second pass for a transparent double-sided material drew nothing and
+      // cost a draw call and two program lookups (`MaterialLibrary.overlay`).
+      forceSinglePass: true,
       toneMapped: false,
     });
     this.standingMaterial = new MeshBasicMaterial({
@@ -2503,6 +2507,8 @@ export class TileIcons {
       ...tileIconFlags(),
       opacity: key,
       side: DoubleSide,
+      // One pass, as the full-strength material (see the constructor).
+      forceSinglePass: true,
       toneMapped: false,
     });
     this.faded.set(key, made);
@@ -2766,6 +2772,10 @@ export class UnitBadges {
       // The camera is fixed in front of every badge, but a quad that vanished
       // because it ended up back-facing is a costly bug for two pixels of save.
       side: DoubleSide,
+      // One pass: every badge faces the camera, so three's second pass for a
+      // transparent double-sided material drew nothing and cost a draw call and
+      // two program lookups for each mesh on every frame (`MaterialLibrary.overlay`).
+      forceSinglePass: true,
       toneMapped: false,
     });
   }

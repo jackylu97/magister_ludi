@@ -23,7 +23,7 @@ import { VIEW3D } from './lookData';
 import { type VisualTestState, visualTest } from './visualTest';
 
 const VT = VIEW3D.visualTest;
-const sea = VT.sea, clouds = VT.clouds, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
+const sea = VT.sea, idle = VT.idle, rimLight = VT.light, tiles = VT.tiles;
 // A free coast (`freeCoast.js`) is smooth already, so its bands wander less and its painted sand is thin.
 const bands = VT.coast.free ? { ...sea.bands, ...VT.coast.bands } : sea.bands;
 // The tone of the study's plain water (`body` in `waterPigment.js`, #4b7db6), which a baked stroke is measured against.
@@ -35,7 +35,6 @@ export const VTEST_UNIFORMS = {
   /** Seconds, written on every drawn frame. The one clock every moving thing reads. */
   vtestTime: { value: 0 } as IUniform<number>,
   vtestSea: { value: 1 } as IUniform<number>,
-  vtestClouds: { value: 1 } as IUniform<number>,
   vtestIdle: { value: 1 } as IUniform<number>,
   /** Switch 11. 1 while each hex is drawn with a tile's edge. */
   vtestTiles: { value: 1 } as IUniform<number>,
@@ -55,8 +54,6 @@ export const VTEST_UNIFORMS = {
   vtestGradientShape: { value: new Vector3(VT.gradient.foot, VT.gradient.top, VT.gradient.span) },
   /** The resource pins' size, from the zoom. Written by the renderer when the zoom changes. */
   vtestPinScale: { value: 1 } as IUniform<number>,
-  /** The board's wrap period in world units, so the cloud pattern repeats exactly once a map width. */
-  vtestPeriod: { value: 0 } as IUniform<number>,
 
   /**
    * The sea's distances as a picture of the map (`seaDistances.js`): to the
@@ -111,10 +108,6 @@ export const VTEST_UNIFORMS = {
   /** glintStrength, glintSpeed. */
   vtestSeaGlintShape: { value: new Vector2(sea.glintStrength, sea.glintSpeed) },
 
-  /** scale, speed, cover, softness. */
-  vtestCloud: { value: new Vector4(clouds.scale, clouds.speed, clouds.cover, clouds.softness) },
-  vtestCloudStrength: { value: clouds.strength } as IUniform<number>,
-
   /** bobHeight, bobSpeed, bobRoll. */
   vtestBob: { value: new Vector3(idle.bobHeight, idle.bobSpeed, idle.bobRoll) },
   /** smokeRise, smokeSize, smokeSpeed, smokeDrift. */
@@ -128,7 +121,6 @@ type UniformName = keyof typeof VTEST_UNIFORMS;
 /** Writes the on/off uniforms for a state. The renderer calls it on every change. */
 export function syncVisualUniforms(state: VisualTestState = visualTest()): void {
   VTEST_UNIFORMS.vtestSea.value = state.sea ? 1 : 0;
-  VTEST_UNIFORMS.vtestClouds.value = state.clouds ? 1 : 0;
   VTEST_UNIFORMS.vtestIdle.value = state.idle ? 1 : 0;
   VTEST_UNIFORMS.vtestLight.value = state.light ? 1 : 0;
   VTEST_UNIFORMS.vtestTiles.value = state.tiles ? 1 : 0;
@@ -384,12 +376,8 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
       paint = mix(paint, paint * ${open.patchDark.toFixed(3)}, smoothstep(.50, .30, cn));
     } else if (vtestSeaPattern > 4.5) {
       // 5. Calm water (the user's reference pictures, 2026-11-13): a deeper,
-      // quieter blue, which mirrors the sky. Clouds show in it as broad pale
-      // shapes with soft edges, longer from side to side than they are deep.
+      // quieter blue, which mirrors the sky.
       paint = mix(paint, vtestSeaCalm, ${sun.deepen.toFixed(3)});
-      vec2 sky = vec2(p.x * ${sun.cloudScale.toFixed(3)}, p.y * ${(sun.cloudScale * sun.cloudSquash).toFixed(3)}) + vec2(time * ${sun.cloudDrift.toFixed(4)}, 0.0);
-      float cloud = vtestNoise(sky) * .65 + vtestNoise(sky * 2.1 + 4.7) * .35;
-      paint = mix(paint, vtestSeaSky, smoothstep(${sun.cloudFrom.toFixed(3)}, ${sun.cloudTo.toFixed(3)}, cloud) * ${sun.cloud.toFixed(3)});
     } else {
       // 4. Swell: long thin pale lines that lie one way, bend a little, break, and travel slowly.
       vec2 sq = vec2(p.x * .96 + p.y * .28, p.y * .96 - p.x * .28);
@@ -475,58 +463,6 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   /** After `#include <color_fragment>`, with `p` the world xz and `studyTime` the clock. */
   fragment: `vtestSeaBase = diffuseColor.rgb;\nif (vtestSea > .5 && vPaintedWater.x > -5.0) diffuseColor.rgb = ${sea.style === 'bands' ? 'vtestSeaBands' : 'vtestSeaPaint'}(vPaintedWater, p, studyTime);\n// A river keeps its own paint, and takes the strokes of the sun's road where it runs under it: a wider road, since a river is thin, and no glow, which greys its blue.\nelse if (vtestSea > .5 && vtestSeaFieldOn > .5 && vtestSeaPattern > 4.5) diffuseColor.rgb = vtestSunRoad(diffuseColor.rgb, p, studyTime, sqrt(vtestSunGlare()), ${sun.river.toFixed(3)}, 0.0);\n`,
 };
-
-// --- 7. cloud shadows ----------------------------------------------------------
-
-export const CLOUD_UNIFORMS: readonly UniformName[] = ['vtestTime', 'vtestClouds', 'vtestCloud', 'vtestCloudStrength', 'vtestPeriod'];
-
-/**
- * One slow pattern of cloud shadows, multiplied into the sun term of the
- * painterly shading. It moves the fragment toward the cast-shadow paint, so a
- * cloud's shadow is the same blue as a hill's. The noise lattice repeats once a
- * map width (`vtestPeriod`), so the pattern meets itself at the wrap seam and
- * does not jump when the camera wraps.
- */
-export const CLOUD_GLSL = {
-  head: `${declareUniforms(CLOUD_UNIFORMS)}
-float vtestCloudHash(vec2 p, float n) { p.x = mod(p.x, n); return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float vtestCloudNoise(vec2 p, float n) {
-  vec2 i = floor(p), f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(vtestCloudHash(i, n), vtestCloudHash(i + vec2(1.0, 0.0), n), u.x),
-             mix(vtestCloudHash(i + vec2(0.0, 1.0), n), vtestCloudHash(i + vec2(1.0, 1.0), n), u.x), u.y);
-}
-float vtestCloudShade(vec2 p) {
-  if (vtestClouds < .5) return 1.0;
-  float cells = max(1.0, floor(vtestPeriod * vtestCloud.x + .5));
-  float sx = vtestPeriod > 0.0 ? cells / vtestPeriod : vtestCloud.x;
-  vec2 q = vec2(p.x * sx, p.y * vtestCloud.x) + vec2(vtestTime * vtestCloud.y, vtestTime * vtestCloud.y * .4);
-  float n = vtestCloudNoise(q, cells) * .62 + vtestCloudNoise(q * 2.0 + 5.3, cells * 2.0) * .28
-    + vtestCloudNoise(q * 4.0 + 1.7, cells * 4.0) * .10;
-  float cloud = smoothstep(vtestCloud.z - vtestCloud.w, vtestCloud.z + vtestCloud.w, n);
-  return 1.0 - cloud * vtestCloudStrength;
-}
-`,
-  find: 'float visible=smoothstep(.10,.95,getShadowMask());',
-  replace: 'float visible=smoothstep(.10,.95,getShadowMask())*vtestCloudShade(paintPosition.xz);',
-};
-
-/**
- * Adds the cloud shadows to a material the painterly style has registered.
- * Chains its compile hook, so it runs after the painterly code it edits.
- */
-export function installClouds(material: Material): void {
-  const previous = material.onBeforeCompile;
-  const key = material.customProgramCacheKey.bind(material);
-  material.onBeforeCompile = function(shader, renderer) {
-    previous.call(this, shader, renderer);
-    if (!shader.fragmentShader.includes(CLOUD_GLSL.find)) return;
-    shareUniforms(shader, CLOUD_UNIFORMS);
-    shader.fragmentShader = `${CLOUD_GLSL.head}\n${shader.fragmentShader.replace(CLOUD_GLSL.find, CLOUD_GLSL.replace)}`;
-  };
-  material.customProgramCacheKey = () => `${key()}:vtest-clouds`;
-  material.needsUpdate = true;
-}
 
 // --- 8. idle motion ------------------------------------------------------------
 

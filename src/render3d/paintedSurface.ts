@@ -3,7 +3,10 @@
  * one map and its simulation tile objects; the ordinary renderer never sees
  * them. Meshes are borrowed from the board and remain the board's to dispose.
  */
-import { Box3, BufferAttribute, BufferGeometry, type Intersection, InstancedMesh, type Mesh, Raycaster, Vector3 } from 'three';
+import {
+  Box3, BufferAttribute, BufferGeometry, type InterleavedBufferAttribute, type Intersection, InstancedMesh, type Material, type Mesh,
+  Raycaster, type Side, Vector3,
+} from 'three';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { hexToPixel, pixelToHex } from '../sim/hex';
 import { type GameMap, type Tile, axialToOffset, offsetToAxial } from '../sim/map';
@@ -34,6 +37,75 @@ interface PaintedPickResult {
 
 const maps = new WeakMap<GameMap, SurfaceRegistration>();
 const tiles = new WeakMap<Tile, SurfaceRegistration>();
+
+/**
+ * The height sampler of each static ground chunk, kept across installs.
+ *
+ * `installPaintedSurface` runs again each time the works layer rebuilds on a
+ * map with a terrace on it (the terrace shelves are ground too), and a new
+ * install used to start with no samplers. The placements that followed (units,
+ * resource pins, the toon works) then built one sampler again for each chunk
+ * they touched. At the end of a turn-130 turn that was 2.2 s of a 4.6 s state
+ * sync, measured on a loaded machine (`docs/plans/render-performance-2026-11-16.md`).
+ *
+ * A chunk's sampler depends only on its triangles and on where the chunk
+ * stands. So it is kept while the mesh has the same geometry, the same index
+ * and position buffers at the same versions (the hill cuts of `paintedRelief.ts`
+ * rewrite the index and raise its version), the same side and the same world
+ * matrix. Anything else builds it again, as before.
+ */
+interface KeptSampler {
+  geometry: BufferGeometry;
+  index: BufferAttribute | null;
+  indexVersion: number;
+  position: BufferAttribute | InterleavedBufferAttribute;
+  positionVersion: number;
+  side: Side;
+  matrix: number[];
+  sample: (x: number, z: number) => number | undefined;
+}
+const keptSamplers = new WeakMap<Mesh, KeptSampler>();
+let samplerBuilds = 0;
+
+/** How many chunk samplers have been built since the page loaded. For tests and the cost report. */
+export function surfaceSamplerBuilds(): number { return samplerBuilds; }
+
+function sameMatrix(a: readonly number[], b: readonly number[]): boolean {
+  for (let i = 0; i < 16; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** The chunk's sampler: the kept one if nothing it was built from has changed. */
+function chunkSampler(mesh: Mesh): (x: number, z: number) => number | undefined {
+  const geometry = mesh.geometry, index = geometry.index, position = geometry.getAttribute('position');
+  const side = (mesh.material as Material).side, elements = mesh.matrixWorld.elements;
+  const kept = keptSamplers.get(mesh);
+  if (kept && kept.geometry === geometry && kept.index === index && kept.indexVersion === (index?.version ?? -1)
+      && kept.position === position && kept.positionVersion === (position as BufferAttribute).version
+      && kept.side === side && sameMatrix(kept.matrix, elements)) return kept.sample;
+  // Double precision preserves raycast contact heights after the wrap transform.
+  // The arithmetic is `Vector3.applyMatrix4`'s, term for term, so the heights
+  // are the same numbers the per-vertex vectors gave; without the two objects
+  // a vertex the copy runs several times faster.
+  const count = position.count, data = new Float64Array(count * 3), e = elements;
+  for (let i = 0; i < count; i++) {
+    const x = position.getX(i), y = position.getY(i), z = position.getZ(i);
+    const w = 1 / (e[3]! * x + e[7]! * y + e[11]! * z + e[15]!);
+    data[i * 3] = (e[0]! * x + e[4]! * y + e[8]! * z + e[12]!) * w;
+    data[i * 3 + 1] = (e[1]! * x + e[5]! * y + e[9]! * z + e[13]!) * w;
+    data[i * 3 + 2] = (e[2]! * x + e[6]! * y + e[10]! * z + e[14]!) * w;
+  }
+  const copy = new BufferGeometry(); copy.setAttribute('position', new BufferAttribute(data, 3));
+  copy.setIndex(index);
+  const sample = createTileSurfaceSampler(copy, 0, 0, side);
+  copy.dispose();
+  samplerBuilds++;
+  keptSamplers.set(mesh, {
+    geometry, index, indexVersion: index?.version ?? -1, position, positionVersion: (position as BufferAttribute).version,
+    side, matrix: [...elements], sample,
+  });
+  return sample;
+}
 const radius = VIEW3D.board.hexRadius;
 const gridSize = 6 * Math.sqrt(3) * radius;
 const gridKey = (x: number, z: number): string =>
@@ -167,19 +239,9 @@ export function samplePaintedWorld(map: GameMap, worldX: number, z: number): num
       if (hit) highest = Math.max(highest, hit.point.y);
       continue;
     }
-    if (!entry.sample) {
-      // Build once on first contact with this static chunk. Double precision
-      // preserves raycast contact heights after the wrap transform.
-      const positions = mesh.geometry.getAttribute('position'), data = new Float64Array(positions.count * 3);
-      const point = new Vector3();
-      for (let i = 0; i < positions.count; i++) {
-        point.fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld); point.toArray(data, i * 3);
-      }
-      const geometry = new BufferGeometry(); geometry.setAttribute('position', new BufferAttribute(data, 3));
-      geometry.setIndex(mesh.geometry.index);
-      entry.sample = createTileSurfaceSampler(geometry, 0, 0, mesh.material.side);
-      geometry.dispose();
-    }
+    // Found once on first contact with this static chunk, and kept across
+    // installs while the chunk is unchanged. See `keptSamplers`.
+    if (!entry.sample) entry.sample = chunkSampler(mesh);
     const y = entry.sample(x, z);
     if (y !== undefined) highest = Math.max(highest, y);
   }

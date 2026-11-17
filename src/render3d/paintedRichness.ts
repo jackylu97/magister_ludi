@@ -34,6 +34,7 @@ import { hashUnit } from './hash';
 import { seenTileYields } from './lens3d';
 import { VIEW3D } from './lookData';
 import { declareUniforms, shareUniforms } from './visualTestLook';
+import { cullWrapCopies } from './wrapCulling';
 
 const RICH = VIEW3D.visualTest.richness;
 const MOTE_UNIFORMS = ['vtestTime', 'vtestIdle'] as const;
@@ -142,14 +143,17 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
     const add = (mesh: InstancedMesh, cast: boolean): void => {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      const copies: InstancedMesh[] = [];
       for (const at of [-period, 0, period]) {
         const copy = at === 0 ? mesh : new InstancedMesh(mesh.geometry, mesh.material, 0);
         if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.instanceColor = mesh.instanceColor; copy.count = mesh.count; }
-        // The layer is small, and the motes move in the shader, so it is never culled.
-        copy.frustumCulled = false; copy.castShadow = cast; copy.receiveShadow = cast;
+        copy.castShadow = cast; copy.receiveShadow = cast;
         copy.position.x = at;
-        this.group.add(copy); this.meshes.push(copy);
+        this.group.add(copy); this.meshes.push(copy); copies.push(copy);
       }
+      // A mote rises, sways and grows in the shader, and the works' herds nod a little. The bounds are widened by that,
+      // so each copy is culled like any other mesh (`wrapCulling.ts`).
+      cullWrapCopies(copies, RICH.moteRise + RICH.moteSize + .05 + .2);
     };
     for (const kind of KINDS) {
       const list = places[kind];

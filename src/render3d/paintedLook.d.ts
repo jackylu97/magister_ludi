@@ -7,8 +7,7 @@ export interface PaintedLook {
  assets: PaintedVegetationAssets;
  cityAssets: PaintedCityAssets;
  workAssets: PaintedWorksAssets;
- /** `chart` keeps the visual test version's cloud shadows off the uncharted paper. */
- registerMaterial(material:MeshStandardMaterial,options?:{terrain?:boolean;water?:boolean;chart?:boolean}):void;
+ registerMaterial(material:MeshStandardMaterial,options?:{terrain?:boolean;water?:boolean}):void;
  materials: PaintedBoardMaterials;
  sun: DirectionalLight;
  sky: HemisphereLight;

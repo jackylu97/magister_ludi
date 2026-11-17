@@ -19,6 +19,7 @@ import { EXPLORED } from '../sim/visibility';
 import { hashUnit } from './hash';
 import { VIEW3D } from './lookData';
 import { declareUniforms, shareUniforms } from './visualTestLook';
+import { cullWrapCopies } from './wrapCulling';
 
 const SAIL_UNIFORMS = ['vtestTime', 'vtestIdle'] as const;
 const ROOT3 = Math.sqrt(3);
@@ -76,14 +77,19 @@ transformed.xy = vec2(transformed.x * sailC - transformed.y * sailS, transformed
     });
     geometry.setAttribute('sailSeed', new InstancedBufferAttribute(seeds, 2));
     mesh.instanceMatrix.needsUpdate = true;
-    // The sails turn in the shader, so measured bounds would be wrong. The layer is small and is never culled.
     for (const at of [-period, 0, period]) {
       const copy = at === 0 ? mesh : new InstancedMesh(geometry, this.material, 0);
       if (copy !== mesh) { copy.instanceMatrix = mesh.instanceMatrix; copy.count = mesh.count; }
-      copy.frustumCulled = false; copy.castShadow = shadows; copy.receiveShadow = true;
+      copy.castShadow = shadows; copy.receiveShadow = true;
       copy.position.x = at;
       this.group.add(copy); this.meshes.push(copy);
     }
+    // The sails turn about the hub (the model's own origin) in the shader, so a vertex keeps its distance from the
+    // origin. Widened by twice the offset of the model's bounds from that origin, the bounds hold every turn, and each
+    // copy is culled like any other mesh (`wrapCulling.ts`).
+    geometry.computeBoundingSphere();
+    const reach = geometry.boundingSphere!.center.length() * 2, largest = Math.max(...mills.map((mill) => mill.scale));
+    cullWrapCopies(this.meshes, reach * largest + .05);
   }
 
   private clear(): void {
