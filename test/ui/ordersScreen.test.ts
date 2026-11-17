@@ -368,12 +368,11 @@ describe('the screen fills the window, and the layout fits it (part C)', () => {
   });
 
   it('keeps every text at 11 px or more in the screen’s and the face’s new rules', () => {
-    // The one value under 11 px is the compact card's em: 10 px to the em, as
-    // on the full face at 210 wide. No text is set at it; every text is 1.1 em
-    // or more.
+    // No size under 11 px anywhere. The compact card takes the full face's
+    // scale from its width variable, not from a font size.
     for (const tail of ['statecraftScreen.css', 'orderFace.css']) {
       const small = [...style(tail).matchAll(/font-size:\s*([\d.]+)px/g)].filter((match) => Number(match[1]) < 11);
-      expect(small.map((match) => match[0]), tail).toEqual(tail === 'orderFace.css' ? ['font-size: 10px'] : []);
+      expect(small.map((match) => match[0]), tail).toEqual([]);
     }
     const face = style('orderFace.css');
     expect(face).toContain('font-size: max(11px, calc(var(--of-h) * 12.5));');
@@ -382,7 +381,7 @@ describe('the screen fills the window, and the layout fits it (part C)', () => {
 
   it('draws the compact forms as the same emblem, smaller, with the full face’s text sizes', () => {
     const face = style('orderFace.css');
-    expect(face).toContain(".order-face[data-compact],\n.order-face-chair[data-compact] {\n  width: 187px;\n  height: 180px;\n  font-size: 10px;");
+    expect(face).toContain(".order-face[data-compact],\n.order-face-chair[data-compact] {\n  --of-width: 210px;\n  width: 187px;\n  height: 180px;");
     expect(face).toContain(".order-face[data-compact='narrow'],\n.order-face-chair[data-compact='narrow'] {\n  width: 145px;\n  height: 206px;");
     expect(SCREEN).toContain("if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;");
   });

@@ -56,17 +56,24 @@ const UNDER_THE_FLOOR: Record<string, string> = {
   '.civ-yields.is-tighter .civ-meter-icon': 'a drawn meter mark sized by the row it sits in, not text',
   '.suit-seat .suit-rank-numeral': 'a rank numeral drawn into the suit seat, part of the card picture',
   '.suit-ribbon-numeral': 'a rank numeral drawn into the suit ribbon, part of the card picture',
+  '.sc-chair .suit-seat .suit-rank-numeral, .sc-chair .suit-seat .suit-ribbon-numeral':
+    'the rank numeral drawn into the suit seat of the flair gallery’s chair row, part of the card picture',
+  '.sc-chair .suit-seat':
+    'the em base of the seated suit card at three quarters, drawn only in the flair gallery’s chair row (`chairs.ts`), the retired orders screen’s chair kept as a specimen',
   '.rel-house-glyph': 'SVG text in the pantheon wheel’s 100-unit box, drawn at the wheel’s scale',
   '.rel-wheel-count': 'SVG text in the pantheon wheel’s 100-unit box, drawn at the wheel’s scale',
   '.rel-wheel-of': 'SVG text in the pantheon wheel’s 100-unit box, drawn at the wheel’s scale',
 };
 
+
 /**
- * The orders screen's rules (`.sc-*` in `style.css`) belong to the orders
- * screen batch, which is rebuilding that screen in its own files; they are its
- * to bring to the floor.
+ * The retired orders screen's labels (`.sc-*` in `style.css`). The new orders
+ * screen (batch SS10 part 2) does not use them; they are drawn now only by the
+ * flair gallery's chair row (`chairs.ts`) and by the Faith sheet's Bonuses
+ * cards (`.sc-card-type`). They are at the 11 px floor, and keep the mono
+ * capitals until those two surfaces are redrawn.
  */
-const OWNED_ELSEWHERE = (selector: string): boolean => selector.startsWith('.sc-');
+const OLD_SCREEN_LABEL = (selector: string): boolean => selector.startsWith('.sc-');
 
 describe('the type scale (batch SS8)', () => {
   it('defines the nine sizes of the Type board', () => {
@@ -101,7 +108,7 @@ describe('the type scale (batch SS8)', () => {
     const under: string[] = [];
     for (const [path, css] of Object.entries(SHEETS)) {
       for (const { selector, body } of rules(css)) {
-        if (OWNED_ELSEWHERE(selector) || selector.startsWith('@')) continue;
+        if (selector.startsWith('@')) continue;
         if (sizesIn(body).some((size) => size < 11) && !(selector in UNDER_THE_FLOOR)) {
           under.push(`${path.replace('../../', '')}: ${selector}`);
         }
@@ -146,7 +153,7 @@ describe('the type scale (batch SS8)', () => {
     const caps: string[] = [];
     for (const [path, css] of Object.entries(SHEETS)) {
       for (const { selector, body } of rules(css)) {
-        if (OWNED_ELSEWHERE(selector) || path.endsWith('statecraftScreen.css')) continue;
+        if (OLD_SCREEN_LABEL(selector) || path.endsWith('statecraftScreen.css')) continue;
         if (/text-transform:\s*uppercase/.test(body) && /var\(--face-num\)/.test(body)) {
           caps.push(`${path.replace('../../', '')}: ${selector}`);
         }

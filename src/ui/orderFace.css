@@ -960,18 +960,18 @@
 /*
  * **The compact forms** (part C, the build spec's "The card, by form"). The
  * same emblem with the same parts in the same order, and a short picture
- * band. The card keeps the full face's scale (10 px to the em, as at 210
- * wide), so every text is the size it is on the full face; only the card is
- * smaller. Compact: 187 by 180, the picture band 44. Narrow: 145 by 206, the
+ * band. The card keeps the full face's scale: its `--of-width` is the full
+ * face's 210 px, so its em (a 21st of it) and every text in it are the sizes
+ * they are on the full face, and only the card's own box is smaller. Compact: 187 by 180, the picture band 44. Narrow: 145 by 206, the
  * band 40, and the name may take two lines. The corner flourishes are left
  * out. A text that does not fit is cut with the fade, and the card lifts to
  * its full face on hover or focus (`statecraftScreen.ts`).
  */
 .order-face[data-compact],
 .order-face-chair[data-compact] {
+  --of-width: 210px;
   width: 187px;
   height: 180px;
-  font-size: 10px;
 }
 
 .order-face[data-compact='narrow'],

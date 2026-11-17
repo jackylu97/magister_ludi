@@ -12386,16 +12386,6 @@ p.city-trade-link {
   gap: 12px 6px;
 }
 
-/* The council's types in words, under its heading: "2 Military · 1 Economic ·
-   1 Civic · 1 Wildcard". Numbers, so the mono. */
-.sc-council-mix {
-  margin: -4px 0 10px;
-  font-family: var(--face-num);
-  font-size: 9.5px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-}
 
 /* An office is a **line**, not a card-shaped hole.
 
@@ -12496,25 +12486,13 @@ p.city-trade-link {
 
 .sc-slot-type {
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-/* The office's **position**, printed only where a card could read it (the Slot
-   order ruling, 2026-09-06 — `deckReadsSlotPosition` is the gate). An ordinal is
-   a number, so it is set in the tabular mono every number in this interface is,
-   and it sits under the office's own word at the same size and a grade quieter:
-   it is a second name for the same chair, not a second chair. */
-.sc-slot-position {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
-  color: var(--ink-faint);
-}
 
 /* **The chair types' inks** (batch C2b). Each chair carries its type's ink as
    `--chair-ink` and the type's pale ground as `--chair-ground`, from the four
@@ -12688,7 +12666,7 @@ p.city-trade-link {
 
 .sc-chair-empty .sc-slot-empty {
   font-family: var(--face-num);
-  font-size: 8.5px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -12798,14 +12776,11 @@ p.city-trade-link {
 }
 
 .sc-chair-plate .sc-slot-type {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--ink);
 }
 
-.sc-chair-foot .sc-stamp {
-  margin-left: 0;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .sc-chair-card {
@@ -12818,37 +12793,6 @@ p.city-trade-link {
   }
 }
 
-/* The wax stamp, at the end of the office's line and still pressed on at an
-   angle — a seal is something applied to a finished thing, and the tilt says so.
-   Set is vermilion and counts down in mono; lifted is quiet ink and says
-   "free", because a slot you may empty is not an alarm. An office holding a
-   card that is only *staged* has no stamp at all: nothing has sealed it. */
-.sc-stamp {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-  padding: 2px 6px;
-  transform: rotate(-4deg);
-  border: var(--border-thin) solid var(--ink);
-  border-radius: 999px;
-  background: var(--table);
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-faint);
-}
-
-.sc-stamp-set {
-  background: var(--vermilion);
-  border-color: var(--ink);
-  color: var(--parchment);
-}
-
-.sc-stamp-glyph {
-  font-size: 10px;
-}
 
 /* What is in hand, in words. The slot row highlights what will take the card;
    this says which card that is and what to do next — a highlight with no
@@ -12932,14 +12876,6 @@ p.city-trade-link {
   box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.35), var(--shadow-sm);
 }
 
-.sc-commit-note {
-  margin: 0;
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  color: var(--deep-gilt);
-}
 
 /* The reducer's own sentence, in the one place a greyed Confirm can explain
    itself. Vermilion, because it is a refusal rather than a note. */
@@ -13091,7 +13027,7 @@ p.city-trade-link {
 
 .sc-card-type {
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -13110,15 +13046,6 @@ p.city-trade-link {
 .sc-card .sc-clause {
   font-size: 11.5px;
   line-height: 1.4;
-}
-
-.sc-card-note {
-  margin: 6px 0 0;
-  font-family: var(--face-num);
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--vermilion);
 }
 
 /* --- the collection, grouped by office ------------------------------------
@@ -13143,22 +13070,6 @@ p.city-trade-link {
   width: 16px;
   height: 16px;
   opacity: 0.75;
-}
-
-.sc-group-name {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.sc-group-count {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-faint);
 }
 
 .sc-group-military {
