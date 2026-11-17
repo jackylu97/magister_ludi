@@ -660,3 +660,10 @@ intriguing aspect about the game to people"*
   base; its shape becomes a pennant like variant C's, shorter and wider, so
   that the Q key mark still fits under it, centred on it; the wider flag is the
   click area.
+
+- **Diplomacy, second round (2026-11-17).** Options page:
+  https://claude.ai/artifact/NckitQHjpDjZn98akL2dMA. The user: *"for the
+  diplomacy screen: i like B but i might be too wide. could we show what it
+  would lok like on smaller screens?"* Layout B (the treaty desk) is the base.
+  The next drawing shows it at smaller window sizes. The leader screen (SS9b)
+  is approved: *"the leaader screen looks great, approved"*.
