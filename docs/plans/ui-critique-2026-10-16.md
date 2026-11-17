@@ -675,3 +675,12 @@ intriguing aspect about the game to people"*
   the card is played to see its effect."* Read as: the first direction (the
   hand) is the base, held loosely. A played card's effect must be easy to see
   on the table, prominently, without lifting each card.
+
+- **The banner: take 2 is chosen, larger and pressable (2026-11-17). Batch
+  SS2c.** The user: *"for the corner banner, i like take 2, but i want the
+  banner to be fairly bigger and look someehwat 'clickable'"*. Take 2 of the
+  second round (https://claude.ai/artifact/Eo15sVSRB8ymkvZr8C2Rfa) is the short
+  swallowtail pennant hung from the top bar, with the Q key and the arrow
+  centred under it. Built larger than drawn (the drawing was 44 px wide with a
+  26 px charge), and with the look of a thing to press: the solid ink shadow
+  and the small move on hover that End Turn has, as take 3 drew.
