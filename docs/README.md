@@ -1562,7 +1562,7 @@ Eight root pages, all named in `vite.config.ts` inputs:
   and a state object (`where` hand or played, `sealedTurns`, `staged`,
   `liveLine`, `unmet`); `emptyChairFace` draws an empty chair at the same size.
   The flair gallery shows it (`flair.html#order-face`, or
-  `flair.html?review=order-face` alone). No live screen uses it yet.
+  `flair.html?review=order-face` alone). The orders screen uses it (below).
   - The name is the motto, in IM Fell English small capitals. The deck's suit
     is an engraved device in the type's ink (gilt for a Doctrine). The effect
     is `describeCard`'s clauses in EB Garamond, printed through
@@ -1589,6 +1589,52 @@ Eight root pages, all named in `vite.config.ts` inputs:
   - The two card faces load with the card's stylesheet (`src/cardFaces.css`,
     imported by `orderFace.css`), from Google's files, under the tokens
     `--face-card-text` and `--face-card-title`. No page head changes.
+- **The orders screen** (Statecraft; batch SS10, part 2). The user approved
+  the final board on 2026-11-17; the board of record is
+  `docs/plans/mockups/scholars-study/orders-screen-final-board.html`, and its
+  last section is the build spec. `src/ui/statecraftScreen.ts` builds the
+  screen on `modalShell.ts`; its styles are `src/ui/statecraftScreen.css`.
+  - The head: the title, the hint, what your cards pay (`foldDeck`, the
+    Ledger's deck figure, never a sum of the cards' lines), the count of
+    unconfirmed changes, Revert, Confirm and the close button. A refusal
+    prints the reducer's own sentence in place of the hint for four seconds,
+    in `.wanting`.
+  - The cloth holds three parts. The gilt register: the government and each
+    Doctrine, laid wide (`registerFaceNode`), each with a live plate. The
+    table: one emblem face or empty chair for each chair, six to a row, with
+    the chair's tab on its foot (`chairTabNode`); the full face at 7 chairs or
+    more, the large face at 6 or fewer. The hand: side by side when it has 12
+    cards or fewer and the table is one row, otherwise a rail of card tops.
+  - Seating is click then click, or the keyboard: the arrows move, Enter
+    picks a card up or puts it down, 1 to 9 play the held card into that
+    chair, and Esc puts it back where it came from. The chairs the held card
+    fits are ringed "seat here" or "swap"; the rest fade, and their title is
+    the reducer's sentence. A swap is a removal and a placement in the same
+    chair.
+  - The staging is `statecraftStaging.ts`, unchanged: nothing is sent until
+    Confirm or until the screen closes, Revert throws the arrangement away,
+    and a seat change throws it away. Confirm counts the new cards' figures
+    and the head's total up; with less motion they are simply there.
+  - What a card says it pays is `src/ui/orderLive.ts`. A card played this
+    visit: "awaits your seal: on Confirm", and no figure. A commission: its
+    counter. A Scaler: its value. A card that pays each turn or on an
+    occasion: its stamp, the occasion with what it has paid so far. A card
+    that pays yields but pays nothing now: "+0 now" and the reason. A rule:
+    "in force". The figure tablet shows the same live figure
+    (`OrderFaceState.tablet`); the hand and the flair gallery fall back to
+    `firstFigure`.
+  - The reason is `cardIdleReason` (`statecraft/evaluator.ts`): a closed
+    empire condition, a kind of town the empire has none of, no trade route
+    of the clause's crossing, or no route that starts, ends or touches the
+    kind of town the clause names. `idleReasonWords` (`describers.ts`) says
+    it, and gives no words when they would carry a figure. The reading gives
+    nothing when a paying clause is open or is shut for a reason it cannot
+    name. `cardCanPay` tells a card that pays from a rule.
+  - Text that does not fit a card never spills outside it: it is cut with a
+    fade at the foot, and it scrolls inside the card when the card is lifted
+    or has the keyboard's focus.
+  - Not built yet: the whole hand on H, the binder on D and the six moments'
+    motion (part B), and the compact forms for smaller windows (part C).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

@@ -122,11 +122,22 @@ export const CORNER_MOON: OrderFaceMark = {
 };
 
 /** The four corner marks by name, for the stylesheet's masks and the flair gallery. */
+/**
+ * The lock on a sealed chair's tab (batch SS10, part 2): a shackle over a
+ * body, as the final board draws it beside the turns left.
+ */
+export const CHAIR_LOCK: OrderFaceMark = {
+  note: 'a lock: a rounded body with a shackle over it',
+  stroke: 2.4,
+  paths: [{ d: 'M5.5 11h13a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5v-7A1.5 1.5 0 0 1 5.5 11Z' }, { d: 'M8 11V7.5a4 4 0 0 1 8 0V11' }],
+};
+
 export const ORDER_FACE_MARKS = {
   flourish: CORNER_FLOURISH,
   star: CORNER_STAR,
   sun: CORNER_SUN,
   moon: CORNER_MOON,
+  lock: CHAIR_LOCK,
 } as const;
 
 export type OrderFaceMarkId = keyof typeof ORDER_FACE_MARKS;

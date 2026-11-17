@@ -332,7 +332,7 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
   ['compendium.ts', 'the book’s own clauses and its written shelves'],
   ['cityPanel.ts', 'the build list’s hover card'],
   ['offerCard.ts', 'the offer faces, their notes and their clause lists'],
-  ['statecraftScreen.ts', 'the charter, the doctrines and the collection'],
+  ['orderFace.ts', 'the emblem face: every Order and Doctrine on the orders screen, and the register'],
   ['bonusesTab.ts', 'the Faith sheet’s Bonuses cards'],
   ['ritesTab.ts', 'the Rites tab’s banner, its menus and a row’s rite words'],
   ['unitPanel.ts', 'the rite card and the caravan’s lines'],
@@ -413,12 +413,14 @@ describe('the descriptor register', () => {
   });
 
   it('keeps the links out of the two surfaces that are buttons', () => {
-    // An offer face and an Order in the collection are `<button>`s, and the
-    // click is a decision. The offer card says so outright; the Statecraft
-    // screen and the Faith sheet's Bonuses cards ask `keywordsAllowedIn`, which
-    // answers the same thing from the tag they built.
+    // An offer face and an Order on the orders screen sit in `<button>`s, and
+    // the click is a decision. The offer card says so outright; the orders
+    // screen says its faces are in a control (`inControl`, batch SS10 part 2),
+    // and the face and the Faith sheet's Bonuses cards otherwise ask
+    // `keywordsAllowedIn`, which answers the same thing from the tag they built.
     expect(source('offerCard.ts')).toContain('{ linked: false }');
-    expect(source('statecraftScreen.ts')).toContain('keywordsAllowedIn(into)');
+    expect(source('orderFace.ts')).toContain('const linked = state.inControl === true ? false : keywordsAllowedIn(host);');
+    expect(source('statecraftScreen.ts')).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true });");
     expect(source('bonusesTab.ts')).toContain('keywordsAllowedIn(into)');
   });
 

@@ -71,3 +71,21 @@
   top: 0;
   width: 400px;
 }
+
+/* The gilt register sample (batch SS10, part 2): the government and a Doctrine
+   laid wide on the orders screen's 104 px row. */
+.of-register-sample {
+  display: flex;
+  gap: 8px;
+  width: 640px;
+  height: 104px;
+}
+
+.of-register-sample .order-face[data-register='government'] {
+  flex: none;
+  width: 240px;
+}
+
+.of-register-sample .order-face[data-register='doctrine'] {
+  flex: 1 1 0;
+}

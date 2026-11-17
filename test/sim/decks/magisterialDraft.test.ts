@@ -472,7 +472,8 @@ describe('the price of a hand, read in one place', () => {
     for (const [file, call] of [
       ['ui/topBar.ts', 'nextDraftCost(state, player)'],
       ['ui/empireDrawer.ts', 'nextDraftCost(state, player)'],
-      ['ui/statecraftScreen.ts', 'nextDraftCost(state, player)'],
+      // The orders screen reads the corner panel's glance (batch SS10 part 2).
+      ['ui/statecraftScreen.ts', 'draftGlance(state, player)'],
       ['ai/wants.ts', 'nextDraftCost(state, player)'],
       // The pass candidate (`skipCandidate`) moved to `council.ts` in batch S5.
       ['ai/council.ts', 'draftCostFor(state, player, sc.drafts + 1)'],

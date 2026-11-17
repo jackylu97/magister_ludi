@@ -268,24 +268,24 @@ describe('every surface draws an Order from orderSuitFace', () => {
     expect(offer).toContain('option.suit !== undefined ? suitHandCard(option, option.suit, index)');
   });
 
-  it('seats a card in the council as the A3 seated card', () => {
+  // The orders screen draws every card as the emblem face since batch SS10
+  // part 2 (`orderFace.ts`); the A3 face stays on the other surfaces.
+  it('seats a card in its chair as the emblem face', () => {
     const screen = uiSource('statecraftScreen.ts');
-    const slots = between(screen, 'function drawSlots(', 'function drawAggregate(');
-    expect(slots).toContain("dressSuitFace(card, orderSuitFace(filled.card), 'seat', [name])");
+    const table = between(screen, 'function drawTable(', '// --- the hand');
+    expect(table).toContain('dressOrderFace(face, id, {');
+    expect(table).toContain("where: 'played',");
     // The old office line drew the archetype thread's lozenge for every new row.
-    expect(slots).not.toContain('cardLineMarkNode(');
-    expect(slots).not.toContain('slotMarkNode(');
+    expect(table).not.toContain('cardLineMarkNode(');
+    expect(table).not.toContain('slotMarkNode(');
   });
 
-  it('lists a card in the collection under the A3 row', () => {
+  it('draws a card in the hand as the emblem face, in its hand form', () => {
     const screen = uiSource('statecraftScreen.ts');
-    const face = braceBody(screen, 'function drawOrderFace(');
-    expect(face).toContain('const face = orderSuitFace(id);');
-    expect(face).toContain('suitRowNode(face, def.name, true)');
-    expect(face).toContain('into.dataset.ink = face.ink;');
-    expect(screen).toContain('drawOrderFace(button, id, describeCard(id));');
+    const hand = between(screen, 'function drawHand(', 'function layRail(');
+    expect(hand).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true });");
+    expect(hand).toContain("face.dataset.form = 'hand';");
     // The shelf a card is filed on does not decide its ink.
-    expect(screen).toContain("button.className = 'sc-card sc-card-order'");
     expect(uiSource('style.css')).not.toContain('.sc-card-dominion');
   });
 
@@ -351,7 +351,7 @@ describe('the chips', () => {
   it('draws no chip on an A3 card: a charter says so with its keyword (batch DS8)', () => {
     // The chip "Charter — takes no chair" went: the keyword is the card's
     // first clause, and its tooltip says that a charter takes no chair.
-    expect(braceBody(uiSource('statecraftScreen.ts'), 'function drawOrderFace(')).not.toContain('Chips');
+    expect(uiSource('orderFace.ts')).not.toContain('Chips');
     expect(uiSource('deckBadges.ts')).not.toContain("'Charter — takes no chair'");
     expect(describeCard(CHARTER)[0]).toEqual({ text: keywordMark('charter'), keyword: 'charter' });
   });
@@ -413,9 +413,11 @@ describe('what C1 leaves alone', () => {
       if ((doctrineDef(id).line ?? 'none') !== 'none') threaded += 1;
     }
     expect(threaded).toBeGreaterThan(0);
-    const screen = uiSource('statecraftScreen.ts');
-    expect(screen).toContain("drawCardFace(card, cardDef(id), 'permanent', describeCard(id));");
-    expect(braceBody(screen, 'function drawCardFace(')).toContain('cardLineMarkNode(id)');
+    // The orders screen's register draws a pre-rework Doctrine in the gilt
+    // frame with the lozenge seal, since it has no deck (batch SS10 part 2).
+    const face = uiSource('orderFace.ts');
+    expect(face).toContain('const name = cardDef(face.id).name;');
+    expect(face).toContain('? doctrineDef(face.id).decks.map((deck) => DECK_SUIT[deck])');
   });
 
   it('offers a deck’s Doctrine on the emblem face, with its deck’s suit, ink and tier (C3)', () => {
@@ -444,9 +446,9 @@ describe('what C1 leaves alone', () => {
     // The offer and the shelf both ask the one helper.
     const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
     expect(draft).toContain('line: face.line, emblem: face.emblem, lineName: face.lineName');
-    const screen = uiSource('statecraftScreen.ts');
-    expect(screen).toContain('const face = isDoctrineId(id) ? doctrineFaceOf(id) : null;');
-    expect(braceBody(screen, 'function drawDeckDoctrineFace(')).toContain('into.dataset.line = face.line;');
+    // The orders screen's register draws a deck's Doctrine in the emblem
+    // face's gilt frame, with its decks' suits (batch SS10 part 2).
+    expect(uiSource('statecraftScreen.ts')).toContain("kind: 'doctrine',");
     // Every deck face still has its own mark: the flair gallery shows them,
     // and a one-deck Doctrine's accent resolves through the same key.
     const faces: DeckFace[] = [...DECK_IDS, 'generic', 'shared'];

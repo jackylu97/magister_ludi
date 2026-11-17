@@ -196,26 +196,29 @@ describe('what an adoption did', () => {
 
 describe('the council, read off the source', () => {
   const SCREEN = uiSource('statecraftScreen.ts');
-  const SLOTS = between(SCREEN, 'function drawSlots(', 'function drawAggregate(');
+  // The orders screen's table (batch SS10 part 2): one card or one empty chair
+  // for each chair, each with the chair's tab on its foot.
+  const TABLE = between(SCREEN, 'function drawTable(', '// --- the hand');
   const STYLE = uiSource('style.css');
 
-  it('builds every chair with the shared builders, and an empty one in its ink', () => {
-    expect(SLOTS).toContain('chairNode(type, card)');
-    expect(SLOTS).toContain('emptyChairNode(type, ');
-    // The plate says the chair's type; "chair" alone was the universal chairs'.
-    expect(SLOTS).not.toContain("'sc-slot-type', 'chair'");
+  it('builds every chair with the face’s builders, and an empty one in its ink', () => {
+    expect(TABLE).toContain('const tab = chairTabNode({');
+    expect(TABLE).toContain('const face = emptyChairFace(type, ');
+    expect(TABLE).toContain('word: chairWord(type),');
     expect(SCREEN.toLowerCase()).not.toContain('universal');
   });
 
-  it('lights and dims a chair by the reducer’s own answer, and the dimmed chair says why', () => {
-    expect(SLOTS).toContain('placeError(state, seat, arrangement, held, index)');
-    expect(SLOTS).toContain("button.classList.add('sc-slot-open')");
-    expect(SLOTS).toContain("button.classList.add('sc-slot-refuses')");
-    expect(SLOTS).toContain('button.title = refusal ?? ');
-    // A click on a refusing chair says the same sentence in the manicule line.
+  it('rings and fades a chair by the reducer’s own answer, and the faded chair says why', () => {
+    expect(TABLE).toContain('refused = placeError(state, seat, arrangement, held, index);');
+    expect(TABLE).toContain("cell.classList.add('is-fit');");
+    expect(TABLE).toContain("cell.classList.add('is-faded');");
+    expect(TABLE).toContain('if (refused !== null) button.title = refused;');
+    // A click on a refusing chair says the same sentence in the hint and in
+    // the manicule line.
     const drop = braceBody(SCREEN, 'function drop(index: number)');
-    expect(drop).toContain('const problem = placeError(state, seat, arrangement, held, index);');
-    expect(drop).toContain('options.onRefuse?.(problem);');
+    expect(drop).toContain('const problem = placeError(state, seat, base, held, index);');
+    expect(drop).toContain('refuse(problem);');
+    expect(braceBody(SCREEN, 'function refuse(message: string)')).toContain('options.onRefuse?.(message);');
   });
 
   it('re-takes the staged arrangement when the chairs change, not only their number', () => {

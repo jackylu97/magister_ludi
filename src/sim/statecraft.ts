@@ -266,9 +266,13 @@ export {
   windfallPayoutIsEmpty,
   // Batch DS8: a Scaler's current value, for the figure on its face.
   scalerFigures,
+  // Batch SS10, part 2: why a card pays nothing now, for the orders screen.
+  cardIdleReason,
+  cardCanPay,
 } from './statecraft/evaluator';
 export type {
   BuildingPackageLine,
+  CardIdleReason,
   ScalerFigure,
   CardBuildingHappinessLine,
   CardBuildingPercentLine,
@@ -327,6 +331,7 @@ export {
   describeTraitLines,
   effectLine,
   grantWords,
+  idleReasonWords,
   indefinite,
   // Batch DS8: the four card keywords, in words and as marks.
   keywordMark,

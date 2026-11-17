@@ -445,216 +445,148 @@ describe('the offer\'s draft flow', () => {
   });
 });
 
-describe('the bench and the offices', () => {
+describe('the table and its chairs', () => {
   const SCREEN = source('statecraftScreen.ts');
+  const LIVE = source('orderLive.ts');
+  const TABLE = SCREEN.slice(SCREEN.indexOf('function drawTable('), SCREEN.indexOf('// --- the hand'));
 
   /**
-   * A held card wears the flourish and costs nothing to draw; a card the law
-   * holds in an office reads its figure; a card laid in an office this session
-   * wears the pending mark and is not weighed at all. The asymmetry is
-   * deliberate — see `stampFor` and the reveal ruling.
+   * The orders screen (batch SS10, part 2) asks a card's figure only of a card
+   * the law already holds in a chair. A card played this visit wears the
+   * staged line and is not weighed at all, and the hand is never weighed. The
+   * asymmetry is the reveal ruling's, and it is also what keeps the draw cheap.
    */
-  it('weighs only the cards the law already holds in an office', () => {
-    const collection = SCREEN.slice(
-      SCREEN.indexOf('function drawCollection('),
-      SCREEN.indexOf('function draw()'),
+  it('weighs only the cards the law already holds in a chair', () => {
+    expect(TABLE).toContain(
+      'const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet);',
     );
-    expect(collection).toContain('cardStampNode()');
-    // The reading is inside the in-force branch and nowhere else.
-    // A card is named by its id alone since the levelling ruling of 2026-09-04.
-    const inForce = collection.slice(collection.indexOf('} else if (inForce.has(id)) {'));
-    expect(inForce).toContain("stampFor(state, seat, { kind: 'order', id })");
-    expect(
-      collection.slice(0, collection.indexOf('} else if (inForce.has(id)) {')),
-    ).not.toContain('stampFor(');
+    const hand = SCREEN.slice(SCREEN.indexOf('function drawHand('), SCREEN.indexOf('function layRail('));
+    expect(hand.length).toBeGreaterThan(200);
+    expect(hand).not.toContain('seatedOrderLive(');
+    expect(hand).not.toContain('explainCardImpact');
   });
 
   /**
    * **One reading of the real board per draw** (`cardImpactSheet`, batch H18).
-   *
-   * A sheet of a dozen cards is a dozen ghost-diffs, and one side of every one
-   * of them is the empire as it actually stands. Taken once and handed to every
-   * card, a late-game Statecraft draw measured 120ms → 57ms. Its lifetime is
-   * **one draw** — the reducer mutates `GameState` in place — so the pin is on
-   * both halves: it is taken in `draw`, and it is let go in a `finally`.
+   * Taken in `draw`, handed to every card's reading, and let go in a `finally`,
+   * because the reducer mutates `GameState` in place.
    */
   it('takes one shared reading of the board per draw, and lets go of it', () => {
     expect(SCREEN).toContain('cardImpactSheet(options.getState(), options.getPlayerId())');
-    expect(SCREEN).toContain('explainCardImpact(state, seat, subject, sheet ?? undefined)');
+    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'order', id }, sheet)");
     const draw = SCREEN.slice(SCREEN.indexOf('function draw(): void {'));
     expect(draw.slice(0, draw.indexOf('function paint('))).toContain('sheet = null;');
-    // The Religion sheet keeps the same bargain, one screen over.
+    // The Faith sheet keeps the same bargain, one screen over.
     const votive = source('religionScreen.ts');
     expect(votive).toContain('cardImpactSheet(options.getState(), options.getPlayerId())');
     expect(votive.slice(votive.indexOf('function draw(): void {'))).toContain('sheet = null;');
   });
 
   /**
-   * **Confirm plays the count, and nothing else does** — the reveal ruling
-   * (`docs/history/fewer-things.md` §1 "The reveal", RULED 2026-09-06, the user's own
-   * words: *"aggregate yields fire after hitting confirm"*).
-   *
-   * The three halves of it that can be quietly broken: the list is armed by the
-   * commit rather than by the drop, it is spent by the draw that plays it, and a
-   * card in force that was not part of the signature arrives landed.
+   * **Confirm counts the figures up, and nothing else does** (the reveal
+   * ruling, `docs/history/fewer-things.md` §1, RULED 2026-09-06). The list is
+   * armed by the commit, spent by the draw that plays it, and the gesture that
+   * plays a card into a chair arms nothing.
    */
-  it('plays the count for the cards Confirm just made law, and lands the rest', () => {
-    expect(SCREEN).toContain(
-      'if (justConfirmed.includes(id)) counting.push(playCardStamp(stamp, reading));',
-    );
-    expect(SCREEN).toContain('else landCardStamp(stamp, reading);');
-    // Armed by the signature — `commitStaging` answers the guest list — and spent
-    // by the draw that plays it.
+  it('counts up the cards Confirm just made law, and only those', () => {
+    expect(TABLE).toContain('if (justConfirmed.includes(id)) {');
+    expect(TABLE).toContain("counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));");
     expect(SCREEN).toContain('justConfirmed = commitStaging();');
     expect(SCREEN).toContain('justConfirmed = [];');
-    // And the gesture that lays a card down arms nothing at all.
-    const drop = code(
-      SCREEN.slice(
-        SCREEN.indexOf('function drop(index: number)'),
-        SCREEN.indexOf('function drawGovernment('),
-      ),
-    );
-    expect(drop).not.toContain('playCardStamp');
+    const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number)'), SCREEN.indexOf('function confirm(')));
+    expect(drop.length).toBeGreaterThan(200);
+    expect(drop).not.toContain('countUp');
     expect(drop).not.toContain('justConfirmed =');
   });
 
   /**
-   * **A newly slotted card shows no figure.** The unconfirmed branch calls the
-   * one writer that takes no reading (`pendCardStamp`), so there is no number in
-   * scope for it to print, and neither of the two writers that do take one is
-   * reachable from it.
+   * **A card played this visit shows no figure.** Its reading takes no state at
+   * all, so there is no number in scope for it to print: no tablet, and the
+   * board's "awaits your seal: on Confirm" in the colophon.
    */
-  it('prints the pending mark, and no figure, on an unconfirmed office', () => {
-    const collection = SCREEN.slice(
-      SCREEN.indexOf('function drawCollection('),
-      SCREEN.indexOf('function draw()'),
-    );
-    const pending = code(
-      collection.slice(
-        collection.indexOf('if (pending.has(id)) {'),
-        collection.indexOf('} else if (inForce.has(id)) {'),
-      ),
-    );
-    expect(pending.length).toBeGreaterThan(40);
-    expect(pending).toContain('pendCardStamp(stamp)');
-    expect(pending).not.toContain('landCardStamp');
-    expect(pending).not.toContain('playCardStamp');
-    expect(pending).not.toContain('stampFor(');
-    // The two halves of "in a slot" are told apart by the staging's own flag,
-    // never by a second opinion about what the law says.
-    expect(collection).toContain('(entry.staged ? pending : inForce).add(entry.card)');
+  it('prints the staged line, and no figure, on an unconfirmed chair', () => {
+    const staged = code(LIVE.slice(LIVE.indexOf('export function stagedLive('), LIVE.indexOf('export function seatedOrderLive(')));
+    expect(staged).toContain('LIVE_WORDS.staged');
+    expect(staged).toContain('tablet: null');
+    expect(staged).not.toContain('explainCardImpact');
+    expect(staged).not.toContain('stampReading');
+    expect(LIVE).toContain("staged: 'awaits your seal: on Confirm'");
+    // Staged and in force are told apart by the staging's own flag.
+    expect(TABLE).toContain('filled.staged ? stagedLive()');
   });
 
   /**
-   * The **aggregate** band: the ceremony's own figure, counted up on Confirm and
-   * standing at rest otherwise, read from the Ledger's deck slice so the two
-   * surfaces cannot disagree.
+   * The head's total: counted up on Confirm and standing at rest otherwise,
+   * read from the Ledger's deck slice so the two surfaces cannot disagree. It
+   * is never a sum of the cards' own lines (rule 5).
    */
-  it('fires the aggregate on Confirm, from the Ledger’s own reading', () => {
-    const band = SCREEN.slice(
-      SCREEN.indexOf('function drawAggregate('),
-      SCREEN.indexOf('function drawCommit('),
-    );
-    expect(band).toContain('foldDeck(state, seat)');
-    expect(band).toContain('if (justConfirmed.length > 0) counting.push(playCardStamp(stamp, reading));');
-    expect(band).toContain('else landCardStamp(stamp, reading);');
-    // One source for the figure, and it is the Ledger's.
+  it('counts the head’s total up on Confirm, from the Ledger’s own reading', () => {
+    const head = SCREEN.slice(SCREEN.indexOf('function paintHead('), SCREEN.indexOf('// --- the register'));
+    expect(head).toContain('foldDeck(state, seat)');
+    expect(head).toContain("if (countTotal) counting.push(countUp([...payNode.querySelectorAll('.orders-pay-figure b')]));");
     expect(SCREEN).toContain("from './ledgerScreen'");
+    expect(SCREEN).toContain('countTotal = justConfirmed.length > 0;');
   });
 
   /**
-   * **Rearranging is a placement like any other.** A card in an office is picked
-   * up through the same staging verbs a benched card is placed with, and the
-   * refusal is `removeError`'s — which is how the seal rules survive a gesture
-   * that did not exist before.
+   * **Moving a card is a placement like any other.** A card in a chair is
+   * picked up through the staging's own `remove`, and the refusal is
+   * `removeError`'s, which is how the seal rules survive the gesture.
    */
-  it('lifts a slotted card through the staging’s own remove', () => {
-    const lift = SCREEN.slice(
-      SCREEN.indexOf('function lift(id: OrderId)'),
-      SCREEN.indexOf('function drop(index: number)'),
-    );
-    expect(lift).toContain('removeError(state, seat, arrangement, index)');
-    expect(lift).toContain('options.onRefuse?.(problem)');
-    expect(lift).toContain('staged = remove(arrangement, index)');
-    expect(lift).toContain('held = id');
-    // Both branches of "in a slot" offer the gesture, and neither disables the
-    // face any more.
-    const collection = SCREEN.slice(
-      SCREEN.indexOf('function drawCollection('),
-      SCREEN.indexOf('function draw()'),
-    );
-    expect(collection.match(/lift\(id\)/g) ?? []).toHaveLength(2);
-    expect(collection).not.toContain('button.disabled = true');
+  it('lifts a seated card through the staging’s own remove', () => {
+    const lift = SCREEN.slice(SCREEN.indexOf('function lift(index: number)'), SCREEN.indexOf('function putBack('));
+    expect(lift).toContain('removeError(ctx.state, ctx.seat, ctx.arrangement, index)');
+    expect(lift).toContain('refuse(problem);');
+    expect(lift).toContain('staged = remove(ctx.arrangement, index);');
+    expect(lift).toContain('held = entry.card;');
   });
 });
 
 /**
- * The Doctrines' shelf (`docs/flags.md` note 6, 2026-09-05: "doctrines that give
- * yields should also give an indicator of the yields they're supplying").
- *
- * An adopted Doctrine is permanently in force, so its face wears the standing
- * stamp exactly as an Order in an office does. The three things that could be
- * quietly wrong on every Doctrine at once are pinned here: that the seat is
- * built at all, that the reading is `explainCardImpact`'s for the **doctrine**
- * subject rather than borrowed from some other card class, and that it arrives
- * *landed* — a permanent card's ceremony was adoption day, and a screen that
- * replayed the count-up on every open would celebrate a decision made an age
- * ago.
+ * The Doctrines in the gilt register (`docs/flags.md` note 6, 2026-09-05:
+ * "doctrines that give yields should also give an indicator of the yields
+ * they're supplying"). Each Doctrine carries a live plate from the same
+ * reading the Orders use, for the doctrine subject, and it is never counted
+ * up: a Doctrine's ceremony was adoption day.
  */
-describe('the doctrines wear the stamp', () => {
+describe('the Doctrines carry their live line', () => {
   const SCREEN = source('statecraftScreen.ts');
-  const DOCTRINES = SCREEN.slice(
-    SCREEN.indexOf('function drawDoctrines('),
-    SCREEN.indexOf('function drawCollection('),
-  );
+  const LIVE = source('orderLive.ts');
+  const REGISTER = SCREEN.slice(SCREEN.indexOf('function drawRegister('), SCREEN.indexOf('// --- the table'));
 
-  it('finds the shelf, so the sweep is not vacuous', () => {
-    expect(DOCTRINES.length).toBeGreaterThan(200);
-    expect(DOCTRINES).toContain('sc-card-doctrine');
+  it('finds the register, so the sweep is not vacuous', () => {
+    expect(REGISTER.length).toBeGreaterThan(200);
+    expect(REGISTER).toContain('registerFaceNode({');
   });
 
-  /** The same seat the hand's cards keep — one card shape, not two. */
-  it('builds the stamp on every adopted doctrine\'s face', () => {
-    expect(DOCTRINES).toContain('cardStampNode()');
-    expect(DOCTRINES).toContain('card.append(stamp)');
+  it('builds the live plate on every adopted Doctrine', () => {
+    expect(REGISTER).toContain('for (const id of sc.doctrines) {');
+    expect(REGISTER).toContain('const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet) : null;');
+    expect(REGISTER).toContain('live: live === null ? null : livePlate(live),');
   });
 
-  /** The reading is the doctrine's own, through the one evaluator. */
-  it('reads it from explainCardImpact for the doctrine id', () => {
-    expect(DOCTRINES).toContain("stampFor(state, seat, { kind: 'doctrine', id })");
-    // And `stampFor` is the one adapter both classes go through — nothing on
-    // this screen asks `explainCardImpact` a second way.
-    expect(code(SCREEN).match(/explainCardImpact\(/g) ?? []).toHaveLength(1);
+  it('reads it from explainCardImpact for the doctrine id, in one module', () => {
+    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet)");
+    expect(code(LIVE).match(/explainCardImpact\(/g) ?? []).toHaveLength(2);
+    expect(code(SCREEN)).not.toContain('explainCardImpact(');
   });
 
-  /** Landed, never played: the count-up belongs to the adoption moment. */
-  it('lands the figure rather than replaying the ceremony on open', () => {
-    expect(DOCTRINES).toContain('landCardStamp(stamp, reading)');
-    expect(DOCTRINES).not.toContain('playCardStamp');
+  it('lands the figure rather than counting it up on open', () => {
+    expect(REGISTER).not.toContain('countUp');
   });
 
   /**
-   * A doctrine with no yield-shaped effect keeps the flourish. `stampFor`
-   * answers `null` for an empty reading and the draw simply does not write into
-   * the seat — which leaves `cardStampNode`'s own `data-face='flourish'`
-   * standing, the same thing a benched Order shows.
+   * A Doctrine whose reading is empty says why: "+0 now" when it pays yields
+   * and pays nothing this turn, "in force" when it is a rule.
    */
-  it('leaves the flourish standing when the reading is empty', () => {
-    expect(code(DOCTRINES)).toContain('if (reading) landCardStamp(stamp, reading);');
-    expect(SCREEN).toContain('return stampIsEmpty(reading) ? null : reading;');
-    // The seat's default face, and the mark it wears there.
-    const stampSource = code(source('cardStamp.ts'));
-    expect(stampSource).toContain("stamp.dataset.face = 'flourish'");
-    expect(stampSource).toContain('flourish.textContent = STAMP_FLOURISH');
-    expect(STAMP_FLOURISH).toBe('— · ✶ · —');
+  it('says "+0 now" or "in force" when the reading is empty', () => {
+    const empty = code(LIVE.slice(LIVE.indexOf('function liveOfStamp('), LIVE.indexOf('export function stagedLive(')));
+    expect(empty).toContain('if (cardCanPay(card)) {');
+    expect(empty).toContain('idleReasonWords(cardIdleReason(state, seat, card))');
+    expect(empty).toContain("line: { kind: 'standing', text: LIVE_WORDS.rule }");
   });
 
-  /**
-   * The stamp is a mark on paper wherever it lands, so the compact rule the
-   * hand's cards keep has to reach the doctrine shelf too — both are `.sc-card`,
-   * and the one block that quiets the mark is written on the class rather than
-   * on the collection's grid.
-   */
+  /** The stamp's compact rule in `style.css` still reaches the Faith sheet's cards. */
   it('is quieted by the same compact rule the hand\'s cards keep', () => {
     expect(STYLE).toContain('.sc-card .card-stamp {');
     expect(STYLE).not.toContain('.sc-card-order .card-stamp {');
