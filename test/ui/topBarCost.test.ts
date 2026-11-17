@@ -160,17 +160,20 @@ describe('the empire’s percentages are taken once a render', () => {
     expect(swept.count).toBeLessThan(state.cities.length);
   });
 
-  it('takes the rate reading’s own sweep only for an empire that reads a rate', () => {
+  it('takes no sweep of its own for the rate reading of an empire that reads a rate', () => {
     // The Tithe converts a turn of faith into gold, so the books have to be
     // opened — and then exactly once, hoisted inside `foldEmpireRates` as before.
     // The figure is unchanged either way: `explainCardEmpireYields` resolves the thunk
     // on the first conversion it meets and once only
     // (`test/sim/statecraft.test.ts` pins that half).
+    // Since bot batch BP15 the books are `readEmpireRates`, folded off the town
+    // lists and the meters `readEmpire` has just read, so the rate reading takes
+    // no sweep of its own: one in all, as for an empire with no such card.
     const state = empire(12);
     state.players[0]!.statecraft.doctrines.push('theTithe');
     bumpRevision(state);
     const swept = counting(meters, 'meterEffects', () => readEmpire(state, 0).totals);
-    expect(swept.count).toBe(2);
+    expect(swept.count).toBe(1);
     expect(swept.count).toBeLessThan(state.cities.length);
   });
 

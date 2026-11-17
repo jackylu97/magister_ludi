@@ -35,7 +35,7 @@ import {
 // The front-row reading the `wonderProduction` tally asks (Magisterial batch
 // MG4). Straight from its layer, as `combat.ts` takes `isRaisingOpus`; this
 // file already reads the same module through the index above.
-import { isRaisingWonderOrOpus } from '../statecraft/evaluator';
+import { type EmpireRates, isRaisingWonderOrOpus } from '../statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -439,9 +439,20 @@ export function foldEmpireRates(
  * own cities for a figure nothing looked at. Nothing about the answer moves:
  * `explainCardEmpireYields` resolves the thunk on the first conversion it meets and
  * once only, so a realm that holds one reads exactly the books it read before.
+ *
+ * **A reader at rest may hand in the taking** (bot batch BP15). `rates` is the
+ * same fold asked another way: `readEmpire` passes `readEmpireRates`, which is
+ * `foldEmpireRates` taken off the town lists the reading has just folded. A
+ * fresh fold here would fold every town of the empire a second time for the
+ * same figure. A caller inside a write passes nothing and gets the fresh fold,
+ * because the remembered lists may miss a write there (`slate.ts`, batch P1).
  */
-export function explainEmpireCardYields(state: GameState, playerId: number): CardYieldLine[] {
-  return explainCardEmpireYields(state, playerId, () => foldEmpireRates(state, playerId));
+export function explainEmpireCardYields(
+  state: GameState,
+  playerId: number,
+  rates: () => EmpireRates = () => foldEmpireRates(state, playerId),
+): CardYieldLine[] {
+  return explainCardEmpireYields(state, playerId, rates);
 }
 
 // --- the empire's own list (batch H19) --------------------------------------
@@ -603,14 +614,19 @@ export function stageEmpireFold(fold: CityYields, empire: EmpirePercents): CityY
  * `empire` may be handed in by a caller that already took the reading —
  * `explainCity`'s parameter one scale out, and the seam a ghost-diff lends its own
  * meters across (`cardImpact.ts`).
+ *
+ * `rates`, when given, is how a `pays` rate card reads the empire's books
+ * (`explainEmpireCardYields`). Only a reader at rest may pass it (bot batch
+ * BP15: `readEmpire` hands in `readEmpireRates`). The figure is the same.
  */
 export function explainEmpireLines(
   state: GameState,
   playerId: number,
   empire: EmpirePercents = empirePercents(state, playerId),
+  rates?: () => EmpireRates,
 ): EmpireYieldLine[] {
   const lines = empireStandingLines(state, playerId);
-  for (const line of explainEmpireCardYields(state, playerId)) {
+  for (const line of explainEmpireCardYields(state, playerId, rates)) {
     lines.push({
       ...emptyCityYields(),
       ...voicesOf(line),

@@ -193,7 +193,7 @@ import {
   unitLabel,
   unweighed,
 } from './decision';
-import { inDecision } from './decisionMemo';
+import { decisionMemoTally, inDecision } from './decisionMemo';
 import {
   type ImprovementPlan,
   buildImprovementPlan,
@@ -204,6 +204,7 @@ import {
 } from './plan';
 import { NO_ROUTES, explainRoutePay, routeOutlook } from './routes';
 import {
+  type SittingKey,
   type ValueContext,
   type WarOutlook,
   explainBuildingRow,
@@ -500,6 +501,12 @@ export function valueContext(
    * what every caller outside a sitting gets.
    */
   books?: SeatBooks,
+  /**
+   * The sitting this context is for (bot batch BP15, stage 2), so the readings
+   * kept for a sitting (`ValueContext.sitting`) are kept on it. `seatContext`
+   * passes one; every other caller gets a context with none, as before.
+   */
+  sitting?: SittingKey,
 ): ValueContext {
   const ai = aiFor(player);
   // One reading of the empire's books for the whole context — the pressure, the
@@ -584,6 +591,7 @@ export function valueContext(
     // the reason every other price is: a wager appraised against the prices it
     // is itself about to lift would be the fixed point batch 1 refused.
     wager: null,
+    ...(sitting !== undefined ? { sitting } : {}),
   };
   // **The bar this seat staked, before everything that reads a price** (batch
   // W2, `docs/wager.md` §6). It is one `wagerStanding` for one card and it lifts
@@ -657,7 +665,7 @@ export function valueContext(
     settlerWorth: (city) => settlerTerms(state, player, city, constrained),
   } satisfies WantInputs);
   const priced = shadowPrices(book, staked);
-  return {
+  const final: ValueContext = {
     ...constrained,
     prices: {
       ...constrained.prices,
@@ -673,6 +681,7 @@ export function valueContext(
     },
     wants: book,
   };
+  return final;
 }
 
 /**
@@ -846,6 +855,20 @@ export interface BotSitting {
    * walked back to work. Membership only; nothing iterates it.
    */
   steppedBack: Set<number>;
+  /**
+   * **The threat to each hex a worker of the seat might walk to, this sitting**
+   * (bot batch BP15, `threatenedTarget`), by tile index. Read at the first ask,
+   * by the guard plan's own reading (`workerThreat`), and kept for the sitting:
+   * the hostiles do not move inside the seat's turn, the guard plan's bargain.
+   * Lookup only; nothing iterates it.
+   */
+  hexThreats: Map<number, GuardThreat | null>;
+  /**
+   * **The beeline's table, kept while the seat's research stands still** (bot
+   * batch BP15, stage 2; `techGoalTable`). The context it was read on, the
+   * research it was read for (`beelineKey`), and the table.
+   */
+  beeline: { ctx: ValueContext; key: string; table: TechGoalTable } | null;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -869,6 +892,8 @@ export function botSitting(playerId: number): BotSitting {
     guards: null,
     guardOrders: new Set<string>(),
     steppedBack: new Set<number>(),
+    hexThreats: new Map<number, GuardThreat | null>(),
+    beeline: null,
   };
 }
 
@@ -882,7 +907,7 @@ export function botSitting(playerId: number): BotSitting {
 export function seatContext(state: GameState, player: Player, sitting?: BotSitting): ValueContext {
   if (sitting === undefined || sitting.playerId !== player.id) return valueContext(state, player);
   if (sitting.ctx === null) {
-    sitting.ctx = valueContext(state, player, seatBooks(state, player, sitting));
+    sitting.ctx = valueContext(state, player, seatBooks(state, player, sitting), { seat: player.id });
     // The routes the book was read at, so the spend arm can tell a route hired
     // since (batch BP8, `nextRouteOffer`).
     sitting.ctxRoutes = usedRouteSlots(state, player.id);
@@ -4275,8 +4300,8 @@ function samePlan(a: readonly TechId[], b: readonly TechId[]): boolean {
  * A charter technology this seat has not drafted is never a candidate
  * (Scientific batch S0): the reducer would refuse the plan.
  */
-export function bestTechGoal(state: GameState, player: Player): TechId | null {
-  return techGoalTable(state, player).goal;
+export function bestTechGoal(state: GameState, player: Player, sitting?: BotSitting): TechId | null {
+  return techGoalTable(state, player, sitting).goal;
 }
 
 /**
@@ -4311,12 +4336,50 @@ export function bestTechGoal(state: GameState, player: Player): TechId | null {
  * challenger clears it by a tenth; what cannot happen any more is the swap that
  * comes back the next turn.
  */
-function techGoalTable(
-  state: GameState,
-  player: Player,
-  sitting?: BotSitting,
-): { goal: TechId | null; candidates: BotCandidate[] } {
+function techGoalTable(state: GameState, player: Player, sitting?: BotSitting): TechGoalTable {
   const ctx = seatContext(state, player, sitting);
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null) return readTechGoalTable(state, player, ctx);
+  // **Kept for the sitting while the seat's research stands still** (bot batch
+  // BP15, stage 2; BP14's "the beeline's table" saving). The re-aim arm asks the
+  // table on almost every decision of a sitting, and between two asks the seat
+  // has usually sent a command that moves the economy clock (a focus, a seat, a
+  // build), so a table kept on that clock was never handed back. The table is
+  // kept instead while the research it is about stands still: the techs known,
+  // the plan, the pool and the cards held (a charter opens a node). How play can
+  // differ: a later ask in the same sitting reads the towns' folds, the levy and
+  // the commissions as they stood at the first ask, so a town that grew a
+  // building or a soldier bought since does not move the goal until the next
+  // sitting. A research order changes the key, so the arm that sent it reads a
+  // fresh table at its next ask.
+  const key = beelineKey(player);
+  const held = own.beeline;
+  decisionMemoTally.tableAsked += 1;
+  if (held !== null && held.ctx === ctx && held.key === key) {
+    decisionMemoTally.tableKept += 1;
+    return held.table;
+  }
+  const table = readTechGoalTable(state, player, ctx);
+  own.beeline = { ctx, key, table };
+  return table;
+}
+
+/** What the beeline's kept table is about: the seat's research and the cards that open nodes. */
+function beelineKey(player: Player): string {
+  return (
+    `${player.techsResearched.length}|${researchPlan(player).join(',')}|` +
+    `${player.sciencePool}|${player.statecraft.orders.length}`
+  );
+}
+
+/** The beeline's table: the goal, and every node it weighed. */
+interface TechGoalTable {
+  goal: TechId | null;
+  candidates: BotCandidate[];
+}
+
+/** `techGoalTable`'s reading, taken fresh. */
+function readTechGoalTable(state: GameState, player: Player, ctx: ValueContext): TechGoalTable {
   const ai = ctx.ai;
   // **One sweep for the whole table**, `valueContext`'s and the improvement
   // plan's bargain for the third time: the renewal riders below need to know how
@@ -8781,6 +8844,53 @@ function workerGuard(
 }
 
 /**
+ * **The threat to a hex a worker would walk to**, or `null` when it is safe
+ * (bot batch BP15; `docs/flags.md`, the bullet "BP15").
+ *
+ * The guard arm's own reading (`workerThreat`): a combatant of the wild or of a
+ * rival at war that the seat can see, which could walk onto the hex within
+ * `workers.guardTurns` turns by its own route and movement. The hex is safe
+ * when no such hostile exists, when a soldier of the seat stands on it, or when
+ * a guard of the plan (`guardPlan`, a `hold` or a `march`) is going to it and
+ * arrives no later than the hostile. A town of the seat is always safe.
+ *
+ * The threat is read once a sitting for each hex (`BotSitting.hexThreats`),
+ * because the hostiles do not move inside the seat's turn. The guard on the hex
+ * is read live, because the seat's own soldiers do.
+ */
+function threatenedTarget(
+  state: GameState,
+  player: Player,
+  ai: AiConfig,
+  tile: Tile,
+  sitting?: BotSitting,
+): GuardThreat | null {
+  if (ai.workers.guardTurns <= 0) return null;
+  if (isWaterTerrain(tile.terrain) || inOwnTown(state, player, tile.col, tile.row)) return null;
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  const index = tileIndex(state.map, tile.col, tile.row);
+  let threat: GuardThreat | null;
+  if (own !== null && own.hexThreats.has(index)) {
+    threat = own.hexThreats.get(index) ?? null;
+  } else {
+    threat = workerThreat(state, player, ai, tile);
+    if (own !== null) own.hexThreats.set(index, threat);
+  }
+  if (threat === null) return null;
+  for (const other of state.units) {
+    if (other.ownerId !== player.id || other.col !== tile.col || other.row !== tile.row) continue;
+    if (isCombatant(unitDef(other.type))) return null;
+  }
+  // A guard on its way that gets there first. Existence only, so the order the
+  // plan's jobs are walked in decides nothing.
+  for (const job of guardPlan(state, player, sitting).bySoldier.values()) {
+    if (job.kind === 'screen' || job.at.col !== tile.col || job.at.row !== tile.row) continue;
+    if (job.turns <= threat.turns) return null;
+  }
+  return threat;
+}
+
+/**
  * **Is this piece standing in the fields of an empire the seat is at war
  * with?** The first clause of `civilianDanger`, read the same way. A worker
  * there is the war's case, not the guards': it walks home (§13.4), and no
@@ -9319,7 +9429,7 @@ function workerCommand(
   // It is asked again like any worker, and it may still work the hex it stands
   // on, but no march is sent until the next sitting. See `holdAfterStepBack`.
   if (own !== null && own.steppedBack.has(unit.id)) {
-    return holdAfterStepBack(state, unit, workerChoice(state, player, unit, ctx, ai, null));
+    return holdAfterStepBack(state, unit, workerChoice(state, player, unit, ctx, ai, null, sitting));
   }
   // **A worker in danger** (bot batch BP13; the user, 2026-11-16: *"the bots
   // should have logic to move soldiers to protect workers if they sense a
@@ -9336,7 +9446,7 @@ function workerCommand(
     if (back !== null && own !== null) own.steppedBack.add(unit.id);
     return back;
   }
-  return workerChoice(state, player, unit, ctx, ai, guarded);
+  return workerChoice(state, player, unit, ctx, ai, guarded, sitting);
 }
 
 /**
@@ -9372,6 +9482,16 @@ function holdAfterStepBack(state: GameState, unit: Unit, choice: UnitChoice | nu
  * The worker's answer after the danger clause: the war's flight, then the
  * improvement plan. `guarded` is the worker's guard reading, or `null` for a
  * worker that stepped back this turn (its danger was read when it stepped).
+ *
+ * **A worker does not walk into danger** (bot batch BP15; the user, 2026-11-17:
+ * *"worker should stay home yes"*). A plan row whose hex a hostile could reach
+ * within `workers.guardTurns` turns is refused, unless a guard holds the hex or
+ * reaches it first (`threatenedTarget`). The worker takes the best row that is
+ * safe, or works the hex it stands on, or sleeps, and `wakeIdleWorker` asks it
+ * again next turn. A worker whose march ends on a threatened hex and that has
+ * no safe row is told to stop (`cancelOrder`), so its march claim is released
+ * for a worker that has a guard. BP13c found 26 of 98 step-backs were a worker
+ * that left its town in the morning and stepped back the same turn.
  */
 function workerChoice(
   state: GameState,
@@ -9380,6 +9500,7 @@ function workerChoice(
   ctx: ValueContext,
   ai: AiConfig,
   guarded: { threat: GuardThreat; job: GuardJob | null } | null,
+  sitting?: BotSitting,
 ): UnitChoice | null {
   // **A worker at war goes home first** (§13.4). Asked before the improvement
   // plan is even built, and for two reasons: a hex it cannot live to finish is
@@ -9438,6 +9559,14 @@ function workerChoice(
             };
       continue;
     }
+    // **No walk into danger** (bot batch BP15): a hex a hostile could reach first
+    // is refused before its route is priced, so it costs none of the probes.
+    const target = getTileAt(state.map, row.entry.col, row.entry.row);
+    const danger = target === undefined ? null : threatenedTarget(state, player, ai, target, sitting);
+    if (danger !== null) {
+      tried.push(refused(label, `${dangerWords(state, danger)} could reach it, and no guard holds it`));
+      continue;
+    }
     // A route is the most expensive question this bot asks (`search.pathProbes`),
     // so the walk is only priced for the few best rows.
     if (probes >= ai.search.pathProbes) {
@@ -9445,7 +9574,7 @@ function workerChoice(
       continue;
     }
     probes += 1;
-    const tile = getTileAt(state.map, row.entry.col, row.entry.row);
+    const tile = target;
     if (!tile || findPath(state, unit, tile) === null) {
       tried.push(refused(label, 'no route to it'));
       continue;
@@ -9481,6 +9610,25 @@ function workerChoice(
     const choice: UnitChoice = { command: taken.command, summary: taken.summary, candidates: tried };
     if (taken.focus !== undefined) choice.focus = taken.focus;
     return choice;
+  }
+
+  // **A march into danger is stopped** (bot batch BP15). A stand-down does not
+  // cancel a march (`reaskTheMarch`), so a worker walking to a hex that is now
+  // threatened, with no safe row to take instead, is told to stop. The march end
+  // was its claim (`spadeClaims`), and stopping releases it, so a worker that has
+  // a guard there may take the hex. It is asked again next turn.
+  const end = marchEnd(unit);
+  const endTile = end === null ? undefined : getTileAt(state.map, end.col, end.row);
+  const endDanger = endTile === undefined ? null : threatenedTarget(state, player, ai, endTile, sitting);
+  if (endDanger !== null) {
+    tried.push(chosenAt('stop the march', tried.length));
+    return {
+      command: { type: 'cancelOrder', playerId: player.id, unitId: unit.id },
+      summary:
+        `Stops its march to (${end!.col},${end!.row}): ${dangerWords(state, endDanger)} could reach that hex, ` +
+        'and no guard holds it. It is asked again next turn.',
+      candidates: tried,
+    };
   }
 
   /**

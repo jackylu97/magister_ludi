@@ -116,7 +116,15 @@ export function withGuard<T>(compute: () => T): T {
  * Asks answered through this scope, for the measurement and the tests: nothing
  * in a decision reads it.
  */
-export const decisionMemoTally = { cardAsked: 0, cardKept: 0, effectsAsked: 0, effectsKept: 0 };
+export const decisionMemoTally = {
+  cardAsked: 0,
+  cardKept: 0,
+  effectsAsked: 0,
+  effectsKept: 0,
+  /** The beeline's table, kept for a sitting while the seat's research stands still (bot batch BP15). */
+  tableAsked: 0,
+  tableKept: 0,
+};
 
 /** Switches the shadow check on or off. Tests only. */
 export function setDecisionMemoShadow(on: boolean): void {

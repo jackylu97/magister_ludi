@@ -716,7 +716,11 @@ function empireReading(state: GameState, playerId: number): EmpireReading {
     const reading = readCity(state, city);
     towns.push({ city, reading, total: foldCity(state, city, [], city.queue[0], reading) });
   }
-  const lines = explainEmpireLines(state, playerId, empire);
+  // A `pays` rate card reads the empire's books (bot batch BP15). This reading is
+  // at rest, so the books are `readEmpireRates`, folded off the town lists read
+  // just above, and not a second fold of every town. The figure is the same: it
+  // is `foldEmpireRates` with the very calls the fresh fold would make, kept.
+  const lines = explainEmpireLines(state, playerId, empire, () => readEmpireRates(state, playerId));
   const totals = emptyCityYields();
   for (const town of towns) {
     for (const key of CITY_YIELD_KEYS) totals[key] += town.total[key];

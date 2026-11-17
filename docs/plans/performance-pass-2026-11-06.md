@@ -3092,3 +3092,201 @@ One simulation change keeps every answer but was not made: the empire reading's 
 - `docs/bot-priorities.md`, and this section.
 - The baseline folder: `/Users/jacky/code/webciv-baselines/bdc74737/six-seat-standard-t100/` (seeds 1, 7 and 2026, and a note).
 - Scratch (not in the repo), in the session's scratch folder `bp14/`: `probe.ts` (the baseline's `PROBE.ts`), `step0.py`, `snap14.ts`, `prof14.ts`, `pair.ts`, `tally.ts`, `bydecision.ts`, `shadowrun.ts`, the profile readers, the queues, the snapshots in `snaps/`, the profiles in `prof/` and the logs in `logs/`. The two scratch trees (`base/` and `inst/`) were removed at the end.
+
+## BP15: more bot speed, with caching, and the worker that stays home, 2026-11-17
+
+`docs/flags.md`, the bullet "BP15: more bot speed, with caching, and the worker that stays home". The user, on the BP14 report: *"#4 worker should stay home yes. #1 bot speedup yes. Any more bot speed up approaches we could take? I'm happing to lean into approaches that take advantage of caching"*. Three stages, each with its own proof: caches that keep play identical (stage 1), the savings that change play (stage 2), and the worker that stays home (stage 3). No knob and no rules data changed.
+
+### Method
+
+- **Trees.** The **base tree** is `e0d6996c` (the head of `decks`: BP14 and the flags commit), a clean detached worktree. Its bot and simulation code equal BP14's commit `f24c69e3`. The **stage 1 tree** is the base with stage 1 only. The **final tree** is the working tree with all three stages. The **pre-BP14 tree** is `e682002d`, BP14's own base, for the total since BP14 started. Each was a scratch worktree outside the repo, removed at the end.
+- **The game** is the end check's and the baseline's: six seats with two decks each, standard map, barbarians on.
+- **The before games.** The baseline's `PROBE.ts` with one more key, `w.backDetail` (BP13c's `probe13c-detail.ts`: each step-back with whether the worker started the turn in its town), played on the base tree for the five seeds. All five reached the stored digests of `/Users/jacky/code/webciv-baselines/bdc74737/six-seat-standard-t100/` at turns 20, 50, 75 and 100 (seed 42 `813871d0:954523`, 999 `796792fe:1011270`, 1 `e63dd291:972568`, 7 `1f30a306:999510`, 2026 `a9dacb71:962265`), so BP14 changed no play and the stored games are this batch's "before". They were played again only to record the new key.
+- **Snapshots.** BP14's `snap14.ts` snapshots of seeds 42 and 999 at turns 90 and 120 (state and harness memories); the base tree replays them to the stored digests.
+- **Censuses**, on a scratch copy of the base tree, three to four turns from a snapshot:
+  - `census.ts`: every slate miss (`slateMemo`) by bucket, by who asked (a bot decision, a command, a phase of the turn end, or a ghost board of a card stamp), its compute time, and whether the fresh answer printed the same as the last answer for the same key;
+  - `ctxcensus.ts`: every context memo set (a `WeakMap` keyed on a `ValueContext`), by memo, and how many contexts set the same memo for one seat at one board revision;
+  - `arms.ts`: the bot's CPU by decision (the first of a sitting, the last one that answers nothing, the rest) and by arm.
+- **Timings.** BP14's `pair.ts`: one snapshot restored into several trees in one process, a turn each in rotation, three repeats, the first tree of each repeat alternating. CPU seconds by `process.cpuUsage`. One game process of mine at a time, `nice -n 15` under `caffeinate -i`.
+- **Machine.** Shared: another agent ran bot games for its own audit during the later runs. The load average is given beside each timing.
+
+### 1. Where the time goes
+
+BP14 found no hot function: the bot's picture of its seat is built once a sitting (`valueContext`), and the turn end is 14% to 19% of a turn. The censuses say what is computed more than once.
+
+- **Slate readings recomputed with the same answer** (seed 42, turns 120 to 122, 15.9 instrumented CPU seconds). Inside bot decisions, a town's list (`readCity`) was folded 1,166 times, 856 of them giving the answer the last fold gave (426 ms). In the turn end, `collectYields` read the seat's meters (`meterEffects`) 374 times, 367 the same (506 ms): it banks each town and announces the treasury, because a card may count banked gold. The cause in both is the economy clock: it is one counter for the whole board, so a build order in one town throws away every town's list in the game.
+- **Card stamps.** A stamp (`stampReadingOf`) folds the seat's whole empire on a copy of the board with the card in place (a ghost board). On seed 42 the stamps were 2.2 s of 15.9 s, nearly all of it on ghost boards (`readEmpire` 1.7 s). On seed 999, turns 120 to 123, 255 stamps cost 8.0 s of 42.5 s, and 85 of them were the same card stamped again **in the same sitting** after the economy clock moved (a seating, a purchase, a build order); 4 of those 85 gave the same answer.
+- **Context memos.** Inside `valueContext` a sitting builds several contexts (the prior, the chains', the book's, the final one) and later copies (`todayContext`, `oneTownContext`). The memos set again on another context at the same revision are cheap ones: a beaker's price (100 repeats in three turns), the scope counts (71), the promised buildings (64), the rates (55), the tech costs (47). Together they are under 2% of a late turn in BP14's profiles.
+- **By decision** (base tree, seed 42 turns 90 to 95, and seed 999 turns 120 to 123). The first decision of a sitting is 39% and 33% of the bot's time (the context). The last decision, which answers nothing, is 12% and 4%, and most of it is the beeline's table (`reaimBeeline`): 896 of 1,252 ms and 309 of 593 ms. In the middle decisions the re-aim arm costs 688 ms and 711 ms, because it builds the whole table again on each ask.
+- **Shared work.** Facts that do not depend on the seat (the tech tree's columns and costs, rule tables, unit and building rows) are under 1% of a turn together in the profiles, and so are the pure map helpers (`mapRange`, `neighborsOf`, `wrappedDistance`, `getTileAt`). Nothing worth sharing between seats was found.
+
+### 2. Stage 1: caches that keep play identical
+
+**Built: the empire's lines read the remembered books** (`readEmpire`, `src/sim/readings.ts`; `explainEmpireLines` and `explainEmpireCardYields`, `src/sim/yields/empire.ts`).
+
+- What: a `pays` rate row (the Bourse, two beliefs, Al-Ma'mun) reads the empire's books. Inside `readEmpire` those books were a fresh `foldEmpireRates`: every town of the empire folded a second time, just after `readEmpire` had folded them for its own list. `explainEmpireLines` and `explainEmpireCardYields` now take the books as an optional thunk, and `readEmpire` passes `() => readEmpireRates(state, playerId)`. A caller with none (the phase `collectYields`, the interface, `cardImpact.ts`) folds fresh, as before.
+- **Key and lifetime**: none of its own. It reads `readEmpireRates`, which is on the economy clock (`slate.ts`); this change only stops a second, unremembered fold of the same figure.
+- **Why the figure is the same**: `readEmpireRates` is `foldEmpireRates` with the seat's meters and each town's list handed in (`readEmpirePercents`, `readCity`), the very calls the fresh fold makes. `readEmpire` is a reader at rest (`readingAtRest`), and so were its own town lists, so no recursion cut differs between the two folds.
+- This is the change BP14 left "for a simulation batch". It is in `readings.ts`, where `readX` memos live; the folds only take a parameter. The register (`test/sim/verbs.test.ts`) and the yields doc's sync test pass unchanged.
+- **Tests** (`test/sim/empireLinesAtRest.test.ts`, new, core, 3): the lines `readEmpire` holds equal a fresh `explainEmpireLines` for a seat with a Bourse, with the Bourse's line among them; only the reading at rest hands in the books (a source check); and a 30-turn bot game with the slate's shadow check on, comparing the two on every seat each turn. Two interface tests pinned the old shape and were brought up to date (outside the batch's fence; see "Checks").
+
+**Looked at, and not built**:
+
+- **The beeline's table on the economy clock.** Built and measured first as a stage 1 cache (key: the sitting's context and the economy stamp), with a shadow check. It was never handed back in eight turns of a four-seat game: the arm that asks the table again comes after a command from a later arm (a focus, a seating, a build), and each of those moves the economy clock. It became stage 2's table, kept on the seat's research instead.
+- **A finer clock for a town's list** (one stamp a town, so a build order in one town does not refold the others). The list reads card scopes that depend on what a town is building (`city.queue`), queued units reserve strategic copies empire-wide, and the meters read the treasury. Each of the 154 calls of `bumpEconomy` would need a class, and the slate register (`slateRegister.test.ts`) a new set of rows. The census puts the gain at about 4% of a late bot turn. Not built: the risk is a stale yield in the rules.
+- **A treasury clock for `collectYields`** (the meters kept across a bank that cannot change them). It needs every read of the four pools in the fold's call graph listed, as `POSITION_READERS` lists piece positions. About 3% of a late turn by the census. Not built, for the same reason; see "Further options".
+- **Sharing a ghost board's readings with the real board.** The ghost board differs only in one seat's council, pantheon or Doctrines, but a town's list, the meters and the percentages all fold the law. The readings that do not (resources held, outlying hexes, watering, caravans) are about 1.5% of a late turn. Not built.
+- **Map facts once a game, and work shared by all seats**: under 1% each (part 1).
+
+**Proof**: `test/sim/aiDigest.slow.test.ts` passed with the pins unchanged (duel `29663d27:358427`, standard `5be63c3e:1044882`). Seeds 42 and 999 played from turn 1 on the stage 1 tree gave the stored digests at turns 20, 50, 75 and 100. In every paired timing below, the stage 1 tree reached the base tree's digest after every turn.
+
+**Seconds a turn, base against stage 1** (CPU seconds of the window, three repeats; load average 4 to 5):
+
+| Window | Base | Stage 1 | Change over the three repeats |
+|---|---|---|---:|
+| 42, turns 90 to 100 | 24.73, 16.89, 17.09 | 23.80, 16.45, 17.04 | −2.4% |
+| 999, turns 90 to 100 | 46.27, 28.66, 31.17 | 45.52, 27.33, 31.61 | −1.5% |
+| 42, turns 120 to 125 | 38.56, 28.59, 26.94 | 37.81, 28.24, 26.79 | −1.3% |
+| 999, turns 120 to 125 | 47.50, 36.72, 34.56 | 45.51, 34.33, 33.32 | −4.7% |
+
+- The gain is where a seat holds a rate row: 4% to 7% a repeat on seed 999 at turn 120, about 1% elsewhere, inside the noise of the 90 to 100 windows.
+
+### 3. Stage 2: the savings that change play
+
+Each keeps a reading for the rest of a seat's sitting that was read again before. The sitting's context now carries a key (`ValueContext.sitting`, a `SittingKey` that `seatContext` passes to `valueContext`); every context made from it by a spread carries the same key. A context built outside a sitting (a test, the audience that answers a paper, the rival's reading in a swap) has none and reads as before.
+
+**Built: the beeline's table is kept while the research stands still** (`BotSitting.beeline`, `techGoalTable`, `src/ai/bot.ts`).
+
+- Key: the sitting's context, and the seat's research (`beelineKey`: the techs known, the plan, the pool, and the number of cards held, since a charter opens a node). Lifetime: the sitting.
+- How play can differ: a later ask in the same sitting reads the towns' folds, the levy and the commissions as they stood at the first ask, so a building bought or a soldier raised since does not move the goal until the next sitting. A research order changes the key, so the arm reads a fresh table at its next ask. The re-aim budget (`driver.reaimsPerTurn`) is unchanged.
+- Why it is acceptable: the goal is a plan of many turns, read afresh every sitting, and the table's inputs that a sitting can move (a town's fold after one purchase) move each node's score by a little. Nothing in it is a figure the seat spends.
+- Measured: 40% to 60% of the asks are handed the kept table (part 7). The table is asked less often in a sitting than the arm split suggested: most of its cost is each sitting's first ask, which this does not touch.
+- Tests (`test/sim/aiBeelineTable.test.ts`, new, core, 2): an ask after a focus order (the economy clock moves) gets the kept table, and an ask after a research order reads a new one; a short game keeps tables and refuses no command.
+
+**Built: the card stamps are kept for the sitting** (`stampReadingOf`, `src/ai/value.ts`).
+
+- Key: the sitting and the card. Lifetime: the sitting. The first ask in a sitting reads the stamp on the economy clock as before.
+- **A kept stamp is read again when another card has taken the chair it names** (`chairTakenByAnother`). Without this, a card stamped before the seat filled that chair would be priced in a chair it can no longer have, for example a chair that reads a card twice.
+- How play can differ: a card stamped before the seat seated another card, bought a building or changed a build is priced on the books as they were then. So a card that pays more (or less) beside a card just seated is not seen to until the next sitting. The difference is second order: two cards in different stages multiply, so the stale price of the second misses the first's share of it.
+- Why it is acceptable: what the treasury can pay is never read off a stamp (the spend arm reads the purse on the live board, `bankSpend`), so no purchase can be made with gold already spent, and the chair rule above stops the one case that would price a card in a chair it cannot take.
+- Tests (`test/sim/aiSittingStamps.test.ts`, new, core, 2 of 3): every stampable card of a seat keeps its first stamp across a write (a town grown by four citizens) on the sitting's context, while a context with no sitting, and a new sitting, read the moved stamps; and a kept stamp is read again when another card is put in its chair.
+
+**Built: the chair reading is read once a sitting** (`chairReading`, `src/ai/value.ts`).
+
+- Key: the sitting. Lifetime: the sitting. While the first reading runs, the stand-in is on the sitting too, and a context that meets the stand-in does not keep it, so a card that opens a chair still does not read itself (BP14's guard rule).
+- How play can differ: what a Wildcard chair is worth is read on the first context that asks (often the prior, inside the draft plan), so its cards are priced at the prior's prices where the final context priced them at its own.
+- Why it is acceptable: the reading is a forecast (the bench's best cards and the expected card of hands still to come, discounted by the turns to draft them), and prices of the prior and the final context differ by the shadow prices' clamp at most.
+- Test (`test/sim/aiSittingStamps.test.ts`, 1 of 3): a copy of the sitting's context at five times the culture and gold prices reads the same chair worth.
+
+**Tried and taken out: the beeline's node gifts from the chains' context.** BP14 proposed pricing the table's nodes on the context the live chains use (`raced`), so a node both read is folded once. Built and measured on seed 7 (duel, four seats, turns 25 to 70, every fifth turn): the goal differed in 11 of 56 readings, and the best score was 10% lower on average. The chains' context prices at the prior and holds no chains and no want book, so some gifts read much less there. The great-person gate was the clearest case: `test/sim/aiGreatPersonGate.test.ts` failed, because a seat with 6,000 renown banked no longer aimed its research at the gate. A seat sitting on that bank without opening the gate is a mistake a player would see, so the change was taken out. The kept table above takes most of the same time.
+
+**Not built: one context for the book.** The context census (part 1) found the memos repeated across a sitting's contexts at one revision to be cheap ones, under 2% of a late turn. The larger repeats are not repeats of one figure: the purchasing plan, the chains and the build arm price the same building rows on three contexts at three sets of prices, and the draft plan and the pass candidate price the same pool at the prior's and the final prices. Sharing them would price a town's build and the pass at the prior's prices, which undoes what the shadow prices are for (the build arm and the book agreeing about a coin). Not built.
+
+**Not built: the last decision skips its arms.** After the kept table, what is left of the last decision is the arms that read units and the council (the stamps are kept now). Part 7 gives its share after the batch: 2% to 3% of the bot's time outside the beeline's first table. Skipping an arm needs a list of what each command can change for each arm, and a wrong row is a missed order; not built.
+
+### 4. Stage 3: a worker stays home while its work is in danger
+
+The user: *"worker should stay home yes"*. BP13c found 26 of 98 step-backs on seeds 42 and 999 were a worker that started the turn in its town, walked out to work and stepped back in the same turn: a worker in its town read no threat (`workerGuard` answers `null` there), so each sitting sent it out again.
+
+- **The rule** (`threatenedTarget`, `workerChoice`, `src/ai/bot.ts`). A plan row whose hex a hostile could reach within `workers.guardTurns` turns is refused before its route is priced. The threat is the guard arm's own reading (`workerThreat`): a combatant of the wild or of a rival at war that the seat can see, by the hostile's own route and full movement (`hostileReach`). The hex is safe when no such hostile exists, when a soldier of the seat stands on it, or when a guard of the plan (`guardPlan`, a `hold` or a `march`) is going to it and arrives no later than the hostile. A town of the seat is always safe.
+- **What the worker does instead**: the best safe row; or the hex it stands on (a standing row is never refused); or the survey; or a sleep, and `wakeIdleWorker` asks it again next turn.
+- **A march into danger stops.** A worker whose march ends on a hex that is now threatened, with no safe row to take, is told to stop (`cancelOrder`): a stand-down does not cancel a march (`reaskTheMarch`). Its march end was its claim (`spadeClaims`), so stopping releases it, and a worker with a guard on that hex may take it.
+- The threat to each hex is read once a sitting (`BotSitting.hexThreats`, by tile index), because the hostiles do not move in the seat's turn, the guard plan's own bargain. The guard on the hex is read live. `workers.guardTurns` at nought turns this off with the guards; there is no new knob.
+- **Tests** (`test/sim/aiWorkerHome.test.ts`, new, core, 4; all four fail on the base tree): a worker in its town walks only to hexes a raider north of the town cannot reach in two turns (before: to (5,5), two turns from it); with every hex of the town's ring threatened it sleeps in the town, and the next turn, with the raider gone, it is roused and goes to work; a hex a soldier of the seat holds is taken where the same hex without the soldier is not; and a worker marching to a hex that is now threatened stops its march and keeps no path.
+### 5. Five seeds to turn 100
+
+Seeds 42, 999, 1, 7 and 2026, six seats summed, turn 100. Before is the base tree (the stored `bdc74737` games, played again with the detail probe); after is the final tree. Paired is the geometric mean of the per-seed ratios with a 95% t interval, and the seeds that went down and up.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 290 | 302 | +3% [−9%, +17%], 1 down, 4 up | 52→54, 69→73, 54→47, 61→70, 54→58 |
+| Citizens | 1,816 | 1,859 | +1% [−22%, +33%], 1 down, 4 up | 336→401, 435→466, 374→262, 382→390, 289→340 |
+| Food | 6,966 | 7,006 | −1% [−34%, +48%], 2 down, 3 up | 1,221→1,579, 1,741→1,661, 1,506→859, 1,478→1,785, 1,020→1,122 |
+| Production | 7,695 | 9,295 | +6% [−55%, +150%], 2 down, 3 up | 1,007→1,277, 1,542→2,011, 2,021→944, 1,479→4,043, 1,646→1,020 |
+| Gold | 3,040 | 3,191 | +3% [−29%, +50%], 3 down, 2 up | 534→466, 1,065→964, 431→340, 529→893, 481→528 |
+| Science | 5,120 | 4,611 | −12% [−43%, +37%], 2 down, 3 up | 758→864, 1,342→1,360, 1,144→540, 981→944, 895→903 |
+| Culture | 2,524 | 2,238 | −20% [−56%, +48%], 3 down, 2 up | 487→282, 648→692, 474→223, 432→691, 483→350 |
+| Faith | 1,120 | 1,071 | −5% [−25%, +21%], 4 down, 1 up | 159→204, 275→247, 169→129, 252→249, 265→242 |
+| Improvements started, turns 1 to 100 | 1,351 | 1,337 | +1% [−21%, +29%], 3 down, 2 up | 216→235, 339→320, 276→234, 336→296, 184→252 |
+| Workers built, turns 1 to 100 | 445 | 454 | +3% [−14%, +25%], 3 down, 2 up | 76→77, 106→105, 90→83, 109→103, 64→86 |
+| Workers taken (the wild and rivals) | 109 | 56 | **−54% [−76%, −12%]**, 4 down, 1 up | 19→6, 18→5, 31→16, 18→19, 23→10 |
+| Step-backs | 225 | 86 | **−64% [−80%, −32%]**, 5 down, 0 up | 52→11, 46→11, 39→24, 38→23, 50→17 |
+| of them repeats (started the turn in its town) | 31 | 1 | 4 down, 0 up | 10→0, 16→0, 0→0, 4→1, 1→0 |
+| Bare worked share, turn 100 (pooled) | 20% | 22% | 3 down, 2 up | 33%→31%, 12%→23%, 17%→15%, 11%→22%, 30%→14% |
+
+More worker readings, five seeds summed (`workers15.py`): workers taken by the wild 103 → 56 and by rivals 6 → 0; soldiers killed by the wild 233 → 263 (+13%); the share of worker-turns spent working 18% in both; improvements started to turn 94 that are worked six turns later 85% in both; worker-turns with no order (`idles`) 47 → 187, and re-aimed worker marches 818 → 994 (+22%), as workers wait or change target instead of walking into danger. Holds after a step-back (BP13c's rule, now rarely needed) fell from 54 to 16.
+
+- **Workers are much safer, and the repeats are gone.** Half as many workers were taken (the interval excludes nought, four seeds of five down), step-backs fell by two thirds on every seed, and 30 of the 31 repeats BP13c described are gone. Improvements started, the share of them worked and the share of worker-turns spent working did not move.
+- **The yields: neither.** No yield moves with an interval that excludes nought, and each rises on two or three seeds of five except faith (four down, by 5% paired). Science (−12%) and culture (−20%) fell most, both mostly on seed 1, which also lost seven towns; production rose most (seed 7, 1,479 to 4,043). Five seeds cannot tell these from games parting: BP14's step 0 found intervals as wide between two trees that differ much less. So: better for workers, neither for the economy.
+- The soldiers killed by the wild rose by 13% (233 to 263), perhaps because guards and soldiers now stand where workers would have walked. Not studied further.
+
+### 6. Seconds a turn
+
+The pre-BP14 tree (`e682002d`), the base (BP14) and the final tree, from the same snapshots in one process, a turn each in rotation, three repeats. CPU seconds of the whole window; load average 4 to 7 (another agent's games ran beside these).
+
+| Window | Pre-BP14 | BP14 (base) | Final | Final against BP14 | Final against pre-BP14 |
+|---|---|---|---|---:|---:|
+| 42, turns 90 to 100 | 31.66, 23.34, 21.29 | 29.91, 21.46, 19.90 | 30.09, 21.28, 19.58 | −0.4% | −7.0% |
+| 999, turns 90 to 100 | 46.08, 35.20, 33.51 | 43.38, 32.36, 31.68 | 43.23, 31.22, 30.21 | −2.6% | −8.8% |
+| 42, turns 120 to 125 | 47.84, 38.01, 33.05 | 45.60, 37.31, 30.83 | 45.21, 35.28, 30.10 | −2.8% | −7.0% |
+| 999, turns 120 to 125 | 56.51, 46.92, 42.33 | 53.16, 46.59, 39.77 | 51.00, 44.66, 36.90 | −5.0% | −9.1% |
+
+- **This batch: 0% to 5% a turn**, about half of it stage 1 (part 2) on the seats that hold a rate row. The final tree makes 3% to 7% more decisions in the same windows (seed 42, turns 90 to 100: 1,177 against 1,099), because its play differs: a worker that waits is asked again. A decision is 7% cheaper on the two turn 90 windows (the bot's CPU over its decisions).
+- **Since BP14 started: 7% to 9% a turn.**
+- The machine was busier than in BP14's runs, so the absolute seconds are about a quarter higher than BP14's table and the stage 1 table above; only the ratios inside one process compare.
+- The five-seed games' own CPU (separate processes, with the probe's bookkeeping, turns 90 to 100) read 2.21 before and 2.62 after a turn, 3 seeds down and 2 up; the after games ran on a loaded machine and played bigger boards on seeds 42 and 7. Not used for speed.
+
+### 7. Where the time goes now
+
+- **The beeline's table** (`decisionMemoTally`, the final tree, the same four windows): 36 of 72, 45 of 112, 53 of 90 and 50 of 118 asks were handed the kept table. The rest are each sitting's first ask and the asks after a research order.
+- **The last decision** (the arm split on the final tree): 10% of the bot's time at seed 42 turns 90 to 95, and 4% at seed 999 turns 120 to 123, as before. Most of it is still the beeline's table at its first ask in the sitting (987 of 1,358 ms, and 593 of 1,135 ms); the other arms are 2% to 3% of the bot's time. This is the measure behind leaving the skip unbuilt.
+- **By seat** (`seats.ts`, the final tree): the slowest seat of each turn, summed over the window, is 30% to 35% of the bot's time (seed 42, turns 120 to 125: 11.0 of 31.3 CPU seconds; seed 999, turns 90 to 100: 11.7 of 34.8). The part of a turn that is not a bot decision (the reducer applying commands, and the turn end) is 20% to 23%.
+
+### 8. Further options
+
+The user asked what else could make bot games faster. Estimates are shares of a late turn from the profiles and censuses above, unless said otherwise.
+
+**Bots that decide in parallel** (approved by the user as the next batch, BP16: *"parallel bots sounds good too"*). A design, not built here.
+
+- **How the seats decide today.** `driveBots` (`src/ai/driver.ts`) walks the seats in `realPlayers` order (`botSeatsToDrive`). For each seat, `driveSeat` opens one sitting (`botSitting`) and loops: ask `nextBotDecision` on the live state, `dispatch` the command (which appends it to the log), ask again, until the bot answers nothing and the seat ends its turn. So seat 3 decides on a board that already holds every command seats 0 to 2 sent this turn. The stepper (`stepper.ts`) is the same loop one decision at a time, pinned byte for byte against `driveBots`. The game page runs the same loop in one web worker (`src/ui/bot.worker.ts`): the page sends a structured clone of its state with the bot memories kept beside the state (`harnessMemory.ts`: deal refusals, war ledger, muster roll, focus roll), the worker runs `driveBots` on the clone and records every command it put to the reducer, and the page puts the same commands to its own state in the same order (`replayBotAttempts`), stopping at the first outcome that differs. The arena and the tuner run one whole game per worker or process. The turn resolves when every seat has ended (rule 3).
+- **What a later seat reads of an earlier seat's same-turn commands.** Pieces: a hex an earlier seat's unit took (one combatant a hex), its zone of control on the later seat's routes, a unit it killed or damaged, a worker or a town it captured (a melee kill on a garrison takes the town at once), and what the later seat's threat and guard readings see. Diplomacy: a war declared (the later seat's soldiers act on it in the same turn), a paper put to it (bot-to-bot papers are answered at the receiver's sitting), a deal signed (the luxury copies lent). Shared things decided by log order (rule 2): the great-person roster (`chooseGreatPerson` is refused and redrawn when another seat took the name, the one refusal that changes the state), a founding site made illegal by a town just founded beside it, a hex bought, and a wonder's front-row refund. Research, a town's build choice, a citizen focus, a card seated and the seat's own purchases read only the seat's own empire, except where a card counts foreign towns or routes.
+- **(a) Plan on the turn-start state, apply in seat order.** Each seat's sitting runs in its own worker on a clone of the state as the turn began, applying its own commands to its own copy. The main thread then applies the seats' command lists in seat order. At the first command whose outcome differs from the worker's (refused, or accepted with a different result), the rest of that seat's list is dropped and the seat's sitting continues serially on the live state. Determinism: each worker's list is a pure function of the turn-start state and the seat, the merge order is fixed, and a re-plan is serial, so the result does not depend on thread timing. Play changes: a later seat no longer reacts in the same turn to an earlier seat's moves unless one of its commands is refused, so the seats become more alike in what they see (today seat 5 sees five seats' turns and seat 0 none). Saves are unchanged: the log holds the applied commands in the order applied, and a replay of `{config, log}` replays them with no bot in the loop.
+- **(b) A phase split.** The decisions that cannot collide (research, build choices, focus, card seating, drafts) run in parallel, then unit orders and diplomacy run in seat order. Play changes inside a seat too: today its arms interleave (an offer, a purchase, a unit, a town), and a phase split reorders them, so a seat would choose its builds before its soldiers move. The context, the biggest cost, would be built in the parallel phase and is needed again by the serial one, so it would have to be built twice or sent across threads. Less gain and more change than (a) or (c).
+- **(c) Speculative planning with a check.** As (a), and before seat k's list is applied, the main thread checks whether the commands of seats before it this turn touched anything seat k's sitting read. A coarse, conservative check is enough: a unit of an earlier seat that moved, fought or was made within a radius of seat k's units, towns and plan hexes; a war, peace or paper that names seat k; a town founded or captured within a radius of seat k's sites and towns; a great person called; a deal that lends seat k a copy. If nothing touched, seat k's list is exactly what it would have decided serially, and it is applied whole; if something did, seat k is planned again serially on the live state. Play and the digests stay identical to today **if the check is complete**, which is the strongest test of it. The speed-up depends on how often neighbours touch each other; on a standard map in the late game, seats at war will often re-plan.
+- **State shared between threads.** A structured clone of the state for each worker (about 10 ms at turn 150, by `bot.worker.ts`'s own measure; six clones is well under 2% of a late turn of 2 to 6 CPU seconds) and the four harness memories. A shared read-only snapshot would need a binary encoding of the whole state; not worth it at these sizes. Workers keep nothing between turns, as the page's worker does today, so no copy can drift. The memories a seat's sitting writes (its focus roll, its muster mark, a refusal it records) come back with its list and are merged in seat order.
+- **Expected speed-up** for six seats on a 10-core machine. Measured on the final tree (part 7): the slowest seat of each turn, summed, is 30% to 35% of the bot's time, and the rest of a turn (the reducer and the turn end) is 20% to 23% of it. With (a) or (c) and no seat planned again, a turn costs the serial part plus the slowest seat: 46% to 50% of today's, so **about 2× faster** at turns 90 to 125 (2.0× to 2.2× on the four windows). Six seats use six cores; a seventh to tenth core does not help one game, because the slowest seat bounds it. Clones and messages add 1% to 2%. Seats planned again eat into it: with (c) on a board where neighbours fight, perhaps 1.5×. (b) gains less, because the context, the largest single cost, is needed by both phases. For the tuner and the arena, one game per core (as today) is still the better use of cores; parallel seats shorten one game, which is what a player waiting at End Turn and the digest tests feel.
+- **Tests that would prove it.** (1) For (c): the parallel driver gives the digest pins of `aiDigest.slow.test.ts` unchanged on both boards, and the same log as `driveBots`. (2) For (a): one game played twice with the parallel driver, once with the workers' replies taken in seat order and once in reverse and in a shuffled order, gives the same log and digest. (3) The log of a parallel game replays through the reducer alone to the same state (saves). (4) A board where an earlier seat's unit takes the hex a later seat's plan marches to: the later seat's command is refused or caught by the check, the seat re-plans and ends its turn with no warning and no stall. (5) The worker's reply and the page's replay agree (`test/ui/botWorker.test.ts`, extended to several workers).
+
+**A cheaper bot for the tuner** (`scripts/evolve.ts`, `docs/plans/bot-evolution.md`). The tuner plays 16 games a child, and a standard board's last twenty turns cost as much as its first hundred. A tuner mode could stamp no cards (walk them all), read the beeline's table once a turn, ask fewer routes (`search.pathProbes`) and skip the escort and guard plans. Perhaps 30% to 50% off a game. The cost: the tuner would fit knobs to a bot that is not the shipped one, and the stamps are where card prices come from. Only worth it with a check that the champion found in tuner mode still wins in full mode on held-out seeds.
+
+**Stopping a tuner game early when it is decided.** Fitness is the score at the horizon (turn 100 or 120). If the candidate's three seats lead or trail by more than a margin at turn 80 on every reading, the result is known; the last twenty turns of a standard game are about 40% of its cost. The cost: a new rule for "decided" that must be calibrated on stored games (how often a turn-80 lead reverses by turn 100), and the promotion rule counts signs, so a wrong early stop is a wrong sign.
+
+**A shared early game.** Two children that differ only in knobs read after turn T play the same game to T, so one snapshot could serve both. In practice nearly every knob is read in the first turns (the weights, the horizon), and a child's genome mutates many genes at once, so few pairs would share a prefix. Only worth it if the genome is split into blocks by when they are first read, which a read trace of `aiConfig` could measure.
+
+**A treasury clock** (stage 1's left item). Most of `collectYields`' repeated meter readings (367 of 374) give the same answer, because each bank announces the treasury in case a card counts banked gold. A tenant that never read the treasury could survive a treasury-only announcement. About 3% of a late turn; it needs a register of every read of the four pools under the folds, as `POSITION_READERS` is for positions, and a shadow run.
+
+**A finer clock for a town's list** (stage 1's other left item). About 4% of a late bot turn; it needs every economy announcement classified by the town it reaches.
+
+**Fewer stamps.** The stamps are now kept for a sitting, and their first reading is still 15% to 20% of a late turn on seed 999. A stamp folds every town of the empire under the card. A cheaper form would fold only the towns a card's scope admits (its `where` and `scope`), with the others copied from the real board's lists. That is exact for most cards and wrong for an engine that reads other cards' lines, so it would need the same register of shapes `foldReadEngine` keeps.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, re-cut once at the end with the reason printed beside them: duel `29663d27:358427` -> `ec1eb394:358349`, standard `5be63c3e:1044882` -> `70375d88:1021629`. Stage 1 alone moved neither (part 2). Neither board reported a warning or a stall. The digest file was run again on the working tree with the new pins and passed (both boards).
+
+### Checks
+
+- Type check clean (`nice -n 15 npm run typecheck`).
+- Narrow tests, by name, all passed: the four new files (`empireLinesAtRest`, `aiBeelineTable`, `aiSittingStamps`, `aiWorkerHome`); the brief's list (`aiBot`, `aiWar`, `aiDiplomacy`, `aiWorkerClaims`, `aiWorkerHold`, `aiWorkerGuards`, `aiRouteMemo`, `aiDecisionMemo`, `aiEndCheckLoops`, `aiWants`, `verbs`, `test/mapgen/moduleCycles`, `yieldsDocSync`); and the files that read the changed code or name its functions (`aiDevotion`, `aiAppraisal`, `aiCommissions`, `aiMagisterial`, `slateRegister`, `cardImpact`, `statecraft`, `weariness`, `momentsR1`, `cities`, `aiCommerce`, `aiCardStamp`, `aiSittingMemos`, `empireYieldAtRest`, `readings`, `aiPersona`, `aiGreatPersonGate`, `aiSmallReadings`, `aiModuleCycles`, `aiScientific`, the Scientific and Magisterial Doctrine deck files, and `test/ui/topBar`, `topBarCost`, `tradePanels`, `ledgerScreen`, `statecraftReveal`, `dealMemory`, `botWorker`).
+- **Two interface tests were brought up to date**, outside the batch's fence because they pin the shape stage 1 changed: `test/ui/topBar.test.ts` reads the line of `readings.ts` that calls `explainEmpireLines`, and `test/ui/topBarCost.test.ts` counted two meter sweeps for an empire with a rate card, which is now one. No interface source changed.
+- Slow tier: `aiDigest.slow.test.ts` on the stage 1 tree (pins unchanged), on the final tree (the new pins read off it), and on the working tree with the new pins; `aiWants.slow.test.ts`. The whole core tier, the build and the rest of the slow tier are the orchestrator's.
+
+### Files
+
+- `src/sim/readings.ts`: `empireReading` hands `explainEmpireLines` the remembered books.
+- `src/sim/yields/empire.ts`: `explainEmpireLines` and `explainEmpireCardYields` take the books as an optional thunk.
+- `src/ai/bot.ts`: `valueContext` takes a `SittingKey`, and `seatContext` passes one; `BotSitting.beeline`, `beelineKey`, `techGoalTable` (kept) and `readTechGoalTable` (the old body), `TechGoalTable`; `bestTechGoal` takes a sitting; `BotSitting.hexThreats`, `threatenedTarget`, and `workerChoice` with the refusal of threatened rows and the stopped march.
+- `src/ai/value.ts`: `ValueContext.sitting` and `SittingKey`; `stampReadingOf` kept for the sitting (`SITTING_STAMPS`, `economyStampReading`, `chairTakenByAnother`); `chairReading` once a sitting (`SITTING_CHAIRS`).
+- `src/ai/decisionMemo.ts`: the table's two tallies.
+- Tests: `test/sim/empireLinesAtRest.test.ts`, `aiBeelineTable.test.ts`, `aiSittingStamps.test.ts`, `aiWorkerHome.test.ts` (new); `test/sim/aiDigest.slow.test.ts` (the pins); `test/ui/topBar.test.ts` and `test/ui/topBarCost.test.ts` (one line each).
+- `docs/bot-priorities.md`, and this section.
+- Scratch (not in the repo), in the session's scratch folder `bp15/`: the probe `probe.ts`, `census.ts`, `ctxcensus.ts`, `arms.ts` with `armpatch.py`, `seats.ts`, BP14's `pair.ts`, `prof14.ts` and `snap14.ts`, the queues, `digests.py`, `table15.py` and `workers15.py`, the profile readers (with `profwhere.cjs`), the snapshots in `snaps/`, the logs in `logs/`, and the games in `out/` (`before/` and `after/`, with `PROBE.ts` and a `NOTES.md` for the baseline folder). The scratch trees (`base/`, `inst/`, `s1/`, `s2/`, `s2arms/`, `pre14/`) were removed at the end.

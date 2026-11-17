@@ -861,6 +861,23 @@ export interface ValueContext {
    * promise. Absent everywhere else, so no Order's count moves.
    */
   faithChoice?: true;
+  /**
+   * **The sitting this context belongs to** (bot batch BP15, stage 2), or absent
+   * for a context built outside one. `seatContext` (`bot.ts`) builds the
+   * sitting's context with one, and every context made from it by a spread (the
+   * prior, the chains', the book's, the final one, `todayContext` and the rest)
+   * carries the same object. A few readings that do not depend on the prices a
+   * context holds, or whose prices were judged close enough, are kept on it for
+   * the whole sitting rather than once for each context or each tick of the
+   * economy clock: the card stamps (`stampReadingOf`) and the chair reading
+   * (`chairReading`). Its identity is the key; nothing reads inside it.
+   */
+  sitting?: SittingKey;
+}
+
+/** The identity a sitting's contexts share (`ValueContext.sitting`). It holds nothing. */
+export interface SittingKey {
+  readonly seat: number;
 }
 
 /**
@@ -5015,6 +5032,51 @@ interface StampReading {
 function stampReadingOf(ctx: ValueContext, id: CardId): StampReading | null {
   const subject = stampSubject(id, ctx);
   if (subject === null) return null;
+  // **Kept for the sitting** (bot batch BP15, stage 2; BP14's "stamps kept for
+  // the sitting"). A slotting, a purchase or a build order moves the economy
+  // clock, and every card was then stamped again on two boards at the next
+  // council decision: on seed 999's turns 120 to 123, 85 of 255 stamps were a
+  // card stamped again in the same sitting. In a sitting each card's stamp is
+  // now the one taken at its first ask. How play can differ: a card stamped
+  // before the seat seated another card, bought a building or changed a build
+  // is priced on the books as they were then, so a card that pays more (or
+  // less) beside the one just seated is not seen to until the next sitting. A
+  // kept stamp whose chair another card has taken since is read again, so no
+  // card is priced in a chair it can no longer have. The treasury is never read
+  // off a stamp: what a purchase can afford is read on the live board
+  // (`bankSpend`).
+  const sitting = ctx.sitting;
+  if (sitting === undefined) return economyStampReading(ctx, id, subject);
+  let held = SITTING_STAMPS.get(sitting);
+  if (held === undefined) {
+    held = new Map();
+    SITTING_STAMPS.set(sitting, held);
+  }
+  if (held.has(id)) {
+    const kept = held.get(id) ?? null;
+    // A stamp names the chair the card would take. When another card has taken
+    // that chair since, the kept reading would price this card in a chair it can
+    // no longer have (a chair that reads a card twice, say), so it is read again.
+    if (kept === null || !chairTakenByAnother(ctx, id, kept.chair)) return kept;
+  }
+  const reading = economyStampReading(ctx, id, subject);
+  held.set(id, reading);
+  return reading;
+}
+
+/** Does another card now sit in the chair a kept stamp named for this card? */
+function chairTakenByAnother(ctx: ValueContext, id: CardId, chair: number | undefined): boolean {
+  if (chair === undefined) return false;
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const slot = sc?.slots[chair];
+  return slot !== undefined && slot !== null && slot.card !== id;
+}
+
+/** The card stamps kept for a sitting, by card. Lookup only; nothing iterates it. */
+const SITTING_STAMPS = new WeakMap<SittingKey, Map<CardId, StampReading | null>>();
+
+/** `stampReadingOf`'s reading on the economy clock, for a context with no sitting and for a sitting's first ask. */
+function economyStampReading(ctx: ValueContext, id: CardId, subject: CardImpactSubject): StampReading | null {
   const state = ctx.state;
   const playerId = ctx.playerId;
   return slateMemo(state, 'economy', 'botCardStamp', `${playerId}:${id}`, () => {
@@ -12297,8 +12359,30 @@ export function extraChairsWorth(chairs: number, ctx: ValueContext): number {
 function chairReading(ctx: ValueContext): ChairReading {
   const known = CHAIR_WORTH_MEMO.get(ctx);
   if (known !== undefined) return known;
+  // **Once a sitting** (bot batch BP15, stage 2; BP14's "the chair reading
+  // priced once a sitting"). The reading prices every card a hand can deal, and
+  // it was read on each context that asked: the book's, the final one and the
+  // copies made from them. A sitting now reads it once, on the first context
+  // that asks, and every other context of the sitting takes that reading. How
+  // play can differ: the cards are priced at that first context's prices (often
+  // the prior's, inside the draft plan), so what a Wildcard chair is worth is
+  // read at the prior's prices where it was read at the final ones before. Its
+  // first reading holds the stand-in on the sitting too, so a card that opens a
+  // chair still does not read itself.
+  const sitting = ctx.sitting;
+  if (sitting !== undefined) {
+    const shared = SITTING_CHAIRS.get(sitting);
+    // The stand-in while the first reading runs, not kept on this context; the
+    // finished reading, kept on it.
+    if (shared !== undefined && !shared.done) return shared.reading;
+    if (shared !== undefined) {
+      CHAIR_WORTH_MEMO.set(ctx, shared.reading);
+      return shared.reading;
+    }
+  }
   const empty: ChairReading = { bench: [], free: 0, card: 0, pace: 0 };
   CHAIR_WORTH_MEMO.set(ctx, empty);
+  if (sitting !== undefined) SITTING_CHAIRS.set(sitting, { reading: empty, done: false });
   // Read inside a guard: a price taken while the empty stand-in is in the memo
   // is kept under this guard alone (bot batch BP14, `decisionMemo.ts`).
   return withGuard(() => freshChairReading(ctx, empty));
@@ -12339,8 +12423,15 @@ function freshChairReading(ctx: ValueContext, empty: ChairReading): ChairReading
         );
   const reading: ChairReading = { bench, free, card, pace };
   CHAIR_WORTH_MEMO.set(ctx, reading);
+  if (ctx.sitting !== undefined) SITTING_CHAIRS.set(ctx.sitting, { reading, done: true });
   return reading;
 }
+
+/**
+ * The chair reading kept for a sitting (bot batch BP15, `chairReading`): the
+ * stand-in while the first reading runs, then the reading. Lookup only.
+ */
+const SITTING_CHAIRS = new WeakMap<SittingKey, { reading: ChairReading; done: boolean }>();
 
 /**
  * **What more cards in a hand add to the best of it**, as a share of the hand

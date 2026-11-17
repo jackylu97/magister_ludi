@@ -115,7 +115,9 @@ describe('readEmpire carries the empire-scale card lines', () => {
     // stronger: the strip does not merely call the same helper, it reads the
     // very object the other surfaces read.
     expect(source('topBar.ts')).toMatch(/readEmpire\(state, playerId\)\.totals/);
-    expect(source('readings.ts')).toMatch(/explainEmpireLines\(state, playerId, empire\)/);
+    // Since bot batch BP15 the reading also hands in the books it has just
+    // folded (`readEmpireRates`), so a rate card does not fold every town again.
+    expect(source('readings.ts')).toMatch(/explainEmpireLines\(state, playerId, empire, \(\) => readEmpireRates\(state, playerId\)\)/);
     expect(source('readings.ts')).toMatch(/foldEmpireLines\(lines\)/);
   });
 });

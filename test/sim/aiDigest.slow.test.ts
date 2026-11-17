@@ -1263,9 +1263,20 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * a town chooses its build (the duel only). Duel `96597c87:340143` ->
  * `29663d27:358427`, standard `109baaf6:1053026` -> `5be63c3e:1044882`.
  */
+/**
+ * Re-cut for bot batch BP15 (`docs/flags.md`, the bullet "BP15: more bot speed,
+ * with caching, and the worker that stays home"). Stage 1 (the empire's lines
+ * read the remembered books) moved neither pin: both held with it alone. Three
+ * changes of play moved them: a seat keeps the beeline's table while its
+ * research stands still, and keeps each card's stamp and the chair reading for
+ * its sitting; and a worker does not walk to a hex a visible hostile could
+ * reach within `workers.guardTurns` turns, unless a soldier of the seat holds
+ * the hex or a guard reaches it first. No rule changed. Duel `29663d27:358427`
+ * -> `ec1eb394:358349`, standard `5be63c3e:1044882` -> `70375d88:1021629`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '29663d27:358427',
-  standard: '5be63c3e:1044882',
+  duel: 'ec1eb394:358349',
+  standard: '70375d88:1021629',
 };
 
 /**

@@ -965,6 +965,42 @@ hold.
   beside the state, and nothing changes a sentence the feed prints. The memos
   have no knob.
 
+**Readings kept for a sitting, and the worker that stays home** (bot batch BP15;
+`docs/flags.md`, the bullet "BP15: more bot speed, with caching, and the worker
+that stays home"; the measurements are the section "BP15" of
+`docs/plans/performance-pass-2026-11-06.md`).
+
+- **The empire's lines read the remembered books** (no decision changes). A
+  `pays` rate row (the Bourse, two beliefs, a leader) reads the empire's books.
+  `readEmpire` now hands `explainEmpireLines` the books as `readEmpireRates`
+  folds them off the town lists it has just read, where the lines folded every
+  town again. A caller inside a write (`collectYields`) still folds fresh.
+- **The beeline's table is kept for the sitting while the research stands
+  still** (`BotSitting.beeline`, `techGoalTable`). The key is the techs known,
+  the plan, the pool and the cards held. The re-aim arm asks on almost every
+  decision, and the table priced every node each time. A later ask in the same
+  sitting reads the towns as they stood at the first ask.
+- **The card stamps are kept for the sitting** (`ValueContext.sitting`,
+  `stampReadingOf`). A seated card, a purchase or a build order moved the
+  economy clock, and every card was stamped again at the next council decision.
+  A card stamped before the seat seated another card is priced on the books as
+  they were then, until the next sitting. A kept stamp whose chair another card
+  has taken since is read again. What the treasury can pay is never read off a
+  stamp.
+- **The chair reading is read once a sitting** (`chairReading`): on the first
+  context that asks, and taken by every other context of the sitting.
+- **A worker does not walk into danger** (`threatenedTarget`, `workerChoice`;
+  the user, 2026-11-17: *"worker should stay home yes"*). A plan row whose hex a
+  hostile could reach within `workers.guardTurns` turns, by the guard arm's own
+  reading (`workerThreat`), is refused unless a soldier of the seat stands on
+  the hex or a guard of the plan (`hold` or `march`) reaches it no later than
+  the hostile. The worker takes the best safe row, works its own hex or sleeps,
+  and `wakeIdleWorker` asks it again next turn. A worker marching to a hex that
+  is now threatened, with no safe row, is told to stop (`cancelOrder`), which
+  releases its march claim (`spadeClaims`). The threat to each hex is read once
+  a sitting (`BotSitting.hexThreats`); the guard on it is read live. No knob:
+  `workers.guardTurns` at nought turns this off with the guards.
+
 ## Personas and tuning
 
 A **persona** (`data/ai.json`) is a sparse override of the same sheet, merged
