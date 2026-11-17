@@ -244,16 +244,18 @@ export function signDrawnSites(
 
 /**
  * The improvements the plain improvement layer draws (`improvements3d.ts`):
- * every one on charted ground, minus the rows the painted works draw instead.
+ * every one on charted ground, minus the rows the painted works draw instead,
+ * and minus the ones under a town (the layer does not draw those).
  * Used only to decide the static bake; `signImprovements` still decides the
  * rebuild.
  */
 export function signDrawnImprovements(state: GameState, levels: FogLevels, replaced: ReadonlySet<ImprovementId> | null): number {
   let hash = 2166136261;
   const tiles = state.map.tiles;
+  const towns = new Set(state.cities.map((city) => tileIndex(state.map, city.col, city.row)));
   for (let cell = 0; cell < tiles.length; cell++) {
     const id = tiles[cell]!.improvement;
-    if (id === undefined || replaced?.has(id)) continue;
+    if (id === undefined || replaced?.has(id) || towns.has(cell)) continue;
     if (levels !== null && (levels[cell] ?? HIDDEN) === HIDDEN) continue;
     hash = hashText(Math.imul(hash ^ cell, 16777619), id);
   }

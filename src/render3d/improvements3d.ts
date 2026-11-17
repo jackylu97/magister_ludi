@@ -144,6 +144,10 @@ export class ImprovementLayer {
       forceTint: true,
     });
     const axis = new Vector3(0, 1, 0);
+    // A city founded on an improved hex keeps the improvement in the state, but
+    // the town is what stands there, so the improvement is not drawn. The
+    // painted works layer has the same rule (`PaintedWorksLayer.build`).
+    const towns = new Set(state.cities.map((city) => tileIndex(map, city.col, city.row)));
 
     let instances = 0;
     for (const tile of map.tiles) {
@@ -152,6 +156,7 @@ export class ImprovementLayer {
       // Nothing at all on ground nobody has charted. Explored ground keeps its
       // works, washed — see the module docblock.
       const cell = tileIndex(map, tile.col, tile.row);
+      if (towns.has(cell)) continue;
       if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
 
       // Everything below is keyed by the row's own id, and every one of those
@@ -259,14 +264,27 @@ export class ImprovementLayer {
  * The cost is one compare per tile on frames that were already going to be
  * drawn, which is what `signTerritory` already pays over an array of the same
  * length.
+ *
+ * The towns that stand on an improvement are folded in after the tiles, in
+ * founding order, because the layer does not draw an improvement under a town
+ * (see `build`). A city founded on a farm or an orchard leaves the improvement
+ * in the state, so without this the founding would not move the fingerprint and
+ * the improvement would stay drawn in the streets until another change rebuilt
+ * the layer.
  */
 export function signImprovements(state: GameState): number {
-  let h = 2166136261 ^ state.map.tiles.length;
-  for (let i = 0; i < state.map.tiles.length; i++) {
-    const id = state.map.tiles[i]!.improvement;
+  const tiles = state.map.tiles;
+  let h = 2166136261 ^ tiles.length;
+  for (let i = 0; i < tiles.length; i++) {
+    const id = tiles[i]!.improvement;
     if (id === undefined) continue;
     h = Math.imul(h ^ i, 16777619);
     h = Math.imul(h ^ (IMPROVEMENT_INDEX.get(id) ?? -1), 16777619);
+  }
+  for (const city of state.cities) {
+    const cell = tileIndex(state.map, city.col, city.row);
+    if (tiles[cell]?.improvement === undefined) continue;
+    h = Math.imul(h ^ (tiles.length + cell), 16777619);
   }
   return h >>> 0;
 }

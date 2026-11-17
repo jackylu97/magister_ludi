@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Mesh, MeshStandardMaterial, ShaderLib, Vector3 } from 'three';
+import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Matrix4, Mesh, MeshStandardMaterial, ShaderLib, Vector3 } from 'three';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
 import { newGame } from '../sim/newGameHelpers';
 import { PaintedWorksLayer, PAINTED_WORK_ASSET_NAMES, type PaintedWorksAssets } from '../../src/render3d/paintedWorks';
@@ -7,6 +7,10 @@ import { installPaintedSurface, uninstallPaintedSurface, samplePaintedSurface, p
 import { terraceFarmSurface } from '../../src/render3d/terraceFarmSurface';
 import { createTileSurfaceSampler } from '../../src/render3d/paintedTileSurface';
 import { createMap } from '../../src/sim/map';
+// @ts-expect-error No declarations for the standalone art modules.
+import { createMountainRanges } from '../../src/terrainStudy/mountainRanges.js';
+// @ts-expect-error No declarations for the standalone art modules.
+import { centre, neighbour } from '../../src/terrainStudy/surface.js';
 
 const boards: PaintedBoard[] = [], disposables: (BufferGeometry | Material)[] = [];
 function fixture(width = 4, height = 3) {
@@ -80,6 +84,52 @@ describe('production painted board', () => {
     expect(meshes.map(mesh => mesh.geometry)).toEqual(geometry);
     expect(meshes.filter(mesh => mesh instanceof InstancedMesh).map(mesh => mesh.instanceMatrix)).toEqual(matrices);
     board.applyFog(null); expect(board.isCellVisible(1)).toBe(true);
+  });
+
+  it('gives a mountain’s loose stone to the hill it lies on, so a town there clears it', () => {
+    // The range plan places the stones at a mountain's foot from the mountain,
+    // and many of them land on the hill beside it. Clearing is per cell, so a
+    // stone keyed to the mountain stayed among the houses of a town founded on
+    // that hill (seen in the game, 2026-11-16).
+    const { map, build } = fixture(8, 5);
+    map.tiles.forEach(tile => { tile.feature = 'none'; tile.hills = true; });
+    const mountainCell = 2 * 8 + 3;
+    map.tiles[mountainCell]!.terrain = 'mountain'; map.tiles[mountainCell]!.hills = false;
+    const board = build();
+    const owner = board.renderMap.tiles[mountainCell]!;
+    // The same plan the board was built from, to know where each stone lies.
+    const plan = createMountainRanges(board.renderMap);
+    const around = [owner, ...[0, 1, 2, 3, 4, 5].map(d => neighbour(owner, board.renderMap, d))];
+    const stones = (plan.pieces.get(owner) ?? []).filter((piece: { asset?: string }) => piece.asset === 'talus');
+    const onHills = stones.map((piece: { x: number; z: number }) => {
+      const nearest = around.reduce((best, tile) => {
+        const c = centre(tile), b = centre(best);
+        return Math.hypot(piece.x - c.x, piece.z - c.z) < Math.hypot(piece.x - b.x, piece.z - b.z) ? tile : best;
+      });
+      return { piece, cell: nearest.row * map.width + nearest.col };
+    }).filter((stone: { cell: number }) => stone.cell !== mountainCell);
+    expect(onHills.length).toBeGreaterThan(0);
+    const matrix = new Matrix4();
+    for (const { piece, cell } of onHills) {
+      const cells: number[] = [];
+      board.group.children[1]!.traverse(object => {
+        if (!(object instanceof InstancedMesh)) return;
+        for (let i = 0; i < object.count; i++) {
+          object.getMatrixAt(i, matrix);
+          if (Math.abs(matrix.elements[12]! - piece.x) < 1e-4 && Math.abs(matrix.elements[14]! - piece.z) < 1e-4)
+            cells.push(object.geometry.getAttribute('paintedCell').getX(i));
+        }
+      });
+      // The near batch and the map-scale batch each hold the stone once.
+      expect(cells.length).toBeGreaterThan(0);
+      expect(cells.every(found => found === cell)).toBe(true);
+    }
+    // A town on the hill clears the stone; the mountain keeps its own rock.
+    const hill = onHills[0].cell;
+    board.applyFog(null);
+    board.suppressTile(hill, 2);
+    expect(board.isCellVisible(hill, 2)).toBe(false);
+    expect(board.isCellVisible(mountainCell, 2)).toBe(true);
   });
 
   it('reserves prop footprints reversibly without replacing terrain or exposing hidden cells', () => {

@@ -101,6 +101,31 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const ground = materials.ground, water = materials.water, features = materials.features;
   const groundOf = tile => ground[['floodplain', 'oasis'].includes(tile.feature) ? tile.feature : tile.terrain];
   /**
+   * The hex a mountain's loose stone stands on, when that is not the mountain.
+   *
+   * The range plan (`mountainRanges.js`) places the stones at a mountain's foot
+   * from the mountain, and many of them land on the hill beside it. Each prop
+   * takes the cell of the hex it is built with, so those stones belonged to the
+   * mountain: a town founded on the hill could not clear them (the clearing is
+   * per cell, and nobody clears a mountain), and they stood among its houses.
+   * So a stone takes the cell of the land hex whose centre is nearest to it.
+   * A stone paints nothing on the ground under it, so nothing is left behind
+   * when it is cleared. Returns null when the stone stands on its own mountain.
+   */
+  function standingHex(owner, piece) {
+    const home = centre(owner); home.x += Math.round((piece.x - home.x) / period) * period;
+    let best = null, bestDistance = Math.hypot(piece.x - home.x, piece.z - home.z);
+    for (let d = 0; d < 6; d++) {
+      const n = neighbour(owner, renderMap, d);
+      if (!n || isWater(n) || n.terrain === 'mountain') continue;
+      // The neighbour's centre in the wrap copy nearest the stone.
+      const c = centre(n); c.x += Math.round((piece.x - c.x) / period) * period;
+      const distance = Math.hypot(piece.x - c.x, piece.z - c.z);
+      if (distance < bestDistance) { bestDistance = distance; best = { cell: n.row * map.width + n.col, centre: c }; }
+    }
+    return best;
+  }
+  /**
    * The land a free coast lays in a water hex takes the paint of the land hex
    * it lies against, so the ground does not change colour on the hex line.
    * Each face goes to the land hex nearest the sixth of the hex it is in.
@@ -397,7 +422,11 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         const material = !merge ? source : detailMaterials.has(source) ? materials.mergedDetails : waterMaterials.has(source) ? materials.mergedWater : materials.mergedLand;
         if (!bucket.has(material)) bucket.set(material, []); bucket.get(material).push(geometry);
       }
-      function prop(geometry, material, x, y, z, sx, sy, sz, angle = 0, tint = 0xffffff, grade = CLUTTER) {
+      // `on` names the hex a prop stands on when that is not the hex being
+      // built (`standingHex`): the prop takes that hex's cell, so its fog and
+      // its clearing follow that hex, and its footprint distance is measured
+      // from that hex's centre.
+      function prop(geometry, material, x, y, z, sx, sy, sz, angle = 0, tint = 0xffffff, grade = CLUTTER, on = null) {
         if (!geometry) return;
         const matrix = new T.Matrix4().compose(new T.Vector3(x, y, z), new T.Quaternion().setFromAxisAngle(axis, angle), new T.Vector3(sx, sy, sz));
         const color = tint?.isColor ? tint : new T.Color(tint);
@@ -411,8 +440,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         for (const [batches, sculpt] of [[props, geometry], [mapProps.get(farKey), distantGeometry.get(geometry) || geometry]]) {
           const key = sculpt.uuid + material.uuid;
           if (!batches.has(key)) batches.set(key, { geometry: sculpt, material, matrices: [], tints: [], cells: [], grades: [], reservationDistances: [] });
-          const batch = batches.get(key); batch.matrices.push(matrix); batch.tints.push(color); batch.cells.push(cell); batch.grades.push(grade);
-          const c = centre(activeTile);
+          const batch = batches.get(key); batch.matrices.push(matrix); batch.tints.push(color); batch.cells.push(on?.cell ?? cell); batch.grades.push(grade);
+          const c = on?.centre ?? centre(activeTile);
           batch.reservationDistances.push(grade === NEVER ? 0 : 1 + Math.hypot(x-c.x,z-c.z));
         }
       }
@@ -487,7 +516,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         for (const piece of ranges.pieces.get(t) || []) {
           const rock = piece.asset === 'talus' ? assets.limestone : assets.escarpments[piece.variant % assets.escarpments.length];
           prop(piece.asset === 'shoulder' ? rock.shoulderGeometry : rock.geometry, assets.rangeMaterial,
-            piece.x, piece.y, piece.z, piece.sx * massif.wide, piece.sy * massif.tall, piece.sz * massif.wide, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR);
+            piece.x, piece.y, piece.z, piece.sx * massif.wide, piece.sy * massif.tall, piece.sz * massif.wide, piece.angle, new T.Color(terrainColors[piece.biome]), piece.kind === 'summit' ? NEVER : DECOR,
+            piece.asset === 'talus' ? standingHex(t, piece) : null);
         }
         const dense = VIEW3D.visualTest.northStar && VIEW3D.visualTest.props.dense ? VIEW3D.visualTest.props : null;
         // A rocky hill (2026-11-13): boulders lie at the foot of a cliff, and low shrubs stand on the green top.

@@ -1114,6 +1114,27 @@ describe('improvements and the board scatter', () => {
     layer.build(state, geometry, materials(), false, allVisible(state));
     expect(layer.instances).toBe(0);
   });
+
+  it('hides an improvement a city is founded on, and the founding moves the fingerprint', () => {
+    // No worker can build on a town, but a settler may found one on a hex that
+    // already holds a work, and the state keeps the work. The town stands there,
+    // so the work is not drawn. Seen in the game, 2026-11-16: an orchard drawn
+    // in the middle of a new town. The fingerprint has to move too, or the
+    // layer is not rebuilt and the work stays drawn until something else moves.
+    const state = flatState();
+    const site = at(state, 5, 5);
+    site.improvement = 'wildOrchard';
+    const layer = new ImprovementLayer();
+    layer.build(state, geometry, materials(), false, allVisible(state));
+    expect(layer.instances).toBe(1);
+    const before = signImprovements(state);
+
+    foundCityAt(state, 0, site);
+    expect(site.improvement).toBe('wildOrchard');
+    expect(signImprovements(state)).not.toBe(before);
+    layer.build(state, geometry, materials(), false, allVisible(state));
+    expect(layer.instances).toBe(0);
+  });
 });
 
 // --- the roster -------------------------------------------------------------
