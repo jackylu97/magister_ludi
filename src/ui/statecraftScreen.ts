@@ -17,16 +17,20 @@
  *     one-line hint, what your cards pay (`foldDeck`, the Ledger's deck
  *     figure), Revert, Confirm and the close button. A refusal prints the
  *     reducer's own sentence in place of the hint for four seconds.
- *   - **The cloth**: a dark table with a gilt rule round it.
+ *   - **The cloth**: the whole window, dark, with a gilt rule just inside its
+ *     edge (part C1: the user asked for the screen to be full screen like
+ *     the star chart). The head sits on it.
  *   - **The gilt register**: the government card (its law, its tier and the
  *     next draft's progress), then each Doctrine laid wide with its name, its
  *     effect and its live line (`orderFace.ts`, `registerFaceNode`).
  *   - **The table**: one card or one empty chair for each chair, in the
  *     council's own order, six to a row. Each card carries the chair's tab on
- *     its foot (`chairTabNode`). Eleven chairs take the full face (210 by
- *     258); six or fewer take the large face (244 by 299) in one row.
- *   - **The hand**: the Orders not in a chair. Side by side when there are
- *     twelve or fewer and the table is one row, otherwise a rail of card tops.
+ *     its foot (`chairTabNode`). The card form is the window's
+ *     (`ordersLayout`): the large face for one row, the full face, then the
+ *     two compact forms.
+ *   - **The hand**: the Orders not in a chair, in the height the table
+ *     leaves: named cards side by side, an indexed rank with the names down
+ *     the cards' edges, or a rail of card tops.
  *
  * Every card is the emblem face (`orderFace.ts`). What a card says it pays is
  * `orderLive.ts`, which picks the right existing reading for the card's kind.
@@ -277,8 +281,115 @@ const REFUSAL_MS = 4000;
 /** Six chairs to a row, at every size the board draws. */
 const CHAIRS_PER_ROW = 6;
 
-/** Twelve hand cards or fewer lie side by side, when the table is one row. */
-const SIDE_BY_SIDE_HAND = 12;
+// --- the layout: which card form and which hand a window gets ---------------
+
+/**
+ * The card's forms, in pixels (the final board's build spec, "The card, by
+ * form"): the large face for a table of one row, the full face, the compact
+ * form with its short picture band, and the narrow compact form.
+ */
+export const ORDERS_FORMS = {
+  large: { width: 244, height: 299 },
+  full: { width: 210, height: 258 },
+  compact: { width: 187, height: 180 },
+  narrow: { width: 145, height: 206 },
+} as const;
+
+export type OrdersForm = keyof typeof ORDERS_FORMS;
+
+/** The room the screen's own parts take, in pixels, on a roomy window and a tight one. */
+const ORDERS_FRAME = {
+  roomy: { head: 52, top: 12, side: 24, bottom: 16 },
+  tight: { head: 44, top: 8, side: 16, bottom: 12 },
+  /** A window under this height or width is tight. */
+  tightBelow: { height: 780, width: 1240 },
+  /** The widest the table runs on a very wide window. */
+  maxWidth: 1640,
+  register: 104,
+  gap: 12,
+  rowGap: 14,
+  cardGap: 10,
+  label: 18,
+  /** The rail of card tops, the least a hand takes. */
+  rail: 28,
+  /** A hand of named cards side by side needs this height at least; under it the name would go below 11 px. */
+  spreadMin: 144,
+  /** An indexed rank, the names set down each card's edge, needs this height at least. */
+  stripMin: 120,
+  handGap: 12,
+} as const;
+
+/** Which card form and which hand a window gets, worked out from its size (`ordersLayout`). */
+export interface OrdersLayout {
+  tight: boolean;
+  form: OrdersForm;
+  rows: number;
+  /** The hand: named cards side by side in ranks, an indexed rank, or the rail of tops. */
+  hand: 'spread' | 'strip' | 'rail';
+  /** The hand card's size, and the ranks a spread hand takes. */
+  handCard: { width: number; height: number };
+  handRanks: number;
+}
+
+/**
+ * **The layout for a window** (part C): the largest card form whose table
+ * fits beside the register and the least hand, then the best hand the height
+ * left over allows. Pure, so the tests can sweep window sizes.
+ *
+ *   - The form: the large face for a table of one row, then the full face,
+ *     then the compact form, then the narrow compact form.
+ *   - The hand: named cards side by side, in as many ranks as the height
+ *     allows, as large as fits with the name at 11 px or more; else an
+ *     indexed rank with the names set down the cards' edges; else the rail of
+ *     card tops.
+ */
+export function ordersLayout(window: { width: number; height: number }, chairs: number, handCount: number): OrdersLayout {
+  const tight = window.height < ORDERS_FRAME.tightBelow.height || window.width < ORDERS_FRAME.tightBelow.width;
+  const frame = tight ? ORDERS_FRAME.tight : ORDERS_FRAME.roomy;
+  const width = Math.min(ORDERS_FRAME.maxWidth, window.width - 2 * frame.side);
+  const height = window.height - frame.head - frame.top - frame.bottom;
+  const rows = Math.max(1, Math.ceil(chairs / CHAIRS_PER_ROW));
+  const cols = Math.max(1, Math.min(CHAIRS_PER_ROW, chairs));
+  const fixed = ORDERS_FRAME.register + 2 * ORDERS_FRAME.gap + ORDERS_FRAME.label;
+  const tableHeight = (form: OrdersForm): number =>
+    rows * ORDERS_FORMS[form].height + (rows - 1) * ORDERS_FRAME.rowGap;
+  const order: readonly OrdersForm[] = rows === 1 ? ['large', 'full', 'compact', 'narrow'] : ['full', 'compact', 'narrow'];
+  const form =
+    order.find(
+      (one) =>
+        cols * ORDERS_FORMS[one].width + (cols - 1) * ORDERS_FRAME.cardGap <= width &&
+        fixed + tableHeight(one) + ORDERS_FRAME.rail <= height,
+    ) ?? 'narrow';
+  const room = height - fixed - tableHeight(form);
+  const most = rows === 1 ? 202 : 162;
+  for (let cardHeight = Math.min(most, room); cardHeight >= ORDERS_FRAME.spreadMin; cardHeight -= 2) {
+    const cardWidth = Math.round((cardHeight * 104) / 162);
+    const perRank = Math.max(1, Math.floor((width + ORDERS_FRAME.handGap) / (cardWidth + ORDERS_FRAME.handGap)));
+    const ranks = Math.floor((room + ORDERS_FRAME.handGap) / (cardHeight + ORDERS_FRAME.handGap));
+    if (ranks >= 1 && perRank * ranks >= handCount) {
+      return {
+        tight,
+        form,
+        rows,
+        hand: 'spread',
+        handCard: { width: cardWidth, height: cardHeight },
+        handRanks: Math.max(1, Math.ceil(handCount / perRank)),
+      };
+    }
+  }
+  if (room >= ORDERS_FRAME.stripMin) {
+    const cardHeight = Math.min(162, room);
+    return {
+      tight,
+      form,
+      rows,
+      hand: 'strip',
+      handCard: { width: Math.round((cardHeight * 104) / 162), height: cardHeight },
+      handRanks: 1,
+    };
+  }
+  return { tight, form, rows, hand: 'rail', handCard: { width: 104, height: 162 }, handRanks: 1 };
+}
 
 // --- the screen --------------------------------------------------------------
 
@@ -438,6 +549,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   let previewStates = new Map<string, OrderFaceState>();
   /** The faces Confirm just made law, to settle once they are on the page (moment 4). */
   let settling: HTMLElement[] = [];
+  /** The window's size at the last draw, so a resize that changes nothing draws nothing. */
+  let drawnSize = '';
+  /** This draw's layout: the card form and the hand (`ordersLayout`). */
+  let screenLayout: OrdersLayout = ordersLayout({ width: 1440, height: 900 }, 0, 0);
 
   // The head's tools: what your cards pay, Revert and Confirm. Built once and
   // filled on every draw, so the buttons keep their place in the tab order.
@@ -801,6 +916,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined): HTMLElement {
     const register = element('section', 'orders-register');
     register.setAttribute('aria-label', 'Government and Doctrines');
+    // More than four Doctrines (the most a seat can hold is six: one at each of
+    // the four government tiers, and two from a wonder and a commission): they
+    // give up their pictures to their words.
+    register.toggleAttribute('data-many', sc.doctrines.length > 4);
     const government = registerFaceNode({
       id: sc.government,
       kind: 'government',
@@ -927,6 +1046,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
           tablet: reading.tablet,
           ...(filled.staged ? { tag: ORDERS_WORDS.staged } : {}),
         });
+        // The compact forms (part C): the same emblem with a short picture band.
+        if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;
         face.append(tab);
         button.append(face);
         button.dataset.preview = 'chair';
@@ -955,6 +1076,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         const takesAny = seatable.length > 0 && seatable.every((id) => fit(id, type));
         const takenOut = live !== null;
         const face = emptyChairFace(type, emptyChairWords(type, takesAny, takenOut));
+        if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;
         face.append(tab);
         button.append(face);
         button.setAttribute('aria-label', `Chair ${index + 1}, ${chairWord(type)}, empty`);
@@ -988,9 +1110,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       .map((entry) => entry.id);
   }
 
-  function drawHand(sc: PlayerStatecraft, hand: readonly OrderId[], spread: boolean): HTMLElement {
+  function drawHand(sc: PlayerStatecraft, hand: readonly OrderId[], layout: OrdersLayout): HTMLElement {
+    const spread = layout.hand === 'spread';
     const block = element('section', 'orders-hand');
-    block.dataset.spread = String(spread);
+    block.dataset.hand = layout.hand;
+    block.style.setProperty('--orders-hand-w', `${layout.handCard.width}px`);
+    block.style.setProperty('--orders-hand-h', `${layout.handCard.height}px`);
     const label = element('div', 'orders-hand-label');
     label.append(element('span', 'orders-hand-title', ORDERS_WORDS.hand));
     label.append(element('span', 'orders-hand-count', String(hand.length)));
@@ -1005,7 +1130,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     binder.append(keyMark('D'), ` ${ORDERS_WORDS.binderOpens}`);
     label.append(binder);
     block.append(label);
-    const cards = element('div', spread ? 'orders-spread' : 'orders-rail');
+    const cards = element('div', spread ? 'orders-spread' : layout.hand === 'strip' ? 'orders-rail is-strip' : 'orders-rail');
     if (sc.orders.length === 0 || hand.length === 0) {
       cards.append(element('p', 'orders-hand-empty', sc.orders.length === 0 ? ORDERS_WORDS.noOrders : ORDERS_WORDS.handEmpty));
       block.append(cards);
@@ -1024,6 +1149,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const face = element('div');
       dressOrderFace(face, id, { where: 'hand', inControl: true });
       face.dataset.form = 'hand';
+      // An indexed rank sets each card's name down its edge (part C).
+      if (layout.hand === 'strip') face.dataset.strip = '';
       button.append(face);
       button.dataset.preview = 'hand';
       button.setAttribute('aria-label', `${orderDef(id).name}, in your hand`);
@@ -1094,9 +1221,22 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const chairs = slotTypesOf(sc).length;
     const hand = handOf(sc, arrangement);
     const oneRow = chairs <= CHAIRS_PER_ROW;
-    const spread = oneRow && hand.length <= SIDE_BY_SIDE_HAND;
+    const size = { width: sheetNode?.clientWidth ?? window.innerWidth, height: sheetNode?.clientHeight ?? window.innerHeight };
+    screenLayout = ordersLayout(size, chairs, hand.length);
+    drawnSize = `${window.innerWidth}x${window.innerHeight}`;
     sheetNode?.setAttribute('data-chairs', String(chairs));
     sheetNode?.setAttribute('data-table', oneRow ? 'one-row' : 'two-rows');
+    sheetNode?.setAttribute('data-form', screenLayout.form);
+    sheetNode?.toggleAttribute('data-tight', screenLayout.tight);
+    sheetNode?.toggleAttribute('data-narrow', size.width < ORDERS_FRAME.tightBelow.width);
+    sheetNode?.style.setProperty('--orders-card-w', `${ORDERS_FORMS[screenLayout.form].width}px`);
+    sheetNode?.style.setProperty('--orders-card-h', `${ORDERS_FORMS[screenLayout.form].height}px`);
+    // A table of two rows sets the register's and the table's width, so the
+    // two line up and sit centred on the cloth. A table of one row spreads
+    // over the cloth's whole width. The hand takes the cloth's width.
+    const cols = Math.min(CHAIRS_PER_ROW, chairs);
+    const tableWidth = cols * ORDERS_FORMS[screenLayout.form].width + (cols - 1) * ORDERS_FRAME.cardGap;
+    sheetNode?.style.setProperty('--orders-table-max', oneRow ? `${ORDERS_FRAME.maxWidth}px` : `${tableWidth}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
     paintHead(state, seat, sc, arrangement);
@@ -1105,19 +1245,21 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const cloth = element('div', 'orders-cloth');
     cloth.append(drawRegister(state, seat, sc, sheet ?? undefined));
     cloth.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined));
-    cloth.append(drawHand(sc, hand, spread));
+    cloth.append(drawHand(sc, hand, screenLayout));
+    sheetNode?.setAttribute('data-layer', layer ?? 'none');
+    body.append(cloth);
+    // The layers fill the window under the head (part C1), so they sit beside
+    // the cloth rather than inside it.
     if (layer === 'hand') {
-      cloth.append(
+      body.append(
         handViewNode(hand, held, (id, event) => {
           layer = null;
           take(id, event);
         }),
       );
     } else if (layer === 'binder') {
-      cloth.append(drawBinder(state, seat, sc, arrangement, sheet ?? undefined));
+      body.append(drawBinder(state, seat, sc, arrangement, sheet ?? undefined));
     }
-    sheetNode?.setAttribute('data-layer', layer ?? 'none');
-    body.append(cloth);
 
     // The ceremony belongs to the signature: spent by the draw that played it.
     justConfirmed = [];
@@ -1341,6 +1483,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     binderFilter = allOrders();
   }
 
+  /**
+   * The window changed size: the card form and the hand are the window's
+   * (`ordersLayout`), so the screen is drawn again while it is up.
+   */
+  function onWindowResize(): void {
+    if (overlay.hidden) return;
+    const size = `${window.innerWidth}x${window.innerHeight}`;
+    if (size === drawnSize) return;
+    draw();
+  }
+  window.addEventListener('resize', onWindowResize);
+
   layerHost.addEventListener('pointermove', onPointerMove);
   layerHost.addEventListener('pointerleave', onPointerLeave);
   layerHost.addEventListener('pointerover', onPreviewEnter);
@@ -1473,6 +1627,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       clearRefusal();
       discardStaging();
       endVisit();
+      window.removeEventListener('resize', onWindowResize);
       layerHost.removeEventListener('pointermove', onPointerMove);
       layerHost.removeEventListener('pointerleave', onPointerLeave);
       layerHost.removeEventListener('pointerover', onPreviewEnter);

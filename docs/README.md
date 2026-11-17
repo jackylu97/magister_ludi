@@ -1582,10 +1582,13 @@ Eight root pages, all named in `vite.config.ts` inputs:
     default; the board's 210 × 258 is `21em × 25.8em`). The effect starts at
     13 px on up to five lines and steps down to 11 px, then the picture
     shortens (`fitOrderFace` measures on the page; `estimateOrderFaceFit` is
-    the first guess, set never to be larger than the measured fit). A card
-    that still does not fit is marked `data-overflow` and its text stays
-    visible. Eight live cards do not fit today (seven charters and The House
-    of Worship); `test/ui/orderFace.test.ts` names them.
+    the first guess; its measures were set against the page's fit of all 577
+    live cards, so it is never larger than the page and calls no live card
+    too long). A card that still does not fit is marked `data-overflow`: its
+    text is cut with a fade and scrolls inside the card when the card is
+    lifted or focused, and nothing spills outside the card. Every live card
+    fits today; `test/ui/orderFace.test.ts` keeps the list of those that do
+    not, which is empty.
   - The two card faces load with the card's stylesheet (`src/cardFaces.css`,
     imported by `orderFace.css`), from Google's files, under the tokens
     `--face-card-text` and `--face-card-title`. No page head changes.
@@ -1652,7 +1655,38 @@ Eight root pages, all named in `vite.config.ts` inputs:
   - A card whose text is cut lifts on hover or focus after 300 ms: a played
     card at full size lets its text scroll, and a register card opens its
     full Doctrine face under it. The compact forms use the same lift.
-  - Not built yet: the compact forms for smaller windows (part C).
+  - **Full screen** (part C1; the user, after playing part A: "lets have it
+    be full screen like the tech tree screen, the white modal bezels look
+    bad"). The overlay covers the whole window, top bar and corner panel
+    included, as the star chart's does; the sheet is the cloth, lampblack
+    with a gilt rule just inside the window's edge; the head sits on it in
+    parchment and gilt. It stays on `modalShell.ts`: the frame sets no size,
+    so a full-window sheet keeps `hidden` as the whole state, one `close`,
+    the keyboard's return and `dispose`. The H and D layers fill the window
+    under the head. The screen draws again when the window changes size.
+  - **The layout is the window's** (`ordersLayout`, pure and tested over a
+    sweep of window sizes). It picks the largest card form whose table fits
+    beside the register and the least hand: the large face (244 by 299) for
+    a table of one row, the full face (210 by 258), the compact form (187 by
+    180, the picture band 44), then the narrow compact form (145 by 206).
+    The height left over goes to the hand: named cards side by side in as
+    many ranks as fit, with the name at 11 px or more; else an indexed rank,
+    every card in view and its name set down its edge; else the rail of
+    card tops. The register and a two-row table share one width, centred on
+    the cloth; the hand takes the cloth's width, at most 1640 px.
+  - What each window gets, with 11 chairs and 30 in the hand: 1440 by 900,
+    the full face and an indexed rank 144 px tall; 1280 by 720, the compact
+    form and an indexed rank 136 px tall; 1024 by 768, the narrow form and an
+    indexed rank 132 px tall; 1920 by 1080, the full face and two ranks of
+    fifteen named cards. With 5 chairs and 2 in the hand at 1440 by 900, the
+    large face and the hand side by side at 130 by 202.
+  - A compact card has the full face's text sizes; only the card is smaller.
+    It lifts to its full face after 300 ms on hover or focus. On a tight
+    window the register's government is 200 wide with a 56 px picture, and
+    under 1240 wide it is 180 with no picture. A seat can hold six Doctrines
+    at most (one at each of the four government tiers, one from a wonder and
+    one from a commission); above four they give up their pictures to their
+    words.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

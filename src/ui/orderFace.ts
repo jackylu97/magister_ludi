@@ -72,7 +72,7 @@ import {
 } from '../art/orderFaceMarks';
 import { MARK_BOX, MARK_STROKE } from '../art/resourceMarks';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
-import { type CardClause, describeCard, stripRefs } from '../sim/statecraft';
+import { type CardClause, REF_PATTERN, describeCard, stripRefs } from '../sim/statecraft';
 import {
   type ChairType,
   type DeckId,
@@ -364,7 +364,7 @@ export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): Orde
     caption,
     foot,
     fit: estimateOrderFaceFit(
-      clauses.map((clause) => stripRefs(clause.text)),
+      clauses.map((clause) => ({ plain: stripRefs(clause.text), named: namedLetters(clause.text) })),
       { initial: initial !== null, reason, doctrine: kind === 'doctrine' },
     ),
   };
@@ -373,31 +373,41 @@ export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): Orde
 // --- the fit, estimated -----------------------------------------------------------
 
 /**
- * The measures the estimate works from, in pixels at the played size. They
- * follow `orderFace.css`: the effect's box is 168.8 wide on an Order and
- * 162.8 on a Doctrine (whose gilt band is wider), and 82.7 tall beside the
- * full picture or 112.7 beside the short one.
+ * The measures the estimate works from, in pixels at the played size. The
+ * two boxes are the effect's box as the page lays it out (`orderFace.css`,
+ * measured in the browser on 2026-11-17): 170 wide on an Order and 164 on a
+ * Doctrine, whose gilt band is wider; 85 tall beside the full picture and
+ * 115 beside the short one on an Order, and 79 and 109 on a Doctrine.
  *
- * The three shares below were set by measuring every live card on the page
- * in EB Garamond (the flair gallery's "Every live card, measured"): with them
- * the estimate is never larger than the size the page settles on, so a card
- * drawn before its fonts load never starts out too large.
+ * The four shares below were set by measuring every live card on the page in
+ * EB Garamond, 577 cards (`fitOrderFace` beside this estimate; the flair
+ * gallery's "Every live card, measured" does the same count). With them the
+ * estimate is never larger than the size the page settles on, so a card drawn
+ * before its fonts load never starts out too large; and no live card is
+ * estimated not to fit. The letter share sits near the middle of the range
+ * where both hold (0.4075 to 0.415), so a small change of text moves neither.
  */
 const FIT_MEASURES = {
-  width: { order: 168.8, doctrine: 162.8 },
-  height: { full: 82.7, short: 112.7 },
+  width: { order: 170, doctrine: 164 },
+  height: { order: { full: 85, short: 115 }, doctrine: { full: 79, short: 109 } },
   lineHeight: 1.2,
   /** The average letter's width, as a share of the text size. */
-  letter: 0.42,
+  letter: 0.41,
   /** The letters a line break wastes at the end of a line, on average. */
-  waste: 1,
+  waste: 0.5,
   /** The width the initial takes from each of the first two lines, as a share of the size. */
-  initial: 2.3,
+  initial: 2,
   /** The room a clause break costs, in lines: the gap, and the part line it leaves. */
-  gap: 0.3,
+  gap: 0.2,
+  /**
+   * The extra width of a named thing's letters, as a share of a letter. A
+   * name is set in semibold small capitals, which run wider than the words
+   * round them.
+   */
+  named: 0.2,
 } as const;
 
-/** How many lines one clause takes at a size. */
+/** How many lines one clause takes at a size. `chars` counts a named thing's letters at their extra width. */
 function clauseLines(chars: number, size: number, width: number, initial: boolean): number {
   const perLine = Math.max(1, width / (FIT_MEASURES.letter * size) - FIT_MEASURES.waste);
   const lost = initial ? (2 * FIT_MEASURES.initial) / FIT_MEASURES.letter : 0;
@@ -405,30 +415,56 @@ function clauseLines(chars: number, size: number, width: number, initial: boolea
   return initial ? Math.max(2, lines) : lines;
 }
 
+/** A clause as the estimate counts it: its plain words, and how many letters its named things have. */
+export interface FitClause {
+  plain: string;
+  named: number;
+}
+
+/** The letters of the named things in a clause with keyword marks. */
+function namedLetters(clause: string): number {
+  let named = 0;
+  for (const match of clause.matchAll(REF_PATTERN)) named += (match[3] ?? '').length;
+  return named;
+}
+
+/**
+ * A clause's length for the estimate: its plain letters, and a share more for
+ * the letters of each named thing (`FIT_MEASURES.named`). A plain string has
+ * no named things.
+ */
+function clauseWeight(clause: string | FitClause): number {
+  if (typeof clause === 'string') return clause.length;
+  return clause.plain.length + FIT_MEASURES.named * clause.named;
+}
+
 /**
  * **The estimated fit**: the largest size at which every clause, and the
  * reason line when there is one, fits the effect's box. Beside the full
  * picture first, then the short one; `over` when neither holds it at 11 px.
+ * A clause may say how many letters its named things have; they count a
+ * little wider.
  * The page measures and corrects it (`fitOrderFace`).
  */
 export function estimateOrderFaceFit(
-  clauses: readonly string[],
+  clauses: readonly (string | FitClause)[],
   options: { initial: boolean; reason: string; doctrine: boolean },
 ): OrderFaceFit {
-  const width = options.doctrine ? FIT_MEASURES.width.doctrine : FIT_MEASURES.width.order;
+  const kind = options.doctrine ? 'doctrine' : 'order';
+  const width = FIT_MEASURES.width[kind];
   const pictures: readonly OrderFacePicture[] = ['full', 'short'];
   for (const picture of pictures) {
     for (const size of ORDER_FACE_TEXT_SIZES) {
       let lines = 0;
       clauses.forEach((clause, index) => {
-        lines += clauseLines(clause.length, size, width, index === 0 && options.initial);
+        lines += clauseLines(clauseWeight(clause), size, width, index === 0 && options.initial);
       });
       lines += Math.max(0, clauses.length - 1) * FIT_MEASURES.gap;
       // The reason line is set at 0.92 of the effect and never under 11 px.
       if (options.reason !== '') {
         lines += (clauseLines(options.reason.length + 2, Math.max(11, size * 0.92), width, false) * Math.max(11, size * 0.92)) / size;
       }
-      if (lines * size * FIT_MEASURES.lineHeight <= FIT_MEASURES.height[picture]) {
+      if (lines * size * FIT_MEASURES.lineHeight <= FIT_MEASURES.height[kind][picture]) {
         return { size, picture, over: false };
       }
     }
