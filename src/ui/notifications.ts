@@ -443,10 +443,12 @@ interface ReligionWatcher {
 }
 
 /**
- * A religion's name after a possessive — "Crimson's Way of the Reed".
+ * A religion's name after a possessive — "Hypatia's Way of the Reed". The
+ * possessive is the founder's `seatName`: a leader's name, or a leaderless
+ * seat's own name, and "'s" reads well after every leader on the sheet.
  *
  * Every generated name begins with an article (`religion.json`'s three patterns
- * are all "the …"), and "Crimson's the Way of the Reed" is not English. The
+ * are all "the …"), and "Hypatia's the Way of the Reed" is not English. The
  * article is what goes, and nothing else: a player may rename a faith to
  * anything at all, and a name that does not start with one is used whole.
  */
@@ -525,7 +527,7 @@ export function createReligionWatcher(): ReligionWatcher {
             kind: 'enhanced',
             text: mine
               ? `${religion.name} is enhanced — ${beliefDef(enhancer).name}`
-              : `${founder} enhanced ${possessed(religion.name)}`,
+              : `${founder} enhanced ${religion.name}`,
           },
         });
       }

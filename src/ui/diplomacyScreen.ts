@@ -419,7 +419,7 @@ interface DealProposalRow {
   id: number;
   /** True when this seat wrote it — the Withdraw face rather than Accept. */
   mine: boolean;
-  /** "You offer the Crimson Banner", "The Crimson Banner offer you". */
+  /** "You offer the Alexandrians", "The Alexandrians offer you". */
   heading: string;
   /** What the proposer hands over, one plain line each. */
   give: string[];

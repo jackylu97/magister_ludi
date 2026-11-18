@@ -183,6 +183,7 @@ import {
   unitById,
   wakeUnit,
 } from './state';
+import { seatPeople } from './leaderData';
 import { bumpEconomy } from './slate';
 import { lawReadsTrenches } from './statecraft/evaluator';
 // The Vizier's Hall's law, read where every other non-yield building fact is
@@ -2412,7 +2413,8 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
       !isCivilian(unitDef(unit.type)) &&
       !atWar(state, unit.ownerId, holder)
     ) {
-      const them = playerById(state, holder)?.name ?? 'that empire';
+      // The seat's people, never its palette colour (2026-11-18).
+      const them = seatPeople(state, holder);
       return fail(`You are not at war with the ${them} — their land is closed to your armies`);
     }
     return fail(`Unit ${unit.id} cannot stop on (${tile.col}, ${tile.row})`);

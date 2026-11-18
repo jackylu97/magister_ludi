@@ -8,10 +8,13 @@
  * pays its bead in the same resolution that opens the next age, so the bead
  * sheet comes up just before the age plate.
  *
- * So the sheet now mounts the frame that the Abacus screen and the Opus close
- * use (`AbacusStage`, `src/render3d/abacus3d.ts`). Every seat has its rod, as on
- * the Abacus screen. This seat's new bead slides onto its rod with the frame's
- * own slide and knock (`AbacusStage.earn`, the slide the look-dev page plays).
+ * So the bead moment now mounts the frame that the Abacus screen and the Opus
+ * close use (`AbacusStage`, `src/render3d/abacus3d.ts`). Every seat has its rod,
+ * as on the Abacus screen. This seat's new bead slides onto its rod with the
+ * frame's own slide and knock (`AbacusStage.earn`, the slide the look-dev page
+ * plays). Since the user's second look (2026-11-18) the frame stands on a
+ * full-screen page (`beadModal.ts`'s `renderPage`), large, with the bead's name
+ * over it and nothing else but the count line and Proceed.
  *
  * What does not change
  * --------------------
@@ -34,6 +37,7 @@
  */
 
 import { AbacusStage, Clack, type FamilyId, cssHex } from '../render3d/abacus3d';
+import { VIEW3D } from '../render3d/lookData';
 import type { EarnedBead } from '../sim/state';
 import { type AbacusRow, frameBeads } from './abacusScreen';
 import { isGoldenBead } from './beadsScreen';
@@ -50,6 +54,15 @@ export interface BeadTable {
 
 /** How long after the sheet rises the bead starts to slide: the sheet's settle. */
 const SLIDE_DELAY_MS = 320;
+
+/**
+ * The colour of the table the frame stands on, as CSS: the bead page's ground,
+ * so the canvas has no edge against the page. The Opus close's page does the
+ * same.
+ */
+export function frameGround(): string {
+  return cssHex(VIEW3D.table.color);
+}
 
 /** What each rod is seeded with, and the one bead that then slides. Pure. */
 export interface FrameSeeds {

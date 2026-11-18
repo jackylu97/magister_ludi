@@ -40,10 +40,12 @@
  * The 3D frame (2026-11-18)
  * -------------------------
  * When `main.ts` hands the sheet the table (`table`) and `BEAD_SHEET_FRAME_3D`
- * is on, the sheet shows the 3D Abacus instead of the 2D rod: every seat's rod,
- * and the new bead sliding onto this seat's rod (`beadAwardFrame.ts`). The 2D
- * rod above is kept. It is what the sheet draws with the switch off, with no
- * table, or when the browser gives no WebGL context.
+ * is on, a bead is a **full-screen page** (`renderPage`, 2026-11-18): the
+ * bead's name and the 3D Abacus, large, with every seat's rod and the new bead
+ * sliding onto this seat's rod (`beadAwardFrame.ts`), and Proceed. The old
+ * sheet above, with its text and the 2D rod, is kept (`renderSheet`). It is
+ * what shows with the switch off, with no table, or when the browser gives no
+ * WebGL context.
  */
 
 import {
@@ -66,12 +68,12 @@ import { figure } from './figures';
 import { setDescriptorText } from './keywords';
 import { element } from './dom';
 import { prefersReducedMotion } from './motion';
-import { type BeadAwardFrame, type BeadTable, mountBeadAwardFrame } from './beadAwardFrame';
+import { type BeadAwardFrame, type BeadTable, frameGround, mountBeadAwardFrame } from './beadAwardFrame';
 
 /**
- * **The one switch for the 3D frame on the bead sheet** (2026-11-18). On, the
- * sheet shows the 3D Abacus with the new bead sliding home. Off, it draws the
- * 2D rod it drew before. See `beadAwardFrame.ts`.
+ * **The one switch for the bead page** (2026-11-18). On, a bead is a
+ * full-screen page with the 3D Abacus and the new bead sliding home. Off, it is
+ * the old sheet with its text and the 2D rod. See `beadAwardFrame.ts`.
  */
 export const BEAD_SHEET_FRAME_3D = true;
 
@@ -249,6 +251,7 @@ export function createBeadModal(
     queue = [];
     container.replaceChildren();
     container.hidden = true;
+    container.classList.remove('is-bead-page');
     const back = restoreFocus;
     restoreFocus = null;
     back?.focus({ preventScroll: true });
@@ -286,13 +289,79 @@ export function createBeadModal(
     return wire;
   }
 
+  /** Proceed, and "1 of 2" beside it when more sheets wait behind this one. */
+  function footOf(face: BeadAwardFace): { foot: HTMLElement; button: HTMLButtonElement } {
+    const foot = element('div', 'triumph-foot');
+    const button = document.createElement('button');
+    button.className = 'triumph-proceed';
+    button.type = 'button';
+    button.append(element('span', 'triumph-proceed-label', 'Proceed'));
+    button.append(element('kbd', 'triumph-proceed-key', 'Enter'));
+    button.addEventListener('click', () => proceed());
+    foot.append(button);
+    if (face.counter !== null) {
+      foot.append(element('p', 'triumph-queue', face.counter));
+    }
+    return { foot, button };
+  }
+
   function render(): void {
     const news = queue[0];
     if (!news) return;
     const face = beadAwardFace(news, queue.length, { still: prefersReducedMotion() });
     dropFrame();
     container.replaceChildren();
+    // The full-screen page with the 3D frame while the switch is on and the
+    // page has a table to string (2026-11-18). The old sheet otherwise, and
+    // when the browser gives no WebGL context.
+    const table = BEAD_SHEET_FRAME_3D ? (options.table?.() ?? null) : null;
+    if (table !== null && renderPage(news, face, table)) return;
+    renderSheet(face);
+  }
 
+  /**
+   * **The bead page** (2026-11-18): the bead's name and the 3D Abacus, large,
+   * with the new bead sliding onto this seat's rod, and Proceed.
+   *
+   * The user, on the sheet: "too much text in this description, and the purple
+   * dot on the top feels amateurish. Let's just have the title … and the
+   * abacus, full screen with the animation." So the page has no crest, no
+   * class line, no deed and no boon lines. The seat names beside the rods and
+   * the small "n of 7 beads" line stay. What the page leaves out is still in
+   * the game: the chronicle's line for the bead names it, its family and what
+   * it paid, and the bead ledger (V) prints each bead row's text.
+   *
+   * Answers false, and leaves the overlay empty, when the frame cannot be
+   * built: the caller then draws the old sheet with the 2D rod.
+   */
+  function renderPage(news: BeadNews, face: BeadAwardFace, table: BeadTable): boolean {
+    container.classList.add('is-bead-page');
+    const page = element('section', 'bead-page');
+    // The table the frame stands on, so the canvas has no edge against the page.
+    page.style.background = frameGround();
+    page.append(element('h2', 'bead-page-title', face.name));
+    const abacus = element('figure', 'bead-award-abacus bead-page-abacus');
+    abacus.append(element('figcaption', 'bead-award-tally', face.tally));
+    page.append(abacus);
+    const { foot, button } = footOf(face);
+    page.append(foot);
+    container.append(page);
+    container.hidden = false;
+    // Now that the page is laid out, the stage can measure its box. The new
+    // bead slides only where the 2D rod would have animated it.
+    frame = mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null);
+    if (frame === null) {
+      container.classList.remove('is-bead-page');
+      container.replaceChildren();
+      return false;
+    }
+    button.focus({ preventScroll: true });
+    return true;
+  }
+
+  /** The old sheet: crest, name, class line, deed, the 2D rod, what it paid. */
+  function renderSheet(face: BeadAwardFace): void {
+    container.classList.remove('is-bead-page');
     const sheet = element('div', 'triumph-sheet bead-sheet gilt-frame');
     sheet.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[face.family].ink})`);
     // No label over the crest (batch SS1): the line under the name already
@@ -315,10 +384,7 @@ export function createBeadModal(
     sheet.append(deed);
 
     const abacus = element('figure', 'bead-award-abacus');
-    // The 3D frame is built below, once the sheet is on screen. Without a table
-    // the 2D rod is drawn here, as it always was.
-    const table = BEAD_SHEET_FRAME_3D ? (options.table?.() ?? null) : null;
-    if (table === null) abacus.append(drawWire(face));
+    abacus.append(drawWire(face));
     abacus.append(element('figcaption', 'bead-award-tally', face.tally));
     sheet.append(abacus);
 
@@ -329,28 +395,11 @@ export function createBeadModal(
       sheet.append(paid);
     }
 
-    const foot = element('div', 'triumph-foot');
-    const button = document.createElement('button');
-    button.className = 'triumph-proceed';
-    button.type = 'button';
-    button.append(element('span', 'triumph-proceed-label', 'Proceed'));
-    button.append(element('kbd', 'triumph-proceed-key', 'Enter'));
-    button.addEventListener('click', () => proceed());
-    foot.append(button);
-    if (face.counter !== null) {
-      foot.append(element('p', 'triumph-queue', face.counter));
-    }
+    const { foot, button } = footOf(face);
     sheet.append(foot);
 
     container.append(sheet);
     container.hidden = false;
-    // Now that the sheet is laid out, the stage can measure its box. The new
-    // bead slides only where the 2D rod would have animated it. If the browser
-    // gives no WebGL context, the 2D rod takes the frame's place.
-    if (table !== null) {
-      frame = mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null);
-      if (frame === null) abacus.prepend(drawWire(face));
-    }
     button.focus({ preventScroll: true });
   }
 

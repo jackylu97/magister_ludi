@@ -103,7 +103,7 @@ import {
 // The figure's half of a unique row's gate. A leaf over the roster and the
 // chart, which this module does not import back — the same bargain `tech.ts`
 // strikes for the soldier and the hall.
-import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData';
+import { leaderOpensImprovement, leaderThatOpensImprovement, seatPeople } from './leaderData';
 import {
   type Tile,
   getTileAt,
@@ -2006,7 +2006,8 @@ export function pillageError(state: GameState, unitId: number): string | null {
    * burning pass is untouched.
    */
   if (owner !== null && !atWar(state, unit.ownerId, owner)) {
-    const them = playerById(state, owner)?.name ?? 'that empire';
+    // The seat's people, never its palette colour (2026-11-18).
+    const them = seatPeople(state, owner);
     return `You are not at war with the ${them}`;
   }
   return null;

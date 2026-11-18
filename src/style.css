@@ -17650,23 +17650,87 @@ body.compendium-page {
   justify-content: center;
 }
 
-/* The 3D frame on the sheet (`beadAwardFrame.ts`, 2026-11-18). A fixed height,
-   because the stage measures this box when it is built and a box sized by its
-   content measures nothing. `position: relative` places the name labels, as
-   `.abacus-stage` does. The labels use the Abacus screen's classes at a size
-   that fits the sheet. */
-.bead-award-stage {
-  position: relative;
-  height: 200px;
+/* **The bead page** (`beadModal.ts`'s `renderPage`, 2026-11-18): the bead's
+   name and the 3D frame, large, on the table's own ground, and Proceed. The
+   overlay is the sheet's own, made full screen and lifted to the age plate's
+   layer, so the bar and the board are covered as they are by the plate. */
+.triumph-overlay.is-bead-page {
+  z-index: 42;
+  display: flex;
+  padding: 0;
+  overflow: auto;
 }
 
-.bead-award-stage .abacus-label.is-name {
-  padding-right: 8px;
-  font-size: var(--size-ui);
+/* The frame fills the window, as it does on the Opus close's page, so the
+   canvas has no edge against the page; the name, the count line and Proceed
+   stand over it. */
+.bead-page {
+  position: relative;
+  box-sizing: border-box;
+  flex: 1 0 auto;
+  min-height: 100%;
+  text-align: center;
+  color: var(--ink);
+  animation: offer-fade 220ms ease-out both;
+}
+
+.bead-page-title {
+  position: absolute;
+  z-index: 1;
+  top: 4vh;
+  left: 24px;
+  right: 24px;
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: clamp(var(--size-title), 5.6vh, 60px);
+  font-weight: 400;
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+.bead-page-abacus {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The frame's box. Sized by the page, never by its content: the stage
+   measures this box when it is built, and a box sized by its content measures
+   nothing. It places the name labels, as `.abacus-stage` does; the labels wear
+   the Abacus screen's own classes and sizes. */
+.bead-award-stage {
+  position: absolute;
+  inset: 0;
 }
 
 .bead-award-stage .abacus-label.is-you {
   font-weight: 700;
+}
+
+.bead-page .bead-award-tally {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: calc(4vh + 52px);
+  margin: 0;
+}
+
+.bead-page .triumph-foot {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 4vh;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bead-page {
+    animation: none;
+  }
 }
 
 .bead-award-tally {

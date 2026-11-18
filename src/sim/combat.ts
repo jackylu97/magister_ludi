@@ -379,6 +379,7 @@ import {
   removeUnit,
   unitById,
 } from './state';
+import { seatPeople } from './leaderData';
 import { atWar, recordWarCapture, warBetween, warSpoils } from './wars';
 import type { CardId, TallyFacts } from './statecraftData';
 // **A function-level edge to `religion.ts`**, the documented kind (CLAUDE.md's
@@ -1820,7 +1821,8 @@ function planCombat(
    */
   const defenderId = target.city ? target.city.ownerId : target.unit!.ownerId;
   if (!atWar(state, attacker.ownerId, defenderId)) {
-    const them = playerById(state, defenderId)?.name ?? 'that empire';
+    // The seat's people, never its palette colour (2026-11-18).
+    const them = seatPeople(state, defenderId);
     return { ok: false, error: `You are not at war with the ${them}` };
   }
   // Which beat of the siege this is, read off the same board `attackTargetAt`

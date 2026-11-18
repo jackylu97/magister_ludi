@@ -71,6 +71,13 @@ const SOURCE = {
   }) as Record<string, string>),
 };
 
+/** The rules' sources, for the sentences they write about another seat. */
+const SIM = import.meta.glob('../../src/sim/**/*.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
 /**
  * One file's source with its comments taken out — `seatRoster.test.ts`' helper
  * and its reason: every surface here explains itself by naming the thing it no
@@ -97,7 +104,9 @@ function sourceOf(file: string): string {
  */
 const READS_THE_FIELD: readonly RegExp[] = [
   /\bplayers\s*\[[^\]]*\]\s*[!?]?\s*\??\.name\b/,
-  /\bplayerById\s*\([^)]*\)\s*[!?]?\s*\??\.name\b/,
+  // One level of nested call inside the lookup, so `playerById(getGame().state,
+  // id)?.name` is caught too (2026-11-18: four such lines had slipped through).
+  /\bplayerById\s*\((?:[^()]|\([^()]*\))*\)\s*[!?]?\s*\??\.name\b/,
   /\b(?:player|seat|owner|local|enemy|founder|giver|winner)\s*[!?]?\s*\??\.name\b/,
 ];
 
@@ -112,6 +121,34 @@ describe('a seat’s name', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('is asked of the reading in the rules’ own sentences about another seat', () => {
+    // 2026-11-18, the user: "make sure that the original 'Crimson' label is
+    // removed throughout the game and it reads your leader instead". The rules
+    // name another seat in a refusal ("You are not at war with the Inca"), a
+    // tribute line and the wager's rows, and those read the seat's leader or
+    // people. A sentence about the acting seat itself reads `Player.name`,
+    // which the landing writes as the leader's name (`seatLeaders`).
+    const offenders: string[] = [];
+    for (const [path, text] of Object.entries(SIM)) {
+      code(text)
+        .split('\n')
+        .forEach((line, index) => {
+          if (READS_THE_FIELD[1]!.test(line)) offenders.push(`${path}:${index + 1}`);
+        });
+    }
+    expect(offenders).toEqual([]);
+    expect(code(SIM['../../src/sim/wagers.ts']!)).toContain('name: seatName(state, player.id),');
+  });
+
+  it('is the leader’s name on a seat the landing put under a figure', () => {
+    const table: PlayerSpec[] = seatLeaders(rosterFor(3), 'pachacuti', 4);
+    const state = newGame({ seed: 4, sizeName: 'duel', players: table, barbarians: true });
+    for (const player of realPlayers(state)) {
+      expect(player.name).toBe(seatName(state, player.id));
+      expect(player.name).not.toBe(rosterFor(3)[player.id]!.name);
+    }
   });
 
   it('is never read to rebuild a gate’s refusal sentence', () => {

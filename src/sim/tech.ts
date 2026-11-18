@@ -418,7 +418,7 @@ import {
 import { improvementDef } from './improvementData';
 // The figure's own sheet, a leaf (`leaderData.ts`'s docblock), so the unique's
 // gate below costs this module no edge it did not already have.
-import { leaderOpensBuilding, leaderOpensUnit } from './leaderData';
+import { leaderOpensBuilding, leaderOpensUnit, seatName } from './leaderData';
 
 /**
  * **Has this empire reached this column of the chart?** — the gate a row the
@@ -1323,8 +1323,9 @@ export function buildError(
       world !== undefined &&
       !hasTech(state, playerId, world)
     ) {
-      const holder = playerById(state, book.playerId)?.name ?? `player ${book.playerId}`;
-      return `${itemName(kind, id)} is closed by the ${holder}'s Closed Book to empires that do not know ${techDef(world).name}, until turn ${book.until}`;
+      // The seat's leader, never its palette colour (2026-11-18), so no "the".
+      const holder = seatName(state, book.playerId);
+      return `${itemName(kind, id)} is closed by ${holder}'s Closed Book to empires that do not know ${techDef(world).name}, until turn ${book.until}`;
     }
   }
   // **A row that is placed, and a row that is withdrawn, before the tree's
@@ -1510,9 +1511,8 @@ export function buildError(
     const claim = wonderClaim(state, id);
     if (claim) {
       const where = cityById(state, claim.cityId);
-      const who = playerById(state, claim.playerId);
       const town = where?.name ?? `city ${claim.cityId}`;
-      const empire = who?.name ?? `player ${claim.playerId}`;
+      const empire = seatName(state, claim.playerId);
       return `${itemName(kind, id)} already stands in ${town} (${empire})`;
     }
     for (const other of state.cities) {
@@ -1571,7 +1571,7 @@ export function buildError(
     const player = playerById(state, playerId);
     const held = player?.beads.length ?? 0;
     if (held < BEAD_RULES.threshold) {
-      const who = player?.name ?? `player ${playerId}`;
+      const who = seatName(state, playerId);
       return `${itemName(kind, id)} asks for ${BEAD_RULES.threshold} beads; ${who} holds ${held}`;
     }
   }
