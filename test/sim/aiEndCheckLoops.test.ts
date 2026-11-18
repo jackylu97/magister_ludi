@@ -388,14 +388,24 @@ describe('the focus changes only by a clear margin (bot batch BP11, driver.focus
 describe('fault 5: a settler only for a site no other settler is for (bot batch BP10)', () => {
   const RADIUS = (aiJson as { expansion: { siteSearchRadius: number } }).expansion.siteSearchRadius;
 
-  /** The Settler row of seat 0's first town, with its queue emptied so the town decides. */
+  /**
+   * The Settler row of seat 0's first town, with its queue emptied so the town
+   * decides. Since bot batch BP16's phases the sitting's phases (the beeline,
+   * the council, the purse) answer before the loop reaches the town, so their
+   * decisions are applied first.
+   */
   function settlerRow(state: GameState): BotCandidate | undefined {
     const city = firstCity(state, 0);
     city.queue = [];
     bumpRevision(state);
-    const decision = nextBotDecision(state, 0, botSitting(0));
-    expect(decision?.kind).toBe('build');
-    return decision!.candidates.find((row) => row.label.startsWith('Settler'));
+    const sitting = botSitting(0);
+    for (let step = 0; step < 20; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      if (decision.kind === 'build') return decision.candidates.find((row) => row.label.startsWith('Settler'));
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+    }
+    throw new Error('the town did not decide its build');
   }
 
   function labels(terms: readonly ValueTerm[]): string[] {
