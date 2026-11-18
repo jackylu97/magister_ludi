@@ -850,3 +850,31 @@ and the orders/doctrines page were just a list of all cards in play".
   technologies that carry a rule, holy cities). A second board draws this on
   option A's base. Nothing is built until the user picks.
 - A and D are not yet ruled.
+
+### The cards-in-play board, and the table that follows it (2026-11-18)
+
+Board: `scratchpad/onestyle/cards-in-play.html`, published at
+https://claude.ai/artifact/BGL63xYwjnQKo9Zg6RAjD6. The user: "hmmm i dont like
+any of these. how can we make it look/feel like an actual card game? I'm
+imagining a 'hand' that's played in the middle, as if its a hand thats being
+played, and maybe the permanent effects are positioned in specific spots like
+how a card game has different zones for different effect cards? There is an
+overwhelming number of cards tbh".
+
+Proposed in reply and accepted ("ok that makes sense to me"): a card table with
+zones. Only what the player chose and placed is a card (the council, the
+government, the Doctrines, the hand). Passive effects are not full cards.
+
+The user's further rulings, same day: "i think R feels somewhat close in terms
+of function (piles of permanent abilities). Resources and technologies should
+definitely not be cards. Maybe wonders and beliefs are separate form order
+cards but also contain some graphic element to them? I'm thinking that the
+wonders should eventually have splash art".
+
+- Layouts P, Q and R are rejected as drawn. R's function (piles of permanent
+  abilities, one pile a kind) is close to what the user wants.
+- **Resources and technologies are never cards.**
+- **Wonders and beliefs get their own forms**, different from an Order card,
+  each with a graphic element. A wonder's form has room for splash art later.
+- A third board draws one table, at mid game and late game. Nothing is built
+  until the user picks.
