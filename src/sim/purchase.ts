@@ -1056,6 +1056,14 @@ interface PurchaseGateAnswer {
    * Not rounded, because a bank holds fractions.
    */
   shortfall: number | null;
+  /**
+   * `explainPurchaseCost`'s total, when every clause before the bank passed and
+   * the gate priced the purchase to ask the bank. So it is set whenever
+   * `refusal` is `null` or `shortfall` is set, and `null` when an earlier
+   * clause refused. The bot's want book reads it rather than folding the price
+   * a second time (bot batch BP16, the audit's finding 4).
+   */
+  price: number | null;
 }
 
 /**
@@ -1080,7 +1088,8 @@ export function purchaseShortfall(
 
 /**
  * Both of the gate's answers from one pass through its clauses: the refusal
- * (`purchaseError`) and the bank's shortfall (`purchaseShortfall`).
+ * (`purchaseError`) and the bank's shortfall (`purchaseShortfall`), with the
+ * price the bank clause compared, when the gate got that far.
  *
  * For a caller that needs both. The bot's want book asks it once for every row
  * it prices, and a second pass for every refused row would repeat the whole
@@ -1097,7 +1106,7 @@ export function purchaseGate(
   currency: unknown,
 ): PurchaseGateAnswer {
   const reached = clausesBeforeTheBank(state, playerId, cityId, item, currency);
-  if (typeof reached === 'string') return { refusal: reached, shortfall: null };
+  if (typeof reached === 'string') return { refusal: reached, shortfall: null, price: null };
   const { player, name, bank, price } = reached;
   // **What the bank may spend**, which for gold is not always what it holds:
   // Letters of Credit lets a purchase take the treasury below zero (Commerce
@@ -1112,9 +1121,10 @@ export function purchaseGate(
           ? `${name} costs ${price} ${bank}; ${player.name} has ${Math.floor(held)}`
           : `${name} costs ${price} ${bank}; ${player.name} may spend ${Math.floor(spendable)}, credit included`,
       shortfall: price - spendable,
+      price,
     };
   }
-  return { refusal: null, shortfall: null };
+  return { refusal: null, shortfall: null, price };
 }
 
 /** What the bank clause needs once every earlier clause has passed. */

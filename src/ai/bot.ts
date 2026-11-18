@@ -193,7 +193,7 @@ import {
   unitLabel,
   unweighed,
 } from './decision';
-import { decisionMemoTally, inDecision } from './decisionMemo';
+import { decisionMemoShadow, decisionMemoTally, inDecision } from './decisionMemo';
 import {
   type ImprovementPlan,
   buildImprovementPlan,
@@ -325,7 +325,7 @@ import {
 // and the Ledger do. See `readings.ts`.
 import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import { slateMemo } from '../sim/slate';
-import { type CombatForecast, fortifyError, previewCombat } from '../sim/combat';
+import { type CombatForecast, fortifyError, isFortified, previewCombat } from '../sim/combat';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
 import { rankName, rankOf } from '../sim/ranks';
@@ -869,6 +869,32 @@ export interface BotSitting {
    * research it was read for (`beelineKey`), and the table.
    */
   beeline: { ctx: ValueContext; key: string; table: TechGoalTable } | null;
+  /**
+   * **Diplomacy has had its say this sitting** (bot batch BP16, the audit's
+   * T2). `decideNext` asks `diplomacyDecision` at every decision until the
+   * first one where it answers nothing, and then not again until the next
+   * sitting. The audit measured 4,564 and 6,293 asks a game for 44 and 64
+   * answers.
+   *
+   * What is still answered at once: every paper on the table when the seat
+   * sits down. The other seats send papers only in their own sittings, so
+   * nothing new arrives in this one, and the asks go on while each answers a
+   * paper. The audience (`answerAudience`) is a separate door and is
+   * unchanged.
+   *
+   * What waits one turn: an answer whose reasons change through this seat's
+   * own later commands in the same sitting. A declaration after the seat buys
+   * soldiers, a peace suit after a battle it lost, a raze of a town it took in
+   * this sitting, and a swap for a copy it gained in this sitting.
+   */
+  abroadQuiet: boolean;
+  /**
+   * **Each bank's kept "nothing to buy"** (bot batch BP16, the audit's T3;
+   * `bankSpend`): the key it was read under (the purse, the reserve, the
+   * running routes) and the sitting's `routeOffer` record at that moment, or
+   * `null` while the bank has not answered nothing before a gate.
+   */
+  spendQuiet: Record<BankCurrency, { key: string; routeOffer: BotSitting['routeOffer'] } | null>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -894,6 +920,8 @@ export function botSitting(playerId: number): BotSitting {
     steppedBack: new Set<number>(),
     hexThreats: new Map<number, GuardThreat | null>(),
     beeline: null,
+    abroadQuiet: false,
+    spendQuiet: { gold: null, faith: null, culture: null },
   };
 }
 
@@ -1864,13 +1892,17 @@ function decideNext(
   // Every arm of it is monotone — a war cannot be declared twice, an offer that
   // already stands is refused, an answered paper leaves the table — which is
   // what lets it sit ahead of the blockers without threatening the driver's
-  // loop. See `src/ai/diplomacy.ts`.
-  // A bot receiver's context as its own sitting would read it now (bot batch
-  // BP13): the swap arm asks the receiver's own reading of a paper with it.
-  const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), (rival) =>
-    valueContext(state, rival, seatBooks(state, rival)),
-  );
-  if (abroad !== null) return abroad;
+  // loop. See `src/ai/diplomacy.ts`. The swap arm asks a bot receiver's own
+  // reading of a paper (bot batch BP13).
+  //
+  // **Asked until it first has nothing to say, then not again in the sitting**
+  // (bot batch BP16, the audit's T2; `BotSitting.abroadQuiet`).
+  const own = sitting !== undefined && sitting.playerId === playerId ? sitting : null;
+  if (own === null || !own.abroadQuiet) {
+    const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), true);
+    if (abroad !== null) return abroad;
+    if (own !== null) own.abroadQuiet = true;
+  }
 
   if (blocker !== null) {
     // **A sleeping worker is asked before a town chooses its build** (bot
@@ -4613,12 +4645,14 @@ function spendCommand(state: GameState, player: Player, sitting?: BotSitting): B
   const ctx = seatContext(state, player, sitting);
   const gold = bankSpend(state, player, ctx, 'gold', sitting);
   if (gold !== null) return gold;
-  const faith = bankSpend(state, player, ctx, 'faith');
+  // The sitting goes to every bank for the kept "nothing to buy" (bot batch
+  // BP16); only the gold bank reads the next route after a hire.
+  const faith = bankSpend(state, player, ctx, 'faith', sitting);
   if (faith !== null) return faith;
   // **A wonder bought with culture** (Magisterial batch MG17; Magnificence).
   // The culture book holds a buyable row only under the rule, so a seat
   // without it asks nothing here.
-  const culture = bankSpend(state, player, ctx, 'culture');
+  const culture = bankSpend(state, player, ctx, 'culture', sitting);
   if (culture !== null) return culture;
   return contributionCommand(state, player, ctx);
 }
@@ -4678,6 +4712,25 @@ function nextRouteOffer(
  * buy the sixty-coin trinket, because the saving row outranks it. And an empire
  * with nine hundred coins and an unbuilt granary buys the granary, because
  * nothing about holding was ever worth more than that.
+ *
+ * **"Nothing to buy" is kept for the sitting** (bot batch BP16, the audit's
+ * T3; `BotSitting.spendQuiet`). The arm is asked on every decision, and after
+ * the first decision of a sitting it bought on about 6% of asks. When it
+ * answers nothing before any live gate is asked, the answer reads only:
+ *
+ *   · the book and its bar, which are fixed for the sitting (`BotSitting.ctx`);
+ *   · the purse in this bank (`purseOf`);
+ *   · the gold reserve (`goldReserveFor`; nought in the other banks);
+ *   · the next route after a hire (`nextRouteOffer`), which is a function of
+ *     the seat's running routes (`usedRouteSlots`) and the sitting's own
+ *     `routeOffer` record.
+ *
+ * So the answer is kept under those (the purse, the reserve, the running
+ * routes, and the `routeOffer` record by identity) and handed back while they
+ * stand. A "nothing" reached after a gate struck a row is not kept: the gates
+ * read the live board. With the decision memo's shadow on
+ * (`setDecisionMemoShadow`), a kept answer is read again and the arm throws
+ * when the two differ.
  */
 function bankSpend(
   state: GameState,
@@ -4686,11 +4739,48 @@ function bankSpend(
   currency: BankCurrency,
   sitting?: BotSitting,
 ): BotDecision | null {
-  const wants =
-    currency === 'gold' ? ctx.wants.gold : currency === 'faith' ? ctx.wants.faith : ctx.wants.culture;
+  const own = sitting !== undefined && sitting.playerId === player.id && sitting.ctx === ctx ? sitting : null;
   // The hard cover, hoisted: it prices the whole empire's standing bill, and
   // asking it once per candidate would be one empire sweep per row for sale.
   const reserve = currency === 'gold' ? goldReserveFor(state, player) : 0;
+  // **The treasury is read live, never off the book** (batch 6), once a call:
+  // nothing in this arm writes to the board.
+  const purse = purseOf(state, player, currency);
+  if (own === null) return readBankSpend(state, player, ctx, currency, sitting, reserve, purse).decision;
+  const key = `${purse}|${reserve}|${currency === 'gold' ? usedRouteSlots(state, player.id) : 0}`;
+  const kept = own.spendQuiet[currency];
+  const hit = kept !== null && kept.key === key && kept.routeOffer === own.routeOffer;
+  decisionMemoTally.spendAsked += 1;
+  if (hit) {
+    decisionMemoTally.spendKept += 1;
+    if (!decisionMemoShadow()) return null;
+  }
+  const read = readBankSpend(state, player, ctx, currency, sitting, reserve, purse);
+  if (hit && (read.decision !== null || !read.quiet)) {
+    throw new Error(
+      `[ai] the kept "nothing to buy" in the ${currency} bank of seat ${player.id} is stale: ` +
+        (read.decision === null ? 'the fresh answer reached a gate' : read.decision.summary),
+    );
+  }
+  if (read.quiet) own.spendQuiet[currency] = { key, routeOffer: own.routeOffer };
+  return read.decision;
+}
+
+/**
+ * `bankSpend`'s reading, asked fresh. `quiet` is true when it answered nothing
+ * before any live gate was asked, which is the answer `bankSpend` may keep.
+ */
+function readBankSpend(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  currency: BankCurrency,
+  sitting: BotSitting | undefined,
+  reserve: number,
+  purse: number,
+): { decision: BotDecision | null; quiet: boolean } {
+  const wants =
+    currency === 'gold' ? ctx.wants.gold : currency === 'faith' ? ctx.wants.faith : ctx.wants.culture;
   const candidates: BotCandidate[] = [];
 
   let bar: Want | null = null;
@@ -4724,7 +4814,7 @@ function bankSpend(
     // gold gates let it spend (`purseOf`, the simulation's `spendableGold`), so
     // a seat holding Letters of Credit may buy below zero. It keeps its own
     // reserve above the lowest treasury the credit allows.
-    if (purseOf(state, player, currency) - want.price < reserve) {
+    if (purse - want.price < reserve) {
       candidates.push(
         refused(want.label, `${reserve} ${currency} of cover would not survive the price`),
       );
@@ -4740,7 +4830,7 @@ function bankSpend(
   if (currency === 'gold') {
     const next = nextRouteOffer(state, player, ctx, sitting);
     if (next !== null && !next.outOfReach) {
-      if (purseOf(state, player, currency) - next.price < reserve) {
+      if (purse - next.price < reserve) {
         candidates.push(refused(next.label, `${reserve} ${currency} of cover would not survive the price`));
       } else {
         const candidate = wantCandidate(next, currency, false);
@@ -4757,17 +4847,23 @@ function bankSpend(
   // `purchaseError` of the live state before proposing keeps the driver's rule
   // that a refusal is a bug, and a struck row simply hands the bank to the next
   // best want rather than ending the arm.
+  //
+  // `struck` says whether a live gate has struck a row yet: a "nothing" reached
+  // before that is the answer `bankSpend` may keep for the sitting.
+  let struck = false;
+  const sent = (decision: BotDecision): { decision: BotDecision | null; quiet: boolean } => ({ decision, quiet: false });
   for (;;) {
     let best: { want: Want; candidate: BotCandidate } | null = null;
     for (const offer of offers) {
       if (offer.candidate.rejected !== undefined) continue;
       if (best === null || worthPerCoin(offer.want) > worthPerCoin(best.want)) best = offer;
     }
-    if (best === null) return null;
+    if (best === null) return { decision: null, quiet: !struck };
     if (bar !== null && worthPerCoin(best.want) < worthPerCoin(bar)) {
       candidates.push(refused(best.want.label, `holding beats it: ${bar.label}`));
-      return null;
+      return { decision: null, quiet: !struck };
     }
+    struck = true;
     // **The rules are asked of the verb the want would fire** — the two gold
     // sinks are two commands and two gates, and the ground's is `cities.ts`'.
     const ground = best.want.ground;
@@ -4780,7 +4876,7 @@ function bankSpend(
         best.candidate.rejected = refusal;
         continue;
       }
-      return tileDecision(state, player, best.want, bar, candidates);
+      return sent(tileDecision(state, player, best.want, bar, candidates));
     }
     // **A rite is the third verb the faith bank fires** (schema 72). Its gate is
     // `riteError` and its command names a *town*, so it can no more share
@@ -4792,7 +4888,7 @@ function bankSpend(
         best.candidate.rejected = refusal;
         continue;
       }
-      return riteDecision(state, player, best.want, bar, candidates);
+      return sent(riteDecision(state, player, best.want, bar, candidates));
     }
     // **A route is the fourth verb the treasury fires** (batch R1). Its gate is
     // two sentences and both are the simulation's — `routeStartable` for the
@@ -4809,7 +4905,7 @@ function bankSpend(
         best.candidate.rejected = refusal;
         continue;
       }
-      return routeDecision(state, player, best.want, bar, candidates);
+      return sent(routeDecision(state, player, best.want, bar, candidates));
     }
     const bought = best.want.buy!;
     const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
@@ -4829,7 +4925,7 @@ function bankSpend(
       // seat's, for one that has already marched, and for a town with nowhere
       // to put it — and in each of those the row is struck as it always was.
       const step = stepAsideFor(state, player, cityById(state, bought.cityId)!, bought.item, currency);
-      if (step !== null) return stepAsideDecision(state, player, best.want, step, candidates);
+      if (step !== null) return sent(stepAsideDecision(state, player, best.want, step, candidates));
       best.candidate.rejected = refusal;
       continue;
     }
@@ -4841,7 +4937,7 @@ function bankSpend(
       best.candidate.rejected = site;
       continue;
     }
-    return purchaseDecision(state, player, best.want, bar, currency, candidates);
+    return sent(purchaseDecision(state, player, best.want, bar, currency, candidates));
   }
 }
 
@@ -9725,6 +9821,9 @@ function soldierCommand(
 ): UnitChoice | null {
   const ai = aiFor(player);
   const resting = restAndHeal(state, player, unit);
+  // A hurt piece already dug in on its own ground is mending: nothing to send,
+  // and no arm below may call it out (bot batch BP16).
+  if (resting === 'resting') return null;
   if (resting !== null) return resting;
   // **And the other half of it** (2026-09-15): the piece that is too hurt to be
   // swinging and is standing in somebody else's fields walks home rather than
@@ -10236,8 +10335,16 @@ function rangedFriendReady(
  * defence bonus on the way. The known cost of that is the one every stand-down
  * in this file already pays: a fortified piece stops asking for orders until
  * something breaks the trench.
+ *
+ * **A piece that is already dug in answers `'resting'`** (bot batch BP16, the
+ * audit's T4). It is mending already, so the arm has no command to send, but
+ * it must still stop the arms below it. Before BP16 this arm answered `null`
+ * for it, because `fortifyError` refuses "already fortified". The hunt and the
+ * campaign then called the piece out (`wakeTheHunt`, `wakeTheCampaign`), and
+ * the fall-back walked it home again (`fallBackAndHeal`): 82 of the 240 orders
+ * on seed 999 that flipped back to an earlier target within three turns.
  */
-function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice | 'resting' | null {
   const ai = aiFor(player);
   const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
   if (maxHp <= 0) return null;
@@ -10250,6 +10357,7 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
   if (ground !== undefined && isWaterTerrain(ground.terrain) && !isNaval(unitDef(unit.type))) return null;
   const decisive = decisiveBlowAt(state, player, unit);
   if (decisive !== null) return null;
+  if (isFortified(unit)) return 'resting';
   if (fortifyError(unit, state) !== null) return null;
   const terms: ValueTerm[] = [
     {

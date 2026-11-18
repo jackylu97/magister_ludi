@@ -23,7 +23,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { valueContext } from '../../src/ai/bot';
+import { botSitting, nextBotDecision, valueContext } from '../../src/ai/bot';
 import {
   decisionMemoTally,
   inDecision,
@@ -165,6 +165,9 @@ describe('a short game of real bot commands, with both shadow checks on', () => 
     const cards = decisionMemoTally.cardKept;
     const effects = decisionMemoTally.effectsKept;
     const fields = heldFieldsTally.kept;
+    // The spend arm's kept "nothing to buy" (bot batch BP16) is checked under
+    // the same switch.
+    const spends = decisionMemoTally.spendKept;
     const slate = slateShadow();
     setSlateShadow(true);
     setDecisionMemoShadow(true);
@@ -185,5 +188,35 @@ describe('a short game of real bot commands, with both shadow checks on', () => 
     expect(decisionMemoTally.cardKept - cards).toBeGreaterThan(0);
     expect(decisionMemoTally.effectsKept - effects).toBeGreaterThan(50);
     expect(heldFieldsTally.kept - fields).toBeGreaterThan(50);
+    expect(decisionMemoTally.spendKept - spends).toBeGreaterThan(50);
+  }, 120_000);
+});
+
+describe('the spend arm keeps "nothing to buy" for the sitting (bot batch BP16)', () => {
+  it('keeps the answer while the purse stands, and reads again when the purse moves', () => {
+    const played = game(7);
+    while (played.state.turn < 20 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
+    // Find a seat whose spend arm has nothing to buy now: its second ask in
+    // the same sitting is kept.
+    for (const playerId of [0, 1, 2, 3]) {
+      const sitting = botSitting(playerId);
+      const first = nextBotDecision(played.state, playerId, sitting);
+      if (first === null || first.kind === 'purchase' || sitting.spendQuiet.gold === null) continue;
+      const asked = decisionMemoTally.spendAsked;
+      const kept = decisionMemoTally.spendKept;
+      nextBotDecision(played.state, playerId, sitting);
+      expect(decisionMemoTally.spendAsked - asked).toBeGreaterThan(0);
+      expect(decisionMemoTally.spendKept - kept).toBeGreaterThan(0);
+      // A coin more in the purse is another key, so the bank is read again.
+      playerById(played.state, playerId)!.gold += 1;
+      const before = decisionMemoTally.spendKept;
+      const askedBefore = decisionMemoTally.spendAsked;
+      nextBotDecision(played.state, playerId, sitting);
+      const goldAsks = decisionMemoTally.spendAsked - askedBefore;
+      // The gold bank is asked first and is not kept now; the other banks may be.
+      expect(decisionMemoTally.spendKept - before).toBeLessThan(goldAsks);
+      return;
+    }
+    throw new Error('no seat had nothing to buy at turn 20');
   }, 120_000);
 });

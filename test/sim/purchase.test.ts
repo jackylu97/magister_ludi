@@ -806,7 +806,10 @@ describe('the bank’s shortfall, read beside the gate', () => {
     const held = bankOf(playerById(state, 0)!, bank);
     const refusal = purchaseError(state, 0, cityId, item, bank);
     const shortfall = purchaseShortfall(state, 0, cityId, item, bank);
-    expect(purchaseGate(state, 0, cityId, item, bank), label).toEqual({ refusal, shortfall });
+    // The gate hands back the price it asked the bank about (bot batch BP16),
+    // which is the cost fold's own total, whenever it got as far as the bank.
+    const price = refusal === null || shortfall !== null ? explainPurchaseCost(state, 0, cityId, item, bank)!.total : null;
+    expect(purchaseGate(state, 0, cityId, item, bank), label).toEqual({ refusal, shortfall, price });
     if (refusal === null) {
       expect(shortfall, label).toBeNull();
       return 'taken';

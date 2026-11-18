@@ -2553,13 +2553,17 @@ function reachOf(
   // bank nor a piece of the seat's own in the way (clause 3 below) is struck
   // whatever it costs. Most refused rows are buildings a town holds or cannot
   // raise, and their price is no longer folded.
-  const { refusal, shortfall } = purchaseGate(state, player.id, city.id, item, currency);
+  //
+  // **The price comes from the gate** (bot batch BP16, the audit's finding 4).
+  // The gate prices a purchase to ask the bank, so where it got that far (it
+  // took the purchase, or only the bank refused) its `price` is the very total
+  // `explainPurchaseCost` gives, and it is not folded again. Only a unit with a
+  // piece in the way is priced here, because that clause comes before the bank.
+  const { refusal, shortfall, price } = purchaseGate(state, player.id, city.id, item, currency);
   if (refusal !== null && shortfall === null && item.kind !== 'unit') return null;
-  const price = explainPurchaseCost(state, player.id, city.id, item, currency);
-  if (price === null) return null;
-  if (refusal === null) return { price: price.total, outOfReach: false };
+  if (refusal === null) return price === null ? null : { price, outOfReach: false };
   // 1 — the money clause: every other clause passed and only the bank is short.
-  if (shortfall !== null) return { price: price.total, outOfReach: true };
+  if (shortfall !== null) return price === null ? null : { price, outOfReach: true };
   // 2 — the one refusal this seat can act on: a piece of its own in the way.
   // Only a unit is ever refused for it, and the gate's answer is handed down
   // rather than asked for a second time (see `purchaseHexBlocker`) — the
@@ -2567,11 +2571,13 @@ function reachOf(
   if (item.kind === 'unit') {
     const blocker = purchaseHexBlocker(state, player.id, city.id, item, currency, refusal);
     if (blocker !== null) {
+      const priced = explainPurchaseCost(state, player.id, city.id, item, currency);
+      if (priced === null) return null;
       // A seat that cannot pay is short whatever the blocker does, so the walk
       // that looks for somewhere to put it is never taken for one.
-      if (purseOf(state, player, currency) < price.total) return { price: price.total, outOfReach: true };
+      if (purseOf(state, player, currency) < priced.total) return { price: priced.total, outOfReach: true };
       const stuck = stepAsideForBlocker(state, player, city, blocker) === null;
-      return { price: price.total, outOfReach: stuck };
+      return { price: priced.total, outOfReach: stuck };
     }
   }
   // 3 — every other refusal strikes the row, exactly as it always did.

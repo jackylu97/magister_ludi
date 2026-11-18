@@ -1274,9 +1274,21 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * the hex or a guard reaches it first. No rule changed. Duel `29663d27:358427`
  * -> `ec1eb394:358349`, standard `5be63c3e:1044882` -> `70375d88:1021629`.
  */
+/**
+ * Re-cut for bot batch BP16, stage A (`docs/flags.md`, the bullet "BP16: the
+ * audit's safe items, then parallel bots"). The spend arm's kept "nothing to
+ * buy" and the want book's one price from the purchase gate moved neither pin:
+ * both held with those changes alone. Two changes of play moved them: a hurt
+ * piece already dug in on its own ground rests, so the hunt and the campaign
+ * no longer call it out; and a seat asks diplomacy until it first has nothing
+ * to say, then not again in the sitting. The writer of a swap reads a bot
+ * receiver's verdict without the receiver's prices, which gives the same
+ * verdict. No rule changed. Duel `ec1eb394:358349` -> `973ac191:342552`,
+ * standard `70375d88:1021629` -> `604db3ce:1039518`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'ec1eb394:358349',
-  standard: '70375d88:1021629',
+  duel: '973ac191:342552',
+  standard: '604db3ce:1039518',
 };
 
 /**
