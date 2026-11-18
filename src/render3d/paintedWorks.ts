@@ -290,6 +290,44 @@ export class PaintedWorksLayer {
   }
 
   /**
+   * The recipes of the hexes with works that the seat cannot see yet, made a
+   * few at a time in idle time. Returns a step: each call works until `timeUp`
+   * says the slice is over, and answers true when every such hex has a recipe.
+   *
+   * The layer is built for the seat's eyes, so a hex the seat first sees at a
+   * turn end had its recipe made in that turn end: the farm cuts and the
+   * clipped patches, a fifth of the layer's rebuild at turn 130 (the fourth
+   * render speed pass). Each recipe here is the one `build` would make for the
+   * hex from the same state, with the same fields, and `build` checks every
+   * recipe it reuses against the hex as it is then, so a recipe made too early
+   * is made again. Nothing here is drawn.
+   */
+  warmRecipes(state: GameState, preparedMap: GameMap, levels: FogLevels = null, seat: number | null = null,
+    options: PaintedWorksOptions = {}): (timeUp: () => boolean) => boolean {
+    const cityCells = new Set(state.cities.map(city => tileIndex(state.map, city.col, city.row)));
+    const stepAt = workAgeSteps(state);
+    let cell = 0;
+    return (timeUp) => {
+      if (this.disposed || this.source || this.preparedMap !== preparedMap) return true;
+      for (; cell < state.map.tiles.length; cell++) {
+        if (timeUp()) return false;
+        const original = state.map.tiles[cell]!;
+        if (levelAt(levels, state.map, original.col, original.row) !== HIDDEN || cityCells.has(cell)) continue;
+        const tile = preparedMap.tiles[cell]; if (!tile) continue;
+        const resource = (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
+        const improvement = improvementAt(original);
+        if (!resource && !improvement) continue;
+        const step = stepAt(cell, improvement), recipe = this.recipes.get(cell);
+        if (recipe && recipe.tile === tile && recipe.original === original && recipe.resource === resource && recipe.improvement === improvement
+          && recipe.site === undefined && recipe.step === step) continue;
+        this.deleteRecipe(cell);
+        this.recipes.set(cell, this.createRecipe(original, tile, { cell, resource, improvement, level: HIDDEN, step }));
+      }
+      return true;
+    };
+  }
+
+  /**
    * Shadows on or off, over the props and patches already standing.
    *
    * A silhouette casts and receives; a field patch is flat pigment on the hex

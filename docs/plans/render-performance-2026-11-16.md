@@ -682,3 +682,273 @@ New: `test/render/copyCulling.test.ts`, `test/render/seaMirrorTwins.test.ts`, `t
 - **The page still stops for a few seconds while a Giant map's terrain arrives.** The prepared terrain is a large message (about 131 million values on the Giant map). The page reads it once, as before the pass, and now also hands it to the sea's worker, which copies it again on the page's thread. The loading sheet stood still for 6.5 s in the final Giant load (load average 47). It happens while the land is being built, so it does not lengthen the load. Sending the terrain from the board worker to the sea's worker through a `MessageChannel` would keep the page out of it.
 - **Found: the chart's paper is drawn three times in the same place.** `createChartTable` (`paintedBoard.js`) clones the paper into each wrap copy with `matrixWorldAutoUpdate` already false, so the clones never take their copy's offset: all three stand at x = 0 (read in the page: `matrixWorld` x is 0 in the copies at −138.6, 0 and +138.6). So the paper is not drawn on the far side of the seam, and the two side copies draw the middle one again. Fixing it changes the picture at the seam, so it was left for the user. The copy culling (A4) leaves the paper to three's own test.
 - **Twins and new material code.** A material whose shader hook stores the compiled shader to change it later would not see its twin's copy changed. No material drawn in the mirror does so today (checked by reading every `onBeforeCompile` in `src/render3d` and `src/terrainStudy`); a new one that does would show a stale uniform in the reflection only.
+
+## Fourth pass
+
+The ruling: `docs/flags.md`, "The bot's turn in phases, and a fourth rendering speed pass. Ruled 2026-11-17." The user: "could we try to improve the graphics performance further?" The rules of the third pass still hold. Panning comes first, then the load time of a new game, then the pause at a turn end. A change that keeps the picture the same needs no approval. A change to the picture comes with pictures, a difference figure and one setting to revert, and ships off unless the difference cannot be seen.
+
+### Method
+
+- The unchanged code is a `git archive` of `decks` at `0e25b104`, served on port 5263. The worktree is served on 5264. Each server has its own dependency cache, no hot reload and no file watching. One headless Chrome (ANGLE on Metal, Apple M4). Everything runs at `nice 15`.
+- **The fixtures are new.** The saves of the earlier passes are schema 243 and the game is now 244, so the save shelf does not list them. The bots played a new turn-130 game in the page with the same seed (20261116): 74 towns and 373 units, where the old one had 71 and 444. The turn-1 standard save and the Giant save (180 by 112, 8 seats) were made again too.
+- **A trap in the method.** A Vite server with no file watching serves each module as it was when a page first asked for it. Every "after" run must come after a restart of the worktree's server. The first seam pictures and two turn-end runs of this pass were served stale code and were thrown away.
+- **The machine was not quiet.** Other agents ran bot games and test suites through the whole pass. The one-minute load average was between 4 and 75. Every timing script waits up to four minutes for the load average to fall under 6 before it times anything, and each table gives the load it measured at. The GPU was shared too: with my tab parked on a blank page, the GPU's own counter (`ioreg`, IOAccelerator) read 6 to 49 % busy from other programs (the user's browsers and the window server).
+- **New tools.** Chrome's tracing through the DevTools protocol (`Tracing.start`, categories `toplevel`, `gpu`, `gpu.angle`, `viz`, `cc`, `benchmark`, `blink.user_timing`, `devtools.timeline`, `disabled-by-default-gpu.service`, `disabled-by-default-gpu.device`), read for each thread of each process between two marks the page sets. The GPU's busy share from `ioreg`. And diagnostics that take one thing out of the frame at a time, in alternating blocks, with the time between frames as the figure.
+- Scripts: `/private/tmp/claude-501/-Users-jacky-code-webciv/c4da3ce5-796a-4aa7-8603-c5fc07da6b1d/scratchpad/renderperf4/` (`trace.mjs` and `tracesum.cjs` for the traces, `gpuutil.mjs` for the GPU counter, `diag.mjs` and `diag2.mjs` for the diagnostics, `drawlist.mjs` for the draws, `measure4.mjs` and `turnsum.cjs` for the turn end, `loadprof.mjs` for the load, `shots2.mjs`, `seamshots.mjs` and `shots-paperless.mjs` for the pictures, `choices4.mjs` for the picture-changing choice, `queueB.sh`, `queueG.sh` and `queueI.sh` for the final runs; results in `runs/`). Pictures: `pics/` there.
+
+### Summary
+
+- **What bounds a panning frame: the GPU.** Chrome's own trace shows the GPU process's main thread busy 98 to 99 % of every panning frame at all three zooms, and about half of that time it waits for the GPU to finish earlier frames. The GPU's own counter reads 86 to 94 % busy while the board pans (28 to 36 % of that is other programs on this laptop). The page's main thread is idle for half to two thirds of each frame. Taking the board's ground out of the frame takes the middle zoom's frame from about 43 ms to about 23 ms, and taking the trees out saves about 8 ms; nothing else moves it by more than the noise.
+- **Panning: no change to the frame's cost was found that keeps the picture the same.** The ground is expensive because its triangles are about a pixel each at the middle zoom, and the only way to draw fewer of them is to change the picture. The pass measured and threw away three identical-picture ideas (no fog discard, a front-to-back draw order, fewer draws by merging). The draws were listed by layer at three zooms.
+- **Outside the fence: the town banners.** At the farthest zoom the GPU process spends 18 ms a frame drawing the page's HTML again, because the banners move with a transform on elements with no compositor layer of their own. `will-change: transform` on `.city-banner` took that to 0.4 ms in a trace. It is in `src/style.css` and needs its own picture check.
+- **The chart paper fault is fixed** (shipped on, as the brief asks): the paper now continues past the map's seam, and two of its three draws go.
+- **The load.** The map's shape and rivers are worked out once and handed to the other three parts of the build; the hill mounds travel as typed arrays, so the prepared terrain message is 5.1 million values where it was 131 million; and the sea's bake gets the terrain straight from the board worker. The board is the same byte for byte on the standard and the Giant map.
+- **The turn end.** The pieces' old meshes are disposed in idle time after the rebuild, the works' recipes for hexes the seat has not seen are made in idle time, and the border tint measures each hex's top once. The pieces' rebuild at the turn end fell from about 40 ms to 15 to 29 ms and the works' from about 55 ms to 35 to 49 ms.
+- **The machine.** Besides the other agents' load, the laptop ran on battery in low power mode the whole day, and at 20 % charge Chrome's battery saver began to cap frames at 30 a second (from 14:46 page time). The frame-time comparison after that point measured the cap, so the panning "after" figures are counts only. See "Not measured".
+
+### A. Panning
+
+#### What bounds a frame
+
+Turn 130, the camera panning 8 CSS pixels a frame through `panByScreen`, 120 frames, traced. The unchanged code; two runs on two days, load average 5.2 to 6.5 at the time (the scripts waited for it). "Waiting for the GPU" is `CALayerTreeCoordinator::ApplyBackpressure`, where the GPU process stops until the GPU has finished an earlier frame. "WebGL commands" is the GPU process running the page's GL calls through ANGLE (`CommandBufferService:PutChanged`). "Page raster" is the GPU process drawing the page's HTML layers again (`RasterDecoderImpl`, and the wait for that raster to be scheduled), which the moving town banners cause.
+
+| | Closest | Middle | Farthest |
+|---|---|---|---|
+| Draws a panning frame (main pass; the mirror is off while moving) | 235 | 614 | 797 |
+| Triangles | 1.53 M | 4.28 M | 4.78 M |
+| Time between frames (ms) | 22.1, 20.7 | 45.8, 43.3 | 46.4, 45.3 |
+| Page's main thread busy, a frame (ms) | 12.8, 11.3 | 16.9, 15.2 | 18.7, 20.0 |
+| GPU process's main thread busy | 98 %, 99 % | 99 %, 99 % | 99 %, 99 % |
+| of it, waiting for the GPU (ms a frame) | 10.9, 10.8 | 23.7, 22.7 | 11.7, 7.8 |
+| of it, WebGL commands (ms a frame) | 6.1, 5.4 | 10.8, 10.2 | 12.8, 13.1 |
+| of it, page raster (ms a frame) | 2.0, 1.7 | 7.1, 6.4 | 17.5, 19.6 |
+
+The GPU's own busy share (`ioreg` IOAccelerator "Device Utilization %", sampled every half second for 12 s; it counts every program on the GPU):
+
+| | Closest | Middle | Farthest |
+|---|---|---|---|
+| My page parked on a blank page | 36 % | 37 % | 29 % |
+| Panning | 86 % | 94 % | 91 % |
+| Still view, redrawn every frame (mirror on) | 87 % | 100 % | 100 % |
+
+What the figures say:
+- **The frame is GPU-bound.** The GPU process is never idle while the board pans, and its largest part is the wait for the GPU. The GPU is near full use, and a third of that is other programs on this laptop (the user's browsers and the window server), so on a machine with the GPU to itself the frame would be shorter, but bound in the same place.
+- **The page is not the bound.** Its frame loop is 8 to 13 ms of a 21 to 46 ms frame. Cutting the page's CPU time alone cannot raise the frame rate on this machine.
+- **The GPU process's own work matters at the farthest zoom.** There the page raster (the town banners, 18 to 20 ms a frame) is larger than the WebGL commands (13 ms) and the wait for the GPU (8 to 12 ms). The banners are moved with a CSS transform on elements that have no compositor layer of their own, so each pan frame makes the GPU process draw their layer again. That is `src/ui/cityBanners.ts` and `src/style.css`, outside this pass's fence. With `will-change: transform` on `.city-banner`, a trace showed the page raster fall from 18.0 to 0.4 ms a frame ("Not measured, and still open" below).
+- **GPU timer queries.** `EXT_disjoint_timer_query_webgl2` is still on this backend; the pass did not get a clean reading from it (see "Not measured"). The trace and the GPU's own counter above answer the question it was meant to.
+
+#### Where the GPU's time goes
+
+Diagnostics, not changes: each takes one thing out of the frame (so changes the picture), in alternating blocks of 40 panning frames, three rounds (six for the last three rows), turn 130, middle zoom, the unchanged code. The figure is the median time between frames in each block. Load average 5.6 to 8 except where given.
+
+| Taken out | Time between frames (ms), one figure a round | Triangles a frame |
+|---|---|---|
+| Nothing | 45.6, 43.8, 40.5 / 44.9, 50.5, 40.7 / 42.7 to 44.0 | 4.33 M |
+| The whole board (ground, trees, stones) | 17.1, 16.8, 16.7 / 16.9, 16.9, 16.6 | 0.65 M |
+| The board's ground (land, water, earth, decals) | 23.6, 23.4, 19.9 / 23.0, 24.5, 23.8 | 2.85 M |
+| The merged land only | 30.1, 31.8, 32.6 (load 33 to 54) | 3.13 M |
+| The merged water only | 41.7, 40.0, 35.0 (load 33 to 54) | 4.08 M |
+| The trees (groves and cypresses) | 39.3, 35.9, 29.9 | 2.35 M |
+| The stones | 43.0, 47.3, 38.1 | 4.19 M |
+| The works, the pieces, the pins, the ground ink, the towns and sites, the banners | within the noise of "Nothing" | |
+| The contact pass | 44.1, 40.5, 39.5 | |
+| The miniature blur and the grade | 42.3, 40.5, 40.8 | |
+| The board's far detail at the middle zoom | 39.2, 33.3, 36.0 | 3.06 M |
+| The fog's two discards on every board material (six rounds, every hex in view charted) | 40.5 to 42.8 (base 42.1 to 43.6) | 4.33 M |
+| Opaque objects drawn front to back across materials (six rounds) | 41.5 to 44.8 (base 42.1 to 44.0); the page's loop rose from 12 to 16 ms | 4.33 M |
+| The chart paper (all three copies; six rounds) | 40.4 to 43.9 (base 42.1 to 43.6) | 4.25 M |
+
+What the figures say:
+- The board is about 60 % of the frame, and its ground is most of that: the merged land alone costs about 15 ms at the middle zoom. The land has about 1.2 million triangles in view there, on about 1.5 million pixels, so a triangle covers about a pixel. A GPU shades in blocks of two by two pixels, so a mesh this fine runs the land's fragment shader (the painterly style, two shadow maps, the bump map, the sky's light) about four times for each pixel it covers.
+- The far detail at the middle zoom would save about 15 % of the frame, with a different picture. It is the one large lever, and it is a picture choice (below).
+- The fog's discard is not the cost (Apple's GPUs lose their hidden-surface removal on a shader with `discard`, which was the reason to test it): about 3 %, inside the noise. Neither is the draw order. Neither is the number of draws: the works' 189 draws at the middle zoom cost less than the noise.
+
+#### The draws
+
+Draws of one panning frame, by layer (`drawlist.mjs`, turn 130; the mirror is off while the camera moves, by the user's choice of the third pass). The main pass, plus the counter shadow map where the counter rig re-fitted during the pan.
+
+| Layer | Closest | Middle | Farthest |
+|---|---|---|---|
+| The board: ground chunks (land, water, earth, decals: about 28 chunks at the middle zoom), trees, stones, the chart paper | 74 | 283 | 246 |
+| The works (instanced props by 12-by-12 region, sculpt and fog shade, three copies; and the merged field patches) | 38 | 189 | 261 |
+| The pieces (body, outline and ghost of each bucket, each copy in view) | 52 | 81 | 104 |
+| The resource pins (one instanced mesh for each kind, all three copies in one buffer, never culled) | 35 | 35 | 35 |
+| The sites | 0 | 12 | 42 |
+| The towns | 10 | 10 | 10 |
+| The borders, the border tint, the roads | 12 | 23 | 32 |
+| The contact pass and the output step (four full-screen quads) | 4 | 4 | 4 |
+| The counter shadow map (pieces, when the rig re-fits) | 1 | 2.3 | 4.1 |
+| The rest (map ends, fog, toon improvements, smoke, sails, birds, river glints, yield light) | 10 | 11 | 13 |
+| **All** | **237** | **655** | **747** |
+
+With the mirror on (a still view): 870 draws at the middle zoom, of which 135 in the mirror pass (the pieces 94, the board's stones 31, the towns 10). The static sun's map (4096²) is not drawn while panning: `renderer.shadowMap.autoUpdate` is false and the static sun bakes only when the charted world changes. The counter map re-fits only when the view walks off its box.
+
+Each further draw costs the page about 7 µs and the GPU process about 12 µs (from the closest zoom's 235 draws to the middle zoom's 614: the page's loop 8 → 10.5 ms, the WebGL commands 6 → 10.5 ms), so 100 fewer draws would save about 1.2 ms of the GPU process's 43 ms. While the GPU is the bound, that does not shorten the frame. The draws that could go without a picture change and without more GPU work:
+- The chart paper's two extra draws: fixed (D below). Middle zoom 870 → 868 draws with the mirror, 735 → 733 without.
+- The resource pins' 35 draws, made at every zoom whatever is in view: the pins of each kind span the whole map, so a copy for each wrap copy, or regions, would draw about as many. Not changed.
+- The board's props by region instead of by chunk, and the works by larger regions: fewer draws, but more off-screen instances sent to the GPU, which is the bound. Not changed.
+
+#### What changed for panning
+
+Only the chart paper (D below): two draws fewer at every zoom where the side copies are out of view. The pass looked for identical-picture savings in the GPU's work and found none above the noise (table above). The rendering's CPU side was not changed: the page is idle for half the frame.
+
+#### The choice that changes the picture
+
+The far detail from a closer zoom: `painted.lod.nearPixels` and `farPixels` in `data/view3d.json` (25 and 29 pixels a hex). The middle zoom is 59 pixels a hex at 1600 by 958, and about 73 at the user's buffer (2205 by 1182). Raised to 70 and 74, the middle zoom draws the board's far detail: the hex tops' coarser mesh and the map-scale tree and rock sculpts (about a tenth of the facets). Measured in the diagnostics above: 4.33 M → 3.06 M triangles, the frame about 15 % shorter. The trees read as blocks at that zoom, so it is not shipped. The pictures and the difference figure are in the choices table below.
+
+### B. The load time of a new game
+
+#### Before
+
+The third pass left two faults in the split build. Every part of the build worked out the whole map's shape, rivers and coast before its share of the land, and on a loaded machine the four copies competed for the cores (22 to 27 s on the Giant map where one worker took 11 to 13 s). And the page read the prepared terrain from the board worker and then copied it on to the sea's worker itself, a stop of 6.5 s on the Giant map. The prepared terrain was large because the hill mounds travelled as arrays of `[x, y, z]` arrays: the message was 131 million values on the Giant map, and copying nested arrays costs a step for every number and every array.
+
+#### What changed
+
+All of these keep the board the same, byte for byte.
+
+1. **The shape and the rivers are worked out once** (`paintedBoard.js`, `paintedBoard.worker.js`, `paintedBoardAsync.js`, `organicRivers.js`). The part that sends the prepared terrain posts the shape to the other parts as soon as it has it (before anything is carved into the tiles), and then the rivers: the ribbon's polygons packed as numbers, the small things along the banks, the corners a river reaches, the mouths, and each hex's cut. The page gives each other part a `MessageChannel` port to that part. A part that receives builds on what it was handed and works out the short steps itself (the mountains, the colours, the coast, the sea), in the same order on the same tiles. The rivers' land-step half (`riverLand`: the ribbon pieces on a hex and the trees, rocks, stones and reeds along its banks) is one function for the traced rivers and the handed-on ones. The setting is `painted.build.share` (true); false makes every part work them out, as before.
+2. **The hill mounds travel as one typed array** (`surface.js`, `packTerrainMap`, `restoreTerrainMap`): nine numbers a triangle in a `Float64Array`, and each piece's other fields beside it in their own order. The restored mounds equal the built ones field for field. The prepared terrain message on the Giant map is 5.1 million values (it was 131 million).
+3. **The sea's bake gets the terrain from the board worker** (`seaDistances.worker.js`, `renderer3d.ts`, `beginSeaBake`). The page starts the bake's worker before the board build and hands one end of a `MessageChannel` to it and the other to the board worker that sends the terrain. The page still reads the terrain once, for the board it hydrates.
+
+Tests: `test/render/paintedWorker.test.ts`: a split build in which one part hands the shape and the rivers to the other, with organic rivers and a free coast on, gives the one-worker board byte for byte, works out the shape and the rivers once, and the page hands out the ports; the terrain port goes to the part that sends the terrain and no other; the board worker posts the same terrain to the port as to the page; the sea's worker bakes the same numbers from terrain that arrives on its port. `test/render/paintedKnobs.test.ts` has the new row.
+
+#### The board is the same
+
+Fingerprints of everything the board workers hand the page (every batch, in one build's order), and of the prepared terrain as the page holds it after the load (every tile's fields and its hill mounds). The terrain message itself changed form, so it is compared after the restore.
+
+| Map | | Batches | Terrain message | Restored terrain |
+|---|---|---|---|---|
+| Standard, turn 1 | unchanged code | 1532852944 | 700843773 (27,241,033 values; the third pass's figure) | 3705028162 |
+| Standard, turn 1 | worktree | 1532852944 | 199446467 (1,058,361 values) | 3705028162 |
+| Giant, turn 1 | unchanged code | 781788191 | 4002607866 (131,455,201 values; the third pass's figure) | 3249121355 |
+| Giant, turn 1 | worktree | 781788191 | 2794561086 (5,094,660 values) | 3249121355 |
+
+#### After
+
+From the press on Continue to the first drawn frame, no profiler and no fingerprint, back to back (unchanged code, then worktree). The load average was 23 to 33 and the laptop on battery in low power mode, so every figure is longer than on a quiet machine plugged in; the pairs are what to compare. "Early steps" is the shape, mountains, colours, rivers, coast and sea as the page saw the slowest part go through them. "Longest page stop" is the longest gap between two of the page's frames during the build.
+
+| Map | | First frame (s) | Build (s) | Early steps (s) | The land (s) | Longest page stop (ms) |
+|---|---|---|---|---|---|---|
+| Standard, turn 1 | before | 26.1, 23.3, 17.9 | 21.4, 19.4, 15.2 | 7.4, 5.6, 4.1 | 12.3, 11.9, 9.9 | 611, 572, 437 |
+| Standard, turn 1 | after | **21.6, 19.3, 15.4** | 17.4, 16.0, 12.7 | 4.5, 3.8, 3.1 | 10.7, 10.6, 8.4 | **202, 106, 63** |
+| Giant, turn 1 | before | 104.4, 107.6 | 96.1, 97.6 | 36.5, 34.4 | 51.3, 52.1 | 3,220, 2,653 |
+| Giant, turn 1 | after | 97.6, 108.5 | 86.9, 97.9 | 21.4, 27.2 | 53.1, 57.0 | **325, 313** |
+
+What the figures say:
+- The standard map comes up 14 to 17 % sooner in each pair. The early steps take about two thirds of the time, and the receiving parts wait about as long as one worker takes to work them out; the rivers now take 0.1 to 0.2 s in the slowest part, where they took 1.0 to 2.4 s.
+- The page no longer stops for long while the terrain arrives: the longest gap between its frames during a standard build fell from 437 to 611 ms to 63 to 202 ms.
+- **On the Giant map the build did not get faster under this load** (one pair 7 % sooner, one 1 % later). The early steps are 7 to 15 s shorter, as planned: the receiving parts wait 19 to 24 s for the shape and the rivers, where four parts working them out took 29 to 31 s to reach the land. But the land step and the far view came out 2 to 5 s longer each in both pairs. Two causes are possible and neither was tested: the four parts now start the land at the same moment and compete for the cores for longer, and the receiving parts' tiles come out of a copy (a structured clone), whose objects V8 may lay out differently from the ones `prepareTerrainMap` makes, so the land step's hot code may read them more slowly. `painted.build.share: false` turns the sharing off if a quiet machine shows the same.
+- On the Giant map too, the page's longest stop during the build fell from 2.7 to 3.2 s to about 0.3 s: the terrain message is a twenty-fifth of its old size and the page no longer copies it on.
+
+#### What the load's main thread still does
+
+A CPU profile of the page during the worktree's Giant load (`runs/after-giant/page.cpuprofile`; that run also folded the fingerprint on the page, which is left out here). After the board arrives, the page's own work before the first frame is about 4 s:
+- `setGameState`, 2.4 s. Of it, 1.1 s is the river glints' layer (`paintedFlow`), which traces the rivers again on the page (`createOrganicRivers`, 0.9 s) though a board worker traced them minutes before. The worker could send the glints' list (`flow()`) with the terrain; not done in this pass.
+- The hydrate of the board from the workers' batches (`buildPaintedBoard` with `prepared`), 1.0 s.
+- `rebuildBoard`, 0.8 s, of which the chart paper's geometry, 0.6 s (`paintedChartGeometry`, a fan of every hex of the map built on the page). It could be built in a worker.
+- The board's shader programs (`warmPrograms`), 0.4 s, and the hill mounds' unpack (`restoreTerrainMap`), 0.1 s.
+
+A board drawn before its dressing, with a reveal, was not built (it is a picture change at load and would need its own strip of frames).
+
+### C. The pause at a turn end
+
+#### Before
+
+One real turn end, turn 130 to 131 of the new fixture, after the board was left alone for 15 s (`measure4.mjs`). In this turn 6 hexes changed hands and no road was laid; the tint layer clipped 30 hexes again and the border line 13. A CPU profile of the turn end on the unchanged code named the parts:
+- `rebuildPaintedWorks` (54 to 84 ms): the layer's build (28 to 45 ms; in the profile 23 of its 47 ms were new recipes: the farm cuts and patches of hexes the seat sees for the first time) and the yield light it rebuilds (13 to 31 ms).
+- `rebuildUnits` (40 to 64 ms, three rebuilds a turn end): in the profile 35 of its 59 ms were the disposal of the old pieces' meshes. three's disposal of an instanced mesh frees its vertex-array state by walking its record of every geometry and every program the renderer has drawn (`releaseStatesOfObject`), about a tenth of a millisecond a mesh with a board up, and the layer is rebuilt whole.
+- `rebuildTerritory` (47 to 73 ms), most of it the border tint (25 to 48 ms), which measured each hex top's bounds again for every mark it clipped.
+- **The longest frame of the turn end was twice the sync**: 295 to 384 ms, of which the sync was 128 to 209 ms. The rest was the draw: a static shadow bake, and 14 shader programs linked for the first time inside that frame, the same 14 on both codes (8 of the pieces' pigment materials and 6 plain basic materials; which variant of each was not found, because three's record of a program keeps only the start of its key). The profile put 144 ms in `getProgramInfoLog`, which waits for a link to finish. This happens at the first turn end after a load; a later turn end finds the programs made.
+
+#### What changed
+
+All of these keep the picture the same.
+
+1. **The pieces' old meshes are disposed in idle time** (`instances.ts`, `disposeInstancedGroupSoon`; `pieces.ts`). A rebuild takes the old meshes out of the group at once, and they are disposed a few at a time in idle callbacks (at least one a slice, so the queue empties even on a page that is never idle). A mesh out of the group is not drawn. The layer's own disposal flushes the queue. Test: `test/render/disposeSoon.test.ts`.
+2. **The works' recipes for hexes the seat has not seen are made in idle time** (`paintedWorks.ts`, `warmRecipes`; `renderer3d.ts`, `scheduleWorksWarm`). After each works build, an idle walk makes the recipe of each hidden hex with a work or a resource the seat can name, with the same fields `build` would give it. `build` checks every recipe it reuses against the hex as it is then, so a recipe made too early is made again. Nothing in this walk is drawn. Test: `test/render/paintedWorks.test.ts`: the warmed recipes are used when the hexes come into view, no recipe is made then, and the layer draws the same meshes, instance for instance, as a layer that never warmed.
+3. **The border tint measures each hex top once** (`surfaceMarkings.js`, `projectMarkings` takes an `each` callback; `paintedGround.ts`). The tint fades each clipped piece by its own mark, so it clipped one mark at a time, and each call measured the top's bounds again. One call with `each` gives the same pieces with the same marks in the same order. Test: `test/render/surfacePatch.test.ts`.
+
+#### After
+
+Two pairs, the unchanged code then the worktree, the same turn end. Milliseconds. The load average was 5.7 to 6.2 at the start of each run; the laptop was on battery in low power mode.
+
+| | Before, run 1 | Before, run 2 | After, run 1 | After, run 2 |
+|---|---|---|---|---|
+| The state sync | 164 | 173 | **128** | 178 |
+| The longest frame of the turn | 336 | 366 | 302 | 444 |
+| of which the sync / the draw | 164 / 170 | 173 / 187 | 128 / 173 | 178 / 264 |
+| `rebuildUnits` | 40.8 | 40.3 | **15.5** | **29.1** |
+| `rebuildPaintedWorks` | 54.4 | 57.6 | **34.6** | **49.0** |
+| of which the layer's build | 32.8 | 35.4 | **18.7** | **28.9** |
+| `rebuildTerritory` | 65.0 | 72.6 | 55.5 | 81.6 |
+| of which the border tint | 44.0 | 47.9 | 33.7 | 46.7 |
+| `rebuildYieldLight` | 14.9 | 16.0 | 10.4 | 12.9 |
+| `rebuildLens`, `rebuildCities`, `rebuildSites` | 11.8, 19.2, 11.8 | 13.4, 14.5, 14.0 | 14.4, 12.8, 12.0 | 19.8, 18.8, 10.2 |
+
+What the figures say:
+- The two largest parts came down in both pairs: the pieces from about 40 ms to 15 and 29 ms, the works from about 55 ms to 35 and 49 ms.
+- The second "after" run was slower in every other row (the territory, the lens, the towns, the draw), so the load rose under it; the whole sync is not a firm gain at this load.
+- The draw half of the turn-end frame is now as large as the sync. Its largest part, the first-time program links, is the open item below.
+
+### D. The chart paper at the seam (a picture change, shipped on)
+
+- **The fault.** `createChartTable` (`paintedBoard.js`) clones the paper into each wrap copy and turned off the clone's matrix updates before the clone had ever been placed. Every object of the board has stopped following its parent by then, so the walk of the group that followed placed nothing, and all three papers stood at x = 0. The middle was drawn three times, and past the map's seam no paper was drawn: the view showed the table's bare ground with a hard edge where the map wraps.
+- **The fix.** Each clone takes its copy's place once (`updateMatrixWorld` with its updates on) and only then stops following it. Test: `test/render/paintedFog.test.ts`, the three pages stand at −W, 0 and +W.
+- **The picture.** It changes only past the seam: there the paper is now drawn, with its ruled hexes and its sea wash. Shipped on, as the brief asks for a fault. **For the user to look at:**
+
+| View | Pixels that differ | Mean | Largest in a channel | Pictures |
+|---|---|---|---|---|
+| Seam, middle zoom, turn 1 (all paper) | 47.2 % | 4.6 | 39 | `pics/seam-t1-middle-before.png`, `…-after.png`, `…-difference.png` |
+| Seam, farthest zoom, turn 1 | 32.2 % | 3.6 | 101 | `pics/seam-t1-farthest-…` |
+| Seam, middle zoom, turn 130 | 47.2 % | 4.5 | 41 | `pics/seam-t130-middle-…` |
+| Seam, farthest zoom, turn 130 | 26.7 % | 2.9 | 114 | `pics/seam-t130-farthest-…` |
+| The seat's own farthest view, turn 130 (the seam is at its left edge) | 9.8 % | 0.9 | 126 | `pics/paper-t130-farthest-…` |
+| The seat's own farthest view, turn 1 | 5.3 % | 0.4 | 102 | `pics/paper-t1-farthest-…` |
+| The seat's closest, middle and inland views, turns 1 and 130 | 0 | 0 | 0 | |
+
+- **Draws.** The two side papers are now culled by three like any mesh when their copy is out of view: 870 → 868 draws at the middle zoom (mirror on), 735 → 733 (off); at the seam one side copy stays in view, so 3 → 2 papers.
+
+### The proof that every other change keeps the picture
+
+Clock held, interface hidden, `Math.random` seeded; the unchanged code against the worktree, pixel by pixel, at four views. Because the paper fix changes the farthest view, the worktree's pictures were taken a second time with only the paper put back where the unchanged code draws it (the three papers' world x set to 0 in the page, `shots-paperless.mjs`):
+
+| Case | Closest | Middle | Farthest | Closest, inland |
+|---|---|---|---|---|
+| Turn 130, all changes | 0 | 0 | 157,355 (the paper past the seam) | 0 |
+| Turn 1, all changes | 0 | 0 | 85,037 (the paper past the seam) | 0 |
+| Turn 130, all changes but the paper | 0 | 0 | 0 | 0 |
+| Turn 1, all changes but the paper | 403 | 106 | 48 | 0 |
+
+- At turn 130 the worktree with the paper put back matches the unchanged code at all four views.
+- At turn 1 it differs in one place in each view: the shading round one stone off the coast (up to 44 in a channel), the same 403, 106 and 48 pixels on a second load. The shipped code does not show it: with the paper fixed, the turn-1 closest and middle views match the unchanged code exactly (0), and the farthest view differs only in the strip past the seam (its difference picture, `pics/paper-t1-farthest-difference.png`, has nothing else). So the stone's difference comes from putting the paper back in the page, which happens after the shadow bake and after the copy boxes were measured, and is not a perfect copy of the old build. It was not traced further.
+
+### The choice that changes the picture
+
+| Setting | What changes | Gain | Difference | Pictures | Recommendation |
+|---|---|---|---|---|---|
+| `painted.lod.nearPixels` 25 → 70 and `farPixels` 29 → 74 (not shipped; the data is unchanged) | the middle zoom draws the board's far detail: coarser hex tops, and the map-scale trees and rocks, which read as blocks | middle zoom, panning, turn 130: draws 643 → 515, triangles 4.26 M → 3.01 M; the frame about 15 % shorter in the diagnostics (three rounds), 37.6 → 34.0 ms in one block each under the battery saver | 23.5 % of pixels differ, mean 2.5, at most 212 | `pics/lod-middle-before.png`, `…-after.png`, `…-difference.png` | Keep it off: the trees are plainly blockier at normal size. It is the one large lever on the panning frame found in this pass, and it is a picture decision for the user. |
+
+The two settings the user took in the third pass (`visualTest.coast.open.mirror.whileMoving: false` and `works: false`) are unchanged.
+
+### Tests
+
+New: `test/render/disposeSoon.test.ts`. Added to: `test/render/paintedWorker.test.ts` (the shared shape and rivers, the terrain port, the board worker's post to the port, the sea's bake from the port; and the long split-build tests now give the test runner a turn of the event loop between builds, because under load vitest's own messages timed out while they ran), `test/render/paintedWorks.test.ts` (the warmed recipes), `test/render/surfacePatch.test.ts` (one clip with `each`), `test/render/paintedFog.test.ts` (the papers' places), `test/render/paintedKnobs.test.ts` (`build.share`). `npm run test:render` ran twice under a load average of 30 to 75: both times 100 of its 101 files passed (1,444 tests), and the runner timed out on its own messages while `test/render/paintedWorker.test.ts` ran its long builds, so that file reported no result (the third pass met the same). The file's two split-build tests were then made smaller and given turns of the event loop between builds; on its own the file passes, 15 of 15, twice. `test/ui/cityBanners.test.ts` and `test/ui/firstSeat.test.ts` read the renderer's files and pass. `npm run typecheck`: no errors.
+
+### Not measured, and still open
+
+- **Frame times after the changes.** At 20 % charge Chrome's battery saver capped every frame at 30 a second from 14:46 page time: the worktree's panning frames read exactly 33.3 ms with both processes mostly idle. Low power mode was on all day. The panning comparison of this pass is therefore counts (draws, triangles), and the only change to the panning frame is two fewer draws. A rerun plugged in, or with `--disable-features=BatterySaverModeAvailable` (`chrome-nosaver.sh` in the scripts), would give the after figures.
+- **An unthrottled frame rate.** `chrome-nosaver.sh uncapped` turns off vsync and the frame limit; it was not run before the battery saver came on.
+- **GPU timer queries.** Not read cleanly this pass (the run was cut with the battery saver on). The trace and the GPU's own counter give the GPU-bound finding without them.
+- **The town banners' raster** is the largest part of the GPU process's own work at the farthest zoom (18 to 20 ms a frame, more than the WebGL commands). They move with a transform on elements with no compositor layer of their own. `will-change: transform` on `.city-banner` would let the compositor move them with no raster; it is in `src/style.css`, outside this pass's fence, and may change how the banner text is rasterised, so it needs its own picture check. Measured once at the farthest zoom (turn 130, panning, the worktree; `trace.mjs --layered` adds the rule in the page): the GPU process's page raster fell from 18.0 to 0.4 ms a frame (`RasterDecoderImpl` and its wait). The time it freed went to waiting for the GPU (12.9 → 21.1 ms a frame), and the time between frames moved only from 44.6 to 42.7 ms, because the GPU is the bound here. On a machine whose GPU has room, it would take about 18 ms off the GPU process's frame at the farthest zoom. It is the largest saving this pass found that need not change the board's picture, and it is outside the fence.
+- **The board's ground is the frame's largest cost**, about a pixel a triangle at the middle zoom. The picture-keeping ways to cut it are gone; what is left changes the picture: the far detail from a closer zoom (the choice above), or a coarser near mesh for flat hexes.
+- **First-time program links at the first turn end** (about 144 ms of a 300 to 440 ms frame). `warmLatePrograms` compiles the gestures' programs in idle time after the first frame; the 14 programs this turn end linked are not among them. Compiling them in idle time too would move them off the turn end. Not done: the variants were not identified.
+- **The static shadow bake at a turn end** runs in the turn end's frame (one bake a turn here). Not measured on its own.
+- **The pins' 35 draws**, made at every zoom whatever is in view, and **the works' draws**, 189 to 261, were not cut: on this machine draws are not the bound.
+- **Turn 1 panning** was not traced this pass (cut with the battery saver). The third pass found turn 1 kept up with the display at 105 draws.
+- **The load's page work after the board** (about 4 s on the Giant map): the page traces the rivers again for the river glints (0.9 s) and builds the chart paper's geometry (0.6 s); both could come from a board worker. See B.
+
+### How much speed is left
+
+- **Panning:** little that keeps the picture. The GPU is the bound and the board's ground is most of its work; draws and the page's CPU are not the bound on this machine. The far detail from the middle zoom is worth about 15 % of a panning frame, as a picture choice. On a machine whose GPU has more headroom than this one (where a third of the GPU went to other programs), the town banners' raster and the WebGL commands come next.
+- **Load:** the land step is now the bulk of a standard build (8 to 11 s of 13 to 17 s under load). It is already split four ways. What remains on the early steps is the shape (2.5 to 3.6 s), which only one part now works out; the others wait for it.
+- **Turn end:** the first-time program links and the shadow bake in the draw half of the frame; in the sync, the border tint and the works' batch rebuild.

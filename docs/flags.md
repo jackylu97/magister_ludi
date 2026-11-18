@@ -2787,3 +2787,24 @@ rulings yet:
   first pass and why, when slots first feel contested, the turn the wild
   stops mattering, when each age turns, beads per age, any stamp that
   surprised you.
+
+## After rendering pass four: banners, trees, and a fifth look (2026-11-18)
+
+Rulings by the user, 2026-11-18.
+
+- **Town banners get their own layers.** The user: "ok great, lets make the
+  banner change." Add `will-change: transform` to `.city-banner` in
+  `src/style.css`. The fourth pass measured 18 ms of graphics time a frame
+  for the banner repaint at the farthest zoom, and 0.4 ms with the line.
+  Condition: a picture check at three zooms. If the banner text looks softer,
+  drop the line and report.
+- **Simpler trees sooner is deferred.** The user: "The trees look way too
+  simplified, lets defer for now." `painted.lod.nearPixels/farPixels` stay at
+  25/29.
+- **A fifth look for more speed.** The user: "any other graphics headroom
+  available? maybe we can check the rendering pipeline or any of the
+  animations". This is a survey: read the pipeline and the animations, measure,
+  and propose. Build only changes that keep the picture pixel for pixel. Every
+  picture-changing idea comes back as a proposal with before and after
+  pictures. The report goes in `docs/plans/render-performance-2026-11-16.md`
+  as "Fifth pass".

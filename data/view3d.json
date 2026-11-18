@@ -1147,7 +1147,8 @@
       "pixelBudget": 4500000
     },
     "build": {
-      "workers": 4
+      "workers": 4,
+      "share": true
     },
     "shadows": {
       "staticMapSize": 4096,

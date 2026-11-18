@@ -196,6 +196,8 @@ import {
   InstanceCollector,
   RENDER_ORDER,
   disposeInstancedGroup,
+  disposeInstancedGroupSoon,
+  flushInstancedDisposals,
 } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { samplePaintedSurface } from './paintedSurface';
@@ -1104,7 +1106,7 @@ export class UnitLayer {
     seat: number | null = null,
     paintedKit: PaintedUnitKit | null = null,
   ): void {
-    this.disposeGroup();
+    this.disposeGroup(true);
     this.group.userData.unitVisual = true;
 
     const map = state.map;
@@ -1772,8 +1774,12 @@ export class UnitLayer {
    * materials to the shared `MaterialLibrary` — every one of them outlives this
    * layer and is reused by the very next rebuild.
    */
-  private disposeGroup(): void {
-    disposeInstancedGroup(this.group);
+  private disposeGroup(soon = false): void {
+    // A rebuild takes the old meshes out at once and disposes them in idle
+    // time (`disposeInstancedGroupSoon`): at the turn end their disposal was
+    // more than half of the layer's rebuild.
+    if (soon) disposeInstancedGroupSoon(this.group);
+    else disposeInstancedGroup(this.group);
     this.handles.clear();
     this.bodies.clear();
     this.restingShell.clear();
@@ -1782,6 +1788,7 @@ export class UnitLayer {
 
   dispose(): void {
     this.disposeGroup();
+    flushInstancedDisposals();
     this.hidden.clear();
   }
 }

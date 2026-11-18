@@ -168,7 +168,7 @@ import { buildMapEnds } from './mapEnds';
 // @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
 import { bakeSeaDistances, seaDistanceTexture } from './seaDistances.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
-import { setRiverStyle, setCoastStyle, riverStyle as surfaceRiverStyle, coastStyle as surfaceCoastStyle, packTerrainMap } from '../terrainStudy/surface.js';
+import { setRiverStyle, setCoastStyle, riverStyle as surfaceRiverStyle, coastStyle as surfaceCoastStyle } from '../terrainStudy/surface.js';
 import { installPaintedSurface, uninstallPaintedSurface, warmPaintedSurface } from './paintedSurface';
 import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
@@ -285,8 +285,13 @@ export const SCENE_LAYER_NAMES = [
   'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
 ] as const;
 
-/** An early bake of the sea's distances, and what it was made from. See `Renderer3D.prebakeSeaDistances`. */
-interface PrebakedSea { map: GameMap; coast: unknown; organic: unknown; pending: Promise<void>; baked: ReturnType<typeof bakeSeaDistances> | null }
+/** An early bake of the sea's distances, and what it was made from. See `Renderer3D.beginSeaBake`. */
+interface PrebakedSea {
+  /** The prepared terrain the bake was made from, as the page got it; null until it arrives. */
+  map: GameMap | null; coast: unknown; organic: unknown; pending: Promise<void>; baked: ReturnType<typeof bakeSeaDistances> | null;
+  /** Ends the bake's worker without waiting for it. */
+  stop: () => void;
+}
 
 /** A free coastline is part of the new sea: the sea switch, and `coast.free` in the data (`freeCoast.js`). */
 function coastStyleOf(): boolean {
@@ -817,11 +822,16 @@ export class Renderer3D implements MapView {
     if (!this.paintedLook || !this.running) return;
     const controller = new AbortController(), shadows = this.shadows;
     this.boardBuild = controller;
+    // The sea's distances are baked from the prepared terrain while the workers build the land, so the
+    // page's own time waiting for them is not idle and the board's arrival does not wait on the bake.
+    // The bake's worker is started now and gets the terrain straight from the board worker (`terrainPort`).
+    // This build's own bake: a later build that starts before this one ends makes its own.
+    const terrainPort = this.beginSeaBake(), bake = this.prebakedSea;
+    let built = false;
     try {
-      // The sea's distances are baked from the prepared terrain while the workers build the land, so the
-      // page's own time waiting for them is not idle and the board's arrival does not wait on the bake.
       const result = await buildPaintedBoardAsync(map, this.paintedLook.assets, this.paintedLook.materials, shadows,
-        {signal: controller.signal, onProgress, onTerrain: renderMap => this.prebakeSeaDistances(renderMap)});
+        {signal: controller.signal, onProgress, terrainPort, onTerrain: renderMap => { if (bake) bake.map = renderMap; }});
+      built = true;
       // The early bake usually finished long before the board; if not, the board waits for it here rather than
       // baking a second time on the page.
       await this.prebakedSea?.pending;
@@ -831,6 +841,8 @@ export class Renderer3D implements MapView {
       this.preparedBoard = {map, board: result.board, shadows};
       this.paintedBuildMetrics = result.metrics;
     } finally {
+      // A build that failed or was cancelled may never send the terrain, so its bake is stopped rather than waited on.
+      if (!built) bake?.stop();
       if (this.boardBuild === controller) this.boardBuild = null;
     }
   }
@@ -1112,35 +1124,49 @@ export class Renderer3D implements MapView {
   }
 
   /**
-   * The bake of `bakeSeaDistances`, made early for the prepared terrain a
-   * board build hands over as its land step starts, with the inputs it was
-   * made from. It is made in a worker (`seaDistances.worker.js`), so the page
-   * is not held while the land is built; `baked` is its texture once it has
-   * come back, and null if the worker failed. Used only if the board that lands
-   * stands on that very map and the inputs are the same; otherwise the bake is
-   * made again on the page, as before.
+   * The bake of `bakeSeaDistances`, made early from the prepared terrain a
+   * board build sends as its land step starts, with the inputs it was made
+   * from. It is made in a worker (`seaDistances.worker.js`), so the page is not
+   * held while the land is built; `baked` is its texture once it has come back,
+   * and null if the worker failed. Used only if the board that lands stands on
+   * that very map (`map`, set when the page gets the terrain) and the inputs
+   * are the same; otherwise the bake is made again on the page, as before.
    */
   private prebakedSea: PrebakedSea | null = null;
-  private prebakeSeaDistances(renderMap: GameMap): void {
+  /**
+   * Starts the early bake before the board build, and returns the port the
+   * board worker posts the prepared terrain to (null when there is no bake).
+   *
+   * The board worker sends the terrain to this bake itself, through a
+   * `MessageChannel`. The page used to copy it on from its own copy: on the
+   * Giant map that copy held the page, and so the loading sheet, for 6.5 s
+   * (the third render speed pass). The page still reads the terrain once, for
+   * the board it hydrates.
+   */
+  private beginSeaBake(): MessagePort | null {
+    this.prebakedSea?.stop();
     this.prebakedSea?.baked?.texture.dispose();
     this.prebakedSea = null;
-    if (!coastStyleOf() || typeof Worker === 'undefined') return;
+    if (!coastStyleOf() || typeof Worker === 'undefined' || typeof MessageChannel === 'undefined') return null;
     const coast = VIEW3D.visualTest.coast, organic = visualOn('organicRivers') ? VIEW3D.visualTest.organicRivers : null;
-    const entry: PrebakedSea = { map: renderMap, coast, organic, pending: Promise.resolve(), baked: null };
+    let worker: Worker;
+    try { worker = new Worker(new URL('./seaDistances.worker.js', import.meta.url), { type: 'module' }); } catch { return null; }
+    const channel = new MessageChannel();
+    const entry: PrebakedSea = { map: null, coast, organic, pending: Promise.resolve(), baked: null, stop: () => {} };
     entry.pending = new Promise<void>(resolve => {
-      let worker: Worker;
-      try { worker = new Worker(new URL('./seaDistances.worker.js', import.meta.url), { type: 'module' }); } catch { resolve(); return; }
-      const done = (): void => { worker.onmessage = worker.onerror = null; worker.terminate(); resolve(); };
+      const done = (): void => { worker.onmessage = worker.onerror = null; worker.terminate(); entry.stop = () => {}; resolve(); };
+      entry.stop = done;
       worker.onmessage = ({ data }) => {
         if (data?.type === 'baked' && this.prebakedSea === entry) entry.baked = seaDistanceTexture(data.baked);
         done();
       };
       worker.onerror = event => { event.preventDefault(); done(); };
-      try {
-        worker.postMessage({ terrain: packTerrainMap(renderMap), knobs: coast, organicRivers: organic, riverStyle: surfaceRiverStyle(), coastStyle: surfaceCoastStyle() });
-      } catch { done(); }
     });
+    try {
+      worker.postMessage({ port: channel.port2, knobs: coast, organicRivers: organic, riverStyle: surfaceRiverStyle(), coastStyle: surfaceCoastStyle() }, [channel.port2]);
+    } catch { entry.stop(); return null; }
     this.prebakedSea = entry;
+    return channel.port1;
   }
   /**
    * The sea's distances for the board in place (`seaDistances.js`): made for a
@@ -2692,7 +2718,29 @@ export class Renderer3D implements MapView {
     this.paintedWorksFogSignature = fogSignature;
     this.paintedWorksShadowSignature = shadowSignature;
     if (shadowChanged) this.paintedLook?.invalidateShadows();
+    this.scheduleWorksWarm();
     return true;
+  }
+
+  /**
+   * The works' recipes for the hexes the seat has not seen yet, made in idle
+   * time after each works build (`PaintedWorksLayer.warmRecipes`), so the turn
+   * end that shows a hex finds its recipe made. A later build starts a new
+   * walk and ends the one before it.
+   */
+  private worksWarmGeneration = 0;
+  private scheduleWorksWarm(): void {
+    if (!this.paintedWorks || !this.paintedBoard || !this.state) return;
+    const generation = ++this.worksWarmGeneration;
+    const step = this.paintedWorks.warmRecipes(this.state, this.paintedBoard.renderMap, this.fogLevels(), this.fogSeat, { suppressed: this.cleared });
+    const idle = typeof requestIdleCallback === 'function';
+    const schedule = (): void => { if (idle) requestIdleCallback(run); else setTimeout(run, 50); };
+    const run = (deadline?: IdleDeadline): void => {
+      if (!this.running || generation !== this.worksWarmGeneration) return;
+      const until = performance.now() + 8;
+      if (!step(() => (deadline ? deadline.timeRemaining() < 2 : performance.now() > until))) schedule();
+    };
+    schedule();
   }
 
   private reservePaintedProps(): void {

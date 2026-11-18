@@ -636,4 +636,48 @@ describe('painted special improvements', () => {
     expect(flags()).toEqual(lit);
     expect(f.layer.group.children.map(mesh => (mesh as Mesh).geometry)).toEqual(geometries);
   });
+
+  // Fourth render speed pass: the recipes of hexes the seat has not seen are made in idle time, so the turn end that
+  // shows them makes none. What is drawn when they come into view must be what a layer that never warmed draws.
+  it('warms the recipes of hidden works, and draws the same layer as one that did not when they come into view', () => {
+    const setup = (): GameState => {
+      const state = world();
+      getTileAt(state.map, 1, 1)!.improvement = 'farm'; getTileAt(state.map, 4, 3)!.improvement = 'mine'; getTileAt(state.map, 4, 3)!.hills = true;
+      getTileAt(state.map, 6, 2)!.resource = 'cattle'; getTileAt(state.map, 2, 4)!.improvement = 'pasture'; getTileAt(state.map, 2, 4)!.resource = 'cattle';
+      for (const [col, row] of [[1, 1], [4, 3], [6, 2]]) state.visibility[0]![row! * state.map.width + col!] = HIDDEN;
+      return state;
+    };
+    const warmed = fixtures(setup()), plain = fixtures(setup());
+    for (const f of [warmed, plain]) f.build();
+    const created = vi.spyOn(warmed.layer as unknown as { createRecipe(...args: unknown[]): unknown }, 'createRecipe');
+    const step = warmed.layer.warmRecipes(warmed.state, warmed.prepared, warmed.state.visibility[0]!, 0, { suppressed: warmed.suppressed });
+    let slices = 0;
+    while (!step(() => (slices++, false))) { /* one slice each call */ }
+    expect(created).toHaveBeenCalledTimes(3);
+    // A second walk finds every recipe made.
+    expect(warmed.layer.warmRecipes(warmed.state, warmed.prepared, warmed.state.visibility[0]!, 0, { suppressed: warmed.suppressed })(() => false)).toBe(true);
+    expect(created).toHaveBeenCalledTimes(3);
+    // The hexes come into view: the warmed layer makes no recipe, and both layers draw the same meshes.
+    for (const f of [warmed, plain]) { f.state.visibility[0]!.fill(VISIBLE); f.build(); }
+    expect(created).toHaveBeenCalledTimes(3);
+    const drawn = (f: ReturnType<typeof fixtures>): unknown[] => f.layer.group.children.map(mesh => {
+      const m = mesh as Mesh;
+      return [m.type, m.position.x, (m as InstancedMesh).count ?? 1, Array.from(((m as InstancedMesh).instanceMatrix ?? m.geometry.getAttribute('position')).array as Float32Array)];
+    });
+    expect(drawn(warmed)).toEqual(drawn(plain));
+    expect(warmed.layer.entries).toEqual(plain.layer.entries);
+  });
+
+  it('stops the warm walk when its slice is over, and walks nothing for another board', () => {
+    const state = world();
+    getTileAt(state.map, 1, 1)!.improvement = 'farm'; getTileAt(state.map, 5, 1)!.improvement = 'farm';
+    state.visibility[0]!.fill(HIDDEN);
+    const f = fixtures(state);
+    f.build();
+    const step = f.layer.warmRecipes(state, f.prepared, state.visibility[0]!, 0);
+    expect(step(() => true)).toBe(false);
+    expect(step(() => false)).toBe(true);
+    const other = prepareTerrainMap(state.map, { wrap: true }) as GameMap;
+    expect(f.layer.warmRecipes(state, other, state.visibility[0]!, 0)(() => false)).toBe(true);
+  });
 });

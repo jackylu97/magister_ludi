@@ -9,13 +9,13 @@ import { sculptedTurf } from '../terrainStudy/turf.js';
 import { openLandTree, stoneCluster } from '../terrainStudy/groundDressing.js';
 import { createMountainRanges } from '../terrainStudy/mountainRanges.js';
 import { indexGeometry } from '../terrainStudy/indexGeometry.js';
-import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap, riverStyle, coastStyle } from '../terrainStudy/surface.js';
+import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap, riverStyle, coastStyle, packTerrainMap, restoreTerrainMap } from '../terrainStudy/surface.js';
 import { createPaintedFog, paintedFogMaterial, paintedFogDepth, paintedChartMaterial } from './paintedFog.js';
 import { PAINTED_CHART, paintedChartGeometry } from './paintedFogLook';
 import { PaintedRelief } from './paintedRelief';
 import { VIEW3D } from './lookData';
 import { createSeaField, RIVER } from './seaField';
-import { createOrganicRivers } from './organicRivers';
+import { createOrganicRivers, organicRiversFrom } from './organicRivers';
 import { createFreeCoast } from './freeCoast';
 
 const axis = new T.Vector3(0, 1, 0);
@@ -54,7 +54,17 @@ function releaseAfterUpload(geometry) {
 /** The far view's region of a hex: 18 by 18 hexes, three by three land chunks. A part of a split build owns whole regions. */
 export function paintedRegionKey(col, row) { return `${Math.floor(col / 18)},${Math.floor(row / 18)}`; }
 
-export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null, part = null) {
+export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null, part = null, share = null) {
+  // `share` lets the parts of a split build work out the map's shape and its
+  // rivers once (the fourth render speed pass). Every part needs both, because
+  // a hex's ground reads its neighbours, and they are the two longest of the
+  // early steps. The part with `share.publish` works them out and hands on
+  // each as it is done: `publish('shape', packed terrain)` right after the
+  // shape, before anything is carved into the tiles, and `publish('rivers',
+  // {data, carves} or null)` after the rivers' cut. A part with `share.shape`
+  // and `share.rivers` builds on those and works out the short steps (the
+  // mountains, the colours, the coast, the sea) itself, in the same order on
+  // the same tiles, so its board is the board it would have built alone.
   // `progress(done, total, stage)` names each step as it starts, so a long
   // build on a slow machine shows that it goes on (the worker forwards these to
   // the loading sheet). Only the land step counts: `done` of `total` chunks.
@@ -67,7 +77,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // the order this build made them. Sorted by `order`, the batches of all the
   // parts are the batches one whole build makes, in its order.
   if (!preparedMap) progress(0, 0, 'shape');
-  const renderMap = preparedMap || prepareTerrainMap(map, { wrap: true });
+  const renderMap = preparedMap || (share?.shape ? restoreTerrainMap(share.shape) : prepareTerrainMap(map, { wrap: true }));
+  // Posted at once, so the message is a copy of the tiles as the shape left them.
+  if (share?.publish && !prepared) share.publish('shape', packTerrainMap(renderMap));
   const group = new T.Group();
   group.name = 'painted-board';
   const period = Math.sqrt(3) * map.width;
@@ -100,10 +112,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // The organic rivers of switch 4: one painted ribbon a run, clipped onto
   // each bank hex's ground and pushed with the water, so no draw call is added.
   if (!prepared) progress(0, 0, 'rivers');
-  const organicRivers = !prepared && thinRivers?.organic ? createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers) : null;
+  const organicRivers = !prepared && thinRivers?.organic
+    ? share?.rivers ? organicRiversFrom(renderMap, VIEW3D.visualTest.organicRivers, share.rivers.data, share.rivers.carves)
+      : createOrganicRivers(renderMap, VIEW3D.visualTest.organicRivers)
+    : null;
   // The free river's cut: each hex near the river is told the river's line
   // before any ground is meshed, so the ground drops to the water there.
   if (organicRivers) for (const tile of renderMap.tiles) { const carve = organicRivers.carve(tile); if (carve) tile.riverCarve = carve; else delete tile.riverCarve; }
+  if (share?.publish && !prepared) share.publish('rivers', organicRivers
+    ? {data: organicRivers.share(), carves: renderMap.tiles.map(tile => tile.riverCarve ?? null)} : null);
   // A free coast: each hex beside the shore is told the waterline before any
   // ground is meshed, so the ground slopes under the water along it.
   if (!prepared) progress(0, 0, 'coast');
@@ -676,12 +693,19 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       // Outside `visibilityBatches` on purpose: every other batch is hidden
       // while its hexes are uncharted and the paper is the one thing that is
       // drawn *because* they are. One clone a wrap copy, and never touched again.
+      // Each clone takes its copy's place once, and only then stops following
+      // it. Every object of the board has stopped following its parent by now
+      // (see the end of the build), so a walk of the group places nothing: with
+      // the flags turned off first, all three papers stood at x = 0, so the
+      // middle was drawn three times and nothing was drawn past the seam (the
+      // fourth render speed pass).
       for (const copy of copies) {
         const placed = copy === copies[1] ? mesh : mesh.clone();
-        placed.matrixAutoUpdate = false; placed.matrixWorldAutoUpdate = false;
         copy.add(placed);
+        placed.matrixAutoUpdate = true; placed.matrixWorldAutoUpdate = true;
+        placed.updateMatrixWorld(true);
+        placed.matrixAutoUpdate = false; placed.matrixWorldAutoUpdate = false;
       }
-      group.updateMatrixWorld(true);
       return mesh;
     },
     // Canonical batches only. Wrapping, shader hooks and fog callbacks are

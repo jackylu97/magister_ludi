@@ -2045,9 +2045,15 @@ interface PaintedFogSpec {
  * worker would have made them, so the board is the same. The page uses fewer
  * when the device has fewer cores or the map fewer regions; 1 is the old one
  * worker. See `buildPaintedBoardAsync`.
+ *
+ * `share` (the fourth render speed pass): the part that sends the prepared
+ * terrain also works out the map's shape and its rivers for the other parts
+ * and hands them on, so they are worked out once and not once a part. The board
+ * is the same either way; false makes every part work them out, as before.
  */
 interface PaintedBuildSpec {
   workers: number;
+  share: boolean;
 }
 
 interface PaintedSpec {

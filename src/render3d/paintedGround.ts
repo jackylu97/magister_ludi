@@ -1102,9 +1102,11 @@ export class PaintedGroundLayer {
         const terrain = terraced ? terraceFarmSurface(tile) as BufferGeometry[] : [groundTop(tile)];
         let pieces: BufferGeometry[] = [];
         try {
-          pieces = this.tint
-            ? marks.filter(mark => mark.deck === undefined).flatMap(mark => (projectMarkings(terrain[0], [mark]) as BufferGeometry[]).map(piece => fadeGeometry(piece, mark.fade)))
-            : projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
+          // The tint fades each piece by the mark it came from; one clip of the hex for all its marks gives the same
+          // pieces in the same order as one clip for each mark.
+          if (this.tint) projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined),
+            (piece: BufferGeometry, mark: Mark) => { pieces.push(fadeGeometry(piece, mark.fade)); });
+          else pieces = projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
           for (const mark of marks) if (mark.deck !== undefined) {
             const positions: number[] = [], colors: number[] = [];
             // Face up, independently of the path's direction. A ruled border
