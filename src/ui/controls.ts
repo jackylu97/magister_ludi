@@ -2572,6 +2572,13 @@ export interface GameControls {
    * for why they report rather than route.
    */
   reportCommand(command: Command, result: CommandResult): void;
+
+  /**
+   * True from a resolution until the last beat of its hand-over has run: the
+   * turn card, the sheets the resolution raised, and the camera glide. A
+   * tutorial note waits for it (2026-11-18, `main.ts`'s `tutorialWaits`).
+   */
+  handOverPending(): boolean;
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
@@ -7442,7 +7449,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   const HANDOVER_PAN_MS = 450;
 
-  /** Timers beats two and three are waiting on. At most two, usually none. */
+  /** Timers of the beats still to come. At most two, usually none. */
   let handOverTimers: number[] = [];
 
   /**
@@ -7459,13 +7466,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     handOverTimers = [];
   }
 
-  /** Beat `n`: now when there is nothing to wait for, on a timer when there is. */
+  /**
+   * Beat `n`: now when there is nothing to wait for, on a timer when there is.
+   *
+   * A beat that has run takes its timer off the list, so the list holds only
+   * the beats still to come and `handOverPending` can read it (2026-11-18: a
+   * tutorial note waits for the hand-over, `main.ts`'s `tutorialWaits`).
+   */
   function afterBeat(ms: number, beat: () => void): void {
     if (ms <= 0) {
       beat();
       return;
     }
-    handOverTimers.push(window.setTimeout(beat, ms));
+    const timer = window.setTimeout(() => {
+      handOverTimers = handOverTimers.filter((id) => id !== timer);
+      beat();
+    }, ms);
+    handOverTimers.push(timer);
   }
 
   /**
@@ -8636,6 +8653,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     reportCommand,
+    handOverPending: () => handOverTimers.length > 0,
     repaint,
     selectedUnit,
     /**

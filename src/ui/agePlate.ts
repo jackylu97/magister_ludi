@@ -13,7 +13,9 @@
  * ----------------------
  * The world's age opening (`CommandResult.beadAgeOpened`), which is the moment
  * the board's "Before" toast fires and the moment the age's wager is dealt.
- * The top bar's age card shows the same clock (`currentWorldAge`). An empire
+ * The top bar's age card shows the same clock (`shownAge` in `topBar.ts`). On
+ * the close turn it still prints the closing age, so the bar does not show the
+ * new age before this plate announces it. An empire
  * that reaches a new age on its own research is not this moment: the world has
  * not turned over, and no wager is dealt.
  *

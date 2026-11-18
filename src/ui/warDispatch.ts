@@ -39,6 +39,11 @@ export function createWarDispatch(options: {
   canShow(): boolean;
   relevant(notice: WarDispatchNotice): boolean;
   review(byId: number): void;
+  /**
+   * The dispatch has closed. News that arrived while it was up (the age plate,
+   * a bead sheet) has been waiting for this (2026-11-18).
+   */
+  onClosed?(): void;
 }): WarDispatch {
   const overlay=element('div','statecraft-overlay war-dispatch-overlay');
   overlay.hidden=true;overlay.setAttribute('role','alertdialog');overlay.setAttribute('aria-modal','true');
@@ -52,7 +57,7 @@ export function createWarDispatch(options: {
   review.type='button';actions.append(acknowledge,review);card.append(body,actions);overlay.append(card);document.body.append(overlay);
   const queue=createWarDispatchQueue();
   let current: WarDispatchNotice|null=null;
-  let timer=0, stopped=false;
+  let timer=0, stopped=false, sweeping=false;
   function schedule() {
     if(stopped||timer||!queue.length)return;
     timer=window.setTimeout(()=>{timer=0;pump();},250);
@@ -75,7 +80,8 @@ export function createWarDispatch(options: {
       body.append(element('p','','Hostilities begin immediately. Enemy units already inside your borders can attack.'));
       body.append(element('p','',`Any existing deals and trade routes with the ${current.people} end when war begins. Peace must be negotiated.`));
     },
-    onClose:()=>{current=null;schedule();},
+    // A sweep (`clear`) tells nobody: news must not rise as the game is put away.
+    onClose:()=>{current=null;schedule();if(!sweeping)options.onClosed?.();},
     onKey:event=>{
       if(event.key!=='Tab')return false;
       if(event.shiftKey&&document.activeElement===acknowledge){event.preventDefault();review.focus();return true;}
@@ -84,7 +90,7 @@ export function createWarDispatch(options: {
     },
   });
   review.addEventListener('click',()=>{const byId=current?.byId;shell.close();if(byId!==undefined)options.review(byId);});
-  function clear() {queue.clear();if(timer)window.clearTimeout(timer);timer=0;shell.close();current=null;}
+  function clear() {queue.clear();if(timer)window.clearTimeout(timer);timer=0;sweeping=true;shell.close();sweeping=false;current=null;}
   return {
     get isOpen(){return shell.isOpen;},
     enqueue(notice){if(stopped||!options.relevant(notice))return;queue.enqueue(notice);schedule();},
