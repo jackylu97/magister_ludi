@@ -23,6 +23,8 @@ import { opusBuildingId } from '../../src/sim/score';
 import type { EarnedBead } from '../../src/sim/state';
 import type { AbacusRow } from '../../src/ui/abacusScreen';
 import { type BeadTable, frameSeeds } from '../../src/ui/beadAwardFrame';
+import { beadPraise } from '../../src/ui/beadModal';
+import { BEAD_GRANT_IDS } from '../../src/sim/beadData';
 import { braceBody, uiSource } from './sourceHelpers';
 
 const PER_ROD = 13;
@@ -100,6 +102,37 @@ describe('frameSeeds', () => {
   });
 });
 
+describe('the line that congratulates (2026-11-18)', () => {
+  it('says a kept wager was kept', () => {
+    expect(beadPraise('theWagerOfThePurse' as BeadCardId, 'grant')).toBe('You kept this wager. A bead is yours.');
+    expect(beadPraise('theWagerOfArms' as BeadCardId, 'grant')).toBe('You kept this wager. A bead is yours.');
+  });
+
+  it('names a grant’s source in its own plain words', () => {
+    expect(beadPraise('theStarChart' as BeadCardId, 'grant')).toBe('A bead is yours, for raising Chart the Stars.');
+    expect(beadPraise('theClosingWork' as BeadCardId, 'grant')).toBe(
+      'A bead is yours, for completing Alchemy, the last technology of the age.',
+    );
+  });
+
+  it('says only that the bead is yours when the award carries no source', () => {
+    expect(beadPraise('theRoadBuilder' as BeadCardId, 'quest')).toBe('A bead is yours.');
+  });
+
+  it('writes no figure into any line a grant can raise', () => {
+    for (const id of BEAD_GRANT_IDS) expect(beadPraise(id, 'grant'), id).not.toMatch(/\d/);
+  });
+
+  it('stands under the name on the page, and the frame is fitted clear of both', () => {
+    const modal = uiSource('beadModal.ts');
+    const page = braceBody(modal, 'function renderPage(');
+    expect(page).toContain("element('p', 'bead-page-praise', face.praise)");
+    expect(page).toContain('{ above: head, below: tally }');
+    const frame = uiSource('beadAwardFrame.ts');
+    expect(frame).toContain('stage.setClearBands(top, bottom);');
+  });
+});
+
 describe('the sheet’s wiring', () => {
   const modal = uiSource('beadModal.ts');
   const frame = uiSource('beadAwardFrame.ts');
@@ -142,7 +175,7 @@ describe('the sheet’s wiring', () => {
   });
 
   it('slides the bead only where the 2D rod would have animated it', () => {
-    expect(modal).toContain('mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null)');
+    expect(modal).toContain('mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null, ');
   });
 
   it('leaves the page’s text where the player can still read it', () => {

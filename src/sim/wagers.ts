@@ -528,6 +528,19 @@ const WAGER_BEAD_OF_FAMILY: Record<BeadFamily, string> = {
   economic: 'theWagerOfThePurse',
 };
 
+/**
+ * Is this bead row one a kept wager pays? The bead page asks, to say why the
+ * bead came (2026-11-18). A reading for the interface; no rule asks it.
+ */
+export function isWagerBeadId(id: string): boolean {
+  return (
+    id === WAGER_BEAD_OF_FAMILY.domination ||
+    id === WAGER_BEAD_OF_FAMILY.culture ||
+    id === WAGER_BEAD_OF_FAMILY.science ||
+    id === WAGER_BEAD_OF_FAMILY.economic
+  );
+}
+
 // --- the phase --------------------------------------------------------------
 
 /** What the phase writes into. `TurnReport`'s wager fields and nothing else. */

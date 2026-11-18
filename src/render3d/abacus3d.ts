@@ -371,6 +371,9 @@ export class AbacusStage {
 
   private aspect = 1;
   private frustum = 1;
+  /** The bands the frame stays out of, as shares of the canvas height. See `setClearBands`. */
+  private clearTop = 0;
+  private clearBottom = 0;
   private frameDraws = 0;
   private frameTriangles = 0;
   private rodDraws = 0;
@@ -958,6 +961,20 @@ export class AbacusStage {
   }
 
   /**
+   * **Bands of the canvas the frame must stay out of**, as shares of its
+   * height, top and bottom (2026-11-18). The bead page lays its name, its line
+   * and Proceed over a canvas that fills the window, and the frame is fitted
+   * into the band between them. Both nought, the default, is the fit every
+   * other page has always had.
+   */
+  setClearBands(top: number, bottom: number): void {
+    const clamp = (share: number): number => Math.max(0, Math.min(0.4, Number.isFinite(share) ? share : 0));
+    this.clearTop = clamp(top);
+    this.clearBottom = clamp(bottom);
+    this.fit();
+  }
+
+  /**
    * Frames the object, with the gutters the labels live in counted as part of it.
    *
    * The camera is orthographic and fixed, like the board's, but much lower — 24°
@@ -1020,7 +1037,13 @@ export class AbacusStage {
     this.camera.updateMatrixWorld();
 
     const pad = view.padding;
-    this.frustum = Math.max(((maxY - minY) / 2) * pad, (((maxX - minX) / 2) * pad) / this.aspect);
+    // The clear bands (`setClearBands`): the frame is fitted into the height
+    // left between them, and the camera is moved so the frame's middle sits in
+    // the middle of that band. With no bands this is the plain fit.
+    const usable = 1 - this.clearTop - this.clearBottom;
+    this.frustum = Math.max(((maxY - minY) / 2) * pad / usable, (((maxX - minX) / 2) * pad) / this.aspect);
+    this.camera.position.addScaledVector(up, (this.clearTop - this.clearBottom) * this.frustum);
+    this.camera.updateMatrixWorld();
     this.camera.left = -this.frustum * this.aspect;
     this.camera.right = this.frustum * this.aspect;
     this.camera.top = this.frustum;

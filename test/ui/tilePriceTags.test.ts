@@ -69,6 +69,17 @@ describe('the price plate', () => {
     expect(plate).not.toMatch(/border-radius:\s*999px/);
   });
 
+  /**
+   * The plates follow the camera by `transform` on every frame the board draws,
+   * as the town banners do. With a layer of their own the compositor moves them;
+   * without one the browser painted the HTML over the canvas again each frame
+   * (render speed pass five, second batch).
+   */
+  it('is its own compositor layer, as a town banner is', () => {
+    expect(plate).toMatch(/will-change:\s*transform/);
+    expect(rule(css, '.city-banner')).toMatch(/will-change:\s*transform/);
+  });
+
   it('counts in the mono voice, tabular, like every number in the game', () => {
     expect(plate).toMatch(/font-family:\s*var\(--face-num\)/);
     expect(plate).toMatch(/font-variant-numeric:\s*tabular-nums/);

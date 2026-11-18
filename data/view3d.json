@@ -1145,7 +1145,8 @@
     "canvas": {
       "maxPixelRatio": 1.5,
       "pixelBudget": 4500000,
-      "restUnderCover": true
+      "restUnderCover": true,
+      "restUnderSheets": true
     },
     "build": {
       "workers": 4,

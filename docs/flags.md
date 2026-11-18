@@ -2929,3 +2929,20 @@ answer, 2026-11-18: "2 3 4 are great, 5 is fine too."
   starts with a plan and a small test that measures the real gain.
 - The scroll cache stays deferred. WebGL2 cannot copy MSAA samples the way it
   needs.
+
+## BP16b-fix: the order fault, found and not shipped (2026-11-18)
+
+- **Proven.** In two games to turn 100, 3,585 of 405,448 kept memo reads
+  (0.9%) differed from a fresh reading, in 30 of 52 memos.
+- **It explains only part of the 26%.** With every memo fresh, all five phases
+  before the loop still lose production. The landed order of a sitting stands.
+- **The exact fix costs 5% to 8% of a late turn** and shows no play change
+  clear of chance on five seeds. A smaller fix (2 of 30 memos) costs up to 1.8%
+  on one seed and also shows no clear change.
+- **Decision (orchestrator, under the user's "you're good to go with your
+  recommendation for the bots optimization"): ship neither.** The stale reads
+  are a speed trade, now on the record. The patches and the games are in
+  `/Users/jacky/code/webciv-baselines/bp16fix/`. The report is in
+  `docs/plans/performance-pass-2026-11-06.md`, "BP16b-fix: the order fault".
+- Next for the bots: the world clock rule (a small rule batch), then stage C,
+  parallel bots from a frozen copy of the board.

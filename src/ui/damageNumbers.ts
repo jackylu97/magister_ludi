@@ -128,8 +128,11 @@ export function createDamageNumbers(options: DamageNumbersOptions): DamageNumber
         continue;
       }
       floater.root.style.display = '';
-      floater.root.style.left = `${Math.round(point.x)}px`;
-      floater.root.style.top = `${Math.round(point.y)}px`;
+      // By the `translate` property, which the compositor applies before the
+      // stylesheet's `transform` (the resting offset and the rise), so the
+      // figure lands where `left`/`top` put it without laying the page out
+      // again on every frame the board draws (render speed pass five).
+      floater.root.style.translate = `${Math.round(point.x)}px ${Math.round(point.y)}px`;
     }
   }
 

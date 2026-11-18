@@ -69,6 +69,14 @@ import { setDescriptorText } from './keywords';
 export const NO_LEADER = '';
 
 /**
+ * What the player's own seat is called when it sits under no figure, in a game
+ * with one person in it (2026-11-18). Plain words and no colour: it reads as a
+ * label beside a rod ("Your realm"), at the head of a sentence the rules write
+ * ("Your realm has no draft waiting"), and as a possessive ("Your realm's").
+ */
+export const OWN_SEAT_NAME = 'Your realm';
+
+/**
  * Which of a figure's two rows a line is about.
  *
  * The two kinds `isUnlocked` asks, and a third the tree has no queue for: a
@@ -406,7 +414,13 @@ export function rivalLeaders(chosen: string, rivals: number, seed = 0): (LeaderI
  * (`seatInks`) — there is no second table anywhere mapping a seat to a pair, and
  * that is what makes a save fly the banners it was started with. It also takes
  * the figure's name onto `name` (2026-11-18), so no sentence names the seat by
- * its palette colour. A seat under no figure keeps its palette name.
+ * its palette colour.
+ *
+ * A seat under no figure keeps its palette name, with one exception: **the
+ * player's own seat in a game with one person in it is "Your realm"**
+ * (`OWN_SEAT_NAME`, 2026-11-18). "No leader" is the landing's default, and the
+ * user's own seat read "Crimson" on every surface. A hot-seat table keeps the
+ * palette names, because there every seat is somebody's own.
  *
  * The `seed` is the landing's own — the number in the Seed field — so the cast
  * travels with the world rather than beside it.
@@ -418,9 +432,12 @@ export function seatLeaders(
 ): PlayerSpec[] {
   const rivals = rivalLeaders(chosen, Math.max(0, players.length - 1), seed);
   const mine: LeaderId | undefined = chosen === NO_LEADER ? undefined : (chosen as LeaderId);
+  const onePerson = players.filter((spec) => spec.isHuman === true).length === 1;
   return players.map((spec, seat) => {
     const leader = seat === 0 ? mine : rivals[seat - 1];
-    if (leader === undefined) return { ...spec };
+    if (leader === undefined) {
+      return seat === 0 && onePerson && spec.isHuman === true ? { ...spec, name: OWN_SEAT_NAME } : { ...spec };
+    }
     const def = leaderDef(leader);
     // **A seat under a figure is named by it** (2026-11-18, the user: "make
     // sure that the original 'Crimson' label is removed throughout the game and

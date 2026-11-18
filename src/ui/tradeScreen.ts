@@ -1406,10 +1406,14 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
    * **The one write this sheet makes**, and since R4 it is one of two commands.
    *
    * Both go out through here so the decision is taken once: `sendCommandFor`
-   * says which, this dispatches it, and the camera goes to the origin either way
-   * — the wagon is teleported into those gates by `startRoute` exactly as a
-   * hired one is minted in them by `buyRoute`, so "watch the cart leave" is the
-   * same hex on both paths.
+   * says which, and this dispatches it.
+   *
+   * **The sheet stays open** (the user, 2026-11-18: "the trade route screen
+   * should not close after buying a route, oftentimes i want to purchase
+   * multiple"). It used to close and move the camera to the origin town. Now it
+   * draws again, so the new route shows in the list and the next send is one
+   * press away. The camera still goes to the origin town, so the cart is in
+   * view when the player closes the sheet.
    */
   function dispatchSend(command: SendCommand, from: City): void {
     if (command.kind === 'send') {
@@ -1417,8 +1421,8 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     } else {
       options.buyRoute(command.fromCityId, command.toCityId, command.mode);
     }
-    close();
     options.panTo({ col: from.col, row: from.row });
+    draw();
   }
 
   /** Send, and what it would cost under it. */

@@ -607,6 +607,14 @@ describe('Send', () => {
     );
     // Both go out through one dispatch, so the choice is taken in one place.
     expect(sheet.match(/dispatchSend\(command/g) ?? []).not.toHaveLength(0);
+    // The sheet stays open after a send, so the player can buy several routes
+    // in one visit (the user, 2026-11-18). It draws again and does not close.
+    const dispatch = sheet.slice(
+      sheet.indexOf('function dispatchSend('),
+      sheet.indexOf('/** Send, and what it would cost under it. */'),
+    );
+    expect(dispatch).toContain('draw();');
+    expect(dispatch).not.toContain('close();');
     // `main.ts` wires both options to `controls`, and `controls` sends the
     // commands — one funnel, so a route opened here is opened the way a peer's is.
     expect(source('main.ts')).toContain('controls.buyRouteOf(fromCityId, toCityId, mode);');
