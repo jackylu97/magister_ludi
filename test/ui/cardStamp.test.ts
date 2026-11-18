@@ -460,7 +460,7 @@ describe('the table and its chairs', () => {
     expect(TABLE).toContain(
       'const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet);',
     );
-    const hand = SCREEN.slice(SCREEN.indexOf('function drawHand('), SCREEN.indexOf('function layRail('));
+    const hand = SCREEN.slice(SCREEN.indexOf('function drawHand('), SCREEN.indexOf('function layFan('));
     expect(hand.length).toBeGreaterThan(200);
     expect(hand).not.toContain('seatedOrderLive(');
     expect(hand).not.toContain('explainCardImpact');
@@ -490,7 +490,8 @@ describe('the table and its chairs', () => {
    */
   it('counts up the cards Confirm just made law, and only those', () => {
     expect(TABLE).toContain('if (justConfirmed.includes(id)) {');
-    expect(TABLE).toContain("counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));");
+    // The Council screen (stage 1): the figure is the card's pay plate.
+    expect(TABLE).toContain("counting.push(countUp([...face.querySelectorAll('.of-pay-fig b')]));");
     expect(SCREEN).toContain('justConfirmed = commitStaging();');
     expect(SCREEN).toContain('justConfirmed = [];');
     const drop = code(SCREEN.slice(SCREEN.indexOf('function drop(index: number,'), SCREEN.indexOf('function confirmStaging(')));
@@ -523,7 +524,8 @@ describe('the table and its chairs', () => {
   it('counts the head’s total up on Confirm, from the Ledger’s own reading', () => {
     const head = SCREEN.slice(SCREEN.indexOf('function paintHead('), SCREEN.indexOf('// --- the register'));
     expect(head).toContain('foldDeck(state, seat)');
-    expect(head).toContain("if (countTotal) counting.push(countUp([...payNode.querySelectorAll('.orders-pay-figure b')]));");
+    // The Council screen (stage 1): the head's figures are the totals line.
+    expect(head).toContain("if (countTotal) counting.push(countUp([...totalsNode.querySelectorAll('.council-total-fig b')]));");
     expect(SCREEN).toContain("from './ledgerScreen'");
     expect(SCREEN).toContain('countTotal = justConfirmed.length > 0;');
   });
@@ -556,13 +558,14 @@ describe('the Doctrines carry their live line', () => {
 
   it('finds the register, so the sweep is not vacuous', () => {
     expect(REGISTER.length).toBeGreaterThan(200);
-    expect(REGISTER).toContain('registerFaceNode({');
+    // The Council screen (stage 1): each Doctrine is tucked under the government.
+    expect(REGISTER).toContain('tuckedDoctrineNode(');
   });
 
   it('builds the live plate on every adopted Doctrine', () => {
-    expect(REGISTER).toContain('for (const id of sc.doctrines) {');
+    expect(REGISTER).toContain('sc.doctrines.forEach((id, index) => {');
     expect(REGISTER).toContain('const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet) : null;');
-    expect(REGISTER).toContain('live: live === null ? null : livePlate(live),');
+    expect(REGISTER).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
   });
 
   it('reads it from explainCardImpact for the doctrine id, in one module', () => {

@@ -166,6 +166,18 @@ function shadowState(state: GameState, playerId: number, staged: StagedSlots): G
 }
 
 /**
+ * **The game as it would stand under an arrangement**, for a reader that asks
+ * what the arrangement would pay (the Council screen's totals line, while a
+ * card is held over a chair). The same read-only shadow `placeError` asks, so
+ * the yields are read by the turn's own evaluators. Every memo is keyed on
+ * the state object, so a shadow is read fresh and never answers from the
+ * live board's memo.
+ */
+export function stagedState(state: GameState, playerId: number, staged: StagedSlots): GameState {
+  return shadowState(state, playerId, staged);
+}
+
+/**
  * **Which chairs the seat's cards fit, in this arrangement** (Magisterial
  * batch MG12): the reducer's own fit (`chairFitFor`) asked of the shadow, so
  * a Mixed Constitution staged in a chair widens it before Confirm, as

@@ -614,6 +614,245 @@
   color: var(--ink-soft, #56505a);
 }
 
+/* --- the pay plate (the Council screen, stage 1) ------------------------------- */
+
+/*
+ * The board's PL and PM frames
+ * (`docs/plans/mockups/scholars-study/council-and-in-play/`): what a card pays
+ * each turn, as the foot of the card itself. A heavy rule, then the figures in
+ * the card's own typeface, bold, in the yields' deep inks, each with its mark.
+ * Happiness and authority wear their own marks in the card's ink, because the
+ * game gives the two meters no colour of their own. A minus figure is in the
+ * debit red and keeps its mark. 21 px at the full 210 px card.
+ */
+.order-face .of-pay {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 0.4em;
+  width: calc(100% - 1.6em);
+  margin-bottom: 0.45em;
+  padding: 0.4em 0 0.1em;
+  border-top: calc(var(--of-u) * 2) solid var(--of-ink-text);
+  font-family: var(--face-card-text);
+  font-size: 2.1em;
+  font-style: normal;
+  font-variant-numeric: lining-nums;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.of-pay-fig {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.06em;
+  color: var(--of-ink-text, var(--ink));
+}
+
+.of-pay-fig b {
+  font-weight: 700;
+}
+
+.of-pay-fig .yield-mark,
+.of-pay-fig .meter-mark {
+  width: 0.78em;
+  height: 0.78em;
+  margin: 0;
+  vertical-align: -0.06em;
+}
+
+.of-pay-fig[data-voice='food'] {
+  color: var(--y-food, #306f29);
+}
+
+.of-pay-fig[data-voice='production'] {
+  color: var(--y-prod, #94500f);
+}
+
+.of-pay-fig[data-voice='gold'] {
+  color: var(--y-gold, #7f5b0e);
+}
+
+.of-pay-fig[data-voice='science'] {
+  color: var(--y-sci, #2757b8);
+}
+
+.of-pay-fig[data-voice='culture'] {
+  color: var(--y-cul, #7b3fa8);
+}
+
+.of-pay-fig[data-voice='faith'] {
+  color: var(--y-faith, #994074);
+}
+
+.of-pay-fig[data-sign='minus'] {
+  color: var(--rubric, #ab3d1e);
+}
+
+/* A card that could pay and pays nothing this turn: a small "+0" and the
+   reason, under a light rule. */
+.order-face .of-pay[data-plate='idle'] {
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  column-gap: 0.4em;
+  padding-top: 0.25em;
+  border-top: var(--of-rule) solid rgba(29, 26, 32, 0.4);
+  color: var(--ink-faint, #625e5b);
+  font-size: 1.25em;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.order-face .of-pay-zero {
+  flex: none;
+  color: var(--ink-soft, #56505a);
+  font-size: 1.2em;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.order-face .of-pay-why {
+  text-align: left;
+}
+
+/* A card with a plate gives up the marks in its two foot corners, as the
+   board's plate cards do, so the plate's figures and its reason are clear. */
+.order-face[data-plate='pays'] .of-orn.is-c,
+.order-face[data-plate='pays'] .of-orn.is-d,
+.order-face[data-plate='idle'] .of-orn.is-c,
+.order-face[data-plate='idle'] .of-orn.is-d {
+  display: none;
+}
+
+/* The 176 px card sets a long name on two lines, as the narrow card does. */
+.order-face[data-compact='mid'] .of-motto {
+  height: auto;
+  min-height: 1.9em;
+}
+
+.order-face[data-compact='mid'] .of-name {
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+/* The government's own plate figures run a size smaller, as the board draws them. */
+.order-face[data-government] .of-pay {
+  font-size: 2em;
+}
+
+.order-face[data-government] .of-plate {
+  letter-spacing: 0.04em;
+}
+
+/* --- a Doctrine tucked under the government ------------------------------------- */
+
+/*
+ * The board's C6: a gilt strip whose top is hidden under the card above it,
+ * with the Doctrine's name at the left and what it pays at the right. Each
+ * strip is a little narrower than the one above, so the stack reads as cards
+ * tucked behind one another.
+ */
+.order-tuck {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 0 5px 5px;
+  border: 1.5px solid #7f5b0e;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background:
+    radial-gradient(circle, #7f5b0e 0 0.6px, transparent 1px) 0 0 / 4px 4px,
+    linear-gradient(135deg, #e2b243, var(--gilt, #c8901f) 45%, var(--gilt-bright) 60%, var(--gilt-shade));
+  box-shadow: 3px 3px 0 #0e0c10;
+  color: var(--ink, #1d1a20);
+}
+
+.order-tuck .of-tuck-in {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  box-sizing: border-box;
+  min-height: 41px;
+  padding: 8px 7px 2px;
+  border: 1px solid var(--ink, #1d1a20);
+  border-top: 0;
+  background: radial-gradient(120% 90% at 30% 15%, #fcf7e7, var(--card-paper) 55%, var(--card-paper-shade));
+}
+
+.order-tuck .of-tuck-name {
+  overflow: hidden;
+  font-family: var(--face-card-title);
+  font-size: var(--size-ui);
+  line-height: 1.1;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The figures at the right, on as many lines as they need: a Doctrine that
+   pays four voices takes a second line rather than running out of its strip. */
+.order-tuck .of-tuck-pay {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: 0.35em;
+  min-height: 4px;
+  font-family: var(--face-card-text);
+  font-size: var(--size-name);
+  font-variant-numeric: lining-nums;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.order-tuck .of-pay-zero {
+  color: var(--ink-soft, #56505a);
+  font-size: var(--size-ui);
+}
+
+/* --- a card's back: the draft pile --------------------------------------------- */
+
+/* The deep violet with gilt dots, a gilt edge and the sun, with the edges of
+   the cards under it drawn as a stack of hard shadows (the board's C6). */
+.order-back {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 76px;
+  height: 94px;
+  border: 2px solid #7f5b0e;
+  border-radius: 7px;
+  background:
+    radial-gradient(circle, var(--gilt, #c8901f) 0 1px, transparent 1.4px) 0 0 / 8px 8px,
+    #3a1f52;
+  box-shadow:
+    3px 3px 0 #0e0c10,
+    5px 5px 0 #3a1f52,
+    6px 6px 0 #7f5b0e,
+    8px 8px 0 #3a1f52,
+    9px 9px 0 #7f5b0e;
+}
+
+.order-back::after {
+  width: 44px;
+  height: 44px;
+  background-color: var(--gilt-bright);
+  content: '';
+  -webkit-mask: var(--of-mark-sun) center / contain no-repeat;
+  mask: var(--of-mark-sun) center / contain no-repeat;
+}
+
 /* A commission's count: beads on a wire. */
 .order-face .of-beads {
   display: inline-flex;
@@ -1061,6 +1300,71 @@
 .order-face[data-compact='narrow'] .of-colo::before,
 .order-face[data-compact='narrow'] .of-colo::after {
   display: none;
+}
+
+/*
+ * **The 176 px card** (the board's C11): eleven chairs in rows of six and
+ * five at 1440 wide. Like the compact forms it keeps the full face's text
+ * scale (`--of-width` is 210), so the effect keeps its 13 px to 11 px fit,
+ * and only the box and the picture are smaller. The plate is 17 px.
+ */
+.order-face[data-compact='mid'],
+.order-face-chair[data-compact='mid'] {
+  width: 176px;
+  height: 236px;
+}
+
+.order-face[data-compact='mid'] .of-pict,
+.order-face[data-compact='mid'][data-picture] .of-pict {
+  height: 5.2em;
+  margin-top: 0.4em;
+}
+
+.order-face[data-compact='mid'] .of-device,
+.order-face[data-compact='mid'][data-picture] .of-device {
+  width: 6.4em;
+  height: 6.4em;
+}
+
+.order-face[data-compact='mid'] .of-sub {
+  margin-top: 0.6em;
+  padding: 0 0.6em;
+}
+
+.order-face[data-compact] .of-pay {
+  width: calc(100% - 1.2em);
+  font-size: 1.7em;
+}
+
+.order-face[data-compact] .of-pay[data-plate='idle'] {
+  font-size: 1.15em;
+}
+
+/*
+ * **The fan** (the board's C6): the full face of a card in the hand, set
+ * down at the foot of the screen and cut by the window's edge. The cards
+ * overlap, so the name is set at the left and the device moves left, where
+ * each card is still in view.
+ */
+.order-face[data-form='fan'] .of-motto {
+  justify-content: flex-start;
+  height: auto;
+  min-height: 1.9em;
+  padding-right: 6.2em;
+}
+
+.order-face[data-form='fan'] .of-motto .of-rule:first-child {
+  display: none;
+}
+
+.order-face[data-form='fan'] .of-name {
+  line-height: 1.05;
+  text-align: left;
+  white-space: normal;
+}
+
+.order-face[data-form='fan'] .of-device {
+  left: 32%;
 }
 
 /* --- the wide form: the register's government and Doctrines --- */

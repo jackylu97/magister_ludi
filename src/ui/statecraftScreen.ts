@@ -1,70 +1,83 @@
 /**
- * **The orders screen** (Statecraft): your government, your Doctrines, your
- * chairs and the Orders in them, and your hand, laid out as a card table.
+ * **Orders & Doctrines, the Council screen** (Statecraft): your government with
+ * its Doctrines tucked under it, your chairs and the Orders in them, and your
+ * hand fanned at the foot.
  *
- * Interface batch SS10, part 2. The user approved the final board on
- * 2026-11-17 (*"you're free to proceed with the orders page"*,
- * `docs/plans/ui-critique-2026-10-16.md`). The board of record is
- * `docs/plans/mockups/scholars-study/orders-screen-final-board.html`, and its
- * last section is the build spec this file follows. The user's intent, from
- * rounds two to five: the Orders are a deck, the unseated ones are a hand,
- * seating is playing a card, a played card's effect is easy to see, the
- * Doctrines are prominent, and the look is an arcane Renaissance card game.
+ * Stage 1 of the approved Council and In play board
+ * (`docs/plans/mockups/scholars-study/council-and-in-play/council-and-in-play.html`,
+ * frames PL, PM, N4, C6, C8, C11 and CH). The rulings, in the user's words,
+ * are in `docs/plans/ui-critique-2026-10-16.md`, from "Two tabs: Council and
+ * In play" to the approval of the Council and In play board (2026-11-18). The
+ * screen it replaces was batch SS10's card table
+ * (`docs/plans/mockups/scholars-study/orders-screen-final-board.html`); its
+ * staging, its keys, its layers and its moments are kept.
  *
  * The layout, top to bottom
  * -------------------------
- *   - **The head** (in `index.html`, with the tools added here): the title, a
- *     one-line hint, what your cards pay (`foldDeck`, the Ledger's deck
- *     figure), Revert, Confirm and the close button. A refusal prints the
- *     reducer's own sentence in place of the hint for four seconds.
- *   - **The cloth**: the whole window, dark, with a gilt rule just inside its
- *     edge (part C1: the user asked for the screen to be full screen like
- *     the star chart). The head sits on it.
- *   - **The gilt register**: the government card (its law, its tier and the
- *     next draft's progress), then each Doctrine laid wide with its name, its
- *     effect and its live line (`orderFace.ts`, `registerFaceNode`).
- *   - **The table**: one card or one empty chair for each chair, in the
- *     council's own order, six to a row. Each card carries the chair's tab on
- *     its foot (`chairTabNode`). The card form is the window's
- *     (`ordersLayout`): the large face for one row, the full face, then the
- *     two compact forms.
- *   - **The hand**: the Orders not in a chair, in the height the table
- *     leaves: named cards side by side, an indexed rank with the names down
- *     the cards' edges, or a rail of card tops.
+ *   - **The head**: the title, the totals line and the close hint, on one
+ *     centre line (the user: "please make sure these are vertically centered
+ *     in the real build"). The totals line is eight figures: the six yields, a
+ *     hairline, then happiness and authority (`councilTotals.ts`). While a
+ *     card is held over a chair, a chip beside each figure says what the
+ *     total would gain or lose if the card were dropped there (frame CH). The
+ *     In play link is left out until stage 3 builds that screen.
+ *   - **The government column** at the left: the government as a full card
+ *     with its own pay plate, and each Doctrine tucked under it as a strip
+ *     with its name and its figures. A strip lifts the Doctrine's full face
+ *     on hover or focus.
+ *   - **The chairs**: each chair a gilt frame with its label on the top edge
+ *     ("2 · Economic"), holding a card or the empty chair's words. The card
+ *     form is the window's (`councilLayout`): the full 210 px face up to
+ *     eight chairs at 1440 by 900, the 176 px card at eleven, and the compact
+ *     forms on small windows.
+ *   - **The band**: the hand's label and the hint at the left; the changes,
+ *     Revert and Confirm at the right, above the hand, where the main
+ *     screen's End Turn is (the user: "the player expects the 'next action'
+ *     button to be there").
+ *   - **The fan**: the hand's cards as full faces, overlapped and cut by the
+ *     window's edge, and the draft pile at the left (the next draft, the deck,
+ *     and the door to the binder).
  *
- * Every card is the emblem face (`orderFace.ts`). What a card says it pays is
- * `orderLive.ts`, which picks the right existing reading for the card's kind.
- * The two layers over the table, H for the whole hand and D for the binder,
- * are `ordersLayers.ts`; the board's six moments are `ordersMotion.ts`.
+ * Every card is the emblem face (`orderFace.ts`) with its pay plate: what the
+ * card pays each turn, in the card's own typeface and the yield colours
+ * (`orderLive.ts` picks the reading). The two layers over the table, H for the
+ * whole hand and D for the binder, are `ordersLayers.ts`; the moments are
+ * `ordersMotion.ts`.
  *
  * Seating is click then click
  * ---------------------------
- * Click a card in the hand to pick it up; the chairs it fits are ringed
- * ("seat here", or "swap" for an occupied chair) and the rest fade. Click a
- * ringed chair to play the card there. Click a card in a chair to pick it up
- * out of the chair. Escape puts a held card back where it came from. The
- * keyboard does the same: the arrows move between cards and chairs, Enter
- * picks up or puts down, and the number keys 1 to 9 play the held card into
- * that chair.
+ * Click a card in the hand to pick it up; the frames of the chairs it fits
+ * light and the rest fade, and the chair under the card glows while the card
+ * seated there dims (frame CH). Click a lit chair to play the card there. **Click a card in a chair to hold it**;
+ * then click a chair to move it there, or click anywhere away from the chairs
+ * to take it off its chair and back to the hand (the user, 2026-11-18:
+ * "dropping away from a slot should remove it from a slot. useful if players
+ * just want to remove a card and not replace it with anything"). The rules
+ * allow an empty chair: it is the `unslotOrder` command, which a sealed card
+ * refuses with the reducer's own sentence. Escape puts a held card back where
+ * it came from; Delete or Backspace takes a card off its chair. The arrows
+ * move between cards and chairs, Enter picks up or puts down, and the number
+ * keys 1 to 9 play the held card into that chair.
  *
  * Nothing is sent until Confirm
  * -----------------------------
- * The staging is unchanged from the old screen (`statecraftStaging.ts`): the
- * user's rule is "slots should only lock after leaving the menu". Placing and
- * removing edit a local arrangement; the arrangement becomes real on Confirm
- * or on leaving the screen by any door, and Revert throws it away. A swap is a
- * removal and a placement in the same chair, both staged. The arrangement is
- * per seat and is thrown away, never signed, when the seat changes, so a
- * hot-seat handover cannot sign the last player's law.
+ * The staging is unchanged (`statecraftStaging.ts`): the user's rule is "slots
+ * should only lock after leaving the menu". Placing and removing edit a local
+ * arrangement; the arrangement becomes real on Confirm or on leaving the
+ * screen by any door, and Revert throws it away. The arrangement is per seat
+ * and is thrown away, never signed, when the seat changes, so a hot-seat
+ * handover cannot sign the last player's law.
  *
  * Every refusal is the reducer's own sentence: `placeError` and `removeError`
  * are `slotOrderError` and `unslotOrderError` asked of the staged
  * arrangement, and they decide the rings, the fades, the titles and Confirm.
  *
  * The reveal is Confirm's (`docs/history/fewer-things.md` §1, ruled
- * 2026-09-06): a card played this visit shows no figure until Confirm. On
- * Confirm the batch goes through, and the redraw counts up the figures of the
- * cards the signature made law, and the head's total.
+ * 2026-09-06): a card played this visit shows no plate until Confirm. On
+ * Confirm the batch goes through, and the redraw counts up the plates of the
+ * cards the signature made law, and the totals. The chips on the totals line
+ * are the one figure shown before Confirm, by the later ruling that a held
+ * card shows the pending change.
  *
  * Nothing on this screen is state except the arrangement and the card in
  * hand, which are proposals rather than facts.
@@ -81,7 +94,6 @@ import {
   type PlayerStatecraft,
   SLOT_WORDS,
   chairReadingsAt,
-  stripRefs,
   draftExhausted,
   maliceAt,
   maliceChairRefusal,
@@ -95,6 +107,7 @@ import {
   type CountKind,
   type OrderId,
   CHAIR_TYPES,
+  cardDef,
   doctrineDef,
   isCharter,
   isDoctrineId,
@@ -102,29 +115,26 @@ import {
   orderDef,
   orderType,
 } from '../sim/statecraftData';
-import { type StampFigure, STAMP_TIMING, stampCountAt, stampFigures } from './cardStamp';
+import { STAMP_TIMING, stampCountAt } from './cardStamp';
 import { chairWord } from './chairs';
+import { type CouncilLayout, COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from './councilLayout';
+import { type CouncilFigures, COUNCIL_VOICES, councilChange, councilFigures, foldDeckMeters, governmentPays } from './councilTotals';
 import { element } from './dom';
 import { draftGlance } from './empireDrawer';
 import { foldDeck, deckCaption } from './ledgerScreen';
 import { createModalShell } from './modalShell';
 import { wantsMotion } from './motion';
+import { type CardLive, doctrineLive, seatedOrderLive, stagedLive } from './orderLive';
 import {
-  type CardLive,
-  LIVE_WORDS,
-  doctrineLive,
-  seatedOrderLive,
-  stagedLive,
-  tabletOfFigure,
-} from './orderLive';
-import {
+  type OrderFacePlate,
   type OrderFaceState,
-  chairTabNode,
   dressOrderFace,
-  emptyChairFace,
   fitOrderFace,
+  orderBackNode,
   orderFaceNode,
-  registerFaceNode,
+  plateFigureNode,
+  plateFigureText,
+  tuckedDoctrineNode,
 } from './orderFace';
 import {
   type SlotCommand,
@@ -140,7 +150,6 @@ import {
   stagedFit,
   validate,
 } from './statecraftStaging';
-import { setYieldText, yieldMarkNode } from './yieldMark';
 import { charterTechOf } from './charterTech';
 import { techDef } from '../sim/techData';
 import {
@@ -239,12 +248,14 @@ export function fitsWords(words: readonly string[]): string {
 export const ORDERS_WORDS = {
   hint: 'play a card from your hand to a chair',
   held: (name: string, fits: string) => `${name} in hand: it fits ${fits} chair. Esc puts it back.`,
-  payLabel: 'Your cards pay',
-  payNone: 'nothing yet',
+  heldFromChair: (name: string, fits: string) =>
+    `${name} in hand: it fits ${fits} chair. Esc puts it back. Delete, or a click away from the chairs, takes it off.`,
+  totalsLabel: 'What your cards pay each turn',
+  closes: 'closes',
   revert: 'Revert',
   confirm: 'Confirm',
   confirmTitle: 'Seal the arrangement. Leaving the screen does the same.',
-  nothingToConfirm: 'Nothing to confirm',
+  nothingToConfirm: 'nothing to confirm yet',
   revertTitle: 'Put the chairs back the way the law has them',
   changes: (count: number) => `${count} unconfirmed change${count === 1 ? '' : 's'}`,
   staged: 'played, not confirmed',
@@ -255,9 +266,9 @@ export const ORDERS_WORDS = {
   takesAny: 'It takes any card.',
   paysNothing: 'It pays nothing.',
   takenOut: 'Taken out, not confirmed.',
-  noDoctrine:
-    'No Doctrine yet. A Doctrine is offered each time you adopt a government, and it is kept for the whole game.',
-  noLaw: 'This government has no law of its own.',
+  government: 'Government',
+  doctrineCount: (count: number) => `${count} Doctrine${count === 1 ? '' : 's'}`,
+  noDoctrine: 'No Doctrine yet. A Doctrine is offered each time you adopt a government.',
   nextDraft: 'next draft',
   chooseGovernment: 'choose a government',
   chooseGovernmentTitle:
@@ -265,10 +276,12 @@ export const ORDERS_WORDS = {
   exhausted: 'decks exhausted',
   exhaustedTitle:
     'The culture meter is full, but you already hold every card your decks can offer at your band. No draft is charged; the culture stays banked until there is a card to deal.',
+  pile: 'Draft pile',
+  pileTitle: 'Every Order you hold, in the binder. D opens it too.',
   hand: 'Your hand',
+  handCards: (count: number) => `${count} card${count === 1 ? '' : 's'}`,
   handOpens: 'opens it',
-  deckCount: (count: number) => `${count} in your deck ·`,
-  binderOpens: 'opens the binder',
+  deckCount: (count: number) => `${count} in your deck`,
   handEmpty: 'Your hand is empty.',
   noOrders: 'You hold no Orders yet. Culture pays for the first draft.',
   countsTwice: 'counts twice',
@@ -277,119 +290,6 @@ export const ORDERS_WORDS = {
 
 /** How long a refusal stands in place of the hint. The board's four seconds. */
 const REFUSAL_MS = 4000;
-
-/** Six chairs to a row, at every size the board draws. */
-const CHAIRS_PER_ROW = 6;
-
-// --- the layout: which card form and which hand a window gets ---------------
-
-/**
- * The card's forms, in pixels (the final board's build spec, "The card, by
- * form"): the large face for a table of one row, the full face, the compact
- * form with its short picture band, and the narrow compact form.
- */
-export const ORDERS_FORMS = {
-  large: { width: 244, height: 299 },
-  full: { width: 210, height: 258 },
-  compact: { width: 187, height: 180 },
-  narrow: { width: 145, height: 206 },
-} as const;
-
-export type OrdersForm = keyof typeof ORDERS_FORMS;
-
-/** The room the screen's own parts take, in pixels, on a roomy window and a tight one. */
-const ORDERS_FRAME = {
-  roomy: { head: 52, top: 12, side: 24, bottom: 16 },
-  tight: { head: 44, top: 8, side: 16, bottom: 12 },
-  /** A window under this height or width is tight. */
-  tightBelow: { height: 780, width: 1240 },
-  /** The widest the table runs on a very wide window. */
-  maxWidth: 1640,
-  register: 104,
-  gap: 12,
-  rowGap: 14,
-  cardGap: 10,
-  label: 18,
-  /** The rail of card tops, the least a hand takes. */
-  rail: 28,
-  /** A hand of named cards side by side needs this height at least; under it the name would go below 11 px. */
-  spreadMin: 144,
-  /** An indexed rank, the names set down each card's edge, needs this height at least. */
-  stripMin: 120,
-  handGap: 12,
-} as const;
-
-/** Which card form and which hand a window gets, worked out from its size (`ordersLayout`). */
-export interface OrdersLayout {
-  tight: boolean;
-  form: OrdersForm;
-  rows: number;
-  /** The hand: named cards side by side in ranks, an indexed rank, or the rail of tops. */
-  hand: 'spread' | 'strip' | 'rail';
-  /** The hand card's size, and the ranks a spread hand takes. */
-  handCard: { width: number; height: number };
-  handRanks: number;
-}
-
-/**
- * **The layout for a window** (part C): the largest card form whose table
- * fits beside the register and the least hand, then the best hand the height
- * left over allows. Pure, so the tests can sweep window sizes.
- *
- *   - The form: the large face for a table of one row, then the full face,
- *     then the compact form, then the narrow compact form.
- *   - The hand: named cards side by side, in as many ranks as the height
- *     allows, as large as fits with the name at 11 px or more; else an
- *     indexed rank with the names set down the cards' edges; else the rail of
- *     card tops.
- */
-export function ordersLayout(window: { width: number; height: number }, chairs: number, handCount: number): OrdersLayout {
-  const tight = window.height < ORDERS_FRAME.tightBelow.height || window.width < ORDERS_FRAME.tightBelow.width;
-  const frame = tight ? ORDERS_FRAME.tight : ORDERS_FRAME.roomy;
-  const width = Math.min(ORDERS_FRAME.maxWidth, window.width - 2 * frame.side);
-  const height = window.height - frame.head - frame.top - frame.bottom;
-  const rows = Math.max(1, Math.ceil(chairs / CHAIRS_PER_ROW));
-  const cols = Math.max(1, Math.min(CHAIRS_PER_ROW, chairs));
-  const fixed = ORDERS_FRAME.register + 2 * ORDERS_FRAME.gap + ORDERS_FRAME.label;
-  const tableHeight = (form: OrdersForm): number =>
-    rows * ORDERS_FORMS[form].height + (rows - 1) * ORDERS_FRAME.rowGap;
-  const order: readonly OrdersForm[] = rows === 1 ? ['large', 'full', 'compact', 'narrow'] : ['full', 'compact', 'narrow'];
-  const form =
-    order.find(
-      (one) =>
-        cols * ORDERS_FORMS[one].width + (cols - 1) * ORDERS_FRAME.cardGap <= width &&
-        fixed + tableHeight(one) + ORDERS_FRAME.rail <= height,
-    ) ?? 'narrow';
-  const room = height - fixed - tableHeight(form);
-  const most = rows === 1 ? 202 : 162;
-  for (let cardHeight = Math.min(most, room); cardHeight >= ORDERS_FRAME.spreadMin; cardHeight -= 2) {
-    const cardWidth = Math.round((cardHeight * 104) / 162);
-    const perRank = Math.max(1, Math.floor((width + ORDERS_FRAME.handGap) / (cardWidth + ORDERS_FRAME.handGap)));
-    const ranks = Math.floor((room + ORDERS_FRAME.handGap) / (cardHeight + ORDERS_FRAME.handGap));
-    if (ranks >= 1 && perRank * ranks >= handCount) {
-      return {
-        tight,
-        form,
-        rows,
-        hand: 'spread',
-        handCard: { width: cardWidth, height: cardHeight },
-        handRanks: Math.max(1, Math.ceil(handCount / perRank)),
-      };
-    }
-  }
-  if (room >= ORDERS_FRAME.stripMin) {
-    const cardHeight = Math.min(162, room);
-    return {
-      tight,
-      form,
-      rows,
-      hand: 'strip',
-      handCard: { width: Math.round((cardHeight * 104) / 162), height: cardHeight },
-      handRanks: 1,
-    };
-  }
-  return { tight, form, rows, hand: 'rail', handCard: { width: 104, height: 162 }, handRanks: 1 };
-}
 
 // --- the screen --------------------------------------------------------------
 
@@ -413,7 +313,7 @@ interface StatecraftScreenOptions {
   overlay: HTMLElement;
   /** The element the sheet's body is built into. */
   body: HTMLElement;
-  /** The overlay's own × button. */
+  /** The overlay's own close button. Drawn here as the "Esc closes" hint. */
   closeButton: HTMLElement;
   /** The bar control that opens it, for the `aria-expanded` mirror. */
   trigger?: HTMLElement;
@@ -438,17 +338,6 @@ interface StatecraftScreenOptions {
 function typeRank(id: OrderId): number {
   const index = (CHAIR_TYPES as readonly string[]).indexOf(orderType(id));
   return index < 0 ? CHAIR_TYPES.length : index;
-}
-
-/** The yields of a stamp as the head prints them: a mono figure and its mark, in the yield's ink. */
-function payFigureNode(figure: StampFigure): HTMLElement {
-  const tablet = tabletOfFigure(figure);
-  const node = element('span', 'orders-pay-figure');
-  if (tablet.yield !== null) node.dataset.yield = tablet.yield;
-  if (tablet.yield !== null) node.append(yieldMarkNode(tablet.yield));
-  else node.append(element('span', 'orders-pay-glyph', figure.glyph));
-  node.append(element('b', undefined, tablet.figure));
-  return node;
 }
 
 /**
@@ -515,7 +404,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   let stagedChairs: readonly ChairType[] | null = null;
   /** The cards Confirm just made law, waiting for their count-up. Spent by the next draw. */
   let justConfirmed: OrderId[] = [];
-  /** Count the head's total up on the next draw, because Confirm just went through. */
+  /** Count the totals up on the next draw, because Confirm just went through. */
   let countTotal = false;
   /** The count-ups still running, so the next draw can stop them. */
   let counting: (() => void)[] = [];
@@ -539,7 +428,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   let ghost: HTMLElement | null = null;
   /** A landing to play after the next draw (moment 3): the chair, and where the card flew from. */
   let landing: { index: number; from: DOMRect } | null = null;
-  /** A swapped-out card's slide to the hand after the next draw (moment 6). */
+  /** A card's slide to the hand after the next draw (moment 6): swapped out, or taken off its chair. */
   let slide: { card: OrderId; from: DOMRect } | null = null;
   /** The full face shown on hover or focus (moment 1), and its timer. */
   let preview: HTMLElement | null = null;
@@ -551,20 +440,46 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   let settling: HTMLElement[] = [];
   /** The window's size at the last draw, so a resize that changes nothing draws nothing. */
   let drawnSize = '';
-  /** This draw's layout: the card form and the hand (`ordersLayout`). */
-  let screenLayout: OrdersLayout = ordersLayout({ width: 1440, height: 900 }, 0, 0);
+  /** This draw's layout: the card form and the rows (`councilLayout`). */
+  let screenLayout: CouncilLayout = councilLayout({ width: 1440, height: 900 }, 6);
+  /**
+   * The chair the held card is over, and the change dropping it there would
+   * make to the totals (frame CH). Measured once when the chair changes,
+   * never on a pointer move.
+   */
+  let over: { index: number; change: CouncilFigures | null } | null = null;
 
-  // The head's tools: what your cards pay, Revert and Confirm. Built once and
-  // filled on every draw, so the buttons keep their place in the tab order.
+  // The head: the totals line, and the close button drawn as the board's
+  // "Esc closes". Built once and filled on every draw.
+  const totalsNode = element('div', 'council-totals');
+  totalsNode.setAttribute('role', 'group');
+  totalsNode.setAttribute('aria-label', ORDERS_WORDS.totalsLabel);
+  const totalCells = new Map<string, { figure: HTMLElement; chip: HTMLElement }>();
+  COUNCIL_VOICES.forEach((voice, index) => {
+    if (index === 6) totalsNode.append(element('span', 'council-totals-rule'));
+    const cell = element('span', 'council-total');
+    cell.dataset.voice = voice;
+    const figure = plateFigureNode({ voice, amount: 0 }, 'council-total-fig');
+    const chip = element('i', 'council-chip');
+    chip.hidden = true;
+    cell.append(figure, chip);
+    totalsNode.append(cell);
+    totalCells.set(voice, { figure, chip });
+  });
+  closeButton.replaceChildren(keyMark('Esc'), ` ${ORDERS_WORDS.closes}`);
+  closeButton.classList.add('council-close');
+  if (head !== null) head.insertBefore(totalsNode, closeButton);
+
+  // The band's tools: the changes, Revert and Confirm, at the right above the
+  // hand. Built once, so the buttons keep their place in the tab order.
   const tools = element('div', 'orders-head-tools');
-  const payNode = element('div', 'orders-pay');
+  const changesNode = element('span', 'orders-changes');
   const revertButton = element('button', 'btn orders-revert', ORDERS_WORDS.revert) as HTMLButtonElement;
   revertButton.type = 'button';
-  const confirmButton = element('button', 'btn btn-primary orders-confirm', ORDERS_WORDS.confirm) as HTMLButtonElement;
+  // The main screen's End Turn control: cinnabar, the thick ink edge and the hard shadow.
+  const confirmButton = element('button', 'btn btn-primary btn-end orders-confirm', ORDERS_WORDS.confirm) as HTMLButtonElement;
   confirmButton.type = 'button';
-  const changesNode = element('span', 'orders-changes');
-  tools.append(payNode, changesNode, revertButton, confirmButton);
-  if (head !== null) head.insertBefore(tools, closeButton);
+  tools.append(changesNode, revertButton, confirmButton);
   sheetNode?.classList.add('orders-sheet');
   body.classList.add('orders-body');
   // The layer the moving and lifted cards are drawn in: the sheet itself, so a
@@ -592,7 +507,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const fit = stagedFit(state, seat, staged);
       const card = held;
       const fits = CHAIR_TYPES.filter((type) => fit(card, type)).map((type) => chairWord(type));
-      hintNode.textContent = ORDERS_WORDS.held(orderDef(card).name, fitsWords(fits));
+      const words = beforeLift !== null ? ORDERS_WORDS.heldFromChair : ORDERS_WORDS.held;
+      hintNode.textContent = words(orderDef(card).name, fitsWords(fits));
       return;
     }
     hintNode.textContent = ORDERS_WORDS.hint;
@@ -624,6 +540,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     stagedChairs = null;
     held = null;
     beforeLift = null;
+    over = null;
     justConfirmed = [];
     countTotal = false;
   }
@@ -711,14 +628,22 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     if (ghostArmed && event !== null) pointer = { x: event.clientX, y: event.clientY };
   }
 
-  /** Picks a card up from the hand, or puts the held one back. */
+  /**
+   * Picks a card up from the hand, or puts the held one down. A card held out
+   * of a chair is taken off its chair when the player clicks the hand: the
+   * hand is away from every chair.
+   */
   function take(id: OrderId, event: MouseEvent | null = null): void {
     if (held === id) {
-      putBack();
+      if (beforeLift !== null) takeOff();
+      else putBack();
       draw();
       return;
     }
-    if (held !== null) putBack();
+    if (held !== null) {
+      if (beforeLift !== null) takeOff();
+      else putBack();
+    }
     notePointer(event);
     held = id;
     beforeLift = null;
@@ -727,9 +652,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
-   * Picks a card up **out of its chair**: the first half of moving it. A
-   * staged removal, then the card is held. A sealed card answers with the
-   * reducer's own sentence and does not move.
+   * Picks a card up **out of its chair** and holds it: a staged removal, then
+   * the card is held (the user, 2026-11-18: "clicking an already slotted card
+   * should make it 'held'"). A sealed card answers with the reducer's own
+   * sentence and does not move.
    */
   function lift(index: number, event: MouseEvent | null = null): void {
     const ctx = context();
@@ -758,6 +684,68 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     focusKey = beforeLift === null ? `hand:${held}` : focusKey;
     held = null;
     beforeLift = null;
+    over = null;
+  }
+
+  /**
+   * **Takes the held card off its chair**: the card was lifted out of a chair
+   * and is put down away from every chair, so the chair stays empty and the
+   * card goes back to the hand. The removal is staged like any other and is
+   * signed on Confirm. A card held from the hand simply goes back.
+   */
+  function takeOff(): void {
+    if (held === null) return;
+    if (beforeLift === null) {
+      putBack();
+      return;
+    }
+    const card = held;
+    const from = ghost?.isConnected === true ? ghost.getBoundingClientRect() : chairFaceRect(beforeLift, card);
+    slide = from === null ? null : { card, from };
+    held = null;
+    beforeLift = null;
+    over = null;
+    focusKey = `hand:${card}`;
+  }
+
+  /** Where a card's face was in its chair, for the slide to the hand. */
+  function chairFaceRect(arrangement: StagedSlots, card: OrderId): DOMRect | null {
+    const index = arrangement.findIndex((entry) => entry?.card === card);
+    if (index < 0) return null;
+    return body.querySelector(`[data-chair="${index}"] .council-slot`)?.getBoundingClientRect() ?? null;
+  }
+
+  /**
+   * **Delete or Backspace**: takes a card off its chair. The held card, if it
+   * came out of a chair; else the card in the chair the keyboard is on, asked
+   * of the reducer first, so a sealed card refuses with its own sentence.
+   */
+  function takeOffByKey(): boolean {
+    if (held !== null) {
+      if (beforeLift === null) return false;
+      takeOff();
+      draw();
+      return true;
+    }
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const nav = active?.dataset.nav ?? '';
+    if (!nav.startsWith('chair:')) return false;
+    const index = Number(nav.slice('chair:'.length));
+    const ctx = context();
+    if (ctx === null || !ctx.arrangement[index]) return false;
+    const problem = removeError(ctx.state, ctx.seat, ctx.arrangement, index);
+    if (problem !== null) {
+      refuse(problem);
+      shake(index);
+      return true;
+    }
+    const card = ctx.arrangement[index]!.card;
+    const from = body.querySelector(`[data-chair="${index}"] .council-slot`)?.getBoundingClientRect();
+    slide = from === undefined ? null : { card, from };
+    staged = remove(ctx.arrangement, index);
+    focusKey = `chair:${index}`;
+    draw();
+    return true;
   }
 
   /** Shakes a sealed card, for the click that it refused. */
@@ -771,8 +759,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   /**
    * A click on a chair. With a card in hand: play it into an empty chair, or
-   * swap it with the card in an occupied one. With nothing in hand: pick up
-   * the card in the chair. Edits the arrangement; sends nothing.
+   * swap it with the card in an occupied one. With nothing in hand: hold the
+   * card in the chair. Edits the arrangement; sends nothing.
    */
   function drop(index: number, event: MouseEvent | null = null): void {
     const ctx = context();
@@ -811,11 +799,35 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const out = body.querySelector(`[data-chair="${index}"] .order-face`)?.getBoundingClientRect();
     slide = swapped !== null && out !== undefined ? { card: swapped, from: out } : null;
     staged = place(base, index, held, state.turn);
-    // No figure here: the figure is Confirm's (the reveal ruling).
+    // No plate here: the figure is Confirm's (the reveal ruling).
     held = null;
     beforeLift = null;
+    over = null;
     focusKey = `chair:${index}`;
     draw();
+  }
+
+  /**
+   * The arrangement with `card` dropped on chair `index`: seated in an empty
+   * chair, or swapped for the card there. The reducer's own sentence when it
+   * would be refused.
+   */
+  function dropTarget(
+    state: GameState,
+    seat: number,
+    arrangement: StagedSlots,
+    card: OrderId,
+    index: number,
+  ): StagedSlots | string {
+    let base = arrangement;
+    if (arrangement[index]) {
+      const problem = removeError(state, seat, arrangement, index);
+      if (problem !== null) return problem;
+      base = remove(arrangement, index);
+    }
+    const problem = placeError(state, seat, base, card, index);
+    if (problem !== null) return problem;
+    return place(base, index, card, state.turn);
   }
 
   /** Confirm: sign the arrangement, then redraw with the count-ups. */
@@ -824,6 +836,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     countTotal = justConfirmed.length > 0;
     held = null;
     beforeLift = null;
+    over = null;
     draw();
   }
 
@@ -838,6 +851,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     stagedChairs = slotTypesOf(sc);
     held = null;
     beforeLift = null;
+    over = null;
     draw();
   }
 
@@ -846,16 +860,42 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   // --- the head -------------------------------------------------------------
 
-  function paintHead(state: GameState, seat: number, sc: PlayerStatecraft, arrangement: StagedSlots): void {
+  /**
+   * The totals line: `foldDeck`'s six figures and the deck's share of the two
+   * meters, never a sum of the cards' plates (rule 5). The chips are the
+   * change a held card would make, written by `paintChips`.
+   */
+  function paintHead(state: GameState, seat: number): void {
     const reading = foldDeck(state, seat);
-    payNode.replaceChildren(element('span', 'orders-pay-label', ORDERS_WORDS.payLabel));
-    const figures = stampFigures(reading);
-    if (figures.length === 0) payNode.append(element('span', 'orders-pay-none', ORDERS_WORDS.payNone));
-    for (const figure of figures) payNode.append(payFigureNode(figure));
-    payNode.title = deckCaption(reading);
-    payNode.setAttribute('aria-label', deckCaption(reading));
-    if (countTotal) counting.push(countUp([...payNode.querySelectorAll('.orders-pay-figure b')]));
+    const figures = councilFigures(reading, foldDeckMeters(state, seat));
+    for (const voice of COUNCIL_VOICES) {
+      const cell = totalCells.get(voice)!;
+      const amount = figures[voice];
+      const number = cell.figure.querySelector('b');
+      if (number !== null) number.textContent = plateFigureText(amount);
+      if (amount < 0) cell.figure.dataset.sign = 'minus';
+      else delete cell.figure.dataset.sign;
+    }
+    totalsNode.title = deckCaption(reading);
+    if (countTotal) counting.push(countUp([...totalsNode.querySelectorAll('.council-total-fig b')]));
+    paintChips();
+  }
 
+  /** The chips beside the totals: what each would gain or lose if the held card were dropped on the chair under it. */
+  function paintChips(): void {
+    const change = held !== null ? (over?.change ?? null) : null;
+    for (const voice of COUNCIL_VOICES) {
+      const { chip } = totalCells.get(voice)!;
+      const amount = change?.[voice] ?? 0;
+      chip.hidden = amount === 0;
+      chip.textContent = amount === 0 ? '' : plateFigureText(amount);
+      chip.classList.toggle('is-down', amount < 0);
+    }
+    totalsNode.toggleAttribute('data-pending', change !== null);
+  }
+
+  /** The band's tools: Confirm and Revert, dim until a change is staged, and what is staged. */
+  function paintTools(state: GameState, seat: number, sc: PlayerStatecraft, arrangement: StagedSlots): void {
     const changes = changedOffices(sc.slots, arrangement);
     const problem = changes === 0 ? null : validate(state, seat, arrangement);
     confirmButton.disabled = changes === 0 || problem !== null;
@@ -867,102 +907,81 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // refusal wears `wanting`, the one vermilion italic every unmet condition
     // is printed in (the user's ruling of 2026-09-08).
     changesNode.className = problem !== null ? 'orders-changes wanting' : 'orders-changes';
-    changesNode.textContent = problem ?? (changes > 0 ? ORDERS_WORDS.changes(changes) : '');
+    changesNode.textContent = problem ?? (changes > 0 ? ORDERS_WORDS.changes(changes) : ORDERS_WORDS.nothingToConfirm);
   }
 
-  // --- the register ---------------------------------------------------------
+  // --- the register: the government, and the Doctrines tucked under it -------
 
-  /** A live plate for the register: the short form of the card's live line. */
-  function livePlate(live: CardLive): HTMLElement {
-    const plate = element('span', 'orders-livep');
-    plate.dataset.live = live.kind;
-    const words = element('span', 'orders-livep-words');
-    setYieldText(words, stripRefs(live.short));
-    plate.append(words);
-    plate.title = live.unmet?.reason !== undefined ? `${LIVE_WORDS.idle}: ${stripRefs(live.unmet.reason)}` : stripRefs(live.line.text);
-    return plate;
-  }
-
-  /** The government's live plate: the next draft's progress, or what waits on the player. */
-  function governmentPlate(state: GameState, seat: number, sc: PlayerStatecraft): HTMLElement {
-    const player = playerById(state, seat)!;
-    if (sc.pendingGovernment !== undefined && options.adopt !== undefined) {
-      const button = element('button', 'orders-livep orders-adopt', ORDERS_WORDS.chooseGovernment) as HTMLButtonElement;
-      button.type = 'button';
-      button.title = ORDERS_WORDS.chooseGovernmentTitle;
-      button.addEventListener('click', () => options.adopt?.());
-      return button;
-    }
-    if (draftExhausted(state, player)) {
-      const plate = element('span', 'orders-livep', ORDERS_WORDS.exhausted);
-      plate.title = ORDERS_WORDS.exhaustedTitle;
-      return plate;
-    }
-    const glance = draftGlance(state, player);
-    const plate = element('span', 'orders-livep orders-draft');
-    plate.append(element('span', 'orders-livep-words', ORDERS_WORDS.nextDraft));
-    const bar = element('span', 'orders-bar');
-    const fill = element('i');
-    fill.style.width = `${Math.round(glance.fraction * 100)}%`;
-    bar.append(fill);
-    plate.append(bar);
-    if (glance.turns !== null) plate.append(element('em', 'orders-draft-turns', `${glance.turns}t`));
-    // Rounded at the eye (batch X): the pool is exact, the meter reads whole.
-    const banked = Math.max(0, roundYield(player.culturePool));
-    plate.title = `${ORDERS_WORDS.nextDraft}: ${banked}/${glance.cost} culture`;
-    return plate;
-  }
-
+  /**
+   * The government column: the government as a full card with its own plate
+   * (`governmentPays`), and each Doctrine tucked under it with its plate
+   * (`doctrineLive`). The government and a strip lift their full faces after
+   * the pause.
+   */
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined): HTMLElement {
-    const register = element('section', 'orders-register');
-    register.setAttribute('aria-label', 'Government and Doctrines');
-    // More than four Doctrines (the most a seat can hold is six: one at each of
-    // the four government tiers, and two from a wonder and a commission): they
-    // give up their pictures to their words.
-    register.toggleAttribute('data-many', sc.doctrines.length > 4);
-    const government = registerFaceNode({
-      id: sc.government,
-      kind: 'government',
-      plate: `Tier ${sc.drafts}`,
-      live: governmentPlate(state, seat, sc),
-      noLaw: ORDERS_WORDS.noLaw,
-    });
-    government.classList.add('orders-gov');
-    register.append(government);
-    if (sc.doctrines.length === 0) {
-      register.append(element('p', 'orders-nodoctrine', ORDERS_WORDS.noDoctrine));
-      return register;
-    }
-    for (const id of sc.doctrines) {
+    const column = element('section', 'council-gov');
+    column.setAttribute('aria-label', 'Government and Doctrines');
+    const label = element('div', 'council-label');
+    label.append(element('span', undefined, ORDERS_WORDS.government));
+    if (sc.doctrines.length > 0) label.append(element('span', undefined, ORDERS_WORDS.doctrineCount(sc.doctrines.length)));
+    column.append(label);
+    const pays = governmentPays(state, seat);
+    const plate: OrderFacePlate | null = pays.length > 0 ? { kind: 'pays', figures: pays } : null;
+    const card = element('div', 'council-gov-card');
+    const face = element('div');
+    dressOrderFace(face, sc.government, { where: 'played', plate });
+    if (screenLayout.government < COUNCIL_FRAME.government.wide) face.dataset.compact = 'narrow';
+    face.dataset.card = sc.government;
+    card.append(face);
+    card.dataset.preview = 'register';
+    card.dataset.card = sc.government;
+    card.tabIndex = 0;
+    card.dataset.nav = 'government';
+    previewStates.set(sc.government, { where: 'played', plate });
+    column.append(card);
+    const tucks = element('div', 'council-tucks');
+    sc.doctrines.forEach((id, index) => {
       const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet) : null;
-      const card = registerFaceNode({
-        id,
-        kind: 'doctrine',
-        plate: 'Doctrine',
-        live: live === null ? null : livePlate(live),
-      });
-      card.classList.add('orders-doctrine');
-      card.dataset.card = id;
-      card.dataset.nav = `doctrine:${id}`;
-      card.dataset.preview = 'register';
-      card.tabIndex = 0;
-      if (live !== null && isDoctrineId(id)) {
-        previewStates.set(id, { where: 'played', liveLine: live.line, unmet: live.unmet, tablet: live.tablet });
-      }
-      if (live?.unmet !== null && live?.unmet !== undefined) card.dataset.unmet = 'true';
-      register.append(card);
-    }
-    return register;
+      const strip = tuckedDoctrineNode(id, live?.plate ?? null);
+      strip.classList.add('council-tuck');
+      strip.style.setProperty('--tuck', String(index + 1));
+      strip.style.zIndex = String(sc.doctrines.length - index);
+      strip.dataset.card = id;
+      strip.dataset.nav = `doctrine:${id}`;
+      strip.dataset.preview = 'register';
+      strip.tabIndex = 0;
+      strip.setAttribute('aria-label', `${cardDef(id).name}, Doctrine`);
+      if (live !== null) previewStates.set(id, { where: 'played', unmet: live.unmet, liveLine: live.line, plate: live.plate });
+      if (live?.unmet !== null && live?.unmet !== undefined) strip.dataset.unmet = 'true';
+      tucks.append(strip);
+    });
+    column.append(tucks);
+    if (sc.doctrines.length === 0) column.append(element('p', 'orders-nodoctrine', ORDERS_WORDS.noDoctrine));
+    return column;
   }
 
-  // --- the table ------------------------------------------------------------
+  // --- the table: the chairs ---------------------------------------------------
 
   /** The words in an empty chair: what it takes, and that it pays nothing. */
   function emptyChairWords(type: ChairType, takesAny: boolean, takenOut: boolean): string {
-    // One sentence a line, as the board sets them (`white-space: pre-line`).
+    // One sentence a line (`white-space: pre-line`).
     if (takenOut) return `${ORDERS_WORDS.takenOut}\n${ORDERS_WORDS.paysNothing}`;
     const takes = type === 'wildcard' || takesAny ? ORDERS_WORDS.takesAny : ORDERS_WORDS.takes(chairWord(type));
     return `${ORDERS_WORDS.emptyChair}\n${takes}\n${ORDERS_WORDS.paysNothing}`;
+  }
+
+  /** The chair's label on its frame's top edge: "2 · Economic", a position the law reads, and the seal. */
+  function chairLegend(type: ChairType, index: number, note: string, sealedTurns: number): HTMLElement {
+    const legend = element('span', 'council-leg');
+    legend.dataset.ink = type;
+    legend.append(element('span', undefined, `${index + 1} · ${chairWord(type)}`));
+    if (note !== '') legend.append(element('span', 'council-leg-note', note));
+    if (sealedTurns > 0) {
+      const lock = element('span', 'council-leg-lock');
+      lock.append(element('i', 'of-lock'), `${sealedTurns}t`);
+      legend.append(lock);
+    }
+    return legend;
   }
 
   function drawTable(
@@ -978,12 +997,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const player = playerById(state, seat);
     const positions = deckReadsSlotPosition(sc);
     const fit = stagedFit(state, seat, arrangement);
-    let row: HTMLElement | null = null;
+    const compact = screenLayout.form === 'full' ? null : screenLayout.form;
     layout.forEach((type, index) => {
-      if (index % CHAIRS_PER_ROW === 0) {
-        row = element('div', 'orders-row');
-        table.append(row);
-      }
       const filled = arrangement[index] ?? null;
       const malice = player === undefined ? null : maliceAt(player, index);
       const live = sc.slots[index] ?? null;
@@ -1011,14 +1026,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       if (positions) note.push(slotPositionWord(layout, index));
       if (positions && chairReadingsAt(state, seat, index) === 2) note.push(ORDERS_WORDS.countsTwice);
       const sealedTurns = filled && !filled.staged ? sealRemaining(state, filled) : 0;
-      const tab = chairTabNode({
-        type,
-        number: index + 1,
-        word: chairWord(type),
-        sealedTurns,
-        note: note.join(' · '),
-      });
 
+      const frame = element('div', 'council-slot');
+      frame.append(chairLegend(type, index, note.join(' · '), sealedTurns));
       const button = element('button', 'orders-seat') as HTMLButtonElement;
       button.type = 'button';
       button.dataset.nav = `chair:${index}`;
@@ -1028,7 +1038,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         face.append(element('span', 'orders-malice-mark', '✕'));
         face.append(element('span', 'orders-malice-name', maliceDef(malice).name));
         face.append(element('span', 'orders-malice-note', maliceDef(malice).note));
-        face.append(tab);
         button.append(face);
         button.title = maliceChairRefusal(index, malice);
         cell.dataset.state = 'malice';
@@ -1036,68 +1045,72 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         const id = filled.card;
         const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet);
         const face = element('div');
-        dressOrderFace(face, id, {
+        const faceState: OrderFaceState = {
           where: 'played',
-          inControl: true,
           sealedTurns,
           staged: filled.staged,
           liveLine: reading.line,
           unmet: reading.unmet,
-          tablet: reading.tablet,
-          ...(filled.staged ? { tag: ORDERS_WORDS.staged } : {}),
-        });
-        // The compact forms (part C): the same emblem with a short picture band.
-        if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;
-        face.append(tab);
+          plate: reading.plate,
+        };
+        // A card played this visit says so at its foot, where its plate will
+        // land on Confirm ("awaits your seal: on Confirm"), so no tag sits on
+        // the chair's label.
+        dressOrderFace(face, id, { ...faceState, inControl: true });
+        // The smaller forms: the same emblem with a short picture band.
+        if (compact !== null) face.dataset.compact = compact;
         button.append(face);
         button.dataset.preview = 'chair';
         button.dataset.card = id;
-        previewStates.set(id, {
-          where: 'played',
-          sealedTurns,
-          staged: filled.staged,
-          liveLine: reading.line,
-          unmet: reading.unmet,
-          tablet: reading.tablet,
-        });
+        previewStates.set(id, faceState);
         button.setAttribute('aria-label', `${orderDef(id).name}, chair ${index + 1}, ${reading.line.text}`);
-        button.title = sealedTurns > 0 ? ORDERS_WORDS.sealed(sealedTurns) : orderDef(id).name;
+        button.title =
+          sealedTurns > 0
+            ? ORDERS_WORDS.sealed(sealedTurns)
+            : filled.staged
+              ? `${orderDef(id).name}, ${ORDERS_WORDS.staged}`
+              : orderDef(id).name;
         cell.dataset.state = filled.staged ? 'staged' : 'seated';
         cell.dataset.live = reading.kind;
         if (justConfirmed.includes(id)) {
-          counting.push(countUp([...face.querySelectorAll('.of-tablet b, .of-sig')]));
+          counting.push(countUp([...face.querySelectorAll('.of-pay-fig b')]));
           settling.push(face);
         }
         if (markCard === id) cell.classList.add('is-marked');
       } else {
         // "Any card" when every Order this seat could seat fits the chair: a
         // Wildcard chair, or every chair under a law that lets any card sit anywhere.
-        const seatable = sc.orders.filter((id) => !isCharter(id));
-        const takesAny = seatable.length > 0 && seatable.every((id) => fit(id, type));
+        const seatable = sc.orders.filter((one) => !isCharter(one));
+        const takesAny = seatable.length > 0 && seatable.every((one) => fit(one, type));
         const takenOut = live !== null;
-        const face = emptyChairFace(type, emptyChairWords(type, takesAny, takenOut));
-        if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;
-        face.append(tab);
-        button.append(face);
+        const empty = element('div', 'council-empty');
+        empty.dataset.ink = type;
+        empty.append(element('span', 'council-empty-type', chairWord(type)));
+        empty.append(element('span', 'council-empty-words', emptyChairWords(type, takesAny, takenOut)));
+        button.append(empty);
         button.setAttribute('aria-label', `Chair ${index + 1}, ${chairWord(type)}, empty`);
         cell.dataset.state = takenOut ? 'emptied' : 'empty';
       }
       if (ring !== null) {
+        // The frame lights, as the board's CH draws it; the word is the title,
+        // so no tag sits on a frame where the row below has its labels.
         cell.classList.add('is-fit');
-        cell.append(element('span', 'orders-ring-tag', ring === 'swap' ? ORDERS_WORDS.swap : ORDERS_WORDS.seatHere));
+        cell.dataset.ring = ring;
         button.title = ring === 'swap' ? `${ORDERS_WORDS.swap}: ${orderDef(held!).name}` : ORDERS_WORDS.seatHere;
       } else if (held !== null) {
         cell.classList.add('is-faded');
         if (refused !== null) button.title = refused;
       }
+      if (over?.index === index && held !== null) cell.classList.add('is-over');
       button.addEventListener('click', (event) => drop(index, event));
-      cell.prepend(button);
-      row!.append(cell);
+      frame.append(button);
+      cell.append(frame);
+      table.append(cell);
     });
     return table;
   }
 
-  // --- the hand -------------------------------------------------------------
+  // --- the hand: the band, the draft pile and the fan --------------------------
 
   /** The Orders not in a chair, sorted by type, each type in the collection's own order. */
   function handOf(sc: PlayerStatecraft, arrangement: StagedSlots): OrderId[] {
@@ -1110,85 +1123,112 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       .map((entry) => entry.id);
   }
 
-  function drawHand(sc: PlayerStatecraft, hand: readonly OrderId[], layout: OrdersLayout): HTMLElement {
-    const spread = layout.hand === 'spread';
-    const block = element('section', 'orders-hand');
-    block.dataset.hand = layout.hand;
-    block.style.setProperty('--orders-hand-w', `${layout.handCard.width}px`);
-    block.style.setProperty('--orders-hand-h', `${layout.handCard.height}px`);
+  /** The band: the hand's label and the hint at the left, the tools at the right. */
+  function drawBand(hand: readonly OrderId[]): HTMLElement {
+    const band = element('div', 'council-band');
     const label = element('div', 'orders-hand-label');
     label.append(element('span', 'orders-hand-title', ORDERS_WORDS.hand));
-    label.append(element('span', 'orders-hand-count', String(hand.length)));
-    for (const type of CHAIR_TYPES) {
-      const count = hand.filter((id) => orderType(id) === type).length;
-      if (count > 0) label.append(element('span', 'orders-hand-type', `${chairWord(type)} ${count}`));
-    }
+    label.append(element('span', 'orders-hand-count', ORDERS_WORDS.handCards(hand.length)));
     const opens = element('span', 'orders-hand-key');
     opens.append(keyMark('H'), ` ${ORDERS_WORDS.handOpens}`);
     label.append(opens);
-    const binder = element('span', 'orders-hand-deck', `${ORDERS_WORDS.deckCount(sc.orders.length)} `);
-    binder.append(keyMark('D'), ` ${ORDERS_WORDS.binderOpens}`);
-    label.append(binder);
-    block.append(label);
-    const cards = element('div', spread ? 'orders-spread' : layout.hand === 'strip' ? 'orders-rail is-strip' : 'orders-rail');
+    if (hintNode !== null) label.append(hintNode);
+    band.append(label, tools);
+    return band;
+  }
+
+  /** The draft pile: the next draft, the deck, and the door to the binder. */
+  function drawPile(state: GameState, seat: number, sc: PlayerStatecraft): HTMLElement {
+    const pile = element('div', 'council-pile');
+    const player = playerById(state, seat)!;
+    const door = element('button', 'council-pile-door') as HTMLButtonElement;
+    door.type = 'button';
+    door.title = ORDERS_WORDS.pileTitle;
+    door.dataset.nav = 'pile';
+    door.append(orderBackNode());
+    door.append(element('span', 'council-pile-name', ORDERS_WORDS.pile));
+    door.addEventListener('click', () => toggleLayer('binder'));
+    pile.append(door);
+    if (sc.pendingGovernment !== undefined && options.adopt !== undefined) {
+      const adopt = element('button', 'orders-adopt', ORDERS_WORDS.chooseGovernment) as HTMLButtonElement;
+      adopt.type = 'button';
+      adopt.title = ORDERS_WORDS.chooseGovernmentTitle;
+      adopt.addEventListener('click', () => options.adopt?.());
+      pile.append(adopt);
+    } else if (draftExhausted(state, player)) {
+      const line = element('span', 'council-pile-line', ORDERS_WORDS.exhausted);
+      line.title = ORDERS_WORDS.exhaustedTitle;
+      pile.append(line);
+    } else {
+      const glance = draftGlance(state, player);
+      const line = element('span', 'council-pile-line');
+      line.append(`${ORDERS_WORDS.nextDraft} ${glance.turns !== null ? `${glance.turns}t` : ''}`);
+      const bar = element('span', 'orders-bar');
+      const fill = element('i');
+      fill.style.width = `${Math.round(glance.fraction * 100)}%`;
+      bar.append(fill);
+      line.append(bar);
+      // Rounded at the eye (batch X): the pool is exact, the meter reads whole.
+      const banked = Math.max(0, roundYield(player.culturePool));
+      line.title = `${ORDERS_WORDS.nextDraft}: ${banked}/${glance.cost} culture`;
+      pile.append(line);
+    }
+    const deck = element('span', 'council-pile-line orders-hand-deck', `${ORDERS_WORDS.deckCount(sc.orders.length)} `);
+    deck.append(keyMark('D'));
+    pile.append(deck);
+    return pile;
+  }
+
+  /** The fan of the hand's cards, set down at the foot and cut by the window's edge. */
+  function drawHand(sc: PlayerStatecraft, hand: readonly OrderId[]): HTMLElement {
+    const fan = element('section', 'orders-hand council-fan');
+    fan.setAttribute('aria-label', ORDERS_WORDS.hand);
+    const cards = element('div', 'council-fan-cards');
     if (sc.orders.length === 0 || hand.length === 0) {
       cards.append(element('p', 'orders-hand-empty', sc.orders.length === 0 ? ORDERS_WORDS.noOrders : ORDERS_WORDS.handEmpty));
-      block.append(cards);
-      return block;
+      fan.append(cards);
+      return fan;
     }
-    let previous: number | null = null;
-    hand.forEach((id, at) => {
+    hand.forEach((id) => {
       const button = element('button', 'orders-handcard') as HTMLButtonElement;
       button.type = 'button';
       button.dataset.nav = `hand:${id}`;
       button.dataset.card = id;
-      const rank = typeRank(id);
-      if (previous !== null && rank !== previous) button.dataset.newType = 'true';
-      previous = rank;
-      button.style.setProperty('--at', String(at));
       const face = element('div');
-      dressOrderFace(face, id, { where: 'hand', inControl: true });
-      face.dataset.form = 'hand';
-      // An indexed rank sets each card's name down its edge (part C).
-      if (layout.hand === 'strip') face.dataset.strip = '';
+      dressOrderFace(face, id, { where: 'hand', inControl: true, plate: null });
+      face.dataset.form = 'fan';
       button.append(face);
       button.dataset.preview = 'hand';
       button.setAttribute('aria-label', `${orderDef(id).name}, in your hand`);
       button.title = orderDef(id).name;
       if (held === id) button.classList.add(ghostArmed ? 'is-carried' : 'is-held');
       if (markCard === id) button.classList.add('is-marked');
-      button.addEventListener('click', (event) => take(id, event));
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        take(id, event);
+      });
       cards.append(button);
     });
-    block.append(cards);
-    return block;
+    fan.append(cards);
+    return fan;
   }
 
-  /**
-   * Lays the rail's cards out: overlapped, a gap between types, and spread
-   * over the rail's width. Run after the rail is on the page, because the
-   * width is the page's.
-   */
-  function layRail(rail: HTMLElement): void {
-    const cards = [...rail.querySelectorAll<HTMLElement>('.orders-handcard')];
-    if (cards.length === 0) return;
-    const width = rail.clientWidth;
-    const cardWidth = cards[0]!.offsetWidth || 104;
-    const typeGap = 10;
-    const breaks = cards.filter((card) => card.dataset.newType === 'true').length;
-    const room = Math.max(0, width - cardWidth - breaks * typeGap);
-    const step = cards.length > 1 ? Math.min(cardWidth + 6, room / (cards.length - 1)) : 0;
-    let x = 0;
-    cards.forEach((card, index) => {
-      if (index > 0) x += step + (card.dataset.newType === 'true' ? typeGap : 0);
-      card.style.left = `${Math.round(x)}px`;
-      card.style.zIndex = String(index + 1);
+  /** Sets the fan's cards over its width, once the fan is on the page. */
+  function layFan(fan: HTMLElement): void {
+    const buttons = [...fan.querySelectorAll<HTMLElement>('.orders-handcard')];
+    const placement = fanPlacement(buttons.length, fan.clientWidth);
+    buttons.forEach((button, index) => {
+      const at = placement.cards[index]!;
+      button.style.left = `${at.left}px`;
+      button.style.top = `${at.drop}px`;
+      button.style.rotate = `${at.rotate}deg`;
+      button.style.zIndex = String(index + 1);
     });
   }
 
   // --- the draw -------------------------------------------------------------
 
-  /** The shared reading of the real board for this draw's stamps. Its lifetime is one draw. */
+  /** The shared reading of the real board for this draw's plates. Its lifetime is one draw. */
   let sheet: CardImpactSheet | null = null;
 
   function draw(): void {
@@ -1217,39 +1257,41 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // A card in hand that is spoken for, staged or seated by another route, is
     // a card nobody is holding.
     if (held !== null && arrangement.some((entry) => entry?.card === held)) held = null;
+    if (held === null) over = null;
 
     const chairs = slotTypesOf(sc).length;
     const hand = handOf(sc, arrangement);
-    const oneRow = chairs <= CHAIRS_PER_ROW;
     const size = { width: sheetNode?.clientWidth ?? window.innerWidth, height: sheetNode?.clientHeight ?? window.innerHeight };
-    screenLayout = ordersLayout(size, chairs, hand.length);
+    screenLayout = councilLayout(size, chairs);
     drawnSize = `${window.innerWidth}x${window.innerHeight}`;
+    const form = COUNCIL_FORMS[screenLayout.form];
     sheetNode?.setAttribute('data-chairs', String(chairs));
-    sheetNode?.setAttribute('data-table', oneRow ? 'one-row' : 'two-rows');
     sheetNode?.setAttribute('data-form', screenLayout.form);
-    sheetNode?.toggleAttribute('data-tight', screenLayout.tight);
-    sheetNode?.toggleAttribute('data-narrow', size.width < ORDERS_FRAME.tightBelow.width);
-    sheetNode?.style.setProperty('--orders-card-w', `${ORDERS_FORMS[screenLayout.form].width}px`);
-    sheetNode?.style.setProperty('--orders-card-h', `${ORDERS_FORMS[screenLayout.form].height}px`);
-    // A table of two rows sets the register's and the table's width, so the
-    // two line up and sit centred on the cloth. A table of one row spreads
-    // over the cloth's whole width. The hand takes the cloth's width.
-    const cols = Math.min(CHAIRS_PER_ROW, chairs);
-    const tableWidth = cols * ORDERS_FORMS[screenLayout.form].width + (cols - 1) * ORDERS_FRAME.cardGap;
-    sheetNode?.style.setProperty('--orders-table-max', oneRow ? `${ORDERS_FRAME.maxWidth}px` : `${tableWidth}px`);
+    sheetNode?.toggleAttribute('data-cramped', screenLayout.cramped);
+    sheetNode?.style.setProperty('--council-card-w', `${form.width}px`);
+    sheetNode?.style.setProperty('--council-card-h', `${form.height}px`);
+    sheetNode?.style.setProperty('--council-inset', `${form.inset}px`);
+    sheetNode?.style.setProperty('--council-cols', String(screenLayout.cols));
+    sheetNode?.style.setProperty('--council-gov-w', `${screenLayout.government}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
-    paintHead(state, seat, sc, arrangement);
+    paintHead(state, seat);
+    paintTools(state, seat, sc, arrangement);
     paintHint();
 
     const cloth = element('div', 'orders-cloth');
-    cloth.append(drawRegister(state, seat, sc, sheet ?? undefined));
-    cloth.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined));
-    cloth.append(drawHand(sc, hand, screenLayout));
+    const main = element('div', 'council-main');
+    main.append(drawRegister(state, seat, sc, sheet ?? undefined));
+    main.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined));
+    cloth.append(main);
+    cloth.append(drawBand(hand));
+    const foot = element('div', 'council-foot');
+    foot.append(drawPile(state, seat, sc), drawHand(sc, hand));
+    cloth.append(foot);
     sheetNode?.setAttribute('data-layer', layer ?? 'none');
     body.append(cloth);
-    // The layers fill the window under the head (part C1), so they sit beside
-    // the cloth rather than inside it.
+    // The layers fill the window under the head, so they sit beside the cloth
+    // rather than inside it.
     if (layer === 'hand') {
       body.append(
         handViewNode(hand, held, (id, event) => {
@@ -1267,13 +1309,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
     // Fit every card's words now that the faces are on the page, and again
     // once the card fonts have loaded.
-    const faces = [...body.querySelectorAll<HTMLElement>('.orders-table .order-face')];
+    const faces = [...body.querySelectorAll<HTMLElement>('.orders-table .order-face, .council-gov-card .order-face')];
     for (const face of faces) fitOrderFace(face);
     void document.fonts?.ready.then(() => {
       for (const face of faces) if (face.isConnected) fitOrderFace(face);
     });
-    const rail = body.querySelector<HTMLElement>('.orders-rail');
-    if (rail !== null) layRail(rail);
+    const fan = body.querySelector<HTMLElement>('.council-fan-cards');
+    if (fan !== null) layFan(fan);
     const view = body.querySelector<HTMLElement>('.orders-handview');
     if (view !== null) layHandView(view);
     const grid = body.querySelector<HTMLElement>('.orders-binder-grid');
@@ -1281,7 +1323,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       fitGrid(grid);
       grid.scrollTop = binderScroll;
     }
-    markCutRegister();
     paintGhost();
     playMoments();
 
@@ -1293,6 +1334,73 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     focusKey = null;
     markCard = null;
   }
+
+  // --- the change a held card would make (frame CH) ---------------------------
+
+  /**
+   * The held card is over chair `index` (or over no chair). Measured once when
+   * the chair changes: the totals as staged, against the totals with the card
+   * dropped there (`councilChange`). A chair the card may not go in shows no
+   * change.
+   */
+  function noteOver(index: number | null): void {
+    if (held === null) return;
+    if ((over?.index ?? null) === index) return;
+    for (const cell of body.querySelectorAll('.orders-chair.is-over')) cell.classList.remove('is-over');
+    if (index === null) {
+      over = null;
+      paintChips();
+      return;
+    }
+    const ctx = context();
+    if (ctx === null) return;
+    const target = dropTarget(ctx.state, ctx.seat, ctx.arrangement, held, index);
+    const malice = maliceAt(playerById(ctx.state, ctx.seat)!, index);
+    // Measured against the chairs as they stood before the card was picked
+    // up, so a card moved from one chair to another shows what the move
+    // changes, and a card put back in its own chair shows nothing.
+    const base = beforeLift ?? ctx.arrangement;
+    const change = typeof target === 'string' || malice !== null ? null : councilChange(ctx.state, ctx.seat, base, target);
+    over = { index, change };
+    if (change !== null) body.querySelector(`[data-chair="${index}"]`)?.classList.add('is-over');
+    paintChips();
+  }
+
+  function onChairOver(event: Event): void {
+    if (held === null) return;
+    const cell = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-chair]') : null;
+    if (cell === null || !body.contains(cell)) return;
+    noteOver(Number(cell.dataset.chair));
+  }
+
+  function onChairOut(event: Event): void {
+    if (held === null || over === null) return;
+    const next = (event as PointerEvent | FocusEvent).relatedTarget;
+    const cell = next instanceof Element ? next.closest<HTMLElement>('[data-chair]') : null;
+    if (cell !== null && Number(cell.dataset.chair) === over.index) return;
+    noteOver(cell === null ? null : Number(cell.dataset.chair));
+  }
+
+  /**
+   * **A click away from the chairs** puts the held card down there: a card
+   * held out of a chair is taken off it, and a card from the hand goes back.
+   * A click on a control (a chair, a hand card, a button, the layers) is that
+   * control's, so it is left alone.
+   */
+  function onClothClick(event: MouseEvent): void {
+    if (held === null || layer !== null) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target === null || target.closest('button, [data-chair], .orders-veil, input, a, [data-nav]') !== null) return;
+    if (beforeLift !== null) takeOff();
+    else putBack();
+    draw();
+  }
+
+  body.addEventListener('pointerover', onChairOver);
+  body.addEventListener('pointerout', onChairOut);
+  body.addEventListener('focusin', onChairOver);
+  body.addEventListener('focusout', onChairOut);
+  body.addEventListener('click', onClothClick);
 
   // --- the binder (D) --------------------------------------------------------
 
@@ -1347,20 +1455,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   // --- the motion -------------------------------------------------------------
 
-  /**
-   * A register card whose effect is longer than its four lines is cut with a
-   * fade, and lifts to a full face on hover or focus (the build spec's
-   * "Register text").
-   */
-  function markCutRegister(): void {
-    for (const card of body.querySelectorAll<HTMLElement>('.orders-register .order-face[data-form="wide"]')) {
-      const sub = card.querySelector<HTMLElement>('.of-sub');
-      const cut = sub !== null && sub.scrollHeight > sub.clientHeight + 1;
-      card.toggleAttribute('data-overflow', cut);
-    }
-  }
-
-  /** The card that follows the pointer while one is held (moment 2). */
+  /** The card that follows the pointer while one is held (moment 2): the full face, as the board's CH draws it. */
   function paintGhost(): void {
     if (held === null || !ghostArmed || pointer === null || layer !== null) {
       ghost?.remove();
@@ -1373,15 +1468,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       ghost.dataset.card = held;
       ghost.setAttribute('aria-hidden', 'true');
       const face = element('div');
-      dressOrderFace(face, held, { where: 'hand', inControl: true });
-      face.dataset.form = 'hand';
+      // No plate: the figure is Confirm's. The totals line shows the change.
+      dressOrderFace(face, held, { where: 'hand', inControl: true, plate: null });
       ghost.append(face);
       layerHost.append(ghost);
+      fitOrderFace(face);
     }
     placeGhost(ghost, layerHost, pointer.x, pointer.y);
   }
 
-  /** The moments a redraw plays: a landing, a swapped card's slide, and Confirm's settling. */
+  /** The moments a redraw plays: a landing, a card's slide to the hand, and Confirm's settling. */
   function playMoments(): void {
     if (landing !== null) {
       const face = body.querySelector<HTMLElement>(`[data-chair="${landing.index}"] .order-face`);
@@ -1392,9 +1488,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const target = body.querySelector<HTMLElement>(`[data-nav="hand:${slide.card}"]`);
       if (target !== null) {
         const copy = element('div');
-        dressOrderFace(copy, slide.card, { where: 'hand', inControl: true });
-        copy.dataset.form = 'hand';
-        copy.style.setProperty('--order-face-width', `${target.offsetWidth}px`);
+        dressOrderFace(copy, slide.card, { where: 'hand', inControl: true, plate: null });
+        copy.dataset.form = 'fan';
         flyToHand(layerHost, copy, slide.from, target);
       }
       slide = null;
@@ -1425,9 +1520,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   /**
    * **A card lifts to its full face** on hover or keyboard focus. A hand card
-   * at once (moment 1); a played card whose text is cut, and a register card,
-   * after the build spec's 300 ms. A played card that is already the full
-   * face lifts itself, so its text scrolls inside it.
+   * at once (moment 1); a chair card in a smaller form, a chair card whose
+   * text is cut, the government and a tucked Doctrine after the 300 ms pause.
+   * A chair card that is already the full face lifts itself, so its text
+   * scrolls inside it.
    */
   function onPreviewEnter(event: Event): void {
     const source = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-preview]') : null;
@@ -1442,6 +1538,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       liftNow(source, card, 'hand');
       return;
     }
+    if (kind === 'register') {
+      previewTimer = setTimeout(() => {
+        previewTimer = null;
+        if (previewSource === source) liftNow(source, card, 'register');
+      }, ORDERS_MOTION.previewDelayMs);
+      return;
+    }
     const face = source.matches('.order-face') ? source : source.querySelector<HTMLElement>('.order-face');
     if (face === null) return;
     const compact = face.dataset.compact !== undefined;
@@ -1450,7 +1553,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       previewTimer = null;
       if (previewSource !== source) return;
       if (kind === 'chair' && !compact) face.setAttribute('data-lifted', '');
-      else liftNow(source, card, kind === 'register' ? 'register' : 'chair');
+      else liftNow(source, card, 'chair');
     }, ORDERS_MOTION.previewDelayMs);
   }
 
@@ -1463,11 +1566,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   /** Shows the full face of `card` beside its source. */
   function liftNow(source: HTMLElement, card: string, kind: 'hand' | 'chair' | 'register'): void {
-    const state: OrderFaceState = previewStates.get(card) ?? { where: 'hand' };
+    const state: OrderFaceState = previewStates.get(card) ?? { where: 'hand', plate: null };
     const face = orderFaceNode(card as OrderId, { ...state, inControl: true });
     face.setAttribute('data-lifted', '');
-    const inRail = source.closest('.orders-rail') !== null;
-    const place = kind === 'register' ? 'below' : inRail ? 'above' : 'beside';
+    const place = kind === 'hand' ? 'above' : 'beside';
     preview = showPreview(layerHost, source.getBoundingClientRect(), face, place);
     fitOrderFace(face);
   }
@@ -1480,12 +1582,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     layer = null;
     landing = null;
     slide = null;
+    over = null;
     binderFilter = allOrders();
   }
 
   /**
-   * The window changed size: the card form and the hand are the window's
-   * (`ordersLayout`), so the screen is drawn again while it is up.
+   * The window changed size: the card form is the window's (`councilLayout`),
+   * so the screen is drawn again while it is up.
    */
   function onWindowResize(): void {
     if (overlay.hidden) return;
@@ -1571,6 +1674,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       draw();
       return true;
     }
+    // Delete or Backspace takes a card off its chair: the held one, or the one
+    // in the chair the keyboard is on.
+    if ((event.key === 'Delete' || event.key === 'Backspace') && layer === null) {
+      if (!takeOffByKey()) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
     // The keys the sheet claims stop here, so the board behind it never moves.
     if (event.key.startsWith('Arrow')) {
       event.preventDefault();
@@ -1634,7 +1745,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       layerHost.removeEventListener('pointerout', onPreviewLeave);
       layerHost.removeEventListener('focusin', onPreviewEnter);
       layerHost.removeEventListener('focusout', onPreviewLeave);
+      body.removeEventListener('pointerover', onChairOver);
+      body.removeEventListener('pointerout', onChairOut);
+      body.removeEventListener('focusin', onChairOver);
+      body.removeEventListener('focusout', onChairOut);
+      body.removeEventListener('click', onClothClick);
       tools.remove();
+      totalsNode.remove();
+      // The hint lives in the band while the screen is up; it goes back to the
+      // head it came from, so the next screen built on this overlay finds it.
+      if (head !== null && hintNode !== null) head.insertBefore(hintNode, closeButton);
     },
   });
 
@@ -1658,4 +1778,3 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     dispose: shell.dispose,
   };
 }
-

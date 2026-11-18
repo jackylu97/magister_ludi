@@ -25,6 +25,14 @@
  *
  * Every number is the reading's own. Rule 5 holds on the screen's head: the
  * total there is `foldDeck`'s figure, never a sum of these lines.
+ *
+ * **The pay plate** (the Council screen, stage 1, the board's PL and PM
+ * frames) is the same reading as data for the card's foot: `plate` carries the
+ * stamp's figures (the six yields, then happiness and authority), "+0" and the
+ * reason for a card that pays nothing now, and `null` for a rule, an occasion,
+ * a commission's counter and a card played this visit. A Scaler's plate is its
+ * stamp too: the plate says what a card pays each turn, and a Scaler's value
+ * is its rate, not its turn's pay.
  */
 
 import { type CardImpactSheet, explainCardImpact } from '../sim/cardImpact';
@@ -42,9 +50,9 @@ import {
   stampText,
 } from './cardStamp';
 import { commissionCounters, commissionStanding } from './commissionGoal';
-import { YIELD_GLYPH } from './figures';
+import { METER_GLYPH, YIELD_GLYPH } from './figures';
 import { stampOfVoices } from './ledgerScreen';
-import type { FirstFigure, OrderFaceLive } from './orderFace';
+import type { FirstFigure, OrderFaceLive, OrderFacePlate, PlateFigure } from './orderFace';
 import { scalerFace } from './scalerValue';
 import { splitYieldText } from './yieldMark';
 
@@ -74,11 +82,46 @@ export interface CardLive {
   unmet: { reason?: string } | null;
   /** The kind of reading, for the screen's styling and its tests. */
   kind: 'staged' | 'counter' | 'value' | 'pays' | 'occasion' | 'idle' | 'rule';
+  /**
+   * The pay plate: what the card pays each turn, "+0" and the reason, or
+   * `null` for no plate. See the module docblock.
+   */
+  plate: OrderFacePlate | null;
 }
 
 /** The yield a stamp figure's glyph names, or null for a meter's. */
 function yieldOfGlyph(glyph: string): CityYieldKey | null {
   return CITY_YIELD_KEYS.find((key) => YIELD_GLYPH[key] === glyph) ?? null;
+}
+
+/** The two meters, in the order the stamp prints them. */
+const PLATE_METERS = ['happiness', 'authority'] as const;
+
+/**
+ * **A stamp's figures as plate figures**: each glyph read back to its yield or
+ * its meter. A figure whose glyph names neither is left out, which no stamp
+ * figure does today (`stampReading` writes only these eight).
+ */
+export function plateFigures(figures: readonly StampFigure[]): PlateFigure[] {
+  const out: PlateFigure[] = [];
+  for (const figure of figures) {
+    const voice = yieldOfGlyph(figure.glyph) ?? PLATE_METERS.find((meter) => METER_GLYPH[meter] === figure.glyph);
+    if (voice !== undefined) out.push({ voice, amount: figure.amount });
+  }
+  return out;
+}
+
+/**
+ * **The plate of a card from its stamp**: the figures when it pays each turn,
+ * "+0" and the reason when it could pay and pays nothing now, and no plate for
+ * a card that pays on an occasion or pays nothing at all (a rule).
+ */
+function plateOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId, reading: StampReading): OrderFacePlate | null {
+  if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };
+  if (!stampIsEmpty(reading)) return null;
+  if (!cardCanPay(card)) return null;
+  const reason = idleReasonWords(cardIdleReason(state, seat, card));
+  return reason === null ? { kind: 'idle' } : { kind: 'idle', reason };
 }
 
 /** A stamp figure as the tablet prints it: the signed number and its yield. */
@@ -115,6 +158,7 @@ function paidSoFar(state: GameState, seat: number, card: string): string | null 
  * is empty. Shared by an Order in a chair and a Doctrine.
  */
 function liveOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId, reading: StampReading): CardLive {
+  const plate = plateOfStamp(state, seat, card, reading);
   if (!stampIsEmpty(reading)) {
     if (reading.figures.length > 0) {
       return {
@@ -123,6 +167,7 @@ function liveOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId,
         short: stampText(reading.figures),
         tablet: tabletOfFigure(reading.figures[0]!),
         unmet: null,
+        plate,
       };
     }
     if (reading.occasionFigures.length > 0 || reading.occasion !== undefined) {
@@ -137,10 +182,11 @@ function liveOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId,
         short: grant === '' ? said : grant,
         tablet: reading.occasionFigures.length > 0 ? tabletOfFigure(reading.occasionFigures[0]!) : null,
         unmet: null,
+        plate,
       };
     }
     if (reading.note !== undefined) {
-      return { kind: 'occasion', line: { kind: 'pays', text: reading.note }, short: reading.note, tablet: null, unmet: null };
+      return { kind: 'occasion', line: { kind: 'pays', text: reading.note }, short: reading.note, tablet: null, unmet: null, plate };
     }
   }
   if (cardCanPay(card)) {
@@ -151,9 +197,10 @@ function liveOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId,
       short: LIVE_WORDS.idle,
       tablet: { figure: LIVE_WORDS.idleFigure, yield: null },
       unmet: reason === null ? {} : { reason },
+      plate,
     };
   }
-  return { kind: 'rule', line: { kind: 'standing', text: LIVE_WORDS.rule }, short: LIVE_WORDS.rule, tablet: null, unmet: null };
+  return { kind: 'rule', line: { kind: 'standing', text: LIVE_WORDS.rule }, short: LIVE_WORDS.rule, tablet: null, unmet: null, plate };
 }
 
 /** The line a card played this visit and not yet confirmed wears. No figure is asked for. */
@@ -164,6 +211,7 @@ export function stagedLive(): CardLive {
     short: LIVE_WORDS.staged,
     tablet: null,
     unmet: null,
+    plate: null,
   };
 }
 
@@ -186,6 +234,7 @@ export function seatedOrderLive(
         short: LIVE_WORDS.fulfilled,
         tablet: null,
         unmet: null,
+        plate: null,
       };
     }
     const counters = commissionCounters(state, seat, id);
@@ -202,20 +251,28 @@ export function seatedOrderLive(
         short: `${have}/${first.need}`,
         tablet: { figure: `${have}/${first.need}`, yield: null },
         unmet: null,
+        plate: null,
       };
     }
   }
   const value = scalerFace(state, seat, id);
   if (value !== null) {
+    // The plate is what the card pays this turn: its stamp, as for any card.
     return {
       kind: 'value',
       line: { kind: 'pays', text: LIVE_WORDS.value(value.figure) },
       short: value.figure,
       tablet: tabletOfText(value.figure),
       unmet: null,
+      plate: plateOfStamp(state, seat, id, orderStamp(state, seat, id, sheet)),
     };
   }
-  return liveOfStamp(state, seat, id, stampReading(explainCardImpact(state, seat, { kind: 'order', id }, sheet)));
+  return liveOfStamp(state, seat, id, orderStamp(state, seat, id, sheet));
+}
+
+/** An Order's stamp: the card impact's list for the order, as a stamp. */
+function orderStamp(state: GameState, seat: number, id: OrderId, sheet: CardImpactSheet | undefined): StampReading {
+  return stampReading(explainCardImpact(state, seat, { kind: 'order', id }, sheet));
 }
 
 /** **A Doctrine**, always in force: its stamp, or the idle and rule lines. */

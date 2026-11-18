@@ -173,22 +173,27 @@ export function binderAdmits(entry: BinderEntry, filter: BinderFilter): boolean 
   return true;
 }
 
-/** The face state of a binder entry. */
+/**
+ * The face state of a binder entry. A seated card wears its pay plate, as it
+ * does in its chair (the Council screen, stage 1); a card in the hand wears
+ * no figure, as it does in the fan. A charter keeps the line that says which
+ * technology it opened, because that is not a figure.
+ */
 function entryState(entry: BinderEntry): OrderFaceState {
-  if (entry.staged) return { where: 'played', inControl: true, staged: true, tablet: null };
+  if (entry.staged) return { where: 'played', inControl: true, staged: true, plate: null };
   if (entry.live !== null) {
     return {
       where: 'played',
       inControl: true,
       liveLine: entry.live.line,
       unmet: entry.live.unmet,
-      tablet: entry.live.tablet,
+      plate: entry.live.plate,
     };
   }
   if (entry.opened !== null) {
     return { where: 'played', inControl: true, tablet: null, liveLine: { kind: 'standing', text: LAYER_WORDS.opened(entry.opened) } };
   }
-  return { where: 'hand', inControl: true };
+  return { where: 'hand', inControl: true, plate: null };
 }
 
 /** A filter chip: its words, an optional count, and whether it is on. */
