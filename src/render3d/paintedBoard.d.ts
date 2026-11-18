@@ -83,6 +83,13 @@ export interface PaintedBoard extends BuiltBoard {
 export type PaintedBuildStage = 'shape' | 'mountains' | 'colours' | 'rivers' | 'coast' | 'sea' | 'land' | 'overview';
 /** The far view's region of a hex (18 by 18 hexes). A part of a split build owns whole regions. */
 export function paintedRegionKey(col: number, row: number): string;
-export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage, prepared?: GameMap) => void, preparedMap?: GameMap | null, part?: {regions: ReadonlySet<string>} | null): PaintedBoard;
+/**
+ * How the parts of a split build work out the map's shape and rivers once: the part that publishes hands each on as
+ * it is done, and a part that receives builds on what it was handed. See `buildPaintedBoard`.
+ */
+export type PaintedBuildShare =
+  | {publish(kind: 'shape' | 'rivers', payload: unknown): void}
+  | {shape: unknown; rivers: unknown};
+export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage, prepared?: GameMap) => void, preparedMap?: GameMap | null, part?: {regions: ReadonlySet<string>} | null, share?: PaintedBuildShare | null): PaintedBoard;
 /** The surface attributes whose arrays are dropped after their first upload. */
 export const RELEASED_AFTER_UPLOAD: readonly string[];

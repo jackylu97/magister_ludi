@@ -29,13 +29,19 @@ export function marking(polygon,color,lift=.008){
 
 // Reusable for roads, ownership ink and other terrain markings. Intersections
 // interpolate height on each original triangle, including the hill mounds.
-export function projectMarkings(top,marks){
+// `each(piece, mark)`, when given, takes each piece with the mark it came from,
+// in the same order, in place of the returned list. The border tint needs the
+// mark to fade its piece; it used to call this once for each mark, which
+// measured the hex top's bounds again for every mark (the fourth render speed
+// pass).
+export function projectMarkings(top,marks,each=null){
  top.computeBoundingBox();const b=top.boundingBox,result=[];
  for(const m of marks){
   const a=m.bounds;
   if(a.maxX<b.min.x||a.minX>b.max.x||a.maxZ<b.min.z||a.minZ>b.max.z)continue;
   const g=surfacePatch(top,m.polygon,m.color,m.lifts??m.lift);
-  if(g.attributes.position.count)result.push(g);else g.dispose();
+  if(!g.attributes.position.count){g.dispose();continue}
+  if(each)each(g,m);else result.push(g);
  }
  return result;
 }

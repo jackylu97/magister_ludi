@@ -61,7 +61,7 @@ const byOrder = (a, b) => a.order[0] - b.order[0] || a.order[1] - b.order[1] || 
  * player can see that work goes on. On the Giant map under load the longest
  * wait between two reports was 8 s of a 185 s build.
  */
-export async function buildPaintedBoardAsync(map, assets, materials, shadows, {signal, onProgress = () => {}, onTerrain = null, workerFactory, workers} = {}) {
+export async function buildPaintedBoardAsync(map, assets, materials, shadows, {signal, onProgress = () => {}, onTerrain = null, terrainPort = null, workerFactory, workers} = {}) {
   if (signal?.aborted) throw new DOMException('Board build cancelled', 'AbortError');
   const started = performance.now();
   if (!workerFactory && typeof Worker === 'undefined') {
@@ -140,8 +140,27 @@ export async function buildPaintedBoardAsync(map, assets, materials, shadows, {s
       };
     });
     // Input is cloned, never transferred: live prop assets must stay attached.
+    // The one exception is `terrainPort`. It goes to the part that sends the
+    // prepared terrain, so that part posts the terrain to the sea's bake
+    // itself. When the page made that copy, it stopped for 6.5 s on the Giant
+    // map (the third render speed pass).
+    // With `painted.build.share`, the part that sends the terrain also works out
+    // the map's shape and rivers for the others and posts them on a channel to
+    // each (`buildPaintedBoard`'s `share`): with every part working them out,
+    // they took 22 to 27 s of a Giant build on four parts, against 11 to 13 s
+    // on one, and were its longest part (the third render speed pass).
     try {
-      spawned.forEach((worker, index) => worker.postMessage({map, kit, shadows, riverStyle: riverStyle(), coastStyle: coastStyle(), ...(parts[index] ? {part: parts[index]} : {})}));
+      const sharing = parts.length > 1 && VIEW3D.painted.build.share && typeof MessageChannel !== 'undefined';
+      const channels = sharing ? parts.slice(1).map(() => new MessageChannel()) : [];
+      let next = 0;
+      spawned.forEach((worker, index) => {
+        const message = {map, kit, shadows, riverStyle: riverStyle(), coastStyle: coastStyle(), ...(parts[index] ? {part: parts[index]} : {})};
+        const transfer = [];
+        if (terrainPort && (!parts[index] || parts[index].terrain)) { message.terrainPort = terrainPort; transfer.push(terrainPort); }
+        if (sharing && parts[index].terrain) { message.shareTo = channels.map(channel => channel.port1); transfer.push(...message.shareTo); }
+        else if (sharing) { message.shareFrom = channels[next++].port2; transfer.push(message.shareFrom); }
+        worker.postMessage(message, transfer);
+      });
     } catch (error) { finish(error); }
   });
   if (signal?.aborted) throw new DOMException('Board build cancelled', 'AbortError');

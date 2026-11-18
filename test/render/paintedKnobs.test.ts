@@ -97,9 +97,11 @@ describe('the painted performance knobs', () => {
     // the most drawing-buffer pixels the painted game asks for.
     // `build.workers` arrived with the third render speed pass and held no
     // literal: the most board workers that build the land at once.
+    // `build.share` arrived with the fourth: one part works out the map's shape
+    // and rivers and hands them to the others.
     expect(SHEET).toEqual({
       canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000 },
-      build: { workers: 4 },
+      build: { workers: 4, share: true },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
         counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3,

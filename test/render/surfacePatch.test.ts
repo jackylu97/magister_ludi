@@ -6,6 +6,8 @@ import { surfacePatch } from '../../src/terrainStudy/surfacePatch.js';
 // @ts-expect-error Approved terrain JavaScript.
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
 // @ts-expect-error Approved terrain JavaScript.
+import { marking, projectMarkings } from '../../src/terrainStudy/surfaceMarkings.js';
+// @ts-expect-error Approved terrain JavaScript.
 import { prepareTerrainMap, centre } from '../../src/terrainStudy/surface.js';
 
 type Point = [number, number];
@@ -67,5 +69,30 @@ describe('a mark clipped to the ground', () => {
       if (expected.getAttribute('position').count) drawn++;
     }
     expect(drawn).toBeGreaterThan(15);
+  });
+
+  // The border tint fades each piece by its own mark. It used to clip each mark in a call of its own; one call with
+  // `each` must give the same pieces, with the same marks, in the same order (fourth render speed pass).
+  it('hands each piece to `each` with its mark, as one call for each mark would make them', () => {
+    const map = createMap({ width: 6, height: 5, terrain: 'grassland' });
+    map.tiles[14]!.hills = true;
+    const prepared = prepareTerrainMap(map, { wrap: true });
+    const tile = prepared.tiles[14], c = centre(tile) as { x: number; z: number };
+    const [top] = terrainMesh(tile) as T.BufferGeometry[];
+    let seed = 23;
+    const random = (): number => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };
+    const marks = [...Array(40).keys()].map(() => {
+      const x = c.x + (random() - .5) * 3, z = c.z + (random() - .5) * 3, size = .1 + random() * .8;
+      return marking([[x - size, z - size], [x + size, z - size * .4], [x + size * .3, z + size]], new T.Color(random(), random(), random()));
+    });
+    const one = marks.flatMap(mark => (projectMarkings(top, [mark]) as T.BufferGeometry[]).map(piece => ({ mark, piece })));
+    const each: { mark: unknown; piece: T.BufferGeometry }[] = [];
+    expect(projectMarkings(top, marks, (piece: T.BufferGeometry, mark: unknown) => each.push({ mark, piece }))).toEqual([]);
+    expect(each.length).toBe(one.length);
+    expect(each.length).toBeGreaterThan(8);
+    each.forEach(({ mark, piece }, i) => {
+      expect(mark).toBe(one[i]!.mark);
+      for (const name of ['position', 'color', 'normal']) expect(Array.from(piece.getAttribute(name).array)).toEqual(Array.from(one[i]!.piece.getAttribute(name).array));
+    });
   });
 });

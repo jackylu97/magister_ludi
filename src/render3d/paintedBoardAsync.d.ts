@@ -24,4 +24,9 @@ export function buildPaintedBoardAsync(map: GameMap, assets: PaintedVegetationAs
   options?: {signal?: AbortSignal; onProgress?: (percent: number, stage: PaintedBuildReport) => void;
     /** Called with the prepared terrain as soon as the land step starts, on the map the board will be built on. */
     onTerrain?: ((renderMap: GameMap) => void) | null;
+    /**
+     * A port that the part which sends the prepared terrain also posts it to, as `{terrain}`, from its own worker.
+     * The sea's bake reads it there, so the page never copies the terrain itself. The port is transferred.
+     */
+    terrainPort?: MessagePort | null;
     workerFactory?: () => Worker; workers?: number}): Promise<{board: PaintedBoard; metrics: PaintedBuildMetrics}>;

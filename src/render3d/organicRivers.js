@@ -30,11 +30,7 @@ import {hashUnit} from './hash';
 export function createOrganicRivers(map, knobs) {
  const period = terrainMapWraps(map) ? Math.sqrt(3) * map.width : 0;
  const network = riverPaths(map);
- const nodeKey = p => {
-  let x = p[0];
-  if (period) { x = ((x % period) + period) % period; if (Math.min(x, period - x) < 1e-6) x = 0; }
-  return `${Math.round(x * 1e6)}:${Math.round(p[1] * 1e6)}`;
- };
+ const nodeKey = cornerKey(period);
  const nodes = new Map(network.nodes.map(node => [nodeKey(node.point), node]));
 
  // Downstream is toward water: a walk out from every corner that touches it.
@@ -384,31 +380,13 @@ export function createOrganicRivers(map, knobs) {
    add(Array.from({length: 14}, (_, i) => [(node.at ?? node.point)[0] + Math.cos(i * Math.PI / 7) * radius, (node.at ?? node.point)[1] + Math.sin(i * Math.PI / 7) * radius]), color, lift);
  }
 
- // Filed in a grid of two world units by canonical x, so a hex finds its own.
- const grid = new Map(), cell = 2;
- const file = (polygon, shift) => {
-  const [x0, x1, z0, z1] = polygon.bounds;
-  for (let gz = Math.floor(z0 / cell); gz <= Math.floor(z1 / cell); gz++)
-   for (let gx = Math.floor((x0 + shift) / cell); gx <= Math.floor((x1 + shift) / cell); gx++) {
-    const key = `${gx}:${gz}`;
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key).push({polygon, shift});
-   }
- };
- for (const polygon of polygons) {
-  file(polygon, 0);
-  if (period) { file(polygon, period); file(polygon, -period); }
- }
-
+ const mouths = network.nodes.filter(node => node.water).map(node => node.point);
  return {
   polygonCount: polygons.length,
   carve,
   /** The hex corners where a river reaches the sea or a lake. A free coast comes in to meet each (`freeCoast.js`). */
-  mouths: network.nodes.filter(node => node.water).map(node => node.point),
-  /** The trees that keep to the river on one hex: `{x, y, z, seed}` in the hex's own coordinates. */
-  trees(tile) { return placed(tile, 'tree'); },
-  /** The rocks that stand in the stream on one hex: `{x, y, z, seed, size}`. */
-  rocks(tile) { return placed(tile, 'rock'); },
+  mouths,
+  ...riverLand(map, knobs, polygons, spots, point => nodes.has(nodeKey(point))),
   /**
    * Where the water moves: a point every few samples of every run, with the
    * way the water flows there and the river's half width. The flow layer
@@ -426,6 +404,85 @@ export function createOrganicRivers(map, knobs) {
    }
    return list;
   },
+  /**
+   * What one part of a split board build hands the others, so that they need
+   * not trace the rivers again (`organicRiversFrom`): the ribbon's polygons,
+   * packed as numbers, the small things along the banks, the corners a river
+   * reaches and the mouths. Each hex's cut is the board's to send beside it.
+   */
+  share() { return {polygons: packPolygons(polygons), spots, corners: [...nodes.keys()], mouths}; },
+ };
+
+ /**
+  * The pieces of the river's line near one hex, for the cut in the ground
+  * (`riverCarve` in `surface.js`): null when no river comes near. The depth
+  * fades out toward a source, so a spring is a shallow pool.
+  */
+ function carve(tile) {
+  if (!knobs.cutDepth || isWater(tile)) return null;
+  const c = centre(tile), out = [];
+  for (const run of runs) {
+   const {samples, length, source, sink, path} = run;
+   const share = s => (source ? smooth(0, .35, s) * .7 + .3 : 1) * (sink ? smooth(0, .35, length - s) * .7 + .3 : 1);
+   for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
+    const a = samples[i], b = samples[(i + 1) % samples.length];
+    for (const shift of period ? [0, period, -period] : [0]) {
+     const ax = a.x + shift - c.x, az = a.z - c.z;
+     if (Math.abs(ax) > 1.3 || Math.abs(az) > 1.3) continue;
+     out.push(ax, az, a.half, share(a.s), b.x + shift - c.x, b.z - c.z, b.half, share(b.s));
+     break;
+    }
+   }
+  }
+  // A round pool where runs meet, so the point of land between two channels is rounded off and leaves no sliver.
+  for (const node of network.nodes) {
+   if (node.edges.length < 3) continue;
+   for (const shift of period ? [0, period, -period] : [0]) {
+    const nx = (node.at ?? node.point)[0] + shift - c.x, nz = (node.at ?? node.point)[1] - c.z;
+    if (Math.abs(nx) > 1.3 || Math.abs(nz) > 1.3) continue;
+    const r = widthAt(node) * .5 * knobs.junctionPool * .5;
+    for (let q = 0; q < 6; q++) out.push(nx + Math.cos(q * Math.PI / 3) * r, nz + Math.sin(q * Math.PI / 3) * r, r, 1, nx + Math.cos((q + 1) * Math.PI / 3) * r, nz + Math.sin((q + 1) * Math.PI / 3) * r, r, 1);
+    break;
+   }
+  }
+  if (!out.length) return null;
+  let key = out.length;
+  for (let i = 0; i < out.length; i += 5) key = (Math.imul(key, 31) + Math.round(out[i] * 1e4)) | 0;
+  return {depth: knobs.cutDepth, bank: knobs.cutBank, key, segments: Float32Array.from(out)};
+ }
+}
+
+/**
+ * The half of the rivers that the land step asks for: the ribbon pieces on a
+ * hex, and the trees, rocks, stones and reeds along its banks. Shared by the
+ * rivers traced here (`createOrganicRivers`) and the rivers that another part
+ * of a split board build traced and handed on (`organicRiversFrom`), so both
+ * answer with the same code from the same polygons and spots. `hasCorner`
+ * says whether a river reaches a hex corner.
+ */
+function riverLand(map, knobs, polygons, spots, hasCorner) {
+ const period = terrainMapWraps(map) ? Math.sqrt(3) * map.width : 0;
+ // Filed in a grid of two world units by canonical x, so a hex finds its own.
+ const grid = new Map(), cell = 2;
+ const file = (polygon, shift) => {
+  const [x0, x1, z0, z1] = polygon.bounds;
+  for (let gz = Math.floor(z0 / cell); gz <= Math.floor(z1 / cell); gz++)
+   for (let gx = Math.floor((x0 + shift) / cell); gx <= Math.floor((x1 + shift) / cell); gx++) {
+    const key = `${gx}:${gz}`;
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push({polygon, shift});
+   }
+ };
+ for (const polygon of polygons) {
+  file(polygon, 0);
+  if (period) { file(polygon, period); file(polygon, -period); }
+ }
+
+ return {
+  /** The trees that keep to the river on one hex: `{x, y, z, seed}` in the hex's own coordinates. */
+  trees(tile) { return placed(tile, 'tree'); },
+  /** The rocks that stand in the stream on one hex: `{x, y, z, seed, size}`. */
+  rocks(tile) { return placed(tile, 'rock'); },
   /** The stones on one hex's river banks: `{x, y, z, seed}` in the hex's own coordinates. */
   stones(tile) { return placed(tile, 'stone'); },
   /** The reeds at the water's edge on one hex, as one geometry in world coordinates; null if none. */
@@ -476,44 +533,6 @@ export function createOrganicRivers(map, knobs) {
 
  function inHex(tile, x, z) { const shape = tileShape(tile); return shape.normals.every(([nx, nz], i) => x * nx + z * nz <= shape.upper[i] - .01); }
 
- /**
-  * The pieces of the river's line near one hex, for the cut in the ground
-  * (`riverCarve` in `surface.js`): null when no river comes near. The depth
-  * fades out toward a source, so a spring is a shallow pool.
-  */
- function carve(tile) {
-  if (!knobs.cutDepth || isWater(tile)) return null;
-  const c = centre(tile), out = [];
-  for (const run of runs) {
-   const {samples, length, source, sink, path} = run;
-   const share = s => (source ? smooth(0, .35, s) * .7 + .3 : 1) * (sink ? smooth(0, .35, length - s) * .7 + .3 : 1);
-   for (let i = 0; i < samples.length - (path.closed ? 0 : 1); i++) {
-    const a = samples[i], b = samples[(i + 1) % samples.length];
-    for (const shift of period ? [0, period, -period] : [0]) {
-     const ax = a.x + shift - c.x, az = a.z - c.z;
-     if (Math.abs(ax) > 1.3 || Math.abs(az) > 1.3) continue;
-     out.push(ax, az, a.half, share(a.s), b.x + shift - c.x, b.z - c.z, b.half, share(b.s));
-     break;
-    }
-   }
-  }
-  // A round pool where runs meet, so the point of land between two channels is rounded off and leaves no sliver.
-  for (const node of network.nodes) {
-   if (node.edges.length < 3) continue;
-   for (const shift of period ? [0, period, -period] : [0]) {
-    const nx = (node.at ?? node.point)[0] + shift - c.x, nz = (node.at ?? node.point)[1] - c.z;
-    if (Math.abs(nx) > 1.3 || Math.abs(nz) > 1.3) continue;
-    const r = widthAt(node) * .5 * knobs.junctionPool * .5;
-    for (let q = 0; q < 6; q++) out.push(nx + Math.cos(q * Math.PI / 3) * r, nz + Math.sin(q * Math.PI / 3) * r, r, 1, nx + Math.cos((q + 1) * Math.PI / 3) * r, nz + Math.sin((q + 1) * Math.PI / 3) * r, r, 1);
-    break;
-   }
-  }
-  if (!out.length) return null;
-  let key = out.length;
-  for (let i = 0; i < out.length; i += 5) key = (Math.imul(key, 31) + Math.round(out[i] * 1e4)) | 0;
-  return {depth: knobs.cutDepth, bank: knobs.cutBank, key, segments: Float32Array.from(out)};
- }
-
  /** The spots of one kind that stand on a hex, in its own coordinates, with the ground's height. */
  function placed(tile, kind) {
   if (!spots.length || (!tile.riverEdges && !nearRiver(tile))) return [];
@@ -534,11 +553,71 @@ export function createOrganicRivers(map, knobs) {
  function nearRiver(tile) {
   const c = centre(tile);
   for (let d = 0; d < 6; d++) {
-   const a = (d + .5) * Math.PI / 3, node = nodes.get(nodeKey([c.x + Math.cos(a), c.z + Math.sin(a)]));
-   if (node) return true;
+   const a = (d + .5) * Math.PI / 3;
+   if (hasCorner([c.x + Math.cos(a), c.z + Math.sin(a)])) return true;
   }
   return false;
  }
+}
+
+/**
+ * The rivers of a split board build, from what the part that traced them handed
+ * on (`share`) and each hex's cut: the same land-step answers, with no tracing.
+ * Only the cut, the mouths and the land step are here. The flow glints belong
+ * to the page, which traces the rivers itself (`paintedFlow.ts`).
+ */
+export function organicRiversFrom(map, knobs, shared, carves) {
+ const period = terrainMapWraps(map) ? Math.sqrt(3) * map.width : 0, key = cornerKey(period), corners = new Set(shared.corners);
+ const polygons = unpackPolygons(shared.polygons);
+ return {
+  polygonCount: polygons.length,
+  carve: tile => carves[tile.row * map.width + tile.col] ?? null,
+  mouths: shared.mouths,
+  ...riverLand(map, knobs, polygons, shared.spots, point => corners.has(key(point))),
+  flow() { throw new Error('The flow glints are traced on the page'); },
+ };
+}
+
+/** The key of a hex corner, with x taken into the map's period, so a corner on the seam has one key. */
+function cornerKey(period) {
+ return p => {
+  let x = p[0];
+  if (period) { x = ((x % period) + period) % period; if (Math.min(x, period - x) < 1e-6) x = 0; }
+  return `${Math.round(x * 1e6)}:${Math.round(p[1] * 1e6)}`;
+ };
+}
+
+/**
+ * The ribbon's polygons as numbers: every corner in one array, two numbers a
+ * corner, so a copy to another worker is a copy of bytes. A colour is kept as
+ * its three numbers and a lift as it is.
+ */
+function packPolygons(polygons) {
+ const counts = new Uint32Array(polygons.length);
+ let total = 0;
+ polygons.forEach((polygon, i) => { counts[i] = polygon.points.length; total += polygon.points.length * 2; });
+ const points = new Float64Array(total);
+ let at = 0;
+ for (const polygon of polygons) for (const point of polygon.points) {
+  if (point.length !== 2) throw new Error('A river polygon corner is not a pair');
+  points[at++] = point[0]; points[at++] = point[1];
+ }
+ return {counts, points, colors: polygons.map(polygon => polygon.color ? [polygon.color.r, polygon.color.g, polygon.color.b] : null),
+  lifts: polygons.map(polygon => polygon.lift), land: Uint8Array.from(polygons, polygon => polygon.land ? 1 : 0),
+  bounds: Float64Array.from(polygons.flatMap(polygon => polygon.bounds))};
+}
+function unpackPolygons({counts, points, colors, lifts, land, bounds}) {
+ const polygons = [];
+ let at = 0;
+ for (let i = 0; i < counts.length; i++) {
+  const list = [];
+  for (let k = 0; k < counts[i]; k++, at += 2) list.push([points[at], points[at + 1]]);
+  let color = null;
+  // The three numbers as they were, with no conversion between colour spaces.
+  if (colors[i]) { color = new Color(); color.r = colors[i][0]; color.g = colors[i][1]; color.b = colors[i][2]; }
+  polygons.push({points: list, color, lift: lifts[i], land: land[i] === 1, bounds: [bounds[i * 4], bounds[i * 4 + 1], bounds[i * 4 + 2], bounds[i * 4 + 3]]});
+ }
+ return polygons;
 }
 
 function smooth(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / Math.max(1e-6, b - a))); return t * t * (3 - 2 * t); }

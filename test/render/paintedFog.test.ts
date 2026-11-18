@@ -199,6 +199,11 @@ describe('the paper: the sun’s shadow, not the sun’s colour', () => {
     let pages = 0;
     board.group.traverse(object => { if (object.name === 'painted-chart-table') pages++; });
     expect(pages).toBe(3);
+    // Each page stands at its own copy's offset, so the paper is drawn past the
+    // seam too. Before the fourth render speed pass all three stood at x = 0.
+    const offsets: number[] = [];
+    board.group.traverse(object => { if (object.name === 'painted-chart-table') offsets.push(object.matrixWorld.elements[12]!); });
+    expect(offsets).toEqual([-board.wrapWidth, 0, board.wrapWidth]);
     board.applyFog(new Uint8Array(board.tileCount));
     let visiblePages = 0;
     board.group.traverseVisible(object => { if (object.name === 'painted-chart-table') visiblePages++; });

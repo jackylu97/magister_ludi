@@ -1232,16 +1232,63 @@ function markUpdated(bucket: Bucket): void {
 
 /** Disposes every `InstancedMesh` under a group and empties it. */
 export function disposeInstancedGroup(group: Group): void {
-  for (const child of group.children) {
-    if (child instanceof InstancedMesh) {
-      // Only the primary shell owns its view; the wrap copies merely point
-      // at it (see `placeCopies`).
-      if (child.userData.ownsGeometry) {
-        if (child.geometry.userData.borrowsAttributes) releaseOutlineView(child.geometry);
-        else child.geometry.dispose();
-      }
-      child.dispose();
-    }
-  }
+  for (const child of group.children) if (child instanceof InstancedMesh) disposeInstanced(child);
   group.clear();
+}
+
+function disposeInstanced(mesh: InstancedMesh): void {
+  // Only the primary shell owns its view; the wrap copies merely point
+  // at it (see `placeCopies`).
+  if (mesh.userData.ownsGeometry) {
+    if (mesh.geometry.userData.borrowsAttributes) releaseOutlineView(mesh.geometry);
+    else mesh.geometry.dispose();
+  }
+  mesh.dispose();
+}
+
+/**
+ * Empties a group now and disposes its `InstancedMesh`es a few at a time in
+ * idle time afterwards.
+ *
+ * three's disposal of an instanced mesh frees the mesh's vertex-array state
+ * by walking its record of every geometry and every program the renderer has
+ * drawn, so with a board up it costs about a tenth of a millisecond a mesh.
+ * The pieces' layer is rebuilt whole, and its rebuilds at the turn-130 turn
+ * end disposed hundreds of meshes: 35 of the layer's 64 ms, inside the frame
+ * that ends the turn (the fourth render speed pass). A mesh out of the group is
+ * not drawn, so disposing it later changes no picture; its GPU buffers are
+ * freed a moment later.
+ */
+export function disposeInstancedGroupSoon(group: Group): void {
+  for (const child of group.children) if (child instanceof InstancedMesh) pendingDisposals.push(child);
+  group.clear();
+  if (pendingDisposals.length > disposedUpTo && !disposalScheduled) scheduleDisposals();
+}
+
+/** Disposes every mesh `disposeInstancedGroupSoon` is still holding, now. */
+export function flushInstancedDisposals(): void {
+  while (disposedUpTo < pendingDisposals.length) disposeInstanced(pendingDisposals[disposedUpTo++]!);
+  pendingDisposals.length = 0; disposedUpTo = 0;
+}
+
+const pendingDisposals: InstancedMesh[] = [];
+let disposedUpTo = 0, disposalScheduled = false;
+function scheduleDisposals(): void {
+  disposalScheduled = true;
+  const drain = (deadline?: IdleDeadline): void => {
+    // An idle slice's own time, or a few milliseconds when the browser ran the slice because it waited too long.
+    const until = performance.now() + (deadline && !deadline.didTimeout ? Math.max(1, deadline.timeRemaining() - 1) : 4);
+    // At least one a slice, so the queue empties even when the page is never idle.
+    while (disposedUpTo < pendingDisposals.length) {
+      disposeInstanced(pendingDisposals[disposedUpTo++]!);
+      if (performance.now() >= until) break;
+    }
+    if (disposedUpTo < pendingDisposals.length) { schedule(drain); return; }
+    pendingDisposals.length = 0; disposedUpTo = 0; disposalScheduled = false;
+  };
+  schedule(drain);
+}
+function schedule(drain: (deadline?: IdleDeadline) => void): void {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(drain, { timeout: 1000 });
+  else setTimeout(drain, 0);
 }
