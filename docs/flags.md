@@ -2946,3 +2946,15 @@ answer, 2026-11-18: "2 3 4 are great, 5 is fine too."
   `docs/plans/performance-pass-2026-11-06.md`, "BP16b-fix: the order fault".
 - Next for the bots: the world clock rule (a small rule batch), then stage C,
   parallel bots from a frozen copy of the board.
+
+## The world clock rule: built, gated, held (2026-11-18)
+
+- Built on branch `worktree-agent-a38585a4eb6b84ad7` at `7847f279`. Gate:
+  typecheck, 515 test files (11,959 tests), build and both digests pass.
+- **Held, not landed.** It raises the schema to 245, so the user's current game
+  would stop loading. It lands when the user says so.
+- Measured on five seeds: age II opens about 9 turns sooner and age III about
+  26 turns sooner. Age II wagers are kept less often (10 of 30, was 17 of 30);
+  that goes to the wager rework. `ai.wager.ageTurns` (32) was measured under
+  the old clock and may now be too long.
+- Stage C (parallel bots) waits for it, because both cut the digest pins.
