@@ -994,3 +994,15 @@ noticed they can be a bit weird".
   are plain rows in the breakdown, as resources and technologies are.
 - **Queued for later: a check of the card yield figures.** The user has seen
   figures that look wrong. Collect examples from the user first.
+
+### The full-screen bead page: a line that congratulates (2026-11-18)
+
+Pictures: https://claude.ai/artifact/XxAtvuNscC2pKbC7irouCj. The user: "maybe
+the bead award screen needs some text congratulating the player. otherwise it
+looks great."
+
+- The full-screen age plate, the full-screen bead page and the leader names
+  are approved as built.
+- The bead page gets one short line that congratulates the player. Plain
+  words, no number in the sentence, and it says why the bead came (a wager
+  kept, or a grant).
