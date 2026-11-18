@@ -2891,3 +2891,18 @@ ground paint texture, i have a feeling that should speed things up
 considerably." The scroll cache and its zoom handling are deferred. The baked
 ground paint, with a coarser ground mesh at far zooms, is the next rendering
 build. It starts when the fifth pass reports.
+
+## Age turn-over: landed fix and three follow-ups (2026-11-18)
+
+- Landed (`c3341ac8`): every age that opens is reported, so the age plate and
+  the wager sheet show at the first turn-over. The bead award sheet shows the
+  3D abacus (`BEAD_SHEET_FRAME_3D` in `src/ui/beadModal.ts` is the switch).
+- Three follow-ups, proposed to the user and taken as the recommended reading:
+  1. A tutorial note must not open on top of the age plate. It waits until the
+     plate (and any sheet in the same queue) has closed.
+  2. The top bar's age card must not show the new age before the plate has
+     announced it. Interface only; `currentWorldAge` in the sim stays.
+  3. The bead sheet's line and the Abacus screen say "of 7 beads" while the 3D
+     frame draws 13 beads a rod. Make the frame and the words agree.
+- Open with the user: up to five pages can show in one hand-over (Triumph
+  sheet, bead sheets, age plate, wager sheet, census). Not changed yet.
