@@ -878,3 +878,24 @@ wonders should eventually have splash art".
   each with a graphic element. A wonder's form has room for splash art later.
 - A third board draws one table, at mid game and late game. Nothing is built
   until the user picks.
+
+### Two tabs: Council and In play (2026-11-18)
+
+Board before this: `scratchpad/onestyle/card-table.html`, published at
+https://claude.ai/artifact/Acrdga9ZieQGMwhJPJpsLz. The user: "what if we had two
+modes - one screen where you play cards, and another where you see all cards in
+play. these can be separate tabs or separate screens altogether."
+
+Proposed in reply: two tabs of the one orders screen. The user: "yeah lets do
+it. I also want the effects of each card and the total effects be prominent as
+well."
+
+- **Tab 1, Council:** where the player plays cards. Chairs with full cards,
+  the government with tucked Doctrines, a full fan of held cards, the draft
+  pile, and a thin rail of four small piles (a count each) that is the door to
+  tab 2.
+- **Tab 2, In play:** where the player reads. The council smaller and not
+  movable, every pile open (wonders, beliefs, legacies, running out), the
+  totals, and the breakdown with resources and technologies as plain rows.
+- **What each card pays, and the totals, are prominent on both tabs.**
+- A fourth board draws both tabs. Nothing is built until the user picks.
