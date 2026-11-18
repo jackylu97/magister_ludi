@@ -1936,10 +1936,15 @@ interface PaintedShadowSpec {
  * 100% scaling, which has a ratio of 1, does not ask for 8.3 million pixels:
  * the ratio is lowered until width × height × ratio² fits. See
  * `drawingBufferRatio` in `canvasSetup.ts`.
+ *
+ * `restUnderCover` (render speed pass five): while a screen that hides every
+ * pixel of the board is open, the board's motion frames are not drawn. See
+ * `Renderer3D.setCoverCheck`.
  */
 interface PaintedCanvasSpec {
   maxPixelRatio: number;
   pixelBudget: number;
+  restUnderCover: boolean;
 }
 
 /**

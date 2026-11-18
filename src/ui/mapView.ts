@@ -483,6 +483,15 @@ export interface MapView {
   setFrameListener?(listener: (() => void) | null): void;
 
   /**
+   * Optional: the page's answer to "does a screen hide every pixel of the
+   * board right now?". While it is yes, the 3D renderer does not draw the
+   * frames it would draw only for the board's motion, because nobody can see
+   * them. Frames asked for by anything else are still drawn. The frozen 2D
+   * pipelines have no motion frames and do not implement it.
+   */
+  setCoverCheck?(check: (() => boolean) | null): void;
+
+  /**
    * Optional: brings a group of cells into view, centring on them.
    *
    * The UI calls this when the local seat changes, to show the player their own
