@@ -3522,3 +3522,143 @@ Stage A and stage B from stage A's snapshots, in one process, a turn each in rot
 - Tests: `test/sim/aiSittingPhases.test.ts` (new); `aiBot`, `aiDecisionMemo`, `aiBeelineTable`, `aiEndCheckLoops`, `aiDiplomacy`; the pins in `aiDigest.slow.test.ts`.
 - `docs/bot-priorities.md` ("The order of a sitting", at the top), and this section.
 - Scratch, in `bp16/`: `armcensus.ts` (with the logging copy `census2/`), `phaserun.ts`, `phasedebug.ts`, `camptest.ts`, `probeVar.ts` and `qVar.sh` (the ablation, on `var/`), `ablation.py`, `varcmp.py`, `samedigests.py`, the queues `qB1.sh` to `qB4.sh`, stage A's snapshots in `snapsA/`, the census in `out/census/`, the end checks in `out/check/`, the ablation games in `out/var-*/`, the first shape's games in `out/stageB-v1/`, and the final games in `out/stageB/` (with `PROBE.ts` and `NOTES.md`). The census, variant and stage A base trees (`census2/`, `var/`, `before/`) were removed; the stage A and stage B trees (`stageA/`, `stageB/`) are kept for stage C and will be removed at the end.
+
+## BP16b-fix: the order fault, 2026-11-18
+
+`docs/flags.md`, the section "Bots after BP16 stage B", item 2. The user: *"you're good to go with your recommendation for the bots optimization."* The claim to test: some memos that live for a sitting keep the value their first reader leaves, so the order of the arms changes prices. Stage B found that asking all five phases before the loop lowered production at turn 100 by 26% on five seeds (part 3 above). No knob, no data and no rule changed.
+
+### Method
+
+- **Trees.** The **base tree** is `a97cd1a0` (the head of `decks`, with the same bot as `f469e13a`, BP16 stage B). Seed 42 on it reached the stored digest of `/Users/jacky/code/webciv-baselines/f469e13a/six-seat-standard-t100/` (`4a516bc0:952535`). The **shadow tree** is the base with a throwaway check and two switches. The **exact-fix tree** is the base with the fix of part 4, the **smaller-fix tree** the base with the fix of part 5. Each is a scratch copy outside the repo.
+- **The shadow check** (`memoShadow.ts`, scratch only). Every memo that lives for a sitting records the arm that filled it, the board revision and economy stamp, and the guards open. At each later read the value is computed again from nothing on the board as it is then, and the two are compared, once for each memo entry in each decision. While the fresh value is computed, every memo reads and writes a scratch store that is then dropped, so the fresh value is fresh all the way down and the real memos are not touched. With the check on, seeds 42 and 999 to turn 100 reached the stored digests, so the check changes no decision.
+- **The order switch** (`BP_ORDER=allfirst`, scratch only). It asks the five phases before the loop in the first shape's order (research, diplomacy, the council, spending, housekeeping), with that shape's two extra events (`council`, `queue`). On the base tree it gave stage B's figures for that order exactly, on all five seeds (production / improvements started: 806 / 219, 1,093 / 269, 1,662 / 299, 787 / 216, 766 / 209).
+- **The fresh mode** (`BP_FRESH=1`, scratch only). Every memo on a context, the two sitting memos and the plan's memo are dropped whenever the board revision moves, so no value outlives a command.
+- **Probe and seeds.** The `f469e13a` baseline's `PROBE.ts`; six seats, standard map; seeds 42, 999, 7, 1 and 2026 to turn 100. `nice -n 15`, at most two of my game processes at once. Other agents loaded the machine (load average 4 to 42). Counts and yields do not depend on load.
+
+### 1. The memos that live for a sitting
+
+A sitting builds its context (`seatContext`, `bot.ts`) at its first decision and keeps it for the seat's whole turn. The memos keyed on a context therefore lived for the sitting, though most of their docblocks said "one decision". Every one of them reads the live board (`ctx.state`). The shadow read 52 of them; 30 gave a value that differed from a fresh one at least once.
+
+| Memo | What it reads that a sitting's commands can change | Readers (arms) |
+|---|---|---|
+| `ratesOf` (`RATES_MEMO`, `prices.ts`) | every town's yields: a build, a focus, a seated card, a purchase | 12, among them the town's build, the council, the beeline |
+| The card stamps (`SITTING_STAMPS`, `value.ts`, BP15) | the books with and without the card: anything on the economy clock | 8: slot, re-seat, adoption, the offers, the beeline |
+| The chair reading (`SITTING_CHAIRS` and `CHAIR_WORTH_MEMO`, BP15) | the bench, the free chairs, the culture rate; and the **prices of the first context that asked**, shared with every other context of the sitting | 4 |
+| A node's gifts (`NODE_MEMO`, `chain.ts`) | the town folds and the levy handed in by the first caller, and the memos above | the beeline, the research blocker |
+| The improvement plan's memos (`memoOf`, `plan.ts`: seats, what a hex could hold, the landings, the renewals) | worked hexes, the research plan, the science rate; the plan itself and the town sheets also read pieces | 5 to 8 loop arms |
+| `oneTownShare`, the scope counts (`scopeReach.ts`), `boardTempo`, `draftsAhead`, `faithPrice`, `growthShareWorth`, `explainCamp` and 10 smaller ones | towns, buildings, worked hexes, pools, rates | up to 10 |
+| The guarded readings (`chairReading`, `handRuleWorth`, `widerFitWorth`, `faithPrice`, `malicePrice`) | as above; and a value filled while a stand-in was in place was kept outside it | 2 to 14 |
+| The beeline's table (`BotSitting.beeline`, BP15) | the towns' folds, the levy, the commissions; kept while research stood still | the research blocker and the re-aim (handed back 0 times in these games) |
+
+The 22 memos with no difference: the tech costs, the science price, the site ground, the derived contexts (one town, today), the levy outlook, piece and rite, the ground facts, the sight, the class share, the worked hex, the works forecast, the posture and eight readings of single cards.
+
+Not order-dependent, by reading the code: the context's own fields (the book, the prices, the chains) and the seat's books are read at the sitting's first decision in every order; the guard plan, the threats to a worker's hex and the hunt's camps are first read by a loop arm in every order and read only by loop arms; the escort plan is keyed by the revision and its inputs; the spend memo and the next route are keyed by their inputs (stage A's shadow covers them).
+
+### 2. The proof: kept values against fresh ones
+
+Seeds 42 and 999, the final order, turns 1 to 100: 11,424 decisions, 405,448 checked reads, **3,585 differed** (1,694 and 1,891).
+
+- **By cause.** The board's economy clock had moved since the fill: 2,529. The same board, but an inner memo the value was built on was stale: 639. Filled or read while a guard held its stand-in: 312. Only pieces had moved: 105 (the plan, the town sheets and what a hex could hold).
+- **By memo** (checked reads, differing): `ratesOf` 5,698, 705 (12%); a node's gifts 17,386, 428; the card stamps 1,716, 397 (23%); the chair reading on a context 418, 381, of which 219 were reads of its own stand-in; the chair reading shared by the sitting 288, 239 (83%); `draftsAhead` 2,814, 182; what a hex could hold 94,035, 174; `oneTownShare` 8,890, 174; the landings 4,835, 168; the scope counts 24,638, 164; `boardTempo` 5,024, 160; `faithPrice` 7,039, 125.
+- **By reader pair** (the arm that filled the memo, the arm that read it, differing of checked): `ratesOf`, a town's build, then the beeline: 233 of 526; the stamps, the re-seat, then the slot: 211 of 286; the sitting's chair reading, the context build, then the beeline: 164 of 164, and then a town's build: 46 of 46; `ratesOf`, an Order offer, then the beeline: 120 of 202; `draftsAhead`, an Order offer, then a town's build: 69 of 141.
+- So the claim is true: a later arm read the value an earlier arm left, on a board that had moved since, and a fresh reading would have given another price.
+
+### 3. Does it explain the 26%?
+
+Production at turn 100 and improvements started to turn 100, six seats summed. "Kept" is the memos as they were; "fresh" is the fresh mode.
+
+| Order, memos | 42 | 999 | 7 | 1 | 2026 | Sum |
+|---|---:|---:|---:|---:|---:|---:|
+| final, kept (the baseline) | 983 / 224 | 1,576 / 324 | 1,451 / 341 | 1,285 / 264 | 1,574 / 227 | 6,869 / 1,380 |
+| all five first, kept | 806 / 219 | 1,093 / 269 | 1,662 / 299 | 787 / 216 | 766 / 209 | 5,114 / 1,212 |
+| final, fresh | 1,096 / 222 | 1,988 / 332 | 1,597 / 287 | 744 / 237 | 1,009 / 232 | 6,434 / 1,310 |
+| all five first, fresh | 854 / 204 | 1,273 / 323 | 2,164 / 309 | 720 / 212 | 637 / 198 | 5,648 / 1,246 |
+
+All five first against the final order, paired (geometric mean of the per-seed ratios, 95% t interval):
+
+| Memos | Production | Improvements started |
+|---|---|---|
+| kept | −28% [−52%, +7%], 4 of 5 down | **−12% [−19%, −3%]**, 5 of 5 down |
+| fresh | −16% [−44%, +25%], 4 of 5 down | −6% [−16%, +5%], 4 of 5 down |
+
+- **The memos explain part of it, not all.** With fresh memos the order still lowers production on four seeds of five, by 16%; neither that nor the 6% fewer improvements is clear of chance on five seeds. Fresh memos against kept ones, in either order, are not clear of chance either (final −10% [−43%, +39%], all first +4% [−17%, +30%]).
+- The rest reads as the order itself: in the first shape research and the council choose before the loop has moved the board (stage B's second reading). Five seeds cannot prove that.
+- **The exact fix of part 4 plays the fresh mode's games exactly**, so its figures for both orders are the fresh rows above. **With every memo fresh, all five phases first still lose production** (−16%, not clear of chance). The landed order stands (item 1 of the ruling), and its reason in `docs/bot-priorities.md` is corrected.
+
+### 4. The exact fix and its cost
+
+- **What it was** (`/Users/jacky/code/webciv-baselines/bp16fix/exact-fix.patch`): every memo on a context held a value for one stamp of the board's economy clock and for the guards open when it was read (`keptValue`, `keepValue`, `onContext`, `prices.ts`). The economy clock (`economyStamp`, `slate.ts`) moves with every write that changes the books, holdings or meters, and not with a step that moves only a piece (`COMMAND_CLOCKS`, `commands.ts`). A value read while a guarded reading gave its stand-in was handed back only inside that reading, BP14's rule for the decision's card prices. The five guarded readings kept their stand-in in a set of their own. The two sitting memos of BP15 went, and the beeline's table was kept under one stamp of the clock.
+- **It was exact.** The shadow on the fixed tree (seed 42 to turn 100) checked 213,837 kept reads and found **none** that differed from a fresh reading, and its game was unchanged by the check. The fixed tree played the same games as the fresh mode, to the digest at turns 20, 50, 75 and 100: seeds 42, 999, 7, 1 and 2026 in the final order, and seeds 42 and 999 with all five phases first (the other three were stopped to save the machine's load).
+- **Its play** is the "final, fresh" row of part 3: against the baseline no figure is clear of chance (production −10% [−43%, +39%], improvements started −5% [−15%, +6%]).
+- **Its cost.** CPU a turn against the base tree, one process, the trees a turn each in rotation, three repeats:
+
+| Window | Load | Exact fix | Without the forecasts (variant) |
+|---|---|---|---|
+| seed 42, turns 90 to 94 (the same play in both trees) | 4 to 5 | +7.9% (+5.5%, +9.5%, +10.0%); bot +9.2% | |
+| seed 42, turns 90 to 94, again | 4 to 5 | +5.5% (+4.6%, +4.6%, +8.1%); bot +8.4% | +2.1% (+1.1%, +0.9%, +5.0%); bot +3.9% |
+| seed 999, turns 90 to 94 (play parts at turn 90) | 3 to 6 | +4.7%; bot a decision +6.7% | +4.2%; bot a decision +5.0% |
+
+- **Where the cost is.** A profile of seed 42, turns 90 to 95, and a count of the readings: the forecasts of a hand and a chair are read again after each command that moves the economy clock. The chair reading was taken 56 times against 25 in the base tree (it prices every card a hand can deal, inside its guard), the Doctrine offer 28 against 12, the wider fit 28 against 9, the foreign card 19 against 11 and the hand rules 7 against 3. Without them (the variant, with those seven readings kept as before) the rest still cost about 2% of a turn: the empire's rates (`ratesOf`), the open rows (`openRows`) and the plan's memos, each read again after a command. A value kept for the sitting was read once a sitting; a value kept for one stamp of the clock is read once for each stamp at which an arm asks for it. No smaller key is exact: what these readings fold moves with the economy clock.
+
+### 5. The smaller fix and its cost
+
+- **What it was** (`/Users/jacky/code/webciv-baselines/bp16fix/small-fix.patch`): the two cheapest corrections. A card's stamp was read on the economy clock in a sitting too (`stampReadingOf`, `value.ts`), so BP15's layer that kept the first stamp for the sitting (`SITTING_STAMPS`, `chairTakenByAnother`) went; 397 of 1,716 kept stamps were stale (part 2). The beeline's table was kept under one stamp of the economy clock (`techGoalTable`, `bot.ts`) in place of BP15's key of the seat's research; since stage B the table is asked about once a sitting, so it was handed back 0 times in these games either way. It corrects 2 of the 30 memos that gave stale reads.
+- **Its play**, five seeds to turn 100 against the `f469e13a` baseline, six seats summed, paired (geometric mean of the per-seed ratios, 95% t interval). No figure is clear of chance.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 290 | 298 | +2% [−8%, +15%], 2 down, 3 up | 58→52, 58→65, 53→58, 65→68, 56→55 |
+| Citizens | 1,731 | 1,709 | −1% [−6%, +4%], 3 down, 2 up | 285→272, 398→410, 307→314, 431→405, 310→308 |
+| Food | 6,481 | 6,737 | +4% [−1%, +8%], 1 down, 4 up | 1,115→1,164, 1,583→1,686, 1,174→1,163, 1,526→1,630, 1,083→1,094 |
+| Production | 6,869 | 6,761 | −5% [−34%, +37%], 3 down, 2 up | 983→1,123, 1,576→1,920, 1,285→744, 1,451→1,413, 1,574→1,561 |
+| Gold | 2,949 | 3,029 | +5% [−17%, +33%], 2 down, 3 up | 452→388, 974→986, 236→337, 673→727, 614→591 |
+| Science | 4,777 | 4,615 | −5% [−28%, +25%], 3 down, 2 up | 567→607, 1,126→1,472, 756→599, 1,271→979, 1,057→958 |
+| Culture | 2,048 | 2,231 | +5% [−37%, +73%], 4 down, 1 up | 357→331, 489→474, 346→241, 324→669, 532→516 |
+| Faith | 1,013 | 920 | −10% [−33%, +21%], 3 down, 2 up | 140→156, 162→176, 189→119, 236→193, 286→276 |
+| Improvements started | 1,380 | 1,291 | −6% [−13%, +2%], 3 down, 1 up | 224→228, 324→299, 264→237, 341→300, 227→227 |
+| Workers built | 456 | 432 | −5% [−12%, +3%], 4 down, 1 up | 76→78, 102→95, 82→78, 109→95, 87→86 |
+| Soldiers lost to the wild | 243 | 260 | +10% [−10%, +35%], 0 down, 5 up | 53→54, 25→37, 56→57, 44→46, 65→66 |
+| Deals signed | 88 | 78 | −12% [−28%, +8%], 3 down, 0 up | 12→10, 21→21, 22→15, 18→17, 15→15 |
+| Wars declared | 27 | 22 | −24% [−54%, +24%], 3 down, 0 up | 3→3, 5→2, 15→14, 3→2, 1→1 |
+| Decisions | 29,098 | 28,980 | −0% [−3%, +2%], 2 down, 3 up | 5,389→5,201, 6,035→6,064, 6,485→6,549, 5,989→5,936, 5,200→5,230 |
+
+- **Its cost**, the same timer as part 4:
+  - On the same play (a probe tree that plays as the base and also takes every fresh stamp a kept one was handed for, so its extra work is the smaller fix's and its games are the base's): seed 999, turns 90 to 100, **+1.8%** (+1.8%, +1.9%, +1.6%), the bot +3.8%; seed 42, turns 90 to 100, −1.8% (−3.4%, −3.7%, +2.4%), the bot −1.1%. Load 4 to 8.
+  - The smaller fix itself, seed 42, turns 90 to 94 (the same play as the base): +1.1% (−1.2%, +8.7%, −3.8%) and +0.3% (−1.8%, 0.0%, +4.1%). Load 4 to 10.
+- It would have cut the digest pins (duel `28801863:335754` -> `174e414b:362460`, standard `c0770657:1035266` -> `ba9dadf1:1059910`); the patch holds them.
+
+### 6. The decision: found, measured, not shipped
+
+The coordinator, 2026-11-18: do not ship a code change. The smaller fix corrects 2 of 30 memos, shows no play change clear of chance and costs up to 1.8% of a turn on one seed; the exact fix costs 5% to 8%. So the stale reads are a speed trade kept for now, on the record: about 0.9% of the kept reads of a sitting's context memos differ from a fresh reading (part 2). The landed order of a sitting stands, and `docs/bot-priorities.md` now gives the corrected reason for it and this trade.
+
+- The two patches and the smaller fix's five games (with `PROBE.ts` and `NOTES.md`) are in `/Users/jacky/code/webciv-baselines/bp16fix/`, with a README. Both patches apply to `a97cd1a0`; the files they touch are the same on `d2004dd2`.
+
+### What a sitting reads of other seats
+
+For stage C (parallel bots from a frozen copy of the board). The context is built at the sitting's first decision. What it reads of other seats there is fixed for the sitting: the trade outlook (`routeOutlook`, pairs with any town on the board), the threat near the seat's towns (`threatLevel`), the sighted camps and hostiles (`sightedThreat`), the war outlook (`warOutlook`: rivals' armies by `armyStrength`, the war-loss lists) and the hexes for sale near the seat's towns. Read later in the sitting:
+
+- **Diplomacy** (first, and opened again by the `copies` event): `diplomacyDecision` reads rivals' armies, towns, wars, the papers on the table and other seats' luxury copies, and the campaign road (a path search).
+- **Spending**: `nextRouteOffer` reads the trade outlook again after a hire.
+- **The loop's unit arms**: `nearestHostile`, `rangedFriendReady` and `previewCombat` (every piece in range), the zone and transit fields (`zocField`, `transitField`, every piece), `civilianDanger`, `workerThreat` and the guard plan, the escort plan, `huntCamps` and `explainCamp` (the camps and the wild's pieces), the campaign (`campaignPlan`, `campaignTarget`, `musterHex`: enemy towns and armies), the settlers' sites (`foundingErrorAt`: borders and pieces on a hex), and the trader (`routeOutlook`, `startRouteError`: foreign towns).
+- **A town's build** (`cityCommand`): the campaign posture (`campaignPosture`: rivals' armies and wars) and the wonders register (a wonder another seat has finished is refused).
+- **Research**: `opusOpen` (any seat holding alchemy), the wonders register, the great-person roster, the race (a rival's rod).
+- **The council**: cards whose scope counts foreign towns or routes (`scopeReach.ts`), the follower beliefs in towns abroad (`followerLinesInOneTown`), the census.
+- **The memos on the context** keep these readings for the sitting from their first read (part 1).
+- Unchanged from stage B: the shared unit id counter and the per-seat tuning sheets.
+
+### Pins
+
+Not cut: no code changed. `test/sim/aiDigest.slow.test.ts` passes with the stage B pins (duel `28801863:335754`, standard `c0770657:1035266`).
+
+### Checks
+
+- After the revert, only `docs/bot-priorities.md` and this file differ from `decks`.
+- Slow tier on the reverted worktree: `TEST_TIER=slow npx vitest run test/sim/aiDigest.slow.test.ts`, 2 tests passed with the stage B pins, exit 0.
+- Type check clean (`nice -n 15 npm run typecheck`, exit 0).
+- Before the revert, with the smaller fix in place: 59 core test files (1,484 tests, among them every test that reads the source of the changed files) passed, and so did `aiDigest.slow` with its cut pins and `aiWants.slow`.
+
+### Files
+
+- `docs/bot-priorities.md` ("The order of a sitting": the corrected reason, and the note on stale context memos), and this section. No source or test file changed.
+- Kept outside the repo: `/Users/jacky/code/webciv-baselines/bp16fix/` (`README.md`, `exact-fix.patch`, `small-fix.patch`, `games/`).
+- Scratch, in the session's scratch folder `bp16fix/`: the check (`shadow/src/ai/memoShadow.ts`, `patch_shadow.py`, `patch_shadowfix.py`, `shadowrun.ts`, `shadowtable.py`, `fixtable.py`, `readers.py`), the order switch (`patch_order.py`), the variant (`patch_v.py`), the smaller fix's builder (`patch_mini.py`), the timers (`pair2.ts`, `pair2.sh`, `timing.py`, `prof1.sh`, `profsum.py`, `patch_count.py`, `countrun.ts`), the tables (`abl.py`, `mktable.py`), and the games in `out/` (`shadow/`, `A1-allfirst/`, `F0-fresh-final/`, `F1-fresh-allfirst/`, `fix-allfirst/`, `after-fullfix/`, `after/`). The scratch trees (`base/`, `shadow/`, `fix/`, `fixorder/`, `shadowfix/`, `varV/`, `mini/`, `costprobe/`, `basecount/`, `fixcount/`) can be removed.
