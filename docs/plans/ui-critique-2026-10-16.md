@@ -831,3 +831,22 @@ throughout the game (i.e. wonders, beliefs, etc all shown as cards)".
   the like all shown as cards.
 - The designer has heavy licence to be creative.
 - Nothing is built until the user picks.
+
+### The user's first reading of the one-style board (2026-11-18)
+
+Board: `scratchpad/onestyle/one-style-options.html`, published at
+https://claude.ai/artifact/PcZtdfdNKYZHgfdnZ1wJKv. The user: "tbh i hate the
+look of C. B seems impractical to me for UX reasons, but it does raise an
+interesting idea -- what if all empire-wide abilities were symbolized by cards,
+and the orders/doctrines page were just a list of all cards in play".
+
+- **C (Cut-Paper Tarot) is rejected.**
+- **B (cards everywhere) is rejected as a whole**, for UX reasons.
+- **New idea to draw: "cards in play".** Every empire-wide ability is a card,
+  and the orders screen lists every card in play. The rules already keep this
+  list: `liveEffects` in `src/sim/statecraft/evaluator.ts` walks eleven sources
+  in one order (the government, its Doctrines, the seated Orders, malices,
+  beliefs, wonders, great people's legacies, timed effects, bead caps,
+  technologies that carry a rule, holy cities). A second board draws this on
+  option A's base. Nothing is built until the user picks.
+- A and D are not yet ruled.
