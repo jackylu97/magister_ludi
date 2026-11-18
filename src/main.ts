@@ -129,7 +129,7 @@ import {
   beadRodsFor,
   createBeadModal,
 } from './ui/beadModal';
-import type { BeadAge } from './sim/beadData';
+import type { TechAge } from './sim/techData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
@@ -1046,7 +1046,7 @@ let offerCardHolder: OfferCard | null = null;
  */
 let beadSheet: BeadModal | null = null;
 let pendingBeadNews: BeadNews[] = [];
-let pendingBeadAge: BeadAge | null = null;
+let pendingBeadAge: TechAge | null = null;
 /**
  * The census waiting for a clear screen (batch C1).
  *
@@ -1063,7 +1063,7 @@ let pendingCensus: CensusRecord | null = null;
  * front of the wager sheet it announces. Held here for the bead sheet's reason.
  */
 let agePlate: AgePlate | null = null;
-let pendingAgePlate: BeadAge | null = null;
+let pendingAgePlate: TechAge | null = null;
 /**
  * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
  * that a game closed by the Magnum Opus ends on, before the standings. Held
@@ -3050,6 +3050,10 @@ async function boot(initial: Game | null): Promise<void> {
   beadSheet = createBeadModal(beadOverlayEl, {
     // The next bead, or the table the age just turned face up.
     onClosed: () => pumpBeadNews(),
+    // The 3D frame on the sheet (2026-11-18): the Abacus screen's own rows, and
+    // the seat whose rod the new bead slides onto. Asked when a sheet is drawn,
+    // which is always after `controls` exists.
+    table: () => ({ rows: abacusRows(), seat: controls.localPlayerId() }),
   });
 
   /**

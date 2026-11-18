@@ -227,7 +227,7 @@ import {
   opusOpen,
   researchError,
 } from './tech';
-import type { TechId } from './techData';
+import type { TechAge, TechId } from './techData';
 import {
   type RouteEndReport,
   type RouteMode,
@@ -242,7 +242,6 @@ import {
 import { type BeadAward, beadMarks, beadsSince } from './beads';
 import { chooseWagerAt, chooseWagerError } from './wagers';
 import { dismissCensusAt, dismissCensusError } from './census';
-import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import { atWar, warBetween } from './wars';
@@ -1870,7 +1869,7 @@ export type CommandResult =
       prospect?: ProspectReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
-      beadAgeOpened?: BeadAge;
+      beadAgeOpened?: TechAge;
       /**
        * **The age dealt its wagers**, said once, on the resolution that dealt
        * them (`docs/wager.md` §2, batch G2).

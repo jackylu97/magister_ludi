@@ -1055,6 +1055,24 @@ describe("the age opening", () => {
     }
     expect(opened).toBe(3);
   });
+
+  it("reports every age that opens, the first turn-over included", () => {
+    // The fault of 2026-11-18 (`docs/flags.md`, "Age turn-over"): the report
+    // was guarded by `isBeadAge`, which is true only for the two ages that held
+    // a bead deck (III and IV). So Æra II opened in silence, and the age plate
+    // and the wager sheet never rose at the first turn-over.
+    const game = createGame(config({ seed: 3 }));
+    for (const closing of [1, 2, 3] as const) {
+      game.state.ageClose = { age: closing, turn: game.state.turn };
+      let opened: number | undefined;
+      for (const player of game.state.players) {
+        if (player.barbarian) continue;
+        const result = applyCommand(game.state, { type: "endTurn", playerId: player.id });
+        if (result.ok && result.beadAgeOpened !== undefined) opened = result.beadAgeOpened;
+      }
+      expect(opened).toBe(closing + 1);
+    }
+  });
 });
 
 describe("every award reaches the caller", () => {

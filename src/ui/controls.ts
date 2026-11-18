@@ -319,11 +319,10 @@ import {
   statecraftBlocker,
   stripRefs,
 } from '../sim/statecraft';
-import { type TechId, highestAge, techDef } from '../sim/techData';
+import { type TechAge, type TechId, highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { triumphDef } from '../sim/triumphData';
-import type { BeadAge } from '../sim/beadData';
 import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import { riteTeacherName } from './religionScreen';
@@ -1869,7 +1868,7 @@ export interface GameControlsOptions {
    * **every** seat, unlike the awards above — one clock for everybody, so the
    * table turning over is the same event on every screen.
    */
-  onBeadAgeOpened?: (age: BeadAge) => void;
+  onBeadAgeOpened?: (age: TechAge) => void;
 
   /**
    * Puts the local seat's pending discovery card in front of the player.
@@ -3914,7 +3913,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   interface HeldBeadNews {
     awards: BeadAward[];
-    ageOpened: BeadAge | null;
+    ageOpened: TechAge | null;
     /**
      * The census taken in this resolution, or `null` (batch C1).
      *
