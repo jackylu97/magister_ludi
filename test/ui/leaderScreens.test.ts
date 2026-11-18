@@ -41,6 +41,7 @@ import {
   LEADER_FACE_LINES,
   LEADER_ROW_WORD,
   NO_LEADER,
+  OWN_SEAT_NAME,
   leaderFaceLines,
   leaderFaces,
   leaderOpeningWords,
@@ -239,16 +240,23 @@ describe('the new game screen', () => {
     expect(seated.map((spec) => spec.name)).not.toContain('Crimson');
   });
 
-  it('keeps the palette name on a seat under no figure', () => {
+  it('calls the one person’s seat under no figure "Your realm", never a colour', () => {
+    // 2026-11-18: "No leader" is the landing's default, and the user's own seat
+    // read "Crimson" everywhere.
     const seated = seatLeaders(rosterFor(3), NO_LEADER, 7);
-    expect(seated[0]!.name).toBe(rosterFor(3)[0]!.name);
+    expect(seated[0]!.name).toBe(OWN_SEAT_NAME);
+    expect('leader' in seated[0]!).toBe(false);
+    // A hot-seat table, where every chair is somebody's own, keeps the palette.
+    const hotSeat = seatLeaders(rosterFor(3, { hotSeat: true }), NO_LEADER, 7);
+    expect(hotSeat[0]!.name).toBe(rosterFor(3)[0]!.name);
   });
 
-  it('leaves a seat under no figure byte-identical to one from before leaders', () => {
+  it('leaves a seat under no figure as it was before leaders, but for its name', () => {
     // The solo table: one chair, nobody chosen, and therefore no `leader` key
-    // anywhere in the config.
+    // anywhere in the config. Since 2026-11-18 the one person's seat is called
+    // "Your realm" rather than by its colour; the name is data, not a rule.
     const plain = rosterFor(1);
-    expect(seatLeaders(plain, NO_LEADER, 5)).toEqual(plain);
+    expect(seatLeaders(plain, NO_LEADER, 5)).toEqual(plain.map((spec) => ({ ...spec, name: OWN_SEAT_NAME })));
     for (const spec of seatLeaders(plain, NO_LEADER, 5)) {
       expect('leader' in spec).toBe(false);
     }

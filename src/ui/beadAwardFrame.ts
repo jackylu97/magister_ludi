@@ -55,6 +55,9 @@ export interface BeadTable {
 /** How long after the sheet rises the bead starts to slide: the sheet's settle. */
 const SLIDE_DELAY_MS = 320;
 
+/** The space kept between the words over the canvas and the frame, in pixels. */
+const CLEAR_GAP_PX = 12;
+
 /**
  * The colour of the table the frame stands on, as CSS: the bead page's ground,
  * so the canvas has no edge against the page. The Opus close's page does the
@@ -129,6 +132,12 @@ export function mountBeadAwardFrame(
   table: BeadTable,
   rod: readonly EarnedBead[],
   slide: boolean,
+  /**
+   * The words laid over the canvas, which the frame must stay clear of: the
+   * name and its line above, the count line below (2026-11-18). Measured, not
+   * guessed, so a short window keeps them apart too.
+   */
+  clear: { above?: HTMLElement; below?: HTMLElement } = {},
 ): BeadAwardFrame | null {
   const box = element('div', 'bead-award-stage');
   const canvas = element('canvas', 'abacus-canvas');
@@ -190,7 +199,20 @@ export function mountBeadAwardFrame(
     }, SLIDE_DELAY_MS);
   }
 
-  const onResize = (): void => stage.resize();
+  // The frame is fitted into the band between the words over the canvas.
+  const keepClear = (): void => {
+    const box = canvas.getBoundingClientRect();
+    if (box.height <= 0) return;
+    const top = clear.above ? (clear.above.getBoundingClientRect().bottom + CLEAR_GAP_PX - box.top) / box.height : 0;
+    const bottom = clear.below ? (box.bottom - clear.below.getBoundingClientRect().top + CLEAR_GAP_PX) / box.height : 0;
+    stage.setClearBands(top, bottom);
+  };
+  keepClear();
+
+  const onResize = (): void => {
+    stage.resize();
+    keepClear();
+  };
   window.addEventListener('resize', onResize);
 
   return {

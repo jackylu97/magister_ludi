@@ -17680,18 +17680,33 @@ body.compendium-page {
   animation: offer-fade 220ms ease-out both;
 }
 
-.bead-page-title {
+/* The name and, under it, the one line that congratulates (`beadPraise`). The
+   frame is fitted below this box (`setClearBands`), so the words never stand
+   on it. */
+.bead-page-head {
   position: absolute;
   z-index: 1;
   top: 4vh;
   left: 24px;
   right: 24px;
+  pointer-events: none;
+}
+
+.bead-page-title {
   margin: 0;
   font-family: var(--face-display);
   font-size: clamp(var(--size-title), 5.6vh, 60px);
   font-weight: 400;
   line-height: 1.05;
-  pointer-events: none;
+}
+
+/* Quieter than the name: the reading serif, smaller, in the soft ink. */
+.bead-page-praise {
+  margin: 0.8vh 0 0;
+  font-family: var(--face-name);
+  font-size: clamp(var(--size-body), 2.2vh, 20px);
+  line-height: 1.35;
+  color: var(--ink-soft);
 }
 
 .bead-page-abacus {
