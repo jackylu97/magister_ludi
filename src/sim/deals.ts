@@ -40,6 +40,7 @@
 import { RULES } from './rulesData';
 import { type ResourceId, resourceDef } from './resourceData';
 import { type GameState, isBarbarian, playerById } from './state';
+import { seatPeople } from './leaderData';
 import { bumpEconomy } from './slate';
 
 /**
@@ -414,7 +415,7 @@ export function dealPartnerSeats(state: GameState, playerId: number): number[] {
 
 /** One turn's tribute, as a line in somebody's ledger. */
 interface TributeLine {
-  /** "Tribute to the Crimson Banner" · "Tribute from the Crimson Banner". */
+  /** "Tribute to the Alexandrians" · "Tribute from the Alexandrians". */
   source: string;
   /** Signed: a tribute paid is negative, a tribute received positive. */
   gold: number;
@@ -438,7 +439,9 @@ export function tributeLines(state: GameState, playerId: number): TributeLine[] 
     if (!dealIsLive(state, deal)) continue;
     const other = otherSeatOf(deal, playerId);
     if (other === null) continue;
-    const them = playerById(state, other)?.name ?? 'an empire';
+    // The seat's people ("the Alexandrians"), as the diplomacy screen names a
+    // seat after "the" (2026-11-18). It used to be the seat's palette colour.
+    const them = seatPeople(state, other);
     const owed = sideGivenBy(deal, playerId).goldPerTurn ?? 0;
     if (owed > 0) lines.push({ source: `Tribute to the ${them}`, gold: -owed });
     const due = sideTakenBy(deal, playerId).goldPerTurn ?? 0;

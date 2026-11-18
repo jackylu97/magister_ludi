@@ -123,4 +123,20 @@ describe('the age plate, wired', () => {
     expect(reduced).toContain('age-plate-fade');
     expect(reduced).not.toContain('age-plate-seal');
   });
+
+  it('is a full-screen page, as the Opus close is', () => {
+    // The user, 2026-11-18: "can we make both of these full screen? I'm happy
+    // to have it be a big moment".
+    const css = Object.values(PLATE_CSS)[0]!;
+    const rule = (selector: string): string => {
+      const at = css.indexOf(`${selector} {`);
+      return css.slice(at, css.indexOf('}', at));
+    };
+    expect(rule('.age-plate-overlay')).toContain('inset: 0;');
+    expect(rule('.age-plate-overlay')).toContain('background: var(--plate-lapis);');
+    expect(rule('.age-plate-overlay')).not.toContain('padding');
+    expect(rule('.age-plate')).toContain('width: 100%;');
+    expect(rule('.age-plate')).toContain('min-height: 100%;');
+    expect(rule('.age-plate')).not.toContain('820px');
+  });
 });

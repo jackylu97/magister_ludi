@@ -50,9 +50,11 @@
  *
  * Doors
  * -----
- * Continue, Escape, Enter and a press on the ground around the plate all close
- * it. The keyboard starts on Continue. Escape is claimed on the window while the
- * plate is up, as the sheets claim it, so the board never sees it.
+ * Continue, Escape and Enter close it. The keyboard starts on Continue. Escape
+ * is claimed on the window while the plate is up, as the sheets claim it, so the
+ * board never sees it. Since 2026-11-18 the plate is a full-screen page
+ * (`agePlate.css`), so there is no ground around it to press. The ground
+ * handler below is kept but is not reached while the page fills the window.
  */
 
 import { type DeckFace, deckMarkDataUri } from '../art/lineMarks';

@@ -4481,7 +4481,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    // The seat's people after "the", never its palette name (2026-11-18).
+    const them = seatPeople(getGame().state, targetId);
     announce(
       standing
         ? offered === undefined
@@ -4510,7 +4511,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    const them = seatPeople(getGame().state, targetId);
     announce(`Your offer stands before the ${them}.`);
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -4587,7 +4588,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    const them = seatPeople(getGame().state, targetId);
     announce(`You have sent the ${them}' envoy home.`);
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -7203,7 +7204,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // does not read a boast about their own caravan.
       for (const plunder of arrival.plundered) {
         if (plunder.fromOwnerId === localPlayerId) continue;
-        const victim = playerById(getGame().state, plunder.fromOwnerId)?.name ?? 'an empire';
+        const victim = seatName(getGame().state, plunder.fromOwnerId);
         announce(plunderSpoilsSentence(plunder, victim), { cell: at });
       }
       // The card is the announcement for a discovery — see the docblock.

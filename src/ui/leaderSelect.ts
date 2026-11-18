@@ -404,7 +404,9 @@ export function rivalLeaders(chosen: string, rivals: number, seed = 0): (LeaderI
  * `secondary`, which is the whole of how a figure's colours reach a game. They
  * ride into `GameConfig` here and are read from there by every surface
  * (`seatInks`) — there is no second table anywhere mapping a seat to a pair, and
- * that is what makes a save fly the banners it was started with.
+ * that is what makes a save fly the banners it was started with. It also takes
+ * the figure's name onto `name` (2026-11-18), so no sentence names the seat by
+ * its palette colour. A seat under no figure keeps its palette name.
  *
  * The `seed` is the landing's own — the number in the Seed field — so the cast
  * travels with the world rather than beside it.
@@ -419,8 +421,13 @@ export function seatLeaders(
   return players.map((spec, seat) => {
     const leader = seat === 0 ? mine : rivals[seat - 1];
     if (leader === undefined) return { ...spec };
-    const colors = leaderDef(leader).colors;
-    return { ...spec, leader, color: colors.primary, secondary: colors.secondary };
+    const def = leaderDef(leader);
+    // **A seat under a figure is named by it** (2026-11-18, the user: "make
+    // sure that the original 'Crimson' label is removed throughout the game and
+    // it reads your leader instead"). `seatName` already prints the figure, but
+    // a sentence the rules write ("… has 30 gold") reads `Player.name`, and that
+    // was the palette's word. A name is data, not a rule: no outcome reads it.
+    return { ...spec, name: def.name, leader, color: def.colors.primary, secondary: def.colors.secondary };
   });
 }
 

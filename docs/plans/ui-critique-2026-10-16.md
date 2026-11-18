@@ -994,3 +994,59 @@ noticed they can be a bit weird".
   are plain rows in the breakdown, as resources and technologies are.
 - **Queued for later: a check of the card yield figures.** The user has seen
   figures that look wrong. Collect examples from the user first.
+
+### The full-screen bead page: a line that congratulates (2026-11-18)
+
+Pictures: https://claude.ai/artifact/XxAtvuNscC2pKbC7irouCj. The user: "maybe
+the bead award screen needs some text congratulating the player. otherwise it
+looks great."
+
+- The full-screen age plate, the full-screen bead page and the leader names
+  are approved as built.
+- The bead page gets one short line that congratulates the player. Plain
+  words, no number in the sentence, and it says why the bead came (a wager
+  kept, or a grant).
+
+### The Council and In play board is approved (2026-11-18)
+
+The approved board is in the repo:
+`docs/plans/mockups/scholars-study/council-and-in-play/council-and-in-play.html`
+(published at https://claude.ai/artifact/Vue9nTgRZtsiF7D9pCPco6, version 2).
+The user, 2026-11-18: "added comments, its looking great now". The comments on
+version 2:
+
+- "N4 is great": the totals are the fine line in the screen's head.
+- On the head of the Council screen: "please make sure these are vertically
+  centered in the real build". The title, the In play link, the totals and
+  the close hint share one centre line.
+- A new interaction: "clicking an already slotted card should make it 'held'
+  and dropping away from a slot should remove it from a slot. useful if
+  players just want to remove a card and not replace it with anything".
+
+Taken as accepted, because the user saw them and did not object: the pay plate
+replaces the figure tablet in the card's picture and the grey foot line; the
+door on the map is a button with a count in the corner panel, with the link in
+the Council screen's head and a key; the leader's crest is on In play; the
+Council screen keeps the title "Orders & Doctrines".
+
+**Build stages** (each one gated and landed on its own):
+
+1. **The Council screen.** The pay plate on the card face (yields and the two
+   meters, per turn only; no plate for a rule card or an occasion card; "+0"
+   and the reason for a card that could pay and does not). The N4 totals line
+   with happiness and authority, vertically centred in the head. Confirm and
+   Revert at the bottom right above the hand. The larger fan. The 176 px card
+   at eleven chairs. A held card shows the pending change on the totals line.
+   A click on a seated card holds it, and a drop away from any chair takes it
+   off its chair.
+2. **Figures for wonders and temporary effects** in `explainCardImpact`
+   (`src/sim/cardImpact.ts`), which today measures Orders, Doctrines, the
+   government, beliefs and legacies.
+3. **The In play screen**, its door in the corner panel, and the arrival of a
+   wonder and a belief.
+
+### The trade screen stays open after a send (2026-11-18)
+
+The user: "the trade route screen should not close after buying a route,
+oftentimes i want to purchase multiple." `dispatchSend` in
+`src/ui/tradeScreen.ts` now draws the sheet again and does not close it.

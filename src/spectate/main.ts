@@ -82,7 +82,12 @@ function seatColor(index: number): string {
 const SEAT_NAMES = ['Crimson', 'Teal', 'Amber', 'Indigo', 'Moss', 'Slate', 'Rust', 'Bone'];
 
 const ROSTER: PlayerSpec[] = Array.from({ length: RULES.game.maxPlayers }, (_, index) => ({
-  name: SEAT_NAMES[index] ?? `Seat ${index + 1}`,
+  // A chair under a figure is named by it, as the landing names one
+  // (`seatLeaders`, 2026-11-18). A chair past the sheet keeps the page's word.
+  name:
+    LEADER_IDS[index] === undefined
+      ? (SEAT_NAMES[index] ?? `Seat ${index + 1}`)
+      : leaderDef(LEADER_IDS[index]!).name,
   // **A figure brings its own two colours** (batch H7), exactly as the landing
   // writes them onto a seat it casts: a chair under a figure wears the figure's
   // pair, and a chair past the end of the sheet keeps the page's own ink and

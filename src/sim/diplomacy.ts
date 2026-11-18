@@ -753,7 +753,8 @@ export function answerDealError(
   if (row.to !== actor.id) return 'That offer was not put to you';
   if (!accepting) return null;
   if (atWar(state, row.by, row.to)) {
-    const them = playerById(state, row.by)?.name ?? 'them';
+    // The seat's people, never its palette colour (2026-11-18).
+    const them = seatPeople(state, row.by);
     return `You are at war with the ${them} — terms belong in a peace`;
   }
   const theirs = dealSideError(state, row.by, row.to, row.give, false);

@@ -80,6 +80,7 @@ import {
 } from './state';
 import { BUILDING_UNLOCK_TECH, isTechId, techDef } from './techData';
 import { isCombatant, unitDef } from './unitData';
+import { seatName } from './leaderData';
 import {
   type WagerCount,
   type WagerId,
@@ -805,7 +806,8 @@ export function wagerStandings(
   for (const player of realPlayers(state)) {
     rows.push({
       playerId: player.id,
-      name: player.name,
+      // The seat's leader, never its palette colour (2026-11-18).
+      name: seatName(state, player.id),
       at: wagerStanding(state, player.id, id, deal.age),
       met: wagerClaimedBy(deal, player.id, index),
     });

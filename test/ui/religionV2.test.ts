@@ -882,9 +882,9 @@ describe('what a seat is told about a faith', () => {
     const watcher = createReligionWatcher();
     watcher.baseline(state, 0);
     theirs.enhancer.push(ENHANCER_BELIEF_IDS[0]!);
-    expect(watcher.poll(state, 0)[0]!.text).toBe(
-      `Crimson enhanced ${theirs.name.replace(/^the /, '')}`,
-    );
+    // The religion keeps its article after a verb: "enhanced the Way of the
+    // Reed" (2026-11-18). Only a possessive drops it.
+    expect(watcher.poll(state, 0)[0]!.text).toBe(`Crimson enhanced ${theirs.name}`);
   });
 
   it('is polled from the one funnel every accepted command goes through', () => {

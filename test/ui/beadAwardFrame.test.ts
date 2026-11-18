@@ -109,16 +109,49 @@ describe('the sheet’s wiring', () => {
     expect(modal).toContain('const table = BEAD_SHEET_FRAME_3D ? (options.table?.() ?? null) : null;');
   });
 
-  it('draws the 2D rod with no table, and when the frame cannot be built', () => {
+  it('draws the old sheet with the 2D rod with no table, and when the frame cannot be built', () => {
     const render = braceBody(modal, 'function render(): void');
-    expect(render).toContain('if (table === null) abacus.append(drawWire(face));');
-    expect(render).toContain('if (frame === null) abacus.prepend(drawWire(face));');
-    // The frame is built after the sheet is on screen: the stage measures its box.
-    expect(render.indexOf('container.hidden = false;')).toBeLessThan(render.indexOf('mountBeadAwardFrame('));
+    expect(render).toContain('if (table !== null && renderPage(news, face, table)) return;');
+    expect(render).toContain('renderSheet(face);');
+    expect(braceBody(modal, 'function renderSheet(')).toContain('abacus.append(drawWire(face));');
+    const page = braceBody(modal, 'function renderPage(');
+    expect(page).toContain('if (frame === null) {');
+    expect(page).toContain('return false;');
+    // The frame is built after the page is on screen: the stage measures its box.
+    expect(page.indexOf('container.hidden = false;')).toBeLessThan(page.indexOf('mountBeadAwardFrame('));
+  });
+
+  it('is a full-screen page with the name, the frame, the count line and Proceed, and no other text', () => {
+    // The user, 2026-11-18: "too much text in this description, and the purple
+    // dot on the top feels amateurish. Let's just have the title ... and the
+    // abacus, full screen with the animation."
+    const page = braceBody(modal, 'function renderPage(');
+    expect(page).toContain("container.classList.add('is-bead-page');");
+    expect(page).toContain("element('h2', 'bead-page-title', face.name)");
+    expect(page).toContain("element('figcaption', 'bead-award-tally', face.tally)");
+    expect(page).toContain('footOf(face)');
+    for (const gone of ['bead-award-crest', 'beadChipNode(', 'face.line', 'face.deed', 'face.boon']) {
+      expect(page, gone).not.toContain(gone);
+    }
+    const css = uiSource('style.css');
+    const overlay = css.slice(css.indexOf('.triumph-overlay.is-bead-page {'));
+    expect(overlay.slice(0, overlay.indexOf('}'))).toContain('padding: 0;');
+    // The frame fills the window, as the Opus close's page does.
+    expect(css).toMatch(/\.bead-page-abacus \{\s*position: absolute;\s*inset: 0;/);
+    expect(css).toMatch(/\.bead-award-stage \{\s*position: absolute;\s*inset: 0;\s*\}/);
   });
 
   it('slides the bead only where the 2D rod would have animated it', () => {
     expect(modal).toContain('mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null)');
+  });
+
+  it('leaves the page’s text where the player can still read it', () => {
+    // The chronicle's line names the bead, its family and what it paid, and the
+    // bead ledger prints each bead row's text (its "What pays a bead" list).
+    const controls = uiSource('controls.ts');
+    expect(controls).toContain('announce(`A bead: ${award.name} (${family})${paid}`');
+    const ledger = uiSource('beadsScreen.ts');
+    expect(braceBody(ledger, 'function drawGrants(')).toContain('setDescriptorText(deed, face.deed');
   });
 
   it('gives the WebGL context back when the sheet moves on or closes', () => {

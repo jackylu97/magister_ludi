@@ -349,6 +349,17 @@ describe('a tribute', () => {
     expect(paid).toEqual([{ source: 'Tribute from the Ada', gold: 4, kind: 'bill' }]);
   });
 
+  it('names a seat under a figure by its people, never by its palette name', () => {
+    // 2026-11-18, the user: "it reads your leader instead". The line reads the
+    // seat's people after "the", as the diplomacy screen does.
+    const state = bench();
+    state.players[1]!.leader = 'pachacuti';
+    applyCommand(state, propose(0, 1, { goldPerTurn: 4 }, {}));
+    applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: onlyProposal(state) });
+    const payer = explainEmpireGold(state, 0).filter((line) => line.source.startsWith('Tribute'));
+    expect(payer.map((line) => line.source)).toEqual(['Tribute to the Inca']);
+  });
+
   it('stops the moment the bargain does', () => {
     const state = bench();
     applyCommand(state, propose(0, 1, { goldPerTurn: 4 }, {}));

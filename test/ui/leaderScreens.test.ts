@@ -233,8 +233,15 @@ describe('the new game screen', () => {
     const seated = seatLeaders(rosterFor(4), FIRST, 7);
     expect(seated[0]!.leader).toBe(FIRST);
     expect(seated.slice(1).map((spec) => spec.leader)).toEqual(rivalLeaders(FIRST, 3, 7));
-    // And nothing else on a spec moved.
-    expect(seated.map((spec) => spec.name)).toEqual(rosterFor(4).map((spec) => spec.name));
+    // And a seat under a figure is named by it, never by its palette colour
+    // (2026-11-18, "it reads your leader instead").
+    expect(seated.map((spec) => spec.name)).toEqual(seated.map((spec) => leaderDef(spec.leader!).name));
+    expect(seated.map((spec) => spec.name)).not.toContain('Crimson');
+  });
+
+  it('keeps the palette name on a seat under no figure', () => {
+    const seated = seatLeaders(rosterFor(3), NO_LEADER, 7);
+    expect(seated[0]!.name).toBe(rosterFor(3)[0]!.name);
   });
 
   it('leaves a seat under no figure byte-identical to one from before leaders', () => {
