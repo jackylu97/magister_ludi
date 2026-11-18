@@ -2860,3 +2860,34 @@ optimization." The recommendation was:
    decides from the board as it stood at the start of the turn's bot step, in
    its own worker. Results change once. This replaces the earlier "pins
    identical" condition, which stage B showed is not reachable.
+
+## Age turn-over: a missing plate, the abacus motion, and a faster clock (2026-11-18)
+
+The user, 2026-11-18, from a game on the play server at about turn 70: "no, i
+didnt see it during the world's age turns over. I also dont see a new abacus
+animation (it uses the 2d abacus animation, when ideally it should be the 3D
+one)."
+
+- **Fault: the age plate did not show** when the world's age turned over.
+  Find the cause before any fix.
+- **The age turn-over's abacus motion must use the 3D abacus**, not the 2D one.
+- **The clock turns over sooner.** The user: "The age rollover should probably
+  be more aggressive too, once any player has reached age 3, or if half the
+  players have reached age 2, it should trigger the countdown for age
+  roll-over." Reading taken (to confirm with the user): the countdown that
+  closes age N starts when any living seat has reached age N+2, or when at
+  least half of the living seats have reached age N+1. This replaces the
+  floored mean in `worldAge` (`src/sim/worldClock.ts`). The countdown length
+  (`rules.wager.countdown`) stays. Built after the bot order fault batch lands,
+  because both cut the digest pins.
+- **A styling pass for the 3D abacus** is scheduled (the user: "Could you also
+  schedule a styling pass for the 3d abacus?"). Design options first, with
+  pictures.
+
+## Rendering focus: the ground paint texture (2026-11-18)
+
+The user: "Let's defer the zoom and scroll cache for now, and focus on the
+ground paint texture, i have a feeling that should speed things up
+considerably." The scroll cache and its zoom handling are deferred. The baked
+ground paint, with a coarser ground mesh at far zooms, is the next rendering
+build. It starts when the fifth pass reports.
