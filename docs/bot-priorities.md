@@ -796,9 +796,9 @@ measurements are the section "BP13" of `docs/plans/performance-pass-2026-11-06.m
   it.** The swap arm (`swapDecision`, `writeSwap`) asks the receiver's verdict
   (`dealVerdict`, the three clauses `answerProposal` answers with: the paper
   pays, something arrives, no last copy is asked) on the receiver's own sheet
-  and context (`receiverReader`). The receiver's full context is built only
-  when its cards count copies lent or deal partners; without such a card the
-  verdict reads nothing else of the context. Before BP13 more than four
+  (`receiverReader`). Since BP16 it reads none of the receiver's prices: on a
+  bot's swap they can only make the paper better for the receiver, so the
+  verdict is the last-copy clause (see BP16 below). Before BP13 more than four
   papers in five were sent back, almost all for the receiver's last copy,
   which the writer did not ask about.
 - **The papers already standing count.** A copy offered in a paper still on
@@ -1000,6 +1000,49 @@ that stays home"; the measurements are the section "BP15" of
   releases its march claim (`spadeClaims`). The threat to each hex is read once
   a sitting (`BotSitting.hexThreats`); the guard on it is read live. No knob:
   `workers.guardTurns` at nought turns this off with the guards.
+
+**The audit's safe items: the heal arm, diplomacy once a sitting, and the spend
+arm's empty answer** (bot batch BP16, stage A; `docs/flags.md`, the bullet
+"BP16: the audit's safe items, then parallel bots"; the findings are T2, T3 and
+T4 of `docs/plans/bot-simplification-audit-2026-11-17.md`, and the measurements
+are the section "BP16" of `docs/plans/performance-pass-2026-11-06.md`).
+
+- **A hurt piece already dug in on its own ground rests** (`restAndHeal`,
+  `soldierCommand`). The heal arm answers `'resting'` for it, and the soldier
+  arm sends it nothing, so the hunt (`wakeTheHunt`) and the campaign
+  (`wakeTheCampaign`) no longer call it out. Before BP16 the arm said nothing
+  for such a piece, because `fortifyError` refuses "already fortified"; the
+  piece was called out to a camp or a muster and the fall-back walked it home
+  again. A piece that is not yet dug in still digs in, as before.
+- **Diplomacy is asked until it has nothing to say, once a sitting**
+  (`BotSitting.abroadQuiet`, `decideNext`). Every paper on the table when the
+  seat sits down is answered in that sitting, because the other seats send
+  papers only in their own sittings and the asks go on while each answers.
+  What waits one turn is an answer whose reasons the seat's own later commands
+  change in the same sitting: a declaration after it buys soldiers, a peace
+  suit after a battle, a raze of a town it took this sitting, a swap for a copy
+  it gained this sitting. The audience (`answerAudience`) is unchanged.
+- **The writer reads a bot receiver's verdict with no prices**
+  (`receiverReader`). On a bot's swap what arrives is a kind the receiver
+  lacks, at the luxury baseline, plus any coin a sweetened paper adds; what
+  leaves is one kind at the same baseline, less the share the receiver keeps
+  while it is lent. The two terms that read the receiver's prices (a new deal
+  partner, what lent copies pay its cards) only add to its side. So the
+  verdict is the last-copy clause alone, and no context of another seat is
+  built. A test pins it with a receiver that holds both kinds of card.
+- **The spend arm keeps "nothing to buy" for the sitting**
+  (`BotSitting.spendQuiet`, `bankSpend`). A bank that answers nothing before
+  any live gate is asked keeps that answer while the purse in that bank, the
+  gold reserve and the running routes stand, and while the sitting's record of
+  the next route after a hire is the same record. The book and its bar are
+  fixed for the sitting. A "nothing" reached after a gate struck a row is not
+  kept. The decision memo's shadow switch (`setDecisionMemoShadow`) reads every
+  kept answer again and throws when the two differ. The answers are the same.
+- **The want book prices a purchase once** (`reachOf`). The simulation's gate
+  (`purchaseGate`, `purchase.ts`) now hands back the price it compared against
+  the bank, and the book reads it there; only a unit with a piece of the seat
+  in the town's hex, refused before the bank, is priced again. The answers are
+  the same.
 
 ## Personas and tuning
 

@@ -42,6 +42,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { typedChiefdomInThisBlock } from './chiefdomHelpers';
 
 import {
+  botSitting,
   chooseProduction,
   nextBotDecision,
   puppetProduction,
@@ -1532,6 +1533,33 @@ describe('the campaign', () => {
     const decision = orderFor(state, 0, column[0]!.id);
     const target = (decision!.command as { target: { col: number; row: number } }).target;
     expect(hexesTo(state, target, theirs)).toBeGreaterThanOrEqual(aiConfigFor(undefined).war.musterDistance);
+  });
+
+  /**
+   * Bot batch BP16 (the audit's T4): a hurt piece that is already dug in on its
+   * own ground is resting, so the campaign does not call it back to the
+   * colours. Before the fix the heal arm said nothing for it ("already
+   * fortified"), the campaign sent it to the muster, and the fall-back walked it
+   * home again on the next turn.
+   */
+  it('leaves a hurt piece dug in on its own ground to mend, and calls the healthy ones', () => {
+    const { state, ours, column } = frontier({ soldiers: 3, bow: false });
+    for (const piece of column) piece.fortifiedTurns = 2;
+    const hurt = column[0]!;
+    hurt.hp = 30;
+    state.tileOwner[tileIndex(state.map, hurt.col, hurt.row)] = ours.id;
+    bumpRevision(state);
+    const sitting = botSitting(0);
+    const sent: BotDecision[] = [];
+    for (let step = 0; step < 120; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      sent.push(decision);
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+    }
+    expect(sent.some((decision) => /^Calls a dug-in piece back to the colours/.test(decision.summary))).toBe(true);
+    expect(sent.filter((decision) => (decision.command as { unitId?: number }).unitId === hurt.id)).toEqual([]);
+    expect(hurt.fortifiedTurns).not.toBeUndefined();
   });
 
   // --- (b) the push, and the siege exchange ---------------------------------

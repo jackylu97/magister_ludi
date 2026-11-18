@@ -95,7 +95,6 @@ import {
   nest,
 } from './decision';
 import { type ValueContext, explainCountStep } from './value';
-import { effectsOfKind } from '../sim/statecraft/evaluator';
 import type { CountKind } from '../sim/statecraftData';
 import { voiceWeight } from './prices';
 
@@ -155,11 +154,11 @@ export function diplomacyDecision(
   player: Player,
   ctx: ValueContext,
   /**
-   * Another seat's context as its own sitting would read it now (bot batch
-   * BP13), for the swap arm to ask a bot receiver's own reading of a paper
-   * before writing it. Absent, the arm writes as it did before BP13.
+   * True when the swap arm asks a bot receiver's own reading of a paper before
+   * writing it (bot batch BP13; `receiverReader`). The sitting passes true.
+   * False, the arm writes as it did before BP13, which some tests ask for.
    */
-  rivalContext?: (rival: Player) => ValueContext,
+  askReceivers = false,
 ): BotDecision | null {
   const answered = answerProposals(state, player, ctx);
   if (answered !== null) return answered;
@@ -171,7 +170,7 @@ export function diplomacyDecision(
   if (razed !== null) return razed;
   const war = declareDecision(state, player, ctx);
   if (war !== null) return war;
-  return swapDecision(state, player, ctx, rivalContext);
+  return swapDecision(state, player, ctx, askReceivers);
 }
 
 // --- who counts -------------------------------------------------------------
@@ -582,8 +581,7 @@ function explainStanding(
  * board, the seat, its sheet, what one more step of a counted line pays it
  * (`explainCountStep`), and its price of a coin (`voiceWeight`). The functions
  * below read a context through this and nothing else, so another seat can ask
- * a seat's own reading of a paper (`receiverReader`) without building that
- * seat's whole book when the reading does not need it.
+ * a seat's own reading of a paper (`receiverReader`) without that seat's book.
  */
 interface PaperReader {
   state: GameState;
@@ -605,29 +603,42 @@ function contextReader(ctx: ValueContext): PaperReader {
 }
 
 /**
- * **Another seat's own reading of a paper, asked by the seat that would write
- * it** (bot batch BP13). The same functions the receiver answers with
- * (`dealVerdict`), on the receiver's sheet. Its full context (`contextOf`, the
- * one `valueContext` builds) is built only when the reading needs it: a
- * counted line of the receiver's cards that pays by the copies it has lent or
- * by its deal partners (`explainCountStep` on `copiesLent` or `dealPartners`),
- * whose worth is in the receiver's prices. Without such a line that step pays
- * nothing whatever the prices, so the reading is the same with or without the
- * context, and the price of a coin is read only beside such a step.
+ * **Another seat's own reading of a swap, asked by the seat that would write
+ * it** (bot batch BP13): the same `dealVerdict` the receiver answers with, on
+ * the receiver's sheet, with no prices.
+ *
+ * **Why no prices** (bot batch BP16, the audit's finding 23). Before BP16 this
+ * reader built the receiver's whole context (`valueContext`) when one of its
+ * cards counts deal partners or lent copies, for the two terms that read its
+ * prices: a new deal partner (`newPartnerTerm`) and what the copies lent pay
+ * its cards (`lendingTerms`). On the paper a bot writes in `swapDecision`
+ * neither term can decide the verdict:
+ *
+ *   · what arrives is a kind the receiver lacks, at `war.luxuryGoldBaseline`,
+ *     and a sweetened paper only adds coin to it (`counterTerms`);
+ *   · what leaves is one kind at the same baseline, less the share The
+ *     Commenda keeps (read from the state, not from prices);
+ *   · so with the two price terms at nought the total is the added coin plus
+ *     the kept share, which is never below nought, and what arrives is at
+ *     least the baseline (its bounds are 40 to 300);
+ *   · the partner term only adds to what arrives, and the lent term only takes
+ *     away from what leaves, so with prices the total is at least as high.
+ *
+ * So the verdict is the last-copy clause alone, with or without the prices,
+ * and no context of another seat is built. `test/sim/aiDiplomacy.test.ts` pins
+ * it: a receiver holding both kinds of card signs, on its own full context,
+ * every swap a bot writes to it. A paper term that ever costs the receiver by
+ * its prices must bring the context back here.
  */
-function receiverReader(state: GameState, receiver: Player, contextOf: () => ValueContext): PaperReader {
-  let ctx: ValueContext | null = null;
-  const full = (): ValueContext => (ctx ??= contextOf());
-  const counted = (count: CountKind): boolean =>
-    effectsOfKind(state, receiver.id, 'pays').some(
-      ({ effect }) => effect.basis === 'count' && effect.count === count,
-    );
+function receiverReader(state: GameState, receiver: Player): PaperReader {
   return {
     state,
     playerId: receiver.id,
     ai: aiConfigFor(receiver.persona, receiver.id),
-    countStep: (count, step) => (step > 0 && counted(count) ? explainCountStep(count, step, full()) : appraise([])),
-    goldWeight: () => voiceWeight(full(), 'gold'),
+    countStep: () => appraise([]),
+    // Read only beside a counted step that pays something (`dealCoinTerm`), and
+    // `countStep` above pays nothing, so this is never asked.
+    goldWeight: () => 1,
   };
 }
 
@@ -2222,7 +2233,7 @@ function nearestTownInReach(
  * equally good swaps is offered is a fact the replay reproduces.
  *
  * **Since bot batch BP13 a bot receiver's own reading decides** (`dealVerdict`
- * on `receiverReader`, given `rivalContext`). The end check of bot pass 3 found
+ * on `receiverReader`, when `askReceivers`). The end check of bot pass 3 found
  * about three papers a turn and one in seven signed; on seed 999 at turns 50 to
  * 136, 130 of 133 refusals were the receiver's last copy, which this arm did
  * not ask about before the first paper (`docs/plans/performance-pass-2026-11-06.md`,
@@ -2235,7 +2246,7 @@ function swapDecision(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  rivalContext?: (rival: Player) => ValueContext,
+  askReceivers: boolean,
 ): BotDecision | null {
   // A swap lends a luxury, so a seat under The Forbidden Silks has none to offer
   // (batch DT7). `writeSwap` would refuse each paper one at a time.
@@ -2268,8 +2279,7 @@ function swapDecision(
     }
     // A bot receiver's own reading decides (`dealVerdict`); a person is asked
     // the plain swap, as before BP13.
-    const reader =
-      rivalContext !== undefined && !enemy.isHuman ? receiverReader(state, enemy, () => rivalContext(enemy)) : null;
+    const reader = askReceivers && !enemy.isHuman ? receiverReader(state, enemy) : null;
     // The papers other seats have standing with this receiver: what they ask of
     // it leaves it, and what they offer it may arrive first.
     const others = state.dealProposals.filter((row) => row.to === enemy.id && row.by !== player.id);

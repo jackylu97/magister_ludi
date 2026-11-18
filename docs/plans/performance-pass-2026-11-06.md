@@ -3290,3 +3290,103 @@ The user asked what else could make bot games faster. Estimates are shares of a 
 - Tests: `test/sim/empireLinesAtRest.test.ts`, `aiBeelineTable.test.ts`, `aiSittingStamps.test.ts`, `aiWorkerHome.test.ts` (new); `test/sim/aiDigest.slow.test.ts` (the pins); `test/ui/topBar.test.ts` and `test/ui/topBarCost.test.ts` (one line each).
 - `docs/bot-priorities.md`, and this section.
 - Scratch (not in the repo), in the session's scratch folder `bp15/`: the probe `probe.ts`, `census.ts`, `ctxcensus.ts`, `arms.ts` with `armpatch.py`, `seats.ts`, BP14's `pair.ts`, `prof14.ts` and `snap14.ts`, the queues, `digests.py`, `table15.py` and `workers15.py`, the profile readers (with `profwhere.cjs`), the snapshots in `snaps/`, the logs in `logs/`, and the games in `out/` (`before/` and `after/`, with `PROBE.ts` and a `NOTES.md` for the baseline folder). The scratch trees (`base/`, `inst/`, `s1/`, `s2/`, `s2arms/`, `pre14/`) were removed at the end.
+
+## BP16: the audit's safe items, then parallel bots, 2026-11-17
+
+`docs/flags.md`, the bullet "BP16: the audit's safe items, then parallel bots". The user: *"lets gp for 1 and 2."* Stage A takes the three safe items of `docs/plans/bot-simplification-audit-2026-11-17.md` (T4, T2, T3). Play may change; the pins are cut once and five seeds are checked. No knob, no data and no rule changed.
+
+### Method
+
+- **Trees.** The **base tree** is `aba435ea` (the head of `decks`: BP15 at `843b2d55` and the flags commit; the same bot and rules as `843b2d55`), a clean detached worktree. The **stage A tree** is the base with this stage's files copied in (`freeze.sh`). A **T3-only tree** is the base with only the spend arm's memo and the gate's price (T3), to show that T3 changes no play. Each was a scratch worktree outside the repo.
+- **The before games.** The `843b2d55` baseline's `PROBE.ts` with one more key, `w.moves` (each accepted march: the piece, the target, its type, and its reason, with a re-ask's prefix cut so the arm under it shows), played on the base tree for the five seeds. All five reached the stored digests of `/Users/jacky/code/webciv-baselines/843b2d55/six-seat-standard-t100/` at turns 20, 50, 75 and 100 (seed 42 `4f531faa:961790`, 999 `eac67e9e:1002567`, 1 `ebbcdfc7:950214`, 7 `c53c1f9e:1017553`, 2026 `c3d2aa88:959943`).
+- **Flips** are the audit's: a piece's march target returns to the target of its order two before, with a different target between, inside three turns. A flip is a hurt piece's when the fall-back ("Too hurt to be out here") and the hunt or the campaign call-out are among its three orders.
+- **A census** of diplomacy on the base tree (one logging line in `decideNext`, in a scratch copy): every ask, by sitting, and which answers came after an ask in the same sitting that had nothing to say. Those are the answers the new rule sends a turn later. The census reached the stored digests on all five seeds.
+- **Timings.** BP14's `pair.ts`: a turn-90 snapshot of the base tree restored into both trees in one process, a turn each in rotation, three repeats. CPU seconds by `process.cpuUsage`. One game process of mine at a time, `nice -n 15` under `caffeinate -i`.
+- **Machine.** Shared with other agents. The load average was 3 to 9 during the timings, with one spike to 32 at the start of seed 42's.
+
+### 1. The heal arm and the dug-in piece (T4)
+
+- **Cause.** `restAndHeal` answered nothing for a hurt piece that was already fortified, because `fortifyError` refuses "already fortified". So `soldierCommand` went on to the escort, the blows and the marches. `wakeTheHunt` and `wakeTheCampaign` ask exactly such pieces, called them out to a camp or a muster, and `fallBackAndHeal` walked them home again on the next turn (or, in the campaign's case, in the same sitting).
+- **Change.** `restAndHeal` answers `'resting'` for a hurt piece on its own ground that is already dug in, and `soldierCommand` then sends it nothing. A piece that is not dug in still digs in, and the decisive-blow exception is unchanged.
+- **Tests** (both failed before the fix): `test/sim/aiCampHunt.test.ts`, "leaves a hurt piece dug in on its own ground to mend, and calls the others out"; `test/sim/aiWar.test.ts`, "leaves a hurt piece dug in on its own ground to mend, and calls the healthy ones". Each drives a whole sitting: the healthy dug-in pieces are called out, the hurt one is sent nothing and is still dug in.
+- **Measured.** A hurt piece called out and walked home: 64 flips before, 2 after, five seeds (8→0, 10→1, 13→1, 14→0, 19→0). All flips: 743 → 715, which is inside the noise of games that part (part 4).
+
+### 2. Diplomacy once a sitting (T2)
+
+- **Change.** `decideNext` asks `diplomacyDecision` at every decision until the first one where it answers nothing, and then not again in the sitting (`BotSitting.abroadQuiet`). This is the audit's "first ask" rule, kept going while each ask answers, so several papers on the table are all answered.
+- **Incoming papers are answered at once.** Bot-to-bot papers are sent only in the sender's sitting, so every paper standing for a seat is on the table when it sits down, and it is answered in that sitting. The audience (`answerAudience`, a person's paper) is unchanged. In the census no answer to a paper (`acceptDeal`, `declineDeal`) came after a quiet ask: 0 of 94.
+- **What waits one turn**, by the census (base tree, five seeds, turns 1 to 100): 57 of 255 answers came after a quiet ask in the same sitting. They were 53 swap papers (`proposeDeal`: a copy the seat gained in the sitting, for example a plantation laid), 3 peace papers and 1 declaration. Per seed: 7 of 28, 18 of 95, 10 of 39, 11 of 52, 11 of 41. The asks fall from 26,092 (8.7 a sitting) to about one a sitting plus one for each answer.
+- **The swap writer reads a bot receiver's verdict with no prices** (the audit's finding 23, `receiverReader`). Checked in code: on a bot's swap what arrives is a kind the receiver lacks at `war.luxuryGoldBaseline` (bounds 40 to 300), plus any coin a sweetened paper adds (`counterTerms` only adds coin); what leaves is one kind at the same baseline, less the share the receiver keeps while it is lent. The two terms that read the receiver's prices, a new deal partner and what lent copies pay its cards, only add to its total. So the verdict is the last-copy clause alone. The receiver's context and the callback that built it in `decideNext` are gone, and `diplomacyDecision` takes a switch (`askReceivers`) in its place.
+- **Tests** (`test/sim/aiDiplomacy.test.ts`): two papers put to a seat before its sitting are both answered in it, and the seat is quiet after; a paper that reaches a seat after it fell quiet waits for its next sitting; and a receiver holding The Treaty Ports and Export Guilds signs, on its own full context, the swap a bot wrote with no prices, with both price terms printed in its answer.
+
+### 3. The spend arm's empty answer, and one price a purchase (T3)
+
+- **Change.** `bankSpend` keeps a "nothing to buy" reached before any live gate for the sitting (`BotSitting.spendQuiet`, one a bank). The key is what that answer reads: the purse in the bank (`purseOf`), the gold reserve (`goldReserveFor`; nought in the other banks), the running routes (`usedRouteSlots`), and the sitting's record of the next route after a hire (`routeOffer`, by identity). The book and its bar are the sitting's context's and do not change in the sitting. A "nothing" after a gate struck a row is not kept. The purse is read once a call instead of once a row. Faith and culture now get the sitting too, for the memo; only gold reads the next route.
+- **The want book prices a purchase once** (the audit's finding 4). `purchaseGate` (`src/sim/purchase.ts`) hands back the price its bank clause compared (`price`, set when the gate reached the bank), and `reachOf` reads it. Only a unit with a piece of the seat in the town's hex, refused before the bank, is priced again.
+- **Proof that the answers are the same.**
+  - With T3 alone on the base tree, seeds 42 and 999 to turn 100 gave the stored digests at turns 20, 50, 75 and 100, and both digest pins held unchanged.
+  - The decision memo's shadow switch (`setDecisionMemoShadow`) now covers the kept answer too: every hit is read again and the arm throws if the fresh answer is not the same "nothing before a gate". With it on, the whole of stage A played seeds 42 and 999 to turn 100 with no throw and the same digests as without it. 12,014 of 14,251 asks (seed 42) and 13,191 of 15,605 (seed 999) were handed the kept answer.
+- **Tests.** `test/sim/aiDecisionMemo.test.ts`: the four-seat shadow game now also asserts that more than 50 kept answers were checked, and a new test asserts that a second ask in a sitting is kept and that a coin more in the purse is read again. `test/sim/purchase.test.ts` and `test/sim/decks/commercePurse.test.ts` pin the gate's `price` against `explainPurchaseCost`.
+
+### 4. Five seeds to turn 100
+
+Six seats summed. Before is the base tree, after the stage A tree. Paired is the geometric mean of the per-seed ratios with a 95% t interval.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 302 | 294 | −2% [−20%, +20%], 4 down, 1 up | 54→51, 73→66, 47→61, 70→67, 58→49 |
+| Citizens | 1,859 | 1,717 | −7% [−31%, +27%], 4 down, 1 up | 401→300, 466→370, 262→364, 390→389, 340→294 |
+| Food | 7,006 | 6,662 | −2% [−29%, +35%], 4 down, 1 up | 1,579→1,177, 1,661→1,481, 859→1,289, 1,785→1,615, 1,122→1,100 |
+| Production | 9,295 | 6,887 | −17% [−46%, +27%], 4 down, 1 up | 1,277→1,069, 2,011→1,773, 944→1,206, 4,043→1,965, 1,020→874 |
+| Gold | 3,191 | 3,087 | −3% [−33%, +42%], 3 down, 2 up | 466→446, 964→1,060, 340→512, 893→705, 528→364 |
+| Science | 4,611 | 4,379 | −2% [−30%, +37%], 4 down, 1 up | 864→716, 1,360→1,120, 540→847, 944→830, 903→866 |
+| Culture | 2,238 | 2,302 | +9% [−37%, +86%], 3 down, 2 up | 282→242, 692→685, 223→454, 691→455, 350→466 |
+| Faith | 1,071 | 969 | −8% [−35%, +30%], 4 down, 1 up | 204→186, 247→246, 129→177, 249→158, 242→202 |
+| Improvements started, turns 1 to 100 | 1,337 | 1,316 | −2% [−11%, +9%], 3 down, 2 up | 235→222, 320→290, 234→251, 296→319, 252→234 |
+| Workers built | 454 | 440 | −3% [−9%, +3%], 3 down, 2 up | 77→76, 105→96, 83→84, 103→105, 86→79 |
+| Workers taken (the wild and rivals) | 56 | 72 | +41% [−27%, +174%], 1 down, 4 up | 6→8, 5→15, 16→17, 19→14, 10→18 |
+| Soldiers lost to the wild | 263 | 232 | **−11% [−20%, −2%]**, 5 down, 0 up | 66→58, 31→28, 61→59, 39→36, 66→51 |
+| Deals proposed | 94 | 75 | −15% [−34%, +8%], 3 down, 1 up | 10→10, 36→25, 11→12, 18→14, 19→14 |
+| Deals signed | 88 | 74 | −11% [−28%, +9%], 3 down, 1 up | 10→10, 34→25, 10→11, 17→14, 17→14 |
+| Wars declared | 24 | 14 | −55% [−91%, +121%], 4 down, 1 up | 3→1, 8→1, 6→7, 6→5, 1→0 |
+| Flip-back orders | 743 | 715 | −3% [−24%, +23%], 3 down, 2 up | 135→126, 132→160, 130→150, 148→124, 198→155 |
+| of them a hurt piece called out and walked home | 64 | 2 | **−91% [−98%, −54%]**, 5 down, 0 up | 8→0, 10→1, 13→1, 14→0, 19→0 |
+
+- **Better for soldiers, neither for the economy.** The hurt-piece flips are gone on every seed, and soldiers lost to the wild fell on every seed (the only other interval that excludes nought). No yield moves with an interval that excludes nought. Production fell most (−17%), and most of that is seed 7, which was BP15's outlier at 4,043.
+- **Fewer wars, and not because a declaration waits.** The census found 1 declaration of 24 that the new rule would send a turn later. Seeds 42 and 999, where the drop is, part from turn 20 on (the digests differ from turn 50), so this reads as the games parting; five seeds cannot tell it from an effect. Deals fell less, and 53 swap papers over the five games wait a turn by the census.
+- Workers taken rose on four seeds of five (+41%), with an interval from −27% to +174%. Not studied further.
+
+### 5. Seconds a turn
+
+The base and the stage A tree from the base tree's turn-90 snapshot, in one process, a turn each in rotation, three repeats. CPU seconds of turns 90 to 100 (11 turns), and the bot's own CPU inside `nextBotDecision`.
+
+| Window | Tree | Repeat 1 | Repeat 2 | Repeat 3 | Bot, repeats 1 to 3 | Decisions |
+|---|---|---:|---:|---:|---|---:|
+| 42, turns 90 to 100 | base | 40.54 | 22.00 | 21.35 | 30.84, 16.85, 16.52 | 1,138 |
+| | stage A | 36.77 | 20.33 | 20.43 | 27.73, 14.92, 14.44 | 1,106 |
+| 999, turns 90 to 100 | base | 56.16 | 39.54 | 34.94 | 44.73, 32.12, 28.49 | 1,207 |
+| | stage A | 51.64 | 37.05 | 29.78 | 41.17, 28.41, 22.51 | 1,267 |
+
+- **The turn is 8% to 9% cheaper over the three repeats** (seed 42 −7.6%, seed 999 −9.3%), **and the bot 11% to 13%** (−11.1%, −12.6%). Per decision the bot is 9% and 17% cheaper; stage A made 3% fewer decisions on seed 42 and 5% more on seed 999, because its play differs.
+- Both base runs reached the stored digest at turn 100, so the snapshots replay the stored games.
+
+### Pins
+
+`test/sim/aiDigest.slow.test.ts`, cut once: duel `ec1eb394:358349` -> `973ac191:342552`, standard `70375d88:1021629` -> `604db3ce:1039518`. T3 alone moved neither. Neither board reported a warning or a stall. The digest file and `aiWants.slow.test.ts` were run again on the working tree with the new pins and passed.
+
+### Checks
+
+- Type check clean (`nice -n 15 npm run typecheck`).
+- Narrow tests, all passed: the brief's list (`aiBot`, `aiWar`, `aiDiplomacy`, `aiWorkerClaims`, `aiWorkerHold`, `aiWorkerGuards`, `aiWorkerHome`, `aiRouteMemo`, `aiDecisionMemo`, `aiEndCheckLoops`, `aiWants`, `verbs`, `test/mapgen/moduleCycles`, `test/ui/botWorker`), and the files that read the changed code or name its functions (`aiCampHunt`, `aiCommerce`, `aiModuleCycles`, `empireYieldAtRest`, `purchase`, `decks/commercePurse`, `tilePurchaseGate`, `weariness`, `test/ui/dealMemory`, `test/ui/seatNames`).
+- Slow tier: `aiDigest.slow.test.ts` on the T3-only tree (pins unchanged), on the stage A tree (the new pins read off it), and on the working tree with the new pins; `aiWants.slow.test.ts` on the working tree. The whole core tier, the build and the rest of the slow tier are the orchestrator's.
+
+### Files
+
+- `src/ai/bot.ts`: `restAndHeal` and `soldierCommand` (T4); `BotSitting.abroadQuiet` and `decideNext` (T2); `BotSitting.spendQuiet`, `bankSpend` and `readBankSpend`, and `spendCommand` hands the sitting to every bank (T3).
+- `src/ai/diplomacy.ts`: `diplomacyDecision` and `swapDecision` take `askReceivers`; `receiverReader` reads no prices.
+- `src/ai/wants.ts`: `reachOf` reads the gate's price.
+- `src/ai/decisionMemo.ts`: the spend memo's two tallies.
+- `src/sim/purchase.ts`: `purchaseGate` hands back `price`.
+- Tests: `test/sim/aiCampHunt.test.ts`, `aiWar.test.ts`, `aiDiplomacy.test.ts`, `aiDecisionMemo.test.ts`, `purchase.test.ts`, `decks/commercePurse.test.ts`, and the pins in `aiDigest.slow.test.ts`.
+- `docs/bot-priorities.md`, and this section.
+- Scratch (not in the repo), in the session's scratch folder `bp16/`: `probe.ts`, `gamesq.sh`, `freeze.sh`, `play.ts`, `pair.ts`, `diplocensus.ts`, `table16.py`, `slow.sh`, the queues `qA2.sh` and `qA3.sh`, the snapshots in `snaps/`, the logs in `logs/`, and the games in `out/` (`before2/` and `stageA/`, each with `PROBE.ts`; `stageA/` has a `NOTES.md` for the baseline folder). The T3-only and census trees were removed; the base and stage A trees (`before/`, `stageA/`) are kept for the stages that follow and will be removed at the end.

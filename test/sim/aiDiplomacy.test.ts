@@ -29,7 +29,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AI } from '../../src/ai/aiConfig';
-import { valueContext } from '../../src/ai/bot';
+import { type BotSitting, botSitting, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { dealMemorySize, pendingDealRefusal, rememberDealRefusal } from '../../src/ai/dealMemory';
 import type { BotDecision } from '../../src/ai/decision';
 import { foldTerms } from '../../src/ai/decision';
@@ -37,7 +37,7 @@ import { counterRefusal, counterTerms, diplomacyDecision } from '../../src/ai/di
 import { answerAudience } from '../../src/ai/driver';
 import { applyCommand } from '../../src/sim/commands';
 import { type Command } from '../../src/sim/commands';
-import type { DealTerms } from '../../src/sim/deals';
+import { type DealTerms, proposalsFor } from '../../src/sim/deals';
 import { foundCityAt, hasResource, lendableCopies, resourceCopies } from '../../src/sim/cities';
 import { dealSideError } from '../../src/sim/diplomacy';
 import { type Game, dispatch } from '../../src/sim/game';
@@ -624,12 +624,12 @@ describe('a seat under The Forbidden Silks (batch DT7)', () => {
 
 /**
  * **Seat 0's next paper, with the receivers' own readings** (bot batch BP13):
- * the harness's door, where the swap arm is handed each bot rival's context as
- * its own sitting would read it.
+ * the harness's door, where the swap arm asks each bot rival's own verdict
+ * before it writes.
  */
 function signedPaper(game: Game): BotDecision | null {
   const state = game.state;
-  return diplomacyDecision(state, playerById(state, 0)!, ctxFor(state, 0), (rival) => valueContext(state, rival));
+  return diplomacyDecision(state, playerById(state, 0)!, ctxFor(state, 0), true);
 }
 
 /**
@@ -701,6 +701,34 @@ describe('a bot puts a paper to a bot only when the receiver\'s own reading sign
     const paper = signedPaper(game)!;
     expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['silk'] } });
   });
+
+  /**
+   * Bot batch BP16 (the audit's finding 23): the writer asks the receiver's
+   * verdict with no prices, because on a bot's swap the two terms that read the
+   * receiver's prices only make the paper better for it. This board gives the
+   * receiver both cards that price a deal (The Treaty Ports counts deal
+   * partners, Export Guilds counts lent copies), so its own answer, on its own
+   * full context, prints both terms. It still signs exactly what was written.
+   * If a paper term ever costs the receiver by its prices, it sends this paper
+   * back, and `receiverReader` must take the receiver's context again.
+   */
+  it('writes only what the receiver signs on its own prices, when its cards price the deal', () => {
+    const game = swapBench({ silk: 2 });
+    const receiver = playerById(game.state, 1)!;
+    for (const card of ['theTreatyPorts', 'exportGuilds']) {
+      receiver.statecraft.orders.push(card as never);
+      receiver.statecraft.slots.push({ card: card as never, sealedUntil: game.state.turn });
+    }
+    bumpRevision(game.state);
+    const paper = signedPaper(game)!;
+    expect(paper.command.type).toBe('proposeDeal');
+    expect(dispatch(game, paper.command).ok).toBe(true);
+    const answer = answerAudience(game, { seatId: 1, askerId: 0, dealId: game.state.dealProposals[0]!.id })!;
+    expect(answer.command.type).toBe('acceptDeal');
+    const words = JSON.stringify(answer.candidates);
+    expect(words).toContain('a new deal partner, which this seat’s cards count');
+    expect(words).toContain('less what the copies lent pay this seat’s cards');
+  });
 });
 
 describe('the papers already standing (bot batch BP13)', () => {
@@ -737,6 +765,68 @@ describe('the papers already standing (bot batch BP13)', () => {
     expect(paper.command).toMatchObject({ type: 'proposeDeal', targetId: 2 });
     const crowded = paper.candidates.find((row) => (row.rejected ?? '').includes('another empire'));
     expect(crowded?.rejected).toContain('already asks the');
+  });
+});
+
+// --- diplomacy once a sitting (bot batch BP16) ------------------------------
+
+describe('diplomacy is asked until it has nothing to say, once a sitting (bot batch BP16)', () => {
+  /** Seat 1's sitting, driven to its end: the decisions it sent. */
+  function sit(game: Game, sitting: BotSitting): BotDecision[] {
+    const sent: BotDecision[] = [];
+    for (let step = 0; step < 80; step++) {
+      const decision = nextBotDecision(game.state, 1, sitting);
+      if (decision === null) break;
+      sent.push(decision);
+      expect(dispatch(game, decision.command).ok).toBe(true);
+    }
+    return sent;
+  }
+
+  it('answers every paper on the table in the same sitting, and asks no more once it is quiet', () => {
+    // Seat 1 holds two silk. Seats 0 and 2 each put it a paper before its
+    // sitting, as earlier seats in the turn do.
+    const game = threeSeats();
+    const theirs = game.state.cities.find((city) => city.ownerId === 2)!;
+    giveLuxury(game.state, theirs, 21, 3, 'spices');
+    giveLuxury(game.state, theirs, 22, 3, 'spices');
+    bumpRevision(game.state);
+    for (const [by, give] of [
+      [0, 'wine'],
+      [2, 'spices'],
+    ] as const) {
+      const paper = { type: 'proposeDeal', playerId: by, targetId: 1, give: { luxuries: [give] }, take: { luxuries: ['silk'] } };
+      expect(dispatch(game, paper as unknown as Command).ok).toBe(true);
+    }
+    const sitting = botSitting(1);
+    const sent = sit(game, sitting);
+    const answers = sent.filter((decision) => decision.command.type === 'acceptDeal' || decision.command.type === 'declineDeal');
+    expect(answers.length).toBe(2);
+    expect(proposalsFor(game.state, 1).filter((row) => row.to === 1)).toEqual([]);
+    expect(sitting.abroadQuiet).toBe(true);
+  });
+
+  it('leaves a paper that reaches it after it fell quiet for its next sitting', () => {
+    const game = threeSeats();
+    const sitting = botSitting(1);
+    // Decide until diplomacy has been asked and had nothing to say. The arms
+    // before it (the offers, the purse) may answer the first decisions.
+    for (let step = 0; step < 20 && !sitting.abroadQuiet; step++) {
+      const decision = nextBotDecision(game.state, 1, sitting);
+      if (decision === null) break;
+      expect(dispatch(game, decision.command).ok).toBe(true);
+    }
+    expect(sitting.abroadQuiet).toBe(true);
+    const theirs = game.state.cities.find((city) => city.ownerId === 2)!;
+    giveLuxury(game.state, theirs, 21, 3, 'spices');
+    giveLuxury(game.state, theirs, 22, 3, 'spices');
+    bumpRevision(game.state);
+    const paper = { type: 'proposeDeal', playerId: 2, targetId: 1, give: { luxuries: ['spices'] }, take: { luxuries: ['silk'] } };
+    expect(dispatch(game, paper as unknown as Command).ok).toBe(true);
+    expect(sit(game, sitting).some((decision) => decision.command.type === 'acceptDeal' || decision.command.type === 'declineDeal')).toBe(false);
+    // A new sitting answers it.
+    const next = nextBotDecision(game.state, 1, botSitting(1));
+    expect(next?.command.type === 'acceptDeal' || next?.command.type === 'declineDeal').toBe(true);
   });
 });
 

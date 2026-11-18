@@ -124,6 +124,13 @@ export const decisionMemoTally = {
   /** The beeline's table, kept for a sitting while the seat's research stands still (bot batch BP15). */
   tableAsked: 0,
   tableKept: 0,
+  /**
+   * The spend arm's "nothing to buy", kept for a sitting under the purse, the
+   * reserve and the running routes (bot batch BP16, `bankSpend` in `bot.ts`).
+   * Its kept answers are checked under this file's shadow switch too.
+   */
+  spendAsked: 0,
+  spendKept: 0,
 };
 
 /** Switches the shadow check on or off. Tests only. */

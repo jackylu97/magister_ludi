@@ -264,6 +264,35 @@ describe('a force sized to the camp', () => {
     bumpRevision(quiet);
     expect(orderFor(quiet, 0, dug.id)).toBeNull();
   });
+
+  /**
+   * Bot batch BP16 (the audit's T4): a hurt piece that is already dug in on its
+   * own ground is resting. Before the fix the heal arm said nothing for it,
+   * because `fortifyError` refuses "already fortified", so the hunt called it
+   * out to the camp and the fall-back walked it home again the next turn.
+   */
+  it('leaves a hurt piece dug in on its own ground to mend, and calls the others out', () => {
+    const { state, pieces } = guarded(5);
+    for (const piece of pieces) piece.fortifiedTurns = 3;
+    const home = state.cities.find((city) => city.ownerId === 0)!;
+    const hurt = pieces[0]!;
+    hurt.hp = 30;
+    state.tileOwner[tileIndex(state.map, hurt.col, hurt.row)] = home.id;
+    bumpRevision(state);
+    const sitting = botSitting(0);
+    const sent: BotDecision[] = [];
+    for (let step = 0; step < 120; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      sent.push(decision);
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+    }
+    // The hunt is live on this board: the healthy pieces are called out.
+    expect(sent.some((decision) => /^Calls a dug-in piece out for the hunt/.test(decision.summary))).toBe(true);
+    // The hurt one is sent nothing, and it is still dug in.
+    expect(sent.filter((decision) => (decision.command as { unitId?: number }).unitId === hurt.id)).toEqual([]);
+    expect(hurt.fortifiedTurns).not.toBeUndefined();
+  });
 });
 
 describe('the worker', () => {
