@@ -2822,3 +2822,41 @@ Rulings by the user, 2026-11-18.
 - Open: the likely cause of the 26% drop is that some context memos keep the
   value their first reader leaves, so the order of the arms changes prices.
   Not proven. A fix waits for the user's answer, and so does stage C.
+
+## Rendering: baked ground paint and a scroll cache (2026-11-18)
+
+Rulings by the user, 2026-11-18. Both are built after the fifth pass reports
+its measurements (the small-triangle test and the scroll cache estimate).
+
+- **Bake the ground's paint into a texture.** The user: "for #1 we should
+  definitely be baking the texture laid over the mesh." Today the paint is
+  vertex colours (`vertexColors: true` in `paintedBoard.js`), so a coarser mesh
+  loses paint. Bake the paint once, then let the ground mesh get coarser at far
+  zooms with the same colours.
+- **Scroll cache.** The camera has a fixed angle and no perspective, so the
+  static ground only slides during a pan. Draw it once into a picture larger
+  than the screen and move that picture.
+  - Trees: "trees freeze while the camera moves sounds good to me." Trees go in
+    the cache; sway stops during a pan and starts again at rest.
+  - Water: "same approach for water is cool by me."
+  - Fog, borders, improvements and towns change on events; each change draws
+    the cache again.
+  - Zoom: scale the cached picture while the zoom moves, then draw it sharp at
+    rest (proposed to the user, not yet confirmed).
+- **The check of frames that need no drawing** (the user: "do the #7 check") is
+  question 2 of the fifth pass.
+
+## Bots after BP16 stage B (2026-11-18)
+
+The user, 2026-11-18: "you're good to go with your recommendation for the bots
+optimization." The recommendation was:
+
+1. The landed order of a sitting stands.
+2. **BP16b-fix: find and fix the order fault.** Some context memos seem to keep
+   the value their first reader leaves, so the order of the arms changes prices
+   (production fell 26% in one order). Prove the cause, then make each memo
+   give the same value whoever reads first. Pins may be cut once.
+3. **Then stage C: parallel bots from a frozen copy of the board.** Each bot
+   decides from the board as it stood at the start of the turn's bot step, in
+   its own worker. Results change once. This replaces the earlier "pins
+   identical" condition, which stage B showed is not reachable.
