@@ -975,3 +975,22 @@ https://claude.ai/artifact/Vue9nTgRZtsiF7D9pCPco6. The user's comments:
 - No comment on the pay plate, the Council screen's layout, Confirm at the
   bottom right, or the stacks as an idea. Taken as accepted unless the user
   says otherwise.
+
+### Happiness and authority on the cards and in In play (2026-11-18)
+
+The user: "Could we also add happiness/authority as yields that cards can give,
+and also put happiness/authority bonuses as items in the 'in play' section?
+Later we should do a pass on the yield calculations for cards because i've
+noticed they can be a bit weird".
+
+- The rules already let a card pay into happiness and authority, and the card
+  measurement reports it (`kind: 'meter'` lines in `src/sim/cardImpact.ts`;
+  Festival Days pays contentment, Provincial Governors pays writ). So this is a
+  display ruling: **happiness and authority show as figures beside the six
+  yields** on the pay plate, on tucked edges, on stack totals and in the totals
+  line.
+- **In play lists what pays happiness and authority.** A piece that pays a
+  meter shows it on its edge. Sources that are not cards (luxuries, buildings)
+  are plain rows in the breakdown, as resources and technologies are.
+- **Queued for later: a check of the card yield figures.** The user has seen
+  figures that look wrong. Collect examples from the user first.
