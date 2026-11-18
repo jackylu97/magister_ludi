@@ -809,3 +809,25 @@ intriguing aspect about the game to people"*
   pay, Revert, Confirm, close) sits on the cloth. The room this frees goes
   first to the hand, so that card names are in view more often, and then to
   larger cards on small windows.
+
+## One style for the game: merging the arcane and the modern look (2026-11-18)
+
+The user, 2026-11-16, on the two looks now in the game: "I'm a bit torn. I like
+the game's aesthetic currently (slightly modern, playful) which i think fits
+our graphics a bit better. But i love the art direction of the new cards."
+
+The user, 2026-11-18: "I want to think about how to merge the arcane and modern
+styles that we have currently, could you have it do a few options for the
+interface and card designs? Ideally the design direction stays roughly in line
+with the graphics that exist in the game. Give them heavy license to be
+creative, i like the direction of the orders page looking more like a
+deckbuilder, maybe have one option where there's heavy use of the card motif
+throughout the game (i.e. wonders, beliefs, etc all shown as cards)".
+
+- This is a design board, not a build. A few options, each shown on the
+  interface and on the cards.
+- Each option must sit well on the game's own graphics (the toon diorama).
+- One option uses the card motif through the whole game: wonders, beliefs and
+  the like all shown as cards.
+- The designer has heavy licence to be creative.
+- Nothing is built until the user picks.
