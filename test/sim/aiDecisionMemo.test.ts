@@ -33,7 +33,9 @@ import {
   withGuard,
 } from '../../src/ai/decisionMemo';
 import { driveBots } from '../../src/ai/driver';
+import { SITTING_PHASES } from '../../src/ai/sittingPhases';
 import { explainCardEffects, explainEffects } from '../../src/ai/value';
+import { applyCommand } from '../../src/sim/commands';
 import { heldFieldsTally, transitField, withFieldsHeld, zocField } from '../../src/sim/pathfind';
 import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { playerById } from '../../src/sim/state';
@@ -188,7 +190,9 @@ describe('a short game of real bot commands, with both shadow checks on', () => 
     expect(decisionMemoTally.cardKept - cards).toBeGreaterThan(0);
     expect(decisionMemoTally.effectsKept - effects).toBeGreaterThan(50);
     expect(heldFieldsTally.kept - fields).toBeGreaterThan(50);
-    expect(decisionMemoTally.spendKept - spends).toBeGreaterThan(50);
+    // Since bot batch BP16's phases the spend arm is asked once a sitting and
+    // again only after the purse moved, so its memo is asked and seldom kept.
+    expect(decisionMemoTally.spendAsked - spends).toBeGreaterThan(0);
   }, 120_000);
 });
 
@@ -196,25 +200,37 @@ describe('the spend arm keeps "nothing to buy" for the sitting (bot batch BP16)'
   it('keeps the answer while the purse stands, and reads again when the purse moves', () => {
     const played = game(7);
     while (played.state.turn < 20 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
-    // Find a seat whose spend arm has nothing to buy now: its second ask in
-    // the same sitting is kept.
+    // Find a seat whose spending phase closed with nothing to buy, and open
+    // the phase again with nothing changed: the bank's answer is kept.
     for (const playerId of [0, 1, 2, 3]) {
       const sitting = botSitting(playerId);
-      const first = nextBotDecision(played.state, playerId, sitting);
-      if (first === null || first.kind === 'purchase' || sitting.spendQuiet.gold === null) continue;
+      for (let step = 0; step < 40 && !sitting.closed.has('spending'); step++) {
+        const decision = nextBotDecision(played.state, playerId, sitting);
+        if (decision === null) break;
+        expect(applyCommand(played.state, decision.command).ok).toBe(true);
+      }
+      if (!sitting.closed.has('spending') || sitting.spendQuiet.gold === null) continue;
+      // One decision to take up what the last command changed, unapplied.
+      nextBotDecision(played.state, playerId, sitting);
+      const reopen = (): void => {
+        for (const phase of SITTING_PHASES) if (phase !== 'spending') sitting.closed.add(phase);
+        sitting.closed.delete('spending');
+      };
+      reopen();
       const asked = decisionMemoTally.spendAsked;
       const kept = decisionMemoTally.spendKept;
       nextBotDecision(played.state, playerId, sitting);
       expect(decisionMemoTally.spendAsked - asked).toBeGreaterThan(0);
-      expect(decisionMemoTally.spendKept - kept).toBeGreaterThan(0);
-      // A coin more in the purse is another key, so the bank is read again.
+      expect(decisionMemoTally.spendKept - kept).toBe(decisionMemoTally.spendAsked - asked);
+      // A coin more in the purse is another key, so the gold bank is read
+      // again (and the purse is an event that opens the phase by itself).
       playerById(played.state, playerId)!.gold += 1;
       const before = decisionMemoTally.spendKept;
       const askedBefore = decisionMemoTally.spendAsked;
       nextBotDecision(played.state, playerId, sitting);
-      const goldAsks = decisionMemoTally.spendAsked - askedBefore;
-      // The gold bank is asked first and is not kept now; the other banks may be.
-      expect(decisionMemoTally.spendKept - before).toBeLessThan(goldAsks);
+      const asks = decisionMemoTally.spendAsked - askedBefore;
+      expect(asks).toBeGreaterThan(0);
+      expect(decisionMemoTally.spendKept - before).toBeLessThan(asks);
       return;
     }
     throw new Error('no seat had nothing to buy at turn 20');

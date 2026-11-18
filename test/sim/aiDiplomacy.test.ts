@@ -803,7 +803,7 @@ describe('diplomacy is asked until it has nothing to say, once a sitting (bot ba
     const answers = sent.filter((decision) => decision.command.type === 'acceptDeal' || decision.command.type === 'declineDeal');
     expect(answers.length).toBe(2);
     expect(proposalsFor(game.state, 1).filter((row) => row.to === 1)).toEqual([]);
-    expect(sitting.abroadQuiet).toBe(true);
+    expect(sitting.closed.has('diplomacy')).toBe(true);
   });
 
   it('leaves a paper that reaches it after it fell quiet for its next sitting', () => {
@@ -811,12 +811,12 @@ describe('diplomacy is asked until it has nothing to say, once a sitting (bot ba
     const sitting = botSitting(1);
     // Decide until diplomacy has been asked and had nothing to say. The arms
     // before it (the offers, the purse) may answer the first decisions.
-    for (let step = 0; step < 20 && !sitting.abroadQuiet; step++) {
+    for (let step = 0; step < 20 && !sitting.closed.has('diplomacy'); step++) {
       const decision = nextBotDecision(game.state, 1, sitting);
       if (decision === null) break;
       expect(dispatch(game, decision.command).ok).toBe(true);
     }
-    expect(sitting.abroadQuiet).toBe(true);
+    expect(sitting.closed.has('diplomacy')).toBe(true);
     const theirs = game.state.cities.find((city) => city.ownerId === 2)!;
     giveLuxury(game.state, theirs, 21, 3, 'spices');
     giveLuxury(game.state, theirs, 22, 3, 'spices');

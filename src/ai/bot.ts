@@ -194,6 +194,19 @@ import {
   unweighed,
 } from './decision';
 import { decisionMemoShadow, decisionMemoTally, inDecision } from './decisionMemo';
+import { adoptHarnessMemory, readHarnessMemory } from './harnessMemory';
+import {
+  REOPENS,
+  FIRST_PHASES,
+  LAST_PHASES,
+  type SeatPrint,
+  type SittingPhase,
+  eventsBetween,
+  phaseTally,
+  seatPrint,
+  sittingEndCheck,
+  tallyOne,
+} from './sittingPhases';
 import {
   type ImprovementPlan,
   buildImprovementPlan,
@@ -870,24 +883,21 @@ export interface BotSitting {
    */
   beeline: { ctx: ValueContext; key: string; table: TechGoalTable } | null;
   /**
-   * **Diplomacy has had its say this sitting** (bot batch BP16, the audit's
-   * T2). `decideNext` asks `diplomacyDecision` at every decision until the
-   * first one where it answers nothing, and then not again until the next
-   * sitting. The audit measured 4,564 and 6,293 asks a game for 44 and 64
-   * answers.
+   * **The phases of the sitting that have had their say** (bot batch BP16,
+   * stage B; `sittingPhases.ts`). A phase is asked at each decision until it
+   * has nothing more to do, and then it is closed: it is not asked again in
+   * the sitting unless an event re-opens it (`REOPENS`). Diplomacy was the
+   * first phase closed this way (stage A, the audit's T2: 4,564 and 6,293 asks
+   * a game for 44 and 64 answers).
    *
-   * What is still answered at once: every paper on the table when the seat
-   * sits down. The other seats send papers only in their own sittings, so
-   * nothing new arrives in this one, and the asks go on while each answers a
-   * paper. The audience (`answerAudience`) is a separate door and is
-   * unchanged.
-   *
-   * What waits one turn: an answer whose reasons change through this seat's
-   * own later commands in the same sitting. A declaration after the seat buys
-   * soldiers, a peace suit after a battle it lost, a raze of a town it took in
-   * this sitting, and a swap for a copy it gained in this sitting.
+   * Papers from other seats are still answered at once: every paper standing
+   * for this seat was sent in an earlier sitting, so it is on the table when
+   * this one begins. What waits a turn is listed with the events, in
+   * `docs/bot-priorities.md` ("The order of a sitting").
    */
-  abroadQuiet: boolean;
+  closed: Set<SittingPhase>;
+  /** The seat's print at its last decision, for the events (`seatPrint`). */
+  print: SeatPrint | null;
   /**
    * **Each bank's kept "nothing to buy"** (bot batch BP16, the audit's T3;
    * `bankSpend`): the key it was read under (the purse, the reserve, the
@@ -920,7 +930,8 @@ export function botSitting(playerId: number): BotSitting {
     steppedBack: new Set<number>(),
     hexThreats: new Map<number, GuardThreat | null>(),
     beeline: null,
-    abroadQuiet: false,
+    closed: new Set<SittingPhase>(),
+    print: null,
     spendQuiet: { gold: null, faith: null, culture: null },
   };
 }
@@ -1869,6 +1880,251 @@ function decideNext(
   // raised in the last few turns from an old one. See `musterRoll.ts`.
   markMusterTurn(state);
 
+  // **A sitting runs in phases** (bot batch BP16, stage B; `sittingPhases.ts`).
+  // A caller with no sitting of this seat's (a test asking one question, a
+  // puppet's pick) has nowhere to keep which phases are done, so it is asked
+  // every arm in the order before this batch (`theOldPass`).
+  const own = sitting !== undefined && sitting.playerId === playerId ? sitting : null;
+  if (own === null) return theOldPass(state, player, sitting);
+  return phasedDecision(state, player, own);
+}
+
+/**
+ * **One decision of a sitting, in phases** (bot batch BP16, stage B). The order
+ * of a sitting, read from top to bottom (`docs/bot-priorities.md`, "The order
+ * of a sitting"):
+ *
+ *   1. the events since the seat's last decision open again the phases they
+ *      name (`REOPENS`);
+ *   2. the first phases in order (`FIRST_PHASES`: diplomacy, spending), each
+ *      asked until it has nothing more to do and then closed;
+ *   3. the loop (`theLoop`): the turn's blockers and the arms that move pieces;
+ *   4. the last phases in order (`LAST_PHASES`: research, the council,
+ *      housekeeping), asked once the loop has nothing, the same way;
+ *   5. nothing: the sitting ends, and the driver sends the seat's End Turn.
+ *
+ * After a last phase answers, the next decision asks the loop again before
+ * it, as the order before the phases did: a card seated or a town pointed can
+ * change what a piece would do. Every arm keeps its own logic and sentences;
+ * this changes only when an arm is asked.
+ */
+function phasedDecision(state: GameState, player: Player, sitting: BotSitting): BotDecision | null {
+  const print = seatPrint(state, player);
+  if (sitting.print !== null) {
+    for (const event of eventsBetween(sitting.print, print)) {
+      for (const phase of REOPENS[event]) {
+        if (sitting.closed.delete(phase)) tallyOne(phaseTally.reopened, `${event}>${phase}`);
+      }
+    }
+  }
+  sitting.print = print;
+  const blocker = firstBlocker(state, player.id);
+  const phases = (list: readonly SittingPhase[]): BotDecision | null => {
+    for (const phase of list) {
+      if (sitting.closed.has(phase)) continue;
+      const answer = askPhase(phase, state, player, sitting, blocker);
+      if (answer !== null) return answer;
+      sitting.closed.add(phase);
+    }
+    return null;
+  };
+  const first = phases(FIRST_PHASES);
+  if (first !== null) return first;
+  const moved = theLoop(state, player, sitting, blocker);
+  if (moved !== null) return moved;
+  const last = phases(LAST_PHASES);
+  if (last !== null) return last;
+  if (sittingEndCheck()) checkTheEnd(state, player, sitting);
+  return null;
+}
+
+/**
+ * Does a town of this seat wait for its build? The blocker's own rule
+ * (`turnBlockers.ts`): an empty queue, in a town not in unrest.
+ */
+function townAwaitsItsBuild(state: GameState, player: Player): boolean {
+  return state.cities.some(
+    (city) => city.ownerId === player.id && city.unrest === undefined && city.queue.length === 0,
+  );
+}
+
+/** One arm asked inside a sitting, counted by name (`phaseTally`). */
+function ask(name: string, arm: () => BotDecision | null): BotDecision | null {
+  tallyOne(phaseTally.asked, name);
+  const answer = arm();
+  if (answer !== null) tallyOne(phaseTally.answered, name);
+  return answer;
+}
+
+/**
+ * **One phase's arms, in order**: the first answer, or `null` when the phase has
+ * nothing more to do this sitting.
+ *
+ *   · **research**: a seat with no plan chooses one (the research blocker), and
+ *     the beeline is re-aimed (`reaimBeeline`, bounded by
+ *     `driver.reaimsPerTurn`).
+ *   · **diplomacy**: `diplomacyDecision`, first of the board's business for the
+ *     reason it always was: a surprise war is legal, so a declaration taken now
+ *     is one this turn's soldiers act on.
+ *   · **the council**: an offer standing on the empire (a discovery, an Order or
+ *     Doctrine draft, a belief, a great person), the wager and the census, a
+ *     banked charter, a levy, an Order into an empty chair, and a better
+ *     arrangement of the chairs.
+ *   · **spending**: arrears first (`disbandCommand`: a seat under water stops
+ *     paying a wage before it buys anything), then the banks (`spendCommand`).
+ *   · **housekeeping**: a surplus soldier retired for a citizen, a town idling on
+ *     a conversion, and where a town's people stand (`focusCommand`).
+ */
+function askPhase(
+  phase: SittingPhase,
+  state: GameState,
+  player: Player,
+  sitting: BotSitting,
+  blocker: TurnBlocker | null,
+): BotDecision | null {
+  switch (phase) {
+    case 'research': {
+      if (player.researching === null) {
+        const chosen = ask('blocker:research', () => researchCommand(state, player.id, sitting));
+        if (chosen !== null) return chosen;
+      }
+      return ask('reaimBeeline', () => reaimBeeline(state, player, sitting));
+    }
+    case 'diplomacy':
+      return ask('diplomacy', () => diplomacyDecision(state, player, seatContext(state, player, sitting), true));
+    case 'council': {
+      if (blocker !== null && (isOfferBlocker(blocker) || blocker.kind === 'wager' || blocker.kind === 'census')) {
+        const answer = ask(`offer:${blocker.kind}`, () => answerBlocker(state, player, blocker, sitting));
+        if (answer !== null) return answer;
+      }
+      const sc = player.statecraft;
+      if (sc.pendingGovernment !== undefined) return ask('adoption', () => adoptionDecision(state, player, sitting));
+      const levied = ask('levy', () => levyDecision(state, player, sitting));
+      if (levied !== null) return levied;
+      const slotted = ask('slotting', () => slottingDecision(state, player, sitting));
+      if (slotted !== null) return slotted;
+      return ask('reslot', () => reslotDecision(state, player, sitting));
+    }
+    case 'spending': {
+      const cut = ask('disband', () => disbandCommand(state, player, sitting));
+      if (cut !== null) return cut;
+      return ask('spend', () => spendCommand(state, player, sitting));
+    }
+    case 'housekeeping': {
+      const retired = ask('retire', () => retireCommand(state, player, sitting));
+      if (retired !== null) return retired;
+      const idle = ask('projectIdle', () => projectIdleCommand(state, player, sitting));
+      if (idle !== null) return idle;
+      // **A town's focus is chosen for its build** (bot batch BP10), so the
+      // focus waits while a town of the seat has no build. This phase comes
+      // after the loop, which answers an empty queue first, so it waits only
+      // for a town the loop could not give a build. Before the phases the
+      // empty queues were answered before the focus arm, for the same reason.
+      if (townAwaitsItsBuild(state, player)) return null;
+      return ask('focus', () => focusCommand(state, player, sitting));
+    }
+    default: {
+      const never: never = phase;
+      void never;
+      return null;
+    }
+  }
+}
+
+/**
+ * **The loop** (bot batch BP16, stage B): what needs an answer once the five
+ * phases are done, asked at every decision, because one piece's move changes
+ * the next piece's best move.
+ *
+ *   · the turn's first blocker: an offer that appeared in the sitting, an idle
+ *     piece, an idle cart, a town with an empty queue (a sleeping worker is
+ *     asked before a town chooses its build, bot batch BP13c), the research
+ *     plan, the rites;
+ *   · then, in housekeeping's old order: a sleeping worker, the escorts, the
+ *     guards, a sleeping settler, the campaign's dug-in pieces, the hunt's, and
+ *     the marches asked again.
+ *
+ * **Which pieces are asked.** Each of these arms asks a piece at most once a
+ * turn (`called`, `roused`, `reasked`, `guardOrders`, `escortOrders`), and that
+ * is the "asked since it last changed" mark per piece. The one exception is the
+ * campaign's stay answer, which BP9 found must be asked again after another
+ * piece moves. A mark per arm (skip an arm that answered nothing while the
+ * seat's pieces, towns, wars and cards stand as it read them) was built and
+ * measured: it skipped 5 asks of each arm in five games of 100 turns, because
+ * nearly every decision of the loop sends a unit or town order, which clears
+ * it. It cost more to read than it saved, so it was taken out.
+ */
+function theLoop(state: GameState, player: Player, sitting: BotSitting, blocker: TurnBlocker | null): BotDecision | null {
+  if (blocker !== null) {
+    if (blocker.kind === 'cityProduction') {
+      const spade = ask('wakeIdleWorker:beforeBuild', () => wakeIdleWorker(state, player, sitting));
+      if (spade !== null) return spade;
+    }
+    const answer = ask(`blocker:${blocker.kind}`, () => answerBlocker(state, player, blocker, sitting));
+    if (answer !== null) return answer;
+  }
+  const spade = ask('wakeIdleWorker', () => wakeIdleWorker(state, player, sitting));
+  if (spade !== null) return spade;
+  const escorts = ask('walkWithSettlers', () => walkWithSettlers(state, player, sitting));
+  if (escorts !== null) return escorts;
+  const guards = ask('guardWorkers', () => guardWorkers(state, player, sitting));
+  if (guards !== null) return guards;
+  const rousted = ask('wakeIdleSettler', () => wakeIdleSettler(state, player, sitting));
+  if (rousted !== null) return rousted;
+  const called = ask('wakeTheCampaign', () => wakeTheCampaign(state, player, sitting));
+  if (called !== null) return called;
+  const hunted = ask('wakeTheHunt', () => wakeTheHunt(state, player, sitting));
+  if (hunted !== null) return hunted;
+  return ask('reaskTheMarch', () => reaskTheMarch(state, player, sitting));
+}
+
+/**
+ * **The end check** (bot batch BP16, stage B; `setSittingEndCheck`). At the end
+ * of a sitting the old full pass is asked on a copy of the sitting, and what it
+ * would still have done is counted (`phaseTally.endFound`). The copy keeps the
+ * sitting's per-piece and per-town bounds, so it asks what the old order would
+ * have asked at this point; it opens every phase again, diplomacy included.
+ * The harness memories are read before and put back after, because two arms
+ * write while they read (the war windows, and the focus roll's basket), so the
+ * check changes no later decision.
+ */
+function checkTheEnd(state: GameState, player: Player, sitting: BotSitting): void {
+  const memory = readHarnessMemory(state);
+  try {
+    phaseTally.endChecks += 1;
+    const found = theOldPass(state, player, copyOfSitting(sitting));
+    if (found !== null) {
+      tallyOne(phaseTally.endFound, `${found.command.type}: ${found.summary.replace(/\d+/g, 'N').slice(0, 70)}`);
+    }
+  } finally {
+    adoptHarnessMemory(state, memory);
+  }
+}
+
+/** A copy of a sitting whose sets and maps the old pass may write without touching the real one. */
+function copyOfSitting(sitting: BotSitting): BotSitting {
+  return {
+    ...sitting,
+    focused: new Set(sitting.focused),
+    reasked: new Map(sitting.reasked),
+    called: new Set(sitting.called),
+    roused: new Set(sitting.roused),
+    levyWeighed: new Set(sitting.levyWeighed),
+    escortOrders: new Set(sitting.escortOrders),
+    guardOrders: new Set(sitting.guardOrders),
+    steppedBack: new Set(sitting.steppedBack),
+    hexThreats: new Map(sitting.hexThreats),
+    closed: new Set<SittingPhase>(),
+    spendQuiet: { ...sitting.spendQuiet },
+  };
+}
+
+/**
+ * **Every arm, in the order before bot batch BP16's stage B.** Asked by a caller
+ * with no sitting of this seat's, and by the end check on a copy of a sitting.
+ */
+function theOldPass(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const playerId = player.id;
   const blocker = firstBlocker(state, playerId);
   // **An offer outranks a purse.** The four drafts are decisions the reducer is
   // holding open — the reducer refuses them from a seat that has ended its turn
@@ -1895,14 +2151,10 @@ function decideNext(
   // loop. See `src/ai/diplomacy.ts`. The swap arm asks a bot receiver's own
   // reading of a paper (bot batch BP13).
   //
-  // **Asked until it first has nothing to say, then not again in the sitting**
-  // (bot batch BP16, the audit's T2; `BotSitting.abroadQuiet`).
-  const own = sitting !== undefined && sitting.playerId === playerId ? sitting : null;
-  if (own === null || !own.abroadQuiet) {
-    const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), true);
-    if (abroad !== null) return abroad;
-    if (own !== null) own.abroadQuiet = true;
-  }
+  // Asked every time here: a sitting closes it in its own phase
+  // (`phasedDecision`), and a copy for the end check opens it again.
+  const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), true);
+  if (abroad !== null) return abroad;
 
   if (blocker !== null) {
     // **A sleeping worker is asked before a town chooses its build** (bot
@@ -2101,19 +2353,7 @@ function housekeeping(
   player: Player,
   sitting?: BotSitting,
 ): BotDecision | null {
-  const sc = player.statecraft;
-  if (sc.pendingGovernment !== undefined) {
-    const faces = adoptionTable(state, player, sc.pendingGovernment.options, sitting);
-    return {
-      kind: 'draft',
-      command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: faces.index },
-      subject: seatName(state, player.id),
-      summary:
-        `Claims the charter it has banked as ${cardName(sc.pendingGovernment.options[faces.index]!)} — ` +
-        'its own signature, plus what this empire’s held cards would be worth in the slots it opens.',
-      candidates: faces.candidates,
-    };
-  }
+  if (player.statecraft.pendingGovernment !== undefined) return adoptionDecision(state, player, sitting);
   // **A worker asleep while ground waits** (batch BP8, P6). See `wakeIdleWorker`.
   // Asked before the town on a conversion re-decides its build below (bot batch
   // BP13c), for the reason the empty queue's clause in `decideNext` gives.
@@ -2200,6 +2440,26 @@ function housekeeping(
   // are filled: a card on the bench and a chair standing open is the cheaper
   // move, and this is the one that costs a seal. See `reslotDecision`.
   return reslotDecision(state, player, sitting);
+}
+
+/**
+ * **Claims the charter the seat has banked** — the face whose signature, plus
+ * what its held cards would be worth in the slots it opens, prices highest
+ * (`adoptionTable`). `null` when no charter is banked.
+ */
+function adoptionDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const sc = player.statecraft;
+  if (sc.pendingGovernment === undefined) return null;
+  const faces = adoptionTable(state, player, sc.pendingGovernment.options, sitting);
+  return {
+    kind: 'draft',
+    command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: faces.index },
+    subject: seatName(state, player.id),
+    summary:
+      `Claims the charter it has banked as ${cardName(sc.pendingGovernment.options[faces.index]!)} — ` +
+      'its own signature, plus what this empire’s held cards would be worth in the slots it opens.',
+    candidates: faces.candidates,
+  };
 }
 
 /**

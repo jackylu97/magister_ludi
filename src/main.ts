@@ -129,7 +129,7 @@ import {
   beadRodsFor,
   createBeadModal,
 } from './ui/beadModal';
-import type { BeadAge } from './sim/beadData';
+import type { TechAge } from './sim/techData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
@@ -768,10 +768,20 @@ const saveStorage = openSaveStorage();
  */
 let tutorialBoardAnchor: ((what: string) => TutorialRect | null) | null = null;
 
+/**
+ * Whether a tutorial note must wait behind one of the turn's big pages
+ * (2026-11-18, `docs/flags.md`, "Age turn-over: landed fix and three
+ * follow-ups", item 1). A holder `boot` fills for `tutorialBoardAnchor`'s
+ * reason: the sheets, the queue and the controls are `boot`'s. Before a game
+ * exists nothing waits.
+ */
+let tutorialWaits: () => boolean = () => false;
+
 const tutorial = createTutorial({
   storage: saveStorage,
   root: document.body,
   boardAnchor: (what) => tutorialBoardAnchor?.(what) ?? null,
+  waitFor: () => tutorialWaits(),
 });
 
 // The checkbox reads the remembered answer on first paint, and writes it back
@@ -1046,7 +1056,7 @@ let offerCardHolder: OfferCard | null = null;
  */
 let beadSheet: BeadModal | null = null;
 let pendingBeadNews: BeadNews[] = [];
-let pendingBeadAge: BeadAge | null = null;
+let pendingBeadAge: TechAge | null = null;
 /**
  * The census waiting for a clear screen (batch C1).
  *
@@ -1063,7 +1073,7 @@ let pendingCensus: CensusRecord | null = null;
  * front of the wager sheet it announces. Held here for the bead sheet's reason.
  */
 let agePlate: AgePlate | null = null;
-let pendingAgePlate: BeadAge | null = null;
+let pendingAgePlate: TechAge | null = null;
 /**
  * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
  * that a game closed by the Magnum Opus ends on, before the standings. Held
@@ -3050,6 +3060,10 @@ async function boot(initial: Game | null): Promise<void> {
   beadSheet = createBeadModal(beadOverlayEl, {
     // The next bead, or the table the age just turned face up.
     onClosed: () => pumpBeadNews(),
+    // The 3D frame on the sheet (2026-11-18): the Abacus screen's own rows, and
+    // the seat whose rod the new bead slides onto. Asked when a sheet is drawn,
+    // which is always after `controls` exists.
+    table: () => ({ rows: abacusRows(), seat: controls.localPlayerId() }),
   });
 
   /**
@@ -5292,6 +5306,9 @@ async function boot(initial: Game | null): Promise<void> {
     canShow:()=>!newsBlocked()&&!endTurnWorking,
     relevant:notice=>notice.onId===controls.localPlayerId(),
     review:targetId=>diplomacy?.open(targetId),
+    // News that came while the dispatch stood (it can rise during the marches,
+    // ahead of the hand-over's sheets) was waiting for it to close.
+    onClosed:()=>pumpBeadNews(),
   });
   gameDisposers.push(()=>warDispatch?.dispose());
 
@@ -5536,6 +5553,33 @@ async function boot(initial: Game | null): Promise<void> {
         : [],
     onPick: () => {},
   });
+
+  /**
+   * **When a tutorial note waits** (2026-11-18, `docs/flags.md`, "Age turn-over:
+   * landed fix and three follow-ups", item 1). The note card stands above the
+   * turn's big pages, and a note raised by the resolution (the "Bead Race" note
+   * at the first age turn-over) used to open on top of the age plate.
+   *
+   * So a note waits while the turn is resolving, while its hand-over has beats
+   * to come, while the news queue holds a page, and while any of the big pages
+   * is up: the Triumph and bead sheets, the age plate, the wager and census
+   * sheets, the Opus close and the standings. An offer card is not on the list:
+   * its note explains that very card.
+   */
+  tutorialWaits = () =>
+    endTurnWorking ||
+    controls.handOverPending() ||
+    pendingBeadNews.length > 0 ||
+    pendingAgePlate !== null ||
+    pendingBeadAge !== null ||
+    pendingCensus !== null ||
+    (triumphSheet?.isOpen ?? false) ||
+    (beadSheet?.isOpen ?? false) ||
+    (agePlate?.isOpen ?? false) ||
+    (wagerSheet?.isOpen ?? false) ||
+    (censusSheet?.isOpen ?? false) ||
+    (opusClose?.isOpen ?? false) ||
+    (victory?.isOpen ?? false);
 
   /**
    * The guide's ring, projected onto a piece.

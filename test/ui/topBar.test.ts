@@ -141,8 +141,15 @@ describe("the top bar's turn line", () => {
     expect(bar).toMatch(
       /import \{ currentWorldAge, worldAgeCountdown \} from '\.\.\/sim\/worldClock'/,
     );
-    expect(bar).toMatch(/worldAgeCountdown\(state\)/);
-    expect(bar).toMatch(/eraNumeral\(currentWorldAge\(state\)\)/);
+    // Both asked in one place, `shownAge`, which reads the same stamp for the
+    // close turn (2026-11-18). The line and the age card both print it.
+    const shown = bar.slice(bar.indexOf('export function shownAge('));
+    const body = shown.slice(0, shown.indexOf('\n}\n'));
+    expect(body).toContain('worldAgeCountdown(state)');
+    expect(body).toContain('currentWorldAge(state)');
+    expect(body).toContain('state.ageClose');
+    expect(bar).toContain('eraNumeral(shown.age)');
+    expect(bar).toContain('const { age, countdown } = shownAge(state);');
   });
 
   it('prints the age always and the countdown only while one runs', () => {
@@ -187,6 +194,23 @@ describe("the top bar's turn line", () => {
     state.ageClose = { age: 1, turn: state.turn + 1 };
     expect(turnLineOf(state, 0).spoken).toContain('closes in 1 turn');
     expect(turnLineOf(state, 0).spoken).not.toContain('1 turns');
+  });
+
+  it('keeps the closing age on the bar until the resolution that raises the plate', () => {
+    // 2026-11-18, `docs/flags.md`, "Age turn-over: landed fix and three
+    // follow-ups", item 2. The sim's calendar is the new age from the start of
+    // the close turn; the age plate announces it at the end of that turn. The
+    // bar printed "Æra II" a whole turn before the plate said "Æra II opens".
+    const state = twoHumans();
+    state.ageClose = { age: 1, turn: state.turn };
+    const line = turnLineOf(state, 0);
+    expect(line.age).toBe('Æra I');
+    expect(line.left).toBe('last turn');
+    expect(line.spoken).toBe(`Turn ${state.turn}, Æra I, the age closes at the end of this turn`);
+    // The resolution of the close turn opens the new age and raises the plate.
+    state.turn += 1;
+    expect(turnLineOf(state, 0).age).toBe('Æra II');
+    expect(turnLineOf(state, 0).left).toBeNull();
   });
 
   it('names who the turn waits for once this seat has ended it, and never the wild', () => {

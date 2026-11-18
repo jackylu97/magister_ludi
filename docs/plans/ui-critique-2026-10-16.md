@@ -809,3 +809,188 @@ intriguing aspect about the game to people"*
   pay, Revert, Confirm, close) sits on the cloth. The room this frees goes
   first to the hand, so that card names are in view more often, and then to
   larger cards on small windows.
+
+## One style for the game: merging the arcane and the modern look (2026-11-18)
+
+The user, 2026-11-16, on the two looks now in the game: "I'm a bit torn. I like
+the game's aesthetic currently (slightly modern, playful) which i think fits
+our graphics a bit better. But i love the art direction of the new cards."
+
+The user, 2026-11-18: "I want to think about how to merge the arcane and modern
+styles that we have currently, could you have it do a few options for the
+interface and card designs? Ideally the design direction stays roughly in line
+with the graphics that exist in the game. Give them heavy license to be
+creative, i like the direction of the orders page looking more like a
+deckbuilder, maybe have one option where there's heavy use of the card motif
+throughout the game (i.e. wonders, beliefs, etc all shown as cards)".
+
+- This is a design board, not a build. A few options, each shown on the
+  interface and on the cards.
+- Each option must sit well on the game's own graphics (the toon diorama).
+- One option uses the card motif through the whole game: wonders, beliefs and
+  the like all shown as cards.
+- The designer has heavy licence to be creative.
+- Nothing is built until the user picks.
+
+### The user's first reading of the one-style board (2026-11-18)
+
+Board: `scratchpad/onestyle/one-style-options.html`, published at
+https://claude.ai/artifact/PcZtdfdNKYZHgfdnZ1wJKv. The user: "tbh i hate the
+look of C. B seems impractical to me for UX reasons, but it does raise an
+interesting idea -- what if all empire-wide abilities were symbolized by cards,
+and the orders/doctrines page were just a list of all cards in play".
+
+- **C (Cut-Paper Tarot) is rejected.**
+- **B (cards everywhere) is rejected as a whole**, for UX reasons.
+- **New idea to draw: "cards in play".** Every empire-wide ability is a card,
+  and the orders screen lists every card in play. The rules already keep this
+  list: `liveEffects` in `src/sim/statecraft/evaluator.ts` walks eleven sources
+  in one order (the government, its Doctrines, the seated Orders, malices,
+  beliefs, wonders, great people's legacies, timed effects, bead caps,
+  technologies that carry a rule, holy cities). A second board draws this on
+  option A's base. Nothing is built until the user picks.
+- A and D are not yet ruled.
+
+### The cards-in-play board, and the table that follows it (2026-11-18)
+
+Board: `scratchpad/onestyle/cards-in-play.html`, published at
+https://claude.ai/artifact/BGL63xYwjnQKo9Zg6RAjD6. The user: "hmmm i dont like
+any of these. how can we make it look/feel like an actual card game? I'm
+imagining a 'hand' that's played in the middle, as if its a hand thats being
+played, and maybe the permanent effects are positioned in specific spots like
+how a card game has different zones for different effect cards? There is an
+overwhelming number of cards tbh".
+
+Proposed in reply and accepted ("ok that makes sense to me"): a card table with
+zones. Only what the player chose and placed is a card (the council, the
+government, the Doctrines, the hand). Passive effects are not full cards.
+
+The user's further rulings, same day: "i think R feels somewhat close in terms
+of function (piles of permanent abilities). Resources and technologies should
+definitely not be cards. Maybe wonders and beliefs are separate form order
+cards but also contain some graphic element to them? I'm thinking that the
+wonders should eventually have splash art".
+
+- Layouts P, Q and R are rejected as drawn. R's function (piles of permanent
+  abilities, one pile a kind) is close to what the user wants.
+- **Resources and technologies are never cards.**
+- **Wonders and beliefs get their own forms**, different from an Order card,
+  each with a graphic element. A wonder's form has room for splash art later.
+- A third board draws one table, at mid game and late game. Nothing is built
+  until the user picks.
+
+### Two tabs: Council and In play (2026-11-18)
+
+Board before this: `scratchpad/onestyle/card-table.html`, published at
+https://claude.ai/artifact/Acrdga9ZieQGMwhJPJpsLz. The user: "what if we had two
+modes - one screen where you play cards, and another where you see all cards in
+play. these can be separate tabs or separate screens altogether."
+
+Proposed in reply: two tabs of the one orders screen. The user: "yeah lets do
+it. I also want the effects of each card and the total effects be prominent as
+well."
+
+- **Tab 1, Council:** where the player plays cards. Chairs with full cards,
+  the government with tucked Doctrines, a full fan of held cards, the draft
+  pile, and a thin rail of four small piles (a count each) that is the door to
+  tab 2.
+- **Tab 2, In play:** where the player reads. The council smaller and not
+  movable, every pile open (wonders, beliefs, legacies, running out), the
+  totals, and the breakdown with resources and technologies as plain rows.
+- **What each card pays, and the totals, are prominent on both tabs.**
+- A fourth board draws both tabs. Nothing is built until the user picks.
+
+### The user's comments on the two-tabs board (2026-11-18)
+
+Board: `scratchpad/onestyle/two-tabs.html`, published at
+https://claude.ai/artifact/ARv274SuBRisKUrrchqR2G. The user's comments on the
+page, in their words:
+
+- **E2, the pay plate, is chosen.** "i like the pay plate slightly better. lets
+  use the same font as the cards, but the coloring is great. no need to add
+  non-yield effects or one time effects (gain faith on kill for example) as
+  part of the pay plate." So: the figure is the foot of the card itself, in the
+  card's own typeface, in the yield's colour. It shows yields paid each turn
+  only. A rule card and a card that pays on an occasion get no plate figure.
+- **N1, the totals band, is chosen, without the income share.** "N1 is great,
+  no need to show the total or the percentage of what the player makes in a
+  turn."
+- **In play becomes a separate screen, not a tab.** On the Council drawing:
+  "i like this, but it's a bit busy. Let's just have the 'in play' screen be a
+  different screen altogether".
+- **The rail of small piles leaves the Council screen.** "this panel is
+  probably unneeded".
+- **Confirm moves to the bottom right, above the hand.** "i think the player
+  expects the 'next action' button to be there because its the pattern on the
+  main screen."
+- **A new wonder lands in the In play screen.** On the arrival frame: "this is
+  great, but have it drop into the now separate 'in play' screen."
+- **The open piles on In play are too busy.** On the wonders zone: "this feels
+  a bit busy again, could we have these stack like the doctrines, and make them
+  expandable?"
+- **A question on percentages**, answered in chat: inside one stage the
+  percentages are summed; the town stage and the empire stage multiply
+  (`applyStages`, `docs/yields.md`).
+
+Also, the user, 2026-11-18, on the abacus bead count (13 drawn, 7 in the rule):
+"lets not finalize that now, i want to also rethink how wagers work." The bead
+count stays as it is until the wager rethink.
+
+### The age plate and the bead moment go full screen (2026-11-18)
+
+The user's comments on the turn-over pictures
+(https://claude.ai/artifact/AduZQbsbdRE19kWDyxz3Ji), in their words:
+
+- On the age plate and the bead sheet: "can we make both of these full screen?
+  I'm happy to have it be a big moment, and i think the abacus needs more
+  space."
+- On the bead sheet: "too much text in this description, and the purple dot on
+  the top feels amateurish. Let's just have the title "Wager of the Muse" and
+  the abacus, full screen with the animation. Also, make sure that the original
+  'Crimson' label is removed throughout the game and it reads your leader
+  instead."
+
+So:
+- **The age plate is a full-screen page.**
+- **A bead award is a full-screen page**: the title (for example "Wager of the
+  Muse") and the 3D abacus with the bead's slide. No description paragraph, no
+  coloured dot above the title.
+- **A seat is named by its leader everywhere**, never by its colour ("Crimson").
+- The bead count on the frame (13 drawn, 7 in the rule) stays open until the
+  user rethinks the wagers.
+
+### The user's comments on the Council and In play board (2026-11-18)
+
+Board: `scratchpad/onestyle/council-and-in-play.html`, published at
+https://claude.ai/artifact/Vue9nTgRZtsiF7D9pCPco6. The user's comments:
+
+- **The door and the arrival (D1, A1 to A3) are approved.** "this looks great."
+- **The totals band is too heavy**, on both screens. "lets have this look a bit
+  more elegant, its a bit of an eyesore taking up so much space at the top."
+- **"Running out" is renamed "Temporary".** "rename: temporary instead of
+  running out."
+- **Pieces in the In play stacks are one size.** On the late-game legacies
+  stack: "the wonder and legacy cards get too thin, lets just keep the same
+  size like how the council is structured. with each card the same size."
+- No comment on the pay plate, the Council screen's layout, Confirm at the
+  bottom right, or the stacks as an idea. Taken as accepted unless the user
+  says otherwise.
+
+### Happiness and authority on the cards and in In play (2026-11-18)
+
+The user: "Could we also add happiness/authority as yields that cards can give,
+and also put happiness/authority bonuses as items in the 'in play' section?
+Later we should do a pass on the yield calculations for cards because i've
+noticed they can be a bit weird".
+
+- The rules already let a card pay into happiness and authority, and the card
+  measurement reports it (`kind: 'meter'` lines in `src/sim/cardImpact.ts`;
+  Festival Days pays contentment, Provincial Governors pays writ). So this is a
+  display ruling: **happiness and authority show as figures beside the six
+  yields** on the pay plate, on tucked edges, on stack totals and in the totals
+  line.
+- **In play lists what pays happiness and authority.** A piece that pays a
+  meter shows it on its edge. Sources that are not cards (luxuries, buildings)
+  are plain rows in the breakdown, as resources and technologies are.
+- **Queued for later: a check of the card yield figures.** The user has seen
+  figures that look wrong. Collect examples from the user first.

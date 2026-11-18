@@ -36,6 +36,14 @@
  *
  * Data is data: every string arrives as a text node (`turnSplash.ts`'s rule),
  * and the one clause that may name a thing goes through `setDescriptorText`.
+ *
+ * The 3D frame (2026-11-18)
+ * -------------------------
+ * When `main.ts` hands the sheet the table (`table`) and `BEAD_SHEET_FRAME_3D`
+ * is on, the sheet shows the 3D Abacus instead of the 2D rod: every seat's rod,
+ * and the new bead sliding onto this seat's rod (`beadAwardFrame.ts`). The 2D
+ * rod above is kept. It is what the sheet draws with the switch off, with no
+ * table, or when the browser gives no WebGL context.
  */
 
 import {
@@ -58,6 +66,14 @@ import { figure } from './figures';
 import { setDescriptorText } from './keywords';
 import { element } from './dom';
 import { prefersReducedMotion } from './motion';
+import { type BeadAwardFrame, type BeadTable, mountBeadAwardFrame } from './beadAwardFrame';
+
+/**
+ * **The one switch for the 3D frame on the bead sheet** (2026-11-18). On, the
+ * sheet shows the 3D Abacus with the new bead sliding home. Off, it draws the
+ * 2D rod it drew before. See `beadAwardFrame.ts`.
+ */
+export const BEAD_SHEET_FRAME_3D = true;
 
 /**
  * One bead award, as this sheet needs to read it. `BeadAward`'s fields plus the
@@ -203,6 +219,11 @@ interface BeadModalOptions {
    * less than one. See `main.ts`, which pumps its pending bead news from here.
    */
   onClosed?: () => void;
+  /**
+   * The whole table and the reader's seat, asked each time a sheet is drawn,
+   * for the 3D frame. Absent, or `null`, draws the 2D rod.
+   */
+  table?: () => BeadTable | null;
 }
 
 export function createBeadModal(
@@ -213,9 +234,18 @@ export function createBeadModal(
   let queue: BeadNews[] = [];
   /** Where focus goes back to once the last sheet is proceeded past. */
   let restoreFocus: HTMLElement | null = null;
+  /** The 3D frame on the sheet now up, or null. */
+  let frame: BeadAwardFrame | null = null;
+
+  /** Takes the 3D frame down and gives its WebGL context back. */
+  function dropFrame(): void {
+    frame?.dispose();
+    frame = null;
+  }
 
   function clear(): void {
     const wasUp = queue.length > 0 || !container.hidden;
+    dropFrame();
     queue = [];
     container.replaceChildren();
     container.hidden = true;
@@ -260,6 +290,7 @@ export function createBeadModal(
     const news = queue[0];
     if (!news) return;
     const face = beadAwardFace(news, queue.length, { still: prefersReducedMotion() });
+    dropFrame();
     container.replaceChildren();
 
     const sheet = element('div', 'triumph-sheet bead-sheet gilt-frame');
@@ -284,7 +315,10 @@ export function createBeadModal(
     sheet.append(deed);
 
     const abacus = element('figure', 'bead-award-abacus');
-    abacus.append(drawWire(face));
+    // The 3D frame is built below, once the sheet is on screen. Without a table
+    // the 2D rod is drawn here, as it always was.
+    const table = BEAD_SHEET_FRAME_3D ? (options.table?.() ?? null) : null;
+    if (table === null) abacus.append(drawWire(face));
     abacus.append(element('figcaption', 'bead-award-tally', face.tally));
     sheet.append(abacus);
 
@@ -310,6 +344,13 @@ export function createBeadModal(
 
     container.append(sheet);
     container.hidden = false;
+    // Now that the sheet is laid out, the stage can measure its box. The new
+    // bead slides only where the 2D rod would have animated it. If the browser
+    // gives no WebGL context, the 2D rod takes the frame's place.
+    if (table !== null) {
+      frame = mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null);
+      if (frame === null) abacus.prepend(drawWire(face));
+    }
     button.focus({ preventScroll: true });
   }
 

@@ -629,7 +629,10 @@ describe('the bot defends itself', () => {
     // Re-sited for bot batch BP13b: on its board at turn 12 a real camp five hexes
     // off is worth more than the test's own, and the piece marches there. Turns
     // 13 to 18 march to the test's camp; fifteen is the middle.
-    const game = grownGame(15);
+    // Re-sited for bot batch BP16's phases: on the board played since, the free
+    // piece at turn 15 guards a worker of the seat beside it, and turns 13, 14
+    // and 16 march to the test's camp; fourteen is used.
+    const game = grownGame(14);
     const { map } = game.state;
     const city = firstCity(game.state, 0);
     const home = getTileAt(map, city.col, city.row)!;
@@ -1395,6 +1398,12 @@ describe('the bot module', () => {
     // kept for one decision, and it names the guards under which a price may be
     // handed back. It keeps nothing past the decision and nothing beside the
     // state, so it is not in `harnessMemory.ts`.
+    //
+    // Twenty-nine since bot batch BP16, stage B (2026-11-18): `sittingPhases.ts`
+    // is a leaf that names the five phases of a sitting, the seat's print, the
+    // events that open a phase again, the tallies and the end check's switch.
+    // The arms stay in `bot.ts`. It keeps nothing beside the state, so it is
+    // not in `harnessMemory.ts`.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1418,6 +1427,7 @@ describe('the bot module', () => {
       'routes.ts',
       'scopeReach.ts',
       'settlerSites.ts',
+      'sittingPhases.ts',
       'stepper.ts',
       'townFolds.ts',
       'value.ts',

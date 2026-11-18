@@ -3390,3 +3390,135 @@ The base and the stage A tree from the base tree's turn-90 snapshot, in one proc
 - Tests: `test/sim/aiCampHunt.test.ts`, `aiWar.test.ts`, `aiDiplomacy.test.ts`, `aiDecisionMemo.test.ts`, `purchase.test.ts`, `decks/commercePurse.test.ts`, and the pins in `aiDigest.slow.test.ts`.
 - `docs/bot-priorities.md`, and this section.
 - Scratch (not in the repo), in the session's scratch folder `bp16/`: `probe.ts`, `gamesq.sh`, `freeze.sh`, `play.ts`, `pair.ts`, `diplocensus.ts`, `table16.py`, `slow.sh`, the queues `qA2.sh` and `qA3.sh`, the snapshots in `snaps/`, the logs in `logs/`, and the games in `out/` (`before2/` and `stageA/`, each with `PROBE.ts`; `stageA/` has a `NOTES.md` for the baseline folder). The T3-only and census trees were removed; the base and stage A trees (`before/`, `stageA/`) are kept for the stages that follow and will be removed at the end.
+
+### Stage B: the bot's turn in phases
+
+`docs/flags.md`, the bullet "The bot's turn in phases, and a fourth rendering speed pass". The user: *"lets take this phased approach"*. Before this stage `decideNext` asked its whole list of arms again after every command. Now a sitting asks a few groups of arms (phases) until each has nothing more to do, then not again unless a named event opens it. Every arm keeps its own logic and sentences. Play may change; the pins are cut once and five seeds are checked. No knob, no data and no rule changed.
+
+#### Method
+
+- **Trees.** The **stage A tree** is the branch head `4323c876` (stage A, committed, and a merge of `decks` that changed only `docs/flags.md`). The **stage B tree** is it with this stage's files copied in. A **variant tree** of the first shape, with a scratch switch that moves named phases after the loop, served the ablation in part 3. Each was a scratch worktree outside the repo.
+- **The before games** are stage A's after games (`out/stageA/`, the same probe). Replayed from a snapshot or a census, the stage A tree reached their digests.
+- **The census.** A scratch copy of the stage A tree with one logging call around every arm of `decideNext` and `housekeeping`, and a probe that records what changed on the seat's own board between two decisions (its purse, towns, research, offers, cards, wars, soldiers, units, queue heads and piece positions). For each arm and sitting it counts the answers before the arm's first empty answer and the answers after one, and for the second kind what changed in between. The census games reached stage A's stored digests on all five seeds.
+- **The end check** (`setSittingEndCheck`, `sittingPhases.ts`): at the end of each sitting, the old full pass (`theOldPass`, every arm in the order before this stage) is asked on a copy of the sitting, with the harness memories read before and put back after, and what it would still have done is counted. With the check on, seed 42 gave the same digests as with it off (both shapes), and so did all five seeds of the final shape.
+- **Timings.** BP14's `pair.ts` from stage A's turn-90 and turn-120 snapshots of seeds 42 and 999, both trees in one process, a turn each in rotation, three repeats. Load average 3 to 4 (the machine was quiet for these runs; it was at 10 to 70 for the games).
+
+#### 1. The census: which arm answered after it had said nothing
+
+Five seeds, turns 1 to 100, on the stage A tree: 3,000 sittings, 27,297 decisions, 179,933 asks of an arm.
+
+| Arm | Asks | Answers | Of them after an empty answer in the same sitting | What had changed |
+|---|---:|---:|---:|---|
+| `disband` | 26,341 | 27 | 4 | the purse (4), a unit gained (4), a soldier lost (2) |
+| `spend` | 26,314 | 1,352 | 71 | the purse (71), a piece moved (67), a town grew (23), a unit gained (23), a war (9) |
+| `slotting` | 3,596 | 395 | 208 | the cards (208): a card unseated by the re-seat arm, then another seated |
+| `reaimBeeline` | 4,689 | 320 | 0 | |
+| `focus` | 4,365 | 769 | 0 | |
+| `reslot`, `levy`, `retire`, `projectIdle`, `diplomacy` | | | 0 | |
+| the loop's arms (escorts, campaign, hunt, guards, idle settler, idle unit) | | | 185, 47, 7, 2, 1, 2 | a piece moved |
+
+The loop's arms answer after another piece moved by design, so they stay a loop. Of the phases, only spending and the council answered after an empty answer, and in the council it was the council's own command.
+
+#### 2. The shape as built
+
+- **The first shape** was the ruling's order: research, diplomacy, the council, spending, housekeeping, each until it had nothing more to do, then the loop, then the end, with four events (`purse` to spending, `council` to the council, `queue` (a town's build) to housekeeping, `copies` to diplomacy). Housekeeping's focus waits while a town has no build. The end check found 26 orders in 3,000 sittings that the old pass would still have sent (20 beeline re-aims, 2 declarations, 1 peace signed, 1 focus, 1 purchase, 1 disband).
+- **But it lowered production** (part 3), so the final shape asks research, the council and housekeeping **after** the loop, where the old order asked them:
+  1. diplomacy, then spending, each until it has nothing more to do;
+  2. the loop: the turn's first blocker (any offer, an idle piece or cart, an empty queue with a sleeping worker asked first, an empty research plan), then a sleeping worker, the escorts, the guards, a sleeping settler, the campaign's dug-in pieces, the hunt's, and the marches asked again;
+  3. research, the council, housekeeping, each until it has nothing more to do, once the loop has nothing; after one of them answers, the next decision asks the loop again first;
+  4. the end.
+- **The events, final**: `purse` (the seat's gold, faith or culture changed) opens spending, and opened it 357 times in the five final games; `copies` (the luxury copies the seat holds changed) opens diplomacy, 257 times. The `council` and `queue` events opened nothing in 3,000 sittings of the final shape, because the last three phases read the board after the loop has changed it, so they were taken out (the pins and seed 999's game were read again without them and did not move).
+- **The loop's per-arm mark.** A mark that skipped a loop arm while the seat's pieces, towns, wars and cards stood as the arm had read them was built and measured: 5 skipped asks of each arm in five games, because almost every decision of the loop is a unit or town order. It was taken out. The per-piece marks the arms already keep (`called`, `roused`, `reasked`, `guardOrders`, `escortOrders`) ask each piece at most once a turn, except the campaign's stay answer.
+- **What waits a turn**, by the end check of the final shape over the five seeds (3,000 sittings): 3 orders, 2 declarations of war (after the seat bought or moved soldiers in the sitting) and 1 disband. Accepted and listed.
+- **Callers with no sitting** (tests, a puppet's pick) are asked every arm in the old order (`theOldPass`), which is also what the end check asks.
+
+#### 3. Why research and the council come after the loop
+
+Production at turn 100 and improvements started to turn 100, six seats summed (`ablation.py`):
+
+| Order | 42 | 999 | 7 | 1 | 2026 | Sum of 42, 999, 7 | Sum of five |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| stage A | 1,069 / 222 | 1,773 / 290 | 1,965 / 319 | 1,206 / 251 | 874 / 234 | 4,807 / 831 | 6,887 / 1,316 |
+| all five phases before the loop | 806 / 219 | 1,093 / 269 | 1,662 / 299 | 787 / 216 | 766 / 209 | 3,561 / 787 | 5,114 / 1,212 |
+| housekeeping after the loop | 799 / 210 | 1,044 / 278 | 1,569 / 283 | | | 3,412 / 771 | |
+| the council after the loop | 1,167 / 222 | 1,788 / 336 | 1,399 / 300 | | | 4,354 / 858 | |
+| research after the loop | 855 / 221 | 1,321 / 292 | 2,470 / 308 | 1,246 / 262 | 811 / 234 | 4,646 / 821 | 6,703 / 1,317 |
+| research, council, housekeeping after (final) | 983 / 224 | 1,576 / 324 | 1,451 / 341 | 1,285 / 264 | 1,574 / 227 | 4,010 / 889 | 6,869 / 1,380 |
+
+- With all five phases before the loop, production fell by 26% [−39%, −10%] and the improvements started by 8% [−14%, −2%], both on every seed. The end check found almost nothing waiting, so the cause is the order, not a waiting order.
+- Moving housekeeping (the focus) after the loop changed nothing. Moving research, or the council, after the loop brought most of it back; moving all three brought both figures back to stage A's level over five seeds.
+- **The cause is not proven.** The likeliest reading: the beeline's table (`techGoalTable`) and the council's stamps are the first expensive readers of the sitting's context, and five context memos hold a stand-in value while they are first read (the audit's finding 9, BP14's guards), so the arm that reads them first shapes the prices of the whole sitting. Asking those two after the loop puts the old first readers back. A second reading is that research goals and card seats chosen before the towns and pieces act are chosen on a board that has not yet moved this turn. The final tree's games are byte-identical to the variant tree's with the same order (all five digests).
+
+#### 4. Five seeds to turn 100
+
+Before is stage A's after games, after the stage B tree. Six seats summed. Paired is the geometric mean of the per-seed ratios with a 95% t interval.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 294 | 290 | −1% [−16%, +17%], 3 down, 2 up | 51→58, 66→58, 61→53, 67→65, 49→56 |
+| Citizens | 1,717 | 1,731 | +0% [−13%, +15%], 2 down, 3 up | 300→285, 370→398, 364→307, 389→431, 294→310 |
+| Food | 6,662 | 6,481 | −3% [−10%, +5%], 4 down, 1 up | 1,177→1,115, 1,481→1,583, 1,289→1,174, 1,615→1,526, 1,100→1,083 |
+| Production | 6,887 | 6,869 | +3% [−32%, +57%], 3 down, 2 up | 1,069→983, 1,773→1,576, 1,206→1,285, 1,965→1,451, 874→1,574 |
+| Gold | 3,087 | 2,949 | −7% [−48%, +65%], 3 down, 2 up | 446→452, 1,060→974, 512→236, 705→673, 364→614 |
+| Science | 4,379 | 4,777 | +6% [−23%, +46%], 2 down, 3 up | 716→567, 1,120→1,126, 847→756, 830→1,271, 866→1,057 |
+| Culture | 2,302 | 2,048 | −8% [−39%, +38%], 3 down, 2 up | 242→357, 685→489, 454→346, 455→324, 466→532 |
+| Faith | 969 | 1,013 | +2% [−35%, +61%], 2 down, 3 up | 186→140, 246→162, 177→189, 158→236, 202→286 |
+| Improvements started | 1,316 | 1,380 | +4% [−3%, +11%], 1 down, 4 up | 222→224, 290→324, 251→264, 319→341, 234→227 |
+| Workers built | 440 | 456 | +3% [−2%, +10%], 1 down, 3 up | 76→76, 96→102, 84→82, 105→109, 79→87 |
+| Workers taken (the wild and rivals) | 72 | 54 | **−24% [−38%, −8%]**, 5 down, 0 up | 8→7, 15→9, 17→12, 14→12, 18→14 |
+| Soldiers lost to the wild | 232 | 243 | +4% [−16%, +28%], 3 down, 2 up | 58→53, 28→25, 59→56, 36→44, 51→65 |
+| Deals proposed | 75 | 96 | +33% [−6%, +87%], 1 down, 4 up | 10→15, 25→23, 12→23, 14→19, 14→16 |
+| Deals signed | 74 | 88 | +23% [−17%, +82%], 1 down, 4 up | 10→12, 25→21, 11→22, 14→18, 14→15 |
+| Wars declared | 14 | 27 | +110% [−50%, +782%], 1 down, 4 up | 1→3, 1→5, 7→15, 5→3, 0→1 |
+| Peace proposed | 21 | 40 | +156% [−68%, +1955%], 1 down, 4 up | 1→6, 1→8, 10→20, 9→4, 0→2 |
+| Decisions | 27,297 | 29,098 | **+6% [+2%, +11%]**, 0 down, 5 up | 5,072→5,389, 5,602→6,035, 5,815→6,485, 5,763→5,989, 5,045→5,200 |
+| Flip-back orders | 715 | 763 | +6% [−25%, +48%], 2 down, 3 up | 126→159, 160→111, 150→197, 124→152, 155→144 |
+
+- **Neither worse nor better for the economy.** No yield moves with an interval that excludes nought. Workers taken fell on every seed. More swap papers go out in the sitting they become possible (the `copies` event), so deals rose on four seeds of five.
+- **Wars rose** from 14 to 27, back to the 24 of the tree before stage A, most of it on seed 1 (7 to 15). Diplomacy is now asked first, before spending, as it was not in stage A (offers, arrears and spending came first). Five seeds cannot tell this from games parting.
+- **Decisions a sitting** rose from 9.1 to 9.7: more papers, more marches.
+
+**Asks per arm**, five seeds, turns 1 to 100 (stage A by the census, stage B by `phaseTally` in the end-check runs): all arms 179,933 → 132,386 (−26%). The phases' arms: `disband` 26,341 → 4,849, `spend` 26,314 → 4,804, `projectIdle` 11,016 → 3,849, `reaimBeeline` 4,689 → 3,346, `levy` 4,369 → 3,583, `retire` 4,365 → 3,849, `focus` 4,365 → 3,848, `diplomacy` 3,184 → 3,516 (the `copies` event). The loop's arms were asked 3% to 7% more, as the decisions rose.
+
+#### 5. Seconds a turn
+
+Stage A and stage B from stage A's snapshots, in one process, a turn each in rotation, three repeats. CPU seconds of the window, and the bot's own inside `nextBotDecision`. Load average 3 to 4.
+
+| Window | Tree | Repeat 1 | Repeat 2 | Repeat 3 | Bot, repeats 1 to 3 | Decisions | Turn | Bot |
+|---|---|---:|---:|---:|---|---:|---:|---:|
+| 42, turns 90 to 100 | stage A | 10.39 | 7.74 | 6.66 | 7.95, 5.79, 5.08 | 1,061 | | |
+| | stage B | 10.22 | 7.61 | 6.79 | 7.77, 5.71, 5.17 | 1,066 | −0.7% | −0.9% |
+| 999, turns 90 to 100 | stage A | 14.88 | 12.66 | 10.86 | 11.61, 9.76, 8.32 | 1,086 | | |
+| | stage B | 14.55 | 12.44 | 10.58 | 11.35, 9.41, 8.19 | 1,086 | −2.2% | −2.5% |
+| 42, turns 120 to 125 | stage A | 12.78 | 8.91 | 8.37 | 9.78, 6.72, 6.32 | 876 | | |
+| | stage B | 12.62 | 8.67 | 8.55 | 9.62, 6.48, 6.48 | 875 | −0.7% | −1.1% |
+| 999, turns 120 to 125 | stage A | 17.89 | 13.70 | 13.36 | 13.70, 10.35, 10.16 | 773 | | |
+| | stage B | 17.82 | 13.39 | 13.46 | 13.69, 10.14, 10.22 | 789 | −0.6% | −0.5% |
+
+- **The gain is about 1% of a turn** (0.6% to 2.2%). The asks the phases skip were cheap ones after stage A's memos (the spend arm's kept "nothing to buy", diplomacy once a sitting) and BP15's kept readings (the beeline's table, the card stamps). What costs is read once a sitting either way: the context at the first decision, the beeline's first table, the council's first stamps, and the loop's unit arms. The last decision of a sitting still asks the loop's arms once, which the end of a sitting needs.
+- Stage A replayed from its snapshots reached its stored digests (seed 42 `d3e86ffa:955881` at turn 100).
+
+#### 6. What this means for parallel bots (stage C)
+
+- **No phase reads only the seat's own empire.** All of them read the sitting's context (`valueContext`), which is built at the sitting's first decision from the whole board: the trade outlook prices pairs with any town on the board, the threat reading counts foreign pieces near the seat's towns, the war outlook reads every rival's army (`armyStrength`), and the hexes for sale near the seat's towns read their owners. Diplomacy reads every rival's army, towns, papers and wars, and its campaign road is a path search. Research reads a few facts of the whole game (any seat holding alchemy, the wonders register, the great-person roster) and the threat near the seat's towns. The council folds the seat's own empire, but cards whose scope counts foreign towns or routes read those. Housekeeping (the focus) reads the seat's own towns.
+- **What the shape does give.** The first two phases come before any of the seat's own pieces move, so for them the only inputs that earlier seats' commands can change are the context's foreign readings, the live purchase gates and diplomacy's own readings. That is a short list that could be named and checked. The loop and the last three phases read the board after the seat's own pieces moved, which is where the path fields (`transitField`, `zocField`, swept over the whole board) and the hostiles near the seat's pieces come in.
+- **Unchanged by the shape**: the shared unit id counter (a unit an earlier seat buys or a town it founds moves the ids this seat's own purchases would get, and later commands name those ids), and the per-seat tuning sheets (`setAiTuning`, module state of the main thread, which a worker would have to be sent).
+
+#### Pins
+
+`test/sim/aiDigest.slow.test.ts`, cut once: duel `973ac191:342552` -> `28801863:335754`, standard `604db3ce:1039518` -> `c0770657:1035266`. Neither board reported a warning or a stall. The digest file and `aiWants.slow.test.ts` were run again on the working tree with the new pins.
+
+#### Checks
+
+- Type check clean (`nice -n 15 npm run typecheck`).
+- Narrow tests, all passed: `aiSittingPhases` (new, 4 tests), the brief's list (`aiBot`, `aiWar`, `aiDiplomacy`, `aiWorkerClaims`, `aiWorkerHold`, `aiWorkerGuards`, `aiWorkerHome`, `aiRouteMemo`, `aiDecisionMemo`, `aiEndCheckLoops`, `aiWants`, `verbs`, `test/mapgen/moduleCycles`, `test/ui/botWorker`), and every other core file that drives the bot (35 files, among them `aiCampHunt`, `aiBeelineTable`, `aiSittingStamps`, `aiSittingMemos`, `aiCommerce`, `aiDevotion`, `aiMagisterial`, `aiWager`, `aiPuppet`, `aiModuleCycles`, `empireYieldAtRest`, the deck files, `test/ui/spectatePage`, `test/ui/arenaPage`).
+- Slow tier: `aiDigest.slow.test.ts` (the pins read off the stage B tree, then on the working tree), `aiWants.slow.test.ts`, and the stepper's pin against the driver (`aiDecision.slow.test.ts`, `aiDriver.slow.test.ts`) and `aiBot.slow.test.ts`.
+- Tests brought up to date: `aiDecisionMemo` (the spend memo is asked once a sitting now, so its test opens the spending phase by hand), `aiBeelineTable` (the table is asked about once a sitting, so it is seldom kept), `aiEndCheckLoops` (the town's build is no longer the sitting's first decision), `aiBot` (the held-camp board re-sited to turn 14, and the register of bot files), `aiDiplomacy` (the closed phases replace stage A's flag).
+
+#### Files
+
+- `src/ai/sittingPhases.ts` (new, a leaf): the phases, the seat's print, the events, the tallies and the end check's switch.
+- `src/ai/bot.ts`: `decideNext` hands a sitting to `phasedDecision`; `askPhase`, `theLoop`, `theOldPass`, `checkTheEnd`, `copyOfSitting`, `townAwaitsItsBuild`, `adoptionDecision`; `BotSitting.closed` (in place of stage A's diplomacy flag) and `BotSitting.print`.
+- Tests: `test/sim/aiSittingPhases.test.ts` (new); `aiBot`, `aiDecisionMemo`, `aiBeelineTable`, `aiEndCheckLoops`, `aiDiplomacy`; the pins in `aiDigest.slow.test.ts`.
+- `docs/bot-priorities.md` ("The order of a sitting", at the top), and this section.
+- Scratch, in `bp16/`: `armcensus.ts` (with the logging copy `census2/`), `phaserun.ts`, `phasedebug.ts`, `camptest.ts`, `probeVar.ts` and `qVar.sh` (the ablation, on `var/`), `ablation.py`, `varcmp.py`, `samedigests.py`, the queues `qB1.sh` to `qB4.sh`, stage A's snapshots in `snapsA/`, the census in `out/census/`, the end checks in `out/check/`, the ablation games in `out/var-*/`, the first shape's games in `out/stageB-v1/`, and the final games in `out/stageB/` (with `PROBE.ts` and `NOTES.md`). The census, variant and stage A base trees (`census2/`, `var/`, `before/`) were removed; the stage A and stage B trees (`stageA/`, `stageB/`) are kept for stage C and will be removed at the end.

@@ -17656,6 +17656,25 @@ body.compendium-page {
   justify-content: center;
 }
 
+/* The 3D frame on the sheet (`beadAwardFrame.ts`, 2026-11-18). A fixed height,
+   because the stage measures this box when it is built and a box sized by its
+   content measures nothing. `position: relative` places the name labels, as
+   `.abacus-stage` does. The labels use the Abacus screen's classes at a size
+   that fits the sheet. */
+.bead-award-stage {
+  position: relative;
+  height: 200px;
+}
+
+.bead-award-stage .abacus-label.is-name {
+  padding-right: 8px;
+  font-size: var(--size-ui);
+}
+
+.bead-award-stage .abacus-label.is-you {
+  font-weight: 700;
+}
+
 .bead-award-tally {
   margin-top: 6px;
   color: var(--ink-soft);

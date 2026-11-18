@@ -2808,3 +2808,101 @@ Rulings by the user, 2026-11-18.
   picture-changing idea comes back as a proposal with before and after
   pictures. The report goes in `docs/plans/render-performance-2026-11-16.md`
   as "Fifth pass".
+
+## BP16 stage B as landed: the order differs from the ruling (2026-11-18)
+
+- The ruled order put research, diplomacy, the council, spending and
+  housekeeping before the units. With that order, production at turn 100 fell
+  26% on five seeds.
+- The landed order is: diplomacy and spending, then the unit and town loop,
+  then research, the council and housekeeping. `docs/bot-priorities.md`, "The
+  order of a sitting", is the reference.
+- The gain is about 1% of a turn. The user has been told and has not yet
+  confirmed the order.
+- Open: the likely cause of the 26% drop is that some context memos keep the
+  value their first reader leaves, so the order of the arms changes prices.
+  Not proven. A fix waits for the user's answer, and so does stage C.
+
+## Rendering: baked ground paint and a scroll cache (2026-11-18)
+
+Rulings by the user, 2026-11-18. Both are built after the fifth pass reports
+its measurements (the small-triangle test and the scroll cache estimate).
+
+- **Bake the ground's paint into a texture.** The user: "for #1 we should
+  definitely be baking the texture laid over the mesh." Today the paint is
+  vertex colours (`vertexColors: true` in `paintedBoard.js`), so a coarser mesh
+  loses paint. Bake the paint once, then let the ground mesh get coarser at far
+  zooms with the same colours.
+- **Scroll cache.** The camera has a fixed angle and no perspective, so the
+  static ground only slides during a pan. Draw it once into a picture larger
+  than the screen and move that picture.
+  - Trees: "trees freeze while the camera moves sounds good to me." Trees go in
+    the cache; sway stops during a pan and starts again at rest.
+  - Water: "same approach for water is cool by me."
+  - Fog, borders, improvements and towns change on events; each change draws
+    the cache again.
+  - Zoom: scale the cached picture while the zoom moves, then draw it sharp at
+    rest (proposed to the user, not yet confirmed).
+- **The check of frames that need no drawing** (the user: "do the #7 check") is
+  question 2 of the fifth pass.
+
+## Bots after BP16 stage B (2026-11-18)
+
+The user, 2026-11-18: "you're good to go with your recommendation for the bots
+optimization." The recommendation was:
+
+1. The landed order of a sitting stands.
+2. **BP16b-fix: find and fix the order fault.** Some context memos seem to keep
+   the value their first reader leaves, so the order of the arms changes prices
+   (production fell 26% in one order). Prove the cause, then make each memo
+   give the same value whoever reads first. Pins may be cut once.
+3. **Then stage C: parallel bots from a frozen copy of the board.** Each bot
+   decides from the board as it stood at the start of the turn's bot step, in
+   its own worker. Results change once. This replaces the earlier "pins
+   identical" condition, which stage B showed is not reachable.
+
+## Age turn-over: a missing plate, the abacus motion, and a faster clock (2026-11-18)
+
+The user, 2026-11-18, from a game on the play server at about turn 70: "no, i
+didnt see it during the world's age turns over. I also dont see a new abacus
+animation (it uses the 2d abacus animation, when ideally it should be the 3D
+one)."
+
+- **Fault: the age plate did not show** when the world's age turned over.
+  Find the cause before any fix.
+- **The age turn-over's abacus motion must use the 3D abacus**, not the 2D one.
+- **The clock turns over sooner.** The user: "The age rollover should probably
+  be more aggressive too, once any player has reached age 3, or if half the
+  players have reached age 2, it should trigger the countdown for age
+  roll-over." Reading taken (to confirm with the user): the countdown that
+  closes age N starts when any living seat has reached age N+2, or when at
+  least half of the living seats have reached age N+1. This replaces the
+  floored mean in `worldAge` (`src/sim/worldClock.ts`). The countdown length
+  (`rules.wager.countdown`) stays. Built after the bot order fault batch lands,
+  because both cut the digest pins.
+- **A styling pass for the 3D abacus** is scheduled (the user: "Could you also
+  schedule a styling pass for the 3d abacus?"). Design options first, with
+  pictures.
+
+## Rendering focus: the ground paint texture (2026-11-18)
+
+The user: "Let's defer the zoom and scroll cache for now, and focus on the
+ground paint texture, i have a feeling that should speed things up
+considerably." The scroll cache and its zoom handling are deferred. The baked
+ground paint, with a coarser ground mesh at far zooms, is the next rendering
+build. It starts when the fifth pass reports.
+
+## Age turn-over: landed fix and three follow-ups (2026-11-18)
+
+- Landed (`c3341ac8`): every age that opens is reported, so the age plate and
+  the wager sheet show at the first turn-over. The bead award sheet shows the
+  3D abacus (`BEAD_SHEET_FRAME_3D` in `src/ui/beadModal.ts` is the switch).
+- Three follow-ups, proposed to the user and taken as the recommended reading:
+  1. A tutorial note must not open on top of the age plate. It waits until the
+     plate (and any sheet in the same queue) has closed.
+  2. The top bar's age card must not show the new age before the plate has
+     announced it. Interface only; `currentWorldAge` in the sim stays.
+  3. The bead sheet's line and the Abacus screen say "of 7 beads" while the 3D
+     frame draws 13 beads a rod. Make the frame and the words agree.
+- Open with the user: up to five pages can show in one hand-over (Triumph
+  sheet, bead sheets, age plate, wager sheet, census). Not changed yet.

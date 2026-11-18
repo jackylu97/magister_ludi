@@ -15,6 +15,76 @@ weigh a charter). Every knob is a leaf of `data/ai.json` and therefore appears o
 arena A/B, seed sweep and before/after profile — is
 `docs/history/bot-priorities-log.md`.
 
+## The order of a sitting
+
+A **sitting** is one bot seat's turn: a run of decisions, one command each,
+until the seat has nothing more it wants and the driver sends its End Turn.
+Since bot batch BP16 (stage B; `docs/flags.md`, the bullet "The bot's turn in
+phases") a sitting runs in this order (`phasedDecision`, `bot.ts`;
+`sittingPhases.ts`):
+
+A **phase** is a group of arms asked at every decision until it has nothing
+more to do; then it is closed for the sitting.
+
+1. **The first two phases**, before the board:
+   - **Diplomacy**: papers put to the seat, peace, a raze, a declaration, a
+     swap. It is first of the board's business, so a war declared now is a war
+     this turn's soldiers act on.
+   - **Spending**: arrears first (a seat under water stops a wage before it
+     buys), then the gold, faith and culture banks and the contributions.
+2. **The loop**, asked at every decision, because one piece's move changes the
+   next piece's best move: the turn's first blocker (an offer on the empire, an
+   idle piece, an idle cart, a town with an empty queue, with a sleeping worker
+   asked before a town chooses its build, an empty research plan), then a
+   sleeping worker, the escorts, the guards, a sleeping settler, the campaign's
+   dug-in pieces, the hunt's, and the marches asked again. Each of these asks a
+   piece at most once a turn, except the campaign's stay answer.
+3. **The last three phases**, once the loop has nothing:
+   - **Research**: a seat with no plan chooses one, and the beeline is re-aimed
+     (at most `driver.reaimsPerTurn` times).
+   - **The council**: an offer on the empire (a discovery, an Order or
+     Doctrine draft, a belief, a great person), the wager, the census, a banked
+     charter, a levy, an Order into an empty chair, a better arrangement.
+   - **Housekeeping**: a surplus soldier retired, a town idling on a
+     conversion, and each town's focus. The focus waits while a town of the
+     seat has no build, because a focus is chosen for a build.
+   After a last phase answers, the next decision asks the loop again first: a
+   card seated or a town pointed can change what a piece would do.
+4. **The end.** When the loop and every open phase have nothing, the sitting
+   ends. The closed phases are not asked again.
+
+**Why three phases come after the loop.** The first shape built asked all five
+phases before the loop, in the order research, diplomacy, council, spending,
+housekeeping. On the five stored seeds to turn 100 it lowered production by 26%
+and the improvements laid by 8%, both on every seed. Asking research and the
+council after the loop, where the order before the phases asked them, brought
+both back to stage A's level (the section "BP16" of
+`docs/plans/performance-pass-2026-11-06.md`, stage B, part 3).
+
+**The events.** A closed phase opens again only when one of these has happened
+since the seat's last decision. Each is a difference in the seat's own board
+between two decisions, so it is raised by the seat's own accepted command.
+
+| Event | What changed | Opens again |
+|---|---|---|
+| `purse` | the seat's gold, faith or culture | spending |
+| `copies` | the luxury copies the seat holds | diplomacy |
+
+The last three phases need no event: they are asked after the loop, so what the
+loop changes (a town's build, an Order drafted) is on the board before they
+first read it. A blocker (an offer, an empty queue, an empty research plan) is
+answered by the loop whatever the phases say, so a seat cannot end its turn
+owing one.
+
+**What waits a turn.** At the end of each sitting a check mode
+(`setSittingEndCheck`) asks the old full pass on a copy of the sitting. Over
+the five stored seeds to turn 100 (3,000 sittings) it would still have sent 3
+orders, which now wait for the seat's next sitting: 2 declarations of war
+(after the seat bought soldiers or moved them in the sitting) and 1 disband.
+
+A caller with no sitting (a test asking one question, a puppet's pick) is asked
+every arm in the old order (`theOldPass`).
+
 ## Principles
 
 1. **Greedy with a margin.** Each template keeps its best chain; a challenger
@@ -1015,7 +1085,7 @@ are the section "BP16" of `docs/plans/performance-pass-2026-11-06.md`).
   piece was called out to a camp or a muster and the fall-back walked it home
   again. A piece that is not yet dug in still digs in, as before.
 - **Diplomacy is asked until it has nothing to say, once a sitting**
-  (`BotSitting.abroadQuiet`, `decideNext`). Every paper on the table when the
+  (since stage B the diplomacy phase, `BotSitting.closed`). Every paper on the table when the
   seat sits down is answered in that sitting, because the other seats send
   papers only in their own sittings and the asks go on while each answers.
   What waits one turn is an answer whose reasons the seat's own later commands

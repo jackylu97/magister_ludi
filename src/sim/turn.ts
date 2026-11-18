@@ -160,7 +160,7 @@ import { type BeadAward, beadMarks, beadsSince, runWorldClock } from "./beads";
 import { runWagers } from "./wagers";
 import { runCensus } from "./census";
 import { type CommissionReport, runCommissions } from "./commissions";
-import type { BeadAge } from "./beadData";
+import type { TechAge } from "./techData";
 import { runRenown } from "./renown";
 import { advanceResearch } from "./tech";
 import { type ExploreEndReport, marchExplorers } from "./explore";
@@ -436,10 +436,12 @@ export interface TurnReport {
    * Written by the `worldClock` phase since batch G1, on the turn a countdown
    * reaches nought rather than on the turn the first seat crossed.
    *
-   * The **built** age number (see `BeadAge`): what the interface prints beside
-   * it is the interface's business.
+   * The tree's age number (`TechAge`), for every age that opens: II, III and
+   * IV. What the interface prints beside it is the interface's business. It
+   * was `BeadAge` (III and IV only) until 2026-11-18, and Æra II opened with
+   * no report, so the age plate never showed at the first turn-over.
    */
-  beadAgeOpened?: BeadAge;
+  beadAgeOpened?: TechAge;
   /**
    * The age a wager deal opened for during the resolution, or absent.
    *

@@ -74,7 +74,6 @@
  */
 
 import {
-  type BeadAge,
   type BeadBoon,
   type BeadCardId,
   type BeadCount,
@@ -89,7 +88,6 @@ import {
   type BeadWindfall,
   BEAD_FEAT_IDS,
   anyBeadDef,
-  isBeadAge,
   beadEndeavourDef,
   beadFeatDef,
   beadIsDormant,
@@ -141,6 +139,7 @@ import { settleResearchWindfall } from './tech';
 import {
   BUILDING_UNLOCK_TECH,
   LAST_TECH_AGE,
+  type TechAge,
   highestAge,
   isTechId,
   techDef,
@@ -1084,7 +1083,7 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
 /** What the clock phase writes into. `TurnReport`'s two bead fields, no more. */
 interface BeadReport {
   beads: BeadAward[];
-  beadAgeOpened?: BeadAge;
+  beadAgeOpened?: TechAge;
 }
 
 // --- the world clock --------------------------------------------------------
@@ -1153,7 +1152,12 @@ export function runWorldClock(state: GameState, report?: BeadReport): void {
       // by the time the resolution returns the clock simply *is* the new number
       // — nothing on the board says it moved this turn rather than eight turns
       // ago. `TurnReport.beads`' argument for a fact that is not an award.
-      if (isBeadAge(opened) && opened > closing) report.beadAgeOpened = opened;
+      //
+      // Every age that opens is reported, Æra II included. Until 2026-11-18 the
+      // line also asked `isBeadAge`, which is true only for the two ages that
+      // held a bead deck (III and IV). The decks are retired, but the guard
+      // stayed, so the first turn-over raised no age plate and no wager sheet.
+      if (opened > closing) report.beadAgeOpened = opened;
     }
   }
 

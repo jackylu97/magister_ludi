@@ -1286,9 +1286,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * verdict. No rule changed. Duel `ec1eb394:358349` -> `973ac191:342552`,
  * standard `70375d88:1021629` -> `604db3ce:1039518`.
  */
+/**
+ * Re-cut for bot batch BP16, stage B (`docs/flags.md`, the bullet "The bot's
+ * turn in phases"). A sitting asks diplomacy and spending until each has
+ * nothing more to do, then the loop over units and towns, then research, the
+ * council and housekeeping the same way, and a closed phase opens again only
+ * when the seat's purse or its luxury copies change. Every arm decides as
+ * before; only when it is asked changed. No rule changed. Duel
+ * `973ac191:342552` -> `28801863:335754`, standard `604db3ce:1039518` ->
+ * `c0770657:1035266`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '973ac191:342552',
-  standard: '604db3ce:1039518',
+  duel: '28801863:335754',
+  standard: 'c0770657:1035266',
 };
 
 /**
