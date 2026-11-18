@@ -935,3 +935,26 @@ page, in their words:
 Also, the user, 2026-11-18, on the abacus bead count (13 drawn, 7 in the rule):
 "lets not finalize that now, i want to also rethink how wagers work." The bead
 count stays as it is until the wager rethink.
+
+### The age plate and the bead moment go full screen (2026-11-18)
+
+The user's comments on the turn-over pictures
+(https://claude.ai/artifact/AduZQbsbdRE19kWDyxz3Ji), in their words:
+
+- On the age plate and the bead sheet: "can we make both of these full screen?
+  I'm happy to have it be a big moment, and i think the abacus needs more
+  space."
+- On the bead sheet: "too much text in this description, and the purple dot on
+  the top feels amateurish. Let's just have the title "Wager of the Muse" and
+  the abacus, full screen with the animation. Also, make sure that the original
+  'Crimson' label is removed throughout the game and it reads your leader
+  instead."
+
+So:
+- **The age plate is a full-screen page.**
+- **A bead award is a full-screen page**: the title (for example "Wager of the
+  Muse") and the 3D abacus with the bead's slide. No description paragraph, no
+  coloured dot above the title.
+- **A seat is named by its leader everywhere**, never by its colour ("Crimson").
+- The bead count on the frame (13 drawn, 7 in the rule) stays open until the
+  user rethinks the wagers.
