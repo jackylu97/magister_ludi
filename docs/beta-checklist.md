@@ -50,3 +50,30 @@ section. When an item is done, mark it `[x]` and give the commit.
     figures on cards that look wrong (`docs/plans/ui-critique-2026-10-16.md`,
     "Happiness and authority on the cards and in In play"). Collect examples
     from the user first.
+
+- [ ] **A design pass on the existing leaders.** Added 2026-11-18.
+  - Each leader has two abilities and points at a theme of its two decks
+    (`card-design` skill, "Leaders"). The pass checks each one: is it fun, is
+    it clear, does its theme have enough cards, and is it level with the rest.
+  - Older open items go with it: per-leader bot personas, and the name of a
+    seat with no leader.
+  - Do it after the deck polish, because a leader's theme depends on the cards.
+
+## Interface
+
+- [ ] **Choosing which hexes a town's citizens work.** Added 2026-11-18.
+  - The user wants a better way to choose worked hexes. No design yet.
+  - Today: the city screen locks hexes (`setLockedTiles`) and sets one of four
+    focus sheets (`setCitizenFocus`).
+  - Goes with the first item under Game rules (citizens ignore faith, science
+    and culture): design the control and the scoring together.
+
+## Game setup
+
+- [ ] **Difficulty levels.** Added 2026-11-18.
+  - The game has no difficulty setting. No design yet.
+  - The levers that exist: the bot knobs and five personas in `data/ai.json`,
+    and the arena page that measures them. A level can change how well a bot
+    plays, what bonuses it gets, or both.
+  - Wait for the bot speed work and the tuner, so the levels are set against
+    bots that are stable.
