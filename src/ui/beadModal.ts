@@ -53,8 +53,11 @@ import {
   type BeadFamily,
   type BeadKind,
   BEAD_RULES,
+  anyBeadDef,
 } from '../sim/beadData';
 import type { EarnedBead } from '../sim/state';
+import { stripRefs } from '../sim/statecraft';
+import { isWagerBeadId } from '../sim/wagers';
 import {
   type RodSlot,
   BEAD_FAMILY_MARK,
@@ -135,6 +138,33 @@ interface BeadAwardFace {
   tally: string;
   /** "1 of 3", or `null` when this sheet is the only one waiting. */
   counter: string | null;
+  /** The bead page's one line under the title. See `beadPraise`. */
+  praise: string;
+}
+
+/**
+ * **The one line that congratulates the player** on the bead page, and says
+ * why the bead came (2026-11-18, the user: "maybe the bead award screen needs
+ * some text congratulating the player").
+ *
+ * - A kept wager: "You kept this wager. A bead is yours."
+ * - A grant with a source on its row: "A bead is yours, for raising Chart the
+ *   Stars." The source is the row's own plain sentence (`BeadGrantDef.source`),
+ *   with its first letter lowered and its full stop moved to the end.
+ * - Anything else: "A bead is yours."
+ *
+ * The golden bead never reaches this page: the Opus close is its announcement.
+ * No figure is written into the sentence (hard rule 7).
+ */
+export function beadPraise(id: BeadCardId, kind: BeadKind): string {
+  if (isWagerBeadId(id)) return 'You kept this wager. A bead is yours.';
+  if (kind === 'grant') {
+    const { def } = anyBeadDef(id);
+    const source = 'source' in def && typeof def.source === 'string' ? stripRefs(def.source).trim() : '';
+    const reason = source.replace(/\.$/, '');
+    if (reason.length > 0) return `A bead is yours, for ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`;
+  }
+  return 'A bead is yours.';
 }
 
 /**
@@ -197,6 +227,7 @@ export function beadAwardFace(
     arriving: options.still === true || landed < 0 ? null : landed,
     tally: `${figure(beadsTowardThreshold(news.rod))} of ${figure(BEAD_RULES.threshold)} beads`,
     counter: queued > 1 ? `1 of ${queued}` : null,
+    praise: beadPraise(news.id, news.kind),
   };
 }
 
@@ -327,7 +358,9 @@ export function createBeadModal(
    * dot on the top feels amateurish. Let's just have the title … and the
    * abacus, full screen with the animation." So the page has no crest, no
    * class line, no deed and no boon lines. The seat names beside the rods and
-   * the small "n of 7 beads" line stay. What the page leaves out is still in
+   * the small "n of 7 beads" line stay. On the user's next look ("maybe the
+   * bead award screen needs some text congratulating the player") one line
+   * under the name says why the bead came (`beadPraise`). What the page leaves out is still in
    * the game: the chronicle's line for the bead names it, its family and what
    * it paid, and the bead ledger (V) prints each bead row's text.
    *
@@ -339,9 +372,13 @@ export function createBeadModal(
     const page = element('section', 'bead-page');
     // The table the frame stands on, so the canvas has no edge against the page.
     page.style.background = frameGround();
-    page.append(element('h2', 'bead-page-title', face.name));
+    // The name and, under it, the one line that congratulates (`beadPraise`).
+    const head = element('header', 'bead-page-head');
+    head.append(element('h2', 'bead-page-title', face.name), element('p', 'bead-page-praise', face.praise));
+    page.append(head);
     const abacus = element('figure', 'bead-award-abacus bead-page-abacus');
-    abacus.append(element('figcaption', 'bead-award-tally', face.tally));
+    const tally = element('figcaption', 'bead-award-tally', face.tally);
+    abacus.append(tally);
     page.append(abacus);
     const { foot, button } = footOf(face);
     page.append(foot);
@@ -349,7 +386,9 @@ export function createBeadModal(
     container.hidden = false;
     // Now that the page is laid out, the stage can measure its box. The new
     // bead slides only where the 2D rod would have animated it.
-    frame = mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null);
+    // The frame is fitted between the name and its line above and the count
+    // line below, so the words never stand on the frame.
+    frame = mountBeadAwardFrame(abacus, table, news.rod, face.arriving !== null, { above: head, below: tally });
     if (frame === null) {
       container.classList.remove('is-bead-page');
       container.replaceChildren();
