@@ -1,29 +1,24 @@
 /*
- * **The orders screen** (Statecraft, batch SS10 part 2, `statecraftScreen.ts`).
+ * **Orders & Doctrines, the Council screen** (`statecraftScreen.ts`), stage 1
+ * of the approved Council and In play board
+ * (`docs/plans/mockups/scholars-study/council-and-in-play/`, frames N4, C6,
+ * C8, C11 and CH). The values are the board's at 1440 by 900: the head 46 px;
+ * the chairs 34 px under it, in gilt frames 6 px round the card, 6 px apart
+ * and 14 px between rows; the band 56 px; the fan under it, cut by the
+ * window's edge; the government column 200 px at the left, 25 px from the
+ * chairs.
  *
- * The values are the final board's build spec
- * (`docs/plans/mockups/scholars-study/orders-screen-final-board.html`): the
- * head 52 px; the register 104 px; the table 12 px under it, 10 px between
- * cards and 14 px between rows; the hand's label 18 px.
- *
- * **Full screen** (part C1). The user, after playing part A: *"i think its
- * awkward that this whole thing lives in a frame within a modal, lets have it
- * be full screen like the tech tree screen, the white modal bezels look bad"*
- * (`docs/plans/ui-critique-2026-10-16.md`, "The orders screen is full
- * screen"). So the cloth is the whole window, as the star chart's ink is: the
- * overlay covers the top bar and the corner panel, the sheet fills it, and
- * the head sits on the cloth in the cloth's own ink. The gilt rule is drawn
- * just inside the window's edge.
- *
- * It stays on the shared frame (`modalShell.ts`, `.statecraft-overlay`): the
- * frame decides nothing about size, so a full-window sheet keeps `hidden` as
- * the whole state, one `close`, the keyboard's return and `dispose`. Every
- * rule here is under the sheet's own class, `.orders-sheet`, or the overlay's
- * id, and none is set on `.statecraft-sheet`.
+ * **Full screen** (batch SS10 part C1, kept). The cloth is the whole window,
+ * as the star chart's ink is: the overlay covers the top bar and the corner
+ * panel, the sheet fills it, and the head sits on the cloth in the cloth's
+ * own ink. It stays on the shared frame (`modalShell.ts`,
+ * `.statecraft-overlay`): every rule here is under the sheet's own class,
+ * `.orders-sheet`, or the overlay's id, and none is set on `.statecraft-sheet`.
  *
  * The cards are `orderFace.css`. This file places them and draws the table
- * round them. Which card form and which hand a window gets is decided in
- * `statecraftScreen.ts` (`ordersLayout`) and arrives as data attributes.
+ * round them. Which card form a window gets is decided in
+ * `statecraftScreen.ts` (`councilLayout`) and arrives as custom properties
+ * and data attributes.
  */
 
 /* --- the frame: the whole window ---------------------------------------- */
@@ -37,18 +32,18 @@
 #statecraft-overlay .orders-sheet {
   --fg: rgba(247, 242, 225, 0.92);
   --fg2: rgba(247, 242, 225, 0.6);
+  --council-gilt: rgba(232, 195, 94, 0.9);
   position: relative;
   width: 100%;
   max-width: none;
   height: 100%;
   max-height: none;
-  padding: 0 24px 16px;
+  padding: 0 24px;
   overflow: hidden;
   border: 0;
   border-radius: 0;
   background:
-    radial-gradient(1400px 600px at 50% 0, rgba(200, 144, 31, 0.1), transparent 70%),
-    var(--lampblack);
+    radial-gradient(130% 110% at 50% 0, #2b2631, var(--lampblack) 55%, #161318);
   box-shadow:
     inset 0 0 0 4px var(--lampblack),
     inset 0 0 0 5px rgba(200, 144, 31, 0.55);
@@ -56,47 +51,25 @@
   animation: offer-fade 160ms ease-out both;
 }
 
-/* Two faint gilt circles on the cloth, as the board's table is drawn. */
-#statecraft-overlay .orders-sheet::before,
-#statecraft-overlay .orders-sheet::after {
-  position: absolute;
-  border: 1px solid rgba(200, 144, 31, 0.28);
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
-}
+/* --- the head: the title, the totals and the close hint, on one line ------ */
 
-#statecraft-overlay .orders-sheet::before {
-  left: -18%;
-  top: 34%;
-  width: 70%;
-  aspect-ratio: 1;
-}
-
-#statecraft-overlay .orders-sheet::after {
-  right: -24%;
-  top: -40%;
-  width: 62%;
-  aspect-ratio: 1;
-}
-
-/* --- the head, on the cloth ---------------------------------------------- */
-
-/* Laid out as the star chart's head: the title at the left in parchment, a
-   quiet hint, the tools at the right and a square close, over a gilt rule. */
+/* Every part sits on one centre line (the user, 2026-11-18: "please make
+   sure these are vertically centered in the real build"). */
 #statecraft-overlay .statecraft-head {
   position: relative;
   z-index: 2;
   align-items: center;
   flex: none;
   gap: 16px;
-  height: 52px;
+  height: 46px;
   padding: 0;
-  border-bottom: 1.5px solid rgba(200, 144, 31, 0.35);
+  border-bottom: 1px solid rgba(200, 144, 31, 0.45);
 }
 
 #statecraft-overlay .statecraft-head-titles {
+  display: flex;
   flex: none;
+  align-items: center;
 }
 
 #statecraft-overlay .statecraft-title {
@@ -104,6 +77,7 @@
   color: var(--parchment);
   font-size: 28px;
   font-weight: 500;
+  line-height: 1;
 }
 
 /* The red initial, lifted for the dark ground as the star chart lifts its. */
@@ -111,166 +85,128 @@
   color: var(--vermilion-lit);
 }
 
-#statecraft-overlay .statecraft-hint {
-  overflow: hidden;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-left: 8px;
-  padding: 0;
-  font-size: 12px;
-  text-overflow: ellipsis;
+/* The totals line (frame N4): one fine line of eight figures at the head's
+   right, the six yields, a hairline, then happiness and authority. The card
+   typeface, the yields' lit inks, a small mark each. No boxes and no bars. */
+.council-totals {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-left: auto;
   white-space: nowrap;
 }
 
-/* The hint in the cloth's faded ink. A refusal (the game's own sentence, in
-   place of the hint for four seconds) wears `.wanting`, lifted for the dark
-   ground. */
-#statecraft-overlay .statecraft-hint:not(.wanting) {
-  color: var(--fg2);
+.council-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-#statecraft-overlay .statecraft-hint.wanting,
-#statecraft-overlay .orders-changes.wanting {
-  color: var(--vermilion-lit);
-}
-
-/* The square close, as the star chart's. */
-#statecraft-overlay .statecraft-close {
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(247, 242, 225, 0.45);
-  background: transparent;
-  color: var(--parchment);
+.council-total-fig {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 5px;
+  color: var(--fg);
+  font-family: var(--face-card-text);
+  font-size: var(--size-heading);
+  font-variant-numeric: lining-nums;
   font-weight: 700;
+  line-height: 1;
 }
 
-#statecraft-overlay .statecraft-close:hover {
-  border-color: var(--gilt);
-  background: transparent;
-  color: var(--gilt);
+.council-total-fig .yield-mark,
+.council-total-fig .meter-mark {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  vertical-align: middle;
 }
 
-/* Focus on the dark ground: a gilt ring, clear of the control. */
-#statecraft-overlay .statecraft-head :focus-visible {
-  outline: 2px solid var(--y-gold-lit);
-  outline-offset: 2px;
+.council-total-fig[data-voice='food'] {
+  color: var(--y-food-lit);
 }
 
-.orders-head-tools {
-  display: flex;
+.council-total-fig[data-voice='production'] {
+  color: var(--y-prod-lit);
+}
+
+.council-total-fig[data-voice='gold'] {
+  color: var(--y-gold-lit);
+}
+
+.council-total-fig[data-voice='science'] {
+  color: var(--y-sci-lit);
+}
+
+.council-total-fig[data-voice='culture'] {
+  color: var(--y-cul-lit);
+}
+
+.council-total-fig[data-voice='faith'] {
+  color: var(--y-faith-lit);
+}
+
+.council-total-fig[data-sign='minus'] {
+  color: var(--rubric-lit);
+}
+
+.council-totals-rule {
+  flex: none;
+  width: 1px;
+  height: 22px;
+  margin: 0 -4px;
+  background: rgba(232, 195, 94, 0.45);
+}
+
+/* The change a held card would make (frame CH): a chip beside the figure, in
+   green for a gain and in the debit red for a loss. */
+.council-chip {
+  padding: 0 5px;
+  border-radius: 3px;
+  background: rgba(127, 208, 108, 0.2);
+  color: #9be08a;
+  font-family: var(--face-card-text);
+  font-size: var(--size-body);
+  font-style: normal;
+  font-variant-numeric: lining-nums;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.council-chip.is-down {
+  background: rgba(242, 133, 99, 0.2);
+  color: #f5a088;
+}
+
+/* The close button, drawn as the board's "Esc closes". */
+#statecraft-overlay .statecraft-close.council-close {
+  display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 12px;
-}
-
-.orders-pay {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-right: 8px;
-  font-family: var(--face-num);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.orders-pay-label {
-  color: var(--fg2);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.orders-pay-none {
-  color: var(--fg2);
+  gap: 6px;
+  width: auto;
+  height: 28px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: rgba(247, 242, 225, 0.72);
   font-family: var(--face-ui);
+  font-size: var(--size-label);
   font-weight: 500;
 }
 
-.orders-pay-figure {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.orders-pay-figure .yield-mark {
-  width: 13px;
-  height: 13px;
-  margin: 0;
-}
-
-/* The yields' inks lifted for the dark ground, as the board's cloth draws them. */
-.orders-pay-figure[data-yield='food'] {
-  color: #7fd06c;
-}
-
-.orders-pay-figure[data-yield='production'] {
-  color: #eda75f;
-}
-
-.orders-pay-figure[data-yield='gold'] {
-  color: var(--y-gold-lit);
-}
-
-.orders-pay-figure[data-yield='science'] {
-  color: #82aef2;
-}
-
-.orders-pay-figure[data-yield='culture'] {
-  color: #cf9fee;
-}
-
-.orders-pay-figure[data-yield='faith'] {
-  color: #e08fc0;
-}
-
-.orders-changes {
-  max-width: 240px;
-  overflow: hidden;
-  color: var(--fg2);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.orders-head-tools .btn {
-  flex: none;
-  height: 32px;
-  padding: 0 16px;
-  border-color: rgba(247, 242, 225, 0.55);
+#statecraft-overlay .statecraft-close.council-close:hover {
+  border: 0;
   background: transparent;
-  color: var(--parchment);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  box-shadow: none;
-}
-
-.orders-head-tools .btn:hover:not(:disabled) {
-  border-color: var(--gilt);
-  background-image: none;
   color: var(--y-gold-lit);
 }
 
-/* Confirm keeps the cinnabar and the hard shadow, the shadow in gilt so it
-   reads on the dark ground. */
-.orders-head-tools .orders-confirm:not(:disabled) {
-  border-color: var(--cinnabar);
-  background: var(--cinnabar);
-  color: var(--parchment);
-  box-shadow: 3px 3px 0 rgba(200, 144, 31, 0.6);
-}
-
-.orders-head-tools .orders-confirm:hover:not(:disabled) {
-  color: var(--parchment);
-}
-
-.orders-head-tools .btn:disabled {
-  border-color: rgba(247, 242, 225, 0.2);
-  background: none;
-  color: rgba(247, 242, 225, 0.4);
-  box-shadow: none;
+/* Focus on the dark ground: a gilt ring, clear of the control. */
+#statecraft-overlay .orders-sheet :focus-visible {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 2px;
 }
 
 /* --- the cloth ------------------------------------------------------------ */
@@ -278,211 +214,212 @@
 #statecraft-overlay .orders-body {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 0;
+  min-height: 0;
   padding-top: 0;
+  overflow: hidden;
 }
 
-/* The table keeps a maximum width and is centred on a very wide window; the
-   cloth itself runs to the window's edges. */
 .orders-cloth {
   position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   width: 100%;
-  max-width: 1640px;
   min-height: 0;
-  margin: 12px auto 0;
+  margin: 0;
   color: var(--fg);
 }
 
-.orders-cloth > * {
+.council-main {
+  display: flex;
+  flex: none;
+  gap: 25px;
+  padding-top: 28px;
+}
+
+/* --- the government column ----------------------------------------------- */
+
+.council-gov {
   position: relative;
-  z-index: 1;
-}
-
-/* A tight window (part C): a shorter head and narrower margins. */
-#statecraft-overlay .orders-sheet[data-tight] {
-  padding: 0 16px 12px;
-}
-
-#statecraft-overlay .orders-sheet[data-tight] .statecraft-head {
-  height: 44px;
-}
-
-#statecraft-overlay .orders-sheet[data-tight] .statecraft-title {
-  font-size: 24px;
-}
-
-.orders-sheet[data-tight] .orders-cloth {
-  margin-top: 8px;
-}
-
-/* On a tight window the register's government is 200 wide with a 56 px
-   picture; under 1240 wide it is 180 and the register cards have no picture. */
-.orders-sheet[data-tight] .orders-register .order-face.orders-gov {
-  width: 200px;
-}
-
-.orders-sheet[data-tight] .orders-register .order-face[data-form='wide'] {
-  --of-pict-w: 56px;
-}
-
-.orders-sheet[data-narrow] .orders-register .order-face.orders-gov {
-  width: 180px;
-}
-
-.orders-sheet[data-narrow] .orders-register .order-face[data-form='wide'] .of-pict {
-  display: none;
-}
-
-.orders-sheet[data-narrow] .orders-register .order-face[data-form='wide'] .of-plate {
-  left: 48px;
-}
-
-/* More than four Doctrines: they give up their pictures to their words. */
-.orders-register[data-many] .orders-doctrine .of-pict {
-  display: none;
-}
-
-.orders-register[data-many] .orders-doctrine .of-plate {
-  left: 48px;
-}
-
-/* --- the register ------------------------------------------------------- */
-
-.orders-register {
-  display: flex;
   flex: none;
+  width: var(--council-gov-w, 200px);
+}
+
+.council-label {
+  display: flex;
   gap: 8px;
-  width: 100%;
-  max-width: var(--orders-table-max, none);
-  height: 104px;
-  margin-inline: auto;
-  padding-top: 9px;
-  box-sizing: content-box;
-  margin-top: -9px;
-}
-
-.orders-register .order-face[data-form='wide'] {
-  flex: 1 1 0;
-}
-
-.orders-register .order-face.orders-gov {
-  flex: none;
-  width: 240px;
-}
-
-.orders-nodoctrine {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0 24px;
-  border: 1.6px dashed rgba(200, 144, 31, 0.6);
-  border-radius: 5px;
-  color: var(--fg2);
-  font-family: var(--face-card-text);
-  font-size: 14px;
-  line-height: 1.3;
-  text-align: center;
-}
-
-.orders-livep-words {
+  height: 18px;
   overflow: hidden;
+  color: var(--council-gilt);
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  letter-spacing: 0.05em;
+  line-height: 18px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.council-label > span + span::before {
+  margin-right: 8px;
+  content: '·';
+}
+
+/* On the narrow column the count gives way first. */
+.council-label > span + span {
+  overflow: hidden;
+  min-width: 0;
   text-overflow: ellipsis;
 }
 
-.orders-livep .yield-mark {
-  width: 12px;
-  height: 12px;
-  margin: 0 1px;
+/* The government: the full face at the card's type scale, 200 px wide. */
+.council-gov-card {
+  --order-face-width: 210px;
+  position: relative;
+  z-index: 9;
+  margin-top: 0;
+  border-radius: 6px;
 }
 
-.orders-livep[data-live='idle'] {
-  color: var(--ink-faint);
+.council-gov-card .order-face:not([data-compact]) {
+  width: var(--council-gov-w, 200px);
 }
 
-.orders-livep[data-live='rule'] {
+.council-gov-card:focus-visible {
+  outline: none;
+}
+
+.council-gov-card:focus-visible .order-face {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 3px;
+}
+
+/* Each Doctrine tucked under the one above, a little narrower each time. */
+.council-tucks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.council-tuck {
+  width: calc(var(--council-gov-w, 200px) - 2px - var(--tuck, 1) * 6px);
+  margin-top: -4px;
+  cursor: default;
+}
+
+.council-tuck:hover,
+.council-tuck:focus-visible {
+  filter: brightness(1.06);
+}
+
+.council-tuck[data-unmet] .of-tuck-name {
   color: var(--ink-soft);
 }
 
-/* The government's plate may run over the picture's half of the border, up
-   to the tier plate, so "next draft", the bar and the turns fit. */
-.orders-register .orders-gov .of-livep {
-  max-width: calc(100% - 78px);
+.orders-nodoctrine {
+  margin: 10px 0 0;
+  color: var(--fg2);
+  font-family: var(--face-card-text);
+  font-size: var(--size-ui);
+  line-height: 1.3;
 }
 
-/* On a tight window the government card is narrower: a shorter bar, so the
-   words, the bar and the turns still fit. */
-.orders-sheet[data-tight] .orders-gov .orders-draft .orders-bar {
-  width: 22px;
-}
-
-.orders-sheet[data-tight] .orders-register .orders-gov .of-livep {
-  max-width: calc(100% - 64px);
-}
-
-.orders-draft .orders-bar {
-  flex: none;
-  width: 44px;
-  height: 4px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: rgba(29, 26, 32, 0.16);
-}
-
-.orders-draft .orders-bar i {
-  display: block;
-  height: 100%;
-  background: var(--y-cul);
-}
-
-.orders-draft-turns {
-  color: var(--ink-soft);
-  font-family: var(--face-num);
-  font-size: 11.5px;
-  font-style: normal;
-}
-
-/* A new government waits: the plate is a button. */
-.orders-adopt {
-  border-color: var(--ink);
-  background: var(--y-gold-lit);
-  color: var(--ink);
-  font-family: var(--face-ui);
-  font-style: normal;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* --- the table ---------------------------------------------------------- */
+/* --- the chairs ------------------------------------------------------------ */
 
 .orders-table {
-  --order-face-width: var(--orders-card-w, 210px);
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-  max-width: var(--orders-table-max, none);
-  margin: 12px auto 0;
-}
-
-.orders-row {
-  display: flex;
-  gap: 10px;
-}
-
-/* Six chairs or fewer: one row, spread over the cloth. */
-.orders-sheet[data-table='one-row'] .orders-row {
-  justify-content: space-between;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(var(--council-cols, 3), auto);
+  align-content: start;
+  justify-content: center;
+  gap: 14px 6px;
+  min-width: 0;
+  margin-top: 6px;
 }
 
 .orders-chair {
   position: relative;
-  flex: none;
+}
+
+/* A chair: a gilt frame round the card, with a bracket at two corners and the
+   chair's label on its top edge. */
+.council-slot {
+  position: relative;
+  padding: var(--council-inset, 6px);
+  border: 1px solid rgba(232, 195, 94, 0.45);
+  border-radius: 9px;
+  background: rgba(14, 12, 16, 0.28);
+  transition: box-shadow 120ms ease-out, border-color 120ms ease-out;
+}
+
+.council-slot::before,
+.council-slot::after {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(232, 195, 94, 0.8);
+  content: '';
+  pointer-events: none;
+}
+
+.council-slot::before {
+  left: -2px;
+  top: -2px;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 9px 0 0 0;
+}
+
+.council-slot::after {
+  right: -2px;
+  bottom: -2px;
+  border-top: 0;
+  border-left: 0;
+  border-radius: 0 0 9px 0;
+}
+
+.council-leg {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: -10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 7px;
+  transform: translateX(-50%);
+  background: #231f28;
+  color: var(--council-gilt);
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  letter-spacing: 0.04em;
+  line-height: 18px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.council-leg-note {
+  color: var(--fg2);
+  text-transform: none;
+}
+
+.council-leg-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--rubric-lit);
+  text-transform: none;
+}
+
+.council-leg-lock .of-lock {
+  width: 11px;
+  height: 11px;
+  background-color: currentColor;
+  -webkit-mask: var(--of-mark-lock) center / contain no-repeat;
+  mask: var(--of-mark-lock) center / contain no-repeat;
 }
 
 .orders-seat {
@@ -501,53 +438,39 @@
 }
 
 .orders-seat:focus-visible .order-face,
-.orders-seat:focus-visible .order-face-chair,
+.orders-seat:focus-visible .council-empty,
 .orders-seat:focus-visible .orders-malice {
   outline: 2px solid var(--fg);
   outline-offset: 3px;
 }
 
-/* The chair's tab sits across the foot of an empty chair too. */
-.orders-cloth .order-face-chair {
-  --of-ink: #cf9fee;
-  position: relative;
-  border-width: 1.6px;
-  border-radius: 5px;
-  color: var(--of-ink);
-}
-
-.orders-cloth .order-face-chair[data-ink='military'] {
-  --of-ink: #f28563;
-}
-
-.orders-cloth .order-face-chair[data-ink='economic'] {
-  --of-ink: var(--y-gold-lit);
-}
-
-.orders-cloth .order-face-chair[data-ink='civic'] {
-  --of-ink: #82aef2;
-}
-
-.orders-cloth .order-face-chair .of-chair-mark {
-  width: 46px;
-  height: 46px;
-  opacity: 0.5;
-}
-
-.orders-cloth .order-face-chair .of-chair-word {
-  max-width: 140px;
-  color: var(--fg2);
-  font-family: var(--face-card-text);
-  font-size: 13px;
-  line-height: 1.25;
+/* An empty chair: the type in the card's capitals and what the chair takes. */
+.council-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: var(--council-card-w, 210px);
+  height: var(--council-card-h, 258px);
+  padding: 0 12px;
   text-align: center;
-  white-space: pre-line;
 }
 
-.orders-cloth .order-face-chair .of-ctab {
-  border-color: currentColor;
-  background: var(--lampblack);
-  color: var(--fg);
+.council-empty-type {
+  color: rgba(232, 195, 94, 0.55);
+  font-family: var(--face-card-title);
+  font-size: var(--size-heading);
+}
+
+.council-empty-words {
+  color: rgba(239, 230, 205, 0.6);
+  font-family: var(--face-card-text);
+  font-size: var(--size-ui);
+  font-style: italic;
+  line-height: 1.3;
+  white-space: pre-line;
 }
 
 /* A chair a malice holds: struck through in vermilion, with the malice's name. */
@@ -559,8 +482,8 @@
   justify-content: center;
   gap: 8px;
   box-sizing: border-box;
-  width: var(--orders-card-w, 210px);
-  height: var(--orders-card-h, 258px);
+  width: var(--council-card-w, 210px);
+  height: var(--council-card-h, 258px);
   padding: 0 14px;
   border: 1.6px dashed var(--vermilion);
   border-radius: 5px;
@@ -590,48 +513,30 @@
 /* --- a card in hand, and the chairs it fits ------------------------------ */
 
 .orders-chair .order-face,
-.orders-chair .order-face-chair,
+.orders-chair .council-empty,
 .orders-chair .orders-malice {
   transition: opacity 120ms ease-out;
 }
 
-.orders-chair.is-fit .order-face,
-.orders-chair.is-fit .order-face-chair {
-  outline: 2px solid var(--y-gold-lit);
-  outline-offset: 3px;
+.orders-chair.is-fit .council-slot {
+  border-color: var(--y-gold-lit);
 }
 
-.orders-chair.is-faded .order-face,
-.orders-chair.is-faded .order-face-chair,
-.orders-chair.is-faded .orders-malice {
+.orders-chair.is-faded .council-slot > * {
   opacity: 0.4;
 }
 
-.orders-ring-tag {
-  position: absolute;
-  z-index: 10;
-  left: 50%;
-  top: -11px;
-  padding: 0 8px;
-  transform: translateX(-50%);
-  border-radius: 2px;
-  background: var(--y-gold-lit);
-  color: var(--ink);
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
-  white-space: nowrap;
-  pointer-events: none;
+/* The chair under the held card lights, and the card seated there dims
+   (frame CH). */
+.orders-chair.is-over .council-slot {
+  border-color: var(--gilt-bright);
+  box-shadow:
+    0 0 0 2px var(--gilt-bright),
+    0 0 22px rgba(232, 195, 94, 0.6);
 }
 
-/* Under the first row, a tag on a card's top border would sit on the chair
-   tab of the card above it, so it moves to the right end of the border. */
-.orders-row + .orders-row .orders-ring-tag,
-.orders-row + .orders-row .of-tag {
-  left: auto;
-  right: 12px;
-  transform: none;
+.orders-chair.is-over .orders-seat .order-face {
+  opacity: 0.26;
 }
 
 .orders-chair.is-marked .order-face {
@@ -657,24 +562,30 @@
   }
 }
 
-/* --- the hand ------------------------------------------------------------ */
+/* --- the band: the hand's label at the left, Revert and Confirm at the right */
 
-.orders-hand {
+.council-band {
+  position: relative;
+  z-index: 3;
+  display: flex;
   flex: none;
-  margin-top: auto;
-  padding-top: 12px;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
+  padding: 0 4px 0 126px;
 }
 
 .orders-hand-label {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 8px;
-  height: 18px;
-  color: var(--fg2);
+  min-width: 0;
+  color: var(--council-gilt);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--size-note);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -684,15 +595,233 @@
   content: '·';
 }
 
-.orders-hand-title {
-  color: var(--fg);
+.orders-hand-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg2);
+  font-family: var(--face-ui);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The hint, or a refusal in its place, after the hand's label. */
+#statecraft-overlay .orders-hand-label .statecraft-hint {
+  overflow: hidden;
+  min-width: 0;
+  margin: 0 0 0 8px;
+  padding: 0;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+
+#statecraft-overlay .statecraft-hint:not(.wanting) {
+  color: var(--fg2);
+}
+
+#statecraft-overlay .statecraft-hint.wanting,
+#statecraft-overlay .orders-changes.wanting {
+  color: var(--vermilion-lit);
+}
+
+.orders-head-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+}
+
+.orders-changes {
+  max-width: 260px;
+  overflow: hidden;
+  color: #b9b2a6;
+  font-size: var(--size-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Revert: the board's quiet gilt outline, smaller than Confirm. */
+.orders-head-tools .orders-revert {
+  flex: none;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--gilt);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--parchment);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.orders-head-tools .orders-revert:hover:not(:disabled) {
+  background-image: none;
+  color: var(--y-gold-lit);
+}
+
+/* Confirm: the main screen's End Turn control (`.btn-end`), cinnabar with the
+   thick ink edge and the hard shadow, the shadow in gilt so it reads on the
+   dark ground. Narrower than End Turn, as the board draws it. */
+.orders-head-tools .orders-confirm {
+  flex: none;
+  min-width: 190px;
+  height: 44px;
+  padding: 0 22px;
+  box-shadow: 5px 5px 0 rgba(200, 144, 31, 0.6);
+}
+
+.orders-head-tools .orders-confirm:active:not(:disabled) {
+  transform: translate(5px, 5px);
+  box-shadow: 0 0 0 transparent;
+}
+
+/* Revert and Confirm are dim until a change is staged. */
+.orders-head-tools .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.orders-head-tools .orders-confirm:disabled {
+  border-color: var(--ink);
+  background: var(--cinnabar);
+  color: var(--parchment);
+  box-shadow: none;
+}
+
+.orders-head-tools .orders-revert:disabled {
+  border-color: var(--gilt);
+  background: transparent;
+  color: var(--parchment);
+}
+
+/* --- the foot: the draft pile and the fan -------------------------------- */
+
+.council-foot {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.council-pile {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 104px;
+  color: #cfc6ad;
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  line-height: 1.35;
+  text-align: center;
+}
+
+.council-pile-door {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.council-pile-door:hover .order-back {
+  border-color: var(--gilt-bright);
+}
+
+.council-pile-name {
+  color: var(--council-gilt);
+  font-family: var(--face-card-title);
+  font-size: var(--size-body);
+}
+
+.council-pile-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.orders-draft .orders-bar,
+.council-pile-line .orders-bar {
+  flex: none;
+  width: 34px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(247, 242, 225, 0.18);
+}
+
+.council-pile-line .orders-bar i {
+  display: block;
+  height: 100%;
+  background: var(--y-cul-lit);
+}
+
+.orders-hand-deck {
+  font-family: var(--face-ui);
+}
+
+/* A new government waits: the button sits on the pile. */
+.orders-adopt {
+  padding: 2px 8px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  background: var(--y-gold-lit);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-note);
+  font-style: normal;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* The fan: the hand's cards as full faces, 190 px wide at the card's type
+   scale, overlapped and turned on an arc (`fanPlacement`), and cut by the
+   window's edge. */
+.council-fan {
+  --order-face-width: 210px;
+  position: absolute;
+  left: 126px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.council-fan-cards {
+  position: relative;
+  height: 100%;
+}
+
+.council-fan .orders-handcard {
+  position: absolute;
+  top: 0;
+}
+
+.council-fan .order-face {
+  width: 190px;
+  box-shadow: 0.35em 0.35em 0 #0e0c10;
 }
 
 .orders-hand-empty {
-  margin: 4px 0 0;
+  margin: 12px 0 0;
   color: var(--fg2);
   font-family: var(--face-card-text);
-  font-size: 13px;
+  font-size: var(--size-ui);
 }
 
 .orders-handcard {
@@ -718,30 +847,14 @@
   outline-offset: 2px;
 }
 
-/* The rail: one overlapped rank of card tops, cut to 28 px at the foot. A
-   card may rise out of the top (moment 1), so the cut is a clip on the foot
-   and the sides only. */
-.orders-rail {
-  --order-face-width: var(--orders-hand-w, 104px);
-  position: relative;
-  height: 28px;
-  margin-top: 0;
-  padding-top: 8px;
-  box-sizing: content-box;
-  clip-path: inset(-400px -12px 0 -12px);
-}
-
-.orders-rail .orders-handcard {
-  position: absolute;
-  top: 8px;
-}
-
-.orders-rail .orders-handcard .order-face {
-  box-shadow: -2px 2px 0 rgba(29, 26, 32, 0.55);
+.orders-handcard.is-marked .order-face {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 2px;
 }
 
 /* Moment 1: the hand card under the pointer, or with the keyboard on it,
-   rises 16 px in 120 ms. A card held from the keyboard stays risen. */
+   rises 16 px in 120 ms and comes to the front. A card held from the
+   keyboard stays risen. */
 .orders-handcard {
   transition: translate 120ms ease-out;
 }
@@ -752,22 +865,20 @@
   translate: 0 -16px;
 }
 
+.council-fan .orders-handcard:hover,
+.council-fan .orders-handcard:focus-visible,
+.orders-rankcard:hover,
+.orders-rankcard:focus-visible {
+  z-index: 100 !important;
+}
+
 /* A card held by the pointer follows the pointer (moment 2); its place in the
    hand is left faint. */
 .orders-handcard.is-carried {
   opacity: 0.3;
 }
 
-/* A risen card in the rail comes to the front of the rank. The rail sets each
-   card's stacking inline, in rank order. */
-.orders-rail .orders-handcard:hover,
-.orders-rail .orders-handcard:focus-visible,
-.orders-rankcard:hover,
-.orders-rankcard:focus-visible {
-  z-index: 100 !important;
-}
-
-/* The hand label's two keys, and the deck's count at the right. */
+/* The keys' marks: a small boxed letter in mono. */
 .orders-key {
   display: inline-grid;
   place-items: center;
@@ -787,61 +898,14 @@
   text-transform: none;
 }
 
-.orders-hand-key {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.orders-hand-label > .orders-hand-deck {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  font-family: var(--face-ui);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.orders-hand-label > .orders-hand-deck::before {
-  content: none;
-}
-
-/* An indexed rank (part C): the whole card in view, overlapped, each name
-   set down the edge left in view. */
-.orders-rail.is-strip {
-  height: var(--orders-hand-h);
-  padding-top: 0;
-  clip-path: none;
-}
-
-.orders-rail.is-strip .orders-handcard {
-  top: 0;
-}
-
-/* Named cards side by side, in as many ranks as the height allows. */
-.orders-spread {
-  --order-face-width: var(--orders-hand-w, 130px);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 0;
-}
-
 /* --- the layers: the whole hand (H) and the binder (D) --------------------- */
-
-.orders-sheet[data-tight] .orders-veil {
-  inset: 0 -16px -12px;
-}
 
 .orders-veil {
   position: absolute;
   z-index: 30;
-  /* The layers fill the window under the head (part C1): past the sheet's
-     side and foot margins, to the window's edges. */
-  inset: 0 -24px -16px;
+  /* The layers fill the window under the head: past the sheet's side
+     margins, to the window's edges. */
+  inset: 0 -24px 0;
   display: flex;
   flex-direction: column;
   padding: 20px 16px 16px;
@@ -1070,8 +1134,9 @@
   }
 }
 
+/* The held card follows the pointer as the full face (frame CH). */
 .orders-ghost {
-  --order-face-width: 104px;
+  --order-face-width: 210px;
   position: absolute;
   z-index: 70;
   transform-origin: 50% 20%;
@@ -1079,19 +1144,25 @@
 }
 
 .orders-ghost .order-face {
-  box-shadow: 9px 12px 0 rgba(29, 26, 32, 0.55);
+  box-shadow: 14px 18px 0 rgba(14, 12, 16, 0.55);
 }
 
 .orders-fly {
+  --order-face-width: 210px;
   position: absolute;
   z-index: 65;
   pointer-events: none;
 }
 
+.orders-fly.order-face {
+  width: 190px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .orders-chair .order-face,
-  .orders-chair .order-face-chair,
+  .orders-chair .council-empty,
   .orders-chair .orders-malice,
+  .council-slot,
   .orders-handcard {
     transition: none;
   }

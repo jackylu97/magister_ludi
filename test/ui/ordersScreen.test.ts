@@ -11,7 +11,11 @@
  *   2. the face takes its tablet from the caller's live reading, and falls back
  *      to the sentence's first figure where there is none;
  *   3. the sheet's frame, its head and its keys;
- *   4. no page or stylesheet of the screen names a card row, a leader or a deck.
+ *   4. no page or stylesheet of the screen names a card row, a leader or a deck;
+ *   5. the Council screen (stage 1 of the Council and In play board,
+ *      `docs/plans/mockups/scholars-study/council-and-in-play/`): the layout
+ *      for a window, the fan, the pay plate, the totals line and its chips,
+ *      and a card held out of its chair.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -20,15 +24,19 @@ import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import {
   DECK_IDS,
   DOCTRINE_IDS,
+  GOVERNMENT_IDS,
   ORDER_IDS,
   doctrineDef,
   orderDef,
   orderIsDealt,
 } from '../../src/sim/statecraftData';
+import { COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from '../../src/ui/councilLayout';
+import { COUNCIL_VOICES, councilFigures } from '../../src/ui/councilTotals';
 import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
+import { stampOfVoices } from '../../src/ui/ledgerScreen';
 import { firstFigure, orderFaceModel } from '../../src/ui/orderFace';
-import { LIVE_WORDS, stagedLive, tabletOfFigure, tabletOfText } from '../../src/ui/orderLive';
-import { ORDERS_FORMS, ORDERS_WORDS, ordersLayout } from '../../src/ui/statecraftScreen';
+import { LIVE_WORDS, plateFigures, stagedLive, tabletOfFigure, tabletOfText } from '../../src/ui/orderLive';
+import { ORDERS_WORDS } from '../../src/ui/statecraftScreen';
 import { type BinderEntry, LAYER_WORDS, allOrders, binderAdmits } from '../../src/ui/ordersLayers';
 import { ORDERS_MOTION } from '../../src/ui/ordersMotion';
 import { braceBody, between, uiSource } from './sourceHelpers';
@@ -83,10 +91,11 @@ describe('what a card says it pays', () => {
     const seated = braceBody(LIVE, 'export function seatedOrderLive(');
     const commission = seated.indexOf('orderDef(id).commission !== undefined');
     const scaler = seated.indexOf('scalerFace(state, seat, id)');
-    const stamp = seated.indexOf('liveOfStamp(state, seat, id, stampReading(explainCardImpact(');
+    const stamp = seated.indexOf('return liveOfStamp(state, seat, id, orderStamp(state, seat, id, sheet));');
     expect(commission).toBeGreaterThan(-1);
     expect(scaler).toBeGreaterThan(commission);
     expect(stamp).toBeGreaterThan(scaler);
+    expect(braceBody(LIVE, 'function orderStamp(')).toContain("stampReading(explainCardImpact(state, seat, { kind: 'order', id }, sheet))");
     // A card that pays on an occasion says what it has paid so far, from the
     // lifetime tally.
     expect(LIVE).toContain('statecraft.yieldTallies?.find((entry) => entry.card === card)');
@@ -140,8 +149,11 @@ describe('the sheet', () => {
     expect(braceBody(SCREEN, 'function refuse(message: string)')).toContain('refusal = message;');
   });
 
-  it('prints every live word through the yield printer with its marks taken off', () => {
-    expect(SCREEN).toContain('setYieldText(words, stripRefs(live.short));');
+  it('prints the totals as figures with their marks, and a plate’s reason with its marks taken off', () => {
+    // The Council screen (stage 1) prints no live words of its own: the totals
+    // are figures, and a card's plate is the face's (`orderFace.ts`).
+    expect(SCREEN).toContain("const figure = plateFigureNode({ voice, amount: 0 }, 'council-total-fig');");
+    expect(uiSource('orderFace.ts')).toContain("node.append(element('span', 'of-pay-why', stripRefs(plate.reason)));");
   });
 
   it('keeps its styles in its own file, and sets no rule on the shared sheet', () => {
@@ -181,6 +193,8 @@ describe('no row is named', () => {
       ['orderLive.ts', LIVE],
       ['ordersLayers.ts', LAYERS],
       ['ordersMotion.ts', MOTION],
+      ['councilTotals.ts', uiSource('councilTotals.ts')],
+      ['councilLayout.ts', uiSource('councilLayout.ts')],
       ['statecraftScreen.css', style('statecraftScreen.css')],
     ] as const) {
       for (const id of cards) expect(names(source, id), `${tail} names ${id}`).toBe(false);
@@ -292,8 +306,10 @@ describe('the hand and the deck (part B)', () => {
 
   it('labels the hand with its counts and the two keys, in plain words', () => {
     expect(ORDERS_WORDS.handOpens).toBe('opens it');
-    expect(ORDERS_WORDS.binderOpens).toBe('opens the binder');
-    expect(ORDERS_WORDS.deckCount(40)).toBe('40 in your deck ·');
+    expect(ORDERS_WORDS.handCards(9)).toBe('9 cards');
+    // The deck's count and the binder's key are on the draft pile (stage 1).
+    expect(ORDERS_WORDS.deckCount(40)).toBe('40 in your deck');
+    expect(braceBody(SCREEN, 'function drawPile(')).toContain("deck.append(keyMark('D'));");
     expect(LAYER_WORDS.handNote(30)).toBe('30 Orders, sorted by type · click one to pick it up ·');
     expect(LAYER_WORDS.binderNote(40)).toBe('40 Orders, every one a full face · scroll for the rest ·');
     expect(LAYER_WORDS.inChair(3)).toBe('in chair 3');
@@ -306,7 +322,7 @@ describe('the hand and the deck (part B)', () => {
   });
 });
 
-describe('the screen fills the window, and the layout fits it (part C)', () => {
+describe('the screen fills the window, and the Council layout fits it (stage 1)', () => {
   it('fills the window on the shared frame, with no pale sheet round the cloth', () => {
     const css = style('statecraftScreen.css');
     expect(css).toContain('#statecraft-overlay {\n  place-items: stretch;\n  padding: 0;\n  background: var(--lampblack);');
@@ -318,56 +334,45 @@ describe('the screen fills the window, and the layout fits it (part C)', () => {
     expect(SCREEN).toContain('createModalShell({');
   });
 
-  it('gives the board’s windows the board’s card forms, and names in the hand where the height allows', () => {
-    const worst = ordersLayout({ width: 1440, height: 900 }, 11, 30);
-    expect(worst.form).toBe('full');
-    expect(worst.hand).toBe('strip');
-    expect(worst.handCard.height).toBeGreaterThanOrEqual(120);
-    const early = ordersLayout({ width: 1440, height: 900 }, 5, 2);
-    expect(early.form).toBe('large');
-    expect(early.hand).toBe('spread');
-    expect(early.handCard).toEqual({ width: 130, height: 202 });
-    const small = ordersLayout({ width: 1280, height: 720 }, 11, 30);
-    expect(small.form).toBe('compact');
-    expect(small.hand).toBe('strip');
-    const narrow = ordersLayout({ width: 1024, height: 768 }, 11, 30);
-    expect(narrow.form).toBe('narrow');
-    expect(narrow.hand).toBe('strip');
-    const wide = ordersLayout({ width: 1920, height: 1080 }, 11, 30);
-    expect(wide.form).toBe('full');
-    expect(wide.hand).toBe('spread');
-    expect(wide.handRanks).toBe(2);
+  it('gives the board’s windows the board’s card forms (frames C6, C8 and C11)', () => {
+    const six = councilLayout({ width: 1440, height: 900 }, 6);
+    expect([six.form, six.rows, six.cols]).toEqual(['full', 2, 3]);
+    const eight = councilLayout({ width: 1440, height: 900 }, 8);
+    expect([eight.form, eight.rows, eight.cols]).toEqual(['full', 2, 4]);
+    const eleven = councilLayout({ width: 1440, height: 900 }, 11);
+    expect([eleven.form, eleven.rows, eleven.cols]).toEqual(['mid', 2, 6]);
+    expect(COUNCIL_FORMS.full).toEqual({ width: 210, height: 258, inset: 6 });
+    expect(COUNCIL_FORMS.mid).toEqual({ width: 176, height: 236, inset: 6 });
+    // A smaller window: the compact forms, and the narrow government card.
+    expect(councilLayout({ width: 1180, height: 900 }, 11)).toMatchObject({ form: 'compact', rows: 3, cramped: false });
+    expect(councilLayout({ width: 1180, height: 700 }, 11)).toMatchObject({ form: 'narrow', rows: 2, cramped: false });
+    expect(councilLayout({ width: 1440, height: 700 }, 6)).toMatchObject({ form: 'mid', rows: 1, cramped: false });
+    expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FRAME.government.narrow);
   });
 
-  it('never scrolls the page and never sets a name under 11 px, on any window from 1024 by 700 up', () => {
-    for (const width of [1024, 1100, 1240, 1280, 1366, 1440, 1600, 1920, 2560]) {
+  it('never runs the chairs off the window, and keeps the hand in view, from 1180 by 700 up', () => {
+    for (const width of [1180, 1240, 1280, 1366, 1440, 1600, 1920, 2560]) {
       for (const height of [700, 720, 768, 800, 900, 1080, 1440]) {
-        for (const chairs of [1, 3, 5, 6, 7, 9, 11, 12]) {
-          for (const hand of [0, 2, 12, 30, 40]) {
-            const layout = ordersLayout({ width, height }, chairs, hand);
-            const tight = height < 780 || width < 1240;
-            const frame = tight ? { head: 44, top: 8, side: 16, bottom: 12 } : { head: 52, top: 12, side: 24, bottom: 16 };
-            const room = Math.min(1640, width - 2 * frame.side);
-            const cols = Math.min(6, chairs);
-            const card = ORDERS_FORMS[layout.form];
-            const where = `${width}x${height}, ${chairs} chairs, ${hand} in hand`;
-            expect(cols * card.width + (cols - 1) * 10, where).toBeLessThanOrEqual(room);
-            const table = layout.rows * card.height + (layout.rows - 1) * 14;
-            const handHeight =
-              layout.hand === 'rail' ? 28 : layout.handRanks * layout.handCard.height + (layout.handRanks - 1) * 12;
-            expect(frame.head + frame.top + 104 + 12 + table + 12 + 18 + handHeight + frame.bottom, where).toBeLessThanOrEqual(
-              height,
-            );
-            // A named hand card's name is 12.5 px at 104 wide: it stays at 11 or more.
-            if (layout.hand === 'spread') expect((12.5 * layout.handCard.width) / 104, where).toBeGreaterThanOrEqual(11);
-            if (layout.hand === 'strip') expect(layout.handCard.height, where).toBeGreaterThanOrEqual(120);
-          }
+        for (const chairs of [1, 3, 5, 6, 7, 8, 9, 11, 12]) {
+          const layout = councilLayout({ width, height }, chairs);
+          const where = `${width}x${height}, ${chairs} chairs`;
+          expect(layout.cramped, where).toBe(false);
+          const room = width - 2 * COUNCIL_FRAME.side - layout.government - COUNCIL_FRAME.columnGap;
+          expect(layout.chairs.width, where).toBeLessThanOrEqual(room);
+          expect(layout.fanView, where).toBeGreaterThanOrEqual(COUNCIL_FRAME.fanMin);
+          expect(layout.rows * layout.cols, where).toBeGreaterThanOrEqual(chairs);
         }
       }
     }
   });
 
-  it('keeps every text at 11 px or more in the screen’s and the face’s new rules', () => {
+  it('says when a window is too small for every form, and keeps the narrow form then', () => {
+    const small = councilLayout({ width: 1024, height: 700 }, 11);
+    expect(small.cramped).toBe(true);
+    expect(small.form).toBe('narrow');
+  });
+
+  it('keeps every text at 11 px or more in the screen’s and the face’s rules', () => {
     // No size under 11 px anywhere. The compact card takes the full face's
     // scale from its width variable, not from a font size.
     for (const tail of ['statecraftScreen.css', 'orderFace.css']) {
@@ -379,20 +384,167 @@ describe('the screen fills the window, and the layout fits it (part C)', () => {
     expect(face).toContain('font-size: max(11px, calc(var(--of-h) * 11));');
   });
 
-  it('draws the compact forms as the same emblem, smaller, with the full face’s text sizes', () => {
+  it('draws the smaller forms as the same emblem, with the full face’s text sizes', () => {
     const face = style('orderFace.css');
     expect(face).toContain(".order-face[data-compact],\n.order-face-chair[data-compact] {\n  --of-width: 210px;\n  width: 187px;\n  height: 180px;");
     expect(face).toContain(".order-face[data-compact='narrow'],\n.order-face-chair[data-compact='narrow'] {\n  width: 145px;\n  height: 206px;");
-    expect(SCREEN).toContain("if (screenLayout.form === 'compact' || screenLayout.form === 'narrow') face.dataset.compact = screenLayout.form;");
+    expect(face).toContain(".order-face[data-compact='mid'],\n.order-face-chair[data-compact='mid'] {\n  width: 176px;\n  height: 236px;");
+    expect(SCREEN).toContain("const compact = screenLayout.form === 'full' ? null : screenLayout.form;");
+    expect(SCREEN).toContain('if (compact !== null) face.dataset.compact = compact;');
   });
 
-  it('lets more than four Doctrines give up their pictures to their words', () => {
-    expect(SCREEN).toContain("register.toggleAttribute('data-many', sc.doctrines.length > 4);");
-    expect(style('statecraftScreen.css')).toContain('.orders-register[data-many] .orders-doctrine .of-pict {\n  display: none;');
+  it('tucks every Doctrine under the government, each strip a little narrower (frame C6)', () => {
+    const register = braceBody(SCREEN, 'function drawRegister(');
+    expect(register).toContain('sc.doctrines.forEach((id, index) => {');
+    expect(register).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
+    expect(register).toContain('const pays = governmentPays(state, seat);');
+    expect(style('statecraftScreen.css')).toContain('width: calc(var(--council-gov-w, 200px) - 2px - var(--tuck, 1) * 6px);');
   });
 
   it('draws the screen again when the window changes size, and lets go of the listener', () => {
     expect(SCREEN).toContain("window.addEventListener('resize', onWindowResize);");
     expect(SCREEN).toContain("window.removeEventListener('resize', onWindowResize);");
+  });
+});
+
+describe('the fan (frame C6)', () => {
+  it('turns and drops the cards on the board’s arc', () => {
+    const nine = fanPlacement(9, 1240);
+    expect(nine.cards.map((card) => card.rotate)).toEqual([-6.4, -4.8, -3.2, -1.6, 0, 1.6, 3.2, 4.8, 6.4]);
+    expect(nine.cards.map((card) => card.drop)).toEqual([26, 14, 6, 2, 0, 2, 6, 14, 26]);
+    const six = fanPlacement(6, 1240);
+    expect(six.cards.map((card) => card.rotate)).toEqual([-4, -2.4, -0.8, 0.8, 2.4, 4]);
+    expect(six.cards.map((card) => card.drop)).toEqual([10, 4, 0, 0, 4, 10]);
+  });
+
+  it('overlaps the cards evenly when they do not fit side by side, and keeps them in the room', () => {
+    const many = fanPlacement(14, 1240);
+    expect(many.step).toBeLessThan(COUNCIL_FRAME.fanCard.width);
+    expect(many.cards[13]!.left + COUNCIL_FRAME.fanCard.width).toBeLessThanOrEqual(1240);
+    expect(Math.max(...many.cards.map((card) => Math.abs(card.rotate)))).toBeLessThanOrEqual(6.4);
+    expect(Math.max(...many.cards.map((card) => card.drop))).toBeLessThanOrEqual(26);
+  });
+
+  it('sets each card of the hand as the full face, with no figure', () => {
+    const hand = braceBody(SCREEN, 'function drawHand(');
+    expect(hand).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true, plate: null });");
+    expect(hand).toContain("face.dataset.form = 'fan';");
+  });
+});
+
+describe('the pay plate (frames PL and PM)', () => {
+  it('reads a stamp’s figures back to their yields and meters, signs kept', () => {
+    expect(
+      plateFigures([
+        { glyph: YIELD_GLYPH.food, amount: 25 },
+        { glyph: METER_GLYPH.happiness, amount: -3 },
+        { glyph: METER_GLYPH.authority, amount: 2 },
+      ]),
+    ).toEqual([
+      { voice: 'food', amount: 25 },
+      { voice: 'happiness', amount: -3 },
+      { voice: 'authority', amount: 2 },
+    ]);
+  });
+
+  it('picks the plate by the reading: figures, "+0" and the reason, or none', () => {
+    const plate = braceBody(LIVE, 'function plateOfStamp(');
+    expect(plate).toContain("if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };");
+    // A card that pays on an occasion has no plate, and so has a rule.
+    expect(plate).toContain('if (!stampIsEmpty(reading)) return null;');
+    expect(plate).toContain('if (!cardCanPay(card)) return null;');
+    expect(plate).toContain('idleReasonWords(cardIdleReason(state, seat, card))');
+    // A card played this visit shows no figure until Confirm.
+    expect(stagedLive().plate).toBeNull();
+  });
+
+  it('draws the plate at the card’s foot in place of the tablet and the live line', () => {
+    const id = ORDER_IDS.find((one) => orderIsDealt(one) && firstFigure(orderDef(one).text ?? '') !== null)!;
+    const pays = { kind: 'pays' as const, figures: [{ voice: 'gold' as const, amount: 15 }] };
+    expect(orderFaceModel(id, { where: 'played', plate: pays }).tablet).toBeNull();
+    expect(orderFaceModel(id, { where: 'played', plate: null }).tablet).toBeNull();
+    const face = uiSource('orderFace.ts');
+    expect(face).toContain('if (state.plate === undefined) inner.append(colophonNode(model, state));');
+    const css = style('orderFace.css');
+    expect(css).toContain('.order-face .of-pay {');
+    expect(css).toContain(".of-pay-fig[data-sign='minus'] {\n  color: var(--rubric, #ab3d1e);");
+  });
+
+  it('draws the government as a full card in the Doctrine’s frame, with the crown', () => {
+    const model = orderFaceModel(GOVERNMENT_IDS[0]!, { where: 'played', plate: null });
+    expect(model.kind).toBe('government');
+    expect(model.frame).toBe('doctrine');
+    expect(model.ink).toBe('gilt');
+    expect(model.plate).toBe('Government');
+    expect(model.suits).toEqual(['crowns']);
+  });
+});
+
+describe('the totals line (frame N4), and the change a held card would make (frame CH)', () => {
+  it('reads the six yields from foldDeck and the meters from their own lists, never from the plates', () => {
+    const head = between(SCREEN, 'function paintHead(', '// --- the register');
+    expect(head).toContain('const reading = foldDeck(state, seat);');
+    expect(head).toContain('councilFigures(reading, foldDeckMeters(state, seat))');
+    expect(head).not.toContain('seatedOrderLive');
+    expect(head).not.toContain('doctrineLive');
+    const totals = uiSource('councilTotals.ts');
+    expect(totals).toContain('for (const share of meterCardShares(entry))');
+    expect(totals).toContain("classifyCard(card) === 'deck'");
+  });
+
+  it('puts the eight figures in the board’s order: the six yields, then happiness and authority', () => {
+    expect(COUNCIL_VOICES).toEqual(['food', 'production', 'gold', 'science', 'culture', 'faith', 'happiness', 'authority']);
+    const deck = stampOfVoices({ food: 12, production: 0, gold: -3, science: 0, culture: 8, faith: 0 });
+    expect(councilFigures(deck, { happiness: 2, authority: 0 })).toEqual({
+      food: 12,
+      production: 0,
+      gold: -3,
+      science: 0,
+      culture: 8,
+      faith: 0,
+      happiness: 2,
+      authority: 0,
+    });
+  });
+
+  it('measures the change once when the chair under the card changes, never on a pointer move', () => {
+    const over = braceBody(SCREEN, 'function noteOver(');
+    expect(over).toContain('if ((over?.index ?? null) === index) return;');
+    // A card held out of a chair is measured against the chairs before the lift.
+    expect(over).toContain('const base = beforeLift ?? ctx.arrangement;');
+    expect(over).toContain('councilChange(ctx.state, ctx.seat, base, target)');
+    expect(braceBody(SCREEN, 'function onPointerMove(')).not.toContain('councilChange');
+    expect(SCREEN.match(/councilChange\(/g) ?? []).toHaveLength(1);
+    expect(uiSource('councilTotals.ts')).toContain('const was = figuresOfBoard(stagedState(state, seat, before), seat);');
+  });
+});
+
+describe('a card held out of its chair (the user, 2026-11-18)', () => {
+  it('holds a seated card on a click, and a sealed card refuses with the reducer’s sentence', () => {
+    const lift = braceBody(SCREEN, 'function lift(index: number,');
+    expect(lift).toContain('const problem = removeError(ctx.state, ctx.seat, ctx.arrangement, index);');
+    expect(lift).toContain('held = entry.card;');
+  });
+
+  it('takes the card off its chair when it is put down away from every chair', () => {
+    const off = braceBody(SCREEN, 'function takeOff(');
+    // The removal stands: the arrangement before the lift is not put back.
+    expect(off).not.toContain('staged = beforeLift');
+    expect(off).toContain('beforeLift = null;');
+    const click = braceBody(SCREEN, 'function onClothClick(');
+    expect(click).toContain("target.closest('button, [data-chair], .orders-veil, input, a, [data-nav]') !== null");
+    expect(click).toContain('if (beforeLift !== null) takeOff();');
+    expect(SCREEN).toContain("body.addEventListener('click', onClothClick);");
+    // A click on the hand is away from every chair too.
+    expect(braceBody(SCREEN, 'function take(id: OrderId,')).toContain('if (beforeLift !== null) takeOff();');
+  });
+
+  it('puts a held card back with Escape, and takes a card off its chair with Delete or Backspace', () => {
+    const keys = braceBody(SCREEN, 'function onKey(event: KeyboardEvent)');
+    expect(keys).toContain("(event.key === 'Delete' || event.key === 'Backspace') && layer === null");
+    expect(keys.indexOf("event.key === 'Escape' && held !== null")).toBeLessThan(keys.indexOf("event.key === 'Delete'"));
+    const byKey = braceBody(SCREEN, 'function takeOffByKey(');
+    expect(byKey).toContain('const problem = removeError(ctx.state, ctx.seat, ctx.arrangement, index);');
+    expect(byKey).toContain('staged = remove(ctx.arrangement, index);');
   });
 });

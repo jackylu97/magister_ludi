@@ -420,7 +420,7 @@ describe('the descriptor register', () => {
     // `keywordsAllowedIn`, which answers the same thing from the tag they built.
     expect(source('offerCard.ts')).toContain('{ linked: false }');
     expect(source('orderFace.ts')).toContain('const linked = state.inControl === true ? false : keywordsAllowedIn(host);');
-    expect(source('statecraftScreen.ts')).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true });");
+    expect(source('statecraftScreen.ts')).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true, plate: null });");
     expect(source('bonusesTab.ts')).toContain('keywordsAllowedIn(into)');
   });
 

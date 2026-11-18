@@ -201,10 +201,13 @@ describe('the council, read off the source', () => {
   const TABLE = between(SCREEN, 'function drawTable(', '// --- the hand');
   const STYLE = uiSource('style.css');
 
-  it('builds every chair with the face’s builders, and an empty one in its ink', () => {
-    expect(TABLE).toContain('const tab = chairTabNode({');
-    expect(TABLE).toContain('const face = emptyChairFace(type, ');
-    expect(TABLE).toContain('word: chairWord(type),');
+  it('builds every chair in its frame with its label, and an empty one in its ink', () => {
+    // The Council screen (stage 1, frame C6): the chair's label sits on its
+    // frame's top edge, and an empty chair says its type and what it takes.
+    expect(TABLE).toContain("frame.append(chairLegend(type, index, note.join(' · '), sealedTurns));");
+    expect(TABLE).toContain('empty.dataset.ink = type;');
+    expect(TABLE).toContain("empty.append(element('span', 'council-empty-type', chairWord(type)));");
+    expect(braceBody(SCREEN, 'function chairLegend(')).toContain('`${index + 1} · ${chairWord(type)}`');
     expect(SCREEN.toLowerCase()).not.toContain('universal');
   });
 

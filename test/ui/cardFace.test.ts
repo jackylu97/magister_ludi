@@ -280,11 +280,12 @@ describe('every surface draws an Order from orderSuitFace', () => {
     expect(table).not.toContain('slotMarkNode(');
   });
 
-  it('draws a card in the hand as the emblem face, in its hand form', () => {
+  it('draws a card in the hand as the emblem face, in its fan form', () => {
+    // The Council screen (stage 1, frame C6): the hand is a fan of full faces.
     const screen = uiSource('statecraftScreen.ts');
-    const hand = between(screen, 'function drawHand(', 'function layRail(');
-    expect(hand).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true });");
-    expect(hand).toContain("face.dataset.form = 'hand';");
+    const hand = between(screen, 'function drawHand(', 'function layFan(');
+    expect(hand).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true, plate: null });");
+    expect(hand).toContain("face.dataset.form = 'fan';");
     // The shelf a card is filed on does not decide its ink.
     expect(uiSource('style.css')).not.toContain('.sc-card-dominion');
   });
@@ -446,9 +447,11 @@ describe('what C1 leaves alone', () => {
     // The offer and the shelf both ask the one helper.
     const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
     expect(draft).toContain('line: face.line, emblem: face.emblem, lineName: face.lineName');
-    // The orders screen's register draws a deck's Doctrine in the emblem
-    // face's gilt frame, with its decks' suits (batch SS10 part 2).
-    expect(uiSource('statecraftScreen.ts')).toContain("kind: 'doctrine',");
+    // The Council screen tucks a deck's Doctrine under the government in the
+    // emblem face's gilt strip, and lifts its full face with its decks' suits
+    // (stage 1; batch SS10 part 2 before it).
+    expect(uiSource('statecraftScreen.ts')).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
+    expect(uiSource('orderFace.ts')).toContain("strip.dataset.frame = 'doctrine';");
     // Every deck face still has its own mark: the flair gallery shows them,
     // and a one-deck Doctrine's accent resolves through the same key.
     const faces: DeckFace[] = [...DECK_IDS, 'generic', 'shared'];

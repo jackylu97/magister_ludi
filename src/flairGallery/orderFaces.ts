@@ -40,13 +40,19 @@ import { stampOfYields, stampText } from '../ui/cardStamp';
 import { counterFigure } from '../ui/goalCounter';
 import {
   type OrderFaceCardId,
+  type OrderFaceId,
+  type OrderFacePlate,
   type OrderFaceState,
+  type PlateFigure,
   chairTabNode,
   emptyChairFace,
   fitOrderFace,
+  orderBackNode,
   orderFaceNode,
   registerFaceNode,
+  tuckedDoctrineNode,
 } from '../ui/orderFace';
+import { fanPlacement } from '../ui/councilLayout';
 import { block, button, controls, element, markCell, markGrid, slider } from './sheet';
 
 /** A live Order: dealt, and not retired. */
@@ -105,7 +111,7 @@ function figure(into: HTMLElement, card: HTMLElement, caption: string): HTMLElem
 /** Every card the section has drawn, so they can be fitted once the fonts are in. */
 const drawnCards: HTMLElement[] = [];
 
-function card(id: OrderFaceCardId, state: OrderFaceState): HTMLElement {
+function card(id: OrderFaceId, state: OrderFaceState): HTMLElement {
   const node = orderFaceNode(id, state);
   drawnCards.push(node);
   return node;
@@ -281,6 +287,16 @@ export function drawOrderFaces(into: HTMLElement): void {
   screenPlate.dataset.plate = 'screen-forms';
   drawScreenForms(screenPlate);
 
+  // --- 4c. the Council screen's forms (stage 1 of the Council and In play board) ---
+  const councilBlock = block(
+    into,
+    'Forms of the Council screen — src/ui/orderFace.ts',
+    'The pay plate at the foot of a card: yields, a meter, a yield and a meter on one line, a cost in the debit red, and a card that could pay and pays nothing this turn ("+0" and the reason). A rule card has no plate. Then the 176 px card the screen takes at eleven chairs, the government with its own plate and its Doctrines tucked under it, the fan of the hand, and the draft pile’s card back. The figures and the reason are samples.',
+  );
+  const councilPlate = plate(councilBlock);
+  councilPlate.dataset.plate = 'council-forms';
+  drawCouncilForms(councilPlate);
+
   // --- 5. the hand, fanned ---
   const handBlock = block(
     into,
@@ -396,6 +412,101 @@ function drawScreenForms(into: HTMLElement): void {
     register.append(registerFaceNode({ id: doctrine, kind: 'doctrine', plate: 'Doctrine', live: plateWords }));
   }
   figure(into, register, 'the gilt register, laid wide');
+}
+
+/**
+ * The forms of the Council screen (stage 1), on real rows chosen by what each row
+ * is: the pay plate's cases, the 176 px card, the government and its tucked
+ * Doctrines, the fan and the card back. The figures are samples.
+ */
+function drawCouncilForms(into: HTMLElement): void {
+  const live = liveOrders();
+  const first = live[0]!;
+  const ofType = (type: string, rarity?: OrderRarity): OrderId =>
+    live.find((id) => orderType(id) === type && (rarity === undefined || orderDef(id).rarity === rarity)) ?? first;
+  const pays = (figures: PlateFigure[]): OrderFacePlate => ({ kind: 'pays', figures });
+  figure(into, card(ofType('economic', 'common'), { where: 'played', plate: pays([{ voice: 'food', amount: 25 }, { voice: 'production', amount: 33 }]) }), 'pays each turn: the plate');
+  figure(
+    into,
+    card(ofType('civic', 'uncommon'), {
+      where: 'played',
+      plate: pays([
+        { voice: 'science', amount: 17 },
+        { voice: 'culture', amount: 11 },
+        { voice: 'faith', amount: 3 },
+      ]),
+    }),
+    'three yields, one line',
+  );
+  figure(into, card(ofType('civic', 'common'), { where: 'played', plate: pays([{ voice: 'happiness', amount: 8 }]) }), 'pays happiness');
+  figure(
+    into,
+    card(ofType('wildcard'), { where: 'played', plate: pays([{ voice: 'culture', amount: 15 }, { voice: 'authority', amount: 3 }]) }),
+    'a yield and a meter',
+  );
+  figure(
+    into,
+    card(ofType('economic', 'uncommon'), {
+      where: 'played',
+      plate: pays([
+        { voice: 'gold', amount: 12 },
+        { voice: 'happiness', amount: -3 },
+      ]),
+    }),
+    'a cost, in the debit red',
+  );
+  figure(
+    into,
+    card(ofType('civic', 'rare'), {
+      where: 'played',
+      unmet: { reason: 'you have no foreign trade routes' },
+      plate: { kind: 'idle', reason: 'you have no foreign trade routes' },
+    }),
+    'could pay, pays nothing now',
+  );
+  figure(into, card(ofType('military', 'rare'), { where: 'played', plate: null }), 'a rule: no plate');
+  const mid = card(ofType('wildcard'), { where: 'played', plate: pays([{ voice: 'culture', amount: 15 }, { voice: 'authority', amount: 3 }]) });
+  mid.dataset.compact = 'mid';
+  figure(into, mid, 'the 176 px card, at eleven chairs');
+
+  // The government with its plate, and three Doctrines tucked under it.
+  const column = element('div', 'of-council-gov');
+  const government = GOVERNMENT_IDS.find((id) => describeCard(id).some((clause) => clause.keyword === undefined)) ?? GOVERNMENT_IDS[0]!;
+  const face = card(government, { where: 'played', plate: pays([{ voice: 'culture', amount: 15 }]) });
+  column.append(face);
+  const doctrines = liveDoctrines().slice(0, 3);
+  const tuckPlates: (OrderFacePlate | null)[] = [
+    pays([
+      { voice: 'food', amount: 52 },
+      { voice: 'production', amount: 67 },
+      { voice: 'happiness', amount: -3 },
+    ]),
+    pays([{ voice: 'food', amount: 14 }]),
+    null,
+  ];
+  doctrines.forEach((id, index) => {
+    const strip = tuckedDoctrineNode(id, tuckPlates[index] ?? null);
+    strip.style.width = `${198 - (index + 1) * 6}px`;
+    strip.style.zIndex = String(doctrines.length - index);
+    column.append(strip);
+  });
+  figure(into, column, 'the government, its Doctrines tucked');
+
+  // The fan: the hand's full faces, overlapped and turned, as the screen sets them.
+  const fan = element('div', 'of-council-fan');
+  const hand = deckSample().flat().slice(0, 7);
+  const placement = fanPlacement(hand.length, 760);
+  hand.forEach((id, index) => {
+    const node = card(id, { where: 'hand', plate: null });
+    node.dataset.form = 'fan';
+    const at = placement.cards[index]!;
+    node.style.left = `${at.left}px`;
+    node.style.top = `${at.drop}px`;
+    node.style.rotate = `${at.rotate}deg`;
+    fan.append(node);
+  });
+  figure(into, fan, 'the fan, cut by the window’s edge on the screen');
+  figure(into, orderBackNode(), 'the draft pile’s card back');
 }
 
 /** The states row: every state the face has, on real rows. */

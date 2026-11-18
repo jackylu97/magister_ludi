@@ -57,6 +57,24 @@
  *
  * The rarity frames are CSS (`orderFace.css`), and the corner marks are masks
  * drawn once (`src/art/orderFaceMarks.ts`), so no card carries art of its own.
+ *
+ * The pay plate (the Council screen, stage 1)
+ * -------------------------------------------
+ * The approved board `docs/plans/mockups/scholars-study/council-and-in-play/`
+ * (frames PL and PM) puts what a card pays each turn at the foot of the card
+ * itself: a heavy rule, then the figures in the card's own typeface and in the
+ * yield colours, with happiness and authority in their own marks. A caller
+ * that passes `plate` gets this foot in place of the figure tablet and the
+ * live line. A rule card, a card that pays on an occasion and a card played
+ * this visit get `plate: null`, which draws no plate, so the effect has the
+ * room. A card that could pay and pays nothing this turn gets a small "+0"
+ * and the reason. The face composes no figure: the caller hands it the
+ * reading (`orderLive.ts`).
+ *
+ * The same face draws the government on the Council screen (the Doctrine's
+ * gilt frame, the crown, the word "Government" on its plate), and
+ * `tuckedDoctrineNode` draws a Doctrine tucked under it as a strip with its
+ * name and figures.
  */
 
 import './orderFace.css';
@@ -71,6 +89,7 @@ import {
   orderFaceMarkUri,
 } from '../art/orderFaceMarks';
 import { MARK_BOX, MARK_STROKE } from '../art/resourceMarks';
+import type { MeterId } from '../sim/meters';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import { type CardClause, REF_PATTERN, describeCard, stripRefs } from '../sim/statecraft';
 import {
@@ -78,13 +97,17 @@ import {
   type DeckId,
   type CardId,
   type DoctrineId,
+  type GovernmentId,
   type OrderId,
   cardDef,
   doctrineDef,
+  governmentDef,
   isDoctrineId,
+  isGovernmentId,
   orderDef,
   orderType,
 } from '../sim/statecraftData';
+import { meterMarkNode } from './meterMark';
 import { slotMarkUrl } from './cardLine';
 import { BAND_NUMERAL, DECK_SUIT, GENERIC_WORD, RARITY_WORD, TYPE_INK, TYPE_WORD, deckWord } from './deckBadges';
 import { element } from './dom';
@@ -96,6 +119,30 @@ import { splitYieldText, yieldMarkNode } from './yieldMark';
 
 /** The cards this face draws: an Order or a Doctrine. */
 export type OrderFaceCardId = OrderId | DoctrineId;
+
+/**
+ * Any card the face can draw: an Order, a Doctrine, or the government, which
+ * the Council screen draws as a full card at the head of its left column.
+ */
+export type OrderFaceId = OrderFaceCardId | GovernmentId;
+
+/** One figure on the pay plate: a yield or a meter, and its signed whole number. */
+export interface PlateFigure {
+  voice: CityYieldKey | MeterId;
+  amount: number;
+}
+
+/**
+ * **The pay plate**, made by the caller from a reading the game already has:
+ *
+ *   - `pays`: the figures, in the order every surface prints them (the six
+ *     yields, then happiness and authority);
+ *   - `idle`: the card could pay and pays nothing this turn. The plate prints
+ *     a small "+0" and the reason, when there is one.
+ */
+export type OrderFacePlate =
+  | { kind: 'pays'; figures: readonly PlateFigure[] }
+  | { kind: 'idle'; reason?: string };
 
 /** The border a card wears: its rarity, or the Doctrine's gilt frame. */
 export type OrderFaceFrame = 'common' | 'uncommon' | 'rare' | 'doctrine';
@@ -149,6 +196,14 @@ export interface OrderFaceState {
    * hand, the binder and the flair gallery.
    */
   tablet?: FirstFigure | null;
+  /**
+   * **The pay plate** (the Council screen, stage 1). Left out, the face draws
+   * the tablet and the live line as before. Given, the face draws no tablet
+   * and no live line: a plate draws the figures (or "+0" and the reason) at
+   * the card's foot, and `null` draws nothing there, so the effect has the
+   * room. A commission's counter keeps its beads line either way.
+   */
+  plate?: OrderFacePlate | null;
   /**
    * True when the face sits inside a control, such as the orders screen's
    * chair and hand buttons. A keyword is then bold and not a link, because the
@@ -251,6 +306,9 @@ export function effectInitial(text: string): string | null {
 /** The word on a Doctrine's plate, where an Order has its tier. */
 const DOCTRINE_WORD = 'Doctrine';
 
+/** The word on the government's plate on the Council screen (the board's C6). */
+const GOVERNMENT_WORD = 'Government';
+
 /**
  * The text sizes the effect may take, in pixels at the played size (210 wide),
  * largest first. The board's size is 13. Nothing goes under 11.
@@ -269,8 +327,8 @@ export interface OrderFaceFit {
 
 /** Everything a face prints, worked out from the row and the state. */
 export interface OrderFaceModel {
-  id: OrderFaceCardId;
-  kind: 'order' | 'doctrine';
+  id: OrderFaceId;
+  kind: 'order' | 'doctrine' | 'government';
   frame: OrderFaceFrame;
   ink: OrderFaceInk;
   /** The suits in the device: one, two for a card two decks share, none for the seal. */
@@ -299,16 +357,16 @@ function decksWords(decks: readonly DeckId[]): string {
   return decks.length === 0 ? GENERIC_WORD : decks.map(deckWord).join(' · ');
 }
 
-/** The border a card wears. */
-export function orderFaceFrame(id: OrderFaceCardId): OrderFaceFrame {
-  return isDoctrineId(id) ? 'doctrine' : orderDef(id).rarity;
+/** The border a card wears. The government wears the Doctrine's gilt frame. */
+export function orderFaceFrame(id: OrderFaceId): OrderFaceFrame {
+  return isDoctrineId(id) || isGovernmentId(id) ? 'doctrine' : orderDef(id).rarity;
 }
 
 /**
  * **A face's model**, from the card and its state. Pure: no document is read,
  * so the tests can sweep every row.
  */
-export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): OrderFaceModel {
+export function orderFaceModel(id: OrderFaceId, state: OrderFaceState): OrderFaceModel {
   const all = describeCard(id);
   const keyword = all.find((clause) => clause.keyword !== undefined) ?? null;
   const clauses = all.filter((clause) => clause.keyword === undefined);
@@ -325,7 +383,19 @@ export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): Orde
   let caption: string;
   let foot: string;
   let name: string;
-  if (isDoctrineId(id)) {
+  let suits: readonly SuitId[] | null = null;
+  if (isGovernmentId(id)) {
+    // The government belongs to no deck. It wears the crown, as the register
+    // drew it, and the board's word on its plate.
+    kind = 'government';
+    ink = 'gilt';
+    plate = GOVERNMENT_WORD;
+    decks = [];
+    suits = [GOVERNMENT_SUIT];
+    name = governmentDef(id).name;
+    caption = `${GOVERNMENT_WORD} · ${name}`;
+    foot = GOVERNMENT_WORD;
+  } else if (isDoctrineId(id)) {
     const def = doctrineDef(id);
     kind = 'doctrine';
     ink = 'gilt';
@@ -353,19 +423,21 @@ export function orderFaceModel(id: OrderFaceCardId, state: OrderFaceState): Orde
     kind,
     frame: orderFaceFrame(id),
     ink,
-    suits: decks.map((deck) => DECK_SUIT[deck]),
+    suits: suits ?? decks.map((deck) => DECK_SUIT[deck]),
     plate,
     name,
     keyword,
     clauses,
     initial,
-    tablet: state.tablet !== undefined ? state.tablet : firstFigure(plainAll),
+    // With a pay plate the figure is at the foot, so the picture has no tablet.
+    tablet: state.plate !== undefined ? null : state.tablet !== undefined ? state.tablet : firstFigure(plainAll),
     rays: !unmet,
     caption,
     foot,
     fit: estimateOrderFaceFit(
       clauses.map((clause) => ({ plain: stripRefs(clause.text), named: namedLetters(clause.text) })),
-      { initial: initial !== null, reason, doctrine: kind === 'doctrine' },
+      // The reason is in the plate when there is one, not under the effect.
+      { initial: initial !== null, reason: state.plate !== undefined ? '' : reason, doctrine: kind !== 'order' },
     ),
   };
 }
@@ -702,9 +774,72 @@ function subscriptionNode(model: OrderFaceModel, state: OrderFaceState, linked: 
     if (index === 0 && model.initial !== null) setInitial(line);
     sub.append(line);
   });
-  const reason = state.unmet?.reason;
+  // With a pay plate the reason is printed in the plate, beside its "+0".
+  const reason = state.plate === undefined ? state.unmet?.reason : undefined;
   if (reason !== undefined && reason !== '') sub.append(element('span', 'of-why', `† ${stripRefs(reason)}`));
   return sub;
+}
+
+/** The mark of one plate voice: a yield's drawing, or a meter's. */
+function plateMarkNode(voice: PlateFigure['voice']): HTMLElement {
+  if (voice === 'happiness' || voice === 'authority') {
+    const mark = meterMarkNode(voice);
+    mark.classList.add('meter-mark-inline');
+    return mark;
+  }
+  return yieldMarkNode(voice);
+}
+
+/** A signed whole number as every figure here is written: an explicit plus, and a real minus sign. */
+export function plateFigureText(amount: number): string {
+  return `${amount < 0 ? '−' : '+'}${String(Math.abs(amount))}`;
+}
+
+/**
+ * **One figure of the pay plate, or of the Council's totals**: the signed
+ * number and its mark, in the voice's ink. A minus figure wears the debit red
+ * (`data-sign`), and keeps its mark.
+ */
+export function plateFigureNode(figure: PlateFigure, className = 'of-pay-fig'): HTMLElement {
+  const node = element('span', className);
+  node.dataset.voice = figure.voice;
+  if (figure.amount < 0) node.dataset.sign = 'minus';
+  node.append(element('b', undefined, plateFigureText(figure.amount)), plateMarkNode(figure.voice));
+  return node;
+}
+
+/**
+ * **The pay plate** (the board's PL and PM): a heavy rule and the figures, or a
+ * small "+0" and the reason. Read aloud as the figures in words, through the
+ * card's caption and the chair's label; the plate itself is drawn.
+ */
+function payPlateNode(plate: OrderFacePlate): HTMLElement {
+  const node = element('div', 'of-pay');
+  node.dataset.plate = plate.kind;
+  if (plate.kind === 'idle') {
+    node.append(element('b', 'of-pay-zero', '+0'));
+    if (plate.reason !== undefined && plate.reason !== '') {
+      node.append(element('span', 'of-pay-why', stripRefs(plate.reason)));
+    }
+    return node;
+  }
+  for (const figure of plate.figures) node.append(plateFigureNode(figure));
+  return node;
+}
+
+/**
+ * The foot of a face with a pay plate: the plate, a commission's beads, the
+ * type and the deck for a card in the hand, or nothing for a card in a chair
+ * that pays no figure each turn.
+ */
+function plateFootNode(model: OrderFaceModel, state: OrderFaceState): HTMLElement | null {
+  const live = state.where === 'played' ? (state.liveLine ?? null) : null;
+  // A commission's beads, and the line of a card played this visit, which
+  // says the plate lands on Confirm.
+  if (live?.kind === 'counter' || (state.staged === true && live !== null)) return colophonNode(model, { ...state, unmet: null });
+  if (state.plate !== null && state.plate !== undefined) return payPlateNode(state.plate);
+  if (state.where === 'hand') return colophonNode(model, { where: 'hand' });
+  return null;
 }
 
 /** The colophon: the live line, or the type and the deck when there is none. */
@@ -732,7 +867,7 @@ function colophonNode(model: OrderFaceModel, state: OrderFaceState): HTMLElement
  * `<article>`; a keyword inside a button is bold and not a link
  * (`keywordsAllowedIn`).
  */
-export function dressOrderFace(host: HTMLElement, id: OrderFaceCardId, state: OrderFaceState): OrderFaceModel {
+export function dressOrderFace(host: HTMLElement, id: OrderFaceId, state: OrderFaceState): OrderFaceModel {
   installOrderFaceMarks(document.documentElement);
   const model = orderFaceModel(id, state);
   const linked = state.inControl === true ? false : keywordsAllowedIn(host);
@@ -747,12 +882,18 @@ export function dressOrderFace(host: HTMLElement, id: OrderFaceCardId, state: Or
   if (state.staged === true) host.dataset.staged = 'true';
   if (state.unmet !== undefined && state.unmet !== null) host.dataset.unmet = 'true';
   if (model.tablet === null) host.dataset.rule = 'true';
+  if (state.plate !== undefined) host.dataset.plate = state.plate === null ? 'none' : state.plate.kind;
+  if (model.kind === 'government') host.dataset.government = 'true';
 
   const inner = element('div', 'of-in');
   inner.append(element('span', 'sr-only', model.caption));
   inner.append(...headNodes(model, linked));
   inner.append(subscriptionNode(model, state, linked));
-  inner.append(colophonNode(model, state));
+  if (state.plate === undefined) inner.append(colophonNode(model, state));
+  else {
+    const foot = plateFootNode(model, state);
+    if (foot !== null) inner.append(foot);
+  }
   host.append(inner);
 
   if (model.frame !== 'common') {
@@ -771,7 +912,7 @@ export function dressOrderFace(host: HTMLElement, id: OrderFaceCardId, state: Or
 }
 
 /** **An emblem face** as a new `<article>`, for a surface that reads a card. */
-export function orderFaceNode(id: OrderFaceCardId, state: OrderFaceState): HTMLElement {
+export function orderFaceNode(id: OrderFaceId, state: OrderFaceState): HTMLElement {
   const card = element('article');
   dressOrderFace(card, id, state);
   return card;
@@ -903,6 +1044,38 @@ export function registerFaceNode(face: RegisterFace): HTMLElement {
     card.append(face.live);
   }
   return card;
+}
+
+// --- a Doctrine tucked under the government ------------------------------------------
+
+/**
+ * **A Doctrine tucked under the government** (the board's C6): a gilt strip that
+ * shows the Doctrine's name and what it pays, its top hidden under the card
+ * above. A rule Doctrine shows its name only, and an idle one a small "+0".
+ * The caller makes the strip a control and lifts the full face on hover.
+ */
+export function tuckedDoctrineNode(id: CardId, plate: OrderFacePlate | null): HTMLElement {
+  installOrderFaceMarks(document.documentElement);
+  const strip = element('div', 'order-tuck');
+  strip.dataset.frame = 'doctrine';
+  const inner = element('span', 'of-tuck-in');
+  inner.append(element('span', 'of-tuck-name', cardDef(id).name));
+  const figures = element('span', 'of-tuck-pay');
+  if (plate?.kind === 'pays') for (const figure of plate.figures) figures.append(plateFigureNode(figure));
+  else if (plate?.kind === 'idle') figures.append(element('b', 'of-pay-zero', '+0'));
+  inner.append(figures);
+  strip.append(inner);
+  return strip;
+}
+
+/**
+ * **A card's back**, for the draft pile at the foot of the Council screen (the
+ * board's C6): the deep violet with gilt dots, a gilt edge, the sun, and the
+ * edges of the cards under it. Drawn by the stylesheet.
+ */
+export function orderBackNode(): HTMLElement {
+  installOrderFaceMarks(document.documentElement);
+  return drawn('order-back');
 }
 
 // --- the fit, measured --------------------------------------------------------------
