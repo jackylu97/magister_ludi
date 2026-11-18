@@ -3430,7 +3430,31 @@ kbd {
   border-radius: 50%;
   background: var(--vermilion);
   content: '';
-  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
+}
+
+/* The dot's pulse: a vermilion ring that grows 4 px out of the dot and fades,
+   then comes back. It used to be the dot's own `box-shadow` (spread 0 to 4 px,
+   alpha 55 % to 0), which the browser had to paint again on every display
+   frame for as long as a decision waited. Now it is a disc of the full size
+   behind the dot that the compositor scales and fades: the dot is opaque, so
+   only the ring outside it shows, as the shadow did. 5/9 is the dot's radius
+   over the ring's (render speed pass five, second batch).
+
+   It hangs on the canton, which holds the dot's corner and paints before the
+   dot. The offsets are measured from inside the canton's 1.5 px rim. */
+.empire-banner.is-owed .empire-banner-canton::after {
+  position: absolute;
+  top: calc(-9px - 1.5px);
+  right: calc(-9px - 1.5px);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  content: '';
+  opacity: 0;
+  transform: scale(0.5556);
+  pointer-events: none;
+  animation: owed-ring 1.8s ease-in-out infinite;
 }
 
 /* The Q key and the arrow, on the pennant's centre line under its foot. */
@@ -3618,7 +3642,27 @@ kbd {
 /* Nothing chosen to research: the track goes gilt and breathes, which is the
    old research card's nag moved onto the bar that stands for it. */
 .empire-bar.is-prompting {
+  /* The ring below sits outside the bar, so the bar does not clip while it
+     nudges (nothing is researched, so the fill is empty). */
+  position: relative;
+  overflow: visible;
   background: rgba(200, 144, 31, 0.35);
+}
+
+/* The nudge: a gilt ring 3 px round the bar that fades in and out. It used to
+   be the bar's own `box-shadow` (spread 0 to 3 px, alpha 0 to 30 %), painted
+   again on every display frame for as long as nothing was researched. Now the
+   ring is drawn once and the compositor fades it. It keeps its full 3 px while
+   it fades, where the shadow grew as it brightened (render speed pass five,
+   second batch). */
+.empire-bar.is-prompting::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgba(200, 144, 31, 0.3);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
   animation: tech-nudge 2.4s ease-in-out infinite;
 }
 
@@ -3817,7 +3861,24 @@ kbd {
   border-radius: 50%;
   background: var(--vermilion);
   content: '';
-  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
+}
+
+/* Its pulse, the banner dot's ring at this dot's size: a disc 4 px larger all
+   round, behind the dot, scaled from the dot's radius (3.5 / 7.5) and faded by
+   the compositor. Positioned 4 px out from the dot. */
+.quick-button.is-owed::before {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  content: '';
+  opacity: 0;
+  transform: scale(0.4667);
+  pointer-events: none;
+  animation: owed-ring-small 1.8s ease-in-out infinite;
 }
 
 /* A greyed door (batch SS9a): Faith before Divination, Routes before Currency,
@@ -3919,6 +3980,12 @@ kbd {
   top: 8px;
   right: auto;
   left: calc(var(--empire-axis) + 6px);
+}
+
+.empire-corner.is-open .quick-button.is-owed::before {
+  top: 4px;
+  right: auto;
+  left: calc(var(--empire-axis) + 2px);
 }
 
 .empire-drawer[hidden] {
@@ -4081,9 +4148,10 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .empire-banner.is-owed::after,
-  .empire-bar.is-prompting,
-  .quick-button.is-owed::after {
+  /* The rings stand still at nothing (`opacity: 0`), as the shadows did. */
+  .empire-banner.is-owed .empire-banner-canton::after,
+  .empire-bar.is-prompting::after,
+  .quick-button.is-owed::before {
     animation: none;
   }
 
@@ -4941,6 +5009,11 @@ body.has-diplomatic-offers .end-turn-list {
   white-space: nowrap;
   cursor: pointer;
   box-shadow: var(--price-throw) var(--price-throw) 0 var(--ink);
+  /* Each plate gets its own compositor layer, as the town banners do: the
+     plates move with a transform on every frame the board draws, and without a
+     layer the browser repainted the HTML over the canvas on each of those
+     frames (render speed pass five, second batch). */
+  will-change: transform;
 }
 
 /* The coin sits a touch smaller than a panel mark: the plate is the smallest
@@ -8946,10 +9019,10 @@ p.city-trade-link {
 @keyframes tech-nudge {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(200, 144, 31, 0);
+    opacity: 0;
   }
   50% {
-    box-shadow: 0 0 0 3px rgba(200, 144, 31, 0.3);
+    opacity: 1;
   }
 }
 
@@ -9801,10 +9874,14 @@ p.city-trade-link {
    voices the forecast above uses, so the card and the board agree. */
 .damage-number {
   position: absolute;
+  /* At the sheet's corner; `damageNumbers.ts` moves it over its hex with the
+     `translate` property, which applies before the `transform` below. */
+  top: 0;
+  left: 0;
   z-index: 6;
   /* Anchored at the tile centre and lifted clear of the piece standing on it,
-     the way a banner is. `translate` here is the resting offset; the animation
-     adds the travel on top of it. */
+     the way a banner is. The `translate()` in `transform` here is the resting
+     offset; the animation adds the travel on top of it. */
   transform: translate(-50%, -160%);
   padding: 1px 6px 2px;
   border: var(--border-thin) solid var(--ink);
@@ -13311,15 +13388,33 @@ p.city-trade-link {
    the whole point of this mark is that it is not. The dock's Statecraft and
    Religion buttons wore it until batch UX3 (as `.hud-badge-waiting`), and the
    culture chip before them. */
-/* The ring is the red ink at an alpha, drawn with `color-mix` so it follows the
-   token rather than a copy of its old value. */
-@keyframes yield-waiting-pulse {
+/* The ring is a disc in the red ink behind the dot, scaled and faded by the
+   compositor (render speed pass five, second batch): from the dot's own size at
+   55 % to 4 px larger at nothing, and back. It was the dot's `box-shadow`, which
+   had to be painted again on every frame. Two sizes, one for each dot:
+   `owed-ring` for the pennant's 10 px dot (ring 18 px), `owed-ring-small` for
+   the Faith mark's 7 px dot (ring 15 px). */
+@keyframes owed-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--vermilion) 55%, transparent);
+    opacity: 0.55;
+    transform: scale(0.5556);
   }
   50% {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--vermilion) 0%, transparent);
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes owed-ring-small {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.4667);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1);
   }
 }
 

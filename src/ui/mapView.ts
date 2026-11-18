@@ -201,6 +201,15 @@ export interface HoverInfo {
   axial: Hex;
 }
 
+/**
+ * A screen over the board, by how much of the board it lets through
+ * (`setCoverCheck`). `opaque`: the screen hides every pixel of it (the orders
+ * screen, the Abacus, the landing). `dimmed`: the board shows through a dark
+ * ground (the parchment sheets, the star chart), and the user accepted that
+ * its motion stops there (`docs/flags.md`, "After rendering pass five").
+ */
+export type BoardCover = 'opaque' | 'dimmed';
+
 export interface MapView {
   /** Screen position (viewport CSS pixels) → hovered tile, or null off the map. */
   pick(screenX: number, screenY: number): HoverInfo | null;
@@ -483,13 +492,14 @@ export interface MapView {
   setFrameListener?(listener: (() => void) | null): void;
 
   /**
-   * Optional: the page's answer to "does a screen hide every pixel of the
-   * board right now?". While it is yes, the 3D renderer does not draw the
-   * frames it would draw only for the board's motion, because nobody can see
-   * them. Frames asked for by anything else are still drawn. The frozen 2D
-   * pipelines have no motion frames and do not implement it.
+   * Optional: the page's answer to "is a screen over the board right now, and
+   * what kind?" (`BoardCover`, or null for none). While one is up, the 3D
+   * renderer does not draw the frames it would draw only for the board's
+   * motion; each kind has its own setting, so the two can be switched apart.
+   * Frames asked for by anything else are still drawn. The frozen 2D pipelines
+   * have no motion frames and do not implement it.
    */
-  setCoverCheck?(check: (() => boolean) | null): void;
+  setCoverCheck?(check: (() => BoardCover | null) | null): void;
 
   /**
    * Optional: brings a group of cells into view, centring on them.

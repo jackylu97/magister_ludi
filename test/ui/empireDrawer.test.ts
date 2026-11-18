@@ -867,6 +867,17 @@ describe('the stylesheet', () => {
     expect(rule('.quick-figure.is-met')).toContain('color: var(--y-faith);');
     expect(rule('.quick-line')).toContain('height: 2px;');
     expect(rule('.quick-button.is-owed::after')).toContain('background: var(--vermilion);');
+    // The pulses move by transform and opacity, which the compositor runs, never
+    // by `box-shadow`, which is painted again on every frame (render speed pass
+    // five, second batch): a ring behind each dot, and a ring round the bar.
+    expect(rule('.empire-banner.is-owed .empire-banner-canton::after')).toContain('animation: owed-ring 1.8s ease-in-out infinite;');
+    expect(rule('.quick-button.is-owed::before')).toContain('animation: owed-ring-small 1.8s ease-in-out infinite;');
+    expect(rule('.empire-bar.is-prompting::after')).toContain('animation: tech-nudge 2.4s ease-in-out infinite;');
+    for (const name of ['owed-ring', 'owed-ring-small', 'tech-nudge']) {
+      const at = css.indexOf(`@keyframes ${name} {`);
+      expect(`${name}: ${at >= 0}`).toBe(`${name}: true`);
+      expect(css.slice(at, css.indexOf('\n}', at))).not.toContain('box-shadow');
+    }
     expect(css).toContain('.empire-panel.is-open .empire-panel-arrow {');
     // And the panel writes all of it from one place.
     const paint = braceBody(uiSource('empireDrawer.ts'), 'function paintTop(');

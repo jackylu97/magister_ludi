@@ -5634,21 +5634,41 @@ async function boot(initial: Game | null): Promise<void> {
     updateFaithCard(renderer.getHover(), false);
   });
 
-  // The screens that hide every pixel of the board (render speed pass five).
-  // Each fills the window with an opaque ground: the orders screen's cloth is
-  // lampblack, the Abacus's is the table colour, and the landing is the table.
-  // The star chart's ground lets a little of the board through, and the
-  // parchment sheets dim it, so neither is on this list. A screen counts only
-  // after its opening fade has ended, because the board shows through the
-  // fade. While one counts, the renderer skips the frames it draws only for
-  // the board's motion. See `Renderer3D.setCoverCheck`. A finished fade that
-  // holds its last frame (`both`) is still listed by `getAnimations`, so the
-  // test is its play state, not whether the list is empty.
+  // The screens over the board, for the renderer's motion frames (render speed
+  // pass five; `Renderer3D.setCoverCheck`). While one is up, the board's motion
+  // (the sea, the smoke, the swaying trees) is not drawn.
+  //
+  // `opaque`: the screens that hide every pixel of the board. Each fills the
+  // window with an opaque ground: the orders screen's cloth is lampblack, the
+  // Abacus's is the table colour, and the landing is the table.
+  //
+  // `dimmed` (the second batch; the user accepted that the board's motion
+  // stands still behind a sheet): the star chart, and every parchment sheet on
+  // the shared frame (`.statecraft-overlay`, so a new sheet joins by wearing
+  // the class): Religion, Trade, Diplomacy, the Ledger, the Reliquary, the
+  // Bead Race, the Compendium, the wager, the Leader sheet, the census, the
+  // standings and "A town has fallen". The loading sheet wears the class too
+  // and is left out: it is up while a game is built, not while one is played.
+  // The cards an event raises (an offer, a Triumph, a bead, a confirm, the age
+  // plate, the war dispatch, the great person's ceremony) are not on the frame
+  // and are left out; so is everything the player uses while watching the
+  // board (the city screen, the unit card, Buy Tiles, the lens), which is not
+  // an overlay at all.
+  //
+  // A screen counts only after its opening fade has ended, because the board
+  // shows through the fade. A finished fade that holds its last frame (`both`)
+  // is still listed by `getAnimations`, so the test is its play state, not
+  // whether the list is empty. A closing sheet is `hidden` at once, so the
+  // board moves again under its leaving fade.
   const opaqueScreens = [statecraftOverlayEl, abacusOverlayEl, landingEl];
+  const dimmingScreens = [
+    techOverlayEl,
+    ...document.querySelectorAll<HTMLElement>('.statecraft-overlay:not(.loading-overlay)'),
+  ].filter((screen) => !opaqueScreens.includes(screen));
+  const settled = (screen: HTMLElement): boolean =>
+    !screen.hidden && screen.getAnimations().every((fade) => fade.playState === 'finished');
   renderer.setCoverCheck?.(() =>
-    opaqueScreens.some(
-      (screen) => !screen.hidden && screen.getAnimations().every((fade) => fade.playState === 'finished'),
-    ),
+    opaqueScreens.some(settled) ? 'opaque' : dimmingScreens.some(settled) ? 'dimmed' : null,
   );
 
   const cityPanel: CityPanel = createCityPanel({

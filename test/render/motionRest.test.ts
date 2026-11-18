@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { setVisualTest, visualTest } from '../../src/render3d/visualTest';
+import type { BoardCover } from '../../src/ui/mapView';
 
 interface Loop { loop(): void }
 
@@ -115,7 +116,7 @@ describe('the motion rests when the board is left alone', () => {
   });
 });
 
-describe('the motion is not drawn under a screen that hides the board', () => {
+describe('the motion is not drawn under a screen over the board', () => {
   let clock = 0;
   const switches = visualTest();
   beforeEach(() => {
@@ -124,62 +125,85 @@ describe('the motion is not drawn under a screen that hides the board', () => {
     vi.spyOn(performance, 'now').mockImplementation(() => clock);
     setVisualTest({ idle: true });
   });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); setVisualTest(switches); VIEW3D.painted.canvas.restUnderCover = true; });
+  afterEach(() => {
+    vi.restoreAllMocks(); vi.unstubAllGlobals(); setVisualTest(switches);
+    VIEW3D.painted.canvas.restUnderCover = true; VIEW3D.painted.canvas.restUnderSheets = true;
+  });
 
   const run = (f: ReturnType<typeof fixture>, seconds: number): void => {
     for (let i = 0; i < seconds * 60; i++) { clock += 1000 / 60; f.frame(); }
   };
 
-  it('draws no motion frame while covered, and draws on the first display frame after', () => {
-    const f = fixture();
-    let covered = false, asked = 0;
-    f.runtime.setCoverCheck(() => { asked++; return covered; });
-    run(f, 1);
-    const open = f.drawn();
-    expect(open).toBeGreaterThan(10);
-    covered = true;
-    run(f, 10);
-    expect(f.drawn()).toBe(open);
-    // Asked on every display frame while covered, so the end of the cover is seen at once.
-    asked = 0; run(f, 1); expect(asked).toBe(60);
-    covered = false;
-    clock += 1000 / 60; f.frame();
-    expect(f.drawn()).toBe(open + 1);
-    // The motion's clock did not stop under the cover: the frame shows the motion at the page's own time.
-    expect(f.times).toEqual(f.pageTimes);
-  });
+  for (const kind of ['opaque', 'dimmed'] as const) {
+    it(`draws no motion frame under ${kind === 'opaque' ? 'an opaque screen' : 'a sheet that dims the board'}, and draws on the first display frame after`, () => {
+      const f = fixture();
+      let cover: BoardCover | null = null, asked = 0;
+      f.runtime.setCoverCheck(() => { asked++; return cover; });
+      run(f, 1);
+      const open = f.drawn();
+      expect(open).toBeGreaterThan(10);
+      cover = kind;
+      run(f, 10);
+      expect(f.drawn()).toBe(open);
+      // Asked on every display frame while covered, so the end of the cover is seen at once.
+      asked = 0; run(f, 1); expect(asked).toBe(60);
+      cover = null;
+      clock += 1000 / 60; f.frame();
+      expect(f.drawn()).toBe(open + 1);
+      // The motion's clock did not stop under the cover: the frame shows the motion at the page's own time.
+      expect(f.times).toEqual(f.pageTimes);
+    });
+  }
 
   it('still draws a frame asked for by anything else', () => {
-    const f = fixture();
-    f.runtime.setCoverCheck(() => true);
-    run(f, 1);
-    const covered = f.drawn();
-    f.runtime.invalidate();
-    clock += 1000 / 60; f.frame();
-    expect(f.drawn()).toBe(covered + 1);
+    for (const kind of ['opaque', 'dimmed'] as const) {
+      const f = fixture();
+      f.runtime.setCoverCheck(() => kind);
+      run(f, 1);
+      const covered = f.drawn();
+      f.runtime.invalidate();
+      clock += 1000 / 60; f.frame();
+      expect(`${kind}: ${f.drawn()}`).toBe(`${kind}: ${covered + 1}`);
+    }
   });
 
   it('asks only when a motion frame is due', () => {
     const f = fixture();
     let asked = 0;
-    f.runtime.setCoverCheck(() => { asked++; return false; });
+    f.runtime.setCoverCheck(() => { asked++; return null; });
     run(f, 10);
     // One frame of the run is drawn for the mirror's settle after the first draw, not for the motion.
     expect(asked).toBe(f.drawn() - 1);
   });
 
-  it('keeps drawing the motion under a cover when the setting is off', () => {
+  it('keeps drawing the motion under each kind of cover when that kind\'s setting is off', () => {
+    const full = 10 * VIEW3D.visualTest.motionFps * 0.7;
     VIEW3D.painted.canvas.restUnderCover = false;
-    const f = fixture();
-    f.runtime.setCoverCheck(() => true);
-    run(f, 10);
-    expect(f.drawn()).toBeGreaterThan(10 * VIEW3D.visualTest.motionFps * 0.7);
+    const underOpaque = fixture();
+    underOpaque.runtime.setCoverCheck(() => 'opaque');
+    run(underOpaque, 10);
+    expect(underOpaque.drawn()).toBeGreaterThan(full);
+    // The other kind keeps its own setting.
+    const underSheet = fixture();
+    underSheet.runtime.setCoverCheck(() => 'dimmed');
+    run(underSheet, 10);
+    expect(underSheet.drawn()).toBeLessThan(5);
+    VIEW3D.painted.canvas.restUnderCover = true;
+    VIEW3D.painted.canvas.restUnderSheets = false;
+    const underSheetOff = fixture();
+    underSheetOff.runtime.setCoverCheck(() => 'dimmed');
+    run(underSheetOff, 10);
+    expect(underSheetOff.drawn()).toBeGreaterThan(full);
   });
 
-  it('is answered by the page from its opaque screens, once their opening fade has ended', () => {
+  it('is answered by the page: opaque screens, then the dimming sheets, each once its opening fade has ended', () => {
     const main = readFileSync(new URL('../../src/main.ts', import.meta.url), 'utf8');
     expect(main).toContain('const opaqueScreens = [statecraftOverlayEl, abacusOverlayEl, landingEl];');
+    // The star chart and every sheet on the shared frame but the loading sheet.
+    expect(main).toContain("...document.querySelectorAll<HTMLElement>('.statecraft-overlay:not(.loading-overlay)')");
+    expect(main).toMatch(/const dimmingScreens = \[\s*techOverlayEl,/);
     expect(main).toContain("screen.getAnimations().every((fade) => fade.playState === 'finished')");
+    expect(main).toContain("opaqueScreens.some(settled) ? 'opaque' : dimmingScreens.some(settled) ? 'dimmed' : null");
   });
 });
 

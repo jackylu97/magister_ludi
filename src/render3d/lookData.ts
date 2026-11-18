@@ -1938,13 +1938,16 @@ interface PaintedShadowSpec {
  * `drawingBufferRatio` in `canvasSetup.ts`.
  *
  * `restUnderCover` (render speed pass five): while a screen that hides every
- * pixel of the board is open, the board's motion frames are not drawn. See
+ * pixel of the board is open, the board's motion frames are not drawn.
+ * `restUnderSheets` (its second batch): the same while a parchment sheet or the
+ * star chart dims the board, so its motion stands still behind the sheet. See
  * `Renderer3D.setCoverCheck`.
  */
 interface PaintedCanvasSpec {
   maxPixelRatio: number;
   pixelBudget: number;
   restUnderCover: boolean;
+  restUnderSheets: boolean;
 }
 
 /**
