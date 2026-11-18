@@ -61,6 +61,23 @@ council after the loop, where the order before the phases asked them, brought
 both back to stage A's level (the section "BP16" of
 `docs/plans/performance-pass-2026-11-06.md`, stage B, part 3).
 
+Part of that loss was a fault, not the order: the memos on the sitting's
+context keep the value their first reader took, so the arm that asks first sets
+the prices later arms read (bot batch BP16b-fix). With every memo read afresh
+after each command, all five phases before the loop still lowered production
+by 16% on four seeds of five against this order, and the improvements by 6%,
+neither clear of chance on five seeds. So the order stays: research and the
+council choose after the loop has moved the board (the section "BP16b-fix" of
+the same plan).
+
+**The memos on a sitting's context can be stale** (bot batch BP16b-fix, found
+and measured, not shipped). A memo keeps the value its first reader took for
+the whole sitting, though the board moves: about 0.9% of kept reads differed
+from a fresh reading (3,585 of 405,448, seeds 42 and 999 to turn 100). Making
+every memo exact (each kept for one stamp of the economy clock) gave the same
+games as fresh readings, and cost 5% to 8% of a late turn; it is kept as a
+speed trade for now.
+
 **The events.** A closed phase opens again only when one of these has happened
 since the seat's last decision. Each is a difference in the seat's own board
 between two decisions, so it is raised by the seat's own accepted command.
