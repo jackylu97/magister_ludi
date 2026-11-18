@@ -2808,3 +2808,17 @@ Rulings by the user, 2026-11-18.
   picture-changing idea comes back as a proposal with before and after
   pictures. The report goes in `docs/plans/render-performance-2026-11-16.md`
   as "Fifth pass".
+
+## BP16 stage B as landed: the order differs from the ruling (2026-11-18)
+
+- The ruled order put research, diplomacy, the council, spending and
+  housekeeping before the units. With that order, production at turn 100 fell
+  26% on five seeds.
+- The landed order is: diplomacy and spending, then the unit and town loop,
+  then research, the council and housekeeping. `docs/bot-priorities.md`, "The
+  order of a sitting", is the reference.
+- The gain is about 1% of a turn. The user has been told and has not yet
+  confirmed the order.
+- Open: the likely cause of the 26% drop is that some context memos keep the
+  value their first reader leaves, so the order of the arms changes prices.
+  Not proven. A fix waits for the user's answer, and so does stage C.
