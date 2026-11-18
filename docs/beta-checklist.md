@@ -68,6 +68,27 @@ section. When an item is done, mark it `[x]` and give the commit.
   - Goes with the first item under Game rules (citizens ignore faith, science
     and culture): design the control and the scoring together.
 
+- [ ] **A design pass on the city screen.** Added 2026-11-18.
+  - The user wants the city screen redesigned. No design yet.
+  - Do it with the worked-hexes item above; the control lives on this screen.
+  - It should follow the style of the approved Council and In play board
+    (`docs/plans/mockups/scholars-study/council-and-in-play/`).
+
+- [ ] **Changes to the other screens after the In play screen ships.** Added
+  2026-11-18.
+  - The In play screen shows wonders, beliefs, legacies and temporary effects.
+    The faith sheet, the Reliquary, the Ledger and the wonders' places then
+    overlap with it in part.
+  - After it ships, go through each of those screens: what stays, what links
+    to In play, and what goes.
+
+- [ ] **The tutorial.** Added 2026-11-18.
+  - Ruled earlier: the tutorial is redone after the interface is final.
+  - It must cover the Council screen, the In play screen and the full-screen
+    moments, which are all new.
+  - Known fault to fix with it: the opening sequence's step cards do not wait
+    for a big page, so one can sit over a Triumph sheet.
+
 ## Game setup
 
 - [ ] **Difficulty levels.** Added 2026-11-18.
