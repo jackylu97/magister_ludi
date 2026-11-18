@@ -41,6 +41,17 @@ section. When an item is done, mark it `[x]` and give the commit.
   - It touches the tech tree, the world clock, the card bands and the unit
     lines, so it needs its own plan before any build.
 
+- [ ] **Age 1 pacing.** Added 2026-11-18.
+  - The user wants the pace of the first age looked at. No detail yet: ask the
+    user what feels wrong (too slow, too few decisions, too long before the
+    first draft or the first war).
+  - Evidence to use: the first age ran to about turn 70 in the user's game and
+    to turn 87 in a test game; culture is about 3 a turn in age 1
+    (`card-design` skill, power bar), and culture pays for the drafts.
+  - Related and already ruled: the world clock turns over sooner
+    (`docs/flags.md`, "Age turn-over: a missing plate, the abacus motion, and a
+    faster clock"). Measure the first age again after that rule is built.
+
 ## Cards and decks
 
 - [ ] **Deck polish: redo some cards after the playtest.** Added 2026-11-18.

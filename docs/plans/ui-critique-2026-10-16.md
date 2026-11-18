@@ -1044,3 +1044,9 @@ Council screen keeps the title "Orders & Doctrines".
    government, beliefs and legacies.
 3. **The In play screen**, its door in the corner panel, and the arrival of a
    wonder and a belief.
+
+### The trade screen stays open after a send (2026-11-18)
+
+The user: "the trade route screen should not close after buying a route,
+oftentimes i want to purchase multiple." `dispatchSend` in
+`src/ui/tradeScreen.ts` now draws the sheet again and does not close it.
