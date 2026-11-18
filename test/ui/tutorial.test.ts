@@ -618,8 +618,14 @@ describe('the wiring', () => {
     expect(main).toContain('storage: saveStorage,');
     expect(main).toContain('onCommand: (command, result) =>');
     expect(main).toContain("tutorial.note({ kind: 'command', command: command.type })");
-    // And no timer anywhere near it: a step advances on a deed.
-    expect(source('ui/tutorial.ts')).not.toMatch(/setTimeout|setInterval/);
+    // And no clock moves a step: a step advances on a deed. The one timer in
+    // the file is a note's wait behind the turn's big pages (2026-11-18), and
+    // it only looks again whether the page in front of the note has gone.
+    const guide = source('ui/tutorial.ts');
+    expect(guide).not.toMatch(/setInterval/);
+    expect([...guide.matchAll(/setTimeout\(/g)].length).toBe(1);
+    const watch = guide.slice(guide.indexOf('function watchTip(): void'));
+    expect(watch.slice(0, watch.indexOf('\n  }\n'))).toContain('view.setTimeout(');
   });
 
   it('is switched on from the landing and asked for again from the menu', () => {

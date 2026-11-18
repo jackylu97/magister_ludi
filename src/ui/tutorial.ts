@@ -849,7 +849,21 @@ interface TutorialOptions {
   boardAnchor?: (what: string) => Rect | null;
   /** True when the viewer has asked for less motion; the highlight then rests. */
   reducedMotion?: () => boolean;
+  /**
+   * True while one of the turn's big pages is in front of the player or on its
+   * way: the age plate, a bead or Triumph sheet, the wager or census sheet, the
+   * Opus close or the standings (2026-11-18, `docs/flags.md`, "Age turn-over:
+   * landed fix and three follow-ups", item 1).
+   *
+   * A note waits while this is true, and is drawn when it turns false. The
+   * note card sits above those pages, and at the first turn-over the "Bead
+   * Race" note covered the plate's numeral and name. Absent means never wait.
+   */
+  waitFor?: () => boolean;
 }
+
+/** How often a waiting note, or one that is up, looks again at `waitFor`. */
+const NOTE_WAIT_MS = 200;
 
 interface Tutorial {
   /** Whether the guide is wanted at all — the landing's checkbox reads this. */
@@ -918,10 +932,14 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       return view?.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
     });
 
+  const waitFor = options.waitFor ?? (() => false);
+
   let memory = readTutorialMemory(storage);
   /** Whether the sequence is allowed to draw. Off until a game says otherwise. */
   let running = false;
   let tip: TipShowing | null = null;
+  /** The timer of `watchTip`, or 0 when it is not looking. */
+  let waitTimer = 0;
 
   const doc = root.ownerDocument;
 
@@ -994,7 +1012,9 @@ export function createTutorial(options: TutorialOptions): Tutorial {
    * reading.
    */
   const onKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape' || tip === null) return;
+    // A note that is waiting behind a page is not on screen, so the key is the
+    // page's: the age plate closes on Escape.
+    if (event.key !== 'Escape' || tip === null || card.hidden) return;
     event.stopPropagation();
     event.preventDefault();
     closeTip();
@@ -1047,7 +1067,35 @@ export function createTutorial(options: TutorialOptions): Tutorial {
 
   function closeTip(): void {
     tip = null;
+    stopWatch();
     draw();
+  }
+
+  /** Stops `watchTip`: there is no note left to look after. */
+  function stopWatch(): void {
+    if (waitTimer !== 0) doc.defaultView?.clearTimeout(waitTimer);
+    waitTimer = 0;
+  }
+
+  /**
+   * While a note exists, looks again a few times a second whether a page has
+   * come up in front of it or gone away, and redraws only when that changed.
+   *
+   * A timer, because the pages that hold a note close in many ways (a button,
+   * a key, the next sheet in the queue) and the note must not depend on each of
+   * them remembering to say so. It runs only while a note is up or waiting,
+   * and notes are rare, so an ordinary turn pays nothing. No step of the
+   * opening sequence waits on it: a step still advances on a deed.
+   */
+  function watchTip(): void {
+    const view = doc.defaultView;
+    if (waitTimer !== 0 || view === null) return;
+    waitTimer = view.setTimeout(() => {
+      waitTimer = 0;
+      if (tip === null) return;
+      if (waitFor() !== card.hidden) draw();
+      else watchTip();
+    }, NOTE_WAIT_MS);
   }
 
   /** What the card should be showing, drawn from scratch. Never a partial edit. */
@@ -1057,6 +1105,13 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       return;
     }
     if (tip !== null) {
+      watchTip();
+      // A note waits behind the turn's big pages. It stays raised, and is drawn
+      // when `watchTip` finds the page gone.
+      if (waitFor()) {
+        hide();
+        return;
+      }
       const page = tip.tip.pages[tip.page];
       if (page === undefined) {
         closeTip();
@@ -1200,6 +1255,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       save();
       if (!on) {
         tip = null;
+        stopWatch();
         running = false;
       }
       draw();
@@ -1220,6 +1276,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       memory = { enabled: true, progress: FIRST_PROGRESS, seen: [] };
       save();
       tip = null;
+      stopWatch();
       running = true;
       draw();
     },
@@ -1231,6 +1288,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     reposition: () => place(false),
     close() {
       tip = null;
+      stopWatch();
       running = false;
       hide();
     },

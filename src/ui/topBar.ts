@@ -388,6 +388,28 @@ interface CivYieldStripOptions {
 }
 
 /**
+ * **The age the bar prints, and the turns left in it** (2026-11-18,
+ * `docs/flags.md`, "Age turn-over: landed fix and three follow-ups", item 2).
+ *
+ * The sim's calendar (`currentWorldAge`) is the new age from the start of the
+ * close turn, because the phase that closes the age runs inside that turn's
+ * resolution. The age plate announces the new age when that resolution is
+ * handed over. So on the close turn itself the bar still prints the closing
+ * age, with no turns left, and the new age reaches the bar in the resolution
+ * that raises the plate. On every other turn this is the sim's two readings
+ * unchanged. All three are folds of the one stamp (`GameState.ageClose`), so
+ * the bar keeps no clock of its own.
+ */
+export function shownAge(state: GameState): { age: number; countdown: { turnsLeft: number } | null } {
+  const close = state.ageClose;
+  if (close !== undefined && state.turn === close.turn) {
+    return { age: close.age, countdown: { turnsLeft: 0 } };
+  }
+  const countdown = worldAgeCountdown(state);
+  return { age: currentWorldAge(state), countdown: countdown ? { turnsLeft: countdown.turnsLeft } : null };
+}
+
+/**
  * What the turn line at the head of the bar's right group says.
  *
  * Worked out here, with no DOM, so the suite can check it against a real state.
@@ -415,9 +437,12 @@ interface TurnLine {
 
 export function turnLineOf(state: GameState, localPlayerId: number): TurnLine {
   const turn = `Turn ${state.turn}`;
-  const age = `Æra ${eraNumeral(currentWorldAge(state))}`;
-  const countdown = worldAgeCountdown(state);
-  const left = countdown ? `${figure(countdown.turnsLeft)} left` : null;
+  const shown = shownAge(state);
+  const age = `Æra ${eraNumeral(shown.age)}`;
+  const countdown = shown.countdown;
+  // The close turn: the age ends with this turn's resolution.
+  const last = countdown?.turnsLeft === 0;
+  const left = countdown ? (last ? 'last turn' : `${figure(countdown.turnsLeft)} left`) : null;
   const local = playerById(state, localPlayerId);
   let waiting: string | null = null;
   if (local !== undefined && hasEndedTurn(state, local.id)) {
@@ -427,9 +452,11 @@ export function turnLineOf(state: GameState, localPlayerId: number): TurnLine {
         ? `Waiting: ${others.map((seat) => seatName(state, seat.id)).join(', ')}`
         : 'resolving';
   }
-  const closes = countdown
-    ? `, the age closes in ${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`
-    : '';
+  const closes = !countdown
+    ? ''
+    : last
+      ? ', the age closes at the end of this turn'
+      : `, the age closes in ${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`;
   const spoken = waiting !== null ? `${turn}, ${waiting}` : `${turn}, ${age}${closes}`;
   return { turn, age, left, waiting, spoken };
 }
@@ -818,8 +845,8 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   function ageCard(): Node {
     const { state } = getGame();
     const box = element('div');
-    const age = currentWorldAge(state);
-    const countdown = worldAgeCountdown(state);
+    // The bar's own reading, so the card and the line print the same age.
+    const { age, countdown } = shownAge(state);
 
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', 'The Age of the World'));
@@ -827,14 +854,17 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     box.append(head);
 
     if (countdown) {
+      const last = countdown.turnsLeft === 0;
       const list = element('ul', 'meter-lines ledger');
       const row = element('li', 'meter-line');
-      row.append(element('span', 'meter-line-source', 'This age closes in'));
+      row.append(element('span', 'meter-line-source', last ? 'This age closes' : 'This age closes in'));
       row.append(
         element(
           'span',
           'meter-line-value',
-          `${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`,
+          last
+            ? 'at the end of this turn'
+            : `${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`,
         ),
       );
       list.append(row);
