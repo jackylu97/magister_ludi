@@ -2906,3 +2906,26 @@ build. It starts when the fifth pass reports.
      frame draws 13 beads a rod. Make the frame and the words agree.
 - Open with the user: up to five pages can show in one hand-over (Triumph
   sheet, bead sheets, age plate, wager sheet, census). Not changed yet.
+
+## After rendering pass five (2026-11-18)
+
+Pass five landed (`a97cd1a0`): banner layers, and no board frames under the
+orders screen, the Abacus or the landing page. Its proposals, and the user's
+answer, 2026-11-18: "2 3 4 are great, 5 is fine too."
+
+- **Ruled, to build as one small batch:**
+  - 2: no board motion under the star chart;
+  - 3: the red "decision waiting" dot and the research bar's nudge animate by
+    transform and opacity, not `box-shadow`, with the same look;
+  - 4: layers for the Buy Tiles price tags and the faith plates, with the
+    banner picture check repeated;
+  - 5: no board motion under the parchment sheets.
+- **Open:** 1, a canvas at pixel ratio 1 while the camera moves (28% to 35% off
+  a pan frame, softer while moving). The user has not answered.
+- **The ground paint texture** is the next large rendering build. Pass five
+  found the cause of the land's cost: the painter cuts every brush patch into
+  the mesh (about 1,750 triangles a land hex against about 320 for the hex and
+  its hills). Estimate: 7 to 12 ms off a 43 ms frame at the middle zoom. It
+  starts with a plan and a small test that measures the real gain.
+- The scroll cache stays deferred. WebGL2 cannot copy MSAA samples the way it
+  needs.
