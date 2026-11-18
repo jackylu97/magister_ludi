@@ -899,3 +899,98 @@ well."
   totals, and the breakdown with resources and technologies as plain rows.
 - **What each card pays, and the totals, are prominent on both tabs.**
 - A fourth board draws both tabs. Nothing is built until the user picks.
+
+### The user's comments on the two-tabs board (2026-11-18)
+
+Board: `scratchpad/onestyle/two-tabs.html`, published at
+https://claude.ai/artifact/ARv274SuBRisKUrrchqR2G. The user's comments on the
+page, in their words:
+
+- **E2, the pay plate, is chosen.** "i like the pay plate slightly better. lets
+  use the same font as the cards, but the coloring is great. no need to add
+  non-yield effects or one time effects (gain faith on kill for example) as
+  part of the pay plate." So: the figure is the foot of the card itself, in the
+  card's own typeface, in the yield's colour. It shows yields paid each turn
+  only. A rule card and a card that pays on an occasion get no plate figure.
+- **N1, the totals band, is chosen, without the income share.** "N1 is great,
+  no need to show the total or the percentage of what the player makes in a
+  turn."
+- **In play becomes a separate screen, not a tab.** On the Council drawing:
+  "i like this, but it's a bit busy. Let's just have the 'in play' screen be a
+  different screen altogether".
+- **The rail of small piles leaves the Council screen.** "this panel is
+  probably unneeded".
+- **Confirm moves to the bottom right, above the hand.** "i think the player
+  expects the 'next action' button to be there because its the pattern on the
+  main screen."
+- **A new wonder lands in the In play screen.** On the arrival frame: "this is
+  great, but have it drop into the now separate 'in play' screen."
+- **The open piles on In play are too busy.** On the wonders zone: "this feels
+  a bit busy again, could we have these stack like the doctrines, and make them
+  expandable?"
+- **A question on percentages**, answered in chat: inside one stage the
+  percentages are summed; the town stage and the empire stage multiply
+  (`applyStages`, `docs/yields.md`).
+
+Also, the user, 2026-11-18, on the abacus bead count (13 drawn, 7 in the rule):
+"lets not finalize that now, i want to also rethink how wagers work." The bead
+count stays as it is until the wager rethink.
+
+### The age plate and the bead moment go full screen (2026-11-18)
+
+The user's comments on the turn-over pictures
+(https://claude.ai/artifact/AduZQbsbdRE19kWDyxz3Ji), in their words:
+
+- On the age plate and the bead sheet: "can we make both of these full screen?
+  I'm happy to have it be a big moment, and i think the abacus needs more
+  space."
+- On the bead sheet: "too much text in this description, and the purple dot on
+  the top feels amateurish. Let's just have the title "Wager of the Muse" and
+  the abacus, full screen with the animation. Also, make sure that the original
+  'Crimson' label is removed throughout the game and it reads your leader
+  instead."
+
+So:
+- **The age plate is a full-screen page.**
+- **A bead award is a full-screen page**: the title (for example "Wager of the
+  Muse") and the 3D abacus with the bead's slide. No description paragraph, no
+  coloured dot above the title.
+- **A seat is named by its leader everywhere**, never by its colour ("Crimson").
+- The bead count on the frame (13 drawn, 7 in the rule) stays open until the
+  user rethinks the wagers.
+
+### The user's comments on the Council and In play board (2026-11-18)
+
+Board: `scratchpad/onestyle/council-and-in-play.html`, published at
+https://claude.ai/artifact/Vue9nTgRZtsiF7D9pCPco6. The user's comments:
+
+- **The door and the arrival (D1, A1 to A3) are approved.** "this looks great."
+- **The totals band is too heavy**, on both screens. "lets have this look a bit
+  more elegant, its a bit of an eyesore taking up so much space at the top."
+- **"Running out" is renamed "Temporary".** "rename: temporary instead of
+  running out."
+- **Pieces in the In play stacks are one size.** On the late-game legacies
+  stack: "the wonder and legacy cards get too thin, lets just keep the same
+  size like how the council is structured. with each card the same size."
+- No comment on the pay plate, the Council screen's layout, Confirm at the
+  bottom right, or the stacks as an idea. Taken as accepted unless the user
+  says otherwise.
+
+### Happiness and authority on the cards and in In play (2026-11-18)
+
+The user: "Could we also add happiness/authority as yields that cards can give,
+and also put happiness/authority bonuses as items in the 'in play' section?
+Later we should do a pass on the yield calculations for cards because i've
+noticed they can be a bit weird".
+
+- The rules already let a card pay into happiness and authority, and the card
+  measurement reports it (`kind: 'meter'` lines in `src/sim/cardImpact.ts`;
+  Festival Days pays contentment, Provincial Governors pays writ). So this is a
+  display ruling: **happiness and authority show as figures beside the six
+  yields** on the pay plate, on tucked edges, on stack totals and in the totals
+  line.
+- **In play lists what pays happiness and authority.** A piece that pays a
+  meter shows it on its edge. Sources that are not cards (luxuries, buildings)
+  are plain rows in the breakdown, as resources and technologies are.
+- **Queued for later: a check of the card yield figures.** The user has seen
+  figures that look wrong. Collect examples from the user first.

@@ -952,3 +952,218 @@ New: `test/render/disposeSoon.test.ts`. Added to: `test/render/paintedWorker.tes
 - **Panning:** little that keeps the picture. The GPU is the bound and the board's ground is most of its work; draws and the page's CPU are not the bound on this machine. The far detail from the middle zoom is worth about 15 % of a panning frame, as a picture choice. On a machine whose GPU has more headroom than this one (where a third of the GPU went to other programs), the town banners' raster and the WebGL commands come next.
 - **Load:** the land step is now the bulk of a standard build (8 to 11 s of 13 to 17 s under load). It is already split four ways. What remains on the early steps is the shape (2.5 to 3.6 s), which only one part now works out; the others wait for it.
 - **Turn end:** the first-time program links and the shadow bake in the draw half of the frame; in the sync, the border tint and the works' batch rebuild.
+
+## Fifth pass
+
+The ruling: `docs/flags.md`, "After rendering pass four: banners, trees, and a fifth look (2026-11-18)". Two jobs. First, give the town banners their own layers (`will-change: transform` on `.city-banner`), unless a picture check at three zooms shows softer text. Second, the user's question: "any other graphics headroom available? maybe we can check the rendering pipeline or any of the animations". This is a survey. A change that keeps the picture pixel for pixel may be built. A change to the picture comes back as a proposal with pictures. During the pass the coordinator added two questions: are the small triangles the whole of the "four times a pixel" (and what would a ground mesh that changes with zoom gain), and what would a scroll cache gain.
+
+### Method
+
+- **The code.** The unchanged code is a `git archive` of `decks` at `ad2acbb2`, served on port 5271. The worktree is served on 5272. Each server has its own dependency cache, no hot reload and no file watching. The worktree's server was restarted before the "after" runs.
+- **The view.** A 1600 by 1000 CSS window at device ratio 2, as on the user's laptop. The canvas is then at ratio 1.5: 2400 by 1437. Pass four measured at ratio 1.
+- **The fixtures.** Pass four's turn-130 game (74 towns, 373 units) and turn-1 game, schema 244.
+- **The frame rate is not capped.** One headless Chrome (ANGLE on Metal, Apple M4) with vsync, the frame limit and the battery saver off. The laptop was on power the whole pass (22 % and charging at the start). A frame takes as long as the page and the GPU need.
+- **A GPU sync round each timed block.** With the frame rate uncapped, the page can run frames ahead of the GPU, so a short block's time can hold the GPU work of the block before it. The first timing runs of this pass had that fault: their figures moved by tens of ms from run to run and were thrown away. In the runs reported here, each block reads one canvas pixel before and after its frames (`gl.readPixels`), which waits until the GPU has finished. The figure is the block's time over its 20 panning frames.
+- **The machine was shared.** Other agents ran bot games: the one-minute load average was between 2.5 and 200 during the pass, and 12 to 22 during the timing runs reported here (the scripts wait up to five minutes for it to fall under 8, and then go on). The GPU was shared too: with my page on a blank tab, the GPU's own counter (`ioreg`) read 30 to 60 % busy from other programs. So every timing is in alternating blocks in one page (one configuration a block, the base in every round, eight rounds), and the figure is the median, over the rounds, of the change against the same round's base, with the range of those changes. Where the range crosses zero, the table says so.
+- **GPU timer queries do not work here.** `EXT_disjoint_timer_query_webgl2` reported 160 to 190 ms for frames of 15 to 37 ms. They were not used.
+- **Chrome's GPU process crashed once** (08:11, "Device is lost"), during a run that changed the canvas ratio and the MSAA targets in quick turns. Chrome restarted it, but after that its screenshots never returned, so Chrome was restarted. The runs of that page were thrown away.
+- Scripts and results: `/private/tmp/claude-501/-Users-jacky-code-webciv/c4da3ce5-796a-4aa7-8603-c5fc07da6b1d/scratchpad/renderperf5/`: `banners.mjs`, `sharp.mjs`, `bannercrops.mjs` (the banner check); `trace5.mjs`, `tracebrief.cjs` (the traces); `diag5.mjs` (the alternating blocks); `quadmodel.mjs`, `meshcount.mjs` (the triangle counts); `still.mjs` (frames drawn at rest); `proof5.mjs`, `choices5.mjs`, `freeze.mjs` (pictures). Results in `runs/`, pictures in `pics/`.
+
+### Summary
+
+- **The town banners have their own layers (kept).** The text is not softer at any zoom, at device ratio 1 or 2, and the banners stack under the same things as before. During a pan the GPU process's page raster fell from 0.6 / 2.8 / 4.6 ms a frame to 0.1 / 0.2 / 0.5 ms (closest / middle / farthest), and the page's paints from 4.0 a frame to 0.14 at the middle zoom. The time a frame did not move by more than the noise: the GPU is the bound on this machine.
+- **Built: no motion frames under a screen that hides the board** (`painted.canvas.restUnderCover`, on). Under the orders screen, the Abacus and the landing, the board drew 17 to 20 full frames a second that nobody could see, and the GPU was 89 to 100 % busy. It now draws none while the screen is up, and draws at once when it goes. The picture is the same: those screens hide every pixel of the board, and with no screen up the board's pictures are the same at three zooms on turn 1 and turn 130.
+- **A still board is not cheap.** The motion (sea, smoke, trees, pieces breathing) draws a whole board frame up to 24 times a second. At the middle zoom one such frame took 28 to 45 ms, so the board at rest drew about 19 a second and the GPU was 88 to 97 % busy (33 to 62 % with my page parked). The menu's motion rest takes it to 14 to 29 %.
+- **What a middle-zoom panning frame is made of** (two runs with a GPU sync; a frame of 39 and 47 ms under a load average of 14 to 23; each part taken out alone, so the parts overlap and do not add up): the still board and layers 16 and 20 ms, the land's shader 10 and 14 ms, the 4× MSAA 9 and 13 ms, the trees 7 and 9 ms, the contact shade 3 ms. The canvas at ratio 1 instead of 1.5 would save 11 and 17 ms (28 and 35 % of the frame).
+- **The land is shaded 4.4 times a pixel at the middle zoom, 10.3 at the farthest** (a count of every land triangle on screen). Three causes multiply: hidden faces (1.34), the MSAA rule on triangles of about 4 pixels (×1.69), and the 2-by-2 blocks a GPU shades in (×1.94). The triangles are small because the pigment painter cuts every brush patch into the mesh: about 1,750 triangles a land hex, where the hex grid and the hill mounds are about 320.
+- **The far mesh does not help:** it keeps the painter's cuts and the mounds, so it draws nearly as many triangles, and it gave no firm gain at either zoom.
+- **At the user's ratio, the farthest zoom draws the near detail** (27.8 pixels a hex, inside the 25 to 29 band, so the board keeps the detail it had). Pass four measured the farthest zoom at ratio 1, where it drew the far detail.
+- **Proposals** (all change the picture; none is built), by gain for the cost: the canvas at ratio 1 while the camera moves; no motion under the star chart; the red dot and the research nudge animated without `box-shadow`; layers for the price tags and the faith plates; a ground mesh whose patches are a texture; a scroll cache. MSAA off and the grounding shade off save time but change the picture plainly, and are not recommended.
+
+### Job 1: the town banners get their own layers (kept)
+
+The change: `will-change: transform` on `.city-banner` in `src/style.css`, as ruled. Each banner is now its own compositor layer, so a pan moves the banners without painting them again. What it saves is in question 5.
+
+**The picture check.** The turn-130 game, the clock held, the interface shown, the unchanged code against the worktree, at device ratio 2 and 1, at the closest (6 banners on screen), middle (22) and farthest (29) zoom. Full pictures: `pics/banner-<zoom>-before|after|difference.png` (ratio 2) and `runs/banners-before-dpr1/`, `runs/banners-after-dpr1/`. Crops of each banner, before and after side by side at three times the size: `pics/banner-<zoom>-dpr<1|2>-<n>.png`.
+
+- **The text is not softer.** Inside each banner box, the sum of the brightness steps between neighbouring pixels (it falls when text goes soft) is 1.000 to 1.002 times the old one at every zoom and both ratios. The lowest single banner is 0.994: a remembered town at ratio 1, farthest zoom, whose crop looks the same. By eye, every crop is the same.
+- **What differs.** Inside an ink banner, 13 to 144 pixels of 24,000 to 56,000, all on the antialiased edge of the rounded ends and of the garrison discs. Inside a remembered town's banner (`is-stale`, half opacity), 25 to 40 % of the pixels differ by up to 18 levels: the half opacity is now applied by the compositor, not by the painter. The corner panel's text differs by up to 5 levels in 4 % of its pixels, because it is drawn after the banners and over them and so now has a layer of its own; it is not softer (1.0002). The top bar is the same.
+- **The stacking is the same.** A banner pushed half under the top bar, one half under the corner panel, and one under the open Diplomacy sheet: each is under the same things as before (`pics/check-corner.png`; the box under the sheet is identical, 0 pixels). A banner already had a `transform`, which makes a stacking context, so the layer cannot change the order.
+- The other differences in the full pictures are not the banners: a "Resumed at turn 130" note that was up in one picture and not the other, and the sea's reflection of rocks (`pics/check-water.png`), which is drawn on a settle frame 150 ms after the camera stops and was caught on either side of it.
+
+### 1. Why the land is shaded about four times a pixel
+
+**What one frame draws.** One scene render a frame, into the composer's half-float target with 4× MSAA. Then four full-screen quads: the normals rebuilt from depth, the contact shade and its denoise (all three at half size), and the output step (full size: it applies the contact shade, the colour grade and the miniature blur in one pass). The sea's mirror is a second scene render at half size, of the pieces, towns and stones only, and only on a still frame with water in view. The shadow maps are not drawn on a panning frame. The fog's wash is in the board's own shaders, not a pass. So on a panning frame there is no full-screen pass or second scene render that can be skipped or merged with the same pixels.
+
+**The count.** `quadmodel.mjs` projects every land triangle the zoom draws and rasterises it on the CPU. It counts the pixels whose centre a triangle covers, the pixels where any of the four MSAA sample points is covered (a 4× MSAA target runs the shader once for each such pixel and triangle), and the 2-by-2 blocks those pixels fall in (a GPU runs the shader on whole blocks). No depth test is modelled, so a hidden face counts. Turn 130, the 2400 by 1437 buffer:
+
+| Zoom | Pixels a hex | Land triangles on screen | Mean triangle (pixels) | Land pixels | Shader runs a land pixel: centres only | with 4× MSAA | with 2-by-2 blocks |
+|---|---|---|---|---|---|---|---|
+| Closest | 249 | 89,500 | 31 | 2.33 M | 1.17 | 1.48 | 2.10 |
+| Middle | 89 | 814,000 | 4.1 | 2.48 M | 1.34 | 2.27 | **4.41** |
+| Farthest | 28 | 1,789,000 | 0.4 | 0.54 M | 1.33 | 3.58 | **10.33** |
+| Middle, the far mesh | 89 | 642,000 | 5.2 | 2.48 M | 1.34 | 2.16 | 4.00 |
+
+- **The four times is real, and the small triangles are most of it.** Hidden faces give 1.34. The rest, a factor of 3.3, comes from triangles of about 4 pixels: the MSAA rule (a triangle that touches any sample of a pixel runs the shader there) and the 2-by-2 blocks. At the closest zoom, with triangles of 31 pixels, the same land is shaded 2.1 times a pixel.
+- **Why the triangles are small.** `meshcount.mjs` builds every land hex's top again in the page: the hex grid and the hill mounds are 562,000 triangles for the map's 1,764 land hexes (about 320 a hex). The board's land holds about 3.09 million (about 1,750 a hex). The difference is the pigment painter (`createTerrainPainter`, `terrainPigment.js`), which clips the mesh along the edge of every brush patch, so every colour patch is cut into the geometry. The patches are the painted look.
+- **At the farthest zoom it is ten times a pixel:** 1.8 million triangles of 0.4 pixels each, most of which cover no sample at all.
+**It costs time.** Diagnostics only (each changes the picture), in two synced runs at the middle zoom (base frames 47 and 39 ms) and one at the farthest (36 ms); the figure is the median change, and the range is over the eight rounds:
+
+| Taken out | Middle zoom, run 1 | Middle zoom, run 2 | Farthest zoom |
+|---|---|---|---|
+| The land's shader (a plain one-colour material on the same triangles) | −14.0 (−17.9 to −7.7) | −9.5 (−16.2 to −5.4) | −7.7 (−11.0 to −5.1) |
+| The land's pixels (its triangles drawn into a one-pixel scissor, so the paper under it is shaded instead) | | −7.8 (−11.5 to −2.6) | |
+| The 4× MSAA (`smoothing` 0) | −13.3 (−17.8 to −7.8) | −9.0 (−14.4 to −4.3) | −9.3 (−11.9 to −6.8) |
+| The far mesh in place of the near one (the land only) | −1.7 (−13.3 to +20.2): no firm gain | | +0.2 (−0.9 to +4.7): no gain |
+| The trees | −9.3 (−14.4 to +20.2) | −6.5 (−8.9 to +1.5) | −8.4 (−10.2 to −3.6) |
+| The contact shade | | −2.9 (−10.2 to −1.1) | |
+| Every still layer (question on the scroll cache) | −20.3 (−22.5 to −8.3) | −15.7 (−18.0 to −9.5) | −15.0 (−17.8 to −12.5) |
+| The canvas at ratio 1 (question 4) | −16.7 (−22.2 to −11.3) | −10.7 (−16.9 to −9.0) | −9.5 (−13.0 to −5.8) |
+
+So the land's shading is a large part of the frame, and so is the MSAA on its small triangles: the four times a pixel costs time.
+
+**A depth pre-pass** would draw the land twice: once for depth alone, then shaded with an equal depth test. It removes the hidden faces (the 1.34), not the MSAA and block factors (a factor of 3.3), and it doubles the land's vertex and triangle work, which at the farthest zoom is 1.8 million triangles. The GPU is an Apple tile-based GPU, which already removes hidden opaque fragments before shading where no `discard` stops it; pass four found the fog's `discard` costs about 3 %. Not worth it.
+
+**A ground mesh that changes with zoom (the coordinator's first question).**
+- The existing far mesh at a zoom that draws the near one (`landFar`: the land's far batches shown, the trees and rocks left near): middle zoom 1.7 ms shorter, with rounds from 13.3 ms shorter to 20.2 ms longer (no firm gain); farthest zoom 0.2 ms longer (0.9 shorter to 4.7 longer). The picture: 5.7 % of pixels differ at the middle zoom (mean 0.07, at most 71 in a channel, most by 1 or 2: facets on slopes), 2.0 % at the farthest. Pictures: `pics/landFar-<zoom>-before|after|difference.png`, crop `pics/landFar-middle-crop.png`. It gains nothing because it keeps the painter's cuts and the mounds: its grid is coarser (spacing 0.45 against 0.17), but it holds 2.48 million triangles a copy against 3.09 million, and on screen at the middle zoom 642,000 against 814,000.
+- A coarser ground would have to drop the painter's cuts: the hex grid and mounds alone, with the patch colours read from a texture over the map. That ground would have about a fifth of the triangles (562,000 against 3.09 million), of about 22 pixels each at the middle zoom. From the count at the closest zoom (31 pixels, 2.1 runs a pixel), the shader would then run about 2.3 times a land pixel instead of 4.4 at the middle zoom, and about 3 instead of 10.3 at the farthest. On the measured shader cost (14 ms and 7.7 ms) and the MSAA cost (13 and 9 ms), an estimate is 7 to 12 ms off a middle-zoom panning frame and 6 to 10 ms off a farthest one. It is a large build (a patch texture baked in the board worker, a new path in the land's shader, and the texture's resolution limits how sharp a patch edge is), and the patch edges would change. Not measured.
+
+### 2. Frames drawn with nothing new to show
+
+Every reason the loop draws while the camera is still (`Renderer3D.loop`):
+- **The board's motion**, at `visualTest.motionFps` (24 a second), for as long as the game is open: the sea's bands, the river glints, the smoke, the birds, the windmill sails, the herds, the yield light, the rich-hex motes, the trees' sway, the pieces' breathing and the ships' bob. All of it is one clock uniform in the shaders, so each of these frames is a whole board frame. The menu's "Stop the motion when idle" (`setMotionRest`, off by default) stops them `motionRestSeconds` (3) after the last input.
+- **The mirror's settle**: one frame `mirror.settleMs` (150 ms) after the camera stops, to draw the reflections that are off while it moves.
+- **A walk, a death, a trait glow, an eased camera move, the city wash fading, the fog's reveal**: every display frame while each lasts. They end on their own.
+- **A state change** (`invalidate`), or a hover, a lens or a selection (`redraw`): one frame each.
+- **The banners ask for no frames**: they move after a frame the board drew for another reason.
+
+Measured with `still.mjs`: turn 130, the middle zoom, no input, 6 s a case. "Board frames" are loop calls that drew; "GPU busy" is the GPU's own counter, which counts every program (my page parked on a blank tab read 33 to 62 %).
+
+| Case | Board frames a second, unchanged code (two runs) | Worktree (two runs) | GPU busy %, unchanged | GPU busy %, worktree |
+|---|---|---|---|---|
+| My page parked on a blank tab (other programs only) | | | 46, 62 | 33, 38 |
+| The board at rest | 20.0, 19.0 | 18.8, 19.6 | 93, 97 | 93, 88 |
+| The menu's motion rest, 4 s after the last input | 0 | 0 | 29 | 14 |
+| The orders screen open | 18.9, 19.5 | **0, 0** | 100, 98 | **25, 18** |
+| The Abacus open | 17.2, 16.6 | **0, 0** | 90, 89 | 86, 88 (the Abacus's own canvas, uncapped) |
+| The star chart open | 20.8 | 19.1 | 99 | 99 |
+| The Diplomacy sheet open (a parchment sheet) | 20.1 | 19.3 | 98 | 97 |
+
+The load average was 7.7 to 28 during these runs. One motion frame at the middle zoom (forced redraws, the mirror on) took 39 and 45 ms on the unchanged code's runs and 28 and 28 ms on the worktree's. The worktree's frames carry the banner layers, but the load also moved between the runs, and these blocks had no GPU sync, so the difference is not a firm figure.
+
+What the figures say:
+- **At rest the board is not idle.** One motion frame at the middle zoom (with the mirror) took 28 to 45 ms, so the motion reaches about 19 frames a second, not 24, and the GPU is near full. The motion rest takes it to 0 frames and 14 to 29 % GPU.
+- **Under the orders screen and the Abacus the board drew the same 17 to 20 frames a second before this pass**, behind screens that hide all of it. Now it draws none, and the GPU's busy share under the orders screen fell from 98 to 100 % to 18 to 25 %, which is about what the other programs use. (Under the Abacus the share stays high because, with the frame rate uncapped, the Abacus's own canvas then draws 325 to 402 frames a second; in a normal browser it is held to the display's rate.)
+- **Under the star chart and the parchment sheets** the board still draws about 19 frames a second: the board shows through them (6 % through the chart's ground, 28 % through a sheet's), so stopping it changes the picture. A proposal below.
+- **A hidden tab** stops `requestAnimationFrame`, so the loop stops by itself. Headless Chrome cannot hide a tab, so this was not measured.
+
+### 3. Animations
+
+| Animation | How it moves | What it costs | Paint or layout a frame? | Runs when nobody can see it? |
+|---|---|---|---|---|
+| Sea, river glints, smoke, birds, windmill sails, herds, yield light, rich-hex motes, trees' sway, pieces breathing, ships' bob | One clock uniform (`vtestTime`) in the shaders; nothing is rebuilt | A whole board frame each motion frame (question 2) | No | Before this pass, yes, under every screen; now not under the three opaque ones |
+| A walk, a death, a trait glow | A mesh moved on the CPU each display frame | A whole board frame at the display's rate for a few hundred ms. A walk also draws the pieces' shadow map (2048²) again every frame (`invalidateDynamicShadows`) | No | Ends on its own |
+| The eased pan to a unit, the city wash, the fog's reveal (`revealMs` 300) | CPU each display frame | A whole board frame each display frame while it lasts | No | Ends on its own |
+| Town banners | `transform` after each drawn frame | Job 1 | No longer | Hidden off screen (`display: none`) |
+| Tile price tags (Buy Tiles), faith plates (the faith lens) | `transform` after each drawn frame | As the banners were: a repaint of their layer each frame | Paint, yes | Only while their mode is up |
+| Damage numbers | `left` and `top` after each drawn frame, and a `transform` keyframe | A layout of a few small elements a frame, for about a second after a fight | Layout, yes | Removed when done |
+| Sheets (`modalShell.ts`), the offer, the turn card, toasts, the turn splash, the overlays' fades | CSS keyframes on `opacity` and `transform` only | Run by the compositor | No | Short; end on their own |
+| The red "decision waiting" dot (`.empire-banner.is-owed::after`, `.quick-button.is-owed::after`) | `box-shadow` keyframes, forever (`yield-waiting-pulse`, 1.8 s) | A paint and raster of the dot every display frame for as long as a decision waits, with the board at rest or not | Paint, yes | Yes, until the decision is made |
+| The research bar with nothing chosen (`.empire-bar.is-prompting`) | `box-shadow` keyframes, forever (`tech-nudge`, 2.4 s) | The same, on the bar | Paint, yes | Yes, until a research is chosen |
+| The guide's spotlight (`tutorial-breathe`) | `outline-offset` keyframes, forever | A paint of the scrim each frame | Paint, yes | Only while the guide points |
+| Hover changes on buttons, cards and chips | `transform` with `box-shadow`, 60 to 120 ms | A paint a frame for the change | Paint, briefly | No |
+
+No animation over the map uses `filter` or `backdrop-filter`. Three things over the map do use `backdrop-filter: blur`, and each makes the browser blur the board behind it on every frame the board draws: the commission chips (`.commission-chip`, `.commission-more`, 2 px; small, up to four, while a commission is seated), the war dispatch's full-window ground (`.war-dispatch-overlay`, 4 px) and the great person's ceremony ground (`.gp-ceremony-overlay`, 2 px). The turn-130 fixture had no dot and no nudge up (`still.mjs` counts them), and the chips and the two blurred grounds were not looked for, so none of these was measured.
+
+### 4. Resolution and buffers
+
+| Buffer | Size (the measured view; the user's window is 2205 by 1182) | Kind | Drawn |
+|---|---|---|---|
+| The canvas | CSS size × min(device ratio, `painted.canvas.maxPixelRatio` 1.5), lowered past `pixelBudget` (4.5 M pixels): 2400 by 1437 | 8-bit; no antialiasing, depth or stencil (`canvasAttributes`); opaque (three's `alpha: false`) | Each drawn frame, by the output step only |
+| The scene target (`EffectComposer.renderTarget1`) | The canvas's size | Half-float colour, 4× MSAA (`visualTest.smoothing` 4), depth and stencil texture | Each drawn frame, then resolved (colour and depth) for the passes after it |
+| `renderTarget2` | The canvas's size | The same | Never drawn into (every pass after the scene leaves `needsSwap` off), so three gives it no memory |
+| The contact shade: normals from depth, the shade, its denoise | Half the canvas (`contact.renderScale` 0.5) | Half-float | Each drawn frame; on at all three zooms, because the grounding switch makes its radius 0.4 |
+| The output step | The canvas | One full-screen quad: the contact shade, the grade, the miniature blur | Each drawn frame |
+| The static sun's shadow map | 4096² (2048² on the low tier, 8192² on the high) | Depth | Only when the charted world changes (`shadowMap.autoUpdate` false): about once a turn |
+| The pieces' shadow map | 2048² | Depth | When the view walks off its box, and on every frame of a walk |
+| The sea's mirror | Half the canvas (`mirror.scale` 0.5) | Half-float with depth | Each still frame with water in view; never while the camera moves (`mirror.whileMoving` false) |
+
+**A pixel ratio cap while the camera moves** (a proposal): the canvas at ratio 1 has 44 % of the pixels of ratio 1.5. Measured with the level of detail kept at the full ratio's choice: 16.7 and 10.7 ms off the middle zoom's frame in two runs (28 and 35 %; the rounds 9.0 to 22.2 ms), and 9.5 ms off the farthest zoom's 36 (5.8 to 13.0). See the proposals.
+
+### 5. The page's HTML over the canvas
+
+What the page paints during a pan, from Chrome's trace (`Paint` events between the pan's two marks, each resolved to its element), turn 130, device ratio 2, 120 panning frames:
+
+| | Closest | Middle | Farthest |
+|---|---|---|---|
+| Paints a frame, before | 0.86 | 4.04 | none recorded |
+| What painted | the page root and the banners | the page root, and each banner and its garrison row once a frame | |
+| Paints a frame, after (banner layers) | 0.07 | 0.14 | none recorded |
+| The GPU process's page raster a frame, before → after (ms) | 0.56 → 0.09 | 2.81 → 0.24 | 4.59 → 0.53 |
+
+The farthest zoom's traces (over 500 MB each) hold no `Paint` events in either run; the cause was not found. The raster figure shows the same fall there.
+
+- **Nothing else repaints during a pan.** With the banners on their own layers, the page paints about once every seven frames. The yield figures and the lens are drawn in WebGL. The top bar, the corner panel and the panels do not change during a pan. There is no minimap.
+- **Two other HTML layers move with the camera** and repaint as the banners did, but only while their mode is up: the price tags of Buy Tiles and the faith plates of the faith lens (both `createMapPlates`, `tilePriceTags.ts`, moved by `transform`). A proposal below.
+- **`contain` would not help.** The banners' repaint was a repaint of the layer they shared with the page, and only a layer of their own moves them without a paint. A pan lays nothing out (everything moves by `transform`), so `contain: layout` has nothing to limit.
+
+### The coordinator's second question: a scroll cache
+
+The idea: the camera is orthographic at a fixed angle, so in a pan the still part of the board only slides across the screen. Draw it once into a picture larger than the screen, slide that picture, and draw only what moves each frame.
+
+- **Still on a panning frame:** the land, the earth skirts, the details (river banks, shallows, reeds), the stones and mountains, the chart paper, the works (but for the windmill sails and the herds), the towns' buildings, the sites, the roads, the borders and the border tint, the resource pins, the fog's paper.
+- **Moving:** the sea and the lakes, the river glints, the trees (they sway), the smoke, the birds, the windmill sails, the herds, the yield light and the rich-hex motes, every piece (they breathe; ships bob), a walk.
+- **The estimate.** With every still layer hidden (`staticOff`; the sea, trees, pieces and moving layers stay), a middle-zoom panning frame was 20.3 and 15.7 ms shorter in two runs (of 47 and 39: 43 and 41 %), and a farthest one 15.0 ms shorter (of 36; 12.5 to 17.8). A cache would add, each frame, one full-size pass that writes the cached colour and depth into the MSAA target, and the new strip of ground that slides into view (or, with a margin, a whole new cache every so many frames, which is a full frame or more).
+- **What blocks it, or makes it cost more:**
+  - **MSAA.** WebGL2 can neither read the samples of a multisampled picture nor copy one to an offset. So the cache would be the resolved picture, written back as one colour and one depth a pixel. Where a moving thing meets a still one, the edge would be a pixel's depth and not a sample's: a picture change at those edges.
+  - **The pan must move in whole buffer pixels.** At ratio 1.5 a CSS pixel is 1.5 buffer pixels, so the camera would snap to buffer pixels during a pan (a sub-pixel change of every position), or the picture would be resampled (a blur).
+  - **The trees sway**, so they cannot be cached: 8 to 9 ms of the frame stays. Freezing the sway during a pan is a picture change nobody asked for.
+  - **The sea moves** and covers much of most views, so it stays in the per-frame half.
+  - **A zoom** changes the scale, so the cache is drawn again every frame of a zoom.
+  - **Fog, borders, a walk or any state change** makes the cache stale; each draws it again.
+  - **The mirror** is already off while the camera moves; it does not block the cache.
+  - **Shadows** do not block it: the static sun's map is in world space, and the pieces' map changes only on a walk.
+  - **Memory:** a cache a quarter of the screen larger on each side is 2.25 times the screen: about 7.8 M pixels of half-float colour and depth, about 90 MB.
+- **Recommendation.** Up to about 40 % of a panning frame on paper, less the cache's own pass and strips. It changes the picture at the edges and in the sub-pixel pan, and it is a large build: a second render path, and a cache that every fingerprint the layers watch would have to make stale. Worth a design pass only if panning is still the complaint after the ratio cap below.
+
+### What was built
+
+| Change | Setting | Gain | Proof that the picture is the same |
+|---|---|---|---|
+| Town banners on their own layers: `will-change: transform` on `.city-banner` (`src/style.css`) | None (the ruled line) | Page raster during a pan 0.56 / 2.81 / 4.59 → 0.09 / 0.24 / 0.53 ms a frame; paints 4.04 → 0.14 a frame at the middle zoom. The time a frame: no firm change (see "Not measured") | Not pixel for pixel, as the ruling expected; job 1 shows the text is not softer and the stacking is the same |
+| No motion frames under a screen that hides the board: `Renderer3D.setCoverCheck` and `MapView.setCoverCheck` (optional), the loop's motion gate (`renderer3d.ts`); the page's answer from the orders screen, the Abacus and the landing, each counted once its opening fade has ended (`main.ts`) | `painted.canvas.restUnderCover` (true) in `data/view3d.json` | Board frames under the orders screen 19 → 0 a second, the GPU's busy share 98 to 100 % → 18 to 25 %; under the Abacus 17 → 0. A frame asked for by anything else is still drawn. | (1) The board with no screen up, unchanged code against the worktree, clock held: 0 pixels differ at the closest, middle and farthest zoom on turn 130, and at the middle and farthest on turn 1. On turn 1's closest view, 1,648 pixels differ, and two loads of the unchanged code differ by the same 1,648 (the sea's reflection of one rock, drawn or not by the time of the picture); the worktree matches the second load exactly (0). (2) With each screen open, a picture with the board drawn and one with the canvas hidden: the orders screen, 0 pixels differ; the Abacus, 0 outside its own turning abacus, which is its own canvas. So no pixel of the board shows through either. Pictures: `pics/proof-t130-<zoom>-before|after.png`, `pics/proof-t1-…`, `pics/cover-orders-…`, `pics/cover-abacus-…`. |
+
+The second change has tests in `test/render/motionRest.test.ts`: no motion frame while covered and the first display frame after the cover draws (with the motion's clock still the page's own); a frame asked for by a state change still draws under a cover; the page is asked only when a motion frame is due; the setting off keeps the motion; and the page's three screens and the play-state test are in `main.ts`.
+
+### Proposals: changes to the picture (none built)
+
+Ordered by gain for the cost.
+
+| Proposal | Gain | Picture difference | Pictures | Recommendation |
+|---|---|---|---|---|
+| **The canvas at ratio 1 while the camera moves**, back to 1.5 when it stops (the level of detail kept at the full ratio's choice) | Middle zoom 16.7 and 10.7 ms in two runs (35 and 28 % of a panning frame); farthest 9.5 ms (27 %) | While moving only: 88 % of pixels differ at the middle zoom (mean 4.5, at most 144), 66 % at the farthest, 59 % at the closest: the picture is softer. At rest, none | `pics/ratio1-<zoom>-before|after|difference.png` | **Worth trying**, behind a setting and off until the user has seen it. Do not resize the targets at each pan's start and stop (a resize reallocates every target, and Chrome's GPU process crashed once when this pass did it in quick turns): draw into part of the same targets and stretch in the output step |
+| **No motion under the star chart**: the chart's overlay added to the cover list, though 6 % of the board shows through its ground in the 18 px frame round the chart | The same as the build: about 19 board frames a second and most of the GPU, for as long as the chart is open | One second of motion under the chart (what a frozen board would differ by): 3,966 pixels (0.06 %), at most 2 levels in a channel | `pics/freeze-chart-middle-before|after|difference.png` | **Recommended**: two levels in a dark frame cannot be seen. It is one line in `main.ts` (the chart's overlay on the list); it is not built only because the picture is not the same to the pixel |
+| **The red dot and the research nudge without `box-shadow`**: a ring on a pseudo-element that grows by `transform: scale` and fades by `opacity` | A paint and raster of a small area every display frame while a decision waits (often), even with the board at rest. Not measured: the fixture had neither | Small: a scaled ring instead of a spreading shadow | None | Recommended; cheap. Wants a look from the user |
+| **Layers for the price tags and the faith plates** (`will-change: transform`) | As the banners' 2.8 → 0.2 ms at the middle zoom, but only in Buy Tiles and the faith lens. Not measured | As the banners: edges only, not expected to be softer. Needs the same picture check | None | Recommended, with the banner check repeated |
+| **No motion under the parchment sheets** (72 % dark ground) | As the build, for as long as a sheet is open | One second of motion under the Diplomacy sheet: 134,725 pixels (2.1 %), at most 21 levels, 0.4 % by more than 2 | `pics/freeze-sheet-middle-before|after|difference.png` | The user's choice: the board shows through clearly, so stopped water would be seen |
+| **A ground mesh whose patches are a texture** (question 1) | Estimated 7 to 12 ms at the middle zoom and 6 to 10 ms at the farthest. Not measured | The patch edges, at the texture's resolution | None | Only with a design pass: a large build |
+| **A scroll cache** | Up to 16 to 20 ms at the middle zoom and 15 ms at the farthest, less its own costs (estimate) | Edges between moving and still things; the sub-pixel pan | None | Not now (see above) |
+| MSAA off (`visualTest.smoothing` 0) | 13.3 and 9.0 ms at the middle zoom in two runs, 9.3 at the farthest | 45 % of pixels differ at the middle zoom (at most 197): every edge is jagged | `pics/msaa-<zoom>-before|after|difference.png` | Not recommended: the smoothing was added on purpose in the visual test (2026-11-12, `lighting.js`), and the jagged edges are plain to see |
+| The grounding shade off (the contact pass) | 2.9 ms at the middle zoom (one run; 1.1 to 10.2) | 23 to 37 % of pixels differ (mean 0.6 to 1.1, at most 64) | `pics/contactOff-<zoom>-before|after|difference.png` | Not recommended: it is a look the user chose |
+| The far mesh at the middle zoom | No firm gain (question 1) | 5.7 % of pixels, mostly by 1 or 2 | `pics/landFar-…` | No |
+
+### Tests
+
+- `test/render/motionRest.test.ts` (5 tests added) and `test/render/paintedKnobs.test.ts` (the new row): `npx vitest run` on the two files, exit 0, 15 of 15.
+- Every test file that reads the text of a changed file (`src/style.css`, `src/main.ts`, `src/ui/mapView.ts`, `src/render3d/renderer3d.ts`, `src/render3d/lookData.ts`, `data/view3d.json`) or names the town banners: 110 files, 2,807 tests, exit 0 (`readers.sh` lists them).
+- `npm run typecheck`: exit 0.
+
+### Not measured, and still open
+
+- **Frame times on a quiet machine.** Every timing here was taken with other agents' bot games running (a load average of 12 to 22 in the reported runs) and other programs using 30 to 60 % of the GPU. The changes between configurations are from alternating blocks with a GPU sync, and are firm where their range does not cross zero; the absolute frame times are not those of the user's laptop.
+- **The banner layers' effect on the time a frame.** Synced alternating blocks (the layer rule added and removed in one page of the unchanged code, eight rounds, a load average of 26 to 30) gave −0.7, +0.6 and +4.0 ms at the closest, middle and farthest zoom, and every range crosses zero (−2.1 to +0.8, −6.4 to +9.5, −4.7 to +19.4). An earlier run without the GPU sync, at a load of 4 to 6, gave frames 0.2 to 2.6 ms shorter at the middle and farthest zoom. So: no firm change. As pass four found, the GPU is the bound on this machine, so the raster the layers save does not shorten the frame here; on a machine whose GPU has room, it would.
+- **The red dot, the research nudge, the commission chips' blur and the war dispatch's blur**: the dot and the nudge were not up in the fixture; the others were not looked for.
+- **A hidden tab**: headless Chrome cannot hide one.
+- **The Abacus's own canvas** runs at the display's rate in a normal browser; uncapped here, it ran at 325 to 402 frames a second once the board stopped drawing under it, so the GPU figure under the Abacus says little.
+- **Pass four's turn-1 "stone off the coast"** (its proof, 403 / 106 / 48 pixels, at most 44): this pass saw the same 44 and found its cause. It is the sea's reflection of a rock, drawn or not drawn by the time the picture is taken (the mirror is drawn on a settle frame 150 ms after the camera stops). Two loads of the same code differ by it.
+- **A depth pre-pass, a coarse ground and a scroll cache** were estimated, not built.

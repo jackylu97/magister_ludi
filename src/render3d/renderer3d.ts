@@ -631,6 +631,8 @@ export class Renderer3D implements MapView {
   private cleared = new Map<number, SuppressScope>();
   /** Called after every frame that was actually drawn. See `setFrameListener`. */
   private frameListener: (() => void) | null = null;
+  /** Answers true while a screen hides every pixel of the board. See `setCoverCheck`. */
+  private coverCheck: (() => boolean) | null = null;
   /** Set when a board is framed against a viewport that was not laid out yet. */
   private needsFit = false;
   /**
@@ -3374,6 +3376,29 @@ export class Renderer3D implements MapView {
     this.frameListener = listener;
   }
 
+  /**
+   * Registers the question "does a screen hide every pixel of the board right
+   * now?" (render speed pass five). The page answers it, because only the page
+   * knows which of its screens are opaque and when their opening fade has
+   * ended.
+   *
+   * While the answer is yes, the loop does not draw the frames it draws only
+   * for the board's motion (the sea, the smoke, the swaying trees). Nobody can
+   * see them, and at the middle zoom each one is a whole board's work for the
+   * GPU. A frame asked for by anything else (a state change, a walk, a camera
+   * move) is still drawn, so nothing is left stale.
+   *
+   * The question is asked only when a motion frame is due, and while the
+   * answer is yes the due frame stays due. So it is asked again on every
+   * display frame until the screen goes, and the first frame after that draws
+   * the board at once, at the motion's own clock. The picture on screen is
+   * the same as without the check. `painted.canvas.restUnderCover` in
+   * `data/view3d.json` turns it off.
+   */
+  setCoverCheck(check: (() => boolean) | null): void {
+    this.coverCheck = check;
+  }
+
   panByScreen(dx: number, dy: number): void {
     this.setHoveredUnitId(null);
     this.view.pan(dx, dy);
@@ -4419,8 +4444,13 @@ export class Renderer3D implements MapView {
     // option is off by default, and 0 seconds never rests.
     const rest = this.motionRest ? VIEW3D.visualTest.motionRestSeconds : 0;
     const awake = !(rest > 0) || now - this.lastActivity < rest * 1000;
-    const moving = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('idle')) && awake
+    const due = this.paintedLook !== null && this.fixedClock === null && (visualOn('sea') || visualOn('idle')) && awake
       && now - this.lastMotionFrame >= 1000 / Math.max(1, VIEW3D.visualTest.motionFps);
+    // A screen hides the whole board: the motion frame is not drawn, and stays
+    // due, so the first display frame after the screen goes draws it. The
+    // motion's clock does not stop, so that frame shows the motion where it
+    // would have been. See `setCoverCheck`.
+    const moving = due && !(VIEW3D.painted.canvas.restUnderCover && this.coverCheck?.() === true);
     if (moving) this.lastMotionFrame = now;
     // A frame drawn without the mirror while the camera moved (`mirror.whileMoving` off) is followed by one with it,
     // once the camera has been still for `mirror.settleMs`.

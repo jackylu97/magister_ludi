@@ -99,8 +99,10 @@ describe('the painted performance knobs', () => {
     // literal: the most board workers that build the land at once.
     // `build.share` arrived with the fourth: one part works out the map's shape
     // and rivers and hands them to the others.
+    // `canvas.restUnderCover` arrived with the fifth and held no literal: the
+    // board's motion frames are not drawn while a screen hides the whole board.
     expect(SHEET).toEqual({
-      canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000 },
+      canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000, restUnderCover: true },
       build: { workers: 4, share: true },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,

@@ -5168,6 +5168,12 @@ body.has-diplomatic-offers .end-turn-list {
      (`cityBanners.ts`, "Where the plate hangs") — so the foot of the pill sits
      where the camera says it sits, at every zoom. */
   box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.4);
+  /* Each banner gets its own compositor layer. `cityBanners.ts` moves the
+     banners with a transform on every frame the board draws. Without a layer
+     of their own, the browser repainted the page's HTML over the canvas on
+     each of those frames (render speed pass four: 18 ms a frame at the
+     farthest zoom). With a layer, the compositor only moves the banner. */
+  will-change: transform;
 }
 
 /* The seat's canton at the head of the plate (batch H7): the **field** in the

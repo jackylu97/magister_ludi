@@ -5634,6 +5634,23 @@ async function boot(initial: Game | null): Promise<void> {
     updateFaithCard(renderer.getHover(), false);
   });
 
+  // The screens that hide every pixel of the board (render speed pass five).
+  // Each fills the window with an opaque ground: the orders screen's cloth is
+  // lampblack, the Abacus's is the table colour, and the landing is the table.
+  // The star chart's ground lets a little of the board through, and the
+  // parchment sheets dim it, so neither is on this list. A screen counts only
+  // after its opening fade has ended, because the board shows through the
+  // fade. While one counts, the renderer skips the frames it draws only for
+  // the board's motion. See `Renderer3D.setCoverCheck`. A finished fade that
+  // holds its last frame (`both`) is still listed by `getAnimations`, so the
+  // test is its play state, not whether the list is empty.
+  const opaqueScreens = [statecraftOverlayEl, abacusOverlayEl, landingEl];
+  renderer.setCoverCheck?.(() =>
+    opaqueScreens.some(
+      (screen) => !screen.hidden && screen.getAnimations().every((fade) => fade.playState === 'finished'),
+    ),
+  );
+
   const cityPanel: CityPanel = createCityPanel({
     container: cityPanelEl,
     getGame: () => game,
