@@ -101,8 +101,10 @@ describe('the painted performance knobs', () => {
     // and rivers and hands them to the others.
     // `canvas.restUnderCover` arrived with the fifth and held no literal: the
     // board's motion frames are not drawn while a screen hides the whole board.
+    // `canvas.restUnderSheets` arrived with its second batch: the same under a
+    // parchment sheet or the star chart, which dim the board.
     expect(SHEET).toEqual({
-      canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000, restUnderCover: true },
+      canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000, restUnderCover: true, restUnderSheets: true },
       build: { workers: 4, share: true },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
