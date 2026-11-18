@@ -958,3 +958,20 @@ So:
 - **A seat is named by its leader everywhere**, never by its colour ("Crimson").
 - The bead count on the frame (13 drawn, 7 in the rule) stays open until the
   user rethinks the wagers.
+
+### The user's comments on the Council and In play board (2026-11-18)
+
+Board: `scratchpad/onestyle/council-and-in-play.html`, published at
+https://claude.ai/artifact/Vue9nTgRZtsiF7D9pCPco6. The user's comments:
+
+- **The door and the arrival (D1, A1 to A3) are approved.** "this looks great."
+- **The totals band is too heavy**, on both screens. "lets have this look a bit
+  more elegant, its a bit of an eyesore taking up so much space at the top."
+- **"Running out" is renamed "Temporary".** "rename: temporary instead of
+  running out."
+- **Pieces in the In play stacks are one size.** On the late-game legacies
+  stack: "the wonder and legacy cards get too thin, lets just keep the same
+  size like how the council is structured. with each card the same size."
+- No comment on the pay plate, the Council screen's layout, Confirm at the
+  bottom right, or the stacks as an idea. Taken as accepted unless the user
+  says otherwise.
