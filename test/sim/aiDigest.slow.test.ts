@@ -1296,9 +1296,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * `973ac191:342552` -> `28801863:335754`, standard `604db3ce:1039518` ->
  * `c0770657:1035266`.
  */
+/**
+ * Re-cut for the faster world clock (`docs/flags.md`, "Age turn-over: a
+ * missing plate, the abacus motion, and a faster clock", the bullet "The clock
+ * turns over sooner"). One rule changed: the countdown that closes an age
+ * starts when one living seat is two ages past it or half the living seats are
+ * one age past it, in place of the floored mean (schema 245, so every state's
+ * print moves). Ages open sooner, so wagers are dealt and judged on other
+ * turns. No bot code changed. Duel `28801863:335754` -> `2fa80e05:339704`,
+ * standard `c0770657:1035266` -> `040c052c:1045966`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '28801863:335754',
-  standard: 'c0770657:1035266',
+  duel: '2fa80e05:339704',
+  standard: '040c052c:1045966',
 };
 
 /**

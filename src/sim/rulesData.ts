@@ -2070,36 +2070,56 @@ interface ProphetChargeCosts {
 }
 
 /**
- * **The Wager's calendar** (`docs/wager.md` §1, batch G1).
+ * **The Wager's calendar** (`docs/wager.md`, "Rules"; batch G1, and the faster
+ * turn-over rule of 2026-11-18).
  *
- * The world keeps one age, and it is the **mean** of every living empire's own
- * highest technology rather than the first seat's (`worldClock.ts`). The two
- * numbers here are the whole of what that clock needs, and both are read as
- * *lengths* rather than as countdowns: a close is stamped as an absolute turn
- * the moment it is decided, and nothing anywhere decrements anything — the
- * `TimedEffect` discipline, one system over.
+ * The world keeps one age for every empire (`worldClock.ts`). The numbers here
+ * are all that clock needs:
+ *
+ *   - `leadAges` and `shareOfSeats` say when the countdown that closes an age
+ *     starts;
+ *   - `countdown` and `lastAgeTurns` are lengths. A close is stamped as an
+ *     absolute turn when it is decided, and nothing counts down (the
+ *     `TimedEffect` rule in `state.ts`).
  */
 interface WagerRules {
   /**
-   * How many turns an age is given to close once the world's mean has crossed
-   * into the next one. Ten, the user's own figure (`docs/wager.md` §1).
+   * How many turns an age is given to close once its countdown starts. Ten,
+   * the user's own figure (`docs/wager.md` §1).
    *
-   * It is the whole of the pace: the countdown is what a player is shown on the
-   * age card, what a wager's bar is judged at the end of, and what the Horde
-   * (§9) will be announced by. A shorter one makes the crossing a surprise; a
-   * longer one makes the age that has already ended outstay it.
+   * With the two thresholds below it sets the pace: the countdown is what a
+   * player is shown on the age card, what a wager's bar is judged at the end
+   * of, and what the Horde (§9) will be announced by. A shorter one makes the
+   * crossing a surprise; a longer one makes the age that has already ended
+   * outstay it.
    */
   countdown: number;
   /**
    * How long the **last** age runs before it closes on its own.
    *
-   * The last age has nothing above it for the mean to cross into, so it cannot
+   * The last age has nothing above it for the world to move into, so it cannot
    * be closed by the clock the way every other age is (`docs/wager.md` §1: "the
    * last age closes only by the Opus"). Forty turns after it opened is the
    * backstop, so an age whose Opus nobody ever raises still has an end, and its
    * wager still has a turn to be judged on.
    */
   lastAgeTurns: number;
+  /**
+   * The first of the two ways the countdown that closes an age starts: one
+   * living seat has reached an age this many ages past the age that is
+   * closing. Two, from the user's rule of 2026-11-18 ("once any player has
+   * reached age 3 ... it should trigger the countdown"). It is never less than
+   * one; one would be the old rule, where the first seat moved the world.
+   */
+  leadAges: number;
+  /**
+   * The second way: at least this share of the living seats has reached the
+   * next age. A fraction of two whole numbers, so the test is
+   * `seats × denominator ≥ numerator × living` and no float is compared.
+   * One half, from the same rule ("or if half the players have reached age
+   * 2"). Half of an odd count rounds up.
+   */
+  shareOfSeats: { numerator: number; denominator: number };
 }
 
 /**

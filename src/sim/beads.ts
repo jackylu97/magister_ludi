@@ -64,8 +64,9 @@
  *
  * The world's clock
  * -----------------
- * One clock for everybody (the user's rule), and since batch G1 it is the
- * **mean** of the board rather than the first seat's tree — the readings live
+ * One clock for everybody (the user's rule). Since 2026-11-18 an age starts to
+ * close when one living seat is two ages past it or half the living seats are
+ * one age past it. The readings live
  * in `worldClock.ts` and the phase that turns it lives here (`runWorldClock`),
  * because opening an age is this file's own business: the per-age counters
  * reset there, and an age closing is the moment the wager is judged on. What
@@ -390,10 +391,9 @@ export function beadCount(state: GameState, playerId: number, count: BeadCount):
     case 'wondersOfWorldAgeHeld':
       return wondersHeld(state, playerId, currentWorldAge(state));
     case 'techsOfWorldAgeCompleted': {
-      // **The world's clock, not this empire's** — and since batch G1 that
-      // clock is the mean rather than the first seat's tree (`worldClock.ts`),
-      // so a runaway leader's own Æra III nodes no longer count toward a card
-      // the world has not opened.
+      // **The world's clock, not this empire's** (`worldClock.ts`), so a
+      // runaway leader's own Æra III nodes do not count toward a card the
+      // world has not opened.
       const age = currentWorldAge(state);
       let held = 0;
       for (const id of player.techsResearched) {
@@ -1100,13 +1100,16 @@ interface BeadReport {
  *      (`ageClosed` — the moment G2's wagers are judged on), the closing age's
  *      reckonings are taken across the board at once, the new age's hand turns
  *      face up and the per-age counters reset.
- *   2. **a countdown opens when the world's progress crosses.** `worldAge` is
- *      the *mean* of every living empire's highest technology, floored, and the
- *      turn it first exceeds the age the world is in, that age is given
- *      `rules.wager.countdown` turns to close. Never sooner and never twice: a
- *      stamp already standing for this age is left exactly where it is.
- *   3. **the last age closes on its own.** Nothing is above it for the mean to
- *      cross into, so its stamp is written the moment it opens — the turn it
+ *   2. **a countdown opens when the world's progress passes the calendar.**
+ *      `worldAge` is the latest age the world has moved into: an age is passed
+ *      when one living seat is two ages past it or half the living seats are
+ *      one age past it (`worldClock.ts`). The first turn `worldAge` is above
+ *      the age the world is in, that age is given `rules.wager.countdown` turns
+ *      to close. Never sooner and never twice: a stamp already standing for
+ *      this age is left where it is. Only the age the world is in is closed,
+ *      so the world moves one age a close however far ahead a seat runs.
+ *   3. **the last age closes on its own.** Nothing is above it for the world
+ *      to move into, so its stamp is written the moment it opens — the turn it
  *      opened plus `rules.wager.lastAgeTurns` — and the Great Work being raised
  *      pulls that stamp forward to *now* (`closeTheGreatWork`), which is §1's
  *      "the Opus or the backstop, whichever is first" said as one comparison
@@ -1174,8 +1177,10 @@ export function runWorldClock(state: GameState, report?: BeadReport): void {
       // own condition is false for the rest of the game.
       state.ageClose = { age: now, turn: state.turn + lastAgeTurns() };
     } else if (worldAge(state) > now) {
-      // **The crossing.** The middle of the board has entered the next age, so
-      // the age the world is in is given its notice.
+      // **The crossing.** Enough of the board has moved past the age the world
+      // is in (`worldAge`'s rule), so that age is given its countdown. Only
+      // this age: if the board is further ahead, the next age is asked again
+      // when this one closes.
       state.ageClose = { age: now, turn: state.turn + ageCountdownTurns() };
     }
   }

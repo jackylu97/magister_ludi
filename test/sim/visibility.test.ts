@@ -490,7 +490,9 @@ describe('the visibility grid', () => {
     // its town one more Wildcard chair.
     // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
     // a borrowed copy cannot be lent on.
-    expect(SCHEMA_VERSION).toBe(244);
+    // 245 since the faster world clock: an age starts to close when one seat
+    // is two ages past it or half the seats are one age past it.
+    expect(SCHEMA_VERSION).toBe(245);
   });
 
   it('survives a JSON round trip as plain data', () => {

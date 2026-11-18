@@ -447,7 +447,12 @@
   },
   "wager": {
     "countdown": 10,
-    "lastAgeTurns": 40
+    "lastAgeTurns": 40,
+    "leadAges": 2,
+    "shareOfSeats": {
+      "numerator": 1,
+      "denominator": 2
+    }
   },
   "census": {
     "min": 13,

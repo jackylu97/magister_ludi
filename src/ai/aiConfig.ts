@@ -2257,18 +2257,21 @@ export interface AiConfig {
      * **How long a bot assumes an age runs**, in turns, when the world clock has
      * not yet announced a close.
      *
-     * The clock only starts counting when the *mean* of the board crosses into
-     * the next age (`worldAgeCountdown`), and a wager is dealt at the moment an
-     * age **opens** — so on the one turn a seat may answer the table there is no
-     * countdown to read and the deadline is genuinely unknown. This is the
-     * honest stand-in, and it is a stand-in rather than a rule: the moment a
-     * countdown *is* running the clock's own figure is used instead.
+     * The clock only starts counting when enough of the board has moved past
+     * the age (`worldAgeCountdown`; the rule is in `worldClock.ts`), and a
+     * wager is dealt at the moment an age **opens** — so on the one turn a
+     * seat may answer the table there is no countdown to read and the deadline
+     * is genuinely unknown. This is the honest stand-in, and it is a stand-in
+     * rather than a rule: the moment a countdown *is* running the clock's own
+     * figure is used instead.
      *
      * Measured on the t100 bench (eight seeds): Æra II is dealt between turns
      * 59 and 83 and the two seeds that reach its judgement close it thirty and
      * thirty-six turns later, which is what this is set to. A figure that is too
      * long is the dangerous one — it flatters every flow bar and stakes a seat
-     * on a bar it will not reach.
+     * on a bar it will not reach. That measurement was taken under the old
+     * clock (the floored mean of the seats' ages). The clock turns over sooner
+     * since 2026-11-18, and this figure has not been measured again.
      */
     ageTurns: number;
     /**

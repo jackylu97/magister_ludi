@@ -15,11 +15,24 @@ that file's.
 
 ## Rules
 
-- **The world's age is the mean** of every living real seat's highest researched
-  technology, floored — not the first seat's. When the mean crosses, the current
-  age is given a countdown to close: `rules.wager.countdown` (`data/rules.json`).
-  The countdown is public, on the turn line in the middle of the top bar
-  ("9 left"), with the age card on hover.
+- **The world's age follows the empires.** An empire's age is the age of its
+  highest researched technology. The countdown that closes age N starts on the
+  first turn either of these holds (`worldAge`, `src/sim/worldClock.ts`; the
+  user's rule of 2026-11-18, `docs/flags.md`):
+  - any living real seat has reached age N + 2 or later
+    (`rules.wager.leadAges`, 2);
+  - at least half of the living real seats have reached age N + 1 or later
+    (`rules.wager.shareOfSeats`, 1 of 2). Half of an odd count rounds up: 3 of
+    5, 2 of 3, and a lone seat is its own half.
+  - Living seats are real players that are not eliminated. The wild never
+    counts.
+- **The countdown** is `rules.wager.countdown` turns (`data/rules.json`). It is
+  public, on the turn line in the middle of the top bar ("9 left"), with the age
+  card on hover.
+- **One age a close.** Only the age the world is in can close. If a seat is far
+  ahead, the next age's countdown starts on the turn the previous age closes,
+  so every age lasts at least the countdown, and the world can end up at most
+  one age behind the leader. The last age never closes on this rule.
 - **Æra I deals nothing** and Æra V will deal nothing. The wager runs in Æra II,
   III and IV; the last age's wager is judged when the Opus is raised or
   `rules.wager.lastAgeTurns` after the age opened, whichever comes first.

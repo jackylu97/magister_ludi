@@ -580,8 +580,22 @@ import {
  * copy is refused at that command, and a bot that wrote such a paper writes
  * another. The branch migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v245 (branch `decks`; the world clock batch, `docs/flags.md`, "Age turn-over:
+ * a missing plate, the abacus motion, and a faster clock", the bullet "The clock
+ * turns over sooner"): **the world's age turns over sooner.** No field joins or
+ * leaves the state; two keys join `rules.wager` (`leadAges`, `shareOfSeats`).
+ * The rule that changes: the countdown that closes an age starts when one living
+ * seat is two ages past it, or when at least half of the living seats are one
+ * age past it (`worldAge`, `worldClock.ts`). Before, it started when the floored
+ * mean of every living seat's age passed it.
+ *
+ * **A v244 save is refused and does not replay.** Its ages would close on
+ * different turns, so its wagers would be dealt and judged on different turns.
+ * The branch migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 244;
+export const SCHEMA_VERSION = 245;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1905,7 +1919,7 @@ interface CensusRegister {
  * There was a fifth until batch G1: `worldAge`, a **stored** clock raised to the
  * highest age any real seat had reached. That was the first-seat rule, and it
  * lived here because the Bead Race was the only system that asked. It is gone —
- * the world's age is derived from the mean (`worldClock.ts`) off one absolute
+ * the world's age is derived (`worldClock.ts`) off one absolute
  * stamp on the state itself (`GameState.ageClose`), because a clock several
  * systems read is not one system's field, and a *stored* age is a second answer
  * to a question the technology lists already answer.
@@ -3940,9 +3954,9 @@ export interface GameState {
    * One absolute stamp — the age that is closing and the turn it closes on —
    * overwritten each time a close is decided. Both of the numbers a surface
    * asks for are folds of it and neither is stored: `worldAge` is the world's
-   * *progress* (the mean of every living empire's highest technology, floored)
-   * and `currentWorldAge` is the age the world is *in*. See `worldClock.ts`,
-   * which is the whole of the reading.
+   * *progress* (the latest age the board has moved into) and
+   * `currentWorldAge` is the age the world is *in*. See `worldClock.ts`,
+   * which is the whole of the reading and states the rule.
    *
    * Absent means **no age has closed yet**, which is presence-is-state in the
    * `researchPlan` sense rather than a flag: a world in its first age has no

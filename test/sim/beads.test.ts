@@ -152,8 +152,8 @@ function reachAge(state: GameState, playerId: number, age: 3 | 4): void {
 /**
  * Puts the **world** in an age, the way the clock does.
  *
- * Since batch G1 the world's age is derived rather than stored (`worldClock.ts`
- * — the mean of the board, ten turns after it crossed), so a bench that wants
+ * Since batch G1 the world's age is derived rather than stored (`worldClock.ts`:
+ * an age closes when its countdown runs out), so a bench that wants
  * the world in Æra III stamps Æra II's close on a turn that has already passed.
  * There is no field to set: that is the whole point of the change, and a test
  * that could still set one would be the second clock the batch removed.
@@ -644,7 +644,9 @@ describe("the bead catalogue", () => {
     // its town one more Wildcard chair.
     // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
     // a borrowed copy cannot be lent on.
-    expect(SCHEMA_VERSION).toBe(244);
+    // 245 since the faster world clock: an age starts to close when one seat
+    // is two ages past it or half the seats are one age past it.
+    expect(SCHEMA_VERSION).toBe(245);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {
@@ -715,11 +717,12 @@ describe("the world's clock", () => {
     }
     expect(currentWorldAge(state)).toBe(1);
 
-    // One seat alone no longer moves the world: the mean of a seat in Æra III
-    // and a seat in Æra I is Æra II.
+    // A seat in Æra III starts the countdown that closes Æra I, but the world
+    // stays in Æra I until the countdown runs out.
     reachAge(state, 1, 3);
     state.turn += 1;
     beat(state);
+    expect(state.ageClose?.age).toBe(1);
     expect(currentWorldAge(state)).toBe(1);
 
     // The close is the one moment the world changes age. Nothing turns face up
