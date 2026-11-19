@@ -134,6 +134,7 @@ import {
   channelSurplus,
   cityResources,
   controlledResources,
+  draftCompletionHammers,
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
@@ -398,6 +399,8 @@ import {
   isOrderId,
   countedTypeOf,
   orderDef,
+  orderKeyword,
+  scalerShape,
   onDraftUnitCount,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
@@ -2594,6 +2597,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // off those Orders (batch S13): the technology riders and tallies the
       // seat has seated, paid again.
       if (effect.rule === 'techCountsTwice') return techCountsTwiceWorth(effect.value, ctx);
+      if (effect.rule === 'scalersCountTwice') return scalersCountTwiceWorth(effect.value, ctx);
       // **The Immortals' `legaciesCountTwice`** (Magisterial batch MG8; priced
       // in batch MG17): the legacies the seat holds and will hold, read again.
       // See `immortalsWorth`.
@@ -3745,6 +3749,12 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
       case 'windfall':
         once += magisterialDraftGrantWorth(grant, ctx);
         break;
+      case 'completeQueues': {
+        const hammers = citiesOf(ctx.state, ctx.playerId)
+          .reduce((sum, city) => sum + draftCompletionHammers(ctx.state, city), 0);
+        once += explainYields({ production: hammers }, ctx).total;
+        break;
+      }
       case 'foreignCard': {
         const player = playerById(ctx.state, ctx.playerId);
         if (player !== undefined) rate += foreignCardWorth(player, ctx);
@@ -5656,6 +5666,7 @@ function metaRuleBeyond(effect: Extract<CardEffect, { kind: 'metaRule' }>, ctx: 
     case 'governmentsOfTier':
       return otherGovernmentsWorth(ctx, beyondTotal);
     case 'techCountsTwice':
+    case 'scalersCountTwice':
     case 'sealTurns':
     case 'turnEffectRepeats':
       return walkOne(effect, ctx);
@@ -8658,6 +8669,26 @@ function techCountsTwiceWorth(value: number, ctx: ValueContext): number {
     again += (forecast / per) * scorePayout(held, ctx);
   }
   return extra * again;
+}
+
+/** Value only the additional gains expected from Scalers in chairs. */
+function scalersCountTwiceWorth(value: number, ctx: ValueContext): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const multiplier = Math.floor(value);
+  if (sc === undefined || multiplier <= 1 || ctx.today === true) return 0;
+  let extra = 0;
+  for (const slot of sc.slots) {
+    const card = slot?.card;
+    if (card === undefined || !isOrderId(card) || orderKeyword(card) !== 'scaler') continue;
+    for (const { line } of scalerShape(orderDef(card).effects).parts) {
+      const current = countOf(ctx.state, ctx.playerId, card, line);
+      const ahead = potentialTerms(line, ctx).reduce((sum, term) => sum + term.value, 0);
+      const usual = helpings(current + ahead, line.per, line.max);
+      const doubled = helpings(current + multiplier * ahead, line.per, line.max);
+      extra += (doubled - usual) * scorePayout(line, ctx);
+    }
+  }
+  return extra;
 }
 
 /**

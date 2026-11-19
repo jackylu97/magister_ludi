@@ -838,6 +838,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Wagon Trains | 0 | ● | S | Settlers and workers gain +1 movement. |
 | Common Festivals | 1 | ● | S | Every town gains +1 happiness. |
 | The Hall of Fame | 1 | ● | S | +30% renown in your capital. |
+| The Gilded Country | 1 | ● | E | Every tile that makes at least 1 gold gains 1 more. |
 | Cistern Works | 1 | ● | S | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. |
 | The Brick Kilns | 1 | ◆ | P | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. |
 | Commission: The Land Register | 1 | ◆ | S | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. |
@@ -850,9 +851,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The Building Programme | 2 | ◆ | S | Goal: finish 12 buildings. Reward: every town gains +10% production. |
 | Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |
 | The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
+| The Long Memory | 3 | ○ | S | Your scalers gain twice as much each time. |
 | The Office of Works | 3 | ◆ | S | On draft: gain a great engineer draft. |
 | The Grand Design | 4 | ◆ | P | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. |
 | The Last Walls | 4 | ● | S | The town raising your Magnum Opus gains +15 defence. |
+| The Great Raising | 4 | ○ | S | On draft: every town finishes what it is building. Not wonders. |
 | The Settled Realm | 4 | ● | S | Every town gains +2 happiness. |
 | Local Clerks | 2 | ● | S | Gain +3 authority. |
 | City Watches | 3 | ● | S | Your towns gain +8 defence. |

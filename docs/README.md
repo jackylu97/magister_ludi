@@ -142,6 +142,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     tile index order, and remembers them on the economy clock; the test reads
     them through `GroundFacts.workLine`, so the hex fold asks a lookup and
     never a walk (The Processional Way).
+  - The Gilded Country adds gold to each tile that already makes at least one gold.
+    Its threshold reads the other additive tile lines, including lines from
+    cards. Tile percentages apply after the bonus.
   - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
     of Improvement) raises the Orders' hex lines on those hexes only. Since
     Magisterial batch MG10 an amplifier's share of a hex line keeps the line's
@@ -759,6 +762,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     is the start plus one gain a helping of the card's tally. The face prints
     it in tabular mono (`scalerFigure.ts`, read by `scalerValue.ts`): the offer
     hand, the collection, and the Compendium's "Value" row (the start).
+  - The Long Memory is dealt to seats that own a Scaler. While seated, it doubles
+    new tally gains for Scalers in chairs. Counted commissions still gain at
+    their usual rate.
   - **A Boon takes no chair** (schema 238): `slotOrderError` refuses it as it
     refuses a charter (`isBoon`), so the council screen, the bots and the End
     Turn pause never offer one a chair.
@@ -926,6 +932,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     Order can also hand over a random card from a deck the seat does not
     hold (the `foreignCard` arm, The Cabinet of Curiosities;
     `drawForeignCard`, rarity first from `state.rng`, with no pity).
+  - Drafting The Great Raising completes the front unit or ordinary building
+    in each owned town. It skips puppets and permits towns in unrest. Units use
+    purchase placement. Existing progress on the finished item is spent, and
+    normal completion riders apply.
   - Every way a card enters the collection ends in `settleCardTaken`
     (`cities.ts`): what drafting it hands over, the law dropped for a
     charter, and the `cardDrafted` moment last. The pick of an Order hand

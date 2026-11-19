@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 7 | 0 | 3 | 10 | 6 | 2 | 2 |
+| Tier I | 8 | 0 | 2 | 10 | 6 | 2 | 2 |
 | Tier II | 6 | 0 | 2 | 8 | 4 | 2 | 2 |
-| Tier III | 4 | 0 | 4 | 8 | 2 | 4 | 2 |
-| Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **29** | **0** | **10** | **39** | **22** | **9** | **8** |
+| Tier III | 5 | 0 | 3 | 8 | 2 | 4 | 2 |
+| Tier IV | 4 | 0 | 0 | 4 | 2 | 1 | 1 |
+| **All** | **32** | **0** | **7** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -56,7 +56,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **Common Festivals** | common | implemented | Every town gains +1 happiness. | Civic |  | G1-1 |
 | **The Capital's Example** | common | add | Your other towns build buildings your capital already has 25% faster. | Economic |  | G1-2 |
 | **The Hall of Fame** | common | implemented | +30% renown in your capital. | Civic |  | G1-3 |
-| **The Gilded Country** | common | add | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
+| **The Gilded Country** | common | implemented | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
 | **Cistern Works** | common | implemented | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | Economic | Charter | G1-5 |
 | **The Brick Kilns** | uncommon | implemented | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | Civic | Scaler | G1-6 |
 | **Commission: The Land Register** | uncommon | implemented | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
@@ -87,7 +87,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The General Summons** | uncommon | implemented | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. | Military | Boon | G3-4 |
 | **The Old Patterns** | uncommon | add | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
 | **The Old Foundations** | common | add | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |
-| **The Long Memory** | rare | add | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
+| **The Long Memory** | rare | implemented | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
 | **The Office of Works** | uncommon | implemented | On draft: gain a great engineer draft. | Civic | Boon | G3-9 |
 
 ## Tier IV
@@ -96,7 +96,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 |---|---|---|---|---|---|---|
 | **The Grand Design** | uncommon | implemented | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. | Economic |  | G4-1 |
 | **The Last Walls** | common | implemented | The town raising your Magnum Opus gains +15 defence. | Military |  | G4-2 |
-| **The Great Raising** | rare | add | On draft: every town finishes what it is building. Not wonders. | Wildcard | Boon | G4-3 |
+| **The Great Raising** | rare | implemented | On draft: every town finishes what it is building. Not wonders. | Wildcard | Boon | G4-3 |
 | **The Settled Realm** | common | implemented | Every town gains +2 happiness. | Civic |  | G4-4 |
 
 ## To tune in playtest

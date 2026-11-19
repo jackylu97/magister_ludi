@@ -6169,11 +6169,11 @@ export function tileConditionHolds(
       // (Pachacuti's farms are paid once per peak) and presence is still the
       // question asked here. Absence is nought, `resource`'s reading.
       return (tile.mountainsBeside ?? 0) > 0;
-    case 'yields':
-      // **Off the breakdown the caller already built**, never off a second
-      // reading of the ground. A caller with nothing to hand in answers no —
-      // see the condition, and `CardRulePercentEffect.scope`'s bargain.
-      return (paid?.()[on.yield] ?? 0) > 0;
+    case 'yields': {
+      if (paid === undefined) return false;
+      const amount = paid()[on.yield] ?? 0;
+      return on.atLeast === undefined ? amount > 0 : amount >= on.atLeast;
+    }
     case 'road':
       // The one field a road is ever written on, asked of its presence and never
       // of its builder: this predicate holds a tile and no empire. See the
@@ -6806,6 +6806,11 @@ function farmWaterField(
  */
 export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
   return tileConditionAsks(on, (part) => part.test === 'yields');
+}
+
+/** A stated threshold reads all other additive hex lines before checking the amount. */
+export function tileConditionReadsThreshold(on: TileCondition | undefined): boolean {
+  return tileConditionAsks(on, (part) => part.test === 'yields' && part.atLeast !== undefined);
 }
 
 /**
@@ -14760,6 +14765,15 @@ export function techCountsFor(state: GameState, playerId: number, card?: CardId)
   for (const { effect } of effectsOfKind(state, playerId, 'metaRule')) {
     if (effect.rule !== 'techCountsTwice') continue;
     times = Math.max(times, Math.floor(effect.value));
+  }
+  return times;
+}
+
+/** How much each event adds to a seated Scaler's tally. */
+export function scalerCountsFor(state: GameState, playerId: number): number {
+  let times = 1;
+  for (const { effect } of effectsOfKind(state, playerId, 'metaRule')) {
+    if (effect.rule === 'scalersCountTwice') times = Math.max(times, Math.floor(effect.value));
   }
   return times;
 }
