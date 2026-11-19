@@ -1446,3 +1446,30 @@ stay in the dropdown".
   empire has no supply left, stays in the build list in grey, with its reason.
   It is not moved to the unavailable drop-down.
 - Every other reason a build is unavailable stays in the drop-down, as today.
+
+### Quiet Table: build stage 2, the offers (2026-11-19)
+
+The user approved the next build ("yeah proceed"). Its parts, all approved on
+the boards:
+
+1. **The Order draft offer** (fourth pass, `frame-4-sheet`: "great,
+   everything here is great"): the great person offer's sheet with Order
+   cards in the engraved face. No text under the cards. The sheet's height
+   fits its content. "Ask again" at the left, Pass and Take at the right.
+   Today's animations stay.
+2. **The slower reveal** (fourth pass, `frame-4-reveal`): a short hold on the
+   card backs, then the cards turn over one by one with a longer gap. A click
+   or a key during the reveal turns every card up and chooses nothing.
+   Reduced motion shows the cards face up. The great person offer and the
+   government offer get the same reveal, because the three are one sheet.
+3. **The great person card** (third pass, `frame-a5`, approved in the second
+   pass as "great"): its own engraved form with an arched picture window of
+   about 5:6, and the family emblem as the fallback. The offer opens on paper
+   over the map.
+4. **The Reliquary** (third pass, `frame-c4-proposed`: "Great"): the same card
+   as the offer.
+5. **The Ledger's head** by hand, since the shared head of stage 1 did not
+   reach it.
+
+Not in this stage: the government banners, setup, faith, the forecast,
+diplomacy, the city screen.
