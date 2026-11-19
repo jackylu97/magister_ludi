@@ -171,16 +171,28 @@ The user, 2026-11-19: *"Lets leave the generic orders build for astra."*
 - The build changes bot play, so it cuts the digest pins. See section 5 on
   who cuts them.
 
-### 3.6 The wonders rework (not ready yet)
+### 3.6 The wonders rework (ready)
 
 The user, 2026-11-19: *"lets have astra take it once we make the
-determinations."*
+determinations."* The determinations are made.
 
-- The spec will be `docs/plans/wonders-review-2026-11-18.md`: 18 revised
-  wonders, one retired, and several new ones. The user is still choosing the
-  last age 2 wonders.
-- **Do not start until that file has a section named "Ready for the build".**
-  The Claude session writes it when the user has ruled.
+- **The spec is the last section of `docs/plans/wonders-review-2026-11-18.md`,
+  "Ready for the build".** It stands alone: 8 new wonders, 18 revised, 1
+  retired (The Water Clock of Su Song, kept as a `retired` row), 6 technology
+  moves, 34 wonders in all. The four sections of the user's comments above it
+  are the source if a line is unclear.
+- 46 new or changed clauses: 37 use shapes the game has, 7 need a small
+  extension and 2 need a new shape. A clause that does not fit is deferred and
+  annotated, never bent into a near fit.
+- The age 1 wonder with the free rerolls is **The Great Sphinx**
+  (`greatSphinx`). The user confirmed the name on 2026-11-19: "The great
+  sphinx is fine." No name is open.
+- The section ends with checks for the builder (things the designer did not
+  confirm in the evaluator) and two numbers to watch in playtest. Do not run
+  bot games to size numbers.
+- `docs/wonders.md` is out of date and changes with the build.
+  `test/sim/wonders.test.ts` pins twenty-seven rows.
+- The build changes bot play, so it cuts the digest pins (section 5).
 
 ## 4. Rules that apply to every change
 

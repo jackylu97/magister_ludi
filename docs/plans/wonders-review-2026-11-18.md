@@ -2,7 +2,7 @@
 
 A review of every wonder in the game, and proposals for new wonders that fit the arcane theme. This is a design note. It changes no data and no code.
 
-**Status, 2026-11-19:** the user has commented on this review three times. The current state is the last section, "Not ready: open questions". The sections before it are the record: Parts 1 to 3 are the review as the user first read it, and "The set after the user's comments" is the sheet before the second round.
+**Status, 2026-11-19:** the user has ruled on this review in four rounds. The current state is the last section, "Ready for the build", and it stands alone. The sections before it are the record.
 
 ## The user's ruling (2026-11-19)
 
@@ -1191,214 +1191,402 @@ religious significance?"
 - The Oracle: a seat of prophecy at Delphi more than one building. The Hanging Gardens: famous, but perhaps legendary.
 - Solomon's Temple, The Temple of Thoth, The Pyramid of the Sun and The Iron Pillar are single built things and fit.
 
-## Not ready: open questions
+## The user's fourth round of comments (2026-11-19)
 
-- 4 questions are open. The sheet below takes the recommended reading for each, so it is complete, but a builder must not start until the user answers.
+| On | The user's comment | Result |
+|---|---|---|
+| The Weiyang Palace | "Great, go with this one." | Accepted for age 2. The other four candidates (The Ishtar Gate, The Apadana, The Great Stupa, The Parthenon) have no comment and are rejected. |
+| Question 27, a building for The Oracle Pits of Yin | "find an age 1 wonder that fits the theme, it doesn't have to be chinese." | The effect moves to a famous age 1 structure of any culture. The name "The Oracle Pits of Yin" leaves. |
+| Question 26, technologies | "sounds good. Don't change pyramids, it was on stonecraft before, no?" | The recommended technologies stand, except that The Pyramids stays on Stonecraft (it is on Stonecraft today). |
+| Question 24, The Iron Pillar | "Yes, go with recommendation" | Every building of the production category; every hex of yours with a strategic resource you can see, improved or not. |
+| Question 21, The Pyramid of the Sun | "only the city with the wonder" | Only the city that holds the wonder may levy for faith. |
 
-21. **The Pyramid of the Sun.** Which cities may levy for faith: every city of yours, or only the city with the wonder?
-   - Recommended, and taken in the sheet: Every city of yours, as a levy Order works. Each city keeps its own wait of 5 turns between levies. A city of 6 citizens gives 30 faith, where a seat makes about 14 faith a turn in age 2.
-24. **The Iron Pillar.** Which buildings are "production buildings", and which hexes are "strategic resources"?
-   - Recommended, and taken in the sheet: Every building of the production category (the Smithy, the Workshop, the Forge and the like). Every hex of yours that carries a strategic resource you can see, improved or not.
-26. **Technologies.** Where do the new and moved wonders open? Only The Statue of Zeus (Bronze Panoply) and Petra (age 2) are ruled.
-   - Recommended, and taken in the sheet: Petra on Irrigation: the Nabataeans lived by their cisterns and channels. The Iron Pillar on Siegecraft. The Library of Ashurbanipal on Code of Laws. The Pyramid of the Sun on Chronology. The Great Stelae of Aksum on The Silk Road in age 3. Then each of the nine age 2 technologies opens one wonder. The older suggestions stand: Chichen Itza to Horology, The Great Mosque of Djenné to Guildhalls, Angkor Wat to State Workforce, The Great Wall to The Civil Service, The Pyramids to Mining.
-27. **The Oracle Pits of Yin.** Which famous building takes the place of the pits? The options are in the block below.
-   - Recommended, and taken in the sheet: The Temple of Heaven, in age 4 on Geomancy. The effect stays as you wrote it.
+## An age 1 wonder for the oracle pits' effect: four options
 
-### Question 27: a building for The Oracle Pits of Yin
+- The effect is yours and does not change: +1 culture for each building that supplies faith, and a stock of five free rerolls on completion. It needs a famous single structure of age 1 whose subject is omens, the calendar or the sky. Stonehenge, The Oracle, The Great Ziggurat and The Pyramids are in the game already. Four age 1 technologies open no wonder: Fletching, Mining, Pottery and The Wheel.
 
-- No single famous Shang building survives. At Yinxu, the last Shang capital, there are the rammed-earth foundations of a palace and ancestral temple, and the tomb of Lady Fu Hao. They are real and they are known as a site, not as one building that people can name. The oracle bones made the place famous. So a building with a name has to come from a later age.
-
-| Option | Date | Age | What it was | How famous | What it does to the ages |
+| Option | Culture and date | What it was | How well known | Opens with | Note |
 |---|---|---|---|---|---|
-| **The Temple of Heaven (recommended)** | 1420, Ming Beijing | Age 4 | The round hall and altar where the emperor prayed each year for a good harvest and reported to Heaven. Its plan is a diagram: round for heaven, square for earth, with pillars for the seasons, the months and the hours. | The most famous religious building of China, and a wonder in Civilization IV and V. No rites are held there today. | Age 4 goes from 4 wonders to 5 and age 2 stays at 9. It would open on Geomancy, which no wonder uses. At column 9 it costs 1,127. |
-| The Porcelain Tower of Nanjing | 1412 to 1431, Ming Nanjing | Age 4 | A Buddhist pagoda of nine floors, faced with white glazed brick and hung with lamps and bells. It was destroyed in the 1850s. | Travellers called it one of the wonders of the world, and it is a wonder in Civilization V. | The same as The Temple of Heaven for the age counts. |
-| The Giant Wild Goose Pagoda | 652, Tang Chang'an | Age 3 | A brick pagoda built to hold the Buddhist books that the monk Xuanzang brought from India. | Very well known in China, less so abroad. It stands in a working Buddhist temple, so it is a place of worship today. | Age 3 goes to 11. |
-| The Hall of Light | 688, Tang Luoyang | Age 3 | Empress Wu's great hall for the rites of heaven, the seasons and the calendar. It burned in 695. | Famous in Chinese history, little known abroad. You rejected this name once, with a different effect. | Age 3 goes to 11. |
-| Keep The Oracle Pits of Yin | about 1250 to 1050 BCE, Shang | Age 2 (or age 1 by date) | The pits of inscribed bones at the last Shang capital. | A famous find, but not one built thing. | Age 2 goes to 10, and The Pyramid of the Sun shares a technology. |
+| **The Great Sphinx (my pick)** | Old Kingdom Egypt, about 2500 BCE | A lion with a king's head, cut from one ridge of rock at Giza. It faces due east, toward sunrise at the equinox, and later Egyptians worshipped it as the sun on the horizon. A stone between its paws tells how it spoke to a prince in a dream and promised him the throne. | One of the best-known monuments in the world. | Mining (no wonder there) | It has the clearest link to omens: a statue that gives a prophecy in a dream. Egypt would then have three wonders in age 1, with The Pyramids and The Temple of Thoth. |
+| Abu Simbel | New Kingdom Egypt, in Nubia, about 1264 BCE | A temple cut into a cliff for Ramesses II, with four seated kings twenty metres tall at the door. On two days of the year the rising sun reaches the back of the temple and lights three of its four statues. | Very famous, the more so since it was moved in the 1960s to save it from the Nile. | Mining (no wonder there) | The best link to the calendar and the sky. It is also Egyptian. |
+| The Great Bath | The Indus cities (Mohenjo-daro), about 2500 BCE | A sunk pool of fitted brick sealed with bitumen, with steps at both ends and rooms around it, at the centre of the city. Most scholars think it was for ritual washing. | The best-known building of the Indus cities, and a wonder in Civilization VI. | Pottery (no wonder there) | It gives age 1 a wonder from India. Its subject is a rite of cleansing and not omens or the sky, so the link to the effect is weaker. |
+| Göbekli Tepe | Hunters of the first villages, Anatolia, about 9500 BCE | Rings of stone pillars five metres tall, carved with foxes, snakes, scorpions and birds, raised by people who had no farms and no pottery. It is the oldest monument known. | Famous since the 1990s and growing. Its purpose is not known; claims that it maps the sky are not accepted. | Fletching (no wonder there) | It is several rings and not one building, so it strains the rule a little. |
 
-### What the build does
+- Weighed and left out: Newgrange (its roof-box catches the midwinter sunrise, a very good fit, but it is a second megalith beside Stonehenge and less famous); the temple of Amun at Karnak (its god gave oracles, but it is a compound of many temples built over a thousand years, most of it later than age 1); the great pyramid at La Venta (not well known).
+- My pick is The Great Sphinx. The sheet below uses it. If the user picks another, only the row id, the name and perhaps the technology change.
 
-- The set goes from 27 wonders to 33: 9 in age 1, 9 in age 2, 10 in age 3, 5 in age 4.
-- 7 new rows: Solomon's Temple, The Great Stelae of Aksum, The Oracle Pits of Yin (name open), The Temple of Thoth, The Pyramid of the Sun, The Iron Pillar, The Library of Ashurbanipal.
-- 18 revised rows. 8 rows do not change.
-- 1 row to retire: The Water Clock of Su Song (`waterClockOfSuSong`). Set `retired: true`, keep the row for saves, and take it off Horology.
-- 7 rows move to another technology: The Statue of Zeus to Bronze Panoply; Petra to Irrigation; Chichen Itza to Horology; The Great Mosque of Djenné to Guildhalls; Angkor Wat to State Workforce; The Great Wall to The Civil Service; The Pyramids to Mining. The Statue of Zeus and Petra are ruled; the technologies of the others are question 26.
-- 44 new or changed clauses: 35 use an existing shape, 7 need a small extension, 2 need a new shape.
-- Clauses that are not an existing shape:
-  - (small extension) "on completion, 5 free rerolls of a draft are yours". A reroll for faith exists (`rerollOffer`), and a belief hand already has one free reroll. A stock of free rerolls on the player, and a grant that fills it, are new.
-  - (small extension) "your cities may spend a citizen for faith: 5 faith for each citizen the city has". The `levy` kind and the levy verb exist (`levies.ts`); its uses are production, muster, opus, conscript, worker, settler, wonder and rite. A `faith` use is new. It shares the town's levy wait (5 turns) and the smallest town (2 citizens). Confirm that `cardLevyGrants` reads a wonder's effects.
-  - (small extension) "+5 renown per turn, favouring scholars, for each city you captured; +20 if that city holds a wonder". The card kind `renown` pays for each city, but it has no scope and no family. It needs both (`captured` and `wonderTown` exist as city scopes).
-  - (small extension) "rites cost 30% less faith in this city". The rule `riteCost` exists (`religion.ts` 1506) and is read for the empire. It needs the city the rite is started in.
-  - (new shape) "the yields of your great people's improvements are doubled". The hex test `greatWork` exists. A line that pays a hex's whole yield again does not: a new option in `explainTileYield`, placed last.
-  - (small extension) "your Academies gain +2 science for each great scholar you have recruited". `pays` hex with a count is in the register. A count of great people by family exists for combat lines (`greatPeopleOfFamily`); the pay counts need it.
-  - (small extension) "every city can take +25 more punishment". City hit points are a row field for the row's own city (`cityHp`). `cityStat` has `defense` and `sight` only; it needs a third stat.
-  - (new shape) "enemy units in your territory have -1 movement". No rule changes an enemy's movement. A new rule read in `resetMovement`, with the tile owner field.
-  - (small extension) "you have one more Military chair". `slotRider` opens Wildcard chairs only. Its own note says that a typed chair "earns its own field".
-- Every wonder keeps "+10 renown the turn it is finished" and its renown each turn as today, unless a clause below changes it. New wonders need a renown family: scholars for The Temple of Thoth, The Oracle Pits of Yin, Solomon's Temple and The Library of Ashurbanipal; merchants for The Great Stelae of Aksum; engineers for The Iron Pillar; artists for The Pyramid of the Sun (my suggestions).
-- The base yields of the seven new wonders are my suggestions. The user gave none.
-- Costs are the wonder size at the column: no figure goes on a row.
+## The age 1 wonder is The Great Sphinx (2026-11-19)
 
-### Every wonder as it will stand
+The user: "The great sphinx is fine." The name is confirmed. Where the section below says the user may still change this name, read it as settled.
 
-- "Today" marks a clause that is in the game now and stays. The other clauses are new, with their shape.
+## Ready for the build
 
-#### Age 1 (9)
+This section stands alone. It is the whole specification for the wonder build. The sections above it are the record of how it was decided.
 
-- **The Pyramids** (revised, moves). Mining, column 1, 130 production. Site: none.
-  - Today: newly created workers gain +1 charge
-  - New: +20% production toward wonders in every city (existing shape). `productionBonus` with `category: wonder` (the Workshop has it); read at `evaluator.ts` 7415.
-- **The Temple of Artemis** (revised). Husbandry, column 1, 130 production. Site: none.
-  - Today: +2 food, +1 faith
-  - Today: +1 food on every hex with a Camp
-  - Today: +1 food on every hex with a Pasture
-  - New: +2 happiness (existing shape). The row field `happiness`.
-- **Stonehenge** (unchanged). Stonecraft, column 2, 170 production. Site: none.
-  - Today: +3 faith
-  - Today: +1 pantheon slot
-  - Today: +1 faith on every hex carrying Stone or Marble
-  - Today: on completion, a god is named, and your faith is not spent
-- **The Great Lighthouse** (revised). Sailing, column 2, 170 production. Site: a coastal city.
-  - Today: +2 gold
-  - Today: +1 gold on every hex with a Fishing Boat
-  - New: naval units: +3 combat strength (existing shape). `combatLine` with a `class` filter on the naval category.
-  - New: naval units: +1 movement (existing shape). `unitStat` `movement` with the same filter (Chart the Stars has it).
-- **The Hanging Gardens** (unchanged). Calendar, column 2, 170 production. Site: none.
-  - Today: +3 food
-  - Today: +25% food surplus stored toward growth
-  - Today: +1 food on every hex with a Farm beside fresh water, in every city with The Hanging Gardens
-- **The Oracle** (revised). Divination, column 2, 170 production. Site: none.
-  - Today: +2 culture, +2 faith
-  - Today: +1 card in every Order hand
-  - Today: +1 card in every Doctrine draft
-  - New: +3 renown per turn (no kind of great person favoured) (existing shape). The card kind `renown` carries no family. It replaces the row's `renown.perTurn` of 2.
-- **The Temple of Thoth** (new). Divination, column 2, 170 production. Site: a city beside fresh water.
-  - Base: +2 faith a turn (my suggestion).
-  - New: this city gains science equal to half of its faith (existing shape). `pays` with `where: city` and `basis: share`; the pair is in the register in `docs/yields.md` (step 10).
-- **The Walls of Uruk** (revised). Bronzeworking, column 2, 170 production. Site: none.
-  - Today: +2 authority capacity
-  - Today: +50 to how much punishment the city can take
-  - New: this city: +10 city defence (existing shape). `cityStat` `defense` with no scope, as The Great Wall has today.
-  - New: +2 combat strength in your own territory (existing shape). `combatLine` with `ownTerritory`; arms at `evaluator.ts` 7602 and 8544.
-- **The Great Ziggurat** (revised). Writing, column 3, 223 production. Site: none.
-  - Today: +2 science, +2 faith
-  - New: +2 science in every city with a Shrine (existing shape). `pays` city, scope `hasBuilding`; the figure changes.
-  - New: rites cost 30% less faith in this city (small extension). The rule `riteCost` exists (`religion.ts` 1506) and is read for the empire. It needs the city the rite is started in.
+### Scope
 
-#### Age 2 (9)
+- The set goes from 27 wonders to 34: 10 in age 1, 10 in age 2, 10 in age 3, 4 in age 4.
+- 8 new rows, 18 revised rows, 1 retired row. 8 wonders do not change: Stonehenge, The Hanging Gardens, The Theatre of Dionysus, The Colossus, The Terracotta Army, Hagia Sophia, The Great Mosque of Djenné, The House of Wisdom.
+- **Retire** The Water Clock of Su Song (`waterClockOfSuSong`): set `retired: true`, keep the row so that a save which holds one still replays, and remove it from Horology's `unlocks.buildings`.
+- **Technology moves** (6): The Statue of Zeus (`statueOfZeus`) from Iron Working to Bronze Panoply (`bronzePanoply`); Petra (`petra`) from Mathematics to Irrigation (`irrigation`); Chichen Itza (`chichenItza`) from Theology to Horology (`horology`); The Great Mosque of Djenné (`greatMosqueOfDjenne`) from Theology to Guildhalls (`artisanry`); Angkor Wat (`angkorWat`) from Theology to State Workforce (`stateWorkforce`); The Great Wall (`greatWall`) from Satrapies to The Civil Service (`theExaminationHall`). The Pyramids stays on Stonecraft.
+- All of this is data in `data/buildings.json` and `data/techs.json`, except the clauses marked "small extension" or "new shape".
+- 46 new or changed clauses: 37 use an existing shape, 7 need a small extension, 2 need a new shape.
+- A wonder row carries `size: "wonder"` and never a cost. The cost printed below is what the standard gives at that column.
+- Every wonder pays +10 renown on completion and a renown each turn. Revised rows keep theirs unless a clause changes it.
+- Player-facing words stay plain (hard rule 7). The describers print most clauses already; a new or extended shape needs its words in `statecraft/describers.ts`.
 
-- **The Mausoleum** (revised). Currency, column 4, 292 production. Site: none.
-  - New: the yields of your great people's improvements are doubled (new shape). The hex test `greatWork` exists. A line that pays a hex's whole yield again does not: a new option in `explainTileYield`, placed last.
-  - New: +5 renown per turn, favouring engineers (existing shape). The row's `renown` (family and figure change).
-- **The Pyramid of the Sun** (new). Chronology, column 4, 292 production. Site: none.
-  - Base: +2 faith a turn (my suggestion; the user gave none).
-  - New: your cities may spend a citizen for faith: 5 faith for each citizen the city has (small extension). The `levy` kind and the levy verb exist (`levies.ts`); its uses are production, muster, opus, conscript, worker, settler, wonder and rite. A `faith` use is new. It shares the town's levy wait (5 turns) and the smallest town (2 citizens). Confirm that `cardLevyGrants` reads a wonder's effects.
-  - New: +2 culture on every Holy Site (existing shape). `pays` hex with `improvement: holySite`.
-  - Waits on question 21.
-- **The Statue of Zeus** (revised, moves). Bronze Panoply, column 4, 292 production. Site: none.
-  - Today: +1 culture
-  - New: +4 combat strength for all units against cities (existing shape). `combatLine` with `vsCity`.
-  - New: on completion, 3 of the best melee unit you can build join you (existing shape). The `unit` grant with `bestMelee`, listed three times.
-- **The Theatre of Dionysus** (unchanged). Epic Poetry, column 4, 292 production. Site: none.
-  - Today: +4 culture
-  - Today: +1 happiness per Amphitheater
-  - Today: on completion, a Doctrine draft opens
-  - Today: on completion, an Amphitheater is raised here as well
-- **Petra** (revised, moves). Irrigation, column 5, 382 production. Site: a city built on or next to desert.
-  - Today: +2 gold
-  - New: +1 food, +1 production on every desert hex (existing shape). The same `pays` hex line with its `scope` removed.
-  - New: +1 gold on every floodplain hex (existing shape). The same.
-- **Solomon's Temple** (new). The High Temple, column 5, 382 production. Site: none.
-  - Base: +2 faith and +2 culture a turn (my suggestion; the user gave none).
-  - New: +1 choice in every great person offer (existing shape). `offerRider` with `offer: greatPerson`; the arm is at `evaluator.ts` 13169.
-  - New: great people cost 10% less renown (existing shape). `rulePercent` with rule `greatPersonCost`; read in `renown.ts` 386.
-- **The Colossus** (unchanged). Wayfinding, column 5, 382 production. Site: a coastal city.
-  - Today: +3 gold
-  - Today: +1 trade route for your empire
-  - Today: +1 production, +1 gold on every water hex carrying a resource
-- **The Iron Pillar** (new). Siegecraft, column 5, 382 production. Site: none.
-  - Base: +2 production a turn (my suggestion).
-  - New: production buildings produce 50% more of their own yields (existing shape). `buildingYieldPercent` with `category: production` (a Commerce Order has the same line for gold buildings).
-  - New: +1 production on every hex carrying a strategic resource (existing shape). `pays` hex with the test `resourceKind` (strategic), no scope.
-  - Waits on question 24.
-- **The Library of Ashurbanipal** (new). Code of Laws, column 5, 382 production. Site: none.
-  - Base: +2 science a turn (my suggestion).
-  - New: +10 renown per turn, favouring scholars (existing shape). The row's `renown`.
-  - New: +5 renown per turn, favouring scholars, for each city you captured; +20 if that city holds a wonder (small extension). The card kind `renown` pays for each city, but it has no scope and no family. It needs both (`captured` and `wonderTown` exist as city scopes).
+### The extensions and new shapes
 
-#### Age 3 (10)
+- (small extension) **on completion, 5 free rerolls of a draft are yours.** A reroll for faith exists (`rerollOffer`), and a belief hand already has one free reroll. A stock of free rerolls on the player, and a grant that fills it, are new. Joins a new completion grant in `realiseItem`'s grants (`cities.ts`), and a free branch in `explainRerollCost` (`religion.ts`).
+- (small extension) **this city may spend a citizen for faith: 5 faith for each citizen it has.** The `levy` kind and the levy verb exist (`levies.ts`); its uses are production, muster, opus, conscript, worker, settler, wonder and rite. A `faith` use is new, with the scope `hasBuilding` so that only the wonder's city may use it. It shares the town's levy wait (5 turns) and the smallest town (2 citizens). Confirm that `cardLevyGrants` reads a wonder's effects. Joins `cardLevyGrants` (`statecraft/evaluator.ts`) and the levy verb `levyAt` and `levyOptions` (`levies.ts`).
+- (small extension) **+5 renown per turn, favouring scholars, for each city you captured; +20 if that city holds a wonder.** The card kind `renown` pays for each city, but it has no scope and no family. It needs both (`captured` and `wonderTown` exist as city scopes). Joins `cardRenownLines` (`statecraft/evaluator.ts`).
+- (small extension) **rites cost 30% less faith in this city.** The rule `riteCost` exists (`religion.ts` 1506) and is read for the empire. It needs the city the rite is started in. Joins `riteCostAhead` (`religion.ts`).
+- (new shape) **the yields of your great people's improvements are doubled.** The hex test `greatWork` exists. A line that pays a hex's whole yield again does not: a new option in `explainTileYield`, placed last. Joins a new last line in `explainTileYield` (`yields/hex.ts`).
+- (small extension) **your Academies gain +2 science for each great scholar you have recruited.** `pays` hex with a count is in the register. A count of great people by family exists for combat lines (`greatPeopleOfFamily`); the pay counts need it. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+- (small extension) **every city can take +25 more punishment.** City hit points are a row field for the row's own city (`cityHp`). `cityStat` has `defense` and `sight` only; it needs a third stat. Joins `cardCityStat` (`statecraft/evaluator.ts`) and `cityMaxHp` (`combat.ts`).
+- (new shape) **enemy units in your territory have -1 movement.** No rule changes an enemy's movement. A new rule read in `resetMovement`, with the tile owner field. Joins a new rule read where a turn's movement is set (`resetMovement`), with `tileOwnerField`.
+- (small extension) **you have one more Military chair.** `slotRider` opens Wildcard chairs only. Its own note says that a typed chair "earns its own field". Joins `cardExtraChairs` (`statecraft/evaluator.ts`), `buildingOpensChairs`, `chairCount` and `slotTypesOf` (`statecraft/council.ts`).
 
-- **Angkor Wat** (revised, moves). State Workforce, column 6, 501 production. Site: none.
-  - Today: +2 faith
-  - New: +1 faith on every improved hex with a resource (existing shape). `pays` hex with the tests `improved` and `hasResource`.
-  - New: +3 faith on every Holy Site (existing shape). `pays` hex with `improvement: holySite` (a founder belief has the same line).
-- **The Great Library** (revised). Rhetoric, column 6, 501 production. Site: none.
-  - New: +8 science (existing shape). The row field `science`.
-  - New: your Academies gain +2 science for each great scholar you have recruited (small extension). `pays` hex with a count is in the register. A count of great people by family exists for combat lines (`greatPeopleOfFamily`); the pay counts need it.
-  - New: on completion, a great scholar joins you (existing shape). The `greatPerson` grant with `family: scholar` (The Turning Heavens has it).
-- **The Great Stelae of Aksum** (new). The Silk Road, column 6, 501 production. Site: none.
-  - Base: +2 gold a turn (my suggestion).
-  - New: +2 culture, +2 faith on every trade route (existing shape). `pays` with `where: route`, flat. The word "foreign" is gone, so no `crossing` test.
-- **The Terracotta Army** (unchanged). Iron Working, column 6, 501 production. Site: none.
-  - Today: +2 production
-  - Today: +6 combat strength when defending while standing in one of your cities
-  - Today: newly created units in every city with The Terracotta Army gain +2 combat strength
-  - Today: +2 authority capacity
-- **The Forbidden City** (revised). Satrapies, column 7, 657 production. Site: none.
-  - Today: you have one more wildcard chair
-  - Today: +5 authority capacity
-- **The Great Wall** (revised, moves). The Civil Service, column 7, 657 production. Site: none.
-  - Today: +2 production
-  - New: every city: +5 city defence (existing shape). `cityStat` `defense` with the scope `always`.
-  - New: every city can take +25 more punishment (small extension). City hit points are a row field for the row's own city (`cityHp`). `cityStat` has `defense` and `sight` only; it needs a third stat.
-  - New: enemy units in your territory have -1 movement (new shape). No rule changes an enemy's movement. A new rule read in `resetMovement`, with the tile owner field.
-- **Chichen Itza** (revised, moves). Horology, column 8, 860 production. Site: none.
-  - Today: +2 culture, +2 faith
-  - Today: rites last +50% longer
-  - New: cities keeping a rite gain +2 happiness (existing shape). `happiness` for each city with the scope `keepingRite` (Devotion cards have it).
-  - New: cities keeping a rite gain +20% culture (existing shape). `percentYields` with the scope `keepingRite`.
-- **Hagia Sophia** (unchanged). Theology, column 8, 860 production. Site: none.
-  - Today: +3 faith
-  - Today: +1 culture, +1 faith in every city with a Temple
-  - Today: spreads your religion +4 faith to every city within 8 hexes
-  - Today: on completion, a Prophet joins you
-- **The Circus Maximus** (revised). Engineering, column 8, 860 production. Site: none.
-  - Today: +4 happiness
-  - New: +1 happiness for each military building (existing shape). `pays` empire, count `buildingsOfCategory` (military), to happiness. Confirm that the count leaves out wonders.
-- **The Great Mosque of Djenné** (unchanged, moves). Guildhalls, column 8, 860 production. Site: none.
-  - Today: +3 faith
-  - Today: newly created prophets gain +1 charge
-  - Today: newly created apostles gain +1 charge
-  - Today: +1 pantheon slot
+### New wonders
 
-#### Age 4 (5)
+#### The Great Sphinx
 
-- **The House of Wisdom** (unchanged). Scholarship, column 9, 1127 production. Site: none.
-  - Today: +4 science
-  - Today: +50% science in every city with The House of Wisdom
-  - Today: on completion, the technology you are researching is finished
-- **The Oracle Pits of Yin (name open)** (new). Geomancy, column 9, 1127 production. Site: none.
-  - Base: +2 faith a turn (my suggestion).
-  - New: +1 culture for each building that supplies faith (existing shape). `pays` with `basis: count` and the count `buildingsSupplying` (faith); the arm is at `evaluator.ts` 3656.
-  - New: on completion, 5 free rerolls of a draft are yours (small extension). A reroll for faith exists (`rerollOffer`), and a belief hand already has one free reroll. A stock of free rerolls on the player, and a grant that fills it, are new.
-  - Waits on question 27.
-- **Machu Picchu** (revised). Natural Philosophy, column 10, 1477 production. Site: a city next to a mountain.
-  - Today: +2 gold
-  - New: +2 trade routes for your empire (existing shape). The row field `routeSlots`.
-  - New: +1 gold on every hex for each mountain beside it (existing shape). `pays` hex, flat, with `perAdjacentMountain` (in the register in `docs/yields.md`), with no scope: every city.
-- **Notre-Dame** (revised). The Holy Office, column 11, 1934 production. Site: none.
-  - Today: +2 culture
-  - New: +1 happiness for each building that supplies faith (existing shape). `pays` empire, count `buildingsSupplying` (faith), to happiness.
-- **The Alhambra** (revised). Militant Orders, column 11, 1934 production. Site: none.
-  - New: +10 culture (existing shape). The row field `culture`.
-  - New: you have one more Military chair (small extension). `slotRider` opens Wildcard chairs only. Its own note says that a typed chair "earns its own field".
-  - New: on completion, a great general joins you (existing shape). The `greatPerson` grant with `family: general`.
+- Row: `greatSphinx` (new). **The user may still change this name; the row id and name are the only things that would change.**
+- Age 1. Technology: Mining (`mining`), column 1. Size `wonder`, so 130 production.
+- Site rule: none.
+- Base yields: +2 faith a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward scholars (my suggestion, unless a clause below sets it).
+- Effects:
+  - **+1 culture for each building that supplies faith** (existing shape). `pays` with `basis: count` and the count `buildingsSupplying` (faith); the arm is at `evaluator.ts` 3656. Joins `explainCardEmpireYields` (`statecraft/evaluator.ts`).
+  - **on completion, 5 free rerolls of a draft are yours** (small extension). A reroll for faith exists (`rerollOffer`), and a belief hand already has one free reroll. A stock of free rerolls on the player, and a grant that fills it, are new. Joins a new completion grant in `realiseItem`'s grants (`cities.ts`), and a free branch in `explainRerollCost` (`religion.ts`).
+- Note: The user may still change this name; the row id and name are the only things that would change.
+
+#### The Temple of Thoth
+
+- Row: `templeOfThoth` (new).
+- Age 1. Technology: Divination (`divination`), column 2. Size `wonder`, so 170 production. It shares this technology with The Oracle.
+- Site rule: a city beside fresh water.
+- Base yields: +2 faith a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward scholars (my suggestion, unless a clause below sets it).
+- Effects:
+  - **this city gains science equal to half of its faith** (existing shape). `pays` with `where: city` and `basis: share`; the pair is in the register in `docs/yields.md` (step 10). Joins `explainCardCityYields` (`statecraft/evaluator.ts`).
+
+#### The Pyramid of the Sun
+
+- Row: `pyramidOfTheSun` (new).
+- Age 2. Technology: Chronology (`theLongCount`), column 4. Size `wonder`, so 292 production.
+- Site rule: none.
+- Base yields: +2 faith a turn (my suggestion; the user gave none).
+- Renown: +10 on completion and +2 a turn, toward artists (my suggestion, unless a clause below sets it).
+- Effects:
+  - **this city may spend a citizen for faith: 5 faith for each citizen it has** (small extension). The `levy` kind and the levy verb exist (`levies.ts`); its uses are production, muster, opus, conscript, worker, settler, wonder and rite. A `faith` use is new, with the scope `hasBuilding` so that only the wonder's city may use it. It shares the town's levy wait (5 turns) and the smallest town (2 citizens). Confirm that `cardLevyGrants` reads a wonder's effects. Joins `cardLevyGrants` (`statecraft/evaluator.ts`) and the levy verb `levyAt` and `levyOptions` (`levies.ts`).
+  - **+2 culture on every Holy Site** (existing shape). `pays` hex with `improvement: holySite`. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+
+#### Solomon's Temple
+
+- Row: `solomonsTemple` (new).
+- Age 2. Technology: The High Temple (`theHighTemple`), column 5. Size `wonder`, so 382 production.
+- Site rule: none.
+- Base yields: +2 faith and +2 culture a turn (my suggestion; the user gave none).
+- Renown: +10 on completion and +2 a turn, toward scholars (my suggestion, unless a clause below sets it).
+- Effects:
+  - **+1 choice in every great person offer** (existing shape). `offerRider` with `offer: greatPerson`; the arm is at `evaluator.ts` 13169. Joins `cardOfferRule` and the great person offer size (`statecraft/evaluator.ts`, near line 13169).
+  - **great people cost 10% less renown** (existing shape). `rulePercent` with rule `greatPersonCost`; read in `renown.ts` 386. Joins `renownThreshold` (`renown.ts`).
+- Note: The Temple Mount is holy ground to living faiths, which is why I had moved the effect to another name. The user chose the name, and the game's frame is fantasy.
+
+#### The Iron Pillar
+
+- Row: `ironPillar` (new).
+- Age 2. Technology: Siegecraft (`siegecraft`), column 5. Size `wonder`, so 382 production.
+- Site rule: none.
+- Base yields: +2 production a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward engineers (my suggestion, unless a clause below sets it).
+- Effects:
+  - **production buildings produce 50% more of their own yields** (existing shape). `buildingYieldPercent` with `category: production` (a Commerce Order has the same line for gold buildings). Joins `cardBuildingPercents` (`statecraft/evaluator.ts`).
+  - **+1 production on every hex carrying a strategic resource** (existing shape). `pays` hex with the test `resourceKind` (strategic), no scope. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+
+#### The Library of Ashurbanipal
+
+- Row: `libraryOfAshurbanipal` (new).
+- Age 2. Technology: Code of Laws (`kingship`), column 5. Size `wonder`, so 382 production. The Weiyang Palace and The Library of Ashurbanipal share this technology.
+- Site rule: none.
+- Base yields: +2 science a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward scholars (the user's clause) (my suggestion, unless a clause below sets it).
+- Effects:
+  - **+10 renown per turn, favouring scholars** (existing shape). The row's `renown`. Joins a field on the row; no evaluator arm.
+  - **+5 renown per turn, favouring scholars, for each city you captured; +20 if that city holds a wonder** (small extension). The card kind `renown` pays for each city, but it has no scope and no family. It needs both (`captured` and `wonderTown` exist as city scopes). Joins `cardRenownLines` (`statecraft/evaluator.ts`).
+
+#### The Weiyang Palace
+
+- Row: `weiyangPalace` (new).
+- Age 2. Technology: Code of Laws (`kingship`), column 5. Size `wonder`, so 382 production. The Weiyang Palace and The Library of Ashurbanipal share this technology.
+- Site rule: none.
+- Base yields: +2 culture a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward engineers (my suggestion, unless a clause below sets it).
+- Effects:
+  - **+25% production toward buildings in your capital** (existing shape). `productionBonus` with `category: building` and the scope `capital`. Joins `cardProduction` (`statecraft/evaluator.ts`).
+  - **your capital gains +1 culture for each building in it** (existing shape). `pays` city with the count `buildingsInCity` (The Mausoleum has it today), with the scope `capital`. Joins `explainCardCityYields` (`statecraft/evaluator.ts`).
+
+#### The Great Stelae of Aksum
+
+- Row: `greatStelaeOfAksum` (new).
+- Age 3. Technology: The Silk Road (`silkRoad`), column 6. Size `wonder`, so 501 production.
+- Site rule: none.
+- Base yields: +2 gold a turn (my suggestion).
+- Renown: +10 on completion and +2 a turn, toward merchants (my suggestion, unless a clause below sets it).
+- Effects:
+  - **+2 culture, +2 faith on every trade route** (existing shape). `pays` with `where: route`, flat. The word "foreign" is gone, so no `crossing` test. Joins the cards' route lines (`routeYields.ts`; `docs/yields.md` steps 6 and 16).
+
+### Revised wonders
+
+#### The Temple of Artemis
+
+- Row: `templeOfArtemis` (revised).
+- Age 1. Technology: Husbandry, column 1. Size `wonder`, so 130 production.
+- Site rule: none.
+- Effects:
+  - +2 food, +1 faith (in the game today; no change)
+  - +1 food on every hex with a Camp (in the game today; no change)
+  - +1 food on every hex with a Pasture (in the game today; no change)
+  - **+2 happiness** (existing shape). The row field `happiness`. Joins a field on the row; no evaluator arm.
+- Remove from the row: "+1 happiness per improved bonus resource in this city (at most +4 happiness)".
+
+#### The Great Lighthouse
+
+- Row: `greatLighthouse` (revised).
+- Age 1. Technology: Sailing, column 2. Size `wonder`, so 170 production.
+- Site rule: a coastal city.
+- Effects:
+  - +2 gold (in the game today; no change)
+  - +1 gold on every hex with a Fishing Boat (in the game today; no change)
+  - **naval units: +3 combat strength** (existing shape). `combatLine` with a `class` filter on the naval category. Joins `cardCombatLines` (`statecraft/evaluator.ts`).
+  - **naval units: +1 movement** (existing shape). `unitStat` `movement` with the same filter (Chart the Stars has it). Joins `cardUnitStat` (`statecraft/evaluator.ts`).
+- Remove from the row: "all units: +1 movement while embarked"; "every coastal city: +1 city sight"; "+1 trade route".
+- Note: The row's design note about the trade route leaves with the clause.
+
+#### The Oracle
+
+- Row: `theOracle` (revised).
+- Age 1. Technology: Divination (`divination`), column 2. Size `wonder`, so 170 production.
+- Site rule: none.
+- Effects:
+  - +2 culture, +2 faith (in the game today; no change)
+  - +1 card in every Order hand (in the game today; no change)
+  - +1 card in every Doctrine draft (in the game today; no change)
+  - **+3 renown per turn (no kind of great person favoured)** (existing shape). The card kind `renown` carries no family. It replaces the row's `renown.perTurn` of 2. Joins `cardRenownLines` (`statecraft/evaluator.ts`).
+- Remove from the row: "+1 faith in every city with The Oracle".
+
+#### The Pyramids
+
+- Row: `pyramids` (revised).
+- Age 1. Technology: Stonecraft, column 2. Size `wonder`, so 170 production.
+- Site rule: none.
+- Effects:
+  - newly created workers gain +1 charge (in the game today; no change)
+  - **+20% production toward wonders in every city** (existing shape). `productionBonus` with `category: wonder` (the Workshop has it); read at `evaluator.ts` 7415. Joins `cardProduction` (`statecraft/evaluator.ts`).
+- Remove from the row: "+2 production".
+
+#### The Walls of Uruk
+
+- Row: `wallsOfUruk` (revised).
+- Age 1. Technology: Bronzeworking, column 2. Size `wonder`, so 170 production.
+- Site rule: none.
+- Effects:
+  - +2 authority capacity (in the game today; no change)
+  - +50 to how much punishment the city can take (in the game today; no change)
+  - **this city: +10 city defence** (existing shape). `cityStat` `defense` with no scope, as The Great Wall has today. Joins `cardCityStat` (`statecraft/evaluator.ts`).
+  - **+2 combat strength in your own territory** (existing shape). `combatLine` with `ownTerritory`; arms at `evaluator.ts` 7602 and 8544. Joins `cardCombatLines` (`statecraft/evaluator.ts`).
+- Remove from the row: "+2 culture"; "your capital: +10 city defence"; "+4 combat strength inside your capital’s borders".
+
+#### The Great Ziggurat
+
+- Row: `greatZiggurat` (revised).
+- Age 1. Technology: Writing, column 3. Size `wonder`, so 223 production.
+- Site rule: none.
+- Effects:
+  - +2 science, +2 faith (in the game today; no change)
+  - **+2 science in every city with a Shrine** (existing shape). `pays` city, scope `hasBuilding`; the figure changes. Joins `explainCardCityYields` (`statecraft/evaluator.ts`).
+  - **rites cost 30% less faith in this city** (small extension). The rule `riteCost` exists (`religion.ts` 1506) and is read for the empire. It needs the city the rite is started in. Joins `riteCostAhead` (`religion.ts`).
+- Remove from the row: "religious units cost −25% to buy"; "+1 science in every city with a Shrine".
+
+#### The Mausoleum
+
+- Row: `mausoleum` (revised).
+- Age 2. Technology: Currency, column 4. Size `wonder`, so 292 production.
+- Site rule: none.
+- Effects:
+  - **the yields of your great people's improvements are doubled** (new shape). The hex test `greatWork` exists. A line that pays a hex's whole yield again does not: a new option in `explainTileYield`, placed last. Joins a new last line in `explainTileYield` (`yields/hex.ts`).
+  - **+5 renown per turn, favouring engineers** (existing shape). The row's `renown` (family and figure change). Joins a field on the row; no evaluator arm.
+- Remove from the row: "+2 gold"; "+1 gold per building in this city"; "+1 gold on every hex with a Quarry"; "+2 authority capacity".
+
+#### The Statue of Zeus
+
+- Row: `statueOfZeus` (revised, moves to another technology).
+- Age 2. Technology: Bronze Panoply (`bronzePanoply`), column 4. Size `wonder`, so 292 production.
+- Site rule: none.
+- Effects:
+  - +1 culture (in the game today; no change)
+  - **+4 combat strength for all units against cities** (existing shape). `combatLine` with `vsCity`. Joins `cardCombatLines` (`statecraft/evaluator.ts`).
+  - **on completion, 3 of the best melee unit you can build join you** (existing shape). The `unit` grant with `bestMelee`, listed three times. Joins the completion grants in `realiseItem` (`cities.ts`).
+- Remove from the row: "+15% combat strength for all units against cities"; "on completion, the best melee unit you can build joins you".
+
+#### Petra
+
+- Row: `petra` (revised, moves to another technology).
+- Age 2. Technology: Irrigation (`irrigation`), column 5. Size `wonder`, so 382 production.
+- Site rule: a city built on or next to desert.
+- Effects:
+  - +2 gold (in the game today; no change)
+  - **+1 food, +1 production on every desert hex** (existing shape). The same `pays` hex line with its `scope` removed. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+  - **+1 gold on every floodplain hex** (existing shape). The same. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+- Remove from the row: "+1 food, +1 production on every desert hex, in every city with Petra"; "+1 gold on every floodplain hex, in every city with Petra".
+
+#### Angkor Wat
+
+- Row: `angkorWat` (revised, moves to another technology).
+- Age 3. Technology: State Workforce (`stateWorkforce`), column 6. Size `wonder`, so 501 production.
+- Site rule: none.
+- Effects:
+  - +2 faith (in the game today; no change)
+  - **+1 faith on every improved hex with a resource** (existing shape). `pays` hex with the tests `improved` and `hasResource`. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+  - **+3 faith on every Holy Site** (existing shape). `pays` hex with `improvement: holySite` (a founder belief has the same line). Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+- Remove from the row: "+1 faith per 2 hexes worked here"; "a hex costs 25% less to buy".
+
+#### The Great Library
+
+- Row: `greatLibrary` (revised).
+- Age 3. Technology: Rhetoric, column 6. Size `wonder`, so 501 production.
+- Site rule: none.
+- Effects:
+  - **+8 science** (existing shape). The row field `science`. Joins a field on the row; no evaluator arm.
+  - **your Academies gain +2 science for each great scholar you have recruited** (small extension). `pays` hex with a count is in the register. A count of great people by family exists for combat lines (`greatPeopleOfFamily`); the pay counts need it. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+  - **on completion, a great scholar joins you** (existing shape). The `greatPerson` grant with `family: scholar` (The Turning Heavens has it). Joins the completion grants in `realiseItem` (`cities.ts`).
+- Remove from the row: "+3 science"; "+1 science in every city with a Library"; "on completion, the technology you are researching is finished".
+- Note: `docs/wonders.md` lists "a wonder granting a great person directly" as refused. This ruling and The Alhambra's replace that line.
+
+#### The Forbidden City
+
+- Row: `forbiddenCity` (revised).
+- Age 3. Technology: Satrapies, column 7. Size `wonder`, so 657 production.
+- Site rule: none.
+- Effects:
+  - you have one more wildcard chair (in the game today; no change)
+  - +5 authority capacity (in the game today; no change)
+- Remove from the row: "+2 culture".
+
+#### The Great Wall
+
+- Row: `greatWall` (revised, moves to another technology).
+- Age 3. Technology: The Civil Service (`theExaminationHall`), column 7. Size `wonder`, so 657 production.
+- Site rule: none.
+- Effects:
+  - +2 production (in the game today; no change)
+  - **every city: +5 city defence** (existing shape). `cityStat` `defense` with the scope `always`. Joins `cardCityStat` (`statecraft/evaluator.ts`).
+  - **every city can take +25 more punishment** (small extension). City hit points are a row field for the row's own city (`cityHp`). `cityStat` has `defense` and `sight` only; it needs a third stat. Joins `cardCityStat` (`statecraft/evaluator.ts`) and `cityMaxHp` (`combat.ts`).
+  - **enemy units in your territory have -1 movement** (new shape). No rule changes an enemy's movement. A new rule read in `resetMovement`, with the tile owner field. Joins a new rule read where a turn's movement is set (`resetMovement`), with `tileOwnerField`.
+- Remove from the row: "every hex you own exerts zone of control on enemy units, as a unit of yours would"; "this city: +10 city defence"; "+25 to how much punishment the city can take".
+- Note: The `borders` rule then has no row that uses it.
+
+#### Chichen Itza
+
+- Row: `chichenItza` (revised, moves to another technology).
+- Age 3. Technology: Horology (`horology`), column 8. Size `wonder`, so 860 production.
+- Site rule: none.
+- Effects:
+  - +2 culture, +2 faith (in the game today; no change)
+  - rites last +50% longer (in the game today; no change)
+  - **cities keeping a rite gain +2 happiness** (existing shape). `happiness` for each city with the scope `keepingRite` (Devotion cards have it). Joins `cardHappiness` and `cityLocalHappiness` (`statecraft/evaluator.ts`).
+  - **cities keeping a rite gain +20% culture** (existing shape). `percentYields` with the scope `keepingRite`. Joins `explainCardPercentYields` (`statecraft/evaluator.ts`).
+- Remove from the row: "+1 happiness".
+
+#### The Circus Maximus
+
+- Row: `circusMaximus` (revised).
+- Age 3. Technology: Engineering, column 8. Size `wonder`, so 860 production.
+- Site rule: none.
+- Effects:
+  - +4 happiness (in the game today; no change)
+  - **+1 happiness for each military building** (existing shape). `pays` empire, count `buildingsOfCategory` (military), to happiness. Confirm that the count leaves out wonders. Joins `explainCardEmpireYields` (`statecraft/evaluator.ts`).
+- Remove from the row: "+1 happiness per Barracks".
+
+#### Machu Picchu
+
+- Row: `machuPicchu` (revised).
+- Age 4. Technology: Natural Philosophy, column 10. Size `wonder`, so 1477 production.
+- Site rule: a city next to a mountain.
+- Effects:
+  - +2 gold (in the game today; no change)
+  - **+2 trade routes for your empire** (existing shape). The row field `routeSlots`. Joins a field on the row; no evaluator arm.
+  - **+1 gold on every hex for each mountain beside it** (existing shape). `pays` hex, flat, with `perAdjacentMountain` (in the register in `docs/yields.md`), with no scope: every city. Joins the cards' hex lines in `explainTileYield` (`yields/hex.ts`).
+- Remove from the row: "+25% gold in every city with Machu Picchu".
+
+#### Notre-Dame
+
+- Row: `notreDame` (revised).
+- Age 4. Technology: The Holy Office, column 11. Size `wonder`, so 1934 production.
+- Site rule: none.
+- Effects:
+  - +2 culture (in the game today; no change)
+  - **+1 happiness for each building that supplies faith** (existing shape). `pays` empire, count `buildingsSupplying` (faith), to happiness. Joins `explainCardEmpireYields` (`statecraft/evaluator.ts`).
+- Remove from the row: "+1 happiness per Temple"; "+3 culture and +1 happiness in every city with a Cathedral".
+
+#### The Alhambra
+
+- Row: `alhambra` (revised).
+- Age 4. Technology: Militant Orders, column 11. Size `wonder`, so 1934 production.
+- Site rule: none.
+- Effects:
+  - **+10 culture** (existing shape). The row field `culture`. Joins a field on the row; no evaluator arm.
+  - **you have one more Military chair** (small extension). `slotRider` opens Wildcard chairs only. Its own note says that a typed chair "earns its own field". Joins `cardExtraChairs` (`statecraft/evaluator.ts`), `buildingOpensChairs`, `chairCount` and `slotTypesOf` (`statecraft/council.ts`).
+  - **on completion, a great general joins you** (existing shape). The `greatPerson` grant with `family: general`. Joins the completion grants in `realiseItem` (`cities.ts`).
+- Remove from the row: "+3 culture"; "+4 combat strength for mounted units"; "+1 happiness"; "units raised here begin dug in, as if they had already fortified — not built yet".
+- Note: The deferred clause and its row note leave.
+
+### The set by age and technology
+
+| Age | Technology | Wonder | Status |
+|---|---|---|---|
+| 1 | Mining | The Great Sphinx (name may change) | new |
+| 1 | Husbandry | The Temple of Artemis | revised |
+| 1 | Stonecraft | Stonehenge | unchanged |
+| 1 | Sailing | The Great Lighthouse | revised |
+| 1 | Calendar | The Hanging Gardens | unchanged |
+| 1 | Divination | The Oracle | revised |
+| 1 | Stonecraft | The Pyramids | revised |
+| 1 | Divination | The Temple of Thoth | new |
+| 1 | Bronzeworking | The Walls of Uruk | revised |
+| 1 | Writing | The Great Ziggurat | revised |
+| 2 | Currency | The Mausoleum | revised |
+| 2 | Chronology | The Pyramid of the Sun | new |
+| 2 | Bronze Panoply | The Statue of Zeus | revised, moves |
+| 2 | Epic Poetry | The Theatre of Dionysus | unchanged |
+| 2 | Irrigation | Petra | revised, moves |
+| 2 | The High Temple | Solomon's Temple | new |
+| 2 | Wayfinding | The Colossus | unchanged |
+| 2 | Siegecraft | The Iron Pillar | new |
+| 2 | Code of Laws | The Library of Ashurbanipal | new |
+| 2 | Code of Laws | The Weiyang Palace | new |
+| 3 | State Workforce | Angkor Wat | revised, moves |
+| 3 | Rhetoric | The Great Library | revised |
+| 3 | The Silk Road | The Great Stelae of Aksum | new |
+| 3 | Iron Working | The Terracotta Army | unchanged |
+| 3 | Satrapies | The Forbidden City | revised |
+| 3 | The Civil Service | The Great Wall | revised, moves |
+| 3 | Horology | Chichen Itza | revised, moves |
+| 3 | Theology | Hagia Sophia | unchanged |
+| 3 | Engineering | The Circus Maximus | revised |
+| 3 | Guildhalls | The Great Mosque of Djenné | unchanged, moves |
+| 4 | Scholarship | The House of Wisdom | unchanged |
+| 4 | Natural Philosophy | Machu Picchu | revised |
+| 4 | The Holy Office | Notre-Dame | revised |
+| 4 | Militant Orders | The Alhambra | revised |
 
 ### Files that change with the build
 
 | File | What changes |
 |---|---|
-| `data/buildings.json` | The 18 revised rows, 7 new rows, and `retired: true` on `waterClockOfSuSong`. Remove the `note` and `deferred` on The Alhambra and the `note` on The Great Lighthouse. A row carries a `size` and no cost. |
-| `data/techs.json` | The `unlocks.buildings` lists: 7 new wonders, the 6 moves, and The Water Clock off Horology. |
+| `data/buildings.json` | The 18 revised rows, 8 new rows, and `retired: true` on `waterClockOfSuSong`. Remove the `note` and `deferred` on The Alhambra and the `note` on The Great Lighthouse. A row carries a `size` and no cost. |
+| `data/techs.json` | The `unlocks.buildings` lists: 8 new wonders, the 6 moves, and The Water Clock off Horology. |
 | `src/sim/buildingData.ts` | The docblocks name most wonder rows; the grant union if the free-reroll grant is added. |
 | `src/sim/statecraftData.ts`, `statecraft/evaluator.ts`, `statecraft/describers.ts` | The 7 extensions and 2 new shapes. A shape that is declared and never read fails the register test. |
 | `src/sim/levies.ts`, `religion.ts`, `renown.ts`, `statecraft/council.ts`, `yields/hex.ts`, `cities.ts` | The faith levy; the city for `riteCost` and the free rerolls; the scoped renown; the typed chair; the doubled great work; the empire-wide city hit points and the movement rule. |
@@ -1411,24 +1599,23 @@ religious significance?"
 | `test/sim/trade.test.ts`, `test/sim/purchase.test.ts`, `test/sim/cities.test.ts`, `test/sim/empireLinesAtRest.test.ts`, `test/sim/religion.test.ts` | The Great Lighthouse's trade route, The Great Ziggurat's purchase rider, The Mausoleum's and Petra's gold, Chichen Itza's rites. |
 | `test/ui/cityModifiers.test.ts`, `test/ui/ledgerScreen.test.ts`, `test/ui/meterBreakdown.test.ts`, `test/ui/cityPanelGlance.test.ts` | They use Machu Picchu's gold percent, The Circus Maximus's happiness and Chichen Itza as fixtures. |
 | The many tests that name `pyramids` or `theOracle` | About 45 files use them as a handy wonder. Most ask only that a wonder exists; those that read The Pyramids' +2 production or The Oracle's +1 faith will fail. `test/sim/forbiddenCityChair.test.ts` and `test/sim/aiWonderRewards.test.ts` read The Forbidden City, whose chair does not change. |
-| `data/wagers.json` | No change. "The Wonder of the Age" needs three wonders of the age; every age then has five or more. |
+| `data/wagers.json` | No change. "The Wonder of the Age" needs three wonders of the age; every age then has four or more. |
 
-### Not confirmed
+### Checks for the builder (things this review did not confirm)
 
-- The counts `buildingsSupplying` and `buildingsOfCategory` walk every building a town holds, wonders included. So Notre-Dame and The Oracle Pits of Yin count the wonders that supply faith, and The Circus Maximus counts the four military wonders. I read the first count's code and not the second's.
-- Whether `cardLevyGrants` reads the effects of a wonder. If it reads Orders only, The Pyramid of the Sun needs that too.
-- Whether a row's `renown` may have no family (The Oracle). If it may not, use the card kind `renown`.
-- The exact filter for ships on a `combatLine` and a `unitStat` (The Great Lighthouse).
-- Which drafts faith can reroll today (The Oracle Pits of Yin).
-- The size of The Library of Ashurbanipal's renown and of Machu Picchu's mountain gold in every city. Both need a game run.
-- The history in the candidates is from my own knowledge. I ran no web check, and I named a source game only where I am sure of it.
+- **Do empire-level kinds on a wonder row reach their reader?** `cardLevyGrants` and `cardOfferRule` walk `effectsOfKind`. The Forbidden City's chair needed its own reader (`buildingOpensChairs`), so check that a wonder's `levy`, `offerRider`, `rulePercent`, `renown` and `buildingYieldPercent` effects are in that walk. The Oracle's `offerRider` works today, which suggests they are.
+- **Do the counts include wonders?** `buildingsSupplying` walks every building a town holds, wonders included. So Notre-Dame and The Great Sphinx count the wonders that supply faith. Check that `buildingsOfCategory` does the same for The Circus Maximus (four wonders are in the military category), and decide if that is wanted.
+- **The Oracle's renown.** If a row's `renown` must name a family, use the card kind `renown` (it has none) for the +3 and set the row's `perTurn` to 0.
+- **The ship filter.** Chart the Stars prints "ships: +1 movement". Use the same `class` filter for both of The Great Lighthouse's clauses.
+- **Rerolls.** Check which drafts faith can reroll (`rerollKindFor` names order, doctrine, belief and great person). The free stock must not raise the price of the next paid reroll.
+- **The faith levy.** It shares the town's levy wait (`rules.cities.levy.everyTurns`, 5) and the smallest town (2 citizens). The faith is five times the city's citizens, counted before the citizen is spent (my reading; say so in the describer).
+- **The doubled great works.** The user asked for the doubling "after all other bonuses". Here that means the last line on the hex, before the city's and the empire's percentages, so that the two-stage rule (Entry XVII) stays whole. It reaches all six works (Academy, Landmark, Manufactory, Customs House, Citadel, Holy Site).
+- **The Great Wall.** After the change no row uses the rule `borders` (`pathfind.ts`, `combat.ts`, `data/view3d.json` still name it). "Enemy" means an empire at war with you, and the wild. A unit never falls below 1 movement.
+- **The Alhambra's chair.** `CardSlotRiderEffect`'s own docblock explains why a typed chair is not there yet: a chair added in the middle renumbers positions. Add the Military chair at the end of the council.
+- **Base yields and renown families** of the eight new wonders are suggestions of this review. The user gave none.
+- This review ran no test. The shapes were checked by reading types and evaluator arms.
 
-## The user's fourth round of comments (2026-11-19)
+### Two numbers to watch in a playtest
 
-| On | The user's comment | Result |
-|---|---|---|
-| The Weiyang Palace | "Great, go with this one." | Accepted for age 2. The other four candidates (The Ishtar Gate, The Apadana, The Great Stupa, The Parthenon) have no comment and are rejected. |
-| Question 27, a building for The Oracle Pits of Yin | "find an age 1 wonder that fits the theme, it doesn't have to be chinese." | The effect moves to a famous age 1 structure of any culture. The name "The Oracle Pits of Yin" leaves. |
-| Question 26, technologies | "sounds good. Don't change pyramids, it was on stonecraft before, no?" | The recommended technologies stand, except that The Pyramids stays on Stonecraft (it is on Stonecraft today). |
-| Question 24, The Iron Pillar | "Yes, go with recommendation" | Every building of the production category; every hex of yours with a strategic resource you can see, improved or not. |
-| Question 21, The Pyramid of the Sun | "only the city with the wonder" | Only the city that holds the wonder may levy for faith. |
+- **The Library of Ashurbanipal's renown.** +10 a turn, +5 for each captured city, +20 if that city holds a wonder. Three captured cities, one with a wonder, give 40 renown a turn. Other wonders give 1 or 2.
+- **Machu Picchu's mountain gold in every city.** +1 gold on every hex for each mountain beside it, in the whole empire. On a map with many mountains this may be the largest gold source in the game.
