@@ -50,8 +50,8 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = ON
   // The six works of the great people (`build_northstar_great_works.py`).
   ...(Object.keys(NORTH_STAR_GREAT_WORKS as Record<string, string>).length ? [['Great works', Object.values(NORTH_STAR_GREAT_WORKS as Record<string, string>)] as const] : []),
   ['Works', ['ns-mine', 'ns-quarry', 'ns-barn', 'ns-haystack', 'ns-windmill', 'ns-windmill-sails', 'ns-sheaf', 'ns-logs', 'ns-stall']],
-  // The works of the earlier ages (`NORTH_STAR_WORK_AGES`): the farm's, the mine's, the quarry's, the pasture's and the lumber camp's.
-  ['Works of the earlier ages', NORTH_STAR_AGED_WORK_ASSETS as string[]],
+  // These working buildings change with the owner's age.
+  ['Working buildings by age', NORTH_STAR_AGED_WORK_ASSETS as string[]],
 ];
 
 function releaseKit(kit: VegetationKit | undefined): void {
@@ -133,7 +133,8 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
         mesh.setMatrixAt(0, new Matrix4()); mesh.setColorAt(0, ground); pivot.add(mesh);
       } else pivot.add(new Mesh(geometry, assets.material));
       const box = new Box3().setFromBufferAttribute(geometry.getAttribute('position') as never);
-      const label = element('span', 'painted-works-label', i === 0 ? `${rowLabel}: ${name}` : name); overlay.append(label);
+      const caption = name === 'ns-stable' ? 'Pasture shelter, Ages III and IV' : name;
+      const label = element('span', 'painted-works-label', i === 0 ? `${rowLabel}: ${caption}` : caption); overlay.append(label);
       pieces.push({ pivot, label, at: new Vector3(x, Math.min(0, box.min.y), z + .55) });
     }));
     status.textContent = `${NORTH_STAR_TOWN_ASSETS.length + NORTH_STAR_WORK_ASSETS.length} new models, the three monuments and the ${RANGES.length} mountains with their saddles, at their authored sizes.`;

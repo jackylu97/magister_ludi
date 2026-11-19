@@ -23,7 +23,7 @@ import type { YieldLightKind } from '../render3d/paintedYieldLight';
 import type { ImprovementId } from '../sim/improvementData';
 import { createMap, getTileAt, type Tile } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
-import { bumpRevision, createUnit, newGame } from '../sim/state';
+import { bumpRevision, createUnit, newGame, type GameState } from '../sim/state';
 import { TECH_IDS, techDef } from '../sim/techData';
 import type { TerrainId } from '../sim/terrainData';
 import type { UnitTypeId } from '../sim/unitData';
@@ -81,6 +81,12 @@ export const SCENE_RICHNESS: readonly [col: number, row: number, kind: YieldLigh
   // Two hexes with two yields each: food with gold, and production with science.
   [14, 3, 'food', 3, 'gold'], [14, 2, 'production', 2, 'science'],
 ];
+
+/** Both fixtures use the owner's research to select the models shown on the board. */
+export function setSceneAge(state: GameState, age?: number): void {
+  for (const player of state.players) player.techsResearched = TECH_IDS.filter(id => age === undefined || techDef(id).age <= age);
+  bumpRevision(state);
+}
 
 /**
  * The scene's world. A fixture, never a saved game.
@@ -221,8 +227,7 @@ export function createSceneFixture(age?: number) {
   }
   state.tileOwner[8 * WIDTH + 7] = null;
 
-  for (const player of state.players) player.techsResearched = TECH_IDS.filter(id => age === undefined || techDef(id).age <= age);
-  bumpRevision(state);
+  setSceneAge(state, age);
 
   // One piece of each kind, and a ship on the coast.
   const pieces: [number, number, UnitTypeId, number][] = [
@@ -317,8 +322,7 @@ export function createWorksFixture(age?: number) {
   const town = foundCityAt(state, 0, tile(W.town[0], W.town[1]));
   town.population = 5;
   state.tileOwner.fill(town.id);
-  for (const player of state.players) player.techsResearched = TECH_IDS.filter(id => age === undefined || techDef(id).age <= age);
-  bumpRevision(state);
+  setSceneAge(state, age);
   for (const levels of state.visibility) levels.fill(VISIBLE);
   return state;
 }

@@ -86,19 +86,18 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('the north-star town', () => {
       town.byAge = true;
       const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
       const ages = NORTH_STAR_TOWN_AGES as { houses: string[]; centre: string }[];
-      expect(ages.map(age => age.centre)).toEqual(['ns-great-hut', 'ns-great-house', 'ns-hall-3']);
+      expect(ages.map(age => age.centre)).toEqual(['ns-great-hut', 'ns-great-house', 'ns-hall-3', 'ns-hall-4']);
       for (const age of [1, 2, 3, 4]) {
         f.state.players[0]!.techsResearched = TECH_IDS.filter(id => techDef(id).age <= age && techDef(id).charter !== true);
         f.build();
-        const entry = ages[Math.min(3, age) - 1]!;
+        const entry = ages[age - 1]!;
         const pieces = f.layer.placements.filter(p => p.cityId === f.city.id);
         expect(pieces.filter(p => p.kind === 'civic').map(p => p.asset), `age ${age}`).toEqual([entry.centre]);
         for (const house of pieces.filter(p => p.kind === 'house')) expect(entry.houses, `age ${age}`).toContain(house.asset);
         // No hall, and no tiled house, stands in a town of the first two ages.
         if (age < 3) for (const piece of pieces) expect(piece.asset).not.toMatch(/^ns-hall/);
       }
-      // Ages 3 and 4 share one look, so the town is not cut again between them.
-      expect(ages).toHaveLength(3);
+      expect(ages).toHaveLength(4);
     } finally { town.byAge = byAge; }
   });
 
