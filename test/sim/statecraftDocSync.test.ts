@@ -158,6 +158,7 @@ describe('the orders and doctrines doc mirrors the data', () => {
     }
     for (const effect of orderDef(id).effects) {
       switch (effect.kind) {
+        case 'cardTypeAmplifier':
         case 'cardYieldAmplifier':
         case 'slotPosition':
         case 'periodShorten':

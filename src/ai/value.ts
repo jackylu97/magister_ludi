@@ -315,6 +315,7 @@ import {
   type GroundFacts,
   // Batch G1: the kinds a tier-26 government raises, so its price reads them.
   CARD_TYPE_RAISED_KINDS,
+  cardTypeAmplifierMatches,
   cardActionRule,
   cardCollectionShare,
   cardRareWeight,
@@ -345,6 +346,7 @@ import {
   isLineAbroadRow,
   // Batch K2: the one walk for "does this scope name X".
   scopeAsks,
+  yieldAmplifierReads,
   heldReligions,
   buildingPassesTest,
   isCityScopedCount,
@@ -2203,6 +2205,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
     // appraised in isolation cannot see the deck it would be drafted into, and
     // the marginal reading `V(deck ∪ card) − V(deck)` is batch F2's.
     case 'cardYieldAmplifier': {
+      if (effect.reads === 'buildingOrders' || effect.reads === 'capitalCards') {
+        return targetedYieldAmplifierWorth(effect, ctx);
+      }
       const each = (effect.amount ?? 0) + ((effect.percent ?? 0) / 100) * nominal;
       if (each === 0) return 0;
       // The amplifier's **own** scope, beside the amplified lines' (batch X2):
@@ -4815,6 +4820,19 @@ function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
     for (const effect of orderDef(slot.card).effects) list.push(effect);
   }
   return list;
+}
+
+/** Price the current lines that the building or capital selector would raise. */
+function targetedYieldAmplifierWorth(
+  amplifier: Extract<CardEffect, { kind: 'cardYieldAmplifier' }>,
+  ctx: ValueContext,
+): number {
+  let worth = 0;
+  for (const { card, effect } of liveEffects(ctx.state, ctx.playerId)) {
+    if (!yieldAmplifierReads(amplifier, card, effect)) continue;
+    worth += Math.max(0, scoreEffects([effect], ctx, card));
+  }
+  return ((amplifier.percent ?? 0) / 100) * worth;
 }
 
 /**
@@ -13176,7 +13194,7 @@ export function orderReadAgain(id: OrderId, ctx: ValueContext): number {
  * **What a card-type amplifier is worth** (batch G1, the tier-26 governments):
  * its share of what this seat's seated cards of the type are worth, over the
  * kinds the rise reaches (`CARD_TYPE_RAISED_KINDS`, the evaluator's own list).
- * A card counts as the simulation counts it (`countedTypeOf`, in its chair).
+ * The Personal Union selects seated Orders by membership in two decks.
  *
  * Three stated readings. The rise of a small figure is at least one, and this
  * reads the plain share, so a small card is under-read. A clause inside a
@@ -13192,11 +13210,15 @@ function cardTypeAmplifierWorth(
   const sc = statecraftOf(ctx.state, ctx.playerId);
   if (sc === undefined) return 0;
   const layout = slotTypesOf(sc);
+  const live = effect.shared === true ? liveEffects(ctx.state, ctx.playerId) : undefined;
   let worth = 0;
   sc.slots.forEach((slot, index) => {
     if (slot === null || !isOrderId(slot.card)) return;
-    if (countedTypeOf(slot.card, layout[index] ?? 'wildcard') !== effect.type) return;
-    const lines = orderDef(slot.card).effects.filter((held) => CARD_TYPE_RAISED_KINDS.includes(held.kind));
+    if (!cardTypeAmplifierMatches(effect, slot.card, layout[index] ?? 'wildcard')) return;
+    const effects = live === undefined
+      ? orderDef(slot.card).effects
+      : live.filter(({ card }) => card === slot.card).map((entry) => entry.effect);
+    const lines = effects.filter((held) => CARD_TYPE_RAISED_KINDS.includes(held.kind));
     if (lines.length > 0) worth += scoreEffects(lines, ctx, slot.card);
   });
   return (effect.percent / 100) * worth;

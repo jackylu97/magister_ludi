@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 7 | 0 | 3 | 10 | 6 | 2 | 2 |
-| Tier II | 6 | 0 | 2 | 8 | 4 | 2 | 2 |
+| Tier I | 8 | 0 | 2 | 10 | 6 | 2 | 2 |
+| Tier II | 8 | 0 | 0 | 8 | 4 | 2 | 2 |
 | Tier III | 4 | 0 | 4 | 8 | 2 | 4 | 2 |
 | Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **29** | **0** | **10** | **39** | **22** | **9** | **8** |
+| **All** | **32** | **0** | **7** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -61,7 +61,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The Brick Kilns** | uncommon | implemented | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | Civic | Scaler | G1-6 |
 | **Commission: The Land Register** | uncommon | implemented | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
 | **The Liturgies** | common | implemented | On draft: every town gains production equal to ten times its citizens. | Economic | Boon | G1-9 |
-| **The Builders' Lodge** | rare | add | Orders that add yields to buildings pay double. | Wildcard |  | G1-10 |
+| **The Builders' Lodge** | rare | implemented | Orders that add yields to buildings pay double. | Wildcard |  | G1-10 |
 | **The Founders' Rights** | rare | implemented | +3 authority. Cities you found start with one extra citizen. | Civic |  | G1-11 |
 
 ## Tier II
@@ -74,8 +74,8 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The Learned Embassy** | common | implemented | On draft: gain science equal to eight turns of your science. | Civic | Boon | G2-4 |
 | **The Royal Annals** | uncommon | implemented | +4% production and gold for each commission you have fulfilled this game, at most +28%. | Economic |  | G2-5 |
 | **Commission: The Building Programme** | uncommon | implemented | Goal: finish 12 buildings. Reward: every town gains +10% production. | Wildcard | Commission | G2-6 |
-| **The Summer Palace** | rare | add | Cards that pay your capital pay 50% more. | Wildcard |  | G2-7 |
-| **The Personal Union** | rare | add | Cards that belong to two decks pay 50% more. | Wildcard |  | G2-8 |
+| **The Summer Palace** | rare | implemented | Cards that pay your capital pay 50% more. | Wildcard |  | G2-7 |
+| **The Personal Union** | rare | implemented | Cards that belong to two decks pay 50% more. | Wildcard |  | G2-8 |
 
 ## Tier III
 
@@ -98,6 +98,17 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The Last Walls** | common | implemented | The town raising your Magnum Opus gains +15 defence. | Military |  | G4-2 |
 | **The Great Raising** | rare | add | On draft: every town finishes what it is building. Not wonders. | Wildcard | Boon | G4-3 |
 | **The Settled Realm** | common | implemented | Every town gains +2 happiness. | Civic |  | G4-4 |
+
+## How these Orders raise payments
+
+- The Builders' Lodge doubles yield lines from Orders that require or count buildings in a town.
+  For example, it adds another +20% production where Enduring Institutions applies.
+- The Summer Palace adds half to recurring payments that Orders and Doctrines direct to the capital.
+  Under The Two Capitals, each eligible town gets an extra half of its own payment.
+- The Personal Union raises eligible payments from seated Orders that belong to two decks.
+  If a government raises the same Order, add the percentages before rounding the increase.
+- Each bonus reads the original payment and appears in the breakdown. The bot estimates the
+  value from the payments available under the current council.
 
 ## To tune in playtest
 
@@ -124,7 +135,6 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 ## Open for your pass
 
 - **The Good Years** needs a multiplier for the positive happiness bonus. The current effect adds the same number of points at both bonus levels.
-- **The Summer Palace** needs a card effect that raises payments directed to the capital.
 - **The Office of Works** uses the same grant as The Wandering Muse. If a great-person offer is waiting, the game banks the renown needed for the current threshold. After the pending pick raises that threshold, the next offer can require more renown. The later offer follows the normal family rules.
 
 - **Ruled 2026-11-19.** The Summer Palace reads “Cards that pay your capital pay 50% more.” The user said “summer palace pay 50% more is fine.”

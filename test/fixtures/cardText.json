@@ -10132,6 +10132,24 @@
     "raw": "+1 faith and +1 culture in every city while it is building a wonder, a [[building:cathedral|Cathedral]] or [[building:theMagnumOpus|The Magnum Opus]] per 10% of the current build already done there",
     "text": "+1 faith and +1 culture in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there"
    }
+  ],
+  "theBuildersLodge": [
+   {
+    "raw": "Orders that add yields to buildings pay double",
+    "text": "Orders that add yields to buildings pay double"
+   }
+  ],
+  "theSummerPalace": [
+   {
+    "raw": "Cards that pay your capital pay 50% more",
+    "text": "Cards that pay your capital pay 50% more"
+   }
+  ],
+  "thePersonalUnion": [
+   {
+    "raw": "Cards that belong to two decks pay 50% more",
+    "text": "Cards that belong to two decks pay 50% more"
+   }
   ]
  },
  "belief": {

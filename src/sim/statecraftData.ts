@@ -10014,10 +10014,8 @@ export interface CardUpkeepRebateEffect {
  *     name which town they landed in, and a second scope on one fold would be two
  *     answers to one question.)
  *
- * `scope: { test: 'capital' }` is the ruled capital engine — *"yields to your
- * capital from Orders are 50% more effective"* — and needs nothing of its own:
- * the seat of government is an ordinary `CityScope`, so the row says where and
- * the one evaluator answers.
+ * The building and capital selectors read the original effect of each line.
+ * This lets a card pay a separate bonus on one of another card's effects.
  */
 interface CardYieldAmplifierEffect {
   kind: 'cardYieldAmplifier';
@@ -10030,12 +10028,13 @@ interface CardYieldAmplifierEffect {
   /** Which towns the amplified line must land in. Absent means everywhere. */
   scope?: CityScope;
   /**
-   * **Whose lines are raised.** Absent reads your Orders' lines, which is what
-   * every row before The Doctors of the Church meant. `'followerBeliefs'` reads
-   * the follower beliefs' town lines instead (never their hex lines), in your
-   * own towns only, since that is the only place their lines reach your fold.
+   * Which lines receive the bonus. The default selects Order yield lines.
+   * `followerBeliefs` selects local belief flat yields. `buildingOrders` selects
+   * yield lines from Orders that require or count buildings in a town.
+   * `capitalCards` selects recurring payments that Orders and Doctrines
+   * direct to a capital.
    */
-  reads?: 'followerBeliefs';
+  reads?: 'followerBeliefs' | 'buildingOrders' | 'capitalCards';
   /**
    * **Only on hexes where this holds** (Expansionist batch E3, The Age of
    * Improvement's improved hexes).
@@ -10232,18 +10231,19 @@ interface CardSlotPositionEffect {
  * tier-18 counts take). A card off its chair (Scutage) and a fulfilled
  * commission's lasting reward are not seated, so they are not raised.
  *
- * Two rows that name the same type add their percentages before the rise is
- * taken once. A cost (a figure below nought) is not raised, because a larger
+ * Matching rows add their percentages before the rise is taken once. The
+ * shared Order selector matches any seated Order that names two decks. A cost (a figure below nought) is not raised, because a larger
  * cost is not a stronger card. A row with a percentage of nought or less raises
  * nothing.
  */
-interface CardTypeAmplifierEffect {
+type CardTypeAmplifierEffect = {
   kind: 'cardTypeAmplifier';
-  /** Which type of seated card is raised. */
-  type: ChairType;
   /** How much larger each number is, in whole percent. */
   percent: number;
-}
+} & (
+  | { type: ChairType; shared?: never }
+  | { shared: true; type?: never }
+);
 
 /**
  * **Every so many turns, a boon** — the periodic occasion of

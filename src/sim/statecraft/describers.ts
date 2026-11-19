@@ -4039,6 +4039,15 @@ function describeEffect(
       return;
     }
     case 'cardYieldAmplifier': {
+      if (effect.reads === 'buildingOrders') {
+        const increase = effect.percent === 100 ? 'pay double' : `pay ${effect.percent ?? 0}% more`;
+        out.push({ text: `Orders that add yields to buildings ${increase}` });
+        return;
+      }
+      if (effect.reads === 'capitalCards') {
+        out.push({ text: `Cards that pay your capital pay ${effect.percent ?? 0}% more` });
+        return;
+      }
       // Two sentences, because the two dials say different things: the flat is
       // "one more, on every line the other cards pay" and the share is "worth
       // half again". A row carrying both prints both, in that order.
@@ -4252,6 +4261,10 @@ function describeEffect(
       });
       return;
     case 'cardTypeAmplifier': {
+      if (effect.shared === true) {
+        out.push({ text: `Cards that belong to two decks pay ${effect.percent}% more` });
+        return;
+      }
       // Batch G1, the tier-26 governments. A Military card is said to be
       // stronger, because its numbers are mostly strength; the other types pay.
       const type = SLOT_WORDS[effect.type];
