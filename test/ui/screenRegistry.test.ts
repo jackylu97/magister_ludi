@@ -221,6 +221,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['starChart', 'screen'],
   ['abacus', 'screen'],
   ['statecraft', 'screen'],
+  // In play (stage 3 of the Council and In play board): everything in force.
+  ['inPlay', 'screen'],
   // `rewards` (the reward sheet) left the register with the reward hands in
   // batch C3.
   ['religion', 'screen'],
@@ -421,13 +423,15 @@ describe('main.ts keeps no hand-written close lists', () => {
     // What is left: a card closing under its own row (the menu's Compendium and
     // tutorial rows, the controls card's link, a lens picked); a sheet stepping
     // aside for the offer it raises (Statecraft's charter, the Reliquary's
-    // call); and the four letter keys closing the sheet they opened (S, for
-    // the standings, since batch SS2b).
+    // call); and the five letter keys closing the sheet they opened (S, for
+    // the standings, since batch SS2b; I, for In play, since stage 3 of the
+    // Council and In play board).
     const closes = [...code.matchAll(/([\w.]+)\??\.close\(\);/g)].map((match) => match[1]!);
     expect(closes.sort()).toEqual(
       [
         'diplomacy',
         'help',
+        'inPlay',
         'lens',
         'menu',
         'menu',

@@ -79,6 +79,7 @@ import {
   prophetGlance,
   quickLabel,
   quickTitle,
+  inPlayDoorWords,
   researchGlance,
   researchNextWords,
   researchRateWords,
@@ -688,8 +689,12 @@ describe('the greyed doors (batch SS9a)', () => {
 
 describe('the marks’ names and keys', () => {
   it('names each mark and its key in its title and accessible name, in the board’s order', () => {
-    expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
-    expect(QUICK_BUTTONS.map((name) => QUICK_NAMES[name].key)).toEqual(['W', 'E', 'H', 'S']);
+    // In play is the fifth (stage 3 of the Council and In play board, frame D1).
+    expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'inPlay', 'standings']);
+    expect(QUICK_BUTTONS.map((name) => QUICK_NAMES[name].key)).toEqual(['W', 'E', 'H', 'I', 'S']);
+    expect(quickTitle('inPlay', inPlayDoorWords({ count: 9, fresh: true }))).toBe(
+      'In play (I): 9 pieces in force, something new has arrived',
+    );
     expect(quickTitle('standings')).toBe('Standings (S)');
     expect(quickTitle('routes', 'Trade: 1 of 3 routes running')).toBe('Routes (E): Trade: 1 of 3 routes running');
     expect(quickLabel('diplomacy')).toBe('Diplomacy. Opens the Diplomacy sheet (W)');
@@ -752,7 +757,7 @@ describe('the markup', () => {
   });
 
   it('gives each mark its sheet, in the board’s order, with the name and key its open row shows', () => {
-    const controls = ['diplomacy-overlay', 'trade-overlay', 'religion-overlay', 'victory-overlay'];
+    const controls = ['diplomacy-overlay', 'trade-overlay', 'religion-overlay', 'inplay-overlay', 'victory-overlay'];
     let from = 0;
     QUICK_BUTTONS.forEach((name, at) => {
       const start = quick.indexOf(`id="quick-${name}"`);
@@ -764,7 +769,7 @@ describe('the markup', () => {
       expect(button, name).toContain(`<span class="quick-name">${QUICK_NAMES[name].name}</span>`);
       expect(button, name).toContain(`>${QUICK_NAMES[name].key}</kbd>`);
     });
-    for (const id of ['quick-routes-figure', 'quick-faith-figure', 'quick-faith-note', 'quick-faith-line']) {
+    for (const id of ['quick-routes-figure', 'quick-faith-figure', 'quick-faith-note', 'quick-faith-line', 'quick-inPlay-figure']) {
       expect(quick, id).toContain(`id="${id}"`);
     }
   });
@@ -862,7 +867,8 @@ describe('the stylesheet', () => {
     expect(css).toContain('.empire-line:hover .empire-line-title,\n.empire-line:hover .empire-line-arrow {\n  text-decoration-color: var(--ink);');
     expect(rule('.empire-bar.is-research .empire-bar-fill')).toContain('var(--lapis)');
     expect(rule('.empire-bar.is-draft .empire-bar-fill')).toContain('var(--grape)');
-    expect(rule('.empire-quick')).toContain('grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 44px;');
+    // Five marks since In play joined (stage 3): its door is wide enough for its count.
+    expect(rule('.empire-quick')).toContain('grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 54px 44px;');
     expect(rule('.quick-figure.is-free')).toContain('color: var(--teal);');
     expect(rule('.quick-figure.is-met')).toContain('color: var(--y-faith);');
     expect(rule('.quick-line')).toContain('height: 2px;');
@@ -959,7 +965,15 @@ describe('the panel’s own wiring', () => {
   it('opens each mark’s own screen, unless the door is greyed', () => {
     expect(drawer).toContain('if (gate !== null) options.onGreyed?.(stripRefs(gate.line));');
     expect(drawer).toContain('else options.openQuick[name]();');
-    expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'standings']);
+    expect(QUICK_BUTTONS).toEqual(['diplomacy', 'routes', 'faith', 'inPlay', 'standings']);
+  });
+
+  it('paints the In play mark’s count and dot from its own reading, and again alone when the dot goes', () => {
+    const paint = braceBody(drawer, 'function paintInPlay(');
+    expect(paint).toContain('const inPlay = options.inPlay?.() ?? null;');
+    expect(paint).toContain("quick.inPlay.classList.toggle('is-owed', inPlay?.fresh === true);");
+    expect(braceBody(drawer, 'function paintQuick(')).toContain('paintInPlay();');
+    expect(drawer).toContain('refreshInPlay: paintInPlay,');
   });
 
   it('binds every listener to one controller that dispose aborts', () => {

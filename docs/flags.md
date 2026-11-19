@@ -3002,3 +3002,24 @@ good to proceed."
   closest zoom. Behind a switch.
 - The test path is on branch `worktree-agent-a61bfcdb3b66ab6f8` (`99744c63`).
 - Stage 3 (a coarser plain land) and stage 4 wait for the result.
+
+## The frame of the game: a cabal of magisters from the whole world (2026-11-19)
+
+The user, while reviewing the wonder proposals:
+
+> "lets go with wonders that are not solely european, i want a diverse set
+> from other cultures"
+
+> "lets assume the game is set in a fantasy world where all the magisters
+> from around the world are playing this game, in some kind of mystical
+> cabal"
+
+- The players are magisters from every part of the world, joined in a
+  mystical cabal. The frame is fantasy, not Renaissance Europe.
+- A wonder, leader, card or name may come from any culture's own tradition of
+  hidden knowledge. It does not need to be something Renaissance Europe knew.
+- This is a frame for new content (the wonder proposals first, then the design
+  pass on leaders and deck polish). It does not order a rewrite of existing
+  text.
+- Player-facing words stay plain (hard rule 7). The frame changes subjects and
+  names, not the register.

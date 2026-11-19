@@ -1,0 +1,1127 @@
+/*
+ * **In play** (`inPlayScreen.ts`), stage 3 of the approved Council and In play
+ * board (`docs/plans/mockups/scholars-study/council-and-in-play/`, frames I1 to
+ * I5 and IH). The values are the board's at 1440 by 900: the head 46 px; the
+ * left column 214 px; five stacks 206 px wide, 28 px apart; each tucked edge
+ * 206 by 46 px, laid 4 px over the one above it.
+ *
+ * Full screen on the dark cloth, as the Council screen is. It stays on the
+ * shared frame (`modalShell.ts`, `.statecraft-overlay`): every rule here is
+ * under the overlay's id or an `ip-` class, and none is set on
+ * `.statecraft-sheet`. The government column and the totals line wear the
+ * Council screen's own classes (`statecraftScreen.css`).
+ *
+ * Happiness and authority are in the ink of the text, on the cloth and on the
+ * paper (the ruling of 2026-11-18); the six yields wear their own inks.
+ */
+
+/* --- the frame: the whole window ---------------------------------------- */
+
+#inplay-overlay {
+  place-items: stretch;
+  padding: 0;
+  background: var(--lampblack);
+}
+
+#inplay-overlay .inplay-sheet {
+  --fg: rgba(247, 242, 225, 0.92);
+  --fg2: rgba(247, 242, 225, 0.6);
+  --council-gilt: rgba(232, 195, 94, 0.9);
+  --ip-paper: radial-gradient(120% 90% at 30% 15%, #fcf7e7, #f8f1dc 55%, #efe4c6);
+  --ip-shadow: 3px 3px 0 #0e0c10;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  padding: 0 24px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(130% 110% at 50% 0, #2b2631, var(--lampblack) 55%, #161318);
+  box-shadow:
+    inset 0 0 0 4px var(--lampblack),
+    inset 0 0 0 5px rgba(200, 144, 31, 0.55);
+  color: var(--fg);
+  animation: offer-fade 160ms ease-out both;
+}
+
+#inplay-overlay .inplay-sheet :focus-visible {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 2px;
+}
+
+/* --- the head ------------------------------------------------------------- */
+
+#inplay-overlay .statecraft-head {
+  position: relative;
+  z-index: 2;
+  align-items: center;
+  flex: none;
+  gap: 16px;
+  height: 46px;
+  padding: 0;
+  border-bottom: 1px solid rgba(200, 144, 31, 0.45);
+}
+
+#inplay-overlay .statecraft-head-titles {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+#inplay-overlay .statecraft-title {
+  margin: 0;
+  color: var(--parchment);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#inplay-overlay .statecraft-title::first-letter {
+  color: var(--vermilion-lit);
+}
+
+#inplay-overlay .statecraft-hint {
+  display: none;
+}
+
+.ip-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--y-gold-lit);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ip-link > span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+/* The totals are buttons here: a click shows where a figure comes from. */
+.ip-total {
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ip-total.is-on {
+  border-bottom-color: var(--y-gold-lit);
+}
+
+#inplay-overlay .statecraft-close.council-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 28px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: rgba(247, 242, 225, 0.72);
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  font-weight: 500;
+}
+
+.ip-readonly {
+  position: absolute;
+  top: 50px;
+  right: 2px;
+  color: rgba(239, 230, 205, 0.45);
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  white-space: nowrap;
+}
+
+/* --- the cloth ------------------------------------------------------------ */
+
+#inplay-overlay .inplay-body {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ip-cloth {
+  display: flex;
+  gap: 26px;
+  height: 100%;
+  padding-top: 24px;
+  overflow: hidden auto;
+}
+
+.ip-left {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 18px;
+  width: 214px;
+}
+
+.ip-gov {
+  --council-gov-w: 200px;
+  width: 200px;
+  margin-left: 6px;
+}
+
+.ip-gov .council-gov-card,
+.ip-gov .council-tuck {
+  cursor: pointer;
+}
+
+/* The leader's crest: a pennant with the seat's charge, the name, each ability and its figure. */
+.ip-crest {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 104px;
+  padding: 7px 10px 8px 60px;
+  border: 1px solid rgba(232, 195, 94, 0.42);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ip-pennant {
+  position: absolute;
+  top: -1px;
+  left: 9px;
+  display: grid;
+  place-items: start center;
+  width: 44px;
+  height: 58px;
+  padding-top: 5px;
+  background: var(--pennant, #8f1f33);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  filter: drop-shadow(2px 2px 0 #1d1a20);
+}
+
+.ip-charge {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #c8901f;
+  border-radius: 3px;
+  background: var(--parchment);
+}
+
+.ip-charge::after {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--ink);
+  content: '';
+  -webkit-mask: var(--charge) center / 22px 22px no-repeat;
+  mask: var(--charge) center / 22px 22px no-repeat;
+}
+
+.ip-crest-name {
+  color: var(--council-gilt);
+  font-family: var(--face-card-title);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.ip-ability {
+  display: flex;
+  flex-direction: column;
+  color: #efe6cd;
+  font-family: var(--face-card-text);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.ip-ability .ip-fig .of-pay-fig {
+  color: var(--fg);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='food'] {
+  color: var(--y-food-lit);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='production'] {
+  color: var(--y-prod-lit);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='gold'] {
+  color: var(--y-gold-lit);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='science'] {
+  color: var(--y-sci-lit);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='culture'] {
+  color: var(--y-cul-lit);
+}
+
+.ip-ability .ip-fig .of-pay-fig[data-voice='faith'] {
+  color: var(--y-faith-lit);
+}
+
+/* --- the stacks ----------------------------------------------------------- */
+
+.ip-stacks {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.ip-stack {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  width: 206px;
+}
+
+.ip-stack.is-open::before {
+  position: absolute;
+  inset: -6px -9px -10px;
+  border: 1.5px solid #e8c35e;
+  border-radius: 10px;
+  box-shadow: 0 0 18px rgba(232, 195, 94, 0.45);
+  content: '';
+  pointer-events: none;
+}
+
+/* The stack's head: its name, its count and its total. */
+.ip-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: flex-start;
+  gap: 1px;
+  /* The name and count, then up to two lines of figures at a late game; every
+     pile starts at one height. */
+  width: 206px;
+  height: 56px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--council-gilt);
+  font-family: var(--face-card-title);
+  font-size: 15.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ip-legend-count {
+  color: #efe6cd;
+  font-family: var(--face-num);
+  font-size: 12.5px;
+}
+
+.ip-legend-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ip-legend .ip-fig {
+  justify-content: flex-start;
+  gap: 0 5px;
+  margin-left: 0;
+  font-size: 12.5px;
+  line-height: 1.2;
+}
+
+.ip-legend .of-pay-fig {
+  color: var(--fg);
+}
+
+.ip-legend .of-pay-fig[data-voice='food'] {
+  color: var(--y-food-lit);
+}
+
+.ip-legend .of-pay-fig[data-voice='production'] {
+  color: var(--y-prod-lit);
+}
+
+.ip-legend .of-pay-fig[data-voice='gold'] {
+  color: var(--y-gold-lit);
+}
+
+.ip-legend .of-pay-fig[data-voice='science'] {
+  color: var(--y-sci-lit);
+}
+
+.ip-legend .of-pay-fig[data-voice='culture'] {
+  color: var(--y-cul-lit);
+}
+
+.ip-legend .of-pay-fig[data-voice='faith'] {
+  color: var(--y-faith-lit);
+}
+
+.ip-legend .of-pay-fig[data-sign='minus'] {
+  color: var(--rubric-lit);
+}
+
+.ip-pile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 206px;
+}
+
+.ip-pile > * {
+  position: relative;
+}
+
+.ip-empty {
+  box-sizing: border-box;
+  width: 206px;
+  height: 46px;
+  padding-top: 13px;
+  border: 1px dashed rgba(232, 195, 94, 0.45);
+  border-radius: 6px;
+  color: rgba(239, 230, 205, 0.6);
+  font-family: var(--face-card-text);
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* The inks: a piece's border and seal. */
+[data-form][data-ink='gilt'] {
+  --k: #9a6c0c;
+}
+
+[data-form][data-ink='order'] {
+  --k: #56505a;
+}
+
+[data-form][data-ink='malice'] {
+  --k: var(--type-military, #a8361b);
+}
+
+[data-form][data-ink='chair'] {
+  --k: rgba(232, 195, 94, 0.55);
+}
+
+[data-form][data-ink='wonder'] {
+  --k: #2757b8;
+}
+
+[data-form][data-ink='belief'] {
+  --k: #a8467e;
+}
+
+[data-form][data-ink='legacy'] {
+  --k: #7a6338;
+}
+
+[data-form][data-ink='bead'] {
+  --k: #c8901f;
+}
+
+[data-form][data-ink='timed'] {
+  --k: #56505a;
+}
+
+[data-form][data-ink='leader'] {
+  --k: #8f1f33;
+}
+
+.ip-seal[data-ink='military'] {
+  --k: var(--type-military, #a8361b);
+}
+
+.ip-seal[data-ink='economic'] {
+  --k: var(--type-economic, #b5791b);
+}
+
+.ip-seal[data-ink='civic'] {
+  --k: var(--type-civic, #4f78be);
+}
+
+.ip-seal[data-ink='wildcard'] {
+  --k: var(--type-wildcard, #4a2a72);
+}
+
+.ip-mark {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+  -webkit-mask: var(--ip-mark) center / contain no-repeat;
+  mask: var(--ip-mark) center / contain no-repeat;
+}
+
+/* --- the tucked edge (frame I3): one size, one layout ----------------------- */
+
+.ip-edge {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 206px;
+  height: 46px;
+  margin-top: -4px;
+  padding: 5px 8px 0 5px;
+  border: 1.5px solid var(--k, #56505a);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--ip-paper);
+  box-shadow: var(--ip-shadow);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ip-edge.is-first {
+  margin-top: 0;
+  border-top: 1.5px solid var(--k, #56505a);
+  border-radius: 6px;
+}
+
+.ip-edge[data-form='chair'] {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(239, 230, 205, 0.6);
+}
+
+.ip-seal {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--k, #56505a);
+  border-radius: 50%;
+  background: #fbf5e3;
+  color: var(--k, #56505a);
+}
+
+.ip-seal .ip-mark {
+  width: 17px;
+  height: 17px;
+}
+
+.ip-edge-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ip-edge-name {
+  overflow: hidden;
+  font-family: var(--face-card-title);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ip-chair {
+  margin-right: 5px;
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.ip-edge-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 17px;
+}
+
+.ip-edge-sub,
+.ip-ends small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ip-ends b {
+  margin-left: 4px;
+  color: var(--rubric);
+  font-family: var(--face-num);
+  font-size: 11px;
+}
+
+.ip-fig {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 6px;
+  margin-left: auto;
+  font-family: var(--face-card-text);
+  font-size: 16.5px;
+  font-variant-numeric: lining-nums;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+/* An edge keeps its figures on one line: the more there are, the smaller the
+   type. The hover shows the piece whole. */
+.ip-edge .ip-fig {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ip-edge .ip-fig[data-figures='3'] {
+  gap: 0 4px;
+  font-size: 14px;
+}
+
+.ip-edge .ip-fig[data-figures='4'] {
+  gap: 0 3px;
+  font-size: 12.5px;
+}
+
+.ip-edge .ip-fig[data-figures='5'],
+.ip-edge .ip-fig[data-figures='6'] {
+  gap: 0 2px;
+  font-size: 11px;
+}
+
+/* While a piece's figure is being read: a faint rule where it will be. */
+.ip-fig[data-reading] {
+  width: 26px;
+  height: 2px;
+  margin-bottom: 4px;
+  background: rgba(29, 26, 32, 0.15);
+}
+
+/* The "more" edge (frame I5). */
+.ip-more {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  border-color: var(--k, #56505a);
+  background: #e9dfc4;
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ip-more-hint {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* --- the top forms --------------------------------------------------------- */
+
+.ip-wonder,
+.ip-belief,
+.ip-legacy,
+.ip-tag,
+.ip-malice,
+.ip-ability-card {
+  box-sizing: border-box;
+  width: 206px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ip-name {
+  display: block;
+  font-family: var(--face-card-title);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.ip-sub {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ip-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 5px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(29, 26, 32, 0.3);
+}
+
+.ip-text {
+  margin-top: 4px;
+  font-family: var(--face-card-text);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.ip-text p {
+  margin: 0 0 2px;
+}
+
+/* A wonder's plate: the picture window, the name, its town and its figure. */
+.ip-wonder {
+  overflow: hidden;
+  border: 2px solid var(--k);
+  border-radius: 5px;
+  background: #f8f1dc;
+  box-shadow: 4px 4px 0 #0e0c10;
+}
+
+.ip-window {
+  position: relative;
+  height: 70px;
+  overflow: hidden;
+  border-bottom: 2px solid var(--k);
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.16) 0 1px, transparent 1px 4px),
+    linear-gradient(#fcf7e7, #efe4c6);
+  background-position: center;
+  background-size: cover;
+}
+
+.ip-window .ip-hills {
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
+  opacity: 0.55;
+}
+
+.ip-window .ip-device {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  width: 34%;
+  height: 72%;
+  color: var(--k);
+  transform: translateX(-50%);
+}
+
+.ip-body {
+  padding: 6px 9px 7px;
+}
+
+/* A belief's tablet: an arch, the flame in a ring, the name, its faith and its figure. */
+.ip-belief {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 10px 6px;
+  border: 2px solid var(--k);
+  border-radius: 103px 103px 5px 5px / 60px 60px 5px 5px;
+  background: var(--ip-paper);
+  box-shadow: 4px 4px 0 #0e0c10;
+  text-align: center;
+}
+
+.ip-ring {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1.5px solid var(--k);
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(color-mix(in srgb, var(--k) 30%, transparent) 0 6deg, transparent 0 12deg);
+  color: var(--k);
+}
+
+.ip-ring .ip-mark {
+  width: 24px;
+  height: 24px;
+}
+
+.ip-belief .ip-name {
+  margin-top: 5px;
+}
+
+.ip-belief .ip-foot {
+  width: 100%;
+}
+
+/* A legacy's medal: the medal, then a ribbon with the name and the figure. */
+.ip-legacy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ip-medal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--k);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fcf7e7, #e9dcb8 70%, #cdbb8c);
+  box-shadow:
+    inset 0 0 0 4px #f3e9cc,
+    inset 0 0 0 5px var(--k),
+    3px 3px 0 #0e0c10;
+  color: var(--k);
+}
+
+.ip-medal .ip-mark {
+  width: 32px;
+  height: 32px;
+}
+
+.ip-ribbon {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: -12px;
+  padding: 15px 8px 13px;
+  border: 1.5px solid var(--k);
+  background: #f8f1dc;
+  box-shadow: var(--ip-shadow);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%);
+}
+
+.ip-ribbon .ip-fig {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 0;
+}
+
+/* A bead's or a commission's word sits on its own line under the name. */
+.ip-ribbon .ip-sub {
+  display: block;
+}
+
+/* A temporary tag: the turn it ends on, the name, where it hangs and its figure. */
+.ip-tag {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 8px 8px;
+  border: 1.5px dashed #1d1a20;
+  border-radius: 5px;
+  background: #efe6cd;
+  box-shadow: 4px 4px 0 #0e0c10;
+  text-align: center;
+  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
+}
+
+.ip-tag::before {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #1e1b22;
+  content: '';
+}
+
+.ip-turn small {
+  display: block;
+  color: var(--ink-soft);
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.ip-turn b {
+  color: var(--rubric);
+  font-family: var(--face-num);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ip-tag .ip-name {
+  margin-top: 7px;
+}
+
+.ip-tag .ip-fig {
+  justify-content: center;
+  margin: 4px 0 0;
+}
+
+/* A malice's card and an ability's card, for the tray and the hover. */
+.ip-malice,
+.ip-ability-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px;
+  border: 2px solid var(--k);
+  border-radius: 6px;
+  background: var(--ip-paper);
+  box-shadow: 4px 4px 0 #0e0c10;
+}
+
+.ip-malice .ip-fig,
+.ip-ability-card .ip-fig {
+  margin-top: 4px;
+}
+
+/* --- the arrival (frame A3), and a total clicked (frame IH) ---------------- */
+
+[data-form].is-fresh {
+  box-shadow:
+    0 0 0 2px #e8c35e,
+    0 0 22px rgba(232, 195, 94, 0.75),
+    4px 4px 0 #0e0c10;
+  animation: ip-glow 1600ms ease-in-out infinite alternate;
+}
+
+@keyframes ip-glow {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.08);
+  }
+}
+
+#inplay-overlay [data-voice-open] .is-dim {
+  opacity: 0.26;
+}
+
+#inplay-overlay [data-voice-open] .is-lit {
+  box-shadow:
+    0 0 0 2px #e8c35e,
+    0 0 20px rgba(232, 195, 94, 0.75),
+    4px 4px 0 #0e0c10;
+}
+
+/* --- the tray ------------------------------------------------------------- */
+
+.ip-tray {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  left: 240px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  max-height: 46%;
+  padding: 12px 16px 14px;
+  border: 1.5px solid #c8901f;
+  border-radius: 10px;
+  background: rgba(30, 27, 34, 0.97);
+  box-shadow: 0 -14px 26px rgba(20, 16, 24, 0.45);
+}
+
+.ip-tray-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: rgba(239, 230, 205, 0.8);
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+}
+
+.ip-tray-head b {
+  color: var(--council-gilt);
+  font-family: var(--face-card-title);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.ip-tray-row {
+  --order-face-width: 186px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-height: 0;
+  padding: 2px 4px 10px;
+  overflow: auto hidden;
+}
+
+.ip-tray-row > * {
+  flex: none;
+}
+
+.ip-tray-row .order-face {
+  width: 186px;
+}
+
+/* --- the sheet of sources (frame IH) --------------------------------------- */
+
+.ip-breakdown {
+  position: absolute;
+  bottom: 16px;
+  left: 240px;
+  z-index: 40;
+  box-sizing: border-box;
+  width: min(660px, calc(100% - 260px));
+  max-height: 60%;
+  padding: 16px 18px 12px;
+  overflow: auto;
+  border: 1px solid var(--rule, #c9b98f);
+  border-radius: 5px;
+  background: var(--parchment);
+  box-shadow: 0 10px 30px rgba(29, 26, 32, 0.28);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+}
+
+.ip-bd-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ip-bd-head h3 {
+  margin: 0;
+  font-family: var(--face-card-title);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ip-bd-head .of-pay-fig {
+  font-family: var(--face-card-text);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ip-bd-columns {
+  columns: 2 260px;
+  column-gap: 28px;
+}
+
+.ip-bd-section {
+  break-inside: avoid;
+}
+
+.ip-bd-section h4 {
+  margin: 10px 0 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(29, 26, 32, 0.3);
+  color: var(--ink-soft);
+  font-family: var(--face-name);
+  font-size: var(--size-label);
+  font-variant: small-caps;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ip-bd-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(29, 26, 32, 0.12);
+}
+
+.ip-bd-row .of-pay-fig {
+  font-family: var(--face-num);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ip-bd-row.is-alone {
+  padding-left: 12px;
+  color: var(--ink-soft);
+}
+
+.ip-bd-label small {
+  color: var(--ink-soft);
+  font-size: var(--size-note);
+}
+
+.ip-bd-alone {
+  margin: 4px 0 2px 12px;
+  color: var(--ink-soft);
+  font-size: var(--size-note);
+  line-height: 1.3;
+}
+
+.ip-bd-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.ip-bd-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ip-bd-close {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* --- the full text on hover or focus ----------------------------------------- */
+
+#inplay-overlay .ip-preview {
+  z-index: 60;
+}
+
+#inplay-overlay .ip-preview .ip-preview-piece {
+  cursor: default;
+}
+
+/* The arrival's flight (frame A2): over everything, the piece's own form. */
+.ip-flight {
+  position: fixed;
+  z-index: 2000;
+  width: 206px;
+  pointer-events: none;
+  --ip-paper: radial-gradient(120% 90% at 30% 15%, #fcf7e7, #f8f1dc 55%, #efe4c6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-form].is-fresh {
+    animation: none;
+  }
+}
