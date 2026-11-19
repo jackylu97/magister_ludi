@@ -113,6 +113,7 @@ import {
   type PlayerStatecraft,
   SLOT_WORDS,
   chairReadingsAt,
+  chairsActedOn,
   draftExhausted,
   maliceAt,
   maliceChairRefusal,
@@ -122,6 +123,7 @@ import {
 import { maliceDef } from '../sim/maliceData';
 import {
   type CardEffect,
+  type CardId,
   type ChairType,
   type CountKind,
   type OrderId,
@@ -173,6 +175,7 @@ import {
   sameChairs,
   stage,
   stagedFit,
+  stagedState,
   validate,
 } from './statecraftStaging';
 import { charterTechOf } from './charterTech';
@@ -193,6 +196,19 @@ import {
   settleConfirmed,
   showPreview,
 } from './ordersMotion';
+
+// --- the ties (stage 8) ------------------------------------------------------
+
+/**
+ * A card that acts on another chair, both ways round, as one draw reads it
+ * (`chairTies` inside the screen): each chair acted on and the cards acting on
+ * it, every card that acts on a chair, and the chairs the held card would act on.
+ */
+interface ChairTies {
+  targets: Map<number, CardId[]>;
+  actors: Set<CardId>;
+  held: Set<number>;
+}
 
 // --- the position word (kept from the old screen) ----------------------------
 
@@ -311,6 +327,10 @@ export const ORDERS_WORDS = {
   handEmpty: 'Your hand is empty.',
   noOrders: 'You hold no Orders yet. Culture pays for the first draft.',
   countsTwice: 'counts twice',
+  /** Stage 8: the tie between a card and the chair it acts on, in the marks' titles. */
+  tieTarget: (names: string) => `${names}: acts on this chair`,
+  tieActor: 'Acts on the chair with the same mark',
+  tieHeld: 'The card you hold would act on this chair',
   sealed: (turns: number) => `Sealed for ${turns} more turn${turns === 1 ? '' : 's'}`,
   /** The head's link to In play (stage 3): the screen's name and how many pieces are in force. */
   inPlayLink: (count: number) => `In play · ${count} →`,
@@ -959,6 +979,57 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     changesNode.textContent = problem ?? (changes > 0 ? ORDERS_WORDS.changes(changes) : ORDERS_WORDS.nothingToConfirm);
   }
 
+  // --- the ties: a card that acts on another chair (stage 8) -------------------
+
+  /**
+   * **Which chairs the cards in force act on** (the user, 2026-11-19, on The
+   * Grand Vizier: "could we add a highlight effect to the chair that it targets
+   * when slotted?"). Read off the sim's own resolution (`chairsActedOn`) on the
+   * board as this visit stages it, for the government, each Doctrine and each
+   * Order in a chair, and for the card held over the council.
+   */
+  function chairTies(state: GameState, seat: number, sc: PlayerStatecraft, arrangement: StagedSlots): ChairTies {
+    const board = stagedState(state, seat, arrangement);
+    const targets = new Map<number, CardId[]>();
+    const actors = new Set<CardId>();
+    const acting: CardId[] = [sc.government, ...sc.doctrines, ...arrangement.flatMap((entry) => (entry === null ? [] : [entry.card]))];
+    for (const id of acting) {
+      const chairs = chairsActedOn(board, seat, id);
+      if (chairs.length === 0) continue;
+      actors.add(id);
+      for (const chair of chairs) targets.set(chair, [...(targets.get(chair) ?? []), id]);
+    }
+    return { targets, actors, held: new Set(held === null ? [] : chairsActedOn(board, seat, held)) };
+  }
+
+  /** A tie-mark: a small gilt lozenge, filled on the acting card, open on the chair it acts on. */
+  function tieMark(kind: 'actor' | 'target' | 'held', title: string): HTMLElement {
+    const mark = element('span', `council-tie is-${kind}`);
+    mark.title = title;
+    return mark;
+  }
+
+  /**
+   * Lights a card and the chairs it acts on together, while the pointer or the
+   * keyboard is on either. Everything else drops back to quiet.
+   */
+  function lightTies(from: EventTarget | null): void {
+    for (const lit of body.querySelectorAll('.is-tie-lit')) lit.classList.remove('is-tie-lit');
+    const holder = from instanceof Element ? from.closest<HTMLElement>('[data-tie-actor], [data-tie-target]') : null;
+    if (holder === null) return;
+    const tied = (node: HTMLElement): string[] => [
+      ...(node.dataset.tieActor === undefined ? [] : [node.dataset.tieActor]),
+      ...(node.dataset.tieTarget === undefined ? [] : node.dataset.tieTarget.split(' ')),
+    ];
+    const ids = new Set(tied(holder));
+    for (const node of body.querySelectorAll<HTMLElement>('[data-tie-actor], [data-tie-target]')) {
+      if (tied(node).some((id) => ids.has(id))) node.classList.add('is-tie-lit');
+    }
+  }
+  body.addEventListener('pointerover', (event) => lightTies(event.target));
+  body.addEventListener('focusin', (event) => lightTies(event.target));
+  body.addEventListener('pointerleave', () => lightTies(null));
+
   // --- the register: the government, and the Doctrines tucked under it -------
 
   /**
@@ -968,7 +1039,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * chair's is. The government and a strip lift their full faces after the
    * pause.
    */
-  function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined): HTMLElement {
+  function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined, ties: ChairTies): HTMLElement {
     const column = element('section', 'council-gov');
     column.setAttribute('aria-label', 'Government and Doctrines');
     const label = element('div', 'council-label');
@@ -987,6 +1058,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     card.dataset.card = sc.government;
     card.tabIndex = 0;
     card.dataset.nav = 'government';
+    if (ties.actors.has(sc.government)) {
+      card.dataset.tieActor = sc.government;
+      card.append(tieMark('actor', ORDERS_WORDS.tieActor));
+    }
     previewStates.set(sc.government, { where: 'played', plate });
     column.append(card);
     const tucks = element('div', 'council-tucks');
@@ -1003,6 +1078,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       strip.setAttribute('aria-label', `${cardDef(id).name}, Doctrine`);
       if (live !== null) previewStates.set(id, { where: 'played', unmet: live.unmet, liveLine: live.line, plate: live.plate });
       if (live?.unmet !== null && live?.unmet !== undefined) strip.dataset.unmet = 'true';
+      if (ties.actors.has(id)) {
+        strip.dataset.tieActor = id;
+        strip.append(tieMark('actor', ORDERS_WORDS.tieActor));
+      }
       tucks.append(strip);
     });
     column.append(tucks);
@@ -1040,6 +1119,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     sc: PlayerStatecraft,
     arrangement: StagedSlots,
     sheet: CardImpactSheet | undefined,
+    ties: ChairTies,
   ): HTMLElement {
     const table = element('section', 'orders-table');
     table.setAttribute('aria-label', 'Chairs');
@@ -1078,7 +1158,23 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const sealedTurns = filled && !filled.staged ? sealRemaining(state, filled) : 0;
 
       const frame = element('div', 'council-slot');
-      frame.append(chairLegend(type, index, note.join(' · '), sealedTurns));
+      const legend = chairLegend(type, index, note.join(' · '), sealedTurns);
+      // The ties (stage 8): this chair's card acts on another chair, another
+      // card acts on this chair, or the card held would.
+      if (filled && ties.actors.has(filled.card)) {
+        cell.dataset.tieActor = filled.card;
+        legend.append(tieMark('actor', ORDERS_WORDS.tieActor));
+      }
+      const actedBy = ties.targets.get(index);
+      if (actedBy !== undefined) {
+        cell.dataset.tieTarget = actedBy.join(' ');
+        legend.append(tieMark('target', ORDERS_WORDS.tieTarget(actedBy.map((id) => cardDef(id).name).join(' and '))));
+      }
+      if (ties.held.has(index)) {
+        cell.dataset.tieHeld = '';
+        legend.append(tieMark('held', ORDERS_WORDS.tieHeld));
+      }
+      frame.append(legend);
       const button = element('button', 'orders-seat') as HTMLButtonElement;
       button.type = 'button';
       button.dataset.nav = `chair:${index}`;
@@ -1351,8 +1447,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
     const cloth = element('div', 'orders-cloth');
     const main = element('div', 'council-main');
-    main.append(drawRegister(state, seat, sc, sheet ?? undefined));
-    main.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined));
+    const ties = chairTies(state, seat, sc, arrangement);
+    main.append(drawRegister(state, seat, sc, sheet ?? undefined, ties));
+    main.append(drawTable(state, seat, sc, arrangement, sheet ?? undefined, ties));
     cloth.append(main);
     cloth.append(drawBand(hand));
     const foot = element('div', 'council-foot');

@@ -97,6 +97,7 @@ import {
   cardRenownLines,
   cardShoreRaids,
   chairReadingsAt,
+  chairsActedOn,
   effectsOfKind,
   explainBuildingPackage,
   explainCardCityYields,
@@ -1116,6 +1117,16 @@ describe('The Arthashastra (batch DT9)', () => {
       ...new Array<number>(before).fill(1),
       2,
     ]);
+  });
+
+  // Stage 8 of the Council and In play board: the screen marks the chair a card
+  // acts on, read off the sim's own resolution, never off a card's name.
+  it('names the chair it acts on, the one the walk reads, and nothing for a card that names none', () => {
+    const { state, player } = capital();
+    take(state, 'theArthashastra');
+    expect(chairsActedOn(state, 0, 'theArthashastra')).toEqual([lastChair(player)]);
+    expect(chairIndexAtPosition(player, -1, 'wildcard')).toBe(lastChair(player));
+    expect(chairsActedOn(state, 0, CARD)).toEqual([]);
   });
 
   it('pays a town line twice, as a line of its own, and once off the chair', () => {

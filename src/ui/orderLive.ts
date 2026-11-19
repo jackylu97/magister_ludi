@@ -57,7 +57,7 @@ import {
   stampText,
 } from './cardStamp';
 import { commissionCounters, commissionStanding } from './commissionGoal';
-import { METER_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
+import { METER_GLYPH, RENOWN_FIGURE_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
 import { stampOfVoices } from './ledgerScreen';
 import type { FirstFigure, OrderFaceLive, OrderFacePlate, PlateFigure } from './orderFace';
 import { scalerFace } from './scalerValue';
@@ -106,18 +106,37 @@ function yieldOfGlyph(glyph: string): CityYieldKey | null {
 /** The two meters, in the order the stamp prints them. */
 const PLATE_METERS = ['happiness', 'authority'] as const;
 
+/** The voice a stamp figure's glyph names: a yield, a meter, or renown. */
+function voiceOfGlyph(glyph: string): PlateFigure['voice'] | undefined {
+  if (glyph === RENOWN_FIGURE_GLYPH) return 'renown';
+  return yieldOfGlyph(glyph) ?? PLATE_METERS.find((meter) => METER_GLYPH[meter] === glyph);
+}
+
 /**
- * **A stamp's figures as plate figures**: each glyph read back to its yield or
- * its meter. A figure whose glyph names neither is left out, which no stamp
- * figure does today (`stampReading` writes only these eight).
+ * **A stamp's figures as plate figures**: each glyph read back to its yield,
+ * its meter or renown. A figure whose glyph names none of them is left out,
+ * which no stamp figure does today (`stampReading` writes only these nine).
  */
 export function plateFigures(figures: readonly StampFigure[]): PlateFigure[] {
   const out: PlateFigure[] = [];
   for (const figure of figures) {
-    const voice = yieldOfGlyph(figure.glyph) ?? PLATE_METERS.find((meter) => METER_GLYPH[meter] === figure.glyph);
+    const voice = voiceOfGlyph(figure.glyph);
     if (voice !== undefined) out.push({ voice, amount: figure.amount });
   }
   return out;
+}
+
+/**
+ * A stamp's figures as the live line says them: the yields and meters as
+ * composed figures, then renown in words ("+2 renown"). The renown glyph is
+ * drawn only where the stamp prints, and the live line also reaches an
+ * `aria-label`, so it says the word.
+ */
+function liveFiguresText(figures: readonly StampFigure[]): string {
+  const renown = figures.find((figure) => figure.glyph === RENOWN_FIGURE_GLYPH);
+  const rest = figures.filter((figure) => figure !== renown);
+  const said = renown === undefined ? [] : [LIVE_WORDS.renown(signedFigure(renown.amount))];
+  return [stampText(rest), ...said].filter((part) => part !== '').join(' ');
 }
 
 /**
@@ -126,11 +145,7 @@ export function plateFigures(figures: readonly StampFigure[]): PlateFigure[] {
  * a card that pays on an occasion or pays nothing at all (a rule).
  */
 function plateOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId | GovernmentId, reading: StampReading): OrderFacePlate | null {
-  if (reading.figures.length > 0 || reading.renown !== undefined) {
-    const figures = plateFigures(reading.figures);
-    if (reading.renown !== undefined) figures.push({ voice: 'renown', amount: reading.renown });
-    return { kind: 'pays', figures };
-  }
+  if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };
   if (!stampIsEmpty(reading)) return null;
   if (!cardCanPay(card)) return null;
   const reason = idleReasonWords(cardIdleReason(state, seat, card));
@@ -154,9 +169,7 @@ function plateOf(
   if (council !== undefined) {
     const figures = councilPlate(council, lines);
     if (figures.length > 0) return { kind: 'pays', figures };
-    if (reading.figures.length > 0 || reading.renown !== undefined) {
-      return cardCanPay(card) ? plateOfStamp(state, seat, card, { ...reading, figures: [], renown: undefined }) : null;
-    }
+    if (reading.figures.length > 0) return cardCanPay(card) ? plateOfStamp(state, seat, card, { ...reading, figures: [] }) : null;
   }
   return plateOfStamp(state, seat, card, reading);
 }
@@ -205,20 +218,19 @@ function liveOfStamp(
 ): CardLive {
   const reading = stampReading(lines);
   const plate = plateOf(state, seat, card, reading, lines, council);
-  // Renown each turn joins what the card pays, in words after the figures.
-  if (reading.figures.length > 0 || reading.renown !== undefined) {
-    const renown = reading.renown === undefined ? [] : [LIVE_WORDS.renown(signedFigure(reading.renown))];
-    const text = [stampText(reading.figures), ...renown].filter((part) => part !== '').join(' ');
-    return {
-      kind: 'pays',
-      line: { kind: 'pays', text: LIVE_WORDS.pays(text) },
-      short: text,
-      tablet: reading.figures.length > 0 ? tabletOfFigure(reading.figures[0]!) : { figure: signedFigure(reading.renown!), yield: null },
-      unmet: null,
-      plate,
-    };
-  }
   if (!stampIsEmpty(reading)) {
+    if (reading.figures.length > 0) {
+      // Renown each turn is among the figures; the live line says it in words.
+      const text = liveFiguresText(reading.figures);
+      return {
+        kind: 'pays',
+        line: { kind: 'pays', text: LIVE_WORDS.pays(text) },
+        short: text,
+        tablet: tabletOfFigure(reading.figures[0]!),
+        unmet: null,
+        plate,
+      };
+    }
     if (reading.occasionFigures.length > 0 || reading.occasion !== undefined) {
       const grant = stampText(reading.occasionFigures);
       const said = reading.occasion ?? reading.note ?? '';

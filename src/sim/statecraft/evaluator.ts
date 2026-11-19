@@ -14733,6 +14733,34 @@ export function chairReadingsAt(state: GameState, playerId: number, chair: numbe
   return times;
 }
 
+/**
+ * **The chairs a card acts on** (stage 8 of the Council and In play board; the
+ * user, 2026-11-19, on The Grand Vizier: "could we add a highlight effect to the
+ * chair that it targets when slotted?"): the chairs its own `slotPosition` rows
+ * name, resolved in this seat's council as it stands (`chairIndexAtPosition`,
+ * the reading the walk itself takes), in slot order and each once.
+ *
+ * A chair the card itself sits in is left out, because the walk pays nothing for
+ * it: an engine does not read its own line. The answer is empty for a card that
+ * names no chair, and for one whose chair the current government does not have.
+ * It reads the card's own row whether or not the card is seated, so the Council
+ * screen can mark the target of a card held over the council before it lands.
+ * Pure, and read by the screen only.
+ */
+export function chairsActedOn(state: GameState, playerId: number, card: CardId): number[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const chairs = new Set<number>();
+  for (const effect of anyCardDef(card).effects) {
+    if (effect.kind !== 'slotPosition') continue;
+    const index = chairIndexAtPosition(player, effect.position, effect.slot);
+    if (index < 0) continue;
+    if (player.statecraft.slots[index]?.card === card) continue;
+    chairs.add(index);
+  }
+  return [...chairs].sort((x, y) => x - y);
+}
+
 // --- amplifiers that add a flat step ----------------------------------------
 
 /**

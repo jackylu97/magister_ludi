@@ -41,7 +41,7 @@ import {
   usedRouteSlots,
 } from '../sim/trade';
 import { cityDisplayName } from './cityDisplay';
-import { type YieldKey, METER_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
+import { type YieldKey, METER_MARK_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
 import { splitYieldText } from './yieldMark';
 
 /**
@@ -139,7 +139,7 @@ export function tradeFigureRuns(text: string): TradeFigureRun[] {
     // run — where the printer still draws it, since `setYieldText` knows both
     // tables. A trade figure has never carried one; this is the honest fallback
     // rather than a dropped character.
-    plain += part.kind === 'text' ? part.text : METER_GLYPH[part.key];
+    plain += part.kind === 'text' ? part.text : METER_MARK_GLYPH[part.key];
   }
   if (plain.trim() !== '') runs.push({ key: null, text: plain.trimStart() });
   return runs;

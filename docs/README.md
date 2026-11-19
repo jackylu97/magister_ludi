@@ -1791,6 +1791,19 @@ Eight root pages, all named in `vite.config.ts` inputs:
   row, centred in the room right of the government (`COUNCIL_FRAME.cluster`),
   so the cluster sits right of the page's centre. Both sheets close with the
   star chart's "×" (`.tech-close`).
+- **A card that acts on another chair** (stage 8; the user, 2026-11-19, on The
+  Grand Vizier): the Council screen marks the chair it acts on with an open
+  gilt lozenge on the chair's label, and the acting card with a filled one.
+  The pair lights while the pointer or the keyboard is on either. A card held
+  over the council marks its target with a dashed lozenge. The chairs come
+  from `chairsActedOn` (`statecraft/evaluator.ts`), the card's own
+  `slotPosition` rows resolved by `chairIndexAtPosition`, as the walk reads
+  them; a card's own chair, and a chair the government does not have, are
+  never marked.
+- **Renown on a card's printed face** (stage 8): the stamp prints renown each
+  turn after the yields and the meters, as `RENOWN_FIGURE_GLYPH`
+  (`figures.ts`), a private-use character the yield printer draws as the
+  laurel. Nothing else in the game prints that character.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

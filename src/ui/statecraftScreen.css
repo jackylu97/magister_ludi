@@ -431,6 +431,58 @@
   white-space: nowrap;
 }
 
+/* The ties (stage 8; the user, 2026-11-19, on The Grand Vizier): a card that
+   acts on another chair wears a small filled gilt lozenge, and the chair it acts
+   on wears an open one on its label. The two light together while the pointer
+   or the keyboard is on either (`lightTies`). A mark on the label only, so it
+   never fights the drop ring, which is the chair's frame. No animation. */
+.council-tie {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--council-gilt);
+  transform: rotate(45deg);
+  opacity: 0.8;
+}
+
+.council-tie.is-actor {
+  background: var(--council-gilt);
+}
+
+/* The held card's target: the same open lozenge, dashed, until the card lands. */
+.council-tie.is-held {
+  border-style: dashed;
+  opacity: 1;
+}
+
+.is-tie-lit .council-tie {
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(232, 195, 94, 0.45);
+}
+
+/* The label of a lit pair brightens with its mark. */
+.is-tie-lit .council-leg {
+  color: var(--gilt-bright, #f4d27a);
+}
+
+/* The held card's target keeps its label at full strength while the chair
+   itself fades as a chair the card may not sit in, so the mark reads at a glance. */
+.orders-chair.is-faded[data-tie-held] .council-slot > .council-leg {
+  opacity: 1;
+}
+
+/* On the government card and a Doctrine strip, the mark sits on the top right corner. */
+.council-gov-card > .council-tie,
+.council-tuck > .council-tie {
+  position: absolute;
+  z-index: 4;
+  top: 6px;
+  right: 8px;
+  border-color: #7f5b0e;
+  background: #7f5b0e;
+}
+
 .council-leg-note {
   color: var(--fg2);
   text-transform: none;

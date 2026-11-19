@@ -96,6 +96,7 @@ export {
   secondCapitalCity,
   cardExtraChairs,
   chairReadingsAt,
+  chairsActedOn,
   offTheChairRows,
   // Batch G1: the tier-26 governments' rise on the seated cards of one type.
   CARD_TYPE_RAISED_KINDS,

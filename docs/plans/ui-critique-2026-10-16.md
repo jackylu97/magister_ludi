@@ -1325,3 +1325,71 @@ What follows from them:
 - **The Declare war button is made more forceful.**
 - **A faith screen is added to the board** (the user: "it feels a bit
   outdated").
+
+### Quiet Table, third pass: the user's comments (2026-11-19)
+
+Board: https://claude.ai/artifact/62VT2ck8a6Ucn8Cjb1AfGw, repo copy in
+`docs/plans/mockups/scholars-study/quiet-table-third-pass/`. The comments, in
+the user's words:
+
+| Frame | On | The user's comment |
+|---|---|---|
+| a1 HUD, quiet | a figure ("67") in a panel of the HUD | "i'm noticing in playtesting that these can overflow. Could we slightly lower the text size here and make it so the panel can expand instead of overflowing?" |
+| a4 Technology hint | the recommended rewrite | "'click a technology to research it'" |
+| a9 Ending, a loss | the frame | "great" |
+| a11 Declare war | version A | "great go with A" |
+| b1 City, a town with everything on | the head row | "this is too cluttered, could you make it a bit simpler and less overwhelming for new players? The build list doesn't require icons, i think it looked good as it did earlier with the gear. The bottom bar feels too busy." |
+| b2 Diplomacy, layout B (the large portrait) | the frame's title | "I like this one better actually. What happens if you click standing and deals? Also, i'm worried there wont be enough room on the top bar for all portraits, could you make that a bit better? The bar from A could work, but i'm not like, excited about it." |
+| c1 Faith, Bonuses tab | the head | "lets move bonuses to the third tab. Could we have a reworked version of the religion and followers tab too? it looks quite dated. The proposed pages look good" |
+| c3 Order draft offer | the sheet | "The text below the card isn't needed. Lets make sure this is basically the same as the great people draft screen, just with order cards. There feels like too much negative space on the bottom. Make sure to preserve the animations, maybe adding a flipping effect here and have the cards reveal themselves one by one?" |
+| c4 Reliquary | the frame | "Great" |
+| c5 Setup, the leader step | the frame | "faces on both the chip and the right panel seems unneeded. Could we have more of a focus on the leader portrait?" |
+| c6 Unit panel and forecast | the forecast | "lets make sure this forecast is on the bottom left, where it used to be." |
+
+What follows:
+- **Approved now:** the loss ending; Declare war version A (a solid dark red
+  button, then a sheet that names what follows; Enter does not confirm); the
+  Reliquary; the faith sheet's Rites and Bonuses pages as drawn.
+- **The technology hint reads "click a technology to research it"** in place
+  of "click a star to aim".
+- **HUD figures must not overflow.** The type in that panel is a little
+  smaller, and the panel grows with its content.
+- **City screen: simpler.** Less on screen for a new player; the build list
+  with no icons, as it was with the gear; a quieter foot. To redraw.
+- **Diplomacy: layout B,** the large portrait. To settle: what Standing and
+  Deals open, and a better way to show the other courts than a row of faces in
+  the head.
+- **Faith: Bonuses becomes the third tab,** and the Religion and followers tab
+  is redrawn.
+- **Order draft: the same sheet as the great person offer, with Order cards.**
+  No text under the cards, less empty space at the foot, today's animations
+  kept, and the cards turned over one by one.
+- **Setup: one face, not two.** More weight on the chosen leader's portrait.
+- **The combat forecast stays at the bottom left,** where it is today.
+
+### Quiet Table: build stage 1 (2026-11-19)
+
+The user approved a first build while the fourth pass is drawn ("yeah
+great!"). It holds only what the user has approved on the third-pass board
+(`docs/plans/mockups/scholars-study/quiet-table-third-pass/`) and needs no new
+art:
+
+1. **The kit** (frame a10): the sheet head at the quiet level (the ink rule
+   over a gilt hairline) with the × on every sheet that builds on the modal
+   shell; the button styles; a toast about a held thing carries a small plain
+   seal (a ring and a dot) and keeps today's toast size; no painting in any
+   toast; one HUD element keeps no icon (the dispatch).
+2. **The hex tooltip** shows who owns the tile when it is owned, and no line
+   when it is not.
+3. **The technology hint** reads "click a technology to research it" in place
+   of "click a star to aim". The rest of the line is made as plain.
+4. **Working sheets** (frame a3): the light touch on the caravans sheet, with
+   today's tab words kept.
+5. **Declare war, version A** (frame a11): a solid dark red button set apart
+   from Propose, then a sheet that names what follows. Enter does not confirm.
+6. **The title screen's tag line** is "a game for the ages".
+
+Not in this stage: the great person card and the Reliquary (stage 2), the
+Order draft, the city screen, diplomacy, faith, setup, the unit panel, the HUD
+overflow fix (all wait for the fourth pass), the age plate on the ribbon and
+the endings (they wait for paintings or their own stage).
