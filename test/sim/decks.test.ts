@@ -669,8 +669,9 @@ describe('the schema, as landed', () => {
     // **And batch R1** (`docs/flags.md` (jjjjjjj)): two more. The Pilgrim Staff
     // is a new Devotion row at Tier I, and The Country Fair a new shared row
     // at Tier 0.
-    expect(live).toBe(479);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(479);
+    // The generic set adds 20 rows, activates City Watches, and retires 12 dealt rows.
+    expect(live).toBe(488);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(488);
   });
 
   /**
@@ -1440,8 +1441,9 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(5);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(420);
+      ).toHaveLength(0);
+      // The generic set retires 16 rows, including four deferred rows. City Watches becomes live.
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(436);
     }
   });
 

@@ -90,7 +90,7 @@ describe('a meter line names the card that paid it', () => {
     player.statecraft.slots = [{ card, sealedUntil: 0 }];
     bumpRevision(state);
     const clerks = explainAuthority(state, 0).find((line) => line.card === card);
-    expect(clerks?.value).toBe(1);
-    expect(meterCardShares(clerks!)).toEqual([{ card, value: 1 }]);
+    expect(clerks?.value).toBe(3);
+    expect(meterCardShares(clerks!)).toEqual([{ card, value: 3 }]);
   });
 });

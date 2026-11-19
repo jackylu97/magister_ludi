@@ -21,6 +21,8 @@ import { expect } from 'vitest';
 import { describeCard, stripRefs } from '../../../src/sim/statecraft';
 import {
   type Band,
+  type CardType,
+  type OrderRarity,
   type DeckId,
   type OrderId,
   DECK_FILE_DOCTRINES,
@@ -28,7 +30,90 @@ import {
   doctrineDef,
   governmentTierForDoctrineBand,
   orderDef,
+  isCardType,
 } from '../../../src/sim/statecraftData';
+
+/** How a sheet row relates to the data: the first word of its Status cell. */
+export type DocStatus = 'implemented' | 'modify' | 'add';
+const DOC_STATUSES: readonly DocStatus[] = ['implemented', 'modify', 'add'];
+
+/** One card the sheet's tier tables list. */
+export interface DocCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
+  name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
+  rarity: OrderRarity;
+  band: Band;
+  status: DocStatus;
+  /** The word after the colon in the Status cell ("deferred", "revised" …), if any. */
+  reason?: string;
+  text: string;
+  /** The Type cell, lowercased: the chair the card fits once batch C2 lands. */
+  type: CardType;
+  keyword: string;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+export function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
+}
+
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+export function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+export function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
+}
+
+/**
+ * **The five tier tables of the sheet**, in the sheet's own order. Read from
+ * the first tier heading to the first level-two heading that is not a tier, so
+ * the shared table (whose rows live in `common.json`) and the notes after it
+ * are not read here.
+ */
+export function sheetCards(DOC: string): DocCard[] {
+  const start = DOC.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const cards: DocCard[] = [];
+  let band: Band | null = null;
+  for (const line of DOC.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = SHEET_TIERS[heading[1]!]!;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 4) continue;
+    const [head, reason] = cells[2]!.split(':').map((part) => part.trim());
+    const status = head as DocStatus;
+    expect(DOC_STATUSES, `"${cells[0]}" has an unknown status "${cells[2]}"`).toContain(status);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      band,
+      status,
+      ...(reason ? { reason } : {}),
+      text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+      keyword: cells[5] ?? '',
+    });
+  }
+  return cards;
+}
+
 
 /** The decks whose types are in the data. */
 export const SORTED_DECKS: readonly DeckId[] = [
@@ -86,6 +171,11 @@ export function rowsListedOnSortedSheets(): Set<OrderId> {
       const def = orderDef(id);
       if (def.retired !== true && shared.has(def.name) && def.decks.includes(deck)) listed.add(id);
     }
+  }
+  const generic = new Set(sheetCards(SHEETS['../../../docs/decks/common.md']!).filter((row) => row.status !== 'add').map((row) => row.was ?? row.name));
+  for (const id of DECK_FILE_ORDERS.common) {
+    const def = orderDef(id);
+    if (def.decks.length === 0 && !def.retired && generic.has(def.name)) listed.add(id);
   }
   return listed;
 }

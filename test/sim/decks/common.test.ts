@@ -18,9 +18,8 @@
  * cross naming one of the seat's decks on a cross turn, and never a cross
  * naming neither.
  *
- * **The doc tables are `statecraftDocSync.test.ts`'** (D1a re-cut the
- * cross-type and generic tables of `docs/orders-and-doctrines.md` to read this
- * file's two kinds). Nothing here mirrors them a second time.
+ * The generic sheet is checked here. `statecraftDocSync.test.ts` checks the
+ * reference tables in `docs/orders-and-doctrines.md`.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -44,8 +43,13 @@ import {
   isDeckId,
   orderDef,
   orderIsDealt,
+  orderKeyword,
+  orderType,
 } from '../../../src/sim/statecraftData';
 import { createGame } from '../newGameHelpers';
+import { sheetCards } from './sortedSheets';
+
+const commonSheet = Object.values(import.meta.glob('../../../docs/decks/common.md', { eager: true, query: '?raw', import: 'default' }))[0] as string;
 
 /** Every row of the shared file, in file order. */
 const COMMON: readonly OrderId[] = DECK_FILE_ORDERS.common;
@@ -83,6 +87,55 @@ const evaluatorFiles = import.meta.glob('../../../src/sim/statecraft/evaluator.t
   import: 'default',
 });
 const EVALUATOR = Object.values(evaluatorFiles)[0] as string;
+
+describe('the generic Orders sheet', () => {
+  it('matches the data and records every live row once', () => {
+    const cards = sheetCards(commonSheet);
+    const generic = COMMON.filter((id) => orderDef(id).decks.length === 0);
+    const all = new Map(generic.map((id) => [orderDef(id).name, id] as const));
+    expect(new Set(cards.map((card) => card.band))).toEqual(new Set([0, 1, 2, 3, 4]));
+    expect(new Set(cards.map((card) => card.name)).size).toBe(cards.length);
+    for (const card of cards) {
+      const id = all.get(card.was ?? card.name);
+      if (card.status === 'add') {
+        expect(id, card.name).toBeUndefined();
+        continue;
+      }
+      expect(id, card.name).toBeDefined();
+      const def = orderDef(id!);
+      expect(def.retired, card.name).not.toBe(true);
+      expect(orderKeyword(id!), card.name).toBe(card.keyword ? card.keyword.toLowerCase() : null);
+      if (card.status === 'implemented') {
+        expect(card.was, card.name).toBeUndefined();
+        expect(orderIsDealt(id!), card.name).toBe(true);
+        expect(def.band, card.name).toBe(card.band);
+        expect(def.rarity, card.name).toBe(card.rarity);
+        expect(def.text, card.name).toBe(card.text);
+        expect(orderType(id!), card.name).toBe(card.type);
+      }
+    }
+    const listed = cards.filter((card) => card.status !== 'add').map((card) => card.was ?? card.name);
+    expect(new Set(listed).size).toBe(listed.length);
+    for (const id of generic) {
+      expect(listed.includes(orderDef(id).name), id).toBe(orderDef(id).retired !== true);
+    }
+  });
+
+  it('counts statuses and rarities in each tier', () => {
+    const cards = sheetCards(commonSheet);
+    for (const [label, band] of [['Tier 0', 0], ['Tier I', 1], ['Tier II', 2], ['Tier III', 3], ['Tier IV', 4], ['**All**', null]] as const) {
+      const line = commonSheet.split('\n').find((row) => row.startsWith(`| ${label} |`));
+      expect(line, label).toBeDefined();
+      const cells = line!.split('|').slice(1, -1).map((cell) => cell.trim().replace(/\*/g, ''));
+      const rows = band === null ? cards : cards.filter((card) => card.band === band);
+      const count = (key: 'status' | 'rarity', value: string) => rows.filter((row) => row[key] === value).length;
+      expect(cells.slice(1).map(Number), label).toEqual([
+        count('status', 'implemented'), count('status', 'modify'), count('status', 'add'), rows.length,
+        count('rarity', 'common'), count('rarity', 'uncommon'), count('rarity', 'rare'),
+      ]);
+    }
+  });
+});
 
 describe('the shared shelf is two kinds of row and no third', () => {
   it('holds rows at all, of both kinds', () => {
@@ -122,7 +175,8 @@ describe('the shared shelf is two kinds of row and no third', () => {
   });
 
   it('keeps a retired shared row out of every pool', () => {
-    // Batch S retired the two shared cards both their sheets cut, Scientific
+    // The generic set retires sixteen older rows. Batch S retired the two
+    // shared cards both their sheets cut, Scientific
     // batch S1b a third, The Hydraulic Commonwealth, and batch R1 a fourth,
     // Copying the Enemy. Magisterial batch MG1 retired two more that both
     // the Dominion and Magisterial sheets cut: The Imperial Examinations and
@@ -130,14 +184,28 @@ describe('the shared shelf is two kinds of row and no third', () => {
     // retired seventeen more.
     expect([...RETIRED].sort()).toEqual([
       'booksFromTheShips',
+      'civicPeace',
       'cloisterSchools',
+      'commonBoundaryStones',
+      'commonLedgers',
       'commonMarcherLords',
+      'commonTools',
       'convertItOrTaxIt',
       'copyingTheEnemy',
+      'emergencyStores',
       'frontierGarrisons',
       'harvestOfferings',
+      'hearthStores',
+      'householdAltars',
       'hydraulicSchools',
+      'localMarkets',
       'militaryColonies',
+      'publicGatherings',
+      'publicHospitals',
+      'publicWells',
+      'restingCamps',
+      'roadCrews',
+      'roadMaintenance',
       'theCosmopolitanCourt',
       'theEngineerCorps',
       'theFloodFestival',
@@ -148,14 +216,16 @@ describe('the shared shelf is two kinds of row and no third', () => {
       'thePenitentsRoll',
       'theRisingNave',
       'theRoadGarrisons',
+      'theVillageScribe',
       'theWaqf',
       'travellingPlayers',
       'triumphalArches',
       'warBonds',
+      'watchmen',
     ]);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), `${id} is retired and dealt`).toBe(false);
-      expect(orderDef(id).decks.length, `${id} names ${orderDef(id).decks.length} deck(s)`).toBe(2);
+      expect([0, 2], id).toContain(orderDef(id).decks.length);
     }
   });
 

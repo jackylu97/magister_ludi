@@ -9525,6 +9525,146 @@
     "text": "+3 food, +3 culture in every city joined to your capital by road with a Monument"
    }
   ],
+  "thePalaceSchool": [
+   {
+    "raw": "+2 science, +2 culture in your capital",
+    "text": "+2 science, +2 culture in your capital"
+   }
+  ],
+  "theRoyalHousehold": [
+   {
+    "raw": "+3 culture and +2 happiness in your capital",
+    "text": "+3 culture and +2 happiness in your capital"
+   }
+  ],
+  "theHomeFields": [
+   {
+    "raw": "+1 food on every hex carrying a resource, in your capital",
+    "text": "+1 food on every hex carrying a resource, in your capital"
+   }
+  ],
+  "firstFruitsFeasts": [
+   {
+    "raw": "building an improvement on a hex carrying a resource grants +5 culture",
+    "text": "building an improvement on a hex carrying a resource grants +5 culture"
+   }
+  ],
+  "theMarchmen": [
+   {
+    "raw": "+3 combat strength against barbarians",
+    "text": "+3 combat strength against barbarians"
+   }
+  ],
+  "commonFarRunners": [
+   {
+    "raw": "all units: +1 sight",
+    "text": "all units: +1 sight"
+   }
+  ],
+  "theThreshingFloor": [
+   {
+    "raw": "+1 production in your capital per 2 citizens there",
+    "text": "+1 production in your capital per 2 citizens there"
+   }
+  ],
+  "lightKit": [
+   {
+    "raw": "all units: +1 movement",
+    "text": "all units: +1 movement"
+   },
+   {
+    "raw": "all units: +1 sight",
+    "text": "all units: +1 sight"
+   },
+   {
+    "raw": "-2 combat strength",
+    "text": "-2 combat strength"
+   }
+  ],
+  "theWagonTrains": [
+   {
+    "raw": "settler and worker units: +1 movement",
+    "text": "settler and worker units: +1 movement"
+   }
+  ],
+  "commonFestivals": [
+   {
+    "raw": "+1 happiness in every city",
+    "text": "+1 happiness in every city"
+   }
+  ],
+  "theHallOfFame": [
+   {
+    "raw": "+30% renown in your capital",
+    "text": "+30% renown in your capital"
+   }
+  ],
+  "commonCisternWorks": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may build the [[building:cistern|Cistern]]: +2 food; the city counts as standing beside fresh water; the farms this city works are watered as if they stood beside a river; +1 food on every desert hex",
+    "text": "you may build the Cistern: +2 food; the city counts as standing beside fresh water; the farms this city works are watered as if they stood beside a river; +1 food on every desert hex"
+   }
+  ],
+  "theFoundersRights": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   },
+   {
+    "raw": "new cities start 1 citizen larger",
+    "text": "new cities start 1 citizen larger"
+   }
+  ],
+  "thePublicPeace": [
+   {
+    "raw": "while you are at peace: +2 food in every city; +1 happiness in every city",
+    "text": "while you are at peace: +2 food in every city; +1 happiness in every city"
+   }
+  ],
+  "theTownWatch": [
+   {
+    "raw": "+5 combat strength when defending inside your territory",
+    "text": "+5 combat strength when defending inside your territory"
+   }
+  ],
+  "theRoyalAnnals": [
+   {
+    "raw": "+4% production and +4% gold per commission you have completed this game (at most +28% each)",
+    "text": "+4% production and +4% gold per commission you have completed this game (at most +28% each)"
+   }
+  ],
+  "theOfficeOfWorks": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great engineer to call",
+    "text": "On draft: you gain a great engineer to call"
+   }
+  ],
+  "theGrandDesign": [
+   {
+    "raw": "+1 production in every city raising the Magnum Opus per 2 citizens in your empire",
+    "text": "+1 production in every city raising the Magnum Opus per 2 citizens in your empire"
+   }
+  ],
+  "theLastWalls": [
+   {
+    "raw": "every city raising the Magnum Opus: +15 city defence",
+    "text": "every city raising the Magnum Opus: +15 city defence"
+   }
+  ],
+  "theSettledRealm": [
+   {
+    "raw": "+2 happiness in every city",
+    "text": "+2 happiness in every city"
+   }
+  ],
   "hearthStores": [
    {
     "raw": "+1 food in your capital",
@@ -9621,8 +9761,8 @@
   ],
   "localClerks": [
    {
-    "raw": "+1 authority capacity",
-    "text": "+1 authority capacity"
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
    }
   ],
   "publicHospitals": [
@@ -9643,9 +9783,8 @@
   ],
   "cityWatches": [
    {
-    "raw": "a soldier standing inside one of your towns mends faster there — not built yet",
-    "text": "a soldier standing inside one of your towns mends faster there — not built yet",
-    "deferred": true
+    "raw": "every city: +8 city defence",
+    "text": "every city: +8 city defence"
    }
   ],
   "theHolyArmy": [

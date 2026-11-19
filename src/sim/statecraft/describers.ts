@@ -2322,7 +2322,13 @@ function countPlace(effect: CardPaysEffect, subject: ClauseSubject): CountPlace 
       : effect.where === 'city' && subject !== 'here'
         ? ` in ${scopeWordsFor(subject, effect.scope)}`
         : '';
-  if (!cityScoped) return { paidIn, counted: '' };
+  if (!cityScoped) {
+    // A city can be paid for the population of the whole empire.
+    const counted = effect.where === 'city' && effect.count === 'population' && effect.admits === undefined
+      ? 'in your empire'
+      : '';
+    return { paidIn, counted };
+  }
   if (subject === 'here') return { paidIn, counted: 'in this city' };
   // A route line is counted in the town the trade route left (Commerce batch
   // T2, The Grain Barges). Its clause names no town before the count, so

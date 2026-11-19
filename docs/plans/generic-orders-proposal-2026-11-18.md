@@ -1380,3 +1380,27 @@ The user: "summer palace pay 50% more is fine."
 - It no longer repeats the Scientific Doctrine The Two Capitals.
 - This replaces the text of G2-7 in section 7 and on `docs/decks/common.md`. The builder updates the sheet row with the card.
 - The number is to tune in playtest.
+
+## First implementation batch
+
+The branch `codex/generic-orders` implements 22 of the 39 approved Orders.
+It retires the 16 rows in section 8.4 and updates Local Clerks and City Watches
+in place. The tier tables in `docs/decks/common.md` list the remaining 17.
+
+Two cards from group 1 need more work. The Good Years must double both positive
+happiness levels. A fixed increase gives a different result at each level.
+The Summer Palace needs the capital payment increase in the final ruling above.
+
+Cistern Works unlocks the existing Cistern. The Office of Works uses the same
+grant as The Wandering Muse. If an offer is already waiting, that grant banks
+renown toward recruitment. It does not reserve an engineer for the next offer.
+
+Before integrating the new pool into the play build, update the save version
+and verify the bot results on the combined branch. Draft commands record an
+option index. A command log from the old pool can select a different card
+under the new rules.
+
+This batch passed typecheck, all 12,080 core tests in 521 files, and the
+production build with the shared turn runner at `e3d89148`. The focused
+tests check resource improvements, capital yields, the Opus queue, combat
+strength on attack and defence, and card text against the sheet.

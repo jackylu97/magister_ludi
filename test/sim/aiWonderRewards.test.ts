@@ -28,18 +28,15 @@ import { buildingProductionCost, foundCityAt, realiseItem, refreshCityDerived } 
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { nextFaithRungCost } from '../../src/sim/religion';
 import { type City, type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
-import { type CardEffect, type OrderId, ORDER_IDS, isBoon, isCharter, orderDef } from '../../src/sim/statecraftData';
+import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { lendCardEffects as lendOrder } from './aiCardStampHelpers';
 import { newGame } from './newGameHelpers';
 
 const GOLDEN_BULL = 'magisterialTheGoldenBull' as OrderId;
 
-const LIVE = ORDER_IDS.filter((id) => orderDef(id).retired !== true);
-/** Plain cards that may sit and hold one flat line: the test lends each its line. */
-const PLAIN = LIVE.filter(
-  (id) => !isBoon(id) && !isCharter(id) && orderDef(id).commission === undefined && orderDef(id).type === undefined,
-);
+/** Old generic Orders that a save can still hold. The tests lend them flat yields. */
+const PLAIN = ['hearthStores', 'watchmen', 'restingCamps', 'localMarkets'] as const satisfies readonly OrderId[];
 
 function at(map: GameMap, col: number, row: number): Tile {
   const tile = getTileAt(map, col, row);
@@ -140,17 +137,17 @@ describe('one more Wildcard chair', () => {
     const { state, player } = bench();
     const [rich, poor] = PLAIN;
     const lent = [
-      lendOrder(rich!, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]),
-      lendOrder(poor!, [{ kind: 'pays', where: 'empire', gold: 2 } as CardEffect]),
+      lendOrder(rich, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]),
+      lendOrder(poor, [{ kind: 'pays', where: 'empire', gold: 2 } as CardEffect]),
     ];
     try {
-      player.statecraft.orders.push(rich!, poor!);
+      player.statecraft.orders.push(rich, poor);
       bumpRevision(state);
       const ctx = valueContext(state, player);
       const price = (id: OrderId): number => explainCardEffects(id, orderDef(id).effects, ctx, 'walk').total;
-      expect(price(rich!)).toBeGreaterThan(price(poor!));
-      expect(extraChairsWorth(1, ctx)).toBeCloseTo(price(rich!), 8);
-      expect(extraChairsWorth(2, ctx)).toBeCloseTo(price(rich!) + price(poor!), 8);
+      expect(price(rich)).toBeGreaterThan(price(poor));
+      expect(extraChairsWorth(1, ctx)).toBeCloseTo(price(rich), 8);
+      expect(extraChairsWorth(2, ctx)).toBeCloseTo(price(rich) + price(poor), 8);
     } finally {
       for (const give of lent) give();
     }
@@ -171,9 +168,9 @@ describe('one more Wildcard chair', () => {
   it('is what the Forbidden City’s row reads for its chair', () => {
     const { state, player } = bench();
     const [rich] = PLAIN;
-    const give = lendOrder(rich!, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    const give = lendOrder(rich, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
     try {
-      player.statecraft.orders.push(rich!);
+      player.statecraft.orders.push(rich);
       bumpRevision(state);
       const ctx = valueContext(state, player);
       const written = explainBuildingRow('forbiddenCity', ctx).terms.find((term) => term.label === 'its written effects');
@@ -187,7 +184,7 @@ describe('one more Wildcard chair', () => {
   it('is filled by the slot arm once the wonder stands', () => {
     const { state, player, city } = bench();
     const [rich] = PLAIN;
-    const give = lendOrder(rich!, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    const give = lendOrder(rich, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
     try {
       // Every chair full, and one more card held.
       const sc = player.statecraft;
@@ -196,7 +193,7 @@ describe('one more Wildcard chair', () => {
         sc.orders.push(id);
         sc.slots[index] = { card: id, sealedUntil: 0 };
       });
-      sc.orders.push(rich!);
+      sc.orders.push(rich);
       bumpRevision(state);
       expect(slottingDecision(state, player)).toBeNull();
       const chairs = sc.slots.length;

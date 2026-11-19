@@ -270,40 +270,48 @@ describe('a great person another seat called first', () => {
 
 describe('a cut plan', () => {
   it('leaves no piece without orders that the whole plan gave orders', () => {
-    // Seat 3 is a person who has not ended, so the turn does not resolve and
-    // each seat's blockers can be read after the bot step.
-    const base = grown(20);
+    // Start before the first draft. Seat 3 keeps the turn open after the bots end.
+    const base = createGame(FOUR);
     playerById(base.state, 3)!.isHuman = true;
+    const target = 1;
+    const scout = base.state.units.find((unit) => unit.ownerId === target && unit.type === 'scout')!;
+    const start = getTileAt(base.state.map, scout.col, scout.row)!;
+    const free = mapRange(base.state.map, tileHex(start), 1).find((tile) =>
+      !isWaterTerrain(tile.terrain) &&
+      tile.terrain !== 'mountain' &&
+      !base.state.units.some((unit) => unit.col === tile.col && unit.row === tile.row),
+    )!;
+    const spare = createUnit(base.state, target, 'scout', free.col, free.row);
     bumpRevision(base.state);
-    // The plans the seats after seat 0 make on this board; the target is the
-    // first of them that orders a piece, and the piece is the first it orders.
     const board = freezeBoard(structuredClone(base).state);
-    const orderedIn = (plan: SeatPlan): number => plan.steps.findIndex((step) => 'unitId' in step.command);
-    const plans = [1, 2].map((playerId) => planSeat(board, playerId, { warn: () => undefined }));
-    const plan = plans.find((one) => orderedIn(one) >= 0);
-    expect(plan).toBeDefined();
-    const target = plan!.playerId;
-    const ordered = orderedIn(plan!);
-    const lost = (plan!.steps[ordered]!.command as { unitId: number }).unitId;
+    const plan = planSeat(board, target, { warn: () => undefined });
+    const ordered = plan.steps.findIndex(({ command }) => 'unitId' in command && command.unitId === scout.id);
+    expect(ordered).toBeGreaterThan(0);
+    const remaining = plan.steps.slice(ordered + 1).map(({ command }) => command);
+    expect(remaining.some((command) => 'unitId' in command && command.unitId === spare.id)).toBe(true);
+    expect(remaining.some((command) => command.type === 'setCityProduction')).toBe(true);
 
-    const idleAfter = (game: Game): string[] =>
-      allBlockers(game.state, target)
+    const idleAfter = (game: Game): string[] => {
+      // Ended seats do not report blockers. Reopen the seat on a copy to inspect its orders.
+      const state = structuredClone(game.state);
+      state.turnEnded[target] = false;
+      return allBlockers(state, target)
         .filter((blocker) => blocker.kind === 'idleUnit' || blocker.kind === 'cityProduction')
         .map((blocker) => JSON.stringify(blocker));
+    };
 
     const whole = structuredClone(base);
     const wholeReports = driveBots(whole, { warn: () => undefined });
     expect(wholeReports.find((report) => report.playerId === target)?.cut).toBeNull();
 
-    // The same board, but the piece is gone when seat 1's plan comes to it,
-    // as if an earlier seat had killed it: the plan is cut there.
+    // Remove the first scout after seat 0 plays, as if seat 0 had killed it.
     const cut = structuredClone(base);
     const warnings: string[] = [];
     const cutReports = driveBots(cut, {
       warn: (message) => warnings.push(message),
       attempt: (command) => {
         if (command.type === 'endTurn' && command.playerId === 0) {
-          cut.state.units = cut.state.units.filter((unit) => unit.id !== lost);
+          cut.state.units = cut.state.units.filter((unit) => unit.id !== scout.id);
           bumpRevision(cut.state);
         }
       },
@@ -313,8 +321,10 @@ describe('a cut plan', () => {
     expect(report.cut).toBe('refused');
     expect(report.landed).toBe(ordered);
     expect(report.ended).toBe(true);
-    // The live sitting gave its other pieces and towns their orders.
-    const missing = idleAfter(cut).filter((blocker) => !idleAfter(whole).includes(blocker));
+    expect(cut.log.some((command) => 'unitId' in command && command.unitId === spare.id)).toBe(true);
+    expect(cut.log.some((command) => command.playerId === target && command.type === 'setCityProduction')).toBe(true);
+    const wholeBlockers = idleAfter(whole);
+    const missing = idleAfter(cut).filter((blocker) => !wholeBlockers.includes(blocker));
     expect(missing).toEqual([]);
   });
 });
