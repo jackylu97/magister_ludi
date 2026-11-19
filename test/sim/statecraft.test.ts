@@ -7808,6 +7808,11 @@ describe("a charter carries the description of the building it opens", () => {
       );
       for (const entry of row) {
         const text = stripRefs(entry.text);
+        const purchase = /^it is bought with (.+) and never built$/.exec(text);
+        if (said.startsWith("you may buy ") && purchase) {
+          expect(said, card).toContain(` with ${purchase[1]}`);
+          continue;
+        }
         if (listed && (text.startsWith("it is bought with ") || text.startsWith("it may be raised only "))) continue;
         expect(said, `${card} → ${building}`).toContain(listed ? text.replace(ownCity, "") : text);
       }

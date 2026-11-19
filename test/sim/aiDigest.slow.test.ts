@@ -1320,10 +1320,12 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * Version 247 records damaged works and lets bot workers repair them.
  * On turn 102 of the duel, seat two passes on an Order after checking
  * where its free units can appear. The standard board gives the same result.
+ * Version 248 changes the Dominion and Magisterial draft pools and wonder unlocks.
+ * These games also use the revised chair valuations and unit grants.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '248fa00a:380312',
-  standard: 'b606a354:1018951',
+  duel: 'd4d457c9:364993',
+  standard: '95507925:1047719',
 };
 
 /**

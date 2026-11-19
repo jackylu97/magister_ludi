@@ -816,7 +816,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Towns of 5 or more citizens may spend a citizen to raise a melee unit. |
 | Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
 | The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Each military unit in your towns gives +2 science. |
-| The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain the best melee unit you can build. It costs no upkeep. |
+| The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain a melee unit. It costs no upkeep. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified unit gain +1 food and +1 production. |
