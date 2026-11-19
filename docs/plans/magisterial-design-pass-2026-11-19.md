@@ -825,3 +825,5 @@ The readings R1 to R7 had no objection and stand.
 | W3 Commons for Tiers II and III | "sgtm" | The Hall of Heroes and The Learned Patron become common. |
 
 Nothing waits on the user.
+
+The user approved a short Flavour line for each of the eleven new cards on 2026-11-19. The lines are in the deck data.

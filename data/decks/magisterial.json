@@ -18,7 +18,7 @@
       "rarity": "common",
       "type": "civic",
       "text": "Founding a town grants 30 culture.",
-      "flavor": ""
+      "flavor": "The herald called out the town’s name while the gateposts still lay on the ground."
     },
     "magisterialTheQuarryGangs": {
       "name": "The Quarry Gangs",
@@ -40,7 +40,7 @@
       "rarity": "common",
       "type": "economic",
       "text": "Quarries give +1 production and +1 culture.",
-      "flavor": ""
+      "flavor": "Each crew cut its mark into the last block of the day."
     },
     "magisterialTheNineJewels": {
       "name": "The Nine Jewels",
@@ -59,7 +59,7 @@
           "grant": "greatPerson"
         }
       ],
-      "flavor": ""
+      "flavor": "The invitations asked each guest to bring a piece of unfinished work."
     },
     "magisterialTheDivan": {
       "name": "The Divan",
@@ -81,7 +81,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "text": "You have one more Economic chair and one more Military chair.",
-      "flavor": ""
+      "flavor": "The treasurer spread her accounts beside the captain’s map."
     },
     "magisterialTheHallofHeroes": {
       "name": "The Hall of Heroes",
@@ -105,7 +105,7 @@
       "rarity": "common",
       "type": "military",
       "text": "Your units gain +1 strength for each great person you have gained.",
-      "flavor": ""
+      "flavor": "The recruits knew the names above the door before they could lift a shield."
     },
     "magisterialTheLawgiver": {
       "name": "The Lawgiver",
@@ -121,7 +121,7 @@
           "grant": "doctrineOffer"
         }
       ],
-      "flavor": ""
+      "flavor": "A potter asked who should pay for a broken jar. The scribe turned to a fresh tablet."
     },
     "magisterialTheHanlinAcademy": {
       "name": "The Hanlin Academy",
@@ -146,7 +146,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "text": "Great people cost 20% less renown. Great-person works give +2 science.",
-      "flavor": ""
+      "flavor": "The examiner covered the poet’s name and read the last verse again."
     },
     "magisterialTheSpiritWay": {
       "name": "The Spirit Way",
@@ -157,7 +157,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "text": "Your wonders count as great-person works.",
-      "flavor": "",
+      "flavor": "At each monument the guide stopped to name the hands that built it.",
       "note": "Each wonder in a town counts as a work that the town is working. Cards that give yields to works also give those yields to each wonder."
     },
     "magisterialTheFriendsofKhufu": {
@@ -175,7 +175,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "text": "A town building a wonder may spend a citizen for production equal to 25% of the wonder's cost. Once every five turns.",
-      "flavor": ""
+      "flavor": "High inside the stonework, a crew left its name in red paint."
     },
     "magisterialTheTwelveTables": {
       "name": "The Twelve Tables",
@@ -203,7 +203,7 @@
       "rarity": "rare",
       "type": "civic",
       "text": "Your capital gains +2 production and +2 culture for each Order you hold, seated or not.",
-      "flavor": ""
+      "flavor": "A baker dusted the flour from her hands before tracing a line on the bronze."
     },
     "magisterialMasterMasons": {
       "name": "Master Masons",
@@ -3681,7 +3681,7 @@
         }
       ],
       "text": "You have one more Wildcard chair for every three wonders you hold, at most two more.",
-      "flavor": ""
+      "flavor": "The carver left room at the foot of the stone for the names still to come."
     },
     "theArthashastra": {
       "name": "The Arthashastra",
