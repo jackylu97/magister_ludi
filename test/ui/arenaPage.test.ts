@@ -29,6 +29,7 @@ import {
   type Knob,
   blocksOf,
   describeEdit,
+  describeRunEdits,
   editsOf,
   knobKey,
   knobsOf,
@@ -257,6 +258,23 @@ describe('the configuration panel is generated, not listed', () => {
   it('treats an unreadable box as un-edited rather than handing over a NaN', () => {
     expect(editsOf(knobs, () => null)).toEqual([]);
     expect(sheetOfEdits([])).toBeNull();
+  });
+
+  it('shows which selected personas use a different value from the edit', () => {
+    const edits = editsOf(knobs, (knob) => {
+      if (knobKey(knob.path) === 'weights.food') return [11, 11, 11, 11];
+      if (knobKey(knob.path) === 'military.mixDefend.ranged') return 0.6;
+      return null;
+    });
+    const labels = describeRunEdits(edits, ['balanced', 'tall', 'warmonger', 'tall']);
+    const food = labels.find((line) => line.startsWith('weights.food '))!;
+    expect(food.match(/Tall uses/g)).toHaveLength(1);
+    expect(food).toContain(`Tall uses ${aiConfigFor('tall').weights.food.join(', ')}`);
+    const ranged = labels.find((line) => line.startsWith('military.mixDefend.ranged '))!;
+    expect(ranged).toContain(`Warmonger uses ${aiConfigFor('warmonger').military.mixDefend.ranged}`);
+    expect(labels.join(' ')).not.toContain('Balanced uses');
+    expect(describeRunEdits(edits, ['balanced'])).toEqual(edits.map(describeEdit));
+    expect(aiTuning()).toBeNull();
   });
 });
 

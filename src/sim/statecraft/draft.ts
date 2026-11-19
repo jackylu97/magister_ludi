@@ -61,6 +61,7 @@ import {
   isOrderId,
   orderDef,
   orderIsDealt,
+  orderKeyword,
   ordersForDecks,
   poolDoctrines,
   poolOrders,
@@ -82,6 +83,7 @@ import {
   helpings,
   holdsLevyGrant,
   holdsTendedUnlock,
+  scalerCountsFor,
 } from './evaluator';
 // The council (`council.ts`), which an adoption seats again. That file imports
 // this one back, and these names are used only inside `adoptGovernmentAt`.
@@ -792,6 +794,7 @@ export function recordScalingOccasion(
   if (amount <= 0) return;
   const sc = statecraftOf(state, playerId);
   if (!sc) return;
+  let scalerMultiplier: number | undefined;
   for (const slot of sc.slots) {
     const card = slot?.card;
     if (card === undefined || !isOrderId(card)) continue;
@@ -799,11 +802,14 @@ export function recordScalingOccasion(
     // A commission counts only a moment that meets its goal's floor.
     const goal = countedGoalFor(card, occasion);
     if (goal !== null && !goalFloorMet(goal, facts)) continue;
+    const gained = orderKeyword(card) === 'scaler'
+      ? amount * (scalerMultiplier ??= scalerCountsFor(state, playerId))
+      : amount;
     let held = sc.tallies.find((row) => row.card === card);
     const before = held?.count ?? 0;
-    if (held) held.count += amount;
+    if (held) held.count += gained;
     else {
-      held = { card, count: amount };
+      held = { card, count: gained };
       sc.tallies.push(held);
     }
     if (goal !== null && facts !== undefined && before < goal.count) keepGoalFacts(held, facts);
@@ -1025,6 +1031,7 @@ function dealGateFor(state: GameState, player: Player, drafts: number): (id: Ord
   // levy" (`OrderDef.needsLevy`, Expansionist batch E1).
   const tends = holdsTendedUnlock(state, player.id);
   const levies = holdsLevyGrant(state, player.id);
+  const ownsScaler = sc.orders.some((id) => orderKeyword(id) === 'scaler');
   return (id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
@@ -1034,6 +1041,7 @@ function dealGateFor(state: GameState, player: Player, drafts: number): (id: Ord
     if (band < def.band || band > (def.lastBand ?? def.band)) return false;
     if (def.needsTendedWork === true && !tends) return false;
     if (def.needsLevy === true && !levies) return false;
+    if (def.needsScaler === true && !ownsScaler) return false;
     // The Great Instrument (Scientific batch S9): not dealt to a seat that
     // already knows the technology its goal asks for.
     if (def.notDealtKnowing !== undefined && player.techsResearched.includes(def.notDealtKnowing)) return false;

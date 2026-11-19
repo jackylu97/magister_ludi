@@ -37,7 +37,7 @@
 import './style.css';
 
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from '../ai/aiConfig';
-import { type KnobEdit, describeEdit, knobKey, sheetOfEdits } from './knobs';
+import { type KnobEdit, describeRunEdits, knobKey, sheetOfEdits } from './knobs';
 import { buildKnobPanel } from './panel';
 import { READING_COLUMNS, type ArenaSeat, type GameReading, type ReadingColumn } from './run';
 import type { ArenaMessage, ArenaTask } from './protocol';
@@ -141,7 +141,11 @@ function buildSeatPickers(): void {
   }
 }
 
-seatsSelect.addEventListener('change', () => buildSeatPickers());
+seatsSelect.addEventListener('change', () => {
+  buildSeatPickers();
+  refreshPanel();
+});
+seatPersonasEl.addEventListener('change', () => refreshPanel());
 buildSeatPickers();
 
 function seatSpecs(): ArenaSeat[] {
@@ -259,7 +263,8 @@ function showDirty(edits: readonly KnobEdit[]): void {
   if (edits.length === 0) return;
   dirtyEl.append(element('p', 'dirty-head', 'Configuration differs from data/ai.json'));
   const list = element('ul', 'dirty-list');
-  for (const edit of edits) list.append(element('li', undefined, describeEdit(edit)));
+  const labels = describeRunEdits(edits, seatSpecs().map((seat) => seat.persona));
+  for (const label of labels) list.append(element('li', undefined, label));
   dirtyEl.append(list);
 }
 
@@ -289,6 +294,7 @@ function start(): void {
   const games = Math.max(1, Math.trunc(Number(gamesInput.value) || 1));
   const baseSeed = Math.trunc(Number(seedInput.value) || 0);
   const seats = seatSpecs();
+  const sizeName = sizeSelect.value;
   const edits = currentEdits();
   const tuning = sheetOfEdits(edits);
   const started = performance.now();
@@ -330,7 +336,7 @@ function start(): void {
         setRunning(false);
         live = [];
         statusEl.textContent = `done in ${((performance.now() - started) / 1000).toFixed(1)}s`;
-        publish({ turns, games, baseSeed, seats, edits, wall: performance.now() - started });
+        publish({ turns, games, baseSeed, sizeName, seats, edits, wall: performance.now() - started });
       }
     });
     const task: ArenaTask = {
@@ -338,7 +344,7 @@ function start(): void {
       // Structured-clone safe by construction — every field is JSON.
       spec: {
         seed,
-        sizeName: sizeSelect.value,
+        sizeName,
         turns,
         seats,
         barbarians: barbariansToggle.checked,
@@ -367,6 +373,7 @@ interface RunHeader {
   turns: number;
   games: number;
   baseSeed: number;
+  sizeName: string;
   seats: readonly ArenaSeat[];
   edits: readonly KnobEdit[];
   wall: number;
@@ -406,7 +413,7 @@ function publish(header: RunHeader): void {
       'span',
       'run-title',
       `${readings.length}/${header.games} games · ${header.turns} turns · seeds ` +
-        `${header.baseSeed}–${header.baseSeed + header.games - 1} · ${sizeSelect.value}`,
+        `${header.baseSeed}–${header.baseSeed + header.games - 1} · ${header.sizeName}`,
     ),
   );
   caption.append(element('span', 'run-wall', `${(header.wall / 1000).toFixed(1)}s`));
@@ -417,7 +424,7 @@ function publish(header: RunHeader): void {
     header.edits.length === 0 ? 'run-sheet' : 'run-sheet is-dirty',
     header.edits.length === 0
       ? 'data/ai.json, untouched'
-      : header.edits.map(describeEdit).join(' · '),
+      : describeRunEdits(header.edits, header.seats.map((seat) => seat.persona)).join(' · '),
   );
   block.append(sheet);
 

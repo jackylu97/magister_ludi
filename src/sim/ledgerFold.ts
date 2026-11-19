@@ -162,7 +162,7 @@ export function classifyEmpireLine(line: EmpireYieldLine): LedgerClass {
     case 'route':
       return 'trade';
     case 'gold':
-      return classifyEmpireGold(line.source);
+      return line.card === undefined ? classifyEmpireGold(line.source) : classifyCard(line.card);
     case 'card':
     case 'share':
       if (line.founderShare !== undefined) return 'religion';

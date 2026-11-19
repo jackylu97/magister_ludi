@@ -2320,7 +2320,8 @@ describe("determinism", () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -4809,6 +4810,19 @@ describe("the Orders pass of 2026-08-29", () => {
     ] as CardEffectKind[]) {
       expect(used.has(kind), kind).toBe(true);
     }
+  });
+
+  it("says when a city's population count covers the empire", () => {
+    const effect: CardEffect = {
+      kind: "pays", where: "city", basis: "count", count: "population",
+      to: "production", amount: 1, per: 2,
+    };
+    expect(describeEffects([effect]).map((clause) => stripRefs(clause.text))).toEqual([
+      "+1 production in every city per 2 citizens in your empire",
+    ]);
+    expect(describeEffects([{ ...effect, within: "city" }]).map((clause) => stripRefs(clause.text))).toEqual([
+      "+1 production in every city per 2 citizens there",
+    ]);
   });
 
   it("prints every new row in the words the user ratified", () => {
@@ -9200,6 +9214,8 @@ describe("the engine shapes", () => {
     // the same reason: it now counts the decks among the seated cards.
     "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",
+    // The generic set adds a capital renown Order.
+    "theHallOfFame · cityRenownPercent",
     // Commerce batch T1: The Silk Road Monks, moved here from the Commerce
     // file, last in common.json.
     "theSilkRoadMonks · routeYield",
@@ -9208,6 +9224,8 @@ describe("the engine shapes", () => {
     // chair's counter, two voices).
     "thePenitentsRoll · rerollsWhileSlotted",
     "thePenitentsRoll · rerollsWhileSlotted",
+    "theBuildersLodge · cardYieldAmplifier",
+    "theSummerPalace · cardYieldAmplifier",
   ];
 
   it("registers exactly which live rows use each shape batch A declared", () => {

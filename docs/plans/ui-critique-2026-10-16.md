@@ -1187,3 +1187,61 @@ that for all <7 chair arrangements."
     town and turn and what it pays on the left; the Triumph line and Continue
     on the right.
 - A wonder without a painting keeps the lapis page with the engraved stand-in.
+
+### The painted wonder's plate: a ribbon over the board (2026-11-19)
+
+- The user played with the full dark page and found it "a bit jarring after
+  playtesting. Could we have it still take up most of the screen, leaving room
+  for the image, but having some of the background show?"
+- From mock-ups, the user chose the painting over the dimmed board with a
+  ribbon: "lets go with version 3, the slower arrival sounds great".
+- What it is: a narrow lapis sash from the left edge of the window to the
+  right, with gilt rules, a field of gilt dots, a line of stars, moons and
+  suns along each edge, and a sun and a moon on the band beside the painting.
+  The painting stands in front of it, about three quarters of the window's
+  width, with the words on its foot. The board shows above and below under a
+  light dim.
+- The arrival is slow, in order: the board dims, the ribbon draws out from the
+  centre, the sun and moon come up, the painting rises, the words show. About
+  1.8 seconds in all. Reduced motion shows it at once.
+- This replaces the near-black page of the entry above. A wonder without a
+  painting still keeps the lapis page.
+
+### Renown on the Council and In play screens (2026-11-19)
+
+The user: "lets add renown to the in-play and orders yield screen, cards should
+show additional renown that they generate".
+
+- The totals line of the Council screen and of the In play screen gains
+  renown, beside happiness and authority.
+- A card or piece that adds renown each turn shows that figure on its plate,
+  with the renown mark, in the same way as its other figures.
+- The figure is the difference the card or piece makes to the seat's renown
+  each turn (with it, less without it), as for the yields. It comes from the
+  sim's own renown list (`explainRenown`), never from a second sum.
+- A one-time renown grant (a Triumph, a completion) is not a per-turn figure
+  and is not shown here.
+
+### One style for the whole game: Quiet Table is the base (2026-11-19)
+
+The user came back to the one-style board
+(https://claude.ai/artifact/PcZtdfdNKYZHgfdnZ1wJKv, file
+`scratchpad/onestyle/one-style-options.html`; option A is "Quiet Table", B
+"The Whole Deck", C "Cut-Paper Tarot", D "The Magister's Table"):
+
+> "the quiet table feels the closest to what i want. Could we iterate on that
+> design… With the splash art spots in mind, could we do a pass with
+> incorporating the arcane look to the rest of the game, while keeping some of
+> the flavor of the modern design?"
+
+- **Quiet Table (option A) is the base** for the screens that still wear the
+  older modern look.
+- The next board iterates on it with three things in mind:
+  - the screens that are built in the arcane look (the Council, In play, the
+    wonder plate with its ribbon, the age plate);
+  - the user's gouache paintings and the places splash art could go (leaders,
+    ages, great people, the title screen, the ending, governments, capital
+    taken and elimination);
+  - keeping some of the modern design's flavour, not replacing it.
+- B, C and D stay rejected or unchosen. Nothing is built until the user picks
+  from the new board.

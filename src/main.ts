@@ -100,6 +100,7 @@ import {
 // `newGame` and a save's log walk, off the main thread. See its docblock for
 // why a deterministic simulation is allowed to cross a worker seam at all.
 import { createGameAsync, loadSlotAsync, warmGameWorker } from './ui/gameLoader';
+import { createBotPreparationScheduler } from './ui/botPreparationScheduler';
 import { createBotTwin } from './ui/botTwin';
 import { createLoadingSheet } from './ui/loadingSheet';
 import { openingFocus } from './ui/openingFocus';
@@ -4334,17 +4335,22 @@ async function boot(initial: Game | null): Promise<void> {
   const botTwin = createBotTwin();
   gameDisposers.push(() => botTwin.dispose());
   let backgroundPlansEnabled = false;
-  let prepareTimer = 0;
+  const allowBotPreparation = new URLSearchParams(location.search).get('botPrep') !== 'off';
+  const botPreparation = createBotPreparationScheduler(
+    () => botTwin.prepare(game),
+    () => endTurnWorking || controls.handOverPending(),
+  );
 
-  /** Group quick orders together so the worker receives the last board in the group. */
-  function scheduleBotPreparation(): void {
-    if (!backgroundPlansEnabled) return;
-    window.clearTimeout(prepareTimer);
-    prepareTimer = window.setTimeout(() => {
-      prepareTimer = 0;
-      if (!endTurnWorking) botTwin.prepare(game);
-    }, 250);
+  function scheduleBotPreparation(reason: 'turn' | 'edit' = 'edit'): void {
+    if (backgroundPlansEnabled && allowBotPreparation) botPreparation.schedule(reason);
   }
+
+  const onBotVisibility = (): void => {
+    if (document.hidden) botPreparation.cancel();
+    else scheduleBotPreparation('turn');
+  };
+  document.addEventListener('visibilitychange', onBotVisibility);
+  gameDisposers.push(() => document.removeEventListener('visibilitychange', onBotVisibility));
   /** True only during the first call of `controls.endTurn` in `endTurnBehindTheBots`. */
   let botsToTheWorker = false;
 
@@ -4591,7 +4597,7 @@ async function boot(initial: Game | null): Promise<void> {
       // set off have finished (see `scheduleHandOver`), and a tab closed in that
       // second would otherwise have lost the turn.
       autosave.save(game, Date.now());
-      scheduleBotPreparation();
+      botPreparation.cancel();
       // And the Ledger's curve takes its reading, at the same clean moment and
       // for a related reason: this is the one instant where the six totals are
       // the turn that just resolved rather than a turn being played. One sample
@@ -4600,6 +4606,7 @@ async function boot(initial: Game | null): Promise<void> {
       ledger?.refresh();
     },
     onTurnHandedOver: (_turn, research) => {
+      scheduleBotPreparation('turn');
       // A discovery outranks the turn card: "your turn" happens every turn,
       // and a technology lands twenty times in a game. The upgrade tally rides
       // underneath it, because a warrior that quietly became a swordsman is
@@ -6171,7 +6178,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (next === null) beginOpening();
     else tutorial.resume();
     backgroundPlansEnabled = true;
-    scheduleBotPreparation();
+    scheduleBotPreparation('turn');
     report();
     // The name follows the game, so an export straight after a load offers the
     // file the player recognises rather than the house default.
@@ -6453,8 +6460,7 @@ async function boot(initial: Game | null): Promise<void> {
     endTurnTimer = 0;
     endTurnWorking = false;
     backgroundPlansEnabled = false;
-    window.clearTimeout(prepareTimer);
-    prepareTimer = 0;
+    botPreparation.cancel();
     botTwin.cancel();
     endTurnGeneration += 1;
   }
@@ -6499,5 +6505,5 @@ async function boot(initial: Game | null): Promise<void> {
   if (initial === null) beginOpening();
   else tutorial.resume();
   backgroundPlansEnabled = true;
-  scheduleBotPreparation();
+  scheduleBotPreparation('turn');
 }

@@ -70,6 +70,7 @@ describe('background bot drives', () => {
     twin.prepare(actual);
     twin.prepare(actual);
     expect(posted).toHaveLength(1);
+    expect(posted[0]!.request).toMatchObject({ kind: 'drive', priority: 'background' });
     expect(dispatch(actual, { type: 'sleepUnit', playerId: 0, unitId: -1 }).ok).toBe(false);
     if (ready) {
       posted[0]!.finish();
@@ -122,6 +123,30 @@ describe('background bot drives', () => {
     twin.dispose();
   });
 
+  it('drops a queued prepare if the board changes before it can post', async () => {
+    const { twin, posted } = transport();
+    const actual = game();
+    try {
+      twin.prepare(actual);
+      const sleep = sleepOrder(actual);
+      expect(dispatch(actual, sleep).ok).toBe(true);
+      twin.invalidate();
+      twin.prepare(actual);
+      // This new input has not passed the page's debounce.
+      expect(dispatch(actual, { type: 'cancelOrder', playerId: 0, unitId: sleep.unitId }).ok).toBe(true);
+
+      posted[0]!.finish();
+      await Promise.resolve();
+      expect(posted).toHaveLength(1);
+
+      twin.prepare(actual);
+      expect(posted).toHaveLength(2);
+      expect(posted[1]!.request).toMatchObject({ kind: 'drive', priority: 'background', logLength: 2 });
+    } finally {
+      twin.dispose();
+    }
+  });
+
   it('keeps the worker warm when a stale drive finishes within the short wait', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     const { twin, posted, workers } = transport();
@@ -141,7 +166,7 @@ describe('background bot drives', () => {
       posted[0]!.finish();
       await vi.advanceTimersByTimeAsync(0);
       expect(posted).toHaveLength(2);
-      expect(posted[1]!.request.logLength).toBe(1);
+      expect(posted[1]!.request).toMatchObject({ kind: 'drive', priority: 'foreground', logLength: 1 });
       expect(workers).toEqual({ started: 1, ended: 0 });
       expectSameGame(actual, expected);
 

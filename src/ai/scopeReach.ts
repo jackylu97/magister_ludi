@@ -35,11 +35,12 @@ import {
   tileConditionAsks,
   tileConditionHolds,
   tileConditionReadsFold,
+  tileConditionReadsThreshold,
   townHoldsBuilding,
 } from '../sim/statecraft/evaluator';
 import type { CardEffect, CardPaysEffect, CityScope, TileCondition } from '../sim/statecraftData';
 import { explainEmpireLines, foldEmpireIncome } from '../sim/yields/empire';
-import { type TileYieldContext, cityContext, foldTile } from '../sim/yields/hex';
+import { type TileYieldContext, cityContext, explainTileYield, foldTile, foldTileLines } from '../sim/yields/hex';
 
 /**
  * **This town, as it would be holding the row** — the hypothetical the wall line
@@ -456,6 +457,7 @@ export function groundOfHexLine(
   const towns = town !== undefined ? [town] : citiesOf(ctx.state, ctx.playerId);
   const share = town !== undefined ? 1 : oneTownShare(ctx);
   const reads = tileConditionReadsFold(effect.on);
+  const threshold = tileConditionReadsThreshold(effect.on);
   // **The garrisons** (Dominion batch D7, The Farming Garrisons and The
   // Castra): the hexes where this empire has a fortified military unit now.
   // A line that asks about them is also asked of each town's centre hex,
@@ -469,7 +471,9 @@ export function groundOfHexLine(
   for (const city of towns) {
     const context = reads ? cityContext(ctx.state, city) : undefined;
     const mine: HexLineCell[] = [];
-    const cells = garrisoned ? [...city.workedTiles, { col: city.col, row: city.row }] : city.workedTiles;
+    const cells = garrisoned || threshold
+      ? [...city.workedTiles, { col: city.col, row: city.row }]
+      : city.workedTiles;
     for (const cell of cells) {
       const tile = getTileAt(ctx.state.map, cell.col, cell.row);
       if (tile === undefined) continue;
@@ -478,7 +482,11 @@ export function groundOfHexLine(
         tileConditionHolds(
           tile,
           effect.on,
-          reads ? () => foldTile(tile, context) : undefined,
+          reads
+            ? () => threshold
+              ? foldTileLines(explainTileYield(tile, context, 'yieldThresholds'))
+              : foldTile(tile, context)
+            : undefined,
           // The ring, so a line that asks `beside` is read as the hex fold reads
           // it. Without it every such line priced at nothing (found by batch DT6,
           // The Highland Clans).

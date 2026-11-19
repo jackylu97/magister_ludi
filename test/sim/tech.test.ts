@@ -1895,7 +1895,8 @@ describe('research in the log', () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

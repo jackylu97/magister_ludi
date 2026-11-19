@@ -846,6 +846,12 @@ export const BUILDING_UNLOCK_TECH: ReadonlyMap<BuildingId, TechId> = invert(
   (unlocks) => unlocks.buildings,
 );
 
+/** The age of the technology that unlocks a building, if it has one. */
+export function buildingTechAge(id: BuildingId): TechAge | undefined {
+  const tech = BUILDING_UNLOCK_TECH.get(id);
+  return tech === undefined ? undefined : techDef(tech).age;
+}
+
 /**
  * Which tech enables each project. Absent would mean "from turn one", and
  * deliberately no row is: a conversion available on turn one is a capital that

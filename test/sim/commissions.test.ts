@@ -115,7 +115,11 @@ describe('the commission rows', () => {
       for (const goal of spec.goals) {
         expect(goal.count, id).toBeGreaterThan(0);
         if (goal.kind === 'counted') expect(TALLY_OCCASIONS, id).toContain(goal.occasion);
-        else expect(COMMISSION_FIGURES, id).toContain(goal.figure);
+        else {
+          expect(COMMISSION_FIGURES, id).toContain(goal.figure);
+          if (goal.figure === 'townsAtPopulation') expect(goal.populationAtLeast, id).toBeGreaterThan(0);
+          else expect(goal.populationAtLeast, id).toBeUndefined();
+        }
       }
       for (const reward of spec.reward) {
         // Dominion batch D6 added citizens, a building in the town that met the

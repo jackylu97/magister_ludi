@@ -3641,6 +3641,9 @@ export class Renderer3D implements MapView {
    */
   glowUnits(unitIds: readonly number[]): void {
     if (!this.state) return;
+    // A handover can ask for a glow before the next frame. Check against the
+    // updated units if that frame still needs to rebuild them.
+    if (this.stateDirty && signUnits(this.state) !== this.unitsSignature) this.rebuildUnits();
     const drawn = unitIds.filter((unitId) => this.units.isDrawing(unitId));
     if (drawn.length === 0) return;
     this.glows.start(drawn, performance.now());
@@ -3660,15 +3663,17 @@ export class Renderer3D implements MapView {
   }
 
   skipAnimations(): void {
+    const restoreUnits = this.animations.pending || this.walkers.size > 0 ||
+      this.fallers.size > 0 || this.glows.pending;
     this.animations.clear();
     this.deaths.clear();
-    // A glow ends with the rest. The rebuild below lays every shell back at
-    // rest, so nothing has to be written back by hand.
     this.glows.clear();
     this.clearWalkers();
     this.clearFallers();
     this.units.clearHidden();
-    if (this.state) this.rebuildUnits();
+    // Active animations can leave hidden pieces or changed outlines. When
+    // the pieces are already at rest, let the next frame check for changes.
+    if (restoreUnits && this.state) this.rebuildUnits();
     this.invalidate();
   }
 

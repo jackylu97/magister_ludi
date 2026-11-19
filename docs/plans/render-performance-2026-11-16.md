@@ -1208,3 +1208,9 @@ The test scene used 444 units, six seats and an 80 × 52 map. Each browser rende
 | Native WebKit | 4 ms | Below 1 ms timer resolution | 6 ms | 1 ms |
 
 Across 30 selections, unit rebuilds fell from 30 to zero. Measured unit and overlay buffer uploads fell from 7,837,920 bytes to 6,480 bytes. Of those 6,480 bytes, 720 updated badge colours and 5,760 updated overlay geometry. Both browsers produced identical before and after pixels in the final frame. The separate check using 240 selections without a GPU measured a median of 4.53 ms before and 0.014 ms after.
+
+## Unit redraw at turn handover, 2026-11-19
+
+The turn handover clears old unit animations before starting new ones. When all pieces are at rest, the 3D renderer now lets the next dirty frame check the units. It previously rebuilt all units immediately, even on a board with no animation to clear. An active walk, a retained walker or faller, or a glow still restores the unit layer immediately. If a new glow needs drawn instances before the next frame, it checks the current unit fingerprint first.
+
+Focused tests call the renderer with idle and active animation states. They count unit rebuilds and check that the next frame still draws. The time saved by this change alone has not been measured. The separate bot scheduling and visible-board measurements are in the turn-start section of `docs/plans/performance-pass-2026-11-06.md`.

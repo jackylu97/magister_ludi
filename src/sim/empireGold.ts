@@ -42,7 +42,8 @@ import { tributeLines } from './deals';
 // `statecraft.ts`, which reads `cities.ts`, so the import adds no shape of cycle
 // the file did not already have and nothing here is called at load.
 import { foldRulePercent, resourceConnectionPercent } from './resourceEffects';
-import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule } from './statecraft';
+import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule, cardBuildingUpkeepRebateLines } from './statecraft';
+import type { CardId } from './statecraftData';
 import {
   explainBuildingUpkeep,
   explainUnitUpkeep,
@@ -157,6 +158,7 @@ type TradeGoldKind = 'income' | 'bill';
 export interface TradeGoldLine {
   /** "City connections · 4 cities", "Unit maintenance · 7 units". */
   source: string;
+  card?: CardId;
   /** Signed: connections pay, maintenance costs. */
   gold: number;
   /** Whether the empire stage reaches it. See `TradeGoldKind`. */
@@ -329,6 +331,10 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
       gold: -gold,
       kind: 'bill',
     });
+  }
+
+  for (const { source, card, gold } of cardBuildingUpkeepRebateLines(state, playerId, buildings)) {
+    lines.push({ source, card, gold, kind: 'bill' });
   }
 
   // **What the treaties cost and pay**, last, and one line per bargain per

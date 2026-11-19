@@ -457,6 +457,7 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › explainBuildingPackage': 'whether the town holds the building',
   'statecraft/evaluator.ts › followingCount': 'the following towns with a building, and their shelves',
   'statecraft/evaluator.ts › explainCardCityYields': 'a `pays` mirror over a shelf',
+  'statecraft/evaluator.ts › buildingProductionBonusMatches': 'the building The Capital’s Example checks in the capital',
   'statecraft/evaluator.ts › townHoldsBuilding': 'the reading',
   'statecraft/evaluator.ts › townShelf': 'the reading',
   'statecraft/evaluator.ts › cardPressureSources': 'a building\'s pressure',
