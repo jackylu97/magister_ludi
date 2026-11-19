@@ -184,9 +184,9 @@ determinations."* The determinations are made.
 - 46 new or changed clauses: 37 use shapes the game has, 7 need a small
   extension and 2 need a new shape. A clause that does not fit is deferred and
   annotated, never bent into a near fit.
-- **One name is open:** the age 1 wonder with the free rerolls is written as
-  The Great Sphinx (`greatSphinx`). The user may still change the name. Only
-  the row's id, name and perhaps its technology depend on it.
+- The age 1 wonder with the free rerolls is **The Great Sphinx**
+  (`greatSphinx`). The user confirmed the name on 2026-11-19: "The great
+  sphinx is fine." No name is open.
 - The section ends with checks for the builder (things the designer did not
   confirm in the evaluator) and two numbers to watch in playtest. Do not run
   bot games to size numbers.

@@ -1215,6 +1215,10 @@ religious significance?"
 - Weighed and left out: Newgrange (its roof-box catches the midwinter sunrise, a very good fit, but it is a second megalith beside Stonehenge and less famous); the temple of Amun at Karnak (its god gave oracles, but it is a compound of many temples built over a thousand years, most of it later than age 1); the great pyramid at La Venta (not well known).
 - My pick is The Great Sphinx. The sheet below uses it. If the user picks another, only the row id, the name and perhaps the technology change.
 
+## The age 1 wonder is The Great Sphinx (2026-11-19)
+
+The user: "The great sphinx is fine." The name is confirmed. Where the section below says the user may still change this name, read it as settled.
+
 ## Ready for the build
 
 This section stands alone. It is the whole specification for the wonder build. The sections above it are the record of how it was decided.

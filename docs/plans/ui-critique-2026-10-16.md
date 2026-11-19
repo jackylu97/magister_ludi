@@ -1154,3 +1154,20 @@ user's words:
 - **One page for a wonder.** "put the renown line on the plate, no second
   page." The plate carries the Triumph's renown line, and the Triumph page
   "A Marvel Raised" does not open for a wonder the plate has shown.
+
+### The chair cluster sits in the space right of the government (2026-11-19)
+
+The user, after the six-chair cluster landed: "the chairs feel awkward in the
+center, they should be centered in the remaining space since the government is
+in the left side (so ideally they're off-center to the right)… i actually
+prefer the old 6 chair design, thats off-center right, lets use something like
+that for all <7 chair arrangements."
+
+- For fewer than seven chairs, the cluster is centred in the space between the
+  government column's right edge and the page's right edge. It is not centred
+  on the page.
+- The model is the six-chair layout before stage 5 (picture
+  `s5-before-six-1440.png`): rows of three, to the right of centre.
+- Seven chairs or more keep the wide layout.
+- This replaces the earlier line "The chair cluster stays right of centre",
+  which described a layout that the build had in fact centred on the page.
