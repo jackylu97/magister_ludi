@@ -1091,3 +1091,55 @@ ship this".
 - The number of places a rod stays as it is (13) until the wager rework.
 - The options' code is on branch `worktree-agent-a500e56fb98dd2862` as a
   work-in-progress commit.
+
+### After the In play screen was built: the user's comments (2026-11-18)
+
+The user saw the stage 3 pictures and the Council screen in play. In the
+user's words:
+
+> "could you take a look at the orders page? i think it could use more
+> vertical space for the title and government slot areas, that should be
+> the focus of the page, and there's too much room for the hand i think, so
+> it feels squashed. I'd also like for few government seats to be clustered
+> in the middle with negative space around it instead of having it be evenly
+> spaced (dont need to change the screen when more slots appear). Lets also
+> re-use the convention of the 'x' to close as in the technology screen. For
+> the in-play build, could you find a more elegant way of handling the
+> wrapping when there are multiple yields? We can dedicate the entire bottom
+> of the card for yield descriptors and i'd rather have the card increase in
+> size than to have the numbers truncated or have it overflow past the card
+> boundary. yes to all decisions for me, for #4 we should show everything
+> and handle the overflow better."
+
+**The Council screen**
+- Give more height to the head (the title) and to the area with the
+  government and its chairs. That area is the focus of the page.
+- Give less height to the hand.
+- When the government has few chairs, put them in a cluster in the middle,
+  with empty space on both sides. Do not spread them over the full width.
+  The layout with many chairs stays as it is.
+- Close with an "×" control, the same one the technology screen uses. The
+  In play screen takes the same control.
+
+**The In play screen**
+- A piece with many yields: the whole bottom of the piece is for the yield
+  figures. The figures wrap on whole figures. The piece grows taller when it
+  needs more lines. No figure is cut off, shrunk until hard to read, or drawn
+  past the edge of the piece. This replaces the "one edge size" rule where
+  the two disagree: an edge may be taller than its neighbours.
+- Show every figure (decision 4). Do not limit an edge to its largest two or
+  three.
+- A malice counts in the council stack's total (decision 1).
+- The great houses stay in the Wonders stack (decision 2).
+- A finished wonder gets a full-screen moment: the lapis plate of frame A1,
+  as a page in the news queue (decision 3). The stage 3 report lists what it
+  needs in `main.ts`.
+
+**A wonder's picture windows (the user, 2026-11-18)**
+- The user will paint splash art for wonders at 16:9.
+- The full-screen wonder plate's picture window is exactly 16:9.
+- The picture window on the top piece of the Wonders stack is 2:1, not the
+  3:1 strip of stage 3. The user: "could we make the wonders card slightly
+  taller for the wonders stack? 3:1 is possibly too extreme, maybe 2:1
+  instead?" The piece grows taller to hold it. The window shows the centre
+  band of the same picture.
