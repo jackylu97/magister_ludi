@@ -1063,3 +1063,30 @@ If eight is too many, the ones I would give up first are 7, then 6, then 4.
 - **The age goals of five decks.** `references/age-goals.md` has the general goals and Dominion's. For the other decks I used the general goals and each deck's themes.
 - **The world clock rule** of 2026-11-18 opens ages II and III sooner. The power arithmetic uses the older bot measurements.
 - **Whether a seated card can be swapped in the same turn a war starts.** The Town Watch and City Watches are worth more if it can.
+
+---
+
+## The user's ruling on this proposal (2026-11-18)
+
+Review page: https://claude.ai/artifact/MLqfdzKUKKb5iyhyCds2c7. The user: "these
+are great, read my comments, otherwise approved". So the recommended set (size
+C) is approved with the changes below, and the three recommendations stand: no
+generic card reads the council, part of the set takes no chair, and generic
+cards have a type.
+
+The user's comments, card by card:
+
+| Card | The user's words | What changes |
+|---|---|---|
+| G1-6 The Brick Kilns | "+1 prod where? lets change to +1 science and +1 gold" | Gains +1 science and +1 gold each time you finish a building. The text must say where it pays. |
+| G1-7 The Ever-Normal Granary | "reject" | Cut. |
+| G2-2 The Public Peace | "too strong, +2 food and +1 happiness" | While you are at peace, every town gains +2 food and +1 happiness. |
+| G2-6 Commission: The Building Programme | "12 buildings while slotted or 12 buildings total. if total, this number needs to be higher" | Say which it is. If it counts the whole game, raise the number. |
+| G3-3 Commission: The Master Plan | "this should be harder, four towns of 20 or more citizens" | Goal: hold four towns of 20 or more citizens. |
+| G3-5 The Building Trades | "reject. lets say: boon: gain a great engineer draft" | Replaced by a boon: on draft, gain a great engineer draft. |
+| A0-1 (settlers and workers gain +1 movement) | "i like this one" | Added to the set. |
+| A1-3 (+3 authority; cities you found start with one extra citizen) | "add" | Added to the set. |
+| A2-1 (cards that belong to two decks pay 50% more) | "add" | Added to the set. |
+| A3-1 (your scalers gain twice as much each time) | "add" | Added to the set. |
+
+Every other card of the set is approved as written.
