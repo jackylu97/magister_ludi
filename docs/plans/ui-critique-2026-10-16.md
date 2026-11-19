@@ -1591,3 +1591,11 @@ full screen is better. lets build that." This replaces frame A9's layout
   page.
 - **No painting, no change:** if the picture fails to load, the page shows the
   lapis page (a win) or the dark cloth (a loss) behind the same words.
+
+### The belief pictures (2026-11-19)
+
+The user added pictures for the 23 live pantheon beliefs and saw them in the
+round window (https://claude.ai/artifact/E4Pb6hTnFhVkRRmULvG6mR). I named four
+that read weakly at tablet size (Lord of the Sea, Lady of the Hunt, Desert
+Fathers, Lord of the Hoard). The user: "its fine, let's add these." All 23 go
+in as they are. The files are `public/art/splash/beliefs/<belief id>.jpg`.
