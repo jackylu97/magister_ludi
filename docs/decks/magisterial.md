@@ -34,10 +34,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|
 | Tier 0 | 8 | 0 | 0 | 8 |
 | Tier I | 15 | 0 | 0 | 15 |
-| Tier II | 18 | 0 | 0 | 18 |
+| Tier II | 19 | 0 | 0 | 19 |
 | Tier III | 15 | 0 | 0 | 15 |
 | Tier IV | 10 | 0 | 0 | 10 |
-| **All** | **66** | **0** | **0** | **66** |
+| **All** | **67** | **0** | **0** | **67** |
 | Shared | 14 | 1 | 0 | 15 |
 
 **By type** (the chair a card fits):
@@ -46,13 +46,13 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|
 | Tier 0 | 1 | 3 | 3 | 1 |
 | Tier I | 1 | 5 | 8 | 1 |
-| Tier II | 1 | 3 | 11 | 3 |
+| Tier II | 1 | 3 | 12 | 3 |
 | Tier III | 0 | 3 | 6 | 6 |
 | Tier IV | 0 | 3 | 5 | 2 |
-| **All** | **3** | **17** | **33** | **13** |
+| **All** | **3** | **17** | **34** | **13** |
 | Shared | 1 | 2 | 10 | 2 |
 
-The deck has 66 Orders. Boons pay on draft, and the Charter opens a building. Both take no chair.
+The deck has 67 Orders. Boons pay on draft, and the Charter opens a building. Both take no chair.
 
 ## Tier 0
 
@@ -132,6 +132,7 @@ The deck has 66 Orders. Boons pay on draft, and the Charter opens a building. Bo
 | **The Hall of Heroes** | common | implemented | Your units gain +1 strength for each great person you have gained. | Military |
 | **The Lawgiver** | rare | implemented | On draft: gain a Doctrine offer. | Civic |
 | **The Hanlin Academy** | uncommon | implemented | Great people cost 20% less renown. Great-person works give +2 science. | Civic |
+| **The Spirit Way** | uncommon | implemented | Your wonders count as great-person works. | Civic |
 | **The Mixed Constitution** | rare | implemented | Your cards fit any chair. | Wildcard |
 ## Tier III
 
@@ -156,7 +157,7 @@ The deck has 66 Orders. Boons pay on draft, and the Charter opens a building. Bo
 | **The Divine Proportion** | rare | implemented | The bonuses your cards give great-person works are doubled. | Wildcard |
 | **The Masters' Domain** | uncommon | implemented | Worked great-person works give +6 food and +6 production. | Economic |
 | **The Garden Courts** | uncommon | implemented | Towns working a great-person work gain +20% culture and science. | Civic |
-| **Commission: The Paradise Garden** | rare | implemented | Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders. | Wildcard |
+| **Commission: The Paradise Garden** | rare | implemented | Goal: have one town work three great-person works. Reward: your great-person works yield double. | Wildcard |
 | **Magnificence** | rare | implemented | You may buy a wonder you are building with culture, one culture for each hammer it still needs. | Economic |
 | **The Wonder Commonwealth** | rare | implemented | Towns holding a wonder gain +35% production and food. | Economic |
 | **Commission: The Wonder of the Age** | uncommon | implemented | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. | Wildcard |
@@ -164,7 +165,7 @@ The deck has 66 Orders. Boons pay on draft, and the Charter opens a building. Bo
 | **The Cabinet of Curiosities** | rare | implemented | On draft: gain a random card of your tier from a deck you do not hold. | Wildcard |
 | **The Divan** | uncommon | implemented | You have one more Economic chair and one more Military chair. | Civic |
 
-Tier III has no Military card (section 8 of the themes pass). Since batch DS1, Tiers II and IV have none either. The Military cards of Tiers 0 and I and the partner deck's fill the Military chairs of the later governments.
+Tiers III and IV have no Military cards. Earlier tiers and the partner deck supply cards for Military chairs.
 
 ## Tier IV
 

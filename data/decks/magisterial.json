@@ -148,6 +148,18 @@
       "text": "Great people cost 20% less renown. Great-person works give +2 science.",
       "flavor": ""
     },
+    "magisterialTheSpiritWay": {
+      "name": "The Spirit Way",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [{ "kind": "rule", "rule": "wondersAreWorks" }],
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "Your wonders count as great-person works.",
+      "flavor": "",
+      "note": "Each wonder in a town counts as a work that the town is working. Cards that give yields to works also give those yields to each wonder."
+    },
     "magisterialTheFriendsofKhufu": {
       "name": "The Friends of Khufu",
       "decks": ["magisterial"],
@@ -3599,13 +3611,21 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The Persian kings walled their gardens and filled them with water and shade, and the old word for such a garden became the word paradise.",
-      "text": "Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.",
+      "text": "Goal: have one town work three great-person works. Reward: your great-person works yield double.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "worksBesideWork", "count": 3 }],
-        "reward": [{ "claimWithin": 3 }]
+        "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3 }],
+        "reward": [{
+          "lasting": [{
+            "kind": "pays",
+            "where": "hex",
+            "on": { "test": "greatWork" },
+            "wholePercent": 100,
+            "appliedLast": true
+          }]
+        }]
       },
-      "note": "The work in the middle must stand in your borders. A hex beside it counts whoever owns it, and a prophet's Holy Site counts as a great-person work. The new hexes join your nearest city, and a hex that a city already owns, yours or a rival's, is left alone. If more than one of your works meets the goal, the land is claimed around the one furthest north, and of those the one furthest west. A claimed hex can lie beyond the reach of your city's citizens."
+      "note": "The reward lasts for the rest of the game. The Mausoleum and this reward each add the full yield of the work after its other bonuses."
     },
     "theProcessionalWay": {
       "name": "The Processional Way",
