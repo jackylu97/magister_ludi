@@ -158,6 +158,7 @@ import { type VisualTestState, changedSwitches, onVisualTestChange, visualBorder
 import { VTEST_UNIFORMS, installBob, pinScaleFor, syncVisualUniforms } from './visualTestLook';
 import { installUnitIdle } from './northStarUnits';
 import { PaintedSmokeLayer } from './paintedSmoke';
+import { PaintedPillageLayer } from './paintedPillage';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
@@ -430,6 +431,7 @@ export class Renderer3D implements MapView {
   private paintedTerritoryTint: PaintedGroundLayer | null = null;
   private paintedSmoke: PaintedSmokeLayer | null = null;
   /** The turning sails of the farms' windmills (the visual test version). */
+  private paintedPillage: PaintedPillageLayer | null = null;
   private paintedSails: PaintedSailsLayer | null = null;
   /** A few flocks of birds over the board (the visual test version). */
   private paintedBirds: PaintedBirdsLayer | null = null;
@@ -805,6 +807,8 @@ export class Renderer3D implements MapView {
     this.scene.add(this.paintedCities.group);
     this.paintedWorks = new PaintedWorksLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
     this.scene.add(this.paintedWorks.group);
+    this.paintedPillage = new PaintedPillageLayer();
+    this.scene.add(this.paintedPillage.group);
     this.paintedSites = new PaintedSiteLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
     this.paintedRoads = new PaintedGroundLayer('painted-roads', this.paintedLook.registerMaterial);
     this.paintedTerritory = new PaintedGroundLayer('painted-territory', this.paintedLook.registerMaterial);
@@ -1268,6 +1272,16 @@ export class Renderer3D implements MapView {
 
   /** How long the last frame took to submit, in milliseconds, on the CPU. */
   get lastFrameMs(): number { return this.lastRenderMs; }
+  /** The gallery uses this timestamp to skip display callbacks where the board did not draw. */
+  get lastFrameAt(): number { return this.lastDrawn; }
+
+  /** The art gallery compares both damage stages on the same set of wrecks. */
+  setPillageEffects(ash: boolean, fire: boolean): void {
+    if (!this.paintedPillage) return;
+    this.paintedPillage.ash.visible = ash;
+    this.paintedPillage.fire.visible = fire;
+    this.redraw();
+  }
 
   /**
    * Holds the clock that moving water and pieces read at one time, or
@@ -2216,6 +2230,7 @@ export class Renderer3D implements MapView {
     if (!state) {
       if (this.paintedCities) this.paintedCities.group.visible = false;
       if (this.paintedWorks) this.paintedWorks.group.visible = false;
+      if (this.paintedPillage) this.paintedPillage.group.visible = false;
       for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory, this.paintedTerritoryTint]) if (layer) layer.group.visible = false;
       this.paintedSmoke?.build(null, null, new Map(), false);
       this.paintedWorksSignature = null; this.yieldLightSignature = null;
@@ -2700,6 +2715,7 @@ export class Renderer3D implements MapView {
 
   private rebuildPaintedWorks(): boolean {
     if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
+    this.paintedPillage?.expire(this.state.turn);
     const signature = signPaintedWorks(this.state, this.fogSeat);
     this.rebuildYieldLight(signature);
     const levels = this.fogLevels();
@@ -2724,7 +2740,9 @@ export class Renderer3D implements MapView {
     const terrainChanged = this.paintedBoard.replaceHillRelief(terraces);
     if (terrainChanged) this.paintedTerrainRevision++;
     this.paintedWorks.group.visible = true;
+    if (this.paintedPillage) this.paintedPillage.group.visible = true;
     this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
+    this.paintedPillage?.update(this.state, this.paintedBoard.renderMap, this.paintedWorks.entries);
     this.paintedBirds?.build(this.state.map.width, this.state.map.height);
     this.paintedFlow?.build(this.paintedBoard.renderMap, levels, this.state.map, visualOn('organicRivers'));
     this.paintedRichness?.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width, this.shadows);
@@ -4605,7 +4623,7 @@ export class Renderer3D implements MapView {
           // Marks on the board never reflect. With `what: "pieces"` the board and the works on it are left out too:
           // only ships, pieces, towns and the works (fishing boats among them) reflect, which is most of what shows and a small part of the cost.
           const marks = [this.tints.group, this.territory.group, this.lens.group, this.overlays.group, this.vignette.mesh, this.fog?.group,
-            this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group];
+            this.paintedTerritory?.group, this.paintedTerritoryTint?.group, this.paintedFlow?.group, this.paintedPillage?.group];
           const ground = this.mirrorAll || VIEW3D.visualTest.coast.open.mirror.what === 'all' ? [] : [...this.mirrorBoardHidden, this.roads.group,
             this.improvements.group, this.sites.group, this.paintedSites?.group, this.paintedRoads?.group,
             this.paintedSmoke?.group, this.paintedSails?.group, this.paintedBirds?.group, this.paintedRichness?.group, this.paintedYieldLight?.group];
@@ -4737,12 +4755,13 @@ export class Renderer3D implements MapView {
     if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
     this.reveal?.dispose(); this.reveal = null;
     for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory,
-      this.paintedTerritoryTint, this.paintedSmoke, this.paintedSails, this.paintedBirds, this.paintedRichness, this.paintedFlow, this.paintedYieldLight]) {
+      this.paintedTerritoryTint, this.paintedPillage, this.paintedSmoke, this.paintedSails, this.paintedBirds, this.paintedRichness, this.paintedFlow, this.paintedYieldLight]) {
       if (!layer) continue;
       this.scene.remove(layer.group);
       layer.dispose();
     }
     this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
+    this.paintedPillage = null;
     this.paintedRoads = null; this.paintedTerritory = null; this.paintedTerritoryTint = null; this.paintedSmoke = null; this.paintedSails = null; this.paintedBirds = null; this.paintedRichness = null; this.paintedFlow = null; this.paintedYieldLight = null;
     this.paintedUnits?.dispose(); this.paintedUnits = null;
     this.paintedLook?.setBakeDetail(null);
@@ -4776,6 +4795,7 @@ export class Renderer3D implements MapView {
     this.paintedSmoke?.dispose();
     this.paintedSails?.dispose();
     this.paintedBirds?.dispose();
+    this.paintedPillage?.dispose();
     this.paintedRichness?.dispose();
     this.paintedYieldLight?.dispose();
     this.paintedFlow?.dispose();

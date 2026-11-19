@@ -2160,7 +2160,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // Tended works survive a raid on the road beneath them.
   if (tile.improvement !== undefined && !isTendedWork(tile.improvement)) {
     report.improvement = tile.improvement;
-    damageImprovement(tile);
+    damageImprovement(tile, state.turn);
   }
   delete tile.road;
   // The free-road mark goes with the road it is a fact *about*. Left behind it
@@ -2233,7 +2233,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
         if (owner === null || owner === unit.ownerId) continue;
         if (!atWar(state, unit.ownerId, owner)) continue;
         const burnt = near.improvement;
-        damageImprovement(near);
+        damageImprovement(near, state.turn);
         delete near.road;
         delete near.roadFree;
         bumpEconomy(state);

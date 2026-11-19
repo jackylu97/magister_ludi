@@ -411,7 +411,7 @@ describe('Dominion D3 — what a pillage can do', () => {
     const report = pillageAt(state, raider, farm);
     for (const tile of enemy) {
       expect(tile.improvement).toBeUndefined();
-      expect(tile.damagedImprovement).toEqual({ id: 'farm', improvedOn: state.turn });
+      expect(tile.damagedImprovement).toEqual({ id: 'farm', improvedOn: state.turn, pillagedOn: state.turn });
     }
     expect(wild.improvement).toBe('farm');
     expect(report.spread?.length).toBe(enemy.length);

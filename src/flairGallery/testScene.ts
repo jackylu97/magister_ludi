@@ -34,6 +34,8 @@ import type { UnitTypeId } from '../sim/unitData';
  * - `yields`: how a rich hex is shown: `a` motes, `b` light on the ground, `c`
  *   shapes by yield, `structures` the sheaves, logs and stalls of before, `off`
  *   nothing (it sets `visualTest.yieldLight.show` for this page);
+ * - `pillage`: `intact`, `models`, `ash` or `embers` selects the damage view.
+ *   Add `raids=many&seat=1` for widespread damage and `frameStudy=1` for pan and count controls.
  * - `world`: `works` draws a second, small world where every work and every
  *   great person's work shows its real yield (`createWorksFixture`);
  * - `force`: `2` or `3` raises every hex that shows a yield light to that step;
@@ -97,8 +99,8 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const worksWorld = params.get('world') === 'works';
   const state = worksWorld ? createWorksFixture(age) : createSceneFixture(age);
   const seat = params.get('seat') === '1' ? 1 : 0;
-  const damage = chosenPillage && !worksWorld ? pillageScene(state, seat) : undefined;
-  if (damage) { damage.show(pillage); renderer.scene.add(damage.group); }
+  const damage = chosenPillage && !worksWorld ? pillageScene(state, seat, params.get('raids') === 'many') : undefined;
+  if (damage) damage.show(pillage);
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -172,6 +174,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   if (damage) row('Pillage', select('scene-pillage', PILLAGE_VIEWS, pillage, value => {
     pillage = value as PillagePreview;
     damage.show(pillage);
+    renderer.setPillageEffects(pillage === 'ash' || pillage === 'embers', pillage === 'embers');
     renderer.setGameState(state);
     if (pillage === 'embers' && !reduceMotion) { still = false; hold.checked = false; renderer.setClock(null); }
     renderer.invalidate();
@@ -213,7 +216,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     renderer.zoomBy(Math.exp(-event.deltaY * .0015), event.clientX - bounds.left, event.clientY - bounds.top);
   }, { passive: false });
 
-  const dispose = (): void => { if (disposed) return; disposed = true; resize.disconnect(); damage?.dispose(); renderer.dispose(); };
+  const dispose = (): void => { if (disposed) return; disposed = true; resize.disconnect(); renderer.dispose(); };
   window.addEventListener('pagehide', dispose, { once: true });
   await renderer.enablePaintedLook(light);
   if (disposed) return dispose;
@@ -224,7 +227,14 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // And the cost of the last frame: draw calls, triangles and the milliseconds the CPU took to submit it.
   // And what the light of the rich hexes shows, by `col,row`, to check a view against the yield rules.
   (window as unknown as { sceneYields?: () => Record<string, unknown> }).sceneYields = () => Object.fromEntries([...renderer.yieldLightShown].map(([cell, hex]) => [`${cell % state.map.width},${Math.floor(cell / state.map.width)}`, hex]));
-  (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
+  (window as unknown as { sceneCost?: () => { drawnAt: number; drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawnAt: renderer.lastFrameAt, drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
+  if (damage && params.has('frameStudy')) {
+    Object.assign(window, {
+      scenePan: (pixels: number) => renderer.panByScreen(pixels, 0),
+      sceneLandRaids: damage.landWorks,
+    });
+  }
+  if (damage) renderer.setPillageEffects(pillage === 'ash' || pillage === 'embers', pillage === 'embers');
   renderer.setFogSeat(seat);
   // `force=2` or `force=3` raises every hex that shows to that step, to see the look of a step the land alone does not reach.
   const forced = Number(params.get('force'));

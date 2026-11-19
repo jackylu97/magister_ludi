@@ -170,7 +170,7 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
     // The work's age step, so the works change when their owner enters a new age or the hex changes hands.
     if (improvement) add(stepAt(cell, improvement));
     const damaged = tile.damagedImprovement?.id;
-    if (damaged) { add(0x100 + (damageOrdinal.get(damaged) ?? 0)); add(stepAt(cell, improvementBaseRow(damaged))); }
+    if (damaged) { add(tile.damagedImprovement?.pillagedOn ?? -1); add(0x100 + (damageOrdinal.get(damaged) ?? 0)); add(stepAt(cell, improvementBaseRow(damaged))); }
     add(featureOrdinal.get(tile.feature) ?? 0);
   }
   for (const city of state.cities) { add(city.col); add(city.row); }

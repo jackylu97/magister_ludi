@@ -157,7 +157,7 @@ export interface Tile {
   /** The active work. Yields, Orders and resource access read this field. */
   improvement?: ImprovementId;
   /** Repair restores these original works, including their construction date. */
-  damagedImprovement?: { id: ImprovementId; improvedOn?: number };
+  damagedImprovement?: { id: ImprovementId; improvedOn?: number; pillagedOn?: number };
   /**
    * **The turn the work standing here was raised**, or the key is **absent** —
    * which it is on every bare hex and on every map the generator ever produced.
@@ -473,9 +473,9 @@ export function razeImprovement(tile: Tile): void {
 }
 
 /** Keep the original work for repair while all rules read the tile as unimproved. */
-export function damageImprovement(tile: Tile): void {
+export function damageImprovement(tile: Tile, turn: number): void {
   if (tile.improvement === undefined) return;
-  const damage = { id: tile.improvement, improvedOn: tile.improvedOn };
+  const damage = { id: tile.improvement, improvedOn: tile.improvedOn, pillagedOn: turn };
   razeImprovement(tile);
   tile.damagedImprovement = damage;
 }

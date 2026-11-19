@@ -365,11 +365,15 @@ function paintedLightGeometry(quads: readonly Quad[], tints: readonly Color[]): 
 
 export type PaintedMote = Omit<Quad, 'type' | 'kind'> & { color: Color; mode: 'matte' | 'hot' | 'glow' | 'spark' };
 
+const moteType = { matte: MATTE, hot: MOTE, glow: GLOW, spark: SHAPE };
+
 /** Embers use the same soft dot and rise as the motes on rich tiles. */
 export function createPaintedMotes(motes: readonly PaintedMote[]) {
-  const geometry = paintedLightGeometry(motes.map(mote => ({ ...mote, type: { matte: MATTE, hot: MOTE, glow: GLOW, spark: SHAPE }[mote.mode], kind: 1 })), motes.map(mote => mote.color));
+  const geometry = paintedLightGeometry(motes.map(mote => ({ ...mote, type: moteType[mote.mode], kind: 1 })), motes.map(mote => mote.color));
   const mesh = new Mesh(geometry, paintedLightMaterial());
-  mesh.frustumCulled = false;
+  const largest = motes.reduce((max, mote) => Math.max(max, mote.size), 0);
+  cullWrapQuads([mesh], geometry, geometry.getAttribute('aAt') as InstancedBufferAttribute, largest * 1.5 + LIGHT.rise + .45);
+  mesh.material.forceSinglePass = true;
   mesh.renderOrder = 6;
   return mesh;
 }
