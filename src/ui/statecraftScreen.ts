@@ -14,9 +14,13 @@
  *
  * The layout, top to bottom
  * -------------------------
- *   - **The head**: the title, the totals line and the close hint, on one
- *     centre line (the user: "please make sure these are vertically centered
- *     in the real build"). The totals line is eight figures: the six yields, a
+ *   - **The head**: the title, the totals line and the star chart's "×", on
+ *     one centre line (the user: "please make sure these are vertically
+ *     centered in the real build"; "re-use the convention of the 'x' to close
+ *     as in the technology screen"). It is taller than the board's, and the
+ *     hand shorter: the government and its chairs are the focus of the page,
+ *     and the height the hand gives up goes round them (`councilLayout`). Five
+ *     chairs or fewer sit in a cluster in the page's middle. The totals line is eight figures: the six yields, a
  *     hairline, then happiness and authority (`councilTotals.ts`). While a
  *     card is held over a chair, a chip beside each figure says what the
  *     total would gain or lose if the card were dropped there (frame CH).
@@ -273,7 +277,6 @@ export const ORDERS_WORDS = {
   totalsLabel: 'What your council pays each turn',
   totalsTitle:
     'What your council pays each turn. A card’s figure is what it adds by itself, so when cards multiply each other the figures need not add up to the total.',
-  closes: 'closes',
   revert: 'Revert',
   confirm: 'Confirm',
   confirmTitle: 'Seal the arrangement. Leaving the screen does the same.',
@@ -337,7 +340,7 @@ interface StatecraftScreenOptions {
   overlay: HTMLElement;
   /** The element the sheet's body is built into. */
   body: HTMLElement;
-  /** The overlay's own close button. Drawn here as the "Esc closes" hint. */
+  /** The overlay's own close control: the star chart's "×" (`.tech-close`). Escape closes too. */
   closeButton: HTMLElement;
   /** The bar control that opens it, for the `aria-expanded` mirror. */
   trigger?: HTMLElement;
@@ -496,9 +499,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     totalsNode.append(cell);
     totalCells.set(voice, { figure, chip });
   });
-  closeButton.replaceChildren(keyMark('Esc'), ` ${ORDERS_WORDS.closes}`);
-  closeButton.classList.add('council-close');
+  // The close control is the star chart's "×" (`index.html`, `.tech-close`;
+  // the user, 2026-11-18). Its title says Escape closes too, so the head has
+  // one close control and no second hint.
   if (head !== null) head.insertBefore(totalsNode, closeButton);
+  // The head's height is the layout's, from the first paint on.
+  sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
   // The link to In play (stage 3), beside the title: "In play · 9" and its key.
   const inPlayLink = element('button', 'council-inplay-link') as HTMLButtonElement;
   inPlayLink.type = 'button';
@@ -1323,6 +1329,15 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     sheetNode?.style.setProperty('--council-inset', `${form.inset}px`);
     sheetNode?.style.setProperty('--council-cols', String(screenLayout.cols));
     sheetNode?.style.setProperty('--council-gov-w', `${screenLayout.government}px`);
+    // The heights are the layout's (the user's comments on stage 3): the hand
+    // keeps at most `fanMax`, and what that leaves goes round the council.
+    sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
+    sheetNode?.style.setProperty('--council-fan-h', `${screenLayout.fanView}px`);
+    sheetNode?.style.setProperty('--council-spare-top', `${Math.floor(screenLayout.spare / 2)}px`);
+    // A few chairs sit in a cluster in the page's middle (`COUNCIL_FRAME.cluster`).
+    sheetNode?.toggleAttribute('data-cluster', screenLayout.cluster !== null);
+    sheetNode?.style.setProperty('--council-cluster-w', `${screenLayout.cluster?.width ?? 0}px`);
+    sheetNode?.style.setProperty('--council-cluster-shift', `${screenLayout.cluster?.shift ?? 0}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
     if (council !== null) paintHead(council);

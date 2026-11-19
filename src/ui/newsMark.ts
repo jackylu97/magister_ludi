@@ -19,6 +19,7 @@
  */
 
 import { AGE_MARK, BEAD_MARK, TRIUMPH_MARK, newsMarkDataUri } from '../art/newsMarks';
+import { inPlayMarkDataUri } from '../art/inPlayMarks';
 import { renownMarkDataUri } from '../art/meterMarks';
 import { yieldMarkDataUri } from '../art/yieldMarks';
 import { cornerStarDataUri } from './deviceMarks';
@@ -40,6 +41,8 @@ function markUri(kind: NewsMarkKind): string {
       return cornerStarDataUri();
     case 'culture':
       return yieldMarkDataUri('culture');
+    case 'wonder':
+      return inPlayMarkDataUri('wonder');
   }
 }
 
@@ -51,6 +54,7 @@ const MARK_INK: Readonly<Record<NewsMarkKind, string>> = {
   research: '--lapis',
   bead: '--lapis',
   culture: '--y-cul',
+  wonder: '--lapis',
 };
 
 /**

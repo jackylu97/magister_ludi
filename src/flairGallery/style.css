@@ -1101,3 +1101,13 @@ body {
   font-family: var(--face-num);
   font-size: 12px;
 }
+
+/* The wonder plate, on the page: the plate's full-screen overlay held in a box
+   the height of a 900 px window, as the page sizes it. */
+.age-plate-overlay.ip-gallery-plate {
+  position: relative;
+  z-index: auto;
+  inset: auto;
+  height: 900px;
+  border-radius: 6px;
+}

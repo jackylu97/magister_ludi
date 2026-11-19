@@ -120,21 +120,9 @@
   border-bottom-color: var(--y-gold-lit);
 }
 
-#inplay-overlay .statecraft-close.council-close {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  width: auto;
-  height: 28px;
+/* The close control is the star chart's (`.tech-close`, style.css). */
+#inplay-overlay .tech-close {
   margin-left: 6px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: rgba(247, 242, 225, 0.72);
-  font-family: var(--face-ui);
-  font-size: var(--size-label);
-  font-weight: 500;
 }
 
 .ip-readonly {
@@ -158,11 +146,14 @@
   overflow: hidden;
 }
 
+/* The cloth scrolls when a tall stack runs past the window's foot: an edge
+   grows with its figures, so a stack's height is not known in advance. */
 .ip-cloth {
+  box-sizing: border-box;
   display: flex;
   gap: 26px;
   height: 100%;
-  padding-top: 24px;
+  padding: 24px 0 28px;
   overflow: hidden auto;
 }
 
@@ -280,19 +271,24 @@
 
 /* --- the stacks ----------------------------------------------------------- */
 
+/* Five columns on one grid, so every stack's head takes the height of the
+   tallest and every pile starts at one line, however many lines of figures a
+   head holds (each stack is a subgrid of the head and the pile). */
 .ip-stacks {
-  display: flex;
+  display: grid;
   flex: 1 1 auto;
-  gap: 28px;
-  align-items: flex-start;
+  grid-template-columns: repeat(5, 206px);
+  grid-template-rows: auto auto;
+  column-gap: 28px;
+  align-content: start;
 }
 
 .ip-stack {
   position: relative;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  justify-items: center;
   width: 206px;
 }
 
@@ -311,14 +307,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  align-self: flex-start;
+  align-self: start;
+  justify-self: start;
   gap: 1px;
-  /* The name and count, then up to two lines of figures at a late game; every
-     pile starts at one height. */
+  /* The name and count, then the total's figures on as many lines as they
+     need; the grid gives every head the tallest one's height. */
   width: 206px;
-  height: 56px;
   margin-bottom: 6px;
-  overflow: hidden;
   padding: 0;
   border: 0;
   background: transparent;
@@ -326,7 +321,6 @@
   font-family: var(--face-card-title);
   font-size: 15.5px;
   text-align: left;
-  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -476,15 +470,17 @@
 
 /* --- the tucked edge (frame I3): one size, one layout ----------------------- */
 
+/* One width for every edge, and at least the board's 46 px; an edge with more
+   figures than one line holds grows taller (the user's comments on stage 3). */
 .ip-edge {
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   width: 206px;
-  height: 46px;
+  min-height: 46px;
   margin-top: -4px;
-  padding: 5px 8px 0 5px;
+  padding: 8px 8px 5px 5px;
   border: 1.5px solid var(--k, #56505a);
   border-top: 0;
   border-radius: 0 0 6px 6px;
@@ -551,12 +547,21 @@
   font-style: normal;
 }
 
+/* The bottom of the edge is the figures'. The small line keeps the left; the
+   figures sit at the right of the same line when they fit beside it, and
+   otherwise take the next line, where they wrap between whole figures. */
 .ip-edge-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 4px;
+  gap: 0 6px;
   min-height: 17px;
+}
+
+.ip-edge-foot > .ip-fig {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ip-edge-sub,
@@ -581,6 +586,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0 6px;
+  max-width: 100%;
   margin-left: auto;
   font-family: var(--face-card-text);
   font-size: 16.5px;
@@ -588,30 +594,6 @@
   font-weight: 700;
   line-height: 1.05;
   white-space: nowrap;
-}
-
-/* An edge keeps its figures on one line: the more there are, the smaller the
-   type. The hover shows the piece whole. */
-.ip-edge .ip-fig {
-  flex-wrap: nowrap;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.ip-edge .ip-fig[data-figures='3'] {
-  gap: 0 4px;
-  font-size: 14px;
-}
-
-.ip-edge .ip-fig[data-figures='4'] {
-  gap: 0 3px;
-  font-size: 12.5px;
-}
-
-.ip-edge .ip-fig[data-figures='5'],
-.ip-edge .ip-fig[data-figures='6'] {
-  gap: 0 2px;
-  font-size: 11px;
 }
 
 /* While a piece's figure is being read: a faint rule where it will be. */
@@ -671,14 +653,22 @@
   white-space: nowrap;
 }
 
+/* A top form's foot: its town or faith at the left, its figures at the right,
+   and the figures on the next lines when they do not fit beside it. */
 .ip-foot {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
+  gap: 0 6px;
   margin-top: 5px;
   padding-top: 3px;
   border-top: 1px solid rgba(29, 26, 32, 0.3);
+}
+
+.ip-foot > .ip-fig {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ip-text {
@@ -701,15 +691,28 @@
   box-shadow: 4px 4px 0 #0e0c10;
 }
 
+/* A wonder's picture window on its piece: exactly 2:1 (the user, 2026-11-18:
+   "3:1 is possibly too extreme, maybe 2:1 instead?"), set as a ratio so it
+   holds at any width and the piece grows to hold it. It shows the middle band
+   of the 16:9 painting the wonder plate shows whole: the painting's full width
+   and the middle 89% of its height (`wonderWindowNode`). The engraved
+   stand-in draws over hatched paper until a painting comes, and scales with
+   the window. */
 .ip-window {
   position: relative;
-  height: 70px;
+  aspect-ratio: 2 / 1;
   overflow: hidden;
   border-bottom: 2px solid var(--k);
   background:
     repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.16) 0 1px, transparent 1px 4px),
     linear-gradient(#fcf7e7, #efe4c6);
+}
+
+/* A painting covers its window from the centre, whatever the window's shape. */
+.ip-window[data-picture='painted'],
+.wonder-plate-window[data-picture='painted'] {
   background-position: center;
+  background-repeat: no-repeat;
   background-size: cover;
 }
 
@@ -938,7 +941,7 @@
   z-index: 30;
   display: flex;
   flex-direction: column;
-  max-height: 46%;
+  max-height: 58%;
   padding: 12px 16px 14px;
   border: 1.5px solid #c8901f;
   border-radius: 10px;
@@ -970,7 +973,8 @@
   align-items: flex-start;
   min-height: 0;
   padding: 2px 4px 10px;
-  overflow: auto hidden;
+  /* Both ways: a tall piece scrolls into view rather than lose its figures. */
+  overflow: auto;
 }
 
 .ip-tray-row > * {

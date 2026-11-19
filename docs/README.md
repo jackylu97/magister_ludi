@@ -1698,9 +1698,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
     and Temporary. The government and its Doctrines sit in the left column
     under the leader's crest, as on the Council screen. Each stack has its
     name, count and total. The top piece wears its own form; every other
-    piece is one tucked edge of one size; past eight edges a "more" edge
-    ends the stack. A click on a stack opens it as a tray of full pieces,
-    and a click on a piece in the tray goes to the screen that owns it.
+    piece is one tucked edge of one width; past eight edges a "more" edge
+    ends the stack. Every figure shows at its one size: the bottom of a
+    piece is its figures', they wrap between whole figures, and a piece with
+    more of them grows taller (the user's comments on stage 3). The stack
+    heads share one row's height, and the cloth scrolls when a stack runs
+    past the window's foot. A wonder's picture window is 2:1 on its piece.
+    A click on a stack opens it as a tray of full pieces, and a click on a
+    piece in the tray goes to the screen that owns it. The tray scrolls when
+    a piece is taller than it.
   - The pieces are read off the records the rules' walk (`liveEffects`)
     reads. Technologies and resources are never pieces. A follower belief
     pays the towns that follow it and is not a piece. `test/ui/inPlayPieces`
@@ -1718,6 +1724,21 @@ Eight root pages, all named in `vite.config.ts` inputs:
     chosen since the seat last looked puts a dot on the door and sits on top
     of its stack with a glow until the screen closes; a chosen belief flies
     to the door from the card it was chosen on.
+  - **The wonder plate** (`src/ui/wonderPlate.ts`, frame A1): a wonder the
+    seat's own town finishes is a full-screen page in the news queue, on the
+    age plate's lapis with its gilt frame. Its picture window is exactly
+    16:9, the shape of its painting (`docs/splash-art.md`, row 3), filled by
+    `wonderWindowNode` from `wonderPicture`. Under it are the name, the town,
+    the turn and what it pays each turn; its text stays on In play, so the
+    picture keeps its height. Continue flies the wonder to the
+    In play door, and the door's count and dot land with it. The chronicle
+    keeps the line; another seat's wonder keeps its toast.
+- **The Council screen's heights** (the user's comments on stage 3): the head
+  is taller, the hand shows at most `COUNCIL_FRAME.fanMax` of each card, and
+  the height left goes round the government and its chairs
+  (`CouncilLayout.spare`). Five chairs or fewer sit in a cluster, three to a
+  row, in the page's middle (`COUNCIL_FRAME.cluster`). Both sheets close with
+  the star chart's "×" (`.tech-close`).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

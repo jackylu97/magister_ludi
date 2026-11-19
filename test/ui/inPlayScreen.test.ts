@@ -99,7 +99,8 @@ describe('the arrival', () => {
 describe('the forms', () => {
   it('takes a wonder’s picture from one function, so a painted picture needs no other change', () => {
     expect([...FORMS.matchAll(/wonderPicture\(/g)]).toHaveLength(2);
-    expect(between(FORMS, 'export function wonderPlateNode(', 'export function beliefTabletNode(')).toContain('wonderPicture(');
+    expect(between(FORMS, 'export function wonderPlateNode(', 'export function beliefTabletNode(')).toContain('wonderWindowNode(');
+    expect(braceBody(FORMS, 'export function wonderWindowNode(id: BuildingId, className = \'ip-window\'): HTMLElement')).toContain('wonderPicture(id)');
   });
 
   it('joins the flair cabinet', () => {
@@ -108,6 +109,88 @@ describe('the forms', () => {
     const flair = import.meta.glob('../../src/flairGallery/main.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
     const text = Object.values(flair)[0]!;
     expect(text).toContain('drawInPlayForms(');
+  });
+});
+
+describe('every figure at its one size (the user’s comments on stage 3)', () => {
+  const CSS = Object.values(
+    import.meta.glob('../../src/ui/inPlayScreen.css', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+  )[0]!;
+
+  it('lets an edge grow taller, and never shrinks or cuts a figure', () => {
+    const edge = CSS.slice(CSS.indexOf('\n.ip-edge {'), CSS.indexOf('}', CSS.indexOf('\n.ip-edge {')));
+    expect(edge).toContain('min-height: 46px;');
+    expect(edge).not.toMatch(/\n\s+height:/);
+    expect(CSS).not.toContain('data-figures');
+    expect(FORMS).not.toContain('dataset.figures');
+    // The figures wrap between whole figures: each figure is one unbroken box.
+    expect(CSS).toMatch(/\.ip-edge-foot \{[^}]*flex-wrap: wrap;/);
+    expect(CSS).toMatch(/\.ip-foot \{[^}]*flex-wrap: wrap;/);
+  });
+
+  it('gives every stack head the tallest one’s height, so the piles start on one line', () => {
+    expect(CSS).toMatch(/\.ip-stacks \{[^}]*display: grid;/);
+    expect(CSS).toMatch(/\.ip-stack \{[^}]*grid-template-rows: subgrid;/);
+    // A tall stack scrolls with the cloth rather than run off the window.
+    expect(CSS).toMatch(/\.ip-cloth \{[^}]*overflow: hidden auto;/);
+  });
+
+  it('closes with the star chart’s ×, as the Council screen does', () => {
+    expect(HTML).toContain('<button id="inplay-close" class="tech-close" type="button" aria-label="Close" title="Close (Esc)">');
+    expect(SCREEN).not.toContain('council-close');
+  });
+});
+
+describe('the wonder plate (frame A1)', () => {
+  const PLATE = uiSource('wonderPlate.ts');
+  const CONTROLS = uiSource('controls.ts');
+
+  it('is news in the pump, last of the pages, held by the sweep, the blocks and the guide', () => {
+    expect(braceBody(MAIN, 'function clearBeadNews(): void')).toContain('pendingWonders = [];');
+    expect(braceBody(MAIN, 'function clearBeadNews(): void')).toContain('wonderPlate?.clear();');
+    expect(braceBody(MAIN, 'function newsBlocked(): boolean')).toContain('(wonderPlate?.isOpen ?? false)');
+    const pump = braceBody(MAIN, 'function pumpBeadNews(): void');
+    expect(pump.indexOf('pendingCensus')).toBeLessThan(pump.indexOf('pendingWonders'));
+    expect(pump).toContain('wonderPlate.show(reading);');
+    expect(MAIN).toContain('pendingWonders.length > 0 ||');
+    expect(MAIN).toContain("name: 'wonderPlate',\n  kind: 'news',");
+  });
+
+  it('is raised for the seat’s own wonder only, which then gets no toast; another seat’s keeps its toast', () => {
+    const report = braceBody(CONTROLS, 'function reportWonders(result: CommandResult): void');
+    expect(report).toContain('const own = done.playerId === localPlayerId;');
+    expect(report).toContain('if (own) onWonderArrived?.(done);');
+    expect(report).toContain("...(own ? { mark: 'wonder' as const } : {})");
+    expect(MAIN).toContain("entry.mark !== 'age' && entry.mark !== 'wonder'");
+  });
+
+  it('flies the wonder to the door when it closes, and holds the door’s count until it lands', () => {
+    const arrived = between(MAIN, 'onWonderArrived: (done) => {', 'pumpBeadNews();');
+    expect(arrived).toContain('inPlayFlights += 1;');
+    const land = braceBody(MAIN, 'function landWonder(reading: WonderPlateReading, from: DOMRect | null): void');
+    expect(land).toContain('wantsMotion()');
+    expect(land).toContain('inPlayFlights = Math.max(0, inPlayFlights - 1);');
+    expect(PLATE).toContain("wonderWindowNode(reading.building, 'wonder-plate-window')");
+  });
+
+  it('shows the picture at exactly 16:9 on the plate and as a 2:1 band on the piece (docs/splash-art.md, row 3)', () => {
+    const plateCss = Object.values(
+      import.meta.glob('../../src/ui/wonderPlate.css', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+    )[0]!;
+    const pieceCss = Object.values(
+      import.meta.glob('../../src/ui/inPlayScreen.css', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+    )[0]!;
+    expect(plateCss).toMatch(/\.wonder-plate-window \{[^}]*aspect-ratio: 16 \/ 9;/);
+    expect(pieceCss).toMatch(/\.ip-window \{[^}]*aspect-ratio: 2 \/ 1;/);
+    expect(pieceCss).not.toMatch(/\.ip-window \{[^}]*\n  height:/);
+    // A painting covers either window from its centre.
+    expect(pieceCss).toMatch(/\.wonder-plate-window\[data-picture='painted'\] \{[^}]*background-size: cover;[^}]*\}/);
+    expect(pieceCss).toContain('background-position: center;');
+  });
+
+  it('says no number inside its sentence', () => {
+    expect(PLATE).toContain('finished: (town: string) => `Finished in ${town}.`');
+    expect(PLATE).toContain("turn: 'turn',");
   });
 });
 

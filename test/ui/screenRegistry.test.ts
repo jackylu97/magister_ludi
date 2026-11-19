@@ -245,6 +245,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['ceremony', 'news'],
   // The age plate (batch SS7): raised when the world's age turns over.
   ['agePlate', 'news'],
+  // The wonder plate (stage 4 of the Council and In play board): news.
+  ['wonderPlate', 'news'],
   // The Opus close (batch SS7): raised when the Magnum Opus is finished.
   ['opusClose', 'news'],
 ];

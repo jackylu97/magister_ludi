@@ -7,14 +7,23 @@
  * Flair Cabinet (`src/flairGallery/inPlayForms.ts`) both draw from here, so the
  * cabinet shows the forms the game draws.
  *
- * **Every edge has one size and one layout** (the user: "each card the same
+ * **Every edge has one width and one layout** (the user: "each card the same
  * size"): a seal, the name, and the figure for each turn. A piece that is a
  * rule shows its name and no figure, as on the Council screen. The figures
  * are the pay plate's (`plateFigureNode`): yields in their inks, happiness and
  * authority in the ink of the text (the ruling of 2026-11-18).
  *
- * **A wonder's picture window has one source** (`wonderPicture`). Today every
- * wonder draws the engraved stand-in: the temple mark over a line of hills.
+ * **Every figure is shown at its one size** (the user's comments on stage 3,
+ * 2026-11-18: "i'd rather have the card increase in size than to have the
+ * numbers truncated or have it overflow past the card boundary"). The bottom
+ * of every form is for its figures. They wrap between whole figures, a figure
+ * and its mark never part, and a form with more figures grows taller. That
+ * rule wins where it and "one size" disagree: an edge may be taller than its
+ * neighbours.
+ *
+ * **A wonder's picture window has one source** (`wonderPicture`, drawn by
+ * `wonderWindowNode`). Today every wonder draws the engraved stand-in: the
+ * temple mark over a line of hills.
  * When a wonder has a painted picture (the user: "the wonders should
  * eventually have splash art"), that function answers its address and the
  * window shows it; nothing else changes.
@@ -36,9 +45,34 @@ export type WonderPicture = { kind: 'engraved'; mark: InPlayMarkId } | { kind: '
 /**
  * **The one source of a wonder's picture.** Every wonder draws the engraved
  * stand-in until it has a painted picture; then this answers its address.
+ * A painting is 16:9 (`docs/splash-art.md`, row 3, about 960 by 540).
  */
 export function wonderPicture(_id: BuildingId): WonderPicture {
   return { kind: 'engraved', mark: 'wonder' };
+}
+
+/**
+ * **A wonder's picture window**: the one place a window is filled. A painted
+ * picture covers the window from its centre (`background-size: cover`,
+ * `background-position: center`, in `inPlayScreen.css`); the engraved
+ * stand-in is the line of hills and the temple front over hatched paper.
+ *
+ * Two windows show the same picture. The wonder plate's (`wonderPlate.ts`) is
+ * exactly 16:9, the painting's own shape. The In play piece's is 2:1
+ * (`.ip-window`; the user, 2026-11-18), so it shows the middle band of the
+ * painting: its whole width, and the middle 89% of its height.
+ */
+export function wonderWindowNode(id: BuildingId, className = 'ip-window'): HTMLElement {
+  const window = element('div', className);
+  const picture = wonderPicture(id);
+  if (picture.kind === 'painted') {
+    window.dataset.picture = 'painted';
+    window.style.backgroundImage = `url("${picture.url}")`;
+  } else {
+    window.dataset.picture = 'engraved';
+    window.append(inPlayMarkNode(inPlayMarkDataUri('hills'), 'ip-mark ip-hills'), inPlayMarkNode(inPlayMarkDataUri(picture.mark), 'ip-mark ip-device'));
+  }
+  return window;
 }
 
 /** The ink a form's seal and border wear, as a CSS class word. */
@@ -145,16 +179,15 @@ export function edgeNode(entry: InPlayEntry, plate: readonly PlateFigure[] | und
   if (entry.chair !== undefined) name.append(element('i', 'ip-chair', String(entry.chair + 1)));
   name.append(entry.name);
   text.append(name);
+  // The foot is the figures' (the user, 2026-11-18: "We can dedicate the entire
+  // bottom of the card for yield descriptors"): the small line at the left,
+  // and the figures at the right at their one size. When they do not fit
+  // beside it they take the next line, and wrap between whole figures; the
+  // edge grows taller rather than cut or shrink a figure.
   const foot = element('span', 'ip-edge-foot');
-  // The figures keep one line at the edge's one size: more figures, smaller
-  // type, and past two the small line under the name gives way to them. The
-  // hover shows the piece whole.
-  const count = entry.form === 'chair' ? 0 : (plate?.length ?? 0);
   if (entry.endsTurn !== undefined) foot.append(endsNode(entry.endsTurn));
-  else if (entry.sub !== null && entry.form !== 'order' && count <= 2) foot.append(element('small', 'ip-edge-sub', entry.sub));
-  const figures = figuresNode(entry.form === 'chair' ? [] : plate);
-  figures.dataset.figures = String(Math.min(count, 6));
-  foot.append(figures);
+  else if (entry.sub !== null && entry.form !== 'order') foot.append(element('small', 'ip-edge-sub', entry.sub));
+  foot.append(figuresNode(entry.form === 'chair' ? [] : plate));
   text.append(foot);
   edge.append(text);
   return edge;
@@ -190,16 +223,7 @@ const HOLY_CITY_TEXT = 'Whoever holds the holy city is paid a share for the fait
 /** **A wonder's plate**: the picture window, the name, its town and its figure. */
 export function wonderPlateNode(entry: InPlayEntry, plate: readonly PlateFigure[] | undefined, options: FormOptions & { text?: boolean } = {}): HTMLElement {
   const form = dress(element('div', 'ip-wonder'), entry, options);
-  const window = element('div', 'ip-window');
-  const picture = wonderPicture((entry.card ?? '') as BuildingId);
-  if (picture.kind === 'painted') {
-    window.dataset.picture = 'painted';
-    window.style.backgroundImage = `url("${picture.url}")`;
-  } else {
-    window.dataset.picture = 'engraved';
-    window.append(inPlayMarkNode(inPlayMarkDataUri('hills'), 'ip-mark ip-hills'), inPlayMarkNode(inPlayMarkDataUri(picture.mark), 'ip-mark ip-device'));
-  }
-  form.append(window);
+  form.append(wonderWindowNode((entry.card ?? '') as BuildingId));
   const body = element('div', 'ip-body');
   body.append(element('b', 'ip-name', entry.name));
   if (options.text === true) {

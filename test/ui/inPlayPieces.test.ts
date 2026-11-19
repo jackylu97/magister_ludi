@@ -8,7 +8,9 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { BUILDING_IDS, type BuildingId, isWonder } from '../../src/sim/buildingData';
 import { cardImpactWorlds } from '../../src/sim/cardImpact';
+import { wonderPlateReading } from '../../src/ui/wonderPlate';
 import { isTechId } from '../../src/sim/techData';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { readEmpire } from '../../src/sim/readings';
@@ -19,6 +21,7 @@ import {
   createInPlayArrivals,
   inPlayCount,
   inPlayLayout,
+  piecesFigures,
   readInPlay,
   roundToTotal,
   stackPieces,
@@ -139,6 +142,27 @@ describe('a total clicked: the sheet of sources', () => {
     const out = roundToTotal(amounts, 39);
     expect(out.reduce((sum, value) => sum + value, 0)).toBe(39);
     out.forEach((value, index) => expect(Math.abs(value - amounts[index]!)).toBeLessThan(1));
+  });
+});
+
+describe('the wonder plate’s reading (frame A1)', () => {
+  it('reads a wonder the seat holds: its piece, what it pays each turn, its town and the turn', () => {
+    const state = board();
+    const wonders = inPlayLayout(state, 0).stacks.find((stack) => stack.id === 'wonders')!.entries;
+    const piece = wonders.find((entry) => entry.form === 'wonder')!;
+    const reading = wonderPlateReading(state, 0, piece.card as BuildingId, piece.cityId!, 74)!;
+    expect(reading.entry.key).toBe(piece.key);
+    expect(reading.town).toBe(state.cities.find((city) => city.id === piece.cityId)!.name);
+    expect(reading.turn).toBe(74);
+    const own = piecesFigures(state, 0, piece.subject!);
+    for (const figure of reading.plate) expect(figure.amount, figure.voice).toBe(Math.round(own[figure.voice]));
+  });
+
+  it('reads nothing for a wonder the seat does not hold', () => {
+    const state = board();
+    const held = new Set(state.cities.filter((city) => city.ownerId === 0).flatMap((city) => city.buildings));
+    const other = BUILDING_IDS.find((id) => isWonder(id) && !held.has(id))!;
+    expect(wonderPlateReading(state, 0, other, state.cities[0]!.id, 74)).toBeNull();
   });
 });
 

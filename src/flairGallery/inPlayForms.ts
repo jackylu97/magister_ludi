@@ -30,6 +30,7 @@ import {
   wonderPlateNode,
 } from '../ui/inPlayForms';
 import type { PlateFigure } from '../ui/orderFace';
+import { wonderPlatePage } from '../ui/wonderPlate';
 import { block, element, markCell, markGrid } from './sheet';
 
 /** A sample piece: the fields the forms read, and nothing that leads anywhere. */
@@ -137,4 +138,39 @@ export function drawInPlayForms(into: HTMLElement): void {
   const fresh = element('div', 'ip-pile');
   fresh.append(edgeNode(sample('wonder', 'wonders', buildingDef(wonder).name, wonder, { sub: 'with Quito' }), PAYS, { first: true, fresh: true }));
   figure(edges, fresh, 'an arrival, on top with its glow (frame A3)');
+  // Many figures: the edge grows taller and wraps between whole figures.
+  const many: PlateFigure[] = [
+    { voice: 'food', amount: 5 },
+    { voice: 'production', amount: 53 },
+    { voice: 'gold', amount: 28 },
+    { voice: 'science', amount: 74 },
+    { voice: 'culture', amount: 85 },
+    { voice: 'faith', amount: 23 },
+    { voice: 'happiness', amount: 4 },
+  ];
+  const tall = element('div', 'ip-pile');
+  tall.append(edgeNode(sample('legacy', 'legacies', greatPersonDef(person).name, person, { sub: 'legacy' }), many, { first: true }));
+  tall.append(edgeNode(sample('holyCity', 'beliefs', 'Holy city: Cusco', null, { sub: 'the Way of the Grain' }), [{ voice: 'gold', amount: 2 }, { voice: 'faith', amount: 5 }]));
+  figure(edges, tall, 'every figure at its one size: an edge grows taller');
+
+  // The wonder plate (frame A1): the age plate's lapis page.
+  const page = block(
+    into,
+    'The wonder plate — src/ui/wonderPlate.ts',
+    'A wonder your town has finished, on the age plate’s lapis page: its picture in a window of exactly 16:9, its name, the town, the turn and what it pays each turn. Its text stays on In play. Continue sends it flying to the In play door. Its picture is the one `wonderPicture` gives.',
+  );
+  const stage = element('div', 'age-plate-overlay ip-gallery-plate');
+  stage.append(
+    wonderPlatePage(
+      {
+        building: wonder,
+        entry: sample('wonder', 'wonders', buildingDef(wonder).name, wonder, { sub: 'with Quito' }),
+        plate: PAYS,
+        town: 'Quito',
+        turn: 74,
+      },
+      () => {},
+    ),
+  );
+  page.append(stage);
 }

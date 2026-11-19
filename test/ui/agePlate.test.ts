@@ -100,7 +100,9 @@ describe('the age plate, wired', () => {
   });
 
   it('replaces the age toast, and the chronicle keeps the line', () => {
-    expect(main).toContain("if (seatId === controls.localPlayerId() && entry.mark !== 'age') toasts?.show(entry);");
+    // The seat's own wonder has a page too (stage 4 of the Council and In play
+    // board), so it is the second mark that raises no toast.
+    expect(main).toContain("if (seatId === controls.localPlayerId() && entry.mark !== 'age' && entry.mark !== 'wonder') toasts?.show(entry);");
     // The log is still written for every entry.
     expect(main).toContain('notificationLog.push(seatId, entry);');
   });

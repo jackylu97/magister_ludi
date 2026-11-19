@@ -122,6 +122,7 @@ import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abac
 import { type BeadsScreen, createBeadsScreen, isGoldenBead } from './ui/beadsScreen';
 import { type VictoryScreen, createVictoryScreen, wonByOpus } from './ui/victoryScreen';
 import { type AgePlate, agePlateReading, createAgePlate } from './ui/agePlate';
+import { type WonderPlate, type WonderPlateReading, createWonderPlate, wonderPlateReading } from './ui/wonderPlate';
 import { type OpusClose, createOpusClose, opusCloseReading } from './ui/opusClose';
 import {
   type BeadModal,
@@ -256,7 +257,7 @@ import {
 } from './ui/gameSetup';
 import { isLeaderId, leaderDef, seatName, seatPeople } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
-import { cityAt } from './sim/cities';
+import { type WonderCompletion, cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
 import {
   type EndTurnList,
@@ -514,6 +515,7 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 /* The age plate (batch SS7): news raised when the world's age turns over. */
 const agePlateOverlayEl = requireElement<HTMLElement>('age-plate-overlay');
+const wonderPlateOverlayEl = requireElement<HTMLElement>('wonder-plate-overlay');
 /* The Opus close (batch SS7): news raised when the Magnum Opus is finished. */
 const opusCloseOverlayEl = requireElement<HTMLElement>('opus-close-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
@@ -1094,6 +1096,14 @@ let pendingCensus: CensusRecord | null = null;
 let agePlate: AgePlate | null = null;
 let pendingAgePlate: TechAge | null = null;
 /**
+ * The wonder plate (stage 4 of the Council and In play board, `wonderPlate.ts`)
+ * and the local seat's finished wonders it waits to show, oldest first.
+ * Queued through the same pump, last of the pages: a wonder is the seat's own
+ * news and the world's turns over first.
+ */
+let wonderPlate: WonderPlate | null = null;
+let pendingWonders: { building: WonderCompletion['building']; cityId: number; turn: number }[] = [];
+/**
  * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
  * that a game closed by the Magnum Opus ends on, before the standings. Held
  * here for the age plate's reason.
@@ -1106,8 +1116,10 @@ function clearBeadNews(): void {
   pendingBeadAge = null;
   pendingCensus = null;
   pendingAgePlate = null;
+  pendingWonders = [];
   beadSheet?.clear();
   agePlate?.clear();
+  wonderPlate?.clear();
   // In play's arrivals are news too: a new game or a load starts with none.
   inPlayArrivals.reset();
   inPlayFlights = 0;
@@ -1299,6 +1311,13 @@ screens.register({
   kind: 'news',
   isOpen: () => agePlate?.isOpen ?? false,
   close: () => agePlate?.clear(),
+});
+// Closed by `clear` for the age plate's reason: a sweep raises nothing behind it.
+screens.register({
+  name: 'wonderPlate',
+  kind: 'news',
+  isOpen: () => wonderPlate?.isOpen ?? false,
+  close: () => wonderPlate?.clear(),
 });
 // Closed by `clear` for the same reason: a sweep must not raise the standings
 // the close was about to hand over to.
@@ -3103,6 +3122,22 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => agePlate?.dispose());
 
   /**
+   * The wonder plate (stage 4 of the Council and In play board,
+   * `wonderPlate.ts`): news, raised by `pumpBeadNews` when one of the local
+   * seat's towns finishes a wonder. Closing it flies the wonder to the In play
+   * door (frame A2), and lets the news behind it come up.
+   */
+  wonderPlate = createWonderPlate({
+    overlay: wonderPlateOverlayEl,
+    onOpen: () => screens.opening('wonderPlate'),
+    onClosed: (reading, from) => {
+      landWonder(reading, from);
+      pumpBeadNews();
+    },
+  });
+  gameDisposers.push(() => wonderPlate?.dispose());
+
+  /**
    * The Opus close (batch SS7, `opusClose.ts`): raised by `onVictory` for a game
    * the Magnum Opus closed. When its beats end, or a key cuts them short, the
    * standings rise.
@@ -3638,6 +3673,29 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * **The wonder lands in In play** (frame A2): after its plate closes, the
+   * wonder flies from where the plate drew it to the corner panel's In play
+   * door, and the door's count and dot, held back since the wonder was
+   * finished, land with it. With less motion there is no flight.
+   */
+  function landWonder(reading: WonderPlateReading, from: DOMRect | null): void {
+    let landed = false;
+    const land = (): void => {
+      if (landed) return;
+      landed = true;
+      inPlayFlights = Math.max(0, inPlayFlights - 1);
+      empireDrawer?.refreshInPlay();
+    };
+    if (from === null) {
+      land();
+      return;
+    }
+    flyToDoor(topFormNode(reading.entry, reading.plate), from, document.getElementById('quick-inPlay'), land, wantsMotion());
+    // A flight the page never finishes (a hidden tab) still lands.
+    window.setTimeout(land, ARRIVAL_FLIGHT_MS + 400);
+  }
+
+  /**
    * Puts the local seat's belief offer on screen, if it has one.
    *
    * `showStatecraftOffer`'s third sibling, and the same generic card
@@ -4127,6 +4185,7 @@ async function boot(initial: Game | null): Promise<void> {
       (triumphSheet?.isOpen ?? false) ||
       (beadSheet?.isOpen ?? false) ||
       (agePlate?.isOpen ?? false) ||
+      (wonderPlate?.isOpen ?? false) ||
       (opusClose?.isOpen ?? false) ||
       (victory?.isOpen ?? false) ||
       confirmCard.isOpen
@@ -4206,6 +4265,22 @@ async function boot(initial: Game | null): Promise<void> {
       pendingCensus = null;
       const seat = controls.localPlayerId();
       if (censusBlocker(game.state, seat) !== null) censusSheet.open();
+      return;
+    }
+    // **The wonder plate, last** (stage 4 of the Council and In play board):
+    // the seat's own wonder, one page each, oldest first. Its close calls back
+    // here. A wonder In play no longer lists (its town has changed hands since)
+    // is skipped, and its held door lands at once.
+    while (pendingWonders.length > 0 && wonderPlate) {
+      const next = pendingWonders.shift()!;
+      const reading = wonderPlateReading(game.state, controls.localPlayerId(), next.building, next.cityId, next.turn);
+      if (reading === null) {
+        inPlayFlights = Math.max(0, inPlayFlights - 1);
+        empireDrawer?.refreshInPlay();
+        continue;
+      }
+      wonderPlate.show(reading);
+      return;
     }
   }
 
@@ -4244,8 +4319,9 @@ async function boot(initial: Game | null): Promise<void> {
       // Only the seat actually at the keyboard gets a card. The log is written
       // for everyone, because a seat comes back to it. An age opening gets no
       // card: the age plate is its announcement (batch SS7), and the
-      // chronicle keeps the line.
-      if (seatId === controls.localPlayerId() && entry.mark !== 'age') toasts?.show(entry);
+      // chronicle keeps the line. The seat's own wonder is the same: its plate
+      // announces it (stage 4 of the Council and In play board).
+      if (seatId === controls.localPlayerId() && entry.mark !== 'age' && entry.mark !== 'wonder') toasts?.show(entry);
       notifications?.refresh();
     },
     // The commit funnel, straight through to the guide: a tutorial step is
@@ -4349,6 +4425,14 @@ async function boot(initial: Game | null): Promise<void> {
     onStatecraftPause: (kind) => openStatecraftPause(kind),
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
+    // The local seat's own wonder (stage 4): its plate is news, and the In
+    // play door's count and dot wait for the wonder to land there.
+    onWonderArrived: (done) => {
+      pendingWonders.push({ building: done.building, cityId: done.cityId, turn: done.turn });
+      inPlayFlights += 1;
+      empireDrawer?.refreshInPlay();
+      pumpBeadNews();
+    },
     /**
      * The spend ceremony — the card rises, the legacy counts, the deed appears,
      * the card descends into the renown figure in the top bar
@@ -5708,11 +5792,13 @@ async function boot(initial: Game | null): Promise<void> {
     controls.handOverPending() ||
     pendingBeadNews.length > 0 ||
     pendingAgePlate !== null ||
+    pendingWonders.length > 0 ||
     pendingBeadAge !== null ||
     pendingCensus !== null ||
     (triumphSheet?.isOpen ?? false) ||
     (beadSheet?.isOpen ?? false) ||
     (agePlate?.isOpen ?? false) ||
+    (wonderPlate?.isOpen ?? false) ||
     (wagerSheet?.isOpen ?? false) ||
     (censusSheet?.isOpen ?? false) ||
     (opusClose?.isOpen ?? false) ||
@@ -6335,6 +6421,7 @@ async function boot(initial: Game | null): Promise<void> {
     splash.clear();
     offerCard.clear();
     agePlate?.clear();
+    wonderPlate?.clear();
     opusClose?.clear();
   };
 

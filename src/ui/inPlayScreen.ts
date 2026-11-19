@@ -98,7 +98,7 @@ interface InPlayScreenOptions {
   overlay: HTMLElement;
   /** The element the sheet's body is built into. */
   body: HTMLElement;
-  /** The overlay's own close button. Drawn here as the "Esc closes" hint. */
+  /** The overlay's own close control: the star chart's "×" (`.tech-close`). Escape closes too. */
   closeButton: HTMLElement;
   /** The corner panel's door, for the `aria-expanded` mirror. */
   trigger?: HTMLElement | null;
@@ -176,8 +176,8 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     totalsNode.append(cell);
     totalCells.set(voice, cell);
   });
-  closeButton.replaceChildren(keyMark('Esc'), ' closes');
-  closeButton.classList.add('council-close');
+  // The close control is the star chart's "×" (`index.html`, `.tech-close`),
+  // as on the Council screen; its title says Escape closes too.
   const headExtras = [councilLink, totalsNode];
   if (head !== null) {
     const titles = head.querySelector('.statecraft-head-titles');
