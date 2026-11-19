@@ -605,3 +605,53 @@ A review of every wonder in the game, and proposals for new wonders that fit the
 ## Rebuild
 
 - The script that printed the game text and the script that built this file and the review page are in the session scratchpad (`wonders/dump.ts`, `wonders/build.mjs`). They are not in the repo.
+
+## The user's comments on the page (2026-11-19)
+
+The user commented on the review page and said: "ok commented, i think we
+need more age 2 wonders. assume that i've rejected all non-commented proposed
+wonders". The comments below are the user's words. They are the spec. Where a
+comment is anchored on one clause, it changes that clause; where it is anchored
+on the wonder's head, it speaks of the whole wonder.
+
+### Proposed wonders: four accepted, twelve rejected
+
+| Proposal | The user's comment |
+|---|---|
+| The Schools of Taxila | "i like the gameplay effect, lets call it solomon's temple." and "add: -10% renown to unlock great people." |
+| The Stelae of Aksum | "rename: the great stelae of Aksum. revise: +2 culture and +2 faith on every trade route." |
+| The Oracle Pits of Yin | "+1 culture on buildings that supply faith. +5 free rerolls on drafts." and "not sure where to unlock." |
+| The Temple of Thoth | "Add. unlocked at divination?" |
+
+Rejected (no comment): The Pillars of Seth, Chavín de Huántar, The Pillars of
+Hercules, The Academy of Gundeshapur, Nalanda, The Maragheh Observatory, The
+Hall of Light, The Brazen Head, The Observatory of Ulugh Beg, The Libraries of
+Timbuktu, The Stone of the Five Suns, The Theatre of Memory.
+
+**More age 2 wonders are wanted.**
+
+### Existing wonders
+
+| Wonder | Anchored on | The user's comment |
+|---|---|---|
+| The Temple of Artemis | the whole effect list | "Revise: +2 happiness." |
+| The Oracle | "+1 faith in every city with The Oracle" | "remove +1 faith in every cit with the oracle. +3 renown (no type)" |
+| The Pyramids | "+2 production" | "remove +2 production, add: +20% production towards wonders in all cities." |
+| The Walls of Uruk | the cost line | "change: +10 city defence in the city it's built, not the capital. Remove +4 combat strength in your capitals borders, change to +2 combat strength in your own territory. Remove +2 culture" |
+| The Great Ziggurat | the wonder | "+2 science in every city with a shrine. remove religious units cost -25%" and "add: rites are 30% cheaper to purchase in this city" |
+| The Mausoleum | the wonder | "rework: great people improvement yields are doubled (applies after all other bonuses). +5 renown towards engineers." |
+| The Great Lighthouse | the head | "revise: +1 gold on fishing boats, +3 combat strength and +1 movement for naval units" |
+| The Great Library | "+1 science in every city with a Library" | "Revise: +8 science, your academies gain +2 science for every great scholar you've earned this game. On completion, receive a great scholar" |
+| The Statue of Zeus | "+15% combat strength for all units against cities" | "revise: +4 combat strength for all units against cities. On completion, receive 3 melee units." |
+| Petra | "+1 food, +1 production on every desert hex, in every city with Petra" | "+1 food and +1 production on all desert hexes. +1 gold on all floodplain hexes." |
+| The Forbidden City | "+5 authority capacity" | "remove: +2 culture" |
+| The Great Wall | "every hex you own exerts zone of control on enemy units…" | "revise: all cities +5 city defense and 25 health. Enemy units -1 movement while they're in your territory" |
+| Angkor Wat | "+1 faith per 2 hexes worked here" | "+1 faith on all improved resource tiles. +3 faith on holy sites" |
+| Chichen Itza | "+1 happiness" | "revise: rites last +50% longer. cities with an active rite gain +2 happiness and +20% culture." |
+| The Circus Maximus | the head | "+1 happiness per military building" |
+| The Water Clock of Su Song | the head | "Remove" |
+| Machu Picchu | "+25% gold in every city with Machu Picchu" | "revise: +2 trade routes. +1 gold on tiles for each adjacent mountain" |
+| Notre-Dame | "+1 happiness per Temple" | "+1 happiness on all buildings that supply faith" |
+| The Alhambra | the head | "+10 culture, gain a military slot and a great general." |
+
+A wonder with no comment stays as it is.
