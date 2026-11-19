@@ -96,6 +96,7 @@ import {
   STATECRAFT,
   isOrderId,
   orderDef,
+  onDraftUnitCount,
   orderKeyword,
   scalerShape,
   type RenownShareRows,
@@ -1184,7 +1185,9 @@ function scalerGroupWords(parts: readonly ScalerPart[]): string {
   // none, so "in your capital" cannot be read as true of both.
   const places: { where: string; payouts: string[] }[] = [];
   for (const part of parts) {
-    const where = countPlace(part.line, 'empire').paidIn;
+    const where = part.line.tally === 'buildingCompleted' && part.line.where === 'empire'
+      ? ' for your empire'
+      : countPlace(part.line, 'empire').paidIn;
     const place = places.find((one) => one.where === where);
     if (place === undefined) places.push({ where, payouts: [payoutWords(part.line)] });
     else place.payouts.push(payoutWords(part.line));
@@ -1249,6 +1252,7 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   warEnded: 'you end a war',
   sizeRecord: 'one of your cities grows past its largest size',
   publicWorkCompleted: 'you finish a public work',
+  buildingCompleted: 'you finish a building',
   techCompleted: 'you complete a technology',
   charterTechCompleted: 'you complete a charter technology',
   // Batch R1, The Strongbox: a purchase of any kind with gold.
@@ -2322,7 +2326,13 @@ function countPlace(effect: CardPaysEffect, subject: ClauseSubject): CountPlace 
       : effect.where === 'city' && subject !== 'here'
         ? ` in ${scopeWordsFor(subject, effect.scope)}`
         : '';
-  if (!cityScoped) return { paidIn, counted: '' };
+  if (!cityScoped) {
+    // A city can be paid for the population of the whole empire.
+    const counted = effect.where === 'city' && effect.count === 'population' && effect.admits === undefined
+      ? 'in your empire'
+      : '';
+    return { paidIn, counted };
+  }
   if (subject === 'here') return { paidIn, counted: 'in this city' };
   // A route line is counted in the town the trade route left (Commerce batch
   // T2, The Grain Barges). Its clause names no town before the count, so
@@ -4621,6 +4631,12 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
   };
   for (const grant of grants) {
     if (grant.grant === 'windfall') {
+      if (grant.fromTownPopulation === true || grant.fromRate !== undefined || grant.toEveryTown === true) {
+        flush();
+        say();
+        out.push(`${lead}${scaledDraftWindfallWords(grant)}`);
+        continue;
+      }
       const last = run[run.length - 1];
       if (last !== undefined && JSON.stringify(last.perCount) !== JSON.stringify(grant.perCount)) flush();
       run.push(grant);
@@ -4637,9 +4653,18 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
       case 'foreignCard':
         out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
-      case 'unit':
-        out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
+      case 'unit': {
+        const count = onDraftUnitCount(grant.count);
+        if (count === 1) {
+          out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
+        } else {
+          const units = grant.unit === 'bestMelee'
+            ? 'of the best melee units you can build'
+            : `${ref('unit', grant.unit, unitDef(grant.unit).name)} units`;
+          out.push(`${lead}your capital raises up to ${count} ${units}. They cost no upkeep`);
+        }
         break;
+      }
       default: {
         const unhandled: never = grant;
         void unhandled;
@@ -4650,6 +4675,22 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
   say();
   return out;
 }
+
+/** Name the place that receives the grant and the figure that sets its size. */
+function scaledDraftWindfallWords(grant: OnDraftWindfall): string {
+  const town = grant.toEveryTown === true ? 'every town' : 'your capital';
+  if (grant.fromTownPopulation === true) {
+    return `${town} gains ${grant.yield} equal to ${grant.amount} times its citizens`;
+  }
+  if (grant.fromRate !== undefined) {
+    const rate = grant.fromRate === `${grant.yield}PerTurn`
+      ? `${grant.amount} turns of your ${grant.yield}`
+      : `${grant.amount} times your ${RATE_WORDS[grant.fromRate].many}`;
+    return `gain ${grant.yield} equal to ${rate}`;
+  }
+  return `${town} gains ${grant.amount} ${grant.yield}`;
+}
+
 
 function conditionValue(when: EmpireCondition): string {
   if (when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast') {
@@ -7434,6 +7475,7 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'public work you have finished',
     many: 'public works you have finished',
   },
+  buildingCompleted: { one: 'building you have finished', many: 'buildings you have finished' },
   // Scientific batch S6, The Astronomical Diaries. No growing card counts
   // charter technologies alone; the table is total.
   techCompleted: { one: 'technology you have completed', many: 'technologies you have completed' },
@@ -7523,6 +7565,7 @@ const RATE_WORDS: Record<RateSource, PluralWords> = {
     many: 'faith gained per turn in your cities that follow your religion',
   },
   culturePerTurn: { one: 'culture gained per turn', many: 'culture gained per turn' },
+  sciencePerTurn: { one: 'science gained per turn', many: 'science gained per turn' },
   goldPerTurn: { one: 'gold gained per turn', many: 'gold gained per turn' },
   happiness: { one: 'point of positive happiness', many: 'points of positive happiness' },
   authority: { one: 'point of positive authority', many: 'points of positive authority' },
@@ -8401,6 +8444,7 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: 'public works',
     counter: 'public works finished',
   },
+  buildingCompleted: { verb: 'finish', one: 'building', many: 'buildings', counter: 'buildings finished' },
   // Scientific batch S6. The Royal Charter Commission counts charter
   // technologies; no commission counts every technology yet.
   techCompleted: { verb: 'complete', one: 'technology', many: 'technologies', counter: 'technologies completed' },
@@ -8450,6 +8494,16 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `own ${count} hexes`,
     counter: 'hexes owned',
     noun: 'the hexes you own',
+  },
+  empirePopulation: {
+    goal: (count) => `have ${count} citizens`,
+    counter: 'citizens in your empire',
+    noun: 'the citizens in your empire',
+  },
+  townsAtPopulation: {
+    goal: (count) => `hold ${count} towns of the required size`,
+    counter: 'towns of the required size',
+    noun: 'your towns of the required size',
   },
   improvedTilesWorked: {
     goal: (count) => `work ${count} improved tiles at the same time`,
@@ -8651,6 +8705,9 @@ export function commissionGoalWords(goal: CommissionGoal): string {
     const towns = citiesAdmittedWords(goal.admits);
     return `have ${goal.count} ${goal.count === 1 ? towns.one : towns.many}, at the same time`;
   }
+  if (goal.figure === 'townsAtPopulation' && goal.populationAtLeast !== undefined) {
+    return `hold ${goal.count} ${goal.count === 1 ? 'town' : 'towns'} of ${goal.populationAtLeast} or more citizens`;
+  }
   // The floor on the town's wonders (Magisterial batch MG9, The Ideal City):
   // "have one of your cities hold 2 wonders and work 3 great-person works".
   if (goal.figure === 'oneTownWorksWorked' && goal.wondersAtLeast !== undefined && goal.wondersAtLeast > 0) {
@@ -8682,6 +8739,9 @@ export function commissionCounterWords(goal: CommissionGoal): string {
   if (goal.kind === 'reached' && goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
     if (goal.every === true) return `cities, ${everyAdmittedWords(goal.admits)}`;
     return citiesAdmittedWords(goal.admits).many;
+  }
+  if (goal.kind === 'reached' && goal.figure === 'townsAtPopulation' && goal.populationAtLeast !== undefined) {
+    return `towns with ${goal.populationAtLeast} or more citizens`;
   }
   // The floor on the town's wonders (Magisterial batch MG9, The Ideal City).
   if (

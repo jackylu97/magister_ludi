@@ -827,19 +827,35 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| Hearth Stores | 0 | ● | S | Your capital gains +1 food. |
-| Watchmen | 0 | ● | S | Friendly combat units gain +2 strength when defending in your territory. |
-| Resting Camps | 0 | ● | S | Friendly units that take no action this turn heal an additional 5 health when otherwise eligible to heal. |
-| Local Markets | 0 | ● | S | Your capital gains +2 gold. |
-| The Village Scribe | 0 | ● | S | Your capital gains +1 science. |
-| Public Gatherings | 0 | ● | S | Your capital gains +1 culture. |
-| Household Altars | 0 | ● | S | Your capital gains +1 faith. |
-| Boundary Stones | 0 | ● | S | Cities with a Monument expand their borders 20% faster. This does not increase draft culture. |
-| Public Wells | 1 | ● | P | Cities without freshwater gain +2 food. |
-| Civic Peace | 1 | ● | S | Gain +1 empire happiness. |
-| Local Clerks | 2 | ● | S | Gain +1 authority capacity. |
-| Public Hospitals | 3 | ● | S | Cities of at least eight population gain +1 happiness. |
-| Common Ledgers | 3 | ● | P | Cities with a Market gain +2 science; cities with a Library gain +2 gold. |
+| The Palace School | 0 | ● | S | Your capital gains +2 science and +2 culture. |
+| The Royal Household | 0 | ● | S | Your capital gains +3 culture and +2 happiness. |
+| The Home Fields | 0 | ● | S | Resource tiles in your capital gain +1 food. |
+| First Fruits Feasts | 0 | ● | S | Improving a resource tile grants 5 culture. |
+| The Marchmen | 0 | ● | S | Your units gain +3 strength against barbarians. |
+| Far Runners | 0 | ● | S | All your units gain +1 sight. |
+| The Threshing Floor | 0 | ● | P | Your capital gains +1 production for every two citizens. |
+| Light Kit | 0 | ○ | S | All your units gain +1 movement and +1 sight, and -2 combat strength. |
+| The Wagon Trains | 0 | ● | S | Settlers and workers gain +1 movement. |
+| Common Festivals | 1 | ● | S | Every town gains +1 happiness. |
+| The Hall of Fame | 1 | ● | S | +30% renown in your capital. |
+| Cistern Works | 1 | ● | S | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. |
+| The Brick Kilns | 1 | ◆ | P | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. |
+| Commission: The Land Register | 1 | ◆ | S | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. |
+| The Liturgies | 1 | ● | S | On draft: every town gains production equal to ten times its citizens. |
+| The Founders' Rights | 1 | ○ | S | +3 authority. Cities you found start with one extra citizen. |
+| The Public Peace | 2 | ● | S | While you are at peace, every town gains +2 food and +1 happiness. |
+| The Town Watch | 2 | ● | S | Your units gain +5 strength when defending in your territory. |
+| The Learned Embassy | 2 | ● | S | On draft: gain science equal to eight turns of your science. |
+| The Royal Annals | 2 | ◆ | P | +4% production and gold for each commission you have fulfilled this game, at most +28%. |
+| Commission: The Building Programme | 2 | ◆ | S | Goal: finish 12 buildings. Reward: every town gains +10% production. |
+| Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |
+| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
+| The Office of Works | 3 | ◆ | S | On draft: gain a great engineer draft. |
+| The Grand Design | 4 | ◆ | P | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. |
+| The Last Walls | 4 | ● | S | The town raising your Magnum Opus gains +15 defence. |
+| The Settled Realm | 4 | ● | S | Every town gains +2 happiness. |
+| Local Clerks | 2 | ● | S | Gain +3 authority. |
+| City Watches | 3 | ● | S | Your towns gain +8 defence. |
 
 ### Notes and deferred halves (from the data rows)
 

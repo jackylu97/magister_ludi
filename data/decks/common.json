@@ -924,6 +924,546 @@
       ]
     },
 
+    "thePalaceSchool": {
+      "name": "The Palace School",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Lessons begin before the court assembles.",
+      "text": "Your capital gains +2 science and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "culture": 2,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theRoyalHousehold": {
+      "name": "The Royal Household",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The kitchen keeps a table for visitors.",
+      "text": "Your capital gains +3 culture and +2 happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 3,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theHomeFields": {
+      "name": "The Home Fields",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The best ground is close enough to walk home for lunch.",
+      "text": "Resource tiles in your capital gain +1 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "hasResource"
+          },
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "firstFruitsFeasts": {
+      "name": "First Fruits Feasts",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The first basket goes to the feast.",
+      "text": "Improving a resource tile grants 5 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "on": {
+            "test": "hasResource"
+          },
+          "grant": {
+            "yield": "culture",
+            "amount": 5
+          }
+        }
+      ]
+    },
+    "theMarchmen": {
+      "name": "The Marchmen",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The border patrol knows where the raiders cross.",
+      "text": "Your units gain +3 strength against barbarians.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "vsBarbarians"
+          }
+        }
+      ]
+    },
+    "commonFarRunners": {
+      "name": "Far Runners",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "They count the campfires from the ridge.",
+      "text": "All your units gain +1 sight.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1
+        }
+      ]
+    },
+    "theThreshingFloor": {
+      "name": "The Threshing Floor",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "At harvest, everyone takes a shift.",
+      "text": "Your capital gains +1 production for every two citizens.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "capitalPopulation",
+          "to": "production",
+          "amount": 1,
+          "per": 2
+        }
+      ]
+    },
+    "lightKit": {
+      "name": "Light Kit",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Leave the armour. Pack dry socks.",
+      "text": "All your units gain +1 movement and +1 sight, and -2 combat strength.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1
+        },
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1
+        },
+        {
+          "kind": "combatLine",
+          "amount": -2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        }
+      ]
+    },
+    "theWagonTrains": {
+      "name": "The Wagon Trains",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Keep a spare wheel on the rear wagon.",
+      "text": "Settlers and workers gain +1 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClasses": [
+              "settler",
+              "worker"
+            ]
+          }
+        }
+      ]
+    },
+    "commonFestivals": {
+      "name": "Common Festivals",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Each town sets a day for music and food.",
+      "text": "Every town gains +1 happiness.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city"
+        }
+      ]
+    },
+    "theHallOfFame": {
+      "name": "The Hall of Fame",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The names are cut where anyone can read them.",
+      "text": "+30% renown in your capital.",
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "percent": 30,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "commonCisternWorks": {
+      "name": "Cistern Works",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The town saves its winter rain.",
+      "text": "Unlocks the Cistern: +2 food, and its town counts as standing on fresh water.",
+      "charter": {
+        "unlocks": {
+          "building": "cistern"
+        }
+      },
+      "effects": [],
+      "note": "The Cistern also gives food on worked desert tiles and irrigates the farms its town works."
+    },
+    "theBrickKilns": {
+      "name": "The Brick Kilns",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The last load dries while the next wall goes up.",
+      "text": "Gains +1 science and +1 gold for your empire each time you finish a building, at most +20.",
+      "effects": [
+        { "kind": "pays", "where": "empire", "basis": "count", "count": "tally", "tally": "buildingCompleted", "to": "science", "amount": 1, "max": 20 },
+        { "kind": "pays", "where": "empire", "basis": "count", "count": "tally", "tally": "buildingCompleted", "to": "gold", "amount": 1, "max": 20 }
+      ]
+    },
+    "theLandRegister": {
+      "name": "Commission: The Land Register",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The survey starts at the first doorstep.",
+      "text": "Goal: have 30 citizens. Reward: every town gains +2 food and +2 production.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "empirePopulation", "count": 30 }],
+        "reward": [{ "lasting": [{ "kind": "pays", "where": "city", "food": 2, "production": 2 }] }]
+      }
+    },
+    "theLiturgies": {
+      "name": "The Liturgies",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The town posted a list of the work and who paid for it.",
+      "text": "On draft: every town gains production equal to ten times its citizens.",
+      "effects": [],
+      "onDraft": [
+        { "grant": "windfall", "yield": "production", "amount": 10, "toEveryTown": true, "fromTownPopulation": true }
+      ]
+    },
+    "theFoundersRights": {
+      "name": "The Founders' Rights",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The charter has room for another household.",
+      "text": "+3 authority. Cities you found start with one extra citizen.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 3
+        },
+        {
+          "kind": "foundingRider",
+          "population": 1
+        }
+      ]
+    },
+    "thePublicPeace": {
+      "name": "The Public Peace",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The market stays open after sunset.",
+      "text": "While you are at peace, every town gains +2 food and +1 happiness.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "food": 2
+            },
+            {
+              "kind": "happiness",
+              "amount": 1,
+              "per": "city"
+            }
+          ]
+        }
+      ]
+    },
+    "theTownWatch": {
+      "name": "The Town Watch",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The watch practises in the lanes it protects.",
+      "text": "Your units gain +5 strength when defending in your territory.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "defend",
+          "when": {
+            "test": "ownTerritory"
+          }
+        }
+      ]
+    },
+    "theLearnedEmbassy": {
+      "name": "The Learned Embassy",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The envoys brought back more books than letters.",
+      "text": "On draft: gain science equal to eight turns of your science.",
+      "effects": [],
+      "onDraft": [
+        { "grant": "windfall", "yield": "science", "amount": 8, "fromRate": "sciencePerTurn" }
+      ]
+    },
+    "theRoyalAnnals": {
+      "name": "The Royal Annals",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The archivist marks each promise kept.",
+      "text": "+4% production and gold for each commission you have fulfilled this game, at most +28%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "commissionsMet",
+          "to": "production",
+          "percent": 4,
+          "stage": "empire",
+          "max": 7
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "commissionsMet",
+          "to": "gold",
+          "percent": 4,
+          "stage": "empire",
+          "max": 7
+        }
+      ]
+    },
+    "theBuildingProgramme": {
+      "name": "Commission: The Building Programme",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The last crew finished the roof before winter.",
+      "text": "Goal: finish 12 buildings. Reward: every town gains +10% production.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "buildingCompleted", "count": 12 }],
+        "reward": [{ "lasting": [{ "kind": "percentYields", "yield": "production", "percent": 10 }] }]
+      }
+    },
+    "theMasterPlan": {
+      "name": "Commission: The Master Plan",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "Four towns sent their plans. The builders drew one.",
+      "text": "Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "townsAtPopulation", "populationAtLeast": 20, "count": 4 }],
+        "reward": [{ "lasting": [{ "kind": "productionBonus", "category": "building", "building": "theMagnumOpus", "percent": 40 }] }]
+      }
+    },
+    "theGeneralSummons": {
+      "name": "The General Summons",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The call goes out to every district.",
+      "text": "On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep.",
+      "onDraft": [{ "grant": "unit", "unit": "bestMelee", "count": 3 }],
+      "effects": []
+    },
+    "theOfficeOfWorks": {
+      "name": "The Office of Works",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Bring the drawings. The ground survey is ready.",
+      "text": "On draft: gain a great engineer draft.",
+      "onDraft": [
+        {
+          "grant": "greatPerson",
+          "family": "engineer"
+        }
+      ],
+      "effects": [],
+      "note": "If another offer is waiting, you cannot call great people yet, or all engineers have been called, this grants renown toward your next great person."
+    },
+    "theGrandDesign": {
+      "name": "The Grand Design",
+      "decks": [],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every town sends names for the work crews.",
+      "text": "The town raising your Magnum Opus gains +1 production for every two citizens in your empire.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "to": "production",
+          "amount": 1,
+          "per": 2,
+          "scope": {
+            "test": "raisingOpus"
+          }
+        }
+      ]
+    },
+    "theLastWalls": {
+      "name": "The Last Walls",
+      "decks": [],
+      "band": 4,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The plans give the work yard its own walls.",
+      "text": "The town raising your Magnum Opus gains +15 defence.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 15,
+          "scope": {
+            "test": "raisingOpus"
+          }
+        }
+      ]
+    },
+    "theSettledRealm": {
+      "name": "The Settled Realm",
+      "decks": [],
+      "band": 4,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The streets are busy when the lamps come on.",
+      "text": "Every town gains +2 happiness.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city"
+        }
+      ]
+    },
+
     "hearthStores": {
       "name": "Hearth Stores",
       "decks": [],
@@ -932,7 +1472,8 @@
       "rarity": "common",
       "flavor": "What the hearth keeps, the winter cannot ask for.",
       "text": "Your capital gains +1 food.",
-      "effects": [{ "kind": "pays", "where": "city", "food": 1, "scope": { "test": "capital" } }]
+      "effects": [{ "kind": "pays", "where": "city", "food": 1, "scope": { "test": "capital" } }],
+      "retired": true
     },
     "commonTools": {
       "name": "Common Tools",
@@ -943,7 +1484,8 @@
       "flavor": "One good adze, borrowed by everybody.",
       "text": "Your capital gains +1 production toward workers and buildings.",
       "deferred": ["the hammers are for workers and buildings, and for nothing else"],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "watchmen": {
       "name": "Watchmen",
@@ -960,7 +1502,8 @@
           "side": "defend",
           "when": { "test": "ownTerritory" }
         }
-      ]
+      ],
+      "retired": true
     },
     "restingCamps": {
       "name": "Resting Camps",
@@ -970,7 +1513,8 @@
       "rarity": "common",
       "flavor": "A fire, a pot, and nobody shouting.",
       "text": "Friendly units that take no action this turn heal an additional 5 health when otherwise eligible to heal.",
-      "effects": [{ "kind": "unitStat", "stat": "heal", "amount": 5 }]
+      "effects": [{ "kind": "unitStat", "stat": "heal", "amount": 5 }],
+      "retired": true
     },
     "localMarkets": {
       "name": "Local Markets",
@@ -980,7 +1524,8 @@
       "rarity": "common",
       "flavor": "Two stalls make a market; three make a rumour.",
       "text": "Your capital gains +2 gold.",
-      "effects": [{ "kind": "pays", "where": "city", "gold": 2, "scope": { "test": "capital" } }]
+      "effects": [{ "kind": "pays", "where": "city", "gold": 2, "scope": { "test": "capital" } }],
+      "retired": true
     },
     "theVillageScribe": {
       "name": "The Village Scribe",
@@ -990,7 +1535,8 @@
       "rarity": "common",
       "flavor": "He writes the letters and reads them back wrong on purpose.",
       "text": "Your capital gains +1 science.",
-      "effects": [{ "kind": "pays", "where": "city", "science": 1, "scope": { "test": "capital" } }]
+      "effects": [{ "kind": "pays", "where": "city", "science": 1, "scope": { "test": "capital" } }],
+      "retired": true
     },
     "publicGatherings": {
       "name": "Public Gatherings",
@@ -1000,7 +1546,8 @@
       "rarity": "common",
       "flavor": "A crowd is a town finding out what it thinks.",
       "text": "Your capital gains +1 culture.",
-      "effects": [{ "kind": "pays", "where": "city", "culture": 1, "scope": { "test": "capital" } }]
+      "effects": [{ "kind": "pays", "where": "city", "culture": 1, "scope": { "test": "capital" } }],
+      "retired": true
     },
     "householdAltars": {
       "name": "Household Altars",
@@ -1010,7 +1557,8 @@
       "rarity": "common",
       "flavor": "The smallest shrine is the one nobody skips.",
       "text": "Your capital gains +1 faith.",
-      "effects": [{ "kind": "pays", "where": "city", "faith": 1, "scope": { "test": "capital" } }]
+      "effects": [{ "kind": "pays", "where": "city", "faith": 1, "scope": { "test": "capital" } }],
+      "retired": true
     },
     "commonBoundaryStones": {
       "name": "Boundary Stones",
@@ -1027,7 +1575,8 @@
           "percent": 20,
           "scope": { "test": "hasBuilding", "building": "monument" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFrontierMilitia": {
       "name": "The Frontier Militia",
@@ -1057,7 +1606,8 @@
           "food": 2,
           "scope": { "test": "notFreshwater" }
         }
-      ]
+      ],
+      "retired": true
     },
     "civicPeace": {
       "name": "Civic Peace",
@@ -1067,7 +1617,8 @@
       "rarity": "common",
       "flavor": "Nothing happened today, and that was the achievement.",
       "text": "Gain +1 empire happiness.",
-      "effects": [{ "kind": "happiness", "amount": 1 }]
+      "effects": [{ "kind": "happiness", "amount": 1 }],
+      "retired": true
     },
     "roadCrews": {
       "name": "Road Crews",
@@ -1078,7 +1629,8 @@
       "flavor": "They mend the road they are standing on, forever.",
       "text": "Workers gain +1 movement when starting their turn on a road you own.",
       "deferred": ["a worker that wakes on one of your roads travels further that day"],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "roadMaintenance": {
       "name": "Road Maintenance",
@@ -1089,7 +1641,8 @@
       "flavor": "A gravel barrow beats a rebuilt bridge.",
       "text": "Road upkeep is reduced by 20%, saving at most 4 gold per turn.",
       "deferred": ["the upkeep of your roads is reduced, up to a limit each turn"],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "emergencyStores": {
       "name": "Emergency Stores",
@@ -1100,7 +1653,8 @@
       "flavor": "Sealed jars, and an argument about when to open them.",
       "text": "Cities of at most four population gain +1 food and +1 production toward buildings.",
       "deferred": ["the hammers are for buildings, and for nothing else"],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "localClerks": {
       "name": "Local Clerks",
@@ -1108,9 +1662,15 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The register is the realm, kept in a smaller hand.",
-      "text": "Gain +1 authority capacity.",
-      "effects": [{ "kind": "authority", "amount": 1 }]
+      "text": "Gain +3 authority.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 3
+        }
+      ]
     },
     "publicHospitals": {
       "name": "Public Hospitals",
@@ -1127,7 +1687,8 @@
           "per": "city",
           "scope": { "test": "populationAtLeast", "value": 8 }
         }
-      ]
+      ],
+      "retired": true
     },
     "commonLedgers": {
       "name": "Common Ledgers",
@@ -1150,7 +1711,8 @@
           "gold": 2,
           "scope": { "test": "hasBuilding", "building": "library" }
         }
-      ]
+      ],
+      "retired": true
     },
     "cityWatches": {
       "name": "City Watches",
@@ -1158,10 +1720,16 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "Half a lantern, all night, on every corner.",
-      "text": "Your cities gain +4 defence. Garrisoned units heal an additional 5 health when otherwise eligible to heal.",
-      "deferred": ["a soldier standing inside one of your towns mends faster there"],
-      "effects": []
+      "text": "Your towns gain +8 defence.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 8
+        }
+      ]
     },
     "theHolyArmy": {
       "name": "The Holy Army",

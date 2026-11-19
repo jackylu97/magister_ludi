@@ -2279,7 +2279,9 @@ describe('the marginal draft reading', () => {
     // Orders already pay on great-person works. The Grand Vizier, written in
     // the same batch, is not one of them: the chair reader is priced by the
     // walk, as the card in that chair over again.
-    expect(engines).toBe(25);
+    // The Hall of Fame adds a renown percentage to the same fold.
+    expect(hasFoldReadEngine(orderDef('theHallOfFame' as OrderId).effects)).toBe(true);
+    expect(engines).toBe(26);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

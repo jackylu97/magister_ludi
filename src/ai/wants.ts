@@ -114,6 +114,7 @@ import {
   hexPurchaseRiderTerm,
   // Bot batch BP6: a want's step toward an open commission.
   commissionPullTerm,
+  ordinaryBuildingPullTerm,
   holdsHexPurchaseRider,
 } from './value';
 import {
@@ -545,6 +546,8 @@ function purchasingPlan(
       // bought with gold, for a goal that counts them (A Guild Commission).
       const pull = commissionPullTerm(ctx, { occasion: 'buildingBoughtWithGold', count: 1 });
       if (pull !== null) terms.push(pull);
+      const completion = ordinaryBuildingPullTerm(ctx, id);
+      if (completion !== null) terms.push(completion);
       wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'gold', reach, city, item, terms));
     }
   }
@@ -1238,6 +1241,8 @@ function faithPlan(
       if (bridge !== null) terms.push(bridge);
       const race = raceTerm(ctx, { kind: 'building', id });
       if (race !== null) terms.push(race);
+      const completion = ordinaryBuildingPullTerm(ctx, id);
+      if (completion !== null) terms.push(completion);
       wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'faith', reach, city, item, terms));
     }
   }

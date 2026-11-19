@@ -4811,6 +4811,19 @@ describe("the Orders pass of 2026-08-29", () => {
     }
   });
 
+  it("says when a city's population count covers the empire", () => {
+    const effect: CardEffect = {
+      kind: "pays", where: "city", basis: "count", count: "population",
+      to: "production", amount: 1, per: 2,
+    };
+    expect(describeEffects([effect]).map((clause) => stripRefs(clause.text))).toEqual([
+      "+1 production in every city per 2 citizens in your empire",
+    ]);
+    expect(describeEffects([{ ...effect, within: "city" }]).map((clause) => stripRefs(clause.text))).toEqual([
+      "+1 production in every city per 2 citizens there",
+    ]);
+  });
+
   it("prints every new row in the words the user ratified", () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
@@ -9200,6 +9213,8 @@ describe("the engine shapes", () => {
     // the same reason: it now counts the decks among the seated cards.
     "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",
+    // The generic set adds a capital renown Order.
+    "theHallOfFame · cityRenownPercent",
     // Commerce batch T1: The Silk Road Monks, moved here from the Commerce
     // file, last in common.json.
     "theSilkRoadMonks · routeYield",

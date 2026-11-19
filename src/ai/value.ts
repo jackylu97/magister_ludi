@@ -137,6 +137,7 @@ import {
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
+  growthThreshold as citizenGrowthThreshold,
   lendableCopies,
   otherCarryingRoutes,
   ownedTiles,
@@ -397,6 +398,7 @@ import {
   isOrderId,
   countedTypeOf,
   orderDef,
+  onDraftUnitCount,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
@@ -2975,8 +2977,8 @@ function rateKeyOf(voice: string): keyof EmpireRates {
 }
 
 /**
- * **What a `RateSource` reads on this board** — the same five books and two
- * meters the evaluator hands a `pays` rate (`statecraft.ts`), and the two
+ * **What a `RateSource` reads on this board**. The evaluator uses the same
+ * books and meters for `pays` rates. The two
  * meters read **positive part only**, which is that function's own rule: "per
  * point of positive happiness" is what the cards say, and a conversion that paid
  * a malus would be a card that rewards misery.
@@ -3734,7 +3736,7 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit': {
-        const piece = draftedUnitWorth(grant.unit, ctx);
+        const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx);
         once += piece.once;
         rate += piece.rate;
         break;
@@ -3781,16 +3783,20 @@ export function boonTurns(ctx: ValueContext): number {
  *     the best melee unit the seat can build now (`bestMeleeFor`), as the grant
  *     resolves it, and nothing when there is none.
  */
-function draftedUnitWorth(unit: UnitTypeId | 'bestMelee', ctx: ValueContext): { once: number; rate: number } {
+function draftedUnitWorth(
+  unit: UnitTypeId | 'bestMelee',
+  count: number,
+  ctx: ValueContext,
+): { once: number; rate: number } {
   const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
-    return { once: 0, rate: routes.open.pay.total };
+    return { once: 0, rate: routes.open.pay.total * Math.min(count, routes.free) };
   }
   const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
-  return { once: explainYields({ production: hammers }, ctx).total, rate: 0 };
+  return { once: count * explainYields({ production: hammers }, ctx).total, rate: 0 };
 }
 
 /**
@@ -6292,6 +6298,11 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       ];
     }
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
+    if (occasion === 'buildingCompleted') {
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = Math.max(ordinaryBuildingPace(ctx) * horizon, forecast ?? 0);
+      return [{ label: `+ ${round(more)} more buildings finished over the horizon`, value: more }];
+    }
     if (forecast === undefined) {
       return [
         {
@@ -6897,18 +6908,28 @@ function pullOfSteps(ctx: ValueContext, steps: readonly CommissionStep[]): Value
  * **A building row's step toward the seat's open commissions** (bot batch BP6,
  * B12), for the production table: a world wonder is one wonder completed, and
  * a wonder or the Magnum Opus takes its cost in hammers put into a wonder (the
- * `wonderProduction` tally counts the hammers a town puts into either). `null`
- * for any other row, and for every row of a seat with no open commission.
+ * `wonderProduction` tally counts the hammers a town puts into either). An
+ * ordinary building counts once toward a goal for finished buildings.
  */
 export function buildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
   const def = buildingDef(id);
   const wonder = isWonder(id);
-  if (!wonder && def.endsTheGame !== true) return null;
+  if (!wonder && def.endsTheGame !== true) return ordinaryBuildingPullTerm(ctx, id);
   const steps: CommissionStep[] = [
     { occasion: 'wonderProduction', count: buildingProductionCost(id, ctx.state, ctx.playerId) },
   ];
   if (wonder) steps.push({ occasion: 'wonderCompleted', count: 1 });
   return pullOfSteps(ctx, steps);
+}
+
+const ORDINARY_BUILDING_PULL = new WeakMap<ValueContext, ValueTerm | null>();
+
+/** A built or bought ordinary building advances the same counted goal. */
+export function ordinaryBuildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
+  if (isWonder(id) || buildingDef(id).endsTheGame === true) return null;
+  return onContext(ORDINARY_BUILDING_PULL, ctx, () =>
+    commissionPullTerm(ctx, { occasion: 'buildingCompleted', count: 1 }),
+  );
 }
 
 /**
@@ -7096,11 +7117,11 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
     // A goal met by completing a technology is forecast from the research
     // itself (Scientific batch S13): The Great Instrument's Alchemy and The
     // Royal Charter Commission's charter technology. See `researchGoalForecast`.
-    const research = researchGoalForecast(goal, ctx);
-    if (research !== null) {
-      if (research.turns < turns) continue;
-      turns = Math.max(1, research.turns);
-      why = research.why;
+    const forecast = researchGoalForecast(goal, ctx) ?? townPopulationGoalForecast(goal, ctx);
+    if (forecast !== null) {
+      if (forecast.turns < turns) continue;
+      turns = Math.max(1, forecast.turns);
+      why = forecast.why;
       continue;
     }
     // **The Magisterial goals** (Magisterial batch MG17): a wonder its towns
@@ -7128,6 +7149,28 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
         : `${round(remaining)} more ${what} still to come, and no pace to forecast them from`;
   }
   return { turns, why };
+}
+
+/** Use each town's own growth because a surplus in one town cannot make another qualify. */
+function townPopulationGoalForecast(goal: CommissionGoal, ctx: ValueContext): { turns: number; why: string } | null {
+  if (goal.kind !== 'reached' || goal.figure !== 'townsAtPopulation' || goal.populationAtLeast === undefined) return null;
+  const population = goal.populationAtLeast;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  if (towns.length < goal.count) return { turns: horizon, why: `${goal.count} towns are needed for the goal` };
+
+  const arrivals = towns.map((town) => {
+    if (town.population >= population) return 0;
+    let food = -town.foodBasket;
+    for (let size = town.population; size < population; size++) food += citizenGrowthThreshold(size);
+    // Growth settles at most one citizen per town at the end of a turn.
+    const wait = food <= 0 ? 0 : Math.ceil(regrowTurns(town, food, ctx));
+    return Math.max(population - town.population, wait);
+  }).sort((a, b) => a - b);
+  return {
+    turns: Math.min(horizon, arrivals[goal.count - 1] ?? horizon),
+    why: `time for ${goal.count} towns to reach ${population} citizens at their current growth`,
+  };
 }
 
 /** Does a counted goal count only some moments (`GoalFloor`)? */
@@ -7158,6 +7201,21 @@ function smoothedRate(record: number | null, fallback: number, ctx: ValueContext
   return (Math.max(0, record) + fallback * weight) / span;
 }
 
+const BUILDING_COMPLETION_PACE = new WeakMap<ValueContext, number>();
+
+/** Use recent ordinary buildings as an estimate. The board keeps no lifetime count. */
+function ordinaryBuildingPace(ctx: ValueContext): number {
+  return onContext(BUILDING_COMPLETION_PACE, ctx, () => {
+    const turns = recentWindow(ctx);
+    let recent = 0;
+    for (const town of citiesOf(ctx.state, ctx.playerId)) {
+      const ordinary = town.buildings.filter((id) => !isWonder(id) && buildingDef(id).endsTheGame !== true);
+      recent += stampedSince(town, ordinary, turns, ctx.state.turn);
+    }
+    return recent / turns;
+  });
+}
+
 /**
  * **How often this seat meets an occasion a commission counts**, per turn.
  *
@@ -7176,6 +7234,7 @@ function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): numbe
   // seat's towns keep now are its recent pace (`seasonPace`). The cautious
   // default is the floor.
   if (occasion === 'riteStarted') return Math.max(seasonPace(ctx).rate, fallback);
+  if (occasion === 'buildingCompleted') return Math.max(ordinaryBuildingPace(ctx), fallback);
   // **The production put into wonders** (Magisterial batch MG17, Commission:
   // The Wonder of the Age): no record, but the towns raising a wonder or the
   // Opus now are its pace. See `wonderHammerRate`.
@@ -7252,6 +7311,7 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Scientific batch S6: the charter technologies among them.
       return player.techsResearched.filter((id) => isTechId(id) && techDef(id).charter === true)
         .length;
+    case 'buildingCompleted':
     case 'buildingBoughtWithGold':
     case 'riteStarted':
     case 'foreignCityConverted':
@@ -13573,7 +13633,14 @@ function magisterialDraftGrantWorth(
       }
       if (found <= 0) return 0;
       const bag: YieldBag = {};
-      bag[grant.yield as Voice] = grant.amount * found;
+      const rate = grant.fromRate === undefined ? 1 : rateSourceValue(grant.fromRate, ctx);
+      const towns = grant.toEveryTown === true ? citiesOf(ctx.state, ctx.playerId) : [];
+      const recipients = grant.toEveryTown !== true
+        ? 1
+        : grant.fromTownPopulation === true
+          ? towns.reduce((sum, town) => sum + town.population, 0)
+          : towns.length;
+      bag[grant.yield as Voice] = grant.amount * found * rate * recipients;
       return explainYields(bag, ctx).total;
     }
     default: {

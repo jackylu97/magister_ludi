@@ -854,6 +854,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   never be seated again. Private: nothing reads another empire. UI: the counter
   on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
+  - The Brick Kilns and The Building Programme count a building when a town
+    finishes it from its queue or buys it. Only seated cards count it. Wonders,
+    the Magnum Opus and free building grants give no progress.
   - Since Dominion batch D6 a counted goal may have a floor (`minPopulation`,
     `minTownsTaken`, read off the moment's `TallyFacts`) and keeps the towns it
     counted on its tally row (`OrderTally.people`, `.wonders`, `.town`).
@@ -915,7 +918,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `grantGreatPersonOffer`: an offer, or the renown for the next one.
   - Since Magisterial batch MG14 an Order can pay yields when it is drafted
     (the `windfall` arm, The Grand Retrospective). Its windfall arms are
-    composed once (`onDraftPayout`) and paid through `payWindfallGrants`.
+    composed once (`onDraftPayout`) and paid through `payWindfallGrants`. The
+    Liturgies banks production in every owned town based on its own population
+    before any town settles. The Learned Embassy reads the current empire
+    science rate before the payment, then settles research as a windfall.
     A grant's count may name the hexes it counts (`GrantCount.tile`). An
     Order can also hand over a random card from a deck the seat does not
     hold (the `foreignCard` arm, The Cabinet of Curiosities;

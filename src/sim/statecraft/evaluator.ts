@@ -4609,20 +4609,7 @@ export interface EmpireRates {
    * Cuius Regio's, read off the same sweep for `capitalFaithPerTurn`'s reason.
    */
   followingFaithPerTurn?: number;
-  /**
-   * What the empire banked in **science** this turn — the great scholar's act
-   * (`actGainOf`, `greatPeople.ts`), which pays a few turns of it.
-   *
-   * The one member of this reading that **no `RateSource` names**, and that is
-   * deliberate rather than an omission: the ratified card table asks for gold,
-   * culture and three shapes of faith, and a source declared for a card nobody
-   * wrote would be exactly the dead vocabulary the register test refuses. What
-   * the act needed was not a new card shape but the *same books* — "what am I
-   * making per turn" answered once, by `foldEmpireRates`, so a great person's
-   * beakers and a conversion's coin cannot disagree about what a turn is worth.
-   * The day a card wants to convert science, it says `sciencePerTurn` in
-   * `RateSource` and reads this field that already exists.
-   */
+  /** The empire's science per turn, used by scholars and by The Learned Embassy. */
   sciencePerTurn?: number;
   /**
    * What the empire's towns made in **food** and in **hammers** this turn — the
@@ -4670,6 +4657,8 @@ function rateOf(
       return Math.max(0, rates.culturePerTurn ?? 0);
     case 'goldPerTurn':
       return Math.max(0, rates.goldPerTurn ?? 0);
+    case 'sciencePerTurn':
+      return Math.max(0, rates.sciencePerTurn ?? 0);
     case 'happiness':
       return Math.max(0, happinessReading(state, playerId));
     case 'authority':
@@ -11885,7 +11874,8 @@ function grantCountHelpings(
  * because no seated card rides a moment. So the era, the council and the
  * capture and pillage boosts do not multiply it. `raiseOnDraft` (`cities.ts`)
  * delivers the payout through `payWindfallGrants`, the one delivery. Food and
- * production land in the capital: the delivery's default without a hex.
+ * production go to every town if the grant says so. Otherwise they go to the
+ * capital. Each town’s amount goes into its basket before any town settles.
  */
 export function onDraftPayout(
   state: GameState,
@@ -11906,18 +11896,25 @@ export function onDraftPayout(
     lines: [],
     claims: [],
   };
+  let rates: EmpireRates | undefined;
   for (const grant of grants) {
+    if (grant.toEveryTown === true && citiesOf(state, playerId).length === 0) continue;
     const counted = grant.perCount === undefined ? 1 : grantCountHelpings(state, playerId, card, grant.perCount);
-    const amount = grant.amount * counted;
+    const rate = grant.fromRate === undefined
+      ? 1
+      : rateOf(state, playerId, grant.fromRate, rates ??= foldEmpireRates(state, playerId));
+    const amount = grant.amount * counted * rate;
     if (amount === 0) continue;
     payout.grants.push({
       card,
       source,
       yield: grant.yield,
       amount,
-      ...(grant.toCapital === true ? { toCapital: true } : {}),
+      ...deliveryOf(grant),
+      ...(grant.fromTownPopulation === true ? { fromTownPopulation: true } : {}),
     });
-    payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+    const unit = grant.fromTownPopulation === true ? ' per citizen in the receiving town' : '';
+    payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}${unit}` });
   }
   return payout;
 }

@@ -130,9 +130,7 @@ export function commissionFigure(
   playerId: number,
   figure: CommissionFigure,
   /**
-   * The goal the figure is asked for, when it carries a floor on the hexes it
-   * counts (`hexYieldAtLeast`, Expansionist batch E5). Every other figure
-   * ignores it.
+   * Supplies filters such as a town's minimum population or a hex's minimum yield.
    */
   goal?: CommissionGoal,
 ): number {
@@ -141,6 +139,12 @@ export function commissionFigure(
   switch (figure) {
     case 'treasury':
       return player.gold;
+    case 'empirePopulation':
+      return citiesOf(state, playerId).reduce((total, city) => total + city.population, 0);
+    case 'townsAtPopulation': {
+      const floor = goal?.kind === 'reached' ? goal.populationAtLeast : undefined;
+      return floor === undefined ? 0 : countCitiesAdmitted(state, playerId, { test: 'populationAtLeast', value: floor });
+    }
     case 'luxuryCopies': {
       // The luxury this empire holds most copies of. `resourceCopies` is the
       // net figure, so copies received in a deal count and copies lent away do

@@ -58,7 +58,6 @@ import {
   type CardType,
   type DeckId,
   type OrderId,
-  type OrderRarity,
   BANDS,
   CARD_TYPES,
   DECK_FILE_DOCTRINES,
@@ -67,7 +66,6 @@ import {
   DECK_WORDS,
   ORDER_IDS,
   doctrineDef,
-  isCardType,
   orderDef,
   orderIsDealt,
   orderType,
@@ -75,10 +73,17 @@ import {
 import { createGame } from '../newGameHelpers';
 import {
   SORTED_DECKS,
+  type DocStatus,
+  cellsOf,
+  namesOf,
+  sheetCards,
+  typeOf,
   expectSheetDoctrinesMatchData,
   rowsListedOnSortedSheets,
   sheetDoctrines,
 } from './sortedSheets';
+
+const DOC_STATUSES: readonly DocStatus[] = ['implemented', 'modify', 'add'];
 
 // --- the deck sheet, read ----------------------------------------------------
 
@@ -96,84 +101,7 @@ const DOC = Object.values(docFiles)[0] as string;
 /** The sheet's tier headings, which are the bands. */
 const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
 
-/** How a sheet row relates to the data: the first word of its Status cell. */
-type DocStatus = 'implemented' | 'modify' | 'add';
-const DOC_STATUSES: readonly DocStatus[] = ['implemented', 'modify', 'add'];
-
-/** One card the sheet's tier tables list. */
-interface DocCard {
-  /** The name the sheet prints, without the bold and the "(was …)" note. */
-  name: string;
-  /** The name in the "(was …)" note, when the sheet gives one. */
-  was?: string;
-  rarity: OrderRarity;
-  band: Band;
-  status: DocStatus;
-  /** The word after the colon in the Status cell ("deferred", "revised" …), if any. */
-  reason?: string;
-  text: string;
-  /** The Type cell, lowercased: the chair the card fits once batch C2 lands. */
-  type: CardType;
-}
-
-/** The Type cell read as a type. A row without one fails here, by name. */
-function typeOf(card: string, cell: string | undefined): CardType {
-  const type = (cell ?? '').toLowerCase();
-  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
-  return type as CardType;
-}
-
-/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
-function cellsOf(line: string): string[] | null {
-  if (!line.startsWith('|')) return null;
-  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
-  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
-  return cells;
-}
-
-/** A Card cell read into the printed name and the "(was …)" name, if any. */
-function namesOf(cell: string): { name: string; was?: string } {
-  const plain = cell.replace(/\*\*/g, '').trim();
-  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
-  if (match === null) return { name: plain };
-  return { name: match[1]!.trim(), was: match[2]!.trim() };
-}
-
-/**
- * **The five tier tables of the sheet**, in the sheet's own order. Read from
- * the first tier heading to the first level-two heading that is not a tier, so
- * the shared table (whose rows live in `common.json`) and the notes after it
- * are not read here.
- */
-function docCards(): DocCard[] {
-  const start = DOC.indexOf('\n## Tier 0');
-  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
-  const cards: DocCard[] = [];
-  let band: Band | null = null;
-  for (const line of DOC.slice(start + 1).split('\n')) {
-    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
-    if (heading) {
-      band = TIERS[heading[1]!]!;
-      continue;
-    }
-    if (line.startsWith('## ')) break;
-    const cells = cellsOf(line);
-    if (cells === null || band === null || cells.length < 4) continue;
-    const [head, reason] = cells[2]!.split(':').map((part) => part.trim());
-    const status = head as DocStatus;
-    expect(DOC_STATUSES, `"${cells[0]}" has an unknown status "${cells[2]}"`).toContain(status);
-    cards.push({
-      ...namesOf(cells[0]!),
-      rarity: cells[1] as OrderRarity,
-      band,
-      status,
-      ...(reason ? { reason } : {}),
-      text: cells[3]!,
-      type: typeOf(cells[0]!, cells[4]),
-    });
-  }
-  return cards;
-}
+const docCards = () => sheetCards(DOC);
 
 /** One card the sheet's shared table lists. Its row lives in `data/decks/common.json`. */
 interface SharedCard {
@@ -350,7 +278,7 @@ describe('the Dominion deck — the file', () => {
         expect(orderType(id), id).toBe(orderDef(id).type);
         continue;
       }
-      // The decks not sorted yet, the generic rows, the shared rows no sorted
+      // The decks not sorted yet, the shared rows no sorted
       // sheet lists, and every retired row: unsorted until a sheet sorts them.
       expect(orderDef(id).type, `${id} carries a type no sorted sheet gives it`).toBeUndefined();
       expect(orderType(id), id).toBe('unsorted');

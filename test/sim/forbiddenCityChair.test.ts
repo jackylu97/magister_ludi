@@ -191,9 +191,11 @@ describe('the Forbidden City’s chair', () => {
     found(g.state, 1);
     const town = secondTown(g.state, 0);
     finish(g.state, town);
-    const [loose] = seatable('unsorted');
-    expect(loose).toBeDefined();
-    seat(g.state, 0, loose!, 3);
+    // An older save can still hold Hearth Stores after it leaves the draft pool.
+    const loose = 'hearthStores';
+    expect(orderDef(loose).retired).toBe(true);
+    expect(orderType(loose)).toBe('unsorted');
+    seat(g.state, 0, loose, 3);
     handOverCity(g.state, town, 1);
     // The first free chair an unsorted card fits is the military one.
     expect(cards(g.state, 0)).toEqual([loose, null, null]);

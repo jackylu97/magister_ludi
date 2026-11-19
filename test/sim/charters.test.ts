@@ -233,7 +233,6 @@ describe('the charters as a family', () => {
       const names = family.map((entry) => entry.building);
       expect(new Set(names).size).toBe(names.length);
     }
-    const opened = [...new Set(CHARTERS.map((entry) => entry.building))];
     // And every row carrying the marker is opened by exactly one card of
     // *some* class: a building marked `unlockedByCard` that no card names is a
     // row nobody can ever build. The charters are the Orders' half; the Gilded
@@ -280,6 +279,12 @@ describe('the charters as a family', () => {
         .map((effect) => effect.building)
         .filter((building) => gatingTech('building', building) !== null),
     );
+    // A live charter can replace a retired Order that opened the same building.
+    const activeCharterBuildings = new Set(byCharter);
+    const opened = [...new Set([
+      ...SHELF_CHARTERS.map((entry) => entry.building).filter((building) => !activeCharterBuildings.has(building)),
+      ...LIVE_CHARTERS.map((entry) => entry.building),
+    ])];
     const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter, ...byTech, ...byEarlyOrder];
     expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {

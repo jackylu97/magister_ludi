@@ -127,6 +127,7 @@ import {
   type FirstKind,
   type LevyUse,
   type OnDraftWindfall,
+  onDraftUnitCount,
   type OrderId,
   type WindfallOccasion,
   governmentDef,
@@ -5468,7 +5469,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   reaimProduction(city, before, false);
 
   if (plan.kind === 'building') {
-    const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
+    const realised = realiseItem(state, city, { kind: 'building', id: plan.id }, { fromProduction: true });
     if (realised.wonder) done.wonder = realised.wonder;
     if (realised.grants) done.grants = realised.grants;
     if (realised.consecration) done.consecration = realised.consecration;
@@ -5515,6 +5516,8 @@ type CompletedItem =
  * discipline, read from the other end).
  */
 interface RealiseOptions {
+  /** A queue completion counts toward Orders that watch finished buildings. */
+  fromProduction?: true;
   /**
    * The empire is not paying for this. Sets `Unit.freeUpkeep`; ignored for a
    * building, which has no such mark — a granted building's maintenance follows
@@ -5665,7 +5668,15 @@ export function realiseItem(
     // pays for a roof somebody bought — so the till now says which bank it was
     // and the town writes it down beside the date. Absent on every other way
     // stones arrive, which is what a completion, a grant and a relic all are.
-    addBuilding(state, city, item.id, options.bought);
+    const added = addBuilding(state, city, item.id, options.bought);
+    // A purchase finishes the building as well. Free grants enter through this
+    // routine too, so use the source to distinguish them from work in the queue.
+    if (
+      added && (options.fromProduction || options.bought !== undefined) &&
+      !isWonder(item.id) && buildingDef(item.id).endsTheGame !== true
+    ) {
+      recordScalingOccasion(state, city.ownerId, 'buildingCompleted');
+    }
     // **The law changed under this very call** (batch E3a). A wonder is the
     // fifth source of `liveEffects`, the stones go up before the grants below
     // are asked for, and the remembered law is keyed on `GameState.revision` —
@@ -6619,9 +6630,17 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
       case 'greatPerson':
         grantGreatPersonOffer(state, player, grant.family ?? 'any');
         break;
-      case 'unit':
-        if (capital) raiseFreeUnit(state, capital, grant.unit);
+      case 'unit': {
+        if (!capital) break;
+        // Choose the type before the first unit claims any strategic resources.
+        const unit = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
+        if (unit === null) break;
+        const count = onDraftUnitCount(grant.count);
+        for (let n = 0; n < count; n++) {
+          if (raiseFreeUnit(state, capital, unit) === null) break;
+        }
         break;
+      }
       case 'windfall':
         windfalls.push(grant);
         break;
