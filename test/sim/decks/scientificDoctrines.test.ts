@@ -2314,10 +2314,18 @@ describe('The Two Capitals (batch DT17)', () => {
     });
 
     it('shows the second town’s pay in the card’s impact stamp at the offer', () => {
-      const { state } = board(false);
-      slot(state, 'hearthStores');
+      const { state, second } = board(false);
+      const sc = seat(state).statecraft;
+      const card = 'hearthStores' as OrderId;
+      sc.orders.push(card);
+      expect(applyCommand(state, { type: 'slotOrder', playerId: 0, cardId: card, slotIndex: 0 }).ok).toBe(true);
+      sc.pendingDoctrine = { options: [ID as DoctrineId] };
+      const before = pays(state, second, card, 'food');
       const offered = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: ID as DoctrineId }));
       expect(offered.food).toBe(1);
+      expect(applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+      expect(sc.slots[0]?.card).toBe(card);
+      expect(pays(state, second, card, 'food') - before).toBe(offered.food);
     });
   });
 });
