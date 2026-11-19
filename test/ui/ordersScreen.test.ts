@@ -31,9 +31,8 @@ import {
   orderIsDealt,
 } from '../../src/sim/statecraftData';
 import { COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from '../../src/ui/councilLayout';
-import { COUNCIL_VOICES, councilFigures } from '../../src/ui/councilTotals';
+import { COUNCIL_VOICES } from '../../src/ui/councilTotals';
 import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
-import { stampOfVoices } from '../../src/ui/ledgerScreen';
 import { firstFigure, orderFaceModel } from '../../src/ui/orderFace';
 import { LIVE_WORDS, plateFigures, stagedLive, tabletOfFigure, tabletOfText } from '../../src/ui/orderLive';
 import { ORDERS_WORDS } from '../../src/ui/statecraftScreen';
@@ -91,11 +90,11 @@ describe('what a card says it pays', () => {
     const seated = braceBody(LIVE, 'export function seatedOrderLive(');
     const commission = seated.indexOf('orderDef(id).commission !== undefined');
     const scaler = seated.indexOf('scalerFace(state, seat, id)');
-    const stamp = seated.indexOf('return liveOfStamp(state, seat, id, orderStamp(state, seat, id, sheet));');
+    const stamp = seated.indexOf('return liveOfStamp(state, seat, id, orderLines(state, seat, id, sheet), council);');
     expect(commission).toBeGreaterThan(-1);
     expect(scaler).toBeGreaterThan(commission);
     expect(stamp).toBeGreaterThan(scaler);
-    expect(braceBody(LIVE, 'function orderStamp(')).toContain("stampReading(explainCardImpact(state, seat, { kind: 'order', id }, sheet))");
+    expect(braceBody(LIVE, 'function orderLines(')).toContain("explainCardImpact(state, seat, { kind: 'order', id }, sheet)");
     // A card that pays on an occasion says what it has paid so far, from the
     // lifetime tally.
     expect(LIVE).toContain('statecraft.yieldTallies?.find((entry) => entry.card === card)');
@@ -137,11 +136,15 @@ describe('the sheet', () => {
     expect(shell.slice(shell.indexOf('onDispose'))).not.toContain('commitStaging();');
   });
 
-  it('heads the sheet with the Ledger’s deck figure, and never a sum of the cards’ lines', () => {
+  it('heads the sheet with the whole council’s figure, and never a sum of the cards’ lines', () => {
+    // Stage 2: one reading for the totals, the plates and the chips.
     const head = between(SCREEN, 'function paintHead(', '// --- the register');
-    expect(head).toContain('const reading = foldDeck(state, seat);');
+    expect(head).toContain('const figures = councilFigures(exact);');
     expect(head).not.toContain('seatedOrderLive');
     expect(head).not.toContain('doctrineLive');
+    expect(braceBody(uiSource('councilTotals.ts'), 'export function explainCouncil(')).toContain(
+      "return explainCardImpact(state, seat, { kind: 'council' }, sheet);",
+    );
   });
 
   it('prints a refusal in place of the hint for four seconds', () => {
@@ -170,7 +173,10 @@ describe('the sheet', () => {
   });
 
   it('keeps the screen words in one table, in plain words', () => {
-    expect(ORDERS_WORDS.hint).toBe('play a card from your hand to a chair');
+    // Stage 2: the hint says a card can be dragged, and why the figures need not add up.
+    expect(ORDERS_WORDS.hint).toBe(
+      'Drag a card onto a chair, or click it and then a chair. Each figure is what one card adds alone, so the figures need not add up to the total.',
+    );
     expect(ORDERS_WORDS.staged).toBe('played, not confirmed');
     for (const value of Object.values(ORDERS_WORDS)) {
       const text = typeof value === 'function' ? (value as (...args: never[]) => string).toString() : value;
@@ -397,7 +403,7 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     const register = braceBody(SCREEN, 'function drawRegister(');
     expect(register).toContain('sc.doctrines.forEach((id, index) => {');
     expect(register).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
-    expect(register).toContain('const pays = governmentPays(state, seat);');
+    expect(register).toContain('const law = governmentLive(state, seat, sc.government, sheet, council ?? undefined);');
     expect(style('statecraftScreen.css')).toContain('width: calc(var(--council-gov-w, 200px) - 2px - var(--tuck, 1) * 6px);');
   });
 
@@ -481,30 +487,22 @@ describe('the pay plate (frames PL and PM)', () => {
 });
 
 describe('the totals line (frame N4), and the change a held card would make (frame CH)', () => {
-  it('reads the six yields from foldDeck and the meters from their own lists, never from the plates', () => {
-    const head = between(SCREEN, 'function paintHead(', '// --- the register');
-    expect(head).toContain('const reading = foldDeck(state, seat);');
-    expect(head).toContain('councilFigures(reading, foldDeckMeters(state, seat))');
-    expect(head).not.toContain('seatedOrderLive');
-    expect(head).not.toContain('doctrineLive');
+  it('reads the totals, the plates and the chips from one reading: the whole council, folded', () => {
+    // Stage 2 (`docs/plans/ui-critique-2026-10-16.md`, "After the Council screen
+    // landed"): the council's own impact list, never the Ledger's split and never
+    // a sum of the plates. A plate is a share of it and a chip a difference of it.
     const totals = uiSource('councilTotals.ts');
-    expect(totals).toContain('for (const share of meterCardShares(entry))');
-    expect(totals).toContain("classifyCard(card) === 'deck'");
+    expect(totals).not.toContain('meterCardShares');
+    expect(totals).not.toContain('foldDeck');
+    expect(braceBody(totals, 'export function councilPlate(')).toContain(
+      'const amount = roundYield(council[voice]) - roundYield(council[voice] - own[voice]);',
+    );
+    expect(braceBody(totals, 'export function councilChange(')).toContain('change[voice] = will[voice] - was[voice];');
+    expect(SCREEN).not.toContain("from './ledgerScreen'");
   });
 
   it('puts the eight figures in the board’s order: the six yields, then happiness and authority', () => {
     expect(COUNCIL_VOICES).toEqual(['food', 'production', 'gold', 'science', 'culture', 'faith', 'happiness', 'authority']);
-    const deck = stampOfVoices({ food: 12, production: 0, gold: -3, science: 0, culture: 8, faith: 0 });
-    expect(councilFigures(deck, { happiness: 2, authority: 0 })).toEqual({
-      food: 12,
-      production: 0,
-      gold: -3,
-      science: 0,
-      culture: 8,
-      faith: 0,
-      happiness: 2,
-      authority: 0,
-    });
   });
 
   it('measures the change once when the chair under the card changes, never on a pointer move', () => {
@@ -512,10 +510,13 @@ describe('the totals line (frame N4), and the change a held card would make (fra
     expect(over).toContain('if ((over?.index ?? null) === index) return;');
     // A card held out of a chair is measured against the chairs before the lift.
     expect(over).toContain('const base = beforeLift ?? ctx.arrangement;');
-    expect(over).toContain('councilChange(ctx.state, ctx.seat, base, target)');
+    expect(over).toContain('councilChange(ctx.state, ctx.seat, base, target, live ?? undefined)');
     expect(braceBody(SCREEN, 'function onPointerMove(')).not.toContain('councilChange');
+    expect(braceBody(SCREEN, 'function onPressMove(')).not.toContain('councilChange');
     expect(SCREEN.match(/councilChange\(/g) ?? []).toHaveLength(1);
-    expect(uiSource('councilTotals.ts')).toContain('const was = figuresOfBoard(stagedState(state, seat, before), seat);');
+    expect(uiSource('councilTotals.ts')).toContain(
+      'const was = councilFigures(now ?? foldImpactVoices(explainCouncil(stagedState(state, seat, before), seat)));',
+    );
   });
 });
 
@@ -546,5 +547,72 @@ describe('a card held out of its chair (the user, 2026-11-18)', () => {
     const byKey = braceBody(SCREEN, 'function takeOffByKey(');
     expect(byKey).toContain('const problem = removeError(ctx.state, ctx.seat, ctx.arrangement, index);');
     expect(byKey).toContain('staged = remove(ctx.arrangement, index);');
+  });
+});
+
+/**
+ * **Drag and drop beside click then click** (stage 2, Part B; the user,
+ * 2026-11-18: "could we support both?"). This suite has no DOM, so it pins the
+ * one claim that makes the rule true: a drag picks a card up and puts it down
+ * through the very functions the clicks use, so a drag stages exactly what the
+ * same clicks would.
+ */
+describe('drag and drop, beside click then click', () => {
+  it('waits for a small move before a press is a drag, so a plain click is still a click', () => {
+    expect(SCREEN).toContain('const DRAG_THRESHOLD = 6;');
+    const move = braceBody(SCREEN, 'function onPressMove(');
+    expect(move).toContain('if (Math.hypot(at.x - press.x, at.y - press.y) < DRAG_THRESHOLD) return;');
+    // A release that never moved does nothing of its own: the click handlers do the rest.
+    expect(braceBody(SCREEN, 'function onPressEnd(')).toContain('if (!wasDragging) return;');
+  });
+
+  it('picks a card up as a click does, and a sealed card refuses with its reason', () => {
+    const begin = between(SCREEN, 'function beginDrag(', 'function onPressMove(');
+    expect(begin).toContain('holdFromHand(from.id, at);');
+    // The click's own lift: `removeError` refuses a sealed card with the reducer's sentence.
+    expect(begin).toContain('lift(from.index, null);');
+    expect(begin).toContain('if (held === null) return false;');
+  });
+
+  it('puts a card down as a second click does: on a chair, or away from every chair', () => {
+    const end = braceBody(SCREEN, 'function onPressEnd(');
+    expect(end).toContain('drop(index, null);');
+    // A chair that refused: the card goes back where it came from.
+    expect(end).toContain('if (held !== null) {\n        putBack();');
+    // Away from every chair: the same two lines a click on the cloth runs.
+    const away = 'if (beforeLift !== null) takeOff();\n    else putBack();';
+    expect(end).toContain(away);
+    expect(braceBody(SCREEN, 'function onClothClick(')).toContain(away);
+  });
+
+  it('shows the chips for the chair under the card, read from the page so a touch works too', () => {
+    const move = braceBody(SCREEN, 'function onPressMove(');
+    expect(move).toContain('noteOver(chairUnder(at.x, at.y));');
+    expect(braceBody(SCREEN, 'function chairUnder(')).toContain('document.elementFromPoint(x, y)');
+    expect(braceBody(SCREEN, 'function onPressStart(')).toContain('target.releasePointerCapture(event.pointerId)');
+  });
+
+  it('ends a drag with Escape, and ignores the click its release sends', () => {
+    const keys = braceBody(SCREEN, 'function onKey(event: KeyboardEvent)');
+    expect(keys).toContain('cancelDrag();\n      putBack();');
+    expect(SCREEN).toContain("layerHost.addEventListener('click', onDragClick, true);");
+    expect(SCREEN).toContain("layerHost.removeEventListener('click', onDragClick, true);");
+  });
+
+  it('lets the release of a cancelled drag do nothing, and sends the card back when the browser takes the pointer', () => {
+    const end = braceBody(SCREEN, 'function onPressEnd(event: PointerEvent)');
+    expect(end).toContain('cancelledPointer === event.pointerId');
+    expect(end).toContain("if (event.type === 'pointercancel') {\n      putBack();");
+    expect(braceBody(SCREEN, 'function cancelDrag()')).toContain('cancelledPointer = press?.pointerId ?? null;');
+    // A press clears what an earlier cancel left, so no later click is lost.
+    expect(braceBody(SCREEN, 'function onPressStart(event: PointerEvent)')).toContain('cancelledPointer = null;');
+  });
+
+  it('neither scrolls nor selects text while a card is carried, by mouse or by finger', () => {
+    expect(braceBody(SCREEN, 'function onPressMove(')).toContain('event.preventDefault();');
+    expect(SCREEN).toContain("window.addEventListener('pointermove', onPressMove, { passive: false });");
+    const css = style('statecraftScreen.css');
+    expect(css).toContain('.council-fan .orders-handcard,\n.orders-seat {\n  touch-action: none;');
+    expect(css).toContain('user-select: none;');
   });
 });

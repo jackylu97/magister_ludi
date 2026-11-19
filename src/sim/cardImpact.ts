@@ -118,9 +118,10 @@ import {
   explainEmpireLines,
   foldEmpireLines,
 } from './yields/empire';
-import { type GameState, type Player, foundedReligion, playerById } from './state';
+import { type GameState, type Player, type TimedEffect, foundedReligion, playerById } from './state';
 import {
   type CardEffect,
+  type CardId,
   type DoctrineId,
   type GovernmentId,
   type OrderId,
@@ -129,6 +130,10 @@ import {
   isOrderId,
   orderDef,
 } from './statecraftData';
+import { type BuildingId, buildingDef } from './buildingData';
+// Straight from its layer, as `ghostSeatUnderDoctrine` below is: the switch a
+// ghost board uses to read a seat without its government law.
+import { anyCardDef, setLawAside } from './statecraft/evaluator';
 import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './religionData';
 // The rite preview's two readings of a rite not yet said: the town's timed list
 // wearing it, and the offering's production. `religion.ts` does not import this
@@ -259,13 +264,35 @@ export interface CardImpactLine {
  * down and are never taken or given up, so "what would this be worth if I held
  * it" is not a question anybody can ask about one: the ledger's own lines
  * already say what they pay.
+ *
+ * Stage 2 of the Council and In play board added four questions, all by the
+ * same method (`docs/plans/ui-critique-2026-10-16.md`, "After the Council
+ * screen landed"):
+ *
+ *   - **the government in force**: the board with its law set aside;
+ *   - **the whole council** (`council`): every chair emptied, no Doctrine and
+ *     the law set aside. The Council screen's totals line is this figure, so a
+ *     card's stamp is exactly what the totals lose when the card leaves;
+ *   - **a wonder this seat holds**: its town without it;
+ *   - **a timed effect in force** (`timed`): its holder without the entries
+ *     that card stamped there.
  */
 export type CardImpactSubject =
   | { kind: 'order'; id: OrderId }
   | { kind: 'doctrine'; id: DoctrineId }
   | { kind: 'government'; id: GovernmentId }
   | { kind: 'belief'; id: BeliefId }
-  | { kind: 'legacy'; id: GreatPersonId };
+  | { kind: 'legacy'; id: GreatPersonId }
+  | { kind: 'council' }
+  | { kind: 'wonder'; id: BuildingId }
+  | { kind: 'timed'; card: CardId; holder: TimedHolder };
+
+/**
+ * **Where a timed effect hangs** (the eighth source of `liveEffects`, and the
+ * rites on a town): the seat itself, one of its towns, or one of its pieces.
+ * A timed subject is every entry this card stamped on that holder.
+ */
+export type TimedHolder = { kind: 'seat' } | { kind: 'city'; id: number } | { kind: 'unit'; id: number };
 
 /** A line paying nothing in any voice, before the occasion fields are read. */
 function emptyLine(source: string, kind: CardImpactKind): CardImpactLine {
@@ -457,7 +484,16 @@ function ghostPair(
       // the one number on the sheet that lies about the most expensive decision
       // in the game. The ghost's malices are copies, because the re-seating
       // writes their chairs.
-      if (sc.government === subject.id) return null;
+      //
+      // **The government in force** (the Council screen, stage 2) has no other
+      // government to diff against, so its "without" is the same seat with its
+      // law set aside on a ghost board (`setLawAside`): the chairs, the tier and
+      // every card stay, and only the law's own effects leave.
+      if (sc.government === subject.id) {
+        const without = swap(player);
+        setLawAside(without, player.id);
+        return { without, with: state };
+      }
       const ghost: Player = {
         ...player,
         malices: player.malices.map((held) => ({ ...held })),
@@ -546,6 +582,63 @@ function ghostPair(
         legacies: [...player.legacies, { id: subject.id, age: highestAge(player.techsResearched) }],
       });
     }
+    case 'council': {
+      // **The whole council** (the Council screen's totals line, stage 2): the
+      // seat with every chair emptied, no Doctrine, and its government's law
+      // set aside. What the council pays is then one difference of the real
+      // folds, by the same method as one card's stamp, so a card's plate is
+      // exactly what this figure loses when the card leaves its chair. The
+      // collection, the malices and everything not on the Council screen stay.
+      const without = swap({
+        ...player,
+        statecraft: { ...sc, slots: sc.slots.map(() => null), doctrines: [] },
+      });
+      setLawAside(without, player.id);
+      return { without, with: state };
+    }
+    case 'wonder': {
+      // **A wonder this seat holds** (stage 2, for the In play screen): the
+      // board with the town that holds it standing without it. The town is
+      // replaced by a copy, as a rite's ghost replaces one, so its own yields
+      // and the realm's walk of one-of-a-kind rows both lose it. A wonder the
+      // seat does not hold has no reading.
+      const at = state.cities.findIndex(
+        (city) => city.ownerId === player.id && city.buildings.includes(subject.id),
+      );
+      if (at < 0) return null;
+      const town = state.cities[at]!;
+      const cities = state.cities.slice();
+      cities[at] = { ...town, buildings: town.buildings.filter((id) => id !== subject.id) };
+      return { without: { ...state, cities }, with: state };
+    }
+    case 'timed': {
+      // **A timed effect in force** (stage 2, for the In play screen): the
+      // holder without the entries this card stamped on it. Asked of the
+      // board as it stands, so an entry that has run out reads as nothing.
+      const own = (entries: readonly TimedEffect[] | undefined): TimedEffect[] | null => {
+        if (entries === undefined || !entries.some((entry) => entry.card === subject.card)) return null;
+        return entries.filter((entry) => entry.card !== subject.card);
+      };
+      const holder = subject.holder;
+      if (holder.kind === 'seat') {
+        const rest = own(player.timed);
+        return rest === null ? null : backward({ ...player, timed: rest });
+      }
+      if (holder.kind === 'city') {
+        const at = state.cities.findIndex((city) => city.id === holder.id && city.ownerId === player.id);
+        const rest = at < 0 ? null : own(state.cities[at]!.timed);
+        if (rest === null) return null;
+        const cities = state.cities.slice();
+        cities[at] = { ...state.cities[at]!, timed: rest };
+        return { without: { ...state, cities }, with: state };
+      }
+      const at = state.units.findIndex((unit) => unit.id === holder.id && unit.ownerId === player.id);
+      const rest = at < 0 ? null : own(state.units[at]!.timed);
+      if (rest === null) return null;
+      const units = state.units.slice();
+      units[at] = { ...state.units[at]!, timed: rest };
+      return { without: { ...state, units }, with: state };
+    }
   }
 }
 
@@ -562,6 +655,14 @@ function subjectEffects(subject: CardImpactSubject): readonly CardEffect[] {
       return beliefDef(subject.id).effects;
     case 'legacy':
       return greatPersonDef(subject.id).legacy;
+    case 'wonder':
+      return buildingDef(subject.id).effects ?? [];
+    // The council's occasions are each card's own; the totals line asks for
+    // the per-turn figure only. A timed entry's occasions are read off the
+    // board, which this row-reader does not see.
+    case 'council':
+    case 'timed':
+      return [];
   }
 }
 
@@ -578,8 +679,17 @@ function subjectName(subject: CardImpactSubject): string {
       return beliefDef(subject.id).name;
     case 'legacy':
       return greatPersonDef(subject.id).name;
+    case 'wonder':
+      return buildingDef(subject.id).name;
+    case 'timed':
+      return anyCardDef(subject.card).name;
+    case 'council':
+      return COUNCIL_WORD;
   }
 }
+
+/** What the whole council's reconciliation line is called: the screen's own word. */
+const COUNCIL_WORD = 'Your council';
 
 /**
  * A `(source → line)` accumulator that keeps **first-seen order**, which is the

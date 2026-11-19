@@ -346,6 +346,9 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'buildingEffects.ts › buildingUnitUpkeepRebate': { reads: 1, why: 'shelf' },
   'buildingEffects.ts › buildingsEasingUnrest': { reads: 1, why: 'shelf' },
   'buildingEffects.ts › buildingTileLines': { reads: 1, why: 'shelf' },
+  // The Council screen, stage 2: the card stamp of a wonder finds the town
+  // that holds it, then reads that town without it.
+  'cardImpact.ts › ghostPair': { reads: 2, why: 'one of a kind: the town that holds a wonder, and that town without it' },
   'cities.ts › planQueueItem': { reads: 1, why: 'built: the build list drops a row the town has built' },
   'cities.ts › payGrants': { reads: 1, why: 'built: a completion grant skips a building the town has built' },
   'combat.ts › applyCombat': { reads: 2, why: 'one of a kind: the wonders a captured town holds' },

@@ -33,14 +33,21 @@
  * a commission's counter and a card played this visit. A Scaler's plate is its
  * stamp too: the plate says what a card pays each turn, and a Scaler's value
  * is its rate, not its turn's pay.
+ *
+ * **On the Council screen the plate is a share of the totals** (stage 2): the
+ * caller passes the council's exact figures, and the plate is what the totals
+ * would lose if the card left (`councilPlate`, `councilTotals.ts`), the same
+ * reading as the totals line and the chips. Without them (another surface)
+ * the plate is the stamp, rounded.
  */
 
-import { type CardImpactSheet, explainCardImpact } from '../sim/cardImpact';
+import { type CardImpactLine, type CardImpactSheet, explainCardImpact } from '../sim/cardImpact';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { cardIdleReason, cardCanPay, idleReasonWords } from '../sim/statecraft';
-import { type DoctrineId, type OrderId, orderDef } from '../sim/statecraftData';
+import { type DoctrineId, type GovernmentId, type OrderId, orderDef } from '../sim/statecraftData';
+import { type CouncilFigures, councilPlate } from './councilTotals';
 import {
   type StampFigure,
   type StampReading,
@@ -116,12 +123,34 @@ export function plateFigures(figures: readonly StampFigure[]): PlateFigure[] {
  * "+0" and the reason when it could pay and pays nothing now, and no plate for
  * a card that pays on an occasion or pays nothing at all (a rule).
  */
-function plateOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId, reading: StampReading): OrderFacePlate | null {
+function plateOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId | GovernmentId, reading: StampReading): OrderFacePlate | null {
   if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };
   if (!stampIsEmpty(reading)) return null;
   if (!cardCanPay(card)) return null;
   const reason = idleReasonWords(cardIdleReason(state, seat, card));
   return reason === null ? { kind: 'idle' } : { kind: 'idle', reason };
+}
+
+/**
+ * **The plate on the Council screen**: the card's share of the totals when the
+ * caller has the council's figures (`councilPlate`), and the stamp's plate
+ * otherwise. A card whose share rounds to nothing is read as the stamp reads
+ * it: "+0" and the reason, an occasion, or a rule.
+ */
+function plateOf(
+  state: GameState,
+  seat: number,
+  card: OrderId | DoctrineId | GovernmentId,
+  reading: StampReading,
+  lines: readonly CardImpactLine[],
+  council: Readonly<CouncilFigures> | undefined,
+): OrderFacePlate | null {
+  if (council !== undefined) {
+    const figures = councilPlate(council, lines);
+    if (figures.length > 0) return { kind: 'pays', figures };
+    if (reading.figures.length > 0) return cardCanPay(card) ? plateOfStamp(state, seat, card, { ...reading, figures: [] }) : null;
+  }
+  return plateOfStamp(state, seat, card, reading);
 }
 
 /** A stamp figure as the tablet prints it: the signed number and its yield. */
@@ -154,11 +183,20 @@ function paidSoFar(state: GameState, seat: number, card: string): string | null 
 }
 
 /**
- * A card's reading from its stamp, or the idle and rule lines when the stamp
- * is empty. Shared by an Order in a chair and a Doctrine.
+ * A card's reading from its impact list, or the idle and rule lines when the
+ * stamp is empty. Shared by an Order in a chair, a Doctrine and the
+ * government. `council` is the council's exact figures on the Council screen,
+ * so the plate is the card's share of the totals there.
  */
-function liveOfStamp(state: GameState, seat: number, card: OrderId | DoctrineId, reading: StampReading): CardLive {
-  const plate = plateOfStamp(state, seat, card, reading);
+function liveOfStamp(
+  state: GameState,
+  seat: number,
+  card: OrderId | DoctrineId | GovernmentId,
+  lines: readonly CardImpactLine[],
+  council?: Readonly<CouncilFigures>,
+): CardLive {
+  const reading = stampReading(lines);
+  const plate = plateOf(state, seat, card, reading, lines, council);
   if (!stampIsEmpty(reading)) {
     if (reading.figures.length > 0) {
       return {
@@ -219,12 +257,14 @@ export function stagedLive(): CardLive {
  * **An Order in a chair**, confirmed: its counter, its value, its stamp, or
  * the idle and rule lines. `sheet` is the draw's shared reading of the real
  * board (`cardImpactSheet`), so a table of a dozen cards reads the empire once.
+ * `council` is the council's exact figures, on the Council screen.
  */
 export function seatedOrderLive(
   state: GameState,
   seat: number,
   id: OrderId,
   sheet: CardImpactSheet | undefined,
+  council?: Readonly<CouncilFigures>,
 ): CardLive {
   if (orderDef(id).commission !== undefined) {
     if (commissionStanding(state, seat, id) === 'fulfilled') {
@@ -258,21 +298,22 @@ export function seatedOrderLive(
   const value = scalerFace(state, seat, id);
   if (value !== null) {
     // The plate is what the card pays this turn: its stamp, as for any card.
+    const lines = orderLines(state, seat, id, sheet);
     return {
       kind: 'value',
       line: { kind: 'pays', text: LIVE_WORDS.value(value.figure) },
       short: value.figure,
       tablet: tabletOfText(value.figure),
       unmet: null,
-      plate: plateOfStamp(state, seat, id, orderStamp(state, seat, id, sheet)),
+      plate: plateOf(state, seat, id, stampReading(lines), lines, council),
     };
   }
-  return liveOfStamp(state, seat, id, orderStamp(state, seat, id, sheet));
+  return liveOfStamp(state, seat, id, orderLines(state, seat, id, sheet), council);
 }
 
-/** An Order's stamp: the card impact's list for the order, as a stamp. */
-function orderStamp(state: GameState, seat: number, id: OrderId, sheet: CardImpactSheet | undefined): StampReading {
-  return stampReading(explainCardImpact(state, seat, { kind: 'order', id }, sheet));
+/** An Order's impact list: the card stamp's reading for the order. */
+function orderLines(state: GameState, seat: number, id: OrderId, sheet: CardImpactSheet | undefined): CardImpactLine[] {
+  return explainCardImpact(state, seat, { kind: 'order', id }, sheet);
 }
 
 /** **A Doctrine**, always in force: its stamp, or the idle and rule lines. */
@@ -281,6 +322,22 @@ export function doctrineLive(
   seat: number,
   id: DoctrineId,
   sheet: CardImpactSheet | undefined,
+  council?: Readonly<CouncilFigures>,
 ): CardLive {
-  return liveOfStamp(state, seat, id, stampReading(explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet)));
+  return liveOfStamp(state, seat, id, explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet), council);
+}
+
+/**
+ * **The government in force** (stage 2): its law's stamp, read on a ghost
+ * board with the law set aside (`cardImpact.ts`), so its plate is the same
+ * reading as every other card's.
+ */
+export function governmentLive(
+  state: GameState,
+  seat: number,
+  id: GovernmentId,
+  sheet: CardImpactSheet | undefined,
+  council?: Readonly<CouncilFigures>,
+): CardLive {
+  return liveOfStamp(state, seat, id, explainCardImpact(state, seat, { kind: 'government', id }, sheet), council);
 }

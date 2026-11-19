@@ -1,43 +1,54 @@
 /**
  * **The totals line of the Council screen, and the change a held card would
- * make** (`src/ui/councilTotals.ts`; stage 1 of the Council and In play board,
- * frames N4 and CH), read off a real board.
+ * make** (`src/ui/councilTotals.ts`), read off a real board.
  *
- * The source pins (the head reads `foldDeck`, the change is measured once per
- * chair) are in `ordersScreen.test.ts`. These check the readings themselves:
- * eight whole figures in the board's order, no change between an arrangement
- * and itself, and a state left exactly as it was.
+ * Since stage 2 the totals are the whole council's impact list, folded
+ * (`explainCouncil`), and a plate is a share of them (`councilPlate`). The
+ * sweep over the card data is `councilFigures.test.ts`; these check the small
+ * readings themselves: eight whole figures in the board's order, no change
+ * between an arrangement and itself, a state left exactly as it was, and the
+ * government's plate read by the same method as every other card's.
  */
 import { describe, expect, it } from 'vitest';
 
-import { playerById } from '../../src/sim/state';
-import { COUNCIL_VOICES, councilChange, councilFigures, foldDeckMeters, governmentPays } from '../../src/ui/councilTotals';
-import { foldDeck } from '../../src/ui/ledgerScreen';
+import { snapshotState } from '../../src/sim/game';
+import { bumpRevision, playerById } from '../../src/sim/state';
+import { COUNCIL_VOICES, councilChange, councilFigures, explainCouncil, foldImpactVoices } from '../../src/ui/councilTotals';
+import { governmentLive } from '../../src/ui/orderLive';
 import { stage } from '../../src/ui/statecraftStaging';
-import { game } from '../sim/statecraftHelpers';
+import { found, game } from '../sim/statecraftHelpers';
 
 describe('the totals line of the Council screen', () => {
   it('reads eight whole figures off a real board, in the board’s order', () => {
     const g = game();
-    const figures = councilFigures(foldDeck(g.state, 0), foldDeckMeters(g.state, 0));
+    const figures = councilFigures(foldImpactVoices(explainCouncil(g.state, 0)));
     expect(Object.keys(figures)).toEqual([...COUNCIL_VOICES]);
     for (const voice of COUNCIL_VOICES) expect(Number.isInteger(figures[voice]), voice).toBe(true);
   });
 
+  it('rounds each figure once, as the line prints it', () => {
+    const exact = { food: 12.5, production: 2.4, gold: -3.5, science: 0, culture: 7.49, faith: 0, happiness: 1.6, authority: 0 };
+    expect(councilFigures(exact)).toEqual({ food: 13, production: 2, gold: -4, science: 0, culture: 7, faith: 0, happiness: 2, authority: 0 });
+  });
+
   it('finds no change between an arrangement and itself, and leaves the state as it was', () => {
     const g = game();
-    const before = JSON.stringify(g.state);
+    const before = snapshotState(g.state);
     const slots = stage(playerById(g.state, 0)!.statecraft.slots);
     const change = councilChange(g.state, 0, slots, slots);
     for (const voice of COUNCIL_VOICES) expect(change[voice], voice).toBe(0);
-    expect(JSON.stringify(g.state)).toBe(before);
+    expect(snapshotState(g.state)).toBe(before);
   });
 
-  it('reads the government’s own pay as figures, each in one voice and never a nought', () => {
+  it('reads the government’s plate with its law set aside, as a share of the totals', () => {
     const g = game();
-    for (const figure of governmentPays(g.state, 0)) {
-      expect(COUNCIL_VOICES).toContain(figure.voice);
-      expect(figure.amount).not.toBe(0);
-    }
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'tyranny';
+    bumpRevision(g.state);
+    const council = foldImpactVoices(explainCouncil(g.state, 0));
+    const live = governmentLive(g.state, 0, 'tyranny', undefined, council);
+    // Tyranny's law is +5 authority capacity.
+    expect(live.plate?.kind).toBe('pays');
+    if (live.plate?.kind === 'pays') expect(live.plate.figures).toContainEqual({ voice: 'authority', amount: 5 });
   });
 });

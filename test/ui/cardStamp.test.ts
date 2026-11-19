@@ -457,8 +457,9 @@ describe('the table and its chairs', () => {
    * asymmetry is the reveal ruling's, and it is also what keeps the draw cheap.
    */
   it('weighs only the cards the law already holds in a chair', () => {
+    // Stage 2: the plate is the card's share of the council's figures, taken once a draw.
     expect(TABLE).toContain(
-      'const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet);',
+      'const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet, council ?? undefined);',
     );
     const hand = SCREEN.slice(SCREEN.indexOf('function drawHand('), SCREEN.indexOf('function layFan('));
     expect(hand.length).toBeGreaterThan(200);
@@ -521,12 +522,14 @@ describe('the table and its chairs', () => {
    * read from the Ledger's deck slice so the two surfaces cannot disagree. It
    * is never a sum of the cards' own lines (rule 5).
    */
-  it('counts the head’s total up on Confirm, from the Ledger’s own reading', () => {
+  it('counts the head’s total up on Confirm, from the council’s own reading', () => {
     const head = SCREEN.slice(SCREEN.indexOf('function paintHead('), SCREEN.indexOf('// --- the register'));
-    expect(head).toContain('foldDeck(state, seat)');
+    // Stage 2: the totals are the fold of the whole council's impact list, the
+    // reading every plate and chip on the screen is a share or a difference of.
+    expect(head).toContain('const figures = councilFigures(exact);');
+    expect(SCREEN).toContain('council = foldImpactVoices(explainCouncil(sheet.state, sheet.playerId, sheet));');
     // The Council screen (stage 1): the head's figures are the totals line.
     expect(head).toContain("if (countTotal) counting.push(countUp([...totalsNode.querySelectorAll('.council-total-fig b')]));");
-    expect(SCREEN).toContain("from './ledgerScreen'");
     expect(SCREEN).toContain('countTotal = justConfirmed.length > 0;');
   });
 
@@ -564,13 +567,16 @@ describe('the Doctrines carry their live line', () => {
 
   it('builds the live plate on every adopted Doctrine', () => {
     expect(REGISTER).toContain('sc.doctrines.forEach((id, index) => {');
-    expect(REGISTER).toContain('const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet) : null;');
+    expect(REGISTER).toContain('const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet, council ?? undefined) : null;');
     expect(REGISTER).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
   });
 
   it('reads it from explainCardImpact for the doctrine id, in one module', () => {
     expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet)");
-    expect(code(LIVE).match(/explainCardImpact\(/g) ?? []).toHaveLength(2);
+    // Three since stage 2: the Order, the Doctrine and the government in force,
+    // which the stamp now measures with its law set aside.
+    expect(code(LIVE).match(/explainCardImpact\(/g) ?? []).toHaveLength(3);
+    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'government', id }, sheet)");
     expect(code(SCREEN)).not.toContain('explainCardImpact(');
   });
 

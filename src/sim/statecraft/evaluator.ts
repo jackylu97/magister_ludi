@@ -900,6 +900,35 @@ export function liveEffects(state: GameState, playerId: number): readonly LiveCa
 }
 
 /**
+ * **Boards on which a seat's own government law is set aside, for a reading
+ * only** (the Council screen's figures, stage 2,
+ * `docs/plans/ui-critique-2026-10-16.md`, "After the Council screen landed").
+ *
+ * The card stamp (`cardImpact.ts`) measures a card as the difference between
+ * the board with it and the board without it. A government in force has no
+ * "without" a command can reach: a seat always holds one. So the stamp builds
+ * a ghost board, marks it here, and the walk below leaves that seat's law out
+ * of the ghost. Nothing else changes on the ghost: the chairs, the tier and
+ * the Doctrines that read the tier stay as they are.
+ *
+ * A `WeakMap` on the board object, as every memo here is. A ghost is a fresh
+ * object that no command and no turn ever sees, so a real board is never in
+ * it and no outcome can turn on it.
+ */
+const LAW_SET_ASIDE = new WeakMap<GameState, ReadonlySet<number>>();
+
+/** Marks a ghost board so the walk reads `playerId`'s seat without its government law. */
+export function setLawAside(board: GameState, playerId: number): void {
+  const seats = new Set(LAW_SET_ASIDE.get(board) ?? []);
+  seats.add(playerId);
+  LAW_SET_ASIDE.set(board, seats);
+}
+
+function lawSetAside(state: GameState, playerId: number): boolean {
+  return LAW_SET_ASIDE.get(state)?.has(playerId) === true;
+}
+
+/**
  * The walk itself, once. Everything above this line is the memo's bookkeeping;
  * everything below it is the eleven sources, in the order the docblock names them.
  *
@@ -918,7 +947,9 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     pushEffects(state, playerId, list, card, word, effects, push);
   };
 
-  push(sc.government, CLASS_WORD.government, governmentDef(sc.government).effects);
+  // A ghost board may set the law aside, for the card stamp's reading of the
+  // government in force (`setLawAside`). Never true on a board a command sees.
+  if (!lawSetAside(state, playerId)) push(sc.government, CLASS_WORD.government, governmentDef(sc.government).effects);
   // **The Union of Lublin** (batch DT9): the other governments of this tier, each
   // under its own name, with no chairs of their own. See `tierUnionAsker`.
   const union = tierUnionAsker(sc);

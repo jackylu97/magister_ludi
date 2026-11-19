@@ -19,6 +19,7 @@ import {
   type CardImpactLine,
   type CardImpactSubject,
   cardImpactSheet,
+  cardImpactWorlds,
   explainCardImpact,
   foldCardImpact,
   foldCardOccasions,
@@ -54,8 +55,10 @@ import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
+import { authorityOf } from '../../src/sim/meters';
 import {
   type CardEffect,
+  type CardId,
   type OrderId,
   ORDER_IDS,
   orderDef,
@@ -1071,7 +1074,7 @@ describe('the sheet a screen shares between its cards', () => {
     for (const subject of subjects) {
       const alone = explainCardImpact(state, 0, subject);
       const shared = explainCardImpact(state, 0, subject, sheet);
-      expect(shared, `${subject.kind}:${subject.id}`).toEqual(alone);
+      expect(shared, JSON.stringify(subject)).toEqual(alone);
     }
   });
 
@@ -1097,5 +1100,96 @@ describe('the sheet a screen shares between its cards', () => {
     explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }, sheet);
     explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' }, sheet);
     expect(snapshotState(state)).toBe(before);
+  });
+});
+
+/**
+ * **The four questions stage 2 added** (the Council and In play board,
+ * `docs/plans/ui-critique-2026-10-16.md`, "After the Council screen landed"):
+ * the government in force, the whole council, a wonder this seat holds and a
+ * timed effect in force. Each is the same method as a card's stamp, so each
+ * folds to exactly the difference the empire would bank between its two
+ * boards, read by this file's own `ledger`.
+ */
+describe('the government in force, the council, a wonder and a timed effect', () => {
+  function foldsToItsBoards(state: GameState, subject: CardImpactSubject): CityYields {
+    const worlds = cardImpactWorlds(state, 0, subject);
+    expect(worlds, subject.kind).not.toBeNull();
+    const stamp = foldCardImpact(explainCardImpact(state, 0, subject));
+    const was = ledger(worlds!.without, 0);
+    const now = ledger(worlds!.with, 0);
+    for (const key of CITY_YIELD_KEYS) expect(stamp[key], `${subject.kind} ${key}`).toBeCloseTo(now[key] - was[key], 9);
+    return stamp;
+  }
+
+  it('reads the government in force with its law set aside, and pays the law’s writ', () => {
+    const { state } = bench();
+    const sc = state.players[0]!.statecraft;
+    sc.government = 'tyranny';
+    bumpRevision(state);
+    const subject: CardImpactSubject = { kind: 'government', id: 'tyranny' };
+    expect(cardImpactWorlds(state, 0, subject)!.with).toBe(state);
+    foldsToItsBoards(state, subject);
+    // Tyranny's law is +5 authority capacity: the meter line says so.
+    const writ = explainCardImpact(state, 0, subject).find((line) => line.kind === 'meter' && line.meter === 'authority');
+    expect(writ?.amount).toBe(5);
+    expect(authorityOf(state, 0) - authorityOf(cardImpactWorlds(state, 0, subject)!.without, 0)).toBe(5);
+  });
+
+  it('reads the whole council as one difference, and a card’s stamp is what it loses when the card leaves', () => {
+    const { state } = bench();
+    const sc = state.players[0]!.statecraft;
+    sc.government = 'tyranny';
+    sc.orders.push('weightsAndMeasures');
+    const chair = sc.slots.findIndex((slot) => slot === null);
+    sc.slots[chair] = { card: 'weightsAndMeasures', sealedUntil: state.turn };
+    bumpRevision(state);
+    const council = foldsToItsBoards(state, { kind: 'council' });
+    const card = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }));
+    const lessOne: GameState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id !== 0
+          ? player
+          : {
+              ...player,
+              statecraft: { ...player.statecraft, slots: player.statecraft.slots.map((slot, at) => (at === chair ? null : slot)) },
+            },
+      ),
+    };
+    const less = foldCardImpact(explainCardImpact(lessOne, 0, { kind: 'council' }));
+    for (const key of CITY_YIELD_KEYS) expect(council[key] - less[key], key).toBeCloseTo(card[key], 9);
+  });
+
+  it('reads a wonder this seat holds as its town without it, and nothing for one it does not hold', () => {
+    const { state, city } = bench();
+    expect(cardImpactWorlds(state, 0, { kind: 'wonder', id: 'theOracle' })).toBeNull();
+    city.buildings.push('theOracle');
+    bumpRevision(state);
+    const stamp = foldsToItsBoards(state, { kind: 'wonder', id: 'theOracle' });
+    // The Oracle pays a faith in the town that holds it.
+    expect(stamp.faith).toBeGreaterThan(0);
+  });
+
+  it('reads a timed effect in force as its holder without it', () => {
+    const { state, city } = bench();
+    const rite = 'omenReading' as CardId;
+    expect(cardImpactWorlds(state, 0, { kind: 'timed', card: rite, holder: { kind: 'city', id: city.id } })).toBeNull();
+    city.timed = [{ card: rite, effect: { kind: 'pays', where: 'city', science: 2 } as CardEffect, expiresTurn: state.turn + 5 }];
+    bumpRevision(state);
+    const stamp = foldsToItsBoards(state, { kind: 'timed', card: rite, holder: { kind: 'city', id: city.id } });
+    expect(stamp.science).toBeGreaterThan(0);
+  });
+
+  it('leaves the state byte-identical, and a government the seat does not hold reads as before', () => {
+    const { state } = bench();
+    state.players[0]!.statecraft.government = 'tyranny';
+    bumpRevision(state);
+    const before = snapshotState(state);
+    explainCardImpact(state, 0, { kind: 'council' });
+    explainCardImpact(state, 0, { kind: 'government', id: 'tyranny' });
+    expect(snapshotState(state)).toBe(before);
+    // A government the seat does not hold is still the adoption's reading.
+    expect(cardImpactWorlds(state, 0, { kind: 'government', id: 'aristocracy' })!.without).toBe(state);
   });
 });

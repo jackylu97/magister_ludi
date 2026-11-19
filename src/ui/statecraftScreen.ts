@@ -59,6 +59,19 @@
  * move between cards and chairs, Enter picks up or puts down, and the number
  * keys 1 to 9 play the held card into that chair.
  *
+ * **Drag and drop does the same** (stage 2, Part B; the user: "could we
+ * support both?"). A press on a card in the fan or in a chair that moves six
+ * pixels picks the card up by the same functions a click uses; the release
+ * puts it down by the same functions a second click uses: on a chair it seats
+ * or swaps, away from every chair a seated card leaves its chair and a hand
+ * card goes back. A chair that refuses sends the card back with the reason.
+ * Escape cancels. It works by finger too, and the click a release sends is
+ * ignored.
+ *
+ * The figures are one reading (stage 2, Part A): the totals line is what the
+ * whole council pays, a card's plate is what the totals lose without it, and
+ * a chip is the difference of two totals (`councilTotals.ts`).
+ *
  * Nothing is sent until Confirm
  * -----------------------------
  * The staging is unchanged (`statecraftStaging.ts`): the user's rule is "slots
@@ -118,13 +131,19 @@ import {
 import { STAMP_TIMING, stampCountAt } from './cardStamp';
 import { chairWord } from './chairs';
 import { type CouncilLayout, COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from './councilLayout';
-import { type CouncilFigures, COUNCIL_VOICES, councilChange, councilFigures, foldDeckMeters, governmentPays } from './councilTotals';
+import {
+  type CouncilFigures,
+  COUNCIL_VOICES,
+  councilChange,
+  councilFigures,
+  explainCouncil,
+  foldImpactVoices,
+} from './councilTotals';
 import { element } from './dom';
 import { draftGlance } from './empireDrawer';
-import { foldDeck, deckCaption } from './ledgerScreen';
 import { createModalShell } from './modalShell';
 import { wantsMotion } from './motion';
-import { type CardLive, doctrineLive, seatedOrderLive, stagedLive } from './orderLive';
+import { type CardLive, doctrineLive, governmentLive, seatedOrderLive, stagedLive } from './orderLive';
 import {
   type OrderFacePlate,
   type OrderFaceState,
@@ -246,11 +265,13 @@ export function fitsWords(words: readonly string[]): string {
 
 /** Every sentence the screen writes itself, in one table. */
 export const ORDERS_WORDS = {
-  hint: 'play a card from your hand to a chair',
+  hint: 'Drag a card onto a chair, or click it and then a chair. Each figure is what one card adds alone, so the figures need not add up to the total.',
   held: (name: string, fits: string) => `${name} in hand: it fits ${fits} chair. Esc puts it back.`,
   heldFromChair: (name: string, fits: string) =>
-    `${name} in hand: it fits ${fits} chair. Esc puts it back. Delete, or a click away from the chairs, takes it off.`,
-  totalsLabel: 'What your cards pay each turn',
+    `${name} in hand: it fits ${fits} chair. Esc puts it back. Delete, or putting it down away from the chairs, takes it off.`,
+  totalsLabel: 'What your council pays each turn',
+  totalsTitle:
+    'What your council pays each turn. A card’s figure is what it adds by itself, so when cards multiply each other the figures need not add up to the total.',
   closes: 'closes',
   revert: 'Revert',
   confirm: 'Confirm',
@@ -861,13 +882,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   // --- the head -------------------------------------------------------------
 
   /**
-   * The totals line: `foldDeck`'s six figures and the deck's share of the two
-   * meters, never a sum of the cards' plates (rule 5). The chips are the
-   * change a held card would make, written by `paintChips`.
+   * The totals line: what the whole council pays each turn, the fold of the
+   * council's own impact list (`explainCouncil`, stage 2), never a sum of the
+   * cards' plates (rule 5). The chips are the change a held card would make,
+   * written by `paintChips`.
    */
-  function paintHead(state: GameState, seat: number): void {
-    const reading = foldDeck(state, seat);
-    const figures = councilFigures(reading, foldDeckMeters(state, seat));
+  function paintHead(exact: Readonly<CouncilFigures>): void {
+    const figures = councilFigures(exact);
     for (const voice of COUNCIL_VOICES) {
       const cell = totalCells.get(voice)!;
       const amount = figures[voice];
@@ -876,7 +897,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       if (amount < 0) cell.figure.dataset.sign = 'minus';
       else delete cell.figure.dataset.sign;
     }
-    totalsNode.title = deckCaption(reading);
+    totalsNode.title = ORDERS_WORDS.totalsTitle;
     if (countTotal) counting.push(countUp([...totalsNode.querySelectorAll('.council-total-fig b')]));
     paintChips();
   }
@@ -914,9 +935,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   /**
    * The government column: the government as a full card with its own plate
-   * (`governmentPays`), and each Doctrine tucked under it with its plate
-   * (`doctrineLive`). The government and a strip lift their full faces after
-   * the pause.
+   * (`governmentLive`), and each Doctrine tucked under it with its plate
+   * (`doctrineLive`). Each plate is the card's share of the totals, as every
+   * chair's is. The government and a strip lift their full faces after the
+   * pause.
    */
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined): HTMLElement {
     const column = element('section', 'council-gov');
@@ -925,8 +947,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     label.append(element('span', undefined, ORDERS_WORDS.government));
     if (sc.doctrines.length > 0) label.append(element('span', undefined, ORDERS_WORDS.doctrineCount(sc.doctrines.length)));
     column.append(label);
-    const pays = governmentPays(state, seat);
-    const plate: OrderFacePlate | null = pays.length > 0 ? { kind: 'pays', figures: pays } : null;
+    const law = governmentLive(state, seat, sc.government, sheet, council ?? undefined);
+    const plate: OrderFacePlate | null = law.plate;
     const card = element('div', 'council-gov-card');
     const face = element('div');
     dressOrderFace(face, sc.government, { where: 'played', plate });
@@ -941,7 +963,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     column.append(card);
     const tucks = element('div', 'council-tucks');
     sc.doctrines.forEach((id, index) => {
-      const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet) : null;
+      const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet, council ?? undefined) : null;
       const strip = tuckedDoctrineNode(id, live?.plate ?? null);
       strip.classList.add('council-tuck');
       strip.style.setProperty('--tuck', String(index + 1));
@@ -1043,7 +1065,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         cell.dataset.state = 'malice';
       } else if (filled) {
         const id = filled.card;
-        const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet);
+        const reading: CardLive = filled.staged ? stagedLive() : seatedOrderLive(state, seat, id, sheet, council ?? undefined);
         const face = element('div');
         const faceState: OrderFaceState = {
           where: 'played',
@@ -1230,10 +1252,21 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
   /** The shared reading of the real board for this draw's plates. Its lifetime is one draw. */
   let sheet: CardImpactSheet | null = null;
+  /**
+   * **What the whole council pays on the real board**, exact (stage 2): the
+   * totals line, and the figure every plate on this draw is a share of. Taken
+   * once a draw, with the draw's sheet, and kept for the chips until the next
+   * draw, because the chips measure from it when nothing is staged.
+   */
+  let council: CouncilFigures | null = null;
+  /** The real board's revision `council` was read at, so a chip never measures from a board that has moved. */
+  let councilRevision = -1;
 
   function draw(): void {
     sheet = cardImpactSheet(options.getState(), options.getPlayerId());
     try {
+      council = foldImpactVoices(explainCouncil(sheet.state, sheet.playerId, sheet));
+      councilRevision = sheet.revision;
       paint();
     } finally {
       sheet = null;
@@ -1275,7 +1308,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     sheetNode?.style.setProperty('--council-gov-w', `${screenLayout.government}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
-    paintHead(state, seat);
+    if (council !== null) paintHead(council);
     paintTools(state, seat, sc, arrangement);
     paintHint();
 
@@ -1360,7 +1393,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // up, so a card moved from one chair to another shows what the move
     // changes, and a card put back in its own chair shows nothing.
     const base = beforeLift ?? ctx.arrangement;
-    const change = typeof target === 'string' || malice !== null ? null : councilChange(ctx.state, ctx.seat, base, target);
+    // When the chairs before the drop are the law, the totals line's own
+    // figures are the starting point, and only the board after is read.
+    const live = changedOffices(ctx.sc.slots, base) === 0 && councilRevision === ctx.state.revision ? council : null;
+    const change =
+      typeof target === 'string' || malice !== null
+        ? null
+        : councilChange(ctx.state, ctx.seat, base, target, live ?? undefined);
     over = { index, change };
     if (change !== null) body.querySelector(`[data-chair="${index}"]`)?.classList.add('is-over');
     paintChips();
@@ -1402,6 +1441,181 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   body.addEventListener('focusout', onChairOut);
   body.addEventListener('click', onClothClick);
 
+  // --- drag and drop, beside click then click (stage 2, Part B) ----------------
+
+  /**
+   * **A press on a card that may become a drag** (the user, 2026-11-18: "could
+   * we support both?"). A press on a card in the fan or in a chair waits for
+   * the pointer to move `DRAG_THRESHOLD` pixels; until then it is a click, and
+   * the click does what it always did. Once it moves, the card is picked up by
+   * the very functions a click uses (`holdFromHand`, `lift`) and follows the
+   * pointer; the release drops it by the very functions a second click uses
+   * (`drop`, `takeOff`, `putBack`). So a drag stages exactly what the same
+   * clicks would.
+   */
+  let press: {
+    pointerId: number;
+    x: number;
+    y: number;
+    from: { kind: 'hand'; id: OrderId } | { kind: 'chair'; index: number };
+  } | null = null;
+  /** True once a press has moved far enough to be a drag. */
+  let dragging = false;
+  /** The click the browser sends after a drag's release belongs to the drag, so the next click is ignored. */
+  let swallowClick = false;
+  /** The pointer of a drag that Escape or a seal cancelled, so its release does nothing. */
+  let cancelledPointer: number | null = null;
+
+  /** How far the pointer must move, in pixels, before a press is a drag. */
+  const DRAG_THRESHOLD = 6;
+
+  /** The chair under a point, or null: asked of the page, because a touch keeps sending its events to where it began. */
+  function chairUnder(x: number, y: number): number | null {
+    const cell = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-chair]') ?? null;
+    if (cell === null || !body.contains(cell)) return null;
+    return Number(cell.dataset.chair);
+  }
+
+  /** Holds a card from the hand so it follows the pointer: a drag's pick-up, as `take` holds one on a click. */
+  function holdFromHand(id: OrderId, at: { x: number; y: number }): void {
+    held = id;
+    beforeLift = null;
+    ghostArmed = true;
+    pointer = at;
+    focusKey = `hand:${id}`;
+    draw();
+  }
+
+  function onPressStart(event: PointerEvent): void {
+    swallowClick = false;
+    cancelledPointer = null;
+    if (event.button !== 0 || layer !== null || held !== null) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target === null) return;
+    const handCard = target.closest<HTMLElement>('.council-fan .orders-handcard');
+    const cell = target.closest<HTMLElement>('[data-chair]');
+    let from: NonNullable<typeof press>['from'] | null = null;
+    if (handCard?.dataset.card !== undefined) from = { kind: 'hand', id: handCard.dataset.card as OrderId };
+    else if (cell !== null && (cell.dataset.state === 'seated' || cell.dataset.state === 'staged')) {
+      from = { kind: 'chair', index: Number(cell.dataset.chair) };
+    }
+    if (from === null) return;
+    // A touch sends every event to where it began until it is let go; let it
+    // go, so a chair under the finger hears the finger.
+    if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+    press = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, from };
+  }
+
+  /** Starts a drag: picks the card up as a click would. False when the card refuses (a seal). */
+  function beginDrag(from: NonNullable<typeof press>['from'], at: { x: number; y: number }): boolean {
+    if (from.kind === 'hand') {
+      holdFromHand(from.id, at);
+      return true;
+    }
+    lift(from.index, null);
+    if (held === null) return false;
+    ghostArmed = true;
+    pointer = at;
+    paintGhost();
+    return true;
+  }
+
+  function onPressMove(event: PointerEvent): void {
+    if (press === null || event.pointerId !== press.pointerId) return;
+    const at = { x: event.clientX, y: event.clientY };
+    if (!dragging) {
+      if (Math.hypot(at.x - press.x, at.y - press.y) < DRAG_THRESHOLD) return;
+      dragging = true;
+      if (!beginDrag(press.from, at)) {
+        // A sealed card refused, with its reason; the release that follows
+        // does nothing, as after Escape.
+        cancelledPointer = press.pointerId;
+        press = null;
+        dragging = false;
+        return;
+      }
+    }
+    // No text is selected and nothing scrolls while a card is carried.
+    event.preventDefault();
+    pointer = at;
+    if (ghost !== null) placeGhost(ghost, layerHost, at.x, at.y);
+    noteOver(chairUnder(at.x, at.y));
+  }
+
+  function onPressEnd(event: PointerEvent): void {
+    // The release of a drag Escape cancelled: its click is the drag's too.
+    if (press === null && cancelledPointer === event.pointerId) {
+      cancelledPointer = null;
+      swallowNextClick();
+      return;
+    }
+    if (press === null || event.pointerId !== press.pointerId) return;
+    const wasDragging = dragging;
+    press = null;
+    dragging = false;
+    // A press that never moved is a click, and the click handlers do the rest.
+    if (!wasDragging) return;
+    swallowNextClick();
+    if (held === null) return;
+    // The browser took the pointer away (a touch turned into a gesture): the
+    // card goes back where it came from, as Escape sends it.
+    if (event.type === 'pointercancel') {
+      putBack();
+      draw();
+      return;
+    }
+    const index = chairUnder(event.clientX, event.clientY);
+    if (index !== null) {
+      drop(index, null);
+      // A chair that refused leaves the card in hand; a drag lets go of it,
+      // so it goes back where it came from, the refusal still said.
+      if (held !== null) {
+        putBack();
+        draw();
+      }
+      return;
+    }
+    // Let go away from every chair: a seated card leaves its chair, and a card
+    // from the hand goes back to it.
+    if (beforeLift !== null) takeOff();
+    else putBack();
+    draw();
+  }
+
+  /**
+   * Marks the click a release sends as the drag's. The browser sends it in the
+   * same turn as the release, so the mark is gone by the next task: a touch
+   * that sends no click leaves nothing behind for a later click to trip on.
+   */
+  function swallowNextClick(): void {
+    swallowClick = true;
+    setTimeout(() => {
+      swallowClick = false;
+    }, 0);
+  }
+
+  /** Ignores the one click a drag's release sends, wherever it lands. */
+  function onDragClick(event: MouseEvent): void {
+    if (!swallowClick) return;
+    swallowClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  /** Escape during a drag: the card goes back, and the press is over. */
+  function cancelDrag(): void {
+    if (press === null && !dragging) return;
+    cancelledPointer = press?.pointerId ?? null;
+    press = null;
+    dragging = false;
+  }
+
+  body.addEventListener('pointerdown', onPressStart);
+  window.addEventListener('pointermove', onPressMove, { passive: false });
+  window.addEventListener('pointerup', onPressEnd);
+  window.addEventListener('pointercancel', onPressEnd);
+  layerHost.addEventListener('click', onDragClick, true);
+
   // --- the binder (D) --------------------------------------------------------
 
   /** Every Order the seat holds, as the binder shows it: its chair, and its reading when it pays. */
@@ -1424,7 +1638,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         id,
         chair: index >= 0 ? index + 1 : null,
         staged: entry?.staged === true,
-        live: entry !== null && !entry.staged ? seatedOrderLive(state, seat, id, impact) : null,
+        live: entry !== null && !entry.staged ? seatedOrderLive(state, seat, id, impact, council ?? undefined) : null,
         opened: tech === null ? null : techDef(tech).name,
       };
     });
@@ -1529,6 +1743,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const source = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-preview]') : null;
     if (source === null || source === previewSource) return;
     if (held !== null && source.dataset.preview !== 'hand') return;
+    // A card being carried shows no other card's face as it passes over them.
+    if (dragging) return;
     hidePreview();
     const card = source.dataset.card;
     if (card === undefined) return;
@@ -1670,6 +1886,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     if (event.key === 'Escape' && held !== null) {
       event.preventDefault();
       event.stopPropagation();
+      // A drag in progress ends here too: the card goes back, and the release
+      // that follows does nothing.
+      cancelDrag();
       putBack();
       draw();
       return true;
@@ -1750,6 +1969,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       body.removeEventListener('focusin', onChairOver);
       body.removeEventListener('focusout', onChairOut);
       body.removeEventListener('click', onClothClick);
+      body.removeEventListener('pointerdown', onPressStart);
+      window.removeEventListener('pointermove', onPressMove);
+      window.removeEventListener('pointerup', onPressEnd);
+      window.removeEventListener('pointercancel', onPressEnd);
+      layerHost.removeEventListener('click', onDragClick, true);
       tools.remove();
       totalsNode.remove();
       // The hint lives in the band while the screen is up; it goes back to the
