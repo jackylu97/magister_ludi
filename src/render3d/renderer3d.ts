@@ -148,6 +148,7 @@ import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
 import { shadowTargetBytes as untypedShadowTargetBytes } from './paintedShadows.js';
 import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics, type PaintedBuildReport } from './paintedBoardAsync.js';
+import { groundPaintPlan, type GroundPaintPlan } from './groundPaint.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
 import { PaintedCityLayer } from './paintedCities';
@@ -404,6 +405,14 @@ export class Renderer3D implements MapView {
   private boardBuild: AbortController | null = null;
   private preparedBoard: {map: GameMap; board: PaintedBoard; shadows: boolean} | null = null;
   paintedBuildMetrics: PaintedBuildMetrics | null = null;
+  /**
+   * When the board drew its first frame (the page's clock), or null before it
+   * has. The ground paint texture's bake waits `groundTexture.bakeAfterMs`
+   * after it: the first frames after a load link programs and bake the sun's
+   * shadow, and a step that has to wait for the GPU (an upload) waits for them
+   * too. Set back to null by `rebuildBoard`. See `loop`.
+   */
+  private boardDrawnAt: number | null = null;
   private paintedCities: PaintedCityLayer | null = null;
   private readonly cityBannerAnchors = new Map<number, WorldPoint>();
   private cityWallPreview = false;
@@ -833,7 +842,8 @@ export class Renderer3D implements MapView {
     let built = false;
     try {
       const result = await buildPaintedBoardAsync(map, this.paintedLook.assets, this.paintedLook.materials, shadows,
-        {signal: controller.signal, onProgress, terrainPort, onTerrain: renderMap => { if (bake) bake.map = renderMap; }});
+        {signal: controller.signal, onProgress, terrainPort, onTerrain: renderMap => { if (bake) bake.map = renderMap; },
+          ground: this.groundPaintPlanFor(map)});
       built = true;
       // The early bake usually finished long before the board; if not, the board waits for it here rather than
       // baking a second time on the page.
@@ -848,6 +858,16 @@ export class Renderer3D implements MapView {
       if (!built) bake?.stop();
       if (this.boardBuild === controller) this.boardBuild = null;
     }
+  }
+
+  /**
+   * The plan for the ground paint texture on this map and this GPU
+   * (`groundPaintPlan`, `groundPaint.js`), or null when its switch is off.
+   * Asked before the board is built, because the board's workers build either
+   * the plain land or the present far land by it.
+   */
+  private groundPaintPlanFor(map: GameMap): GroundPaintPlan | null {
+    return groundPaintPlan(map.width, map.height, this.renderer.capabilities.maxTextureSize);
   }
 
   /**
@@ -1645,6 +1665,10 @@ export class Renderer3D implements MapView {
       width, height, bytesPerTexel: (4 + depthBytes) * samples + (samples > 1 ? 4 : 0), allocated: true});
     targets.push({name: 'composer colour targets (×2, RGBA8 + depth)', width, height, bytesPerTexel: 16, allocated: true});
     targets.push({name: 'contact pass targets (half resolution, ×3)', width: Math.ceil(width / 2), height: Math.ceil(height / 2), bytesPerTexel: 12, allocated: true});
+    // The ground paint texture (`groundPaint.js`): sRGB RGBA8 with its mipmaps, one for the three wrap copies.
+    const ground = this.paintedBoard?.groundPaint?.plan;
+    if (ground) targets.push({name: 'ground paint texture (sRGB RGBA8, mipmaps)', width: ground.width, height: ground.height,
+      bytesPerTexel: 16 / 3, allocated: !!this.paintedBoard?.groundPaint?.ready});
     const targetMiB = targets.reduce((sum, target) => sum + target.width * target.height * target.bytesPerTexel, 0) / 1048576;
     return {
       heapMiB: memory ? Math.round(memory.usedJSHeapSize / 1048576 * 100) / 100 : null,
@@ -2489,7 +2513,11 @@ export class Renderer3D implements MapView {
     const ready = prepared?.map === map && prepared.shadows === this.shadows;
     if (prepared && !ready) prepared.board.dispose();
     this.paintedBoard = ready ? prepared.board : this.paintedLook
-      ? buildPaintedBoard(map, this.paintedLook.assets, this.paintedLook.materials, this.shadows) : null;
+      ? buildPaintedBoard(map, this.paintedLook.assets, this.paintedLook.materials, this.shadows, null, undefined, null, null, null,
+        this.groundPaintPlanFor(map)) : null;
+    this.boardDrawnAt = null;
+    // The ground paint bake's targets, and its program linking off the page's thread while the layers are built.
+    this.paintedBoard?.groundPaint?.prepare(this.renderer);
     this.board = this.paintedBoard ?? buildBoard(map, this.geometry, this.materials, this.shadows);
     if (this.paintedBoard) {
       installPaintedSurface(map, this.paintedBoard.renderMap, this.paintedBoard.pickMeshes);
@@ -4469,6 +4497,14 @@ export class Renderer3D implements MapView {
     // A frame drawn without the mirror while the camera moved (`mirror.whileMoving` off) is followed by one with it,
     // once the camera has been still for `mirror.settleMs`.
     const settled = this.mirrorSettleAt !== null && now >= this.mirrorSettleAt;
+    // The ground paint texture is baked a step a display frame, from
+    // `bakeAfterMs` after the board's first frame, so the page never stops for
+    // the whole bake (`groundPaint.js`). A step draws into the bake's own
+    // targets and needs no board frame. The step that finishes it asks for
+    // one, so the plain land takes over at once where the zoom wants it.
+    const ground = this.paintedBoard?.groundPaint;
+    if (ground?.pending && this.boardDrawnAt !== null && now - this.boardDrawnAt >= VIEW3D.painted.groundTexture.bakeAfterMs
+      && ground.step(this.renderer)) this.frameDirty = true;
     const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || settled || revealing;
     // The motion has gone to rest: keep the time of the last frame drawn, which
     // is the time the motion's clock stopped at.
@@ -4509,6 +4545,14 @@ export class Renderer3D implements MapView {
       // `rebuildBoard` bound — so a frame that has to rebake keeps the far LOD
       // on screen instead of flashing the near one.
       this.paintedBoard?.updateDetail(pixels);
+      // The board's first frame, long anyway and with nothing queued before it: the ground paint bake's program and
+      // the plain land's are used for the first time now, and not in a frame of play (`prime`, `primeLand`).
+      const firstBoardFrame = this.paintedBoard !== null && this.boardDrawnAt === null;
+      if (firstBoardFrame) {
+        this.paintedBoard!.groundPaint?.prime(this.renderer);
+        this.paintedBoard!.groundPaint?.primeLand(true);
+        this.boardDrawnAt = now;
+      }
       this.paintedLook.setContactDetail(pixels);
       // The page's clock less the time the motion has rested (0 while the option is off).
       const clock = this.fixedClock ?? (now - this.restedMs) / 1000;
@@ -4579,6 +4623,7 @@ export class Renderer3D implements MapView {
           this.paintedLook.render();
         } finally {
           this.copyCulling.restore();
+          if (firstBoardFrame) this.paintedBoard?.groundPaint?.primeLand(false);
         }
       } finally {
         this.scene.matrixWorldAutoUpdate = true;

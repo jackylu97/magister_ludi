@@ -268,7 +268,11 @@ export function createTerrainPainter(map,mountainRanges){
   return out;
  }
  // `creased` is false for ground that lies outside the hex whose paint it takes: the land a free coast lays in a water hex.
- function paint(geometry,tile,creased=true){
+ // `plain` paints the plain land of the ground paint texture (`render3d/groundPaint.js`): no patch is cut into the
+ // faces. A face that would have taken patches carries the mark (2, shade, 0) in place of a colour, and the plain
+ // land's shader reads its paint from the texture there. Every other face (bare rock, a crease, a hill of another
+ // hex's ground) keeps its own colour.
+ function paint(geometry,tile,creased=true,plain=false){
   if(isWater(tile))return;
   const source=geometry.attributes.position,normals=geometry.attributes.normal;
   const {base,patches}=regions(tile),positions=[],colors=[],outputNormals=[];
@@ -298,7 +302,11 @@ export function createTerrainPainter(map,mountainRanges){
    let fragments=[{polygon:triangle,color:rock??(softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
    // The terraced hill shapes read through their lighting planes, and are left
    // intact instead of being fragmented with more painted cuts.
-   for(const p of i<plateCount||(softHill&&!cliff)?patches:[]){
+   // On the plain land, a hill face reads the texture only when its own ground is the hex's: the texture holds the
+   // hex's flat ground, and a hill that reaches over from a hex of another ground keeps that ground's colour. Such a
+   // face is cut as on the cut land, so it looks the same on both.
+   const takesPatches=i<plateCount||(softHill&&!cliff),fromTexture=plain&&takesPatches&&(i<plateCount||pigments[moundKind].base.equals(base));
+   for(const p of takesPatches&&!fromTexture?patches:[]){
     if(bounds[1]<p.bounds[0]||bounds[0]>p.bounds[1]||bounds[3]<p.bounds[2]||bounds[2]>p.bounds[3])continue;
     const next=[];
     for(const f of fragments){
@@ -322,7 +330,8 @@ export function createTerrainPainter(map,mountainRanges){
     const facet=softHill?hash(Math.round((triangle[0][0]+triangle[1][0]+triangle[2][0])*37),Math.round((triangle[0][2]+triangle[1][2]+triangle[2][2])*37)):0;
     const shade=cliff?1:(1-(1-TERRACE_SIDE)*slope)*(softHill?1+(facet-.5)*2*SOFT_HILL.facetVary+(1-slope)*SOFT_HILL.crown:1);
     for(const v of [a,b,c]){
-     positions.push(v[0],v[1],v[2]);colors.push(color.r*shade,color.g*shade,color.b*shade);
+     positions.push(v[0],v[1],v[2]);
+     if(fromTexture)colors.push(2,shade,0);else colors.push(color.r*shade,color.g*shade,color.b*shade);
      outputNormals.push(normals.getX(i),normals.getY(i),normals.getZ(i));
     }
    }

@@ -2064,9 +2064,49 @@ interface PaintedBuildSpec {
   share: boolean;
 }
 
+/**
+ * The ground paint texture (`groundPaint.js`;
+ * `docs/plans/ground-paint-texture-2026-11-18.md`, stages 1 and 2).
+ *
+ * With `enabled` on, the board builds a plain land in place of the present far
+ * land: the hex grid and the hill mounds with no brush patch cut into them. It
+ * reads its paint from one texture over the map, which the page bakes from the
+ * cut land's own colours, a square a frame, after the board's first frame. The
+ * plain land is drawn below `nearPixels` pixels a hex and kept up to
+ * `farPixels` (the band, as `lod` has one), and the cut land above. Off, the
+ * board is the board it was before the texture, far land and all.
+ *
+ * - `texelsPerUnit` is the texture's density (a hex is 1.73 units wide). It is
+ *   lowered to fit the GPU's largest texture and `budgetMiB` (the texture's
+ *   bytes with its mipmaps), and the band is lowered with it. If the lowered
+ *   band would start below `lod.farPixels`, the board keeps the present far
+ *   land instead.
+ * - `anisotropy` is the texture's filter setting.
+ * - `bakeSquare` is the side of one square of the bake, in texels, and
+ *   `bakeSamples` its MSAA samples, so a patch edge is smooth in the texture.
+ * - `bakeStepMiB` is the most land one step of the bake puts on the GPU for
+ *   the bake (land nobody has drawn yet), so no frame waits on a large upload.
+ * - `bakeAfterMs` is how long after the board's first frame the bake starts:
+ *   the frames just after a load are busy on the GPU, and a step beside them
+ *   waits for it.
+ */
+interface PaintedGroundTextureSpec {
+  enabled: boolean;
+  texelsPerUnit: number;
+  budgetMiB: number;
+  nearPixels: number;
+  farPixels: number;
+  anisotropy: number;
+  bakeSquare: number;
+  bakeSamples: number;
+  bakeStepMiB: number;
+  bakeAfterMs: number;
+}
+
 interface PaintedSpec {
   canvas: PaintedCanvasSpec;
   build: PaintedBuildSpec;
+  groundTexture: PaintedGroundTextureSpec;
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
   contact: PaintedContactSpec;

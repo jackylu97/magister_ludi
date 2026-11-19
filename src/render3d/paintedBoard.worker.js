@@ -37,7 +37,9 @@ function publisher(ports) {
   };
 }
 
-function build({map, kit, shadows, riverStyle, coastStyle, part = null, terrainPort = null}, share) {
+// `ground` is the page's plan for the ground paint texture (`groundPaintPlan`), or null: with one, this part builds
+// the plain land in place of the far land.
+function build({map, kit, shadows, riverStyle, coastStyle, part = null, terrainPort = null, ground = null}, share) {
   let board, resources;
   const toBake = (terrain) => {
     if (!terrainPort) return;
@@ -68,7 +70,7 @@ function build({map, kit, shadows, riverStyle, coastStyle, part = null, terrainP
       if (stage !== 'land') { self.postMessage({type: 'progress', percent: last < 0 ? 0 : last, stage}); return; }
       const percent = Math.floor(done / Math.max(1, total) * 100);
       if (percent !== last || done === total) { last = percent; self.postMessage({type: 'progress', percent, stage, done, total}); }
-    }, null, part ? {regions: new Set(part.regions)} : null, share);
+    }, null, part ? {regions: new Set(part.regions)} : null, share, ground);
     self.postMessage({type: 'progress', percent: Math.max(0, last), stage: 'packing'});
     const batches = packPaintedBatches(board.exportBatches(), resources.bindings);
     const terrain = (!part || part.terrain) && !terrainSent ? packTerrainMap(board.renderMap) : null;

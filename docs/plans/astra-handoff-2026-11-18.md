@@ -95,7 +95,14 @@ before BP13; audit items T1, T5 and T6; a persona for each leader.
   farthest zoom, the cut mesh at the closest zoom, with a switch back. The
   Claude session gates and lands it. Section 7 will name the commit.
 
-**Queued for Astra:**
+**Queued for Astra, first:**
+- **Use the texture at every zoom and stop drawing the cut land** (the user,
+  2026-11-19). The ruling and what the build must settle are in
+  `docs/flags.md`, "Ground paint texture: use the texture at every zoom". The
+  main question is sharpness at the closest zoom: show the user pictures
+  before you remove the switch back.
+
+**Queued for Astra, after that:**
 - Ground paint texture, stages 3 and 4. Plan and measurements:
   `docs/plans/ground-paint-texture-2026-11-18.md`. Rulings: `docs/flags.md`,
   "Rendering focus: the ground paint texture" and "Ground paint texture: build
@@ -141,6 +148,40 @@ another WebKit browser as well as in Chromium.
 - `src/render/` is the frozen 2D renderer. Keep it compiling. Add nothing.
 - Do not rename the RNG separator `hashSeed('webciv:gameplay:…')`.
 
+### 3.5 The generic Orders build
+
+The user, 2026-11-19: *"Lets leave the generic orders build for astra."*
+
+- The approved set is 39 cards. The spec is
+  `docs/plans/generic-orders-proposal-2026-11-18.md`: the user's ruling
+  section, section 7 (the set after the ruling) and section 8 (the build
+  list in three groups, the rows to retire and change, what the bots need in
+  `src/ai/value.ts`, and section 8.6 on putting the sheet under a test). The
+  current-state sheet is `docs/decks/common.md`.
+- Read `.claude/skills/card-design/` for the card rules. A card whose text
+  needs a one-off is deferred and annotated, never bent into a near fit.
+- The user said the numbers are "to tune in playtest": do not run bot games to
+  size them.
+- **The Summer Palace (G2-7) is decided** (the user, 2026-11-19): "Cards that
+  pay your capital pay 50% more." See the last section of the proposal file.
+  Build it with the rest and update its row on `docs/decks/common.md`.
+- Fix with it: an on-draft great-person grant is lost if another offer is
+  waiting or every person of that family is taken. Send it through
+  `grantGreatPersonOffer`. This also fixes The Wandering Muse.
+- The build changes bot play, so it cuts the digest pins. See section 5 on
+  who cuts them.
+
+### 3.6 The wonders rework (not ready yet)
+
+The user, 2026-11-19: *"lets have astra take it once we make the
+determinations."*
+
+- The spec will be `docs/plans/wonders-review-2026-11-18.md`: 18 revised
+  wonders, one retired, and several new ones. The user is still choosing the
+  last age 2 wonders.
+- **Do not start until that file has a section named "Ready for the build".**
+  The Claude session writes it when the user has ruled.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
@@ -174,7 +215,7 @@ another WebKit browser as well as in Chromium.
 | Job | Files |
 |---|---|
 | Council and In play, stage 4, and the wonder plate | `src/ui/statecraftScreen.*`, `src/ui/councilLayout.ts`, `src/ui/inPlay*.ts`, `src/main.ts`, `index.html`, `src/flairGallery/` |
-| Generic Orders build (starts after C1 lands) | `data/decks/common.json`, `src/sim/statecraft/*`, `src/sim/statecraftData.ts`, `src/sim/commissions.ts`, `src/ai/value.ts`, deck tests. **It changes the digest pins.** |
+| A wonders rework (after the user's picks; spec `docs/plans/wonders-review-2026-11-18.md`) | `data/buildings.json`, `src/sim/statecraft/*`, `src/sim/buildingEffects.ts`, wonder tests. **It changes the digest pins.** |
 | Later gameplay work (`docs/beta-checklist.md`) | `src/sim/`, `data/` |
 
 Two meeting points to watch:
@@ -203,4 +244,4 @@ Two meeting points to watch:
 | Work | Landed at | Notes |
 |---|---|---|
 | Bots stage C1 | `80287b38` on `decks` (2026-11-19) | Gate at `598dd0ee`: typecheck 0, 519 files and 12,025 tests, digest and stepper slow tests 0, build 0. **New digest pins: duel `790d090f:340520`, standard `56726d32:1056345`** (these replace the pins in section 2). C1 costs about 8% more bot time on one thread and gives no speed until C2. To watch: bot towns fell 10% on 4 of 5 seeds, not clear of chance; the likely cause is that a settler does not see towns founded earlier in the same step. A known gap that C1 did not cause: when a bot's whole great-person hand is spent, the refused pick that redraws it is not in the log, so such a save would not replay. The report and the C2 sketch are in `docs/plans/performance-pass-2026-11-06.md`, "Stage C: parallel bots from a frozen board", and `docs/bot-priorities.md`, "The turn's bot step: plans on a frozen board". Bot work is Astra's from this commit. |
-| Ground paint texture, stages 1 and 2 | not landed yet | |
+| Ground paint texture, stages 1 and 2 | `085d5c13` on `decks` (2026-11-19) | Gate at `085d5c13`: typecheck 0, 520 files and 12,068 tests, build 0. A panning frame is about 19% shorter at the middle zoom, 15% at the farthest and 8% at the closest. **The timings were taken under heavy load and partly on battery with low power mode; rerun them on a quiet machine on power.** GPU memory falls by 91 MiB (standard map) and 363 MiB (Giant). Settings are under `painted.groundTexture` in `data/view3d.json`; `enabled: false` gives the old board. Open decisions, now Astra's to bring to the user: raise the band from 90 to 100 pixels a hex to 120 or 130; fix the beach and bank pieces that float among terraces on coastal and river hills (a fault that was on `decks` before this build); the Giant map's texture budget. Not measured: panning on the Giant map, another GPU or device ratio. All figures are in `docs/plans/ground-paint-texture-2026-11-18.md`, Part 3. Rendering work is Astra's from this commit. |

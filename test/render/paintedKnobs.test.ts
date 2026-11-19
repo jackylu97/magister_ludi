@@ -103,9 +103,13 @@ describe('the painted performance knobs', () => {
     // board's motion frames are not drawn while a screen hides the whole board.
     // `canvas.restUnderSheets` arrived with its second batch: the same under a
     // parchment sheet or the star chart, which dim the board.
+    // `groundTexture` arrived on 2026-11-18 and held no literal: the ground
+    // paint texture (stages 1 and 2 of its plan), on. Its band is the plain
+    // land's zoom switch, as `lod` is the props'.
     expect(SHEET).toEqual({
       canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000, restUnderCover: true, restUnderSheets: true },
       build: { workers: 4, share: true },
+      groundTexture: { enabled: true, texelsPerUnit: 32, budgetMiB: 256, nearPixels: 90, farPixels: 100, anisotropy: 4, bakeSquare: 1024, bakeSamples: 4, bakeStepMiB: 2, bakeAfterMs: 1000 },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
         counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3,
