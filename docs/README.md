@@ -1689,6 +1689,35 @@ Eight root pages, all named in `vite.config.ts` inputs:
     at most (one at each of the four government tiers, one from a wonder and
     one from a commission); above four they give up their pictures to their
     words.
+- **In play** (stage 3 of the Council and In play board,
+  `docs/plans/mockups/scholars-study/council-and-in-play/`). A read-only
+  full-screen sheet of everything in force for the seat.
+  `src/ui/inPlayScreen.ts` builds it on `modalShell.ts`; the pieces and their
+  figures are `src/ui/inPlayPieces.ts`; the forms are `src/ui/inPlayForms.ts`.
+  - Five stacks: The council (one edge a chair), Wonders, Beliefs, Legacies
+    and Temporary. The government and its Doctrines sit in the left column
+    under the leader's crest, as on the Council screen. Each stack has its
+    name, count and total. The top piece wears its own form; every other
+    piece is one tucked edge of one size; past eight edges a "more" edge
+    ends the stack. A click on a stack opens it as a tray of full pieces,
+    and a click on a piece in the tray goes to the screen that owns it.
+  - The pieces are read off the records the rules' walk (`liveEffects`)
+    reads. Technologies and resources are never pieces. A follower belief
+    pays the towns that follow it and is not a piece. `test/ui/inPlayPieces`
+    holds every entry of the walk to a piece or a technology.
+  - Every figure is the card stamp's reading (`cardImpact.ts`, the `pieces`
+    subject), taken on the books of its two boards. The totals line is the
+    books with everything on the screen less the books with none of it. A
+    piece's plate rounds against its stack's total; the council's cards
+    round against the Council screen's own line.
+  - A total clicked lights the pieces that pay it and opens a sheet of every
+    source, ending in what does not come from In play (the Ledger's classes,
+    or the meter's own lines), so it adds up to the empire's figure.
+  - Its doors: the corner panel's fifth mark with the count, the link in the
+    Council screen's head, and the I key. A wonder finished or a belief
+    chosen since the seat last looked puts a dot on the door and sits on top
+    of its stack with a glow until the screen closes; a chosen belief flies
+    to the door from the card it was chosen on.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

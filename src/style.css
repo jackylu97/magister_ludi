@@ -3752,9 +3752,12 @@ kbd {
    44, flexible, flexible and 44 px wide and 36 high, so the two plain marks are
    square and the two figures share the middle. The name, the note and the key
    are hidden here; the title and the accessible name say them. */
+/* Five marks since the In play door joined them (the Council and In play
+   board's D1): Diplomacy and Standings at the ends, Routes and Faith sharing
+   what is left, and In play wide enough for its mark and its count. */
 .empire-quick {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 44px;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 54px 44px;
   border-top: 1px solid var(--rule);
 }
 
@@ -3849,9 +3852,10 @@ kbd {
   display: none;
 }
 
-/* The Faith mark's dot, the only one on the row: the seat has the faith to
-   call a prophet now, and its religion still has a belief to choose (the
-   user's ruling of 2026-11-17). A god waiting for a name lights none here. */
+/* The Faith mark's dot: the seat has the faith to call a prophet now, and its
+   religion still has a belief to choose (the user's ruling of 2026-11-17). A
+   god waiting for a name lights none here. The In play mark wears the same
+   dot when a wonder or a belief has arrived since the seat last looked. */
 .quick-button.is-owed::after {
   position: absolute;
   top: 6px;
@@ -3903,7 +3907,7 @@ kbd {
 }
 
 /* --- the open card ------------------------------------------------------------
-   The four marks become four rows of the card's one shape: the mark 14 px in,
+   The five marks become five rows of the card's one shape: the mark 14 px in,
    the name at the 48 px edge, a note, the figure, the key. An ink rule above
    them. Leader and the age wager follow in the same shape. */
 .empire-corner.is-open .empire-quick {

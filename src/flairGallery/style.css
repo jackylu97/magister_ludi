@@ -1062,3 +1062,30 @@ body {
   flex: none;
   width: 184px;
 }
+
+/* The In play forms (stage 3): the screen's dark cloth, and a caption under each form. */
+.ip-gallery-cloth {
+  --fg: rgba(247, 242, 225, 0.92);
+  --ip-paper: radial-gradient(120% 90% at 30% 15%, #fcf7e7, #f8f1dc 55%, #efe4c6);
+  --ip-shadow: 3px 3px 0 #0e0c10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  align-items: flex-start;
+  padding: 24px;
+  border-radius: 6px;
+  background: radial-gradient(130% 110% at 50% 0, #2b2631, var(--lampblack) 55%, #161318);
+}
+
+.ip-gallery-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.ip-gallery-figure figcaption {
+  color: rgba(247, 242, 225, 0.6);
+  font-family: var(--face-num);
+  font-size: 12px;
+}

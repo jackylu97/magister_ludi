@@ -61,6 +61,7 @@ import { drawRankStall } from './ranks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
 import { requireElement } from '../ui/dom';
 import { drawCourtMarks } from './courtMarks';
+import { drawInPlayForms } from './inPlayForms';
 
 const indexNav = requireElement<HTMLElement>('index');
 const sheet = requireElement<HTMLElement>('sheet');
@@ -410,6 +411,16 @@ drawCourtMarks(
     'court-marks',
     'Court Marks',
     'The envelope, the crossed blades and the arrow of the diplomacy sheet and the deal notice by the turn button.',
+  ),
+);
+
+// --- the In play screen's forms (Council and In play board, stage 3) ---------
+
+drawInPlayForms(
+  open(
+    'in-play-forms',
+    'In Play Forms',
+    'Everything in force, as the In play screen draws it: a wonder’s plate, a belief’s tablet, a legacy’s medal, a temporary tag, the tucked edge and the “more” edge.',
   ),
 );
 

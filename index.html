@@ -865,14 +865,14 @@
           </li>
           <li>
             The panel at the top left names your research and the next draft:
-            click either name to open the star chart or Statecraft. Its four
-            marks open <b>Diplomacy</b>, the trade routes, Faith and the
-            <b>Standings</b>. Click anywhere else on it, or press <kbd>Q</kbd>,
-            to open it, with the names of the four, your leader, the age wager
+            click either name to open the star chart or Statecraft. Its five
+            marks open <b>Diplomacy</b>, the trade routes, Faith, <b>In play</b>
+            and the <b>Standings</b>. Click anywhere else on it, or press <kbd>Q</kbd>,
+            to open it, with the names of the five, your leader, the age wager
             and your strategic resources
           </li>
           <li>
-            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Faith · <kbd>L</kbd> your leader ·
+            <kbd>C</kbd> Statecraft · <kbd>I</kbd> In play · <kbd>H</kbd> Faith · <kbd>L</kbd> your leader ·
             <kbd>W</kbd> Diplomacy · <kbd>E</kbd> Trade · <kbd>S</kbd> the Standings ·
             <kbd>A</kbd> the Abacus · <kbd>V</kbd> the Bead Race
           </li>
@@ -1051,6 +1051,12 @@
           <span id="quick-faith-line" class="quick-line" aria-hidden="true"></span>
           <kbd class="drawer-key quick-key" aria-hidden="true">H</kbd>
         </button>
+        <button id="quick-inPlay" class="quick-button is-inplay" type="button" aria-haspopup="dialog" aria-controls="inplay-overlay" aria-keyshortcuts="I">
+          <span class="quick-mark" aria-hidden="true"></span>
+          <span class="quick-name">In play</span>
+          <span id="quick-inPlay-figure" class="quick-figure"></span>
+          <kbd class="drawer-key quick-key" aria-hidden="true">I</kbd>
+        </button>
         <button id="quick-standings" class="quick-button is-standings" type="button" aria-haspopup="dialog" aria-controls="victory-overlay" aria-keyshortcuts="S">
           <span class="quick-mark" aria-hidden="true"></span>
           <span class="quick-name">Standings</span>
@@ -1179,6 +1185,34 @@
         <!-- Everything below the rule is built by statecraftScreen.ts on each
              open: nothing on this screen is stored, it is all derived. -->
         <div id="statecraft-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= In play ========================
+         Everything in force for your seat, in five stacks: the council,
+         Wonders, Beliefs, Legacies and Temporary, with the leader's crest and
+         the government column. Read only: nothing moves here. Built by
+         src/ui/inPlayScreen.ts on each open; nothing on it is stored. It wears
+         the statecraft-overlay classes like every parchment sheet. -->
+    <div
+      id="inplay-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="In play"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <h2 class="statecraft-title">In play</h2>
+          </div>
+          <p class="statecraft-hint">everything in force</p>
+          <button id="inplay-close" class="statecraft-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </header>
+        <div id="inplay-body" class="statecraft-body"></div>
       </div>
     </div>
 

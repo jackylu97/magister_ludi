@@ -118,7 +118,8 @@ import {
   explainEmpireLines,
   foldEmpireLines,
 } from './yields/empire';
-import { type GameState, type Player, type TimedEffect, foundedReligion, playerById } from './state';
+import { type GameState, type Player, type ReligionId, type TimedEffect, foundedReligion, playerById } from './state';
+import type { MaliceId } from './maliceData';
 import {
   type CardEffect,
   type CardId,
@@ -133,7 +134,7 @@ import {
 import { type BuildingId, buildingDef } from './buildingData';
 // Straight from its layer, as `ghostSeatUnderDoctrine` below is: the switch a
 // ghost board uses to read a seat without its government law.
-import { anyCardDef, setLawAside } from './statecraft/evaluator';
+import { anyCardDef, heldReligions, setEffectsAside, setLawAside } from './statecraft/evaluator';
 import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './religionData';
 // The rite preview's two readings of a rite not yet said: the town's timed list
 // wearing it, and the offering's production. `religion.ts` does not import this
@@ -276,6 +277,12 @@ export interface CardImpactLine {
  *   - **a wonder this seat holds**: its town without it;
  *   - **a timed effect in force** (`timed`): its holder without the entries
  *     that card stamped there.
+ *
+ * Stage 3 (the In play screen) added one more, **a set of pieces in force**
+ * (`pieces`): the board without every piece in the set, by the same method.
+ * One piece is a set of one. A stack's total is the set of its pieces, and the
+ * screen's totals line is the set of every piece on the screen. So a piece's
+ * figure is exactly what its stack's total, or the screen's, loses without it.
  */
 export type CardImpactSubject =
   | { kind: 'order'; id: OrderId }
@@ -285,7 +292,40 @@ export type CardImpactSubject =
   | { kind: 'legacy'; id: GreatPersonId }
   | { kind: 'council' }
   | { kind: 'wonder'; id: BuildingId }
-  | { kind: 'timed'; card: CardId; holder: TimedHolder };
+  | { kind: 'timed'; card: CardId; holder: TimedHolder }
+  | { kind: 'pieces'; pieces: readonly InPlayPiece[] };
+
+/**
+ * **One piece in force, as the In play screen names it** (stage 3), and how
+ * the board without it is built:
+ *
+ *   - `government`: the law set aside (`setLawAside`), as for the government
+ *     in force. The other governments The Union of Lublin reads stay; they are
+ *     that Doctrine's, not the law's;
+ *   - `doctrine`: taken off the seat's list; `order`: its chair emptied;
+ *   - `wonder`: taken out of every town of the seat that holds it;
+ *   - `belief`: taken off the pantheon, or off the enhancer shelf of a
+ *     religion whose holy city the seat holds;
+ *   - `legacy`: the honoured record removed (a revoked one already pays nothing);
+ *   - `timed`: the entries the card stamped on that holder removed;
+ *   - `malice`, `bead`, `commission`, `holyCity` and `ability`: their entries
+ *     set aside in the walk (`setEffectsAside`), because each is a record that
+ *     other rules also read (a malice's chair, a bead's count, a fulfilled
+ *     commission, the holy city, the leader).
+ */
+export type InPlayPiece =
+  | { kind: 'government' }
+  | { kind: 'doctrine'; id: DoctrineId }
+  | { kind: 'order'; chair: number }
+  | { kind: 'malice'; id: MaliceId }
+  | { kind: 'wonder'; id: BuildingId }
+  | { kind: 'belief'; id: BeliefId }
+  | { kind: 'holyCity'; religion: ReligionId }
+  | { kind: 'legacy'; id: GreatPersonId }
+  | { kind: 'bead'; id: CardId }
+  | { kind: 'commission'; card: OrderId }
+  | { kind: 'timed'; card: CardId; holder: TimedHolder }
+  | { kind: 'ability'; id: CardId };
 
 /**
  * **Where a timed effect hangs** (the eighth source of `liveEffects`, and the
@@ -639,7 +679,134 @@ function ghostPair(
       units[at] = { ...state.units[at]!, timed: rest };
       return { without: { ...state, units }, with: state };
     }
+    case 'pieces':
+      return { without: boardWithoutPieces(state, player, subject.pieces), with: state };
   }
+}
+
+/**
+ * **The board without a set of pieces in force** (stage 3, the In play
+ * screen). Each piece is taken away as `InPlayPiece` says. Every array the
+ * ghost changes is replaced, never written to, and nothing in `state` changes.
+ */
+function boardWithoutPieces(state: GameState, player: Player, pieces: readonly InPlayPiece[]): GameState {
+  const sc = player.statecraft;
+  const chairs = new Set<number>();
+  const doctrines = new Set<string>();
+  const wonders = new Set<BuildingId>();
+  const beliefs = new Set<BeliefId>();
+  const legacies = new Set<GreatPersonId>();
+  const timed = pieces.filter((piece): piece is Extract<InPlayPiece, { kind: 'timed' }> => piece.kind === 'timed');
+  const asideCards = new Set<CardId>();
+  const asideEffects = new Set<CardEffect>();
+  const asideShares = new Set<ReligionId>();
+  let lawAside = false;
+  for (const piece of pieces) {
+    switch (piece.kind) {
+      case 'government':
+        lawAside = true;
+        break;
+      case 'doctrine':
+        doctrines.add(piece.id);
+        break;
+      case 'order':
+        chairs.add(piece.chair);
+        break;
+      case 'wonder':
+        wonders.add(piece.id);
+        break;
+      case 'belief':
+        beliefs.add(piece.id);
+        break;
+      case 'legacy':
+        legacies.add(piece.id);
+        break;
+      case 'malice':
+      case 'bead':
+      case 'ability':
+        asideCards.add(piece.id);
+        break;
+      case 'commission':
+        // Its lasting reward only: the same card may also sit in a chair.
+        for (const reward of orderDef(piece.card).commission?.reward ?? []) {
+          for (const effect of reward.lasting ?? []) asideEffects.add(effect);
+        }
+        break;
+      case 'holyCity':
+        asideShares.add(piece.religion);
+        break;
+      case 'timed':
+        break;
+    }
+  }
+  const timedOf = (holder: TimedHolder): Set<CardId> =>
+    new Set(
+      timed
+        .filter((piece) => {
+          if (piece.holder.kind !== holder.kind) return false;
+          return holder.kind === 'seat' || (piece.holder.kind !== 'seat' && piece.holder.id === holder.id);
+        })
+        .map((piece) => piece.card),
+    );
+  const strip = (entries: TimedEffect[] | undefined, cards: Set<CardId>): TimedEffect[] | undefined =>
+    entries === undefined || cards.size === 0 ? entries : entries.filter((entry) => !cards.has(entry.card));
+
+  const seat: Player = {
+    ...player,
+    statecraft: {
+      ...sc,
+      slots: chairs.size === 0 ? sc.slots : sc.slots.map((slot, index) => (chairs.has(index) ? null : slot)),
+      doctrines: doctrines.size === 0 ? sc.doctrines : sc.doctrines.filter((id) => !doctrines.has(id)),
+    },
+    pantheon:
+      beliefs.size === 0 ? player.pantheon : { ...player.pantheon, beliefs: player.pantheon.beliefs.filter((id) => !beliefs.has(id)) },
+    legacies:
+      legacies.size === 0 ? player.legacies : player.legacies.filter((held) => held.revoked === true || !legacies.has(held.id)),
+    timed: strip(player.timed, timedOf({ kind: 'seat' })),
+  };
+  const held = new Set(heldReligions(state, player.id).map((religion) => religion.id));
+  const board: GameState = {
+    ...state,
+    players: state.players.map((other) => (other.id === player.id ? seat : other)),
+    cities: state.cities.map((city) => {
+      if (city.ownerId !== player.id) return city;
+      const rites = timedOf({ kind: 'city', id: city.id });
+      const keeps = wonders.size === 0 || !city.buildings.some((id) => wonders.has(id));
+      if (keeps && rites.size === 0) return city;
+      return {
+        ...city,
+        buildings: keeps ? city.buildings : city.buildings.filter((id) => !wonders.has(id)),
+        timed: strip(city.timed, rites),
+      };
+    }),
+    units: timed.some((piece) => piece.holder.kind === 'unit')
+      ? state.units.map((unit) => {
+          if (unit.ownerId !== player.id) return unit;
+          const cards = timedOf({ kind: 'unit', id: unit.id });
+          return cards.size === 0 ? unit : { ...unit, timed: strip(unit.timed, cards) };
+        })
+      : state.units,
+    religions:
+      beliefs.size === 0
+        ? state.religions
+        : state.religions.map((faith) =>
+            held.has(faith.id) && faith.enhancer.some((id) => beliefs.has(id))
+              ? { ...faith, enhancer: faith.enhancer.filter((id) => !beliefs.has(id)) }
+              : faith,
+          ),
+  };
+  if (lawAside) setLawAside(board, player.id);
+  if (asideCards.size > 0 || asideEffects.size > 0 || asideShares.size > 0) {
+    setEffectsAside(
+      board,
+      player.id,
+      (entry) =>
+        asideCards.has(entry.card) ||
+        asideEffects.has(entry.effect) ||
+        (entry.founderShare !== undefined && asideShares.has(entry.founderShare)),
+    );
+  }
+  return board;
 }
 
 /** The card's own effects. One row, one face. */
@@ -659,9 +826,11 @@ function subjectEffects(subject: CardImpactSubject): readonly CardEffect[] {
       return buildingDef(subject.id).effects ?? [];
     // The council's occasions are each card's own; the totals line asks for
     // the per-turn figure only. A timed entry's occasions are read off the
-    // board, which this row-reader does not see.
+    // board, which this row-reader does not see. The In play screen reads
+    // per-turn figures only, so a set of pieces has no occasions either.
     case 'council':
     case 'timed':
+    case 'pieces':
       return [];
   }
 }
@@ -685,11 +854,16 @@ function subjectName(subject: CardImpactSubject): string {
       return anyCardDef(subject.card).name;
     case 'council':
       return COUNCIL_WORD;
+    case 'pieces':
+      return PIECES_WORD;
   }
 }
 
 /** What the whole council's reconciliation line is called: the screen's own word. */
 const COUNCIL_WORD = 'Your council';
+
+/** What a set of pieces' reconciliation line is called: the In play screen's word. */
+const PIECES_WORD = 'In play';
 
 /**
  * A `(source → line)` accumulator that keeps **first-seen order**, which is the
