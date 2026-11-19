@@ -29,3 +29,18 @@ The three bot files also passed in each run. The table shows time in each file's
 | aiSittingStamps | 26.17 s | 5.77 s | 60 |
 
 The five-file check included the three bot files, `paintedGroundPaint` and `paintedGeometryBuild`. All 42 cases passed. Both render files passed with direct byte comparisons. The geometry change reached the large-mesh test during the first timing run, so these runs do not measure its saving. A separate regression test checks that changing one fixture copy leaves the next copy's state, log and bot memory intact. TypeScript passed with `npm run typecheck`.
+
+## Whole core suite on the play release
+
+The comparison used the same game code, npm command, six Vitest forks and process priority on the same 10-core, 16 GiB laptop. Both runs were on battery. The first used the original tests. The second used the test changes above and one additional fixture-isolation check. Neither run changed how the game builds its world or plays a turn.
+
+| Measure | Original | Updated |
+|---|---:|---:|
+| Passed core tests | 12,153 in 530 files | 12,154 in 531 files |
+| Elapsed time including npm startup | 375.92 s | 207.17 s |
+| Process CPU time, user and system combined | 1,086.61 s | 912.39 s |
+| Test-body time summed across the six edited test files | 176.2 s | 114.6 s |
+
+The two wall times include considerable variation outside the edited tests. Of the unchanged files that took at least one second in the first run, the median took 54% as long in the second. The 169-second difference does not measure the effect of these changes alone. The matched Compendium check and the 125 avoided simulation turns give the clearest evidence of the actual saving. A separate earlier core run overlapped a nine-worker suite in another checkout and took 691 seconds. A full run per checkout can compete for the same machine.
+
+The updated suite passed typecheck and the production build. Raw logs and process timing are in `/private/tmp/webciv-tuner-audit.yl81LvAm/suite-baseline.log` and `/private/tmp/webciv-tuner-audit.yl81LvAm/suite-candidate.log`.
