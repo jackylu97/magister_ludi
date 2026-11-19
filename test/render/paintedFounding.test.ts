@@ -185,7 +185,7 @@ function sweepFixture() {
   foundCityAt(state, 0, state.map.tiles[5 * 12 + 8]!);
   state.visibility[0]!.fill(2);
 
-  const signatures = { units: signUnits, cities: signCities, territory: signTerritory,
+  const signatures = { units: () => signUnits(state, 0), cities: signCities, territory: signTerritory,
     improvements: signImprovements, roads: signRoadCells, sites: signSites };
   const calls = Object.fromEntries(Object.keys(signatures).map(key => [key, vi.fn()])) as
     Record<keyof typeof signatures, ReturnType<typeof vi.fn>>;

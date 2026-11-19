@@ -1,12 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { layerVisibility } from '../../src/render3d/layerVisibility';
-import { signUnits } from '../../src/render3d/pieces';
+import { badgeAnchors, signUnits, UnitLayer } from '../../src/render3d/pieces';
+import { MaterialLibrary } from '../../src/render3d/toon';
+import { VIEW3D } from '../../src/render3d/lookData';
 import { signCities, signTerritory, signCityCells } from '../../src/render3d/cities3d';
 import { signImprovements, signImprovedCells } from '../../src/render3d/improvements3d';
 import { signRoadCells } from '../../src/render3d/roads3d';
 import { signSites } from '../../src/render3d/sites3d';
-import { signFeatureCells } from '../../src/render3d/board3d';
+import { BoardGeometry, signFeatureCells } from '../../src/render3d/board3d';
 import { createUnit, type GameState } from '../../src/sim/state';
 import { createMap } from '../../src/sim/map';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -21,11 +24,19 @@ function fixture() {
   const unit = createUnit(state, 0, 'warrior', 2, 2);
   foundCityAt(state, 0, state.map.tiles[5 * 12 + 8]!);
   state.visibility[0]!.fill(2);
-  const signatures = {units: signUnits, cities: signCities, territory: signTerritory, improvements: signImprovements, roads: signRoadCells, sites: signSites};
-  const calls = Object.fromEntries(Object.keys(signatures).map(key => [key, vi.fn()])) as Record<keyof typeof signatures, ReturnType<typeof vi.fn>>;
+  const signatures = {cities: signCities, territory: signTerritory, improvements: signImprovements, roads: signRoadCells, sites: signSites};
+  const scenery = Object.fromEntries(Object.keys(signatures).map(key => [key, vi.fn()])) as Record<keyof typeof signatures, ReturnType<typeof vi.fn>>;
+  const units = new UnitLayer(), geometry = new BoardGeometry();
+  const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0);
+  const badgeMaterial = new MeshBasicMaterial();
+  onTestFinished(() => { units.dispose(); geometry.dispose(); materials.dispose(); badgeMaterial.dispose(); });
+  const calls = { ...scenery, units: vi.spyOn(units, 'build') };
+  const dynamicShadows = vi.fn();
   const data: Record<string, unknown> = {
     state, map: state.map, fogSeat: 0, visibilitySignatures: null, paintedBoard: null,
-    paintedWorks: null, paintedCities: null, paintedLook: null, paintedSites: null, paintedRoads: null, paintedTerritory: null,
+    paintedWorks: null, paintedCities: null, paintedLook: {invalidateDynamicShadows: dynamicShadows}, paintedSites: null, paintedRoads: null, paintedTerritory: null,
+    units, geometry, materials, badges: {materialFor: () => badgeMaterial},
+    view: {facing: new Quaternion()}, animations: {activeUnits: () => []},
     lensView: {mode: 'none', yields: false, resources: false}, religionSignature: 0,
     clearedCitiesSignature: signCityCells(state), clearedImprovementsSignature: signImprovedCells(state), clearedFeaturesSignature: signFeatureCells(state.map),
     applyFog: () => ({tiles: 0}), applyReveal: () => null, reveal: null,
@@ -41,7 +52,8 @@ function fixture() {
   });
   runtime.setGameState(state);
   for (const call of Object.values(calls)) call.mockClear();
-  return {state, unit, runtime, calls};
+  dynamicShadows.mockClear();
+  return {state, unit, units, runtime, calls, dynamicShadows, badgeMaterial};
 }
 
 describe('incremental renderer updates', () => {
@@ -62,6 +74,40 @@ describe('incremental renderer updates', () => {
     (f.runtime as unknown as {syncStateLayers(): void}).syncStateLayers();
     expect(f.calls.roads).toHaveBeenCalledOnce(); expect(f.calls.sites).not.toHaveBeenCalled();
   });
+  it('keeps the unit batches and moving shadows when units change outside sight', () => {
+    const {state, unit, units, runtime, calls, dynamicShadows} = fixture();
+    const levels = state.visibility[0]!;
+    const enemy = createUnit(state, 1, 'warrior', 3, 3);
+    levels[3 * 12 + 3] = 1;
+    levels[3 * 12 + 4] = 0;
+    runtime.setGameState(state);
+    enemy.col++;
+    enemy.hp--;
+    runtime.setGameState(state);
+    expect(calls.units).not.toHaveBeenCalled();
+    expect(dynamicShadows).not.toHaveBeenCalled();
+    expect(units.isDrawing(unit.id)).toBe(true);
+    expect(units.isDrawing(enemy.id)).toBe(false);
+
+    levels[3 * 12 + 4] = 2;
+    runtime.setGameState(state);
+    expect(calls.units).toHaveBeenCalledOnce();
+    expect(dynamicShadows).toHaveBeenCalledOnce();
+    expect(units.isDrawing(enemy.id)).toBe(true);
+
+    enemy.col--;
+    runtime.setGameState(state);
+    expect(calls.units).toHaveBeenCalledTimes(2);
+    expect(dynamicShadows).toHaveBeenCalledTimes(2);
+    expect(units.isDrawing(enemy.id)).toBe(false);
+
+    runtime.setFogSeat(null);
+    expect(units.isDrawing(enemy.id)).toBe(true);
+    enemy.col++;
+    runtime.setGameState(state);
+    expect(calls.units).toHaveBeenCalledTimes(4);
+    expect(dynamicShadows).toHaveBeenCalledTimes(4);
+  });
   it('only updates layers whose content changed visibility, including becoming hidden', () => {
     const f = fixture();
     f.state.visibility[0]![0] = 1; f.runtime.setGameState(f.state);
@@ -76,6 +122,25 @@ describe('incremental renderer updates', () => {
     f.state.visibility[0]![5 * 12 + 8] = 0; f.runtime.setGameState(f.state);
     expect(f.calls.cities).toHaveBeenCalledTimes(2); expect(f.calls.cities).toHaveBeenLastCalledWith(false);
   });
+  it('moves a standing unit’s badge and click target to a new town and back after razing', () => {
+    const {state, unit, units, runtime, calls, badgeMaterial} = fixture();
+    const drawsBadge = () => units.group.children.some(mesh =>
+      mesh instanceof InstancedMesh && mesh.material === badgeMaterial && mesh.count > 0);
+    const canPickBadge = () => badgeAnchors(state, 0, () => 1).some(anchor => anchor.unitId === unit.id);
+    expect(drawsBadge()).toBe(true);
+    expect(canPickBadge()).toBe(true);
+    const city = foundCityAt(state, 0, state.map.tiles[unit.row * state.map.width + unit.col]!);
+    runtime.setGameState(state);
+    expect(calls.units).toHaveBeenCalledOnce();
+    expect(units.isDrawing(unit.id)).toBe(true);
+    expect(drawsBadge()).toBe(false);
+    expect(canPickBadge()).toBe(false);
+    state.cities = state.cities.filter(town => town.id !== city.id);
+    runtime.setGameState(state);
+    expect(calls.units).toHaveBeenCalledTimes(2);
+    expect(drawsBadge()).toBe(true);
+    expect(canPickBadge()).toBe(true);
+  });
   it('forces presentation refresh for a different state on the same map', () => {
     const f = fixture(), loaded: GameState = {...f.state, players: structuredClone(f.state.players)};
     loaded.players[0]!.color = '#00aacc'; f.runtime.setGameState(loaded);
@@ -84,10 +149,10 @@ describe('incremental renderer updates', () => {
   it('tracks work and discovery fog outside visible-only unit cells', () => {
     const f = fixture(), levels = f.state.visibility[0]!;
     f.state.map.tiles[3]!.resource = 'cattle'; f.state.map.tiles[4]!.discovery = 'ruins';
-    const before = layerVisibility(f.state, levels, 0);
+    const before = layerVisibility(f.state, levels, 0), pieces = signUnits(f.state, 0);
     levels[3] = 0; levels[4] = 1;
     const after = layerVisibility(f.state, levels, 0);
     expect(after.works).not.toBe(before.works); expect(after.sites).not.toBe(before.sites);
-    expect(after.units).toBe(before.units); expect(after.cities).toBe(before.cities);
+    expect(signUnits(f.state, 0)).toBe(pieces); expect(after.cities).toBe(before.cities);
   });
 });

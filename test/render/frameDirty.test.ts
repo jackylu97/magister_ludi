@@ -29,7 +29,7 @@ function fixture(state: unknown = null) {
   const view = { pan: vi.fn(), zoomByFactor: vi.fn(), stepPan: () => false, camera: { right: 1, left: -1 } };
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
-    state, map: null, hover: null, hoveredUnitId: null,
+    state, map: null, fogSeat: null, hover: null, hoveredUnitId: null,
     animations, deaths, glows, walkers, fallers, walkerModels,
     vignette: { step: () => false, place: vi.fn(), focus: () => null, setFocus: vi.fn() },
     view, paintedBoard: null, paintedLook: null,

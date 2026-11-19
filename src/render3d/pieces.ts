@@ -68,13 +68,9 @@
  * Filtered at build, and not a fourth bit on the instance handle
  * (`instances.ts` has three — fog-hidden, suppressed, veiled). Those three exist
  * because the **board** is built once per game and can only be *patched*; this
- * layer is rebuilt from scratch whenever any unit moves and whenever the fog
- * does, and it already filters at build for exactly this kind of question (a
- * unit out of sight is skipped, never bitted). So the roundel comes back the way
- * it went: the piece steps off the hex, `col`/`row` move `signUnits`, the layer
- * is rebuilt, and the badge is added again — and a town founded or razed under a
- * standing piece moves the seat's own eyes (`recomputeVisibility`), which
- * rebuilds this layer on the same frame the fog is repainted.
+ * layer rebuilds when the visible units change. A visible unit that steps off a
+ * city tile gets its badge back when the layer rebuilds. Founding or razing a
+ * city also changes the city cells checked by the renderer.
  *
  * Two art styles, one layer
  * -------------------------
@@ -1076,12 +1072,8 @@ export class UnitLayer {
    * armies": the ground is static and can be drawn from memory, a warrior is
    * not and cannot.
    *
-   * Filtering here rather than patching instances is deliberate and is *not* the
-   * thing the M8 perf constraint forbids. This layer is already rebuilt from
-   * scratch every time any unit moves — far more often than fog changes — so a
-   * fog-aware rebuild costs nothing that was not already being spent. The
-   * constraint is about the **board**, which is thirty times larger and built
-   * once per map (see `fog3d.ts`).
+   * The fingerprint and the build use the same visibility check. A move between
+   * two unseen cells leaves the unit batches in place.
    *
    * The enemy glow
    * --------------
@@ -1796,7 +1788,8 @@ export class UnitLayer {
  * layer draws: who they are, *what* they are, where they stand, how hurt they
  * are, since the worker charge badge how many charges they have left, and
  * whether a caravan is carrying a route.
- * FNV-1a over integers, so it allocates nothing per frame.
+ * A unit on an unseen tile cannot affect a visible stack. With fog, hash only
+ * units on watched tiles, in roster order. Without fog, include the whole roster.
  *
  * The renderer rebuilds `UnitLayer` exactly when this changes (see
  * `Renderer3D.rebuildUnits`), which is what makes it the fingerprint the module
@@ -1855,7 +1848,7 @@ export class UnitLayer {
  * it is the `terrainUnder` case rather than the `trade` case: whether a cart is
  * drawn depends on whether some piece that is not a cart shares its hex, which
  * is a fold of every unit's `col`, `row` and `type` — three members this hash
- * already carries, for every piece on the board. So the boots that cover a cart
+ * already carries for every piece in sight. So the boots that cover a cart
  * moved the fingerprint on the frame they arrived, and the boots that leave move
  * it again. Adding a member for it would have hashed the same facts twice. That
  * is a decision too, and the pin below is what makes the next one one.
@@ -1874,9 +1867,12 @@ export class UnitLayer {
  * by a fight it won without moving would otherwise go on wearing the old one.
  * The rank and not the experience, for the reason `rankIndex` gives.
  */
-export function signUnits(state: GameState): number {
-  let h = Math.imul(2166136261 ^ state.units.length, 16777619) ^ signWars(state);
+export function signUnits(state: GameState, seat: number | null = null): number {
+  const levels = seat === null ? null : state.visibility[seat] ?? null;
+  const bannered = seat === null ? undefined : banneredTownCells(state, seat);
+  let h = 2166136261 ^ signWars(state);
   for (const unit of state.units) {
+    if (!seesCell(levels, state.map, unit.col, unit.row)) continue;
     h = Math.imul(h ^ unit.id, 16777619);
     h = Math.imul(h ^ unit.col, 16777619);
     h = Math.imul(h ^ unit.row, 16777619);
@@ -1889,6 +1885,9 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ routeBit(unit), 16777619);
     h = Math.imul(h ^ exploreBit(unit), 16777619);
     h = Math.imul(h ^ rankIndex(unit), 16777619);
+    // A city can be founded or razed under a standing unit. Its banner takes over the unit's badge.
+    const garrison = bannered?.has(tileIndex(state.map, unit.col, unit.row)) ? 1 : 0;
+    h = Math.imul(h ^ garrison, 16777619);
   }
   return h >>> 0;
 }

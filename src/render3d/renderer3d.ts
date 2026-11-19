@@ -2235,8 +2235,8 @@ export class Renderer3D implements MapView {
   setGameState(state: GameState | null): void {
     const force = state !== this.state || state?.map !== this.map;
     this.state = state;
-    if (!state || signUnits(state) !== this.unitsSignature) this.setHoveredUnitId(null);
     if (!state) {
+      this.setHoveredUnitId(null);
       if (this.paintedCities) this.paintedCities.group.visible = false;
       if (this.paintedWorks) this.paintedWorks.group.visible = false;
       if (this.paintedPillage) this.paintedPillage.group.visible = false;
@@ -2641,7 +2641,7 @@ export class Renderer3D implements MapView {
     // their depth map can go stale: a unit placed, taken, moved, killed,
     // embarked, hidden behind the fog or handed to another seat all arrive here.
     this.paintedLook?.invalidateDynamicShadows();
-    this.unitsSignature = signUnits(this.state);
+    this.unitsSignature = signUnits(this.state, this.fogSeat);
   }
 
   private rebuildCities(shadowChanged = true): void {
@@ -3674,7 +3674,7 @@ export class Renderer3D implements MapView {
     if (!this.state) return;
     // A handover can ask for a glow before the next frame. Check against the
     // updated units if that frame still needs to rebuild them.
-    if (this.stateDirty && signUnits(this.state) !== this.unitsSignature) this.rebuildUnits();
+    if (this.stateDirty && signUnits(this.state, this.fogSeat) !== this.unitsSignature) this.rebuildUnits();
     const drawn = unitIds.filter((unitId) => this.units.isDrawing(unitId));
     if (drawn.length === 0) return;
     this.glows.start(drawn, performance.now());
@@ -4272,7 +4272,7 @@ export class Renderer3D implements MapView {
     const terrainRevision = this.paintedTerrainRevision;
     const worksChanged = this.rebuildPaintedWorks();
     const terrainChanged = terrainRevision !== this.paintedTerrainRevision;
-    if (this.state && (facingTurned || terrainChanged || fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
+    if (this.state && (force || facingTurned || terrainChanged || signUnits(this.state, this.fogSeat) !== this.unitsSignature)) {
       this.setHoveredUnitId(null);
       this.rebuildUnits();
       this.rebuildOverlays();
