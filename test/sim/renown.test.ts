@@ -93,12 +93,12 @@ describe('the ledger', () => {
 
   it('pays a wonder its trickle, on top of whatever else the town holds', () => {
     const g = game();
-    const city = town(g.state, 0, 'library', 'theOracle');
-    claimWonder(g.state, 'theOracle', city);
-    const oracle = buildingDef('theOracle').renown!;
+    const city = town(g.state, 0, 'library', 'pyramids');
+    claimWonder(g.state, 'pyramids', city);
+    const pyramids = buildingDef('pyramids').renown!;
     const lines = explainRenown(g.state, 0);
-    expect(lines.map((line) => line.amount)).toEqual([1, oracle.perTurn]);
-    expect(renownPerTurn(g.state, 0)).toBe(1 + oracle.perTurn);
+    expect(lines.map((line) => line.amount)).toEqual([1, pyramids.perTurn]);
+    expect(renownPerTurn(g.state, 0)).toBe(1 + pyramids.perTurn);
   });
 
   it('is the fold of its own list and nothing else', () => {

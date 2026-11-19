@@ -561,6 +561,14 @@ describe('tech data integrity', () => {
     expect(isUnlocked(state, 0, 'unit', 'swordsman')).toBe(false);
   });
 
+  it('keeps the retired Water Clock closed after Horology opens Chichen Itza', () => {
+    const state = newGame(config());
+    grant(state, 0, 'horology');
+    expect(isUnlocked(state, 0, 'building', 'chichenItza')).toBe(true);
+    expect(isUnlocked(state, 0, 'building', 'waterClockOfSuSong')).toBe(false);
+    expect(buildError(state, 0, 'building', 'waterClockOfSuSong')).not.toBeNull();
+  });
+
   it('treats content no tech names as ungated', () => {
     // There is none today (the test above proves it), so this is the rule
     // itself: an id nothing gates is buildable from turn one.

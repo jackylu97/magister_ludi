@@ -80,6 +80,7 @@ describe('techGifts', () => {
     expect(techGifts('irrigation').map((gift) => [gift.kind, gift.id])).toEqual([
       ['renewal', 'farm'],
       ['building', 'garden'],
+      ['building', 'petra'],
       ['improvement', 'floatingGardens'],
     ]);
     expect(techGifts('theCataphract').map((gift) => [gift.kind, gift.id])).toEqual([
@@ -96,27 +97,15 @@ describe('techGifts', () => {
     expect(techGifts('stateWorkforce').map((gift) => [gift.kind, gift.id])).toEqual([
       ['techEffect', 'stateWorkforce'],
       ['building', 'publicBath'],
+      ['building', 'angkorWat'],
     ]);
   });
 
   it('puts units before buildings when a tech hands over both', () => {
-    // Mathematics and Bronzeworking are the nodes that do; the order is the
-    // reading order the node card already uses. Mathematics hands over the
-    // catapult and the composite bowman the pruned Construction used to carry,
-    // and then Petra — a wonder is an ordinary building on the list. The
-    // library's renewal used to sort after all three; it was struck by the
-    // renewals axe (2026-09-04). Batch D put the **Caravanserai** on the node
-    // as the age's route hub (`docs/history/tech-gifts.md` §7), and the user's
-    // tree pass of 2026-09-10 moved the hub again, onto The Silk Road — the node
-    // written around the caravan (`docs/flags.md` (uuu) mark 6). So Mathematics
-    // is three gifts, Petra behind the two pieces, and the ordering claim is the
-    // same claim. Four since M2 (2026-09-15): the Armoury — the engine's and
-    // the composite bow's drill hall — stands at the node that opens both.
-    expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
-      'unit',
-      'unit',
-      'building',
-      'building',
+    expect(techGifts('mathematics').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['unit', 'catapult'],
+      ['unit', 'compositeBowman'],
+      ['building', 'armoury'],
     ]);
     // Engineering took Construction's works: four buildings, the Circus Maximus
     // among them, because a wonder is an ordinary building on this list. The
@@ -138,6 +127,7 @@ describe('techGifts', () => {
     expect(techGifts('siegecraft').map((gift) => [gift.kind, gift.id])).toEqual([
       ['unit', 'bowman'],
       ['building', 'stoneWalls'],
+      ['building', 'ironPillar'],
       ['improvement', 'lumbermill'],
       ['ability', 'siege'],
     ]);
@@ -242,10 +232,8 @@ describe('techGifts', () => {
   });
 
   it('finds the improvement a tech unlocks, which techs.json never mentions', () => {
-    // The mirror of the reveal above, and the reason `techDataProblems` handed
-    // Entry V's "every node is a package" check over to `unlockDataProblems`:
-    // Mining's `unlocks` block is empty and its gift is real.
-    expect(techDef('mining').unlocks).toEqual({});
+    // Mining lists the Great Sphinx. The improvement table supplies the mine separately.
+    expect(techDef('mining').unlocks).toEqual({ buildings: ['greatSphinx'] });
     expect(techGifts('mining').filter((gift) => gift.kind === 'improvement')).toEqual([
       {
         kind: 'improvement',
@@ -332,11 +320,8 @@ describe('techGifts', () => {
 
   it('reports a node that hands over nothing at all', () => {
     expect(unlockDataProblems()).toEqual([]);
-    // Mining's package is the mine *and* the axe, so both have to be taken away
-    // before the node is the connective tissue Entry V forbids — and nothing in
-    // `techs.json` would have changed either time, which is exactly why this
-    // check moved out of `techDataProblems`. That the chop counts is the point:
-    // a node whose whole gift is a verb is still a package.
+    const mining = techDef('mining').unlocks;
+    const buildings = mining.buildings;
     const authored = improvementDef('mine').requiresTech;
     const chop = chopDef('forest')!;
     // **And copper's reveal since batch R3**, which is a third gift on the same
@@ -345,7 +330,8 @@ describe('techGifts', () => {
     const copperTech = resourceDef('copper').requiresTech;
     try {
       delete (improvementDef('mine') as { requiresTech?: unknown }).requiresTech;
-      // The axe and the reveal still make Mining a package.
+      delete mining.buildings;
+      // The forest clearing and copper reveal still give Mining two gifts.
       expect(techGifts('mining')).toHaveLength(2);
       expect(unlockDataProblems()).toEqual([]);
 
@@ -357,6 +343,7 @@ describe('techGifts', () => {
       );
     } finally {
       (improvementDef('mine') as { requiresTech?: unknown }).requiresTech = authored;
+      mining.buildings = buildings;
       chop.tech = 'mining';
       (resourceDef('copper') as { requiresTech?: unknown }).requiresTech = copperTech;
     }

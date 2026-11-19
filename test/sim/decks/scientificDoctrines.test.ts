@@ -1923,7 +1923,7 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(percent(third)).toBe(0);
     });
 
-    it('keeps The Walls of Uruk’s defence and strength at the true capital', () => {
+    it('keeps the Walls of Uruk’s defence in their town and grants strength throughout friendly territory', () => {
       const { state, capital, second } = board();
       addBuilding(state, capital, 'wallsOfUruk');
       bumpRevision(state);
@@ -1935,8 +1935,8 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(defence(second)).toBe(0);
       const unit = createUnit(state, 0, 'warrior', second.col, second.row);
       const strength = buildingDef('wallsOfUruk').effects!.find((row) => row.kind === 'combatLine') as CardCombatLineEffect;
-      expect(combatLineAmount(state, fightAt(state, unit, capital), strength)).toBe(4);
-      expect(combatLineAmount(state, fightAt(state, unit, second), strength)).toBeNull();
+      expect(combatLineAmount(state, fightAt(state, unit, capital), strength)).toBe(2);
+      expect(combatLineAmount(state, fightAt(state, unit, second), strength)).toBe(2);
     });
 
     // Divine Mandate's capital rows left with batch G1: the new Divine Mandate
@@ -2100,7 +2100,7 @@ describe('The Two Capitals (batch DT17)', () => {
         expect([...new Set(found)].sort()).toEqual(
           [
             'buildings.json/buildings/assemblyHall/requiresSite',
-            'buildings.json/buildings/wallsOfUruk/effects',
+            'buildings.json/buildings/weiyangPalace/effects',
             'greatPeople.json/people/amenhotepSonOfHapu/legacy',
             'greatPeople.json/people/christineDePizan/legacy',
             'greatPeople.json/people/kidinnu/legacy',

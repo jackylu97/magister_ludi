@@ -3903,7 +3903,7 @@
           "category": "building",
           "percent": 25,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -3914,7 +3914,7 @@
           "amount": 1,
           "count": "buildingsInCity",
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         }
       ],
