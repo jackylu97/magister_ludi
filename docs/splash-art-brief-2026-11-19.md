@@ -3,8 +3,8 @@
 Written 2026-11-19. Keep this page open while you generate. It has three parts: the style in words, a checklist of every painting, and a prompt for each one.
 
 - The 34 wonder paintings are done. They are the style reference for all other paintings.
-- About 167 more paintings have a place in the game. The first set is 63 of them, without the leaders. Each place has a stand-in, so no screen waits for art.
-- **The leader roster is under review.** Do not paint leader portraits until it is final. Section 7 has the rules, a template and four examples.
+- 170 more paintings have a place in the game. The first set is 79 of them. Each place has a stand-in, so no screen waits for art.
+- For the ages there are four directions. The first is your idea: four abstract paintings of mankind's progress, in three versions (section 5).
 - Each prompt is in a box that you can copy. A prompt has a subject line for that item, then the style words, then the parameters for its shape.
 - The prompts do not include a style reference. Add your own (`--sref`) as section 2 says.
 - This document changes no game data. The style ruling of record is `docs/splash-art.md`. The file rules are in `public/art/splash/README.md`.
@@ -110,13 +110,13 @@ Parameter names and default values change between Midjourney versions. I describ
 1. Choose two or three wonder paintings as the style reference. For landscapes I recommend `hagiaSophia` (clouds and a city), `pyramids` (flat planes) and `theOracle` (plants and a small building).
 2. Generate one item. Adjust the style weight and `--stylize` until it looks like the wonders. Write the values down.
 3. Use the same reference, the same values and the same shape for all other items of that kind.
-4. For portraits: make the first portrait that you like. I recommend a great person whose dress has large, simple shapes, such as Mimar Sinan or Enheduanna. Then add that portrait as a second style reference for all other portraits. The wonder paintings alone can put a monument where the face must be.
+4. For portraits: make the first portrait that you like. I recommend a person whose dress has large, simple shapes, such as Mansa Musa or Pachacuti. Then add that portrait as a second style reference for all other portraits. The wonder paintings alone can put a monument where the face must be.
 5. If personalization is on in your account, keep it the same for the whole set, or turn it off. It changes the style.
 
 ### The same person in two paintings
 
 - You do not need this for most of the work.
-- A person can be a leader and also a great person (Hypatia and Ibn Battuta are, on the present roster). One painting can do both: paint the 3:4 portrait and cut the 5:6 picture from it. A 5:6 window cut from a 3:4 picture loses 10% of the height.
+- A person can be a leader and also a great person (Ibn Battuta is). One painting can do both: paint the 3:4 portrait and cut the 5:6 picture from it. A 5:6 window cut from a 3:4 picture loses 10% of the height.
 - If you want the same face in a second painting, Midjourney has a character reference (`--cref`, with `--cw` for its weight). In recent versions an omni reference (`--oref`, with `--ow`) replaces it. The name depends on the version; check before you use it.
 
 ### Size
@@ -140,10 +140,10 @@ Parameter names and default values change between Midjourney versions. I describ
 | Wonders | 16:9 | 34, done | The full-screen wonder plate (about 1100 px wide). The In play screen. A 60 by 34 px thumbnail in the city. | The In play screen cuts a 2:1 window from the centre. Nothing important in the top 6% or the bottom 6%. | `wonders/<wonder id>.jpg`. Wired. | Done |
 | Ages | 16:9 | 4 | A 720 by 405 px window on a lapis ribbon over the map, when the world's age changes. | The age numeral and name are printed over the bottom third of the window. Keep the bottom third dark and simple. | `ages/age1.jpg` to `age4.jpg` | 1 |
 | Endings | 16:9 | 2 | A 496 by 279 px window. The win is on a lapis page with the sun mark. The loss is on dark cloth with the moon mark. | Centre the subject. The loss is a dusk picture. | Proposed: `endings/win.jpg`, `endings/loss.jpg` | 1 |
-| Leaders | 3:4 | about 13 to 15, roster under review | Setup and diplomacy, up to 330 by 440 px. Smaller copies of 132 px and 48 px. A 28 px circle in lists. | Head in the upper middle. Plain sky behind the head, so that the small circle shows a face. | `leaders/<leader id>.jpg`, for example `pachacuti.jpg` | 3, after the roster is final |
-| Great people | 5:6, arched top | 78 (20 first) | The great person card in the offer and in the Reliquary, 150 by 180 px. | The top of the window is a round arch. Keep the head below the top fifth. Keep the two top corners empty. | Proposed: `people/<person id>.jpg` | 2 |
-| Governments | 3:1 | 13 | A banner of 330 by 110 px on the government's card. | Long and thin, and small. Three to five large shapes along a level horizon. | Proposed: `governments/<government id>.jpg` | 2 |
-| Beliefs | 1:1, shown round | 56 (23 first) | A round vignette on a belief tablet. The fourth mock-up shows it at 62 px. The older plan said 120 px. | One object in the centre. The circle cuts all four corners. | `beliefs/<belief id>.jpg` | 4 |
+| Leaders | 3:4 | 16 | Setup and diplomacy, up to 330 by 440 px. Smaller copies of 132 px and 48 px. A 28 px circle in lists. | Head in the upper middle. Plain sky behind the head, so that the small circle shows a face. | `leaders/<leader id>.jpg`, for example `pachacuti.jpg` | 2 |
+| Great people | 5:6, arched top | 78 (20 first) | The great person card in the offer and in the Reliquary, 150 by 180 px. | The top of the window is a round arch. Keep the head below the top fifth. Keep the two top corners empty. | Proposed: `greatPeople/<person id>.jpg` | 3 |
+| Governments | 3:1 | 13 | A banner of 330 by 110 px on the government's card. | Long and thin, and small. Three to five large shapes along a level horizon. | Proposed: `governments/<government id>.jpg` | 4 |
+| Beliefs | 1:1, shown round | 56 (23 first) | A round vignette on a belief tablet. The fourth mock-up shows it at 62 px. The older plan said 120 px. | One object in the centre. The circle cuts all four corners. | `beliefs/<belief id>.jpg` | 5 |
 | Title | 21:9 | 1 | The top of the title screen, full width (1000 by 412 in the mock-up). The title and "a game for the ages" are printed on the left. | Keep the left 45% simple and a little dark. Put the subject on the right. | Proposed: `title/title.jpg` | When convenient |
 
 - Masters go in `art-masters/<kind>/` at the repo root. Git ignores that folder. Any file name is fine there.
@@ -157,12 +157,12 @@ Parameter names and default values change between Midjourney versions. I describ
 |---|---|---|---|
 | Ages | 4 | 4 | 0 |
 | Endings | 2 | 2 | 0 |
+| Leaders | 16 | 16 | 0 |
 | Great people | 78 | 20 | 58 |
 | Governments | 13 | 13 | 0 |
 | Beliefs | 56 | 23 | 33 |
 | Title | 1 | 1 | 0 |
-| Leaders | about 13 to 15 | 0 | all, after the roster is final |
-| **Total** | **about 167 to 169** | **63** | **91, and the leaders** |
+| **Total** | **170** | **79** | **91** |
 
 - Great people: `data/greatPeople.json` has 86 rows. 8 are retired (Senenmut, Kushim, Aššur-idī, Sima Qian, Han Xin, Shen Kuo, Snorri Sturluson, and Zheng He as a great person). 78 are live.
 - Beliefs: `data/religion.json` has 23 live pantheon beliefs (the gods), 17 follower beliefs and 16 live enhancer beliefs. 3 rows are retired (The Living Rock, Theocratic Mandate, The Promised Land).
@@ -172,10 +172,11 @@ Parameter names and default values change between Midjourney versions. I describ
 ### Recommended order
 
 1. **Ages and endings.** Six paintings for six large moments. Every player sees them.
-2. **Governments and the first 20 great people.** Thirteen banners and twenty portraits. These rosters are stable.
-3. **Leaders, after the roster is final.** About 13 to 15 portraits. If the roster is not final, continue with the beliefs.
-4. **Beliefs.** The 23 gods first.
-5. **The title**, when you have a picture that you like. A good age painting can stand in until then.
+2. **Leaders.** Sixteen portraits. They are on the first screen of every game.
+3. **The first 20 great people.**
+4. **Governments.** Thirteen banners.
+5. **Beliefs.** The 23 gods first.
+6. **The title**, when you have a picture that you like. A good age painting can stand in until then.
 
 ## 4. Composition rules for each shape
 
@@ -194,9 +195,142 @@ Parameter names and default values change between Midjourney versions. I describ
 
 ## 5. Ages (4, 16:9)
 
-The four ages are I Omens, II Heroes, III Empire and IV Cathedrals. You have not ruled on a direction. There are three below. I recommend direction A, and its four prompts are ready.
+There are four directions. The first is your idea of 2026-11-19: "four abstract paintings that represent mankind's progress in each age", tied "to the unlocks and goals in each age". It comes in three versions, each with four ready prompts. The one valley (direction A) and the two others follow it.
 
-### Direction A (recommended): one place, painted four times
+### What each age is
+
+The names and numerals are the ones the age plate prints. The unlocks are from `data/techs.json`. The goals are from the card-design skill's `age-goals.md`.
+
+| Age | Name | Main unlocks | The player's goal | The one idea of the painting |
+|---|---|---|---|---|
+| I | The Age of Omens | Agriculture, Husbandry, Pottery, Mining, Stonecraft, Bronzeworking, Casting, The Wheel, Sailing, Calendar, Divination, Writing | Claim. Settle three or four towns, explore, find faith, reach the first government. | The first mark. People read the sky, plant a seed and stand a stone up. |
+| II | The Age of Heroes | Currency, Code of Laws, Surveying, Chronology, Cataloguing, Optics, Irrigation, Wayfinding, Epic Poetry, The High Temple, Bronze Panoply, Siegecraft. Traders and prophets. The first great people. | Commit. Choose a plan: conquest, religion, trade or growth. | The measure. The coin, the law, the straight line, and one named person. |
+| III | The Age of Empire | Engineering, Mathematics, Mechanics, Horology, Iron Working, The Silk Road, The Saddle, Shipwrights, Guildhalls, The Civil Service, Satrapies, Papermaking, Printing, Medicine, Theology | Grow into it. Tall or wide: roads, aqueducts, courthouses, large armies. | The network. Many parts joined into one: roads, arches, wheels. |
+| IV | The Age of Cathedrals | The Astrolabe, Natural Philosophy, Scholarship, Alchemy, Chemistry, Machinery, Steel, Movable Type, Paper Money, The Counting Houses, Gunfounding. Universities, observatories, banks. The Magnum Opus. | Decide the game. Build the Magnum Opus, guard it, or stop its builder. | The Great Work. The heavens are measured and lead becomes gold. |
+
+### The abstract direction (your idea): rules for all three versions
+
+- The pictures keep the look of the wonder paintings: flat gouache, hard-edged planes, grained paper, one warm light, and the same palette (lapis, cream, salmon-orange, apricot, olive, blue-violet).
+- **Each set is a sequence.** Three things change from age I to age IV in every set: the time of day (dawn, midday, late afternoon, dusk with the first stars), the amount of gold (none, a little, more, the most), and the size or number of the forms. The prompts say this, so that a set holds together.
+- 16:9. Keep the subject in the middle 2:1 band.
+- The ribbon prints the numeral and the name of the age over the bottom of the window. Each prompt asks for a dark, plain bottom third.
+- **Abstract prompts often produce fake writing, numerals and small signs.** Three things prevent it. One: these prompts have a longer `--no` list. Two: do not use the words "diagram", "chart", "map", "manuscript", "symbol", "sign", "rune", "alphabet" or "inscription" in the prompt. Three: name plain objects and plain shapes, and say "blank", "plain" or "smooth" for a tablet, a sheet of paper or a coin.
+- To keep a set consistent: generate age III first (it has the light of the wonder paintings). Then use it as a style reference, and as an image prompt with a low weight, for the other three. Keep the wonder paintings as a style reference too.
+- If the wonder paintings put a building into a still life or a geometric picture, decrease `--sw`.
+
+**My pick: take 3**, the one great form. It is the nearest to the wonder paintings, so the style reference helps, and one large form still reads in the 720 px window on the ribbon. Take 1 shows the unlocks most directly, but its small objects are hard to read at that size; take 2 is the most abstract and the most likely to produce fake signs.
+
+### Take 1: a still life of each age's instruments
+
+The tools and materials that the age opens, on a dark stone ledge against the sky. No people. In the sequence, the objects go from rough to fine and from few to many.
+
+#### Age I, Omens: still life at dawn (`age-still-1`)
+
+Shows: Agriculture (the sheaf and sickle), Pottery (the jar), Stonecraft (the stone), The Wheel, Writing (the blank tablet), Bronzeworking (the sickle blade). No gold.
+
+```text
+a still life of four large simple objects standing in a row on a stone ledge against an open sky, a rough upright stone slab, a tall plain clay jar, a sheaf of wheat with a bronze sickle leaning on it, a solid wooden cart wheel, and one small smooth blank clay tablet with a reed lying on it, no people, in the lower third a wide dark blue-violet stone ledge, plain and empty at its front edge, dawn, the sun still below the horizon, a pale pink and apricot band low in a deep ultramarine sky, cool blue-violet shadows, earth colours and cream only, no gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age II, Heroes: still life at midday (`age-still-2`)
+
+Shows: Currency (the coins), Code of Laws (the scales), Surveying (the cord and weight), Optics (the lens), Cataloguing and Epic Poetry (the scrolls), Bronze Panoply (the helmet). A little gold.
+
+```text
+a still life of six large simple objects on a stone ledge against an open sky, a pair of bronze balance scales, a short stack of plain gold coins, a bronze helmet with a tall crest, three rolled scrolls tied with red cord, a knotted measuring cord with a hanging bronze weight, a round clear crystal lens on a small stand, no people, in the lower third a wide dark blue-violet stone ledge, plain and empty at its front edge, midday, high bright sun, short hard blue-violet shadows, cream and bronze with a few small accents of gold, deep ultramarine sky with tall white cumulus clouds, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age III, Empire: still life in late afternoon (`age-still-3`)
+
+Shows: Engineering (the arches), Mechanics (the gears), Horology (the water clock), Papermaking and Printing (the blank sheets and the wooden block), The Silk Road (the silk), Iron Working (the tongs). More gold.
+
+```text
+a still life of eight large simple objects close together on a stone ledge against an open sky, a model of three stone arches, two large toothed wooden gears that mesh, a bronze water clock of two stacked vessels, a tall stack of blank cream paper sheets with a plain wooden block on top, a folded bolt of orange silk, a pair of iron tongs, a gold cup and a gold chain, no people, in the lower third a wide dark blue-violet stone ledge, plain and empty at its front edge, several accents of gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, low warm late-afternoon sun from the left, cream and salmon-orange stone, blue-violet shadows, deep ultramarine sky, towering apricot-lit cumulus clouds, dark olive cypress and pines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age IV, Cathedrals: still life at dusk (`age-still-4`)
+
+Shows: Alchemy and Chemistry (the alembic and furnace), The Astrolabe, Natural Philosophy (the ring sphere), Steel (the blade), Paper Money and The Counting Houses (the ingots), the Magnum Opus (lead beside gold). The most gold.
+
+```text
+a still life of many fine instruments crowded on a stone ledge against a dusk sky, in the centre a tall glass alembic on a small brick furnace with glowing orange coals, a large brass astrolabe, a brass sphere of open rings, a bright steel blade, a dull grey lead ingot beside three bright gold ingots, glass flasks, the furnace glow and the gold are the brightest things in the picture, no people, in the lower third a wide dark blue-violet stone ledge, plain and empty at its front edge, dusk just after sunset, a band of orange at the horizon under a deep ultramarine and violet sky with the first few stars, objects in blue-violet shadow with warm gold rims, much gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+### Take 2: geometric abstraction
+
+Shape and colour only, like early twentieth-century abstract painting, in the palette and the medium of the wonders. In the sequence, one circle grows and turns to gold: a small cream sun, a gold disc, a wheel, a great gold sphere.
+
+#### Age I, Omens: the first mark (`age-geo-1`)
+
+Shows: Calendar and Divination (the sun circle and the arc of small circles, the days), Agriculture (the row of seed shapes), Stonecraft and Writing (the one upright stroke). No gold.
+
+```text
+abstract painting of flat geometric shapes, no objects, no people, large calm shapes with wide plain areas between them, the lower third one plain dark blue-violet band, three kinds of shape only: one small cream circle low above the dark band like a rising sun, one tall narrow vermilion upright rectangle standing on the dark band, and one level row of seven small seed-shaped ovals, a thin arc of five small pale circles high in the sky, dawn colours, a pale pink and apricot band low in a deep ultramarine field, cream, vermilion and blue-violet only, no gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age II, Heroes: the grid and the measured line (`age-geo-2`)
+
+Shows: Surveying and Irrigation (the grid and the straight line with even marks), Currency (the gold disc), Code of Laws (the balanced triangle), Chronology (the even spacing). A little gold.
+
+```text
+abstract painting of flat geometric shapes, no objects, no people, large calm shapes with wide plain areas between them, the lower third one plain dark blue-violet band, a square grid of nine cream and salmon-orange rectangles like the blocks of a town, one perfectly straight thin pale line that crosses the whole picture with small squares at even distances along it, one gold disc larger than a rising sun, one cream triangle balanced on its point, midday colours, bright cream and salmon-orange on a deep ultramarine field, short hard blue-violet shadow shapes, one accent of gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age III, Empire: the wheel and the network (`age-geo-3`)
+
+Shows: Mechanics and Engineering (the wheels and the row of arches), The Silk Road and Satrapies (the straight lines that spread to the edges), Guildhalls and The Civil Service (many parts joined). More gold.
+
+```text
+abstract painting of flat geometric shapes, no objects, no people, large calm shapes with wide plain areas between them, the lower third one plain dark blue-violet band, one large wheel of eight spokes in the centre with a gold hub, five smaller circles around it joined to it and to each other by straight pale lines that spread to the edges of the picture like roads, a row of seven repeating round arches along the top of the dark band, small gold dots where the lines meet, many shapes, late afternoon colours, salmon-orange, apricot and cream on a deep ultramarine field, long hard blue-violet shadow shapes, several accents of gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age IV, Cathedrals: the sphere, the orbit and the gold (`age-geo-4`)
+
+Shows: The Astrolabe and Natural Philosophy (the sphere and its rings), Alchemy and the Magnum Opus (the grey triangle that becomes a gold circle). The most gold.
+
+```text
+abstract painting of flat geometric shapes, no objects, no people, large calm shapes with wide plain areas between them, the lower third one plain dark blue-violet band, one great gold sphere that fills the height of the sky, three thin pale elliptical rings around it with a small sphere on each ring, at the lower left a row of three shapes that change from a dull grey triangle to an orange square to a small gold circle, a few small four-pointed cream stars, dusk colours, deep indigo and violet field with a band of orange at the bottom of the sky, the gold sphere is the brightest thing, much gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+### Take 3 (my pick): one great form for each age
+
+A flat plain with a low horizon, and one great form on it. It is half a view and half an emblem. In the sequence, the form grows taller in each age, from a quarter of the height of the picture to almost all of the sky.
+
+#### Age I, Omens: the standing stone (`age-form-1`)
+
+Shows: Stonecraft (the stone), Calendar and Divination (the stone under the last stars, in line with the rising sun), Agriculture (the one furrowed field). The form is a quarter of the height. No gold.
+
+```text
+a wide flat plain with a low level horizon, the lower third of the picture a plain dark blue-violet foreground, one single rough standing stone in the centre, a quarter of the height of the picture, a small fire at its foot, one small furrowed field beside it, no buildings, no people, dawn, the sun just under the horizon exactly behind the stone, a pale pink and apricot band low in a deep ultramarine sky with the last few stars at the top, cool blue-violet shadows, cream and earth colours, no gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail, a few low clouds lit pink from below --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age II, Heroes: the gate and the straight road (`age-form-2`)
+
+Shows: Surveying and Code of Laws (the straight road and the gate that all must pass), Currency and Wayfinding (the road to the sea and the one sail), The High Temple (the gilded lintel). The form is half the height. A little gold.
+
+```text
+a wide flat plain with a low level horizon, the lower third of the picture a plain dark blue-violet foreground, one great stone gate of two tall pillars and a lintel in the centre, half the height of the picture, a perfectly straight pale road that runs from the foreground through the gate to the horizon, a thin line of sea at the horizon with one small square sail, the lintel of the gate is gilded, no people, midday, high bright sun, short hard blue-violet shadows, cream and sand-coloured stone, deep ultramarine sky with tall white cumulus clouds, one accent of gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age III, Empire: the tower of many storeys (`age-form-3`)
+
+Shows: Engineering and Mathematics (the storeys of arches), The Silk Road and Satrapies (the roads that spread from the foot), Guildhalls and The Civil Service (many storeys, one tower). The form is three quarters of the height. More gold.
+
+```text
+a wide flat plain with a low level horizon, the lower third of the picture a plain dark blue-violet foreground, one great round tower of seven storeys in the centre, three quarters of the height of the picture, each storey a ring of round arches, the tower rises through towering cumulus clouds, five straight pale roads spread from its foot across the plain to the horizon, a long aqueduct on arches far away, the top storey is gilded, no people, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, low warm late-afternoon sun from the left, cream and salmon-orange stone, blue-violet shadows, deep ultramarine sky, towering apricot-lit cumulus clouds, dark olive cypress and pines, matte, very little fine detail, several accents of gold --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### Age IV, Cathedrals: the great sphere at dusk (`age-form-4`)
+
+Shows: The Astrolabe and Natural Philosophy (the sphere and its rings among the stars), Alchemy and Chemistry (the furnace glow), the Magnum Opus (the gold). The form fills the sky. The most gold.
+
+```text
+a wide flat plain with a low level horizon, the lower third of the picture a plain dark blue-violet foreground, one great golden sphere of open rings on a tall dark stone tower in the centre, the sphere and tower together fill almost the whole height of the sky, the sphere glows from inside like a furnace and lights the plain around the foot of the tower, small domes at the foot of the tower, no people, dusk just after sunset, a band of orange at the horizon under a deep ultramarine and violet sky, a thin crescent moon and the first stars, the tower in blue-violet shadow with warm rims, much gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail, tall cumulus clouds lit orange from below --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+The one valley and the two other directions follow. They are as they were.
+
+### Direction A: one place, painted four times
 
 - The same valley and bay from the same viewpoint, at four stages and at four times of day.
 - Three landmarks are in all four pictures: **the hill** (flat-topped, on the left), **the river mouth** (in the middle, where the river meets a small bay) and **the headland** (rocky, on the right).
@@ -281,16 +415,39 @@ Another court closed the Great Work. Your city is whole and quiet. A far light s
 wide view from a high dark grassy slope looking down a valley to the sea, a flat-topped hill on the left, a river winding through the middle to a river mouth and a small bay, a rocky headland on the right, sea horizon one third down from the top, dark olive pines and shrubs along the bottom, a great city of domes and spires at night after dusk, most windows dark and a few small warm lamps, on the flat hill an unfinished armillary sphere in dark scaffolding, far across the bay on the horizon one small bright golden light, a large pale crescent moon and a few stars, still water with the moon's reflection, deep dusk, a last thin band of dull orange at the horizon, the whole scene in deep blue-violet and indigo, muted colour, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail, quiet and still --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-Stand-alone options, if you do not use the valley:
+### Endings for the abstract direction
+
+These two match take 3 (the great sphere of age IV). For take 1 or take 2, keep the light and the colours and change the form: the finished alembic full of gold, or the gold sphere alone.
+
+#### The win: the Great Work completed, gold and the sun (`ending-win-abstract`)
+
+The sphere of age IV is whole, and the sun stands behind it. Gold is in every part of the picture.
+
+```text
+a wide flat plain with a low level horizon, one great golden sphere of open rings on a tall stone tower in the centre, complete and bright, a large plain round golden sun exactly behind the sphere so that the rings cross its disc, gold light on the whole plain, long blue-violet shadows that spread from the tower toward the viewer, no people, sunrise, deep ultramarine sky at the top that turns to gold and apricot at the horizon, tall cumulus clouds lit gold, the picture is mostly gold and cream, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+#### The loss: the work lost to another, the moon and ash-blue (`ending-loss-abstract`)
+
+Your sphere is dark and not finished. A far gold light on the horizon is the other court's work. The moon is the only large light.
+
+```text
+a wide flat plain with a low level horizon, one great sphere of open rings on a tall stone tower in the centre, dark and unfinished with one ring missing and cold with no glow, a large pale crescent moon high beside it, far away on the horizon at the right one very small bright golden light, no people, night just after dusk, the whole picture in ash-blue, grey-violet and indigo, muted colour, a few stars, the small far light is the only gold, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, matte, very little fine detail, quiet and still --ar 16:9 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark, numerals, numbers, glyphs, symbols, runes, diagram
+```
+
+Stand-alone options, if you use neither the valley nor the abstract direction:
 
 - Win: a hall of the magisters on a cliff at sunrise, with a great bronze sphere on its roof and the sun behind it.
 - Loss: an empty terrace at dusk with a covered instrument, an unlit lamp and a crescent moon over the sea.
 
-## 7. Leaders (about 13 to 15, portrait 3:4; roster under review)
+## 7. Leaders (16, portrait 3:4)
 
-- **The roster is under review.** Your words on 2026-11-19: "i might change the people to be honest… i think i want to go with slightly more mainstream picks, and find leaders who fit thematically some of the playstyles in the decks."
-- **Do not paint leader portraits until the roster is final.** This section gives the rules, a template and four examples, so that the portraits are quick to make after that.
+- The roster is your ruling of 2026-11-19 (`docs/plans/leader-roster-pass-2026-11-19.md`): one leader for each pair of decks, and Ibn Battuta for every deck.
+- The sixteen: Alexander the Great, Genghis Khan, Joan of Arc, Mehmed the Conqueror, Qin Shi Huang, Pachacuti, Jayavarman VII, Nezahualcoyotl, Cyrus the Great, Mansa Musa, Cleopatra, Lorenzo de' Medici, Harun al-Rashid, Justinian, Sejong the Great and Ibn Battuta.
+- Jayavarman VII's rules are not final. The person is chosen, so the portrait is safe to paint.
 - A portrait shows at up to 330 by 440 px in setup and in diplomacy, at 132 px and 48 px in lists, and as a 28 px circle.
+- Each prompt follows the portrait note of the roster pass, with two changes. All sixteen have the same late-afternoon light, so that the set matches. A prop with writing on it (a codex, a printed page) is a closed book, because Midjourney makes false letters.
+- File names: `leaders/<leader id>.jpg`. Five leaders have an id in `data/leaders.json` today. The build gives the other eleven their ids.
 
 ### Rules for a 3:4 portrait in this style
 
@@ -299,8 +456,8 @@ Stand-alone options, if you do not use the valley:
 - Plain deep blue sky behind the head. The setting is low, at shoulder height, and it tells you where the person ruled.
 - One strong light from the left. The face becomes two or three flat shapes: a light side, a shadow side and the dark of the eyes.
 - The headdress is a simple shape with a clear outline. No brim that shades the eyes.
-- One prop, near the hands, tells the playstyle of the leader: an instrument for science, a staff of gold for trade, a weapon held low for war, a holy object for faith.
-- The two seat colours of the leader are the accent colours of the dress.
+- One prop, near the hands, tells the playstyle of the leader.
+- The two seat colours of the leader are the accent colours of the dress, where the record of the dress permits it.
 - The dress, the regalia and the buildings are correct for the person and the period. If no likeness exists, describe the person by role, period dress and setting.
 - Check each result: make it 28 pixels wide on your screen. If you still see a face, it is good.
 - A famous name can pull the face toward an actor or a film. If that occurs, delete the name and keep the description.
@@ -311,75 +468,142 @@ Stand-alone options, if you do not use the valley:
 [WHO: name, title], [PERIOD AND CULTURE], [AGE, BUILD AND FACE], [HEADDRESS], [DRESS AND REGALIA in the two seat colours], [ONE PROP that tells the playstyle], behind [him/her] at shoulder height [SETTING], portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-| Slot | What to write | Example (Mansa Musa) |
-|---|---|---|
-| Who | The name and the title. Delete the name if the face comes out as a film actor. | Mansa Musa, emperor of Mali |
-| Period and culture | The century and the country. This sets the dress and the buildings. | in the fourteenth century |
-| Age, build and face | An age, a build, the skin and the hair. Use the record if there is one. | a calm and stately West African man of about forty-five with dark brown skin and a short beard |
-| Headdress | One simple shape. | a large white wrapped turban with a gold band |
-| Dress and regalia | Two or three large pieces, in the seat colours. | wide indigo robes with gold embroidery at the neck, a heavy gold necklace |
-| Prop | One object that tells the playstyle. | a gold staff in one hand (trade and gold) |
-| Setting | One building or landscape, low in the frame. | a great Sahelian mud-brick mosque, a few tiny camels of a caravan |
+### The sixteen portraits
 
-### Four worked examples
+#### Alexander the Great (`leader-alexander`)
 
-Pachacuti, Mansa Musa and Nezahualcoyotl are on the present roster and are not on the list for a design rework. Ashoka is not in the game; he shows the template with a ruler from another culture.
-
-#### Pachacuti (Inca) (`leader-pachacuti`)
-
-Seat colours: maroon and sun gold. Prop: a knotted cord record (builder and organiser). Likeness: No portrait from life. He ruled from Cusco, about 1438 to 1471.
+Dominion + Expansionist. Seat colours: Tyrian purple and sun gold. Likeness: Known from ancient portraits (copies of the sculptor Lysippos, the Alexander Mosaic, coins): clean-shaven, thick hair that rises from the forehead. He died at thirty-two, in 323 BC.
 
 ```text
-Pachacuti, Sapa Inca of the fifteenth century, a strong man of about fifty with brown skin and black hair cut straight at the jaw, the royal red wool fringe on his forehead held by a braided headband, large round gold ear spools, a maroon tunic with a band of small woven geometric squares, a gold-yellow mantle on one shoulder, a bundle of knotted coloured cords in one hand, behind him at shoulder height a wall of large fitted Inca stones and green farming terraces, snow peaks of the Andes far away, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Alexander the Great, king of Macedon in the fourth century BC, a young man of about twenty-eight, clean-shaven, with thick tousled light-brown hair that rises from the forehead, a narrow white ribbon diadem tied around his head, a white linen breastplate with a purple band across the chest, a Tyrian-purple cloak pinned at one shoulder with a gold brooch, the shaft of a long spear in one hand and a rolled map in the other, behind him at shoulder height a dry plain with far mountains and a few tiny horsemen, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Mansa Musa (Malians) (`leader-mansaMusa`)
+#### Genghis Khan (`leader-genghisKhan`)
 
-Seat colours: Wangara gold and indigo. Prop: a gold staff (trade and gold). Likeness: No portrait from life. The picture in the Catalan Atlas of 1375 was made in Europe by people who never saw him. He ruled Mali from about 1312 to 1337.
+Dominion + Commerce. Seat colours: sky blue and bone. Likeness: No portrait from life. The usual picture is from a Yuan court album, painted about fifty years after he died in 1227: an older man with a broad face, a thin beard, a pale robe and a plain cap.
 
 ```text
-Mansa Musa, emperor of Mali in the fourteenth century, a calm and stately West African man of about forty-five with dark brown skin and a short beard, a large white wrapped turban with a gold band, wide indigo robes with gold embroidery at the neck, a heavy gold necklace, a gold staff in one hand, behind him at shoulder height a great Sahelian mud-brick mosque with rows of wooden beams in its walls, a few tiny camels of a caravan, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Genghis Khan, founder of the Mongol empire in the early thirteenth century, a broad-faced weathered man of about sixty with a thin grey beard and moustache, a plain bone-white cap with a fur edge, a sky-blue robe that closes at the side with a bone-white fur collar, behind him at shoulder height a white horse-tail standard on a pole at one side, open steppe grassland with round felt tents and a few tiny riders, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Nezahualcoyotl (Texcocans) (`leader-nezahualcoyotl`)
+#### Joan of Arc (`leader-joan`)
 
-Seat colours: turquoise and ochre. Prop: a small bunch of flowers (the poet; "flower and song" was the Nahua phrase for poetry). Likeness: A later codex shows him in the dress of a warrior. No portrait from life. He ruled Texcoco, and he lived from 1402 to 1472.
+Dominion + Devotion. Seat colours: royal azure and gold. Likeness: No portrait from life. Records say she had dark hair, cut short and round. She died at about nineteen, in 1431.
 
 ```text
-Nezahualcoyotl, ruler and poet of Texcoco in the Valley of Mexico in the fifteenth century, a lean thoughtful Nahua man of about fifty with brown skin and black hair to the shoulders, the pointed turquoise mosaic diadem of a ruler, round turquoise ear ornaments, a turquoise-blue cloak knotted at one shoulder with an ochre patterned border, a small bunch of flowers in one hand, behind him at shoulder height terraced hill gardens with a stone water channel, a wide lake and two snow-topped volcanoes far away, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Joan of Arc, a French countrywoman of eighteen in the year 1429, a plain strong face, dark hair cut short and round above the ears, plain polished steel plate armour of the early fifteenth century with no helmet, holding the staff of a white banner sown with small gold fleurs-de-lis, a royal-blue cloth at her shoulder, behind her at shoulder height the walls and round towers of the river town of Orleans, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Ashoka (Maurya India), an example only (`leader-example-ashoka`)
+#### Mehmed the Conqueror (`leader-mehmed`)
 
-Seat colours: no seat colours; the example uses white and saffron. Prop: a polished stone pillar (law and faith spread by edict). Likeness: No likeness exists. He ruled most of India from about 268 to 232 BC. The dress comes from carvings made one to two centuries later.
+Dominion + Scientific. Seat colours: Ottoman red and white. Likeness: Painted from life by Gentile Bellini in 1480, and by a court painter who shows him with a rose: a hooked nose, a pointed beard, a red robe, a large white turban. He took Constantinople in 1453, at twenty-one.
 
 ```text
-Ashoka, emperor of the Maurya realm of India in the third century BC, a composed man of about fifty with brown skin and a short moustache, a large white wrapped turban with a knot at the front, heavy round gold earrings and a wide flat gold necklace on a bare chest, a fine white cotton cloth draped over one shoulder with a saffron border, one hand open in a calm gesture, behind him at shoulder height a tall polished sandstone pillar with four lions at its top and a low round brick dome among mango trees, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Mehmed the Second, Ottoman sultan of the fifteenth century, a man of about thirty with a strong hooked nose and a short pointed dark-brown beard, a large white wrapped turban over a red cap, a red kaftan with a wide brown fur collar, a single rose held in one hand, behind him at shoulder height a great bronze cannon on a timber bed at one side, the long sea walls and towers of a city on the water, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-### Notes on the rest of the present roster
+#### Qin Shi Huang (`leader-qinShiHuang`)
 
-These ten leaders can change. If one stays, this is what is known of the person's appearance.
+Dominion + Magisterial. Seat colours: cinnabar and lacquer black. Likeness: No portrait from life. Every picture is from a later age. The flat crown with bead strings is the later convention for an emperor. He died in 210 BC, at forty-nine.
 
-| Leader | What is known |
-|---|---|
-| Emperor Taizong (Tang) | Portraits exist, but they were painted centuries later: a yellow round-collared robe and a black soft cap. He ruled from 626 to 649. |
-| Modu Chanyu (Xiongnu) | No likeness. Steppe dress of about 200 BC: a belted caftan, a gold belt plaque, a bow. |
-| Akhenaten (Egyptians) | Known from the stylised art of his own reign: a long face, full lips, a long chin, the blue crown. He ruled from about 1353 to 1336 BC. |
-| Al-Ma'mun (Abbasids) | No likeness. Black was the colour of the Abbasid house: a black robe and turban. Caliph from 813 to 833. |
-| Mithridates VI (Pontics) | Known from coins and one marble head: clean-shaven, long loose hair in the manner of Alexander, a ribbon diadem. |
-| Joan of Arc (French) | No portrait from life. Records say dark hair cut short and round. Plain plate armour; a white banner. She died at about nineteen. |
-| Zheng He (Ming) | No portrait from life. Records describe a tall, large man. A court eunuch, so clean-shaven; the robe and winged cap of a Ming official. |
-| Hypatia (Alexandrians) | No likeness. She died at about fifty to sixty. Paint a mature woman, not a girl. |
-| Hildegard of Bingen (Rhinelanders) | Manuscripts near her time show a nun with a writing tablet. A black habit, a white wimple. |
-| Ibn Battuta (Maghrebis) | No likeness. A judge from Tangier: a white turban, a hooded wool cloak. |
+```text
+Qin Shi Huang, first emperor of China in the third century BC, a heavy-set stern man of about forty-five with a dark beard and moustache, a flat black board crown with short strings of beads at its front and back edges that do not cover the face, wide black robes with a cinnabar-red collar and sash, one hand on the hilt of a long bronze sword, behind him at shoulder height ranks of clay soldier statues in rows, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Pachacuti (`leader-pachacuti`)
+
+Expansionist + Commerce. Seat colours: maroon and sun gold. Likeness: No portrait from life. He ruled from Cusco, about 1438 to 1471.
+
+```text
+Pachacuti, Sapa Inca of the fifteenth century, a strong man of about forty-five with brown skin and black hair cut straight at the jaw, the royal red wool fringe on his forehead held by a braided headband, large round gold ear discs, a maroon tunic with a band of small woven checked squares, a gold-yellow mantle on one shoulder, a bundle of knotted coloured cords in one hand, behind him at shoulder height a stone road that climbs green farming terraces, a wall of large fitted stones, snow peaks of the Andes far away, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Jayavarman VII (`leader-jayavarman`)
+
+Expansionist + Devotion. Seat colours: Angkor sandstone and forest green. Likeness: Known from portrait statues of his own reign (one is in the museum in Phnom Penh): a heavy-set man, hair in a small knot, eyes lowered, a slight smile. He ruled the Khmer realm from 1181 to about 1218.
+
+```text
+Jayavarman the Seventh, Buddhist king of the Khmer realm at Angkor about the year 1200, a heavy-set man of about sixty with brown skin, hair pulled back into a small knot, eyes lowered and a slight calm smile, bare shoulders and a plain cloth wrapped at the waist, hands folded in his lap, behind him at shoulder height at one side a sandstone temple tower half covered by the roots of a fig tree, deep forest green trees, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Nezahualcoyotl (`leader-nezahualcoyotl`)
+
+Expansionist + Scientific. Seat colours: turquoise and ochre. Likeness: A later codex shows him in the dress of a warrior. No portrait from life. He ruled Texcoco, and he lived from 1402 to 1472.
+
+```text
+Nezahualcoyotl, ruler, engineer and poet of Texcoco in the Valley of Mexico in the fifteenth century, a lean thoughtful Nahua man of about fifty with brown skin and black hair to the shoulders, the pointed turquoise mosaic diadem of a ruler, round turquoise ear ornaments, a turquoise-blue cloak knotted at one shoulder with an ochre patterned border, a closed folded bark-paper book in one hand, behind him at shoulder height terraced hill gardens with a stone aqueduct, a wide lake and two snow-topped volcanoes far away, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Cyrus the Great (`leader-cyrus`)
+
+Expansionist + Magisterial. Seat colours: Susa glaze teal and gold. Likeness: No certain likeness. The dress is from Persian palace reliefs of the next two generations. He died in 530 BC.
+
+```text
+Cyrus the Great, founder of the Persian empire in the sixth century BC, a dignified man of about fifty with a long curled dark beard and curled hair, a plain fluted gold crown, a long pleated teal robe with wide sleeves and a gold border, one hand on a barrel-shaped clay cylinder that stands on a low pillar, behind him at shoulder height a walled garden with straight stone water channels and rows of cypress trees, a columned pavilion, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Mansa Musa (`leader-mansaMusa`)
+
+Commerce + Devotion. Seat colours: Wangara gold and indigo. Likeness: No portrait from life. The Catalan Atlas of 1375 shows him seated with a gold nugget; it was made in Europe by people who never saw him, and its crown is a European one. The prompt keeps the nugget and uses a turban. He ruled Mali from about 1312 to 1337.
+
+```text
+Mansa Musa, emperor of Mali in the fourteenth century, a calm and stately West African man of about forty-five with dark brown skin and a short beard, a large white wrapped turban with a gold band, wide indigo robes with gold embroidery at the neck, a heavy gold necklace, a large gold nugget held up in one hand, behind him at shoulder height a great Sahelian mud-brick mosque with rows of wooden beams in its walls, a few tiny camels of a caravan, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Cleopatra (`leader-cleopatra`)
+
+Commerce + Scientific. Seat colours: papyrus and deep lapis. Likeness: Known from her coins and from two or three marble heads: hair in rolls drawn back to a knot, a broad royal band, a strong nose and chin. Her family was Macedonian Greek. The colour of her skin is not recorded; "olive" is my choice. She died in 30 BC, at thirty-nine.
+
+```text
+Cleopatra the Seventh, Greek queen of Egypt in the first century BC, a woman of about thirty with olive skin, a strong nose and a firm chin, dark hair drawn back in rolls to a knot at the back of the head, a broad white royal band around the hair, a pale papyrus-coloured Greek gown pinned at the shoulders and a deep lapis-blue mantle, a scroll in one hand, behind her at shoulder height the harbour of Alexandria with merchant ships and a tall lighthouse, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Lorenzo de' Medici (`leader-lorenzo`)
+
+Commerce + Magisterial. Seat colours: iris violet and florin gold. Likeness: Well recorded: a death mask, a bust and portraits. A broad flat nose, a heavy jaw, dark hair to the shoulders, a plain red gown. He lived from 1449 to 1492.
+
+```text
+Lorenzo de' Medici, banker and first citizen of Florence in the fifteenth century, a man of about forty with a broad flat nose, a heavy jaw and straight dark hair to the shoulders, clean-shaven, a plain dark red gown with a violet lining at the collar, a small bronze statuette held in one hand, a gold chain, behind him at shoulder height the great brick dome of Florence cathedral and the tiled roofs of the city, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Harun al-Rashid (`leader-harun`)
+
+Devotion + Scientific. Seat colours: Abbasid black and gold. Likeness: No likeness exists. He was caliph in Baghdad from 786 to 809. Black was the colour of the Abbasid house.
+
+```text
+Harun al-Rashid, Abbasid caliph of Baghdad about the year 800, a man of about forty with a full dark beard, a black turban with a gold band and a black robe with gold bands at the collar and sleeves, one hand on a brass water clock with small brass balls, a stack of bound books beside it, behind him at shoulder height the round brick walls of Baghdad with a green dome above them and date palms, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Justinian (`leader-justinian`)
+
+Devotion + Magisterial. Seat colours: porphyry and mosaic gold. Likeness: Known from the mosaic in Ravenna made in his reign, about 547: a round face, dark eyes, a purple cloak with a gold panel, a crown with jewels. He ruled from 527 to 565.
+
+```text
+Justinian, Roman emperor at Constantinople in the sixth century, a man of about forty-five with a round face, large dark eyes and short dark hair, clean-shaven, a gold crown set with jewels with pearl strings at the temples, a deep purple cloak with one square gold panel on the chest, pinned at the right shoulder with a large round jewelled brooch, a small model of a great domed church held in both hands, behind him at shoulder height the sea walls of a great city and one wide low dome with no towers, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Sejong the Great (`leader-sejong`)
+
+Scientific + Magisterial. Seat colours: ink navy and porcelain white. Likeness: No portrait from life survives. The standard portrait is modern (1973). The red robe with gold dragon badges and the black cap are the recorded daily dress of a Joseon king. He ruled from 1418 to 1450.
+
+```text
+Sejong the Great, king of Joseon Korea in the fifteenth century, a man of about forty with a gentle scholarly face and a thin dark beard and moustache, a black silk cap with two small upright wings at the back, a red robe with a round gold dragon badge on the chest and on each shoulder, a closed bound book with a plain navy cover in one hand, behind him at shoulder height a bronze sphere of open rings on a stone terrace, a palace hall with a grey tiled roof, a white porcelain jar, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
+
+#### Ibn Battuta (`leader-ibnBattuta`)
+
+Every deck. Seat colours: ochre and sea teal. Likeness: No likeness exists. He was a judge and traveller from Tangier, and he lived from 1304 to about 1369.
+
+```text
+Ibn Battuta, a Moroccan judge and traveller of the fourteenth century, a lean sun-browned man of about forty with a dark trimmed beard, a white turban with its tail under the chin, an ochre wool travelling cloak with a hood over a pale robe, a walking staff in one hand and a leather satchel at his side, behind him at shoulder height a harbour with one ship on sea-teal water and a few tiny camels of a caravan on the shore, portrait from the chest up, three-quarter view, eyes level, calm and dignified, head in the upper middle of the frame, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 3:4 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+```
 
 ## 8. Great people (78 live; 20 first; 5:6 arched)
 
 - The window has a round arch at the top. Keep the head below the top fifth, and keep the two top corners plain.
 - The window is small (150 by 180 px). One person, one object, one piece of setting.
 - The data gives each person an age from II to V. The 19 people of age V belong to the age that is not built. Paint them last. I did not check if they can appear in a game today.
-- Hypatia and Ibn Battuta are also leaders on the present roster. If they stay leaders, you can cut these pictures from the leader portraits.
+- Ibn Battuta is also a leader. You can cut his picture from the leader portrait.
 - For most of these people no likeness exists. Each prompt describes the person by role, period dress and setting.
 
 ### The first 20
@@ -388,7 +612,7 @@ These are the best known people of ages II to IV, across the five families: 5 sc
 
 #### Imhotep (`person-imhotep`)
 
-Scholar, age II. Architect of the Step Pyramid, about 2650 BC. Later statuettes show him seated with a papyrus roll. File: `people/imhotep.jpg`.
+Scholar, age II. Architect of the Step Pyramid, about 2650 BC. Later statuettes show him seated with a papyrus roll. File: `greatPeople/imhotep.jpg`.
 
 ```text
 Imhotep, an Egyptian royal architect and priest of the Old Kingdom, a lean man of about fifty with brown skin and a shaved head, a plain white linen robe from the chest down, a papyrus roll open in his hands, low behind him the step pyramid of Saqqara in cream limestone, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -396,7 +620,7 @@ Imhotep, an Egyptian royal architect and priest of the Old Kingdom, a lean man o
 
 #### Aristotle (`person-aristotle`)
 
-Scholar, age III. Greek philosopher, 384 to 322 BC. Ancient busts show a short beard and a broad forehead. File: `people/aristotle.jpg`.
+Scholar, age III. Greek philosopher, 384 to 322 BC. Ancient busts show a short beard and a broad forehead. File: `greatPeople/aristotle.jpg`.
 
 ```text
 Aristotle, a Greek philosopher of the fourth century BC, a man of about fifty-five with a short grey beard and short hair, a cream wool cloak draped over one shoulder, a scroll in one hand, low behind him a shaded colonnade and a garden walk in Athens, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -404,7 +628,7 @@ Aristotle, a Greek philosopher of the fourth century BC, a man of about fifty-fi
 
 #### Archimedes (`person-archimedes`)
 
-Scholar, age III. Mathematician of Syracuse, about 287 to 212 BC. No reliable likeness. File: `people/archimedes.jpg`.
+Scholar, age III. Mathematician of Syracuse, about 287 to 212 BC. No reliable likeness. File: `greatPeople/archimedes.jpg`.
 
 ```text
 Archimedes, a Greek mathematician of Syracuse in the third century BC, an old man with a white beard and a sun-browned face, a plain tunic and cloak, bent over a tray of sand in which he has drawn circles with a stick, low behind him the harbour wall of Syracuse and the sea, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -412,7 +636,7 @@ Archimedes, a Greek mathematician of Syracuse in the third century BC, an old ma
 
 #### Ibn Sīnā (`person-ibnSina`)
 
-Scholar, age III in the data. Persian physician and philosopher, 980 to 1037. No portrait from life. File: `people/ibnSina.jpg`.
+Scholar, age III in the data. Persian physician and philosopher, 980 to 1037. No portrait from life. File: `greatPeople/ibnSina.jpg`.
 
 ```text
 Ibn Sina, a Persian physician and philosopher of the eleventh century, a man of about forty-five with a full dark beard, a white turban and a blue-grey robe, a thick bound book open in his hands, two glazed medicine jars beside him, low behind him a brick courtyard with pointed arches, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -420,7 +644,7 @@ Ibn Sina, a Persian physician and philosopher of the eleventh century, a man of 
 
 #### al-Khwārizmī (`person-alKhwarizmi`)
 
-Scholar, age IV. Mathematician at the House of Wisdom in Baghdad, about 780 to 850. No likeness exists. File: `people/alKhwarizmi.jpg`.
+Scholar, age IV. Mathematician at the House of Wisdom in Baghdad, about 780 to 850. No likeness exists. File: `greatPeople/alKhwarizmi.jpg`.
 
 ```text
 al-Khwarizmi, a mathematician of ninth-century Baghdad, a man of about fifty with a grey-streaked beard, a white turban and an ochre robe, a brass astrolabe held up in one hand and a sheet with plain geometric diagrams in the other, low behind him the brick walls and round gate of Baghdad with date palms, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -428,7 +652,7 @@ al-Khwarizmi, a mathematician of ninth-century Baghdad, a man of about fifty wit
 
 #### Homer (`person-homer`)
 
-Artist, age II. The poet of the Iliad and the Odyssey. He is a figure of legend; the ancient busts are imagined. File: `people/homer.jpg`.
+Artist, age II. The poet of the Iliad and the Odyssey. He is a figure of legend; the ancient busts are imagined. File: `greatPeople/homer.jpg`.
 
 ```text
 Homer, the blind poet of early Greece, an old man with a long white beard, closed eyes and a cloth band around his head, a simple wool cloak, a small wooden lyre held against his chest, low behind him a rocky Aegean shore with one ship with a square sail, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -436,7 +660,7 @@ Homer, the blind poet of early Greece, an old man with a long white beard, close
 
 #### Sappho (`person-sappho`)
 
-Artist, age II. Poet of Lesbos, about 630 to 570 BC. No likeness from life. File: `people/sappho.jpg`.
+Artist, age II. Poet of Lesbos, about 630 to 570 BC. No likeness from life. File: `greatPeople/sappho.jpg`.
 
 ```text
 Sappho, a Greek poet of the island of Lesbos in the sixth century BC, a woman of about thirty-five with olive skin and dark hair bound up with a ribbon, a long pleated linen dress and a violet cloak, a long-armed lyre in her hands, low behind her olive trees on a hillside above the sea, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -444,7 +668,7 @@ Sappho, a Greek poet of the island of Lesbos in the sixth century BC, a woman of
 
 #### Enheduanna (`person-enheduanna`)
 
-Artist, age II. High priestess at Ur, about 2285 to 2250 BC, and the first author known by name. A carved disc of her time shows her in a tiered robe and a round cap. File: `people/enheduanna.jpg`.
+Artist, age II. High priestess at Ur, about 2285 to 2250 BC, and the first author known by name. A carved disc of her time shows her in a tiered robe and a round cap. File: `greatPeople/enheduanna.jpg`.
 
 ```text
 Enheduanna, high priestess of the moon god at Ur in ancient Sumer, a dignified woman of about forty with brown skin and long dark hair, a round cap with a rolled brim, a long robe of tiered wool fringes, a clay tablet and a reed stylus in her hands, low behind her the great stepped brick ziggurat of Ur, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -452,7 +676,7 @@ Enheduanna, high priestess of the moon god at Ur in ancient Sumer, a dignified w
 
 #### Murasaki Shikibu (`person-murasakiShikibu`)
 
-Artist, age IV. Court lady of Heian Japan, about 973 to 1014 or later, author of The Tale of Genji. No portrait from life. File: `people/murasakiShikibu.jpg`.
+Artist, age IV. Court lady of Heian Japan, about 973 to 1014 or later, author of The Tale of Genji. No portrait from life. File: `greatPeople/murasakiShikibu.jpg`.
 
 ```text
 Murasaki Shikibu, a court lady and author of Heian Japan about the year 1000, a woman of about thirty-five with very long straight black hair down her back, many layered silk robes in soft colours with wide sleeves, a writing brush in her hand over a low desk with paper, low behind her the wooden veranda of a temple above a lake with a pale daytime moon, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -460,7 +684,7 @@ Murasaki Shikibu, a court lady and author of Heian Japan about the year 1000, a 
 
 #### Rūmī (`person-rumi`)
 
-Artist, age IV. Persian poet who lived in Konya, 1207 to 1273. Pictures of him are later. File: `people/rumi.jpg`.
+Artist, age IV. Persian poet who lived in Konya, 1207 to 1273. Pictures of him are later. File: `greatPeople/rumi.jpg`.
 
 ```text
 Rumi, a Persian poet and teacher of the thirteenth century in Konya, an old man with a grey beard and gentle eyes, a large pale turban and a wide-sleeved brown robe, a reed flute in one hand, low behind him a brick building with a cone-shaped dome and a walled garden, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -468,7 +692,7 @@ Rumi, a Persian poet and teacher of the thirteenth century in Konya, an old man 
 
 #### Vitruvius (`person-vitruvius`)
 
-Engineer, age III. Roman architect and author, first century BC. No likeness exists. File: `people/vitruvius.jpg`.
+Engineer, age III. Roman architect and author, first century BC. No likeness exists. File: `greatPeople/vitruvius.jpg`.
 
 ```text
 Vitruvius, a Roman architect and military engineer of the first century BC, a man of about sixty with short grey hair, clean-shaven, a plain tunic and a dark red cloak, bronze dividers in one hand and a scroll in the other, low behind him a Roman building site with stone arches and a wooden crane, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -476,7 +700,7 @@ Vitruvius, a Roman architect and military engineer of the first century BC, a ma
 
 #### al-Jazarī (`person-alJazari`)
 
-Engineer, age IV. Engineer at the Artuqid court of Diyarbakır, 1136 to 1206, author of a book of machines. No likeness exists. File: `people/alJazari.jpg`.
+Engineer, age IV. Engineer at the Artuqid court of Diyarbakır, 1136 to 1206, author of a book of machines. No likeness exists. File: `greatPeople/alJazari.jpg`.
 
 ```text
 al-Jazari, a court engineer of the twelfth century in upper Mesopotamia, a man of about fifty with a dark beard, a white turban and a green robe with the sleeves rolled, fitting a brass gear to a small water clock in the shape of an elephant, low behind him a city wall of black basalt with a round tower, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -484,7 +708,7 @@ al-Jazari, a court engineer of the twelfth century in upper Mesopotamia, a man o
 
 #### Mimar Sinan (`person-mimarSinan`)
 
-Engineer, age IV. Chief architect of the Ottoman court, about 1490 to 1588. File: `people/mimarSinan.jpg`.
+Engineer, age IV. Chief architect of the Ottoman court, about 1490 to 1588. File: `greatPeople/mimarSinan.jpg`.
 
 ```text
 Mimar Sinan, chief architect of the Ottoman court in the sixteenth century, an old man with a long white beard, a large white turban and a dark red kaftan, a pair of compasses in one hand, low behind him a great mosque with one wide central dome and slim minarets, part of it in wooden scaffolding, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -492,7 +716,7 @@ Mimar Sinan, chief architect of the Ottoman court in the sixteenth century, an o
 
 #### Ea-nāṣir (`person-eaNasir`)
 
-Merchant, age II. Copper merchant of Ur, about 1750 BC. A customer's letter of complaint to him is the oldest that we have. File: `people/eaNasir.jpg`.
+Merchant, age II. Copper merchant of Ur, about 1750 BC. A customer's letter of complaint to him is the oldest that we have. File: `greatPeople/eaNasir.jpg`.
 
 ```text
 Ea-nasir, a copper merchant of the city of Ur in the eighteenth century BC, a well-fed man of about forty-five with a dark trimmed beard and a round cap, a fringed wool robe wrapped over one shoulder, a small clay tablet in one hand, a stack of round copper ingots beside him, low behind him the mud-brick courtyard of a merchant's house, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -500,7 +724,7 @@ Ea-nasir, a copper merchant of the city of Ur in the eighteenth century BC, a we
 
 #### Zhang Qian (`person-zhangQian`)
 
-Merchant, age III. Envoy of Han China who opened the road to the west, from 138 BC. No portrait from life. File: `people/zhangQian.jpg`.
+Merchant, age III. Envoy of Han China who opened the road to the west, from 138 BC. No portrait from life. File: `greatPeople/zhangQian.jpg`.
 
 ```text
 Zhang Qian, an envoy of Han China in the second century BC, a lean sun-browned man of about forty with a thin beard, hair in a topknot under a small cap, a dark belted robe with wide sleeves, the tall staff of an envoy with three tufts of yak hair in his hand, low behind him a desert road below snow mountains, one horse and two tiny camels, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -508,7 +732,7 @@ Zhang Qian, an envoy of Han China in the second century BC, a lean sun-browned m
 
 #### Marco Polo (`person-marcoPolo`)
 
-Merchant, age IV. Merchant of Venice, 1254 to 1324. No portrait from life. File: `people/marcoPolo.jpg`.
+Merchant, age IV. Merchant of Venice, 1254 to 1324. No portrait from life. File: `greatPeople/marcoPolo.jpg`.
 
 ```text
 Marco Polo, a Venetian merchant of the late thirteenth century, a sun-browned man of about forty with a short beard, a soft red cap and a long travelling gown with a fur lining, a small sealed bundle of silk under one arm, low behind him a caravan of tiny camels on a road through dry hills, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -516,7 +740,7 @@ Marco Polo, a Venetian merchant of the late thirteenth century, a sun-browned ma
 
 #### Hannibal (`person-hannibal`)
 
-General, age III. General of Carthage, 247 to about 183 BC. No certain likeness. File: `people/hannibal.jpg`.
+General, age III. General of Carthage, 247 to about 183 BC. No certain likeness. File: `greatPeople/hannibal.jpg`.
 
 ```text
 Hannibal, a general of Carthage in the third century BC, a North African man of about thirty-five with a short dark beard and curly hair, a bronze breastplate and a dark red cloak, a plain bronze helmet under one arm, low behind him a high snowy mountain pass with two tiny war elephants in a marching column, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -524,7 +748,7 @@ Hannibal, a general of Carthage in the third century BC, a North African man of 
 
 #### Boudica (`person-boudica`)
 
-General, age III. Queen of the Iceni, died in 60 or 61. A Roman author, a century later, describes a tall woman with long tawny hair, a gold neck ring and a many-coloured tunic. File: `people/boudica.jpg`.
+General, age III. Queen of the Iceni, died in 60 or 61. A Roman author, a century later, describes a tall woman with long tawny hair, a gold neck ring and a many-coloured tunic. File: `greatPeople/boudica.jpg`.
 
 ```text
 Boudica, queen of the Iceni of Britain in the first century, a tall woman of about forty with very long tawny-red hair, a heavy twisted gold neck ring, a checked tunic of several colours under a thick dark cloak closed with a brooch, a spear held upright at her side below shoulder height, low behind her open heath and the wicker side of a light war chariot, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -532,7 +756,7 @@ Boudica, queen of the Iceni of Britain in the first century, a tall woman of abo
 
 #### Subutai (`person-subutai`)
 
-General, age IV. General of the Mongol empire, about 1175 to 1248. No portrait from life. File: `people/subutai.jpg`.
+General, age IV. General of the Mongol empire, about 1175 to 1248. No portrait from life. File: `greatPeople/subutai.jpg`.
 
 ```text
 Subutai, a Mongol general of the thirteenth century, a weathered man of about sixty with a thin grey beard, a fur-trimmed felt hat, a blue robe that closes at the side under a coat of small laced armour plates, low behind him wide grassland with a few tiny riders, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -540,7 +764,7 @@ Subutai, a Mongol general of the thirteenth century, a weathered man of about si
 
 #### Tomoe Gozen (`person-tomoeGozen`)
 
-General, age IV. A woman warrior of the Genpei War, about 1184, known from The Tale of the Heike. She may be legend. File: `people/tomoeGozen.jpg`.
+General, age IV. A woman warrior of the Genpei War, about 1184, known from The Tale of the Heike. She may be legend. File: `greatPeople/tomoeGozen.jpg`.
 
 ```text
 Tomoe Gozen, a woman warrior of twelfth-century Japan, a strong woman of about twenty-eight with a pale face and long black hair tied low at the back, laced Japanese armour of the period in red and dark blue with large square shoulder guards, a long curved sword at her hip, low behind her dark pines and a river plain, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -1032,8 +1256,10 @@ These moments have no painting slot today. Each would use one 16:9 painting, sho
 - **Midjourney details.** I believe `--sw` goes from 0 to 1000 with a default of 100, and that `--ar 3:1` and `--ar 21:9` are accepted. I did not check the current documentation. The name of the character reference depends on the version.
 - **How the style reference works with portraits.** The wonder paintings have no faces. The first portraits can need several tries.
 - **Likenesses.** Most of these people have no portrait from life. The ages and faces in the prompts are my choices for a dignified figure, not records. Each prompt box says what is known.
-- **The leader roster.** It is under review, so section 7 has four examples and no full set. The count of 13 to 15 is an estimate.
-- **Dress of the less recorded people.** Piyamaradu, Ilimilku, Nanaivandak, Lamassī, Lautaro and Modu Chanyu are described from what is known of their place and period, not of the person.
+- **The new leaders.** Eleven of the sixteen are not in `data/leaders.json` yet, so their file names wait for the build. Jayavarman VII's rules are not final; the person is chosen.
+- **The abstract ages.** A style reference made of buildings and skies can work against a still life or a geometric picture. Take 3 is the nearest to the reference.
+- **What each age opens.** The table in section 5 is from `data/techs.json` and from the part of the age goals that is for every player. The goals of five of the six decks are not written yet.
+- **Dress of the less recorded people.** Piyamaradu, Ilimilku, Nanaivandak, Lamassī and Lautaro are described from what is known of their place and period, not of the person.
 - **Dates.** The dates are the usual ones from memory. Many are approximate ("about"). Check a date before you print it anywhere.
 - **Age V people.** I did not check if the 19 great people of age V can appear in a game today.
 - **The belief vignette size.** The fourth mock-up says 62 px; the older plan says 120 px.
@@ -1059,8 +1285,8 @@ flat gouache painting on grained paper, simplified hard-edged planes of colour, 
 |---|---|---|---|---|
 | Wonders (done) | `16:9` | 34 | `art-masters/wonders/` | `public/art/splash/wonders/<id>.jpg` |
 | Ages, endings | `16:9` | 4 + 2 | `art-masters/ages/`, `art-masters/endings/` | `ages/age1.jpg` to `age4.jpg`; `endings/win.jpg`, `loss.jpg` |
-| Leaders (roster under review) | `3:4` | about 13 to 15 | `art-masters/leaders/` | `leaders/<id>.jpg` |
-| Great people | `5:6` | 78 (20 first) | `art-masters/people/` | `people/<id>.jpg` |
+| Leaders | `3:4` | 16 | `art-masters/leaders/` | `leaders/<id>.jpg` |
+| Great people | `5:6` | 78 (20 first) | `art-masters/greatPeople/` | `greatPeople/<id>.jpg` |
 | Governments | `3:1` | 13 | `art-masters/governments/` | `governments/<id>.jpg` |
 | Beliefs | `1:1` | 56 (23 first) | `art-masters/beliefs/` | `beliefs/<id>.jpg` |
 | Title | `21:9` | 1 | `art-masters/title/` | `title/title.jpg` |
