@@ -4790,7 +4790,7 @@ function readTechGoalTable(state: GameState, player: Player, ctx: ValueContext):
       );
       continue;
     }
-    const chain = techChain(state, player, ctx, id, true);
+    const chain = techChain(state, player, ctx, id, true, road);
     const terms: ValueTerm[] = [...chain.terms];
     // **A step toward an open commission** (bot batch BP6, B12): the road's
     // technologies, for a goal that counts technologies or charter

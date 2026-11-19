@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 import { bestTechGoal, valueContext } from '../../src/ai/bot';
 import { appraise } from '../../src/ai/decision';
+import { inDecision } from '../../src/ai/decisionMemo';
 import { techChain } from '../../src/ai/chain';
 import { explainYields } from '../../src/ai/prices';
 import {
@@ -31,8 +32,10 @@ import {
 import { withAiTuning } from '../../src/ai/aiConfig';
 import aiJson from '../../data/ai.json';
 import { bestMeleeFor, foundCityAt, refreshCityDerived, unitProductionCost } from '../../src/sim/cities';
-import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type City, type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
+import { applyCommand } from '../../src/sim/commands';
+import { type GameMap, type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { withFieldsHeld } from '../../src/sim/pathfind';
+import { type City, type GameState, type Player, bumpRevision, createUnit, playerById } from '../../src/sim/state';
 import { type CardPaysEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { type TechId, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -140,7 +143,54 @@ describe('a Boon', () => {
     expect(type).toBeDefined();
     const lump = explainYields({ production: unitProductionCost(state, 0, type) }, ctx).total;
     expect(onDraftWorth('theSwordOfState' as OrderId, ctx)).toBeCloseTo(lump / boonTurns(ctx), 8);
-    expect(onDraftWorth('theGeneralSummons' as OrderId, ctx)).toBeCloseTo(3 * lump / boonTurns(ctx), 8);
+  });
+
+  it.each([0, 1, 2, 3, 'rally'] as const)('prices the units placed by The General Summons with %s', (spaces) => {
+    const { state, player, city } = bench();
+    const id = 'theGeneralSummons';
+    const type = bestMeleeFor(state, player.id)!;
+    const capital = at(state.map, city.col, city.row);
+    const capitalTiles = [capital, ...neighborTiles(state.map, tileHex(capital))];
+    const available = spaces === 'rally' ? 2 : spaces;
+    for (const tile of capitalTiles.slice(spaces === 'rally' ? 0 : available)) {
+      createUnit(state, player.id, type, tile.col, tile.row);
+    }
+    if (spaces === 'rally') {
+      const rally = 'rallyToTheStandard';
+      player.statecraft.orders.push(rally);
+      player.statecraft.slots.push({ card: rally, sealedUntil: state.turn });
+      const generalTile = at(state.map, city.col + 4, city.row);
+      createUnit(state, player.id, 'greatPerson', generalTile.col, generalTile.row, 'hannibal');
+      for (const tile of neighborTiles(state.map, tileHex(generalTile)).slice(available)) {
+        createUnit(state, player.id, type, tile.col, tile.row);
+      }
+    }
+    player.statecraft.pendingOrder = { options: [id] };
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const lump = explainYields({ production: unitProductionCost(state, player.id, type) }, ctx).total;
+    const before = state.units.length;
+    const nextEntityId = state.nextEntityId;
+    const price = withFieldsHeld(() => inDecision(() => onDraftWorth(id, ctx)));
+    expect(state.units).toHaveLength(before);
+    expect(state.nextEntityId).toBe(nextEntityId);
+
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: player.id, optionIndex: 0 }).ok).toBe(true);
+    const placed = state.units.slice(before);
+    expect(placed).toHaveLength(available);
+    expect(price).toBeCloseTo(placed.length * lump / boonTurns(ctx), 8);
+  });
+
+  it('prices no free units when the player has no capital', () => {
+    const { state, player } = bench();
+    const id = 'theGeneralSummons';
+    state.cities = [];
+    state.tileOwner.fill(null);
+    player.statecraft.pendingOrder = { options: [id] };
+    bumpRevision(state);
+    expect(onDraftWorth(id, valueContext(state, player))).toBe(0);
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: player.id, optionIndex: 0 }).ok).toBe(true);
+    expect(state.units).toHaveLength(0);
   });
 
   it('prices The First Caravan’s trader at the route it would run, and nothing with no slot free', () => {
@@ -152,6 +202,8 @@ describe('a Boon', () => {
     expect(onDraftWorth('theFirstCaravan' as OrderId, free)).toBeCloseTo(7, 8);
     const full = { ...ctx, routes: { ...ctx.routes, free: 0, open } };
     expect(onDraftWorth('theFirstCaravan' as OrderId, full)).toBe(0);
+    state.cities = [];
+    expect(onDraftWorth('theFirstCaravan' as OrderId, free)).toBe(0);
   });
 });
 
