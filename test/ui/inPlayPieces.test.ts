@@ -62,6 +62,17 @@ describe('what is in each stack comes from the rules’ own walk', () => {
     expect(layout.government[0]!.form).toBe('government');
   });
 
+  it('shows one Assembly Hall for the council chair and leaves local buildings to their towns', () => {
+    const state = board();
+    const town = state.cities.find(city => city.ownerId === 0)!;
+    town.buildings.push('assemblyHall', 'library');
+    const entries = inPlayLayout(state, 0).stacks.flatMap(stack => stack.entries);
+    const halls = entries.filter(entry => entry.card === 'assemblyHall');
+    expect(halls).toHaveLength(1);
+    expect(halls[0]!.link).toEqual({ kind: 'city', cityId: town.id });
+    expect(entries.some(entry => entry.card === 'library')).toBe(false);
+  });
+
   it('never makes a technology a piece', () => {
     const layout = inPlayLayout(board(), 0);
     const cards = [...layout.government, ...layout.crest, ...layout.stacks.flatMap((stack) => stack.entries)].map((entry) => entry.card);

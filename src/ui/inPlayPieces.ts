@@ -12,9 +12,8 @@
  *     government column), then one edge for each chair: the Order seated
  *     there, the malice that holds it, or an empty chair. A malice with no
  *     chair follows the chairs;
- *   - **Wonders**: the one-of-a-kind buildings the seat's towns hold
- *     (`oneOfAKind`, the walk's own test), so a great house such as the
- *     Caravanserai stands here beside the wonders;
+ *   - **Wonders**: wonders, great houses and buildings that grant council
+ *     chairs. Each building appears once, as its empire effect applies once;
  *   - **Beliefs**: the pantheon's gods, and for each religion whose holy city
  *     the seat holds, its enhancer beliefs and the founder's share (the "holy
  *     city" piece). A follower belief pays the towns that follow it, so it is
@@ -59,7 +58,7 @@ import { leaderDef } from '../sim/leaderData';
 import { isMaliceId, maliceDef, type MaliceId } from '../sim/maliceData';
 import { beliefDef, type BeliefId, isRiteId } from '../sim/religionData';
 import { type GameState, cityById, playerById } from '../sim/state';
-import { anyCardDef, heldReligions, oneOfAKind } from '../sim/statecraft';
+import { anyCardDef, buildingOpensChairs, heldReligions, oneOfAKind } from '../sim/statecraft';
 import {
   type CardId,
   type DoctrineId,
@@ -306,7 +305,7 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
   });
   loose.forEach((id, index) => council.push(maliceEntry(id, undefined, index)));
 
-  // Wonders: the walk's one-of-a-kind rows, newest first by the claim register.
+  // Buildings with an empire effect share a stack. The newest claimed wonder comes first.
   const claimed = new Map<BuildingId, number>();
   for (const claim of state.wonders) claimed.set(claim.building, claim.turn);
   const wonders: InPlayEntry[] = [];
@@ -314,7 +313,7 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
   for (const city of state.cities) {
     if (city.ownerId !== seat) continue;
     for (const id of city.buildings) {
-      if (!oneOfAKind(id) || seen.has(id)) continue;
+      if (seen.has(id) || (!oneOfAKind(id) && !buildingOpensChairs(id))) continue;
       seen.add(id);
       wonders.push({
         key: `wonder:${id}`,
