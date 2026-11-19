@@ -1070,3 +1070,24 @@ support both?"
 - **The Council screen supports drag and drop and click then click.**
 - Meter colours stay ink, as built, unless the user chooses the board's green
   and brown.
+
+- **Meter colours are ink** (the user, 2026-11-18: "yeah, ink is fine").
+  Happiness and authority print in ink on a card's plate and in parchment in
+  the screen's head, not in the board's green and brown.
+
+### The 3D abacus: look B, Walnut and gilt (2026-11-19)
+
+Board: `scratchpad/abacus-style/abacus-options.html`, published at
+https://claude.ai/artifact/Na8KW6rafCpfhpteQH3wBo. The user, on B1: "yeah, this
+one is great. Could we remove the stripe running down the bead? Otherwise lets
+ship this".
+
+- **Look B is the abacus's look everywhere**: the bead page, the Abacus screen
+  and the Opus close. Dark walnut, gilt fittings, turned knobs and feet, the
+  brass plaque with the age numeral, a stud in each seat's colour, an ivory
+  bead for a place not earned, on the parchment page.
+- **No gilt band on the beads.**
+- Looks A, C and D are not built into the game.
+- The number of places a rod stays as it is (13) until the wager rework.
+- The options' code is on branch `worktree-agent-a500e56fb98dd2862` as a
+  work-in-progress commit.
