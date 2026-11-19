@@ -488,8 +488,8 @@
   ],
   "theLeveeEnMasse": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in your capital, and keeps +1 movement for the rest of the game",
-    "text": "every 10 turns, the best melee unit you can build musters in your capital, and keeps +1 movement for the rest of the game"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in your capital, and keeps +1 movement for the rest of the game",
+    "text": "every 10 turns, a melee unit musters in your capital, and keeps +1 movement for the rest of the game"
    }
   ],
   "paxMagistri": [
@@ -644,8 +644,8 @@
   ],
   "totalMobilisation": [
    {
-    "raw": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen",
-    "text": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen"
+    "raw": "while you are at war: every 5 turns, a [[concept:grantedUnit|melee unit]] musters in every city of 6 or more citizens, for a citizen",
+    "text": "while you are at war: every 5 turns, a melee unit musters in every city of 6 or more citizens, for a citizen"
    },
    {
     "raw": "while you are at peace: +25% food surplus stored toward growth",
@@ -654,8 +654,8 @@
   ],
   "theLandsturm": [
    {
-    "raw": "entering a war (at most once every 20 turns) grants the best melee unit you can build in every city of 5 or more citizens",
-    "text": "entering a war (at most once every 20 turns) grants the best melee unit you can build in every city of 5 or more citizens"
+    "raw": "entering a war (at most once every 20 turns) grants a [[concept:grantedUnit|melee unit]] in every city of 5 or more citizens",
+    "text": "entering a war (at most once every 20 turns) grants a melee unit in every city of 5 or more citizens"
    },
    {
     "raw": "+3 combat strength for melee units",
@@ -778,6 +778,16 @@
    {
     "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
     "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
+   }
+  ],
+  "theCitizenPhalanx": [
+   {
+    "raw": "a town of at least 3 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]], which counts as trained (once every 5 turns)",
+    "text": "a town of at least 3 citizens may spend one citizen for a melee unit, which counts as trained (once every 5 turns)"
+   },
+   {
+    "raw": "the unit costs no upkeep",
+    "text": "the unit costs no upkeep"
    }
   ],
   "boundToTheSoil": [
@@ -1386,6 +1396,12 @@
     "text": "-25% food surplus stored toward growth, in every city but your capital"
    }
   ],
+  "magisterialTheSteleofDeeds": [
+   {
+    "raw": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more",
+    "text": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more"
+   }
+  ],
   "theArthashastra": [
    {
     "raw": "you have one more wildcard chair",
@@ -1496,22 +1512,6 @@
    {
     "raw": "completing a wonder grants a great person to call",
     "text": "completing a wonder grants a great person to call"
-   }
-  ],
-  "theCitizenPhalanx": [
-   {
-    "raw": "a town of at least 3 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
-    "text": "a town of at least 3 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
-   },
-   {
-    "raw": "the unit costs no upkeep",
-    "text": "the unit costs no upkeep"
-   }
-  ],
-  "magisterialTheSteleofDeeds": [
-   {
-    "raw": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more",
-    "text": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more"
    }
   ]
  },
@@ -1926,8 +1926,8 @@
   ],
   "theStandingLevy": [
    {
-    "raw": "every 12 turns, the best melee unit you can build musters in your capital",
-    "text": "every 12 turns, the best melee unit you can build musters in your capital"
+    "raw": "every 12 turns, a [[concept:grantedUnit|melee unit]] musters in your capital",
+    "text": "every 12 turns, a melee unit musters in your capital"
    }
   ],
   "clientKings": [
@@ -2474,8 +2474,8 @@
   ],
   "theSenatus": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — you have one more wildcard chair; +3 happiness",
+    "text": "unlocks the Assembly Hall — you have one more wildcard chair; +3 happiness"
    }
   ],
   "toolmakersCharter": [
@@ -3168,12 +3168,12 @@
   ],
   "theKingsLevy": [
    {
-    "raw": "every 15 turns, the best melee unit you can build musters in your capital",
-    "text": "every 15 turns, the best melee unit you can build musters in your capital"
+    "raw": "every 15 turns, a [[concept:grantedUnit|melee unit]] musters in your capital",
+    "text": "every 15 turns, a melee unit musters in your capital"
    },
    {
-    "raw": "when drafted, the best melee unit you can build joins you in your capital",
-    "text": "when drafted, the best melee unit you can build joins you in your capital"
+    "raw": "when drafted, a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "when drafted, a melee unit joins you in your capital"
    }
   ],
   "dominionClearTheFrontier": [
@@ -3198,8 +3198,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+    "raw": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and a [[concept:grantedUnit|melee unit]], trained in your capital free of upkeep",
+    "text": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and a melee unit, trained in your capital free of upkeep"
    }
   ],
   "dominionSwordAndPlough": [
@@ -3600,8 +3600,8 @@
   ],
   "theOpenMuster": [
    {
-    "raw": "passing on an Order hand grants the best melee unit you can build in your capital",
-    "text": "passing on an Order hand grants the best melee unit you can build in your capital"
+    "raw": "passing on an Order hand grants a [[concept:grantedUnit|melee unit]] in your capital",
+    "text": "passing on an Order hand grants a melee unit in your capital"
    }
   ],
   "theSack": [
@@ -3956,8 +3956,8 @@
   ],
   "theConscriptionRolls": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens",
-    "text": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in every city of 8 or more citizens",
+    "text": "every 10 turns, a melee unit musters in every city of 8 or more citizens"
    }
   ],
   "theVeteransRoll": [
@@ -4010,8 +4010,8 @@
   ],
   "theStateForges": [
    {
-    "raw": "completing a technology grants the best melee unit you can build in your capital",
-    "text": "completing a technology grants the best melee unit you can build in your capital"
+    "raw": "completing a technology grants a [[concept:grantedUnit|melee unit]] in your capital",
+    "text": "completing a technology grants a melee unit in your capital"
    }
   ],
   "standingGarrisons": [
@@ -4200,8 +4200,8 @@
   ],
   "theDevshirme": [
    {
-    "raw": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)",
-    "text": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)"
+    "raw": "a captured city of at least 6 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]] as a Veteran, which counts as trained (once every 5 turns)",
+    "text": "a captured city of at least 6 citizens may spend one citizen for a melee unit as a Veteran, which counts as trained (once every 5 turns)"
    }
   ],
   "theRegimentalSchools": [
@@ -4352,8 +4352,8 @@
   ],
   "dominionTheNationInArms": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in every city with an [[building:armoury|Armoury]]",
-    "text": "every 10 turns, the best melee unit you can build musters in every city with an Armoury"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in every city with an [[building:armoury|Armoury]]",
+    "text": "every 10 turns, a melee unit musters in every city with an Armoury"
    }
   ],
   "dominionCircumvallation": [
@@ -4636,6 +4636,102 @@
    {
     "raw": "+5 combat strength for military units against an empire that knows more technologies than you",
     "text": "+5 combat strength for military units against an empire that knows more technologies than you"
+   }
+  ],
+  "dominionTheVerSacrum": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[unit:settler|Settler]] joins you in your capital",
+    "text": "On draft: a Settler joins you in your capital"
+   },
+   {
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "On draft: a melee unit joins you in your capital"
+   }
+  ],
+  "dominionTheAmabutho": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in every city with a [[building:barracks|Barracks]]",
+    "text": "On draft: a melee unit joins you in every city with a Barracks"
+   }
+  ],
+  "dominionTheFieldOfMars": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: each of your military units gains 4 experience",
+    "text": "On draft: each of your military units gains 4 experience"
+   }
+  ],
+  "dominionTheGrassCrown": [
+   {
+    "raw": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder",
+    "text": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder"
+   }
+  ],
+  "dominionTheMeltedArms": [
+   {
+    "raw": "killing a unit grants production equal to 2 times its strength to your capital",
+    "text": "killing a unit grants production equal to 2 times its strength to your capital"
+   }
+  ],
+  "dominionTheAuxilia": [
+   {
+    "raw": "capturing a city grants a [[concept:grantedUnit|melee unit]]",
+    "text": "capturing a city grants a melee unit"
+   }
+  ],
+  "dominionTheFoederati": [
+   {
+    "raw": "clearing a barbarian camp gives your capital 2 more citizens",
+    "text": "clearing a barbarian camp gives your capital 2 more citizens"
+   }
+  ],
+  "dominionTheDecisiveBattle": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units",
+    "text": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units"
+   }
+  ],
+  "dominionTheMesta": [
+   {
+    "raw": "+4 food, +4 production, +4 gold on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+4 food, +4 production, +4 gold on every hex with a Pasture or Camp"
+   }
+  ],
+  "dominionTheMasterOfSoldiers": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great general to call",
+    "text": "On draft: you gain a great general to call"
+   }
+  ],
+  "dominionTheCompanionCavalry": [
+   {
+    "raw": "a unit that kills gets its movement back for the rest of the turn",
+    "text": "a unit that kills gets its movement back for the rest of the turn"
+   }
+  ],
+  "dominionTheCastellans": [
+   {
+    "raw": "+6 production in every city per military building or fortification there",
+    "text": "+6 production in every city per military building or fortification there"
    }
   ],
   "smallholdings": [
@@ -5413,8 +5509,8 @@
   ],
   "theGeneralLevy": [
    {
-    "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
-    "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
+    "raw": "a town may spend one citizen for a [[concept:grantedUnit|melee unit]], which does not count as trained (once every 5 turns, or every turn while you are at war)",
+    "text": "a town may spend one citizen for a melee unit, which does not count as trained (once every 5 turns, or every turn while you are at war)"
    }
   ],
   "theGreatMigration": [
@@ -7052,8 +7148,8 @@
   ],
   "theHolySummons": [
    {
-    "raw": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city",
-    "text": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city"
+    "raw": "declaring war (at most once every 20 turns) grants a [[concept:grantedUnit|melee unit]] in every devout city",
+    "text": "declaring war (at most once every 20 turns) grants a melee unit in every devout city"
    }
   ],
   "theWorkOfGod": [
@@ -8281,6 +8377,86 @@
     "text": "completing a building grants +5 science"
    }
   ],
+  "magisterialTheHeralds": [
+   {
+    "raw": "founding a city grants +30 culture",
+    "text": "founding a city grants +30 culture"
+   }
+  ],
+  "magisterialTheQuarryGangs": [
+   {
+    "raw": "+1 production, +1 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+1 production, +1 culture on every hex with a Quarry"
+   }
+  ],
+  "magisterialTheNineJewels": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   }
+  ],
+  "magisterialTheDivan": [
+   {
+    "raw": "you have one more economic chair",
+    "text": "you have one more economic chair"
+   },
+   {
+    "raw": "you have one more military chair",
+    "text": "you have one more military chair"
+   }
+  ],
+  "magisterialTheHallofHeroes": [
+   {
+    "raw": "+1 combat strength per great person you have gained",
+    "text": "+1 combat strength per great person you have gained"
+   }
+  ],
+  "magisterialTheLawgiver": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a Doctrine offer",
+    "text": "On draft: you gain a Doctrine offer"
+   }
+  ],
+  "magisterialTheHanlinAcademy": [
+   {
+    "raw": "great people cost 20% less renown",
+    "text": "great people cost 20% less renown"
+   },
+   {
+    "raw": "+2 science on every hex carrying a great person's work",
+    "text": "+2 science on every hex carrying a great person's work"
+   }
+  ],
+  "magisterialTheSpiritWay": [
+   {
+    "raw": "Your wonders count as great-person works.",
+    "text": "Your wonders count as great-person works."
+   }
+  ],
+  "magisterialTheFriendsofKhufu": [
+   {
+    "raw": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)"
+   }
+  ],
+  "magisterialTheTwelveTables": [
+   {
+    "raw": "+2 production and +2 culture in your capital per Order you hold, seated or not",
+    "text": "+2 production and +2 culture in your capital per Order you hold, seated or not"
+   }
+  ],
   "magisterialMasterMasons": [
    {
     "raw": "completing a building (a culture building) grants +30 production",
@@ -8982,11 +9158,11 @@
   ],
   "theCeremonialGuard": [
    {
-    "raw": "completing a wonder grants the best melee unit you can build",
-    "text": "completing a wonder grants the best melee unit you can build"
+    "raw": "completing a wonder grants a [[concept:grantedUnit|melee unit]]",
+    "text": "completing a wonder grants a melee unit"
    },
    {
-    "raw": "completing a wonder grants a ranged unit",
+    "raw": "completing a wonder grants a [[concept:grantedUnit|ranged unit]]",
     "text": "completing a wonder grants a ranged unit"
    }
   ],
@@ -9280,8 +9456,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
-    "text": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not"
+    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not",
+    "text": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not"
    }
   ],
   "magisterialTheParadiseGarden": [
@@ -9290,8 +9466,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city",
-    "text": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city"
+    "raw": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "text": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
   "theProcessionalWay": [
@@ -9755,8 +9931,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep",
-    "text": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep"
+    "raw": "On draft: your capital raises up to 3 [[concept:grantedUnit|melee units]]. They cost no upkeep",
+    "text": "On draft: your capital raises up to 3 melee units. They cost no upkeep"
    }
   ],
   "theOfficeOfWorks": [
@@ -9844,8 +10020,8 @@
   ],
   "theFrontierMilitia": [
    {
-    "raw": "new cities start with the best melee unit you can build standing in them, free of upkeep",
-    "text": "new cities start with the best melee unit you can build standing in them, free of upkeep"
+    "raw": "new cities start with a [[concept:grantedUnit|melee unit]] standing in them, free of upkeep",
+    "text": "new cities start with a melee unit standing in them, free of upkeep"
    }
   ],
   "publicWells": [
@@ -9995,8 +10171,8 @@
   ],
   "theMusterOfTheFields": [
    {
-    "raw": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
-    "text": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
+    "raw": "a town of at least 5 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]], which counts as trained (once every 5 turns)",
+    "text": "a town of at least 5 citizens may spend one citizen for a melee unit, which counts as trained (once every 5 turns)"
    }
   ],
   "carriedOffScholars": [
@@ -10011,8 +10187,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: the best melee unit you can build joins you in your capital",
-    "text": "On draft: the best melee unit you can build joins you in your capital"
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "On draft: a melee unit joins you in your capital"
    }
   ],
   "copyingTheEnemy": [
@@ -10251,176 +10427,6 @@
    {
     "raw": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus",
     "text": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus"
-   }
-  ],
-  "dominionTheVerSacrum": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: a [[unit:settler|Settler]] joins you in your capital",
-    "text": "On draft: a Settler joins you in your capital"
-   },
-   {
-    "raw": "On draft: the best melee unit you can build joins you in your capital",
-    "text": "On draft: the best melee unit you can build joins you in your capital"
-   }
-  ],
-  "dominionTheAmabutho": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: the best melee unit you can build joins you in every city with a [[building:barracks|Barracks]]",
-    "text": "On draft: the best melee unit you can build joins you in every city with a Barracks"
-   }
-  ],
-  "dominionTheFieldOfMars": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: each of your military units gains 4 experience",
-    "text": "On draft: each of your military units gains 4 experience"
-   }
-  ],
-  "dominionTheGrassCrown": [
-   {
-    "raw": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder",
-    "text": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder"
-   }
-  ],
-  "dominionTheMeltedArms": [
-   {
-    "raw": "killing a unit grants production equal to 2 times its strength to your capital",
-    "text": "killing a unit grants production equal to 2 times its strength to your capital"
-   }
-  ],
-  "dominionTheAuxilia": [
-   {
-    "raw": "capturing a city grants the best melee unit you can build",
-    "text": "capturing a city grants the best melee unit you can build"
-   }
-  ],
-  "dominionTheFoederati": [
-   {
-    "raw": "clearing a barbarian camp gives your capital 2 more citizens",
-    "text": "clearing a barbarian camp gives your capital 2 more citizens"
-   }
-  ],
-  "dominionTheDecisiveBattle": [
-   {
-    "raw": "[[concept:commission|Commission]]",
-    "text": "Commission"
-   },
-   {
-    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units",
-    "text": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units"
-   }
-  ],
-  "dominionTheMesta": [
-   {
-    "raw": "+4 food, +4 production, +4 gold on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
-    "text": "+4 food, +4 production, +4 gold on every hex with a Pasture or Camp"
-   }
-  ],
-  "dominionTheMasterOfSoldiers": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: you gain a great general to call",
-    "text": "On draft: you gain a great general to call"
-   }
-  ],
-  "dominionTheCompanionCavalry": [
-   {
-    "raw": "a unit that kills gets its movement back for the rest of the turn",
-    "text": "a unit that kills gets its movement back for the rest of the turn"
-   }
-  ],
-  "dominionTheCastellans": [
-   {
-    "raw": "+6 production in every city per military building or fortification there",
-    "text": "+6 production in every city per military building or fortification there"
-   }
-  ],
-  "magisterialTheHeralds": [
-   {
-    "raw": "founding a city grants +30 culture",
-    "text": "founding a city grants +30 culture"
-   }
-  ],
-  "magisterialTheQuarryGangs": [
-   {
-    "raw": "+1 production, +1 culture on every hex with a [[improvement:quarry|Quarry]]",
-    "text": "+1 production, +1 culture on every hex with a Quarry"
-   }
-  ],
-  "magisterialTheNineJewels": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: you gain a great person to call",
-    "text": "On draft: you gain a great person to call"
-   },
-   {
-    "raw": "On draft: you gain a great person to call",
-    "text": "On draft: you gain a great person to call"
-   }
-  ],
-  "magisterialTheDivan": [
-   {
-    "raw": "you have one more economic chair",
-    "text": "you have one more economic chair"
-   },
-   {
-    "raw": "you have one more military chair",
-    "text": "you have one more military chair"
-   }
-  ],
-  "magisterialTheHallofHeroes": [
-   {
-    "raw": "+1 combat strength per great person you have gained",
-    "text": "+1 combat strength per great person you have gained"
-   }
-  ],
-  "magisterialTheLawgiver": [
-   {
-    "raw": "[[concept:boon|Boon]]",
-    "text": "Boon"
-   },
-   {
-    "raw": "On draft: you gain a Doctrine offer",
-    "text": "On draft: you gain a Doctrine offer"
-   }
-  ],
-  "magisterialTheHanlinAcademy": [
-   {
-    "raw": "great people cost 20% less renown",
-    "text": "great people cost 20% less renown"
-   },
-   {
-    "raw": "+2 science on every hex carrying a great person's work",
-    "text": "+2 science on every hex carrying a great person's work"
-   }
-  ],
-  "magisterialTheFriendsofKhufu": [
-   {
-    "raw": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)",
-    "text": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)"
-   }
-  ],
-  "magisterialTheTwelveTables": [
-   {
-    "raw": "+2 production and +2 culture in your capital per Order you hold, seated or not",
-    "text": "+2 production and +2 culture in your capital per Order you hold, seated or not"
    }
   ]
  },
@@ -11201,16 +11207,8 @@
     "text": "+4 combat strength when attacking cities"
    },
    {
-    "raw": "on completion, the best melee unit you can build joins you",
-    "text": "on completion, the best melee unit you can build joins you"
-   },
-   {
-    "raw": "on completion, the best melee unit you can build joins you",
-    "text": "on completion, the best melee unit you can build joins you"
-   },
-   {
-    "raw": "on completion, the best melee unit you can build joins you",
-    "text": "on completion, the best melee unit you can build joins you"
+    "raw": "on completion, 3 [[concept:grantedUnit|melee units]] join you",
+    "text": "on completion, 3 melee units join you"
    }
   ],
   "chichenItza": [
@@ -11289,8 +11287,8 @@
   ],
   "alhambra": [
    {
-    "raw": "you have one more wildcard chair",
-    "text": "you have one more wildcard chair"
+    "raw": "you have one more military chair",
+    "text": "you have one more military chair"
    },
    {
     "raw": "on completion, a great person of the generals is offered",

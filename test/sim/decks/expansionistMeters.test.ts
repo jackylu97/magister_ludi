@@ -350,6 +350,6 @@ describe('the Expansionist batch E5: the words', () => {
     expect(said('theMasterOfWorks')).toContain('the production per turn of your other cities with a Manufactory');
     expect(said('theBurhs')).toContain('+3 city defence per fortification in this city');
     expect(said('theBurhs')).not.toContain('toward defensive buildings');
-    expect(said('theFrontierMilitia')).toContain('new cities start with the best melee unit you can build');
+    expect(said('theFrontierMilitia')).toContain('new cities start with a melee unit');
   });
 });

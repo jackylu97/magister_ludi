@@ -68,6 +68,14 @@ function entryOf(id: string) {
 // --- 1. the pages ---------------------------------------------------------------
 
 describe('the keyword pages', () => {
+  it('links a class grant to the unit selection rule', () => {
+    const words = describeCard('theSwordOfState').map((line) => line.text).join(' ');
+    expect(words).toContain('a [[concept:grantedUnit|melee unit]]');
+    expect(READ('concept:grantedUnit')?.lines[0]?.text).toBe(
+      'When a grant names a unit class, you receive the strongest unit of that class you can currently build.',
+    );
+  });
+
   it('has one page for each keyword, at a stable anchor, on the Concepts shelf', () => {
     // The four Order keywords, and Faith house on a belief (batch B1).
     expect([...CARD_KEYWORD_ENTRIES]).toEqual([

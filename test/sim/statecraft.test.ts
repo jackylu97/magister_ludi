@@ -4481,7 +4481,7 @@ describe("the master-list cut of 2026-08-28, second pass", () => {
       "-4 combat strength",
     ]);
     expect(said("theStandingLevy")).toEqual([
-      "every 12 turns, the best melee unit you can build musters in your capital",
+      "every 12 turns, a melee unit musters in your capital",
     ]);
     expect(said("theLegion")).toEqual([
       "melee units: +1 movement",

@@ -188,6 +188,14 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: a newly placed Order is locked for a few turns before it can be removed. Adopting a government keeps each placed Order in its chair where that chair still fits it, moves the rest to free chairs that fit them, clears every lock, and makes asking for a fresh hand cheap again — the price starts over under every new government. Governments are offered in fixed sets of three at set draft counts. The Orders shelf in this Compendium shows every card\'s exact effect.',
     ],
   ),
+  written(
+    'concept',
+    'grantedUnit',
+    'Granted unit',
+    'unit selection',
+    '⚔',
+    ['When a grant names a unit class, you receive the strongest unit of that class you can currently build.'],
+  ),
   // Batch DS8: the four card keywords. Each Order of one of these kinds prints
   // its keyword as its first clause (`describeCard`), and the keyword links
   // here. The first paragraph of each page is the rule the keyword's tooltip

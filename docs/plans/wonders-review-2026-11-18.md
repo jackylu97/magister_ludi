@@ -1427,7 +1427,7 @@ This section stands alone. It is the whole specification for the wonder build. T
 - Effects:
   - +1 culture (in the game today; no change)
   - **+4 combat strength for all units against cities** (existing shape). `combatLine` with `vsCity`. Joins `cardCombatLines` (`statecraft/evaluator.ts`).
-  - **on completion, 3 of the best melee unit you can build join you** (existing shape). The `unit` grant with `bestMelee`, listed three times. Joins the completion grants in `realiseItem` (`cities.ts`).
+  - **on completion, 3 melee units join you** (existing shape). The `unit` grant with `bestMelee`, listed three times. Joins the completion grants in `realiseItem` (`cities.ts`).
 - Remove from the row: "+15% combat strength for all units against cities"; "on completion, the best melee unit you can build joins you".
 
 #### Petra

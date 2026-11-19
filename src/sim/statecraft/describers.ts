@@ -988,7 +988,22 @@ export function describeCard(id: CardId): CardClause[] {
     if (building.authorityCapacity !== undefined && building.authorityCapacity !== 0) {
       clauses.push({ text: `${signed(building.authorityCapacity)} authority capacity` });
     }
-    for (const grant of building.onComplete ?? []) {
+    const grants = building.onComplete ?? [];
+    for (let i = 0; i < grants.length; i++) {
+      const grant = grants[i]!;
+      if (grant.grant === 'unit' && grant.unit === 'bestMelee') {
+        let count = 1;
+        while (i + count < grants.length) {
+          const next = grants[i + count]!;
+          if (next.grant !== 'unit' || next.unit !== grant.unit) break;
+          count++;
+        }
+        if (count > 1) {
+          clauses.push({ text: `on completion, ${count} ${grantedClassWords('melee', true)} join you` });
+          i += count - 1;
+          continue;
+        }
+      }
       clauses.push({ text: grantWords(grant) });
     }
   }
@@ -3317,11 +3332,11 @@ function describeEffect(
       // Dominion batch D5's two unit kinds.
       if (grant?.unit === 'bestMelee') {
         out.push({
-          text: `${occasion} grants the best melee unit you can build${unitDeliveryWords(grant)}${per}`,
+          text: `${occasion} grants ${grantedClassWords('melee')}${unitDeliveryWords(grant)}${per}`,
         });
       }
       if (grant?.unit === 'bestRanged') {
-        out.push({ text: `${occasion} grants a ranged unit${unitDeliveryWords(grant)}${per}` });
+        out.push({ text: `${occasion} grants ${grantedClassWords('ranged')}${unitDeliveryWords(grant)}${per}` });
       }
       if (grant?.unit === 'unlockedByTech') {
         out.push({
@@ -3456,7 +3471,7 @@ function describeEffect(
         // reward's own words for a unit.
         const what =
           effect.unit === 'bestMelee'
-            ? 'the best melee unit you can build'
+            ? grantedClassWords('melee')
             : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
         out.push({ text: `new cities start with ${what} standing in them, free of upkeep${limit}` });
       }
@@ -3782,7 +3797,7 @@ function describeEffect(
       // where it does not — `grantWords`' sentence, said on a cadence.
       const what =
         effect.unit === 'bestMelee'
-          ? 'the best melee unit you can build'
+          ? grantedClassWords('melee')
           : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
       // The mark on the levy, where the row makes one — "and moves one further,
       // for good". Said as a trailing clause because it is a fact about the
@@ -4380,7 +4395,7 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
     effect.rank === undefined
       ? ''
       : ` as ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`;
-  const melee = `the best melee unit you can build${rank}`;
+  const melee = `${grantedClassWords('melee')}${rank}`;
   // Human Sacrifice (batch DT19). The scope's own words are "your capital", which
   // take no article, and each town reached is a step on the rite price.
   const riteTown = effect.scope === undefined ? `${indefinite(noun)} ${noun}` : noun;
@@ -4647,10 +4662,15 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
   return `${when}, ${grantedUnitWords(grant.unit)} joins you`;
 }
 
-/** The unit a grant raises, as a noun: "a Trader", "the best melee unit you can build". */
+function grantedClassWords(unitClass: 'melee' | 'ranged', plural = false): string {
+  const noun = ref('concept', 'grantedUnit', `${unitClass} unit${plural ? 's' : ''}`);
+  return plural ? noun : `a ${noun}`;
+}
+
+/** Named units link to their own entry. Class grants link to the selection rule. */
 function grantedUnitWords(unit: Extract<CompletionGrant, { grant: 'unit' }>['unit']): string {
   return unit === 'bestMelee'
-    ? 'the best melee unit you can build'
+    ? grantedClassWords('melee')
     : `${indefinite(unitDef(unit).name)} ${ref('unit', unit, unitDef(unit).name)}`;
 }
 
@@ -4750,7 +4770,7 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
           out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
         } else {
           const units = grant.unit === 'bestMelee'
-            ? 'of the best melee units you can build'
+            ? grantedClassWords('melee', true)
             : `${ref('unit', grant.unit, unitDef(grant.unit).name)} units`;
           out.push(`${lead}your capital raises up to ${count} ${units}. They cost no upkeep`);
         }
@@ -8942,7 +8962,7 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
   if (reward.unit !== undefined) {
     const what =
       reward.unit === 'bestMelee'
-        ? 'the best melee unit you can build'
+        ? grantedClassWords('melee')
         : `${indefinite(unitDef(reward.unit).name)} ${ref('unit', reward.unit, unitDef(reward.unit).name)}`;
     out.push(`${what}, trained in your capital free of upkeep`);
   }

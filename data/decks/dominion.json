@@ -289,7 +289,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The names go on the standard, one by one.",
-      "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and a melee unit is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1602,7 +1602,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "No new law today, so the drums call the men instead.",
-      "text": "Passing a draft hand grants the best melee unit you can build in your capital. It costs no upkeep.",
+      "text": "Passing a draft hand grants a melee unit in your capital. It costs no upkeep.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -2661,7 +2661,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every large town owes the army its share of men.",
-      "text": "Every ten turns, each town of at least eight citizens raises the best melee unit you can build.",
+      "text": "Every ten turns, each town of at least eight citizens raises a melee unit.",
       "effects": [
         {
           "kind": "periodicMuster",
@@ -2913,7 +2913,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Each new art of war goes first to the arsenal in the capital.",
-      "text": "Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep.",
+      "text": "Each time you research a technology, your capital raises a melee unit. It costs no upkeep.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -3608,7 +3608,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Recruited in the conquered provinces, trained for years in the capital.",
-      "text": "Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran.",
+      "text": "Captured towns of at least six citizens may spend a citizen to raise a melee unit, as a Veteran.",
       "effects": [
         {
           "kind": "levy",
@@ -4248,7 +4248,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Every armoury opens its doors on the same morning.",
-      "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep.",
+      "text": "Every ten turns, each city with an Armoury raises a melee unit. They cost no upkeep.",
       "effects": [
         {
           "kind": "periodicMuster",
@@ -5781,7 +5781,7 @@
       "band": 3,
       "line": "none",
       "flavor": "In war every town sends its sons. In peace every town has more of them.",
-      "text": "While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster.",
+      "text": "While at war, each town of six or more citizens raises a melee unit every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster.",
       "effects": [
         {
           "kind": "conditionRule",

@@ -67,7 +67,7 @@ import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 /** Every id this deck's file carries, in file order. */
 const MAGISTERIAL: readonly OrderId[] = DECK_FILE_ORDERS.magisterial;
 
-const PENDING_FLAVOUR: string[] = ["magisterialTheHeralds", "magisterialTheQuarryGangs", "magisterialTheNineJewels", "magisterialTheDivan", "magisterialTheHallofHeroes", "magisterialTheLawgiver", "magisterialTheHanlinAcademy", "magisterialTheFriendsofKhufu", "magisterialTheTwelveTables", "magisterialTheSteleofDeeds"];
+const PENDING_FLAVOUR: string[] = ["magisterialTheHeralds", "magisterialTheQuarryGangs", "magisterialTheNineJewels", "magisterialTheDivan", "magisterialTheHallofHeroes", "magisterialTheLawgiver", "magisterialTheHanlinAcademy", "magisterialTheSpiritWay", "magisterialTheFriendsofKhufu", "magisterialTheTwelveTables", "magisterialTheSteleofDeeds"];
 
 const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;
 const live = (id: OrderId): boolean => orderIsDealt(id);

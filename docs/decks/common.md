@@ -84,7 +84,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The Good Years** | rare | implemented | Your bonus from spare happiness is doubled. | Civic |  | G3-1 |
 | **City Watches** | common | implemented | Your towns gain +8 defence. | Military |  | G3-2 |
 | **Commission: The Master Plan** | uncommon | implemented | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | Wildcard | Commission | G3-3 |
-| **The General Summons** | uncommon | implemented | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. | Military | Boon | G3-4 |
+| **The General Summons** | uncommon | implemented | On draft: your capital raises up to three melee units. They cost no upkeep. | Military | Boon | G3-4 |
 | **The Old Patterns** | uncommon | implemented | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
 | **The Old Foundations** | common | implemented | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |
 | **The Long Memory** | rare | implemented | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
