@@ -6,17 +6,30 @@ At turn 100, current production was 54.9% higher across the 15 matched maps (95%
 
 At turn 120, production was higher on 10 of the 11 remaining maps. The paired estimate was +70.6%. These 11 maps exclude all five early current wins. One map supplied 14,235 of the 49,872 current production, so the pooled total gives it more weight than the paired estimate.
 
-## Changing seats on seed 2026
+## Changing decks and personas on eight maps
 
-In the original game, seat 3 held Magisterial and Expansionist with the Zealot persona. Seat 2 held Commerce and Devotion with the Tall persona. Two more games used the same six seats, starting map, unit positions and turn limit on `2d7b503a`. Each changed one setting between those seats.
+Seat 3 originally held Magisterial and Expansionist with the Zealot persona. Seat 2 held Commerce and Devotion with the Tall persona. On each map, one game exchanged their deck pairs and a separate game exchanged their personas. All other seats kept their settings. The map and starting unit hashes matched the original in every run. All 16 variants finished without a driver warning or stall.
 
-| Game | Outcome | Final state digest |
-|---|---|---|
-| Original | Seat 3 won on state turn 100, before the turn-100 checkpoint. | `d7d2eef8:1057153` |
-| Exchange decks only | No winner after resolving turn 120. | `c8f9041a:1031568` |
-| Exchange personas only | No winner after resolving turn 120. | `6277195c:1094541` |
+The sample includes all five maps where the original game had a winner by turn 120. It also includes the first three undecided maps in the original results table. This selection lets us check whether an existing win survives each exchange. It does not give a win rate for a random map. Each exchange changes both rivals, so it also cannot isolate the strength of a single deck or persona.
 
-Both runs ended on state turn 121 without a warning or stall. The starting map and unit hashes matched the original in both cases. Either exchange changed the outcome on this map. Each exchange affected two rivals, so these results cannot rank the individual decks or personas. Repeat the controls on the other winning seeds and on maps where nobody won. The two probe bundles and their per-seat results are in `/private/tmp/webciv-rotation-2026.jLFeuW`.
+| Seed | Original | Exchange deck pairs | Exchange personas |
+|---:|---|---|---|
+| 2026 | Seat 3, turn 100 | Open | Open |
+| 42 | Seat 3, turn 111 | Seat 2, turn 107 | Open |
+| 5 | Seat 3, turn 103 | Seat 2, turn 114 | Open |
+| 314 | Seat 3, turn 117 | Open | Open |
+| 7 | Seat 0, turn 114 | Seat 2, turn 117 | Open |
+| 999 | Open | Open | Open |
+| 1 | Open | Open | Open |
+| 31337 | Open | Open | Open |
+
+“Open” means the game resolved turn 120 without a winner. A win lists the turn shown by the final state.
+
+- With the deck exchange, seat 2 won three games holding Magisterial and Expansionist. Two were maps where seat 3 had won with those decks. The third was seed 7, where the original winner was seat 0. On the other two original winning maps, both exchanged games stayed open.
+- With the persona exchange, all eight games stayed open, including the five original wins. Holding the original decks and starting positions was insufficient to reproduce those wins with the exchanged personas.
+- All three originally undecided maps stayed open in both variants. Each variant ended with a different state digest from the original.
+
+The shared baseline folders hold the per-seat readings at turns 50, 100 and 120 where reached, the final state digests and the exact runnable probes. [Deck exchange records](/Users/jacky/code/webciv-baselines/2d7b503a/six-seat-standard-t120-deck-swap-2-3/NOTES.md) · [Persona exchange records](/Users/jacky/code/webciv-baselines/2d7b503a/six-seat-standard-t120-persona-swap-2-3/NOTES.md)
 
 ## Games
 
