@@ -3876,3 +3876,24 @@ On a fresh End Turn request, a nearly finished but stale calculation can finish 
 | Same last case, on-demand control | 44 and 50 ms | 49 and 71 ms |
 
 An initial implementation immediately closed the old worker on that last input. It took 184 to 212 ms in Chromium and 369 to 388 ms in WebKit. The bounded wait kept the warm pool for all four ordinary presses. A deliberately delayed stale response still triggered a restart after about 80 ms. The early-game measurements show the advantage when the player has given the worker time to finish, and the cost of acting just before End Turn. The scripts and raw results are in `/private/tmp/webciv-bp17-warm.5r3OAf`.
+
+Typecheck, 12,101 core tests and the production build passed on the combined branch. Six slow tests covered the driver, worker and both original 120-turn final states.
+
+## Research review frequency, 2026-11-19
+
+The play build keeps its existing research review schedule. Two experiments checked whether a bot could skip the expensive review of its current research plan on some turns. Both still chose a plan immediately when a new one was required. The first allowed up to three turns between reviews. The second allowed two and checked for changes to each town's population and front production item.
+
+Five six-seat Standard games used seeds 42, 999, 1, 7 and 2026. Each reached turn 100 and replayed without a stall or bot warning. The table sums all seats across the five games at turn 100.
+
+| Measure | Existing schedule | Three-turn limit | Two-turn limit |
+|---|---:|---:|---:|
+| Towns | 307 | 338 | 299 |
+| Citizens | 1,749 | 1,700 | 1,672 |
+| Production per turn | 8,168 | 6,715 | 7,279 |
+| Science per turn | 4,984 | 4,406 | 4,727 |
+| Culture per turn | 2,638 | 2,197 | 2,814 |
+| Known technologies, counted per seat | 764 | 768 | 755 |
+
+With the two-turn limit, seeds 42, 7 and 2026 matched the existing final state exactly. On seed 999, production fell from 2,424 to 1,537. One seat accounted for most of the difference. It had 109 citizens against the original 122, and produced 193 against the original 1,051. The saved measurements do not identify a single decision that caused the decline.
+
+A separate timing check used the same turn-90 snapshot on seed 42. It warmed each version for one turn, then timed four turns, reversing the order for the second pair. The existing version used 5.32 and 3.99 CPU seconds. The two-turn version used 5.17 and 4.19. Each made the same 411 decisions and ended in the same state. The two-turn version saved one of 29 research table builds in each run. The timing gave no repeatable gain to offset the risk to play. The two private versions are on `codex/bot-research-review`. The detailed results are in `/private/tmp/webciv-bp18-evidence/variants-report.md`.
