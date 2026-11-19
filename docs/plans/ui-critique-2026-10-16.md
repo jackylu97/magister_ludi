@@ -1551,3 +1551,14 @@ the chosen ones."
 - **Not built yet.** It goes in with the age plate on the ribbon. That build
   also needs a decision the user has not made: an age I plate when the game
   starts (recommended), since no plate shows age I today.
+
+### The ending paintings (2026-11-19)
+
+The user added a painting for a win and two for a loss: "i added the win/loss
+splash, lets visualize these. i think i like the alt better for the loss
+screen". The files are `public/art/splash/endings/win.jpg` and `loss.jpg` (the
+alternate), made by `scripts/splashArt.py endings`. The first loss take is in
+`art-masters/endings/unused/`. They go in the painting window of the approved
+ending page (frame A9 of the Quiet Table boards). Not built yet. The preview
+(https://claude.ai/artifact page "Ending Paintings Preview") also shows a
+second layout, the painting as the whole page, which the user has not ruled on.

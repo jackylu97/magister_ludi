@@ -8,6 +8,7 @@ Kinds:
   wonders   16:9, at most 1600 px wide
   people    5:6,  at most 720 px wide (great people's portraits)
   ages      16:9, at most 1600 px wide (three sets of four: form, still, abstract)
+  endings   16:9, at most 1600 px wide (win and loss)
 
 What it does to each picture:
   1. cuts off a border, if the picture has one: black bars, or a paper mount
@@ -55,7 +56,10 @@ AGES = {
     'age1abstract': 'abstract1', 'age2abstract': 'abstract2', 'age3abstract': 'abstract3',
     'age4abstract': 'abstract4',
 }
+# The two paintings of the ending page: the local player wins, or another seat does.
+ENDINGS = {'ending_win': 'win', 'ending_loss_alt': 'loss'}
 KINDS = {
+    'endings': {'names': ENDINGS, 'ratio': (16, 9), 'width': 1600},
     'ages': {'names': AGES, 'ratio': (16, 9), 'width': 1600},
     'wonders': {'names': WONDERS, 'ratio': (16, 9), 'width': 1600},
     'people': {'names': PEOPLE, 'ratio': (5, 6), 'width': 720},
