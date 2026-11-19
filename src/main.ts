@@ -230,7 +230,13 @@ import {
 } from './sim/statecraftData';
 import { doctrineFaceOf, orderPayoff } from './ui/deckBadges';
 import { offerBackNode } from './ui/cardDeal';
-import { OFFER_FACE_SHAPES, greatPersonOfferFace, orderOfferFace } from './ui/offerFaces';
+import {
+  OFFER_FACE_SHAPES,
+  fitOrderHand,
+  greatPersonOfferFace,
+  greatPersonOfferShape,
+  orderOfferFace,
+} from './ui/offerFaces';
 import { scalerFace } from './ui/scalerValue';
 import { createTurnSplash, techSplashReading } from './ui/turnSplash';
 import { charterOfferParts } from './ui/charterTech';
@@ -2022,6 +2028,9 @@ function strengthFigure(value: number): string {
  * file prints the sentence that module wrote (`COMPARISON_LINE`) and hangs the
  * tint on the card, exactly as it prints `cityPhaseLine`'s.
  */
+/** The two sides of the forecast (Quiet Table, build stage 3; the user: "you" vs "them"). */
+const FORECAST_SIDE_WORDS = { you: 'You', them: 'Them' } as const;
+
 function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>): void {
   combatForecastEl.replaceChildren();
   combatForecastEl.hidden = reading === null;
@@ -2072,28 +2081,38 @@ function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>)
   }
 
   /**
-   * The two effective strengths, as the card's **headline** (user, 2026-08-26:
-   * "combat info should show attack strength of each unit"), each over the lines
-   * it is the fold of.
+   * **One side of the fight, as a column** (Quiet Table, build stage 3; the
+   * user: "lets make this more readable. Could we label the bottom as 'you'
+   * vs 'them', and have the health bars appear under the unit it belongs
+   * to"). Top to bottom: the side's word (`FORECAST_SIDE_WORDS`), the
+   * unit's name under it, its effective strength over the lines it folds from,
+   * and then the blow it takes, with the roll band, over the health bar it
+   * would be left with and the health after the blow.
    *
    * Rule 5, and the card's job here is only to *print* it: `attackerLines` and
    * `defenderLines` come out of `planCombat` already folding to the numbers
    * above them, so nothing is summed on this side of the wall. A capture is the
-   * one case with no strengths worth reading — nobody fights — and it returns
-   * before this block below.
+   * one case with no strengths worth reading (nobody fights), and it returns
+   * before this block.
    */
-  function strengthColumn(
-    label: string,
+  function sideColumn(
+    word: string,
+    name: string,
     strength: number,
     lines: readonly { source: string; amount: number }[],
     tone: 'attacker' | 'defender',
+    blow: { damage: number; min: number; max: number; hp: number; maxHp: number },
   ): HTMLElement {
     const column = document.createElement('div');
     column.className = `combat-strength is-${tone}`;
 
     const who = document.createElement('span');
     who.className = 'combat-strength-label';
-    who.textContent = label;
+    who.textContent = word;
+
+    const unit = document.createElement('span');
+    unit.className = 'combat-unit';
+    unit.textContent = name;
 
     const figure = document.createElement('span');
     figure.className = 'combat-strength-figure';
@@ -2112,64 +2131,44 @@ function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>)
       list.append(row);
     }
 
-    column.append(who, figure, list);
-    return column;
-  }
-
-  /** One side of the trade: a damage figure, its band, and the bar it leaves. */
-  function side(
-    label: string,
-    tone: 'dealt' | 'taken',
-    damage: number,
-    min: number,
-    max: number,
-    hp: number,
-    maxHp: number,
-  ): HTMLElement {
-    const row = document.createElement('div');
-    row.className = `combat-side is-${tone}`;
-
-    const name = document.createElement('span');
-    name.className = 'combat-side-label';
-    name.textContent = label;
-
-    const figure = document.createElement('span');
-    figure.className = 'combat-damage';
+    // The blow this side takes, and the bar it is left with, under its own unit.
+    const side = document.createElement('div');
+    side.className = `combat-side ${tone === 'defender' ? 'is-dealt' : 'is-taken'}`;
+    const damage = document.createElement('span');
+    damage.className = 'combat-damage';
     // The band as a ± when it is symmetric enough to read that way, which the
-    // roll band always is — it is a fixed fraction either side of the midpoint.
-    const spread = Math.max(damage - min, max - damage);
-    figure.textContent = spread > 0 ? `−${damage} ±${spread}` : `−${damage}`;
-
+    // roll band always is: a fixed fraction either side of the midpoint.
+    const spread = Math.max(blow.damage - blow.min, blow.max - blow.damage);
+    damage.textContent = spread > 0 ? `−${blow.damage} ±${spread}` : `−${blow.damage}`;
     const bar = document.createElement('span');
     bar.className = 'combat-bar';
     const fill = document.createElement('span');
     fill.className = 'combat-bar-fill';
-    const left = Math.max(0, hp - damage);
-    const share = (value: number): number =>
-      maxHp > 0 ? Math.round((value / maxHp) * 100) : 0;
+    const left = Math.max(0, blow.hp - blow.damage);
+    const share = (value: number): number => (blow.maxHp > 0 ? Math.round((value / blow.maxHp) * 100) : 0);
     fill.style.width = `${share(left)}%`;
     // The share about to be lost, butted right up against the surviving share,
     // so the bar reads left to right: kept, then going, then already gone.
     const loss = document.createElement('span');
     loss.className = 'combat-bar-loss';
     loss.style.left = `${share(left)}%`;
-    loss.style.width = `${share(Math.min(damage, hp))}%`;
+    loss.style.width = `${share(Math.min(blow.damage, blow.hp))}%`;
     bar.append(fill, loss);
-
     const after = document.createElement('span');
     after.className = 'combat-after';
-    after.textContent = `${left}/${maxHp}`;
+    after.textContent = `${left}/${blow.maxHp}`;
+    side.append(damage, after, bar);
 
-    row.append(name, figure, bar, after);
-    return row;
+    column.append(who, unit, figure, list, side);
+    return column;
   }
 
   // The two one-sided blows, and they are **not** the same news. A civilian
   // changes hands; a laden caravan is destroyed where it stands and its cargo
-  // carried to the attacker's nearest town. Both return before the strength
-  // columns for the same reason — nobody fights, so there are no strengths worth
-  // reading — and the wording is the only thing that tells a player which of the
-  // two the piece in front of them is. `plundersUnit` is asked first because the
+  // carried to the attacker's nearest town. Both return before the columns for
+  // the same reason (nobody fights, so there are no strengths worth reading),
+  // and the wording is the only thing that tells a player which of the two the
+  // piece in front of them is. `plundersUnit` is asked first because the
   // simulation decides it first: a caravan carrying a route is excluded from
   // `capturesUnit`, and an *unladen* trader is an ordinary civilian and is taken
   // like one (`planCombat`).
@@ -2188,38 +2187,42 @@ function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>)
     return;
   }
 
+  // **You, then them**: the selected piece is always this seat's, so the
+  // attacker's column is "You" and the target's is "Them". A ranged shot
+  // with no counter leaves your bar whole and says so with a nought.
   const strengths = document.createElement('div');
   strengths.className = 'combat-strengths';
   strengths.append(
-    strengthColumn(preview.attackerName, preview.attackerStrength, preview.attackerLines, 'attacker'),
-    strengthColumn(preview.defenderName, preview.defenderStrength, preview.defenderLines, 'defender'),
-  );
-  combatForecastEl.append(strengths);
-
-  combatForecastEl.append(
-    side(
+    sideColumn(
+      FORECAST_SIDE_WORDS.you,
+      preview.attackerName,
+      preview.attackerStrength,
+      preview.attackerLines,
+      'attacker',
+      {
+        damage: preview.damageToAttacker,
+        min: preview.damageToAttackerMin,
+        max: preview.damageToAttackerMax,
+        hp: preview.attackerHp,
+        maxHp: preview.attackerMaxHp,
+      },
+    ),
+    sideColumn(
+      FORECAST_SIDE_WORDS.them,
       preview.defenderName,
-      'dealt',
-      preview.damageToDefender,
-      preview.damageToDefenderMin,
-      preview.damageToDefenderMax,
-      preview.defenderHp,
-      preview.defenderMaxHp,
+      preview.defenderStrength,
+      preview.defenderLines,
+      'defender',
+      {
+        damage: preview.damageToDefender,
+        min: preview.damageToDefenderMin,
+        max: preview.damageToDefenderMax,
+        hp: preview.defenderHp,
+        maxHp: preview.defenderMaxHp,
+      },
     ),
   );
-  if (preview.damageToAttacker > 0) {
-    combatForecastEl.append(
-      side(
-        preview.attackerName,
-        'taken',
-        preview.damageToAttacker,
-        preview.damageToAttackerMin,
-        preview.damageToAttackerMax,
-        preview.attackerHp,
-        preview.attackerMaxHp,
-      ),
-    );
-  }
+  combatForecastEl.append(strengths);
 
   // Whatever is left to say once the two columns have said the rest. Terrain,
   // fortification, the ford and every flat bonus are **strength lines** now and
@@ -3501,6 +3504,8 @@ async function boot(initial: Game | null): Promise<void> {
           // The draft pile's own back, and the engraved face's shape.
           back: () => offerBackNode('sun'),
           shape: OFFER_FACE_SHAPES.order,
+          // A hand reads alike: one size for every card's rules.
+          fitHand: fitOrderHand,
           widening: wideningLines('order'),
           // The second answer (the ruling of 2026-09-04). Plain words on both
           // halves: what it does, and what it costs — the culture is already
@@ -3961,7 +3966,8 @@ async function boot(initial: Game | null): Promise<void> {
         title: 'Who will serve you',
         // The laurel's back, and the great person card's shape.
         back: () => offerBackNode('laurel'),
-        shape: OFFER_FACE_SHAPES.person,
+        // The roster's one card height (Quiet Table, build stage 3).
+        shape: greatPersonOfferShape(),
         widening: wideningLines('greatPerson'),
         // **A name may be asked for again, at twice the Order price** (ruling q,
         // 2026-09-07) — one ladder with the Order and the Doctrine drafts, so

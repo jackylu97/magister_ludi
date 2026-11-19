@@ -8,7 +8,7 @@ painting shows are in `docs/splash-art.md`.
 | `wonders/` | One painting a wonder, written by `scripts/splashArt.py` | 16:9 | made from the master, at most 1600 wide | the wonder's id, for example `greatSphinx.jpg` |
 | `leaders/` | One portrait a leader | 3:4 | 960 x 1280 | the leader's id, for example `pachacuti.jpg` |
 | `ages/` | One plate an age | 16:9 | 2560 x 1440 | `age1.jpg` to `age4.jpg` |
-| `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id |
+| `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id, for example `sacredFire.jpg` |
 | `people/` | One portrait a great person | 5:6 | 600 x 720 | the person's id, for example `imhotep.jpg` |
 
 - Use JPEG (quality about 85) or WebP for the files in this folder. Keep
@@ -37,7 +37,7 @@ painting shows are in `docs/splash-art.md`.
 
 The painting then shows on the full-screen wonder plate and on the wonder's
 piece on the In play screen. A wonder without a painting shows the engraved
-stand-in. Leaders, ages and beliefs are not wired yet.
+stand-in. Ages are not wired yet.
 
 ## How a great person's portrait gets into the game
 
@@ -53,6 +53,40 @@ in the window.
 
 The portrait then shows in the window of that person's card, in the offer and
 in the Reliquary.
+
+## How a leader's portrait gets into the game
+
+The setup's leader step has a portrait window of 3:4 beside the list of
+leaders. At 1440 x 900 the window is about 330 x 440. No portrait exists yet,
+so the window shows the seat's charge on a parchment plate over the seat's
+ink.
+
+1. Make the portrait 3:4, at 960 x 1280 or larger. The window has square
+   corners and shows the whole picture.
+2. Save it as `leaders/<leader id>.jpg` (JPEG, quality about 85). The ids
+   are in the table at the foot of this page.
+3. Add the id to the list in `src/ui/leaderPortraits.ts`. A test
+   (`test/ui/leaderPortraits.test.ts`) fails if the list and the folder
+   disagree.
+
+The portrait then shows in the window when that leader is chosen.
+
+## How a belief's vignette gets into the game
+
+On the Faith sheet's Bonuses tab, each god, each belief and the holy city is a
+tablet with a round window of 1:1. No vignette exists yet, so every window
+shows the drawn belief mark (the holy city shows its own mark).
+
+1. Make the vignette 1:1, at 480 x 480 or larger. The window is a circle, so
+   keep anything important inside the circle that touches the four edges.
+2. Save it as `beliefs/<belief id>.jpg` (JPEG, quality about 85). The ids
+   are the keys of `beliefs` in `data/religion.json`.
+3. Add the id to the list in `src/ui/beliefPictures.ts`. A test
+   (`test/ui/beliefPictures.test.ts`) fails if the list and the folder
+   disagree.
+
+The vignette then shows in the window of that belief's tablet. The holy city's
+tablet keeps its mark.
 
 ## Wonder ids
 

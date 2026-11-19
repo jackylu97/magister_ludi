@@ -25,6 +25,7 @@ import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { religionReading } from '../../src/ui/faithReading';
 import {
   CLERGY,
+  WORLD_WORDS,
   type FollowersHandlers,
   type FollowersModel,
   drawFollowersTab,
@@ -273,9 +274,46 @@ describe('the drawing', () => {
   it('lists the rival faith pressing a town, from the side of the seat it presses', () => {
     const { state, lagash } = faithTabsWorld();
     const tab = draw(state, recorder().handlers, 1);
+    // A column of the main table since Quiet Table's build stage 3: the town's
+    // row carries the rival faith, with its ledger on the rival's own line.
     const rivals = byClass(tab, 'faith-rivals')[0]!;
     const row = byClass(rivals, 'faith-follower').find((node) => node.dataset.city === String(lagash.id))!;
     expect(textOf(row)).toContain('the Grain Cult · Azure');
-    expect(row.title).toContain('Holy site');
+    expect(byClass(row, 'faith-rival')[0]!.title).toContain('Holy site');
+  });
+});
+
+describe('the religions in the world (Quiet Table, build stage 3)', () => {
+  it('names each religion with its founder, its holy city and its towns, yours first', () => {
+    const { state, uruk } = faithTabsWorld();
+    const shown = model(state, 0);
+    expect(shown.world[0]).toMatchObject({
+      name: 'the Grain Cult',
+      founder: WORLD_WORDS.you,
+      ours: true,
+      holyCity: cityDisplayName(state, uruk),
+      towns: religionReading(state, 0).following.length,
+    });
+    expect(shown.worldNote.startsWith(religionReading(state, 0).count)).toBe(true);
+  });
+
+  it('keeps the fog for a rival religion: its holy city only if seen, its towns only in sight', () => {
+    const { state } = faithTabsWorld();
+    const source = sourceOf('followersTab.ts');
+    expect(source).toContain('knowsCity(state, seat, holy.id');
+    expect(source).toContain('city.ownerId === seat || isVisibleTo(state, seat, city.col, city.row)');
+    // Seat one did not found the Grain Cult, so it reads it as a rival's.
+    const rival = model(state, 1).world.find((row) => row.name === 'the Grain Cult');
+    expect(rival?.ours).toBe(false);
+    expect(WORLD_WORDS.counted).not.toMatch(/\d/);
+  });
+
+  it('lists every town of yours as one row, reached first, with its rival faiths as a column', () => {
+    const { state } = faithTabsWorld();
+    const shown = model(state, 0);
+    const ours = state.cities.filter((city) => city.ownerId === 0).length;
+    expect(shown.towns).toHaveLength(ours);
+    const reached = shown.towns.filter((town) => town.follower !== null).length;
+    expect(shown.towns.slice(0, reached).every((town) => town.follower !== null)).toBe(true);
   });
 });

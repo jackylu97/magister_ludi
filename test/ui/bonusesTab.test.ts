@@ -361,23 +361,33 @@ describe('the drawing', () => {
     for (const stamp of byClass(tab, 'card-stamp')) {
       if (stamp.dataset.face === 'figure') expect(stamp.dataset.phase).toBe('held');
     }
-    // The bar is drawn at its widths at once.
-    for (const slice of byClass(tab, 'faith-slice')) expect(slice.props.width).not.toBe('0%');
   });
 
-  it('grows the faith bar’s slices from nothing, each a beat after the one before', () => {
+  it('puts the headline on one fine line: the faith a turn in its slices, and what the religion pays', () => {
+    // Quiet Table, build stage 3: the two large boxes are one line.
     const { state } = faithTabsWorld();
-    const { motion, runAll } = recorder(true);
-    const tab = draw(bonusesTabModel(state, 0), motion);
-    const slices = byClass(tab, 'faith-slice');
-    expect(slices.length).toBeGreaterThan(1);
-    slices.forEach((slice, index) => {
-      expect(slice.props.width).toBe('0%');
-      expect(slice.props['--slice-delay']).toBe(`${index * 90}ms`);
-    });
-    runAll();
-    const widths = slices.map((slice) => Number.parseFloat(slice.props.width!));
-    expect(widths.reduce((sum, width) => sum + width, 0)).toBeCloseTo(100, 1);
+    const model = bonusesTabModel(state, 0);
+    const tab = draw(model, recorder(false).motion);
+    expect(byClass(tab, 'faith-headline')).toEqual([]);
+    expect(byClass(tab, 'faith-bar')).toEqual([]);
+    const line = byClass(tab, 'faith-pays-line')[0]!;
+    const items = byClass(line, 'faith-key-item').filter((node) => node.dataset.src !== undefined);
+    expect(items.map((node) => node.dataset.src)).toEqual(model.faith.slices.map((slice) => slice.key));
+    const stamps = byClass(line, 'card-stamp').map((node) => node.dataset.key);
+    expect(stamps).toEqual(['headline:faith', 'headline:religion']);
+  });
+
+  it('draws the gods, the beliefs and the holy city as tablets with a round window, and an empty place as a dashed tablet', () => {
+    const { state } = faithTabsWorld();
+    const model = bonusesTabModel(state, 0);
+    const tab = draw(model, recorder(false).motion);
+    for (const face of faces(tab)) {
+      const tablet = ['god', 'follower', 'enhancer', 'otherFaith', 'holyCity'].includes(card(model, face.dataset.src!).kind);
+      expect(face.className.split(' ').includes('is-tablet'), face.dataset.src).toBe(tablet);
+      // No vignette exists yet, so every window shows the drawn mark.
+      if (tablet) expect(byClass(face, 'faith-window')[0]!.dataset.picture).toBe('mark');
+    }
+    for (const ghost of byClass(tab, 'is-ghost')) expect(ghost.className).toContain('is-tablet');
   });
 
   it('wears the flourish on a card that pays no yield, with what it waits for', () => {
@@ -388,21 +398,18 @@ describe('the drawing', () => {
     expect(textOf(byClass(spires, 'faith-card-quiet')[0]!)).toBe('pays once a Wat stands');
   });
 
-  it('lights a card’s slice of the bar while the others dim, and the card from its slice', () => {
+  it('lights a card’s slice on the line while the card is hovered', () => {
     const { state } = faithTabsWorld();
     const tab = draw(bonusesTabModel(state, 0), recorder(false).motion);
-    const bar = byClass(tab, 'faith-bar')[0]!;
-    // Keeper of the Hearth, whose Granary faith is a slice of the bar. Sacred
+    // Keeper of the Hearth, whose Granary faith is a slice of the line. Sacred
     // Fire pays production since batch B1, so it has no faith slice.
     const face = faces(tab).find((one) => one.dataset.src === 'card:keeperOfTheHearth')!;
-    const slice = byClass(tab, 'faith-slice').find((one) => one.dataset.src === 'card:keeperOfTheHearth')!;
+    const slice = byClass(tab, 'faith-key-item').find((one) => one.dataset.src === 'card:keeperOfTheHearth')!;
     fire(face, 'pointerenter');
-    expect(bar.className).toContain('is-dim');
     expect(slice.className).toContain('is-lit');
-    fire(face, 'pointerleave');
-    expect(bar.className).not.toContain('is-dim');
-    fire(slice, 'pointerenter');
     expect(face.className).toContain('is-lit');
+    fire(face, 'pointerleave');
+    expect(slice.className).not.toContain('is-lit');
   });
 
   it('hands every card to the hover card, and prints no raw keyword mark', () => {

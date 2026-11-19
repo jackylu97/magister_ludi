@@ -1,6 +1,12 @@
 /**
  * The Faith sheet's Bonuses tab (batch UX10): everything your religion pays,
- * as cards on shelves, under a two-panel headline.
+ * as cards on shelves, under one fine line.
+ *
+ * Since Quiet Table's build stage 3 (the third pass's `frame-c1-bonuses`: "The
+ * proposed pages look good") the two large headline boxes are one line, and
+ * the gods, the beliefs and the holy city are tablets with a round window
+ * (`beliefPicture`, the drawn mark until vignettes exist); an empty place is a
+ * dashed tablet.
  *
  * The spec is `docs/plans/faith-screen-f1.md`, Tab 2, with the user's answers
  * of 2026-10-15 (`docs/flags.md` (ssssss) 4):
@@ -15,11 +21,10 @@
  *
  * What is on it
  * -------------
- *   - **The headline.** Left: faith a turn, the top bar's figure, with a bar
- *     whose slices are the Ledger's faith row with the Religion class opened
- *     into its sources (`explainFaithLedger`). Right: what the religion pays a
- *     turn, voice by voice, which is the Ledger's Religion slice
- *     (`foldReligionLedger`).
+ *   - **The line.** Faith a turn, the top bar's figure, with the Ledger's faith
+ *     row in words, the Religion class opened into its sources
+ *     (`explainFaithLedger`); then what the religion pays a turn, voice by
+ *     voice, which is the Ledger's Religion slice (`foldReligionLedger`).
  *   - **The shelves**, each with its total: your gods (and the empty places,
  *     each saying what it waits for); your religion's follower and enhancer
  *     beliefs (and the empty places, as dashed outlines); the holy cities you
@@ -49,6 +54,7 @@
  * so the sheet can cancel all of it on its next paint or when it closes.
  */
 
+import { inPlayMarkDataUri } from '../art/inPlayMarks';
 import { buildingDef } from '../sim/buildingData';
 import type { BuildingId } from '../sim/buildingData';
 import { type CityYields, emptyCityYields, tileOwnerCityId } from '../sim/cities';
@@ -108,6 +114,7 @@ import {
 import { hasTech } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { yieldShows } from '../sim/yieldFormat';
+import { beliefPicture } from './beliefPictures';
 import {
   type StampReading,
   cardStampNode,
@@ -125,7 +132,6 @@ import { element, withArticle } from './dom';
 import { AXIS_MARK, POOL_WORD, SLOT_GLYPH, beliefCardType, listWords, poolTech, poolTechName } from './faithReading';
 import { YIELD_GLYPH, netFigure, signedFigure } from './figures';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
-import { ledgerInk } from './ledgerInk';
 import { LEDGER_CLASS_NAME } from './ledgerScreen';
 import { setYieldText } from './yieldMark';
 
@@ -187,7 +193,7 @@ export interface BonusCard {
 }
 
 /** An empty place on a shelf, drawn as a dashed outline. */
-interface BonusGhost {
+export interface BonusGhost {
   key: string;
   title: string;
   text: string;
@@ -734,9 +740,6 @@ interface BonusesHandlers {
   hover?: (anchor: HTMLElement, build: () => Node) => void;
 }
 
-/** How far apart the faith bar's slices start to grow, in milliseconds. */
-const SLICE_STAGGER_MS = 90;
-
 /** How many town chips a narrow card shows before "+N more"; the hover card lists them all. */
 const CHIP_LIMIT = 6;
 
@@ -827,6 +830,40 @@ function drawWhere(card: BonusCard): HTMLElement | null {
   return where;
 }
 
+/**
+ * **The cards drawn as tablets** (Quiet Table, build stage 3; the third pass's
+ * `frame-c1-bonuses`): the gods, the beliefs and the holy city. A rite and a
+ * cathedral's patron keep the card.
+ */
+const TABLET_KINDS: ReadonlySet<BonusKind> = new Set<BonusKind>(['god', 'follower', 'enhancer', 'otherFaith', 'holyCity']);
+
+/** The belief a card stands for, read off its key (`card:<belief id>`), or `null`. */
+function cardBelief(card: BonusCard): string | null {
+  return card.key.startsWith('card:') ? card.key.slice('card:'.length) : null;
+}
+
+/**
+ * **A tablet's round window**: the belief's vignette when one exists
+ * (`beliefPicture`, none yet), and the drawn belief mark otherwise; the holy
+ * city's tablet wears the holy city's mark.
+ */
+function windowNode(card: BonusCard): HTMLElement {
+  const window = element('span', 'faith-window');
+  window.setAttribute('aria-hidden', 'true');
+  const belief = cardBelief(card);
+  const picture = belief === null ? ({ kind: 'mark' } as const) : beliefPicture(belief);
+  if (picture.kind === 'painted') {
+    window.dataset.picture = 'painted';
+    window.style.backgroundImage = `url("${picture.url}")`;
+    return window;
+  }
+  window.dataset.picture = 'mark';
+  const mark = element('span', 'faith-window-mark');
+  mark.style.setProperty('--faith-mark', `url("${inPlayMarkDataUri(card.kind === 'holyCity' ? 'holyCity' : 'belief')}")`);
+  window.append(mark);
+  return window;
+}
+
 /** The glyph in a card's emblem chip. */
 function emblemGlyph(card: BonusCard): string {
   if (card.axis !== null) return AXIS_MARK[card.axis].glyph;
@@ -841,20 +878,30 @@ function emblemGlyph(card: BonusCard): string {
  * the foot. An `article`, not a button: nothing happens when it is pressed, so
  * its keywords stay links.
  */
-function drawCard(card: BonusCard): { face: HTMLElement; stamp: HTMLElement } {
+export function drawCard(card: BonusCard): { face: HTMLElement; stamp: HTMLElement } {
   const classes = ['sc-card', 'faith-card', `is-${card.kind}`];
   if (card.wide) classes.push('is-wide');
+  const tablet = TABLET_KINDS.has(card.kind);
+  if (tablet) classes.push('is-tablet');
   const face = element('article', classes.join(' '));
   face.dataset.src = card.key;
   if (card.axis !== null) face.dataset.axis = card.axis;
   face.tabIndex = 0;
-  const head = element('div', 'sc-card-head');
-  const emblem = element('span', 'faith-card-emblem', emblemGlyph(card));
-  emblem.setAttribute('aria-hidden', 'true');
-  head.append(emblem);
-  head.append(element('span', 'sc-card-type', card.eyebrow));
-  face.append(head);
-  face.append(element('h4', 'sc-card-name', card.name));
+  if (tablet) {
+    // **A tablet** (Quiet Table, build stage 3): the round window, the name
+    // and the eyebrow under it, as the In play screen draws a belief.
+    face.append(windowNode(card));
+    face.append(element('h4', 'sc-card-name', card.name));
+    face.append(element('span', 'sc-card-type', card.eyebrow));
+  } else {
+    const head = element('div', 'sc-card-head');
+    const emblem = element('span', 'faith-card-emblem', emblemGlyph(card));
+    emblem.setAttribute('aria-hidden', 'true');
+    head.append(emblem);
+    head.append(element('span', 'sc-card-type', card.eyebrow));
+    face.append(head);
+    face.append(element('h4', 'sc-card-name', card.name));
+  }
   if (card.clauses.length > 0) {
     const list = element('ul', 'sc-clauses');
     drawClauses(list, card.clauses);
@@ -872,8 +919,9 @@ function drawCard(card: BonusCard): { face: HTMLElement; stamp: HTMLElement } {
 }
 
 /** One empty place, as a dashed outline. */
-function drawGhost(ghost: BonusGhost): HTMLElement {
-  const face = element('article', 'faith-card is-ghost');
+export function drawGhost(ghost: BonusGhost): HTMLElement {
+  // A dashed tablet (Quiet Table, build stage 3): an empty place for a god or a belief.
+  const face = element('article', 'faith-card is-ghost is-tablet');
   face.dataset.src = ghost.key;
   const glyph = element('span', 'faith-ghost-glyph', SLOT_GLYPH);
   glyph.setAttribute('aria-hidden', 'true');
@@ -891,132 +939,78 @@ function drawGhost(ghost: BonusGhost): HTMLElement {
   return face;
 }
 
-/** The ink a slice of the bar wears: its Ledger class's, its belief's axis, or faith's. */
-function sliceInk(slice: FaithSlice): string {
-  if (slice.ledgerClass !== null) return ledgerInk(slice.ledgerClass);
-  // A belief's slice wears its axis through `[data-axis]`, as its card's frame does.
-  if (slice.axis !== null) return 'var(--line-ink)';
-  return 'var(--y-faith)';
-}
-
-/** The left half of the headline: faith a turn, the bar of slices, and its key. */
-function drawFaithHead(
-  model: BonusesModel,
-  motion: BonusesMotion,
-  slices: Map<string, HTMLElement>,
-): { panel: HTMLElement; bar: HTMLElement } {
-  const panel = element('section', 'faith-head-card');
-  panel.append(element('p', 'eyebrow sc-eyebrow', 'faith a turn · the top bar’s figure'));
-  const row = element('div', 'faith-head-figure');
+/**
+ * **The tab's one fine line** (Quiet Table, build stage 3; the two large
+ * headline boxes go): faith a turn, the top bar's figure, and the slices it is
+ * made of in words; then, at the right, what the religion pays a turn, voice by
+ * voice (the Ledger's Religion slice). The two figures are the stamps the
+ * opening counts up (`headline:faith`, `headline:religion`).
+ */
+function drawFaithLine(model: BonusesModel, motion: BonusesMotion, items: Map<string, HTMLElement>): HTMLElement {
+  const line = element('div', 'faith-pays-line');
+  const faith = element('p', 'faith-pays-faith');
   const reading = stampOfYields({ ...emptyCityYields(), faith: model.faith.total });
   if (stampIsEmpty(reading)) {
-    row.append(element('span', 'faith-head-none', 'none'));
+    faith.append(element('span', 'faith-head-none', 'no faith'));
   } else {
     const stamp = cardStampNode();
-    row.append(stamp);
+    stamp.dataset.key = 'headline:faith';
+    faith.append(stamp);
     seatStamp(stamp, reading, 'headline:faith', motion, 0);
   }
-  row.append(element('small', 'faith-head-bank', `a turn, into a bank of ${netFigure(model.bank)}`));
-  panel.append(row);
-
-  // The bar draws what adds; the key lists every slice, a cost included, so the
-  // key's figures add up to the headline.
-  const bar = element('div', 'faith-bar');
-  bar.setAttribute('aria-hidden', 'true');
-  const key = element('ul', 'faith-key');
-  const positive = model.faith.slices.reduce((sum, slice) => sum + Math.max(0, slice.faith), 0);
-  let grown = 0;
-  for (const slice of model.faith.slices) {
-    const ink = sliceInk(slice);
-    if (slice.faith > 0 && positive > 0) {
-      const node = element('span', 'faith-slice');
-      node.dataset.src = slice.key;
-      if (slice.axis !== null) node.dataset.axis = slice.axis;
-      node.style.setProperty('--slice-ink', ink);
-      node.title = `${slice.label} ${signedFigure(slice.faith)}`;
-      const width = `${((slice.faith / positive) * 100).toFixed(2)}%`;
-      if (motion.opening) {
-        // Drawn empty, then given its width a beat later so the transition
-        // runs; each slice starts `SLICE_STAGGER_MS` after the one before.
-        node.style.width = '0%';
-        node.style.setProperty('--slice-delay', `${grown * SLICE_STAGGER_MS}ms`);
-        motion.later(30, () => {
-          node.style.width = width;
-        });
-      } else {
-        node.style.width = width;
-      }
-      grown += 1;
-      bar.append(node);
-      slices.set(slice.key, node);
-    }
-    const item = element('li', slice.faith < 0 ? 'faith-key-item is-cost' : 'faith-key-item');
+  faith.append(element('span', 'faith-pays-words', `a turn, into a bank of ${netFigure(model.bank)}`));
+  // The slices in words, a cost included, so they add up to the figure.
+  const slices = element('span', 'faith-pays-slices');
+  if (model.faith.slices.length === 0) slices.append(element('span', 'faith-key-item is-none', 'Nothing pays faith yet.'));
+  model.faith.slices.forEach((slice, at) => {
+    if (at > 0) slices.append(document.createTextNode(' · '));
+    const item = element('span', slice.faith < 0 ? 'faith-key-item is-cost' : 'faith-key-item');
     item.dataset.src = slice.key;
-    const swatch = element('span', 'faith-key-swatch');
-    swatch.setAttribute('aria-hidden', 'true');
-    if (slice.axis !== null) swatch.dataset.axis = slice.axis;
-    swatch.style.setProperty('--slice-ink', ink);
-    item.append(swatch);
-    item.append(element('span', 'faith-key-name', slice.label));
+    items.set(slice.key, item);
+    item.append(element('span', 'faith-key-name', slice.label), document.createTextNode(' '));
     item.append(element('b', 'faith-key-figure', signedFigure(slice.faith)));
-    key.append(item);
-  }
-  if (model.faith.slices.length === 0) key.append(element('li', 'faith-key-item is-none', 'Nothing pays faith yet.'));
-  panel.append(bar);
-  panel.append(key);
-  return { panel, bar };
-}
+    slices.append(item);
+  });
+  faith.append(slices);
+  line.append(faith);
 
-/** The right half of the headline: what the religion pays, voice by voice. */
-function drawReligionHead(model: BonusesModel, motion: BonusesMotion): HTMLElement {
-  const panel = element('section', 'faith-head-card');
-  panel.append(element('p', 'eyebrow sc-eyebrow', 'what your religion pays a turn'));
-  const row = element('div', 'faith-head-figure is-voices');
-  const reading = stampOfYields(model.religion);
-  if (stampIsEmpty(reading)) {
-    row.append(element('span', 'faith-head-none', 'nothing yet'));
+  const religion = element('p', 'faith-pays-religion');
+  religion.append(element('span', 'faith-pays-words', 'Your religion pays'));
+  const paid = stampOfYields(model.religion);
+  if (stampIsEmpty(paid)) {
+    religion.append(element('span', 'faith-head-none', 'nothing yet'));
   } else {
     const stamp = cardStampNode();
-    row.append(stamp);
-    seatStamp(stamp, reading, 'headline:religion', motion, 0);
+    stamp.dataset.key = 'headline:religion';
+    religion.append(stamp);
+    seatStamp(stamp, paid, 'headline:religion', motion, 0);
   }
-  panel.append(row);
-  panel.append(element('p', 'faith-head-match', 'The Ledger’s Religion slice, voice by voice.'));
-  panel.append(
-    element(
-      'p',
-      'faith-head-note',
-      'Gods, beliefs, holy cities, cathedrals and rites. What your Statecraft cards pay is counted with Statecraft, as the Ledger counts it.',
-    ),
-  );
-  return panel;
+  religion.append(element('span', 'faith-pays-words', 'a turn'));
+  religion.title =
+    'Gods, beliefs, holy cities, cathedrals and rites: the Ledger’s Religion slice. What your Statecraft cards pay is counted with Statecraft, as the Ledger counts it.';
+  line.append(religion);
+  return line;
 }
 
 /**
  * The Bonuses tab, drawn and set moving.
  *
- * On an opening (`motion.opening`): the faith bar's slices grow left to right,
- * `SLICE_STAGGER_MS` apart, and the headline's figures count up or land; every
- * card on the shelves is dealt face down and turned over in order
+ * On an opening (`motion.opening`): the line's two figures count up or land;
+ * every card on the shelves is dealt face down and turned over in order
  * (`cardDeal.ts`), and its figure then counts up (hold, count, land with the
  * overshoot and glow) or simply lands. A plain repaint moves nothing, and
  * neither does anything under reduced motion: the sheet never asks for an
  * opening then.
  *
- * Hover: a card lifts and lights its slice of the bar while the other slices
- * dim, and a slice lights its card. Each card's hover card lists its figure
- * place by place.
+ * Hover: a card lifts and lights its slice on the line. Each card's hover card
+ * lists its figure place by place.
  */
 export function drawBonusesTab(model: BonusesModel, motion: BonusesMotion, handlers: BonusesHandlers): HTMLElement {
   const tab = element('section', 'faith-bonuses');
-  const slices = new Map<string, HTMLElement>();
   const cards = new Map<string, HTMLElement>();
 
-  const headline = element('div', 'faith-headline');
-  const { panel, bar } = drawFaithHead(model, motion, slices);
-  headline.append(panel);
-  headline.append(drawReligionHead(model, motion));
-  tab.append(headline);
+  const items = new Map<string, HTMLElement>();
+  tab.append(drawFaithLine(model, motion, items));
 
   let dealt = 0;
   for (const shelf of model.shelves) {
@@ -1052,22 +1046,16 @@ export function drawBonusesTab(model: BonusesModel, motion: BonusesMotion, handl
     tab.append(block);
   }
 
-  // A card and its slice of the bar light each other.
+  // A card and its slice of the line light each other.
   const light = (src: string, on: boolean): void => {
-    const slice = slices.get(src);
-    bar.classList.toggle('is-dim', on && slice !== undefined);
-    slice?.classList.toggle('is-lit', on);
     cards.get(src)?.classList.toggle('is-lit', on);
+    items.get(src)?.classList.toggle('is-lit', on);
   };
   for (const [src, face] of cards) {
     face.addEventListener('pointerenter', () => light(src, true));
     face.addEventListener('pointerleave', () => light(src, false));
     face.addEventListener('focus', () => light(src, true));
     face.addEventListener('blur', () => light(src, false));
-  }
-  for (const [src, slice] of slices) {
-    slice.addEventListener('pointerenter', () => light(src, true));
-    slice.addEventListener('pointerleave', () => light(src, false));
   }
   return tab;
 }

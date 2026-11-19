@@ -18,7 +18,13 @@ import type { GreatPersonId } from '../sim/greatPeopleData';
 import type { GameState } from '../sim/state';
 import type { OrderId } from '../sim/statecraftData';
 import { element } from './dom';
-import { dressGreatPersonCard, fitGreatPersonCard, greatPersonActLine } from './greatPersonCard';
+import {
+  GREAT_PERSON_CARD_WIDTH_EM,
+  dressGreatPersonCard,
+  fitGreatPersonCard,
+  greatPersonActLine,
+  greatPersonCardHeightEm,
+} from './greatPersonCard';
 import { greatPersonCard } from './greatPersonFace';
 import type { DressedFace, OfferShape } from './offerCard';
 import { dressOrderFace, fitOrderFace } from './orderFace';
@@ -42,7 +48,35 @@ export function orderOfferFace(id: OrderId): DressedFace {
   face.dataset.seat = 'true';
   const seat = element('div', 'offer-face-seat');
   face.querySelector('.of-in')?.append(seat);
-  return { face, seat, fit: () => fitOrderFace(face) };
+  // Fitted with the rest of its hand (`fitOrderHand`), so a hand reads alike.
+  return { face, seat };
+}
+
+/**
+ * **A hand of Orders reads alike** (Quiet Table, build stage 3: "a consistent
+ * card size"). The Order face is one size already; what could differ is its
+ * words, which step down for a long effect (`fitOrderFace`, the Council's
+ * approved rule). So each card is fitted, and then every card in the hand takes
+ * the smallest size any of them needed and the short picture if any of them
+ * needed it: three cards side by side never print their rules at three sizes.
+ */
+export function fitOrderHand(faces: readonly HTMLElement[]): void {
+  const fits = faces.map((face) => fitOrderFace(face));
+  if (fits.length === 0) return;
+  const size = Math.min(...fits.map((fit) => fit.size));
+  const short = fits.some((fit) => fit.picture === 'short');
+  for (const face of faces) {
+    face.dataset.picture = short ? 'short' : 'full';
+    face.style.setProperty('--of-text', `${size / 10}em`);
+  }
+}
+
+/**
+ * The great person card's shape for the spread: the board's width, and the
+ * roster's one measured height (`greatPersonCardHeightEm`).
+ */
+export function greatPersonOfferShape(): OfferShape {
+  return { width: OFFER_FACE_SHAPES.person.width, ratio: greatPersonCardHeightEm() / GREAT_PERSON_CARD_WIDTH_EM };
 }
 
 /**

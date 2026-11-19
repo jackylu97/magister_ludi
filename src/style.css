@@ -4575,6 +4575,13 @@ body:has(.empire-corner.is-open) #hud-commissions {
     visibility 0s linear 120ms;
 }
 
+/* Wider while it carries a combat forecast (Quiet Table, build stage 3): two
+   columns, You and Them, each with a unit's name and its strength lines,
+   need the room to keep a word whole. */
+#hud-context:has(> #combat-forecast:not([hidden])) {
+  width: 300px;
+}
+
 #hud-context.is-shown {
   opacity: 1;
   visibility: visible;
@@ -9749,9 +9756,7 @@ p.city-trade-link {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 10px;
-  margin: 0 0 8px;
-  padding: 0 0 8px;
-  border-bottom: 1px solid var(--ink-line);
+  margin: 0;
 }
 
 .combat-strength {
@@ -9766,6 +9771,7 @@ p.city-trade-link {
   border-left: 1px solid var(--ink-line);
 }
 
+/* "You" and "Them" (Quiet Table, build stage 3), with the unit's name under. */
 .combat-strength-label {
   font-family: var(--face-name);
   font-variant-caps: all-small-caps;
@@ -9776,6 +9782,17 @@ p.city-trade-link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The unit's name and the strength lines wrap rather than cut: each side has
+   half the card, and a line cut short would hide a reason. */
+.combat-unit {
+  font-family: var(--face-ui);
+  font-size: var(--size-note);
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* The one number the card exists to show. Tabular, like every number here. */
@@ -9807,17 +9824,19 @@ p.city-trade-link {
 
 .combat-strength-lines li {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 6px;
+  line-height: 1.3;
   font-family: var(--face-ui);
   font-size: var(--size-note);
   color: var(--ink-soft);
 }
 
 .combat-strength-lines li > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .combat-strength-amount {
@@ -9826,37 +9845,30 @@ p.city-trade-link {
   color: var(--ink);
 }
 
-/* One side of the trade: who, how much, the bar, and what is left. A grid so
-   the four columns line up between the two rows however long the names are. */
+/* The blow a side takes, under its own unit (Quiet Table, build stage 3): the
+   figure and its band, the health after it, and the bar it leaves. Pushed to
+   the foot of its column, so the two bars stand level however many strength
+   lines either side prints. The figure and the health after it share a line
+   when they fit, and the health after goes under the figure when they do
+   not; neither is ever broken. */
 .combat-side {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    'label damage'
-    'bar   after';
-  align-items: center;
-  gap: 2px 6px;
-}
-
-.combat-side + .combat-side {
-  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3px 6px;
+  margin-top: auto;
   padding-top: 6px;
   border-top: 1px solid var(--ink-line);
 }
 
-.combat-side-label {
-  grid-area: label;
-  font-family: var(--face-ui);
-  font-size: var(--size-note);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.combat-strength > .combat-strength-lines {
+  margin-bottom: 6px;
 }
 
 /* The figure and its band. Tabular, like every number in this interface. */
 .combat-damage {
-  grid-area: damage;
+  white-space: nowrap;
   font-family: var(--face-num);
   font-size: var(--size-label);
   font-weight: 600;
@@ -9874,7 +9886,7 @@ p.city-trade-link {
 /* The resulting health bar: what survives, with the share about to be lost
    drawn against it in the same accent as the figure above. */
 .combat-bar {
-  grid-area: bar;
+  flex: 1 0 100%;
   position: relative;
   display: block;
   height: 7px;
@@ -9912,7 +9924,7 @@ p.city-trade-link {
 }
 
 .combat-after {
-  grid-area: after;
+  white-space: nowrap;
   font-family: var(--face-num);
   font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
@@ -14267,6 +14279,441 @@ button.faith-rite-chip:hover:not(.is-on) {
 
 .faith-realm-why {
   margin-left: auto;
+}
+
+/* --- the faith sheet, Quiet Table build stage 3 ---------------------------------
+   The third pass's `frame-c1-rites` and `frame-c1-bonuses` and the fourth
+   pass's `frame-3-religion`: the head names the religion, the Rites tab is a
+   plain table, Bonuses is a line and tablets, and Religion and followers is
+   tables. */
+
+/* The head: the religion's name, then its holy city and its towns on one fine line. */
+#religion-overlay .statecraft-head-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+}
+
+.faith-head-facts {
+  margin: 0;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+/* Rites: a plain table. No box round it and no tint on the free rows; the
+   columns are named once in a head row ruled in ink. */
+.faith-rites .faith-towns {
+  border: 0;
+  border-top: 1px solid var(--ink);
+  border-radius: 0;
+  background: none;
+}
+
+.faith-rites .faith-town.is-free {
+  background: none;
+}
+
+/* Every row is its own grid, so the tracks are fixed here: a column then
+   lines up from the head row to the last row. */
+.faith-rites .faith-town {
+  grid-template-columns: 22px minmax(150px, 240px) minmax(0, 1fr) 200px 150px;
+}
+
+.faith-town.faith-town-head {
+  min-height: 24px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.faith-town-th {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.faith-town-th.is-figures {
+  text-align: right;
+}
+
+/* Bonuses: the one fine line in place of the two headline boxes. */
+.faith-pays-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 18px;
+  margin: 0 0 6px;
+  padding: 2px 0 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--size-label);
+}
+
+.faith-pays-faith,
+.faith-pays-religion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.faith-pays-line .card-stamp {
+  display: inline-flex;
+  margin: 0;
+}
+
+.faith-pays-words {
+  color: var(--ink-soft);
+}
+
+.faith-pays-slices {
+  margin-left: 10px;
+  color: var(--ink-soft);
+}
+
+.faith-pays-slices .faith-key-item {
+  display: inline;
+}
+
+.faith-pays-slices .faith-key-item.is-lit {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.faith-pays-slices .faith-key-figure {
+  font-family: var(--face-num);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* **A tablet** (the god, the belief, the holy city): arched at the top, a round
+   window in its ink, the name in the card's title face and the eyebrow under
+   it. Its figure stays at the foot, so a row of tablets lines its stamps up. */
+.faith-bonuses .faith-cards {
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+}
+
+/* The arch's horizontal radii are half the width each, so the two meet at
+   the top and the browser never scales the corners down. */
+.faith-card.sc-card.is-tablet {
+  align-items: center;
+  min-height: 210px;
+  padding-top: 14px;
+  border-radius: 50% 50% 10px 10px / 78px 78px 10px 10px;
+  text-align: center;
+}
+
+.faith-card.sc-card.is-tablet::before {
+  border-radius: 50% 50% 7px 7px / 74px 74px 7px 7px;
+}
+
+.faith-card.is-tablet .sc-card-name {
+  font-family: var(--face-card-title, var(--face-name));
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+}
+
+.faith-card.is-tablet .sc-card-type {
+  display: block;
+  align-self: stretch;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+/* Centred clauses carry no list mark: a dot at the left of a centred line
+   points at nothing. */
+.faith-card.is-tablet .sc-clauses {
+  padding-left: 0;
+  text-align: center;
+}
+
+.faith-card.is-tablet .sc-clause::before {
+  content: none;
+}
+
+/* The round window, 1:1: a vignette when one exists (`beliefPicture`), and
+   until then the drawn belief mark on paper, in the card's ink. */
+.faith-window {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 6px;
+  border: 1.5px solid var(--line-ink, var(--y-faith));
+  border-radius: 50%;
+  background: var(--parchment);
+  box-shadow:
+    0 0 0 3px var(--parchment),
+    0 0 0 4px var(--line-ink, var(--y-faith));
+}
+
+.faith-window[data-picture='painted'] {
+  background-position: center;
+  background-size: cover;
+}
+
+.faith-window-mark {
+  width: 34px;
+  height: 34px;
+  background-color: var(--line-ink, var(--y-faith));
+  -webkit-mask: var(--faith-mark) center / contain no-repeat;
+  mask: var(--faith-mark) center / contain no-repeat;
+}
+
+/* An empty place: a dashed tablet. */
+.faith-card.is-ghost.is-tablet {
+  min-height: 210px;
+  border-radius: 50% 50% 10px 10px / 78px 78px 10px 10px;
+}
+
+/* Religion and followers: tables. */
+.faith-religion-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faith-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.faith-name-label {
+  white-space: nowrap;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.faith-pantheon-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin: 4px 0 0;
+  font-size: var(--size-label);
+  color: var(--ink-soft);
+}
+
+.faith-pantheon-count {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+}
+
+.faith-pantheon-gods {
+  color: var(--ink);
+}
+
+.faith-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 14px;
+  padding: 6px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.faith-summary-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: var(--size-label);
+}
+
+.faith-summary-dot {
+  color: var(--ink-faint);
+}
+
+.faith-summary .faith-count-value {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-religion-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.faith-religion-main,
+.faith-religion-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* A table's head row and its rows share one grid. */
+.faith-table-head,
+.faith-religion-tab .faith-follower {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  column-gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.faith-religion-tab .faith-foreign .faith-follower {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.8fr);
+}
+
+.faith-table-head {
+  padding: 2px 0 4px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.faith-table-th {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.faith-religion-tab .faith-follower.is-unreached {
+  opacity: 0.6;
+}
+
+.faith-religion-tab .faith-follower-count {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-num);
+  font-size: var(--size-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-religion-tab .faith-follower-press {
+  font-family: var(--face-num);
+  font-size: var(--size-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--y-faith);
+}
+
+.faith-follower-rivals {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--size-label);
+}
+
+.faith-follower-none {
+  color: var(--ink-faint);
+}
+
+/* The bar beside the count, at one width in every row. */
+.faith-religion-tab .faith-follower-bar {
+  flex: none;
+  width: 56px;
+}
+
+/* A rival faith reads as one line of words that wraps: the dot, whose faith,
+   and what it presses a turn. */
+.faith-rival {
+  display: block;
+  line-height: 1.35;
+}
+
+.faith-rival .faith-seat-dot {
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+.faith-rival-press {
+  margin-left: 6px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.faith-table-note {
+  margin: 6px 0 0;
+  font-size: var(--size-label);
+  color: var(--ink-soft);
+}
+
+.faith-world-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) 44px;
+  align-items: baseline;
+  column-gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--size-label);
+}
+
+.faith-table-head.is-world {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) 44px;
+}
+
+.faith-world-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.faith-world-towns {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The clergy as rows: the name, what it does (and why it cannot be called),
+   and the price at the right. */
+.faith-religion-tab .faith-clergy-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.faith-religion-tab .faith-clergy-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.faith-religion-tab .faith-clergy-name {
+  margin: 0;
+}
+
+.faith-religion-tab .faith-clergy-says {
+  margin: 0;
+  font-size: var(--size-label);
+  line-height: 1.35;
 }
 
 /* --- the Bonuses tab (batch UX10) ---------------------------------------------
@@ -19041,10 +19488,11 @@ body.compendium-page {
    under its own id. Nothing on it scrolls at 1440 by 900; on a shorter window
    the card shrinks with the window, and the columns scroll in themselves. */
 #reliquary-overlay {
-  /* The card on top: up to 540 px tall, smaller on a short window. */
-  --rel-card-h: clamp(300px, calc(100vh - 360px), 540px);
-  /* The great person card's own shape, 214 by 392 (Quiet Table, build stage 2). */
-  --rel-card-w: calc(var(--rel-card-h) * 0.546);
+  /* The card on top is the offer's card, at the offer's size (Quiet Table,
+     build stage 3: one card size): the board's width, and the roster's one
+     height (`--gp-height`, in em of a card whose em is ten pixels here). */
+  --rel-card-w: 214px;
+  --rel-card-h: calc(var(--gp-height, 39.2) * 10px);
 }
 
 #reliquary-overlay .reliquary-sheet {
@@ -21434,9 +21882,11 @@ body.compendium-page {
   align-items: start;
 }
 
+/* Quiet Table, build stage 3 (the fourth pass's frame 5): a plain list at the
+   left and one large portrait with the chosen leader's facts at the right. */
 @media (min-width: 900px) {
   .landing-civ {
-    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-columns: 320px minmax(0, 1fr);
   }
 }
 
@@ -21461,33 +21911,35 @@ body.compendium-page {
   margin: 2px 0 6px;
 }
 
-/* What a figure is, said once (see `LEADER_LEDE`) — so no face repeats it. */
-.leader-lede {
-  margin: 0 0 10px;
+/* **The list** (Quiet Table, build stage 3): one row a leader, then No leader
+   and Random. It scrolls inside the card when it is taller than the window, so
+   nothing depends on how many leaders the table holds. */
+.leader-list {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 230px);
+  margin: 0 -18px -18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--ink);
 }
 
-/* A roster of figures, as wide as the card allows: the mockup's grid of faces,
-   and a fourteenth figure simply joins it. Narrow again (batch L7) — a face is a
-   name and its two inks now, because the four lines are the detail card's. */
-.leader-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 9px;
-}
-
+/* A row: the charge, the name, and the civilisation in smaller print under it.
+   Taller than a line of text, so the charge reads. */
 .leader-face {
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
-  gap: 9px;
-  align-items: start;
-  align-content: start;
+  gap: 12px;
+  align-items: center;
+  min-height: 52px;
   text-align: left;
   font: inherit;
   color: inherit;
-  padding: 9px 10px 10px;
+  padding: 7px 18px;
   background: var(--parchment);
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
   cursor: pointer;
   transition: background 120ms ease-out;
 }
@@ -21496,10 +21948,10 @@ body.compendium-page {
   background: #fffdf4;
 }
 
-/* The chosen face: the inset ring the mockup draws, and the cream ground every
-   picked card in this interface takes. */
+/* The chosen row: an ink bar at its left edge and the cream ground every picked
+   row in this interface takes. */
 .leader-face.is-chosen {
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 3px 0 0 var(--ink);
   background: #fff9e6;
 }
 
@@ -21549,23 +22001,21 @@ body.compendium-page {
 
 .leader-name {
   display: block;
-  font-family: var(--face-display);
-  font-size: var(--size-name);
-  line-height: 1.1;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 72;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
 }
 
-/* The line under a name: the two inks the seat flies, in the row's own words
-   (`leaderIdentity`). Inscription mono, because it is a label and not a
-   sentence — and because the family line the mockup prints there is a field
-   `data/leaders.json` does not have (docs/flags.md (dddd)). */
+/* The line under a name: the leader's civilisation (the row's `people`), in
+   smaller print (the user: "a selector that also notes their civ in smaller
+   print"). */
 .leader-face-id {
   display: block;
-  margin-top: 3px;
-  font-family: var(--face-name);
-  font-variant-caps: all-small-caps;
-  font-weight: 400;
+  margin-top: 2px;
+  font-family: var(--face-ui);
   font-size: var(--size-label);
-  letter-spacing: 0.04em;
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -21637,13 +22087,94 @@ body.compendium-page {
   font-size: var(--size-ui);
 }
 
-/* Reviewed leader banner in the setup detail card. */
-.leader-plate {
+/* The portrait window and the facts beside it (Quiet Table, build stage 3). */
+.leader-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* **The portrait window**, 3:4: a portrait when one exists (`leaderPicture`),
+   and until then the seat's charge on a parchment plate over the seat's ink. */
+.leader-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: calc(100vh - 220px);
+  border: 1px solid var(--ink);
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.22) 0 1px, transparent 1px 5px),
+    var(--portrait-field, var(--ink-soft));
+  box-shadow:
+    0 0 0 3px var(--parchment),
+    0 0 0 4px var(--gilt);
+}
+
+.leader-portrait[data-picture='painted'] {
+  background-position: center;
+  background-size: cover;
+}
+
+.leader-portrait-plate {
+  display: grid;
+  place-items: center;
+  width: 50%;
+  aspect-ratio: 1;
+  border: 2px solid var(--gilt);
+  background: var(--parchment);
+}
+
+.leader-portrait-mark {
+  width: 66%;
+  height: 66%;
+  background: var(--ink);
+  -webkit-mask: var(--canton-mark) center / contain no-repeat;
+  mask: var(--canton-mark) center / contain no-repeat;
+}
+
+/* A labelled block beside the window: the decks, the two rules, the uniques. */
+.leader-block {
+  margin-top: 14px;
+}
+
+.leader-block-label {
+  margin: 0 0 6px;
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.leader-decks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.leader-deck {
+  padding: 2px 10px 3px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  font-weight: 600;
+}
+
+.leader-block > .leader-line + .leader-line {
+  margin-top: 8px;
+}
+
+.leader-line-name {
   display: block;
-  width: 128px;
-  height: 160px;
-  object-fit: contain;
-  margin: 0 auto 12px;
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  font-weight: 700;
 }
 
 .leader-detail-name {
@@ -21664,32 +22195,8 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
-/* The pair of inks, said in the row's own words with the colour beside each. */
-.leader-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 10px 0 0;
-  font-size: var(--size-label);
-  color: var(--ink-soft);
-}
-
-.leader-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.leader-chip-mark {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  border: 1px solid var(--ink);
-  border-radius: 3px;
-}
-
 .leader-cities {
-  margin: 6px 0 0;
+  margin: 14px 0 0;
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--ink-soft);

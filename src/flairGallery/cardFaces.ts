@@ -37,8 +37,14 @@ import {
   orderType,
 } from '../sim/statecraftData';
 import { FAMILIES, LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../sim/greatPeopleData';
+import { emptyCityYields } from '../sim/cities';
+import { beliefDef, type BeliefId } from '../sim/religionData';
+import { type BonusCard, drawCard, drawGhost } from '../ui/bonusesTab';
+import { holdCardStamp, stampOfYields } from '../ui/cardStamp';
 import { type OfferBackMark, offerBackNode } from '../ui/cardDeal';
-import { fitGreatPersonCard, greatPersonCardNode } from '../ui/greatPersonCard';
+import { beliefCardType } from '../ui/faithReading';
+import { leaderFaces, leaderPortraitNode } from '../ui/leaderSelect';
+import { fitGreatPersonCard, greatPersonCardNode, greatPersonPicture } from '../ui/greatPersonCard';
 import { greatPersonCard } from '../ui/greatPersonFace';
 import { scalerStartFace } from '../ui/scalerValue';
 import { chairNode, chairWord, emptyChairNode, offerChairsOf } from '../ui/chairs';
@@ -368,19 +374,21 @@ function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
 
   drawGreatPeople(into);
   drawOfferBacks(into);
+  drawLeaderPortraits(into);
+  drawFaithTablets(into);
 }
 
 /**
  * **The great person card** (Quiet Table, build stage 2), through the game's
- * own builder: one card a family, the first live name of each, and the same
- * card as a thumbnail, as the Reliquary's fan draws it. No portrait exists yet,
- * so every window shows its family's emblem.
+ * own builder: one card a family (the first live name with a portrait, or the
+ * first live name), one card with no portrait, and the same card as a
+ * thumbnail, as the Reliquary's fan draws it.
  */
 function drawGreatPeople(into: HTMLElement): void {
   const people = block(
     into,
     'The great person card: greatPersonCard.ts',
-    'The engraved form a great person wears on the offer and in the Reliquary: the family on its tab, the arched picture window (the family emblem until a portrait exists), the name, the kernel, the legacy and the flavour with the tier mark. One card a family, and a thumbnail.',
+    'The form a great person wears on the offer and in the Reliquary: the sun and the moon, the family on its tab, the round-arched picture window, the name, the kernel, the legacy, and the flavour with the tier mark. One card a family with its portrait, one card with no portrait (the family emblem in the window), and a thumbnail.',
   );
   const knobs = controls(people);
   const row = element('div', 'face-people');
@@ -390,11 +398,15 @@ function drawGreatPeople(into: HTMLElement): void {
     row.replaceChildren();
     row.style.setProperty('--gp-card-width', `${width}px`);
     for (const family of FAMILIES) {
-      const id = LIVE_GREAT_PERSON_IDS.find((one) => greatPersonDef(one).family === family);
+      const ofFamily = LIVE_GREAT_PERSON_IDS.filter((one) => greatPersonDef(one).family === family);
+      const id = ofFamily.find((one) => greatPersonPicture(one).kind === 'painted') ?? ofFamily[0];
       if (id === undefined) continue;
       const { card } = greatPersonCardNode(greatPersonCard(id));
       row.append(card);
     }
+    // A card with no portrait: the same arch with the family emblem.
+    const plain = LIVE_GREAT_PERSON_IDS.find((one) => greatPersonPicture(one).kind === 'emblem');
+    if (plain !== undefined) row.append(greatPersonCardNode(greatPersonCard(plain)).card);
     const first = LIVE_GREAT_PERSON_IDS[0];
     if (first !== undefined) {
       const mini = greatPersonCardNode(greatPersonCard(first), { mini: true }).card;
@@ -434,4 +446,99 @@ function drawOfferBacks(into: HTMLElement): void {
     row.append(cell);
   }
   backs.append(row);
+}
+
+/**
+ * **The leader's portrait window** (Quiet Table, build stage 3), through the
+ * setup step's own builder (`leaderPortraitNode`): three leaders, the leader
+ * who holds every deck, and the window under no leader. No portrait exists
+ * yet, so each window shows the seat's charge on its ink.
+ */
+function drawLeaderPortraits(into: HTMLElement): void {
+  const portraits = block(
+    into,
+    'The leader portrait window: leaderPortraitNode in leaderSelect.ts',
+    'The 3:4 window beside the setup step’s list of leaders. When a portrait is in public/art/splash/leaders/ and named in leaderPortraits.ts, the window shows it. Until then it shows the seat’s charge on a parchment plate over the seat’s ink.',
+  );
+  const knobs = controls(portraits);
+  const row = element('div', 'face-portraits');
+  row.style.display = 'flex';
+  row.style.flexWrap = 'wrap';
+  row.style.gap = '18px';
+  portraits.append(row);
+  let width = 200;
+  const redraw = (): void => {
+    row.replaceChildren();
+    const faces = leaderFaces();
+    const every = faces.find((face) => face.rainbow);
+    const shown = [...faces.filter((face) => !face.rainbow).slice(0, 3), ...(every === undefined ? [] : [every]), null];
+    for (const face of shown) {
+      const cell = element('figure');
+      cell.style.margin = '0';
+      cell.style.width = `${width}px`;
+      cell.append(leaderPortraitNode(face, { color: '#5a4a7a' }));
+      cell.append(element('figcaption', undefined, face === null ? 'No leader' : face.name));
+      row.append(cell);
+    }
+  };
+  slider(knobs, 'window width', { min: 120, max: 330, step: 2, value: width }, (v) => `${v}px`, (v) => {
+    width = v;
+    redraw();
+  });
+  redraw();
+}
+
+/** A tablet for a belief, as the Bonuses tab builds one, with a figure on its stamp. */
+function tabletOf(id: BeliefId, kind: BonusCard['kind'], faith: number): BonusCard {
+  const def = beliefDef(id);
+  return {
+    key: `card:${id}`,
+    kind,
+    eyebrow: beliefCardType(kind === 'follower' || kind === 'enhancer' ? kind : undefined),
+    name: def.name,
+    axis: def.axis,
+    clauses: describeCard(id),
+    notes: [],
+    chips: [],
+    where: null,
+    quiet: null,
+    paid: { ...emptyCityYields(), faith },
+    parts: [],
+    wide: false,
+  };
+}
+
+/**
+ * **The faith tablets** (Quiet Table, build stage 3), through the Bonuses
+ * tab's own drawers: a god, a follower belief, the holy city, and an empty
+ * place as a dashed tablet. No vignette exists yet, so each round window shows
+ * the drawn belief mark (the holy city's own mark on the holy city).
+ */
+function drawFaithTablets(into: HTMLElement): void {
+  const tablets = block(
+    into,
+    'The faith tablets: drawCard and drawGhost in bonusesTab.ts',
+    'The form a god, a belief and the holy city wear on the Faith sheet’s Bonuses tab: an arched tablet with a round window, the name, and the kind of card under it. When a vignette is in public/art/splash/beliefs/ and named in beliefPictures.ts, the window shows it.',
+  );
+  const row = element('div', 'faith-cards');
+  row.style.maxWidth = '820px';
+  const cards: BonusCard[] = [
+    tabletOf('sacredFire' as BeliefId, 'god', 2),
+    tabletOf('feastDays' as BeliefId, 'follower', 3),
+    {
+      ...tabletOf('feastDays' as BeliefId, 'holyCity', 4),
+      key: 'founderShare:0',
+      eyebrow: 'the holy city',
+      name: 'Uruk',
+      clauses: [],
+      notes: ['The founder’s share of what each follower town pays.'],
+    },
+  ];
+  for (const card of cards) {
+    const { face, stamp } = drawCard(card);
+    holdCardStamp(stamp, stampOfYields(card.paid), 'figure');
+    row.append(face);
+  }
+  row.append(drawGhost({ key: 'ghost:god', title: 'A god', text: 'waits for faith', progress: 0.4 }));
+  tablets.append(row);
 }

@@ -8,7 +8,7 @@
  * `diplomacyScreen.test.ts` and `confirmCard.test.ts`; the corner panel's
  * row of marks (fourth pass, frame 7) in `empireDrawer.test.ts` and
  * `commissionRail.test.ts`. The fourth pass's rename, "empire building" for
- * "great house", is pinned below.
+ * "great house", is pinned below, and so are build stages two and three.
  */
 
 /** Every data file a player reads words from: the rows, and the decks. */
@@ -25,7 +25,15 @@ import { getTileAt } from '../../src/sim/map';
 import { EMPIRE_BUILDING_WORDS } from '../../src/sim/statecraft';
 import { compendiumSections } from '../../src/ui/compendium';
 import { CONCEPT_ENTRIES } from '../../src/ui/compendiumText';
-import { GREAT_PERSON_CARD_WORDS, greatPersonActLine } from '../../src/ui/greatPersonCard';
+import {
+  GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM,
+  GREAT_PERSON_CARD_WORDS,
+  GREAT_PERSON_NAME_SIZES,
+  greatPersonActLine,
+} from '../../src/ui/greatPersonCard';
+import { LEADER_STEP_WORDS } from '../../src/ui/leaderSelect';
+import { FAITH_HEAD_WORDS, FAITH_TABS } from '../../src/ui/religionScreen';
+import { RITES_COLUMN_WORDS } from '../../src/ui/ritesTab';
 import { OWN_REALM_WORDS, describeOwner } from '../../src/ui/tileReadout';
 import { TRADE_TABS } from '../../src/ui/tradeScreen';
 import { found, game } from '../sim/statecraftHelpers';
@@ -216,5 +224,99 @@ describe('build stage 2: the offers (the user: "yeah proceed")', () => {
     expect(main).toContain("back: () => offerBackNode('sun'),");
     expect(main).toContain("back: () => offerBackNode('laurel'),");
     expect(main).toContain("back: () => offerBackNode('crown'),");
+  });
+});
+
+describe('build stage 3 (the user: "lets proceed")', () => {
+  const GP_CSS = uiSource('greatPersonCard.css');
+
+  it('gives every great person card one height, measured from the whole roster', () => {
+    // The card's height is the roster's tallest text, published once; the
+    // stylesheet's figure is only the stand-in until the page has measured.
+    expect(rule(GP_CSS, '.gp-card')).toContain(`height: calc(var(--gp-height, ${GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM}) * 1em);`);
+    expect(GP_CSS).not.toContain('--gp-text');
+    const card = uiSource('greatPersonCard.ts');
+    expect(braceBody(card, 'function measureRoster(')).toContain('LIVE_GREAT_PERSON_IDS');
+    expect(braceBody(card, 'function measureRoster(')).toContain('longestActLine(');
+    // The name wraps, and steps down one size at most.
+    expect(GREAT_PERSON_NAME_SIZES).toHaveLength(2);
+    // The Reliquary's desk is the offer card's size.
+    expect(CSS).toContain('--rel-card-h: calc(var(--gp-height, 39.2) * 10px);');
+    expect(uiSource('main.ts')).toContain('shape: greatPersonOfferShape(),');
+  });
+
+  it('draws the great person card quieter: a round arch, no rules by the name, and no visible Flavour label (2026-11-19)', () => {
+    const card = uiSource('greatPersonCard.ts');
+    // The user's exception for this card alone: the word stays, for a screen
+    // reader, and is hidden from sight. Every other surface keeps the label.
+    expect(GREAT_PERSON_CARD_WORDS.flavour).toBe('Flavour');
+    expect(card).toContain("element('span', 'flavor-label', GREAT_PERSON_CARD_WORDS.flavour)");
+    expect(rule(GP_CSS, '.gp-flavour .flavor-label')).toContain('clip-path: inset(50%);');
+    // A true round arch: half the width on each side, so no radius is scaled down.
+    const window = rule(GP_CSS, '.gp-window');
+    expect(window).toContain('border-radius: 50% 50% 0 0 / 46% 46% 0 0;');
+    expect(window).toContain('width: 100%;');
+    expect(window).toContain('aspect-ratio: 5 / 6;');
+    expect(window).not.toContain('repeating-linear-gradient');
+    expect(rule(GP_CSS, '.gp-in')).not.toContain('border:');
+    // The sun and the moon stay; the rules beside the name go.
+    expect(card).toContain("drawn('gp-corner is-sun'), drawn('gp-corner is-moon')");
+    expect(card).not.toContain("drawn('gp-rule')");
+  });
+
+  it('sets one text size for every card in an Order draft', () => {
+    expect(uiSource('main.ts')).toContain('fitHand: fitOrderHand,');
+    const offer = uiSource('offerCard.ts');
+    expect(offer).toContain('offer.fitHand?.(drawnFaces)');
+  });
+
+  it('asks for a leader in plain words, with no face and no colour words in the list', () => {
+    expect(LEADER_STEP_WORDS.title).toBe('Choose your leader');
+    expect(HTML).toContain('Choose your leader');
+    expect(HTML).not.toContain('Choose your civ');
+    const select = uiSource('leaderSelect.ts');
+    const row = braceBody(select, '  function drawRow(');
+    expect(row).toContain("element('span', 'leader-name', name)");
+    expect(row).toContain("element('span', 'leader-face-id', line)");
+    expect(row).not.toContain('colorWords');
+    expect(braceBody(select, '  function render(')).toContain('face.people');
+    // The window is one function, which the flair gallery draws too.
+    expect(select).toContain('export function leaderPortraitNode(');
+    for (const words of Object.values(LEADER_STEP_WORDS)) {
+      if (typeof words === 'string') expect(words).not.toMatch(/\d|—/);
+    }
+  });
+
+  it('names the religion in the faith sheet head, and orders the tabs Rites, Religion and followers, Bonuses', () => {
+    expect(FAITH_TABS.map((entry) => entry.tab)).toEqual(['rites', 'religion', 'bonuses']);
+    expect(FAITH_HEAD_WORDS.facts('Uruk', 3)).toBe('holy city Uruk · 3 towns follow');
+    expect(FAITH_HEAD_WORDS.facts(null, 1)).toBe('1 town follows');
+    expect(FAITH_HEAD_WORDS.none).not.toMatch(/\d/);
+    expect(RITES_COLUMN_WORDS.wouldAdd('Harvest Rite')).toBe('Harvest Rite would add');
+  });
+
+  it('labels the combat forecast You and Them, each with its own health bar', () => {
+    const main = uiSource('main.ts');
+    expect(main).toContain("const FORECAST_SIDE_WORDS = { you: 'You', them: 'Them' } as const;");
+    const you = main.indexOf('      FORECAST_SIDE_WORDS.you,\n      preview.attackerName,');
+    const them = main.indexOf('      FORECAST_SIDE_WORDS.them,\n      preview.defenderName,');
+    expect(you).toBeGreaterThan(-1);
+    expect(them).toBeGreaterThan(you);
+    // The bar sits in the side's own column, under its unit.
+    const start = main.indexOf('  function sideColumn(');
+    const side = main.slice(start, main.indexOf('\n  }\n', start));
+    expect(side.indexOf("unit.className = 'combat-unit';")).toBeGreaterThan(-1);
+    expect(side.indexOf("unit.className = 'combat-unit';")).toBeLessThan(side.indexOf("bar.className = 'combat-bar';"));
+  });
+
+  it('shows the portrait window and the faith tablets in the flair gallery', () => {
+    const gallery = Object.values(
+      import.meta.glob('../../src/flairGallery/cardFaces.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+    )[0] as string;
+    expect(gallery).toContain('drawLeaderPortraits(into);');
+    expect(gallery).toContain('drawFaithTablets(into);');
+    expect(gallery).toContain('leaderPortraitNode(face,');
+    expect(gallery).toContain('const { face, stamp } = drawCard(card);');
+    expect(gallery).toContain('drawGhost({');
   });
 });

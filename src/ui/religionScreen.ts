@@ -51,6 +51,8 @@ import type { PurchasableItem, PurchaseCurrency } from '../sim/purchase';
 import type { RiteId } from '../sim/religionData';
 import { type GameState, playerById } from '../sim/state';
 import { element } from './dom';
+import { tileOwnerCityId } from '../sim/cities';
+import { cityDisplayName } from './cityDisplay';
 import { bankLineElement, readBank } from './bankFigure';
 import { wantsMotion } from './motion';
 import { createInfoCard, type InfoCard } from './infoCard';
@@ -98,12 +100,44 @@ export { riteGrantWords, riteTeacherName } from './riteWords';
 /** The Faith sheet's three tabs. */
 type FaithTab = 'rites' | 'bonuses' | 'religion';
 
-/** The tabs in the order they are drawn, with their labels. */
+/**
+ * The tabs in the order they are drawn, with their labels. Bonuses is the third
+ * tab since Quiet Table's build stage 3 (the user: "lets move bonuses to the
+ * third tab").
+ */
 export const FAITH_TABS: readonly { tab: FaithTab; label: string }[] = [
   { tab: 'rites', label: 'Rites' },
-  { tab: 'bonuses', label: 'Bonuses' },
   { tab: 'religion', label: 'Religion & followers' },
+  { tab: 'bonuses', label: 'Bonuses' },
 ];
+
+/**
+ * **The sheet's head** (Quiet Table, build stage 3): the religion's name, and
+ * on one fine line its holy city and the number of towns that follow it. A seat
+ * with no religion keeps the sheet's own name.
+ */
+export const FAITH_HEAD_WORDS = {
+  title: 'Faith',
+  none: 'no religion founded yet',
+  facts: (holyCity: string | null, towns: number): string =>
+    [holyCity === null ? null : `holy city ${holyCity}`, `${towns} ${towns === 1 ? 'town follows' : 'towns follow'}`]
+      .filter((part): part is string => part !== null)
+      .join(' · '),
+} as const;
+
+/** The head's title and fine line for a seat, read off the board. */
+export function faithHeadWords(state: GameState, seat: number): { title: string; facts: string } {
+  const reading = religionReading(state, seat);
+  const mine = reading.religion;
+  if (mine === null) return { title: FAITH_HEAD_WORDS.title, facts: FAITH_HEAD_WORDS.none };
+  const site = mine.holySite;
+  const cityId = site === undefined ? null : tileOwnerCityId(state, site.col, site.row);
+  const holy = cityId === null ? undefined : state.cities.find((city) => city.id === cityId);
+  return {
+    title: mine.name,
+    facts: FAITH_HEAD_WORDS.facts(holy === undefined ? null : cityDisplayName(state, holy), reading.following.length),
+  };
+}
 
 /**
  * The tab each seat last chose. Module state rather than game state, for the
@@ -526,6 +560,21 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     }
   }
 
+  /** The sheet's head: the religion's name, and its holy city and towns on one fine line. */
+  function paintTitle(state: GameState, seat: number): void {
+    const words = faithHeadWords(state, seat);
+    const titles = overlay.querySelector<HTMLElement>('.statecraft-head-titles');
+    const title = titles?.querySelector<HTMLElement>('.statecraft-title');
+    if (titles === null || titles === undefined || title === null || title === undefined) return;
+    title.textContent = words.title;
+    let facts = titles.querySelector<HTMLElement>('.faith-head-facts');
+    if (facts === null) {
+      facts = element('p', 'eyebrow faith-head-facts');
+      titles.append(facts);
+    }
+    facts.textContent = words.facts;
+  }
+
   function paint(): void {
     const state = options.getState();
     const seat = options.getPlayerId();
@@ -535,6 +584,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     body.replaceChildren();
     if (!playerById(state, seat)) return;
     const tab = faithTabFor(seat);
+    paintTitle(state, seat);
     body.append(drawHead(state, seat, tab));
     const panel = element('div', `faith-panel is-${tab}`);
     panel.dataset.tab = tab;

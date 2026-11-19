@@ -11,16 +11,26 @@
  *
  *   - the sun and the moon in the two top corners, and the family on a tab
  *     between them, in the family's ink with its emblem;
- *   - **the picture window**, arched at the top and about 5:6: the person's
- *     portrait when one exists (`greatPersonPicture`), and the family emblem
- *     large on an engraved disc until then. No portrait exists yet;
- *   - the name between two rules, and the kernel under it in italic: why
- *     anybody remembers this person;
+ *   - **the picture window**, 5:6 with a round arch at the top, nearly the
+ *     card's full inner width: the person's portrait when one exists
+ *     (`greatPersonPicture`), and the family emblem on a plain disc until then;
+ *   - the name, and the kernel under it in italic: why anybody remembers this
+ *     person;
  *   - the legacy, through the describers (`setDescriptorText`), with figures
  *     and yield words in red as the Order face sets them (`rubricate`);
  *   - on the offer, what the person does when spent (`greatPersonActLine`);
  *   - the stamp's seat, which the caller fills or leaves empty;
- *   - the foot: the flavour, labelled, and the tier's mark.
+ *   - the foot: the flavour and the tier's mark. The flavour carries no visible
+ *     label on this card (the user, 2026-11-19: "remove the word flavour from
+ *     the bottom of the card"); the word stays in the markup, hidden from
+ *     sight, so a screen reader still says it. Every other surface keeps the
+ *     visible label.
+ *
+ * Since the first portraits (2026-11-19; the user: "i like the arched window
+ * instead of the current frame ... give the art a bit more room, the cards feel
+ * a bit busy") the card is quieter: one frame, no rules beside the name, no
+ * engraving behind a picture, and a larger window with one thin line round its
+ * arch. The sun and the moon stay.
  *
  * Every word comes from the row or the describers; the face writes none of
  * its own beyond the labels in `GREAT_PERSON_CARD_WORDS`.
@@ -32,13 +42,13 @@
 
 import './greatPersonCard.css';
 
-import { DEVICE_BOX, DEVICE_DISC, DEVICE_HATCH, DEVICE_RAYS, orderFaceMarkUri } from '../art/orderFaceMarks';
+import { DEVICE_BOX, DEVICE_DISC, orderFaceMarkUri } from '../art/orderFaceMarks';
 import { familyLayingWork } from '../sim/greatPeople';
-import { type Family, type GreatPersonId, greatPersonDef } from '../sim/greatPeopleData';
+import { type Family, type GreatPersonId, LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../sim/greatPeopleData';
 import type { GameState } from '../sim/state';
 import { describeFamilyVerb } from '../sim/statecraft';
 import { element } from './dom';
-import type { GreatPersonFace } from './greatPersonFace';
+import { type GreatPersonFace, greatPersonCard } from './greatPersonFace';
 import { greatPersonPaintingUrl } from './greatPersonPaintings';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { rubricate } from './orderFace';
@@ -96,15 +106,23 @@ export interface GreatPersonCardOptions {
   mini?: boolean;
 }
 
-/** The sizes the legacy steps down through, in em of the card, until it fits. */
-export const GREAT_PERSON_TEXT_SIZES: readonly number[] = [1.45, 1.35, 1.25, 1.15, 1.05];
-
 /**
- * The sizes a name steps down through, in em of the card, until it leaves each
- * rule beside it some length ("Ahmose son of Ebana" does not fit at the
- * board's size).
+ * **One card size** (Quiet Table, build stage 3; the user: "lets do a
+ * consistent card size"). Every great person card has the board's width and
+ * one height, and its words are one size and wrap. The height is the tallest
+ * the roster needs, measured once on the page (`greatPersonCardHeightEm`):
+ * every live person's card is laid out with the longest "When spent" line
+ * their family can print, and the tallest sets the height. No text shrinks to
+ * fit; a long name wraps, and steps down one size only if it would take a
+ * third line.
  */
-export const GREAT_PERSON_NAME_SIZES: readonly number[] = [2, 1.8, 1.6, 1.45, 1.3];
+export const GREAT_PERSON_CARD_WIDTH_EM = 21.4;
+
+/** The height before the roster is measured, in em: the board's 392 px at 214 wide. */
+export const GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM = 39.2;
+
+/** The name's size, and the one step down a long name may take. */
+export const GREAT_PERSON_NAME_SIZES: readonly [number, number] = [2, 1.75];
 
 /** An empty span the stylesheet draws. */
 function drawn(className: string): HTMLElement {
@@ -126,9 +144,9 @@ function svg<K extends keyof SVGElementTagNameMap>(
 }
 
 /**
- * **The window**: a portrait over the whole arch, or the family's emblem on
- * the Order face's engraved disc (its rays, hatching and two rings, the same
- * numbers as `orderFace.ts`'s device), in the family's ink.
+ * **The window**: a portrait over the whole arch, or the family's emblem on a
+ * plain disc with one ring (the Order face's disc, without its rays and
+ * hatching, so the fallback is as calm as a portrait), in the family's ink.
  */
 function windowNode(face: GreatPersonFace): HTMLElement {
   const window = element('div', 'gp-window');
@@ -140,11 +158,8 @@ function windowNode(face: GreatPersonFace): HTMLElement {
   }
   window.dataset.picture = 'emblem';
   const device = svg('svg', { viewBox: `0 0 ${DEVICE_BOX} ${DEVICE_BOX}`, 'aria-hidden': 'true' }, 'gp-device');
-  device.append(svg('path', { d: DEVICE_RAYS }, 'gp-rays'));
   device.append(svg('circle', { cx: 50, cy: 50, r: DEVICE_DISC.r }, 'gp-disc'));
-  device.append(svg('path', { d: DEVICE_HATCH }, 'gp-hatch'));
   device.append(svg('circle', { cx: 50, cy: 50, r: DEVICE_DISC.r }, 'gp-ring'));
-  device.append(svg('circle', { cx: 50, cy: 50, r: DEVICE_DISC.ring }, 'gp-ring-inner'));
   window.append(device);
   const emblem = drawn('gp-emblem');
   emblem.style.setProperty('--gp-emblem', face.emblem);
@@ -163,6 +178,8 @@ export function dressGreatPersonCard(
   face: GreatPersonFace,
   options: GreatPersonCardOptions = {},
 ): HTMLElement {
+  // The roster's one height, measured the first time any card is drawn.
+  if (!measuring) greatPersonCardHeightEm();
   host.classList.add('gp-card');
   host.dataset.family = face.family;
   host.dataset.tier = face.tier;
@@ -181,7 +198,7 @@ export function dressGreatPersonCard(
   inner.append(windowNode(face));
 
   const name = element('div', 'gp-name');
-  name.append(drawn('gp-rule'), element('span', 'gp-name-words', face.name), drawn('gp-rule'));
+  name.append(element('span', 'gp-name-words', face.name));
   inner.append(name);
 
   const seat = element('div', 'gp-seat');
@@ -212,6 +229,8 @@ export function dressGreatPersonCard(
 
     const foot = element('div', 'gp-foot');
     const flavour = element('span', 'gp-flavour');
+    // The label is in the markup and hidden from sight (`greatPersonCard.css`):
+    // the user's exception for this card to the rule that flavour is labelled.
     flavour.append(element('span', 'flavor-label', GREAT_PERSON_CARD_WORDS.flavour), document.createTextNode(` ${face.flavor}`));
     const tier = element('span', 'gp-tier', face.tierMark);
     tier.title = face.lineName;
@@ -233,33 +252,97 @@ export function greatPersonCardNode(
 }
 
 /**
- * **Fits a card's legacy**, after it is laid out: the largest size in
- * `GREAT_PERSON_TEXT_SIZES` at which the legacy fits its room. A legacy that
- * still does not fit is marked `data-overflow` and left visible, as the Order
- * face does, so a card that cannot fit is seen rather than cut.
+ * **Fits a card's name**, after it is laid out: the name wraps, and steps down
+ * one size only if it would take a third line. Nothing else on the card
+ * changes size. A legacy taller than its room (which the measured height
+ * should never allow) is marked `data-overflow` and left visible, so it is
+ * seen rather than cut.
  */
 export function fitGreatPersonCard(card: HTMLElement): void {
-  fitName(card);
+  const words = card.querySelector<HTMLElement>('.gp-name-words');
+  if (words !== null) {
+    card.style.setProperty('--gp-name', `${GREAT_PERSON_NAME_SIZES[0]}em`);
+    const line = Number.parseFloat(getComputedStyle(words).lineHeight);
+    if (Number.isFinite(line) && words.getBoundingClientRect().height > line * 2.2) {
+      card.style.setProperty('--gp-name', `${GREAT_PERSON_NAME_SIZES[1]}em`);
+    }
+  }
   const legacy = card.querySelector<HTMLElement>('.gp-legacy');
   if (legacy === null) return;
-  delete card.dataset.overflow;
-  for (const size of GREAT_PERSON_TEXT_SIZES) {
-    card.style.setProperty('--gp-text', `${size}em`);
-    if (legacy.scrollHeight <= legacy.clientHeight + 1) return;
-  }
-  card.dataset.overflow = 'true';
+  if (legacy.scrollHeight > legacy.clientHeight + 1) card.dataset.overflow = 'true';
+  else delete card.dataset.overflow;
 }
 
-/** The name's step: the largest size that leaves each rule beside it at least 0.6 em. */
-function fitName(card: HTMLElement): void {
-  const line = card.querySelector<HTMLElement>('.gp-name');
-  const words = card.querySelector<HTMLElement>('.gp-name-words');
-  if (line === null || words === null) return;
-  const em = Number.parseFloat(getComputedStyle(card).fontSize);
-  // Two rules of at least 0.6 em, and the two gaps of 0.6 em beside the words.
-  const room = line.getBoundingClientRect().width - 4 * 0.6 * em;
-  for (const size of GREAT_PERSON_NAME_SIZES) {
-    card.style.setProperty('--gp-name', `${size}em`);
-    if (words.getBoundingClientRect().width <= room) return;
+// --- the one height ------------------------------------------------------------------
+
+/** The measured height in em, once the roster has been laid out on this page. */
+let measuredEm: number | null = null;
+/** True while the roster is being laid out, so the cards it builds do not ask again. */
+let measuring = false;
+
+/**
+ * **The longest "When spent" line a family can print**: its own act and work,
+ * and the work as The Platonic Academy rewrites it (`familyLayingWork` may make
+ * every work an academy), whichever is longer.
+ */
+function longestActLine(family: Family): string {
+  const act = describeFamilyVerb(family, 'act');
+  const lines = ([family, 'scholar'] as const).map((work) => GREAT_PERSON_CARD_WORDS.act(act, describeFamilyVerb(work, 'work')));
+  return lines.reduce((long, line) => (line.length > long.length ? line : long));
+}
+
+/**
+ * **Lays every live person's card out once**, off the screen, at the board's
+ * width, with the longest act line their family can print, and answers the
+ * tallest in em. The cards are built by `dressGreatPersonCard`, the one
+ * builder, so the measure is of the card the player sees.
+ */
+function measureRoster(): number {
+  const probe = element('div', 'gp-probe');
+  probe.setAttribute('aria-hidden', 'true');
+  probe.style.setProperty('--gp-card-width', '214px');
+  measuring = true;
+  try {
+    const cards: HTMLElement[] = [];
+    for (const id of LIVE_GREAT_PERSON_IDS) {
+      const card = element('div');
+      card.dataset.measure = 'true';
+      dressGreatPersonCard(card, greatPersonCard(id), { act: longestActLine(greatPersonDef(id).family) });
+      probe.append(card);
+      cards.push(card);
+    }
+    document.body.append(probe);
+    let tallest = 0;
+    for (const card of cards) {
+      fitGreatPersonCard(card);
+      const em = Number.parseFloat(getComputedStyle(card).fontSize);
+      if (em > 0) tallest = Math.max(tallest, card.getBoundingClientRect().height / em);
+    }
+    probe.remove();
+    // A little air under the longest card, rounded up to a fifth of an em.
+    return tallest > 0 ? Math.ceil((tallest + 0.4) * 5) / 5 : GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM;
+  } finally {
+    measuring = false;
   }
+}
+
+/** Writes the height where every card reads it (`--gp-height`, `greatPersonCard.css`). */
+function publishHeight(em: number): void {
+  measuredEm = em;
+  document.documentElement.style.setProperty('--gp-height', String(em));
+}
+
+/**
+ * **The one card height, in em of the card**, measured from the roster the
+ * first time a card is drawn on the page and again once the card fonts have
+ * loaded. Without a document (the tests) it is the board's height.
+ */
+export function greatPersonCardHeightEm(): number {
+  if (measuredEm !== null) return measuredEm;
+  if (measuring || typeof document === 'undefined' || document.body === null) {
+    return GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM;
+  }
+  publishHeight(measureRoster());
+  void document.fonts?.ready.then(() => publishHeight(measureRoster()));
+  return measuredEm ?? GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM;
 }

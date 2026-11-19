@@ -137,11 +137,11 @@ function religionSheetHeader(): string {
 }
 
 describe('the Faith sheet has three tabs', () => {
-  it('draws Rites, Bonuses and Religion & followers, in that order', () => {
+  it('draws Rites, Religion & followers and Bonuses, in that order (the user: "lets move bonuses to the third tab")', () => {
     expect(FAITH_TABS.map((entry) => entry.label)).toEqual([
       'Rites',
-      'Bonuses',
       'Religion & followers',
+      'Bonuses',
     ]);
   });
 
@@ -199,33 +199,25 @@ describe('the Faith sheet has three tabs', () => {
     }
   });
 
-  it("builds the Statecraft screen's own four split classes on Religion & followers", () => {
+  it('lays Religion & followers out as tables (Quiet Table, build stage 3)', () => {
+    // The fourth pass's frame 3: the name and the pantheon line, one summary
+    // line, your towns and the foreign towns at the left, and the religions in
+    // the world and the clergy at the right. The wheel is cut.
     const tab = top('followersTab.ts', 'export function drawFollowersTab(');
-    for (const className of ['sc-split', 'sc-column', 'sc-column-body', 'sc-pane']) {
-      expect(`${className}: ${tab.includes(`'${className}`)}`).toBe(`${className}: true`);
-    }
-  });
-
-  it('puts the religion in the column, and who follows, the rival faiths and the clergy in the pane', () => {
-    const tab = top('followersTab.ts', 'export function drawFollowersTab(');
-    const column = tab.indexOf('drawColumn(');
-    const pane = tab.indexOf("'sc-pane'");
-    const follows = tab.indexOf('drawFollows(model)');
-    const rivals = tab.indexOf('drawRivals(model)');
-    const clergy = tab.indexOf('drawClergy(');
-    expect(column).toBeGreaterThan(-1);
-    expect(pane).toBeGreaterThan(column);
-    expect(follows).toBeGreaterThan(pane);
-    expect(rivals).toBeGreaterThan(follows);
-    expect(clergy).toBeGreaterThan(rivals);
-    // The column, top to bottom: the name and its facts, the wheel, the counts,
-    // and the way to Bonuses.
-    const left = top('followersTab.ts', 'function drawColumn(');
-    const order = ['drawName(', "'faith-facts'", 'drawPantheonWheel(', "'faith-counts'", "'faith-to-bonuses'"].map(
-      (landmark) => left.indexOf(landmark),
-    );
+    const order = [
+      'drawTop(',
+      'drawSummary(',
+      "'faith-religion-main'",
+      'drawFollows(model), drawForeign(model)',
+      "'faith-religion-side'",
+      'drawWorld(model), drawClergy(',
+    ].map((landmark) => tab.indexOf(landmark));
     expect(order.every((at) => at > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(source('followersTab.ts')).not.toContain('drawPantheonWheel(');
+    // The four boxes are one line, with the way to Bonuses at its end.
+    const summary = top('followersTab.ts', 'function drawSummary(');
+    expect(summary.indexOf("'faith-summary-facts'")).toBeLessThan(summary.indexOf("'faith-to-bonuses'"));
   });
 
   it('keeps no god or belief card on Religion & followers: the Bonuses tab owns them', () => {

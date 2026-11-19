@@ -1270,6 +1270,37 @@ function drawSay(model: RitesTabModel): HTMLElement {
   return banner;
 }
 
+/** The words over the table's columns (Quiet Table, build stage 3: a plain table). */
+export const RITES_COLUMN_WORDS = {
+  town: 'Town',
+  keeps: 'Keeps',
+  pays: 'Pays',
+  wouldAdd: (rite: string): string => `${rite} would add`,
+} as const;
+
+/**
+ * **The table's head row** (Quiet Table, build stage 3; the third pass's
+ * `frame-c1-rites`: a plain table): the columns named once, in the rows' own
+ * grid, so every row reads as a line of one table. With a rite chosen, the
+ * figures' column says what that rite would add.
+ */
+function headRow(model: RitesTabModel): HTMLElement {
+  const row = element('div', 'faith-town faith-town-head');
+  row.setAttribute('aria-hidden', 'true');
+  row.append(element('span', 'faith-town-rank'));
+  row.append(element('span', 'faith-town-th', RITES_COLUMN_WORDS.town));
+  row.append(element('span', 'faith-town-th', RITES_COLUMN_WORDS.keeps));
+  row.append(
+    element(
+      'span',
+      'faith-town-th is-figures',
+      model.selected === null ? RITES_COLUMN_WORDS.pays : RITES_COLUMN_WORDS.wouldAdd(model.selected.name),
+    ),
+  );
+  row.append(element('span', 'faith-town-th'));
+  return row;
+}
+
 /** A group heading in the town list: "Free · 8 … founding order". */
 function groupHead(label: string, note: string): HTMLElement {
   const head = element('div', 'faith-town-group');
@@ -1476,6 +1507,8 @@ export function drawRitesTab(model: RitesTabModel, handlers: RitesTabHandlers): 
   const list = element('div', 'faith-towns');
   if (model.free.length === 0 && model.kept.length === 0) {
     list.append(element('p', 'sc-none', 'You have no towns yet.'));
+  } else {
+    list.append(headRow(model));
   }
   if (model.free.length > 0 || model.kept.length > 0) {
     list.append(groupHead(`Free · ${model.free.length}`, model.freeNote));

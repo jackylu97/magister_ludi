@@ -1864,6 +1864,50 @@ Eight root pages, all named in `vite.config.ts` inputs:
     the tier mark. The Reliquary's fan shows the same card as thumbnails, and
     the deed stands under the desk with the count;
   - the Ledger's page heads are ruled the kit's way, and its × is the kit's.
+- **Quiet Table, build stage 3** (`docs/plans/ui-critique-2026-10-16.md`,
+  "Quiet Table: build stage 3"):
+  - **one size of great person card.** Every card on the offer and in the
+    Reliquary has one width and one height. The height is measured once from
+    the whole live roster, with each family's longest "When spent" line
+    (`greatPersonCardHeightEm`, published as `--gp-height`). The name
+    wraps, and steps down one size only if it would take a third line
+    (`fitGreatPersonCard`). Nothing else shrinks. The Reliquary's desk uses
+    the offer card's size;
+  - **a quieter great person card** (2026-11-19, after the first portraits):
+    one frame, no rules beside the name, no engraving behind the picture, and
+    the window a round arch, 5:6, across nearly the full inner width, with one
+    thin line in the family's ink. The fallback is the family emblem on a plain
+    disc in the same arch. The sun and the moon stay. The flavour line has no
+    visible "Flavour" label on this card only; the word stays in the markup,
+    hidden from sight, for a screen reader;
+  - **one text size in an Order draft.** `fitOrderHand` (`offerFaces.ts`,
+    the offer's `fitHand`) gives every card in the hand the smallest step
+    any one card needs, so the cards match;
+  - **the setup's leader step** is "Choose your leader": a plain list (the
+    seat's charge, the leader's name, the civilisation under it) and, beside
+    it, a 3:4 portrait window (`leaderPortraitNode`; a portrait from
+    `leaderPortraits.ts`, none yet, or the seat's charge on its ink) with
+    the name, the decks, the two rules and the unit and building or
+    improvement only that leader may raise. "No leader" and "Random" stay at
+    the foot of the list;
+  - **the faith sheet's head** is the religion's name, with its holy city and
+    the number of towns following on one fine line (`faithHeadWords`). The
+    tabs are Rites, Religion and followers, Bonuses;
+  - **Rites** is a plain table with a head row (`RITES_COLUMN_WORDS`);
+  - **Bonuses** has one fine line in place of the two headline boxes, and the
+    gods, the beliefs and the holy city are tablets with a round 1:1 window
+    (`beliefPicture`, `beliefPictures.ts`, none yet, or the drawn belief
+    mark). An empty place is a dashed tablet;
+  - **Religion and followers** is tables: one summary line, your towns (who
+    follows, your pressure, rival pressure), foreign towns, the religions in
+    the world (founder, holy city, towns), and the clergy as rows. A rival's
+    holy city is named only if the seat has seen it, and a rival's towns are
+    counted only among the towns the seat can see; the table says so. The
+    pantheon wheel is cut;
+  - **the combat forecast** in the hex card labels its sides "You" and
+    "Them", with the unit's name under each, and each side's health bar
+    under its unit with the health after the blow. The card is wider while
+    it shows a forecast, and the strength lines wrap rather than cut.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

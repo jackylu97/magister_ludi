@@ -45,9 +45,11 @@ import {
   explainPurchaseCost,
   purchaseError,
 } from '../sim/purchase';
-import { BELIEF_IDS, type BeliefId, beliefDef } from '../sim/religionData';
+import { type BeliefId, beliefDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
 import { tileOwnerCityId } from '../sim/cities';
+import { getTileAt } from '../sim/map';
+import { isVisibleTo } from '../sim/visibility';
 import {
   type GameState,
   type Religion,
@@ -61,10 +63,10 @@ import { cardPressureRule, describeCard, religionFounder, stripRefs } from '../s
 import { seatName } from '../sim/leaderData';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { cityDisplayName } from './cityDisplay';
+import { knowsCity } from './tileReadout';
 import { element } from './dom';
-import { AXIS_MARK, type ReligionReading, listWords, pressureLedgerText, priceLedgerText } from './faithReading';
+import { type ReligionReading, listWords, pressureLedgerText, priceLedgerText } from './faithReading';
 import { figure, signedFigure } from './figures';
-import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
 import { type PriceLook, priceCellElement, priceLabelText, purchaseLook } from './priceCell';
 import { refusalLineElement } from './refusalLine';
 import { setYieldText } from './yieldMark';
@@ -144,6 +146,48 @@ interface RivalRow {
   ledger: string;
 }
 
+/**
+ * One town of yours, as a row of the main table (Quiet Table, build stage 3):
+ * how many follow your faith and what it presses there, or why it does not
+ * reach the town, and the rival faiths pressing it, as a column.
+ */
+interface TownRow {
+  cityId: number;
+  name: string;
+  population: number;
+  /** Your faith's line here, or `null` when it does not reach the town (or you have none). */
+  follower: FollowerRow | null;
+  /** Why your faith does not reach the town, or `null`. */
+  reason: string | null;
+  /** The rival faiths pressing this town, as `rivals` lists them. */
+  rivals: RivalRow[];
+}
+
+/**
+ * One religion in the world (Quiet Table, build stage 3): its founder, its holy
+ * city and the towns that follow it. The fog is kept: a rival religion's holy
+ * city is named only if this seat knows that town, and its towns are counted
+ * among this seat's own towns and the towns in its sight (`worldNote` says so).
+ */
+interface WorldRow {
+  name: string;
+  /** "You", or the founding empire's name. */
+  founder: string;
+  founderColor: string;
+  ours: boolean;
+  /** The holy city's name, or the words for a town this seat has not seen. */
+  holyCity: string;
+  towns: number;
+}
+
+/** The world table's words. Plain, and no number in any of them. */
+export const WORLD_WORDS = {
+  you: 'You',
+  unseen: 'not seen',
+  noSite: 'none standing',
+  counted: 'A rival religion\'s towns are counted among your towns and the towns in your sight.',
+} as const;
+
 /** One card of the clergy. */
 interface ClergyCard {
   type: UnitTypeId;
@@ -173,6 +217,12 @@ export interface FollowersModel {
   /** What the rival section says when no rival faith presses a town of yours. */
   rivalsEmpty: string;
   clergy: { cityId: number | null; towns: { id: number; name: string }[]; cards: ClergyCard[] };
+  /** Every town of yours, as the main table's rows: reached first, then the rest. */
+  towns: TownRow[];
+  /** The religions in the world, yours first, then in founding order. */
+  world: WorldRow[];
+  /** What the world table's foot says: how many religions may still be founded, and the fog rule. */
+  worldNote: string;
   /** Why nothing may be called now although the gate would take it: the seat has ended its turn. */
   paused: string | null;
 }
@@ -351,8 +401,73 @@ export function followersTabModel(
     }
   }
 
+  // Every town of yours as one row (Quiet Table, build stage 3): your faith's
+  // line or why it does not reach the town, and the rival faiths as a column.
+  const rivalsOf = (cityId: number): RivalRow[] => rivals.filter((row) => row.cityId === cityId);
+  const towns: TownRow[] =
+    mine === null
+      ? ours.map((city) => ({
+          cityId: city.id,
+          name: cityDisplayName(state, city),
+          population: city.population,
+          follower: null,
+          reason: null,
+          rivals: rivalsOf(city.id),
+        }))
+      : [
+          ...yours.map((row) => ({
+            cityId: row.cityId,
+            name: row.name,
+            population: row.population,
+            follower: row,
+            reason: null,
+            rivals: rivalsOf(row.cityId),
+          })),
+          ...unreached.map((row) => ({
+            cityId: row.cityId,
+            name: row.name,
+            population: row.population,
+            follower: null,
+            reason: row.reason,
+            rivals: rivalsOf(row.cityId),
+          })),
+        ];
+
+  // The religions in the world, with the fog kept for every one but yours.
+  const inSight = (city: { ownerId: number; col: number; row: number }): boolean =>
+    city.ownerId === seat || isVisibleTo(state, seat, city.col, city.row);
+  const world: WorldRow[] = [...state.religions]
+    .sort((a, b) => Number(b.founderId === seat) - Number(a.founderId === seat))
+    .map((one) => {
+      const isMine = mine !== null && one.id === mine.id;
+      const site = one.holySite;
+      const holyId = site === undefined ? null : tileOwnerCityId(state, site.col, site.row);
+      const holy = holyId === null ? undefined : state.cities.find((city) => city.id === holyId);
+      const known =
+        holy !== undefined &&
+        (holy.ownerId === seat || knowsCity(state, seat, holy.id, getTileAt(state.map, holy.col, holy.row)!));
+      return {
+        name: one.name,
+        founder: one.founderId === seat ? WORLD_WORDS.you : seatName(state, one.founderId),
+        founderColor: playerById(state, one.founderId)?.color ?? 'var(--ink)',
+        ours: isMine,
+        holyCity: holy === undefined ? WORLD_WORDS.noSite : known ? cityDisplayName(state, holy) : WORLD_WORDS.unseen,
+        // Yours is the sheet's own count (`religionReading`); a rival's is
+        // counted only where this seat can see.
+        towns: isMine
+          ? reading.following.length
+          : state.cities.filter((city) => cityReligion(city) === one.id && inSight(city)).length,
+      };
+    });
+  const worldNote = state.religions.some((one) => mine === null || one.id !== mine.id)
+    ? `${reading.count}. ${WORLD_WORDS.counted}`
+    : reading.count;
+
   return {
     religion,
+    towns,
+    world,
+    worldNote,
     found:
       reading.found === null
         ? null
@@ -426,13 +541,18 @@ function drawName(state: GameState, seat: number, name: string, handlers: Follow
   return field;
 }
 
-/** The left column: the name, the facts, the wheel, the counts, and the way to Bonuses. */
-function drawColumn(state: GameState, seat: number, model: FollowersModel, handlers: FollowersHandlers): HTMLElement {
-  const column = element('div', 'faith-religion-column');
-  const head = element('section', 'faith-religion-name');
-  head.append(element('p', 'eyebrow sc-eyebrow', 'your religion'));
+/**
+ * **The top of the tab** (Quiet Table, build stage 3): the religion's name,
+ * renamed in place, and the pantheon as one line: how many gods of how many
+ * places, their names, and the next god's line. The wheel is cut (the user: "I
+ * don't like this graphic anymore, let's just cut it."); its facts are here as
+ * words. A seat with no religion is told how one is founded instead.
+ */
+function drawTop(state: GameState, seat: number, model: FollowersModel, handlers: FollowersHandlers): HTMLElement {
+  const top = element('section', 'faith-religion-name');
   if (model.religion === null) {
-    head.append(
+    top.append(element('p', 'eyebrow sc-eyebrow', 'your religion'));
+    top.append(
       element(
         'p',
         'sc-flavor',
@@ -442,176 +562,228 @@ function drawColumn(state: GameState, seat: number, model: FollowersModel, handl
       ),
     );
     if (model.found !== null) {
-      head.append(element('p', 'rel-faith-how', model.found.how));
-      head.append(element('p', 'rel-faith-count', model.found.count));
-      if (model.found.blocker !== null) head.append(element('p', 'sc-none', model.found.blocker));
+      top.append(element('p', 'rel-faith-how', model.found.how));
+      top.append(element('p', 'rel-faith-count', model.found.count));
+      if (model.found.blocker !== null) top.append(element('p', 'sc-none', model.found.blocker));
     }
   } else {
-    head.append(drawName(state, seat, model.religion.name, handlers));
-    const facts = element('div', 'faith-facts');
-    for (const fact of model.religion.facts) facts.append(element('span', 'faith-fact', fact));
-    head.append(facts);
+    const row = element('div', 'faith-name-row');
+    row.append(element('span', 'faith-name-label', 'Your religion'));
+    row.append(drawName(state, seat, model.religion.name, handlers));
+    top.append(row);
   }
-  column.append(head);
+  // The pantheon, in words: the count, the gods by name, and the next god.
+  const pantheon = element('p', 'faith-pantheon-line');
+  pantheon.append(element('span', 'faith-pantheon-count', model.wheel.eyebrow));
+  if (model.wheel.held.length > 0) {
+    const gods = element('span', 'faith-pantheon-gods');
+    model.wheel.held.forEach((id, at) => {
+      if (at > 0) gods.append(document.createTextNode(' · '));
+      const god = element('span', 'faith-pantheon-god', beliefDef(id).name);
+      god.title = houseTooltip(id);
+      gods.append(god);
+    });
+    pantheon.append(gods);
+  }
+  pantheon.append(element('span', 'faith-pantheon-rung', model.wheel.rung));
+  top.append(pantheon);
+  return top;
+}
 
-  const pantheon = element('section', 'faith-religion-wheel');
-  pantheon.append(element('p', 'eyebrow sc-eyebrow', model.wheel.eyebrow));
-  const row = element('div', 'rel-wheel-row');
-  row.append(
-    drawPantheonWheel({
-      layout: pantheonWheelLayout(BELIEF_IDS),
-      held: new Set<BeliefId>(model.wheel.held),
-      slots: model.wheel.slots,
-      glyph: (axis) => AXIS_MARK[axis].glyph,
-      tooltip: houseTooltip,
-    }),
-  );
-  pantheon.append(row);
-  pantheon.append(element('p', 'rel-rung-line', model.wheel.rung));
-  column.append(pantheon);
-
+/**
+ * **One summary line** in place of the four boxes (the fourth pass's frame 3):
+ * how many of your towns follow, how many foreign towns, and what the holy site
+ * presses a turn, with the way to Bonuses at its end.
+ */
+function drawSummary(model: FollowersModel, handlers: FollowersHandlers): HTMLElement {
+  const line = element('div', 'faith-summary');
   if (model.counts !== null) {
-    const panel = element('div', 'faith-counts');
-    for (const count of model.counts) {
-      const box = element('div', 'faith-count');
-      box.append(element('b', 'faith-count-value', count.value));
-      box.append(element('span', 'faith-count-label', count.label));
-      panel.append(box);
-    }
-    column.append(panel);
+    const facts = element('p', 'faith-summary-facts');
+    model.counts.forEach((count, at) => {
+      if (at > 0) facts.append(element('span', 'faith-summary-dot', '·'));
+      const fact = element('span', 'faith-summary-fact');
+      fact.append(element('b', 'faith-count-value', count.value), document.createTextNode(` ${count.label}`));
+      facts.append(fact);
+    });
+    line.append(facts);
   }
-
   const link = element('button', 'faith-to-bonuses', 'What your gods and beliefs pay: Bonuses ›');
   link.type = 'button';
   link.dataset.key = 'to-bonuses';
   link.addEventListener('click', () => handlers.toBonuses());
-  column.append(link);
-  return column;
-}
-
-/** One town on a "who follows" list: its name, how many follow, and what presses a turn. */
-function drawFollower(row: FollowerRow): HTMLElement {
-  const line = element('div', row.empire === undefined ? 'faith-follower' : 'faith-follower is-foreign');
-  line.dataset.city = String(row.cityId);
-  const name = element('span', 'faith-follower-name');
-  if (row.empire !== undefined) {
-    const dot = element('span', 'faith-seat-dot');
-    dot.style.setProperty('--seat-ink', row.empire.color);
-    dot.setAttribute('aria-hidden', 'true');
-    name.append(dot);
-  }
-  name.append(element('b', 'faith-follower-town', row.name));
-  if (row.majority) {
-    const mark = element('span', 'faith-follower-majority', '✶');
-    mark.title = `Most of ${row.name} follows your faith`;
-    name.append(mark);
-  }
-  if (row.empire !== undefined) name.append(element('small', 'faith-follower-owner', row.empire.name));
-  line.append(name);
-  const count = element('span', 'faith-follower-count');
-  count.append(element('span', 'faith-follower-of', `${row.following} of ${row.population}`));
-  const bar = element('i', 'faith-follower-bar');
-  bar.setAttribute('aria-hidden', 'true');
-  const fill = element('b', 'faith-follower-fill');
-  const share = row.population <= 0 ? 0 : Math.min(row.following, row.population) / row.population;
-  fill.style.width = `${Math.round(share * 100)}%`;
-  bar.append(fill);
-  count.append(bar);
-  line.append(count);
-  const press = element('span', 'faith-follower-press');
-  // Never "+0 a turn": a town nothing presses says nothing here.
-  if (row.pressure > 0) press.textContent = `${signedFigure(row.pressure)} a turn`;
-  line.append(press);
-  line.title = row.ledger;
+  line.append(link);
   return line;
 }
 
-/** Who follows: your towns, then foreign towns, as two lists side by side. */
+/** A table's head row, from its column words. */
+function headRow(className: string, words: readonly string[]): HTMLElement {
+  const row = element('div', `faith-table-head ${className}`);
+  for (const word of words) row.append(element('span', 'faith-table-th', word));
+  return row;
+}
+
+/** How many follow, as a figure and a short bar. */
+function followingCell(following: number, population: number): HTMLElement {
+  const count = element('span', 'faith-follower-count');
+  const bar = element('i', 'faith-follower-bar');
+  bar.setAttribute('aria-hidden', 'true');
+  const fill = element('b', 'faith-follower-fill');
+  const share = population <= 0 ? 0 : Math.min(following, population) / population;
+  fill.style.width = `${Math.round(share * 100)}%`;
+  bar.append(fill);
+  count.append(bar, element('span', 'faith-follower-of', `${following} of ${population}`));
+  return count;
+}
+
+/** The rival faiths pressing one town, as the main table's last column. */
+function rivalsCell(rivals: readonly RivalRow[]): HTMLElement {
+  const cell = element('span', 'faith-follower-rivals');
+  if (rivals.length === 0) {
+    cell.append(element('span', 'faith-follower-none', 'none'));
+    return cell;
+  }
+  for (const rival of rivals) {
+    const line = element('span', 'faith-rival');
+    const dot = element('span', 'faith-seat-dot');
+    dot.style.setProperty('--seat-ink', rival.founderColor);
+    dot.setAttribute('aria-hidden', 'true');
+    line.append(dot, element('small', 'faith-follower-owner', `${rival.religion} · ${rival.founderName}`));
+    line.append(element('b', 'faith-rival-press', `${signedFigure(rival.pressure)} a turn`));
+    line.title = `${rival.following} of ${rival.population} follow. ${rival.ledger}`;
+    cell.append(line);
+  }
+  return cell;
+}
+
+/**
+ * **Your towns, as one table** (the fourth pass's frame 3): each town's name,
+ * how many follow your faith, what it presses a turn, and the rival faiths
+ * pressing it. The towns your faith does not reach are in the same table,
+ * faint, with the reason; a seat with no religion still sees its towns and
+ * every rival faith pressing them.
+ */
 function drawFollows(model: FollowersModel): HTMLElement {
-  const block = element('section', 'faith-follows');
-  const head = element('div', 'faith-section-head');
-  head.append(element('p', 'eyebrow sc-eyebrow', 'who follows'));
-  head.append(element('span', 'faith-section-note', 'citizens following · what your faith presses a turn'));
-  block.append(head);
+  const block = element('section', 'faith-follows faith-rivals');
+  const reached = model.yours.length;
+  const title =
+    model.religion === null
+      ? 'Your towns'
+      : `Your towns · ${reached} of ${reached + model.unreached.length} reached`;
+  block.append(element('p', 'eyebrow sc-eyebrow', title));
+  block.append(headRow('is-towns', ['Town', 'Following', 'Yours presses', 'Rivals press']));
+  const rows = element('div', 'faith-follow-rows');
+  for (const town of model.towns) {
+    const line = element(
+      'div',
+      town.follower === null && model.religion !== null ? 'faith-follower is-unreached' : 'faith-follower',
+    );
+    line.dataset.city = String(town.cityId);
+    const name = element('span', 'faith-follower-name');
+    name.append(element('b', 'faith-follower-town', town.name));
+    if (town.follower?.majority === true) {
+      const mark = element('span', 'faith-follower-majority', '✶');
+      mark.title = `Most of ${town.name} follows your faith`;
+      name.append(mark);
+    }
+    if (town.reason !== null) name.append(element('small', 'faith-follower-reason', town.reason));
+    line.append(name);
+    line.append(
+      town.follower === null
+        ? element('span', 'faith-follower-count', model.religion === null ? '—' : `0 of ${town.population}`)
+        : followingCell(town.follower.following, town.follower.population),
+    );
+    // Never "+0 a turn": a town your faith does not press says nothing here.
+    const press = element('span', 'faith-follower-press');
+    if (town.follower !== null && town.follower.pressure > 0) {
+      press.textContent = `${signedFigure(town.follower.pressure)} a turn`;
+    }
+    line.append(press);
+    line.append(rivalsCell(town.rivals));
+    if (town.follower !== null) line.title = town.follower.ledger;
+    rows.append(line);
+  }
+  if (model.towns.length === 0) rows.append(element('p', 'sc-none', 'You hold no town.'));
+  block.append(rows);
+  if (model.rivals.length === 0) block.append(element('p', 'faith-rivals-empty', model.rivalsEmpty));
+  return block;
+}
+
+/** **Foreign towns that follow**, as the second table, and the rule that their owners get your follower beliefs. */
+function drawForeign(model: FollowersModel): HTMLElement {
+  const block = element('section', 'faith-foreign');
+  const majority = model.foreign.filter((row) => row.majority).length;
+  block.append(
+    element('p', 'eyebrow sc-eyebrow', `Foreign towns · ${model.foreign.length} follow, ${majority} by majority`),
+  );
   if (model.religion === null) {
     block.append(element('p', 'sc-none', 'You have founded no religion yet, so nobody follows it.'));
     return block;
   }
-  const lists = element('div', 'faith-follow-lists');
-
-  const home = element('div', 'faith-follow-list');
-  const reached = model.yours.length;
-  home.append(element('p', 'faith-follow-title', `Your towns · ${reached} of ${reached + model.unreached.length} reached`));
-  const homeRows = element('div', 'faith-follow-rows');
-  for (const row of model.yours) homeRows.append(drawFollower(row));
-  for (const row of model.unreached) {
-    const line = element('div', 'faith-follower is-unreached');
-    line.dataset.city = String(row.cityId);
-    const name = element('span', 'faith-follower-name');
-    name.append(element('b', 'faith-follower-town', row.name));
-    name.append(element('small', 'faith-follower-reason', row.reason));
-    line.append(name);
-    line.append(element('span', 'faith-follower-count', `0 of ${row.population}`));
-    line.append(element('span', 'faith-follower-press'));
-    homeRows.append(line);
-  }
-  if (reached + model.unreached.length === 0) homeRows.append(element('p', 'sc-none', 'You hold no town.'));
-  home.append(homeRows);
-  lists.append(home);
-
-  const abroad = element('div', 'faith-follow-list');
-  const majority = model.foreign.filter((row) => row.majority).length;
-  abroad.append(
-    element(
-      'p',
-      'faith-follow-title',
-      `Foreign towns · ${model.foreign.length} follow, ${majority} by majority · their owners get your follower beliefs`,
-    ),
-  );
-  const abroadRows = element('div', 'faith-follow-rows');
-  for (const row of model.foreign) abroadRows.append(drawFollower(row));
-  if (model.foreign.length === 0) abroadRows.append(element('p', 'sc-none', 'No foreign town follows yet.'));
-  abroad.append(abroadRows);
-  lists.append(abroad);
-
-  block.append(lists);
-  return block;
-}
-
-/** The rival faiths pressing your towns, or the sentence that says none does. */
-function drawRivals(model: FollowersModel): HTMLElement {
-  const block = element('section', 'faith-rivals');
-  block.append(element('p', 'eyebrow sc-eyebrow', 'rival faiths pressing your towns'));
-  if (model.rivals.length === 0) {
-    block.append(element('p', 'faith-rivals-empty', model.rivalsEmpty));
-    return block;
-  }
   const rows = element('div', 'faith-follow-rows');
-  for (const row of model.rivals) {
-    const line = element('div', 'faith-follower is-rival');
+  for (const row of model.foreign) {
+    const line = element('div', 'faith-follower is-foreign');
     line.dataset.city = String(row.cityId);
     const name = element('span', 'faith-follower-name');
-    name.append(element('b', 'faith-follower-town', row.town));
-    const dot = element('span', 'faith-seat-dot');
-    dot.style.setProperty('--seat-ink', row.founderColor);
-    dot.setAttribute('aria-hidden', 'true');
-    name.append(dot);
-    name.append(element('small', 'faith-follower-owner', `${row.religion} · ${row.founderName}`));
+    if (row.empire !== undefined) {
+      const dot = element('span', 'faith-seat-dot');
+      dot.style.setProperty('--seat-ink', row.empire.color);
+      dot.setAttribute('aria-hidden', 'true');
+      name.append(dot);
+    }
+    name.append(element('b', 'faith-follower-town', row.name));
+    if (row.empire !== undefined) name.append(element('small', 'faith-follower-owner', row.empire.name));
     line.append(name);
-    line.append(element('span', 'faith-follower-count', `${row.following} of ${row.population}`));
-    line.append(element('span', 'faith-follower-press', `${signedFigure(row.pressure)} a turn`));
+    line.append(followingCell(row.following, row.population));
+    const press = element('span', 'faith-follower-press');
+    if (row.pressure > 0) press.textContent = `${signedFigure(row.pressure)} a turn`;
+    line.append(press);
     line.title = row.ledger;
     rows.append(line);
+  }
+  if (model.foreign.length === 0) {
+    rows.append(
+      element('p', 'sc-none', 'No foreign town follows yet. When one does, its owner gets your follower beliefs.'),
+    );
+  } else {
+    rows.append(element('p', 'faith-table-note', 'Their owners get your follower beliefs.'));
   }
   block.append(rows);
   return block;
 }
 
+/** **The religions in the world**: founder, holy city and towns, with the fog kept. */
+function drawWorld(model: FollowersModel): HTMLElement {
+  const block = element('section', 'faith-world');
+  block.append(element('p', 'eyebrow sc-eyebrow', 'religions in the world'));
+  if (model.world.length === 0) {
+    block.append(element('p', 'sc-none', 'No religion has been founded yet.'));
+  } else {
+    block.append(headRow('is-world', ['Religion', 'Founder', 'Holy city', 'Towns']));
+    for (const row of model.world) {
+      const line = element('div', row.ours ? 'faith-world-row is-ours' : 'faith-world-row');
+      const name = element('span', 'faith-world-name');
+      const dot = element('span', 'faith-seat-dot');
+      dot.style.setProperty('--seat-ink', row.founderColor);
+      dot.setAttribute('aria-hidden', 'true');
+      name.append(dot, element('b', undefined, row.name));
+      line.append(name);
+      line.append(element('span', 'faith-world-founder', row.founder));
+      line.append(element('span', 'faith-world-holy', row.holyCity));
+      line.append(element('span', 'faith-world-towns', String(row.towns)));
+      block.append(line);
+    }
+    // The count of religions founded is said once, above, while none is founded.
+    block.append(element('p', 'faith-table-note', model.worldNote));
+  }
+  return block;
+}
+
 /**
- * The clergy: one card a piece, each with its price and, when it cannot be
- * called, the reducer's reason on the card. One town select for all three,
- * because a piece has to stand somewhere and the price and the stacking room
- * are asked of that town.
+ * **The clergy, as rows** (the fourth pass's frame 3): each piece's name, what
+ * it does, and its price, or, when it cannot be called, the price kept in view
+ * with the reducer's reason under it. One town select for all three, because a
+ * piece has to stand somewhere and the price and the stacking room are asked of
+ * that town.
  */
 function drawClergy(state: GameState, seat: number, model: FollowersModel, handlers: FollowersHandlers): HTMLElement {
   const block = element('section', 'faith-clergy');
@@ -644,7 +816,8 @@ function drawClergy(state: GameState, seat: number, model: FollowersModel, handl
     const face = element('article', 'faith-clergy-card');
     face.dataset.unit = card.type;
     face.append(element('h4', 'faith-clergy-name', card.name));
-    if (card.says.length > 0) face.append(element('p', 'faith-clergy-says', card.says));
+    const words = element('div', 'faith-clergy-words');
+    if (card.says.length > 0) words.append(element('p', 'faith-clergy-says', card.says));
     face.title = card.priceWords;
     const look = card.look;
     if (look.look === 'none') {
@@ -652,8 +825,8 @@ function drawClergy(state: GameState, seat: number, model: FollowersModel, handl
       // reason under it rather than replaced by a dash.
       const price = element('span', 'faith-clergy-price');
       setYieldText(price, priceLabelText(card.verb, look.bank, look.price));
-      face.append(price);
-      face.append(refusalLineElement(look.refusal, 'row'));
+      words.append(refusalLineElement(look.refusal, 'row'));
+      face.append(words, price);
     } else {
       const item: PurchasableItem = { kind: 'unit', id: card.type };
       const cell = priceCellElement(look, {
@@ -672,7 +845,7 @@ function drawClergy(state: GameState, seat: number, model: FollowersModel, handl
         },
       });
       cell.dataset.key = `clergy:${card.type}`;
-      face.append(cell);
+      face.append(words, cell);
     }
     cards.append(face);
   }
@@ -680,23 +853,29 @@ function drawClergy(state: GameState, seat: number, model: FollowersModel, handl
   return block;
 }
 
-/** The Religion & followers tab, drawn from its model, in the Statecraft sheet's split. */
+/**
+ * **The Religion & followers tab, as tables** (Quiet Table, build stage 3; the
+ * fourth pass's `frame-3-religion`): the name and the pantheon line at the top,
+ * one summary line, then your towns and the foreign towns at the left, and the
+ * religions in the world and the clergy at the right. Every fact of the old
+ * tab is here (its eleven facts are listed in the fourth pass's board); the
+ * pantheon wheel is cut and its facts are the pantheon line.
+ */
 export function drawFollowersTab(
   state: GameState,
   seat: number,
   model: FollowersModel,
   handlers: FollowersHandlers,
 ): HTMLElement {
-  const split = element('div', 'sc-split faith-religion-tab');
-  const column = element('aside', 'sc-column');
-  const stack = element('div', 'sc-column-body');
-  stack.append(drawColumn(state, seat, model, handlers));
-  column.append(stack);
-  split.append(column);
-  const pane = element('div', 'sc-pane');
-  pane.append(drawFollows(model));
-  pane.append(drawRivals(model));
-  pane.append(drawClergy(state, seat, model, handlers));
-  split.append(pane);
-  return split;
+  const tab = element('div', 'faith-religion-tab');
+  tab.append(drawTop(state, seat, model, handlers));
+  tab.append(drawSummary(model, handlers));
+  const grid = element('div', 'faith-religion-grid');
+  const left = element('div', 'faith-religion-main');
+  left.append(drawFollows(model), drawForeign(model));
+  const right = element('div', 'faith-religion-side');
+  right.append(drawWorld(model), drawClergy(state, seat, model, handlers));
+  grid.append(left, right);
+  tab.append(grid);
+  return tab;
 }

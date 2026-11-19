@@ -472,6 +472,12 @@ interface Offer {
   shape?: OfferShape;
   /** The verb on the take button: "Take" when absent, "Swear" for a government. */
   takeVerb?: string;
+  /**
+   * Fits a hand of drawn faces together, once they are on the page (Quiet
+   * Table, build stage 3: a hand reads alike). The Order draft's is
+   * `fitOrderHand`, which gives every card the size the longest one needed.
+   */
+  fitHand?: (faces: HTMLElement[]) => void;
 }
 
 /**
@@ -1525,6 +1531,8 @@ export function createOfferCard(
     const dealing = (tarot || dressed) && wantsMotion();
     /** The drawn faces' fits, run once the sheet is on the page. */
     const fits: (() => void)[] = [];
+    /** The drawn faces, for the hand's own fit (`Offer.fitHand`). */
+    const drawnFaces: HTMLElement[] = [];
 
     /**
      * One card, dealt: the face, then the deal and the click.
@@ -1572,6 +1580,7 @@ export function createOfferCard(
       if (option.lineName !== undefined) button.title = option.lineName;
       const drawn = dress();
       button.append(drawn.face);
+      drawnFaces.push(drawn.face);
       if (option.progress !== undefined && option.progress.length > 0) {
         drawn.seat.append(goalCounterNode(option.progress));
       }
@@ -1722,10 +1731,14 @@ export function createOfferCard(
 
     // The drawn faces fit their words now that they are on the page, and again
     // once the card fonts have loaded.
-    for (const fit of fits) fit();
-    if (fits.length > 0) {
+    const fitAll = (): void => {
+      for (const fit of fits) fit();
+      offer.fitHand?.(drawnFaces);
+    };
+    fitAll();
+    if (drawnFaces.length > 0) {
       void document.fonts?.ready.then(() => {
-        if (standing?.offer === offer) for (const fit of fits) fit();
+        if (standing?.offer === offer) fitAll();
       });
     }
 
