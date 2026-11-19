@@ -493,7 +493,8 @@ describe('the visibility grid', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 247 keeps the pillaged work for repair.
+    expect(SCHEMA_VERSION).toBe(247);
   });
 
   it('survives a JSON round trip as plain data', () => {

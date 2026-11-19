@@ -597,8 +597,11 @@ import {
  *
  * v246 changes the generic Order pool. A saved draft pick stores the index of
  * the card in the offer. Replaying a v245 log could pick a different Order.
+ *
+ * v247 records the original work when a raid damages it. A v246 raid removed
+ * the work permanently, so its command log would replay to a different state.
  */
-export const SCHEMA_VERSION = 246;
+export const SCHEMA_VERSION = 247;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

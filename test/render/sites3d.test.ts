@@ -285,6 +285,27 @@ describe('drawing sites', () => {
  * `sites3d.ts` for why they are drawn by this layer at all.
  */
 describe('the standing site markers', () => {
+  it('shows the raid marker on charted ground until repair, including on the painted board', () => {
+    const state = flatState();
+    const tile = at(state, 2, 2);
+    const healthy = signSites(state);
+    tile.damagedImprovement = { id: 'farm', improvedOn: 1 };
+    expect(signSites(state)).not.toBe(healthy);
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+    for (const fog of [VISIBLE, EXPLORED, HIDDEN]) {
+      layer.build(state, geometry, materials(), false, levels(state, fog), fakeIcons, new Quaternion(), 0, { props: false });
+      expect(layer.markers).toBe(fog === HIDDEN ? 0 : 1);
+      expect(layer.instances).toBe(0);
+    }
+    delete tile.damagedImprovement;
+    tile.improvement = 'farm';
+    expect(signSites(state)).toBe(healthy);
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons);
+    expect(layer.markers).toBe(0);
+    layer.dispose();
+  });
+
   it('plants one over every ruin and village, and none over a camp', () => {
     const state = flatState();
     at(state, 2, 2).discovery = 'ruins';

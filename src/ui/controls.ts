@@ -249,6 +249,7 @@ import {
   pillageError,
   prospectError,
   prospectTechError,
+  repairImprovementError,
   removeImprovementError,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
@@ -2325,6 +2326,8 @@ export interface GameControls {
   removeImprovementName(): string | null;
   /** Takes the improvement under the selected worker back off the hex. */
   removeImprovement(): void;
+  repairImprovementBlocker(): string | null | undefined;
+  repairImprovement(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
    * `undefined` with nothing selected — the same three-valued shape as
@@ -6695,6 +6698,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  function repairImprovementBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return repairImprovementError(getGame().state, unit.id);
+  }
+
+  function repairImprovement(): void {
+    const unit = selectedUnit();
+    if (!unit || repairImprovementBlocker() !== null) return;
+    const command: Command = { type: 'repairImprovement', playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const work = getTileAt(getGame().state.map, unit.col, unit.row)?.improvement;
+    if (work) announce(`Repaired ${improvementDef(work).name}`, { cell: { col: unit.col, row: unit.row } });
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   /**
    * Why the selected piece cannot survey where it stands. The seat's question
    * here, the act's delegated to `prospectError` — `chopBlocker`'s split, and
@@ -8637,6 +8663,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     chopPreview,
     chopTechName,
     chop,
+    repairImprovement,
+    repairImprovementBlocker,
     removeImprovementBlocker,
     removeImprovementName,
     removeImprovement,

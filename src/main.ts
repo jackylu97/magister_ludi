@@ -6039,6 +6039,11 @@ async function boot(initial: Game | null): Promise<void> {
       controls.prospect();
       updatePanel(null, renderer.getHover());
     },
+    repairImprovementBlocker: () => controls.repairImprovementBlocker(),
+    onRepairImprovement: () => {
+      controls.repairImprovement();
+      updatePanel(null, renderer.getHover());
+    },
     removeImprovementBlocker: () => controls.removeImprovementBlocker(),
     removeImprovementName: () => controls.removeImprovementName(),
     onRemoveImprovement: () => {

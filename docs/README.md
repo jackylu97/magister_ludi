@@ -56,8 +56,15 @@ Reference: **`docs/mapgen.md`** · data: `data/mapgen.json` · code:
   arguments**. The map is not stored in a save; it is regenerated, so anything
   that made the map is in the config.
 - **Nothing may regenerate a tile mid-game.** Features and resources are placed
-  once, in `newGame`. The only mutable tile fields are `improvement`, `feature`,
+  once, in `newGame`. The only mutable tile fields include `improvement`, `improvedOn`, `damagedImprovement`, `feature`,
   `discovery`, `road`, `vein`, `surveyed`.
+- A pillaged work stops providing yields, resource access and bonuses. Orders
+  count the tile as unimproved. Crossed spears mark damage on the map. The
+  tile panel names the damaged work. A worker
+  in its own territory can repair it, including a great person's work or a
+  fishing boat. Repair uses the worker's remaining movement and costs no
+  charge. It restores the original construction turn. It gives no build
+  rewards and restores no road. A new improvement replaces the damaged work.
 - Generation is two noise fields plus ordered passes: the pangaea mask and its
   island belt, terrain and hills, forest/jungle and the clearings punched through
   them, lakes, coast, the shelf chains, rivers, floodplains, freshwater, then

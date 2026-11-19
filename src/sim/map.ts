@@ -154,22 +154,10 @@ export interface Tile {
    * sums this over the opened seams it owns.
    */
   resourceCopies?: number;
-  /**
-   * The farm, mine or pasture standing on this tile, or the key is **absent**
-   * when there is none. Absence rather than a `'none'` sentinel, for the reason
-   * `resource` gives above.
-   *
-   * The one field on a tile that is **not** generation output: it is written
-   * during play by the `buildImprovement` command and cleared by `pillage`
-   * (`commands.ts`), and by nothing else. That does not break the "a save file
-   * carries a seed, not four thousand tiles" promise in `state.ts` — a save is
-   * `{config, log}` and every improvement on the board is in that log, so a
-   * replay lays them down again in the order they were built. What it does mean
-   * is that the map object is no longer a pure function of the seed *after* turn
-   * one, and anything that regenerates it mid-game (nothing does) would wipe the
-   * empire's works.
-   */
+  /** The active work. Yields, Orders and resource access read this field. */
   improvement?: ImprovementId;
+  /** Repair restores these original works, including their construction date. */
+  damagedImprovement?: { id: ImprovementId; improvedOn?: number };
   /**
    * **The turn the work standing here was raised**, or the key is **absent** —
    * which it is on every bare hex and on every map the generator ever produced.
@@ -186,7 +174,8 @@ export interface Tile {
    * applied to the longest-lived fact in the game. Nothing decrements it, no
    * phase sweeps it, and the reading is `state.turn - improvedOn >= turns`.
    *
-   * It is **bound to `improvement` and travels with it**: every seam that writes
+   * While a work is damaged, `damagedImprovement` holds the date for repair.
+   * For an active work, the date is **bound to `improvement` and travels with it**: every seam that writes
    * that field writes this one beside it (`buildImprovementAt`, a great person's
    * work, a prophet's holy site) and every seam that deletes that field deletes
    * this one with it (a pillage, a work replaced). So a farm torn up and rebuilt
@@ -463,6 +452,7 @@ export function tileHex(tile: Tile): Hex {
  * will.
  */
 export function raiseImprovement(tile: Tile, improvement: ImprovementId, turn: number): void {
+  delete tile.damagedImprovement;
   tile.improvement = improvement;
   tile.improvedOn = turn;
 }
@@ -477,8 +467,17 @@ export function raiseImprovement(tile: Tile, improvement: ImprovementId, turn: n
  * rebuilt is a new farm, which is the reading a player can act on.
  */
 export function razeImprovement(tile: Tile): void {
+  delete tile.damagedImprovement;
   delete tile.improvement;
   delete tile.improvedOn;
+}
+
+/** Keep the original work for repair while all rules read the tile as unimproved. */
+export function damageImprovement(tile: Tile): void {
+  if (tile.improvement === undefined) return;
+  const damage = { id: tile.improvement, improvedOn: tile.improvedOn };
+  razeImprovement(tile);
+  tile.damagedImprovement = damage;
 }
 
 /**

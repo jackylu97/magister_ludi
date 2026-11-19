@@ -184,7 +184,7 @@ mean those things.
    rather than a target.
 
 ## Traps — sim
-- **Mutable tile fields are exactly**: `improvement`, `improvedOn`, `feature`,
+- **Mutable tile fields are exactly**: `improvement`, `improvedOn`, `damagedImprovement`, `feature`,
   `discovery`, `road`, `vein`, `surveyed`. `discovery` only ever *removed*
   (`claimDiscoveryAt`); `improvedOn` (D2d, the age stamp) is the turn the work on
   the hex went up, written and cleared **only** beside `improvement` through

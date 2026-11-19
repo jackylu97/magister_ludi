@@ -344,6 +344,7 @@ const ANNOUNCING = new Set([
   'improvements.ts#buildImprovementAt',
   'improvements.ts#pillageAt',
   'improvements.ts#removeImprovementAt',
+  'improvements.ts#repairImprovementAt',
   'religion.ts#clearCityRite',
   'religion.ts#foundReligion',
   'religion.ts#placeRelicAt',

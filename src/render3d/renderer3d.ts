@@ -239,8 +239,10 @@ export function signDrawnSites(
     }
   }
   hash = Math.imul(hash ^ (markers ? 1 : 0), 16777619);
-  if (markers && seat !== null) state.map.tiles.forEach((tile, cell) => {
-    if (charted(cell) && seatSeesSleepingVein(state, seat, tile)) hash = hashText(Math.imul(hash ^ cell, 16777619), 'note');
+  if (markers) state.map.tiles.forEach((tile, cell) => {
+    if (!charted(cell)) return;
+    if (tile.damagedImprovement) hash = hashText(Math.imul(hash ^ cell, 16777619), 'pillaged');
+    if (seat !== null && seatSeesSleepingVein(state, seat, tile)) hash = hashText(Math.imul(hash ^ cell, 16777619), 'note');
   });
   return hash >>> 0;
 }

@@ -109,6 +109,7 @@ import {
   getTileAt,
   mapRange,
   markHex,
+  damageImprovement,
   raiseImprovement,
   razeImprovement,
   tileHex,
@@ -409,11 +410,9 @@ export function improvementGroundError(
   const marking = markInsteadOf(tile, improvementId) !== undefined;
   // **One in each town** (The Keeps, Expansionist batch E4; the triage's reading
   // 31): the town that owns this hex may hold the row on no other hex.
-  if (def.onePerTown === true) {
-    const townId = tileOwnerCityId(state, tile.col, tile.row);
-    if (townId !== null && townHoldsWork(state, townId, tile, improvementId)) {
-      return `${cityById(state, townId)?.name ?? 'This town'} already has ${aRow(def)}`;
-    }
+  if (def.onePerTown) {
+    const limit = townWorkLimitError(state, tile, improvementId);
+    if (limit) return limit;
   }
 
   // **The work's exemption**, asked once and read by every clause below. See the
@@ -1323,12 +1322,21 @@ function boardWithWork(state: GameState, playerId: number, work: Tile, claims: b
  * has already answered.
  */
 export function removeImprovementError(state: GameState, unitId: number): string | null {
+  return workerMaintenanceError(state, unitId, 'remove');
+}
+
+/** A worker can restore any damaged work on land its empire now owns. */
+export function repairImprovementError(state: GameState, unitId: number): string | null {
+  return workerMaintenanceError(state, unitId, 'repair');
+}
+
+function workerMaintenanceError(state: GameState, unitId: number, action: 'remove' | 'repair'): string | null {
   const unit = unitById(state, unitId);
   if (!unit) return `No unit with id ${String(unitId)}`;
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
 
   const def = unitDef(unit.type);
-  if (!buildsImprovements(unit)) return `A ${def.name} cannot remove improvements`;
+  if (!buildsImprovements(unit)) return `A ${def.name} cannot ${action} improvements`;
   if (unit.movesLeft <= 0) return `This ${def.name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
@@ -1338,6 +1346,7 @@ export function removeImprovementError(state: GameState, unitId: number): string
   const owner = tileOwnerPlayerId(state, tile.col, tile.row);
   if (owner === null) return `${where} is not in your territory`;
   if (owner !== unit.ownerId) return `${where} belongs to player ${owner}`;
+  if (action === 'repair') return repairGroundError(state, tile);
   if (tile.improvement === undefined) return `There is nothing to remove on ${where}`;
   return null;
 }
@@ -1394,6 +1403,31 @@ export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): v
   if (was !== undefined) refreshWateredNeighbours(state, tile, was);
   // A work taken up stops paying the hexes beside it (batch DT16).
   refreshRingDerived(state, tile, was);
+  unit.movesLeft = 0;
+}
+
+/** Called after the worker's ownership check. A second active work can fill a town's limit. */
+export function repairGroundError(state: GameState, tile: Tile): string | null {
+  const damaged = tile.damagedImprovement;
+  if (damaged === undefined) return `There is nothing to repair on ${whereIs(tile)}`;
+  return improvementDef(damaged.id).onePerTown ? townWorkLimitError(state, tile, damaged.id) : null;
+}
+
+function townWorkLimitError(state: GameState, tile: Tile, id: ImprovementId): string | null {
+  const def = improvementDef(id);
+  const townId = tileOwnerCityId(state, tile.col, tile.row);
+  if (townId === null || !townHoldsWork(state, townId, tile, id)) return null;
+  return `${cityById(state, townId)?.name ?? 'This town'} already has ${aRow(def)}`;
+}
+
+/** A repair restores the original work and spends the worker's remaining movement. */
+export function repairImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
+  const damaged = tile.damagedImprovement!;
+  raiseImprovement(tile, damaged.id, damaged.improvedOn ?? state.turn);
+  bumpEconomy(state);
+  refreshTileDerived(state, tile);
+  refreshWateredNeighbours(state, tile, damaged.id);
+  refreshRingDerived(state, tile, damaged.id);
   unit.movesLeft = 0;
 }
 
@@ -2065,7 +2099,7 @@ export interface PillageReport {
 }
 
 /**
- * Tears the improvement out and pays the raider. Validates nothing.
+ * Damages the work, removes the road and pays the raider.
  *
  * One movement point, not the whole allowance, and that is the Civ reading: a
  * column burns a farm as it rides past. It is also what makes pillaging a
@@ -2075,15 +2109,8 @@ export interface PillageReport {
  * it, so an empire whose raids are free needs no second verb and no branch
  * anywhere else.
  *
- * No smoke, no ruin state, no repair verb in v1. A pillaged tile is simply an
- * unimproved tile, which means the answer to "how do I fix it?" is the answer to
- * "how did I build it?" and there is one mechanism instead of two.
- *
- * **The road goes with the farm** (the trade pass), and both are torn out by the
- * one verb rather than by two: a raid on a hex takes what has been *built* on
- * it, and a road is built. It is the only thing that ever removes a road — they
- * are permanent otherwise, which is the user's ruling — so the answer to "how do
- * I fix it?" is again the answer to "how was it made?": send a caravan.
+ * While damaged, the work has no effect. A worker can repair it without
+ * spending a charge. A caravan can lay a new road on the tile.
  *
  * The refresh is `buildImprovementAt`'s, read from the other end and owed to the
  * other player: the raid takes the farm's food away *now*, and the panel it has
@@ -2130,13 +2157,10 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     heal: 0,
     warning: null,
   };
-  // The work and its age together (`razeImprovement`), for the very reason the
-  // free-road mark below goes with its road: a stamp left on burnt ground is an
-  // age the next farm would inherit. A tended work survives (it cannot be
-  // pillaged), so only the road goes on such a hex.
+  // Tended works survive a raid on the road beneath them.
   if (tile.improvement !== undefined && !isTendedWork(tile.improvement)) {
     report.improvement = tile.improvement;
-    razeImprovement(tile);
+    damageImprovement(tile);
   }
   delete tile.road;
   // The free-road mark goes with the road it is a fact *about*. Left behind it
@@ -2209,13 +2233,14 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
         if (owner === null || owner === unit.ownerId) continue;
         if (!atWar(state, unit.ownerId, owner)) continue;
         const burnt = near.improvement;
-        razeImprovement(near);
+        damageImprovement(near);
         delete near.road;
         delete near.roadFree;
         bumpEconomy(state);
         // The victim's town is refreshed for every hex burnt, as for the raid's
         // own hex (`refreshCityDerived`'s register, entry 5).
         refreshTileDerived(state, near);
+        refreshWateredNeighbours(state, near, burnt);
         refreshRingDerived(state, near, burnt);
         const more = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold, 0, facts);
         const gold = payPillage(state, player, unit, near, more, report, touched);

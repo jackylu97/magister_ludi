@@ -36,7 +36,7 @@
  */
 
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
-import type { ImprovementId } from '../sim/improvementData';
+import { type ImprovementId, improvementDef } from '../sim/improvementData';
 import { buildsImprovements, chargesLeft, isBuilder } from '../sim/improvements';
 import { isApostle, isAugur, isInquisitor, isProphet } from '../sim/religion';
 import type { RiteId } from '../sim/religionData';
@@ -225,6 +225,8 @@ interface UnitPanelOptions {
    */
   removeImprovementName: () => string | null;
   onRemoveImprovement: () => void;
+  repairImprovementBlocker: () => string | null | undefined;
+  onRepairImprovement: () => void;
   /**
    * Why the selected piece cannot survey the hill it stands on —
    * `controls.prospectBlocker()`. `chopBlocker`'s shape.
@@ -596,6 +598,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     removeImprovementBlocker,
     removeImprovementName,
     onRemoveImprovement,
+    repairImprovementBlocker,
+    onRepairImprovement,
     prospectBlocker,
     prospectTechName,
     onProspect,
@@ -948,7 +952,18 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
      */
     const canSurvey = buildsImprovements(unit) || isExplorer(unitDef(unit.type));
     if (buildsImprovements(unit)) {
+      const damaged = getTileAt(getGame().state.map, unit.col, unit.row)?.damagedImprovement;
+      if (damaged) {
+        const blocked = repairImprovementBlocker();
+        actions.push({
+          label: `Repair ${improvementDef(damaged.id).name}`,
+          blocked: blocked === undefined ? 'No unit selected' : blocked,
+          hint: 'Restore this work. Uses the remaining movement and costs no charge.',
+          run: onRepairImprovement,
+        });
+      }
       for (const option of improvementOptions()) {
+        if (option.id === damaged?.id) continue;
         const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
         if (delta) {
