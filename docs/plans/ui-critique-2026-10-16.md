@@ -1580,8 +1580,14 @@ full screen is better. lets build that." This replaces frame A9's layout
   The sentence is words only (hard rule 7): who closed the work and where,
   and "The game is yours." or "The game is theirs."
 - **Three doors at the foot, at the right:** "Back to the title", "Look at the
-  board", and the next step in cinnabar, which opens the standings.
-- **The bead count and the standings table come after it,** on the screens
-  the game already has. They are not on this page.
+  board" (closes the page; the game goes on), and "See the Abacus" in
+  cinnabar.
+- **The order of the close** (my reading of frame A9's note that the 3D
+  abacus "stays the next screen"; the user may change it): the painting page
+  comes first and takes the place of the two colour beats (black, then
+  parchment) of `opusClose.ts`. "See the Abacus" runs the Abacus page as it is
+  today (the golden bead, the slide, the turn), and the standings rise after
+  it as today. The bead count and the standings table are not on the painting
+  page.
 - **No painting, no change:** if the picture fails to load, the page shows the
   lapis page (a win) or the dark cloth (a loss) behind the same words.
