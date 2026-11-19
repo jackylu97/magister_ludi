@@ -1737,3 +1737,146 @@ Additions by family and age:
   enough for a few players focusing on a particular type to draft". So **ten
   in a cell is confirmed**, and the user's own rate (2 to 3 people a seat an
   age) stands beside the bot arithmetic.
+
+## The user's second rulings (2026-11-19, 63 comments on the page)
+
+The user: "ok i commented on the great people pass. assume any row with no
+comment is approved". So every person, change (C) and addition (A) with no
+comment below is **approved as the page shows it**. The comments are quoted
+whole. Where a comment gives a new line, that line replaces the proposed one.
+S12 is the one item the user has not ruled on.
+
+### One rule for the whole roster
+
+- **No percentages for combat strength** (on Ahmose: "+3 combat strength, no
+  percentages for combat strength"). Combat strength is flat points. The
+  builder changes every legacy that still prints a combat percentage to flat
+  points. Gustavus Adolphus is the one other row: "+15% combat strength for
+  ranged units" becomes **+3 combat strength for ranged units** (my reading;
+  the user did not comment on that row).
+
+### The system changes
+
+| Item | The user's words | Result |
+|---|---|---|
+| S1 | "great people should be drafted from the age of the player, remove the +1 age thing." | Approved earlier; stands. |
+| S3 | "lets make it more clear to the player. start at +4, with an additional +2 with a technology in age 3 and another +2 in a technology in age 4. Citadels can start at +3 production and receive the same with the tech." | A work pays 4 of its yield. One technology of Æra III adds 2, and one of Æra IV adds 2 more. A Citadel pays 3 production and gets the same two steps. The tech prints the step, so the player sees where it comes from. Which two technologies: the builder proposes, one per age, on the main line of each age. |
+| S4 | "lets make this 8 turns like the others." | Strike a Bargain: 8 turns of the empire's gold. |
+| S5 | "great." | Approved: Rush the Works is 60 production × age. |
+| S6 | "lets keep it at a constant +3, combat strenght is additive so it shouldn't scale." | Not adopted. The general's aura and act stay +3 in every age. |
+| S7 | "keep as is, i think the tension between spending and planting is interesting." | Not adopted. A general's legacy starts when the general is spent, as today. |
+| S8 | "keep as is, we should give artists some pay off cards in the deck, maybe the magisterial deck and one other?" | Not adopted. A Landmark stays as it is. **New design task:** Orders that pay off artists, in the Magisterial deck and one other deck. |
+| S9 | "sure thats fine" | Stays withdrawn. |
+| S10 | "that's fine, if they can find this combo they deserve it." | Not adopted. No limit on what multiplies an act. |
+| S11 | "sure" | Approved. |
+| S12 | "i'll take a look before commentin here." | **Open.** |
+
+### The scholar question
+
+On "20 buildings and wonders feed scholar renown": "this is a problem, which
+buildings feed scholars?" The count from `data/buildings.json` today (live
+rows; the earlier figure of 20 was low):
+
+| Family | Buildings | Wonders and projects | Total |
+|---|---|---|---|
+| Scholar | 9 | 14 | 23 |
+| Artist | 11 | 8 | 19 |
+| Merchant | 13 | 5 | 18 |
+| Engineer | 8 | 7 | 15 |
+| General | 5 | 4 | 9 |
+
+- Scholar buildings: Library, University, Printing House, Observatory,
+  Scriptorium, Orrery, The Alchemical Society, The Sankore Madrasa, The
+  Museion.
+- Scholar wonders and projects: The Oracle, Stonehenge, The Great Ziggurat,
+  The Great Library, Chichen Itza, The Great Mosque of Djenné, The House of
+  Wisdom, The Great Sphinx, The Temple of Thoth, Solomon's Temple, The Library
+  of Ashurbanipal (10 a turn, where the others pay 2), Chart the Stars, The
+  Turning Heavens, The Alchemical Codex.
+- The buildings are even. The wonders are not: 14 for scholars against 4 for
+  generals. **Proposed fix, waiting for the user:** move five wonders off the
+  scholar (Stonehenge and Chichen Itza to the artist, The Great Ziggurat and
+  Solomon's Temple to the engineer, The Great Sphinx to the general) and cut
+  The Library of Ashurbanipal from 10 a turn to 2. That gives scholar 18,
+  artist 21, engineer 17, general 10.
+
+### People: new lines from the comments
+
+| Person | The user's words | The line to build |
+|---|---|---|
+| Hypatia (C15) | "lets change: while happy, +10% science in every city. i never pick this in my playtests because its difficult to stay happy the entire game." | +10% science in every city while your happiness is not negative. The legacy is no longer lost for good: it stops while unhappy and comes back. |
+| Maimonides (C22) | "lets keep to per 2 buildings" | C22 is dropped: +1 happiness per 2 buildings that supply science. |
+| Āryabhaṭa | "+1 faith and +1 renown on all buildings that supply science." | Each building that supplies science also supplies +1 faith and +1 renown. |
+| Paracelsus | "buff to +20%." | +20% science and −1 happiness in every city. |
+| John Dee (C28) | "rework: immediately unlock two order drafts." | When spent: two Order drafts open at once. No standing legacy. |
+| Copernicus (C29) | "this is dull, rework" | **Needs the user's pick**, below. |
+| Ibn Khaldun (A26) | "+3 authority capacity, +2 science for every spare point of authority." | +3 authority capacity · +2 science for each point of authority capacity you are not using. |
+| Brahmagupta (A27) | "rework, maybe this can be a gold bonus elsewhere, right now its pretty boring." | **Needs the user's pick**, below. |
+| Ibn al-Haytham (A25) | "this is dull, rework" then "maybe: your libraries pay double. (Counts other library bonuses)" | Your Libraries pay double, and that counts what cards and legacies add to a Library. |
+| Solon (A40) | "Great, lets make this +3 authority." | +3 authority capacity · +2 science in your capital. |
+| Ilimilku | "buff to +2 prod +2 culture" | +2 production and +2 culture in every coastal city. |
+| Sin-lēqi-unninni (C05) | "+50% production towards cultural buildings, cultural buildings supply +1 renown." | +50% production toward buildings that supply culture · each building that supplies culture supplies +1 renown. |
+| Sappho | "let's buff to +3 culture and +3 happiness." | +3 culture in your capital · +3 happiness. |
+| Hesiod (A41) | "+1 food and +1 culture on all pubic works" | Each public work supplies +1 food and +1 culture (`BuildingDef.publicWork`). |
+| Aesop (A42) | "rework: gain 3 free rerolls, unlocks a draft immediately." | When spent: three free rerolls and one Order draft opens at once. No standing legacy. |
+| Telesilla (A44) | "+2 culture." | +5 to the defence of your cities · +2 culture in every city with a garrison. |
+| Phidias | "lets buff, +5 culture per wonder." | +5 culture per wonder you hold. |
+| Cai Yan (A14) | "there's a cooler ability here somewhere that's more in line with her history" | **Needs the user's pick**, below. |
+| Murasaki Shikibu (C23) | "keep the original effect" | C23 is dropped: +4 culture per melee unit in the field, as today. |
+| Christine de Pizan (C30) | "+3 culture for each public work." | +3 culture for each public work you hold. |
+| Li Bai (A21) | "tiles adjacent to a river or mountain gain +1 culture (doesn't stack)." | +1 culture on every hex beside a river or a mountain. A hex beside both gets 1. Likely a new shape. |
+| Ferdowsi (A23) | "great works pay +4 culture" | Every great person's work you hold pays +4 culture. |
+| Hildegard of Bingen (A72) | "needs a buff. how about +2 of every yield in every city with a cathedral (science, culture, food, production faith)" | +2 science, +2 culture, +2 food, +2 production and +2 faith in every city with a Cathedral. Gold is not in the user's list, so it is not paid. |
+| Bezalel (C07) | "temples provide +1 prod and +1 faith (affected by temple modifiers)" | Each Temple supplies +1 production and +1 faith as part of the building, so anything that multiplies a Temple multiplies this. |
+| Senenmut (U1) | "cities with a mountain tile gain +6 production." | +6 production in every city with a mountain hex in its territory. |
+| Theodorus of Samos (A05) | "buff, +3." | +3 production in every city with a Smithy. |
+| Sunshu Ao (A48) | "+3 food." | +3 food in every city on fresh water. |
+| Cai Lun (A19) | "Libraries gain +2 science and +1 culture (affected by modifiers)." | Each Library supplies +2 science and +1 culture as part of the building. |
+| Johannes Gutenberg (A32) | "Add: +50% production towards printing houses." | +2 science and +2 culture in every city with a Printing House · +50% production toward Printing Houses. |
+| Marcus Ulpius Yarhai (A67) | "+2 trade routes" | You may send 2 more trade routes. |
+| Marco Polo (C26) | "keep as is, it was very strong" | C26 is dropped: +1 gold per 5 hexes between the two cities, as today. |
+| Aḥmad ibn Mājid (A34) | "Review: +1 trade route, sea trade routes+50% yield" | You may send 1 more trade route · your trade routes by sea pay 50% more. Check that the game can tell a sea route from a land route; if it cannot, this is a new shape. |
+| Ahmose son of Ebana (C10) | "+3 combat strength, no percentages for combat strength" and "gold clause is good" | +3 combat strength for melee units · each kill grants +10 gold. |
+| Piyamaradu (C11) | "+3 combat strength when defending. no malice." | +3 combat strength when defending. No cost. |
+| Sinuhe | "Buff: +10" | All units: +10 healing per turn. |
+| Tomyris (A55) | "change: +1 fiath for every hex with a pasture." | +3 combat strength for mounted units · +1 faith on every hex with a Pasture. |
+| Artemisia of Caria (A54) | "+1 combat strength for ships. +1 production on fishing boats." | +1 combat strength for ships · +1 production on every hex with Fishing Boats. |
+| Julius Caesar (A15) | "no malice." | Capturing a city grants +200 gold and +200 culture. No happiness cost. |
+| Chanakya (A70) | "+3 authority capacity." | Your garrisons cost no upkeep · +3 authority capacity. (My reading: the garrison clause stays and the figure changes.) |
+| Yi Sun-sin | "+3 food in coastal cities. +3 combat strength for ships" | +3 food in every coastal city · +3 combat strength for ships. |
+| Tlacaelel (A31) | "buff, +50 faith and +50 culture, otherwise negligible in age 4." | Each kill grants +50 faith and +50 culture. |
+
+Approved by a comment, with no change ("great", "sure", "nice"): Kidinnu
+(C02), Thales (A01), Tapputi (A02), Pāṇini (A03), Hippocrates (A36),
+Anaximander (A37), Baudhāyana (A38), Peseshet (A39), Epicurus (C13), Sima
+Qian (U4).
+
+### Three reworks that need the user's pick
+
+- **Copernicus** (scholar, Æra IV). Today +4 science in every city.
+  1. *Recommended:* your Observatories pay double, counting what cards and
+     legacies add to them. It matches the user's line for Ibn al-Haytham one
+     tier up, and it rewards the building his book is about.
+  2. Completing a technology grants science toward the next one, equal to a
+     tenth of its cost.
+- **Brahmagupta** (scholar, Æra III). The proposed line saved maintenance.
+  1. *Recommended:* +1 gold in every city per building there that supplies
+     science. It is Āryabhaṭa's old shape paid in gold, and it gives the
+     science seat the gold it lacks.
+  2. Completing a technology grants +60 gold.
+- **Cai Yan** (artist, Æra III). She was carried off by the Xiongnu, ransomed
+  home twelve years later, and wrote out from memory the lost books of her
+  father's library.
+  1. *Recommended:* making peace grants +150 culture, and +150 more if you
+     hold a city you captured in that war. The ransom and the return.
+  2. +4 culture for each great person that other empires have called. She
+     writes down what would otherwise be lost to you.
+
+### What the builder still needs from the user
+
+- S12 (ratings).
+- The three picks above.
+- The scholar wonders fix above.
+- The questions of the first round that the comments did not answer: the five
+  retired rows (U1 to U5; U1 and U4 now have comments, so I read all five as
+  returning), and Deborah.
