@@ -43,6 +43,7 @@ export interface Popover {
 }
 
 interface PopoverOptions {
+  signal?: AbortSignal;
   /** The card itself. Hidden with the `hidden` attribute while closed. */
   panel: HTMLElement;
   /** The button that opens it. Carries `aria-expanded` and takes focus back. */
@@ -119,10 +120,10 @@ export function createPopover(options: PopoverOptions): Popover {
       event.preventDefault();
       first.focus();
     }
-  });
+  }, { signal: options.signal });
 
-  trigger.addEventListener('click', () => setOpen(!open));
-  closeButton.addEventListener('click', () => setOpen(false));
+  trigger.addEventListener('click', () => setOpen(!open), { signal: options.signal });
+  closeButton.addEventListener('click', () => setOpen(false), { signal: options.signal });
 
   // Click-away. `pointerdown` rather than `click` so that pressing on the board
   // closes the card before the board's own press handling starts panning under
@@ -132,7 +133,7 @@ export function createPopover(options: PopoverOptions): Popover {
     const target = event.target as Node | null;
     if (target && (panel.contains(target) || trigger.contains(target))) return;
     setOpen(false);
-  });
+  }, { signal: options.signal });
 
   return {
     get isOpen() {

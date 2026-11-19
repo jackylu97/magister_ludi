@@ -183,7 +183,8 @@ describe('what the page counts as in front of a note', () => {
   });
 
   it('waits for the turn being resolved, the hand-over, the queue and every big page', () => {
-    const wait = main.slice(main.indexOf('tutorialWaits = () =>'));
+    const boot = main.slice(main.indexOf('async function boot('));
+    const wait = boot.slice(boot.indexOf('tutorialWaits = () =>'));
     const body = wait.slice(0, wait.indexOf(';'));
     for (const term of [
       'endTurnWorking',

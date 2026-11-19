@@ -1528,6 +1528,7 @@ export function statecraftPauseNotice(kind: StatecraftPause): string {
 }
 
 export interface GameControlsOptions {
+  signal?: AbortSignal;
   viewport: HTMLElement;
   /**
    * The map view being driven — the 2D `Renderer` or the 3D `Renderer3D`.
@@ -8261,6 +8262,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // heard of the rule. Right click is a game input for as long as a game is on
   // screen, and that is a fact about the page rather than about one element.
 
+  options.signal?.addEventListener('abort', () => {
+    cancelHandOver();
+    window.clearTimeout(rejectionTimer);
+    window.clearTimeout(guidanceTimer);
+  }, { once: true });
   viewport.addEventListener('pointerdown', (event) => {
     // Left and right only, and only one at a time: a second button pressed
     // mid-drag is a slip, not a gesture.
@@ -8273,7 +8279,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     pressX = lastDragX = event.clientX;
     pressY = lastDragY = event.clientY;
     viewport.setPointerCapture(event.pointerId);
-  });
+  }, { signal: options.signal });
 
   /**
    * Is free panning refused right now? True while the city mode holds the
@@ -8322,7 +8328,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const rect = viewport.getBoundingClientRect();
     pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     refreshHover();
-  });
+  }, { signal: options.signal });
 
   /**
    * Ends a press. `fire` is false for a cancelled pointer, and for a release
@@ -8364,9 +8370,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // drag running; the gesture is not over until its own button comes up.
     if (event.button !== dragButton) return;
     endDrag(event, true);
-  });
-  viewport.addEventListener('pointercancel', (event) => endDrag(event, false));
-  viewport.addEventListener('lostpointercapture', (event) => endDrag(event, false));
+  }, { signal: options.signal });
+  viewport.addEventListener('pointercancel', (event) => endDrag(event, false), { signal: options.signal });
+  viewport.addEventListener('lostpointercapture', (event) => endDrag(event, false), { signal: options.signal });
 
   viewport.addEventListener('pointerleave', () => {
     pointer = null;
@@ -8384,7 +8390,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // three lines up, so the listener that asks the renderer gets the empty
     // answer and takes the readout down.
     onHover?.();
-  });
+  }, { signal: options.signal });
 
   viewport.addEventListener(
     'wheel',
@@ -8398,7 +8404,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       renderer.zoomBy(factor, pointer.x, pointer.y);
       refreshHover();
     },
-    { passive: false },
+    { passive: false, signal: options.signal },
   );
 
   window.addEventListener('keydown', (event) => {
@@ -8579,7 +8585,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       event.preventDefault();
       skipUnit();
     }
-  });
+  }, { signal: options.signal });
 
   /** Puts a lens up. The menu's rows; a no-op if it is already up. */
   function setLens(next: LensMode): void {

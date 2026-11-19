@@ -350,6 +350,7 @@ interface MeterCardElements {
 }
 
 interface CivYieldStripOptions {
+  signal?: AbortSignal;
   /**
    * `#civ-yields`: the six yields and the meters chip. Filled once, then only
    * rewritten.
@@ -602,7 +603,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    * anchors here are permanent — the strip rewrites text and never rebuilds —
    * so unlike the city panel's card this one never needs hiding on a render.
    */
-  const info = createInfoCard({ className: 'info-card is-strip', placement: 'below' });
+  const info = createInfoCard({ signal: options.signal, className: 'info-card is-strip', placement: 'below' });
 
   container.replaceChildren();
   // The element outlives the game, and so would a step left on it from the last
@@ -1336,6 +1337,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   }
 
   const happinessCard: Popover = createPopover({
+    signal: options.signal,
     panel: happiness.panel,
     trigger: happinessChip,
     closeButton: happiness.closeButton,
@@ -1349,6 +1351,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   });
 
   const authorityCard: Popover = createPopover({
+    signal: options.signal,
     panel: authority.panel,
     trigger: authorityChip,
     closeButton: authority.closeButton,
@@ -1498,6 +1501,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     typeof ResizeObserver === 'function' ? new ResizeObserver(() => fitStrip()) : undefined;
   stripFitObservers.get(container)?.disconnect();
   if (fitObserver) {
+    options.signal?.addEventListener('abort', () => fitObserver.disconnect(), { once: true });
     stripFitObservers.set(container, fitObserver);
     fitObserver.observe(container);
   }

@@ -472,6 +472,8 @@ interface PamphletOverlayOptions {
 }
 
 interface PamphletOverlay {
+  /** A failed start must let the next game show its opening guide. */
+  cancel(): void;
   /** Whether this browser has already read it. */
   seen(): boolean;
   /**
@@ -552,16 +554,21 @@ export function createPamphletOverlay(options: PamphletOverlayOptions): Pamphlet
     return sheet;
   }
 
-  function dismiss(): void {
-    writePamphletSeen(storage);
+  function cancel(): void {
     if (overlay !== null) overlay.hidden = true;
     doc.defaultView?.removeEventListener('keydown', onKey, true);
-    const next = done;
     done = null;
+  }
+
+  function dismiss(): void {
+    writePamphletSeen(storage);
+    const next = done;
+    cancel();
     next?.();
   }
 
   return {
+    cancel,
     seen: () => readPamphletSeen(storage),
     show(onDone) {
       done = onDone;

@@ -199,6 +199,12 @@ export class Renderer implements MapView {
     return this.map;
   }
 
+  dispose(): void {
+    if (this.frameHandle !== 0) cancelAnimationFrame(this.frameHandle);
+    this.frameHandle = 0;
+    this.animations.clear();
+  }
+
   /** Marks the next animation frame as needing a redraw. */
   invalidate(): void {
     this.dirty = true;

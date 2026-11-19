@@ -211,6 +211,7 @@ export interface HoverInfo {
 export type BoardCover = 'opaque' | 'dimmed';
 
 export interface MapView {
+  dispose?(): void;
   /** Screen position (viewport CSS pixels) → hovered tile, or null off the map. */
   pick(screenX: number, screenY: number): HoverInfo | null;
   setHover(hover: HoverInfo | null): void;

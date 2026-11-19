@@ -142,6 +142,7 @@ export interface ReligionScreen {
 }
 
 interface ReligionScreenOptions {
+  signal?: AbortSignal;
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;
@@ -367,7 +368,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       },
       {
         hover: (anchor, build) => {
-          info ??= createInfoCard({ className: 'info-card' });
+          info ??= createInfoCard({ signal: options.signal, className: 'info-card' });
           info.bind(anchor, build);
         },
       },
