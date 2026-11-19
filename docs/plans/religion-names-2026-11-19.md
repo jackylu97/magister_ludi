@@ -290,3 +290,47 @@ Frost: I recommend invented names. History gave me no extinct sect of winter tha
 
 1. Do you want the name tied to the pantheon axis (a wild pantheon prefers Selloi or Arktoi), or one flat list where any religion can get any name?
 2. Do you accept invented names for the frost axis (Hiemari, Nivites), and labels with a second word (Kotosh Rite, Chavin Cult, Kabeiric Rite)?
+
+## The user's picks (2026-11-19)
+
+The user marked 57 names on the page ("y" or "great" on each) and said in
+chat: "marked, tied, use whatever lol". So:
+
+- **Tied to the pantheon:** a religion prefers a free name of its pantheon's
+  axes, and takes any free name if those are used.
+- **Frost:** "use whatever". The Claude session chose to keep Hyperboreans and
+  add two invented names from the page's frost samples, Hiemari and Nivites,
+  so a frost pantheon has three of its own.
+- A name with no mark is not in the roster.
+
+## Ready for the build
+
+The roster, 59 names. The builder writes these as `names.roster` rows of
+`{name, axis}` in `data/religion.json`, in this order, and follows "What the
+builder needs" above (one draw on every path; the validator; the tests; the
+schema step; the docs). The ruling is in `docs/flags.md`, "Religion names:
+short names that sound like a religion (2026-11-19)".
+
+| Axis | Names |
+|---|---|
+| hearth | Nongjia, Vestals, Marzeah, Eleusinia, Kinunites |
+| sky | Harranians, Zurvanism, Haruspices, Yinyangjia, Sabaziasts, Asterites |
+| stone | Dactyls, Metragyrtai, Chavin Cult, Saxari |
+| wild | Selloi, Arktoi, Maenads, Orgeones, Silvari |
+| water | Apkallu, Isiacs, Telchines, Arioi, Hydrophoroi, Thalassari |
+| war | Salii, Korybantes, Mithraism, Hwarang, Qarradites |
+| road | Pochteca, Fetials, Peripatetics |
+| sun | Atenism, Manichee, Shemsu Hor, Mingjiao, Solari, Shamshites |
+| frost | Hyperboreans, Hiemari, Nivites |
+| none | Mojia, Fangshi, Orphism, Epoptai, Eleatics, Hermetism, Pythagoreans, Lokayata, Ajnana, Hypsistarians, Huang-Lao, Kapnobatai, Volkhvy, Filid, Ajivika, Kryptari |
+
+Notes for the builder:
+- Invented names (not historical): Kinunites, Asterites, Saxari, Silvari,
+  Thalassari, Qarradites, Solari, Shamshites, Kryptari, Hiemari, Nivites.
+- The sources of the historical names were written from memory and are not
+  checked. The names are data; the one-line sources are not shown in the game
+  today. If a Compendium entry for religion names is ever written, check each
+  source first.
+- The road axis has three names and the game holds at most eight religions, so
+  a road pantheon can fall through to the whole list. That is the designed
+  behaviour.
