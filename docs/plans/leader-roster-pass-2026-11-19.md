@@ -748,3 +748,9 @@ Not selected: Saladin, Augustus, Ashoka, Isabella of Castile, Hatshepsut.
 Leaving the game: Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun,
 Mithridates VI, Zheng He, Hypatia, Hildegard of Bingen. Ibn Battuta (the
 every-deck seat) is not yet ruled.
+
+**Ibn Battuta stays** (the user, 2026-11-19: "ibn battuta is great, he's my
+favorite"). He is the sixteenth seat, the every-deck leader, outside the
+fifteen pairs. His two abilities stay as they are; nobody is to rework them
+unless the user asks. Because he stays a leader, the great person row with his
+name is renamed (the great people pass proposes Ibn Jubayr, change C25).

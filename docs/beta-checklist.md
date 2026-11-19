@@ -87,7 +87,9 @@ section. When an item is done, mark it `[x]` and give the commit.
     - [ ] Justinian (new)
     - [ ] Sejong the Great (new)
   - Leaving: Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun, Mithridates VI,
-    Zheng He, Hypatia, Hildegard of Bingen. Ibn Battuta is not yet ruled.
+    Zheng He, Hypatia, Hildegard of Bingen.
+  - Ibn Battuta stays as a sixteenth seat, the every-deck leader, as he is
+    (the user: "he's my favorite").
 
 ## Interface
 
