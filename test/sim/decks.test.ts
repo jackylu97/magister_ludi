@@ -674,8 +674,9 @@ describe('the schema, as landed', () => {
     // The Brick Kilns and The Building Programme add two more.
     // The Liturgies and The Learned Embassy add two more.
     // Ten final Orders complete the generic set.
-    expect(live).toBe(505);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
+    // The Dominion and Magisterial revisions add twelve more live Orders between them.
+    expect(live).toBe(517);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(517);
   });
 
   /**
@@ -1448,8 +1449,8 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(0);
-      // The generic set retires 16 rows, including four deferred rows. City Watches becomes live.
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(436);
+      // The generic set retired sixteen rows. The next two deck revisions retire ten more.
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(446);
     }
   });
 

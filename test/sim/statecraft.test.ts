@@ -58,6 +58,7 @@ import {
 import {
   type BuildingId,
   BUILDING_IDS,
+  isBuildingId,
   buildingDef,
 } from "../../src/sim/buildingData";
 import {
@@ -437,6 +438,7 @@ describe("the card table", () => {
       "theSteppeConfederacy",
       "theMarianReforms",
       "theSoldiersShare",
+      "theCitizenPhalanx",
     ]);
     expect(dominionPool(GOVERNMENT_TIERS[1]!)).toEqual([
       "theConsularRoads",
@@ -7750,6 +7752,10 @@ describe("a charter carries the description of the building it opens", () => {
         .effects.filter((effect) => effect.kind === "unlocksBuilding")
         .map((effect) => ({ card: id as string, building: effect.building })),
     ),
+    ...ORDER_IDS.flatMap((card) => {
+      const building = orderDef(card).charter?.unlocks.building;
+      return building && isBuildingId(building) ? [{ card, building }] : [];
+    }),
     ...DOCTRINE_IDS.flatMap((id) =>
       doctrineDef(id)
         .effects.filter((effect) => effect.kind === "unlocksBuilding")
@@ -7757,14 +7763,10 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the eighteen rows that open one", () => {
-    // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
-    // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
-    // fourteenth joins this list by being a JSON row, and inherits every claim
-    // below. Scientific batch S8's The Forward Plans is that fourteenth: it
-    // opens the University early, in a town whose Library is old. Batch DT15's
-    // The House of Worship adds four, one for each faith house.
-    expect(OPENERS.length).toBe(18);
+  it("finds every card that opens a building through an effect or a charter", () => {
+    // The Senate Charter gives permanent access to the Assembly Hall when drafted.
+    expect(OPENERS).toContainEqual({ card: "theSenateCharter", building: "assemblyHall" });
+    expect(OPENERS).toHaveLength(20);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -7775,7 +7777,7 @@ describe("a charter carries the description of the building it opens", () => {
         // whose own name carries the article (batch S2, `theBuilding`).
         // "every devout city may buy with faith the Mosque (…), the Wat (…)" is
         // The House of Worship, which opens four bought rows in one sentence.
-        .filter((text) => text.includes("unlocks ") || text.includes(" may buy with "));
+        .filter((text) => text.includes("unlocks ") || text.includes(" may buy with ") || text.startsWith("you may build ") || text.startsWith("you may buy "));
       // A card may open several rows (The House of Worship). A retired row
       // prints no mark, and that card opens one row, so it takes the first.
       const clause =
@@ -9191,7 +9193,7 @@ describe("the engine shapes", () => {
     // Magisterial batch MG3: The Privy Council adds one production to every
     // line of your other Orders that pays production, an amplifier by voice
     // with a flat helping (`CardYieldAmplifierEffect.amount`).
-    "thePrivyCouncil · cardYieldAmplifier",
+    "thePrivyCouncil · slotPosition",
     // Magisterial batch MG10: The Grand Vizier pays the card in the first
     // Economic chair twice, the first live row of the chair reader since the
     // retired shelf above. The Divine Proportion doubles what the other Orders
@@ -9323,6 +9325,8 @@ describe("the engine shapes", () => {
       "tetzcotzinco · cityRenownPercent",
       "funduq · routeYield",
       "funduq · routeYield",
+      "ironPillar · buildingYieldPercent",
+      "greatStelaeOfAksum · routeYield",
       // No technology carries one of these shapes since batch TT1
       // (`docs/flags.md` (iiiiiii)): Chronology's and Horology's clocks, and the
       // route pay of Daughter Cities, The Silk Road and The Golden Roads, were

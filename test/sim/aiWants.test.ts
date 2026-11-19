@@ -2299,7 +2299,9 @@ describe('the marginal draft reading', () => {
     for (const id of ['theHallOfFame', 'theBuildersLodge', 'theSummerPalace'] as const) {
       expect(hasFoldReadEngine(orderDef(id).effects), id).toBe(true);
     }
-    expect(engines).toBe(28);
+    // The Privy Council now pays the yields of Wildcard chairs through the chair reader.
+    expect(hasFoldReadEngine(orderDef('thePrivyCouncil').effects)).toBe(false);
+    expect(engines).toBe(27);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books
