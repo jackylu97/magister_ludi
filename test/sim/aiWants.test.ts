@@ -2313,7 +2313,12 @@ describe('the marginal draft reading', () => {
       import: 'default',
       eager: true,
     }) as Record<string, string>;
-    const asking = Object.keys(sources).filter((path) => sources[path]!.includes("'rerollOffer'"));
+    const naming = Object.keys(sources).filter((path) => sources[path]!.includes("'rerollOffer'"));
+    // `frozenBoard.ts` (stage C1) names the command only to recognise it in a
+    // plan: `choosesFromAnOffer` lists the commands whose offer must match the
+    // real board before a planned command lands. It sends nothing of its own.
+    expect(naming.map((path) => path.split('/').pop())).toEqual(['council.ts', 'frozenBoard.ts']);
+    const asking = naming.filter((path) => !path.endsWith('/frozenBoard.ts'));
     // `beliefRedeal` moved from `bot.ts` to `council.ts` in batch S5.
     expect(asking.map((path) => path.split('/').pop())).toEqual(['council.ts']);
     // The one arm that asks is gated on the asking being free — the sentence, in
