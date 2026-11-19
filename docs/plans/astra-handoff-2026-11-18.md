@@ -141,6 +141,29 @@ another WebKit browser as well as in Chromium.
 - `src/render/` is the frozen 2D renderer. Keep it compiling. Add nothing.
 - Do not rename the RNG separator `hashSeed('webciv:gameplay:…')`.
 
+### 3.5 The generic Orders build
+
+The user, 2026-11-19: *"Lets leave the generic orders build for astra."*
+
+- The approved set is 39 cards. The spec is
+  `docs/plans/generic-orders-proposal-2026-11-18.md`: the user's ruling
+  section, section 7 (the set after the ruling) and section 8 (the build
+  list in three groups, the rows to retire and change, what the bots need in
+  `src/ai/value.ts`, and section 8.6 on putting the sheet under a test). The
+  current-state sheet is `docs/decks/common.md`.
+- Read `.claude/skills/card-design/` for the card rules. A card whose text
+  needs a one-off is deferred and annotated, never bent into a near fit.
+- The user said the numbers are "to tune in playtest": do not run bot games to
+  size them.
+- **One card is undecided: The Summer Palace (G2-7).** It repeats the first
+  half of the Scientific Doctrine The Two Capitals. Leave it out of the build
+  until the user rules (change, keep or cut).
+- Fix with it: an on-draft great-person grant is lost if another offer is
+  waiting or every person of that family is taken. Send it through
+  `grantGreatPersonOffer`. This also fixes The Wandering Muse.
+- The build changes bot play, so it cuts the digest pins. See section 5 on
+  who cuts them.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
@@ -174,7 +197,7 @@ another WebKit browser as well as in Chromium.
 | Job | Files |
 |---|---|
 | Council and In play, stage 4, and the wonder plate | `src/ui/statecraftScreen.*`, `src/ui/councilLayout.ts`, `src/ui/inPlay*.ts`, `src/main.ts`, `index.html`, `src/flairGallery/` |
-| Generic Orders build (starts after C1 lands) | `data/decks/common.json`, `src/sim/statecraft/*`, `src/sim/statecraftData.ts`, `src/sim/commissions.ts`, `src/ai/value.ts`, deck tests. **It changes the digest pins.** |
+| A wonders rework (after the user's picks; spec `docs/plans/wonders-review-2026-11-18.md`) | `data/buildings.json`, `src/sim/statecraft/*`, `src/sim/buildingEffects.ts`, wonder tests. **It changes the digest pins.** |
 | Later gameplay work (`docs/beta-checklist.md`) | `src/sim/`, `data/` |
 
 Two meeting points to watch:
