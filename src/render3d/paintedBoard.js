@@ -536,13 +536,20 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         // Clipped onto the hex's own ground before the painter cuts it up.
         const riverRibbon = organicRivers?.pieces(t, top) ?? null;
         const beach = !isWater(t) && t.coast ? freeCoast.sand(t, top) : null;
-        painter.paint(top, t);
         let farTop;
         if (!isWater(t)) {
-          // The plain land takes the cut land's grid, so its hills and coasts have the same shape, and no patch cuts.
-          const far = terrainMesh(t, { distant: !plain }); farTop = far[0]; far[1].dispose();
-          painter.paint(farTop, t, true, plain);
+          if (plain) {
+            // Both versions start from the same grid. Each painter writes its own vertex counts.
+            farTop = top.clone();
+            farTop.userData = { ...top.userData };
+          } else {
+            const [distantTop, distantSkirt] = terrainMesh(t, { distant: true });
+            farTop = distantTop;
+            distantSkirt.dispose();
+          }
         }
+        painter.paint(top, t);
+        if (farTop) painter.paint(farTop, t, true, plain);
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
         // The sand of a free coast is sloped land, so it goes into the land's batch.

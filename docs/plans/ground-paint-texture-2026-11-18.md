@@ -392,3 +392,18 @@ The comparison used the shipped renderer at its minimum camera distance. Native 
 At 32 texels per world unit the transition from sand to grass and the edges of the river banks look softer than the cut mesh. At 64 those edges track the reference more closely in both engines. In the full WebKit river frame, 7.55% of pixels differed from the cut frame by more than two RGB levels at 32, and 3.85% at 64. These percentages include variation between repeated renders.
 
 The memory tradeoff depends on map size. On the 26 × 18 gallery board the atlas used 6.6 MiB at 32 and 26.3 MiB at 64. The atlas planner on the Apple GPU gives 57.0 and 228.1 MiB respectively for Standard. On Giant, the 256 MiB budget limits both requests to about 30.9 texels per world unit. These are figures for the atlas alone. The close-zoom switch stays in the play build pending the visual decision. If close zoom needs 64 on Giant, detail confined to the visible area is worth testing.
+
+## Reuse the land grid when building both meshes, 2026-11-19
+
+The close and textured versions of a land tile start from the same grid. The board now builds that grid once and copies its top before either painter changes it. Each top owns its vertex counts. The separate coarse grid is still used when the texture is unavailable.
+
+The comparison used Standard maps with seeds 42 and 999, including the organic rivers, free coasts and hill mounds. Six pairs per map timed the CPU work to construct and paint both tile tops, with ordering reversed between pairs. Each timed run sampled every third land tile. Building one common grid also avoided building and discarding a second skirt for each tile.
+
+| Seed | Land tiles timed | Median CPU time with two grids | Median CPU time with one grid |
+|---|---:|---:|---:|
+| 42 | 592 | 1,710 ms | 1,297 ms |
+| 999 | 589 | 1,498 ms | 1,255 ms |
+
+The verification run compared every top, textured top and skirt on all 3,540 land tiles of the two maps. For each map the old and new builds produced the same hash of the attribute arrays and geometry metadata. These timings cover mesh construction on Node. They exclude map generation, the GPU bake and the rest of the loading screen.
+
+A separate sample compared the surfaces of the painted cut and plain tops at 4,740 points on the two maps. Both meshes returned a hit at every point. The largest height difference was 0.0000022 world units. This supports trying the plain mesh for picking. Coast aprons, beaches and river ribbons need their own checks before replacing the full picker. The next close-zoom test is a higher-density texture for the visible area, within the Giant map's existing texture budget.
