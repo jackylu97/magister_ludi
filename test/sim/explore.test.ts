@@ -210,6 +210,21 @@ describe('the setAutoExplore command', () => {
 });
 
 describe('exploreTarget', () => {
+  it.each([['north', 2], ['south', 4]] as const)(
+    'chooses the lower-indexed ruin across the seam on the %s edge',
+    (edge, examined) => {
+      const state = flatState();
+      const { width, height } = state.map;
+      const row = edge === 'north' ? 0 : height - 1;
+      const scout = createUnit(state, 0, 'scout', width - 1, row);
+      markAllExplored(state, scout.ownerId);
+      getTileAt(state.map, 0, row)!.discovery = 'ruins';
+      getTileAt(state.map, width - 2, row)!.discovery = 'ruins';
+      // At the south edge the two neighbors in the preceding row come first.
+      expect(exploreSearch(state, scout)).toEqual({ target: { col: 0, row }, examined });
+    },
+  );
+
   it('aims at the nearest revealing tile, ties broken by tile index', () => {
     const state = flatState();
     const scout = createUnit(state, 0, 'scout', 5, 5);

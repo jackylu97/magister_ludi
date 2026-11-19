@@ -25,7 +25,7 @@
  */
 
 import { hasLineOfSight } from './los';
-import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, mapRange, tileHex, tileIndex } from './map';
+import { NEIGHBOUR_SLOTS, type Tile, getTileAt, mapRange, neighbourTable, tileHex, tileIndex } from './map';
 import {
   type Cell,
   canStopOn,
@@ -83,16 +83,6 @@ export function autoExploreError(unit: Unit): string | null {
     return `A ${def.name} cannot range ahead — only soldiers and scouts explore`;
   }
   return null;
-}
-
-/** The on-map neighbours of `tile` — `pathfind.ts`'s own reading, mirrored. */
-function neighborsOf(map: GameMap, tile: Tile): Tile[] {
-  const result: Tile[] = [];
-  for (const hex of mapNeighbors(map, tileHex(tile))) {
-    const neighbor = getTile(map, hex);
-    if (neighbor) result.push(neighbor);
-  }
-  return result;
 }
 
 /**
@@ -189,6 +179,7 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
   // Who stands where, hoisted for `findPath`'s reason: the sweep asks several hundred
   // hexes, and nothing moves during it.
   const ground = transitField(state, unit.ownerId);
+  const neighbors = neighbourTable(map);
   const limit = RULES.explore.searchLimit;
 
   const visited = new Uint8Array(map.tiles.length);
@@ -257,9 +248,12 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
       ) {
         frontier = { col: tile.col, row: tile.row };
       }
-      for (const neighbor of neighborsOf(map, tile)) {
-        const at = tileIndex(map, neighbor.col, neighbor.row);
+      const first = index * NEIGHBOUR_SLOTS;
+      for (let slot = first; slot < first + NEIGHBOUR_SLOTS; slot++) {
+        const at = neighbors[slot]!;
+        if (at < 0) break;
         if (visited[at]) continue;
+        const neighbor = map.tiles[at]!;
         if (!canPass(neighbor, at)) continue;
         if (stepCost(map, tile, neighbor, mover, field) === null) continue;
         visited[at] = 1;
