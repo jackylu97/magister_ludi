@@ -1270,3 +1270,58 @@ printed face yes, #2 yes."
   It uses the laurel, as the plates do.
 - The split of renown by family stays in the In play breakdown only. A card
   that only moves renown between families shows no figure on its plate.
+
+### Quiet Table, second pass: the user's comments (2026-11-19)
+
+Board: https://claude.ai/artifact/69ecqnXE3YEy85YsdDxU3p, repo copy in
+`docs/plans/mockups/scholars-study/quiet-table-second-pass/`. The user
+commented on the frames and said in chat: "Any thing we're missing? Lets add a
+screen for the faith page, it feels a bit outdated." The comments, in the
+user's words, with the element each sits on:
+
+| Frame | On | The user's comment |
+|---|---|---|
+| 1 HUD, quiet | the frame's title | "lets go with this one" |
+| 1 HUD, quiet | a mark in a toast (the 7th element, an svg) | "make the icon smaller, so the toast isn't so large, i'd like to keep it the same size. the icon doesn't need so much detail" |
+| 1 HUD, quiet | the 10th element of the frame | "this was fine as it was, don't need the icon here" |
+| 2 City, quiet | the picture marked "stand-in" in the build list | "pictures here are too busy, lets keep the build queue the same" |
+| 2 City, quiet | "Wonders here" | "i like the wonders segment" |
+| 2 City, quiet | "Buildings" | "the buildings section is great, let's have a spot for empire buildings too, they should be separate" |
+| 2 City, quiet | the left panel (growth) | "could you incorporate levying and the faith panel too, to see how it looks." |
+| 3 Star chart | the paper panel | "i don't like the panel as much, the technology screen seems fine for now. 'click a star to aim' is unclear, lets clean that up for the player." |
+| 4 Working sheet | the frame's title | "Cool, i like the light touch. Let's keep the tab text the same (can set out, shut are nondescriptive)" |
+| 5 Diplomacy, quiet | the frame's title | "this feels busy now, there are 5 columns. could we have the leader selector on the left be incorporated differently? I like the idea of the main focus being on the portrait of the leader, i'd like their speaking to be more prominent too, as that gives the game more flavor." |
+| 5 Diplomacy, richer | the frame's title | "this is probably too much" |
+| 6 Great person offer, quiet | the sheet | "great" |
+| 7 Government banners | the frame's title | "Great, love it" |
+| 8 Age plate, ribbon | the frame | "great" |
+| 8 Age plate, own page | the frame | "i like the ribbon better, so it doesn't take you out of the game." |
+| 9 Title | the title | "great, i like this. Lets make the tag line \"a game for the ages\"" |
+| 9 Ending, victory | the frame's title | "Great, approved." |
+| 10 Kit | the tooltip | "great, one thing i've been meaning to add: show who owns the tile, if it's owned, otherwise don't show anything." |
+| 10 Kit | the toast "The Great Library is finished." with a painting | "we already have the wonder completed screen, so this isn't necessary. Painted things probably will all have their own screen, so no need to put it in a toast" |
+| 10 Kit | the sheet head "The Ledger" (two strengths) | "the quiet one seems better for me" |
+| 10 Kit | the "Declare war" button | "lets make the declare war button more forceful/important" |
+| 10 Kit | the whole strip | "outside of comments, these are great" |
+
+What follows from them:
+- **HUD: the quiet level.** Toasts keep their present size; a seal in a toast is
+  small and simple; one element keeps no icon at all.
+- **City screen: the quiet level,** with the build queue unchanged (no
+  pictures in it), the wonders segment kept, a separate segment for empire
+  buildings, and levying and the faith panel drawn in.
+- **The technology screen stays as it is.** Only the hint "click a star to
+  aim" is rewritten so a new player understands it.
+- **Working sheets: the light touch,** with today's tab words kept.
+- **Diplomacy is redrawn:** fewer columns, the leader selector moved out of
+  the left column, the portrait the main focus, the leader's words prominent.
+  The richer ribbon version is rejected.
+- **Great person offer on paper, government banners, the age plate on the
+  ribbon, the title screen and the victory ending are approved.** The title's
+  tag line is "a game for the ages".
+- **No painting in a toast.** Painted things get their own screen.
+- **The hex tooltip shows who owns the tile** when it is owned, and nothing
+  when it is not.
+- **The Declare war button is made more forceful.**
+- **A faith screen is added to the board** (the user: "it feels a bit
+  outdated").
