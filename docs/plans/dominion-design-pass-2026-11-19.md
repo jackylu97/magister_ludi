@@ -1,6 +1,6 @@
 # Dominion design pass (2026-11-19)
 
-**Status, 2026-11-19:** the user has ruled on the review page: 38 approved as proposed, 3 with your text, 1 moved to another tier, 3 cut, 3 kept as they are today, 1 rejected, 1 with no ruling yet. The current state is the last section, "Ready for the build", and it stands alone. Sections 1 to 8 are the pass as first proposed, kept as the record. Sections 9 and 10 apply the rulings.
+**Status, 2026-11-19:** everything is settled. The user ruled on the review page in two rounds: 39 approved as proposed, 3 with your text, 1 moved to another tier, 3 cut, 3 kept as they are today, 1 rejected. Nothing waits on the user. The current state is the last section, "Ready for the build", and it stands alone. Sections 1 to 8 are the pass as first proposed, kept as the record. Sections 9 and 10 apply the rulings.
 
 - A design pass on the Dominion deck, asked for on 2026-11-19: *"please run a design pass on the magisterial and dominion decks, they feel underpowered/not as fun... go for more changes than needed, i'll go through and approve or rejct every change."*
 - It proposed 50 changes. Nothing here is built, and no game data changed.
@@ -23,7 +23,7 @@
 
 | # | Card | Tier | Change | Confidence | Ruling |
 |---|---|---|---|---|---|
-| 01 | The Spear Makers | 0 | buff | good | no ruling yet |
+| 01 | The Spear Makers | 0 | buff | good | approved |
 | 02 | The Outriders | 0 | buff | strong | approved |
 | 03 | Blood Brothers | I to 0 | move | good | approved |
 | 04 | The Ver Sacrum | 0 | new | good | approved |
@@ -669,55 +669,49 @@ Written before the rulings. In the second council Hegemony gives 1 less authorit
 
 Answered since: the renown price is 75, 134, 197, 267, 346, then 436 (section 9, The Grass Crown), and the four shape points are settled in "Ready for the build".
 
-## 9. After the user's comments: questions and the readings taken
+## 9. The open points and the user's answers
 
-The rulings: 38 approved as proposed, 3 with your text, 1 moved to another tier, 3 cut, 3 kept as they are today, 1 rejected, 1 with no ruling yet. Each question below has a recommended reading. "Ready for the build" uses that reading and marks it.
+The rulings: 39 approved as proposed, 3 with your text, 1 moved to another tier, 3 cut, 3 kept as they are today, 1 rejected. After the first round I raised the points below. The user answered every one in the second round, and the answers are applied.
 
-### 29 Total War: Does your new line apply only while at war, or always?
+### 01 The Spear Makers: Approved: "great".
 
-- The card today: "All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness." It is always on.
-- Reading A (recommended, taken): at war only. "While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness." Against today: at peace the card costs nothing (twelve towns keep 36 happiness); at war it is 1 strength weaker and asks 1 less happiness in each city.
-- Reading B: always on. "+4 strength and +1 movement. Every city demands +2 more happiness." Against today: 1 strength weaker, and 1 less happiness in each city, in peace and war. Twelve towns still lose 24 happiness at peace, which is the cost the bots could not carry.
-- Why A: your line edits my proposal, which had the "+2 more happiness" (today it is +3), and that proposal was the war frame. Both readings are data only, so a wrong reading is a one-line fix.
+- +40% production toward military units. It joins the build.
 
-### 31 The Drill Masters: Is "garrisoned units gain 1 experience each turn" already in the game?
+### 29 Total War: At war only: "only at war".
 
-- No. No live card, Doctrine, building, technology, belief or rule gives a garrison experience over time.
-- The `drill` effect has two live or retired users. The Tactica (live, Tier II) gives 1 experience each turn to units beside a great general. The Drill Grounds (retired in batch DS1, Tier 0) gave units standing in towns 1 experience every 3 turns; this is the card you may remember. A garrison earns experience today only by fighting (1 for a fight survived, 2 for a kill).
-- So the change goes in, as you said. The shape exists: `drill` with `where: garrison` and no timer, read by `drillUnits`.
+- Final: "While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness."
+- Against today (+5 strength, +1 movement, +3 happiness demand, always on): at peace the card costs nothing; at war it is 1 strength weaker and asks 1 less happiness in each city.
 
-### 34 The Regimental Schools: What does "each garrisoned unit" count, and how much is +8 and +8?
+### 31 The Drill Masters: It goes in: "ok great, lets add this".
 
-- The `garrison` count is every fighting unit of yours standing on the town's own hex (`garrisonOf`, `statecraft/evaluator.ts`). Stacking allows one unit of each category on a hex, and ships are their own category. So it is 1 in most towns, and 2 in a coastal town that also holds a ship.
-- Six towns, one garrison each: 48 science and 48 production, 96 a turn. Twelve towns: 96 and 96, 192 a turn. A ship in three coastal towns adds 24 and 24.
-- The Tier III bar: a regular card pays 60 to 120 and a headline 200 or more. So this common is a strong regular card at six towns and near a headline at twelve. It is flat, so Standing Garrisons (+12% in the same towns) raises it. Reading taken: your text as written; the size is to tune in playtest.
+- Nothing in the game gives a garrison experience over time today. The Tactica (live) drills units beside a great general, and The Drill Grounds (retired) drilled garrisons every 3 turns.
 
-### 24 The Grass Crown: How big is 200 renown, tripled for a wonder?
+### 34 The Regimental Schools: +6 and +6: "lets nerf to +6 science and +6 production."
 
-- A great person costs 75 + 58 for each one already recruited + that number to the power 2.65 (`renownThreshold`, `renown.ts`). The price is 75, 134, 197, 267, 346, then 436. All families share one ladder, and "favouring" weights the draw; it does not fix it.
-- At Tier II a seat has recruited one to three, so the next costs 134 to 267. One capture (200) is about one great person. A wonder city (600) is two or three. Tier II's bar for a lump is 500 to 900, so the tripled case is a full lump and the plain case a small one.
-- The approved wonder The Library of Ashurbanipal pays +5 renown a turn toward scholars for each captured city, and +20 if the city holds a wonder. The two read the same things (captured cities, wonders) but are not the same card: one is a lump toward generals at the capture, the other a rate toward scholars for as long as the town is held. In one seat they add on the same ladder and pull the draw two ways. Reading taken: no change to either.
-- I could not confirm whether the era or the council multiplies a rider's renown figure.
+- The `garrison` count is every fighting unit of yours on the town's own hex (`garrisonOf`): 1 in most towns, 2 in a coastal town that also holds a ship.
+- Six towns: 36 science and 36 production, 72 a turn. Twelve towns: 72 and 72, 144 a turn. A ship in three coastal towns adds 18 and 18. A regular Tier III card pays 60 to 120 and a headline 200, so it is a regular card at six towns and a strong one at twelve.
 
-### 27 The Foederati: Does "2 citizens for a camp" fit Tier I?
+### 24 The Grass Crown: Doubled for a wonder: "lets say doubled for a wonder."
 
-- Yes, and it is stronger there. Tier I runs from about turn 32 to 72, when camps are most common and the capital has 5 to 8 citizens. A citizen works a hex worth about 3 to 4 yield, so three camps are 6 citizens and about 20 a turn for the rest of the game. A regular Tier I card pays 15 to 25.
-- Tier I then has four cards that read a cleared camp (The Pacified Marches, Commission: Clear the Frontier, the shared The Barbarian Frontier, and this), with The Outriders from Tier 0. That is a full camp theme early. Camps come back, so watch for a seat that farms them; a cap ("at most 8 citizens") is the fix if it does.
-- The small extension is the same, and now exact: the `citizens` grant exists on a rider, but it pays the town the moment names, and a cleared camp names none. It must honour `toCapital`.
+- A great person costs 75, 134, 197, 267, 346, then 436 renown (`renownThreshold`), on one ladder for all families. At Tier II the next one costs 134 to 267.
+- One capture pays 200, about one great person. A wonder city pays 400, about two. Tier II's bar for a lump is 500 to 900, so the wonder case is just under a full lump.
+- The Library of Ashurbanipal (a rate toward scholars for captured cities) reads the same things and is not the same card. Neither changes.
 
-### 05, 31 The Training Cadre and The Drill Masters: Does a unit that a card starts as a Veteran count as "earning a rank"?
+### 27 The Foederati: Tier I confirmed: "great".
 
-- Reading taken: yes. Your ruling of 2026-10-16 stands, and you approved 05 without changing it. So with Honours of the Legion seated, each unit gained in a Barracks town pays its strength in science and culture.
-- It is first on the test list. If it is too much, the fix is that Honours of the Legion pays once a turn.
+- Three camps are 6 citizens, about 20 a turn, against a Tier I bar of 15 to 25. If a seat farms camps, the fix is a cap.
 
-### 03, 04, 22, 23, 38 Rares at Tier 0, and boons for tempo: Answered by your approvals.
+### 05, 31 A Veteran start earns a rank: Confirmed: "yes".
 
-- Yes to both. Tier 0 has two rares (Blood Brothers, The Ver Sacrum), and the deck has four boons of its own.
+- So each unit gained in a Barracks town pays the cards that read a rank earned. It is first on the test list.
 
-### 10/12, 13/30, 19/20 The pairs that depended on each other: Is anything left broken?
+### 03, 04, 22, 23, 38 Rares at Tier 0, and boons for tempo: Confirmed: "great".
 
-- No. 10 and 13 are approved, so the rules of the two cut cards (12 Riders of the Steppe, 30 The Siege Train) live on in The Swift Riders and Siege Works. The Siege Train's +5 when defending is gone.
-- 20 Living off the Land is cut and 19 War Feeds Itself is unchanged, so nothing takes the rule. What is lost: no live Order waives upkeep for units outside your territory, about 10 to 20 gold a turn in a war. Dominion's upkeep relief is then The Marian Reforms and Centurions (Doctrines) and the shared The Standing Army and Mercenary Contracts. No card reads the cut card.
+- Tier 0 has two rares, and the deck has four boons of its own.
+
+### 10/12, 13/30, 19/20 The pairs that depended on each other: Confirmed: "great".
+
+- Nothing is broken. With Living off the Land cut and War Feeds Itself unchanged, no live Order waives upkeep for units outside your territory (about 10 to 20 gold a turn in a war). The Siege Train's +5 when defending is gone.
 
 ## 10. The recount after the rulings
 
@@ -730,13 +724,13 @@ The rulings: 38 approved as proposed, 3 with your text, 1 moved to another tier,
 | IV | 12 | 13 | 0 | 4 | 9 | 5 | 2 | 3 | 3 | 0 | 2 | 3 |
 | All | 73 | 82 | 24 | 34 | 24 | 27 | 20 | 25 | 10 | 4 | 9 | 14 |
 
-- The count leaves 01 The Spear Makers as it is today; that change moves no card.
+- 01 The Spear Makers is a number change and moves no card.
 - 11 new Orders, 3 retired, 3 moved between tiers (Blood Brothers to 0, The Naadam to I, The Foederati new at I). 1 new Doctrine. The 22 shared cards do not change.
 - No tier or type is short. Every tier with a government gives each kind of chair at least two cards.
 - Tier II is the largest tier (22), with 11 uncommons. Two of its cards are boons and three are commissions, and those leave the pool of seated cards, so I do not think it is crowded.
 - Three thin places stay, and I propose no filler for them now: Tier IV has no common (it is nine rares and four uncommons, as before the pass); the marches have one Tier IV card (The Horde); and Tier IV has no conqueror Doctrine, since The Devshirme is rejected.
 
-**Shapes after the rulings:** 37 entries are data only, 7 need a small extension, 1 needs a new shape.
+**Shapes after the rulings:** 38 entries are data only, 7 need a small extension, 1 needs a new shape.
 
 ## The user's comments on the page (2026-11-19)
 
@@ -778,6 +772,22 @@ Castellans, 47 The Marian Reforms, 48 The Landsturm, 49 The Citizen Phalanx.
 01 The Spear Makers (+25% to +40% production toward military units). Open
 until the user rules.
 
+## The user's second round of comments (2026-11-19)
+
+| On | The user's comment | Result |
+|---|---|---|
+| 01 The Spear Makers | "great" | Approved as proposed. |
+| 29 Total War | "only at war" | The at-war reading is confirmed. |
+| 31 The Drill Masters | "ok great, lets add this" | Goes in. |
+| 34 The Regimental Schools | "lets nerf to +6 science and +6 production." | +6 and +6, not +8 and +8. |
+| 24 The Grass Crown | "lets say doubled for a wonder." | Doubled for a wonder city, not tripled. |
+| 27 The Foederati at Tier I | "great" | Confirmed. |
+| 05 and 31, a Veteran start earns a rank | "yes" | Confirmed. |
+| Rares at Tier 0, boons for tempo | "great" | Confirmed. |
+| The pairs that depended on each other | "great" | Confirmed. |
+
+Nothing waits on the user.
+
 ## Ready for the build
 
 This section stands alone. It is the whole specification for the Dominion build that follows the user's rulings of 2026-11-19. The sections above it are the record.
@@ -785,22 +795,24 @@ This section stands alone. It is the whole specification for the Dominion build 
 ### Scope
 
 - The deck goes from 73 Orders to 82, and from 13 Doctrines to 14. The 22 shared cards do not change.
-- 45 entries: 37 are data only, 7 need a small extension, 1 needs a new shape.
+- 46 entries: 38 are data only, 7 need a small extension, 1 needs a new shape.
 - Rows live in `data/decks/dominion.json` (`orders` and `doctrines`). A row has `name`, `decks`, `band` (0 to 4), `rarity`, `type`, `flavor`, `text`, `effects`, and `onDraft` or `commission` where it has one.
 - Every number is to tune in playtest. No bot games were run for any of them.
 - **Wording.** Units upgrade by themselves when research allows (`upgradeUnits`, `src/sim/tech.ts`), and a grant picks the strongest unit of its class the empire can build at that moment (`bestMeleeFor` and `bestOfClassFor`, `src/sim/cities.ts`). So a card says "a melee unit", not "the best melee unit you can build". The data still says `unit: bestMelee`.
 - Every new row needs a `flavor` line. None is written here.
 - A retired row keeps its row with `retired: true`, so that a save which holds it still loads.
 - Player-facing words are plain (hard rule 7). A new or extended shape needs its words in `src/sim/statecraft/describers.ts`.
-- **Two readings are taken and marked "to confirm":** Total War applies only at war, and a rank that a card gives at the start counts as earned. Both are data only.
+- **Two readings the user confirmed:** Total War applies only at war, and a rank that a card gives at the start counts as earned.
+- Nothing waits on the user. "For the builder to check" marks a point to verify in the code, not a question for the user.
 
 ### Rows that change
 
 | # | Card | Row | Tier | Rarity | Type | Final text | Data shape |
 |---|---|---|---|---|---|---|---|
+| 01 | The Spear Makers | `theSpearMakers` | 0 | common | Military | +40% production toward military units. | Data only. `productionBonus` `percent` 25 to 40 (`category: unit`, `class: {category: military}`). |
 | 02 | The Outriders | `theOutriders` | 0 | common | Economic | Clearing a barbarian camp grants 20 production to every town. | Data only. `windfallRider` on `camp`: `grant.amount` 10 to 20 (`yield: production`, `toEveryTown: true`). |
 | 03 | Blood Brothers | `bloodBrothers` | 0 | rare | Military | A barbarian unit you kill joins your side. | Data only. `band` 1 to 0. Rarity stays rare. |
-| 05 | The Training Cadre | `drillManuals` | I | common | Military | Units gained in a town with a Barracks start as Veterans. | Data only. `unitStamp`: `experience: 2` becomes `rank: veteran`; the `hasBuilding` Barracks scope stays. Reading taken: a rank that a card gives at the start counts as earned (your ruling of 2026-10-16 stands). |
+| 05 | The Training Cadre | `drillManuals` | I | common | Military | Units gained in a town with a Barracks start as Veterans. | Data only. `unitStamp`: `experience: 2` becomes `rank: veteran`; the `hasBuilding` Barracks scope stays. A rank that a card gives at the start counts as earned (your ruling of 2026-10-16, confirmed 2026-11-19). |
 | 07 | The Upstarts | `theUpstarts` | I | uncommon | Military | Your units gain +5 strength against an empire that knows more technologies than you. | Data only. `combatLine` `amount` 3 to 5 (`when: vsMoreTechs`). |
 | 08 | The Captive Craftsmen | `theCaptiveCraftsmen` | I | uncommon | Civic | Gains +2 science and +2 production each time you pillage a hex. | Data only. Both scaler rows (`pays` count `tally: hexPillaged`): `amount` 1 to 2. |
 | 09 | The Castle Demesne | `theCastleDemesne` | I | uncommon | Economic | Citadels give +5 food and +5 production. | Data only. `pays` hex on the citadel: `food` and `production` 3 to 5. |
@@ -812,11 +824,11 @@ This section stands alone. It is the whole specification for the Dominion build 
 | 17 | The Longbowmen | `theLongbowmen` | II | common | Military | Ranged units gain +4 strength. | Data only. `combatLine` `amount` 2 to 4; remove the `unitStat` range row. |
 | 18 | Spear-won Land | `spearWonLand` | II | uncommon | Civic | +5% production and science for each town you have captured. | Data only. Both `pays` empire rows (count `citiesCaptured`): `percent` 3 to 5. |
 | 21 | Commission: The Border Fortress | `dominionTheBorderFortress` | II | uncommon | Wildcard | Goal: plant a citadel. Reward: choose a great general. | Data only. `commission.reward` becomes `[{greatPerson: general}]`, as Commission: Clear the Frontier. The `lasting` hex row goes. Paid by `payCommission` (`commissions.ts`). |
-| 29 | Total War | `totalWar` | III | rare | Military | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. | Data only. Reading taken, to confirm: "at war only". One `conditionRule` with `when: {test: atWar}` around the three rows, with `combatLine` `amount` 4 and `happiness` `amount` -2. If you want it always on, drop the `conditionRule`; the numbers stay. |
-| 31 | The Drill Masters | `theDrillMasters` | III | common | Military | Garrisoned units gain 1 experience each turn. | Data only. It is not in the game today (see the answer above). `effects: [{kind: drill, experience: 1, where: garrison}]`, with no `every`, so it fires each turn in `drillUnits` (`statecraft/evaluator.ts`). |
+| 29 | Total War | `totalWar` | III | rare | Military | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. | Data only. At war only (confirmed 2026-11-19). One `conditionRule` with `when: {test: atWar}` around the three rows, with `combatLine` `amount` 4 and `happiness` `amount` -2. |
+| 31 | The Drill Masters | `theDrillMasters` | III | common | Military | Garrisoned units gain 1 experience each turn. | Data only. It is not in the game today. `effects: [{kind: drill, experience: 1, where: garrison}]`, with no `every`, so it fires each turn in `drillUnits` (`statecraft/evaluator.ts`). |
 | 32 | The Victory Mint | `theVictoryMint` | III | uncommon | Economic | Capturing a city grants gold equal to sixty times its population. | Data only. `windfallRider` on `capture`: `grant.amount` 30 to 60 (`fromOccasion: population`). |
-| 33 | The Bakufu | `theBakufu` | III | uncommon | Civic | A town with a citadel gains +25% production, science and culture. | Data only. Three `percentYields` rows (production, science, culture) at 25, each with `scope: {test: hasImprovement, improvement: citadel}`. To confirm in the build: the scope's exact fields. |
-| 34 | The Regimental Schools | `theRegimentalSchools` | III | common | Civic | Each garrisoned unit gives its town +8 science and +8 production. | Data only. Two `pays` city rows, `basis: count`, `count: garrison`, `amount: 8`: one `to: science`, one `to: production`. Type stays Civic (an even card with a Civic half). |
+| 33 | The Bakufu | `theBakufu` | III | uncommon | Civic | A town with a citadel gains +25% production, science and culture. | Data only. Three `percentYields` rows (production, science, culture) at 25, each with `scope: {test: hasImprovement, improvement: citadel}`. For the builder to check: the scope's exact fields. |
+| 34 | The Regimental Schools | `theRegimentalSchools` | III | common | Civic | Each garrisoned unit gives its town +6 science and +6 production. | Data only. Two `pays` city rows, `basis: count`, `count: garrison`, `amount: 6`: one `to: science`, one `to: production`. Type stays Civic (an even card with a Civic half). |
 | 35 | The Tributary Kings | `theTributaryKings` | III | uncommon | Economic | Your capital gains +2 production and +2 gold for each citizen in your puppet towns. | Data only. Both `pays` capital rows (count `puppetPopulation`): `amount` 1 to 2. |
 | 36 | Commission: The Chosen Men | `dominionTheChosenMen` | III | uncommon | Wildcard | Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control. | **Small extension.** The lasting reward gains `{kind: unitStat, stat: movement, amount: 1, rank: elite}` beside the `ignored` rule. `unitStat` filters by `class` only; it needs `rank?: RankId`, read where unit stats fold (`statecraft/evaluator.ts`) with the unit in hand. |
 | 40 | The Grand Army | `dominionTheGrandArmy` | IV | rare | Civic | Your capital gains +6 science and +6 culture for each military unit you have. | Data only. Both `pays` capital rows (count `unitsInField`): `amount` 3 to 6. |
@@ -824,7 +836,7 @@ This section stands alone. It is the whole specification for the Dominion build 
 | 42 | Commission: The Grand Campaign | `dominionTheGrandCampaign` | IV | uncommon | Wildcard | Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population. | Data only. Both reward rows with `fromGoal: population`: `amount` 10 to 40. |
 | 43 | Commission: Hold the Capital (was Hold the Capitals) | `dominionHoldTheCapitals` | IV | rare | Wildcard | Goal: hold a rival capital. Reward: a great general, and +25% production in every town for twenty turns. | Data only. `name` becomes "Commission: Hold the Capital"; the goal's `count` 2 to 1. The id stays. |
 | 44 | Circumvallation | `dominionCircumvallation` | IV | uncommon | Military | A town under siege by your units makes no production and takes twice the siege damage. | **Small extension.** Two rules. (a) A rule that stops all production in a town under siege by this empire: `opusSiege` generalised or a sibling `siegeHaltsProduction`, read where `opusSiegeInForce` is read (`statecraft/evaluator.ts`) and in the town's production fold. (b) A `rulePercent` on siege damage (+100), read where `combat.siegeDamagePerTurn` is applied (`combat.ts`, about line 4014). |
-| 45 | The Glorious Dead | `theGloriousDead` | IV | rare | Civic | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. | **Small extension.** Add `windfallRider` on `death`: `grant: {yield: production, fromOccasion: unitCost, percent 50, toCapital: true}`. `OccasionMeasure` is `strength or population or gold`; it needs `unitCost` (`WindfallOccasionFacts.unitCost` exists). To confirm: that the `death` moment carries the cost, and that a free unit pays nothing. |
+| 45 | The Glorious Dead | `theGloriousDead` | IV | rare | Civic | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. | **Small extension.** Add `windfallRider` on `death`: `grant: {yield: production, fromOccasion: unitCost, percent 50, toCapital: true}`. `OccasionMeasure` is `strength or population or gold`; it needs `unitCost` (`WindfallOccasionFacts.unitCost` exists). For the builder to check: that the `death` moment carries the cost, and that a free unit pays nothing. |
 
 ### New rows
 
@@ -833,9 +845,9 @@ This section stands alone. It is the whole specification for the Dominion build 
 | 04 | The Ver Sacrum | `dominionTheVerSacrum (new)` | 0 | rare | Military | On draft: gain a Settler and a melee unit. | Data only. `onDraft: [{grant: unit, unit: settler}, {grant: unit, unit: bestMelee}]`, `effects: []`. Delivered by `raiseOnDraft` (`cities.ts`), in the capital. Keyword Boon. |
 | 22 | The Amabutho | `dominionTheAmabutho (new)` | II | uncommon | Military | On draft: every town with a Barracks gains a melee unit. | **Small extension.** The on-draft unit grant has `count` and goes to the capital. It needs `toEveryTown?: CityScope` (the windfall grant's field), read in `raiseOnDraft` (`cities.ts`): one `bestMelee` in each town the scope admits (`hasBuilding: barracks`). Free of upkeep, as every granted unit. Keyword Boon. |
 | 23 | The Field of Mars | `dominionTheFieldOfMars (new)` | II | uncommon | Military | On draft: every military unit you have gains 4 experience. | **New shape.** A member of `OnDraftGrant`: `{grant: experience, amount: 4}`. `raiseOnDraft` (`cities.ts`) gives it to each fighting unit of the seat through `grantExperience` (`ranks.ts`) and `settleRanksEarned` (`cities.ts`), as `drillUnits` does, so the ranks pay the cards that read them. Words in `statecraft/describers.ts`. Keyword Boon. |
-| 24 | The Grass Crown | `dominionTheGrassCrown (new)` | II | uncommon | Civic | Capturing a city grants 200 renown, favouring great generals, tripled if the city holds a wonder. | Data only. Two `windfallRider` rows on `capture`: `{grant: {renown: 200, renownFamily: general}}` and the same with `renown: 400` and `capturedWonder: true`. The describer must print them as one clause ("tripled if..."), or the card text carries it. |
+| 24 | The Grass Crown | `dominionTheGrassCrown (new)` | II | uncommon | Civic | Capturing a city grants 200 renown, favouring great generals, doubled if the city holds a wonder. | Data only. Two `windfallRider` rows on `capture`: `{grant: {renown: 200, renownFamily: general}}` and a second row with `renown: 200` and `capturedWonder: true`, so a wonder city pays 400. The describer must print them as one clause ("doubled if..."), or the card text carries it. |
 | 25 | The Melted Arms | `dominionTheMeltedArms (new)` | II | common | Economic | Killing a unit grants production equal to twice its strength in your capital. | Data only. `windfallRider` on `kill`: `grant: {yield: production, amount: 2, fromOccasion: strength, toCapital: true}` (Songs of the Fallen has the measure, The Outriders the production). |
-| 26 | The Auxilia | `dominionTheAuxilia (new)` | II | common | Military | Capturing a city grants a melee unit in that city. It costs no upkeep. | Data only. `windfallRider` on `capture`: `grant: {unit: bestMelee}`. A granted unit goes to the town nearest the occasion and is free of upkeep. To confirm in the build: that the nearest town is the town just taken. |
+| 26 | The Auxilia | `dominionTheAuxilia (new)` | II | common | Military | Capturing a city grants a melee unit in that city. It costs no upkeep. | Data only. `windfallRider` on `capture`: `grant: {unit: bestMelee}`. A granted unit goes to the town nearest the occasion and is free of upkeep. For the builder to check: that the nearest town is the town just taken. |
 | 27 | The Foederati | `dominionTheFoederati (new)` | I | uncommon | Economic | Clearing a barbarian camp adds 2 citizens to your capital. | **Small extension.** `windfallRider` on `camp`: `grant: {citizens: 2, toCapital: true}`. The `citizens` grant exists, but it pays the town the moment names or `toEveryTown`; a cleared camp names no town. `citizens` must honour `toCapital`, where `payWindfallGrants` composes it (`statecraft/evaluator.ts`, the `grant.citizens` arm). |
 | 28 | Commission: The Decisive Battle | `dominionTheDecisiveBattle (new)` | II | uncommon | Wildcard | Goal: kill 10 units. Reward: your military units gain +3 strength. | Data only. `commission: {goals: [{kind: counted, occasion: unitKilled, count: 10}], reward: [{lasting: [{kind: combatLine, amount: 3, side: both, when: {test: always}, class: {category: military}}]}]}`. |
 | 37 | The Mesta | `dominionTheMesta (new)` | III | uncommon | Economic | Worked pastures and camps give +4 food, +4 production and +4 gold. | Data only. `pays` hex: `food: 4, production: 4, gold: 4`, `on: {test: anyImprovement, improvements: [pasture, camp]}`, as The Naadam. |
@@ -868,7 +880,7 @@ The Citizen Phalanx is written for the garrison state (the sheet's Build column)
 - **27 The Foederati.** (small extension) `windfallRider` on `camp`: `grant: {citizens: 2, toCapital: true}`. The `citizens` grant exists, but it pays the town the moment names or `toEveryTown`; a cleared camp names no town. `citizens` must honour `toCapital`, where `payWindfallGrants` composes it (`statecraft/evaluator.ts`, the `grant.citizens` arm).
 - **36 Commission: The Chosen Men.** (small extension) The lasting reward gains `{kind: unitStat, stat: movement, amount: 1, rank: elite}` beside the `ignored` rule. `unitStat` filters by `class` only; it needs `rank?: RankId`, read where unit stats fold (`statecraft/evaluator.ts`) with the unit in hand.
 - **44 Circumvallation.** (small extension) Two rules. (a) A rule that stops all production in a town under siege by this empire: `opusSiege` generalised or a sibling `siegeHaltsProduction`, read where `opusSiegeInForce` is read (`statecraft/evaluator.ts`) and in the town's production fold. (b) A `rulePercent` on siege damage (+100), read where `combat.siegeDamagePerTurn` is applied (`combat.ts`, about line 4014).
-- **45 The Glorious Dead.** (small extension) Add `windfallRider` on `death`: `grant: {yield: production, fromOccasion: unitCost, percent 50, toCapital: true}`. `OccasionMeasure` is `strength | population | gold`; it needs `unitCost` (`WindfallOccasionFacts.unitCost` exists). To confirm: that the `death` moment carries the cost, and that a free unit pays nothing.
+- **45 The Glorious Dead.** (small extension) Add `windfallRider` on `death`: `grant: {yield: production, fromOccasion: unitCost, percent 50, toCapital: true}`. `OccasionMeasure` is `strength | population | gold`; it needs `unitCost` (`WindfallOccasionFacts.unitCost` exists). For the builder to check: that the `death` moment carries the cost, and that a free unit pays nothing.
 - **48 The Landsturm.** (small extension) The rider moves from `draftPassed` to `declareWar` with `oncePerTurns: 20`. `declareWar` is paid to the declarer only (`diplomacy.ts`, `windfallPayout(state, playerId, 'declareWar')`); the empire declared on needs the same moment.
 - **49 The Citizen Phalanx.** (small extension) `{kind: levy, use: muster, minPopulation: 3}` exists. A levied unit pays upkeep today; the levy needs a `freeUpkeep` flag, set where `levyAt` raises the unit (`levies.ts`; `Unit.freeUpkeep` is written only at the free-unit seams, so this is a sixth seam and joins that register).
 
@@ -893,7 +905,7 @@ A shape declared and never read fails the register test in `test/sim/statecraft.
 - `test/sim/decks/dominion.test.ts`: the sync test reads the sheet, so the sheet and the data change together.
 - `test/fixtures/cardText.json`: the text fixtures of every changed, new and retired row.
 - `test/sim/decks/dominionRanks.test.ts` (about line 312): it asserts that The Drill Masters makes every unit a Veteran. That job moves to The Training Cadre (in a Barracks town), and The Drill Masters needs a test of the garrison drill.
-- `test/sim/cardsR1.test.ts` (about line 308): it asserts Total War's happiness cost at peace. Under the reading taken the cost applies only at war.
+- `test/sim/cardsR1.test.ts` (about line 308): it asserts Total War's happiness cost at peace. The cost now applies only at war.
 - The other Dominion suites may hold numbers that change: `dominionCards`, `dominionCombat` (The Longbowmen, Siege Works, The Siege Train, The Upstarts), `dominionCommissions` (The Border Fortress, The Chosen Men, The Grand Campaign, Hold the Capitals), `dominionEconomy`, `dominionPillage` (Riders of the Steppe, The Captive Craftsmen), `dominionRules` (Circumvallation), `dominionDoctrines` (The Marian Reforms, The Landsturm), `dominionUnits`, `dominionThemeCards`. Run only these files.
 - `docs/plans/doctrines-governments-chairs.md`: the new Doctrine.
 - `.claude/skills/card-design/references/deck-maps.md`: Dominion's section, once the build lands.
@@ -908,6 +920,4 @@ A shape declared and never read fails the register test in `test/sim/statecraft.
 
 ### Waiting on the user
 
-- **01 The Spear Makers** (`theSpearMakers`): +25% to +40% production toward military units. No ruling yet. Not in this build.
-- **29 Total War, to confirm:** at war only (taken), or always on. Section 9 has both readings. The build goes ahead with "at war only".
-- **05 and 31, to confirm:** a Veteran start from a card counts as earning a rank (taken). The build goes ahead with it.
+Nothing.
