@@ -1527,3 +1527,27 @@ pictures a bit bigger. keep the sun and moon."
   for the great person card, to the project rule that flavour is always
   labelled; the rule stands everywhere else. A screen reader still hears the
   label.
+
+### The age paintings: three sets, one a game (2026-11-19)
+
+The user made three sets of four age paintings (landscapes, still lifes and
+abstracts) and saw them on a mock-up of the ribbon plate
+(https://claude.ai/artifact/NSrK4UB18VVvXBK7dN2KG8): "tbh i like all of them,
+could we cycle between the three themes? So each game will have a consistent
+set, but game to game the themes will vary and be randomly chosen. i like
+age1form_alt, age2form_alt2, age4form_alt. Please crop the borders out for
+the chosen ones."
+
+- **Three sets:** `form`, `still` and `abstract`. The files are
+  `public/art/splash/ages/<set><age>.jpg`, for example `form2.jpg`, made by
+  `scripts/splashArt.py ages` from `art-masters/ages/`. The landscape set uses
+  the user's picks (`age1form_alt`, `age2form_alt2`, `age3form`,
+  `age4form_alt`); the other takes are in `art-masters/ages/unused/`.
+- **One set a game.** Every age plate in a game shows the same set. The set
+  differs from game to game.
+- **The choice does not use the sim's random numbers.** The page picks the set
+  from a hash of the game's seed, so a saved game shows the same set when it
+  is loaded, and the rules' outcomes do not change (hard rule 4).
+- **Not built yet.** It goes in with the age plate on the ribbon. That build
+  also needs a decision the user has not made: an age I plate when the game
+  starts (recommended), since no plate shows age I today.

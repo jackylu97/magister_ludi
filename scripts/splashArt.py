@@ -7,6 +7,7 @@ Writes  public/art/splash/<kind>/<row id>.jpg
 Kinds:
   wonders   16:9, at most 1600 px wide
   people    5:6,  at most 720 px wide (great people's portraits)
+  ages      16:9, at most 1600 px wide (three sets of four: form, still, abstract)
 
 What it does to each picture:
   1. cuts off a border, if the picture has one: black bars, or a paper mount
@@ -47,9 +48,22 @@ PEOPLE = {
     'shikibu': 'murasakiShikibu', 'subutai': 'subutai', 'vitruvius': 'vitruvius',
     'zhangqian': 'zhangQian',
 }
+# One painting an age in each of three sets. A game shows one set throughout.
+AGES = {
+    'age1form_alt': 'form1', 'age2form_alt2': 'form2', 'age3form': 'form3', 'age4form_alt': 'form4',
+    'age1still': 'still1', 'age2still': 'still2', 'age3still': 'still3', 'age4still': 'still4',
+    'age1abstract': 'abstract1', 'age2abstract': 'abstract2', 'age3abstract': 'abstract3',
+    'age4abstract': 'abstract4',
+}
 KINDS = {
+    'ages': {'names': AGES, 'ratio': (16, 9), 'width': 1600},
     'wonders': {'names': WONDERS, 'ratio': (16, 9), 'width': 1600},
     'people': {'names': PEOPLE, 'ratio': (5, 6), 'width': 720},
+}
+# Borders the automatic trim cannot see (a pale strip on two sides only):
+# pixels to cut from the left, top, right and bottom of the master.
+INSETS = {
+    'ages/age4form_alt': (38, 0, 36, 0),
 }
 DARK = 26        # a black bar is a line whose brightest tenth is darker than this (0 to 255)
 MOUNT = 46       # a mount line is one whose pixels sit this close to the mount's colour
@@ -137,6 +151,8 @@ def run(kind):
             continue
         src = Image.open(os.path.join(masters, name)).convert('RGB')
         box = trim(src)
+        l, t, r, b = INSETS.get(f'{kind}/{stem}', (0, 0, 0, 0))
+        box = (max(box[0], l), max(box[1], t), min(box[2], src.width - r), min(box[3], src.height - b))
         im = src.crop(box)
         w, h = im.size
         if w * rh > h * rw:

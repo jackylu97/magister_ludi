@@ -7,7 +7,7 @@ painting shows are in `docs/splash-art.md`.
 |---|---|---|---|---|
 | `wonders/` | One painting a wonder, written by `scripts/splashArt.py` | 16:9 | made from the master, at most 1600 wide | the wonder's id, for example `greatSphinx.jpg` |
 | `leaders/` | One portrait a leader | 3:4 | 960 x 1280 | the leader's id, for example `pachacuti.jpg` |
-| `ages/` | One plate an age | 16:9 | 2560 x 1440 | `age1.jpg` to `age4.jpg` |
+| `ages/` | Three sets of four age paintings (`form`, `still`, `abstract`), written by `scripts/splashArt.py ages`; a game shows one set | 16:9 | made from the master, at most 1600 wide | the set and the age, for example `form2.jpg` |
 | `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id |
 | `people/` | One portrait a great person, written by `scripts/splashArt.py people` | 5:6 | made from the master, 720 x 864 | the person's id, for example `imhotep.jpg` |
 
