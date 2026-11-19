@@ -1,3 +1,4 @@
+import { pillageScene, PILLAGE_VIEWS, type PillagePreview } from './pillageScene';
 import { VIEW3D } from '../render3d/lookData';
 import { Renderer3D } from '../render3d/renderer3d';
 import { setUnitArtVariant } from '../render3d/paintedUnits';
@@ -63,7 +64,10 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
   let view: SceneView = Object.prototype.hasOwnProperty.call(SCENE_VIEWS, params.get('view') ?? '') ? params.get('view') as SceneView : 'overview';
   let light = params.get('light') ?? 'soft';
-  let still = params.get('still') !== '0';
+  const chosenPillage = PILLAGE_VIEWS.find(([id]) => id === params.get('pillage'))?.[0];
+  let pillage: PillagePreview = chosenPillage ?? 'intact';
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let still = params.has('still') ? params.get('still') !== '0' : pillage !== 'embers' || reduceMotion;
   // `sea=1..5` picks the open water's pattern (`visualTest.coast.open.pattern`), to compare them.
   const pattern = Number(params.get('sea'));
   if (pattern >= 1 && pattern <= 5) VTEST_UNIFORMS.vtestSeaPattern.value = pattern;
@@ -92,6 +96,9 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // `world=works` draws the small world of works at their real yields (`createWorksFixture`); use `at` to frame it.
   const worksWorld = params.get('world') === 'works';
   const state = worksWorld ? createWorksFixture(age) : createSceneFixture(age);
+  const seat = params.get('seat') === '1' ? 1 : 0;
+  const damage = chosenPillage && !worksWorld ? pillageScene(state, seat) : undefined;
+  if (damage) { damage.show(pillage); renderer.scene.add(damage.group); }
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -113,6 +120,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     const url = new URL(location.href);
     url.searchParams.set('review', 'scene'); url.searchParams.set('view', view); url.searchParams.set('light', light);
     if (age !== undefined) url.searchParams.set('age', String(age));
+    if (damage) url.searchParams.set('pillage',pillage);
     url.searchParams.set('vtest', formatVisualTest(visualTest())); url.searchParams.set('still', still ? '1' : '0');
     history.replaceState(null, '', url);
   };
@@ -161,6 +169,13 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     setSceneAge(state, age);
     renderer.setGameState(state);
   }));
+  if (damage) row('Pillage', select('scene-pillage', PILLAGE_VIEWS, pillage, value => {
+    pillage = value as PillagePreview;
+    damage.show(pillage);
+    renderer.setGameState(state);
+    if (pillage === 'embers' && !reduceMotion) { still = false; hold.checked = false; renderer.setClock(null); }
+    renderer.invalidate();
+  }));
   row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['tinted', 'Soft, violet shade'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
     value => { light = value; renderer.setDaylight(value); }));
   const hold = document.createElement('input'); hold.type = 'checkbox'; hold.id = 'scene-still'; hold.checked = still;
@@ -198,7 +213,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
     renderer.zoomBy(Math.exp(-event.deltaY * .0015), event.clientX - bounds.left, event.clientY - bounds.top);
   }, { passive: false });
 
-  const dispose = (): void => { if (disposed) return; disposed = true; resize.disconnect(); renderer.dispose(); };
+  const dispose = (): void => { if (disposed) return; disposed = true; resize.disconnect(); damage?.dispose(); renderer.dispose(); };
   window.addEventListener('pagehide', dispose, { once: true });
   await renderer.enablePaintedLook(light);
   if (disposed) return dispose;
@@ -210,7 +225,6 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // And what the light of the rich hexes shows, by `col,row`, to check a view against the yield rules.
   (window as unknown as { sceneYields?: () => Record<string, unknown> }).sceneYields = () => Object.fromEntries([...renderer.yieldLightShown].map(([cell, hex]) => [`${cell % state.map.width},${Math.floor(cell / state.map.width)}`, hex]));
   (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
-  const seat = params.get('seat') === '1' ? 1 : 0;
   renderer.setFogSeat(seat);
   // `force=2` or `force=3` raises every hex that shows to that step, to see the look of a step the land alone does not reach.
   const forced = Number(params.get('force'));
