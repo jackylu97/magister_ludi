@@ -1834,6 +1834,29 @@ Eight root pages, all named in `vite.config.ts` inputs:
   into "Not yet" as before. "Only supply" is the sim's answer: `buildError`
   asked again with `ignoreResourceRequirement` (`unitRowGate`), and a town too
   small for the unit is a second bar (`greyedForSupply`, `cityPanel.ts`).
+- **Quiet Table, build stage 2: the offers** (`docs/plans/ui-critique-2026-10-16.md`,
+  "Quiet Table: build stage 2, the offers"):
+  - every offer is one quiet sheet (`offerCard.ts`): the title and the
+    offer's facts in a ruled head, "The offer waits. Nothing is spent." and
+    the × (View map, Escape too); the reroll at the foot's left with what the
+    bank holds, Pass and Take at its right. **A click chooses a card and Take
+    takes it**; a number key chooses, Enter on a card takes it;
+  - the cards are revealed one by one after a hold on their backs
+    (`OFFER_REVEAL` in `cardDeal.ts`: a hold of 300 ms, 260 ms between cards,
+    each turn 420 ms). A press or a key during the reveal turns every card up
+    and does nothing else; reduced motion shows them face up. The Order draft's
+    cards lie on the draft pile's back, the great person offer's on the laurel,
+    the government's on the crown (`offerBackNode`);
+  - the Order draft draws the Council's engraved face (`orderOfferFace` in
+    `offerFaces.ts`), with the stamp's seat at its foot, and no text under it;
+  - a great person is drawn as the great person card (`greatPersonCard.ts`)
+    on the offer and in the Reliquary: the family's tab, an arched picture
+    window of 5:6 (`greatPersonPicture`: a portrait from
+    `greatPersonPaintings.ts`, none yet, or the family's emblem), the name, the
+    legacy, what the person does when spent (on the offer), the flavour and
+    the tier mark. The Reliquary's fan shows the same card as thumbnails, and
+    the deed stands under the desk with the count;
+  - the Ledger's page heads are ruled the kit's way, and its × is the kit's.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

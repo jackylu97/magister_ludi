@@ -36,6 +36,10 @@ import {
   orderKeyword,
   orderType,
 } from '../sim/statecraftData';
+import { FAMILIES, LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../sim/greatPeopleData';
+import { type OfferBackMark, offerBackNode } from '../ui/cardDeal';
+import { fitGreatPersonCard, greatPersonCardNode } from '../ui/greatPersonCard';
+import { greatPersonCard } from '../ui/greatPersonFace';
 import { scalerStartFace } from '../ui/scalerValue';
 import { chairNode, chairWord, emptyChairNode, offerChairsOf } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
@@ -361,4 +365,73 @@ function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
     row.append(cell);
   }
   governments.append(row);
+
+  drawGreatPeople(into);
+  drawOfferBacks(into);
+}
+
+/**
+ * **The great person card** (Quiet Table, build stage 2), through the game's
+ * own builder: one card a family, the first live name of each, and the same
+ * card as a thumbnail, as the Reliquary's fan draws it. No portrait exists yet,
+ * so every window shows its family's emblem.
+ */
+function drawGreatPeople(into: HTMLElement): void {
+  const people = block(
+    into,
+    'The great person card: greatPersonCard.ts',
+    'The engraved form a great person wears on the offer and in the Reliquary: the family on its tab, the arched picture window (the family emblem until a portrait exists), the name, the kernel, the legacy and the flavour with the tier mark. One card a family, and a thumbnail.',
+  );
+  const knobs = controls(people);
+  const row = element('div', 'face-people');
+  people.append(row);
+  let width = 214;
+  const redraw = (): void => {
+    row.replaceChildren();
+    row.style.setProperty('--gp-card-width', `${width}px`);
+    for (const family of FAMILIES) {
+      const id = LIVE_GREAT_PERSON_IDS.find((one) => greatPersonDef(one).family === family);
+      if (id === undefined) continue;
+      const { card } = greatPersonCardNode(greatPersonCard(id));
+      row.append(card);
+    }
+    const first = LIVE_GREAT_PERSON_IDS[0];
+    if (first !== undefined) {
+      const mini = greatPersonCardNode(greatPersonCard(first), { mini: true }).card;
+      mini.style.setProperty('--gp-card-width', '84px');
+      row.append(mini);
+    }
+    for (const card of row.querySelectorAll<HTMLElement>('.gp-card')) fitGreatPersonCard(card);
+  };
+  slider(knobs, 'card width', { min: 140, max: 300, step: 2, value: width }, (v) => `${v}px`, (v) => {
+    width = v;
+    redraw();
+  });
+  redraw();
+}
+
+/**
+ * **The offer backs** (`offerBackNode`, `cardDeal.ts`): the draft pile's
+ * colours with the mark each offer's cards lie on while they wait to turn.
+ */
+function drawOfferBacks(into: HTMLElement): void {
+  const backs = block(
+    into,
+    'The offer backs: offerBackNode in cardDeal.ts',
+    'The cards of an offer lie face down for a moment, then turn over one by one. The Order draft lies on the draft pile’s sun, the great person offer on the laurel and the government offer on the crown.',
+  );
+  const row = element('div', 'face-backs');
+  const marks: readonly [OfferBackMark, string][] = [
+    ['sun', 'The Order draft'],
+    ['laurel', 'The great person offer'],
+    ['crown', 'The government offer'],
+  ];
+  for (const [mark, words] of marks) {
+    const cell = element('div', 'face-back');
+    const card = element('div', 'face-back-card');
+    card.append(offerBackNode(mark));
+    cell.append(card, element('b', undefined, words));
+    row.append(cell);
+  }
+  backs.append(row);
 }

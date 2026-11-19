@@ -228,7 +228,9 @@ import {
   governmentDef,
   orderDef,
 } from './sim/statecraftData';
-import { doctrineFaceOf, orderPayoff, orderSuitFace } from './ui/deckBadges';
+import { doctrineFaceOf, orderPayoff } from './ui/deckBadges';
+import { offerBackNode } from './ui/cardDeal';
+import { OFFER_FACE_SHAPES, greatPersonOfferFace, orderOfferFace } from './ui/offerFaces';
 import { scalerFace } from './ui/scalerValue';
 import { createTurnSplash, techSplashReading } from './ui/turnSplash';
 import { charterOfferParts } from './ui/charterTech';
@@ -246,7 +248,7 @@ import { type CensusSheet, censusPage, createCensusSheet } from './ui/censusShee
 import { censusBlocker, lastCensus } from './sim/census';
 import { wagerBlocker } from './sim/wagers';
 import { type UnitPanel, createUnitPanel, disbandPrompt } from './ui/unitPanel';
-import { YIELD_GLYPH } from './ui/figures';
+import { YIELD_GLYPH, figure as countFigure } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import { createInfoCard } from './ui/infoCard';
 import {
@@ -3292,7 +3294,7 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /** What the offer card wants for one of its two answers. */
-  type AnswerControl = { label: string; figure: string; note: string; disabled?: boolean };
+  type AnswerControl = { label: string; figure: string; note: string; disabled?: boolean; purse?: string };
 
   /**
    * The reroll's button and its sentence, or `undefined` when this seat has no
@@ -3341,6 +3343,8 @@ async function boot(initial: Game | null): Promise<void> {
       label: 'Ask again',
       figure,
       note: `${fold}. The next reading costs more than this one, whichever hand it is.`,
+      // What the bank holds, beside the button (Quiet Table, build stage 2).
+      purse: `You have ${countFigure(Math.floor(player.faithPool))} faith.`,
     };
   }
 
@@ -3471,14 +3475,12 @@ async function boot(initial: Game | null): Promise<void> {
       const offer = sc.pendingOrder;
       const options: OfferOption[] = offer.options.map((id) => ({
         title: orderDef(id).name,
-        // **The A3 face** (batch C1, `ui/suitFace.ts`): the suit shows the
-        // deck, the ink shows the card's type and the rank shows its rarity, so
-        // the face carries no chip. The card's keyword (batch DS8) is the first
-        // clause of its note. The eyebrow is not drawn on this face; the foot
-        // names the deck.
         payoff: orderPayoff(id),
-        suit: orderSuitFace(id),
-        note: describeCard(id).map((clause) => clause.text).join(' · '),
+        // **The Council's engraved face** (Quiet Table, build stage 2; the
+        // user: "basically the same as the great people draft screen, just with
+        // order cards"). The face draws the name, the rules and the tier; the
+        // stamp's seat is at its foot (`orderOfferFace`). No text under it.
+        dress: () => orderOfferFace(id),
         flavor: orderDef(id).flavor,
         // A commission's counter, so the hand shows where its goal starts.
         progress: commissionCounters(game.state, seat, id),
@@ -3492,10 +3494,13 @@ async function boot(initial: Game | null): Promise<void> {
       }));
       offerCard.show(
         {
-          eyebrow: `tier ${sc.drafts} · the culture meter is full`,
+          // The board's head: the title and what the offer is, on one line.
+          eyebrow: 'a new Order joins your collection',
           title: 'Write it into law',
-          note: 'A new Order joins your collection. Slotting it is a separate act — and a sealed one.',
           options,
+          // The draft pile's own back, and the engraved face's shape.
+          back: () => offerBackNode('sun'),
+          shape: OFFER_FACE_SHAPES.order,
           widening: wideningLines('order'),
           // The second answer (the ruling of 2026-09-04). Plain words on both
           // halves: what it does, and what it costs — the culture is already
@@ -3630,6 +3635,9 @@ async function boot(initial: Game | null): Promise<void> {
             'and every seal lifts so you can re-lay the council. ' +
             'Then you are offered Doctrines of this government\'s tier from your decks: take one or pass.',
           weight: 'heavy',
+          // The government's cards lie on the crown's back, and the choice is sworn.
+          back: () => offerBackNode('crown'),
+          takeVerb: 'Swear',
           options: offer.options.map((id) => ({
             title: governmentDef(id).name,
             payoff: slotWords(seat, id),
@@ -3948,9 +3956,12 @@ async function boot(initial: Game | null): Promise<void> {
 
     offerCard.show(
       {
-        eyebrow: 'the age offers you a name',
+        // The board's head (Quiet Table, build stage 2, frame a5).
+        eyebrow: 'the age offers you one name',
         title: 'Who will serve you',
-        note: 'One name, from a roster the whole world draws on. Their legacy stays whichever verb you spend them on.',
+        // The laurel's back, and the great person card's shape.
+        back: () => offerBackNode('laurel'),
+        shape: OFFER_FACE_SHAPES.person,
         widening: wideningLines('greatPerson'),
         // **A name may be asked for again, at twice the Order price** (ruling q,
         // 2026-09-07) — one ladder with the Order and the Doctrine drafts, so
@@ -3967,6 +3978,12 @@ async function boot(initial: Game | null): Promise<void> {
             // verbs, so it is the first thing read.
             payoff: def.family,
             title: def.name,
+            // **The great person card** (Quiet Table, build stage 2): the
+            // family's tab, the picture window, the name, the legacy and what
+            // the person does when spent (`greatPersonOfferFace`). The fields
+            // below are kept for the sheet's spoken name and for the tests that
+            // read them; the card draws its own words.
+            dress: () => greatPersonOfferFace(game.state, seat, id),
             notes: describeCard(id).map((clause) =>
               clause.deferred === true ? { text: clause.text, deferred: true } : { text: clause.text },
             ),

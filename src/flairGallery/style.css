@@ -1111,3 +1111,36 @@ body {
   height: 900px;
   border-radius: 6px;
 }
+
+
+/* The great person card (Quiet Table, build stage 2): a row of the five
+   families and a thumbnail, at the width the slider sets. */
+.face-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 6px 0 16px;
+}
+
+/* The offer backs, each the size of an Order card in the draft. */
+.face-backs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-bottom: 12px;
+}
+
+.face-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.face-back-card {
+  position: relative;
+  width: 150px;
+  height: 184px;
+  border-radius: 6px;
+}

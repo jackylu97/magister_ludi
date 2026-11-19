@@ -19,8 +19,11 @@
  * and draws the card face up.
  */
 
+import { renownMarkDataUri } from '../art/meterMarks';
+import { orderFaceMarkUri } from '../art/orderFaceMarks';
 import { cardLineMarkUrl } from './cardLine';
 import { element } from './dom';
+import { suitMarkDataUri } from './suitFace';
 
 /**
  * How long a card takes to come over, and how long between two of them.
@@ -32,6 +35,65 @@ import { element } from './dom';
  */
 export const DEAL_MS = 420;
 export const DEAL_STAGGER_MS = 110;
+
+/**
+ * **The offer's reveal** (Quiet Table, build stage 2; the user, on the Order
+ * draft: "Make sure to preserve the animations, maybe adding a flipping effect
+ * here and have the cards reveal themselves one by one?"). Every offer sheet
+ * reveals its cards this way: the Order draft, the great person offer and the
+ * government offer, and every other hand the sheet deals.
+ *
+ *   - `holdMs`: the cards lie face down this long first, while the sheet settles;
+ *   - `staggerMs`: the gap between one card starting to turn and the next. At
+ *     the Bonuses tab's `DEAL_STAGGER_MS` the three turns looked like one move;
+ *   - `turnMs`: how long one card takes to come over, the same turn as before.
+ *
+ * Three cards are all face up at 1240 ms (300 + 2 × 260 + 420). The Bonuses tab
+ * keeps its quicker deal, because it deals on every opening.
+ */
+export const OFFER_REVEAL = {
+  holdMs: 300,
+  staggerMs: 260,
+  turnMs: DEAL_MS,
+} as const;
+
+/** When the card at `index` starts to turn, in milliseconds from the sheet's opening. */
+export function revealDelay(index: number): number {
+  return OFFER_REVEAL.holdMs + Math.max(0, index) * OFFER_REVEAL.staggerMs;
+}
+
+/** When the last of `count` cards is face up, in milliseconds from the sheet's opening. */
+export function revealEndsAt(count: number): number {
+  return count <= 0 ? 0 : revealDelay(count - 1) + OFFER_REVEAL.turnMs;
+}
+
+/** The mark a card back carries. One mark a hand: a back must never hint at its face. */
+export type OfferBackMark = 'sun' | 'laurel' | 'crown';
+
+/** Each back mark's drawing, from marks the game already has. */
+const OFFER_BACK_MARKS: Readonly<Record<OfferBackMark, () => string>> = {
+  // The draft pile's own sun (`orderBackNode`, the Council screen).
+  sun: () => orderFaceMarkUri('sun'),
+  // Renown's laurel: renown is what calls a great person.
+  laurel: () => renownMarkDataUri(),
+  // The crown, the suit the Council draws for a government.
+  crown: () => suitMarkDataUri('crowns'),
+};
+
+/**
+ * **A card's back in the draft pile's colours**, for an offer's reveal (Quiet
+ * Table, build stage 2): the deep violet with gilt dots and a gilt edge, and one
+ * mark in the middle. The Order draft wears the pile's sun, the great person
+ * offer the laurel and the government offer the crown. It is a `card-back`, so
+ * the deal's rules turn it and `settleDealtCard` takes it off again.
+ */
+export function offerBackNode(mark: OfferBackMark): HTMLElement {
+  const back = element('span', 'card-back offer-back');
+  back.setAttribute('aria-hidden', 'true');
+  back.dataset.mark = mark;
+  back.style.setProperty('--offer-back-mark', `url("${OFFER_BACK_MARKS[mark]()}")`);
+  return back;
+}
 
 /**
  * One card's back: the weave, the gilt rules and the neutral seal.
@@ -58,6 +120,7 @@ export function cardBack(): HTMLElement {
 export function dealCard(card: HTMLElement, index: number): void {
   card.classList.add('is-dealing');
   card.style.setProperty('--deal-delay', `${index * DEAL_STAGGER_MS}ms`);
+  card.style.setProperty('--deal-turn', `${DEAL_MS}ms`);
   card.append(cardBack());
 }
 
@@ -70,5 +133,6 @@ export function dealtAt(index: number): number {
 export function settleDealtCard(card: HTMLElement): void {
   card.classList.remove('is-dealing');
   card.style.removeProperty('--deal-delay');
+  card.style.removeProperty('--deal-turn');
   for (const back of card.querySelectorAll('.card-back')) back.remove();
 }

@@ -1,0 +1,337 @@
+@import '../cardFaces.css';
+
+/*
+ * The great person card (`greatPersonCard.ts`; Quiet Table, build stage 2).
+ * The board is the third pass's `frame-a5`, whose card is 214 × 392 px: that is
+ * `21.4em × 39.2em` here, so one em is a board pixel's ten at the board's size.
+ *
+ * One custom property sets the size: `--gp-card-width`, on the card or on
+ * anything round it (214px when nothing sets it). The inks are the game's
+ * tokens, one for each family, with the board's colours behind them.
+ */
+
+.gp-card {
+  --gp-width: var(--gp-card-width, 214px);
+  --gp-ink: var(--y-sci, #2757b8);
+  --gp-paper: var(--card-paper, #f8f1dc);
+  --gp-paper-deep: var(--card-paper-shade, #efe4c6);
+  --gp-text: 1.45em;
+  --gp-rule: max(1px, calc(var(--gp-width) / 214));
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 21.4em;
+  height: 39.2em;
+  padding: 0.5em;
+  border: 0.2em solid var(--gp-ink);
+  border-radius: 0.8em;
+  background: var(--gp-paper);
+  box-shadow: 0.4em 0.4em 0 var(--ink, #1d1a20);
+  color: var(--ink, #1d1a20);
+  font-family: var(--face-card-text);
+  font-size: calc(var(--gp-width) / 21.4);
+  font-variant-numeric: lining-nums;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.gp-card *,
+.gp-card *::before,
+.gp-card *::after {
+  box-sizing: border-box;
+}
+
+/* One ink for each family: the yield or the type the family is about. */
+.gp-card[data-family='scholar'] {
+  --gp-ink: var(--y-sci, #2757b8);
+}
+
+.gp-card[data-family='artist'] {
+  --gp-ink: var(--y-cul, #7b3fa8);
+}
+
+.gp-card[data-family='engineer'] {
+  --gp-ink: var(--y-prod, #94500f);
+}
+
+.gp-card[data-family='merchant'] {
+  --gp-ink: var(--type-economic, #b5791b);
+}
+
+.gp-card[data-family='general'] {
+  --gp-ink: var(--type-military, #a8361b);
+}
+
+.gp-in {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 0 1em 0.7em;
+  border: var(--gp-rule) solid var(--ink, #1d1a20);
+  border-radius: 0.3em;
+  background: radial-gradient(120% 90% at 30% 15%, #fcf7e7, var(--gp-paper) 55%, var(--gp-paper-deep));
+}
+
+/* The sun and the moon in the top corners. */
+.gp-corner {
+  position: absolute;
+  top: 0.6em;
+  width: 1.5em;
+  height: 1.5em;
+  background-color: var(--ink, #1d1a20);
+  -webkit-mask: var(--gp-mark) center / contain no-repeat;
+  mask: var(--gp-mark) center / contain no-repeat;
+}
+
+.gp-corner.is-sun {
+  --gp-mark: var(--gp-sun);
+  left: 0.7em;
+}
+
+.gp-corner.is-moon {
+  --gp-mark: var(--gp-moon);
+  right: 0.7em;
+}
+
+/* The family, on a tab hung from the inner rule. */
+.gp-family {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.05em 1em 0.1em;
+  border-radius: 0 0 0.4em 0.4em;
+  background: var(--gp-ink);
+  color: var(--gp-paper);
+  font-family: var(--face-card-title);
+  font-size: 1.25em;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+
+.gp-family-mark {
+  width: 0.9em;
+  height: 0.9em;
+  background-color: currentColor;
+  -webkit-mask: var(--gp-emblem) center / contain no-repeat;
+  mask: var(--gp-emblem) center / contain no-repeat;
+}
+
+/* The picture window: arched at the top, 15 × 18 em (5:6), a ruled border and
+   a ring in the family's ink round it. */
+.gp-window {
+  position: relative;
+  flex: none;
+  width: 15em;
+  height: 18em;
+  margin-top: 0.8em;
+  overflow: hidden;
+  border: var(--gp-rule) solid var(--ink, #1d1a20);
+  border-radius: 999px 999px 0 0 / 46% 46% 0 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.16) 0 var(--gp-rule), transparent var(--gp-rule) 0.34em),
+    var(--gp-paper);
+  box-shadow:
+    0 0 0 0.2em var(--gp-paper),
+    0 0 0 0.3em var(--gp-ink);
+}
+
+.gp-window[data-picture='painted'] {
+  background-position: center;
+  background-size: cover;
+}
+
+/* The fallback: the family's emblem large, on the Order face's engraved disc. */
+.gp-device {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12.6em;
+  height: 12.6em;
+  transform: translate(-50%, -50%);
+}
+
+.gp-rays {
+  fill: none;
+  stroke: var(--gp-ink);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.gp-disc {
+  fill: var(--gp-paper);
+}
+
+.gp-hatch {
+  fill: none;
+  stroke: var(--gp-ink);
+  stroke-width: 0.9;
+  opacity: 0.3;
+}
+
+.gp-ring {
+  fill: none;
+  stroke: var(--gp-ink);
+  stroke-width: 1.4;
+}
+
+.gp-ring-inner {
+  fill: none;
+  stroke: var(--gp-ink);
+  stroke-width: 0.7;
+}
+
+.gp-emblem {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5.2em;
+  height: 5.2em;
+  transform: translate(-50%, -50%);
+  background-color: var(--gp-ink);
+  -webkit-mask: var(--gp-emblem) center / contain no-repeat;
+  mask: var(--gp-emblem) center / contain no-repeat;
+}
+
+/* The name between two rules, in the card's title face. */
+.gp-name {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6em;
+  width: 100%;
+  margin-top: 0.9em;
+}
+
+.gp-rule {
+  flex: 1;
+  min-width: 0.6em;
+  border-top: var(--gp-rule) solid var(--ink, #1d1a20);
+}
+
+.gp-name-words {
+  font-family: var(--face-card-title);
+  /* Stepped down by `fitGreatPersonCard` for a long name. */
+  font-size: var(--gp-name, 2em);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.gp-kernel {
+  flex: none;
+  margin-top: 0.2em;
+  font-size: 1.3em;
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--ink-soft, #56505a);
+}
+
+/* The legacy: the card's rules, as the Order face sets an effect. */
+.gp-legacy {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin-top: 0.6em;
+  overflow: hidden;
+  font-size: var(--gp-text);
+  line-height: 1.2;
+  text-align: left;
+}
+
+.gp-clause {
+  display: block;
+}
+
+.gp-clause + .gp-clause {
+  margin-top: 0.25em;
+}
+
+.gp-clause.is-deferred {
+  color: var(--ink-faint, #625e5b);
+  text-decoration: line-through;
+}
+
+.gp-legacy .of-n,
+.gp-legacy .of-yw {
+  color: #a8321a;
+  font-weight: 600;
+}
+
+/* What the person does when spent, on the offer. */
+.gp-act {
+  flex: none;
+  width: 100%;
+  margin-top: 0.4em;
+  /* A step under the legacy, and smaller with it when a long legacy is fitted. */
+  font-size: calc(var(--gp-text) * 0.8);
+  line-height: 1.25;
+  text-align: left;
+  color: var(--ink-soft, #56505a);
+}
+
+/* The stamp's seat. Empty on the offer; the Reliquary's figure, at rest. */
+.gp-seat {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: 100%;
+}
+
+.gp-seat:empty {
+  display: none;
+}
+
+.gp-seat .card-stamp {
+  --stamp-ink: var(--gp-ink);
+  margin: 0.3em 0 0;
+}
+
+.gp-foot {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  width: 100%;
+  margin-top: 0.5em;
+  padding-top: 0.3em;
+  border-top: var(--gp-rule) solid var(--ink, #1d1a20);
+  font-size: 1.2em;
+  line-height: 1.25;
+}
+
+.gp-flavour {
+  min-width: 0;
+  font-style: italic;
+  text-align: left;
+}
+
+.gp-flavour .flavor-label {
+  margin-right: 0.3em;
+  font-family: var(--face-ui);
+  font-size: 0.75em;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint, #625e5b);
+}
+
+.gp-tier {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+/* A thumbnail: the tab, the window and the name, the window a little taller
+   so the card keeps its shape. */
+.gp-card[data-size='mini'] {
+  height: 30em;
+}
+
+.gp-card[data-size='mini'] .gp-name-words {
+  font-size: var(--gp-name, 2.4em);
+}

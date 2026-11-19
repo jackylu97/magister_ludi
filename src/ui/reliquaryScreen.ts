@@ -108,7 +108,7 @@ import {
 import { YIELD_GLYPH, figure, signedMeterFigure } from './figures';
 import { setYieldText } from './yieldMark';
 import { cardStampNode, landCardStamp } from './cardStamp';
-import { keywordsAllowedIn, setDescriptorText } from './keywords';
+import { fitGreatPersonCard, greatPersonCardNode } from './greatPersonCard';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
 import { renownThreshold } from '../sim/renown';
@@ -456,93 +456,54 @@ interface ReliquaryScreenOptions {
 }
 
 /**
- * One full tarot face, in the very classes the offer card deals.
+ * **The great person card**, the very card the offer deals (Quiet Table, build
+ * stage 2; the third pass's frame c4, approved: "Great"). A name you were dealt
+ * and a name you keep are one card: `greatPersonCard.ts` draws both.
  *
- * `offer-option` inside an `offer-options[data-face='tarot']` host, which is not
- * a borrowing so much as the point: the card a player was dealt and the card
- * they keep are **the same card**, and the only way to guarantee that across two
- * files is for the second one to ask for the first one's rules by name. The two
- * things a standing card must not do — respond to a hover as though it could be
- * picked, and carry a pick's cursor — are turned off in one small block in
- * `style.css` rather than by forking the face.
+ * An `<article>`, not a `<button>`: nothing here is a choice, so the keywords
+ * in the legacy are live links (`keywordsAllowedIn`, asked by the card off the
+ * tag it is given).
  *
- * An `<article>`, not a `<button>`: nothing here is a choice, so the keywords in
- * a clause are live links (`keywordsAllowedIn` answers off the tag, which is the
- * ruling's own instrument).
+ * The stamp sits in the card's seat **at rest**: written landed, never played.
+ * A screen that replayed the count every time an arrow was pressed would be a
+ * screen celebrating itself (`landCardStamp`'s own docblock).
+ *
+ * A **struck** legacy goes back to the flourish, dimmed, with the band across
+ * the card. A revoked record contributes nothing to any ledger
+ * (`explainCardImpact` prices it as a card *not held*, which is what it is), so
+ * a figure printed here would be what this legacy would pay if it were heeded
+ * again, and it never will be.
  */
 function drawReliquaryCard(card: ReliquaryCard): HTMLElement {
   const { face } = card;
-  const article = document.createElement('article');
-  article.className = card.revoked ? 'offer-option rel-card is-revoked' : 'offer-option rel-card';
-  article.dataset.line = face.line;
+  const { card: article, seat } = greatPersonCardNode(face);
+  article.classList.add('rel-card');
+  if (card.revoked) article.classList.add('is-revoked');
   article.title = face.lineName;
-
   if (card.revoked) {
     // Across the face, in vermilion, and drawn **over** the card rather than
     // instead of it: the record is history and history is still readable.
-    const band = element('span', 'rel-revoked-band', REVOKED_BAND);
-    article.append(band);
-  }
-
-  const head = element('span', 'rel-card-head');
-  head.append(element('span', 'offer-payoff', face.eyebrow));
-  head.append(element('span', 'rel-tier-mark', face.tierMark));
-  article.append(head);
-
-  const emblem = element('span', 'offer-emblem');
-  emblem.setAttribute('aria-hidden', 'true');
-  emblem.style.setProperty('--line-mark', face.emblem);
-  article.append(emblem);
-
-  article.append(element('span', 'offer-option-title', face.name));
-
-  // **The legacy is the headline** — the inversion, kept here too: what the card
-  // *is* on this screen is the thing that is still paying, not the burst that is
-  // long spent. A name that leaves no legacy says so plainly rather than showing
-  // an empty column.
-  const linked = keywordsAllowedIn(article);
-  const clauses = element('span', 'offer-clauses');
-  if (face.legacy.length === 0) {
-    clauses.append(element('span', 'offer-clause is-deferred', 'They left no legacy.'));
-  } else {
-    for (const clause of face.legacy) {
-      const line = element('span', clause.deferred ? 'offer-clause is-deferred' : 'offer-clause');
-      setDescriptorText(line, clause.text, { linked });
-      if (clause.deferred) line.title = 'Declared, and not built yet';
-      clauses.append(line);
-    }
-  }
-  article.append(clauses);
-
-  // The stamp **at rest**: written landed, never played. A screen that replayed
-  // the count every time an arrow was pressed would be a screen celebrating
-  // itself (`landCardStamp`'s own docblock, and its second caller).
-  //
-  // A **struck** legacy goes back to the flourish, dimmed. That is not a
-  // decoration: a revoked record contributes nothing to any ledger
-  // (`explainCardImpact` prices it as a card *not held*, which is what it is),
-  // so a figure printed here would be what this legacy would pay if it were
-  // heeded again — and it never will be. The flourish is the vocabulary's own
-  // way of saying "no number is true here", and the band above says why.
-  if (card.revoked) {
+    article.append(element('span', 'rel-revoked-band', REVOKED_BAND));
     const stamp = cardStampNode();
     stamp.classList.add('is-struck');
-    article.append(stamp);
+    seat.append(stamp);
   } else if (face.stamp !== null) {
     const stamp = cardStampNode();
     landCardStamp(stamp, face.stamp);
-    article.append(stamp);
+    seat.append(stamp);
   }
-
-  // The deed, small and quiet, under the number. It is the footnote the
-  // inversion made it (`greatPersonFace.ts`'s `deedFootnote`).
-  article.append(element('span', 'rel-deed', face.deed));
-
-  const flavor = element('span', 'offer-flavor');
-  flavor.append(element('span', 'flavor-label', 'Flavour'));
-  flavor.append(document.createTextNode(face.flavor));
-  article.append(flavor);
   return article;
+}
+
+/**
+ * The line under the pile: the count, then what the person's charge was spent
+ * on (the board: "1 of 4 · spent as a scholar: Write a Treatise, or Found an
+ * Academy"). The deed is the footnote the inversion made it
+ * (`greatPersonFace.ts`'s `deedFootnote`), and it stands under the card now
+ * rather than on it.
+ */
+export function reliquaryDeskLine(count: string, deed: string): string {
+  return count === '' ? '' : `${count} · ${deed}`;
 }
 
 export function createReliquaryScreen(options: ReliquaryScreenOptions): ReliquaryScreen {
@@ -625,6 +586,15 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     const grid = element('div', 'rel-grid');
     grid.append(drawLeft(roll, deck), drawDesk(state, playerId, deck, flip), drawRenown());
     body.append(grid);
+    // The cards fit their names and the desk card its legacy now that they are
+    // on the page, and again once the card fonts have loaded.
+    const cards = [...body.querySelectorAll<HTMLElement>('.gp-card')];
+    for (const card of cards) fitGreatPersonCard(card);
+    if (cards.length > 0) {
+      void document.fonts?.ready.then(() => {
+        for (const card of cards) if (card.isConnected) fitGreatPersonCard(card);
+      });
+    }
     // **The calls are drawn on an empty screen too**, and that is the case that
     // matters most: an empire that has just adopted The Commonwealth has no
     // legacies yet and its whole signature clause lives on this rail.
@@ -722,16 +692,8 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       'aria-label',
       `${face.name}, ${face.family}${card.revoked ? ', revoked' : ''}. Brings it to the top.`,
     );
-    const frame = element('span', 'rel-mini-frame');
-    const head = element('span', 'rel-mini-head');
-    head.append(element('span', 'rel-mini-name', face.name));
-    const mark = element('span', 'rel-mini-family');
-    mark.style.setProperty('--line-mark', cardLineMarkUrl(FAMILY_EMBLEM[face.family]));
-    head.append(mark);
-    const emblem = element('span', 'rel-mini-emblem');
-    emblem.style.setProperty('--line-mark', face.emblem);
-    frame.append(head, emblem);
-    button.append(frame);
+    // The same card, as a thumbnail: the tab, the window and the name.
+    button.append(greatPersonCardNode(face, { mini: true, inControl: true }).card);
     if (card.revoked) button.append(element('span', 'rel-mini-band', REVOKED_BAND));
     return button;
   }
@@ -769,10 +731,10 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       under.setAttribute('aria-hidden', 'true');
       stack.append(under);
     }
-    const host = element('div', 'offer-options rel-face');
-    host.dataset.face = 'tarot';
+    const host = element('div', 'rel-face');
     // The figure is asked for **here**, for this one card — see `reliquaryStamped`.
-    const card = drawReliquaryCard(withFigure(state, playerId, deck[at]!));
+    const top = withFigure(state, playerId, deck[at]!);
+    const card = drawReliquaryCard(top);
     if (flip) card.classList.add('is-flipping');
     host.append(card);
     stack.append(host);
@@ -790,7 +752,10 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     const count = element(
       'p',
       'rel-count',
-      family === null ? reliquaryCount(at, deck.length) : reliquaryFamilyCount(at, deck.length, family),
+      reliquaryDeskLine(
+        family === null ? reliquaryCount(at, deck.length) : reliquaryFamilyCount(at, deck.length, family),
+        top.face.deed,
+      ),
     );
     count.setAttribute('aria-live', 'polite');
     desk.append(count);

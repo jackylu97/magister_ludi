@@ -662,7 +662,7 @@ function drawn(className: string): HTMLElement {
  * and the words between, and the first two are wrapped in red. The renderer
  * keeps the keywords and the glyph marks; this adds only the ink.
  */
-function rubricate(host: HTMLElement): void {
+export function rubricate(host: HTMLElement): void {
   const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
   const texts: Text[] = [];
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {

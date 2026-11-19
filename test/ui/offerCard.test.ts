@@ -22,7 +22,9 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { offerSpread, phaseAfter } from '../../src/ui/offerCard';
+import { OFFER_REVEAL, revealDelay, revealEndsAt } from '../../src/ui/cardDeal';
+import { OFFER_WORDS, dressedSpread, offerSpread, phaseAfter, takeLabel } from '../../src/ui/offerCard';
+import { OFFER_FACE_SHAPES } from '../../src/ui/offerFaces';
 
 /** The two frames the spread is verified in, and the smaller one is the gate. */
 const STAGES = {
@@ -308,5 +310,122 @@ describe('View map spends nothing', () => {
     // re-derived the hand would make the deal a function of when somebody
     // looked at a screen.
     expect(body('reopen')).toContain('standing.offer');
+  });
+});
+
+/**
+ * **A hand of drawn faces** (Quiet Table, build stage 2): the Order draft's
+ * engraved cards and the great person cards keep their proportion, and the
+ * sheet is as tall as its content. The board's Order sheet is 444 px tall
+ * where the old one was 532 (the user: "too much negative space on the
+ * bottom").
+ */
+describe('a hand of drawn faces fits the stage', () => {
+  for (const [shapeName, shape] of Object.entries(OFFER_FACE_SHAPES)) {
+    for (const count of COUNTS) {
+      for (const [stageName, stage] of Object.entries(STAGES)) {
+        it(`stands inside the window: ${count} ${shapeName} cards at ${stageName}`, () => {
+          const spread = dressedSpread(count, stage, shape);
+          expect(spread.total).toBeLessThanOrEqual(stage.height);
+          expect(spread.sheet).toBeLessThanOrEqual(stage.width - 48);
+          expect(spread.card).toBeLessThanOrEqual(shape.width);
+          // A card keeps its own proportion, whatever the room.
+          expect(spread.height).toBe(Math.round(spread.card * shape.ratio));
+        });
+      }
+    }
+  }
+
+  it('draws the three-card draft and the great person offer at the board’s sizes where there is room', () => {
+    expect(dressedSpread(3, STAGES.large, OFFER_FACE_SHAPES.order).card).toBe(220);
+    expect(dressedSpread(3, STAGES.large, OFFER_FACE_SHAPES.person).card).toBe(214);
+    expect(dressedSpread(3, STAGES.small, OFFER_FACE_SHAPES.person).card).toBe(214);
+    // The Order sheet is about the board's 444 px: the overlay's two pads are
+    // not part of the sheet.
+    const order = dressedSpread(3, STAGES.large, OFFER_FACE_SHAPES.order);
+    expect(order.total - 48).toBeLessThan(470);
+  });
+});
+
+/**
+ * **The reveal** (Quiet Table, build stage 2; the user: "have the cards reveal
+ * themselves one by one"): a hold on the backs, then one card after another,
+ * each turn as long as before. Three cards are all up at 1240 ms.
+ */
+describe('the reveal', () => {
+  it('holds, then turns the cards one by one, at the board’s timings', () => {
+    expect(OFFER_REVEAL).toEqual({ holdMs: 300, staggerMs: 260, turnMs: 420 });
+    expect([0, 1, 2].map(revealDelay)).toEqual([300, 560, 820]);
+    expect(revealEndsAt(3)).toBe(1240);
+    expect(revealEndsAt(0)).toBe(0);
+  });
+
+  const SOURCE = Object.values(
+    import.meta.glob('../../src/ui/offerCard.ts', { eager: true, query: '?raw', import: 'default' }) as Record<
+      string,
+      string
+    >,
+  )[0] as string;
+
+  it('writes each card’s wait and turn from the one table', () => {
+    expect(SOURCE).toContain("button.style.setProperty('--deal-delay', `${revealDelay(index)}ms`);");
+    expect(SOURCE).toContain("button.style.setProperty('--deal-turn', `${OFFER_REVEAL.turnMs}ms`);");
+    expect(SOURCE).toContain('}, revealEndsAt(offer.options.length) + 40);');
+    // The back is the caller's (the draft pile's, the laurel, the crown), or the weave.
+    expect(SOURCE).toContain('button.append((offer.back ?? cardBack)());');
+  });
+
+  it('turns every card up on a press or a key, and lets neither choose a card', () => {
+    // A press: caught on the overlay in the capturing phase, before any card.
+    expect(SOURCE).toContain("container.addEventListener('click', onRevealPress, true);");
+    const press = SOURCE.slice(SOURCE.indexOf('function onRevealPress('));
+    expect(press.slice(0, press.indexOf('\n  }'))).toContain('event.stopPropagation();');
+    // A key: swallowed, and its keyup too, because a button presses on Space's keyup.
+    expect(SOURCE).toContain("if (revealing && event.key !== 'Escape' && !MODIFIER_KEYS.has(event.key)) {");
+    expect(SOURCE).toContain("window.addEventListener('keyup', onKeyUp, true);");
+    expect(SOURCE).toContain("container.removeEventListener('click', onRevealPress, true);");
+  });
+
+  it('shows the cards face up with reduced motion, with no turn at all', () => {
+    expect(SOURCE).toContain('const dealing = (tarot || dressed) && wantsMotion();');
+  });
+});
+
+/**
+ * **A click chooses, and the take button takes** (Quiet Table, build stage 2:
+ * the great person sheet, with Take at the bottom right).
+ */
+describe('choosing and taking', () => {
+  const SOURCE = Object.values(
+    import.meta.glob('../../src/ui/offerCard.ts', { eager: true, query: '?raw', import: 'default' }) as Record<
+      string,
+      string
+    >,
+  )[0] as string;
+
+  it('names the chosen card on the take button', () => {
+    expect(takeLabel(undefined, 'The Town Watch')).toBe('Take The Town Watch');
+    expect(takeLabel('Swear', 'The Imperium')).toBe('Swear The Imperium');
+    expect(OFFER_WORDS.waits).toBe('The offer waits. Nothing is spent.');
+    for (const words of [OFFER_WORDS.waits, OFFER_WORDS.viewMap, OFFER_WORDS.viewMapTitle, OFFER_WORDS.take]) {
+      expect(words).not.toMatch(/\d|—/);
+    }
+  });
+
+  it('chooses on a click and a number key, and takes on Enter and the take button', () => {
+    expect(SOURCE).toContain("button.addEventListener('click', () => chooseCard(index));");
+    expect(SOURCE).toContain('chooseCard(digit - 1);');
+    expect(SOURCE).toContain('take(Number(card.dataset.index));');
+    expect(SOURCE).toContain("takeButton.addEventListener('click', () => take(chosen));");
+    // The first card is chosen when the sheet opens, as the board draws it.
+    expect(SOURCE).toContain('chooseCard(0);');
+    // And a second press of Take while the figure lands takes nothing.
+    expect(SOURCE).toContain('if (choose === null) return;');
+  });
+
+  it('puts the sheet away from the ×, which is View map and never a close', () => {
+    expect(SOURCE).toContain("look.className = 'statecraft-close offer-look';");
+    expect(SOURCE).toContain('look.setAttribute(\'aria-label\', OFFER_WORDS.viewMap);');
+    expect(SOURCE).toContain('viewMap();');
   });
 });

@@ -251,21 +251,25 @@ describe('one rank a rarity', () => {
 });
 
 describe('every surface draws an Order from orderSuitFace', () => {
-  it('deals the draft’s hand as the A3 hand card', () => {
+  it('deals the draft’s hand as the Council’s engraved face (Quiet Table, build stage 2)', () => {
     const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
-    expect(draft).toContain('suit: orderSuitFace(id)');
-    // No chip (batch DS8): the keyword is the first clause of the note.
+    // The user: "basically the same as the great people draft screen, just with
+    // order cards". The face is the Council's hand card, in a control.
+    expect(draft).toContain('dress: () => orderOfferFace(id),');
+    expect(uiSource('offerFaces.ts')).toContain("dressOrderFace(face, id, { where: 'hand', inControl: true, plate: null });");
+    // No chip (batch DS8): the keyword is the face's own label.
     expect(draft).not.toContain('badges:');
-    expect(draft).toContain("note: describeCard(id).map((clause) => clause.text).join(' · ')");
     // The U1 deck face is gone from the draft. A deck's Doctrine wears its
     // deck (batch C3), and a pre-rework Doctrine still reads its thread.
     expect(draft).not.toContain('orderFace(');
     expect(draft).toContain('const face = doctrineFaceOf(id);');
     expect(draft).toContain('? cardFace(doctrineDef(id))');
     expect(draft).not.toContain('cardFace(orderDef(id))');
+    // The A3 hand card is still the offer sheet's for an option that carries a
+    // suit, and the flair gallery shows it.
     const offer = uiSource('offerCard.ts');
     expect(offer).toContain("dressSuitFace(button, suit, 'hand', [");
-    expect(offer).toContain('option.suit !== undefined ? suitHandCard(option, option.suit, index)');
+    expect(offer).toContain('? suitHandCard(option, option.suit, index)');
   });
 
   // The orders screen draws every card as the emblem face since batch SS10

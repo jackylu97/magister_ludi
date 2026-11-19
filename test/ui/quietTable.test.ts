@@ -25,6 +25,7 @@ import { getTileAt } from '../../src/sim/map';
 import { EMPIRE_BUILDING_WORDS } from '../../src/sim/statecraft';
 import { compendiumSections } from '../../src/ui/compendium';
 import { CONCEPT_ENTRIES } from '../../src/ui/compendiumText';
+import { GREAT_PERSON_CARD_WORDS, greatPersonActLine } from '../../src/ui/greatPersonCard';
 import { OWN_REALM_WORDS, describeOwner } from '../../src/ui/tileReadout';
 import { TRADE_TABS } from '../../src/ui/tradeScreen';
 import { found, game } from '../sim/statecraftHelpers';
@@ -161,5 +162,59 @@ describe('empire buildings (the user, 2026-11-19: "lets label these as empire bu
     expect(uiSource('cityPanel.ts')).toContain(
       "name.append(element('span', 'city-buildable-eyebrow', EMPIRE_BUILDING_WORDS.eyebrow));",
     );
+  });
+});
+
+describe('build stage 2: the offers (the user: "yeah proceed")', () => {
+  it('rules the offer sheet’s head the kit’s way, with the × that is View map', () => {
+    const head = rule(CSS, '.offer-head');
+    expect(head).toContain('border-bottom: 1px solid var(--ink);');
+    expect(rule(CSS, '.offer-head::after')).toContain('border-bottom: 1px solid var(--gilt);');
+    // Paper over the map: the boards' lighter veil.
+    expect(rule(CSS, '.offer-overlay')).toContain('background: rgba(29, 26, 32, 0.42);');
+  });
+
+  it('gives the Ledger the kit’s head by hand: each page ruled, and the kit’s ×', () => {
+    expect(rule(CSS, '.ldg-titles')).toContain('border-bottom: 1px solid var(--ink);');
+    expect(rule(CSS, '.ldg-open-title')).toContain('border-bottom: 1px solid var(--ink);');
+    expect(CSS).toContain('.ldg-titles::after,\n.ldg-open-title::after {');
+    // The × keeps only its place: its look is `.statecraft-close`'s.
+    const close = rule(CSS, '#ledger-overlay .ledger-close');
+    expect(close).not.toContain('width:');
+    expect(close).not.toContain('border:');
+    expect(close).not.toContain('background:');
+    expect(HTML).toContain('class="statecraft-close ledger-close"');
+  });
+
+  it('writes the great person card’s words plainly, and says what a person does when spent', () => {
+    for (const words of Object.values(GREAT_PERSON_CARD_WORDS.family)) expect(words).not.toMatch(/\d|—/);
+    expect(GREAT_PERSON_CARD_WORDS.act('Write a Treatise', 'Found an Academy')).toBe(
+      'When spent: Write a Treatise, or Found an Academy.',
+    );
+    const made = game();
+    expect(greatPersonActLine(made.state, 0, 'imhotep')).toContain('When spent: ');
+    // Through the describer, so the work's improvement is a keyword.
+    expect(uiSource('greatPersonCard.ts')).toContain("describeFamilyVerb(familyLayingWork(state, playerId, family), 'work')");
+  });
+
+  it('shows the new card and the backs in the flair gallery', () => {
+    const gallery = Object.values(
+      import.meta.glob('../../src/flairGallery/cardFaces.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+    )[0] as string;
+    expect(gallery).toContain('const { card } = greatPersonCardNode(greatPersonCard(id));');
+    expect(gallery).toContain('card.append(offerBackNode(mark));');
+    expect(gallery).toContain('drawGreatPeople(into);');
+    expect(gallery).toContain('drawOfferBacks(into);');
+  });
+
+  it('lays each offer’s cards on a back from marks the game has', () => {
+    const deal = uiSource('cardDeal.ts');
+    expect(deal).toContain("sun: () => orderFaceMarkUri('sun'),");
+    expect(deal).toContain('laurel: () => renownMarkDataUri(),');
+    expect(deal).toContain("crown: () => suitMarkDataUri('crowns'),");
+    const main = uiSource('main.ts');
+    expect(main).toContain("back: () => offerBackNode('sun'),");
+    expect(main).toContain("back: () => offerBackNode('laurel'),");
+    expect(main).toContain("back: () => offerBackNode('crown'),");
   });
 });

@@ -83,6 +83,18 @@
  * `phaseAfter` is the whole of that distinction, written down as three states so
  * the difference between *hidden* and *gone* is a thing a test can hold still.
  *
+ * The quiet sheet (Quiet Table, build stage 2)
+ * --------------------------------------------
+ * The sheet is the great person board's since stage 2 (the user, on the Order
+ * draft: "Lets make sure this is basically the same as the great people draft
+ * screen, just with order cards"). The head carries the title, the offer's
+ * facts, "The offer waits. Nothing is spent." and the ×, which is View map.
+ * The foot carries the reroll at the left and the pass and the take button at
+ * the right. **A click chooses a card and the take button takes it**; Enter on
+ * a card takes it in one key. The cards are revealed one by one after a short
+ * hold on their backs (`OFFER_REVEAL` in `cardDeal.ts`), and a press or a key
+ * during the reveal turns them all up and does nothing else.
+ *
  * Data is data
  * ------------
  * Every string arrives as a text node, never as markup: a city's name, a unit's
@@ -91,7 +103,7 @@
  */
 
 import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
-import { DEAL_MS, DEAL_STAGGER_MS, cardBack } from './cardDeal';
+import { OFFER_REVEAL, cardBack, revealDelay, revealEndsAt } from './cardDeal';
 import { type GoalCounter, goalCounterNode } from './goalCounter';
 import { type ScalerFigure, scalerFigureNode } from './scalerFigure';
 import { setDescriptorText } from './keywords';
@@ -119,6 +131,9 @@ import { wantsMotion } from './motion';
  */
 const REROLL_MARK = '⟳';
 const PASS_MARK = '⊘';
+
+/** Keys that are only held with another: they do not end the reveal on their own. */
+const MODIFIER_KEYS: ReadonlySet<string> = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock']);
 
 /**
  * **A slip of the star chart, printed on a charter's card** (Scientific batch
@@ -320,6 +335,34 @@ export interface OfferOption {
    * slip rather than in the usual seat.
    */
   slip?: OfferSlip;
+  /**
+   * **A face the caller draws** (Quiet Table, build stage 2). The Order draft
+   * draws the Council's engraved face and the great person offer the great
+   * person card (`offerFaces.ts`); this component still knows nothing about
+   * either. It wraps the face in the card's button, puts a commission's
+   * counter, a Scaler's value, a warning and the stamp's seat where the face
+   * says (`DressedFace.seat`), and draws a charter's slip under the face. The
+   * face draws the name, the rules and the flavour, so `note`, `notes`,
+   * `flavor` and `footnote` are not drawn again.
+   */
+  dress?: () => DressedFace;
+}
+
+/**
+ * A face a caller drew (`OfferOption.dress`): the face itself, the element
+ * the stamp's seat and the small lines go into, and how the face fits its
+ * words once it is on the page.
+ */
+export interface DressedFace {
+  face: HTMLElement;
+  seat: HTMLElement;
+  fit?: () => void;
+}
+
+/** A drawn face's designed width in pixels, and its height over its width. */
+export interface OfferShape {
+  width: number;
+  ratio: number;
 }
 
 /** What the card is asking about. */
@@ -409,7 +452,44 @@ interface Offer {
     note: string;
     /** Greyed, with `note` saying why — on the face and on hover. */
     disabled?: boolean;
+    /**
+     * What the bank holds, said beside the button ("You have 67 faith."), as
+     * the board draws it. A greyed reroll says its `note` there instead.
+     */
+    purse?: string;
   };
+  /**
+   * **The back the cards lie on** while they wait to turn (Quiet Table, build
+   * stage 2): the Order draft's is the draft pile's, the great person offer's
+   * wears the laurel and the government offer's the crown (`offerBackNode`).
+   * Absent, the weave every other hand is dealt on (`cardBack`).
+   */
+  back?: () => HTMLElement;
+  /**
+   * The designed size of a drawn face (`OfferOption.dress`), which the spread
+   * lays out (`dressedSpread`). The callers' table is `OFFER_FACE_SHAPES`.
+   */
+  shape?: OfferShape;
+  /** The verb on the take button: "Take" when absent, "Swear" for a government. */
+  takeVerb?: string;
+}
+
+/**
+ * **The sheet's own words** (Quiet Table, build stage 2). Plain, and no number
+ * in any of them.
+ */
+export const OFFER_WORDS = {
+  /** Beside the ×, in the head: the × keeps the offer. */
+  waits: 'The offer waits. Nothing is spent.',
+  /** The ×'s spoken name. It is View map, never a close. */
+  viewMap: 'View map',
+  viewMapTitle: 'Look at the board. The offer waits and nothing is spent. Esc does the same.',
+  take: 'Take',
+} as const;
+
+/** The take button's words: the verb and the chosen card's name. */
+export function takeLabel(verb: string | undefined, title: string): string {
+  return `${verb ?? OFFER_WORDS.take} ${title}`;
 }
 
 /**
@@ -664,6 +744,58 @@ export function offerSpread(count: number, stage: OfferStage): OfferSpread {
         clamp(SCALE_MIN, Math.min(card / SUIT_DESIGNED, height / SUIT_CONTENT_AT_ONE), 1) * 100,
       ) / 100,
     total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + FOOT,
+  };
+}
+
+/**
+ * **The spread of a hand of drawn faces** (Quiet Table, build stage 2): the
+ * Order draft's engraved cards and the great person cards keep their own
+ * proportion, so the arithmetic is simpler than `offerSpread`'s. A card is its
+ * designed width, or less when the window has no room for the row or for the
+ * card's height; the sheet is as wide as the row and as tall as its content
+ * (the user, on the old sheet: "There feels like too much negative space on
+ * the bottom").
+ *
+ * The lengths below are the stylesheet's (`.offer-sheet` on a dressed hand,
+ * `.offer-head`, `.offer-foot`), as `HEAD` and `FOOT` are for the emblem
+ * faces; `test/ui/offerCard.test.ts` holds the result to the two stages.
+ */
+const DRESSED_PAD_X = 40;
+const DRESSED_GAP = 28;
+/** The sheet's top padding and the quiet head with its rule. */
+const DRESSED_HEAD = 58;
+/** The air between the head and the row, and the room a chosen card rises into. */
+const DRESSED_ROW_TOP = 38;
+/** The foot: its margin, the buttons, the sheet's bottom padding. */
+const DRESSED_FOOT = 66;
+/** Room for a lede or the widening lines, so "fits" is never "just overflows". */
+const DRESSED_SLACK = 24;
+/** The smallest a drawn face is drawn, as a share of its designed width. */
+const DRESSED_MIN_SHARE = 0.6;
+
+export function dressedSpread(
+  count: number,
+  stage: OfferStage,
+  shape: OfferShape,
+): { count: number; sheet: number; card: number; height: number; total: number } {
+  const cards = Math.max(1, Math.round(count));
+  const room = stage.width - OVERLAY_PAD * 2 - DRESSED_PAD_X * 2 - DRESSED_GAP * (cards - 1);
+  const budget =
+    stage.height - OVERLAY_PAD * 2 - DRESSED_HEAD - DRESSED_ROW_TOP - DRESSED_FOOT - DRESSED_SLACK;
+  const card = Math.round(
+    clamp(
+      shape.width * DRESSED_MIN_SHARE,
+      Math.min(shape.width, Math.floor(room / cards), Math.floor(budget / shape.ratio)),
+      shape.width,
+    ),
+  );
+  const height = Math.round(card * shape.ratio);
+  return {
+    count: cards,
+    sheet: Math.min(stage.width - OVERLAY_PAD * 2, cards * card + DRESSED_GAP * (cards - 1) + DRESSED_PAD_X * 2),
+    card,
+    height,
+    total: OVERLAY_PAD * 2 + DRESSED_HEAD + DRESSED_ROW_TOP + height + DRESSED_FOOT,
   };
 }
 
@@ -926,7 +1058,16 @@ export function createOfferCard(
    * the last one that should be allowed to fall off the bottom of a shrunk
    * window.
    */
-  let spreadOf: { count: number } | null = null;
+  let spreadOf: { count: number; shape: OfferShape | null } | null = null;
+  /** The card the take button would take: the first until the player chooses another. */
+  let chosen = 0;
+  /**
+   * True while the cards are turning over (`OFFER_REVEAL`). A press or a key
+   * then turns every card up at once and does nothing else (`finishReveal`).
+   */
+  let revealing = false;
+  /** A key whose keydown ended the reveal: its keyup is swallowed too, so it presses nothing. */
+  let swallowKey: string | null = null;
 
   /**
    * Hands the stylesheet the spread's numbers and the count.
@@ -939,10 +1080,17 @@ export function createOfferCard(
    */
   function applySpread(): void {
     if (!spreadOf) return;
-    const spread = offerSpread(spreadOf.count, {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
+    const stage = { width: window.innerWidth, height: window.innerHeight };
+    if (spreadOf.shape !== null) {
+      // A hand of drawn faces keeps their proportion (`dressedSpread`).
+      const dressed = dressedSpread(spreadOf.count, stage, spreadOf.shape);
+      container.style.setProperty('--offer-count', String(dressed.count));
+      container.style.setProperty('--offer-sheet', `${dressed.sheet}px`);
+      container.style.setProperty('--offer-card', `${dressed.card}px`);
+      container.style.setProperty('--offer-card-height', `${dressed.height}px`);
+      return;
+    }
+    const spread = offerSpread(spreadOf.count, stage);
     container.style.setProperty('--offer-count', String(spread.count));
     container.style.setProperty('--offer-sheet', `${spread.sheet}px`);
     container.style.setProperty('--offer-card', `${spread.card}px`);
@@ -969,8 +1117,56 @@ export function createOfferCard(
     for (const card of container.querySelectorAll<HTMLElement>('.offer-option.is-dealing')) {
       card.classList.remove('is-dealing');
       card.style.removeProperty('--deal-delay');
+      card.style.removeProperty('--deal-turn');
     }
     for (const back of container.querySelectorAll('.card-back')) back.remove();
+  }
+
+  /**
+   * **The reveal is over**: every card up, the buttons awake. Called by the
+   * timer when the last card has turned, and at once by a press or a key during
+   * the reveal (the board: "A click or a key before this turns every card up at
+   * once and chooses nothing").
+   */
+  function finishReveal(): void {
+    if (dealTimer !== null) {
+      window.clearTimeout(dealTimer);
+      dealTimer = null;
+    }
+    settleDeal();
+    revealing = false;
+    container.removeAttribute('data-revealing');
+  }
+
+  /**
+   * A press anywhere on the sheet while the cards turn: they all turn up, and
+   * the press goes no further, so it neither chooses a card nor reaches a
+   * button. Bound in the capturing phase on the overlay, which is before any
+   * card or button sees it.
+   */
+  function onRevealPress(event: Event): void {
+    if (!revealing) return;
+    event.preventDefault();
+    event.stopPropagation();
+    finishReveal();
+  }
+
+  /**
+   * **Chooses a card**, which is not taking it (Quiet Table, build stage 2: the
+   * great person sheet, with the choice confirmed by the take button). The
+   * chosen card rises and wears the gilt ring, and the take button names it.
+   */
+  function chooseCard(index: number): void {
+    const option = standing?.offer.options[index];
+    if (standing === null || option === undefined) return;
+    chosen = index;
+    for (const card of container.querySelectorAll<HTMLElement>('.offer-option')) {
+      const on = card.dataset.index === String(index);
+      card.classList.toggle('is-chosen', on);
+      card.setAttribute('aria-pressed', String(on));
+    }
+    const button = container.querySelector<HTMLButtonElement>('.offer-take');
+    if (button) button.textContent = takeLabel(standing.offer.takeVerb, option.title);
   }
 
   /**
@@ -989,9 +1185,12 @@ export function createOfferCard(
     }
     cancelStamp?.();
     cancelStamp = null;
+    revealing = false;
+    swallowKey = null;
     container.hidden = true;
     container.removeAttribute('data-weight');
     container.removeAttribute('data-settled');
+    container.removeAttribute('data-revealing');
     container.replaceChildren();
     spreadOf = null;
     if (restoreFocus && document.contains(restoreFocus)) restoreFocus.focus();
@@ -1043,6 +1242,9 @@ export function createOfferCard(
    * flourish.
    */
   function take(index: number): void {
+    // Taken already: a second press of the take button while the figure lands
+    // must not take the sheet down early.
+    if (choose === null) return;
     const callback = choose;
     const option = standing?.offer.options[index];
     const stamp = option?.stamp;
@@ -1066,6 +1268,8 @@ export function createOfferCard(
       other.classList.add(other === card ? 'is-taken' : 'is-passed');
       (other as HTMLButtonElement).disabled = true;
     }
+    // The answers sleep while the figure lands: the offer is already spent.
+    for (const answer of container.querySelectorAll<HTMLButtonElement>('.offer-foot button')) answer.disabled = true;
     container.dataset.settled = 'true';
     cancelStamp = playCardStamp(stampNode, stamp);
     exitTimer = window.setTimeout(() => {
@@ -1126,12 +1330,25 @@ export function createOfferCard(
   }
 
   /**
-   * Enter and Space are the buttons' own; the number keys are the shortcut a
-   * player learns on the second offer. Esc is deliberately not bound — see the
-   * module docblock: there is nothing to escape to.
+   * The keyboard (Quiet Table, build stage 2): a number key **chooses** the
+   * card with that ordinal and puts the keyboard on it; Space chooses the card
+   * the keyboard is on (the button's own press); **Enter takes it**, as Enter
+   * took a card before. The take button takes the chosen card. Escape is View
+   * map. During the reveal any other key only turns the cards up.
    */
   function onKeyDown(event: KeyboardEvent): void {
     if (container.hidden) return;
+    // A key during the reveal turns every card up and does nothing else, so it
+    // can never also choose or take one. Its keyup is swallowed too, because a
+    // button presses on Space's keyup. Escape still puts the sheet away, which
+    // chooses nothing either.
+    if (revealing && event.key !== 'Escape' && !MODIFIER_KEYS.has(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      swallowKey = event.key;
+      finishReveal();
+      return;
+    }
     // Escape is "let me look first", never "throw it away" — see the module
     // docblock. Swallowed either way, so it cannot also reach the board's own
     // Escape and close a panel behind the sheet.
@@ -1150,12 +1367,23 @@ export function createOfferCard(
       const button = container.querySelector<HTMLButtonElement>(
         `.offer-option[data-index="${digit - 1}"]`,
       );
-      if (button) {
+      if (button && !button.disabled) {
         event.preventDefault();
         event.stopPropagation();
-        button.click();
+        chooseCard(digit - 1);
+        button.focus();
       }
       return;
+    }
+    // Enter on a card takes that card, in one key.
+    if (event.key === 'Enter') {
+      const card = event.target instanceof HTMLElement ? event.target.closest('.offer-option') : null;
+      if (card instanceof HTMLButtonElement && container.contains(card) && !card.disabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        take(Number(card.dataset.index));
+        return;
+      }
     }
     // Tab is left alone so the options cycle normally; everything else is
     // swallowed so a stray hotkey cannot drive the board behind a modal.
@@ -1175,9 +1403,16 @@ export function createOfferCard(
       window.clearTimeout(exitTimer);
       exitTimer = null;
     }
+    if (dealTimer !== null) {
+      window.clearTimeout(dealTimer);
+      dealTimer = null;
+    }
     cancelStamp?.();
     cancelStamp = null;
+    revealing = false;
+    swallowKey = null;
     container.removeAttribute('data-settled');
+    container.removeAttribute('data-revealing');
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     choose = onChoose;
     pass = onPass ?? null;
@@ -1189,26 +1424,50 @@ export function createOfferCard(
     standing = { offer, onChoose };
     if (onPass !== undefined) standing.onPass = onPass;
     if (onReroll !== undefined) standing.onReroll = onReroll;
+    chosen = 0;
     container.replaceChildren();
 
     const sheet = element('div', 'offer-sheet');
+    /**
+     * **The quiet head** (Quiet Table, build stage 2; the great person board's
+     * head, which the user approved as "great"): the title and the offer's
+     * facts on one line, ruled off by the kit's ink rule over a gilt hairline,
+     * the promise that nothing is spent, and the ×. The × is View map, never a
+     * close: it puts the sheet away and keeps the offer (`viewMap`), and Escape
+     * does the same.
+     */
     const head = element('header', 'offer-head');
-    // The offer's facts ("tier 12 · the culture meter is full") go under its
-    // title, not over it (batch SS1, the Type board).
-    head.append(
+    const titles = element('div', 'offer-head-titles');
+    titles.append(
       element('h2', 'offer-title', offer.title),
       element('p', 'eyebrow offer-eyebrow', offer.eyebrow),
     );
-    if (offer.note !== undefined) head.append(element('p', 'offer-lede', offer.note));
+    head.append(titles, element('p', 'offer-head-hint', OFFER_WORDS.waits));
+    const look = document.createElement('button');
+    look.className = 'statecraft-close offer-look';
+    look.type = 'button';
+    look.textContent = '×';
+    look.setAttribute('aria-label', OFFER_WORDS.viewMap);
+    look.setAttribute('aria-keyshortcuts', 'Escape');
+    look.title = OFFER_WORDS.viewMapTitle;
+    look.addEventListener('click', () => {
+      viewMap();
+    });
+    head.append(look);
+    sheet.append(head);
+    // A note for the choice stands in the foot when the foot's left is free
+    // (the government board's sentence beside its button), and under the head
+    // when the reroll holds that place.
+    const noteAtFoot = offer.note !== undefined && offer.reroll === undefined;
+    if (offer.note !== undefined && !noteAtFoot) sheet.append(element('p', 'offer-lede', offer.note));
     // Why the hand is wider than the table deals, in the register the rest of
     // the interface states a source in: one small line per card that widened it.
     // Silent at the base size, which is the common case and wants no furniture.
     if (offer.widening !== undefined && offer.widening.length > 0) {
       const widening = element('p', 'offer-widening');
       for (const line of offer.widening) widening.append(element('span', 'offer-widening-line', line));
-      head.append(widening);
+      sheet.append(widening);
     }
-    sheet.append(head);
     // The frame is a data attribute on the overlay, so the weight is one CSS
     // rule and this component still knows nothing about what is being offered.
     if (offer.weight === undefined) container.removeAttribute('data-weight');
@@ -1217,8 +1476,8 @@ export function createOfferCard(
     const list = element('div', 'offer-options');
 
     /**
-     * A **tarot** offer is one whose cards carry an emblem — the Statecraft
-     * deck, the great-person roster and the votive deck.
+     * A **tarot** offer is one whose cards carry an emblem — the votive deck,
+     * the Doctrines and the government triple.
      *
      * The distinction is the whole of how the two dressings stay one component.
      * A card with an emblem is a card from a deck: it wears the tall
@@ -1230,59 +1489,102 @@ export function createOfferCard(
      * because a caller that had to remember it is a caller that will forget.
      *
      * **A glyph counts** (the ruling of 2026-09-05 — every draft of every card
-     * class is dealt as a card). A belief's plate is its axis symbol rather than
-     * a drawing, and it is a card from a deck in every way that matters: it is
-     * dealt three at a time, turned over, and taken once. The flag stays read
-     * off the options for its own reason; what widened is what an emblem *is*.
+     * class is dealt as a card), and so does an A3 face and a government's
+     * chair mix, which stands where its emblem stood.
      *
-     * **An A3 face counts too** (batch C1). An Order's option carries a `suit`
-     * rather than an emblem, and it is still a card from a deck: dealt face
-     * down, turned over and taken once. So does a government's chair mix
-     * (batch C2b), which stands where its emblem stood.
+     * **A drawn face is a third dressing** (Quiet Table, build stage 2): the
+     * Order draft's engraved cards and the great person cards keep their own
+     * proportion and are laid out by `dressedSpread`.
      */
-    const tarot = offer.options.some(
-      (option) =>
-        option.emblem !== undefined ||
-        option.emblemGlyph !== undefined ||
-        option.suit !== undefined ||
-        option.chairs !== undefined,
-    );
-    if (tarot) list.dataset.face = 'tarot';
+    const dressed = offer.options.some((option) => option.dress !== undefined);
+    const tarot =
+      !dressed &&
+      offer.options.some(
+        (option) =>
+          option.emblem !== undefined ||
+          option.emblemGlyph !== undefined ||
+          option.suit !== undefined ||
+          option.chairs !== undefined,
+      );
+    if (dressed) {
+      list.dataset.face = 'dressed';
+      sheet.classList.add('is-dressed');
+    } else if (tarot) list.dataset.face = 'tarot';
 
     /**
      * Is this hand *dealt*, or does it simply appear?
      *
-     * A deck's cards are dealt face-down and turned over; an occasion's card is
-     * not a card from a deck at all ("the stones remember" is a thing that
-     * happened) and has no back. `tarot` is already exactly that distinction —
-     * a card with an emblem belongs to a deck — so the back rides the same flag
-     * rather than a second one a caller would have to remember.
+     * A deck's cards are dealt face-down and turned over, one by one
+     * (`OFFER_REVEAL`); an occasion's card is not a card from a deck at all and
+     * has no back.
      *
      * Motion off means the hand is face-up on the first frame: no back is built
      * at all, which is stronger than an animation that finishes instantly,
      * because there is then no moment where the face is hidden behind anything.
      */
-    const dealing = tarot && wantsMotion();
+    const dealing = (tarot || dressed) && wantsMotion();
+    /** The drawn faces' fits, run once the sheet is on the page. */
+    const fits: (() => void)[] = [];
 
     /**
      * One card, dealt: the face, then the deal and the click.
      *
-     * An Order's option carries the A3 face (batch C1) and is built by
-     * `suitHandCard`; every other card wears the emblem face (`emblemCard`).
+     * A drawn face comes from the caller (`dressedCard`), an Order's A3 option
+     * from `suitHandCard`, and every other card wears the emblem face
+     * (`emblemCard`). A click **chooses** the card; the take button and Enter
+     * take it.
      */
     function face(option: OfferOption, index: number): HTMLButtonElement {
       const button =
-        option.suit !== undefined ? suitHandCard(option, option.suit, index) : emblemCard(option, index);
+        option.dress !== undefined
+          ? dressedCard(option, index, option.dress)
+          : option.suit !== undefined
+            ? suitHandCard(option, option.suit, index)
+            : emblemCard(option, index);
+      button.setAttribute('aria-pressed', 'false');
+      button.setAttribute('aria-keyshortcuts', String(index + 1));
       // The back goes on last, so it is the last child and covers the face.
-      // Only a deck's cards get one — see `dealing` — and the delay is the
-      // card's own place in the row, so a hand is turned over rather than
-      // revealed all at once.
+      // Each card waits its own turn: the hold, then one card after another
+      // (`revealDelay`).
       if (dealing) {
         button.classList.add('is-dealing');
-        button.style.setProperty('--deal-delay', `${index * DEAL_STAGGER_MS}ms`);
-        button.append(cardBack());
+        button.style.setProperty('--deal-delay', `${revealDelay(index)}ms`);
+        button.style.setProperty('--deal-turn', `${OFFER_REVEAL.turnMs}ms`);
+        button.append((offer.back ?? cardBack)());
       }
-      button.addEventListener('click', () => take(index));
+      button.addEventListener('click', () => chooseCard(index));
+      return button;
+    }
+
+    /**
+     * **A face the caller drew** (`OfferOption.dress`), in the card's button.
+     * The small lines the face does not draw go in its seat, in the order the
+     * emblem face prints them: a commission's counter, a Scaler's value, a
+     * warning, the stamp's seat. A charter's slip of the star chart hangs
+     * under the face, where its "Opened" stamp lands on the pick.
+     */
+    function dressedCard(option: OfferOption, index: number, dress: () => DressedFace): HTMLButtonElement {
+      const button = document.createElement('button');
+      button.className = 'offer-option is-dressed';
+      button.type = 'button';
+      // The index the reducer is told, as on the other faces.
+      button.dataset.index = String(index);
+      if (option.lineName !== undefined) button.title = option.lineName;
+      const drawn = dress();
+      button.append(drawn.face);
+      if (option.progress !== undefined && option.progress.length > 0) {
+        drawn.seat.append(goalCounterNode(option.progress));
+      }
+      if (option.scaler !== undefined) drawn.seat.append(scalerFigureNode(option.scaler));
+      if (option.warning !== undefined) drawn.seat.append(element('span', 'offer-warning', option.warning));
+      const stampOnSlip = option.slip !== undefined && option.stamp?.opened !== undefined;
+      if (option.stamp !== undefined && !stampIsEmpty(option.stamp) && !stampOnSlip) {
+        drawn.seat.append(cardStampNode());
+      }
+      if (option.slip !== undefined) {
+        button.append(offerSlipNode(option.slip, stampOnSlip ? cardStampNode() : null));
+      }
+      if (drawn.fit !== undefined) fits.push(drawn.fit);
       return button;
     }
 
@@ -1335,71 +1637,42 @@ export function createOfferCard(
       return button;
     }
 
-    // One row, every card in the offer's own order. There was a card lifted out
-    // of it and centred beneath — the draft's deepening — until the levelling
-    // ruling of 2026-09-04 took the second half of that question away.
-    spreadOf = { count: Math.max(1, offer.options.length) };
+    // One row, every card in the offer's own order.
+    spreadOf = {
+      count: Math.max(1, offer.options.length),
+      shape: dressed ? (offer.shape ?? { width: 220, ratio: 1.23 }) : null,
+    };
     applySpread();
     const row = element('div', 'offer-row');
     offer.options.forEach((option, index) => row.append(face(option, index)));
     list.append(row);
     sheet.append(list);
+
     /**
-     * **The answers that are not cards**: ask again, and pass.
+     * **The answers that are not cards**: ask again, pass, and take (Quiet
+     * Table, build stage 2; the board's foot). The reroll stands at the left
+     * with what the bank holds beside it; Pass and Take stand at the right, and
+     * Take is the primary, at the bottom right, naming the chosen card.
      *
-     * They were quiet foot links beside View map until the second playtest (the
-     * user, 2026-09-07, ruling r: *"they should feel like fully featured,
-     * decorated buttons that are meant to be taken sometimes for optimal
-     * play"*). So they are the house's own button — `.btn`, the bordered block
-     * on a hard ink shadow that every button in this game is — a card wide
-     * each: the reroll first, because it is the answer that keeps playing, and
-     * the pass beside it.
-     *
-     * **One centred row, and the same button twice** (the user, 2026-09-08,
-     * item (ccc): *"boring/awkwardly placed … more center-aligned … their
-     * colours also currently feel out of place"*). They stood in opposite
-     * corners in two strong grounds — the pass vermilion, the reroll lapis —
-     * and a sheet whose every other mark is ink on parchment had two poster
-     * colours at the foot of it. Both grounds are withdrawn. What is left is
-     * the language the confirm card's Cancel/Confirm pair and the city panel's
-     * buy tags are already in: one block, one hairline ink border, one hard ink
-     * shadow, the same press. They are told apart by **a mark and a weight** —
-     * the reroll takes the primary's weight (parchment on ink), the pass the
-     * quiet one (ink on parchment) — and each wears the glyph of what it does.
-     *
-     * The primary weight is taken in **ink** rather than in the vermilion
-     * `.btn-primary` carries, and that is the one deliberate difference from
-     * the confirm card: vermilion was the pass's ground on this very sheet an
-     * hour ago, and moving it across to the reroll would say the opposite of
-     * what the player just learned it meant.
-     *
-     * Each carries its **figure on the face**, which is the whole of what makes
-     * them decisions rather than escape hatches: a price that rises with every
-     * use, and a bag that leans rarer with every hand given up. Only the
-     * reroll's is set in tabular mono, because only the reroll's is a number —
-     * the pass's figure is a *promise* ("See rarer cards next draft") and mono
-     * would be typesetting it as a quantity it does not have. The sentence
-     * under each says where its figure came from, centred beneath the row in
-     * the interface's `hint` voice, and it is the button's `title` too — so a
-     * greyed reroll answers "why not" on hover with the reducer's own words.
-     *
-     * They are deliberately **not** keyboard-shortcut controls: the digits pick
-     * cards, and the two irreversible answers on this sheet take a click.
+     * They are still the house's own `.btn` (the user, 2026-09-07, ruling r:
+     * *"fully featured, decorated buttons"*), each with its mark. The reroll's
+     * price is on its face; the fold that made it, and what a pass does and
+     * leans the next hand to, are each button's `title`, so a greyed reroll
+     * still answers "why not" on hover with the reducer's own words.
      */
     function answer(
       spec: { label: string; figure: string; note: string; disabled?: boolean },
       className: string,
       glyph: string,
+      showFigure: boolean,
       onPress: () => void,
-    ): HTMLElement[] {
+    ): HTMLButtonElement {
       const button = document.createElement('button');
       button.className = `btn offer-answer ${className}`;
       button.type = 'button';
       // The mark, set rather than drawn — `textContent` and not `element`'s
-      // writer for the reason the votive card's plate is: a character here
-      // stands for the *answer*, and must not be mistaken for a yield's glyph
-      // and swapped for a drawing of one. Hidden from the reading, because the
-      // label beside it already says the word out loud.
+      // writer, so a character standing for the *answer* is never taken for a
+      // yield's glyph. Hidden from the reading: the label says the word.
       const mark = element('span', 'offer-answer-glyph');
       mark.setAttribute('aria-hidden', 'true');
       mark.textContent = glyph;
@@ -1408,54 +1681,58 @@ export function createOfferCard(
       // The figure goes through the yield printer like every other composed
       // figure that reaches the DOM (`setYieldText`, via `element`), so a faith
       // price wears the drawn mark rather than a glyph the font decides about.
-      button.append(element('span', 'offer-answer-figure', spec.figure));
-      button.title = spec.note;
+      if (showFigure) button.append(element('span', 'offer-answer-figure', spec.figure));
+      button.title = showFigure ? spec.note : `${spec.figure}. ${spec.note}`;
       button.disabled = spec.disabled === true;
       button.addEventListener('click', onPress);
-      // Button and sentence are **siblings**, not a wrapped cell: the row is one
-      // grid two rows deep, so the two buttons share a height and the two
-      // sentences share a baseline however long either one runs. A cell each
-      // would have let one button grow taller than the other, which is the
-      // "same size" half of the ruling given away for a `<div>`.
-      return [button, element('p', 'hint offer-answer-note', spec.note)];
+      return button;
     }
 
-    if (offer.reroll !== undefined || offer.pass !== undefined) {
-      const answers = element('div', 'offer-answers');
-      if (offer.reroll !== undefined) {
-        answers.append(...answer(offer.reroll, 'offer-answer-reroll', REROLL_MARK, () => reroll()));
-      }
-      if (offer.pass !== undefined) {
-        answers.append(...answer(offer.pass, 'offer-answer-pass', PASS_MARK, () => skip()));
-      }
-      sheet.append(answers);
-    }
-
-    // The way back, and it is not an answer: View map keeps the offer and spends
-    // nothing, which is why it keeps its own quiet strip under the two buttons
-    // rather than standing in the row with them. A foot that said "nothing is
-    // spent" over all three would be a foot that lies about two of them.
     const foot = element('div', 'offer-foot');
-    const look = document.createElement('button');
-    look.className = 'offer-look';
-    look.type = 'button';
-    // It says "View map" rather than "Close": there is nothing to close, and a
-    // player who read "Close" would reasonably believe the offer had gone with
-    // it.
-    look.append(element('span', 'offer-look-label', 'View map'));
-    look.append(element('kbd', 'offer-look-key', 'Esc'));
-    look.title = 'Look at the board. The offer waits — nothing is spent.';
-    look.addEventListener('click', () => {
-      viewMap();
-    });
-    foot.append(look);
-    foot.append(element('p', 'offer-foot-note', 'the offer waits — nothing is spent'));
+    const left = element('div', 'offer-foot-left');
+    if (offer.reroll !== undefined) {
+      left.append(answer(offer.reroll, 'offer-answer-reroll', REROLL_MARK, true, () => reroll()));
+      // What the bank holds, or, on a greyed reroll, why it cannot be pressed:
+      // a lack, so it is said in the wanting voice.
+      const greyed = offer.reroll.disabled === true;
+      const line = greyed ? offer.reroll.note : offer.reroll.purse;
+      if (line !== undefined && line !== '') {
+        left.append(element('p', greyed ? 'offer-purse wanting' : 'offer-purse', line));
+      }
+    } else if (noteAtFoot) {
+      left.append(element('p', 'offer-foot-note', offer.note!));
+    }
+    const right = element('div', 'offer-foot-right');
+    if (offer.pass !== undefined) {
+      right.append(answer(offer.pass, 'offer-answer-pass', PASS_MARK, false, () => skip()));
+    }
+    const takeButton = document.createElement('button');
+    takeButton.className = 'btn btn-primary offer-take';
+    takeButton.type = 'button';
+    takeButton.addEventListener('click', () => take(chosen));
+    right.append(takeButton);
+    foot.append(left, right);
     sheet.append(foot);
     container.append(sheet);
     container.hidden = false;
     moveTo('show');
+    // The first card is chosen, as the board draws it, and the take button
+    // names it.
+    chooseCard(0);
 
-    // The backs come off once the last card has landed.
+    // The drawn faces fit their words now that they are on the page, and again
+    // once the card fonts have loaded.
+    for (const fit of fits) fit();
+    if (fits.length > 0) {
+      void document.fonts?.ready.then(() => {
+        if (standing?.offer === offer) for (const fit of fits) fit();
+      });
+    }
+
+    // **The reveal** (`OFFER_REVEAL`): the cards wait face down, then turn over
+    // one by one; the buttons wake when the last is up. A press or a key before
+    // then turns them all up and does nothing else (`onRevealPress`,
+    // `onKeyDown`).
     //
     // A timer rather than an `animationend` listener per card, for one reason:
     // a card whose animation never runs — an element hidden by an ancestor, a
@@ -1465,11 +1742,12 @@ export function createOfferCard(
     // cancelled by `clear`, so a card taken down mid-deal leaves nothing behind
     // to run against a detached tree.
     if (dealing) {
-      const last = offer.options.length - 1;
+      revealing = true;
+      container.dataset.revealing = 'true';
       dealTimer = window.setTimeout(() => {
         dealTimer = null;
-        settleDeal();
-      }, DEAL_MS + last * DEAL_STAGGER_MS + 40);
+        finishReveal();
+      }, revealEndsAt(offer.options.length) + 40);
     }
 
     // The first option takes focus, so the card is answerable from the keyboard
@@ -1478,10 +1756,21 @@ export function createOfferCard(
     list.querySelector<HTMLButtonElement>('.offer-option')?.focus();
   }
 
+  /** The keyup of a key that ended the reveal, swallowed. See `onKeyDown`. */
+  function onKeyUp(event: KeyboardEvent): void {
+    if (swallowKey === null || event.key !== swallowKey) return;
+    swallowKey = null;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   // Capturing, so the card sees a key before the board's own handlers do. That
   // is what makes it modal in practice: `controls.ts` binds on the window too.
   window.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener('keyup', onKeyUp, true);
   window.addEventListener('resize', onResize);
+  // A press during the reveal, caught before any card or button sees it.
+  container.addEventListener('click', onRevealPress, true);
 
   return {
     show,
@@ -1496,7 +1785,9 @@ export function createOfferCard(
     clear,
     dispose(): void {
       window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('resize', onResize);
+      container.removeEventListener('click', onRevealPress, true);
       clear();
     },
   };

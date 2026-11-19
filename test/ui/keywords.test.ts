@@ -336,7 +336,9 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
   ['bonusesTab.ts', 'the Faith sheet’s Bonuses cards'],
   ['ritesTab.ts', 'the Rites tab’s banner, its menus and a row’s rite words'],
   ['unitPanel.ts', 'the rite card and the caravan’s lines'],
-  ['reliquaryScreen.ts', 'the legacy on every card in the pile'],
+  // Quiet Table, build stage 2: the Reliquary and the great person offer draw
+  // one card, which prints the legacy.
+  ['greatPersonCard.ts', 'the legacy on every great person card: the offer and the Reliquary'],
   ['greatPersonCeremony.ts', 'the legacy, as the spend ceremony’s headline'],
 ];
 

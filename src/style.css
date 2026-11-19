@@ -10590,7 +10590,9 @@ p.city-trade-link {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(29, 26, 32, 0.72);
+  /* The sheet is paper over the map (Quiet Table, build stage 2; the boards'
+     veil): the board shows through, and the paper is what is read. */
+  background: rgba(29, 26, 32, 0.42);
   animation: offer-fade 160ms ease-out both;
 }
 
@@ -10624,7 +10626,7 @@ p.city-trade-link {
   /* Tightened in the any-size pass: every point of vertical padding here is a
      point the cards do not get, and a five-card hand with an upgrade beneath it
      needs all of them. `offerSpread` reserves exactly these numbers. */
-  padding: 18px 20px 20px;
+  padding: 14px 20px 14px;
   border: 1px solid var(--edge);
   border-radius: var(--paper-radius);
   background: var(--parchment);
@@ -10632,217 +10634,174 @@ p.city-trade-link {
   animation: sheet-settle 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.offer-head {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
-  border-bottom: 1px solid var(--rule);
-  text-align: center;
+/* A hand of drawn faces (the Order draft, the great person offer): the board's
+   wider margins. `DRESSED_PAD_X` in `offerCard.ts`. */
+.offer-sheet.is-dressed {
+  padding: 14px 40px 14px;
 }
 
-/* The foot: the one control on this sheet that is not a card.
+/* **The quiet head** (Quiet Table, build stage 2; the kit's head, frame a10):
+   the title and the offer's facts on one line, the promise that nothing is
+   spent, and the × that is View map. Ruled off with ink over a gilt hairline,
+   as every parchment sheet's head is (`.statecraft-head`). */
+.offer-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--ink);
+  text-align: left;
+}
 
-   Under the hand, quiet, and with the sentence beside it that stops it reading
-   as a dismiss — "the offer waits — nothing is spent" is the whole difference
-   between this and a close button, and it is worth a line of type. Its height is
-   `FOOT` in `offerCard.ts`; the two must move together or the spread thinks it
-   fits and does not. */
+.offer-head::after {
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  border-bottom: 1px solid var(--gilt);
+  pointer-events: none;
+  content: '';
+}
+
+.offer-head-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  min-width: 0;
+}
+
+.offer-head-hint {
+  flex: none;
+  margin: 0 0 0 auto;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* The ×: the kit's control (`.statecraft-close`). It is View map. */
+.offer-head .offer-look {
+  flex: none;
+}
+
+/* **The foot** (Quiet Table, build stage 2): the reroll at the left, with what
+   the bank holds beside it, or the offer's note when there is no reroll; Pass
+   and Take at the right, Take the primary at the bottom right. The strip is
+   `DRESSED_FOOT` tall in `offerCard.ts`, and inside `FOOT` for the emblem
+   faces. */
 .offer-foot {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
 }
 
-.offer-look {
+.offer-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.offer-foot-right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* What the bank holds, beside the reroll. */
+.offer-purse {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* The offer's note, in the foot's left when there is no reroll (the
+   government board's sentence beside its button). */
+.offer-foot-note {
+  max-width: 560px;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* The foot's buttons are as wide as their words (`.btn` grows by default). */
+.offer-foot .btn {
+  flex: none;
+}
+
+/* The buttons sleep while the cards turn: a press then only turns them up. */
+.offer-overlay[data-revealing] .offer-foot .btn {
+  opacity: 0.45;
+}
+
+/* The take button names the chosen card, and a long name is cut, not wrapped. */
+.offer-take {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* **The answers that are not cards**: ask again and pass (ruling r, the user,
+   2026-09-07: "fully featured, decorated buttons that are *meant* to be taken
+   sometimes for optimal play"). The house's own `.btn`, each with its mark:
+   the `⟳` of a thing that comes round again and the `⊘` of none of these. The
+   reroll carries its price on its face; the pass says what it does on hover. */
+.offer-answer {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px 4px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--face-ui);
-  font-size: var(--size-note);
-  cursor: pointer;
+  gap: 7px;
+  padding: 6px 12px 7px;
 }
 
-.offer-look:hover,
-.offer-look:focus-visible {
-  background: var(--ink);
-  color: var(--parchment);
-}
-
-.offer-look-key {
-  font-family: var(--face-num);
-  font-size: var(--size-note);
-  letter-spacing: 0.06em;
-  opacity: 0.75;
-}
-
-.offer-foot-note {
-  margin: 0;
-  font-family: var(--face-num);
-  font-size: var(--size-label);
-  letter-spacing: 0.06em;
-  color: var(--ink-faint);
-}
-
-/* The two answers that are not cards: ask again, and pass (ruled 2026-09-07 —
-   "fully featured, decorated buttons that are *meant* to be taken sometimes for
-   optimal play"). They were foot links beside View map and read as ways out of
-   the sheet; they are the house's own `.btn` now — same block, same hairline ink
-   border, same hard ink shadow, same press — a card wide each under the hand.
-
-   **One centred row, and nothing coloured** (the user, 2026-09-08, item (ccc):
-   "boring/awkwardly placed … more center-aligned … their colours also currently
-   feel out of place"). They sat in opposite corners in two poster grounds — the
-   pass vermilion, the reroll lapis — on a sheet whose every other mark is ink on
-   parchment, and the corners made a pair of answers read as two unrelated
-   controls. Both grounds are withdrawn (the tokens keep their other uses). What
-   is left is what the confirm card's Cancel/Confirm pair and the city panel's
-   buy tags are already in, checked against both: `.btn`'s block, `--border-thin`
-   of ink, `--shadow-sm`, `--radius-sm`, the press that drops the button onto the
-   page. The two are told apart the way that family tells any pair apart — by
-   **weight and a mark**: the reroll takes the primary's weight (parchment on
-   ink) and the `⟳` of a thing that comes round again, the pass the quiet one
-   (ink on parchment) and the `⊘` of none-of-these.
-
-   The primary weight is taken in **ink** and not in `.btn-primary`'s vermilion,
-   which is the one deliberate difference from the confirm card: vermilion was
-   the *pass's* ground on this sheet until this pass, and moving it onto the
-   reroll would say the opposite of what a player had just learned it meant.
-
-   `--offer-card` is the width `offerSpread` dealt the cards at, so an answer is
-   exactly a card wide however wide the hand is; the strip's whole height is
-   `FOOT` in `offerCard.ts`, and the two must move together or the spread thinks
-   it fits and does not. */
-.offer-answers {
-  /* A grid two rows deep rather than a row of cells: the buttons share row one
-     and the sentences share row two, so the two answers are the *same size*
-     whatever either one has to say — which a cell each cannot promise, and
-     which is half of what the ruling asked for. `display: contents` would be
-     the other way; the button and its sentence are plain siblings instead
-     (`answer` in `offerCard.ts`), which is one element less to explain. */
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, var(--offer-card, 240px));
-  grid-template-rows: auto auto;
-  /* Centred, both of them, and centred alone when there is only one: an answer
-     is an answer to the hand above it and belongs under the middle of it. */
-  justify-content: center;
-  align-items: stretch;
-  /* The hand's own gutter (`GAP` in `offerCard.ts`), so the two answers stand on
-     the same rhythm the cards above them do. */
-  column-gap: 12px;
-  row-gap: 5px;
-  margin-top: 12px;
-  text-align: center;
-}
-
-/* The face: the mark in a column of its own, and beside it what this answer
-   does over what it is worth. The mark spans both lines because it stands for
-   the whole answer rather than for either line of it — and the label and the
-   figure name their column outright, so the reliquary's call (which wears this
-   same face with no mark of its own) still stacks its two lines rather than
-   laying them side by side. */
-.offer-answer {
-  display: grid;
-  grid-template-columns: auto minmax(0, auto);
-  justify-content: center;
-  align-items: center;
-  gap: 0;
-  padding: 8px 12px 9px;
-}
-
-/* The air beside the mark is the mark's own margin rather than the grid's
-   `column-gap`: a face with no mark to draw (the reliquary's call wears this
-   one) would otherwise keep the gap of the column it does not fill and sit
-   half of it off centre. */
 .offer-answer-glyph {
-  grid-row: 1 / span 2;
-  grid-column: 1;
-  margin-right: 8px;
   font-family: var(--face-ui);
-  font-size: 19px;
+  font-size: 15px;
   line-height: 1;
   opacity: 0.85;
 }
 
 .offer-answer-label {
-  grid-column: 2;
   font-family: var(--face-ui);
   font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
-/* Tabular mono, because it is a number and every number in this interface is.
-   Only the reroll's is — see the pass's rule below. */
+/* Tabular mono, because it is a number and every number in this interface is. */
 .offer-answer-figure {
-  grid-column: 2;
   font-family: var(--face-num);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  opacity: 0.85;
 }
 
-/* The reroll carries the weight: parchment on ink, which is this interface's
-   strongest neutral emphasis (`.city-buy-tiles.is-active`, `.offer-look:hover`)
-   and the confirm card's primary in the sheet's own colour. */
-.offer-answer-reroll {
-  background: var(--ink);
-  color: var(--parchment);
+.offer-answer-figure::before {
+  margin-right: 6px;
+  content: '·';
+  opacity: 0.6;
 }
 
-/* And the pass is the quiet one — `.btn`'s own parchment and ink, unchanged,
-   named here so the pair is legible in one place rather than by absence. */
-.offer-answer-pass {
-  background: var(--parchment);
-  color: var(--ink);
-}
-
-/* The pass's figure is a **promise, not a price** ("See rarer cards next
-   draft"): mono would typeset it as a quantity it does not have, so it takes
-   the label's own face, a step down and a shade back. */
-.offer-answer-pass .offer-answer-figure {
-  font-family: var(--face-ui);
-  font-size: var(--size-note);
-  letter-spacing: normal;
-  opacity: 0.9;
-}
-
-/* The sentence that made the figure, centred under its own button in the
-   interface's `hint` voice (`.hint` carries the face and the ink). It takes the
-   button's own column, so it is a card wide too and never sets the width of
-   anything. Pinned to the top of its row, so a short sentence sits under its
-   button rather than floating in the middle of the taller one's space. */
-.offer-answer-note {
-  align-self: start;
-  font-size: var(--size-note);
-  line-height: 1.4;
-}
-
-/* **The face is kept and the ink is greyed** (ruling r's own words). The
-   ordinary `.btn:disabled` swaps the ground for the table colour, which would
-   take the button off the sheet entirely — and the whole point of a reroll
-   nobody can afford is that its rising price stays legible. It outranks the
-   reroll's ink ground on specificity, which is what keeps a greyed reroll from
-   being a black block. The sentence that says why is the button's `title`, so
-   it answers on hover. */
+/* **The face is kept and the ink is greyed** (ruling r's own words): a reroll
+   nobody can afford keeps its price legible, and the sentence beside it says
+   why. */
 .offer-answer:disabled {
   background: var(--parchment);
   color: var(--ink-line);
   border-color: var(--ink-line);
   box-shadow: none;
   cursor: default;
-}
-
-.offer-answer:disabled .offer-answer-figure {
-  opacity: 1;
 }
 
 /* The way back, pinned above End Turn while an offer is being held off-screen.
@@ -10899,6 +10858,8 @@ p.city-trade-link {
 .offer-options {
   display: grid;
   gap: 12px;
+  /* Room under the head (or the lede) for a chosen card to rise into. */
+  margin-top: 18px;
 }
 
 /* The row is exactly as wide as the hand, centred: `--offer-count` tracks, each
@@ -10918,20 +10879,117 @@ p.city-trade-link {
 }
 
 /* Under the sheet's own width there is no spread to hold: the cards stack, and
-   the count property stops applying. The two answers stack with them — two
-   card-wide columns is exactly the width there is no longer room for — and the
-   grid's second row goes on holding each button to its own sentence. */
+   the count property stops applying. */
 @media (max-width: 720px) {
   .offer-row {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .offer-answers {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    grid-template-rows: none;
-    grid-template-columns: minmax(0, var(--offer-card, 240px));
-  }
+/* --- a hand of drawn faces (Quiet Table, build stage 2) ----------------------
+   The Order draft's engraved cards and the great person cards, at the width
+   `dressedSpread` measured (`--offer-card`), the board's gap between them, and
+   room above the row for a chosen card to rise into. The card's button wears
+   nothing of its own: the face is the card. */
+.offer-options[data-face='dressed'] {
+  margin-top: 26px;
+}
+
+.offer-options[data-face='dressed'] .offer-row {
+  gap: 28px;
+}
+
+.offer-options[data-face='dressed'] .offer-option {
+  --order-face-width: var(--offer-card, 220px);
+  --gp-card-width: var(--offer-card, 214px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+  transition: transform 160ms ease;
+}
+
+.offer-options[data-face='dressed'] .offer-option:hover {
+  transform: translateY(-3px);
+  box-shadow: none;
+  background: none;
+}
+
+.offer-options[data-face='dressed'] .offer-option:active {
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.offer-options[data-face='dressed'] .offer-option:focus-visible {
+  outline: none;
+}
+
+.offer-options[data-face='dressed'] .offer-option:focus-visible > :first-child {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* **The chosen card** (the boards): it rises, and wears a gilt ring. */
+.offer-options[data-face='dressed'] .offer-option.is-chosen {
+  transform: translateY(-8px);
+}
+
+.offer-options[data-face='dressed'] .offer-option.is-chosen > :first-child {
+  outline: 3px solid var(--gilt-bright, #e8c35e);
+  outline-offset: 1px;
+}
+
+/* The back covers the face and turns with it. */
+.offer-options[data-face='dressed'] .offer-option > .card-back {
+  border-radius: 6px;
+}
+
+/* The chosen card on the other faces: the same rise and the same ring. */
+.offer-options:not([data-face='dressed']) .offer-option.is-chosen {
+  transform: translateY(-6px);
+  box-shadow:
+    5px 5px 0 var(--ink),
+    0 0 0 3px var(--gilt-bright, #e8c35e);
+}
+
+/* The stamp's seat at the foot of an Order face in the draft: a rule, then the
+   flourish until the pick, as the board draws it. */
+.order-face .offer-face-seat {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  width: calc(100% - 1.6em);
+  margin: 0.3em 0 0.45em;
+  padding-top: 0.3em;
+  border-top: calc(var(--of-u) * 1.4) solid var(--of-ink-text);
+  font-family: var(--face-ui);
+}
+
+.order-face .offer-face-seat:empty {
+  display: none;
+}
+
+.order-face .offer-face-seat .card-stamp {
+  margin: 0;
+}
+
+/* The bottom corner ornaments step aside for the seat. */
+.order-face[data-seat] .of-orn.is-c,
+.order-face[data-seat] .of-orn.is-d {
+  display: none;
+}
+
+/* A charter's slip hangs under its card, the card's width. */
+.offer-options[data-face='dressed'] .offer-slip {
+  width: var(--offer-card, 220px);
 }
 
 .offer-option {
@@ -13438,7 +13496,7 @@ p.city-trade-link {
 /* The offer card's optional lede: one sentence under the heading, for a choice
    that needs saying out loud before the options are read. */
 .offer-lede {
-  margin: 6px 0 0;
+  margin: 12px 0 0;
   font-family: var(--face-ui);
   font-size: var(--size-label);
   color: var(--ink-soft);
@@ -15310,6 +15368,33 @@ button.faith-rite-chip:hover:not(.is-on) {
   content: '';
 }
 
+/* **An offer's back in the draft pile's colours** (Quiet Table, build stage 2,
+   `offerBackNode` in `cardDeal.ts`): the deep violet with gilt dots, a gilt
+   edge, an inner gilt rule, and one mark in gilt. The Order draft's mark is the
+   pile's sun, the great person offer's the laurel, the government's the crown. */
+.card-back.offer-back {
+  border: 2px solid var(--deep-gilt);
+  background:
+    radial-gradient(circle, var(--gilt) 0 1px, transparent 1.4px) 0 0 / 8px 8px,
+    #3a1f52;
+}
+
+.card-back.offer-back::before {
+  inset: 5px;
+  border-color: var(--gilt);
+  opacity: 0.7;
+}
+
+.card-back.offer-back::after {
+  width: 38%;
+  height: auto;
+  aspect-ratio: 1;
+  opacity: 1;
+  background-color: var(--gilt-bright, #e8c35e);
+  -webkit-mask-image: var(--offer-back-mark);
+  mask-image: var(--offer-back-mark);
+}
+
 /* The back overrides the tarot face's blanket rule for its own children. */
 .offer-options[data-face='tarot'] .offer-option > .card-back {
   position: absolute;
@@ -15334,7 +15419,9 @@ button.faith-rite-chip:hover:not(.is-on) {
    did when the rules named `.offer-option`. */
 .is-dealing {
   transform-style: preserve-3d;
-  animation: card-deal 420ms ease-out var(--deal-delay, 0ms) both;
+  /* The turn's length is `DEAL_MS` (`cardDeal.ts`), written on the card as
+     `--deal-turn`, so the script and the stylesheet cannot disagree. */
+  animation: card-deal var(--deal-turn, 420ms) ease-out var(--deal-delay, 0ms) both;
 }
 
 .is-dealing > *:not(.card-back) {
@@ -18954,9 +19041,10 @@ body.compendium-page {
    under its own id. Nothing on it scrolls at 1440 by 900; on a shorter window
    the card shrinks with the window, and the columns scroll in themselves. */
 #reliquary-overlay {
-  /* The card on top: the board's 345 by 540, smaller on a short window. */
+  /* The card on top: up to 540 px tall, smaller on a short window. */
   --rel-card-h: clamp(300px, calc(100vh - 360px), 540px);
-  --rel-card-w: calc(var(--rel-card-h) * 0.639);
+  /* The great person card's own shape, 214 by 392 (Quiet Table, build stage 2). */
+  --rel-card-w: calc(var(--rel-card-h) * 0.546);
 }
 
 #reliquary-overlay .reliquary-sheet {
@@ -19156,19 +19244,23 @@ body.compendium-page {
   height: 204px;
 }
 
+/* A small card in the fan: the great person card as a thumbnail (Quiet Table,
+   build stage 2), its tab, its window and its name. */
 .rel-mini {
+  --gp-card-width: 84px;
   position: absolute;
-  width: 104px;
-  height: 160px;
-  padding: 5px;
-  border: 1.5px solid var(--ink);
+  width: 84px;
+  padding: 0;
+  border: 0;
   border-radius: 7px;
-  background: var(--parchment);
-  color: var(--line-ink, var(--ink));
-  font-family: var(--face-ui);
+  background: none;
   cursor: pointer;
   transform-origin: 50% 100%;
   transition: translate 120ms ease-out;
+}
+
+.rel-mini > .gp-card {
+  box-shadow: 0.3em 0.3em 0 var(--ink);
 }
 
 .rel-mini:hover,
@@ -19180,57 +19272,6 @@ body.compendium-page {
 .rel-mini:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
-}
-
-.rel-mini-frame {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  box-sizing: border-box;
-  height: 100%;
-  padding: 7px 6px;
-  border: 1.2px solid currentColor;
-  border-radius: 4px;
-}
-
-.rel-mini-head {
-  display: flex;
-  align-self: stretch;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  min-width: 0;
-}
-
-.rel-mini-name {
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--face-name);
-  font-variation-settings: 'opsz' 72;
-  font-size: var(--size-label);
-  font-weight: 600;
-  line-height: 1.1;
-  color: var(--ink);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.rel-mini-family {
-  flex: none;
-  width: 10px;
-  height: 10px;
-  background-color: currentColor;
-  -webkit-mask: var(--line-mark) center / contain no-repeat;
-  mask: var(--line-mark) center / contain no-repeat;
-}
-
-.rel-mini-emblem {
-  flex: 1;
-  width: 40px;
-  background-color: currentColor;
-  -webkit-mask: var(--line-mark) center / contain no-repeat;
-  mask: var(--line-mark) center / contain no-repeat;
 }
 
 .rel-mini.is-revoked {
@@ -19330,22 +19371,14 @@ body.compendium-page {
 .rel-under-3 { --edge-n: 3; }
 .rel-under-4 { --edge-n: 4; }
 
+/* The card on the desk: the great person card the offer deals, at the pile's
+   size (Quiet Table, build stage 2). */
 .rel-face {
+  --gp-card-width: var(--rel-card-w);
   position: absolute;
   top: 24px;
   left: 0;
   width: var(--rel-card-w);
-  /* The offer card's own face, made larger: the scale every size on it reads.
-     A shorter window has a smaller card, and the face goes back to its own
-     size (below). */
-  --offer-scale: 1.3;
-  --offer-card-height: var(--rel-card-h);
-}
-
-@media (max-height: 860px) {
-  .rel-face {
-    --offer-scale: 1;
-  }
 }
 
 /* A card **at rest**. The face is the offer card's own (`offer-option` inside
@@ -19358,22 +19391,10 @@ body.compendium-page {
   cursor: default;
 }
 
-.rel-card:hover,
 .gp-ceremony-card:hover {
   transform: none;
   box-shadow: var(--shadow-sm);
   background: var(--parchment);
-}
-
-/* The card on top of the pile is a played thing: the board's hard shadow. */
-.rel-face[data-face='tarot'] .rel-card,
-.rel-face[data-face='tarot'] .rel-card:hover {
-  box-sizing: border-box;
-  height: var(--rel-card-h);
-  min-height: 0;
-  border-width: 1.5px;
-  border-radius: 11.5px;
-  box-shadow: 4px 4px 0 var(--ink);
 }
 
 /* The eyebrow and the tier mark on one line — the mark is the third channel the
@@ -19405,18 +19426,15 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
-.rel-face .rel-deed {
-  font-family: var(--face-ui);
-  font-size: calc(0.72rem * var(--offer-scale, 1));
-  letter-spacing: 0;
-}
-
 .rel-count {
+  /* The count, then what the charge was spent on (the board's line). */
+  max-width: 36rem;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: var(--size-body);
+  font-size: var(--size-label);
   font-variant-numeric: lining-nums tabular-nums;
-  color: var(--ink);
+  text-align: center;
+  color: var(--ink-soft);
 }
 
 /* An empty deck: a dashed outline holds the deck's place (the board). */
@@ -20034,10 +20052,28 @@ body.compendium-page {
   background: linear-gradient(270deg, var(--parchment) 0%, var(--parchment) 88%, #ebe3cd 100%);
 }
 
+/* **The Ledger's head, by hand** (Quiet Table, build stage 2): the book has no
+   `.statecraft-head`, so the kit's head did not reach it in stage 1. Each
+   page's head is ruled off the kit's way, ink over a gilt hairline, so the
+   spread reads as one sheet with the others. */
 .ldg-titles {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.ldg-titles::after,
+.ldg-open-title::after {
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  border-bottom: 1px solid var(--gilt);
+  pointer-events: none;
+  content: '';
 }
 
 #ledger-overlay .ldg-title {
@@ -20100,11 +20136,13 @@ body.compendium-page {
 }
 
 .ldg-open-title {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 0;
-  padding: 10px 50px 0 0;
+  padding: 10px 50px 10px 0;
+  border-bottom: 1px solid var(--ink);
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 72;
   font-size: 24px;
@@ -20118,16 +20156,13 @@ body.compendium-page {
 }
 
 /* The × stands at the top of the right page, and scrolls with the book: kept
-   in place, it covered the figures that passed under it. */
+   in place, it covered the figures that passed under it. It is the kit's ×
+   (`.statecraft-close`, Quiet Table): only its place is the Ledger's own. */
 #ledger-overlay .ledger-close {
   position: absolute;
   z-index: 2;
-  top: 30px;
+  top: 38px;
   right: 40px;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--edge);
-  background: var(--parchment);
 }
 
 /* The aggregate at the head of the left page: your cards, in statecraft's ink. */

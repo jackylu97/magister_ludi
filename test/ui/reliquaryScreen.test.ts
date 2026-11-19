@@ -286,11 +286,11 @@ describe('the legacy is the headline', () => {
     // since the user's ruling of 2026-09-09 it names them in the family's own
     // words, off the same data row the unit sheet's two buttons read.
     expect(deedFootnote('scholar')).toBe(
-      'Spent as a scholar — Write a Treatise, or Found an Academy.',
+      'Spent as a scholar: Write a Treatise, or Found an Academy.',
     );
-    expect(deedFootnote('general')).toBe('Spent as a general — Rally the Army, or Raise a Citadel.');
+    expect(deedFootnote('general')).toBe('Spent as a general: Rally the Army, or Raise a Citadel.');
     // The Platonic Academy (batch DT16): the work is the Academy, and the act stays the family's.
-    expect(deedFootnote('general', 'scholar')).toBe('Spent as a general — Rally the Army, or Found an Academy.');
+    expect(deedFootnote('general', 'scholar')).toBe('Spent as a general: Rally the Army, or Found an Academy.');
     // Never the mark: this file composes clauses and prints none, so it takes
     // the unmarked reading rather than reaching for a printer.
     for (const family of Object.keys(FAMILY_EMBLEM) as (keyof typeof FAMILY_EMBLEM)[]) {
@@ -388,19 +388,24 @@ describe('the Reliquary screen', () => {
   /** The frame the eight parchment sheets share. See `src/ui/modalShell.ts`. */
   const SHELL = source('modalShell.ts');
 
-  it('draws the offer card’s own tarot face, so a card kept is the card dealt', () => {
-    expect(SCREEN).toContain("element('div', 'offer-options rel-face')");
-    expect(SCREEN).toContain("host.dataset.face = 'tarot'");
-    expect(SCREEN).toContain("'offer-option rel-card'");
-    expect(SCREEN).toContain("element('span', 'offer-emblem')");
-    expect(SCREEN).toContain("element('span', 'offer-option-title', face.name)");
+  it('draws the great person card the offer deals, so a card kept is the card dealt', () => {
+    // Quiet Table, build stage 2 (the third pass's frame c4: "Great").
+    expect(SCREEN).toContain("element('div', 'rel-face')");
+    expect(SCREEN).toContain('const { card: article, seat } = greatPersonCardNode(face);');
+    expect(SCREEN).toContain("article.classList.add('rel-card');");
+    // The fan's small cards are the same card, as thumbnails.
+    expect(SCREEN).toContain('greatPersonCardNode(face, { mini: true, inControl: true }).card');
+    // And the offer draws it through the same builder.
+    expect(source('offerFaces.ts')).toContain('dressGreatPersonCard(face, greatPersonCard(id), {');
   });
 
   it('prints every clause through the descriptor renderer — never raw', () => {
-    // The ruling's sweep: a raw `[[` on any surface is a bug, and the only way
-    // this screen can produce one is by writing `clause.text` somewhere else.
-    expect(SCREEN).toContain('setDescriptorText(line, clause.text, { linked })');
-    expect(SCREEN).toContain('keywordsAllowedIn(article)');
+    // The ruling's sweep: a raw `[[` on any surface is a bug. The card prints
+    // the legacy (`greatPersonCard.ts`), and links its keywords where it is not
+    // inside a control.
+    const card = source('greatPersonCard.ts');
+    expect(card).toContain('setDescriptorText(line, clause.text, { linked });');
+    expect(card).toContain('const linked = options.inControl === true ? false : keywordsAllowedIn(host);');
     expect(SCREEN).not.toMatch(/textContent = clause\.text/);
     // And nothing this screen writes contains a mark of its own.
     expect(RELIQUARY_EMPTY).not.toContain('[[');
@@ -417,7 +422,8 @@ describe('the Reliquary screen', () => {
     // paying a ghost-diff per legacy on every arrow press again.
     expect(SCREEN).toContain('face: greatPersonCard(record.id)');
     expect(SCREEN).not.toContain('greatPersonFace(');
-    expect(SCREEN).toContain('drawReliquaryCard(withFigure(state, playerId, deck[at]!))');
+    expect(SCREEN).toContain('const top = withFigure(state, playerId, deck[at]!);');
+    expect(SCREEN).toContain('const card = drawReliquaryCard(top);');
     expect(SCREEN).toContain('stampedState !== state || stampedAt !== revision || stampedSeat !== playerId');
     expect(SCREEN).toContain('getRevision?.()');
     // And the game is where the revision comes from — `state.revision` since
@@ -447,7 +453,9 @@ describe('the Reliquary screen', () => {
       branch.indexOf('landCardStamp('),
     );
     // And the band and the grey are both drawn off the record's own mark.
-    expect(SCREEN).toContain("card.revoked ? 'offer-option rel-card is-revoked' : 'offer-option rel-card'");
+    expect(SCREEN).toContain("if (card.revoked) article.classList.add('is-revoked');");
+    // The struck flourish and the landed figure both sit in the card's seat.
+    expect(SCREEN).toContain('seat.append(stamp);');
     expect(SCREEN).toContain("element('span', 'rel-revoked-band', REVOKED_BAND)");
     expect(STYLE).toContain('.rel-card.is-revoked');
     expect(STYLE).toContain('.rel-revoked-band');
@@ -538,9 +546,9 @@ describe('the Reliquary screen', () => {
   });
 
   it('does not dress a standing card as one that can be picked', () => {
-    // The face is a `<button>`'s on the offer sheet; here it is an `<article>`
-    // and it must not wear the pointer or rise to a hover.
-    expect(SCREEN).toContain("document.createElement('article')");
+    // The face sits in a `<button>` on the offer sheet; here it is an
+    // `<article>` and it must not wear the pointer.
+    expect(source('greatPersonCard.ts')).toContain("const card = element('article');");
     expect(STYLE).toMatch(/\.rel-card,\n\.gp-ceremony-card \{\s*cursor: default;/);
   });
 });

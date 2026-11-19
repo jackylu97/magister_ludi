@@ -103,6 +103,9 @@ describe('every statecraft offer carries a stamp', () => {
     expect(card).toContain('notes: describeCard(id).map');
     expect(card).toContain('flavor: def.epigram');
     expect(card).toContain('footnote: def.kernel');
+    // Drawn as the great person card since Quiet Table's build stage 2, whose
+    // seat the offer leaves empty.
+    expect(card).toContain('dress: () => greatPersonOfferFace(game.state, seat, id),');
   });
 
   /**
@@ -205,25 +208,28 @@ describe('the reroll button', () => {
   });
 
   /**
-   * **The two answers are decorated buttons** (the user, 2026-09-07, ruling r —
-   * *"meant to be taken sometimes for optimal play"*), not the quiet foot links
-   * they were. The house's own `.btn` block, a card wide each, with the figure on
-   * the face in tabular mono and the sentence that made it beneath.
+   * **The answers are decorated buttons** (the user, 2026-09-07, ruling r —
+   * *"meant to be taken sometimes for optimal play"*), and since Quiet Table's
+   * build stage 2 they stand in the sheet's foot as the board draws them: the
+   * reroll at the left with its price on its face, Pass and Take at the right.
    */
-  it('draws the two answers as the house’s own button, a card wide', () => {
-    expect(OFFER_CARD).toContain('offer.reroll !== undefined || offer.pass !== undefined');
+  it('draws the answers as the house’s own button, in the board’s foot', () => {
     expect(OFFER_CARD).toContain("button.className = `btn offer-answer ${className}`");
     expect(OFFER_CARD).toContain('button.disabled = spec.disabled === true');
-    // The figure is a real line on the face, and it goes through the yield
-    // printer like every composed figure that reaches the DOM (`element`).
-    expect(OFFER_CARD).toContain("element('span', 'offer-answer-figure', spec.figure)");
-    // The refusal answers on hover, which is the whole of the greyed state.
-    expect(OFFER_CARD).toContain('button.title = spec.note');
-    // A card wide each, off the width the spread dealt the cards at — the row's
-    // own columns since item (ccc) took the cell wrapper away.
-    const at = STYLE.indexOf('.offer-answers {');
-    expect(at).toBeGreaterThan(-1);
-    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('var(--offer-card');
+    // The reroll's price is a real line on its face, through the yield printer.
+    expect(OFFER_CARD).toContain("if (showFigure) button.append(element('span', 'offer-answer-figure', spec.figure));");
+    // The fold that made the price, or the refusal, answers on hover; the pass
+    // says on hover what it does and leans the next hand to.
+    expect(OFFER_CARD).toContain('button.title = showFigure ? spec.note : `${spec.figure}. ${spec.note}`;');
+    // The reroll at the left, the pass and the take button at the right.
+    expect(OFFER_CARD).toContain("left.append(answer(offer.reroll, 'offer-answer-reroll', REROLL_MARK, true, () => reroll()));");
+    expect(OFFER_CARD).toContain("right.append(answer(offer.pass, 'offer-answer-pass', PASS_MARK, false, () => skip()));");
+    expect(OFFER_CARD).toContain("takeButton.className = 'btn btn-primary offer-take';");
+    expect(OFFER_CARD).toContain("takeButton.addEventListener('click', () => take(chosen));");
+    const foot = STYLE.slice(STYLE.indexOf('.offer-foot {'));
+    expect(foot.slice(0, foot.indexOf('}'))).toContain('justify-content: space-between;');
+    const right = STYLE.slice(STYLE.indexOf('.offer-foot-right {'));
+    expect(right.slice(0, right.indexOf('}'))).toContain('margin-left: auto;');
     // And the greyed face keeps its ground: `.btn:disabled` would swap it for
     // the table colour and take the price off the sheet.
     const greyed = STYLE.indexOf('.offer-answer:disabled {');
@@ -271,13 +277,15 @@ describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () =>
  */
 describe('every draft deals a tarot face', () => {
   it('reads a plate of either kind as a card from a deck', () => {
-    const at = OFFER_CARD.indexOf('const tarot = offer.options.some(');
+    const at = OFFER_CARD.indexOf('const tarot =');
     expect(at).toBeGreaterThan(-1);
     const flag = OFFER_CARD.slice(at, OFFER_CARD.indexOf(';', at));
     expect(flag).toContain('option.emblem !== undefined');
     expect(flag).toContain('option.emblemGlyph !== undefined');
-    // And the back rides that same flag, which is what deals the hand face-down.
-    expect(OFFER_CARD).toContain('const dealing = tarot && wantsMotion();');
+    // A drawn face (Quiet Table, build stage 2) is a third dressing, and is
+    // dealt too: the back rides both flags.
+    expect(OFFER_CARD).toContain('const dressed = offer.options.some((option) => option.dress !== undefined);');
+    expect(OFFER_CARD).toContain('const dealing = (tarot || dressed) && wantsMotion();');
   });
 
   it('hands the votive deck a plate of its own, and never a Statecraft mark', () => {
@@ -298,8 +306,9 @@ describe('every draft deals a tarot face', () => {
     // thread, and every row written after the decks rework carries none, so it
     // would deal four hundred identical lozenges. The two classes with no deck,
     // a Doctrine and a government, still read the thread.
-    expect(offerSource('showStatecraftOffer')).toContain('suit: orderSuitFace(id)');
-    // And the face counts as a card from a deck, so the hand is still dealt.
+    // Since Quiet Table's build stage 2 the Order draft draws the Council's
+    // engraved face (`orderOfferFace`), a drawn face, which is dealt.
+    expect(offerSource('showStatecraftOffer')).toContain('dress: () => orderOfferFace(id),');
     expect(OFFER_CARD).toContain('option.suit !== undefined');
     // A government's card shows its chairs where an emblem would be (batch
     // C2b), and the chairs count as a card from a deck too, so the charter
@@ -366,44 +375,34 @@ describe('the pass beside its twin', () => {
     expect(body).toContain("rarityDrawWeight('rare', skips + 1, rarePercent)");
   });
 
-  it('centres the two answers in one row, told apart by mark and weight', () => {
-    // One centred row, and a grid two rows deep so the two buttons are the same
-    // size however long either sentence runs — the "same size" half of (ccc).
-    const answers = STYLE.slice(STYLE.indexOf('.offer-answers {'));
-    const row = answers.slice(0, answers.indexOf('}'));
-    expect(row).toContain('justify-content: center;');
-    expect(row).toContain('grid-template-rows: auto auto;');
-    expect(row).toContain('grid-auto-columns: minmax(0, var(--offer-card');
-    // No cell wrapper any more: the button and its sentence are siblings in the
-    // one grid, which is what makes the two rows shared.
-    expect(CARD).not.toContain('offer-answer-cell');
-    expect(STYLE).not.toContain('.offer-answer-pass-cell');
+  it('stands the answers in the board’s foot, told apart by mark and place', () => {
+    // The reroll at the left, the pass beside the take button at the right
+    // (Quiet Table, build stage 2: "Ask again" at the left; Pass and Take at the
+    // right, Take the primary, bottom right).
+    expect(CARD).not.toContain('offer-answers');
+    expect(STYLE).not.toContain('.offer-answers {');
+    expect(CARD).toContain("const foot = element('div', 'offer-foot');");
+    expect(CARD).toContain('foot.append(left, right);');
     // The mark is the card's own fact, one per answer, hidden from the reading.
     expect(CARD).toContain("const REROLL_MARK = '⟳';");
     expect(CARD).toContain("const PASS_MARK = '⊘';");
     expect(CARD).toContain("mark.setAttribute('aria-hidden', 'true')");
     expect(CARD).toContain("element('span', 'offer-answer-glyph')");
-    // And the weight, not a colour: the two poster grounds are withdrawn, the
-    // reroll takes parchment-on-ink and the pass the house's quiet parchment.
-    expect(STYLE).toContain('.offer-answer-reroll {\n  background: var(--ink);\n  color: var(--parchment);\n}');
-    expect(STYLE).toContain('.offer-answer-pass {\n  background: var(--parchment);\n  color: var(--ink);\n}');
-    const from = STYLE.indexOf('.offer-answers {');
+    // No poster colours: the reroll and the pass are the house's plain button,
+    // and only the take button is the primary.
+    const from = STYLE.indexOf('.offer-answer {');
     const to = STYLE.indexOf('.offer-answer:disabled {');
     const block = STYLE.slice(from, to);
     expect(block).not.toContain('var(--vermilion)');
     expect(block).not.toContain('var(--lapis)');
   });
 
-  it('sets the sentence under the row in the hint voice', () => {
-    // The pity and the reroll's fold are the same voice the rest of the
-    // interface explains itself in, centred under the button they belong to.
-    expect(CARD).toContain("element('p', 'hint offer-answer-note', spec.note)");
-    const at = STYLE.indexOf('.offer-answer-note {');
+  it('says what the bank holds beside the reroll, and a refusal in the wanting voice', () => {
+    // The board: "Ask again · 56 faith", then "You have 67 faith." A greyed
+    // reroll says why there instead, as a lack.
+    expect(CARD).toContain("left.append(element('p', greyed ? 'offer-purse wanting' : 'offer-purse', line));");
+    expect(MAIN).toContain('purse: `You have ${countFigure(Math.floor(player.faithPool))} faith.`,');
+    const at = STYLE.indexOf('.offer-purse {');
     expect(at).toBeGreaterThan(-1);
-    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('align-self: start;');
-    // The pass's figure is a promise, not a price — the mono is the number's.
-    const promise = STYLE.indexOf('.offer-answer-pass .offer-answer-figure {');
-    expect(promise).toBeGreaterThan(-1);
-    expect(STYLE.slice(promise, STYLE.indexOf('}', promise))).toContain('font-family: var(--face-ui);');
   });
 });

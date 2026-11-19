@@ -175,7 +175,8 @@ export function legacyIsSilent(clauses: readonly CardClause[]): boolean {
  * describes people spent earlier, and nothing records which work they laid.
  */
 export function deedFootnote(family: Family, workFamily: Family = family): string {
-  return `Spent as a ${family} — ${familyVerb(family, 'act')}, or ${familyVerb(workFamily, 'work')}.`;
+  // A colon, not a dash (the plain-English rule, 2026-09-17): the board's own line.
+  return `Spent as a ${family}: ${familyVerb(family, 'act')}, or ${familyVerb(workFamily, 'work')}.`;
 }
 
 /** The mono eyebrow: the family, then the age the name belongs to. */
