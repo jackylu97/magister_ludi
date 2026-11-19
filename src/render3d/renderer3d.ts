@@ -2706,7 +2706,7 @@ export class Renderer3D implements MapView {
     let fogSignature = 0;
     if (levels) for (let cell = 0; cell < levels.length; cell++) {
       const tile = this.state.map.tiles[cell];
-      if (tile?.resource || tile?.improvement) {
+      if (tile?.resource || tile?.improvement || tile?.damagedImprovement) {
         fogSignature = (Math.imul(fogSignature ^ cell, 31) + (levels[cell] ?? 0)) | 0;
       }
     }

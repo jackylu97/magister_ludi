@@ -80,8 +80,15 @@ export const NORTH_STAR_WORK_AGES={
 export const NORTH_STAR_WORK_STEPS=4;
 // The models the table names that the list of works did not already carry.
 export const NORTH_STAR_AGED_WORK_ASSETS=['ns-granary','ns-rack','ns-thatch-barn','ns-mine-pit','ns-mine-winch','ns-quarry-cut','ns-quarry-frame','ns-shelter','ns-stable','ns-lumber-camp','ns-loft-barn','ns-mine-headframe','ns-saw-hall'];
+// The renderer replaces only the model the undamaged work would use on this hex.
+export const PILLAGED_WORK_MODELS = {
+ 'ns-loft-barn':'ns-pillaged-grain-loft', 'ns-stable':'ns-pillaged-pasture',
+ 'ns-windmill':'ns-pillaged-windmill', 'fishing-boat':'ns-pillaged-fishing-boat',
+ 'ns-mine-headframe':'ns-pillaged-mine-hoist', 'ns-quarry':'ns-pillaged-quarry',
+ 'ns-saw-hall':'ns-pillaged-saw-hall',
+};
 // The animals and the great works are loaded with the works, so the list of works carries them.
-export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_AGED_WORK_ASSETS,...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];
+export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_AGED_WORK_ASSETS,...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS),...Object.values(PILLAGED_WORK_MODELS)];
 // The unit pieces of the north-star look (the user, 2026-11-14: "lets do a
 // single melee piece for now"). The key is a unit type, the value a model of
 // `scripts/terrain-study/build_northstar_units.py`. A type with no entry keeps

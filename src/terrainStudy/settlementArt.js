@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {centre,isWater,onTileTop,surfaceHeight,WATER_LEVEL} from './surface.js';
 import {surfacePatch} from './surfacePatch.js';
 import {resourceFamilies,animalAsset,resourceColors} from './resourceCatalog.js';
-import {NORTH_STAR_HERDS,NORTH_STAR_HERD_SCALE} from './northStarAssets.js';
+import {NORTH_STAR_HERDS,NORTH_STAR_HERD_SCALE,PILLAGED_WORK_MODELS} from './northStarAssets.js';
 import {crag} from './shapes.js';
 import {indexGeometry} from './indexGeometry.js';
 import {farmPaint,farmLayout} from './farmPaint.js';
@@ -90,8 +90,25 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   if(entry?.improvement&&entry.improvement!=='camp')return Math.hypot(x,z)<.72;
   return entry?.resource?Math.hypot(x,z)<.54:false;
  }
- function tile(tile,entry,top,{prop,push,walls=true,sampleSurface,preciseFit=false,onBuilding}){
-  if(!entry?.resource&&!entry?.improvement&&!entry?.city)return;
+ const damagedProps=new Map();
+ for(const [intact,damaged] of Object.entries(PILLAGED_WORK_MODELS)){
+  if(assets[intact] && assets[damaged]) damagedProps.set(assets[intact],assets[damaged]);
+ }
+ function drawTile(tile,entry,top,{prop,push,walls=true,sampleSurface,preciseFit=false,onBuilding}){
+  if(entry?.damage){
+   // The intact layout supplies the same yard, position and size across a raid.
+   // Cargo, moving sails and healthy fields are absent from a damaged work.
+   drawTile(tile,{improvement:entry.damage,step:entry.step},top,{
+    walls,sampleSurface,preciseFit,
+    prop(geometry,...placement){const replacement=damagedProps.get(geometry);if(replacement)prop(replacement,...placement);},
+    push(material,patch){patch.dispose();},
+    onBuilding(placement){
+     const asset=PILLAGED_WORK_MODELS[placement.asset];
+     if(asset && assets[asset])onBuilding?.({...placement,asset});
+    },
+   });
+  }
+  if(!entry?.resource&&!entry?.improvement&&!entry?.city&&!entry?.damage)return;
   const c=centre(tile),seed=tile.col*73+tile.row*19;
   const rand=n=>{const x=Math.sin(seed*17+n*131.7)*43758.5453;return x-Math.floor(x)};
   const local=(x,z,angle=0)=>[x*Math.cos(angle)-z*Math.sin(angle),x*Math.sin(angle)+z*Math.cos(angle)];
@@ -291,5 +308,5 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
  // GLB meshes and their material belong to the caller. Each emitted field
  // patch belongs to push(); only this reusable procedural kit is owned here.
  function dispose(){if(disposed)return;disposed=true;for(const g of generated)g.dispose();fields.dispose()}
- return {tile,reserved,fields,wallGeometries,dispose};
+ return {tile:drawTile,reserved,fields,wallGeometries,dispose};
 }

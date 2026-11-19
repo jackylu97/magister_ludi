@@ -122,6 +122,34 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('works by the age of their owner',
     setAge(4); expect(modelsAt(cells.unowned!)).toContain('ns-granary');
   });
 
+  it('swaps a pillaged work for its broken model and restores it after repair', () => {
+    works.byAge = true;
+    works.windmillShare = 0;
+    const { state, cells, setAge, modelsAt } = fixture();
+    setAge(4);
+    for (const [work, healthy, broken] of [
+      ['farm', 'ns-loft-barn', 'ns-pillaged-grain-loft'],
+      ['pasture', 'ns-stable', 'ns-pillaged-pasture'],
+      ['mine', 'ns-mine-headframe', 'ns-pillaged-mine-hoist'],
+      ['quarry', 'ns-quarry', 'ns-pillaged-quarry'],
+      ['lumbermill', 'ns-saw-hall', 'ns-pillaged-saw-hall'],
+    ] as const) {
+      const cell = cells[work]!;
+      const tile = state.map.tiles[cell]!;
+      const before = signPaintedWorks(state);
+      expect(modelsAt(cell)).toContain(healthy);
+      tile.damagedImprovement = { id: work };
+      delete tile.improvement;
+      expect(signPaintedWorks(state)).not.toBe(before);
+      expect(modelsAt(cell)).toContain(broken);
+      expect(modelsAt(cell)).not.toContain(healthy);
+      delete tile.damagedImprovement;
+      tile.improvement = work;
+      expect(modelsAt(cell)).toContain(healthy);
+      expect(signPaintedWorks(state)).toBe(before);
+    }
+  });
+
   it('moves the fingerprint when the owner enters a new age, and not for a technology inside an age', () => {
     works.byAge = true;
     const { state, setAge } = fixture();
