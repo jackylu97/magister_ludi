@@ -1084,7 +1084,7 @@ export function drawFrontispiece(into: HTMLElement): void {
   marquee.append(device);
   const epigraph = element('p', 'marquee-epigraph');
   marquee.append(epigraph);
-  marquee.append(element('span', 'marquee-stamp', 'one seed · one world'));
+  marquee.append(element('span', 'marquee-stamp', 'a game for the ages'));
   stage.append(marquee);
   root.append(stage);
 

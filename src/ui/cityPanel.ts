@@ -85,6 +85,7 @@ import {
   type ProductionCategory,
   BUILDING_IDS,
   buildingDef,
+  isEmpireBuilding,
   isWonder,
 } from '../sim/buildingData';
 import { bankedTowardItem, wonderClaim } from '../sim/state';
@@ -93,6 +94,7 @@ import {
   cardCityStat,
   cityScopeAdmits,
   describeCard,
+  EMPIRE_BUILDING_WORDS,
   productionMoverFor,
   ref,
 } from '../sim/statecraft';
@@ -880,6 +882,26 @@ function unitNotYet(
 }
 
 /**
+ * **A unit refused only for want of supply stays in the list, greyed** (the
+ * user, 2026-11-19: "the supply is already in the corner panel, could we gray
+ * out units we have access to, but can't because we don't have supply? the
+ * other rules for unavailable builds can stay in the dropdown"). Supply is the
+ * strategic resources an empire can spare, the corner panel's Supply section.
+ *
+ * "Only supply" is the simulation's answer, never the words of its sentence:
+ * `unitRowGate` asks `buildError` a second time with the resource clause set
+ * aside (`ignoreResourceRequirement`), and `wantsResource` is true only when the
+ * first answer is a refusal, the second is yes, and the empire has no spare
+ * copy. A town too small for the unit has a second bar, so its row folds into
+ * "Not yet" as before, and so does every other refusal. The rules do not
+ * change: the button stays disabled, and the purchase gate refuses the same
+ * unit in the same words, so its price is a dash.
+ */
+export function greyedForSupply(row: BuildListRow): boolean {
+  return row.kind === 'unit' && row.wantsResource && !row.tooSmall;
+}
+
+/**
  * **Everything the add list prints, as data**: which rows exist, which build
  * buttons may be pressed, how each price reads, where each refusal is said,
  * and which rows fold away under "Not yet".
@@ -912,7 +934,9 @@ function unitNotYet(
  *   - **A row blocked for a reason the player can fix folds into "Not yet"**
  *     with that reason (`BuildListShelf.notYet`). A row that can still be
  *     bought (a price that is not a dash) stays in the list whatever its build
- *     says, because the price is a way to have it now.
+ *     says, because the price is a way to have it now. So does a unit refused
+ *     only for want of supply (`greyedForSupply`, the user's ruling of
+ *     2026-11-19), greyed, with the requirement and its counts under it.
  *
  * `locked` is the panel's own lock (an ended turn, or a puppet). It greys the
  * build buttons only. A price's look is the reducer's answer either way; when
@@ -1002,7 +1026,7 @@ export function buildListModel(
     const notYet: NotYetRow[] = [];
     for (const { row, reason } of entries) {
       const buyable = row.cells.some((cell) => cell.look.look !== 'none');
-      if (reason !== null && !buyable) notYet.push({ row, reason });
+      if (reason !== null && !buyable && !greyedForSupply(row)) notYet.push({ row, reason });
       else rows.push(row);
     }
     if (rows.length === 0 && notYet.length === 0 && !caravans) return;
@@ -4127,6 +4151,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
       // hammers on, and a player needs to know that before reading the price.
       if (row.wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
+      // An empire building says so in the same place (the user, 2026-11-19:
+      // "lets label these as empire buildings everywhere in the game"), off the
+      // row's own mark.
+      else if (isEmpireBuilding(id)) {
+        name.append(element('span', 'city-buildable-eyebrow', EMPIRE_BUILDING_WORDS.eyebrow));
+      }
       // And where it already stands in the queue. A fact, not a refusal, so it
       // is the quiet eyebrow and the row is drawn as a label rather than a
       // greyed button (`.city-buildable.is-queued`).

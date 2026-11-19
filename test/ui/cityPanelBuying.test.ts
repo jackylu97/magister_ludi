@@ -376,16 +376,16 @@ describe('a refusal is said once per reason', () => {
 
   it('adds nothing for a dash whose reason the row already says', () => {
     // A unit the empire has no spare horses for is refused by the queue and the
-    // purchase gate in the same words. Since batch UX7 it folds under "Not yet"
-    // with the requirement and its counts, and its dash never reaches the
-    // shelf's head.
+    // purchase gate in the same words. Since the user's ruling of 2026-11-19 it
+    // stays in the list, greyed, with the requirement and its counts under it
+    // (`greyedForSupply`), and its dash never reaches the shelf's head.
     const { state, city } = developed();
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
-    const horsed = units.notYet.filter(({ row }) => row.kind === 'unit' && row.wantsResource);
+    const horsed = units.rows.filter((row) => row.kind === 'unit' && row.wantsResource);
     expect(horsed.length).toBeGreaterThan(0);
-    for (const { row, reason } of horsed) {
+    for (const row of horsed) {
       if (row.kind !== 'unit') continue;
-      expect(reason.kind, row.name).toBe('resource');
+      expect(row.enabled, row.name).toBe(false);
       expect(row.cells[0]!.look).toMatchObject({ look: 'none', refusal: row.blocked });
       expect(row.cells[0]!.place, row.name).toBeNull();
       expect(units.refusals.map((line) => line.text), row.name).not.toContain(row.blocked);

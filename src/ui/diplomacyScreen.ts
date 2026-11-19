@@ -95,6 +95,8 @@ import {
   hasMetSeat,
   openBordersError,
   proposePeaceError,
+  type WarConsequences,
+  warConsequences,
   withdrawDealError,
   withdrawPeaceError,
 } from '../sim/diplomacy';
@@ -169,6 +171,8 @@ interface DiplomacyRow {
   theyOffered: boolean;
   /** Why Declare War is refused, or `null` when it is offered. */
   declareError: string | null;
+  /** What a declaration would end, read off the sim (`warConsequences`). */
+  war: WarConsequences;
   /** Why the peace offer (or its withdrawal) is refused, or `null`. */
   peaceError: string | null;
   /** Bargains running with them right now — the roster's own clock. */
@@ -227,6 +231,7 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
       weOffered: hasPeaceOffer(state, seat, id),
       theyOffered: hasPeaceOffer(state, id, seat),
       declareError: declareWarError(state, seat, id),
+      war: warConsequences(state, seat, id),
       peaceError: hasPeaceOffer(state, seat, id)
         ? withdrawPeaceError(state, seat, id)
         : proposePeaceError(state, seat, id),
@@ -1045,15 +1050,37 @@ export function trimTownTerms(terms: DealTerms, choices: DealChoice[]): void {
   if(kept.length)terms.cities=kept;else delete terms.cities;
 }
 
-/** The confirm card a declaration raises. See the module docblock. */
-export function declareConfirm(name: string): ConfirmRequest {
+/** The words of the Declare war card's list, one line for each thing a war ends or opens. */
+export const WAR_CONFIRM_WORDS = {
+  body: 'This is what follows.',
+  deals: 'Every deal between you ends now.',
+  proposals: 'The offers on the table between you are withdrawn.',
+  routes: 'Every caravan running between you comes home.',
+  borders: 'Your armies may enter their land and strike their people, and theirs may do the same.',
+  peace: 'Peace can only be made if they agree to it.',
+} as const;
+
+/**
+ * **The confirm card a declaration raises** (Declare war, version A; the user,
+ * 2026-11-19: "great go with A"): the question, then what follows, one line
+ * each, read off the sim (`warConsequences`, the same lists the act
+ * empties). A line for deals, offers or caravans appears only when there are
+ * some. The borders and the peace are always so. The card is grave: its
+ * confirm is the war red with the blade, and Enter does not confirm.
+ */
+export function declareConfirm(name: string, war: WarConsequences): ConfirmRequest {
+  const points: string[] = [];
+  if (war.deals > 0) points.push(WAR_CONFIRM_WORDS.deals);
+  if (war.proposals > 0) points.push(WAR_CONFIRM_WORDS.proposals);
+  if (war.routes > 0) points.push(WAR_CONFIRM_WORDS.routes);
+  points.push(WAR_CONFIRM_WORDS.borders, WAR_CONFIRM_WORDS.peace);
   return {
     title: `Declare war on the ${name}?`,
-    body:
-      'Your armies may enter their land and strike their people, and theirs may do the same. ' +
-      'Every caravan running between you comes home. Peace can only be made if they agree to it.',
+    body: WAR_CONFIRM_WORDS.body,
+    points,
     confirmLabel: 'Declare war',
     cancelLabel: 'Keep the peace',
+    tone: 'war',
   };
 }
 
@@ -1497,7 +1524,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     } else {
       declare.title = `Open a war with the ${row.people}`;
       declare.addEventListener('click', () => {
-        options.askConfirm(declareConfirm(row.people), () => {
+        options.askConfirm(declareConfirm(row.people, row.war), () => {
           options.declareWar(row.playerId);
           forgetTalk();
           draw();

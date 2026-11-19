@@ -572,6 +572,32 @@ export function runPostEstablishments(state: GameState): void {
 }
 
 /**
+ * **Does this route run between these two empires?** Its two ends held one by
+ * each, either way round, read as the board stands now. An end whose city has
+ * vanished answers no (see `cancelRoutesBetween`). `cityById` rather than
+ * `routeCities`, deliberately: that reader refuses a pair whose two ends are
+ * not both the caravan's owner's, which is the yield question, and a route
+ * spanning two empires is precisely the shape asked about here.
+ */
+function routeSpansPair(state: GameState, route: { from: number; to: number }, x: number, y: number): boolean {
+  const from = cityById(state, route.from);
+  const to = cityById(state, route.to);
+  if (!from || !to) return false;
+  return (from.ownerId === x && to.ownerId === y) || (from.ownerId === y && to.ownerId === x);
+}
+
+/**
+ * **The caravans a war between these two would send home**, in
+ * `state.units` order, without ending them: the pieces `cancelRoutesBetween`
+ * would drop, by the same test. Pure. The declaration's confirm card reads it
+ * to say what follows (Quiet Table, build stage 1).
+ */
+export function routesBetween(state: GameState, x: number, y: number): Unit[] {
+  if (x === y) return [];
+  return state.units.filter((unit) => unit.trade !== undefined && routeSpansPair(state, unit.trade, x, y));
+}
+
+/**
  * Ends every route running **between these two empires**, in `state.units`
  * order, and says which ones it dropped.
  *
@@ -604,16 +630,8 @@ export function cancelRoutesBetween(
   for (const unit of state.units) {
     const route = unit.trade;
     if (route === undefined) continue;
-    // `cityById` rather than `routeCities`, deliberately: that reader refuses a
-    // pair whose two ends are not both the caravan's owner's — it is the
-    // *yield* question, and a route spanning two empires pays nobody — which is
-    // precisely the shape this function is looking for.
-    const from = cityById(state, route.from);
-    const to = cityById(state, route.to);
-    if (!from || !to) continue;
-    const spans =
-      (from.ownerId === x && to.ownerId === y) || (from.ownerId === y && to.ownerId === x);
-    if (!spans) continue;
+    // The pair test is `routeSpansPair`'s, shared with `routesBetween`.
+    if (!routeSpansPair(state, route, x, y)) continue;
     dropped.push({
       unitId: unit.id,
       ownerId: unit.ownerId,

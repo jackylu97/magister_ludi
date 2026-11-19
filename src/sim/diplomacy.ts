@@ -94,7 +94,7 @@ import { ABILITY_TECH, techDef, techsGrant } from './techData';
 import { type Cell, canStopOn, moveProfile } from './pathfind';
 import { getTileAt, tileIndex, tileNeighbors } from './map';
 import type { Tile } from './map';
-import { type RouteEndReport, cancelRoutesAt, cancelRoutesBetween } from './trade';
+import { type RouteEndReport, cancelRoutesAt, cancelRoutesBetween, routesBetween } from './trade';
 import { isCivilian, unitDef } from './unitData';
 import {
   HIDDEN,
@@ -254,6 +254,33 @@ export function declareWarError(
     return `You cannot declare war on the ${seatPeople(state, target.id)}: they hold ${theirs} and your capital follows their religion`;
   }
   return null;
+}
+
+/** What a war between two empires would end, counted without ending anything. */
+export interface WarConsequences {
+  /** Live deals between the two (`dealsBetween`). */
+  deals: number;
+  /** Proposals standing between the two, either way round. */
+  proposals: number;
+  /** Caravans running between the two (`routesBetween`). */
+  routes: number;
+}
+
+/**
+ * **What a declaration would end**, read off the same lists `declareWarAt`
+ * empties, without touching them: the deals and the standing proposals
+ * between the pair (`cancelDealsBetween`'s rows) and the caravans running
+ * between them (`cancelRoutesBetween`'s, by `routesBetween`). Pure. The
+ * Declare war card names these before the act (Quiet Table, build stage 1),
+ * so the card and the act cannot disagree about what a war breaks.
+ */
+export function warConsequences(state: GameState, x: number, y: number): WarConsequences {
+  if (x === y) return { deals: 0, proposals: 0, routes: 0 };
+  return {
+    deals: dealsBetween(state, x, y).length,
+    proposals: state.dealProposals.filter((row) => (row.by === x && row.to === y) || (row.by === y && row.to === x)).length,
+    routes: routesBetween(state, x, y).length,
+  };
 }
 
 /**

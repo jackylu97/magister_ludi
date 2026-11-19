@@ -1342,10 +1342,10 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   }
 
   /**
-   * The ledger's cut tabs: parchment steps with an ink edge, a **gilt inner
-   * edge** on each, a hedera that turns vermilion on the open one, and the ink
-   * rule alone beneath (the user's final mark: no gilt hairline under the rule
-   * — the gilt is the trade sheet's one accent and it lives on the tabs).
+   * The ledger's four tabs, drawn as filter chips (Quiet Table, build stage 1;
+   * the user: "Let's keep the tab text the same"). The words and the counts
+   * are today's, and they still behave as tabs, one open at a time: only the
+   * look changed (`.trade-tab` in `style.css`).
    */
   function drawIndex(counts: Readonly<Record<TradeTabId, number>>): HTMLElement {
     const index = element('div', 'trade-index');

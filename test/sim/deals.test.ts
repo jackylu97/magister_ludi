@@ -33,7 +33,7 @@ import {
   hasResource,
   resourceCopies,
 } from '../../src/sim/cities';
-import { proposeDealError, openBordersError } from '../../src/sim/diplomacy';
+import { proposeDealError, openBordersError, warConsequences } from '../../src/sim/diplomacy';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
@@ -850,6 +850,13 @@ describe('what ends a bargain', () => {
     applyCommand(state, propose(0, 1, { gold: 10 }, {}));
     expect(state.deals).toHaveLength(1);
     expect(state.dealProposals).toHaveLength(1);
+    // The Declare war card's reading (Quiet Table, build stage 1): what the act
+    // will end, counted from the same lists, either way round, and touching nothing.
+    const before = snapshotState(state);
+    expect(warConsequences(state, 0, 1)).toEqual({ deals: 1, proposals: 1, routes: 0 });
+    expect(warConsequences(state, 1, 0)).toEqual({ deals: 1, proposals: 1, routes: 0 });
+    expect(warConsequences(state, 0, 0)).toEqual({ deals: 0, proposals: 0, routes: 0 });
+    expect(snapshotState(state)).toBe(before);
 
     const result = applyCommand(state, { type: 'declareWar', playerId: 0, targetId: 1 });
     expect(result.ok).toBe(true);
@@ -857,6 +864,7 @@ describe('what ends a bargain', () => {
     expect(state.deals).toEqual([]);
     // The paper goes too: a bargain nobody may sign is not a bargain.
     expect(state.dealProposals).toEqual([]);
+    expect(warConsequences(state, 0, 1)).toEqual({ deals: 0, proposals: 0, routes: 0 });
   });
 
   it('leaves a third empire’s bargain alone', () => {

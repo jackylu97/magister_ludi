@@ -12,8 +12,8 @@
  *     government column), then one edge for each chair: the Order seated
  *     there, the malice that holds it, or an empty chair. A malice with no
  *     chair follows the chairs;
- *   - **Wonders**: wonders, great houses and buildings that grant council
- *     chairs. Each building appears once, as its empire effect applies once;
+ *   - Wonders, empire buildings and buildings that grant council chairs.
+ *     Each building appears once because its empire effect applies once.
  *   - **Beliefs**: the pantheon's gods, and for each religion whose holy city
  *     the seat holds, its enhancer beliefs and the founder's share (the "holy
  *     city" piece). A follower belief pays the towns that follow it, so it is
@@ -51,14 +51,14 @@ import { authorityOf, explainAuthority, explainHappiness, happinessOf } from '..
 import { readEmpire } from '../sim/readings';
 import { explainRenown, renownPerTurn } from '../sim/renown';
 import { roundYield } from '../sim/yieldFormat';
-import { buildingDef, type BuildingId } from '../sim/buildingData';
+import { buildingDef, type BuildingId, isEmpireBuilding } from '../sim/buildingData';
 import { tileOwnerCityId } from '../sim/cities';
 import { FAMILIES, type Family, greatPersonDef, type GreatPersonId } from '../sim/greatPeopleData';
 import { leaderDef } from '../sim/leaderData';
 import { isMaliceId, maliceDef, type MaliceId } from '../sim/maliceData';
 import { beliefDef, type BeliefId, isRiteId } from '../sim/religionData';
 import { type GameState, cityById, playerById } from '../sim/state';
-import { anyCardDef, buildingOpensChairs, heldReligions, oneOfAKind } from '../sim/statecraft';
+import { anyCardDef, buildingOpensChairs, EMPIRE_BUILDING_WORDS, heldReligions, oneOfAKind } from '../sim/statecraft';
 import {
   type CardId,
   type DoctrineId,
@@ -108,7 +108,8 @@ export const IN_PLAY_WORDS = {
   readOnly: 'you cannot move anything here',
   toCouncil: 'Council',
   door: 'In play',
-  doorTitle: 'Everything in force: your council, wonders, beliefs, legacies and what is temporary. I opens it too.',
+  doorTitle:
+    'Everything in force: your council, wonders and empire buildings, beliefs, legacies and what is temporary. I opens it too.',
   totalsLabel: 'What everything in force pays each turn',
   totalsTitle:
     'What everything on this screen pays each turn: your books with all of it, less your books with none of it. Click a figure to see where it comes from.',
@@ -320,7 +321,8 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
         stack: 'wonders',
         form: 'wonder',
         name: buildingDef(id).name,
-        sub: IN_PLAY_WORDS.withTown(city.name),
+        // An empire building shares the stack and says which it is.
+        sub: isEmpireBuilding(id) ? EMPIRE_BUILDING_WORDS.inTown(city.name) : IN_PLAY_WORDS.withTown(city.name),
         card: id,
         piece: { kind: 'wonder', id },
         subject: single({ kind: 'wonder', id }),

@@ -194,7 +194,10 @@ describe('where the chips live', () => {
     // and 8px between chips: the corner panel board's spacing (batch SS2b).
     expect(body).toContain('top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 8px);');
     expect(body).toContain('left: 16px;');
-    expect(body).toContain('width: var(--empire-panel-w);');
+    // As wide as the card above them, which grows with a long figure (Quiet
+    // Table, fourth pass, frame 7): its drawn width, with the floor as default.
+    expect(body).toContain('width: var(--empire-corner-w, var(--empire-panel-w));');
+    expect(uiSource('empireDrawer.ts')).toContain("setProperty('--empire-corner-w'");
     expect(css).toContain('--commission-chip-h: 38px;');
     expect(css).toContain('--commission-chip-gap: 8px;');
     expect(css).toContain('body:has(.city-mode:not([hidden])) #hud-commissions,');

@@ -112,8 +112,10 @@ export interface NotificationEntry {
  * and a bead (the bead on its wire). And a wonder of the seat's own (the temple
  * front of the In play screen, stage 4 of the Council and In play board): its
  * page is its announcement, so it gets no toast, as an age opening gets none.
+ * And news about a thing the seat holds (the plain seal, Quiet Table build
+ * stage 1): a ring and a dot, small, so the toast keeps its size.
  */
-export type NewsMarkKind = 'age' | 'triumph' | 'greatPerson' | 'research' | 'bead' | 'culture' | 'wonder';
+export type NewsMarkKind = 'age' | 'triumph' | 'greatPerson' | 'research' | 'bead' | 'culture' | 'wonder' | 'held';
 
 /**
  * Whether an entry should render as a control rather than plain text.

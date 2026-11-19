@@ -23,6 +23,7 @@ import {
   cityAt,
   foundingErrorAt,
   tileContextAt,
+  tileOwnerCityId,
 } from '../sim/cities';
 import {
   explainTileYield,
@@ -39,7 +40,7 @@ import {
   discoveryKindTech,
 } from '../sim/discoveryData';
 import { improvementDef, improvementForResource } from '../sim/improvementData';
-import type { Tile } from '../sim/map';
+import { type Tile, getTileAt } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { describeResourceEffect } from '../sim/resourceEffects';
 import {
@@ -50,7 +51,7 @@ import {
 } from '../sim/meters';
 import { readSites } from '../sim/readings';
 import { RULES } from '../sim/rulesData';
-import { type GameState, playerById } from '../sim/state';
+import { type GameState, cityById, playerById } from '../sim/state';
 import { hasTech, visibleResourceAt } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
@@ -514,6 +515,46 @@ export function describeWater(state: GameState, tile: Tile): string | null {
   if (isCoastal(state.map, tile)) parts.push('Coastal');
   if (hasFreshWater(tile)) parts.push('Fresh water');
   return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/** The hex card's owner line: who holds the hex, in their ink. */
+export interface TileOwnerLine {
+  /** "Your realm" for the seat itself, otherwise the seat's name as the standings print it. */
+  name: string;
+  /** The holder's colour, for the small swatch before the name. */
+  ink: string;
+  you: boolean;
+}
+
+/** What the owner line calls the seat's own land. */
+export const OWN_REALM_WORDS = 'Your realm';
+
+/**
+ * **Who holds this hex** (Quiet Table, build stage 1; the user, on the kit's
+ * tooltip: "show who owns the tile, if it's owned, otherwise don't show
+ * anything"), or `null` for a hex nobody holds.
+ *
+ * Read off the sim's own owner reading (`tileOwnerCityId`, the coordinate
+ * reading a verb may take). Fog is kept: the caller asks only of explored
+ * ground, and a hex out of sight names its holder only when the seat knows the
+ * town that holds it (`knowsCity`, the banners' rule), so the card never
+ * names a holder the seat has had no way to learn.
+ */
+export function describeOwner(state: GameState, playerId: number, tile: Tile): TileOwnerLine | null {
+  const cityId = tileOwnerCityId(state, tile.col, tile.row);
+  if (cityId === null) return null;
+  const city = cityById(state, cityId);
+  if (city === undefined) return null;
+  if (!isVisibleTo(state, playerId, tile.col, tile.row)) {
+    const seat = getTileAt(state.map, city.col, city.row);
+    if (seat === undefined || !knowsCity(state, playerId, city.id, seat)) return null;
+  }
+  const you = city.ownerId === playerId;
+  return {
+    name: you ? OWN_REALM_WORDS : seatName(state, city.ownerId),
+    ink: playerById(state, city.ownerId)?.color ?? 'currentColor',
+    you,
+  };
 }
 
 /**
