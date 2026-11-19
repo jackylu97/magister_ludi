@@ -191,6 +191,7 @@ import {
   type WindfallPayout,
   windfallPayout,
   // Bot batch BP7: a wonder that opens a chair for whoever holds it.
+  countsWondersForChairs,
   buildingOpensChairs,
   refitSlots,
 } from './statecraft';
@@ -5736,7 +5737,7 @@ export function realiseItem(
     // the turn the stones go up, as it does for a Doctrine that opens one
     // (`refitSlots`' register). After the claim, because the claim is what opens
     // the walk's wonder source on the first wonder of a game.
-    if (buildingOpensChairs(item.id)) {
+    if (buildingOpensChairs(item.id) || (isWonder(item.id) && countsWondersForChairs(state, city.ownerId))) {
       const holder = playerById(state, city.ownerId);
       if (holder !== undefined) refitSlots(state, holder);
     }
@@ -6395,6 +6396,12 @@ export function payGrants(
  * that opens one (Magisterial batch MG7, Commission: The Golden Bull): the
  * goal waits while this answers no (the triage's reading 19).
  */
+export function openWaitingDoctrineOffer(state: GameState, player: Player): void {
+  const sc = player.statecraft;
+  if (!sc.waitingDoctrineOffers || !openDoctrineOffer(state, player)) return;
+  if (--sc.waitingDoctrineOffers === 0) delete sc.waitingDoctrineOffers;
+}
+
 export function doctrineOfferCanOpen(state: GameState, player: Player): boolean {
   const sc = player.statecraft;
   if (sc.pendingDoctrine !== undefined) return false;
@@ -6658,10 +6665,22 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
   if (grants === undefined || grants.length === 0) return;
   const capital = capitalCityOf(state, player.id);
   const windfalls: OnDraftWindfall[] = [];
+  const multiplePersonOffers = grants.filter(grant => grant.grant === 'greatPerson').length > 1;
   for (const grant of grants) {
     switch (grant.grant) {
+      case 'doctrineOffer':
+        if (!openDoctrineOffer(state, player)) {
+          const sc = player.statecraft;
+          sc.waitingDoctrineOffers = (sc.waitingDoctrineOffers ?? 0) + 1;
+        }
+        break;
       case 'greatPerson':
-        grantGreatPersonOffer(state, player, grant.family ?? 'any');
+        if (multiplePersonOffers && player.greatPersonOffer !== undefined && grant.family === undefined) {
+          const sc = player.statecraft;
+          sc.waitingGreatPersonOffers = (sc.waitingGreatPersonOffers ?? 0) + 1;
+        } else {
+          grantGreatPersonOffer(state, player, grant.family ?? 'any');
+        }
         break;
       case 'unit': {
         if (!capital) break;

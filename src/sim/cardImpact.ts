@@ -150,6 +150,8 @@ import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './
 import { cityTimedWithRite, riteOfferingHammers } from './religion';
 import {
   chairCount,
+  refitSlots,
+  chairLayoutUnder,
   chairFitFor,
   councilRefit,
   describeEffects,
@@ -529,7 +531,11 @@ function ghostPair(
       // chairs are the ones the command would leave, so The Arthashastra's stamp
       // does not claim to double the card in today's last Wildcard chair.
       const ghost = ghostSeatUnderDoctrine(player, subject.id, state.turn);
-      return ghost.side === 'with' ? forward(ghost.seat) : backward(ghost.seat);
+      const board = swap(ghost.seat);
+      ghost.seat.statecraft.slots = sc.slots.slice();
+      ghost.seat.malices = player.malices.map((malice) => ({ ...malice }));
+      refitSlots(board, ghost.seat, 'reseat');
+      return ghost.side === 'with' ? { without: state, with: board } : { without: board, with: state };
     }
     case 'government': {
       // **The re-seating is the adoption** (`adoptGovernmentAt`, batch C2): the
@@ -565,6 +571,7 @@ function ghostPair(
       // The fit the old council grants, as the adoption reads it (Magisterial
       // batch MG12), and the second re-seating the adoption makes when the
       // card that widened it found no chair.
+      ghost.statecraft.extraTypedChairs = chairLayoutUnder(state, player.id, subject.id);
       reseatCouncil(ghost, sc.slots, state.turn, chairFitFor(state, player.id));
       const adopted = swap(ghost);
       const refit = councilRefit(adopted, player.id);

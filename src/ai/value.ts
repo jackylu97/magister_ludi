@@ -286,7 +286,7 @@ import {
   knowsUniqueTech,
   liveEffects,
   opusCityOf,
-  orderAtSlotPosition,
+  chairIndicesAtPosition,
   periodicProbe,
   slotTypesOf,
   statecraftOf,
@@ -395,6 +395,7 @@ import {
   type CardLevyEffect,
   type ChairFit,
   type ChairType,
+  orderFitsSlot,
   GOVERNMENT_TIERS,
   LEVY_USES,
   doctrineDef,
@@ -2299,12 +2300,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // when the card is offered, and the seat logic puts that best card in it.
       if (effect.whole === true) return countedChairWorth(effect.factor, ctx);
       const holder = playerById(ctx.state, ctx.playerId);
-      const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
-      if (seated === null || effect.factor === 1) return 0;
-      const inner = orderDef(seated).effects.filter(
-        (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
-      );
-      return (effect.factor - 1) * scoreEffects(inner, ctx, seated);
+      if (!holder || effect.factor === 1) return 0;
+      let total = 0;
+      for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+        const seated = holder.statecraft.slots[index]?.card;
+        if (!isOrderId(seated)) continue;
+        const inner = orderDef(seated).effects.filter((held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier');
+        total += (effect.factor - 1) * scoreEffects(inner, ctx, seated);
+      }
+      return total;
     }
     case 'periodic':
       // A windfall spread over its period: what one firing pays, divided by how
@@ -2407,8 +2411,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // holds off its chairs, or the card it expects to draft, read through
       // `extraChairsWorth`. A chair closed (Scutage) keeps the old stand-in; a
       // Doctrine's stamp already holds what the closing costs.
-      const extra = effect.extra ?? 1;
+      const groups = effect.count === 'wonders'
+        ? Math.min(effect.max ?? Infinity, Math.floor(countProbe(ctx, 'wonders') / (effect.per ?? 1)))
+        : 1;
+      const extra = (effect.extra ?? 1) * groups;
       if (extra <= 0) return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * extra;
+      const sc = statecraftOf(ctx.state, ctx.playerId);
+      if (effect.slot !== undefined && effect.slot !== 'wildcard' && sc !== undefined) {
+        const bench = sc.orders.filter((id) => !isSlotted(sc, id) && neverSeatedError(sc, id) === null);
+        const fit = bench.filter((id) => orderFitsSlot(id, effect.slot!)).length;
+        return extraChairsWorth(extra, ctx) * ((1 + fit) / (1 + bench.length));
+      }
       return extraChairsWorth(extra, ctx);
     }
     case 'effectAmplifier':
@@ -3776,6 +3789,9 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
         rate += piece.rate;
         break;
       }
+      case 'doctrineOffer':
+        rate += doctrineOfferWorth(ctx).worth;
+        break;
       case 'greatPerson':
       case 'windfall':
         once += magisterialDraftGrantWorth(grant, ctx);
@@ -3825,13 +3841,14 @@ export function boonTurns(ctx: ValueContext): number {
  *     resolves it, and nothing when there is none.
  */
 function draftedUnitWorth(
-  unit: UnitTypeId | 'bestMelee',
+  unit: UnitTypeId | 'bestMelee' | 'bestRanged',
   count: number,
   ctx: ValueContext,
 ): { once: number; rate: number } {
   const capital = capitalCityOf(ctx.state, ctx.playerId);
   if (capital === undefined) return { once: 0, rate: 0 };
-  const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
+  const type = unit === 'bestRanged' ? bestOfClassFor(ctx.state, ctx.playerId, 'ranged')
+    : unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   const placed = countDraftUnitPlacements(ctx.state, capital, type, count);
   if (placed === 0) return { once: 0, rate: 0 };
@@ -3997,7 +4014,13 @@ function windfallGrantWorth(
     // and a card's spear are worth the same thing. Since Dominion batch D5 a unit
     // can be raised in every town a scope admits, one unit for each.
     const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
-    once += units * ctx.ai.weights.military * ctx.ai.score.combatScale;
+    if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee') {
+      const piece = draftedUnitWorth(grant.unit, units, ctx);
+      once += piece.once;
+      flat += piece.rate;
+    } else {
+      once += units * ctx.ai.weights.military * ctx.ai.score.combatScale;
+    }
   }
   // Dominion batch D5: science toward a technology the empire lacks, which is
   // real and hard to price, so it is the stand-in.
@@ -5702,12 +5725,15 @@ function ownBeyond(effect: CardEffect, ctx: ValueContext, card: CardId | undefin
   } else if (effect.kind === 'slotPosition') {
     if (effect.whole === true) return { label: `${label}: a chair still to fill`, value: walkOne(effect, ctx, card) };
     const holder = playerById(ctx.state, ctx.playerId);
-    const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
-    if (seated === null || effect.factor === 1) return null;
-    const inner = orderDef(seated).effects.filter(
-      (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
-    );
-    value = (effect.factor - 1) * beyondTotal(inner, ctx, seated);
+    if (!holder || effect.factor === 1) return null;
+    let total = 0;
+    for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+      const seated = holder.statecraft.slots[index]?.card;
+      if (!isOrderId(seated)) continue;
+      const inner = orderDef(seated).effects.filter((held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier');
+      total += (effect.factor - 1) * beyondTotal(inner, ctx, seated);
+    }
+    value = total;
   } else if (effect.kind === 'conditionRule') {
     value = conditionIsLive(effect.when, ctx) ? beyondTotal(effect.then, ctx, card) : 0;
   } else if (effect.kind === 'metaRule') {
@@ -6371,6 +6397,10 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
   // (bot batch BP3, `ValueContext.today`).
   if (ctx.today === true) return [];
   if (effect.count === 'tally') {
+    if (effect.alsoTallies?.length && effect.tally) {
+      return [effect.tally, ...effect.alsoTallies].flatMap((tally) =>
+        potentialTerms({ ...effect, tally, alsoTallies: undefined }, ctx));
+    }
     const occasion = effect.tally;
     if (occasion === 'goldPurchase') {
       // **The Strongbox** (batch R1): a purchase with gold of any kind. The
@@ -7410,6 +7440,8 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Batch R1, The Strongbox. The board keeps no count of purchases with
       // gold, so there is no record and the forecast reads the default.
       return null;
+    case 'orderGained': return countProbe(ctx, 'ordersHeld');
+    case 'greatPersonGained': return player.greatPeopleRecruited;
     case 'wonderCompleted':
       // Magisterial batch MG4, Commission: The Eighth Wonder (batch MG17). The
       // claim register names the empire that finished each wonder, so it is
@@ -8440,6 +8472,9 @@ function scientificLinePoints(
   const per = scale.per > 0 ? scale.per : 1;
   let helpings: number;
   switch (scale.count) {
+    case 'greatPeopleGained':
+      helpings = countProbe(ctx, 'greatPeopleGained') / per;
+      break;
     case 'charterTechsKnown':
     case 'techLead': {
       const ahead = scientificCountAhead(scale.count, ctx);
@@ -10432,7 +10467,14 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
       if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
         continue;
       }
-      sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx).total);
+      if (effect.percentOfCost !== undefined) {
+        const front = city.queue[0];
+        if (front?.kind !== 'building' || !isBuildingId(front.id) || !isWonder(front.id)) continue;
+        const cost = buildingProductionCost(front.id, ctx.state, ctx.playerId);
+        sum += explainYields({ production: Math.floor(cost * effect.percentOfCost / 100) }, ctx).total;
+      } else {
+        sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx).total);
+      }
     }
     let pace = perTown;
     if (effect.everyAtWar !== undefined && atWarWithAnybody(ctx.state, ctx.playerId)) {
@@ -13795,7 +13837,13 @@ function foreignCardWorth(player: Player, ctx: ValueContext): number {
  */
 const DOCTRINE_OFFER_MEMO = new WeakMap<ValueContext, { worth: number; options: number }>();
 function doctrineOfferWorth(ctx: ValueContext): { worth: number; options: number } {
-  return onContext(DOCTRINE_OFFER_MEMO, ctx, () => readDoctrineOffer(ctx));
+  const known = DOCTRINE_OFFER_MEMO.get(ctx);
+  if (known !== undefined) return known;
+  // A Doctrine can price the hand that offers this grant.
+  DOCTRINE_OFFER_MEMO.set(ctx, { worth: 0, options: 0 });
+  const offer = readDoctrineOffer(ctx);
+  DOCTRINE_OFFER_MEMO.set(ctx, offer);
+  return offer;
 }
 
 function readDoctrineOffer(ctx: ValueContext): { worth: number; options: number } {
@@ -13905,6 +13953,8 @@ function magisterialGoalForecast(
             : `${short} typed chairs wait for a new card of their type, at about ${round(rate)} hands a turn`,
       };
     }
+    case 'worksHeld':
+      return { turns: at(remaining, works), why: `${remaining} more great-person works` };
     case 'workFamilies': {
       const families = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined).length;
       const held = workFamiliesHeld(ctx.state, ctx.playerId).length;

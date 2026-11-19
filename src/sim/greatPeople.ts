@@ -932,6 +932,7 @@ export function settleGreatPersonChoice(
     [def.family]: (player.greatPeopleByFamily?.[def.family] ?? 0) + 1,
   };
   bumpEconomy(state);
+  recordScalingOccasion(state, player.id, 'greatPersonGained');
   const seatHex = capitalCityOf(state, player.id);
   payOccasionRiders(
     state,
@@ -940,6 +941,11 @@ export function settleGreatPersonChoice(
     seatHex ? { col: seatHex.col, row: seatHex.row } : undefined,
     { family: def.family },
   );
+  const sc = player.statecraft;
+  if (sc.waitingGreatPersonOffers && !player.greatPersonOffer) {
+    if (--sc.waitingGreatPersonOffers === 0) delete sc.waitingGreatPersonOffers;
+    grantGreatPersonOffer(state, player, 'any');
+  }
   const recruit: GreatPersonRecruit = {
     id,
     name: def.name,

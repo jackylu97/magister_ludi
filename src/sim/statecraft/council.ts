@@ -43,7 +43,7 @@ import {
 import { bumpEconomy } from '../slate';
 // Both of these files import this one back. Each name below is used only inside
 // a function, so neither edge is read while the modules load.
-import { cardActionRule, cardExtraChairs, oneOfAKind, sealTurnsFor } from './evaluator';
+import { cardActionRule, cardExtraChairs, sealTurnsFor } from './evaluator';
 import {
   type PlayerStatecraft,
   type SlottedOrder,
@@ -80,16 +80,8 @@ import {
  * order for that reason.
  */
 export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
-  const layout = slotLayout(sc.government);
-  // **The array is the standing fact about how many chairs there are**, and the
-  // government is the fact about what *kind* each of the first ones is. A card
-  // may open more (`CardSlotRiderEffect`), and those are Wildcard chairs by
-  // construction and appended at the end — so the contract above survives
-  // untouched: chair *i* is still the same chair it was before the card was
-  // taken, and no position card renumbers. Padded here rather than asked of the
-  // law, because this function holds no state and no seat: `chairCount` is where
-  // the card is read, and this is the one reading of what is already written
-  // down.
+  const layout = sc.extraTypedChairs?.slice() ?? slotLayout(sc.government);
+  // A council with only extra Wildcard chairs needs no separate layout in a save.
   while (layout.length < sc.slots.length) layout.push('wildcard');
   // A card may close chairs too (batch DT11, Scutage), and the last ones go first.
   // Wildcard chairs come last in the layout, so what closes is a Wildcard chair.
@@ -113,9 +105,7 @@ export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
 export function chairCount(state: GameState, playerId: number, government: GovernmentId): number {
   // The chairs a commission won for the rest of the game (Dominion batch D6)
   // are counted with the law's, after the government's own.
-  const won = Math.max(0, Math.floor(statecraftOf(state, playerId)?.chairsWon ?? 0));
-  const chairs = slotCount(government) + cardExtraChairs(state, playerId) + won;
-  return Math.max(typedChairsOf(government), chairs);
+  return chairLayoutUnder(state, playerId, government).length;
 }
 
 /**
@@ -127,11 +117,21 @@ export function chairCount(state: GameState, playerId: number, government: Gover
  * government a seat already has, off its array.
  */
 export function chairLayoutUnder(state: GameState, playerId: number, government: GovernmentId): ChairType[] {
-  const want = chairCount(state, playerId, government);
   const layout = slotLayout(government);
-  while (layout.length < want) layout.push('wildcard');
-  layout.length = want;
+  const wildcard = cardExtraChairs(state, playerId, 'wildcard') + (statecraftOf(state, playerId)?.chairsWon ?? 0);
+  for (let n = 0; n > wildcard && layout[layout.length - 1] === 'wildcard'; n--) layout.pop();
+  for (const slot of ['economic', 'military', 'civic'] as const) {
+    const added = cardExtraChairs(state, playerId, slot);
+    for (let n = 0; n < added; n++) layout.push(slot);
+  }
+  for (let n = 0; n < wildcard; n++) layout.push('wildcard');
   return layout;
+}
+
+export function rememberChairLayout(sc: PlayerStatecraft, layout: ChairType[]): void {
+  const ordinary = slotLayout(sc.government);
+  if (layout.some((slot, index) => slot !== (ordinary[index] ?? 'wildcard'))) sc.extraTypedChairs = layout.slice();
+  else delete sc.extraTypedChairs;
 }
 
 /** How many of a government's chairs are Military, Economic or Civic. */
@@ -604,7 +604,8 @@ function seatMalice(state: GameState, player: Player, id: MaliceId, untilAge: nu
   // batch MG12, The Mixed Constitution), the council is re-seated at once by
   // the plain rule. It does nothing otherwise.
   settleCouncilFit(state, player);
-  return { id, chair, displaced, replaced: null };
+  if (orderOpensChairs(displaced ?? undefined)) refitSlots(state, player, 'reseat');
+  return { id, chair: held.chair ?? null, displaced, replaced: null };
 }
 
 /**
@@ -704,6 +705,14 @@ export function reseatMalices(player: Player): void {
  *
  * See `slotTypesOf` for why the array's index is the position a player sees.
  */
+export function chairIndicesAtPosition(player: Player, position: number | 'all', slot?: ChairType): number[] {
+  if (position === 'all') {
+    return slotTypesOf(player.statecraft).flatMap((type, i) => slot === undefined || slot === type ? [i] : []);
+  }
+  const at = chairIndexAtPosition(player, position, slot);
+  return at < 0 ? [] : [at];
+}
+
 export function chairIndexAtPosition(player: Player, position: number, slot?: ChairType): number {
   if (position !== -1 && position < 1) return -1;
   const sc = player.statecraft;
@@ -956,8 +965,14 @@ export function refitSlots(
   closing: 'return' | 'reseat' = 'return',
 ): OrderId[] {
   const sc = player.statecraft;
-  const want = chairCount(state, player.id, sc.government);
-  if (want === sc.slots.length) return [];
+  const oldLayout = slotTypesOf(sc);
+  const layout = chairLayoutUnder(state, player.id, sc.government);
+  const want = layout.length;
+  if (want === oldLayout.length && layout.every((slot, index) => slot === oldLayout[index])) return [];
+  rememberChairLayout(sc, layout);
+  if (oldLayout.some((slot, index) => index < want && slot !== layout[index])) {
+    return reseatClosedChairs(state, player, want);
+  }
   if (closing === 'reseat' && want < sc.slots.length) return reseatClosedChairs(state, player, want);
   const returned: OrderId[] = [];
   while (sc.slots.length > want) {
@@ -987,6 +1002,7 @@ export function refitSlots(
   // re-seated at once by the plain rule, and what fits no chair is returned
   // with the rest.
   if (returned.length > 0) returned.push(...settleCouncilFit(state, player));
+  if (returned.some(orderOpensChairs)) returned.push(...refitSlots(state, player, 'reseat'));
   return returned;
 }
 
@@ -1007,6 +1023,7 @@ function reseatClosedChairs(state: GameState, player: Player, want: number): Ord
   const fit = chairFitFor(state, player.id);
   // The new length first, because the layout is read off the array's length.
   sc.slots = previous.slice(0, want);
+  while (sc.slots.length < want) sc.slots.push(null);
   reseatMalices(player);
   const layout = slotTypesOf(sc);
   const held = layout.map((_, index) => maliceAt(player, index) !== null);
@@ -1014,7 +1031,9 @@ function reseatClosedChairs(state: GameState, player: Player, want: number): Ord
   sc.slots = seating.slots;
   // A chair closed is a chair the meters read through (batch M3, `slate.ts`).
   bumpEconomy(state);
-  return [...seating.returned, ...settleCouncilFit(state, player)];
+  const returned = [...seating.returned, ...settleCouncilFit(state, player)];
+  if (returned.some(orderOpensChairs)) returned.push(...refitSlots(state, player, 'reseat'));
+  return returned;
 }
 
 /**
@@ -1025,8 +1044,11 @@ function reseatClosedChairs(state: GameState, player: Player, want: number): Ord
  * so a council is re-fitted only when the stones can change its size. It reads
  * the row's markers and never a building's name.
  */
+export function orderOpensChairs(id: OrderId | undefined): boolean {
+  return id !== undefined && orderDef(id).effects.some((effect) => effect.kind === 'slotRider');
+}
+
 export function buildingOpensChairs(id: BuildingId): boolean {
-  if (!oneOfAKind(id)) return false;
   return (buildingDef(id).effects ?? []).some((effect) => effect.kind === 'slotRider');
 }
 

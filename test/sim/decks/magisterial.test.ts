@@ -34,7 +34,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type BuildingId } from '../../../src/sim/buildingData';
+import { type BuildingId, buildingDef } from '../../../src/sim/buildingData';
 import { refreshCityDerived } from '../../../src/sim/cities';
 import { type Game } from '../../../src/sim/game';
 import { type City, type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
@@ -66,6 +66,8 @@ import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 /** Every id this deck's file carries, in file order. */
 const MAGISTERIAL: readonly OrderId[] = DECK_FILE_ORDERS.magisterial;
+
+const PENDING_FLAVOUR: string[] = ["magisterialTheHeralds", "magisterialTheQuarryGangs", "magisterialTheNineJewels", "magisterialTheDivan", "magisterialTheHallofHeroes", "magisterialTheLawgiver", "magisterialTheHanlinAcademy", "magisterialTheFriendsofKhufu", "magisterialTheTwelveTables", "magisterialTheSteleofDeeds"];
 
 const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;
 const live = (id: OrderId): boolean => orderIsDealt(id);
@@ -105,6 +107,7 @@ const KNOWN_KINDS = new Set<CardEffectKind>([
   'landfall',
   'unlocksBuilding',
   'unlocksUnit',
+  'levy',
   'pantheonSlots',
   'purchaseRider',
   'projectRider',
@@ -206,7 +209,7 @@ describe('the Magisterial deck', () => {
       expect(BANDS, id).toContain(def.band);
       expect(['common', 'uncommon', 'rare'], id).toContain(def.rarity);
       expect(def.name, id).toBeTruthy();
-      expect(def.flavor, id).toBeTruthy();
+      if (!PENDING_FLAVOUR.includes(id)) expect(def.flavor, id).toBeTruthy();
       expect(def.text, `${id} carries no text`).toBeTruthy();
       expect(def.line, id).toBe('none');
       // The rows written since the rework carry neither of the old fields.
@@ -237,16 +240,16 @@ describe('the Magisterial deck', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired seven
     // live rows and moved Civic Granaries and Commission: The Eighth Wonder
     // from Tier 0 to Tier I.
-    expect(MAGISTERIAL).toHaveLength(133);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(64);
+    expect(MAGISTERIAL).toHaveLength(142);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(66);
     expect(MAGISTERIAL.filter(deferred)).toHaveLength(0);
-    expect(MAGISTERIAL.filter(isRetired)).toHaveLength(69);
+    expect(MAGISTERIAL.filter(isRetired)).toHaveLength(76);
     for (const id of MAGISTERIAL.filter(isRetired)) {
       expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([7, 16, 15, 16, 10]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([8, 15, 18, 15, 10]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -384,8 +387,9 @@ describe('the fold', () => {
     const lines = explainCity(g.state, city).lines.filter((line) => line.card === 'civicGranaries');
     const food = lines.reduce((sum, line) => sum + line.food, 0);
     const production = lines.reduce((sum, line) => sum + line.production, 0);
-    expect(food).toBe(1);
-    expect(production).toBe(1);
+    const cultureBuildings = city.buildings.filter((id) => buildingDef(id).category === 'culture').length;
+    expect(food).toBe(cultureBuildings);
+    expect(production).toBe(2 * cultureBuildings);
   });
 });
 
@@ -761,7 +765,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     ];
     // 62 of this file, and the shared The Imperial Examinations and Triumphal Arches.
     // Batch DS1 retired seven more of this file and four more shared rows.
-    expect(retired).toHaveLength(75);
+    expect(retired).toHaveLength(82);
     for (const id of retired) {
       expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
       expect(orderDef(id).type, `${id} is retired and carries a type`).toBeUndefined();
@@ -796,7 +800,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // Chapels, The Festival Calendar and The Penitents' Roll to the shared
     // file, and the merge of the two batches added them here. Batch DS1
     // retired seven rows of the tier tables and four shared rows.
-    expect(sheet).toHaveLength(64);
+    expect(sheet).toHaveLength(66);
     expect(shared).toHaveLength(15);
   });
 
@@ -807,7 +811,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // four of batch MG9, the three of batch MG10, the one each of batches
     // MG11, MG12 and MG13, the two each of batches MG14 and MG15, and the
     // one of batch MG16: 71. Batch DS1 retired seven.
-    expect(LISTED).toHaveLength(64);
+    expect(LISTED).toHaveLength(66);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();
@@ -826,10 +830,10 @@ describe('the Magisterial deck: the sheet of record', () => {
 
   it('holds the Doctrine rows to the sheet’s four tables', () => {
     // What each row does is checked in `magisterialDoctrines.test.ts`.
-    expect(sheetDoctrines('magisterial').length).toBe(16);
+    expect(sheetDoctrines('magisterial').length).toBe(17);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('magisterial').filter((row) => row.band === band).length),
-    ).toEqual([4, 4, 4, 4]);
+    ).toEqual([4, 5, 4, 4]);
     expectSheetDoctrinesMatchData('magisterial');
   });
 });

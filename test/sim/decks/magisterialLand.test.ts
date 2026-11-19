@@ -179,19 +179,19 @@ describe('Magisterial batch MG9: the rows', () => {
     );
     expect(orderDef(ENVIOUS).effects).toEqual([{ kind: 'rule', rule: 'wonderHammersMoveOn' }]);
     expect(orderDef(IDEAL).text).toBe(
-      'Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production.',
+      'Goal: have one town hold two wonders and work two great-person works. Reward: that town\'s culture, science and production are doubled.',
     );
     expect(orderDef(IDEAL).effects).toEqual([]);
     const scope = { test: 'markedBy', card: IDEAL };
     expect(orderDef(IDEAL).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'oneTownWorksWorked', count: 3, wondersAtLeast: 2 }],
+      goals: [{ kind: 'reached', figure: 'oneTownWorksWorked', count: 2, wondersAtLeast: 2 }],
       reward: [
         { markTown: true },
         {
           lasting: [
-            { kind: 'percentYields', yield: 'culture', percent: 25, scope },
-            { kind: 'percentYields', yield: 'science', percent: 25, scope },
-            { kind: 'percentYields', yield: 'production', percent: 25, scope },
+            { kind: 'percentYields', yield: 'culture', percent: 100, scope },
+            { kind: 'percentYields', yield: 'science', percent: 100, scope },
+            { kind: 'percentYields', yield: 'production', percent: 100, scope },
           ],
         },
       ],
@@ -424,7 +424,7 @@ describe('Commission: The Ideal City (reading 33)', () => {
     expect(commissionGoalTown(state, 0, IDEAL)).toBe(first);
   });
 
-  it('marks that town and raises its culture, science and production by a quarter for good', () => {
+  it('marks that town and raises its culture, science and production by their full yield for good', () => {
     const state = bareState(20, 10);
     const capital = town(state, 4, 5);
     const other = town(state, 12, 5);
@@ -447,7 +447,7 @@ describe('Commission: The Ideal City (reading 33)', () => {
       }
       return out;
     };
-    expect(lift(other)).toEqual({ culture: 25, science: 25, production: 25 });
+    expect(lift(other)).toEqual({ culture: 100, science: 100, production: 100 });
     expect(lift(capital)).toEqual({});
   });
 });

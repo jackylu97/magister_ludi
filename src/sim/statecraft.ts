@@ -94,6 +94,7 @@ export {
   // the town that would be the second.
   cardCapitalIds,
   secondCapitalCity,
+  countsWondersForChairs,
   cardExtraChairs,
   chairReadingsAt,
   chairsActedOn,
@@ -457,8 +458,10 @@ export {
   maliceChairRefusal,
   // Bot pass 3, batch BP2: the card half of `slotOrderError`.
   neverSeatedError,
+  chairIndicesAtPosition,
   orderAtSlotPosition,
   orderFitsSlotFor,
+  orderOpensChairs,
   refitSlots,
   reseatCouncil,
   reseatMalices,

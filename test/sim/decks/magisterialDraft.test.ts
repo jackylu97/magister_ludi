@@ -122,12 +122,13 @@ describe('Magisterial batch MG5: the rows', () => {
     const pool = ordersForDecks(['magisterial']);
     for (const [id, band, rarity, type] of MG5_ROWS) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
-      expect(pool, id).toContain(id);
+      const retired = id === OPEN_DOOR || id === CHAPTER;
+      expect(orderIsDealt(id), id).toBe(!retired);
+      expect(pool.includes(id), id).toBe(!retired);
       expect(def.decks, id).toEqual(['magisterial']);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.deferred, id).toBeUndefined();
     }
   });

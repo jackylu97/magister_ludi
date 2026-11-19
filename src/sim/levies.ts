@@ -54,6 +54,7 @@
 import {
   type WonderCompletion,
   growthThreshold,
+  buildingProductionCost,
   loseCitizen,
   payOccasionRiders,
   realiseItem,
@@ -177,7 +178,11 @@ export function levyGrantFor(
 ): LevyGrant | undefined {
   const rows = cardLevyGrants(state, playerId, city).filter((row) => row.use === use);
   let best: LevyGrant | undefined;
+  const front = city.queue[0];
+  const localWonder = front?.kind === 'building' && isBuildingId(front.id) && isWonder(front.id);
   for (const row of rows) {
+    if (row.percentOfCost !== undefined && !localWonder) continue;
+    if (row.percentOfCost !== undefined && city.population >= floorOf(row)) return row;
     if (city.population < floorOf(row)) continue;
     if (best === undefined || rankWeight(row) > rankWeight(best)) best = row;
   }
@@ -303,8 +308,16 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
       return { ...none, hammers: levyHammers(city), target: city };
     case 'opus':
       return { ...none, hammers: levyHammers(city), target: opusWorkshop(state, city.ownerId, city) };
-    case 'wonder':
+    case 'wonder': {
+      const grant = levyGrantFor(state, city.ownerId, city, use);
+      if (grant?.percentOfCost !== undefined) {
+        const front = city.queue[0];
+        if (front?.kind !== 'building' || !isBuildingId(front.id) || !isWonder(front.id)) return none;
+        const cost = buildingProductionCost(front.id, state, city.ownerId);
+        return { ...none, hammers: Math.floor(cost * grant.percentOfCost / 100), target: city };
+      }
       return { ...none, hammers: levyHammers(city), target: wonderWorkshop(state, city.ownerId, city) };
+    }
     // What the rite pays lands in every town and the command names which rite,
     // so there is no figure to read off this town.
     case 'rite':
@@ -326,14 +339,14 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
 }
 
 /** The menu line's words for a use. */
-function labelFor(use: LevyUse, plan: LevyPlan): string {
+function labelFor(use: LevyUse, plan: LevyPlan, city: City): string {
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
   if (use === 'rite') return 'Perform a rite across your empire';
   if (use === 'wonder') {
     const front = plan.target?.queue[0];
     return front && front.kind === 'building' && isBuildingId(front.id)
-      ? `Send to ${buildingDef(front.id).name}`
+      ? `${plan.target?.id === city.id ? 'Build' : 'Send to'} ${buildingDef(front.id).name}`
       : 'Send to a world wonder';
   }
   return plan.unit === null ? 'Raise a unit' : `Raise ${unitDef(plan.unit).name}`;
@@ -413,7 +426,7 @@ function grantError(state: GameState, city: City, grant: LevyGrant): string | nu
     return 'None of your other towns is building the Magnum Opus';
   }
   if (grant.use === 'wonder' && plan.target === null) {
-    return 'None of your other towns is building a world wonder';
+    return grant.percentOfCost !== undefined ? 'This town must be building a world wonder' : 'None of your other towns is building a world wonder';
   }
   const raises =
     grant.use === 'muster' ||
@@ -461,7 +474,7 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       use,
       card: grant.card,
       cardName: anyCardDef(grant.card).name,
-      label: labelFor(use, plan),
+      label: labelFor(use, plan, city),
       hammers: plan.hammers,
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,

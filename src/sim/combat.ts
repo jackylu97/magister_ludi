@@ -3519,7 +3519,7 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   // did not choose to lose the chair, so its council is seated again as an
   // adoption seats it (`refitSlots`' `'reseat'`): a card that fits no free chair
   // returns to the collection with its progress. The gainer's council only grows.
-  if (city.buildings.some(buildingOpensChairs)) {
+  if (city.buildings.some((id) => isWonder(id) || buildingOpensChairs(id))) {
     const gainer = playerById(state, ownerId);
     if (gainer !== undefined) refitSlots(state, gainer);
     const old = playerById(state, loser);

@@ -11531,11 +11531,11 @@ describe("D2b — counts and reach", () => {
       })
         .filter((line) => line.card === "theLearnedPatron")
         .reduce((sum, line) => sum + line.science, 0);
-    expect(beakers(40)).toBe(6);
+    expect(beakers(40)).toBe(12);
     // Batch DS7 removed The Learned Patron's cap of 18 a town, so the share
     // grows with the culture: 120 culture pays 18 and 400 pays 60.
-    expect(beakers(120)).toBe(18);
-    expect(beakers(400)).toBe(60);
+    expect(beakers(120)).toBe(36);
+    expect(beakers(400)).toBe(120);
     // And the scope is still what admits the town at all.
     city.buildings.length = 0;
     bumpRevision(g.state);

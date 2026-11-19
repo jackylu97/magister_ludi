@@ -1755,6 +1755,7 @@ export type CombatCondition =
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
+  | 'greatPeopleGained'
   | 'cities'
   | 'adjacentFriendlies'
   /**
@@ -2232,7 +2233,7 @@ export type TileCondition =
    * neighbour's worth is not this hex's, and `yields` asked of a neighbour
    * answers no for the same reason a bare caller's does.
    */
-  | { test: 'beside'; of: TileCondition }
+  | { test: 'beside'; of: TileCondition; atLeast?: number }
   /**
    * Every one of these holds. `CityScope`'s composite, one scale down, and here
    * for its reason: a wooded tundra and a mine standing on a luxury are single
@@ -3531,6 +3532,8 @@ export const WORLD_FIRST_KINDS: readonly FirstKind[] = ['techWorld'];
  * nonsense to count. Two vocabularies, each closed, each read in one place.
  */
 export type TallyOccasion =
+  | 'orderGained'
+  | 'greatPersonGained'
   /** A barbarian unit killed in battle — The Ballad-Weavers. */
   | 'barbarianKill'
   /**
@@ -3793,6 +3796,8 @@ export type TallyOccasion =
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
+  'orderGained',
+  'greatPersonGained',
   'barbarianKill',
   'wonderAnywhere',
   'greatPersonSpent',
@@ -6250,7 +6255,7 @@ export interface WindfallGrantSpec {
    * the town nearest the occasion. Every unit a grant raises is free: it costs
    * no upkeep (the triage's reading 2).
    */
-  unit?: 'randomMilitary' | 'bestMelee' | 'unlockedByTech';
+  unit?: 'randomMilitary' | 'bestRanged' | 'bestMelee' | 'unlockedByTech';
   /**
    * **Every one of this empire's pieces is healed whole** — The Empire's "taking
    * a city with a wonder in it heals all your units".
@@ -6891,6 +6896,7 @@ export interface CardPaysEffect extends CardYieldBag {
    * watching, rather than a guard that would quietly count everything.
    */
   tally?: TallyOccasion;
+  alsoTallies?: TallyOccasion[];
   // There was a `minTreasury` field here: the least treasury a moment had to
   // carry to be counted. The Strongbox's 300 gold was its only row, and batch
   // R1 made the card count purchases with gold instead, so the field went.
@@ -8508,6 +8514,10 @@ interface CardRouteRiderEffect {
  */
 interface CardSlotRiderEffect {
   kind: 'slotRider';
+  slot?: ChairType;
+  count?: 'wonders';
+  per?: number;
+  max?: number;
   /**
    * How many extra chairs. Absent means one. A negative figure takes chairs away
    * (batch DT11, Scutage): the last ones go first, and `chairCount` never goes
@@ -9228,6 +9238,7 @@ export const LEVY_USES: readonly LevyUse[] = [
  * so the refusal names the smallest town that would do.
  */
 export interface CardLevyEffect {
+  percentOfCost?: number;
   kind: 'levy';
   use?: LevyUse;
   /** Smallest town that may levy for this use. Never below the rule's minimum. */
@@ -10191,7 +10202,7 @@ interface CardSlotPositionEffect {
    * Which chair of that flavour, counting from one, in slot order. -1 is the
    * last chair of the flavour, so it moves when another card opens a chair.
    */
-  position: number;
+  position: number | 'all';
   /** What that Order's lines are multiplied by. 2 pays twice. */
   factor: number;
   /** Read the whole card again, not only its flat lines. See above. */
@@ -10837,6 +10848,7 @@ export type OnDraftGrant =
   | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
   | OnDraftForeignCard
+  | { grant: 'doctrineOffer' }
   | { grant: 'completeQueues' };
 
 /** The number of units an on-draft grant attempts to raise. */
@@ -11019,6 +11031,7 @@ export type CommissionFigure =
    * work does not matter, so a partner deck's work counts, and a work does
    * not have to be worked. Measured by `workFamiliesHeld` (`commissions.ts`).
    */
+  | 'worksHeld'
   | 'workFamilies'
   /**
    * **The most great-person works one town works, among the towns that hold
@@ -11070,6 +11083,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradePartnerEmpires',
   'ordersHeld',
   'councilInOrder',
+  'worksHeld',
   'workFamilies',
   'oneTownWorksWorked',
   'worksBesideWork',

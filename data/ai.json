@@ -267,6 +267,8 @@
       "techCompleted": 15,
       "charterTechCompleted": 1,
       "wonderCompleted": 2,
+      "orderGained": 20,
+      "greatPersonGained": 5,
       "sizeRecord": 10
     },
     "commission": {
