@@ -586,6 +586,7 @@ export interface PlayerStatecraft {
    * Always present, never optional — `orderSkips`' rule.
    */
   rerollsTaken: number;
+  freeRerolls?: number;
   /**
    * **What each growing card has watched happen** — the counters the scaling
    * family reads (`docs/history/doctrine-ideas.md`, ruled 2026-09-04).

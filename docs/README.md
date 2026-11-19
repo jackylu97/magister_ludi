@@ -389,9 +389,7 @@ Reference: **`docs/units.md`** (the roster; generated) and
      the movement to reach a hex beyond it; `canTransit` admits it, `canStopOn`
      refuses it, and the pass costs the ground and nothing more. A hostile piece
      blocks as it always did, and the wild is at war with everybody.
-  2. **Zone of control is a war toll.** `zocField` counts only the pieces, towns
-     and (under the Great Wall) borders of seats this empire is at war with. A
-     neighbour at peace exerts none.
+  2. **Zone of control** adds a movement cost near hostile units and cities. The Great Wall reduces an enemy’s movement allowance when it starts a turn in the owner’s territory.
   3. **The swap.** A military piece ordered onto a hex holding one of its own
      seat's military pieces trades places with it: the mover walks its route, the
      sitter walks the reverse, and the order is accepted only if **both** walks

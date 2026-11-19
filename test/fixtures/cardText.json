@@ -10791,16 +10791,16 @@
   "armoury": [],
   "theOracle": [
    {
-    "raw": "+1 faith in every city with [[wonder:theOracle|The Oracle]]",
-    "text": "+1 faith in every city with The Oracle"
-   },
-   {
     "raw": "+1 card in every Order hand",
     "text": "+1 card in every Order hand"
    },
    {
     "raw": "+1 card in every Doctrine draft",
     "text": "+1 card in every Doctrine draft"
+   },
+   {
+    "raw": "+3 renown per turn",
+    "text": "+3 renown per turn"
    }
   ],
   "stonehenge": [
@@ -10821,6 +10821,10 @@
    {
     "raw": "newly created workers gain +1 charge",
     "text": "newly created workers gain +1 charge"
+   },
+   {
+    "raw": "+20% production toward wonders",
+    "text": "+20% production toward wonders"
    }
   ],
   "hangingGardens": [
@@ -10835,12 +10839,12 @@
   ],
   "wallsOfUruk": [
    {
-    "raw": "your capital: +10 city defence",
-    "text": "your capital: +10 city defence"
+    "raw": "every city with [[wonder:wallsOfUruk|The Walls of Uruk]]: +10 city defence",
+    "text": "every city with The Walls of Uruk: +10 city defence"
    },
    {
-    "raw": "+4 combat strength inside your capital’s borders",
-    "text": "+4 combat strength inside your capital’s borders"
+    "raw": "+2 combat strength inside your territory",
+    "text": "+2 combat strength inside your territory"
    },
    {
     "raw": "+2 authority capacity",
@@ -10849,30 +10853,26 @@
   ],
   "greatZiggurat": [
    {
-    "raw": "religious units cost −25% to buy",
-    "text": "religious units cost −25% to buy"
+    "raw": "+2 science in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 science in every city with a Shrine"
    },
    {
-    "raw": "+1 science in every city with a [[building:shrine|Shrine]]",
-    "text": "+1 science in every city with a Shrine"
+    "raw": "rites cost 30% less faith, in every city with [[wonder:greatZiggurat|The Great Ziggurat]]",
+    "text": "rites cost 30% less faith, in every city with The Great Ziggurat"
    }
   ],
   "greatLighthouse": [
-   {
-    "raw": "all units: +1 movement while embarked",
-    "text": "all units: +1 movement while embarked"
-   },
    {
     "raw": "+1 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
     "text": "+1 gold on every hex with a Fishing Boat"
    },
    {
-    "raw": "every coastal city: +1 city sight",
-    "text": "every coastal city: +1 city sight"
+    "raw": "+3 combat strength for ships",
+    "text": "+3 combat strength for ships"
    },
    {
-    "raw": "+1 trade route",
-    "text": "+1 trade route"
+    "raw": "ships: +1 movement",
+    "text": "ships: +1 movement"
    }
   ],
   "templeOfArtemis": [
@@ -10885,18 +10885,18 @@
     "text": "+1 food on every hex with a Pasture"
    },
    {
-    "raw": "+1 happiness per improved bonus resource in this city (at most +4 happiness)",
-    "text": "+1 happiness per improved bonus resource in this city (at most +4 happiness)"
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
    }
   ],
   "greatLibrary": [
    {
-    "raw": "+1 science in every city with a [[building:library|Library]]",
-    "text": "+1 science in every city with a Library"
+    "raw": "+2 science on every hex with an [[improvement:academy|Academy]], for each great scholar you have gained this game",
+    "text": "+2 science on every hex with an Academy, for each great scholar you have gained this game"
    },
    {
-    "raw": "on completion, the technology you are researching is finished",
-    "text": "on completion, the technology you are researching is finished"
+    "raw": "on completion, a great person of the scholars is offered",
+    "text": "on completion, a great person of the scholars is offered"
    }
   ],
   "colossus": [
@@ -10907,18 +10907,18 @@
   ],
   "petra": [
    {
-    "raw": "+1 food, +1 production on every desert hex, in every city with [[wonder:petra|Petra]]",
-    "text": "+1 food, +1 production on every desert hex, in every city with Petra"
+    "raw": "+1 food, +1 production on every desert hex",
+    "text": "+1 food, +1 production on every desert hex"
    },
    {
-    "raw": "+1 gold on every floodplain hex, in every city with [[wonder:petra|Petra]]",
-    "text": "+1 gold on every floodplain hex, in every city with Petra"
+    "raw": "+1 gold on every floodplain hex",
+    "text": "+1 gold on every floodplain hex"
    }
   ],
   "circusMaximus": [
    {
-    "raw": "+1 happiness per [[building:barracks|Barracks]]",
-    "text": "+1 happiness per Barracks"
+    "raw": "+1 happiness per military building",
+    "text": "+1 happiness per military building"
    },
    {
     "raw": "+4 happiness",
@@ -10941,12 +10941,16 @@
   ],
   "greatWall": [
    {
-    "raw": "every hex you own exerts zone of control on enemy units, as a unit of yours would",
-    "text": "every hex you own exerts zone of control on enemy units, as a unit of yours would"
+    "raw": "every city: +5 city defence",
+    "text": "every city: +5 city defence"
    },
    {
-    "raw": "this city: +10 city defence",
-    "text": "this city: +10 city defence"
+    "raw": "every city: +25 maximum city hit points",
+    "text": "every city: +25 maximum city hit points"
+   },
+   {
+    "raw": "enemy units in your territory have -1 movement, to a minimum of one",
+    "text": "enemy units in your territory have -1 movement, to a minimum of one"
    }
   ],
   "theatreOfDionysus": [
@@ -10965,22 +10969,22 @@
   ],
   "mausoleum": [
    {
-    "raw": "+1 gold per building in this city",
-    "text": "+1 gold per building in this city"
-   },
-   {
-    "raw": "+1 gold on every hex with a [[improvement:quarry|Quarry]]",
-    "text": "+1 gold on every hex with a Quarry"
-   },
-   {
-    "raw": "+2 authority capacity",
-    "text": "+2 authority capacity"
+    "raw": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "text": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
   "statueOfZeus": [
    {
-    "raw": "+15% combat strength for all units against cities",
-    "text": "+15% combat strength for all units against cities"
+    "raw": "+4 combat strength when attacking cities",
+    "text": "+4 combat strength when attacking cities"
+   },
+   {
+    "raw": "on completion, the best melee unit you can build joins you",
+    "text": "on completion, the best melee unit you can build joins you"
+   },
+   {
+    "raw": "on completion, the best melee unit you can build joins you",
+    "text": "on completion, the best melee unit you can build joins you"
    },
    {
     "raw": "on completion, the best melee unit you can build joins you",
@@ -10993,8 +10997,8 @@
     "text": "rites last +50% longer"
    },
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
+    "raw": "+2 happiness and +20% culture in every city while it is keeping a rite",
+    "text": "+2 happiness and +20% culture in every city while it is keeping a rite"
    }
   ],
   "hagiaSophia": [
@@ -11013,12 +11017,12 @@
   ],
   "angkorWat": [
    {
-    "raw": "+1 faith per 2 hexes worked here",
-    "text": "+1 faith per 2 hexes worked here"
+    "raw": "+1 faith on every improved hex carrying a resource",
+    "text": "+1 faith on every improved hex carrying a resource"
    },
    {
-    "raw": "a hex costs 25% less to buy",
-    "text": "a hex costs 25% less to buy"
+    "raw": "+3 faith on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 faith on every hex with a Holy Site"
    }
   ],
   "greatMosqueOfDjenne": [
@@ -11037,12 +11041,8 @@
   ],
   "notreDame": [
    {
-    "raw": "+1 happiness per [[building:temple|Temple]]",
-    "text": "+1 happiness per Temple"
-   },
-   {
-    "raw": "+3 culture and +1 happiness in every city with a [[building:cathedral|Cathedral]]",
-    "text": "+3 culture and +1 happiness in every city with a Cathedral"
+    "raw": "+1 happiness per building in your cities that [[concept:supplies|supplies]] faith",
+    "text": "+1 happiness per building in your cities that supplies faith"
    }
   ],
   "houseOfWisdom": [
@@ -11067,23 +11067,18 @@
   ],
   "alhambra": [
    {
-    "raw": "+4 combat strength for mounted units",
-    "text": "+4 combat strength for mounted units"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    },
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
-   },
-   {
-    "raw": "units raised here begin dug in, as if they had already fortified — not built yet",
-    "text": "units raised here begin dug in, as if they had already fortified — not built yet",
-    "deferred": true
+    "raw": "on completion, a great person of the generals is offered",
+    "text": "on completion, a great person of the generals is offered"
    }
   ],
   "machuPicchu": [
    {
-    "raw": "+25% gold in every city with [[wonder:machuPicchu|Machu Picchu]]",
-    "text": "+25% gold in every city with Machu Picchu"
+    "raw": "+1 gold on every hex beside a mountain, once for each mountain",
+    "text": "+1 gold on every hex beside a mountain, once for each mountain"
    }
   ],
   "waterClockOfSuSong": [
@@ -11550,6 +11545,78 @@
    {
     "raw": "+2 science per building in this city that [[concept:supplies|supplies]] faith, while it is keeping a rite",
     "text": "+2 science per building in this city that supplies faith, while it is keeping a rite"
+   }
+  ],
+  "greatSphinx": [
+   {
+    "raw": "+1 culture per building in your cities that [[concept:supplies|supplies]] faith",
+    "text": "+1 culture per building in your cities that supplies faith"
+   },
+   {
+    "raw": "on completion, gain 5 free draft rerolls",
+    "text": "on completion, gain 5 free draft rerolls"
+   }
+  ],
+  "templeOfThoth": [
+   {
+    "raw": "50% of the faith in every city with [[wonder:templeOfThoth|The Temple of Thoth]] is gained again as science",
+    "text": "50% of the faith in every city with The Temple of Thoth is gained again as science"
+   }
+  ],
+  "pyramidOfTheSun": [
+   {
+    "raw": "a city with [[wonder:pyramidOfTheSun|The Pyramid of the Sun]] may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)",
+    "text": "a city with The Pyramid of the Sun may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)"
+   },
+   {
+    "raw": "+2 culture on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 culture on every hex with a Holy Site"
+   }
+  ],
+  "solomonsTemple": [
+   {
+    "raw": "+1 card in every great-person offer",
+    "text": "+1 card in every great-person offer"
+   },
+   {
+    "raw": "great people cost 10% less renown",
+    "text": "great people cost 10% less renown"
+   }
+  ],
+  "ironPillar": [
+   {
+    "raw": "your production buildings pay +50%",
+    "text": "your production buildings pay +50%"
+   },
+   {
+    "raw": "+1 production on every hex carrying a strategic resource",
+    "text": "+1 production on every hex carrying a strategic resource"
+   }
+  ],
+  "libraryOfAshurbanipal": [
+   {
+    "raw": "+5 renown per turn in every captured city, favouring scholars",
+    "text": "+5 renown per turn in every captured city, favouring scholars"
+   },
+   {
+    "raw": "+15 renown per turn in every captured city containing a wonder, favouring scholars",
+    "text": "+15 renown per turn in every captured city containing a wonder, favouring scholars"
+   }
+  ],
+  "weiyangPalace": [
+   {
+    "raw": "+25% production toward buildings, in your capital",
+    "text": "+25% production toward buildings, in your capital"
+   },
+   {
+    "raw": "+1 culture per building in this city, your capital",
+    "text": "+1 culture per building in this city, your capital"
+   }
+  ],
+  "greatStelaeOfAksum": [
+   {
+    "raw": "+2 culture, +2 faith on every trade route you send",
+    "text": "+2 culture, +2 faith on every trade route you send"
    }
   ]
  },

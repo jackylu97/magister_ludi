@@ -2590,6 +2590,10 @@ function describeEffect(
       const who =
         (effect.class ? filterWords(effect.class) : 'all units') +
         (effect.rank === undefined ? '' : ` that are ${rankOrBetter(effect.rank)}`);
+      if (effect.enemyOccupant) {
+        out.push({ text: `enemy units in your territory have ${signed(effect.amount)} movement, to a minimum of one` });
+        return;
+      }
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = effect.amount;
       if (effect.stat === 'combatPercent') {
@@ -3652,7 +3656,7 @@ function describeEffect(
       return;
     }
     case 'cityStat': {
-      const stat = effect.stat === 'defense' ? 'city defence' : 'city sight';
+      const stat = effect.stat === 'defense' ? 'city defence' : effect.stat === 'hp' ? 'maximum city hit points' : 'city sight';
       // **What buys one helping**, where the row is counted — Siegecraft's
       // citizens on the walls. The count's own noun, the same table a `pays`
       // count prints through, so one card counting townsfolk for hammers and
@@ -4381,6 +4385,9 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
       case 'wonder':
         what = `${food}, paid to your nearest other town building a world wonder`;
         break;
+      case 'faith':
+        what = `${effect.faithPerCitizen} faith per citizen before the levy`;
+        break;
       case 'rite':
         what = riteWords;
         break;
@@ -4589,6 +4596,7 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
  * same seven arms.
  */
 export function grantWords(grant: CompletionGrant, when = 'on completion'): string {
+  if (grant.grant === 'freeRerolls') return `${when}, gain ${grant.amount} free draft rerolls`;
   if (grant.grant === 'tech') return `${when}, the technology you are researching is finished`;
   if (grant.grant === 'doctrineDraft') return `${when}, a Doctrine draft opens`;
   if (grant.grant === 'bead') return `${when}, a glass bead is yours`;

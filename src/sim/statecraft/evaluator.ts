@@ -17,6 +17,7 @@
  * evaluation moved. The parity fixtures are the gate.
  */
 
+import { atWar } from '../wars';
 import {
   bestMeleeFor,
   capitalCityOf,
@@ -2581,12 +2582,12 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
  * disagreeing about what a culture house is. The shelf is
  * `BuildingDef.category`, the one word every row declares.
  */
-function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingCategory): number {
+function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingCategory, excludeWonders = false): number {
   let here = 0;
   // What the town holds (`townBuildings`, Expansionist batch E12), so a
   // building a card grants counts on its shelf.
   for (const id of townBuildings(state, city)) {
-    if (buildingDef(id).category === category) here += 1;
+    if ((!excludeWonders || !isWonder(id)) && buildingDef(id).category === category) here += 1;
   }
   return here;
 }
@@ -3801,12 +3802,12 @@ export function countOf(
         // Through the one walk, which `CityScope`'s own `buildingsOfCategory`
         // also asks — see `buildingsOfCategoryIn`.
         if (!city) return 0;
-        return buildingsOfCategoryIn(state, city, wanted);
+        return buildingsOfCategoryIn(state, city, wanted, effect.excludeWonders);
       }
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        total += buildingsOfCategoryIn(state, town, wanted);
+        total += buildingsOfCategoryIn(state, town, wanted, effect.excludeWonders);
       }
       return total;
     }
@@ -6954,9 +6955,11 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
   // added by `scopedCardTileLines` from `cityContext`, which does. So are the
   // counted ones, which `hexRows` leaves out for the same reason.
-  const found = hexRows(pickKind(liveEffects(state, playerId), 'pays')).filter(
-    ({ effect }) => effect.scope === undefined,
-  );
+  const rows = pickKind(liveEffects(state, playerId), 'pays');
+  const found = [
+    ...hexRows(rows).filter(({ effect }) => effect.scope === undefined),
+    ...countedHexRows(state, playerId, undefined, rows, []),
+  ];
   const lines = tileLinesFrom(found);
   // The additive amplifier reaching the **ground** — the user's own reason for
   // additive being the default ("so it stacks with '+1 food on each resource
@@ -7086,7 +7089,7 @@ export function scopedCardTileLines(
       )
       // Labelled with where it landed, exactly as a scoped town `pays` line is.
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
-    ...countedHexRows(state, city, rows, hypothetical),
+    ...countedHexRows(state, city.ownerId, city, rows, hypothetical),
   ];
   // The rises of a tier-26 government (batch G1). A counted row reaches them as
   // the flat row this town pays, so the rise is taken of what the town counts.
@@ -7117,16 +7120,19 @@ function scaleTileYieldLine(line: CardTileLine, amplifier: YieldAmplifier): Card
  */
 function countedHexRows(
   state: GameState,
-  city: City,
+  playerId: number,
+  city: City | undefined,
   rows: readonly { source: string; card: CardId; effect: CardPaysEffect }[],
   hypothetical: readonly BuildingId[],
 ): { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] {
-  const counted = hypothetical.length === 0 ? city : { ...city, buildings: [...city.buildings, ...hypothetical] };
+  const counted = !city || hypothetical.length === 0 ? city : { ...city, buildings: [...city.buildings, ...hypothetical] };
   const out: { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] = [];
   for (const { source, card, effect } of rows) {
     if (effect.where !== 'hex' || effect.on === undefined || basisOf(effect) !== 'count') continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const times = helpings(countOf(state, city.ownerId, card, effect, counted), effect.per, effect.max);
+    const needsCity = effect.within !== 'empire' || effect.scope !== undefined;
+    if (needsCity !== (city !== undefined)) continue;
+    if (city && !cityScopeAdmits(state, city, effect.scope)) continue;
+    const times = helpings(countOf(state, playerId, card, effect, counted), effect.per, effect.max);
     if (times === 0) continue;
     const paid: CardPaysEffect & { on: TileCondition } = { ...effect, on: effect.on };
     for (const voice of VOICES) {
@@ -9481,10 +9487,19 @@ export function cardUnitStat(
   state: GameState,
   unit: Unit,
   stat: 'movement' | 'sight' | 'heal' | 'range',
+  groundOwner?: number | null,
 ): number {
   let total = 0;
+  if (stat === 'movement') {
+    const owner = groundOwner === undefined ? tileOwnerPlayerId(state, unit.col, unit.row) : groundOwner;
+    if (owner !== null && atWar(state, owner, unit.ownerId)) {
+      for (const { effect } of effectsOfKind(state, owner, 'unitStat')) {
+        if (effect.enemyOccupant && effect.stat === stat && unitMatches(unit.type, effect.class)) total += effect.amount;
+      }
+    }
+  }
   for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
-    if (effect.stat !== stat) continue;
+    if (effect.enemyOccupant || effect.stat !== stat) continue;
     if (!unitMatches(unit.type, effect.class)) continue;
     // The Keshik's Veterans and Elites (Dominion batch D2): a fact about the
     // piece in hand, so it is read here and in `cardCombatPercent`, and a row
@@ -9833,7 +9848,7 @@ export interface CardCityStatLine {
 export function cardCityStat(
   state: GameState,
   city: City,
-  stat: 'defense' | 'sight',
+  stat: 'defense' | 'sight' | 'hp',
 ): CardCityStatLine[] {
   const list: CardCityStatLine[] = [];
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityStat')) {
@@ -11719,6 +11734,7 @@ function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
 
 /** One row of this empire's law that lets a levy buy something. See `cardLevyGrants`. */
 export interface LevyGrant {
+  faithPerCitizen?: number;
   use: LevyUse;
   card: CardId;
   source: string;
@@ -11750,6 +11766,7 @@ export function cardLevyGrants(state: GameState, playerId: number, city: City): 
       continue;
     }
     const grant: LevyGrant = { use, card, source };
+    if (effect.faithPerCitizen !== undefined) grant.faithPerCitizen = effect.faithPerCitizen;
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
     if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
     if (effect.rank !== undefined) grant.rank = effect.rank;

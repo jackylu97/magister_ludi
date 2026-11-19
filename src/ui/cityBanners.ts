@@ -675,8 +675,8 @@ export function healthBar(hp: number, max: number, breached: boolean): HealthBar
  * against the base would report a town with stone walls as wounded the day it
  * finished them.
  */
-export function cityHealthBar(city: City): HealthBar | null {
-  return healthBar(city.hp, cityMaxHp(city), cityBeatenDown(city));
+export function cityHealthBar(city: City, state?: GameState): HealthBar | null {
+  return healthBar(city.hp, cityMaxHp(city, city, state), cityBeatenDown(city));
 }
 
 // --- the garrison row -------------------------------------------------------
@@ -868,7 +868,7 @@ function watchedFacts(
     // about a thing this seat is watching, exactly like the size figure, and
     // the board already draws the same bar over every hurt piece it can see
     // whoever owns it. See "The wound on the foot".
-    health: cityHealthBar(city),
+    health: cityHealthBar(city, state),
     // On this side of the gate for the wound's reason exactly — a garrison is a
     // thing this seat is watching. See "The garrison row".
     garrison: garrisonRow(state, garrison, seat, selectedUnitId),

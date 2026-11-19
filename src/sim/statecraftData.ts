@@ -6657,6 +6657,7 @@ type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * reader never has to ask what a blank meant.
  */
 export interface CardPaysEffect extends CardYieldBag {
+  excludeWonders?: boolean;
   kind: 'pays';
   /** The town, the capital, the hex, the empire, or the road. Required. */
   where: PayWhere;
@@ -6916,7 +6917,7 @@ export interface CardPaysEffect extends CardYieldBag {
    * ground, not which sweep. The city-scoped counts (`garrison`, `workedHills`,
    * the rest) already answer per town and ignore this.
    */
-  within?: 'city';
+  within?: 'city' | 'empire';
   /**
    * **Which bank paid** — narrows `purchasedBuildings` to buildings bought
    * with gold (The Waqf, Bought and Paid For) or with faith. Absent counts
@@ -7533,6 +7534,7 @@ export interface CardCombatLineEffect {
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */
 interface CardUnitStatEffect {
+  enemyOccupant?: boolean;
   kind: 'unitStat';
   stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent';
   amount: number;
@@ -8878,7 +8880,7 @@ export type CardFlagRuleId = ActionRuleId | BehaviorRuleId | CityRuleId | ZocRul
  * they see. */
 export interface CardCityStatEffect {
   kind: 'cityStat';
-  stat: 'defense' | 'sight';
+  stat: 'defense' | 'sight' | 'hp';
   amount: number;
   scope?: CityScope;
   /**
@@ -9180,6 +9182,7 @@ export type LevyUse =
   | 'worker'
   | 'settler'
   | 'wonder'
+  | 'faith'
   | 'rite';
 
 /** Every levy use, in the order the city panel lists them. */
@@ -9191,6 +9194,7 @@ export const LEVY_USES: readonly LevyUse[] = [
   'worker',
   'settler',
   'wonder',
+  'faith',
   'rite',
 ];
 
@@ -9230,6 +9234,7 @@ export const LEVY_USES: readonly LevyUse[] = [
 export interface CardLevyEffect {
   kind: 'levy';
   use?: LevyUse;
+  faithPerCitizen?: number;
   /** Smallest town that may levy for this use. Never below the rule's minimum. */
   minPopulation?: number;
   /** Turns between levies for this use while the empire is at war. */

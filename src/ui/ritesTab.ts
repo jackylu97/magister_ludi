@@ -781,12 +781,13 @@ function faithLineFor(
  * affordable. The rite after this one costs one step more (batch R2a,
  * `riteCostAhead`), so "another" is asked against that price.
  */
-function menuFoot(state: GameState, seat: number, bank: number, perTurn: number, cost: number): string {
+function menuFoot(state: GameState, seat: number, bank: number, perTurn: number, city: City): string {
+  const cost = riteCostFor(state, seat, city);
   const rung = explainNextRung(state, seat, perTurn);
   if (bank >= cost) {
     const left = bank - cost;
     const after = `After this, ${netFigure(left)} faith is left.`;
-    const nextCost = riteCostAhead(state, seat, 1);
+    const nextCost = riteCostAhead(state, seat, 1, city);
     if (left >= nextCost) return `${after} Enough for another.`;
     const when = whenWords(turnsUntil(faithAhead(left, perTurn, rung, FORECAST_TURNS), nextCost), perTurn);
     return `${after} The next is affordable ${when}.`;
@@ -986,7 +987,7 @@ export function ritesTabModel(
   }
   const looks = new Map<number, PriceLook>();
   if (selected !== null) {
-    for (const city of ranked) looks.set(city.id, startLook(state, seat, city.id, selected, cost));
+    for (const city of ranked) looks.set(city.id, startLook(state, seat, city.id, selected, riteCostFor(state, seat, city)));
   }
   const plan = planRefusals(
     ranked.flatMap((city) => {
@@ -1020,7 +1021,7 @@ export function ritesTabModel(
           says: riteSays(state, seat, rite),
           known: true,
           adds: { figures: gainFigures(preview, 2), once: onceFigures(preview), words: null },
-          look: startLook(state, seat, city.id, rite, cost),
+          look: startLook(state, seat, city.id, rite, riteCostFor(state, seat, city)),
         });
       }
       for (const rite of LIVE_RITE_IDS.filter((id) => !known.has(id))) {
@@ -1033,7 +1034,7 @@ export function ritesTabModel(
           look: null,
         });
       }
-      menu = { items, foot: menuFoot(state, seat, bank, perTurn, cost) };
+      menu = { items, foot: menuFoot(state, seat, bank, perTurn, city) };
     }
     return {
       cityId: city.id,

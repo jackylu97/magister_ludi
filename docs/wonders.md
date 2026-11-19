@@ -1,71 +1,52 @@
-# Wonders — reference
+# Wonders
 
-Shipped framework (Entries XXX/XXXIII). The rows themselves live in
-`data/buildings.json` (`wonder: true`) and print in the Compendium — this file
-is the rules, not the list. Proposal history: `docs/history/design-history.md`.
+A world wonder can finish once per game. When two cities compete, the first completion in turn order wins. The other cities lose that queue item. A city receives gold for its stored production if the wonder was first in its queue.
 
-## Framework (see also CLAUDE.md's wonder trap)
+The builder receives the completion grant and renown. Recurring effects follow the city when another empire captures it. The Compendium lists the effects and site requirements of each wonder.
 
-- One per world: `GameState.wonders` is the claim register, written by
-  `claimWonder` from `realiseItem`. The claim is history; **pay follows the
-  stones** (the holding city's `buildings`); capture moves the pay.
-- Beaten to it: "banked toward it" = the front queue row or nothing; refund
-  `wonderRefundGoldPerHammer` iff front.
-- `wonder` is its own `ProductionCategory`; **never purchasable** (refused
-  before currency is even read).
-- Effects are ordinary cards read by `liveCityEffects`; completion grants
-  realise through ordinary paths (`RealisedItem.grants` →
-  `CommandResult.grants`; `done: false` is a real outcome).
-- `requiresSite` (coastal, mountain-adjacent…) refused in `buildError`
-  naming the site.
-- A wonder pays +10 renown on completion + a trickle; the Triumph *A Marvel
-  Raised* rides it.
+Wonders use the standard production cost for their technology column. A city must meet the wonder’s site requirement before it can queue it. A player cannot buy a wonder.
 
-## The membership rule
+The Great Sphinx grants free rerolls on completion. Each one pays for a draft reroll without increasing the next paid price. The Pyramid of the Sun pays faith for the city’s population before it spends the citizen. Its levy shares the waiting period with the other levies.
 
-A wonder earns its row by **playing with a system that already exists** —
-its effect is written in the existing card vocabulary; a wonder needing a
-new shape is a design decision argued individually (the pantheon-slot grant,
-the purchase-price line, the `borders` zone-of-control rule, and the Sistine's global percent were the
-four that made it).
+The Mausoleum doubles the final yield on a great person’s improvement before the city and empire yield percentages apply. If another effect doubles the same final yield, both use the same base.
 
-**Batch E4a (2026-09-07)** built three of the five rows that were carrying a
-deferred half, and each on the vocabulary rather than beside it: the Statue of
-Zeus' +15% at a wall is the attacker-side `combatPercent` share, which gained a
-`when` so a percentage can name one kind of fight; the Terracotta Army's veterans
-are a `unitStamp`, which gained a `scope` so a stamp can name the town that
-raised the piece; and Notre-Dame's Cathedral clause was always an ordinary scoped
-`cityYields` beside a scoped happiness. **One is still deferred**: the Alhambra's,
-because being dug in is a *posture* a piece takes and loses, not a fact it can be
-born with.
+The Forbidden City adds a Wildcard chair. The Alhambra adds a Military chair. Capture transfers the chair to the new owner. Losing a chair moves its Order to an available chair that accepts it, or returns it to the collection.
 
-**The Forbidden City's chair** (bot batch BP7, 2026-11-14, `docs/flags.md`
-(ooooooo) P9; the user: *"please make sure to implement the forbidden palace's
-additional wildcard slot"*):
+| Row | Wonder | Age | Technology |
+|---|---|---|---|
+| `theOracle` | The Oracle | 1 | Divination |
+| `stonehenge` | Stonehenge | 1 | Stonecraft |
+| `pyramids` | The Pyramids | 1 | Stonecraft |
+| `hangingGardens` | The Hanging Gardens | 1 | Calendar |
+| `wallsOfUruk` | The Walls of Uruk | 1 | Bronzeworking |
+| `greatZiggurat` | The Great Ziggurat | 1 | Writing |
+| `greatLighthouse` | The Great Lighthouse | 1 | Sailing |
+| `templeOfArtemis` | The Temple of Artemis | 1 | Husbandry |
+| `greatLibrary` | The Great Library | 3 | Rhetoric |
+| `colossus` | The Colossus | 2 | Wayfinding |
+| `petra` | Petra | 2 | Irrigation |
+| `circusMaximus` | The Circus Maximus | 3 | Engineering |
+| `terracottaArmy` | The Terracotta Army | 3 | Iron Working |
+| `greatWall` | The Great Wall | 3 | The Civil Service |
+| `theatreOfDionysus` | The Theatre of Dionysus | 2 | Epic Poetry |
+| `mausoleum` | The Mausoleum | 2 | Currency |
+| `statueOfZeus` | The Statue of Zeus | 2 | Bronze Panoply |
+| `chichenItza` | Chichen Itza | 3 | Horology |
+| `hagiaSophia` | Hagia Sophia | 3 | Theology |
+| `angkorWat` | Angkor Wat | 3 | State Workforce |
+| `greatMosqueOfDjenne` | The Great Mosque of Djenné | 3 | Guildhalls |
+| `notreDame` | Notre-Dame | 4 | The Holy Office |
+| `houseOfWisdom` | The House of Wisdom | 4 | Scholarship |
+| `forbiddenCity` | The Forbidden City | 3 | Satrapies |
+| `alhambra` | The Alhambra | 4 | Militant Orders |
+| `machuPicchu` | Machu Picchu | 4 | Natural Philosophy |
+| `greatSphinx` | The Great Sphinx | 1 | Mining |
+| `templeOfThoth` | The Temple of Thoth | 1 | Divination |
+| `pyramidOfTheSun` | The Pyramid of the Sun | 2 | Chronology |
+| `solomonsTemple` | Solomon's Temple | 2 | The High Temple |
+| `ironPillar` | The Iron Pillar | 2 | Siegecraft |
+| `libraryOfAshurbanipal` | The Library of Ashurbanipal | 2 | Code of Laws |
+| `weiyangPalace` | The Weiyang Palace | 2 | Code of Laws |
+| `greatStelaeOfAksum` | The Great Stelae of Aksum | 3 | The Silk Road |
 
-- The row carries the existing `slotRider` shape, so no new shape was needed.
-  Whoever holds the town it stands in has one more Wildcard chair, added at the end
-  of the council like every chair a card opens.
-- The chair follows the stones, as every wonder's pay does:
-  - it opens when the wonder is finished (`realiseItem`);
-  - it moves when the town changes hands, by capture or by treaty (`handOverCity`);
-  - it closes when the town is razed (`razeCityAt`).
-- A seat that loses the chair is seated again as an adoption seats it
-  (`refitSlots` with `'reseat'`): a card that keeps its chair keeps it and its seal,
-  a card whose chair closed moves to a free chair that fits it, and a card that
-  fits no free chair returns to the collection with its progress.
-- A Doctrine that closes a chair (Scutage) keeps the older reading: the card in the
-  closed chair returns to the collection.
-- Save schema 243.
-
-## Refused, on purpose
-
-- Wonders that are a bank statement (accumulate X).
-- Effects that are a unit with no system behind it.
-- A wonder granting a great person directly (renown already pays for those).
-- More than one wonder per tech where it can be helped.
-
-## Cost band
-
-5–7× the age's best building; hand-tuned rows (no age multiplier by ruling);
-the pacing tests rule.
+The Water Clock of Su Song is retired. Its row remains available for historical records.

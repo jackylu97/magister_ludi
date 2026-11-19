@@ -1063,6 +1063,8 @@ interface GrantNotice {
  * be the interface inventing the half it was not told.
  */
 function grantSentence(report: CompletionGrantReport): string {
+  if (report.grant === 'freeRerolls') return report.name;
+  if (report.grant === 'greatPerson') return report.done ? 'choose a great person' : 'no great person could be offered';
   if (report.grant === 'unit') {
     return report.done ? `${withArticle(report.name)} answers the call` : 'nothing answered the call';
   }
@@ -5983,7 +5985,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function riteOptions(cityId: number): RiteOption[] {
     const { state } = getGame();
     const ended = !canOrder();
-    const cost = riteCostFor(state, localPlayerId);
+    const cost = riteCostFor(state, localPlayerId, state.cities.find((city) => city.id === cityId));
     return LIVE_RITE_IDS.map((id) => {
       const blocked = ended
         ? `You have ended turn ${state.turn}`

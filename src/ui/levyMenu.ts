@@ -83,6 +83,7 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
         ? `${card}: to the town building the Magnum Opus`
         : `${card}: to ${target.name}, which is building the Magnum Opus`;
     }
+    case 'faith': return `${card} pays for each citizen before the levy`;
     case 'muster':
       return `${card}: your best melee unit, counted as trained`;
     case 'conscript':
@@ -117,6 +118,7 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
 
 /** The figure on the right of a line. */
 function figureWords(state: GameState, playerId: number, option: LevyOption): string {
+  if (option.faith !== undefined) return `+${figure(option.faith)}${YIELD_GLYPH.faith}`;
   if (option.hammers !== null) return `+${figure(option.hammers)}${YIELD_GLYPH.production}`;
   if (option.unit !== null) return unitDef(option.unit).name;
   if (option.use === 'rite') {

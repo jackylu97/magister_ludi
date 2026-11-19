@@ -89,6 +89,7 @@ const LEVY = RULES.cities.levy;
 
 /** One line of the levy menu. See `levyOptions`. */
 export interface LevyOption {
+  faith?: number;
   use: LevyUse;
   /** The card that grants this use, and its name for the line under it. */
   card: CardId;
@@ -122,6 +123,7 @@ interface LevyRiteChoice {
 
 /** What a levy did, for the caller that reports it. */
 interface LevyReport {
+  faith?: number;
   use: LevyUse;
   cityId: number;
   /** The town's population after the levy. */
@@ -290,6 +292,7 @@ function levyUnitFor(state: GameState, playerId: number, use: LevyUse): UnitType
 
 /** What one use pays from this town, and where — before the citizen leaves. */
 interface LevyPlan {
+  faith?: number;
   hammers: number | null;
   unit: UnitTypeId | null;
   tile: Tile | null;
@@ -309,6 +312,8 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
     // so there is no figure to read off this town.
     case 'rite':
       return none;
+    case 'faith':
+      return { ...none, faith: city.population * (levyGrantFor(state, city.ownerId, city, use)?.faithPerCitizen ?? 0) };
     case 'muster':
     case 'conscript':
     case 'worker':
@@ -327,6 +332,7 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
 
 /** The menu line's words for a use. */
 function labelFor(use: LevyUse, plan: LevyPlan): string {
+  if (use === 'faith') return 'Gain faith';
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
   if (use === 'rite') return 'Perform a rite across your empire';
@@ -462,6 +468,7 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       card: grant.card,
       cardName: anyCardDef(grant.card).name,
       label: labelFor(use, plan),
+      ...(plan.faith !== undefined ? { faith: plan.faith } : {}),
       hammers: plan.hammers,
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,
@@ -519,6 +526,10 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
     if (plan.target.id !== city.id) report.targetCityId = plan.target.id;
   }
   const player = playerById(state, city.ownerId);
+  if (plan.faith !== undefined && player) {
+    player.faithPool += plan.faith;
+    report.faith = plan.faith;
+  }
   if (plan.unit !== null && plan.tile !== null) {
     // Only The Muster of the Fields' unit counts as trained: its text says so.
     // A conscript, a worker and a settler a levy raised are gained, not trained.

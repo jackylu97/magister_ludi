@@ -6345,6 +6345,11 @@ export function payGrants(
       });
       continue;
     }
+    if (grant.grant === 'freeRerolls') {
+      player.statecraft.freeRerolls = (player.statecraft.freeRerolls ?? 0) + grant.amount;
+      reports.push({ grant: grant.grant, name: `${grant.amount} free rerolls`, done: true });
+      continue;
+    }
     if (grant.grant === 'greatPerson') {
       // `doctrineDraft`'s arm one roster over, word for word: an offer is a
       // decision the seat owes the game, so one already waiting is kept and this

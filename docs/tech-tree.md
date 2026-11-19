@@ -213,11 +213,11 @@ Workshop → Forge · Shrine → Temple.
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | workers may build Farm |
 | Fletching | 11 | Agriculture | Archer | — | workers may build Camp |
 | Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | workers may build Pasture · reveals **Horses** · reveals **Camels** |
-| Mining | 11 | Agriculture | — | — | workers may build Mine · Clear Forest · reveals **Copper** |
+| Mining | 11 | Agriculture | — | **The Great Sphinx** | workers may build Mine · Clear Forest · reveals **Copper** |
 | Pottery | 11 | Agriculture | — | Granary | — |
 | Bronzeworking | 24 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
 | Calendar | 24 | Fletching | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
-| Divination | 24 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
+| Divination | 24 | Husbandry | — | Shrine, **The Oracle**, **The Temple of Thoth** | Rite of the Harvest · Omen Reading |
 | Sailing | 24 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
 | Stonecraft | 24 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | workers may build Quarry · Consecration of the Bounds |
 | The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses or Camels)*, Chariot Archer *(needs improved Horses or Camels)* | Stable | — |
@@ -233,14 +233,14 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 100 | The Wheel | Phalanx *(needs improved Obsidian or Copper)*, Swordsman *(needs improved Obsidian or Copper)* | Smithy, War Hall | reveals **Iron** |
-| Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count |
+| Bronze Panoply | 100 | The Wheel | Phalanx *(needs improved Obsidian or Copper)*, Swordsman *(needs improved Obsidian or Copper)* | Smithy, War Hall, **The Statue of Zeus** | reveals **Iron** |
+| Chronology | 100 | Writing | — | Chart the Stars ‡, **The Pyramid of the Sun** | The Long Count |
 | Currency | 100 | The Wheel | Trader *(never built — comes with a route bought in gold)* | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
-| Code of Laws | 190 | Chronology | — | Imperial Throne ‡, *Pageants* (project) | — |
-| Irrigation | 190 | Chronology, Bronze Panoply | — | Garden | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
-| Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls | workers may build Lumbermill · Siege |
-| The High Temple | 190 | Epic Poetry | Prophet | Temple, High Temple ‡ | — |
+| Code of Laws | 190 | Chronology | — | Imperial Throne ‡, **The Library of Ashurbanipal**, **The Weiyang Palace**, *Pageants* (project) | — |
+| Irrigation | 190 | Chronology, Bronze Panoply | — | Garden, **Petra** | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
+| Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls, **The Iron Pillar** | workers may build Lumbermill · Siege |
+| The High Temple | 190 | Epic Poetry | Prophet | Temple, High Temple ‡, **Solomon's Temple** | — |
 | Wayfinding | 190 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
@@ -257,20 +257,20 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
+| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army** | — |
 | Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
-| State Workforce | 360 | Currency | — | Public Bath | — |
-| The Silk Road | 360 | Wayfinding | — | Caravanserai ‡ | — |
-| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra**, Armoury | — |
-| Satrapies | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
+| State Workforce | 360 | Currency | — | Public Bath, **Angkor Wat** | — |
+| The Silk Road | 360 | Wayfinding | — | Caravanserai ‡, **The Great Stelae of Aksum** | — |
+| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | Armoury | — |
+| Satrapies | 650 | State Workforce | — | **The Forbidden City** | — |
 | Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
-| The Civil Service | 650 | Code of Laws | — | Courthouse | — |
+| The Civil Service | 650 | Code of Laws | — | Courthouse, **The Great Wall** | — |
 | The Saddle | 650 | Iron Working | Horseman *(needs improved Horses or Camels)*, Horse Archer *(needs improved Horses or Camels)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
 | Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇ | — |
 | Engineering | 1150 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
-| Guildhalls | 1150 | Satrapies | — | Workshop | — |
-| Horology | 1150 | Mathematics | — | **The Water Clock of Su Song** | — |
-| Theology | 1150 | Rhetoric | Apostle | Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
+| Guildhalls | 1150 | Satrapies | — | Workshop, **The Great Mosque of Djenné** | — |
+| Horology | 1150 | Mathematics | — | **Chichen Itza** | — |
+| Theology | 1150 | Rhetoric | Apostle | Cathedral, **Hagia Sophia** | — |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
@@ -278,13 +278,13 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **State Workforce** — Workers +1 charge
 - **State Workforce** — *Every worker made from now on has an extra charge of work.*
 - **The Silk Road** — *Towns may build a Caravanserai, which lets your empire run more trade routes.*
-- **Satrapies** — *Opens the Forbidden City and the Great Wall.*
+- **Satrapies** — *Opens the Forbidden City.*
 - **The Civil Service** — *A town you have taken by force may build a Courthouse.*
 - **The Saddle** — *Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production.*
 - **Daughter Cities** — New cities start with a Town Charter
 - **Daughter Cities** — *Every town you found starts with its Town Charter already built.*
 - **Guildhalls** — *Towns may build a Workshop.*
-- **Horology** — *Opens the Water Clock of Su Song.*
+- **Horology** — *Opens Chichen Itza.*
 - **Theology** — *The enhancing beliefs open here: a faith may now be deepened as well as spread.*
 
 ### Æra IV — The Age of Cathedrals (14 nodes, 1960–8000🔬)

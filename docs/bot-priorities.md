@@ -601,6 +601,7 @@ calls P9):
     rate;
   - the Theatre's free Amphitheatre: the hammers it would cost
     (`buildingProductionCost`), as a lump; nought in a town that holds one.
+- The Great Sphinx’s free rerolls are worth the faith they save. A great person on completion is worth the renown needed for the next offer.
 - **One more Wildcard chair** (P9 and the user's addition, `extraChairsWorth`,
   `value.ts`). The Forbidden City opens one for whoever holds its town (a rule of
   the game since this batch, `docs/wonders.md`). A chair takes the best card the

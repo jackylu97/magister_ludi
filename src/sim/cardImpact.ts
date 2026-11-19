@@ -1567,7 +1567,7 @@ export function explainRitePreview(
   };
   const name = riteDef(rite).name;
   const lines = ghostDiffLines(state, playerId, { without: state, with: ghost }, name, sheet);
-  const hammers = riteOfferingHammers(state, playerId, rite);
+  const hammers = riteOfferingHammers(state, playerId, rite, city);
   if (hammers > 0) {
     const line = emptyLine(name, 'occasion');
     line.occasion = occasionWords('rite', false);

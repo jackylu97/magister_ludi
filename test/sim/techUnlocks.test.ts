@@ -183,7 +183,7 @@ describe('techGifts', () => {
     // real and the `unlocks` block does not know about it.
     // The Courthouse was on this list from M2 (2026-09-15) until batch TT2,
     // which moved it to The Civil Service.
-    expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy', 'statueOfZeus']);
+    expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy']);
     // Iron's reveal moved to Bronze Panoply on 2026-09-04 (the user's ruling:
     // the swordsman needs a real window before its legionary).
     const reveals = techGifts('bronzePanoply').filter((gift) => gift.kind === 'reveal');

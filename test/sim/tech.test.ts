@@ -291,7 +291,7 @@ describe('tech data integrity', () => {
       // toward). It is refused by `buildError` and `purchaseError` rather than
       // gated by the tree, and the day a node names it the marker is deleted
       // and this clause stops skipping it.
-      if (buildingDef(id).awaitsTech === true) continue;
+      if (buildingDef(id).awaitsTech === true || buildingDef(id).retired === true) continue;
       // **And the fourth, the finish line** (Entry LVIII): a row the *world*
       // opens (`BuildingDef.worldUnlockTech` — the Magnum Opus) hangs on no
       // node of anybody's tree, because what opens it is any empire anywhere
@@ -2643,7 +2643,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
 
   it('takes Guildhalls’ wonder bonuses away (batch TT1)', () => {
     expect(techDef('artisanry').effects).toBeUndefined();
-    expect(techDef('artisanry').unlocks.buildings).toEqual(['workshop']);
+    expect(techDef('artisanry').unlocks.buildings).toEqual(['workshop', 'greatMosqueOfDjenne']);
   });
 
   it('stops Horology’s and Chronology’s clocks, and leaves the Water Clock its chime', () => {

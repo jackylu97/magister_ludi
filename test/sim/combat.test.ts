@@ -3262,15 +3262,11 @@ describe('the strength conditions of batch E4a', () => {
     bumpRevision(state);
     const a = createUnit(state, 0, 'warrior', 7, 3);
     const wall = forecast(state, a.id, 8, 3);
-    const share = wall.attackerLines.find((line) => line.source.startsWith('Cards'))!;
-    expect(share).toBeDefined();
-    // A percentage of the roster's own strength, printed in points — the one
-    // attacker-side share there is, and it names itself in the label.
-    expect(share.source).toContain('+15%');
+    expect(wall.attackerLines.find((line) => line.source.includes('Statue of Zeus'))?.amount).toBe(4);
     // And a piece in the open is not a wall.
     createUnit(state, 1, 'warrior', 6, 3);
     bumpRevision(state);
     const open = forecast(state, a.id, 6, 3);
-    expect(open.attackerLines.some((line) => line.source.startsWith('Cards'))).toBe(false);
+    expect(open.attackerLines.some((line) => line.source.includes('Statue of Zeus'))).toBe(false);
   });
 });

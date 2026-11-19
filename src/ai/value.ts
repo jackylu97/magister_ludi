@@ -243,6 +243,7 @@ import {
   religionBeliefPool,
   riteCostAhead,
   riteCostFor,
+  nextRerollCost,
   ritesDisplacedBy,
 } from '../sim/religion';
 import {
@@ -362,7 +363,7 @@ import {
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
-import { levyHammers, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
+import { levyHammers, levyGrantFor, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
 // Bot batch BP8: a camp is priced by the raiders it sends, at the wild's own
 // muster cadence.
 import { campCadence } from '../sim/barbarians';
@@ -1077,7 +1078,7 @@ export function explainBuildingRow(
     // The bar is the one the town would have, its card-held walls included
     // (`townShelf`, Expansionist batch E13), as the simulation's siege reads it.
     const holding = townHolding(walled, id);
-    const share = hp / Math.max(1, cityMaxHp(holding, townShelf(ctx.state, holding)));
+    const share = hp / Math.max(1, cityMaxHp(holding, townShelf(ctx.state, holding), ctx.state));
     const defence = cityBaseStrength(ctx.state, walled) * ctx.ai.weights.military;
     terms.push({
       label:
@@ -1126,6 +1127,10 @@ export function explainBuildingRow(
       // `weights.military × combatScale` already means everywhere else in this
       // file (`unitStatPoints` reads the same "a piece" figure).
       terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
+    } else if (grant.grant === 'freeRerolls') {
+      terms.push(nest('free draft rerolls', explainLump({ faith: grant.amount * nextRerollCost(ctx.state, ctx.playerId) }, ctx)));
+    } else if (grant.grant === 'greatPerson') {
+      terms.push(nest('a great person on completion', lumpOfPoints(magisterialDraftGrantWorth(grant, ctx), ctx)));
     } else if (grant.grant === 'tech') {
       terms.push(
         // Priced at this age's band of `weights.techByAge` (E1a): a free node
@@ -2155,6 +2160,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
       );
     case 'unitStat':
+      if (effect.enemyOccupant) return unitStatPoints(effect.stat, -effect.amount, ctx) * ctx.threat;
       // One piece's worth, and — since batch X2 — nothing at all when the towns
       // the clause names do not exist: a stat handed to the pieces of coastal
       // towns is worth nothing to a realm with none.
@@ -2452,6 +2458,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // town admits is worth nothing rather than one town's wall. Five live rows
       // carry a scope.
       if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
+      if (effect.stat === 'hp') {
+        return citiesOf(ctx.state, ctx.playerId).reduce((total, city) => {
+          if (!cityScopeAdmits(ctx.state, city, effect.scope)) return total;
+          const max = cityMaxHp(city, townShelf(ctx.state, city), ctx.state);
+          return total + effect.amount / max * cityBaseStrength(ctx.state, city) * ctx.ai.weights.military * (1 + ctx.threat);
+        }, 0);
+      }
       // **The town raising the Opus** (The Bulwark of Marvels, Magisterial
       // batch MG3; priced in batch MG17): the share of the horizon one of this
       // seat's towns raises it, read before the scope, which no town admits
@@ -10432,7 +10445,7 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
       if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
         continue;
       }
-      sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx).total);
+      sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx, undefined, effect.faithPerCitizen).total);
     }
     let pace = perTown;
     if (effect.everyAtWar !== undefined && atWarWithAnybody(ctx.state, ctx.playerId)) {
@@ -10613,12 +10626,13 @@ export function explainCitizenLevy(
   use: LevyUse,
   ctx: ValueContext,
   piece?: UnitTypeId | null,
+  faithPerCitizen?: number,
 ): Appraisal {
   const hammers = levyHammers(city);
   const unit = !raisesPiece(use) ? null : piece !== undefined ? piece : levyPieceFor(use, ctx);
   const want = unit === null ? null : levyPieceWant(city, use, ctx);
   const terms: ValueTerm[] = [
-    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx)),
+    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx, faithPerCitizen)),
     nest('the citizen it spends', explainLevyCitizen(city, hammers, ctx), 'sub'),
   ];
   const cards = explainLevyCards(city, use, hammers, unit !== null && want?.wanted === true ? unit : null, ctx);
@@ -10634,6 +10648,7 @@ function explainLevyGain(
   unit: UnitTypeId | null,
   want: { wanted: boolean; why: string } | null,
   ctx: ValueContext,
+  faithPerCitizen?: number,
 ): Appraisal {
   switch (use) {
     case 'production':
@@ -10649,6 +10664,11 @@ function explainLevyGain(
       return appraise([
         nest(`${hammers} hammers toward ${what} in ${target.name}`, explainLump({ production: hammers }, ctx)),
       ]);
+    }
+    case 'faith': {
+      const rate = faithPerCitizen ?? levyGrantFor(ctx.state, city.ownerId, city, use)?.faithPerCitizen ?? 0;
+      const faith = city.population * rate;
+      return explainLump({ faith }, ctx);
     }
     case 'rite': {
       const plan = bestLevyRite(ctx);

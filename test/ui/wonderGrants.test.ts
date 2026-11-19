@@ -96,11 +96,11 @@ describe('wonderGrantNotices', () => {
 
   it('says what a technology grant finished', () => {
     const notices = wonderGrantNotices(
-      [wonder('greatLibrary', 'The Great Library')],
+      [wonder('houseOfWisdom', 'The House of Wisdom')],
       [{ grant: 'tech', name: 'Mathematics', done: true }],
       SEAT,
     );
-    expect(texts(notices)).toEqual(['✶ The Great Library · Mathematics is understood']);
+    expect(texts(notices)).toEqual(['✶ The House of Wisdom · Mathematics is understood']);
   });
 
   it('opens the Doctrine, and says so', () => {
@@ -122,12 +122,12 @@ describe('wonderGrantNotices', () => {
     expect(
       texts(
         wonderGrantNotices(
-          [wonder('greatLibrary', 'The Great Library')],
+          [wonder('houseOfWisdom', 'The House of Wisdom')],
           [{ grant: 'tech', name: 'a technology', done: false }],
           SEAT,
         ),
       ),
-    ).toEqual(['✶ The Great Library · nothing was being researched']);
+    ).toEqual(['✶ The House of Wisdom · nothing was being researched']);
 
     const owed = wonderGrantNotices(
       [wonder('theatreOfDionysus', 'The Theatre of Dionysus')],
@@ -158,7 +158,7 @@ describe('wonderGrantNotices', () => {
     // the case a "first wonder in the list" reading gets wrong.
     const notices = wonderGrantNotices(
       [
-        wonder('greatLibrary', 'The Great Library'),
+        wonder('houseOfWisdom', 'The House of Wisdom'),
         wonder('theatreOfDionysus', 'The Theatre of Dionysus'),
       ],
       [
@@ -168,7 +168,7 @@ describe('wonderGrantNotices', () => {
       SEAT,
     );
     expect(texts(notices)).toEqual([
-      '✶ The Great Library · Mathematics is understood',
+      '✶ The House of Wisdom · Mathematics is understood',
       '✶ The Theatre of Dionysus · a Doctrine draft opens',
     ]);
   });
@@ -178,7 +178,7 @@ describe('wonderGrantNotices', () => {
     // is still read off the right entry — the filter must not skip the *walk*.
     const notices = wonderGrantNotices(
       [
-        wonder('greatLibrary', 'The Great Library', 1),
+        wonder('houseOfWisdom', 'The House of Wisdom', 1),
         wonder('theatreOfDionysus', 'The Theatre of Dionysus', SEAT),
       ],
       [
@@ -195,7 +195,7 @@ describe('wonderGrantNotices', () => {
     // been lost, and a line under the wrong marvel's name is worse than none.
     expect(
       wonderGrantNotices(
-        [wonder('greatLibrary', 'The Great Library')],
+        [wonder('houseOfWisdom', 'The House of Wisdom')],
         [{ grant: 'unit', name: 'Spearman', done: true, unitId: 4 }],
         SEAT,
       ),
