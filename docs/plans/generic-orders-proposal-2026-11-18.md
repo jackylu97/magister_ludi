@@ -1472,3 +1472,18 @@ All 39 approved generic Orders are implemented.
   item uses the normal production rules.
 
 The dealable pool now contains 505 Orders, including all 39 generic Orders. Save version 246 identifies the new pool because draft commands store an index into an offer. The two six-seat, 120-turn reference states are `52d790f9:384223` (Duel) and `b7eb7f33:1015904` (Standard). Both games finished without a bot warning or stall. The card batch and turn-start work passed 12,153 core checks and 13 targeted slow checks, including the independent draft-price comparison.
+
+### Release audit
+
+The release contains 9 generic Orders in Tier 0, 10 in Tier I, 8 in Tier II,
+8 in Tier III and 4 in Tier IV. That is 39 live Orders. The data keeps 16
+retired generic rows and excludes them from the deal.
+
+- The General Summons raises up to three units, subject to placement space.
+  The bot prices all three and can overvalue the card when the capital is crowded.
+- If a great-person offer is pending when you draft The Office of Works, the
+  game adds renown toward the current threshold. The next offer follows the
+  usual family rules.
+- The [common deck sheet](../decks/common.md#to-tune-in-playtest) lists 17 cards
+  with numbers to tune in playtest. Record the upkeep saved by The Old Foundations
+  on actual late-game boards.
