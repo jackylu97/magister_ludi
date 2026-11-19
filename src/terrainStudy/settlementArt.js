@@ -82,6 +82,7 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
  }
  marine.coral=mergeGeometries(coralParts);coralParts.forEach(g=>g.dispose());
 
+ const fallowSoil=new T.Color('#927956');
  // Keeps animals, buildings and trees from occupying the same footprint.
  function reserved(entry,x,z){
   if(entry?.improvement==='farm')return true;
@@ -91,17 +92,40 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
   return entry?.resource?Math.hypot(x,z)<.54:false;
  }
  const damagedProps=new Map();
+ const ashInk=new T.Color('#8b8078'),charcoal=new T.Color('#615953');
  for(const [intact,damaged] of Object.entries(PILLAGED_WORK_MODELS)){
-  if(assets[intact] && assets[damaged]) damagedProps.set(assets[intact],assets[damaged]);
+  if(!assets[intact]||!assets[damaged])continue;
+  const wreck=assets[damaged].clone(),colors=wreck.getAttribute('color'),normals=wreck.getAttribute('normal');
+  if(colors&&normals){
+   const surface=new T.Color();
+   for(let v=0;v<colors.count;v++){
+    const slope=Math.max(0,normals.getY(v));
+    surface.fromBufferAttribute(colors,v).lerp(charcoal,.32).lerp(ashInk,.18+.54*slope);
+    colors.setXYZ(v,surface.r,surface.g,surface.b);
+   }
+  }
+  damagedProps.set(assets[intact],wreck);
  }
  function drawTile(tile,entry,top,{prop,push,walls=true,sampleSurface,preciseFit=false,onBuilding}){
   if(entry?.damage){
    // The intact layout supplies the same yard, position and size across a raid.
-   // Cargo, moving sails and healthy fields are absent from a damaged work.
+   // Keep the farm plots and fence so the player can identify the damaged improvement.
    drawTile(tile,{improvement:entry.damage,step:entry.step},top,{
     walls,sampleSurface,preciseFit,
-    prop(geometry,...placement){const replacement=damagedProps.get(geometry);if(replacement)prop(replacement,...placement);},
-    push(material,patch){patch.dispose();},
+    prop(geometry,...placement){
+     const replacement=damagedProps.get(geometry);
+     if(replacement)prop(replacement,...placement);
+     else if(entry.damage==='pasture'&&(geometry===rail||geometry===peg))prop(geometry,...placement);
+    },
+    push(material,patch){
+     if(entry.damage!=='farm'){patch.dispose();return;}
+     const colors=patch.getAttribute('color'),ink=new T.Color();
+     for(let i=0;i<colors.count;i++){
+      ink.fromBufferAttribute(colors,i).lerp(fallowSoil,.54);
+      colors.setXYZ(i,ink.r,ink.g,ink.b);
+     }
+     push(material,patch);
+    },
     onBuilding(placement){
      const asset=PILLAGED_WORK_MODELS[placement.asset];
      if(asset && assets[asset])onBuilding?.({...placement,asset});
@@ -303,7 +327,7 @@ export function createSettlementArt(assets,paintedStyle,northStar=null){
    else building(improvement,0,-.50,.64);
   }
  }
- const generated=new Set([peg,rail,palisade,gateRail,foundation,grain,cropStem,...Object.values(oreModels),whale,...Object.values(marine),...Object.values(mill),...Object.values(special)]);
+ const generated=new Set([...damagedProps.values(),peg,rail,palisade,gateRail,foundation,grain,cropStem,...Object.values(oreModels),whale,...Object.values(marine),...Object.values(mill),...Object.values(special)]);
  let disposed=false;
  // GLB meshes and their material belong to the caller. Each emitted field
  // patch belongs to push(); only this reusable procedural kit is owned here.

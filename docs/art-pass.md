@@ -392,3 +392,7 @@ The pasture has an open shelter in Ages I and II and a larger shelter in Ages II
 ## Pillaged improvements, 2026-11-19
 
 The standing models are approved. Review damaged models separately before adding them to the play build. Multiple improvements can share a damage treatment. Keep an identifiable part of each building or machine in place so the player can tell what a worker will repair. The first comparison covers roof damage, broken lifting and cutting gear, and torn sails on land and water.
+
+The seven damaged models are approved. Compare the ground treatment in the separate scene with the same camera and light. The first option leaves a ragged ash wash on land and a narrow disturbed patch on water. The second adds short flames and drifting sparks at recently damaged land works. The preview lets the artist select the stage. It does not set a gameplay duration.
+
+Keep the shape and gaps of the farm plots and the posts and rails of the pasture fence after a raid. Keep ash continuous under the structure. Warm charcoal covers the sides of the wreck and lighter ash settles on its upper faces. The outer edge of the ground mark fades into the terrain. A steady amber glow and rising motes use the same material as high-yield tiles. Compare the treatment at play zoom before adding it to the game.

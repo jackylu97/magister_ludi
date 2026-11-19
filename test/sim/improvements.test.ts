@@ -1851,7 +1851,7 @@ describe('pillage', () => {
     const healthy = foldTile(tile);
     expect(hasResource(state, 1, 'gems')).toBe(true);
     expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
-    expect(tile.damagedImprovement).toEqual({ id: 'academy', improvedOn: built });
+    expect(tile.damagedImprovement).toEqual({ id: 'academy', improvedOn: built, pillagedOn: state.turn });
     expect(foldTile(tile).science).toBeLessThan(healthy.science);
     expect(hasResource(state, 1, 'gems')).toBe(false);
     expect(pillageError(state, raider.id)).not.toBeNull();

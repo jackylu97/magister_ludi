@@ -59,7 +59,9 @@ Reference: **`docs/mapgen.md`** · data: `data/mapgen.json` · code:
   once, in `newGame`. The only mutable tile fields include `improvement`, `improvedOn`, `damagedImprovement`, `feature`,
   `discovery`, `road`, `vein`, `surveyed`.
 - A pillaged work stops providing yields, resource access and bonuses. Orders
-  count the tile as unimproved. Crossed spears mark damage on the map. The
+  count the tile as unimproved. Damaged models and ash mark the site. Land
+  improvements also show embers on the turn of the raid. Crossed spears mark
+  the site on the map. The
   tile panel names the damaged work. A worker
   in its own territory can repair it, including a great person's work or a
   fishing boat. Repair uses the worker's remaining movement and costs no
