@@ -570,9 +570,11 @@ Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · cod
   - An effect that opens a building or a unit for every town
     (`techUnlockEffects`, Surveying's Aqueduct) is listed by `liveUnlocks` as
     an ordinary unlock, and `techRuleEffects` leaves it out of the rules.
-- **The world's age is the mean** of every living real seat's highest technology,
-  floored (`worldAge`, `worldClock.ts`) — not the first seat's. Crossing gives
-  the current age a public countdown.
+- **The world's age follows the empires** (`worldAge`, `worldClock.ts`). The
+  countdown that closes age N starts when any living seat has reached age N + 2,
+  or at least half of the living seats have reached age N + 1
+  (`rules.wager.leadAges`, `rules.wager.shareOfSeats`). The world moves one age
+  a close, each with a full public countdown (`docs/wager.md`, "Rules").
 - `researchPlan(player)` = `researching` + `researchQueue` (presence is state),
   written only by `writeResearchPlan` and `promoteResearchQueue`.
 

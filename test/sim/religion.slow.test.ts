@@ -677,7 +677,9 @@ describe('determinism', () => {
     // its town one more Wildcard chair.
     // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
     // a borrowed copy cannot be lent on.
-    expect(SCHEMA_VERSION).toBe(244);
+    // 245 since the faster world clock: an age starts to close when one seat
+    // is two ages past it or half the seats are one age past it.
+    expect(SCHEMA_VERSION).toBe(245);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -29,7 +29,8 @@ import { readEmpire } from '../../src/sim/readings';
 import { seatName } from '../../src/sim/leaderData';
 import { renownThreshold } from '../../src/sim/renown';
 import { BEAD_RULES } from '../../src/sim/beadData';
-import { tabFigures, turnLineOf } from '../../src/ui/topBar';
+import { ageTurnOverWords, tabFigures, turnLineOf } from '../../src/ui/topBar';
+import { turnOverRule } from '../../src/sim/worldClock';
 import { game, found } from '../sim/statecraftHelpers';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -135,11 +136,11 @@ describe('readEmpire carries the empire-scale card lines', () => {
 describe("the top bar's turn line", () => {
   it('reads the world clock rather than deriving an age of its own', () => {
     const bar = source('topBar.ts');
-    // The two folds off `GameState.ageClose`, asked by name. A bar that read
-    // the seats' technologies and averaged them itself would be the second
-    // clock this batch removed — right up until the day a rule moved.
+    // The two folds off `GameState.ageClose`, asked by name, and the rule's
+    // figures for the hint. A bar that read the seats' technologies and
+    // decided the age itself would be a second clock.
     expect(bar).toMatch(
-      /import \{ currentWorldAge, worldAgeCountdown \} from '\.\.\/sim\/worldClock'/,
+      /import \{ type TurnOverRule, currentWorldAge, turnOverRule, worldAgeCountdown \} from '\.\.\/sim\/worldClock'/,
     );
     // Both asked in one place, `shownAge`, which reads the same stamp for the
     // close turn (2026-11-18). The line and the age card both print it.
@@ -164,14 +165,32 @@ describe("the top bar's turn line", () => {
     expect(bar).not.toMatch(/turnItem\.addEventListener/);
   });
 
-  it('shows every empire its own age, because the world clock is a mean', () => {
+  it('shows every empire its own age, because the world clock follows them', () => {
     const bar = source('topBar.ts');
     // "Why has the age not turned over yet" is a question about the *other*
-    // empires once the clock is an average, so the card prints the summands.
+    // empires, so the card prints where each of them stands.
     const card = bar.slice(bar.indexOf('function ageCard()'));
     const body = card.slice(0, card.indexOf('\n  }\n'));
     expect(body).toContain('realPlayers(state)');
     expect(body).toContain('highestAge(seat.techsResearched)');
+  });
+
+  it('says when an age starts to close, in words read from the rules sheet', () => {
+    // The shipped figures: half of the empires one age on, or any empire two
+    // ages on (`docs/flags.md`, "The clock turns over sooner").
+    expect(ageTurnOverWords(turnOverRule())).toBe(
+      'This age starts to close when half of the empires have reached the next age, ' +
+        'or when any empire is two ages ahead of it.',
+    );
+    // Other figures give other words, and never a digit (hard rule 7).
+    const other = ageTurnOverWords({ leadAges: 3, shareNumerator: 2, shareDenominator: 3 });
+    expect(other).toContain('two in three of the empires');
+    expect(other).toContain('three ages ahead');
+    expect(other).not.toMatch(/[0-9]/);
+    // The card asks for the sentence; it does not write the rule itself.
+    const bar = source('topBar.ts');
+    const card = bar.slice(bar.indexOf('function ageCard()'));
+    expect(card.slice(0, card.indexOf('\n  }\n'))).toContain('ageTurnOverWords(turnOverRule())');
   });
 
   it('says the turn and the age, and no countdown before any age closes', () => {

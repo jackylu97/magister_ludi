@@ -811,8 +811,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   {
     name: "worldClock",
     // **The world's calendar** (batch G1, `docs/wager.md` §1): an age closes
-    // when the stamp on it says so, and a new countdown opens when the world's
-    // *mean* age crosses into the next one.
+    // when the stamp on it says so, and a new countdown opens when enough of
+    // the board has moved past the current age (the rule is in
+    // `worldClock.ts`).
     //
     // Its position is the usual rules decision, and it is one sentence: **every
     // phase that reads the world's age must run after this one.** The loudest

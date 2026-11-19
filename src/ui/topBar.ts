@@ -127,7 +127,8 @@ import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { ABILITY_TECH, eraNumeral, highestAge, techDef } from '../sim/techData';
 import { hasAbility } from '../sim/tech';
 import { seatName } from '../sim/leaderData';
-import { currentWorldAge, worldAgeCountdown } from '../sim/worldClock';
+import { type TurnOverRule, currentWorldAge, turnOverRule, worldAgeCountdown } from '../sim/worldClock';
+import { numberWords } from './numberWords';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
@@ -407,6 +408,31 @@ export function shownAge(state: GameState): { age: number; countdown: { turnsLef
   }
   const countdown = worldAgeCountdown(state);
   return { age: currentWorldAge(state), countdown: countdown ? { turnsLeft: countdown.turnsLeft } : null };
+}
+
+/**
+ * **When an age starts to close**, in a first-time player's words: the age
+ * card's hint while no countdown runs.
+ *
+ * The two figures come from the rules sheet (`turnOverRule`, `worldClock.ts`)
+ * and are written in words, so the sentence has no digits (hard rule 7) and
+ * stays true when the figures are retuned. With the shipped figures it reads
+ * "This age starts to close when half of the empires have reached the next
+ * age, or when any empire is two ages ahead of it."
+ */
+export function ageTurnOverWords(rule: TurnOverRule): string {
+  const { shareNumerator: part, shareDenominator: whole, leadAges } = rule;
+  const share =
+    part >= whole
+      ? 'all'
+      : part * 2 === whole
+        ? 'half'
+        : `${numberWords(part)} in ${numberWords(whole)}`;
+  const lead = leadAges === 1 ? 'an age' : `${numberWords(leadAges)} ages`;
+  return (
+    `This age starts to close when ${share} of the empires have reached the next age, ` +
+    `or when any empire is ${lead} ahead of it.`
+  );
 }
 
 /**
@@ -836,11 +862,12 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    * What the age is, what it is waiting on, and where every empire stands in
    * its own tree.
    *
-   * The last block is the whole argument for the card: the world's age is a
-   * **mean**, so "why has the age not turned over yet" is a question about the
-   * other empires, and a card that printed the answer without its summands
-   * would be asking to be taken on trust. The bead figure's card prints the
-   * same list of empires, with their beads instead of their ages.
+   * The last block is the reason for the card: the world's age follows the
+   * empires' own ages (the rule is in `worldClock.ts`), so "why has the age
+   * not turned over yet" is a question about the other empires. The list shows
+   * where each of them stands, so the player can check the answer. The bead
+   * figure's card prints the same list of empires, with their beads instead of
+   * their ages.
    */
   function ageCard(): Node {
     const { state } = getGame();
@@ -881,7 +908,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         element(
           'p',
           'hint',
-          'The age turns over when most of the world has entered the next one — not when the first empire does.',
+          ageTurnOverWords(turnOverRule()),
         ),
       );
     }

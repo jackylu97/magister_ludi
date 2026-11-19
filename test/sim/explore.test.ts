@@ -1411,10 +1411,16 @@ describe('determinism', () => {
    * and not the length at both seeds: 243 became 244, and that is all. Nobody here
    * signs a deal. Checked with the change in place and the version printed as 243,
    * which gives the hashes before the batch exactly.
+   *
+   * The faster world clock (schema 245) moved the hash and not the length at both
+   * seeds: 244 became 245, and that is all. No seat here researches anything, so
+   * no countdown starts and `ageClose` stays absent for all twenty turns. Checked
+   * with the change in place and the version printed as 244, which gives the
+   * hashes before the batch exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '74a75562:190677',
-    2026: '17086b0f:190843',
+    11: '251dc59b:190677',
+    2026: '8780c7c6:190843',
   };
 
   for (const seed of [11, 2026]) {

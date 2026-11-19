@@ -18,27 +18,38 @@ import { resetVisibility } from "../../src/sim/visibility";
 import {
   ageClosesThisTurn,
   currentWorldAge,
+  turnOverRule,
   worldAge,
   worldAgeCountdown,
+  worldProgress,
 } from "../../src/sim/worldClock";
 import { newGame } from './newGameHelpers';
 
 /**
- * **The world's clock** — batch G1, `docs/wager.md` §1 (the spec of record).
+ * **The world's clock**: batch G1, and the faster turn-over rule of 2026-11-18
+ * (`docs/flags.md`, "Age turn-over: a missing plate, the abacus motion, and a
+ * faster clock", the bullet "The clock turns over sooner"; `docs/wager.md`,
+ * "Rules").
  *
- * What this file pins, in the order the mechanism runs: the world's age is the
- * **mean** of the living real seats and it **floors**, so one empire alone does
- * not turn the world over; the wild is never counted and an eliminated seat is
- * dropped; the crossing opens a countdown of `rules.wager.countdown` turns
- * stamped as an absolute turn; the close fires on that turn and only that turn,
- * announces `ageClosed` to every seat, and puts the world in the next age; the
- * last age closes on its own backstop or on the Great Work, whichever comes
- * first; and nothing anywhere ticks.
+ * What this file checks, in the order the mechanism runs:
  *
- * The bench is deliberately the *phase* rather than a whole resolution. The
- * clock is one beat and the claim is about that beat: a two-hundred-turn bot
- * game would be measuring the tree's pace with the clock's tests, which is the
- * slow tier's job and `beads.slow.test.ts`'s already.
+ *   - the countdown that closes an age starts when any living seat is two ages
+ *     past it, or when at least half of the living seats are one age past it
+ *     (half of an odd count rounds up). Both figures come from `rules.wager`;
+ *   - the wild is never counted, and an eliminated seat is dropped;
+ *   - the countdown is `rules.wager.countdown` turns, stamped as an absolute
+ *     turn;
+ *   - the close fires on that turn and only that turn, announces `ageClosed`
+ *     to every seat, and puts the world in the next age;
+ *   - the world moves one age a close, each with a full countdown, however far
+ *     ahead one seat runs;
+ *   - the last age closes on its own backstop or on the Great Work, whichever
+ *     comes first;
+ *   - nothing anywhere ticks.
+ *
+ * The bench is the *phase* rather than a whole resolution. The clock is one
+ * step of the turn, and a long bot game would measure the pace of the tree,
+ * which is the job of the slow tier (`beads.slow.test.ts`).
  */
 
 function config(over: Partial<GameConfig> = {}): GameConfig {
@@ -51,6 +62,20 @@ function config(over: Partial<GameConfig> = {}): GameConfig {
     ],
     ...over,
   };
+}
+
+/** A game with `count` real seats, the first of them human. */
+function seated(count: number, over: Partial<GameConfig> = {}): GameConfig {
+  const names = ["Ada", "Bors", "Cato", "Dido", "Enno"];
+  const colors = ["#a00", "#00a", "#0a0", "#aa0", "#a0a"];
+  return config({
+    players: names.slice(0, count).map((name, index) => ({
+      name,
+      color: colors[index]!,
+      isHuman: index === 0,
+    })),
+    ...over,
+  });
 }
 
 /** A technology that belongs to each age. The clock reads `highestAge`. */
@@ -101,43 +126,117 @@ function runToClose(state: GameState): number {
 // --- 1. the reading ---------------------------------------------------------
 
 describe("the world's age", () => {
-  it("is the mean of the seats, floored — one empire alone does not turn it over", () => {
-    const state = newGame(config());
-    expect(worldAge(state)).toBe(1);
-    expect(currentWorldAge(state)).toBe(1);
+  it("reads the two thresholds from the rules sheet", () => {
+    // The defaults that give the user's rule: one seat two ages past the age
+    // that is closing, or half the living seats one age past it.
+    expect(RULES.wager.leadAges).toBe(2);
+    expect(RULES.wager.shareOfSeats).toEqual({ numerator: 1, denominator: 2 });
+    expect(turnOverRule()).toEqual({ leadAges: 2, shareNumerator: 1, shareDenominator: 2 });
+  });
 
-    // The acceptance bench of the brief: two seats in Æra I, one of them
-    // reaches Æra II. The mean is one and a half and the world stays where it
-    // is — this is the whole of the ruling that replaced the first-seat rule.
+  it("turns over when any living seat is two ages past it", () => {
+    const state = newGame(seated(3));
+    expect(worldAge(state)).toBe(1);
+
+    // One seat of three in Æra II is neither rule: not half, not two ahead.
     reach(state, 0, 2);
     expect(worldAge(state)).toBe(1);
-    expect(currentWorldAge(state)).toBe(1);
-    expect(worldAgeCountdown(state)).toBeNull();
 
-    // And when the second arrives, the mean is two.
-    reach(state, 1, 2);
+    // The same seat in Æra III is two ages past Æra I, so Æra I is due to
+    // close. It is not two ages past Æra II, and one seat of three is not half,
+    // so the world's progress stops at Æra II.
+    reach(state, 0, 3);
     expect(worldAge(state)).toBe(2);
+    expect(currentWorldAge(state)).toBe(1);
+  });
+
+  it("turns over when exactly half of an even count is one age past it", () => {
+    const duel = newGame(seated(2));
+    // One of two is half.
+    reach(duel, 0, 2);
+    expect(worldAge(duel)).toBe(2);
+
+    const four = newGame(seated(4));
+    reach(four, 0, 2);
+    expect(worldAge(four)).toBe(1);
+    reach(four, 1, 2);
+    expect(worldAge(four)).toBe(2);
+  });
+
+  it("rounds half up for an odd count", () => {
+    const five = newGame(seated(5));
+    reach(five, 0, 2);
+    reach(five, 1, 2);
+    // Two of five is less than half.
+    expect(worldAge(five)).toBe(1);
+    reach(five, 2, 2);
+    expect(worldAge(five)).toBe(2);
+
+    const three = newGame(seated(3));
+    reach(three, 0, 2);
+    expect(worldAge(three)).toBe(1);
+    reach(three, 1, 2);
+    expect(worldAge(three)).toBe(2);
+
+    // With one living seat, that seat is the half.
+    const alone = newGame(seated(1));
+    expect(worldAge(alone)).toBe(1);
+    reach(alone, 0, 2);
+    expect(worldAge(alone)).toBe(2);
+  });
+
+  it("does not turn over when neither rule holds", () => {
+    const state = newGame(seated(5));
+    reach(state, 0, 2);
+    reach(state, 1, 2);
+    // Two of five one age ahead, and nobody two ages ahead.
+    expect(worldAge(state)).toBe(1);
+    tick(state);
+    expect(state.ageClose).toBeUndefined();
+    expect(worldAgeCountdown(state)).toBeNull();
   });
 
   it("never counts the wild", () => {
     const state = newGame(config({ barbarians: true }));
     const wild = state.players.find((player) => player.barbarian);
     expect(wild).toBeDefined();
-    // The wild keeps no research, so a mean that counted it would be dragged to
-    // the first age for the whole game. Both real seats in Æra III is Æra III.
-    reach(state, 0, 3);
-    reach(state, 1, 3);
-    expect(worldAge(state)).toBe(3);
+    // One of the two real seats in Æra II is half of them. If the wild were
+    // counted, one of three would not be half.
+    reach(state, 0, 2);
+    expect(worldAge(state)).toBe(2);
   });
 
-  it("drops an eliminated seat rather than being held back by it", () => {
-    const state = newGame(config());
-    reach(state, 0, 3);
-    // A conquered rival frozen in the first age would otherwise average the
-    // survivor down to Æra II for the rest of the game.
-    expect(worldAge(state)).toBe(2);
+  it("drops an eliminated seat, both from the count and from the lead", () => {
+    const state = newGame(seated(3));
+    reach(state, 0, 2);
+    // One of three is not half.
+    expect(worldAge(state)).toBe(1);
+    // A conquered rival frozen in the first age leaves the count: one of two
+    // is half.
     state.players[1]!.eliminated = true;
-    expect(worldAge(state)).toBe(3);
+    expect(worldAge(state)).toBe(2);
+
+    // An eliminated seat far ahead does not pull the world along either.
+    const runaway = newGame(seated(3));
+    reach(runaway, 2, 4);
+    expect(worldAge(runaway)).toBe(3);
+    runaway.players[2]!.eliminated = true;
+    expect(worldAge(runaway)).toBe(1);
+  });
+
+  it("stays at most one age behind a runaway seat", () => {
+    const state = newGame(seated(3));
+    reach(state, 0, LAST_TECH_AGE);
+    // Every age up to the one before the leader's is due to close, and no
+    // further: the world never passes the leader on the lead rule alone.
+    expect(worldAge(state)).toBe(LAST_TECH_AGE - 1);
+  });
+
+  it("never reads past the last age", () => {
+    const state = newGame(seated(2));
+    reach(state, 0, LAST_TECH_AGE);
+    reach(state, 1, LAST_TECH_AGE);
+    expect(worldAge(state)).toBe(LAST_TECH_AGE);
   });
 
   it("is derived, never stored — the state carries one stamp and no age", () => {
@@ -148,6 +247,41 @@ describe("the world's age", () => {
     // before this batch loads as (presence-is-state).
     expect(currentWorldAge(state)).toBe(1);
     expect(worldAgeCountdown(state)).toBeNull();
+  });
+});
+
+describe("the turn-over rule on an age list of its own", () => {
+  // `worldProgress` takes the list of ages, so the rule can be checked on a
+  // chart with a fifth age before the tech data has one. The phase reads the
+  // real list (`TECH_AGES`) through `worldAge`.
+  const FIVE = [1, 2, 3, 4, 5] as const;
+
+  it("works with a fifth age", () => {
+    // A seat in the fifth age is two past the third.
+    expect(worldProgress([5, 1, 1], FIVE)).toBe(4);
+    // Two of three in the fourth age.
+    expect(worldProgress([4, 4, 1], FIVE)).toBe(4);
+    expect(worldProgress([4, 3, 3], FIVE)).toBe(3);
+    // The last age has nothing above it, so the progress stops there.
+    expect(worldProgress([5, 5, 5], FIVE)).toBe(5);
+  });
+
+  it("stops at the last age of the list it is given", () => {
+    expect(worldProgress([4, 4], [1, 2, 3, 4])).toBe(4);
+    expect(worldProgress([5, 5], [1, 2, 3, 4])).toBe(4);
+  });
+
+  it("answers the first age for a world with no living seat", () => {
+    expect(worldProgress([], FIVE)).toBe(1);
+  });
+
+  it("uses the thresholds it is given", () => {
+    // Three ages ahead, or two seats of three.
+    const strict = { leadAges: 3, shareNumerator: 2, shareDenominator: 3 };
+    expect(worldProgress([3, 1, 1], FIVE, strict)).toBe(1);
+    expect(worldProgress([4, 1, 1], FIVE, strict)).toBe(2);
+    expect(worldProgress([2, 2, 1], FIVE, strict)).toBe(2);
+    expect(worldProgress([2, 1, 1], FIVE, strict)).toBe(1);
   });
 });
 
@@ -214,11 +348,11 @@ describe("the countdown", () => {
     expect(currentWorldAge(state)).toBe(2);
   });
 
-  it("opens the next countdown when the mean has already run further ahead", () => {
+  it("opens the next countdown when the world has already run further ahead", () => {
     const state = newGame(config());
     // Both seats jump straight to Æra III: the world still walks there one age
-    // at a time, a countdown each, which is what keeps an age from being a turn
-    // long for a world that rushed.
+    // at a time, a countdown each, so an age is never a turn long for a world
+    // that rushed.
     reach(state, 0, 3);
     reach(state, 1, 3);
     tick(state);
@@ -226,8 +360,8 @@ describe("the countdown", () => {
 
     const firstClose = runToClose(state);
     expect(currentWorldAge(state)).toBe(2);
-    // The same resolution notices the mean is still ahead and gives Æra II its
-    // own notice, from this turn.
+    // The same resolution sees that the rule still holds for Æra II and gives
+    // it its own countdown, from this turn.
     expect(state.ageClose).toEqual({
       age: 2,
       turn: firstClose + RULES.wager.countdown,
@@ -235,6 +369,35 @@ describe("the countdown", () => {
 
     runToClose(state);
     expect(currentWorldAge(state)).toBe(3);
+  });
+
+  it("closes one age at a time behind a runaway seat, each with a full countdown", () => {
+    const state = newGame(seated(3));
+    // One seat in the last age while the world is in the first.
+    reach(state, 0, LAST_TECH_AGE);
+    const started = state.turn + 1;
+    tick(state);
+    expect(state.ageClose).toEqual({ age: 1, turn: started + RULES.wager.countdown });
+
+    // Each close moves the world by one age, and the next age gets its own
+    // full countdown from the turn it opened.
+    let opened = started;
+    const closes: number[] = [];
+    for (let age = 1; age < LAST_TECH_AGE - 1; age++) {
+      const closedOn = runToClose(state);
+      closes.push(closedOn);
+      expect(closedOn - opened).toBe(RULES.wager.countdown);
+      expect(currentWorldAge(state)).toBe(age + 1);
+      opened = closedOn;
+    }
+
+    // The world stops one age behind the leader: nobody is two ages past it
+    // and one seat of three is not half.
+    expect(currentWorldAge(state)).toBe(LAST_TECH_AGE - 1);
+    expect(worldAgeCountdown(state)).toBeNull();
+    for (let step = 0; step < 3 * RULES.wager.countdown; step++) tick(state);
+    expect(currentWorldAge(state)).toBe(LAST_TECH_AGE - 1);
+    expect(closes.length).toBe(LAST_TECH_AGE - 2);
   });
 });
 
@@ -657,6 +820,9 @@ describe("the clock as a register", () => {
     // its town one more Wildcard chair.
     // 244 since batch BP13c: an empire lends only the luxury copies it owns, so
     // a borrowed copy cannot be lent on.
-    expect(SCHEMA_VERSION).toBe(244);
+    // 245 since the faster world clock: an age starts to close when one seat
+    // is two ages past it or half the seats are one age past it, so a v244
+    // log's ages open on different turns.
+    expect(SCHEMA_VERSION).toBe(245);
   });
 });

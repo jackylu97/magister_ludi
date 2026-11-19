@@ -16,9 +16,9 @@ earned is `docs/wager.md`**; this is the machinery under it.
 - The **golden bead** is minted only by the Magnum Opus. Its completion closes
   the age → `closeTheGreatWork` → `winnerId` = **the empire that raised it**.
   `winnerId` has two writers: `updateElimination` and `closeTheGreatWork`.
-- **The world clock** is one clock for everybody: the **mean** age of every
-  living real seat's highest technology, floored (`worldAge`,
-  `src/sim/worldClock.ts`). When the mean first crosses into the next age the
+- **The world clock** is one clock for everybody (`worldAge`,
+  `src/sim/worldClock.ts`). When any living real seat has reached two ages past
+  the current age, or at least half of them have reached the next age, the
   current age is given `rules.wager.countdown` turns; on the close turn the
   `worldClock` phase announces `ageClosed` to every seat and resets the per-age
   counters. Everything absolute — `GameState.ageClose` is one `{age, turn}`
