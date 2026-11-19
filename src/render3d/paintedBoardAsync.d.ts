@@ -1,5 +1,6 @@
 import type {GameMap} from '../sim/map';
 import type {PaintedBoard, PaintedBoardMaterials, PaintedBuildStage, PaintedVegetationAssets} from './paintedBoard.js';
+import type {GroundPaintPlan} from './groundPaint.js';
 /** A step the build reports: one of the board's own, or the worker's packing of the result for the page. */
 export type PaintedBuildReport = PaintedBuildStage | 'packing';
 export interface PaintedBuildMetrics {
@@ -29,4 +30,6 @@ export function buildPaintedBoardAsync(map: GameMap, assets: PaintedVegetationAs
      * The sea's bake reads it there, so the page never copies the terrain itself. The port is transferred.
      */
     terrainPort?: MessagePort | null;
-    workerFactory?: () => Worker; workers?: number}): Promise<{board: PaintedBoard; metrics: PaintedBuildMetrics}>;
+    workerFactory?: () => Worker; workers?: number;
+    /** The page's plan for the ground paint texture (`groundPaintPlan`), or null for the present far land. */
+    ground?: GroundPaintPlan | null}): Promise<{board: PaintedBoard; metrics: PaintedBuildMetrics}>;

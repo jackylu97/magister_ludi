@@ -1,6 +1,7 @@
-import type { BufferGeometry, DataTexture, Group, InstancedBufferAttribute, Mesh, MeshStandardMaterial } from 'three';
+import type { BufferGeometry, DataTexture, Group, InstancedBufferAttribute, Mesh, MeshStandardMaterial, Texture, WebGLRenderer } from 'three';
 import type { GameMap } from '../sim/map';
 import type { BuiltBoard } from './board3d';
+import type { GroundPaintInfo, GroundPaintPlan } from './groundPaint.js';
 
 export interface PaintedVegetationAsset {
   geometry: BufferGeometry;
@@ -34,7 +35,13 @@ export interface PaintedBoardBatch {
   matrix?: InstancedBufferAttribute | null;
   color?: InstancedBufferAttribute | null;
   count?: number;
-  detail: 'near' | 'far' | 'always';
+  /**
+   * Which zoom draws the batch. `near` and `far` follow `painted.lod`. On a
+   * board with a plain land, the land's batches are `cut` (the land with its
+   * brush patches cut in) and `plain` (the land that reads the paint texture),
+   * and those two follow the plain land's own band instead.
+   */
+  detail: 'near' | 'far' | 'always' | 'cut' | 'plain';
   surface: boolean;
   mountainPick: boolean;
   /** What the batch casts when shadows are on, never the live flag. */
@@ -54,14 +61,31 @@ export interface PaintedBoard extends BuiltBoard {
   /** The register's live knobs, so a review page can move one without a rebuild. */
   fogUniforms: Record<string, { value: unknown }>;
   readonly shadowRevision: number;
-  /** The measuring test for the ground paint texture (`groundPaintTest.js`), or null when `painted.groundTexture.test` is off. */
-  readonly groundPaintTest: null | {
-    readonly info: null | {width: number; height: number; density: number; bytes: number; ms: number; meshes: number};
-    readonly shown: boolean;
-    /** Bakes the texture if it is not baked yet. */
-    ready(renderer: WebGLRenderer): void;
-    bake(renderer: WebGLRenderer, density?: number): unknown;
-    show(on: boolean): boolean;
+  /**
+   * The ground paint texture (`groundPaint.js`), or null when the board has no
+   * plain land. The renderer calls `step` once a display frame while `pending`
+   * is true; the step that finishes the bake returns true.
+   */
+  readonly groundPaint: null | {
+    readonly plan: GroundPaintPlan;
+    /** The texture is baked, so the plain land may be drawn. */
+    readonly ready: boolean;
+    readonly pending: boolean;
+    readonly failed: boolean;
+    readonly info: GroundPaintInfo | null;
+    /** The plain land's zoom band, in pixels a hex. */
+    readonly nearPixels: number;
+    readonly farPixels: number;
+    readonly texture: Texture | null;
+    /** The plain land is drawn now (and the cut land is not). */
+    readonly drawn: boolean;
+    /** Makes the bake's targets and starts linking its program, off the page's thread where the GPU allows it. */
+    prepare(renderer: WebGLRenderer): void;
+    /** Uses the bake's program once: called just before the board's first frame. */
+    prime(renderer: WebGLRenderer): void;
+    /** With true, one charted chunk of plain land is drawn with no colour and no depth (the board's first frame); false puts it back. */
+    primeLand(on: boolean): void;
+    step(renderer: WebGLRenderer): boolean;
   };
   geometryBytes: number;
   instanceBytes: number;
@@ -99,6 +123,6 @@ export function paintedRegionKey(col: number, row: number): string;
 export type PaintedBuildShare =
   | {publish(kind: 'shape' | 'rivers', payload: unknown): void}
   | {shape: unknown; rivers: unknown};
-export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage, prepared?: GameMap) => void, preparedMap?: GameMap | null, part?: {regions: ReadonlySet<string>} | null, share?: PaintedBuildShare | null): PaintedBoard;
+export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number, stage: PaintedBuildStage, prepared?: GameMap) => void, preparedMap?: GameMap | null, part?: {regions: ReadonlySet<string>} | null, share?: PaintedBuildShare | null, ground?: GroundPaintPlan | null): PaintedBoard;
 /** The surface attributes whose arrays are dropped after their first upload. */
 export const RELEASED_AFTER_UPLOAD: readonly string[];

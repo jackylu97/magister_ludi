@@ -268,9 +268,10 @@ export function createTerrainPainter(map,mountainRanges){
   return out;
  }
  // `creased` is false for ground that lies outside the hex whose paint it takes: the land a free coast lays in a water hex.
- // `plain` is the measuring test for the ground paint texture (`groundPaintTest.js`): no patch is cut into the faces.
- // A face that would have taken patches carries the mark (2, shade, 0) in place of a colour, and the land's shader
- // reads its paint from the texture there. Every other face (bare rock, a crease) keeps its own colour.
+ // `plain` paints the plain land of the ground paint texture (`render3d/groundPaint.js`): no patch is cut into the
+ // faces. A face that would have taken patches carries the mark (2, shade, 0) in place of a colour, and the plain
+ // land's shader reads its paint from the texture there. Every other face (bare rock, a crease, a hill of another
+ // hex's ground) keeps its own colour.
  function paint(geometry,tile,creased=true,plain=false){
   if(isWater(tile))return;
   const source=geometry.attributes.position,normals=geometry.attributes.normal;
@@ -301,8 +302,11 @@ export function createTerrainPainter(map,mountainRanges){
    let fragments=[{polygon:triangle,color:rock??(softHill?pigments[moundKind].base:moundKind?(steep?pigments[moundKind].rich.clone().multiplyScalar(TERRACE_SIDE):pigments[moundKind].base):base)}];
    // The terraced hill shapes read through their lighting planes, and are left
    // intact instead of being fragmented with more painted cuts.
-   const takesPatches=i<plateCount||(softHill&&!cliff),fromTexture=plain&&takesPatches;
-   for(const p of takesPatches&&!plain?patches:[]){
+   // On the plain land, a hill face reads the texture only when its own ground is the hex's: the texture holds the
+   // hex's flat ground, and a hill that reaches over from a hex of another ground keeps that ground's colour. Such a
+   // face is cut as on the cut land, so it looks the same on both.
+   const takesPatches=i<plateCount||(softHill&&!cliff),fromTexture=plain&&takesPatches&&(i<plateCount||pigments[moundKind].base.equals(base));
+   for(const p of takesPatches&&!fromTexture?patches:[]){
     if(bounds[1]<p.bounds[0]||bounds[0]>p.bounds[1]||bounds[3]<p.bounds[2]||bounds[2]>p.bounds[3])continue;
     const next=[];
     for(const f of fragments){

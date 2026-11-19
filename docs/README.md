@@ -1466,6 +1466,20 @@ Eight root pages, all named in `vite.config.ts` inputs:
   the filter blends hexes that are actually neighbours). A register change is
   therefore a **light-texture write** — no geometry, no rebake — and the reveal
   eases over `painted.fog.revealMs` off an absolute stamp, never a countdown.
+- **The land has two meshes, switched by zoom** (the ground paint texture,
+  `src/render3d/groundPaint.js`; `docs/plans/ground-paint-texture-2026-11-18.md`).
+  The cut land has every brush patch cut into its triangles; it is drawn at the
+  closer zooms, picked by the pointer and cast into the static sun's shadow. The
+  plain land is the same hex grid and hill mounds with no patch cut in; it reads
+  its paint from one texture over the map, baked on the page from the cut land's
+  colours a little each frame after the board's first frame, and is drawn below
+  `painted.groundTexture.nearPixels` pixels a hex (kept up to `farPixels`). It
+  takes the place of the old far land. The texture holds only paint that never
+  changes, so play bakes nothing again: towns, works, borders, roads, rivers and
+  fog are geometry, vertex colour or their own layers on both lands. The density
+  falls to fit the GPU and `budgetMiB`, and the band falls with it; if the band
+  could not cover the far detail band (`painted.lod`), the board keeps the old
+  far land. `painted.groundTexture.enabled: false` puts the old far land back.
 - **The tile pick reads the ground** (`docs/flags.md` (hhhhhh), R5): the hex
   under the cursor is the hex whose *ground* the cursor points at.
   `installPaintedSurface` (`src/render3d/paintedSurface.ts`) registers the

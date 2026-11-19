@@ -17,12 +17,10 @@ import { VIEW3D } from './lookData';
 import { createSeaField, RIVER } from './seaField';
 import { createOrganicRivers, organicRiversFrom } from './organicRivers';
 import { createFreeCoast } from './freeCoast';
-import { createGroundPaintTest } from './groundPaintTest';
+import { createGroundPaint } from './groundPaint';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
-// The measuring test for the ground paint texture (`groundPaintTest.js`); off unless `test` is on.
-const GROUND_PAINT = VIEW3D.painted.groundTexture;
 function hash(a, b, n = 0) {
   let x = Math.imul(a + 53, 374761393) ^ Math.imul(b + 71, 668265263) ^ Math.imul(n + 1, 1274126177);
   x = Math.imul(x ^ (x >>> 13), 1274126177);
@@ -57,7 +55,7 @@ function releaseAfterUpload(geometry) {
 /** The far view's region of a hex: 18 by 18 hexes, three by three land chunks. A part of a split build owns whole regions. */
 export function paintedRegionKey(col, row) { return `${Math.floor(col / 18)},${Math.floor(row / 18)}`; }
 
-export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null, part = null, share = null) {
+export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null, part = null, share = null, paintPlan = null) {
   // `share` lets the parts of a split build work out the map's shape and its
   // rivers once (the fourth render speed pass). Every part needs both, because
   // a hex's ground reads its neighbours, and they are the two longest of the
@@ -79,6 +77,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // view, the chunk that first added to its region) and the count runs on in
   // the order this build made them. Sorted by `order`, the batches of all the
   // parts are the batches one whole build makes, in its order.
+  //
+  // `paintPlan` is the page's plan for the ground paint texture (`groundPaintPlan`
+  // in `groundPaint.js`), or null. With a plan whose `plain` is true, the board
+  // builds a plain land in place of the present far land: the hex grid and the
+  // hill mounds with no brush patch cut into them, in the same 6 by 6 chunks as
+  // the cut land, so the two are culled alike. Its batches are `plain`, and the
+  // cut land's are `cut`: one or the other is drawn, by the plain land's own
+  // zoom band (`updateDetail`). The props keep their near and far bands. Null,
+  // or a plan whose `plain` is false, builds the board as it was before.
   if (!preparedMap) progress(0, 0, 'shape');
   const renderMap = preparedMap || (share?.shape ? restoreTerrainMap(share.shape) : prepareTerrainMap(map, { wrap: true }));
   // Posted at once, so the message is a copy of the tiles as the shape left them.
@@ -91,15 +98,19 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   });
   const fog = createPaintedFog(map.width, map.height);
   const relief = new PaintedRelief();
-  // The ground paint test: the far land is plain (no patch cut into it) and wears this material, which reads the
-  // paint from a texture. `groundPaintLands` are the near land's meshes of the middle copy, which the bake draws.
-  const groundPaint = GROUND_PAINT.test ? createGroundPaintTest(materials.mergedLand, period, map.height) : null;
+  // The plain land wears this material, which reads the paint from the texture. `groundPaintLands` are the cut
+  // land's meshes of the middle copy, which the bake draws. A worker builds the plain land's geometry and never draws
+  // it; its batches name the land's own material, and the page puts this one on them again (`landSource`).
+  const plain = !!paintPlan?.plain;
+  const groundPaint = plain ? createGroundPaint(materials.mergedLand, paintPlan) : null;
   const groundPaintLands = [];
-  let groundPaintShown = GROUND_PAINT.show, drawingPlainLand = false;
-  // Passed as a land piece's far geometry: under the test the texture carries that piece (a beach, a river bank), so
-  // the plain land gets no copy of it. Without the test it is `undefined`, and the far land gets its usual copy.
-  const inTexture = groundPaint ? false : undefined;
-  const landSource = (source, detail) => groundPaint && detail === 'far' && source === materials.mergedLand ? groundPaint.material : source;
+  // Passed as a land piece's far geometry: with the plain land the texture carries that piece (a beach, a river
+  // bank), so the plain land gets no copy of it. Without it, `undefined`, and the far land gets its usual copy.
+  const inTexture = plain ? false : undefined;
+  const landSource = (source, detail) => groundPaint && detail === 'plain' && source === materials.mergedLand ? groundPaint.material : source;
+  const landFamily = (source, base, detail) => detail === 'plain' ? 'plain land' : familyName(source, base);
+  // The charted plain land of the middle copy, which the bake puts on the GPU before the plain land is first drawn.
+  const chartedPlains = () => visibilityBatches.filter(batch => batch.detail === 'plain' && batch.charted).map(batch => batch.meshes[1]);
   const CellArray = map.tiles.length <= 65536 ? Uint16Array : Float32Array;
   const ownedGeometry = new Set(), ownedMaterials = new Map(), depthMaterials = new Map();
   const pickMeshes = [], nearProps = [], farProps = [], visibilityBatches = [];
@@ -204,18 +215,28 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // taken at far LOD would come back empty. `drawingDistant` is only the memo of
   // what the batches are currently set to, so a flip that changes nothing costs
   // nothing. See `setBakeDetail` for why the two may now disagree.
+  // The plain land has the same three: `showingPlain` is the zoom's answer for
+  // the land and `drawingPlain` the memo. The plain land is drawn only once its
+  // texture is baked, and never into the static sun's bake (it casts nothing).
   let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
+  let showingPlain = false, drawingPlain = false;
 
+  /** Whether a batch's band is drawn, by the two memos. */
+  function drawnAtThisZoom(detail) {
+    if (detail === 'always') return true;
+    if (detail === 'cut') return !drawingPlain;
+    if (detail === 'plain') return drawingPlain;
+    return (detail === 'far') === drawingDistant;
+  }
   function showBatch(batch) {
-    const visible = batch.charted && (batch.detail === 'always' || (batch.detail === 'far') === (batch.plainLand ? drawingPlainLand : drawingDistant));
+    const visible = batch.charted && drawnAtThisZoom(batch.detail);
     for (const mesh of batch.meshes) mesh.visible = visible;
   }
   function applyDetail() {
     const distant = showingDistant && !bakingDetail;
-    // The ground paint test can draw the plain land at every zoom; the shadow bake still takes the near land.
-    const plainLand = (showingDistant || (!!groundPaint && groundPaintShown)) && !bakingDetail;
-    if (drawingDistant === distant && drawingPlainLand === plainLand) return false;
-    drawingDistant = distant; drawingPlainLand = plainLand;
+    const plainLand = showingPlain && !!groundPaint?.ready && !bakingDetail;
+    if (drawingDistant === distant && drawingPlain === plainLand) return false;
+    drawingDistant = distant; drawingPlain = plainLand;
     for (const batch of visibilityBatches) showBatch(batch);
     return true;
   }
@@ -286,7 +307,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       const material = paintedFogMaterial(source, fog, source === materials.mergedWater);
       material.defaultAttributeValues = {...material.defaultAttributeValues, ...SURFACE_DEFAULTS};
       if (source === materials.mergedLand || source === groundPaint?.material) deriveSurfaceUv(material);
-      // A worker's batch names the land's own material; the page puts the test's material on it again.
+      // A worker's batch names the land's own material; the page puts the plain land's material on it again.
       ownedMaterials.set(source, material); sources.set(material, source === groundPaint?.material ? materials.mergedLand : source);
     }
     return ownedMaterials.get(source);
@@ -337,10 +358,10 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       meshes.push(placed);
       if (surface) { placed.userData.paintedSurface = true; pickMeshes.push(placed); }
     }
+    // The bake draws the cut land of the middle copy, which is this mesh itself.
+    if (detail === 'cut') groundPaintLands.push(mesh);
     // Include both banks of shared river sectors, even across chunk/wrap edges.
-    const plainLand = !!groundPaint && detail !== 'always' && mesh.userData.paintedFamily === 'merged land';
-    if (plainLand && detail === 'near') groundPaintLands.push(mesh);
-    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false, plainLand,
+    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
       casts: !!mesh.userData.paintedCasts, order: [orderStep, orderRank, orderCount++] };
     visibilityBatches.push(batch); showBatch(batch);
   }
@@ -377,11 +398,18 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (source !== materials.mergedLand) { geometry.deleteAttribute('turfWeight'); geometry.deleteAttribute('paintedRelief'); }
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
+    // The hill relief (`PaintedRelief`) takes a mound away under a town by rewriting the index, and passes over a
+    // batch with none. The plain land's faces share almost no corner (no patch is cut into them, and each face has
+    // its own normal), so welding declines to index them; they get an index that names each corner once.
+    if (detail === 'plain' && !geometry.index) {
+      const count = geometry.getAttribute('position').count;
+      geometry.setIndex(new T.BufferAttribute((count <= 65536 ? Uint16Array : Uint32Array).from({ length: count }, (_, i) => i), 1));
+    }
     releaseAfterUpload(geometry);
     const mesh = new T.Mesh(geometry, materialFor(landSource(source, detail)));
-    mesh.userData.paintedFamily = familyName(source, null);
+    mesh.userData.paintedFamily = landFamily(source, null, detail);
     decorateMesh(mesh, source, source === materials.earth || source === materials.mergedLand || source === features.stone || source === features.shrub);
-    if (detail === 'far') mesh.castShadow = mesh.userData.paintedCasts = false;
+    if (detail === 'far' || detail === 'plain') mesh.castShadow = mesh.userData.paintedCasts = false;
     const placed = []; addCopies(mesh, placed, surface, detail); return placed;
   }
   function propMeshes(batches, target, distant) {
@@ -423,7 +451,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       ownedGeometry.add(geometry);
       if (base) instanceBases.set(geometry, base);
       const mesh = matrix ? new T.InstancedMesh(geometry, materialFor(source), count) : new T.Mesh(geometry, materialFor(landSource(source, detail)));
-      mesh.userData.paintedFamily = familyName(source, base);
+      mesh.userData.paintedFamily = landFamily(source, base, detail);
       if (matrix) { mesh.instanceMatrix = matrix; mesh.instanceColor = color; mesh.computeBoundingSphere(); }
       else releaseAfterUpload(geometry);
       decorateMesh(mesh, source, castShadow);
@@ -511,9 +539,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         painter.paint(top, t);
         let farTop;
         if (!isWater(t)) {
-          // The ground paint test: the far land takes the near grid (or the far one) and no patch cuts.
-          const far = terrainMesh(t, { distant: !groundPaint || GROUND_PAINT.grid === 'far' }); farTop = far[0]; far[1].dispose();
-          painter.paint(farTop, t, true, !!groundPaint);
+          // The plain land takes the cut land's grid, so its hills and coasts have the same shape, and no patch cuts.
+          const far = terrainMesh(t, { distant: !plain }); farTop = far[0]; far[1].dispose();
+          painter.paint(farTop, t, true, plain);
         }
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
@@ -524,10 +552,10 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           if (apron.getAttribute('position').count) {
             const sand = freeCoast.sand(t, apron);
             for (const [land, part] of apronParts(t, apron)) {
-              // The ground paint test: the plain land's copy of this ground takes no patch cuts either.
-              const plain = groundPaint ? part.clone() : undefined;
-              painter.paint(part, land, false); if (plain) painter.paint(plain, land, false, true);
-              push(groundOf(land), part, plain);
+              // The plain land's copy of this ground takes no patch cuts either.
+              const uncut = plain ? part.clone() : undefined;
+              painter.paint(part, land, false); if (uncut) painter.paint(uncut, land, false, true);
+              push(groundOf(land), part, uncut);
             }
             if (sand) push(ground.desert, sand, inTexture);
           }
@@ -643,12 +671,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       }
       for (const [material, list] of surfaces) {
         batchMesh(material, list, material === materials.mergedLand || material === materials.mergedWater,
-          farSurfaces.has(material) ? 'near' : 'always');
-        if (farSurfaces.has(material)) {
+          farSurfaces.has(material) ? plain ? 'cut' : 'near' : 'always');
+        // The plain land is batched in this same chunk, so it is culled with the cut land it stands in for.
+        if (farSurfaces.has(material) && plain) batchMesh(material, farSurfaces.get(material), false, 'plain');
+        else if (farSurfaces.has(material)) {
           // The overview uses the exact same distant faces in larger spatial
           // batches. Close views and static shadow baking retain 6×6 chunks.
-          // The ground paint test keeps the far land in the near land's chunks, so the two are culled alike.
-          const key = groundPaint ? `${Math.floor(tiles[0].col / 6)},${Math.floor(tiles[0].row / 6)}` : paintedRegionKey(tiles[0].col, tiles[0].row);
+          const key = paintedRegionKey(tiles[0].col, tiles[0].row);
           if (!mapSurfaces.has(key)) { mapSurfaces.set(key, new Map()); mapSurfaceRanks.set(key, chunkIndex); }
           const batches = mapSurfaces.get(key);
           if (!batches.has(material)) batches.set(material, []);
@@ -750,14 +779,46 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       });
     },
     get shadowRevision() { return fog.shadowRevision; },
-    // The ground paint test, or null: bake the texture (once, or again at another density), and draw the plain land
-    // at every zoom or only where the far land was.
-    groundPaintTest: groundPaint && {
+    /**
+     * The ground paint texture, or null when the board has no plain land. The
+     * renderer calls `step` once a display frame while `pending` is true; the
+     * step that finishes the bake returns true, and the plain land may be drawn
+     * from then on. A failed bake leaves `ready` false, and the cut land is
+     * drawn at every zoom.
+     */
+    groundPaint: groundPaint && {
+      get plan() { return paintPlan; },
+      get ready() { return !disposed && groundPaint.ready; },
+      get pending() { return !disposed && groundPaint.pending; },
+      get failed() { return groundPaint.failed; },
       get info() { return groundPaint.info; },
-      get shown() { return groundPaintShown; },
-      ready(renderer) { if (!disposed && !groundPaint.info) groundPaint.bake(renderer, groundPaintLands); },
-      bake(renderer, density) { return disposed ? null : groundPaint.bake(renderer, groundPaintLands, density); },
-      show(on) { groundPaintShown = !!on; return applyDetail(); },
+      get nearPixels() { return groundPaint.nearPixels; },
+      get farPixels() { return groundPaint.farPixels; },
+      get texture() { return groundPaint.uniforms.groundPaintMap.value; },
+      get drawn() { return drawingPlain; },
+      prepare(renderer) { if (!disposed) groundPaint.prepare(renderer); },
+      prime(renderer) { if (!disposed) groundPaint.prime(renderer); },
+      /**
+       * The plain land's own program is used for the first time by the frame
+       * that first draws it, and three's first use waits for the GPU. With
+       * `on`, one charted chunk of plain land is drawn in this frame with no
+       * colour and no depth written, so that wait falls in the board's first
+       * frame; `primeLand(false)` after the frame puts everything back.
+       */
+      primeLand(on) {
+        if (disposed) return;
+        const material = groundPaint.material && ownedMaterials.get(groundPaint.material);
+        const batch = visibilityBatches.find(one => one.detail === 'plain' && one.charted);
+        if (!material || !batch) return;
+        material.colorWrite = material.depthWrite = !on;
+        if (on && !drawingPlain) batch.meshes[1].visible = true;
+        else showBatch(batch);
+      },
+      step(renderer) {
+        if (disposed || !groundPaint.step(renderer, groundPaintLands, chartedPlains)) return false;
+        applyDetail();
+        return true;
+      },
     },
     tiles: { own: new Map(), shared: [] }, treedCells, resourceCells: [],
     bounds: { minX: 0, maxX: Math.sqrt(3) * (map.width - 1 + (map.height > 1 ? .5 : 0)), minZ: 0, maxZ: 1.5 * (map.height - 1) },
@@ -826,6 +887,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     updateDetail(pixels) {
       const lod = VIEW3D.painted.lod;
       showingDistant = pixels < (showingDistant ? lod.farPixels : lod.nearPixels);
+      // The plain land's band: the same rule on its own two figures. It starts above the far band (`groundPaintPlan`),
+      // so wherever the far props are drawn, the land is plain once its texture is baked.
+      if (groundPaint) showingPlain = pixels < (showingPlain ? groundPaint.farPixels : groundPaint.nearPixels);
       return applyDetail();
     },
     /**

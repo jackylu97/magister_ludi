@@ -22,7 +22,9 @@ const metrics: PaintedBuildMetrics = {mode:'worker',totalMs:10,workerMs:9,hydrat
 function fixture() {
   // Exercise renderer handover without creating a GPU or browser canvas.
   const renderer = Object.create(Renderer3D.prototype) as Renderer3D;
-  Object.assign(renderer,{running:true,paintedLook:{assets:{},materials:{}},shadows:true,boardBuild:null,preparedBoard:null});
+  // The GPU's largest texture is asked for the ground paint plan the build is handed (`groundPaintPlanFor`).
+  Object.assign(renderer,{running:true,paintedLook:{assets:{},materials:{}},shadows:true,boardBuild:null,preparedBoard:null,
+    renderer:{capabilities:{maxTextureSize:16384}}});
   return renderer;
 }
 function board() {return {dispose:vi.fn()} as unknown as PaintedBoard;}

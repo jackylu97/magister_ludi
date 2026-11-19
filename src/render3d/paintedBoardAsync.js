@@ -61,11 +61,13 @@ const byOrder = (a, b) => a.order[0] - b.order[0] || a.order[1] - b.order[1] || 
  * player can see that work goes on. On the Giant map under load the longest
  * wait between two reports was 8 s of a 185 s build.
  */
-export async function buildPaintedBoardAsync(map, assets, materials, shadows, {signal, onProgress = () => {}, onTerrain = null, terrainPort = null, workerFactory, workers} = {}) {
+// `ground` is the page's plan for the ground paint texture (`groundPaintPlan`), or null. Every part builds with it, and
+// so does the page's hydrate, which puts the plain land's material on the plain land's batches.
+export async function buildPaintedBoardAsync(map, assets, materials, shadows, {signal, onProgress = () => {}, onTerrain = null, terrainPort = null, workerFactory, workers, ground = null} = {}) {
   if (signal?.aborted) throw new DOMException('Board build cancelled', 'AbortError');
   const started = performance.now();
   if (!workerFactory && typeof Worker === 'undefined') {
-    const board = buildPaintedBoard(map, assets, materials, shadows);
+    const board = buildPaintedBoard(map, assets, materials, shadows, null, undefined, null, null, null, ground);
     return {board, metrics: {mode: 'synchronous', totalMs: performance.now() - started, workerMs: 0, hydrateMs: 0, frameCount: 0, maxFrameGapMs: 0, stageMs: {}, longestSilenceMs: 0, parts: 1}};
   }
   const {packet: kit, bindings} = packPaintedKit(assets, materials);
@@ -154,7 +156,7 @@ export async function buildPaintedBoardAsync(map, assets, materials, shadows, {s
       const channels = sharing ? parts.slice(1).map(() => new MessageChannel()) : [];
       let next = 0;
       spawned.forEach((worker, index) => {
-        const message = {map, kit, shadows, riverStyle: riverStyle(), coastStyle: coastStyle(), ...(parts[index] ? {part: parts[index]} : {})};
+        const message = {map, kit, shadows, riverStyle: riverStyle(), coastStyle: coastStyle(), ground, ...(parts[index] ? {part: parts[index]} : {})};
         const transfer = [];
         if (terrainPort && (!parts[index] || parts[index].terrain)) { message.terrainPort = terrainPort; transfer.push(terrainPort); }
         if (sharing && parts[index].terrain) { message.shareTo = channels.map(channel => channel.port1); transfer.push(...message.shareTo); }
@@ -165,7 +167,8 @@ export async function buildPaintedBoardAsync(map, assets, materials, shadows, {s
   });
   if (signal?.aborted) throw new DOMException('Board build cancelled', 'AbortError');
   const hydrateStart = performance.now();
-  const board = buildPaintedBoard(map, assets, materials, shadows, unpackPaintedBatches(result.batches, bindings), undefined, result.early ?? restoreTerrainMap(result.terrain));
+  const board = buildPaintedBoard(map, assets, materials, shadows, unpackPaintedBatches(result.batches, bindings), undefined, result.early ?? restoreTerrainMap(result.terrain),
+    null, null, ground);
   return {board, metrics: {mode: 'worker', totalMs: performance.now() - started, workerMs: result.buildMs,
     hydrateMs: performance.now() - hydrateStart, frameCount: result.frameCount, maxFrameGapMs: result.maxFrameGapMs,
     stageMs: result.stageMs, longestSilenceMs: result.longestSilenceMs, parts: parts.length}};

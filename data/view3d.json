@@ -1249,11 +1249,16 @@
       "share": true
     },
     "groundTexture": {
-      "test": false,
-      "show": false,
+      "enabled": true,
       "texelsPerUnit": 32,
-      "grid": "near",
-      "anisotropy": 4
+      "budgetMiB": 256,
+      "nearPixels": 90,
+      "farPixels": 100,
+      "anisotropy": 4,
+      "bakeSquare": 1024,
+      "bakeSamples": 4,
+      "bakeStepMiB": 2,
+      "bakeAfterMs": 1000
     },
     "shadows": {
       "staticMapSize": 4096,

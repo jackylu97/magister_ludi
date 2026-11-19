@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DirectionalLight, Group, Mesh, MeshBasicMaterial, BoxGeometry, Scene } from 'three';
 import { Renderer3D, type GraphicsResetListener } from '../../src/render3d/renderer3d';
+import { VIEW3D } from '../../src/render3d/lookData';
 // @ts-expect-error The browser helper is JavaScript, with no standalone declaration.
 import { installShadowTarget } from '../../src/render3d/paintedShadows.js';
 
@@ -150,6 +151,62 @@ describe('the painted rebuild', () => {
     for (const one of [...Object.values(layers), board, fog, kit, reveal, look]) expect(one.dispose).toHaveBeenCalledOnce();
     const fields = r as unknown as Record<string, unknown>;
     for (const name of ['board', 'paintedBoard', 'fog', 'reveal', 'paintedLook', 'paintedUnits', ...Object.keys(layers)]) expect(fields[name], name).toBeNull();
+  });
+});
+
+describe('the ground paint texture after a restore', () => {
+  beforeEach(() => { vi.stubGlobal('requestAnimationFrame', () => 0); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  // The texture lives on the GPU, so a lost context takes it with the board. The
+  // rebuilt board (`recoverContext` → `rebuildBoard`) brings a new, unbaked one,
+  // and the loop bakes it a step a display frame, from `bakeAfterMs` after that
+  // board's first frame, as it does after any load.
+  const after = VIEW3D.painted.groundTexture.bakeAfterMs;
+  function baking(drawnAgo: number | null, done = false) {
+    const step = vi.fn(() => done);
+    const board = { groundPaint: { pending: true, step } };
+    const { r, render } = runtime({ paintedBoard: board, boardDrawnAt: drawnAgo === null ? null : performance.now() - drawnAgo });
+    return { r, render, step, board };
+  }
+
+  it('waits for the new board\'s first frame and then `bakeAfterMs`, then takes one step a display frame', () => {
+    for (const ago of [null, Math.max(0, after - 500)]) {
+      const waiting = baking(ago);
+      waiting.r.loop(); waiting.r.loop();
+      expect(waiting.step).not.toHaveBeenCalled();
+    }
+    const going = baking(after + 1);
+    going.r.loop(); going.r.loop();
+    expect(going.step).toHaveBeenCalledTimes(2);
+    // A step draws into the bake's own targets: it asks for no board frame of its own.
+    expect(going.render).not.toHaveBeenCalled();
+  });
+
+  it('draws a frame when the bake is done, so the plain land can take over', () => {
+    const finishing = baking(after + 1, true);
+    finishing.r.loop();
+    expect(finishing.step).toHaveBeenCalledOnce();
+    expect(finishing.render).toHaveBeenCalledOnce();
+  });
+
+  it('takes no step while the context is lost', () => {
+    const lost = baking(after + 1);
+    lost.r.contextWasLost();
+    lost.r.loop();
+    expect(lost.step).not.toHaveBeenCalled();
+  });
+
+  it('starts again on every board the renderer builds, the rebuild after a restore included', () => {
+    const source = Object.values(import.meta.glob('../../src/render3d/renderer3d.ts', { query: '?raw', import: 'default', eager: true }))[0] as string;
+    const rebuild = source.slice(source.indexOf('  private rebuildBoard(map: GameMap): void {'));
+    const body = rebuild.slice(0, rebuild.indexOf('\n  }\n'));
+    // A new board is a new texture: the bake waits for its first frame, and the plan is asked again for it.
+    expect(body).toContain('this.boardDrawnAt = null;');
+    expect(body).toContain('this.groundPaintPlanFor(map)');
+    // The restore's rebuild goes through `preparePaintedMap`, which hands the plan to the workers.
+    const prepare = source.slice(source.indexOf('  async preparePaintedMap('));
+    expect(prepare.slice(0, prepare.indexOf('\n  }\n'))).toContain('ground: this.groundPaintPlanFor(map)');
   });
 });
 
