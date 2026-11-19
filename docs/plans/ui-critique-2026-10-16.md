@@ -1171,3 +1171,19 @@ that for all <7 chair arrangements."
 - Seven chairs or more keep the wide layout.
 - This replaces the earlier line "The chair cluster stays right of centre",
   which described a layout that the build had in fact centred on the page.
+
+### Wonder paintings, and a plate made for them (2026-11-19)
+
+- The user painted splash art for all 34 wonders of the final set. The files
+  are in `public/art/splash/wonders/`, listed in `src/ui/wonderPaintings.ts`,
+  and shown by `wonderPicture(id)`.
+- The user, on the first plate with a painting: "the full screen splash for
+  wonders looks off. Could you do a simple design pass, have the art shine".
+- A wonder with a painting now gets its own plate layout:
+  - a near-black ground in place of the lapis page, so the page does not
+    compete with the painting's sky;
+  - the picture window as large as the page allows, still exactly 16:9;
+  - the words on the foot of the painting over a dark fall-off: the name, the
+    town and turn and what it pays on the left; the Triumph line and Continue
+    on the right.
+- A wonder without a painting keeps the lapis page with the engraved stand-in.
