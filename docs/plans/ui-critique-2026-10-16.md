@@ -1473,3 +1473,35 @@ the boards:
 
 Not in this stage: the government banners, setup, faith, the forecast,
 diplomacy, the city screen.
+
+### Quiet Table: build stage 3 (2026-11-19)
+
+The user: "yup, lets do a consistent card size, go ahead and start."
+
+1. **One card size for great people.** Every great person card in an offer and
+   in the Reliquary has the same width and height, and its text is one size
+   that wraps. A long name wraps or steps down one size at most; the body text
+   does not shrink with it.
+2. **Setup, the leader step** (fourth pass, `frame-5-proposed` and
+   `frame-5-fallback`: "Great, love the new layout"): the head reads "Choose
+   your leader"; a plain list with each leader's name and their civilisation
+   in smaller print under it, in taller rows so the mark reads; no words that
+   describe the seat's colours; one large portrait window (3:4) with the
+   leader's decks, rules, unit and improvement beside it. The window shows the
+   seat's charge until portraits exist. The roster is under review, so the
+   layout must not depend on which leaders are in the list.
+3. **The faith sheet** (third pass `frame-c1-rites`, `frame-c1-bonuses`:
+   "The proposed pages look good"; fourth pass `frame-3-religion`): the head is
+   the religion's name with its holy city and the number of towns that follow
+   it; the tab order is Rites, Religion and followers, Bonuses; Bonuses shows
+   gods, beliefs and the holy city as tablets with a round picture window and
+   the drawn mark as fallback; Religion and followers is tables, with the
+   pantheon graphic cut ("I don't like this graphic anymore, let's just cut
+   it."); every fact of today's tab is kept.
+4. **The combat forecast** (fourth pass, `frame-6-proposed`): it stays at the
+   bottom left in the hex card. The two sides are labelled "You" and "Them",
+   and each health bar sits under the unit it belongs to ("lets make this more
+   readable").
+
+Not in this stage: the unit panel's other parts, diplomacy, the city screen,
+the government banners.
