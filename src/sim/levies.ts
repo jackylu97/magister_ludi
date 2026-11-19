@@ -545,6 +545,7 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
   const player = playerById(state, city.ownerId);
   if (plan.faith !== undefined && player) {
     player.faithPool += plan.faith;
+    bumpEconomy(state);
     report.faith = plan.faith;
   }
   if (plan.unit !== null && plan.tile !== null) {

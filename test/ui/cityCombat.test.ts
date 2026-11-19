@@ -130,7 +130,7 @@ describe('the city sheet', () => {
   it('reads its hit points as hp / cityMaxHp, with the ledger on hover', () => {
     // On hover in the panel's own card since batch UX7, not a native tooltip.
     const text = source('cityPanel.ts');
-    expect(text).toMatch(/\$\{city\.hp\}\/\$\{cityMaxHp\(city\)\} hp/);
+    expect(text).toMatch(/\$\{city\.hp\}\/\$\{cityMaxHp\(city, city, state\)\} hp/);
     expect(text).toMatch(/noteOn\(hp, maxHpLedger\(city\)\)/);
   });
 

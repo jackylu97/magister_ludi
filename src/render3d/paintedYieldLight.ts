@@ -340,7 +340,7 @@ function paintedLightMaterial(): ShaderMaterial {
       // tinted halo still shows on bright grass, where light that is only added turns to white.
       blending: CustomBlending, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor, transparent: true, depthWrite: false, depthTest: true,
       // A flat quad on the ground is seen from its back.
-      side: DoubleSide,
+      side: DoubleSide, forceSinglePass: true,
     });
 }
 
@@ -373,7 +373,6 @@ export function createPaintedMotes(motes: readonly PaintedMote[]) {
   const mesh = new Mesh(geometry, paintedLightMaterial());
   const largest = motes.reduce((max, mote) => Math.max(max, mote.size), 0);
   cullWrapQuads([mesh], geometry, geometry.getAttribute('aAt') as InstancedBufferAttribute, largest * 1.5 + LIGHT.rise + .45);
-  mesh.material.forceSinglePass = true;
   mesh.renderOrder = 6;
   return mesh;
 }

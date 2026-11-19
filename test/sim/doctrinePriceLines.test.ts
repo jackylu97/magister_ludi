@@ -122,7 +122,8 @@ describe('every surface reads the price that is charged', () => {
     const tab = SOURCES['../../src/ui/ritesTab.ts']!;
     expect(tab).toContain('const cost = riteCostFor(state, seat);');
     expect(tab).toContain('const can = ritesAffordable(state, seat, bank);');
-    expect(tab).toContain('const nextCost = riteCostAhead(state, seat, 1);');
+    expect(tab).toContain('const cost = riteCostFor(state, seat, city);');
+    expect(tab).toContain('const nextCost = riteCostAhead(state, seat, 1, city);');
   });
 
   it('lets no reader in the simulation price a technology past the fold', () => {
