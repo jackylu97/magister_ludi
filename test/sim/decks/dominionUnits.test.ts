@@ -516,14 +516,14 @@ describe('Dominion D5 — words and the bot', () => {
       'Scaler | Gains +1 science and +1 culture each time you gain a military unit',
     );
     expect(words('theArmourersSecret')).toContain('one of each military unit it unlocks in your capital');
-    expect(words('theOpenMuster')).toContain('passing on an Order hand grants the best melee unit you can build in your capital');
+    expect(words('theOpenMuster')).toContain('passing on an Order hand grants a melee unit in your capital');
     expect(words('theSack')).toContain('razing a city you captured');
     expect(words('theCleruchy')).toBe('Boon | On draft: a Settler joins you in your capital');
     expect(words('theLongbowmen')).toBe('+2 combat strength for ranged units | ranged units: +1 range');
-    expect(words('theStateForges')).toContain('the best melee unit you can build in your capital');
+    expect(words('theStateForges')).toContain('a melee unit in your capital');
     expect(words('theMuralCrown')).toContain('for each great general you have gained this game');
     expect(words('valhalla')).toContain('+25 culture for each Monument');
-    expect(words('theSwordOfState')).toContain('the best melee unit you can build joins you in your capital');
+    expect(words('theSwordOfState')).toContain('a melee unit joins you in your capital');
     expect(words('copyingTheEnemy')).toContain('a unit you cannot build yet');
     expect(words('theNewCode')).toContain('at most once every 10 turns');
     expect(words('totalMobilisation')).toContain('for a citizen');

@@ -1420,7 +1420,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The bells ring for war, and every parish sends its best.",
-      "text": "Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep.",
+      "text": "Declaring war gives every devout town a melee unit, at most once every twenty turns. They cost no upkeep.",
       "effects": [
         {
           "kind": "windfallRider",

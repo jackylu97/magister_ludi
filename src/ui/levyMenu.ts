@@ -84,9 +84,9 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
         : `${card}: to ${target.name}, which is building the Magnum Opus`;
     }
     case 'muster':
-      return `${card}: your best melee unit, counted as trained`;
+      return `${card}: a melee unit, counted as trained`;
     case 'conscript':
-      return `${card}: your best melee unit, not counted as trained`;
+      return `${card}: a melee unit, not counted as trained`;
     // Expansionist batch E1.
     case 'worker':
       return `${card}: a worker, not counted as trained`;

@@ -205,7 +205,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Scientific | 0 | implemented | Libraries give +1 culture. Monuments give +1 science. | Civic |
-| **The Sword of State** | common | Dominion | I | implemented | On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
+| **The Sword of State** | common | Dominion | I | implemented | On draft: gain a melee unit. It costs no upkeep. | Military |
 | **Garden Cities** | uncommon | Expansionist | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
 | **The Art Dealers** | common | Commerce | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Painted Chapels** | uncommon | Devotion | I | implemented | Religious buildings give +3 culture each. | Civic |

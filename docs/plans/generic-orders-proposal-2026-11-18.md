@@ -1216,7 +1216,7 @@ You approved G2-7 as written, so it is on the sheet. My recommendation is to cha
 | G3-1 | **The Good Years** | III | rare | Civic |  | Your bonus from spare happiness is doubled. | existing shape |  |
 | G3-2 | **City Watches** | III | common | Military |  | Your towns gain +8 defence. | existing shape |  |
 | G3-3 | **Commission: The Master Plan** | III | uncommon | Wildcard | Commission | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | small extension | changed |
-| G3-4 | **The General Summons** | III | uncommon | Military | Boon | On draft: gain three of the best melee units you can build, in your capital. They cost no upkeep. | small extension |  |
+| G3-4 | **The General Summons** | III | uncommon | Military | Boon | On draft: gain three melee units, in your capital. They cost no upkeep. | small extension |  |
 | G3-6 | **The Old Patterns** | III | uncommon | Economic |  | Towns build buildings of earlier ages 40% faster. | new shape |  |
 | G3-7 | **The Old Foundations** | III | common | Economic |  | Buildings of the first two ages cost no gold upkeep. | new shape |  |
 | G3-8 | **The Long Memory** | III | rare | Wildcard |  | Your scalers gain twice as much each time. | small extension | added |
@@ -1407,7 +1407,7 @@ strength on attack and defence, and card text against the sheet.
 
 ## The General Summons, 2026-11-19
 
-The generic branch now implements 23 of the 39 Orders. The General Summons raises up to three units of the best melee type available when the card is drafted. The capital uses its normal placement rules for each unit. Each placed unit costs no upkeep. A capital with one legal space gets one unit. The bot values the three units at their production cost and can overvalue a crowded capital. The type check, 12,084 core tests and the production build passed. The new pool will land together when the remaining 16 Orders are ready.
+The generic branch now implements 23 of the 39 Orders. The General Summons raises up to three melee units when the card is drafted. The capital uses its normal placement rules for each unit. Each placed unit costs no upkeep. A capital with one legal space gets one unit. The bot values the three units at their production cost and can overvalue a crowded capital. The type check, 12,084 core tests and the production build passed. The new pool will land together when the remaining 16 Orders are ready.
 
 ## The Land Register and The Master Plan, 2026-11-19
 

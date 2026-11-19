@@ -1435,8 +1435,8 @@ describe('a wonder in words', () => {
   });
 
   it('prints a completion grant, which is not an effect', () => {
-    expect(describeCard('statueOfZeus').map((c) => c.text)).toContain(
-      'on completion, the best melee unit you can build joins you',
+    expect(describeCard('statueOfZeus').map((c) => stripRefs(c.text))).toContain(
+      'on completion, a melee unit joins you',
     );
     expect(describeCard('greatLibrary').map((c) => c.text)).toContain(
       'on completion, the technology you are researching is finished',

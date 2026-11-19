@@ -449,7 +449,7 @@ describe('Dominion D1 — the words', () => {
       'one of your units becoming an Elite grants +250 renown, favouring a great general',
     ]);
     expect(said('theDevshirme')).toEqual([
-      'a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)',
+      'a captured city of at least 6 citizens may spend one citizen for a melee unit as a Veteran, which counts as trained (once every 5 turns)',
     ]);
     expect(said('theArmedColony')).toEqual([
       'new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units',
