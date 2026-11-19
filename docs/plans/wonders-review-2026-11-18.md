@@ -1054,3 +1054,56 @@ A wonder with no comment stays as it is.
 - Which drafts faith can reroll today. I read that the command exists and that a belief hand has one free reroll.
 - What else reads The Water Clock's row (bots, the great person Su Song, the arena). A search for `waterClockOfSuSong` will show it.
 - The base yields of the four new wonders are my suggestions. The user gave none.
+
+## The user's second round of comments (2026-11-19)
+
+The user commented on the rebuilt page and said in chat: "wonders should be
+built by people and should be a singular constructed thing with a degree of
+notoriety, we can use humankind and civ as sources of inspiration, many of
+these dont fit those thematically. I think we have room for 1-2 more age 2
+wonders." and, on who builds the set: "lets have astra take it once we make
+the determinations."
+
+**The rule for a wonder from now on:** people built it; it is one constructed
+thing; it is famous. The games Humankind and Civilization are sources of
+ideas. A mythical place, a natural place or a group of things (schools,
+libraries of a city) does not fit.
+
+### Age 2 candidates
+
+| Candidate | The user's comment |
+|---|---|
+| The Pyramid of the Sun | "i like this wonder, lets change the effect, remove previous clauses and replace with: unlocks levy ability, levy one population for faith equal to 5 turns of this city's population. +2 culture on holy sites." |
+| The Iron Pillar | "change ability: yields from production buildings +50%. +1 production on strategic resources empire-wide." |
+| The Library of Ashurbanipal | "rework: +10 renown towards scholars. Conquered cities yield +5 renown towards scholars, quadrupled for cities with a wonder." |
+
+No comment, so rejected: The Fire of Adur Gushnasp, The Zodiac of Dendera,
+Mount Penglai, The City of Brass. One or two more age 2 wonders are wanted,
+under the rule above.
+
+On moves: "lets move statue of zeus to bronze panoply. Petra is anachronistic
+with age 2 right?"
+
+### Answers to the 19 readings
+
+| # | Wonder | The user's answer | Result |
+|---|---|---|---|
+| 1 | The Temple of Artemis | "only the happiness clause" | As recommended. |
+| 2 | The Oracle | "Yes, +3 per turn, replaces the +2 towards scholars" | As recommended. |
+| 3 | The Walls of Uruk | "Yes both" | As recommended. |
+| 4 | The Great Ziggurat | "yes" | As recommended. |
+| 5 | The Mausoleum | "all of today's clauses leave." | As recommended. |
+| 6 | The Mausoleum | "yes" | As recommended. |
+| 7 | The Great Lighthouse | "yes" | As recommended. |
+| 8 | The Great Library | "no" (to "does the free technology stay?") | The free technology leaves, as recommended. |
+| 9 | The Statue of Zeus | "yes" | As recommended. |
+| 10 | Petra | "every city" | As recommended. |
+| 11 | The Great Wall | "yes" | As recommended. |
+| 12 | Angkor Wat | "every city. previous clauses leave" | **Differs:** the cheaper hexes leave too. |
+| 13 | Chichen Itza | "every city, flat +1 leaves" | As recommended. |
+| 14 | The Circus Maximus | "yes" | As recommended: the +4 stays, and it counts every military building. |
+| 15 | Machu Picchu | "every city" | **Differs:** the mountain gold is on hexes of every city. |
+| 16 | Notre-Dame | "Remove cathedral clause" | **Differs:** the Cathedral clause leaves. |
+| 17 | The Alhambra | "yes" | As recommended. |
+| 18 | The Oracle Pits of Yin | "Yes, one time boon of 5 free rerolls" | As recommended. |
+| 19 | The Water Clock of Su Song | "yes, remove the wonder as retired" | As recommended. |

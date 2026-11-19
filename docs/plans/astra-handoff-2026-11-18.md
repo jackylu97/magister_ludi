@@ -155,14 +155,25 @@ The user, 2026-11-19: *"Lets leave the generic orders build for astra."*
   needs a one-off is deferred and annotated, never bent into a near fit.
 - The user said the numbers are "to tune in playtest": do not run bot games to
   size them.
-- **One card is undecided: The Summer Palace (G2-7).** It repeats the first
-  half of the Scientific Doctrine The Two Capitals. Leave it out of the build
-  until the user rules (change, keep or cut).
+- **The Summer Palace (G2-7) is decided** (the user, 2026-11-19): "Cards that
+  pay your capital pay 50% more." See the last section of the proposal file.
+  Build it with the rest and update its row on `docs/decks/common.md`.
 - Fix with it: an on-draft great-person grant is lost if another offer is
   waiting or every person of that family is taken. Send it through
   `grantGreatPersonOffer`. This also fixes The Wandering Muse.
 - The build changes bot play, so it cuts the digest pins. See section 5 on
   who cuts them.
+
+### 3.6 The wonders rework (not ready yet)
+
+The user, 2026-11-19: *"lets have astra take it once we make the
+determinations."*
+
+- The spec will be `docs/plans/wonders-review-2026-11-18.md`: 18 revised
+  wonders, one retired, and several new ones. The user is still choosing the
+  last age 2 wonders.
+- **Do not start until that file has a section named "Ready for the build".**
+  The Claude session writes it when the user has ruled.
 
 ## 4. Rules that apply to every change
 

@@ -1143,3 +1143,14 @@ user's words:
   taller for the wonders stack? 3:1 is possibly too extreme, maybe 2:1
   instead?" The piece grows taller to hold it. The window shows the centre
   band of the same picture.
+
+### After stage 4: the user's answers (2026-11-19)
+
+- **Council cards stay their present size.** "no need" to scale them up.
+- **The chair cluster stays right of centre.** "right of center is fine".
+- **Six chairs cluster too** ("sure"): two rows of three. Seven or more keep
+  the wide layout.
+- **The wonder plate keeps no effect text.** "keep it without text."
+- **One page for a wonder.** "put the renown line on the plate, no second
+  page." The plate carries the Triumph's renown line, and the Triumph page
+  "A Marvel Raised" does not open for a wonder the plate has shown.

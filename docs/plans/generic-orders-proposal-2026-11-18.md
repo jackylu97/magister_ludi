@@ -1371,3 +1371,12 @@ In the order I would build them: the cheapest first, and the two that share a fi
 5. **Let generic rows carry a type.** `rowsListedOnSortedSheets` (`sortedSheets.ts`) lists the rows that may have a `type`. Add the generic rows that `common.md` lists, or a typed generic row fails the rule in `dominion.test.ts`.
 6. **The Id cell is not data.** The test ignores it. It is there so that comments and this proposal can cite a card.
 7. **As each card is built,** its Status changes from `add` or `modify` to `implemented`, and the counts table at the top of the sheet is recomputed.
+
+## The Summer Palace: the user's ruling (2026-11-19)
+
+The user: "summer palace pay 50% more is fine."
+
+- **G2-7 The Summer Palace** now reads: "Cards that pay your capital pay 50% more."
+- It no longer repeats the Scientific Doctrine The Two Capitals.
+- This replaces the text of G2-7 in section 7 and on `docs/decks/common.md`. The builder updates the sheet row with the card.
+- The number is to tune in playtest.
