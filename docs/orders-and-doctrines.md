@@ -999,7 +999,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn
 - **Emergency Stores** — † the hammers are for buildings, and for nothing else
-- **City Watches** — † a soldier standing inside one of your towns mends faster there
 
 ## Themes (the archetype lines)
 
