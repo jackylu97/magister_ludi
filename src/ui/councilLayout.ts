@@ -61,10 +61,13 @@ export const COUNCIL_FRAME = {
    * **A few chairs sit in a cluster** (the user, 2026-11-18: "I'd also like for
    * few government seats to be clustered in the middle with negative space
    * around it instead of having it be evenly spaced"). Up to `most` chairs
-   * take at most `cols` to a row, the last row centred under the others, and
-   * the block is centred on the page rather than on the room beside the
-   * government. Six chairs are two rows of three (the user, 2026-11-19: "sure").
-   * Seven chairs and more keep the board's layout (C8 and C11).
+   * take at most `cols` to a row, the last row centred under the others. The
+   * block is centred in the room right of the government, so it sits to the
+   * right of the page's centre, as the board's six chairs did (the user,
+   * 2026-11-19: "they should be centered in the remaining space since the
+   * government is in the left side"). Six chairs are two rows of three (the
+   * user, 2026-11-19: "sure"). Seven chairs and more keep the board's layout
+   * (C8 and C11).
    */
   cluster: { most: 6, cols: 3 },
 } as const;
@@ -87,12 +90,13 @@ export interface CouncilLayout {
    */
   spare: number;
   /**
-   * Set for a few chairs (`COUNCIL_FRAME.cluster`): how far left of the room's
-   * middle the block moves, in pixels, so it sits on the page's middle. Never
-   * so far that it reaches the government's column. `null` for the board's
-   * layout.
+   * Set for a few chairs (`COUNCIL_FRAME.cluster`): the block's width, and the
+   * page x of its middle, which is the middle of the room right of the
+   * government (the sides, the government's column and its gap come off the
+   * window first). The stylesheet centres the block in that room, so the
+   * block's middle is `centre`. `null` for the board's layout.
    */
-  cluster: { shift: number; width: number } | null;
+  cluster: { width: number; centre: number } | null;
   /** True when no form fits the window, so the chairs take the narrow form and the fan what is left. */
   cramped: boolean;
 }
@@ -108,8 +112,9 @@ export interface CouncilLayout {
  * fewest rows the width allows, and the fan keeps what height is left.
  *
  * Six chairs or fewer are a cluster (`COUNCIL_FRAME.cluster`): three or fewer
- * to a row, in the page's middle. The hand keeps at most `fanMax` of height,
- * and the rest goes round the council (`spare`).
+ * to a row, in the middle of the room right of the government. The hand
+ * keeps at most `fanMax` of height, and the rest goes round the council
+ * (`spare`).
  */
 export function councilLayout(window: { width: number; height: number }, chairs: number): CouncilLayout {
   const count = Math.max(1, chairs);
@@ -127,9 +132,6 @@ export function councilLayout(window: { width: number; height: number }, chairs:
     const left = window.height - frame.head - frame.chairsTop - height - frame.band;
     const fanView = Math.min(left, frame.fanMax);
     const room = window.width - 2 * frame.side - government - frame.columnGap;
-    // To the page's middle: half the government's column and its gap, or as
-    // far as the room beside the block allows.
-    const shift = Math.max(0, Math.min((government + frame.columnGap) / 2, (room - width) / 2));
     return {
       form,
       rows,
@@ -140,7 +142,8 @@ export function councilLayout(window: { width: number; height: number }, chairs:
       spare: Math.max(0, left - fanView),
       // The block's width as the page draws it: each chair's frame has a
       // hairline round its inset, so a row of `cols` keeps room for them.
-      cluster: clustered ? { shift: Math.floor(shift), width: width + cols * 4 } : null,
+      // Its middle is the room's: right of the government's column and its gap.
+      cluster: clustered ? { width: width + cols * 4, centre: frame.side + government + frame.columnGap + room / 2 } : null,
       cramped: false,
     };
   };

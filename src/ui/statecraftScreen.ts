@@ -20,7 +20,7 @@
  *     as in the technology screen"). It is taller than the board's, and the
  *     hand shorter: the government and its chairs are the focus of the page,
  *     and the height the hand gives up goes round them (`councilLayout`). Six
- *     chairs or fewer sit in a cluster in the page's middle. The totals line
+ *     chairs or fewer sit in a cluster, right of the government. The totals line
  *     is eight figures: the six yields, a hairline, then happiness and
  *     authority (`councilTotals.ts`). While a card is held over a chair, a
  *     chip beside each figure says what the
@@ -504,8 +504,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   // the user, 2026-11-18). Its title says Escape closes too, so the head has
   // one close control and no second hint.
   if (head !== null) head.insertBefore(totalsNode, closeButton);
-  // The head's height is the layout's, from the first paint on.
+  // The head's height is the layout's, from the first paint on. So are the
+  // sheet's sides and the gap after the government's column, which together
+  // place the room the chairs are centred in (`CouncilLayout.cluster`).
   sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
+  sheetNode?.style.setProperty('--council-side', `${COUNCIL_FRAME.side}px`);
+  sheetNode?.style.setProperty('--council-gap', `${COUNCIL_FRAME.columnGap}px`);
   // The link to In play (stage 3), beside the title: "In play · 9" and its key.
   const inPlayLink = element('button', 'council-inplay-link') as HTMLButtonElement;
   inPlayLink.type = 'button';
@@ -1335,10 +1339,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
     sheetNode?.style.setProperty('--council-fan-h', `${screenLayout.fanView}px`);
     sheetNode?.style.setProperty('--council-spare-top', `${Math.floor(screenLayout.spare / 2)}px`);
-    // A few chairs sit in a cluster in the page's middle (`COUNCIL_FRAME.cluster`).
+    // A few chairs sit in a cluster in the middle of the room right of the
+    // government (`COUNCIL_FRAME.cluster`).
     sheetNode?.toggleAttribute('data-cluster', screenLayout.cluster !== null);
     sheetNode?.style.setProperty('--council-cluster-w', `${screenLayout.cluster?.width ?? 0}px`);
-    sheetNode?.style.setProperty('--council-cluster-shift', `${screenLayout.cluster?.shift ?? 0}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
     if (council !== null) paintHead(council);

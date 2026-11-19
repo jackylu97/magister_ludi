@@ -1755,8 +1755,9 @@ Eight root pages, all named in `vite.config.ts` inputs:
   is taller, the hand shows at most `COUNCIL_FRAME.fanMax` of each card, and
   the height left goes round the government and its chairs
   (`CouncilLayout.spare`). Six chairs or fewer sit in a cluster, three to a
-  row, in the page's middle (`COUNCIL_FRAME.cluster`). Both sheets close with
-  the star chart's "×" (`.tech-close`).
+  row, centred in the room right of the government (`COUNCIL_FRAME.cluster`),
+  so the cluster sits right of the page's centre. Both sheets close with the
+  star chart's "×" (`.tech-close`).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

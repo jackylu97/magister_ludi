@@ -40,7 +40,8 @@
   max-width: none;
   height: 100%;
   max-height: none;
-  padding: 0 24px;
+  /* The sides are the layout's (`COUNCIL_FRAME.side`). */
+  padding: 0 var(--council-side, 24px);
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -248,7 +249,8 @@
 .council-main {
   display: flex;
   flex: 1 1 auto;
-  gap: 25px;
+  /* The gap after the government's column is the layout's (`COUNCIL_FRAME.columnGap`). */
+  gap: var(--council-gap, 25px);
   min-height: 0;
   padding-top: calc(28px + var(--council-spare-top, 0px));
 }
@@ -357,12 +359,11 @@
 }
 
 /* A few chairs (`COUNCIL_FRAME.cluster`): a block three wide at most, the
-   last row centred under the others, moved to the page's middle so there is
-   empty space on both sides (the user, 2026-11-18). The width and the move
-   are the layout's. */
+   last row centred under the others, with empty space on both sides (the
+   user, 2026-11-18). The block is centred in the room right of the
+   government, so it sits right of the page's centre (the user, 2026-11-19).
+   The width is the layout's. */
 #statecraft-overlay .orders-sheet[data-cluster] .orders-table {
-  position: relative;
-  left: calc(-1 * var(--council-cluster-shift));
   display: flex;
   flex: none;
   flex-wrap: wrap;
@@ -963,7 +964,7 @@
   z-index: 30;
   /* The layers fill the window under the head: past the sheet's side
      margins, to the window's edges. */
-  inset: 0 -24px 0;
+  inset: 0 calc(-1 * var(--council-side, 24px)) 0;
   display: flex;
   flex-direction: column;
   padding: 20px 16px 16px;

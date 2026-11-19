@@ -395,12 +395,14 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     for (const name of ['--council-head-h', '--council-fan-h', '--council-spare-top']) expect(paint, name).toContain(`'${name}'`);
   });
 
-  it('clusters six chairs or fewer in the page’s middle, three to a row, and keeps the board’s layout from seven', () => {
+  it('clusters six chairs or fewer, three to a row, in the middle of the room right of the government, and keeps the board’s layout from seven', () => {
     expect(COUNCIL_FRAME.cluster).toEqual({ most: 6, cols: 3 });
     const three = councilLayout({ width: 1440, height: 900 }, 3);
     expect([three.form, three.rows, three.cols]).toEqual(['full', 1, 3]);
-    // To the page's middle: half the government's column and its gap.
-    expect(three.cluster!.shift).toBe(Math.floor((COUNCIL_FRAME.government.wide + COUNCIL_FRAME.columnGap) / 2));
+    // The middle of the room right of the government (the user, 2026-11-19),
+    // right of the page's centre: 832.5 at 1440 wide, as the board's six chairs sat.
+    expect(three.cluster!.centre).toBe(COUNCIL_FRAME.side + COUNCIL_FRAME.government.wide + COUNCIL_FRAME.columnGap + (1440 - 2 * COUNCIL_FRAME.side - COUNCIL_FRAME.government.wide - COUNCIL_FRAME.columnGap) / 2);
+    expect(three.cluster!.centre).toBe(832.5);
     const five = councilLayout({ width: 1440, height: 900 }, 5);
     expect([five.form, five.rows, five.cols]).toEqual(['full', 2, 3]);
     expect(five.cluster).not.toBeNull();
@@ -417,14 +419,36 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     }
     // Seven and more: the board's C8 and C11, with no cluster.
     for (const chairs of [7, 8, 11]) expect(councilLayout({ width: 1440, height: 900 }, chairs).cluster, String(chairs)).toBeNull();
-    // A cluster never reaches the government's column.
-    for (const width of [1180, 1280, 1440]) {
-      for (const chairs of [1, 2, 3, 4, 5, 6]) {
-        const layout = councilLayout({ width, height: 800 }, chairs);
-        const room = width - 2 * COUNCIL_FRAME.side - layout.government - COUNCIL_FRAME.columnGap;
-        expect(layout.cluster!.shift, `${width}, ${chairs}`).toBeLessThanOrEqual((room - layout.chairs.width) / 2);
+    // Every cluster sits right of the page's centre, in the middle of the room
+    // beside the government, and fits that room: it reaches neither the
+    // government's column nor the window's right side.
+    for (const width of [1180, 1280, 1440, 1920]) {
+      for (const height of [720, 800, 900]) {
+        for (const chairs of [1, 2, 3, 4, 5, 6]) {
+          const layout = councilLayout({ width, height }, chairs);
+          const where = `${width}x${height}, ${chairs} chairs`;
+          const start = COUNCIL_FRAME.side + layout.government + COUNCIL_FRAME.columnGap;
+          const room = width - COUNCIL_FRAME.side - start;
+          expect(layout.cluster!.centre, where).toBe(start + room / 2);
+          expect(layout.cluster!.centre, where).toBeGreaterThan(width / 2);
+          expect(layout.cluster!.width, where).toBeLessThanOrEqual(room);
+        }
       }
     }
+    // The stylesheet centres the block in that room and moves it nowhere else;
+    // the sides and the gap that place the room are the layout's.
+    const css = style('statecraftScreen.css');
+    const rule = css.slice(css.indexOf('#statecraft-overlay .orders-sheet[data-cluster] .orders-table {'));
+    const body = rule.slice(0, rule.indexOf('}'));
+    expect(body).toContain('margin-right: auto;');
+    expect(body).toContain('margin-left: auto;');
+    expect(body).not.toMatch(/\n\s*(left|position):/);
+    expect(css).not.toContain('--council-cluster-shift');
+    expect(SCREEN).not.toContain('--council-cluster-shift');
+    expect(css).toContain('padding: 0 var(--council-side, 24px);');
+    expect(css).toContain('gap: var(--council-gap, 25px);');
+    expect(SCREEN).toContain("sheetNode?.style.setProperty('--council-side', `${COUNCIL_FRAME.side}px`);");
+    expect(SCREEN).toContain("sheetNode?.style.setProperty('--council-gap', `${COUNCIL_FRAME.columnGap}px`);");
   });
 
   it('closes with the star chart’s ×, and has no second close hint', () => {
