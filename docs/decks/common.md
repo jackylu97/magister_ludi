@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 7 | 0 | 3 | 10 | 6 | 2 | 2 |
+| Tier I | 8 | 0 | 2 | 10 | 6 | 2 | 2 |
 | Tier II | 6 | 0 | 2 | 8 | 4 | 2 | 2 |
-| Tier III | 4 | 0 | 4 | 8 | 2 | 4 | 2 |
+| Tier III | 7 | 0 | 1 | 8 | 2 | 4 | 2 |
 | Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **29** | **0** | **10** | **39** | **22** | **9** | **8** |
+| **All** | **33** | **0** | **6** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -54,7 +54,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Card | Rarity | Status | Ability | Type | Keyword | Id |
 |---|---|---|---|---|---|---|
 | **Common Festivals** | common | implemented | Every town gains +1 happiness. | Civic |  | G1-1 |
-| **The Capital's Example** | common | add | Your other towns build buildings your capital already has 25% faster. | Economic |  | G1-2 |
+| **The Capital's Example** | common | implemented | Your other towns build buildings your capital already has 25% faster. | Economic |  | G1-2 |
 | **The Hall of Fame** | common | implemented | +30% renown in your capital. | Civic |  | G1-3 |
 | **The Gilded Country** | common | add | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
 | **Cistern Works** | common | implemented | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | Economic | Charter | G1-5 |
@@ -81,12 +81,12 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 
 | Card | Rarity | Status | Ability | Type | Keyword | Id |
 |---|---|---|---|---|---|---|
-| **The Good Years** | rare | add | Your bonus from spare happiness is doubled. | Civic |  | G3-1 |
+| **The Good Years** | rare | implemented | Your bonus from spare happiness is doubled. | Civic |  | G3-1 |
 | **City Watches** | common | implemented | Your towns gain +8 defence. | Military |  | G3-2 |
 | **Commission: The Master Plan** | uncommon | implemented | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | Wildcard | Commission | G3-3 |
 | **The General Summons** | uncommon | implemented | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. | Military | Boon | G3-4 |
-| **The Old Patterns** | uncommon | add | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
-| **The Old Foundations** | common | add | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |
+| **The Old Patterns** | uncommon | implemented | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
+| **The Old Foundations** | common | implemented | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |
 | **The Long Memory** | rare | add | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
 | **The Office of Works** | uncommon | implemented | On draft: gain a great engineer draft. | Civic | Boon | G3-9 |
 
@@ -123,7 +123,6 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 
 ## Open for your pass
 
-- **The Good Years** needs a multiplier for the positive happiness bonus. The current effect adds the same number of points at both bonus levels.
 - **The Summer Palace** needs a card effect that raises payments directed to the capital.
 - **The Office of Works** uses the same grant as The Wandering Muse. If a great-person offer is waiting, the game banks the renown needed for the current threshold. After the pending pick raises that threshold, the next offer can require more renown. The later offer follows the normal family rules.
 

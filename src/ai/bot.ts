@@ -413,7 +413,7 @@ import {
   techsShutByCharter,
   upgradeTargetForType,
 } from '../sim/tech';
-import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
+import { unitUpkeep, buildingUpkeepFor, unitUpkeepOf } from '../sim/upkeep';
 import {
   type RouteMode,
   ROUTE_MODES,
@@ -5809,7 +5809,7 @@ function cityCommand(
  *     authority, walls, renown, a bead, the curtain);
  *   · **value** for a unit is its role: a town, a worker, a caravan, or strength
  *     plus whatever the threat is worth (`explainSoldier`);
- *   · **upkeep** is `buildingUpkeep`/`unitUpkeep` — the simulation's own
+ *   · **upkeep** is `buildingUpkeepFor`/`unitUpkeep` — the simulation's own
  *     maintenance reading — priced at the gold weight times `goldPressure`.
  *     **This is the collapse fix's soft half**: at full aversion a maintained
  *     library is charged four times what it is charged in a healthy empire, and
@@ -6404,7 +6404,7 @@ function buildCandidates(
     const pull = buildingPullTerm(ctx, id);
     if (pull !== null) terms.push(pull);
     const value = foldTerms(terms);
-    push(candidates, state, city, standing, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
+    push(candidates, state, city, standing, { kind: 'building', id }, value, buildingUpkeepFor(state, player.id, id), ctx, terms);
   }
 
   for (const id of UNIT_TYPE_IDS) {

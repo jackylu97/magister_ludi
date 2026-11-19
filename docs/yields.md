@@ -319,6 +319,10 @@ banking (Entry XVIII.5).
   means everything the hex pays. Its riders sum before one multiplication, so
   two whole shares of one pass never pay each other. An `appliedLast` whole share
   is taken over the ordinary ones (batch DT19c), because its card's text says so.
+- **Building upkeep rebates appear as separate lines.** A waiver covers buildings
+  in its stated research ages. Each building's upkeep can be waived once.
+- **Happiness multipliers apply after the tier clamp and fixed increases.** They
+  apply only when happiness gives a bonus.
 - **The empire's bills stay outside the empire stage.** Maintenance, the levy's
   surcharge, the charter's rebate and the treaties are costs rather than yields:
   a contented empire earns more from its roads without paying its soldiers less.

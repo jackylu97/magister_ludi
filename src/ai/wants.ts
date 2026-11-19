@@ -214,7 +214,7 @@ import {
   unitDef,
   unitStampStrength,
 } from '../sim/unitData';
-import { buildingUpkeep } from '../sim/upkeep';
+import { buildingUpkeepFor } from '../sim/upkeep';
 import { round } from './decision';
 import { citizenKeepTerm } from './citizen';
 // **The trade standing, and what a route is worth** (batch 8, re-aimed by R1).
@@ -518,7 +518,7 @@ function purchasingPlan(
   const towns = folds.towns;
 
   for (const id of BUILDING_IDS) {
-    const upkeep = buildingUpkeep(id);
+    const upkeep = buildingUpkeepFor(state, player.id, id);
     // **No income floor here either** (batch 7). The row below subtracts
     // `explainUpkeepCost` at gold's shadow price, and a want whose wage outweighs
     // what it makes simply ranks under the hold row the book already carries —
@@ -1220,7 +1220,7 @@ function faithPlan(
   // (`townFolds`): where both books enumerate one row in one town it is folded
   // once, so the second question is free.
   for (const id of BUILDING_IDS) {
-    const upkeep = buildingUpkeep(id);
+    const upkeep = buildingUpkeepFor(state, player.id, id);
     for (let index = 0; index < towns.length; index++) {
       const city = towns[index]!;
       const item: PurchasableItem = { kind: 'building', id };

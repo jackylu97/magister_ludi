@@ -529,6 +529,7 @@ function empireStandingLines(state: GameState, playerId: number): EmpireYieldLin
       gold: line.gold,
       source: line.source,
       origin: 'gold',
+      ...(line.card !== undefined ? { card: line.card } : {}),
       // The one classification that is not "everything here is a yield": a
       // maintenance line, a levy's surcharge, a charter's rebate and a treaty
       // are costs, and the stage does not reach them (ruling oo).

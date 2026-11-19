@@ -198,7 +198,7 @@ import {
   requiredResourcesOf,
   unitDef,
 } from '../sim/unitData';
-import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
+import { buildingUpkeepFor, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
 import { levyMenuModel, renderLevyMenuBody, renderLevyTrigger } from './levyMenu';
 import {
@@ -2691,7 +2691,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     // The same bill one grade over: an institution costs its age to run and a
     // granary, a palisade, a monument or any wonder costs nothing.
-    const buildingBill = upkeepFigure(buildingUpkeep(id));
+    const buildingBill = upkeepFigure(buildingUpkeepFor(getGame().state, city.ownerId, id));
     if (buildingBill) figures.append(buildingBill);
     box.append(figures);
 

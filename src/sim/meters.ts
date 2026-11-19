@@ -366,8 +366,9 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     list.push({ source: line.source, part: 'gain', value: line.amount, card: line.card });
   }
   for (const line of cardTierBoost(state, playerId).lines) {
+    const unit = line.proportional === true ? '%' : ' points';
     list.push({
-      source: `${line.source} · +${line.amount} points to the positive-happiness bonus`,
+      source: `${line.source} · +${line.amount}${unit} to the positive-happiness bonus`,
       part: 'gain',
       value: 0,
       card: line.card,
@@ -1129,13 +1130,10 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
   const effects: MeterEffect[] = [];
 
   const happiness = happinessOf(state, playerId);
-  // Both vocabularies' tier boosts, summed: amber and Mandate of Heaven push
-  // the same rung, and a second implementation of "how many points" is how one
-  // of them silently stops counting.
-  const bonus = tierPercent(
-    happiness,
-    resourceTierBoost(state, playerId).points + cardTierBoost(state, playerId).points,
-  );
+  const boost = cardTierBoost(state, playerId);
+  const base = tierPercent(happiness, resourceTierBoost(state, playerId).points + boost.points);
+  // Scale the full positive bonus after the tier clamp and fixed increases.
+  const bonus = base > 0 ? (base * (100 + boost.percent)) / 100 : base;
   if (bonus > 0) {
     effects.push({
       meter: 'happiness',
