@@ -1951,9 +1951,9 @@ const RELIC: BuildingId | null = BUILDING_IDS.find((id) => buildingDef(id).place
  */
 function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
   const wants: Want[] = [];
-  const price = riteCostFor(state, player.id);
   const here = townScoped(ctx);
   for (const city of ownedCities(state, player.id)) {
+    const price = riteCostFor(state, player.id, city);
     for (const id of LIVE_RITE_IDS) {
       const refusal = riteError(state, player.id, city.id, id);
       // **A rite the bank cannot yet pay is still a want** (batch H12) — the

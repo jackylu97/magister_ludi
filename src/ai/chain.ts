@@ -515,9 +515,10 @@ export function techChain(
    * such a copy, so `chainCompression` must not read it.
    */
   scoreOnly = false,
+  knownRoad?: TechId[],
 ): TechChain {
   const ai = ctx.ai;
-  const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal);
+  const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal, knownRoad);
   const held = road.length === 0;
   // **The whole road, node by node** (batch X1d(b)). A held goal is a road of
   // one that is already walked; anything else is every node `researchExpansion`
@@ -846,8 +847,8 @@ export function researchRoad(
   player: Player,
   ctx: ValueContext,
   goal: TechId,
+  road = researchExpansion(state, player.id, goal),
 ): { road: TechId[]; beakers: number; delay: number } {
-  const road = researchExpansion(state, player.id, goal);
   // Each node at the price this empire pays for it (`techCostFor`, the fold of
   // `explainTechCost`; Scientific batch S13), so a drafted charter
   // technology's road carries its premium and a card's cut is counted.

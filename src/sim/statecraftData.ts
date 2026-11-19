@@ -1755,6 +1755,7 @@ export type CombatCondition =
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
+  | 'greatPeopleGained'
   | 'cities'
   | 'adjacentFriendlies'
   /**
@@ -2232,7 +2233,7 @@ export type TileCondition =
    * neighbour's worth is not this hex's, and `yields` asked of a neighbour
    * answers no for the same reason a bare caller's does.
    */
-  | { test: 'beside'; of: TileCondition }
+  | { test: 'beside'; of: TileCondition; atLeast?: number }
   /**
    * Every one of these holds. `CityScope`'s composite, one scale down, and here
    * for its reason: a wooded tundra and a mine standing on a luxury are single
@@ -2469,6 +2470,8 @@ export type CountKind =
    * reason — it is the same sweep, asked of different ground.
    */
   | 'wonders'
+  /** Count each held wonder and each physical great-person work once. */
+  | 'worksAndWondersHeld'
   /**
    * Hexes this empire has **explored** — Eratosthenes' well and stick, and
    * Zhang Qian's road west.
@@ -3531,6 +3534,8 @@ export const WORLD_FIRST_KINDS: readonly FirstKind[] = ['techWorld'];
  * nonsense to count. Two vocabularies, each closed, each read in one place.
  */
 export type TallyOccasion =
+  | 'orderGained'
+  | 'greatPersonGained'
   /** A barbarian unit killed in battle — The Ballad-Weavers. */
   | 'barbarianKill'
   /**
@@ -3793,6 +3798,8 @@ export type TallyOccasion =
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
+  'orderGained',
+  'greatPersonGained',
   'barbarianKill',
   'wonderAnywhere',
   'greatPersonSpent',
@@ -4017,6 +4024,7 @@ export type CardRule =
    * triage's reading 8). Read in `musterCamps` (`barbarians.ts`).
    */
   | 'campMuster'
+  | 'siegeDamage'
   /**
    * **What the units this empire loses count toward its war weariness**
    * (Dominion batch D7, The Funeral Oration's half and The Glorious Dead's
@@ -4683,6 +4691,8 @@ export type ActionRuleId =
    * empires' sight redrawn. Peace or war does not matter.
    */
   | 'worksPullRivalHexes'
+  /** Each wonder can receive and count as a work without occupying a hex. */
+  | 'wondersAreWorks'
   /**
    * **A tended work costs this empire's workers no charge** (batch DT12, The
    * Wildwood Compact; the triage's reading 41). "Tended" is the row's own marker
@@ -6250,7 +6260,7 @@ export interface WindfallGrantSpec {
    * the town nearest the occasion. Every unit a grant raises is free: it costs
    * no upkeep (the triage's reading 2).
    */
-  unit?: 'randomMilitary' | 'bestMelee' | 'unlockedByTech';
+  unit?: 'randomMilitary' | 'bestRanged' | 'bestMelee' | 'unlockedByTech';
   /**
    * **Every one of this empire's pieces is healed whole** — The Empire's "taking
    * a city with a wonder in it heals all your units".
@@ -6657,6 +6667,7 @@ type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * reader never has to ask what a blank meant.
  */
 export interface CardPaysEffect extends CardYieldBag {
+  excludeWonders?: boolean;
   kind: 'pays';
   /** The town, the capital, the hex, the empire, or the road. Required. */
   where: PayWhere;
@@ -6891,6 +6902,7 @@ export interface CardPaysEffect extends CardYieldBag {
    * watching, rather than a guard that would quietly count everything.
    */
   tally?: TallyOccasion;
+  alsoTallies?: TallyOccasion[];
   // There was a `minTreasury` field here: the least treasury a moment had to
   // carry to be counted. The Strongbox's 300 gold was its only row, and batch
   // R1 made the card count purchases with gold instead, so the field went.
@@ -6916,7 +6928,7 @@ export interface CardPaysEffect extends CardYieldBag {
    * ground, not which sweep. The city-scoped counts (`garrison`, `workedHills`,
    * the rest) already answer per town and ignore this.
    */
-  within?: 'city';
+  within?: 'city' | 'empire';
   /**
    * **Which bank paid** — narrows `purchasedBuildings` to buildings bought
    * with gold (The Waqf, Bought and Paid For) or with faith. Absent counts
@@ -7533,6 +7545,7 @@ export interface CardCombatLineEffect {
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */
 interface CardUnitStatEffect {
+  enemyOccupant?: boolean;
   kind: 'unitStat';
   stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent';
   amount: number;
@@ -7882,6 +7895,8 @@ export type CityRuleId =
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
+  /** Pay this declaration rider to the defending empire as well. */
+  eitherSide?: true;
   kind: 'windfallRider';
   occasion: WindfallOccasion;
   /** Scales the occasion's own payout, in whole percent. */
@@ -8508,6 +8523,10 @@ interface CardRouteRiderEffect {
  */
 interface CardSlotRiderEffect {
   kind: 'slotRider';
+  slot?: ChairType;
+  count?: 'wonders';
+  per?: number;
+  max?: number;
   /**
    * How many extra chairs. Absent means one. A negative figure takes chairs away
    * (batch DT11, Scutage): the last ones go first, and `chairCount` never goes
@@ -8878,7 +8897,7 @@ export type CardFlagRuleId = ActionRuleId | BehaviorRuleId | CityRuleId | ZocRul
  * they see. */
 export interface CardCityStatEffect {
   kind: 'cityStat';
-  stat: 'defense' | 'sight';
+  stat: 'defense' | 'sight' | 'hp';
   amount: number;
   scope?: CityScope;
   /**
@@ -9180,6 +9199,7 @@ export type LevyUse =
   | 'worker'
   | 'settler'
   | 'wonder'
+  | 'faith'
   | 'rite';
 
 /** Every levy use, in the order the city panel lists them. */
@@ -9191,6 +9211,7 @@ export const LEVY_USES: readonly LevyUse[] = [
   'worker',
   'settler',
   'wonder',
+  'faith',
   'rite',
 ];
 
@@ -9228,8 +9249,11 @@ export const LEVY_USES: readonly LevyUse[] = [
  * so the refusal names the smallest town that would do.
  */
 export interface CardLevyEffect {
+  freeUpkeep?: true;
+  percentOfCost?: number;
   kind: 'levy';
   use?: LevyUse;
+  faithPerCitizen?: number;
   /** Smallest town that may levy for this use. Never below the rule's minimum. */
   minPopulation?: number;
   /** Turns between levies for this use while the empire is at war. */
@@ -10191,7 +10215,7 @@ interface CardSlotPositionEffect {
    * Which chair of that flavour, counting from one, in slot order. -1 is the
    * last chair of the flavour, so it moves when another card opens a chair.
    */
-  position: number;
+  position: number | 'all';
   /** What that Order's lines are multiplied by. 2 pays twice. */
   factor: number;
   /** Read the whole card again, not only its flat lines. See above. */
@@ -10833,10 +10857,12 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
-  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number })
+  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number; toEveryTown?: CityScope })
+  | { grant: 'experience'; amount: number }
   | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
   | OnDraftForeignCard
+  | { grant: 'doctrineOffer' }
   | { grant: 'completeQueues' };
 
 /** The number of units an on-draft grant attempts to raise. */
@@ -11019,6 +11045,7 @@ export type CommissionFigure =
    * work does not matter, so a partner deck's work counts, and a work does
    * not have to be worked. Measured by `workFamiliesHeld` (`commissions.ts`).
    */
+  | 'worksHeld'
   | 'workFamilies'
   /**
    * **The most great-person works one town works, among the towns that hold
@@ -11070,6 +11097,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradePartnerEmpires',
   'ordersHeld',
   'councilInOrder',
+  'worksHeld',
   'workFamilies',
   'oneTownWorksWorked',
   'worksBesideWork',

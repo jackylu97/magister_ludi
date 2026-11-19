@@ -1317,10 +1317,15 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
 /**
  * Version 246 changes the generic draft pool and adds bot prices for the new
  * Orders. Both boards make draft picks during these 120 turns.
+ * Version 247 records damaged works and lets bot workers repair them.
+ * On turn 102 of the duel, seat two passes on an Order after checking
+ * where its free units can appear. The standard board gives the same result.
+ * Version 248 changes the Dominion and Magisterial draft pools and wonder unlocks.
+ * These games also use the revised chair valuations and unit grants.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '52d790f9:384223',
-  standard: 'b7eb7f33:1015904',
+  duel: 'd4d457c9:364993',
+  standard: '95507925:1047719',
 };
 
 /**

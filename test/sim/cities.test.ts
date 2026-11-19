@@ -1707,11 +1707,11 @@ describe('city yields', () => {
     const state = flatState(16, 12, 'grassland');
     const city = plant(state, 0, 8, 5);
     city.population = 4;
-    // The Mausoleum pays per building in the town, so every candidate below
+    // The Weiyang Palace pays per building in the town, so every candidate below
     // moves a `countScaled` count — the diff that broke on 2026-09-03 (the
     // `· ×N` label suffix keyed the two halves apart and the preview printed
     // the wonder's whole standing line on every row of the build list).
-    city.buildings.push('mausoleum');
+    city.buildings.push('weiyangPalace');
     bumpRevision(state);
     assignCitizens(state, city);
     // Two gods, one on a granary and one on a monument, so the preview has to
@@ -1739,7 +1739,7 @@ describe('city yields', () => {
   });
 
   /**
-   * The Mausoleum on the build list, pointed where the invariant test above is
+   * The Weiyang Palace on the build list, pointed where the invariant test above is
    * general: a `countScaled` that the candidate itself feeds previews as the
    * *marginal* line, under the bare source — never as the standing "+19 · ×19"
    * the 2026-09-03 playtest saw on every row.
@@ -1747,16 +1747,16 @@ describe('city yields', () => {
   it('previews a count the candidate feeds as its margin, not its standing line', () => {
     const state = flatState(16, 12, 'grassland');
     const city = plant(state, 0, 8, 5);
-    city.buildings.push('mausoleum', 'granary', 'monument');
+    city.buildings.push('weiyangPalace', 'granary', 'monument');
     bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'library');
-    const mausoleum = lines.filter((line) => line.card === 'mausoleum');
-    expect(mausoleum).toHaveLength(1);
-    // One more building is worth exactly one more gold…
-    expect(mausoleum[0]!.gold).toBe(1);
+    const weiyangPalace = lines.filter((line) => line.card === 'weiyangPalace');
+    expect(weiyangPalace).toHaveLength(1);
+    // One more building is worth exactly one more culture…
+    expect(weiyangPalace[0]!.culture).toBe(1);
     // …and the label is the wonder's bare name: the count suffix belongs to the
     // city screen's standing breakdown, not to a difference.
-    expect(mausoleum[0]!.source).not.toMatch(/×\d+/);
+    expect(weiyangPalace[0]!.source).not.toMatch(/×\d+/);
   });
 
   /**
@@ -3689,7 +3689,8 @@ describe('determinism with cities', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -4051,6 +4052,7 @@ describe('the mid-turn refresh register', () => {
     // on your own ground. Entry 5 with the ownership turned round — the town
     // that has to be told is the one that asked for it.
     { file: 'improvements.ts', fn: 'removeImprovementAt' },
+    { file: 'improvements.ts', fn: 'repairImprovementAt' },
     { file: 'improvements.ts', fn: 'chopFeatureAt' },
     { file: 'cities.ts', fn: 'foundCityAt' },
     // The border bucket's own settlement (2026-08-27): culture poured into a

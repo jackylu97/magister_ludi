@@ -127,6 +127,20 @@ function rankFor(state: GameState, unit: Unit) {
   return rankPlanFor(plan, state, unit, ctx);
 }
 
+it('repairs a damaged farm on worked wheat without using a charge', () => {
+  const state = bench('plains');
+  wheatTown(state);
+  const tile = at(state.map, 5, 4);
+  tile.damagedImprovement = { id: 'farm', improvedOn: 1 };
+  const worker = createUnit(state, 0, 'worker', 5, 4);
+  const charges = worker.chargesLeft;
+  const command = decisionFor(state, worker.id)?.command;
+  expect(command).toEqual({ type: 'repairImprovement', playerId: 0, unitId: worker.id });
+  expect(applyCommand(state, command!).ok).toBe(true);
+  expect(worker.chargesLeft).toBe(charges);
+  expect(tile.improvement).toBe('farm');
+});
+
 const where = (row: { entry: { col: number; row: number } }): string => `${row.entry.col},${row.entry.row}`;
 
 /** Seat 0's decisions in one sitting, each put to the reducer, until it asks about `unitId`. */

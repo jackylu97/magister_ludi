@@ -302,6 +302,8 @@ export type CompletionGrant =
    * pool.
    */
   | { grant: 'greatPerson'; family?: Family }
+  /** Stock stays with the builder until a draft uses it. */
+  | { grant: 'freeRerolls'; amount: number }
   /**
    * A **free rung of the faith ladder**, through `openFreeRung` (`religion.ts`)
    * — Stonehenge's, and the reason it exists (ruled 2026-09-06: the stones stop
@@ -540,6 +542,14 @@ export type BuildingId =
   | 'forbiddenCity'
   | 'alhambra'
   | 'machuPicchu'
+  | 'greatSphinx'
+  | 'templeOfThoth'
+  | 'pyramidOfTheSun'
+  | 'solomonsTemple'
+  | 'ironPillar'
+  | 'libraryOfAshurbanipal'
+  | 'weiyangPalace'
+  | 'greatStelaeOfAksum'
   | 'waterClockOfSuSong';
 
 /**
@@ -1484,7 +1494,7 @@ export function isWonder(id: BuildingId): boolean {
 }
 
 /** Every wonder, in the table's own order. The roster, derived from the flag. */
-export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter(isWonder);
+export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter((id) => isWonder(id) && buildingDef(id).retired !== true);
 
 /**
  * **Is this building a fortification?** One that raises what a town is worth to

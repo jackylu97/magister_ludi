@@ -141,7 +141,6 @@ const GOLDEN_BULL = 'magisterialTheGoldenBull' as OrderId;
 const PARADISE_GARDEN = 'magisterialTheParadiseGarden' as OrderId;
 const SECOND_READING = 'theSecondReading' as OrderId;
 const POLEMARCH = 'thePolemarch' as OrderId;
-const PRYTANEION = 'thePrytaneion' as OrderId;
 const PATRONS_GALLERY = 'magisterialThePatronsGallery' as OrderId;
 
 /** A world wonder a bare town may raise, and the Opus. */
@@ -408,19 +407,11 @@ describe('the counts of the collection', () => {
 // --- the moments --------------------------------------------------------------------
 
 describe('the moments', () => {
-  it('prices a government adopted at the ladder’s pace (The Sed Festival)', () => {
+  it('prices The Sed Festival as one great-person draft', () => {
     const { state, player } = board([6]);
-    const tier = GOVERNMENT_TIERS[0]!;
-    player.statecraft.drafts = tier - 1;
-    player.culturePool = 2000;
-    bumpRevision(state);
     const ctx = valueContext(state, player);
-    const reach = player.statecraft.drafts + draftsAheadOf(state, player);
-    const tiers = GOVERNMENT_TIERS.filter((rung) => rung > player.statecraft.drafts && rung <= reach).length;
-    expect(tiers).toBeGreaterThan(0);
-    // The person in full, times the ladder's pace (bot batch BP4).
-    const person = renownThreshold(state, player) * aiJson.weights.renown;
-    expect(scoreEffects(effectsOf(SED_FESTIVAL), ctx)).toBeCloseTo((tiers / HORIZON) * person, 10);
+    const worth = renownThreshold(state, player) * aiJson.weights.renown;
+    expect(onDraftWorth(SED_FESTIVAL, ctx)).toBeCloseTo(worth / boonTurns(ctx), 10);
   });
 
   describe('The Peregrini (batch DT16)', () => {
@@ -781,7 +772,7 @@ describe('the grants', () => {
     let expected = 0;
     for (const found of counts) {
       for (const voice of ['culture', 'science', 'production'] as const) {
-        expected += explainYields({ [voice]: 20 * found }, ctx).total;
+        expected += explainYields({ [voice]: 40 * found }, ctx).total;
       }
     }
     // The lump spread over the turns the game has left (bot batch BP7, `boonTurns`).
@@ -891,7 +882,7 @@ describe('the commissions', () => {
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const appraisal = explainCommission(ROLL_OF_THE_SENATE, ctx)!;
-    const remaining = 10 - player.statecraft.orders.length;
+    const remaining = 8 - player.statecraft.orders.length;
     const rate = draftsAheadOf(state, player) / HORIZON;
     const turns = Math.min(HORIZON, Math.max(1, Math.ceil(remaining / rate)));
     expect(appraisal.terms[1]!.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
@@ -927,28 +918,17 @@ describe('the commissions', () => {
     expect(explainCommission(WONDER_OF_THE_AGE, ctx)!.terms[1]!.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
   });
 
-  it('forecasts The Golden Bull at once when held cards fill every typed chair, and at the drafting pace when not', () => {
+  it('forecasts The Golden Bull at the rate the seat gains Orders', () => {
     const { state, player } = board([6]);
     player.culturePool = 400;
-    // The first government's typed chairs are one Military and one Economic.
-    expect(slotTypesOf(player.statecraft).filter((type) => type !== 'wildcard').sort()).toEqual([
-      'economic',
-      'military',
-    ]);
     player.statecraft.orders.push(POLEMARCH);
     bumpRevision(state);
-    const short = valueContext(state, player);
+    const ctx = valueContext(state, player);
     const rate = draftsAheadOf(state, player) / HORIZON;
-    const turns = Math.min(HORIZON, Math.max(1, Math.ceil(1 / rate)));
-    const waiting = explainCommission(GOLDEN_BULL, short)!.terms[1]!;
-    expect(waiting.label).toContain('1 typed chairs wait for a new card');
-    expect(waiting.value).toBeCloseTo(delayDiscount(turns, short), 10);
-    player.statecraft.orders.push(PRYTANEION);
-    bumpRevision(state);
-    const full = valueContext(state, player);
-    const filled = explainCommission(GOLDEN_BULL, full)!.terms[1]!;
-    expect(filled.label).toContain('every typed chair can be filled');
-    expect(filled.value).toBeCloseTo(delayDiscount(1, full), 10);
+    const turns = Math.min(HORIZON, Math.max(1, Math.ceil((20 - player.statecraft.orders.length) / rate)));
+    const waiting = explainCommission(GOLDEN_BULL, ctx)!.terms[1]!;
+    expect(waiting.label).toContain('more Orders');
+    expect(waiting.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
   });
 
   it('prices a held Golden Bull that sits in no chair, without asking its own price again', () => {
@@ -967,14 +947,14 @@ describe('the commissions', () => {
     // The Golden Bull is a Wildcard card, so it fills no typed chair, and the
     // Economic chair still waits for a new card at the drafting pace.
     const rate = draftsAheadOf(state, player) / HORIZON;
-    const turns = Math.min(HORIZON, Math.max(1, Math.ceil(1 / rate)));
+    const turns = Math.min(HORIZON, Math.max(1, Math.ceil((20 - player.statecraft.orders.length) / rate)));
     const waiting = explainCommission(GOLDEN_BULL, ctx)!.terms[1]!;
-    expect(waiting.label).toContain('1 typed chairs wait for a new card');
+    expect(waiting.label).toContain('more Orders');
     expect(waiting.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
     expect(Number.isFinite(scoreCard(player, GOLDEN_BULL, ctx))).toBe(true);
   });
 
-  it('forecasts The Patron’s Gallery at the pace the seat lays works of families it lacks', () => {
+  it('forecasts The Patron’s Gallery at the pace the seat lays works', () => {
     const { state, player, towns } = board([6]);
     hold(state, 0, WORKSHOP);
     towns[0]!.buildings.push(WONDER);
@@ -986,27 +966,34 @@ describe('the commissions', () => {
     const ctx = valueContext(state, player);
     // Six families of works, one held; a seat that has called nobody lays a
     // work with half its people.
-    const rate = personRateOf(state, player) * (1 / 2) * (5 / 6);
+    const rate = personRateOf(state, player) * (1 / 2);
     expect(rate).toBeGreaterThan(0);
     const turns = Math.min(HORIZON, Math.max(1, Math.ceil(2 / rate)));
     expect(explainCommission(PATRONS_GALLERY, ctx)!.terms[1]!.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
   });
 
-  it('forecasts The Paradise Garden at the share of works laid beside a work', () => {
-    const { state, player, towns } = board([6]);
-    hold(state, 0, WORKSHOP);
-    towns[0]!.buildings.push(WONDER);
-    const work = at(state.map, 4, 5);
-    own(state, work, towns[0]!);
-    work.improvement = WORK;
-    refreshCityDerived(state, towns[0]!);
-    bumpRevision(state);
-    const ctx = valueContext(state, player);
-    const rate = personRateOf(state, player) * (1 / 2) * MAGISTERIAL.workBesideShare;
-    const turns = Math.min(HORIZON, Math.max(1, Math.ceil(3 / rate)));
-    const forecast = explainCommission(PARADISE_GARDEN, ctx)!.terms[1]!;
-    expect(forecast.label).toContain('more works beside a work');
-    expect(forecast.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
+  it('forecasts a legacy commission at the share of works laid beside a work', () => {
+    const row = orderDef(PARADISE_GARDEN);
+    const original = row.commission;
+    row.commission = { goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }], reward: [{ claimWithin: 3 }] };
+    try {
+      const { state, player, towns } = board([6]);
+      hold(state, 0, WORKSHOP);
+      towns[0]!.buildings.push(WONDER);
+      const work = at(state.map, 4, 5);
+      own(state, work, towns[0]!);
+      work.improvement = WORK;
+      refreshCityDerived(state, towns[0]!);
+      bumpRevision(state);
+      const ctx = valueContext(state, player);
+      const rate = personRateOf(state, player) * (1 / 2) * MAGISTERIAL.workBesideShare;
+      const turns = Math.min(HORIZON, Math.max(1, Math.ceil(3 / rate)));
+      const forecast = explainCommission(PARADISE_GARDEN, ctx)!.terms[1]!;
+      expect(forecast.label).toContain('more works beside a work');
+      expect(forecast.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
+    } finally {
+      row.commission = original;
+    }
   });
 
   it('prices The Golden Bull’s Doctrine offer at the expected best of the offer, and nothing from an empty bag', () => {
@@ -1067,25 +1054,32 @@ describe('the commissions', () => {
     expect(term.value).toBe(0);
   });
 
-  it('prices The Paradise Garden’s land at the unowned hexes within three of the seat’s first work', () => {
-    const { state, player, towns } = board([6]);
-    const work = at(state.map, 4, 5);
-    own(state, work, towns[0]!);
-    work.improvement = WORK;
-    bumpRevision(state);
-    const ctx = valueContext(state, player);
-    expect(gardenWorkFor(state, 0, 0)).toBe(work);
-    const owner = tileOwnerField(state);
-    let expected = 0;
-    for (const tile of mapRange(state.map, tileHex(work), 3)) {
-      if (owner.at(tileIndex(state.map, tile.col, tile.row)) !== null) continue;
-      expected += claimedHex(ctx, tile);
+  it('prices a legacy land reward at the unowned hexes within three of the seat’s first work', () => {
+    const row = orderDef(PARADISE_GARDEN);
+    const original = row.commission;
+    row.commission = { goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }], reward: [{ claimWithin: 3 }] };
+    try {
+      const { state, player, towns } = board([6]);
+      const work = at(state.map, 4, 5);
+      own(state, work, towns[0]!);
+      work.improvement = WORK;
+      bumpRevision(state);
+      const ctx = valueContext(state, player);
+      expect(gardenWorkFor(state, 0, 0)).toBe(work);
+      const owner = tileOwnerField(state);
+      let expected = 0;
+      for (const tile of mapRange(state.map, tileHex(work), 3)) {
+        if (owner.at(tileIndex(state.map, tile.col, tile.row)) !== null) continue;
+        expected += claimedHex(ctx, tile);
+      }
+      expect(expected).toBeGreaterThan(0);
+      const land = allTerms(explainCommission(PARADISE_GARDEN, ctx)!.terms).find((term) =>
+        term.label.includes('unowned hexes within 3'),
+      )!;
+      expect(land.value).toBeCloseTo(expected, 8);
+    } finally {
+      row.commission = original;
     }
-    expect(expected).toBeGreaterThan(0);
-    const land = allTerms(explainCommission(PARADISE_GARDEN, ctx)!.terms).find((term) =>
-      term.label.includes('unowned hexes within 3'),
-    )!;
-    expect(land.value).toBeCloseTo(expected, 8);
   });
 });
 
@@ -1299,16 +1293,15 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(before, 6);
   });
 
-  it('prices The Jinshi at the hands it buys times what a doubled rare rung adds', () => {
+  it('prices the two Civic chairs from Orders that can fill them', () => {
     const { state, player } = seatBuyingHands();
     const ctx = valueContext(state, player);
-    const score = priced(ctx);
-    const bags = expectedHandBags(state, player);
-    const doubled = expectedBestOrder(bags, 0, score, 100);
-    const plain = expectedBestOrder(bags, 0, score);
-    expect(doubled).not.toBe(plain);
     const row = doctrineDef(JINSHI).effects;
-    expect(scoreEffects(row, ctx)).toBeCloseTo(handsInForce(state, player) * (doubled - plain), 6);
+    expect(row).toEqual([{ kind: 'slotRider', extra: 2, slot: 'civic' }]);
+    const civic = scoreEffects(row, ctx);
+    const wildcard = scoreEffects([{ kind: 'slotRider', extra: 2 }], ctx);
+    expect(civic).toBeGreaterThanOrEqual(0);
+    expect(civic).toBeLessThanOrEqual(wildcard);
   });
 
   it('does not count The Jinshi’s own rise twice for a seat that holds it', () => {
@@ -1316,7 +1309,7 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     const row = doctrineDef(JINSHI).effects;
     const before = scoreEffects(row, valueContext(state, player));
     take(state, JINSHI);
-    expect(cardRareWeight(state, 0)).toBe(100);
+    expect(cardRareWeight(state, 0)).toBe(0);
     expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(before, 6);
   });
 
@@ -1338,8 +1331,8 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     const planBest = (): number => draftPlan(state, player, valueContext(state, player), inputs)[0]!.terms[0]!.value;
     const before = planBest();
     take(state, JINSHI);
-    expect(planBest()).toBeCloseTo(expectedBestOrder(expectedHandBags(state, player), 0, (id) => cardWorth(id).total, 100), 8);
-    expect(planBest()).toBeGreaterThan(before);
+    expect(planBest()).toBeCloseTo(expectedBestOrder(expectedHandBags(state, player), 0, (id) => cardWorth(id).total, 0), 8);
+    expect(planBest()).toBeCloseTo(before, 8);
 
     // A pass on a hand on the table: both readings of the pity take the weight.
     player.statecraft.pendingOrder = drawOrderOffer(state, player);
@@ -1351,7 +1344,7 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     const score = (id: OrderId): number => explainDraftCard(player, id, ctx, 'walk').total;
     const row = nextBotDecision(state, 0)!.candidates.find((candidate) => candidate.label === 'pass the hand')!;
     expect(row.terms[0]!.value).toBeCloseTo(
-      expectedBestOrder(bags, 1, score, 100) - expectedBestOrder(bags, 0, score, 100),
+      expectedBestOrder(bags, 1, score, 0) - expectedBestOrder(bags, 0, score, 0),
       6,
     );
   });

@@ -132,7 +132,8 @@ import {
   pruneTimedEffects,
   spreadReligion,
 } from "./religion";
-import { getTileAt, tileHex, wrappedDistance } from "./map";
+import { tileOwnerField } from "./state";
+import { getTileAt, tileHex, tileIndex, wrappedDistance } from "./map";
 import { type RerouteReport, advanceAlongPath, rerouteReport } from "./movement";
 import {
   cardBehaviorRule,
@@ -1501,8 +1502,9 @@ function collectCampBounties(
  * turn in one of its owner's towns joined to the capital by road.
  */
 function resetMovement(state: GameState): void {
+  const owners = tileOwnerField(state);
   for (const unit of state.units) {
-    unit.movesLeft = fullMovement(unit, state);
+    unit.movesLeft = fullMovement(unit, state, owners.at(tileIndex(state.map, unit.col, unit.row)));
     // The same allowance, refilled in the same breath: one attack per unit per
     // turn, and this is the turn ending. It is cleared *after* `healUnits` has
     // read it, which is the whole reason that phase comes first.

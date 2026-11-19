@@ -11,7 +11,7 @@
  *     21);
  *   · a rider filter, `whileRaisingOpus`: the rider pays only while one of the
  *     empire's towns has the Magnum Opus at the front of its queue. Card: The
- *     Last Commission, 150 production into that town, at most once a turn;
+ *     Last Commission, 150 production per age into that town, at most once a turn;
  *   · the shared Sacred Patronage: faith buys a great-person draft (the rule
  *     that existed) and spending a person paid 30 faith, at most once a turn.
  *     Devotion batch DS5 removed that second clause, so the tests of the
@@ -193,11 +193,12 @@ describe('Magisterial batch MG8: the rows', () => {
   it('carries the shapes the triage names', () => {
     // Batch DS7 gave it a shorter text. The effect is the same: it still pays
     // at most once a turn, and only while a town builds the Opus.
-    expect(orderDef(LAST).text).toBe('Spending a great person adds 150 production to your Magnum Opus.');
+    expect(orderDef(LAST).text).toBe('Spending a great person adds 150 production to your Magnum Opus for each age you have reached.');
     expect(orderDef(LAST).effects).toEqual([
       {
         kind: 'windfallRider',
         occasion: 'greatPersonSpent',
+        perAge: true,
         whileRaisingOpus: true,
         oncePerTurn: true,
         grant: { yield: 'production', amount: 150, toOpus: true },
@@ -210,11 +211,11 @@ describe('Magisterial batch MG8: the rows', () => {
     expect(orderDef(IMMORTALS).effects).toEqual([{ kind: 'metaRule', rule: 'legaciesCountTwice', value: 2 }]);
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GALLERY).text).toBe(
-      'Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture.',
+      'Goal: hold three great-person works. Reward: a free great-person draft and 200 culture.',
     );
     expect(orderDef(GALLERY).effects).toEqual([]);
     expect(orderDef(GALLERY).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'workFamilies', count: 3 }],
+      goals: [{ kind: 'reached', figure: 'worksHeld', count: 3 }],
       reward: [{ greatPerson: 'any' }, { yield: 'culture', amount: 200 }],
     });
   });
@@ -222,13 +223,13 @@ describe('Magisterial batch MG8: the rows', () => {
   it('prints each card in plain words', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(words(LAST)).toEqual([
-      'spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus',
+      'spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus for each age you have reached',
     ]);
     expect(words(PATRONAGE)).toEqual(['a great person waiting to be called may be bought with faith']);
     expect(words(IMMORTALS)).toEqual(['the legacy of each great person you have spent counts twice']);
     expect(words(GALLERY)).toEqual([
       'Commission',
-      'Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture',
+      'Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture',
     ]);
   });
 });
@@ -361,7 +362,7 @@ describe('Sacred Patronage', () => {
 // --- The Last Commission ---------------------------------------------------------
 
 describe('The Last Commission', () => {
-  it('pays 150 production into the town raising the Magnum Opus, not the capital', () => {
+  it('pays 600 production at age four into the town raising the Magnum Opus', () => {
     const { state, player, capital } = board();
     const raiser = town(state, 12, 5);
     raiser.queue = [OPUS];
@@ -370,7 +371,7 @@ describe('The Last Commission', () => {
     const capitalBasket = capital.hammerBasket;
     const basket = raiser.hammerBasket;
     spendMerchant(state, player, capital);
-    expect(raiser.hammerBasket - basket).toBe(150);
+    expect(raiser.hammerBasket - basket).toBe(600);
     expect(capital.hammerBasket).toBe(capitalBasket);
     expect(player.opusBank).toBeUndefined();
   });
@@ -383,10 +384,10 @@ describe('The Last Commission', () => {
     const basket = capital.hammerBasket;
     spendMerchant(state, player, capital);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(150);
+    expect(capital.hammerBasket - basket).toBe(600);
     nextTurn(state);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(300);
+    expect(capital.hammerBasket - basket).toBe(1200);
   });
 
   it('pays nothing and keeps nothing while no town raises the Opus', () => {
@@ -403,7 +404,7 @@ describe('The Last Commission', () => {
     capital.queue = [OPUS];
     bumpRevision(state);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(150);
+    expect(capital.hammerBasket - basket).toBe(600);
   });
 
   it('gives the same board twice from the same spending', () => {
@@ -513,7 +514,7 @@ describe("Commission: The Patron's Gallery (reading 32)", () => {
     lay(state, hexes[0]!, 'academy');
     lay(state, hexes[1]!, 'landmark');
     expect(runCommissions(state)).toEqual([]);
-    lay(state, hexes[2]!, 'manufactory');
+    lay(state, hexes[2]!, 'academy');
     const culture = player.culturePool;
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual([GALLERY]);

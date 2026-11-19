@@ -1,11 +1,215 @@
 {
   "orders": {
+    "magisterialTheHeralds": {
+      "name": "The Heralds",
+      "decks": ["magisterial"],
+      "band": 0,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "yield": "culture",
+            "amount": 30
+          }
+        }
+      ],
+      "rarity": "common",
+      "type": "civic",
+      "text": "Founding a town grants 30 culture.",
+      "flavor": "The herald called out the town’s name while the gateposts still lay on the ground."
+    },
+    "magisterialTheQuarryGangs": {
+      "name": "The Quarry Gangs",
+      "decks": ["magisterial"],
+      "band": 0,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          },
+          "production": 1,
+          "culture": 1
+        }
+      ],
+      "rarity": "common",
+      "type": "economic",
+      "text": "Quarries give +1 production and +1 culture.",
+      "flavor": "Each crew cut its mark into the last block of the day."
+    },
+    "magisterialTheNineJewels": {
+      "name": "The Nine Jewels",
+      "decks": ["magisterial"],
+      "band": 4,
+      "line": "none",
+      "effects": [],
+      "rarity": "rare",
+      "type": "civic",
+      "text": "On draft: gain two free great-person drafts.",
+      "onDraft": [
+        {
+          "grant": "greatPerson"
+        },
+        {
+          "grant": "greatPerson"
+        }
+      ],
+      "flavor": "The invitations asked each guest to bring a piece of unfinished work."
+    },
+    "magisterialTheDivan": {
+      "name": "The Divan",
+      "decks": ["magisterial"],
+      "band": 3,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "slotRider",
+          "slot": "economic",
+          "extra": 1
+        },
+        {
+          "kind": "slotRider",
+          "slot": "military",
+          "extra": 1
+        }
+      ],
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "You have one more Economic chair and one more Military chair.",
+      "flavor": "The treasurer spread her accounts beside the captain’s map."
+    },
+    "magisterialTheHallofHeroes": {
+      "name": "The Hall of Heroes",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "greatPeopleGained",
+            "per": 1
+          }
+        }
+      ],
+      "rarity": "common",
+      "type": "military",
+      "text": "Your units gain +1 strength for each great person you have gained.",
+      "flavor": "The recruits knew the names above the door before they could lift a shield."
+    },
+    "magisterialTheLawgiver": {
+      "name": "The Lawgiver",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [],
+      "rarity": "rare",
+      "type": "civic",
+      "text": "On draft: gain a Doctrine offer.",
+      "onDraft": [
+        {
+          "grant": "doctrineOffer"
+        }
+      ],
+      "flavor": "A potter asked who should pay for a broken jar. The scribe turned to a fresh tablet."
+    },
+    "magisterialTheHanlinAcademy": {
+      "name": "The Hanlin Academy",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "greatPersonCost",
+          "percent": -20
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "greatWork"
+          },
+          "science": 2
+        }
+      ],
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "Great people cost 20% less renown. Great-person works give +2 science.",
+      "flavor": "The examiner covered the poet’s name and read the last verse again."
+    },
+    "magisterialTheSpiritWay": {
+      "name": "The Spirit Way",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [{ "kind": "rule", "rule": "wondersAreWorks" }],
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "Your wonders count as great-person works.",
+      "flavor": "At each monument the guide stopped to name the hands that built it.",
+      "note": "Each wonder in a town counts as a work that the town is working. Cards that give yields to works also give those yields to each wonder."
+    },
+    "magisterialTheFriendsofKhufu": {
+      "name": "The Friends of Khufu",
+      "decks": ["magisterial"],
+      "band": 1,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "levy",
+          "use": "wonder",
+          "percentOfCost": 25
+        }
+      ],
+      "rarity": "uncommon",
+      "type": "economic",
+      "text": "A town building a wonder may spend a citizen for production equal to 25% of the wonder's cost. Once every five turns.",
+      "flavor": "High inside the stonework, a crew left its name in red paint."
+    },
+    "magisterialTheTwelveTables": {
+      "name": "The Twelve Tables",
+      "decks": ["magisterial"],
+      "band": 0,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "production",
+          "count": "ordersHeld",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "culture",
+          "count": "ordersHeld",
+          "amount": 2
+        }
+      ],
+      "rarity": "rare",
+      "type": "civic",
+      "text": "Your capital gains +2 production and +2 culture for each Order you hold, seated or not.",
+      "flavor": "A baker dusted the flour from her hands before tracing a line on the bronze."
+    },
     "magisterialMasterMasons": {
       "name": "Master Masons",
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
-      "type": "economic",
       "line": "none",
       "flavor": "A guild is a memory of how the last wall was raised.",
       "text": "Finishing a culture building grants 30 production in its town.",
@@ -14,9 +218,13 @@
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "buildingCategory": "culture",
-          "grant": { "yield": "production", "amount": 30 }
+          "grant": {
+            "yield": "production",
+            "amount": 30
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "civicGranaries": {
       "name": "Civic Granaries",
@@ -26,7 +234,7 @@
       "type": "economic",
       "line": "none",
       "flavor": "The stone that marks the square also shades the grain.",
-      "text": "Monuments give +1 food and +1 production.",
+      "text": "Culture buildings give +1 food and +2 production each.",
       "effects": [
         {
           "kind": "pays",
@@ -34,19 +242,19 @@
           "basis": "count",
           "to": "food",
           "amount": 1,
-          "count": "buildingsOfKind",
-          "building": "monument",
-          "within": "city"
+          "count": "buildingsOfCategory",
+          "within": "city",
+          "category": "culture"
         },
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 1,
-          "count": "buildingsOfKind",
-          "building": "monument",
-          "within": "city"
+          "amount": 2,
+          "count": "buildingsOfCategory",
+          "within": "city",
+          "category": "culture"
         }
       ]
     },
@@ -781,11 +989,17 @@
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "uncommon",
-      "type": "economic",
       "line": "none",
       "flavor": "They will raise anything, and they will be paid on Fridays.",
       "text": "+30% production toward wonders.",
-      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 30 }]
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30
+        }
+      ],
+      "retired": true
     },
     "theCivicAssemblies": {
       "name": "The Civic Assemblies",
@@ -1370,11 +1584,11 @@
       "name": "The Learned Patron",
       "decks": ["magisterial"],
       "band": 2,
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "line": "none",
       "flavor": "He funds the study and reads only the dedication.",
-      "text": "Towns with two culture buildings gain science equal to 15% of their culture.",
+      "text": "Towns with an Amphitheater gain science equal to 30% of their culture.",
       "effects": [
         {
           "kind": "pays",
@@ -1382,11 +1596,10 @@
           "basis": "share",
           "from": "culture",
           "to": "science",
-          "percent": 15,
+          "percent": 30,
           "scope": {
-            "test": "buildingsOfCategory",
-            "category": "culture",
-            "atLeast": 2
+            "test": "hasBuilding",
+            "building": "amphitheater"
           }
         }
       ]
@@ -1468,22 +1681,13 @@
       "type": "civic",
       "line": "none",
       "flavor": "They meet where the government sits, and nowhere else will do.",
-      "text": "Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings.",
-      "effects": [
-        { "kind": "unlocksBuilding", "building": "assemblyHall" },
-        {
-          "kind": "happiness",
-          "amount": 3,
-          "per": "city",
-          "scope": { "test": "hasBuilding", "building": "assemblyHall" }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 30,
-          "scope": { "test": "hasBuilding", "building": "assemblyHall" }
+      "text": "Unlocks the Assembly Hall in your capital: one more Wildcard chair and +3 happiness.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "building": "assemblyHall"
         }
-      ]
+      }
     },
     "theSculptorsSchools": {
       "name": "The Sculptors' Schools",
@@ -1646,7 +1850,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "Afterwards everyone agreed it had been one.",
-      "text": "Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns.",
+      "text": "Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1656,15 +1860,45 @@
             "timed": {
               "turns": 10,
               "effects": [
-                { "kind": "percentYields", "yield": "production", "percent": 20 },
-                { "kind": "percentYields", "yield": "culture", "percent": 20 }
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 25
+                },
+                {
+                  "kind": "percentYields",
+                  "yield": "culture",
+                  "percent": 25
+                }
+              ],
+              "renews": true
+            }
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 25
+                },
+                {
+                  "kind": "percentYields",
+                  "yield": "culture",
+                  "percent": 25
+                }
               ],
               "renews": true
             }
           }
         }
       ],
-      "note": "A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder."
+      "note": "Gaining another great person or completing another wonder restarts the bonus."
     },
 
     "theLaureateCities": {
@@ -1856,14 +2090,16 @@
       "type": "economic",
       "line": "none",
       "flavor": "The estate outlived the man and kept his standards.",
-      "text": "Worked great-person works give +3 food and +3 production.",
+      "text": "Worked great-person works give +6 food and +6 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 3,
-          "production": 3,
-          "on": { "test": "greatWork" }
+          "food": 6,
+          "production": 6,
+          "on": {
+            "test": "greatWork"
+          }
         }
       ]
     },
@@ -1923,27 +2159,31 @@
       "type": "civic",
       "line": "none",
       "flavor": "The tombs are in the capital because the capital insisted.",
-      "text": "Gains +2 science and +4 production in your capital each time you spend a great person.",
+      "text": "Gains +8 science and +8 production in your capital each time you gain a great person.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 2,
+          "amount": 8,
           "count": "tally",
-          "tally": "greatPersonSpent",
-          "scope": { "test": "capital" }
+          "tally": "greatPersonGained",
+          "scope": {
+            "test": "capital"
+          }
         },
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 4,
+          "amount": 8,
           "count": "tally",
-          "tally": "greatPersonSpent",
-          "scope": { "test": "capital" }
+          "tally": "greatPersonGained",
+          "scope": {
+            "test": "capital"
+          }
         }
       ]
     },
@@ -2055,14 +2295,19 @@
       "type": "economic",
       "line": "none",
       "flavor": "One more, the patron said, and meant it this time.",
-      "text": "Spending a great person adds 150 production to your Magnum Opus.",
+      "text": "Spending a great person adds 150 production to your Magnum Opus for each age you have reached.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "greatPersonSpent",
           "whileRaisingOpus": true,
           "oncePerTurn": true,
-          "grant": { "yield": "production", "amount": 150, "toOpus": true }
+          "grant": {
+            "yield": "production",
+            "amount": 150,
+            "toOpus": true
+          },
+          "perAge": true
         }
       ],
       "note": "A great person counts whether they act or lay a work. A city is building the Magnum Opus while it stands at the front of its queue. While none of your cities is building it, the card pays nothing, and nothing is kept for later."
@@ -2137,7 +2382,6 @@
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
-      "type": "civic",
       "line": "none",
       "flavor": "Every new minister sits for a portrait, so the painter is never short of work.",
       "text": "Each card you draft grants 15 renown. A charter counts.",
@@ -2145,10 +2389,13 @@
         {
           "kind": "windfallRider",
           "occasion": "cardDrafted",
-          "grant": { "renown": 15 }
+          "grant": {
+            "renown": 15
+          }
         }
       ],
-      "note": "A card picked from a free hand counts. Passing on a hand does not, and neither does a Doctrine or a great person. This card pays nothing for drafting itself."
+      "note": "A card picked from a free hand counts. Passing on a hand does not, and neither does a Doctrine or a great person. This card pays nothing for drafting itself.",
+      "retired": true
     },
     "theCornerstone": {
       "name": "The Cornerstone",
@@ -2158,8 +2405,20 @@
       "type": "economic",
       "line": "none",
       "flavor": "The first stone is laid with a speech, and the rest are laid in silence.",
-      "text": "Towns build wonders 20% faster.",
-      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 20 }]
+      "text": "Towns build wonders and culture buildings 25% faster.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingCategory": "culture",
+          "percent": 25
+        }
+      ]
     },
     "theRepertory": {
       "name": "The Repertory",
@@ -2204,19 +2463,21 @@
       "type": "civic",
       "line": "none",
       "flavor": "Each province had its governor, and each governor had a seat at court.",
-      "text": "+1 authority for every two cards you have seated.",
+      "text": "+2 authority. Your capital gains +1 culture for each point of authority you have to spare.",
       "effects": [
         {
+          "kind": "authority",
+          "amount": 2
+        },
+        {
           "kind": "pays",
-          "where": "empire",
+          "where": "capital",
           "basis": "count",
-          "to": "authority",
-          "amount": 1,
-          "count": "slottedOrders",
-          "per": 2
+          "to": "culture",
+          "count": "authoritySurplus",
+          "amount": 1
         }
-      ],
-      "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
+      ]
     },
     "theWorkshopAtOlympia": {
       "name": "The Workshop at Olympia",
@@ -2285,7 +2546,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "People sleep better near a thing that will outlast them.",
-      "text": "+2 happiness for each wonder you hold.",
+      "text": "Each wonder you hold gives +2 happiness, and +1 food, production, science, culture and faith in its town.",
       "effects": [
         {
           "kind": "pays",
@@ -2294,6 +2555,51 @@
           "to": "happiness",
           "amount": 2,
           "count": "wonders"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "count": "wonders",
+          "amount": 1,
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "count": "wonders",
+          "amount": 1,
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "count": "wonders",
+          "amount": 1,
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "count": "wonders",
+          "amount": 1,
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "count": "wonders",
+          "amount": 1,
+          "within": "city"
         }
       ],
       "note": "A wonder you captured counts."
@@ -2306,13 +2612,23 @@
       "type": "military",
       "line": "none",
       "flavor": "The armour is polished for the visitors, and the spears are sharp for everyone else.",
-      "text": "Towns holding a wonder gain +5 defence.",
+      "text": "Completing a wonder grants a melee unit and a ranged unit in its town. They cost no upkeep.",
       "effects": [
         {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 5,
-          "scope": { "test": "hasWonder" }
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": {
+            "unit": "bestMelee"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": {
+            "unit": "bestRanged"
+          }
         }
       ]
     },
@@ -2321,7 +2637,7 @@
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "uncommon",
-      "type": "wildcard",
+      "type": "civic",
       "line": "none",
       "flavor": "The cloth comes down, the crowd draws breath, and the council sits again.",
       "text": "Completing a wonder deals you a free Order hand.",
@@ -2330,7 +2646,9 @@
           "kind": "windfallRider",
           "occasion": "completion",
           "wonder": true,
-          "grant": { "freeDraft": true }
+          "grant": {
+            "freeDraft": true
+          }
         }
       ],
       "note": "No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand."
@@ -2339,32 +2657,46 @@
       "name": "The Encyclopedia",
       "decks": ["magisterial"],
       "band": 1,
-      "rarity": "common",
+      "rarity": "uncommon",
       "type": "civic",
       "line": "none",
       "flavor": "Everything known, in order from A to Z, and still not finished.",
-      "text": "+1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each.",
+      "text": "Starts at +1 science and +1 culture for your empire. Gains +1 of each every time you gain an Order, complete a wonder or gain a great person.",
       "effects": [
         {
           "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "to": "science",
-          "amount": 1,
-          "count": "unslottedOrders",
-          "max": 15
+          "where": "empire",
+          "science": 1,
+          "culture": 1
         },
         {
           "kind": "pays",
-          "where": "capital",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "count": "tally",
+          "amount": 1,
+          "tally": "orderGained",
+          "alsoTallies": [
+            "wonderCompleted",
+            "greatPersonGained"
+          ]
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
           "basis": "count",
           "to": "culture",
+          "count": "tally",
           "amount": 1,
-          "count": "unslottedOrders",
-          "max": 15
+          "tally": "orderGained",
+          "alsoTallies": [
+            "wonderCompleted",
+            "greatPersonGained"
+          ]
         }
       ],
-      "note": "A charter counts, because it never takes a chair."
+      "note": "Orders from free hands and other cards count. A captured wonder gives no gain."
     },
     "thePrefects": {
       "name": "The Prefects",
@@ -2394,7 +2726,7 @@
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "uncommon",
-      "type": "wildcard",
+      "type": "civic",
       "line": "none",
       "flavor": "The wine went round, and so did the ideas, and somebody always wrote them down.",
       "text": "Each time you gain a great person, you are dealt a free Order hand.",
@@ -2402,7 +2734,9 @@
         {
           "kind": "windfallRider",
           "occasion": "greatPersonGained",
-          "grant": { "freeDraft": true }
+          "grant": {
+            "freeDraft": true
+          }
         }
       ],
       "note": "No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand."
@@ -2415,8 +2749,14 @@
       "type": "civic",
       "line": "none",
       "flavor": "An open letter under the great seal, which anyone may read and nobody may refuse.",
-      "text": "Your great people's acts pay 50% more.",
-      "effects": [{ "kind": "effectAmplifier", "target": "greatPersonAct", "percent": 50 }],
+      "text": "Your great people's acts pay double.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "greatPersonAct",
+          "percent": 100
+        }
+      ],
       "note": "It raises the gold, production, science and culture an act pays. A general's act pays none of these, so it gains nothing."
     },
     "magisterialTheQuarterOfMasters": {
@@ -2427,19 +2767,29 @@
       "type": "civic",
       "line": "none",
       "flavor": "Put two masters on one street and watch.",
-      "text": "A great-person work beside another great-person work yields its own yield again. This never stacks.",
+      "text": "A great-person work beside another great-person work gives +4 culture and +4 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "percent": 100,
           "on": {
             "test": "all",
-            "of": [{ "test": "greatWork" }, { "test": "beside", "of": { "test": "greatWork" } }]
-          }
+            "of": [
+              {
+                "test": "greatWork"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "greatWork"
+                }
+              }
+            ]
+          },
+          "culture": 4,
+          "production": 4
         }
-      ],
-      "note": "The work's own yield is paid again once, however many works stand beside it. What other cards pay on the work is not paid again."
+      ]
     },
     "theGazetteers": {
       "name": "The Gazetteers",
@@ -2581,19 +2931,23 @@
       "type": "civic",
       "line": "none",
       "flavor": "Between the studios, a garden, and in the garden, an argument.",
-      "text": "Towns working at least two great-person works gain +20% culture and science.",
+      "text": "Towns working a great-person work gain +20% culture and science.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "culture",
           "percent": 20,
-          "scope": { "test": "workingTiles", "on": { "test": "greatWork" }, "atLeast": 2 }
+          "scope": {
+            "test": "workingGreatWork"
+          }
         },
         {
           "kind": "percentYields",
           "yield": "science",
           "percent": 20,
-          "scope": { "test": "workingTiles", "on": { "test": "greatWork" }, "atLeast": 2 }
+          "scope": {
+            "test": "workingGreatWork"
+          }
         }
       ]
     },
@@ -2605,9 +2959,15 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The council met in private, so nobody saw how much it decided.",
-      "text": "Each of your cards that pays production pays +1 more production wherever it pays it.",
-      "effects": [{ "kind": "cardYieldAmplifier", "yield": "production", "amount": 1 }],
-      "note": "Each town, hex or empire line counts on its own, so a card that pays production in many towns gains in each of them. A percentage is not raised, and this card does not raise itself."
+      "text": "The cards in your Wildcard chairs pay their yields twice.",
+      "effects": [
+        {
+          "kind": "slotPosition",
+          "slot": "wildcard",
+          "position": "all",
+          "factor": 2
+        }
+      ]
     },
     "theBulwarkOfMarvels": {
       "name": "The Bulwark of Marvels",
@@ -2661,11 +3021,21 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "Every name on the roll is a voice in the house.",
-      "text": "Goal: hold ten Orders. Reward: one more Wildcard chair.",
+      "text": "Goal: hold eight Orders. Reward: one more Wildcard chair.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "ordersHeld", "count": 10 }],
-        "reward": [{ "wildcardChairs": 1 }]
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "ordersHeld",
+            "count": 8
+          }
+        ],
+        "reward": [
+          {
+            "wildcardChairs": 1
+          }
+        ]
       },
       "note": "Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not."
     },
@@ -2744,14 +3114,18 @@
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "uncommon",
-      "type": "wildcard",
       "line": "none",
       "flavor": "Leave the council's door open, and the petitions come in on their own.",
       "text": "Order hands cost 15% less culture.",
       "effects": [
-        { "kind": "rulePercent", "rule": "draftCost", "percent": -15 }
+        {
+          "kind": "rulePercent",
+          "rule": "draftCost",
+          "percent": -15
+        }
       ],
-      "note": "The price of each hand you buy with culture is cut, then rounded down. Cuts from more than one card add together first. The number of drafts you have taken, the tiers at which a government is offered, and the better odds a pass buys do not change."
+      "note": "The price of each hand you buy with culture is cut, then rounded down. Cuts from more than one card add together first. The number of drafts you have taken, the tiers at which a government is offered, and the better odds a pass buys do not change.",
+      "retired": true
     },
     "theAccessionsRegister": {
       "name": "The Accessions Register",
@@ -2782,7 +3156,6 @@
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "common",
-      "type": "civic",
       "line": "none",
       "flavor": "The laws a council turned down are history too.",
       "text": "Each time you pass on an Order hand, gain science equal to half the culture the hand cost.",
@@ -2798,7 +3171,8 @@
           }
         }
       ],
-      "note": "The science is rounded down. Passing on a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced."
+      "note": "The science is rounded down. Passing on a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced.",
+      "retired": true
     },
     "theWanderingMuse": {
       "name": "The Wandering Muse",
@@ -2833,7 +3207,6 @@
       "decks": ["magisterial"],
       "band": 4,
       "rarity": "rare",
-      "type": "wildcard",
       "line": "none",
       "flavor": "Every wonder brings visitors, and some of them bring ideas.",
       "text": "Order hands deal one more card for every two wonders you hold, at most two more.",
@@ -2847,25 +3220,25 @@
           "max": 2
         }
       ],
-      "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards."
+      "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards.",
+      "retired": true
     },
     "theSedFestival": {
       "name": "The Sed Festival",
       "decks": ["magisterial"],
       "band": 2,
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "civic",
       "line": "none",
       "flavor": "After thirty years on the throne, the king ran the ritual course again, and the land was his once more.",
-      "text": "Each time you adopt a government, gain a free great-person draft.",
-      "effects": [
+      "text": "On draft: gain a free great-person draft.",
+      "effects": [],
+      "note": "If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts.",
+      "onDraft": [
         {
-          "kind": "windfallRider",
-          "occasion": "governmentAdopted",
-          "grant": { "greatPerson": "any" }
+          "grant": "greatPerson"
         }
-      ],
-      "note": "The card pays only if it still has a chair once the new government seats your council. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
+      ]
     },
     "thePandects": {
       "name": "The Pandects",
@@ -2906,14 +3279,14 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The electors took their fixed seats, and everyone knew who would choose the next emperor.",
-      "text": "Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer.",
+      "text": "Goal: hold 20 Orders. Reward: a Doctrine offer.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "reached",
-            "figure": "councilInOrder",
-            "count": 1
+            "figure": "ordersHeld",
+            "count": 20
           }
         ],
         "reward": [
@@ -2922,7 +3295,7 @@
           }
         ]
       },
-      "note": "A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made."
+      "note": "If a Doctrine offer is waiting or your government has no Doctrine to offer, the commission waits."
     },
     "theImmortals": {
       "name": "The Immortals",
@@ -2944,13 +3317,27 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "A scholar's desk, a general's sword and a poet's lyre, all in one long room.",
-      "text": "Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture.",
+      "text": "Goal: hold three great-person works. Reward: a free great-person draft and 200 culture.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "workFamilies", "count": 3 }],
-        "reward": [{ "greatPerson": "any" }, { "yield": "culture", "amount": 200 }]
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "worksHeld",
+            "count": 3
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "any"
+          },
+          {
+            "yield": "culture",
+            "amount": 200
+          }
+        ]
       },
-      "note": "A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts as a family of its own. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
+      "note": "A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
     },
     "theLandmarkBounds": {
       "name": "The Landmark Bounds",
@@ -3003,31 +3390,49 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The streets, the squares and the monuments were all drawn on one plan.",
-      "text": "Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production.",
+      "text": "Goal: have one town hold two wonders and work two great-person works. Reward: that town's culture, science and production are doubled.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3, "wondersAtLeast": 2 }],
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "oneTownWorksWorked",
+            "count": 2,
+            "wondersAtLeast": 2
+          }
+        ],
         "reward": [
-          { "markTown": true },
+          {
+            "markTown": true
+          },
           {
             "lasting": [
               {
                 "kind": "percentYields",
                 "yield": "culture",
-                "percent": 25,
-                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+                "percent": 100,
+                "scope": {
+                  "test": "markedBy",
+                  "card": "magisterialTheIdealCity"
+                }
               },
               {
                 "kind": "percentYields",
                 "yield": "science",
-                "percent": 25,
-                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+                "percent": 100,
+                "scope": {
+                  "test": "markedBy",
+                  "card": "magisterialTheIdealCity"
+                }
               },
               {
                 "kind": "percentYields",
                 "yield": "production",
-                "percent": 25,
-                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+                "percent": 100,
+                "scope": {
+                  "test": "markedBy",
+                  "card": "magisterialTheIdealCity"
+                }
               }
             ]
           }
@@ -3064,7 +3469,6 @@
       "decks": ["magisterial"],
       "band": 3,
       "rarity": "rare",
-      "type": "wildcard",
       "line": "none",
       "flavor": "The council turned down every proposal, so the clerk called the members back that same afternoon.",
       "text": "Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once.",
@@ -3073,10 +3477,13 @@
           "kind": "windfallRider",
           "occasion": "draftPassed",
           "paidHand": true,
-          "grant": { "freeDraft": true }
+          "grant": {
+            "freeDraft": true
+          }
         }
       ],
-      "note": "Passing on a free hand deals nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. No hand is dealt while a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand, and you keep the better odds the pass bought."
+      "note": "Passing on a free hand deals nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. No hand is dealt while a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand, and you keep the better odds the pass bought.",
+      "retired": true
     },
     "magnificence": {
       "name": "Magnificence",
@@ -3093,13 +3500,18 @@
     "theMixedConstitution": {
       "name": "The Mixed Constitution",
       "decks": ["magisterial"],
-      "band": 3,
+      "band": 2,
       "rarity": "rare",
       "type": "wildcard",
       "line": "none",
       "flavor": "Polybius wrote that Rome lasted because its consuls, its Senate and its people each held a share of power.",
       "text": "Your cards fit any chair.",
-      "effects": [{ "kind": "rule", "rule": "cardsFitAnyChair" }],
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "cardsFitAnyChair"
+        }
+      ],
       "note": "This card itself goes in a Wildcard chair. While it is seated, any card you hold may sit in any chair, and when you adopt a government every seated card keeps a chair while chairs remain. When it leaves its chair, your council is seated again at once: a card that still fits its chair keeps it, the others move to free chairs that fit them, and a card that fits no free chair goes back to your collection. A card that had to move may be moved again at once. A card still counts as its own type wherever it sits."
     },
     "theUniversalGenius": {
@@ -3135,17 +3547,58 @@
       "type": "civic",
       "line": "none",
       "flavor": "The exhibition hung the work of a whole reign in one long gallery, and the visitors walked through it in an afternoon.",
-      "text": "On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.",
+      "text": "On draft: gain 40 culture, science and production for each wonder, great-person work and Order you hold.",
       "onDraft": [
-        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "wonders" } },
-        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "wonders" } },
-        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "wonders" }, "toCapital": true },
-        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } } },
-        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } } },
-        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } }, "toCapital": true },
-        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "ordersHeld" } },
-        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "ordersHeld" } },
-        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "ordersHeld" }, "toCapital": true }
+        {
+          "grant": "windfall",
+          "yield": "culture",
+          "amount": 40,
+          "perCount": {
+            "count": "worksAndWondersHeld"
+          }
+        },
+        {
+          "grant": "windfall",
+          "yield": "science",
+          "amount": 40,
+          "perCount": {
+            "count": "worksAndWondersHeld"
+          }
+        },
+        {
+          "grant": "windfall",
+          "yield": "production",
+          "amount": 40,
+          "perCount": {
+            "count": "worksAndWondersHeld"
+          },
+          "toCapital": true
+        },
+        {
+          "grant": "windfall",
+          "yield": "culture",
+          "amount": 40,
+          "perCount": {
+            "count": "ordersHeld"
+          }
+        },
+        {
+          "grant": "windfall",
+          "yield": "science",
+          "amount": 40,
+          "perCount": {
+            "count": "ordersHeld"
+          }
+        },
+        {
+          "grant": "windfall",
+          "yield": "production",
+          "amount": 40,
+          "perCount": {
+            "count": "ordersHeld"
+          },
+          "toCapital": true
+        }
       ],
       "effects": [],
       "note": "Everything is counted once, at the moment you draft this card. Every Order you hold counts, seated or not, this card included; charters and finished commissions count, and a Doctrine does not. A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it; a prophet's Holy Site counts too. The culture and science go to your empire, and the production goes to your capital."
@@ -3158,13 +3611,21 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "The Persian kings walled their gardens and filled them with water and shade, and the old word for such a garden became the word paradise.",
-      "text": "Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.",
+      "text": "Goal: have one town work three great-person works. Reward: your great-person works yield double.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "worksBesideWork", "count": 3 }],
-        "reward": [{ "claimWithin": 3 }]
+        "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3 }],
+        "reward": [{
+          "lasting": [{
+            "kind": "pays",
+            "where": "hex",
+            "on": { "test": "greatWork" },
+            "wholePercent": 100,
+            "appliedLast": true
+          }]
+        }]
       },
-      "note": "The work in the middle must stand in your borders. A hex beside it counts whoever owns it, and a prophet's Holy Site counts as a great-person work. The new hexes join your nearest city, and a hex that a city already owns, yours or a rival's, is left alone. If more than one of your works meets the goal, the land is claimed around the one furthest north, and of those the one furthest west. A claimed hex can lie beyond the reach of your city's citizens."
+      "note": "The reward lasts for the rest of the game. The Mausoleum and this reward each add the full yield of the work after its other bonuses."
     },
     "theProcessionalWay": {
       "name": "The Processional Way",
@@ -3174,17 +3635,22 @@
       "type": "civic",
       "line": "none",
       "flavor": "The road from the Ishtar Gate ran straight through Babylon, between walls of blue glazed brick and rows of striding lions.",
-      "text": "Great-person works in a straight line of three or more give +3 culture and +3 science each.",
+      "text": "Hexes beside two or more great-person works give +10 culture and +10 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 3,
-          "science": 3,
-          "on": { "test": "workLine", "length": 3 }
+          "culture": 10,
+          "science": 10,
+          "on": {
+            "test": "beside",
+            "of": {
+              "test": "greatWork"
+            },
+            "atLeast": 2
+          }
         }
-      ],
-      "note": "A line runs straight along the hexes, in any direction, with each work beside the next and no gap. Every work of the line must be in your borders, and a prophet's Holy Site counts. A work on more than one line gains the bonus once. Like every bonus on a hex, a work pays it only while one of your cities works it."
+      ]
     },
     "thePullOfTheMasters": {
       "name": "The Pull of the Masters",
@@ -3200,6 +3666,23 @@
     }
   },
   "doctrines": {
+    "magisterialTheSteleofDeeds": {
+      "name": "The Stele of Deeds",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "slotRider",
+          "count": "wonders",
+          "per": 3,
+          "max": 2,
+          "extra": 1
+        }
+      ],
+      "text": "You have one more Wildcard chair for every three wonders you hold, at most two more.",
+      "flavor": "The carver left room at the foot of the stone for the names still to come."
+    },
     "theArthashastra": {
       "name": "The Arthashastra",
       "decks": ["magisterial"],
@@ -3266,7 +3749,7 @@
       "band": 2,
       "line": "none",
       "flavor": "The palace pays the masters, and the masters train the palace.",
-      "text": "Each town gains +1 science for each Civic card you have seated.",
+      "text": "Each town gains +2 science for each Civic card you have seated.",
       "effects": [
         {
           "kind": "pays",
@@ -3275,7 +3758,7 @@
           "count": "slottedOrdersOfSlot",
           "slot": "civic",
           "to": "science",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -3285,12 +3768,12 @@
       "band": 2,
       "line": "none",
       "flavor": "Thousands sit the examination, and a handful are presented.",
-      "text": "Rare cards come up twice as often in your Order hands.",
+      "text": "You have two more Civic chairs.",
       "effects": [
         {
-          "kind": "rule",
-          "rule": "rareWeight",
-          "percent": 100
+          "kind": "slotRider",
+          "slot": "civic",
+          "extra": 2
         }
       ]
     },
@@ -3362,9 +3845,16 @@
       "band": 3,
       "line": "none",
       "flavor": "Build an abbey, and in a generation there is a street outside its gate.",
-      "text": "Towns working a great-person work grow 25% faster.",
+      "text": "Towns working a great-person work grow 50% faster.",
       "effects": [
-        {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "workingGreatWork"}}
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 50,
+          "scope": {
+            "test": "workingGreatWork"
+          }
+        }
       ]
     },
     "theCarroccio": {
@@ -3415,24 +3905,22 @@
     },
     "theGobelins": {
       "name": "The Gobelins",
-      "decks": [
-        "magisterial"
-      ],
+      "decks": ["magisterial"],
       "band": 4,
       "line": "none",
       "flavor": "Every trade in the kingdom under one roof, working for one palace.",
-      "text": "Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%.",
+      "text": "Each great-person work in your borders gives +10% production toward the Magnum Opus, at most +50%.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "theMagnumOpus",
-          "percent": 4,
+          "percent": 10,
           "count": "tilesInBorders",
           "tile": {
             "test": "greatWork"
           },
-          "max": 10
+          "max": 5
         }
       ]
     },

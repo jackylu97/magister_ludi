@@ -386,9 +386,11 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
     reads: 2,
     why: 'one of a kind: `hasWonder` and `hasEmpireBuilding`',
   },
+  'statecraft/evaluator.ts › ghostWorksInTown': { reads: 1, why: 'one of a kind: each built wonder counts as a great work' },
+  'statecraft/evaluator.ts › wonderWorkYieldLines': { reads: 1, why: 'one of a kind: the yield lists are per built wonder' },
   'statecraft/evaluator.ts › countOf': {
-    reads: 3,
-    why: 'one of a kind (`wonders` in a town, `empireBuildings`), and built (`purchasedBuildings`, how it was paid for)',
+    reads: 4,
+    why: 'one of a kind (wonders in a town or empire and empire buildings), and built (`purchasedBuildings`, how it was paid for)',
   },
   // Batch DT13: the count itself still goes through `townBuildings`. This read only
   // adds a preview's building to a copy of the town for that count to ask.

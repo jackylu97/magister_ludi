@@ -1419,10 +1419,12 @@ describe('determinism', () => {
    * hashes before the batch exactly.
    *
    * Version 246 changes the generic Order pool. These seats make no draft picks.
+   * Version 247 records pillage damage. These seats have no improvements.
+   * Version 248 updates the Orders and wonders. These opening snapshots include the new version.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'fb31c5f0:190677',
-    2026: 'd0d7a739:190843',
+    11: 'c015b5ae:190677',
+    2026: '3b00b6e3:190843',
   };
 
   for (const seed of [11, 2026]) {

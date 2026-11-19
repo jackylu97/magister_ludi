@@ -136,7 +136,10 @@ describe('a share on one named building, and on the marvels', () => {
 
   it('reaches the marvels alone — Dürer’s wonders', () => {
     withCards(
-      [['waysideShrines', [{ kind: 'buildingYieldPercent', wonder: true, percent: 50 }]]],
+      [['waysideShrines', [
+        { kind: 'pays', where: 'city', faith: 2, scope: { test: 'hasBuilding', building: 'theOracle' } },
+        { kind: 'buildingYieldPercent', wonder: true, percent: 50 },
+      ]]],
       () => {
         const g = game();
         const city = found(g.state, 0);
@@ -152,12 +155,8 @@ describe('a share on one named building, and on the marvels', () => {
         // Entry XVII's stages and the town's total is after them.
         const oracle = buildingDef('theOracle');
         expect(lines[0]!.culture).toBeCloseTo(oracle.culture / 2, 6);
-        // Its faith is worth **more** than half the row, and deliberately: the
-        // Oracle's own card line stands on the Oracle by name, and a share is
-        // taken of the row *plus what the law put on it* (`explainBuildingPackage`,
-        // the user's Synod ruling of 2026-09-07). So the marvel selector rides
-        // that reading rather than replacing it.
-        expect(lines[0]!.faith).toBeGreaterThan(oracle.faith! / 2);
+        // The named bonus adds to the Oracle's building package before Dürer takes his share.
+        expect(lines[0]!.faith).toBe((oracle.faith! + 2) / 2);
       },
     );
   });

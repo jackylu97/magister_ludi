@@ -208,7 +208,8 @@ governments, so Tier IV opened at 29.
 | Doctrine | Decks | Tier | Offered with | Effect |
 |---|---|---|---|---|
 | The Steppe Confederacy | Dominion | I | tier 4 | +50% production toward mounted units. Mounted units gain +3 strength when attacking a wounded unit. |
-| The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
+| The Citizen Phalanx | Dominion | I | tier 4 | Towns of three or more citizens may spend a citizen to raise a melee unit. It costs no upkeep. |
+| The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them 25% more slowly. Buying them is unaffected. |
 | The Soldiers' Share | Dominion | I | tier 4 | Melee units gain +1 movement and +3 strength. |
 | The Laws of Lord Shang | Dominion | II | tier 10 | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
 | Centurions | Dominion | II | tier 10 | Each Elite unit gives +3 strength to your units beside it, and costs 1 less upkeep. |
@@ -217,7 +218,7 @@ governments, so Tier IV opened at 29.
 | The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority, including those you already hold. Towns you found from now on cost twice as much authority. |
 | Combined Arms | Dominion | III | tier 18 | Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee. |
 | The Strategoi | Dominion | III | tier 18 | +30% renown. Citadel yields and your great generals' strength aura are doubled. |
-| The Landsturm | Dominion | IV | tier 26 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
+| The Landsturm | Dominion | IV | tier 26 | When a war begins, each city of five or more citizens raises a melee unit, at most once every twenty turns. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
 | The Fortress Empire | Dominion | IV | tier 26 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
 | The Scourge of God | Dominion | IV | tier 26 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
 | Bound to the Soil | Expansionist | I | tier 4 | Workers gain +1 charge. Tended tiles gain +1 food. |
@@ -277,17 +278,18 @@ governments, so Tier IV opened at 29.
 | The Hospitium | Magisterial | I | tier 4 | The third card in each of your Order hands comes from a deck you do not hold. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
 | The Periclean Works | Magisterial | I | tier 4 | Each wonder you hold gives +2 production in every town. |
-| The Magnaura | Magisterial | II | tier 10 | Each town gains +1 science for each Civic card you have seated. |
-| The Jinshi | Magisterial | II | tier 10 | Rare cards come up twice as often in your Order hands. |
+| The Magnaura | Magisterial | II | tier 10 | Each town gains +2 science for each Civic card you have seated. |
+| The Stele of Deeds | Magisterial | II | tier 10 | You have one more Wildcard chair for every three wonders you hold, at most two more. |
+| The Jinshi | Magisterial | II | tier 10 | You have two more Civic chairs. |
 | The Peregrini | Magisterial | II | tier 10 | Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
 | The Council of Ten | Magisterial | III | tier 18 | You have two more Wildcard chairs. |
 | Scutage | Magisterial | III | tier 18 | Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair. |
-| The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 25% faster. |
+| The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 50% faster. |
 | The Carroccio | Magisterial | III | tier 18 | Your units gain +1 strength for each wonder you hold, at most +8. |
 | The Union of Lublin | Magisterial | IV | tier 26 | You also gain the abilities of the other two governments of your tier. |
 | The Kitabkhana | Magisterial | IV | tier 26 | Spending a great person grants 200 renown for each age you have reached. |
-| The Gobelins | Magisterial | IV | tier 26 | Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%. |
+| The Gobelins | Magisterial | IV | tier 26 | Each great-person work in your borders gives +10% production toward the Magnum Opus, at most +50%. |
 | The Escorial | Magisterial | IV | tier 26 | Completing a wonder gives you a free great-person draft. |
 | The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
@@ -328,16 +330,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | Blooded Spears | 0 | ● | S | Military units gain +2 strength. |
-| Blood Brothers | 1 | ○ | S | A barbarian unit you kill joins your side. |
+| Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | Commission: Clear the Frontier | 1 | ● | S | Goal: clear 2 barbarian camps. Reward: choose a great general. |
 | The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
 | Sword and Plough | 0 | ● | P | Each city with a garrison gains +1 culture and +2 production. |
 | The Grain Tribute | 0 | ● | S | +1 food and +1 production in every city. |
 | The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. |
-| The Outriders | 0 | ● | S | Clearing a barbarian camp grants 10 production to every town. |
+| The Outriders | 0 | ● | S | Clearing a barbarian camp grants 20 production to every town. |
 | The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
 | The Gathering Host | 1 | ◆ | P | Gains +1 science and +1 culture each time you gain a military unit. |
-| The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
+| The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start as Veterans. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | Honours of the Legion | 1 | ◆ | S | Each time one of your units earns a rank, gain science and culture equal to its strength. |
 | The Pacified Marches | 1 | ◆ | P | +1 authority and +5 culture for each barbarian camp you have cleared, at most +8 and +40. |
@@ -346,60 +348,69 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
 | The General Staff | 1 | ● | P | Each Barracks gives +5 production and +2 general renown. |
 | Martial Law | 1 | ● | P | Each garrisoned unit grants its city +2 happiness and +4 food. |
-| The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
-| The Captive Craftsmen | 1 | ◆ | P | Gains +1 science and +1 production each time you pillage a hex. |
-| Siege Works | 2 | ● | S | Siege units gain +4 strength against towns. |
-| Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
+| The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking, and pillage without spending movement. |
+| The Captive Craftsmen | 1 | ◆ | P | Gains +2 science and +2 production each time you pillage a hex. |
+| Siege Works | 2 | ● | S | Siege units gain +1 movement and +4 strength against towns. |
+| Conquered Archives | 2 | ● | P | Captured cities gain +10 science and +10 culture. |
 | Stockpiles | 2 | ● | P | Cities gain +8 food per defensive building. |
-| Riders of the Steppe | 2 | ◆ | S | Pillaging costs your mounted units one less movement point. |
 | Spoils of War | 2 | ◆ | S | Pillaging a hex grants 50 gold and 15 culture. |
 | Hegemony | 2 | ○ | S | Towns you captured cost 1 less authority. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
-| The Citadel Works | 2 | ● | S | Citadels gain +5 science and +3 general renown. |
+| The Citadel Works | 2 | ● | S | Citadels gain +8 science and +8 general renown. |
 | Commission: Take the City | 2 | ◆ | S | Goal: capture a city of 8 or more citizens. Reward: each city you capture grants 250 science and 250 culture per age. |
-| Living off the Land | 2 | ● | S | Military units outside your territory cost no upkeep. |
 | The Serried Ranks | 2 | ○ | S | Melee units beside another melee unit gain +10 strength when defending. |
 | The Veterans' Roll | 2 | ◆ | P | +1% science and culture for every rank your units have earned this game, at most +30%. |
 | The Tactica | 2 | ◆ | S | Great generals give 1 experience each turn to units beside them. |
-| Spear-won Land | 2 | ◆ | P | +3% production and science for each town you have captured. |
-| The Longbowmen | 2 | ● | S | Ranged units gain +2 strength and +1 range. |
+| Spear-won Land | 2 | ◆ | P | +5% production and science for each town you have captured. |
+| The Longbowmen | 2 | ● | S | Ranged units gain +4 strength. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
-| The Siege Train | 3 | ◆ | S | Siege units gain +1 movement, and +5 strength when defending. |
-| Total War | 3 | ○ | S | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. |
-| The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to thirty times its population. |
-| The Drill Masters | 3 | ● | S | Units you gain start as Veterans. |
+| Total War | 3 | ○ | S | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. |
+| Commission: A Victor's Peace | 3 | ○ | S | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. |
+| The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to sixty times its population. |
+| The Drill Masters | 3 | ● | S | Garrisoned units gain 1 experience each turn. |
 | Up Through the Ranks | 3 | ◆ | S | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. |
-| The Regimental Schools | 3 | ● | P | Each garrisoned unit gives its town +3 science. |
+| The Regimental Schools | 3 | ● | P | Each garrisoned unit gives its town +6 science and +6 production. |
 | The Tagmata | 3 | ◆ | S | Veteran and Elite units gain +5 strength. |
 | Interior Lines | 3 | ◆ | S | Roads cost your units 40% less movement. |
-| The Bakufu | 3 | ◆ | P | A great general standing in a town gives it +25% science and culture. |
+| The Bakufu | 3 | ◆ | P | A town with a citadel gains +25% production, science and culture. |
 | Pax Romana | 3 | ○ | S | Towns you capture are pacified at once. |
 | The Mural Crown | 3 | ◆ | S | Gaining a great person grants 200 science and culture for each great general you have gained. |
 | Valhalla | 3 | ○ | S | When one of your units dies, gain 25 culture for each Monument in your empire. |
-| Commission: A Victor's Peace | 3 | ○ | S | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. |
-| Commission: Hold the Capitals | 4 | ○ | S | Goal: hold two rival capitals. Reward: a great general, and +25% production in every town for twenty turns. |
-| The Grand Army | 4 | ○ | P | Your capital gains +3 science and +3 culture for each military unit you have. |
+| Commission: Hold the Capital | 4 | ○ | S | Goal: hold a rival capital. Reward: a great general, and +25% production in every town for twenty turns. |
+| The Grand Army | 4 | ○ | P | Your capital gains +6 science and +6 culture for each military unit you have. |
 | The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
 | The Marshalate | 4 | ○ | P | Your great generals' aura gives +1 more strength for each great general you have gained this game, at most +5. |
-| The Proconsuls | 4 | ◆ | S | Captured towns with a garrison cost no authority. |
-| Commission: The Grand Campaign | 4 | ◆ | S | Goal: capture three cities. Reward: a great general, and science and culture equal to ten times their population. |
+| Circumvallation | 4 | ◆ | S | A town under siege by your units makes no production and takes twice the siege damage. |
+| The Proconsuls | 4 | ◆ | P | Captured towns gain +25% production and +25% gold. |
+| Commission: The Grand Campaign | 4 | ◆ | S | Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population. |
 | The Varangian Guard | 4 | ○ | S | Elite units may attack twice a turn. |
 | The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
 | The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
-| The Spear Makers | 0 | ● | S | +25% production toward military units. |
+| The Spear Makers | 0 | ● | S | +40% production toward military units. |
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
-| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. |
-| The Castle Demesne | 1 | ◆ | S | Citadels give +3 food and +3 production. |
+| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. |
+| The Castle Demesne | 1 | ◆ | S | Citadels give +5 food and +5 production. |
 | Commission: The First Province | 1 | ◆ | S | Goal: capture a town. Reward: towns you captured gain +5 food and +5 gold. |
-| The Naadam | 2 | ● | S | Pastures and camps gain +2 culture. |
+| The Naadam | 1 | ● | S | Pastures and camps gain +2 culture. |
 | The Taker of Cities | 2 | ◆ | S | Your units beside one of your great generals gain +5 strength against towns. |
-| The Tributary Kings | 3 | ◆ | P | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. |
-| Commission: The Border Fortress | 2 | ◆ | S | Goal: plant a citadel. Reward: citadels gain +2 food and +2 production. |
-| Commission: The Chosen Men | 3 | ◆ | S | Goal: have three units become Elite. Reward: your Elite units ignore enemy zone of control. |
+| The Tributary Kings | 3 | ◆ | P | Your capital gains +2 production and +2 gold for each citizen in your puppet towns. |
+| Commission: The Border Fortress | 2 | ◆ | S | Goal: plant a citadel. Reward: choose a great general. |
+| Commission: The Chosen Men | 3 | ◆ | S | Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control. |
 | The Limitanei | 3 | ○ | S | A garrisoned town works one more hex. |
-| Circumvallation | 4 | ◆ | S | While a rival town is under siege by your units, it adds no production toward a Magnum Opus. |
-| The Upstarts | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows more technologies than you. |
+| The Upstarts | 1 | ◆ | S | Your units gain +5 strength against an empire that knows more technologies than you. |
+| The Ver Sacrum | 0 | ○ | S | On draft: gain a Settler and a melee unit. |
+| The Amabutho | 2 | ◆ | S | On draft: every town with a Barracks gains a melee unit. |
+| The Field of Mars | 2 | ◆ | S | On draft: every military unit you have gains 4 experience. |
+| The Grass Crown | 2 | ◆ | S | Capturing a city grants 200 renown, favouring great generals, doubled if the city holds a wonder. |
+| The Melted Arms | 2 | ● | S | Killing a unit grants production equal to twice its strength in your capital. |
+| The Auxilia | 2 | ● | S | Capturing a city grants a melee unit in that city. It costs no upkeep. |
+| The Foederati | 1 | ◆ | S | Clearing a barbarian camp adds 2 citizens to your capital. |
+| Commission: The Decisive Battle | 2 | ◆ | S | Goal: kill 10 units. Reward: your military units gain +3 strength. |
+| The Mesta | 3 | ◆ | S | Worked pastures and camps give +4 food, +4 production and +4 gold. |
+| The Master of Soldiers | 3 | ◆ | S | On draft: choose a great general. |
+| The Companion Cavalry | 3 | ○ | S | A unit of yours that kills a unit regains its movement. |
+| The Castellans | 4 | ◆ | P | Towns gain +6 production for each military and defensive building. |
 
 ### Expansionist
 
@@ -700,70 +711,73 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| Civic Granaries | 1 | ● | P | Monuments give +1 food and +1 production. |
+| Civic Granaries | 1 | ● | P | Culture buildings give +1 food and +2 production each. |
 | The Temple of the Muses | 0 | ● | P | Culture buildings give +2 faith each. |
-| Master Masons | 0 | ● | S | Finishing a culture building grants 30 production in its town. |
 | The Prytaneion | 0 | ◆ | E | Each town gains +1 food for each card you have seated. |
 | The Polemarch | 0 | ● | E | Your units gain +2 strength for each Military card you have seated. |
-| The Court Painter | 0 | ● | S | Each card you draft grants 15 renown. A charter counts. |
-| The Cornerstone | 0 | ● | S | Towns build wonders 20% faster. |
+| The Cornerstone | 0 | ● | S | Towns build wonders and culture buildings 25% faster. |
 | The Second Reading | 0 | ◆ | S | The first reroll of each hand is free. |
 | Commission: The Eighth Wonder | 1 | ◆ | S | Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown. |
 | The Laureate | 1 | ◆ | P | Towns working a great-person work gain +5 culture and +3 science. |
-| The Guild of Masons | 1 | ◆ | S | +30% production toward wonders. |
 | The Working Court | 1 | ○ | P | Towns with a Monument gain production equal to 30% of their culture. |
-| The Nomarchs | 1 | ◆ | E | +1 authority for every two cards you have seated. |
+| The Nomarchs | 1 | ◆ | P | +2 authority. Your capital gains +1 culture for each point of authority you have to spare. |
 | The Workshop at Olympia | 1 | ● | S | +3 renown a turn for each wonder you hold. |
 | The Overseers of Works | 1 | ◆ | S | Each time you gain a great person, your capital gains 100 production for each age you have reached. |
-| The Keepers of Wonders | 1 | ● | P | +2 happiness for each wonder you hold. |
-| The Ceremonial Guard | 1 | ● | S | Towns holding a wonder gain +5 defence. |
+| The Keepers of Wonders | 1 | ● | P | Each wonder you hold gives +2 happiness, and +1 food, production, science, culture and faith in its town. |
+| The Ceremonial Guard | 1 | ● | S | Completing a wonder grants a melee unit and a ranged unit in its town. They cost no upkeep. |
 | The Unveiling | 1 | ◆ | S | Completing a wonder deals you a free Order hand. |
-| The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
-| Commission: The Roll of the Senate | 1 | ◆ | S | Goal: hold ten Orders. Reward: one more Wildcard chair. |
-| The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
+| The Encyclopedia | 1 | ◆ | P | Starts at +1 science and +1 culture for your empire. Gains +1 of each every time you gain an Order, complete a wonder or gain a great person. |
+| Commission: The Roll of the Senate | 1 | ◆ | S | Goal: hold eight Orders. Reward: one more Wildcard chair. |
 | The Wandering Muse | 1 | ◆ | S | On draft: gain a free great-person draft. |
 | The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
-| The Learned Patron | 2 | ◆ | P | Towns with two culture buildings gain science equal to 15% of their culture. |
-| The Senate Charter | 2 | ◆ | S | Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. |
-| The Honoured Dead | 2 | ◆ | P | Gains +2 science and +4 production in your capital each time you spend a great person. |
+| The Learned Patron | 2 | ● | P | Towns with an Amphitheater gain science equal to 30% of their culture. |
+| The Senate Charter | 2 | ◆ | S | Unlocks the Assembly Hall in your capital: one more Wildcard chair and +3 happiness. |
+| The Honoured Dead | 2 | ◆ | P | Gains +8 science and +8 production in your capital each time you gain a great person. |
 | The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
 | The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
-| Letters Patent | 2 | ◆ | P | Your great people's acts pay 50% more. |
-| The Quarter of Masters | 2 | ● | P | A great-person work beside another great-person work yields its own yield again. This never stacks. |
+| Letters Patent | 2 | ◆ | P | Your great people's acts pay double. |
+| The Quarter of Masters | 2 | ● | S | A great-person work beside another great-person work gives +4 culture and +4 production. |
 | The Seven Sights | 2 | ◆ | P | +5% culture and science for each wonder you hold, at most +30%. |
-| The Golden Age | 2 | ○ | S | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. |
+| The Golden Age | 2 | ○ | S | Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns. |
 | The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
-| The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
-| The Sed Festival | 2 | ○ | S | Each time you adopt a government, gain a free great-person draft. |
-| Commission: The Patron's Gallery | 2 | ◆ | S | Goal: hold great-person works of three families. Reward: a free great-person draft and 200 culture. |
+| The Sed Festival | 2 | ◆ | S | On draft: gain a free great-person draft. |
+| Commission: The Patron's Gallery | 2 | ◆ | S | Goal: hold three great-person works. Reward: a free great-person draft and 200 culture. |
 | The Envious Eye | 2 | ◆ | S | When a rival finishes a wonder you were building, your production moves to the next item. |
 | The Grand Vizier | 2 | ○ | E | The card in your first Economic chair pays its yields twice. |
-| The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
+| The Masters' Domain | 3 | ◆ | S | Worked great-person works give +6 food and +6 production. |
 | The Wonder Commonwealth | 3 | ○ | P | Towns holding a wonder gain +35% production and food. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
 | The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
-| The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
+| The Garden Courts | 3 | ◆ | P | Towns working a great-person work gain +20% culture and science. |
 | Commission: The Wonder of the Age | 3 | ◆ | S | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. |
 | Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
 | The Pandects | 3 | ◆ | P | +5% science and production for each Doctrine you hold. |
-| Commission: The Golden Bull | 3 | ◆ | S | Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer. |
+| Commission: The Golden Bull | 3 | ◆ | S | Goal: hold 20 Orders. Reward: a Doctrine offer. |
 | The Divine Proportion | 3 | ○ | E | The bonuses your cards give great-person works are doubled. |
-| The Second Sitting | 3 | ○ | S | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. |
 | Magnificence | 3 | ○ | S | You may buy a wonder you are building with culture, one culture for each hammer it still needs. |
-| The Mixed Constitution | 3 | ○ | S | Your cards fit any chair. |
+| The Mixed Constitution | 2 | ○ | S | Your cards fit any chair. |
 | The Universal Genius | 3 | ○ | S | Your great people may act, and then still lay their work. Each leaves one legacy. |
 | The Cabinet of Curiosities | 3 | ○ | S | On draft: gain a random card of your tier from a deck you do not hold. |
-| Commission: The Paradise Garden | 3 | ○ | S | Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders. |
-| The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
+| Commission: The Paradise Garden | 3 | ○ | S | Goal: have one town work three great-person works. Reward: your great-person works yield double. |
+| The Privy Council | 4 | ○ | E | The cards in your Wildcard chairs pay their yields twice. |
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
 | The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
-| The Hall of Wonders | 4 | ○ | S | Order hands deal one more card for every two wonders you hold, at most two more. |
-| The Last Commission | 4 | ○ | S | Spending a great person adds 150 production to your Magnum Opus. |
+| The Last Commission | 4 | ○ | S | Spending a great person adds 150 production to your Magnum Opus for each age you have reached. |
 | The Immortals | 4 | ○ | S | The legacies of your great people count twice. |
-| Commission: The Ideal City | 4 | ○ | S | Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production. |
-| The Grand Retrospective | 4 | ○ | S | On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. |
-| The Processional Way | 4 | ○ | S | Great-person works in a straight line of three or more give +3 culture and +3 science each. |
+| Commission: The Ideal City | 4 | ○ | S | Goal: have one town hold two wonders and work two great-person works. Reward: that town's culture, science and production are doubled. |
+| The Grand Retrospective | 4 | ○ | S | On draft: gain 40 culture, science and production for each wonder, great-person work and Order you hold. |
+| The Processional Way | 4 | ○ | S | Hexes beside two or more great-person works give +10 culture and +10 science. |
 | The Pull of the Masters | 4 | ○ | S | Each turn, each great-person work takes one unworked hex beside it from a rival town. |
+| The Heralds | 0 | ● | S | Founding a town grants 30 culture. |
+| The Quarry Gangs | 0 | ● | S | Quarries give +1 production and +1 culture. |
+| The Nine Jewels | 4 | ○ | S | On draft: gain two free great-person drafts. |
+| The Divan | 3 | ◆ | S | You have one more Economic chair and one more Military chair. |
+| The Hall of Heroes | 2 | ● | S | Your units gain +1 strength for each great person you have gained. |
+| The Lawgiver | 2 | ○ | S | On draft: gain a Doctrine offer. |
+| The Spirit Way | 2 | ◆ | S | Your wonders count as great-person works. |
+| The Hanlin Academy | 2 | ◆ | S | Great people cost 20% less renown. Great-person works give +2 science. |
+| The Friends of Khufu | 1 | ◆ | S | A town building a wonder may spend a citizen for production equal to 25% of the wonder's cost. Once every five turns. |
+| The Twelve Tables | 0 | ○ | E | Your capital gains +2 production and +2 culture for each Order you hold, seated or not. |
 
 ### Cross-type
 
@@ -802,7 +816,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Towns of 5 or more citizens may spend a citizen to raise a melee unit. |
 | Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
 | The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Each military unit in your towns gives +2 science. |
-| The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain the best melee unit you can build. It costs no upkeep. |
+| The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain a melee unit. It costs no upkeep. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified unit gain +1 food and +1 production. |
@@ -858,7 +872,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Good Years | 3 | ○ | S | Your bonus from spare happiness is doubled. |
 | City Watches | 3 | ● | S | Your towns gain +8 defence. |
 | Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |
-| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
+| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three melee units. They cost no upkeep. |
 | The Old Patterns | 3 | ◆ | S | Towns build buildings of earlier ages 40% faster. |
 | The Old Foundations | 3 | ● | S | Buildings of the first two ages cost no gold upkeep. |
 | The Long Memory | 3 | ○ | S | Your scalers gain twice as much each time. |
@@ -963,7 +977,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Universal Genius** — What counts is whether this card is seated when a great person acts. If it is, the act pays as usual and the person stays where they stand. They may then lay their work, even after this card has left its chair, but they cannot act again. Their legacy, and anything that pays when you spend a great person, comes once, when the work is laid. A great person who lays their work without acting is spent at once, as usual. Acting does not use their movement.
 - **The Cabinet of Curiosities** — The card comes from the cards of your current tier in the decks you do not hold. A card two decks share can come only if you hold neither deck. A card you already hold, or a card that belongs to no deck, never comes. Common cards come more often than rare ones, as in an ordinary hand, and passing on hands does not change the odds. The card counts as drafted: a charter opens what it opens, a card that gives something when drafted gives it, and cards that pay when you draft a card pay for it. It came from no hand, so a card that pays a share of a hand's price pays nothing for it. If no such card is left, you gain nothing.
 - **The Grand Retrospective** — Everything is counted once, at the moment you draft this card. Every Order you hold counts, seated or not, this card included; charters and finished commissions count, and a Doctrine does not. A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it; a prophet's Holy Site counts too. The culture and science go to your empire, and the production goes to your capital.
-- **Commission: The Paradise Garden** — The work in the middle must stand in your borders. A hex beside it counts whoever owns it, and a prophet's Holy Site counts as a great-person work. The new hexes join your nearest city, and a hex that a city already owns, yours or a rival's, is left alone. If more than one of your works meets the goal, the land is claimed around the one furthest north, and of those the one furthest west. A claimed hex can lie beyond the reach of your city's citizens.
+- **The Spirit Way**. Each wonder counts as a work that its town works.
+- **Commission: The Paradise Garden**. The reward lasts for the rest of the game. The Mausoleum and this reward each add the full yield of the work after its other bonuses.
 - **The Processional Way** — A line runs straight along the hexes, in any direction, with each work beside the next and no gap. Every work of the line must be in your borders, and a prophet's Holy Site counts. A work on more than one line gains the bonus once. Like every bonus on a hex, a work pays it only while one of your cities works it.
 - **The Pull of the Masters** — This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens.

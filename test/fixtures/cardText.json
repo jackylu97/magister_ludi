@@ -488,8 +488,8 @@
   ],
   "theLeveeEnMasse": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in your capital, and keeps +1 movement for the rest of the game",
-    "text": "every 10 turns, the best melee unit you can build musters in your capital, and keeps +1 movement for the rest of the game"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in your capital, and keeps +1 movement for the rest of the game",
+    "text": "every 10 turns, a melee unit musters in your capital, and keeps +1 movement for the rest of the game"
    }
   ],
   "paxMagistri": [
@@ -644,8 +644,8 @@
   ],
   "totalMobilisation": [
    {
-    "raw": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen",
-    "text": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen"
+    "raw": "while you are at war: every 5 turns, a [[concept:grantedUnit|melee unit]] musters in every city of 6 or more citizens, for a citizen",
+    "text": "while you are at war: every 5 turns, a melee unit musters in every city of 6 or more citizens, for a citizen"
    },
    {
     "raw": "while you are at peace: +25% food surplus stored toward growth",
@@ -654,8 +654,8 @@
   ],
   "theLandsturm": [
    {
-    "raw": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens",
-    "text": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens"
+    "raw": "entering a war (at most once every 20 turns) grants a [[concept:grantedUnit|melee unit]] in every city of 5 or more citizens",
+    "text": "entering a war (at most once every 20 turns) grants a melee unit in every city of 5 or more citizens"
    },
    {
     "raw": "+3 combat strength for melee units",
@@ -672,8 +672,8 @@
     "text": "military units cost no gold in maintenance"
    },
    {
-    "raw": "-50% production toward military units, after the town's own bonuses",
-    "text": "-50% production toward military units, after the town's own bonuses"
+    "raw": "-25% production toward military units, after the town's own bonuses",
+    "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
   "theLawsOfLordShang": [
@@ -778,6 +778,16 @@
    {
     "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
     "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
+   }
+  ],
+  "theCitizenPhalanx": [
+   {
+    "raw": "a town of at least 3 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]], which counts as trained (once every 5 turns)",
+    "text": "a town of at least 3 citizens may spend one citizen for a melee unit, which counts as trained (once every 5 turns)"
+   },
+   {
+    "raw": "the unit costs no upkeep",
+    "text": "the unit costs no upkeep"
    }
   ],
   "boundToTheSoil": [
@@ -1386,6 +1396,12 @@
     "text": "-25% food surplus stored toward growth, in every city but your capital"
    }
   ],
+  "magisterialTheSteleofDeeds": [
+   {
+    "raw": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more",
+    "text": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more"
+   }
+  ],
   "theArthashastra": [
    {
     "raw": "you have one more wildcard chair",
@@ -1420,14 +1436,14 @@
   ],
   "theMagnaura": [
    {
-    "raw": "+1 science in every city per civic Order you have seated",
-    "text": "+1 science in every city per civic Order you have seated"
+    "raw": "+2 science in every city per civic Order you have seated",
+    "text": "+2 science in every city per civic Order you have seated"
    }
   ],
   "theJinshi": [
    {
-    "raw": "rare cards come up twice as often in your Order hands",
-    "text": "rare cards come up twice as often in your Order hands"
+    "raw": "you have two more civic chairs",
+    "text": "you have two more civic chairs"
    }
   ],
   "thePeregrini": [
@@ -1464,8 +1480,8 @@
   ],
   "theBourgs": [
    {
-    "raw": "+25% food surplus stored toward growth, in every city working a great person's work",
-    "text": "+25% food surplus stored toward growth, in every city working a great person's work"
+    "raw": "+50% food surplus stored toward growth, in every city working a great person's work",
+    "text": "+50% food surplus stored toward growth, in every city working a great person's work"
    }
   ],
   "theCarroccio": [
@@ -1488,8 +1504,8 @@
   ],
   "theGobelins": [
    {
-    "raw": "+4% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +40%)",
-    "text": "+4% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +40%)"
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +50%)",
+    "text": "+10% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +50%)"
    }
   ],
   "theEscorial": [
@@ -1910,8 +1926,8 @@
   ],
   "theStandingLevy": [
    {
-    "raw": "every 12 turns, the best melee unit you can build musters in your capital",
-    "text": "every 12 turns, the best melee unit you can build musters in your capital"
+    "raw": "every 12 turns, a [[concept:grantedUnit|melee unit]] musters in your capital",
+    "text": "every 12 turns, a melee unit musters in your capital"
    }
   ],
   "clientKings": [
@@ -2458,8 +2474,8 @@
   ],
   "theSenatus": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — you have one more wildcard chair; +3 happiness",
+    "text": "unlocks the Assembly Hall — you have one more wildcard chair; +3 happiness"
    }
   ],
   "toolmakersCharter": [
@@ -3152,12 +3168,12 @@
   ],
   "theKingsLevy": [
    {
-    "raw": "every 15 turns, the best melee unit you can build musters in your capital",
-    "text": "every 15 turns, the best melee unit you can build musters in your capital"
+    "raw": "every 15 turns, a [[concept:grantedUnit|melee unit]] musters in your capital",
+    "text": "every 15 turns, a melee unit musters in your capital"
    },
    {
-    "raw": "when drafted, the best melee unit you can build joins you in your capital",
-    "text": "when drafted, the best melee unit you can build joins you in your capital"
+    "raw": "when drafted, a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "when drafted, a melee unit joins you in your capital"
    }
   ],
   "dominionClearTheFrontier": [
@@ -3182,8 +3198,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+    "raw": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and a [[concept:grantedUnit|melee unit]], trained in your capital free of upkeep",
+    "text": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and a melee unit, trained in your capital free of upkeep"
    }
   ],
   "dominionSwordAndPlough": [
@@ -3260,8 +3276,8 @@
   ],
   "theOutriders": [
    {
-    "raw": "clearing a barbarian camp grants +10 production to every city",
-    "text": "clearing a barbarian camp grants +10 production to every city"
+    "raw": "clearing a barbarian camp grants +20 production to every city",
+    "text": "clearing a barbarian camp grants +20 production to every city"
    }
   ],
   "theGarrisonCaptains": [
@@ -3294,8 +3310,8 @@
   ],
   "drillManuals": [
    {
-    "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
-    "text": "units you gain in every city with a Barracks start with 2 experience"
+    "raw": "units you gain in every city with a [[building:barracks|Barracks]] start as Veterans",
+    "text": "units you gain in every city with a Barracks start as Veterans"
    }
   ],
   "dominionMarchDiscipline": [
@@ -3550,6 +3566,10 @@
    {
     "raw": "mounted units may move after attacking",
     "text": "mounted units may move after attacking"
+   },
+   {
+    "raw": "mounted units pillage without spending movement",
+    "text": "mounted units pillage without spending movement"
    }
   ],
   "theCaptiveCraftsmen": [
@@ -3558,8 +3578,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +1 production in your capital and +1 science each time you pillage a hex",
-    "text": "Gains +1 production in your capital and +1 science each time you pillage a hex"
+    "raw": "Gains +2 production in your capital and +2 science each time you pillage a hex",
+    "text": "Gains +2 production in your capital and +2 science each time you pillage a hex"
    }
   ],
   "theSatraps": [
@@ -3580,8 +3600,8 @@
   ],
   "theOpenMuster": [
    {
-    "raw": "passing on an Order hand grants the best melee unit you can build in your capital",
-    "text": "passing on an Order hand grants the best melee unit you can build in your capital"
+    "raw": "passing on an Order hand grants a [[concept:grantedUnit|melee unit]] in your capital",
+    "text": "passing on an Order hand grants a melee unit in your capital"
    }
   ],
   "theSack": [
@@ -3612,6 +3632,10 @@
    {
     "raw": "+4 combat strength for siege units when attacking cities",
     "text": "+4 combat strength for siege units when attacking cities"
+   },
+   {
+    "raw": "siege units: +1 movement",
+    "text": "siege units: +1 movement"
    }
   ],
   "dominionTheWarChest": [
@@ -3638,8 +3662,8 @@
   ],
   "conqueredArchives": [
    {
-    "raw": "+6 science, +6 culture in every captured city",
-    "text": "+6 science, +6 culture in every captured city"
+    "raw": "+10 science, +10 culture in every captured city",
+    "text": "+10 science, +10 culture in every captured city"
    }
   ],
   "stockpiles": [
@@ -3878,12 +3902,12 @@
   ],
   "dominionTheCitadelWorks": [
    {
-    "raw": "+5 science on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+5 science on every hex with a Citadel"
+    "raw": "+8 science on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+8 science on every hex with a Citadel"
    },
    {
-    "raw": "+3 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
-    "text": "+3 renown per turn per hex with a Citadel in your borders, favouring generals"
+    "raw": "+8 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
+    "text": "+8 renown per turn per hex with a Citadel in your borders, favouring generals"
    }
   ],
   "dominionTheRelayStations": [
@@ -3932,8 +3956,8 @@
   ],
   "theConscriptionRolls": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens",
-    "text": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in every city of 8 or more citizens",
+    "text": "every 10 turns, a melee unit musters in every city of 8 or more citizens"
    }
   ],
   "theVeteransRoll": [
@@ -3974,24 +3998,20 @@
   ],
   "spearWonLand": [
    {
-    "raw": "+3% production and +3% science per city you have captured this game",
-    "text": "+3% production and +3% science per city you have captured this game"
+    "raw": "+5% production and +5% science per city you have captured this game",
+    "text": "+5% production and +5% science per city you have captured this game"
    }
   ],
   "theLongbowmen": [
    {
-    "raw": "+2 combat strength for ranged units",
-    "text": "+2 combat strength for ranged units"
-   },
-   {
-    "raw": "ranged units: +1 range",
-    "text": "ranged units: +1 range"
+    "raw": "+4 combat strength for ranged units",
+    "text": "+4 combat strength for ranged units"
    }
   ],
   "theStateForges": [
    {
-    "raw": "completing a technology grants the best melee unit you can build in your capital",
-    "text": "completing a technology grants the best melee unit you can build in your capital"
+    "raw": "completing a technology grants a [[concept:grantedUnit|melee unit]] in your capital",
+    "text": "completing a technology grants a melee unit in your capital"
    }
   ],
   "standingGarrisons": [
@@ -4134,16 +4154,8 @@
   ],
   "totalWar": [
    {
-    "raw": "+5 combat strength for military units",
-    "text": "+5 combat strength for military units"
-   },
-   {
-    "raw": "military units: +1 movement",
-    "text": "military units: +1 movement"
-   },
-   {
-    "raw": "-3 happiness in every city",
-    "text": "-3 happiness in every city"
+    "raw": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city",
+    "text": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city"
    }
   ],
   "dominionAVictorsPeace": [
@@ -4164,8 +4176,8 @@
   ],
   "theVictoryMint": [
    {
-    "raw": "capturing a city grants gold equal to 30 times its population",
-    "text": "capturing a city grants gold equal to 30 times its population"
+    "raw": "capturing a city grants gold equal to 60 times its population",
+    "text": "capturing a city grants gold equal to 60 times its population"
    }
   ],
   "theBoardOfOrdnance": [
@@ -4176,8 +4188,8 @@
   ],
   "theDrillMasters": [
    {
-    "raw": "units you gain start as Veterans",
-    "text": "units you gain start as Veterans"
+    "raw": "your combat units standing in one of your cities gain 1 experience at the end of every turn",
+    "text": "your combat units standing in one of your cities gain 1 experience at the end of every turn"
    }
   ],
   "upThroughTheRanks": [
@@ -4188,14 +4200,14 @@
   ],
   "theDevshirme": [
    {
-    "raw": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)",
-    "text": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)"
+    "raw": "a captured city of at least 6 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]] as a Veteran, which counts as trained (once every 5 turns)",
+    "text": "a captured city of at least 6 citizens may spend one citizen for a melee unit as a Veteran, which counts as trained (once every 5 turns)"
    }
   ],
   "theRegimentalSchools": [
    {
-    "raw": "+3 science in every city per combat unit standing there",
-    "text": "+3 science in every city per combat unit standing there"
+    "raw": "+6 science and +6 production in every city per combat unit standing there",
+    "text": "+6 science and +6 production in every city per combat unit standing there"
    }
   ],
   "theTagmata": [
@@ -4240,8 +4252,8 @@
   ],
   "theBakufu": [
    {
-    "raw": "+25% science and +25% culture in every city with a great general standing in it",
-    "text": "+25% science and +25% culture in every city with a great general standing in it"
+    "raw": "+25% production, +25% science and +25% culture in every city with a [[improvement:citadel|Citadel]]",
+    "text": "+25% production, +25% science and +25% culture in every city with a Citadel"
    }
   ],
   "paxRomana": [
@@ -4288,8 +4300,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call",
-    "text": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call"
+    "raw": "Goal: hold 1 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call",
+    "text": "Goal: hold 1 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call"
    }
   ],
   "dominionSpolia": [
@@ -4316,8 +4328,8 @@
   ],
   "dominionTheGrandArmy": [
    {
-    "raw": "+3 science and +3 culture in your capital per military unit in the field",
-    "text": "+3 science and +3 culture in your capital per military unit in the field"
+    "raw": "+6 science and +6 culture in your capital per military unit in the field",
+    "text": "+6 science and +6 culture in your capital per military unit in the field"
    }
   ],
   "dominionTheAnnexedProvinces": [
@@ -4340,14 +4352,18 @@
   ],
   "dominionTheNationInArms": [
    {
-    "raw": "every 10 turns, the best melee unit you can build musters in every city with an [[building:armoury|Armoury]]",
-    "text": "every 10 turns, the best melee unit you can build musters in every city with an Armoury"
+    "raw": "every 10 turns, a [[concept:grantedUnit|melee unit]] musters in every city with an [[building:armoury|Armoury]]",
+    "text": "every 10 turns, a melee unit musters in every city with an Armoury"
    }
   ],
   "dominionCircumvallation": [
    {
-    "raw": "a rival city under siege by your units adds no production toward a Magnum Opus",
-    "text": "a rival city under siege by your units adds no production toward a Magnum Opus"
+    "raw": "a rival city under siege by your units makes no production",
+    "text": "a rival city under siege by your units makes no production"
+   },
+   {
+    "raw": "a city under siege by your units takes 100% more siege damage",
+    "text": "a city under siege by your units takes 100% more siege damage"
    }
   ],
   "dominionTheGrandCoalition": [
@@ -4362,8 +4378,8 @@
   ],
   "dominionTheProconsuls": [
    {
-    "raw": "the authority a captured city with a unit standing in it costs is 0",
-    "text": "the authority a captured city with a unit standing in it costs is 0"
+    "raw": "+25% production and +25% gold in every captured city",
+    "text": "+25% production and +25% gold in every captured city"
    }
   ],
   "dominionTheGrandCampaign": [
@@ -4372,8 +4388,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population",
-    "text": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population"
+    "raw": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 40 times those cities' total population, and culture equal to 40 times those cities' total population",
+    "text": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 40 times those cities' total population, and culture equal to 40 times those cities' total population"
    }
   ],
   "dominionTheCapturedMarvel": [
@@ -4418,8 +4434,8 @@
   ],
   "theSpearMakers": [
    {
-    "raw": "+25% production toward military units",
-    "text": "+25% production toward military units"
+    "raw": "+40% production toward military units",
+    "text": "+40% production toward military units"
    }
   ],
   "theDefiantKingdom": [
@@ -4474,6 +4490,10 @@
    {
     "raw": "towns you lose add nothing to war weariness",
     "text": "towns you lose add nothing to war weariness"
+   },
+   {
+    "raw": "losing a unit grants production equal to 50% of its production cost to your capital",
+    "text": "losing a unit grants production equal to 50% of its production cost to your capital"
    }
   ],
   "theChampionsPortion": [
@@ -4484,8 +4504,8 @@
   ],
   "theCastleDemesne": [
    {
-    "raw": "+3 food, +3 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+3 food, +3 production on every hex with a Citadel"
+    "raw": "+5 food, +5 production on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +5 production on every hex with a Citadel"
    }
   ],
   "theSpartanDiscipline": [
@@ -4544,8 +4564,8 @@
   ],
   "theTributaryKings": [
    {
-    "raw": "+1 production and +1 gold in your capital per citizen living in a puppet of yours",
-    "text": "+1 production and +1 gold in your capital per citizen living in a puppet of yours"
+    "raw": "+2 production and +2 gold in your capital per citizen living in a puppet of yours",
+    "text": "+2 production and +2 gold in your capital per citizen living in a puppet of yours"
    }
   ],
   "dominionManTheWalls": [
@@ -4576,8 +4596,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: spend 1 great person on a [[improvement:citadel|Citadel]]. Reward: +2 food, +2 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "Goal: spend 1 great person on a Citadel. Reward: +2 food, +2 production on every hex with a Citadel"
+    "raw": "Goal: spend 1 great person on a [[improvement:citadel|Citadel]]. Reward: a great general to call",
+    "text": "Goal: spend 1 great person on a Citadel. Reward: a great general to call"
    }
   ],
   "dominionTheChosenMen": [
@@ -4586,8 +4606,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control",
-    "text": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control"
+    "raw": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control and all units that are an Elite: +1 movement",
+    "text": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control and all units that are an Elite: +1 movement"
    }
   ],
   "dominionHarryTheBorder": [
@@ -4614,8 +4634,104 @@
   ],
   "theUpstarts": [
    {
-    "raw": "+3 combat strength for military units against an empire that knows more technologies than you",
-    "text": "+3 combat strength for military units against an empire that knows more technologies than you"
+    "raw": "+5 combat strength for military units against an empire that knows more technologies than you",
+    "text": "+5 combat strength for military units against an empire that knows more technologies than you"
+   }
+  ],
+  "dominionTheVerSacrum": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[unit:settler|Settler]] joins you in your capital",
+    "text": "On draft: a Settler joins you in your capital"
+   },
+   {
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "On draft: a melee unit joins you in your capital"
+   }
+  ],
+  "dominionTheAmabutho": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in every city with a [[building:barracks|Barracks]]",
+    "text": "On draft: a melee unit joins you in every city with a Barracks"
+   }
+  ],
+  "dominionTheFieldOfMars": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: each of your military units gains 4 experience",
+    "text": "On draft: each of your military units gains 4 experience"
+   }
+  ],
+  "dominionTheGrassCrown": [
+   {
+    "raw": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder",
+    "text": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder"
+   }
+  ],
+  "dominionTheMeltedArms": [
+   {
+    "raw": "killing a unit grants production equal to 2 times its strength to your capital",
+    "text": "killing a unit grants production equal to 2 times its strength to your capital"
+   }
+  ],
+  "dominionTheAuxilia": [
+   {
+    "raw": "capturing a city grants a [[concept:grantedUnit|melee unit]]",
+    "text": "capturing a city grants a melee unit"
+   }
+  ],
+  "dominionTheFoederati": [
+   {
+    "raw": "clearing a barbarian camp gives your capital 2 more citizens",
+    "text": "clearing a barbarian camp gives your capital 2 more citizens"
+   }
+  ],
+  "dominionTheDecisiveBattle": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units",
+    "text": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units"
+   }
+  ],
+  "dominionTheMesta": [
+   {
+    "raw": "+4 food, +4 production, +4 gold on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+4 food, +4 production, +4 gold on every hex with a Pasture or Camp"
+   }
+  ],
+  "dominionTheMasterOfSoldiers": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great general to call",
+    "text": "On draft: you gain a great general to call"
+   }
+  ],
+  "dominionTheCompanionCavalry": [
+   {
+    "raw": "a unit that kills gets its movement back for the rest of the turn",
+    "text": "a unit that kills gets its movement back for the rest of the turn"
+   }
+  ],
+  "dominionTheCastellans": [
+   {
+    "raw": "+6 production in every city per military building or fortification there",
+    "text": "+6 production in every city per military building or fortification there"
    }
   ],
   "smallholdings": [
@@ -5393,8 +5509,8 @@
   ],
   "theGeneralLevy": [
    {
-    "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
-    "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
+    "raw": "a town may spend one citizen for a [[concept:grantedUnit|melee unit]], which does not count as trained (once every 5 turns, or every turn while you are at war)",
+    "text": "a town may spend one citizen for a melee unit, which does not count as trained (once every 5 turns, or every turn while you are at war)"
    }
   ],
   "theGreatMigration": [
@@ -7032,8 +7148,8 @@
   ],
   "theHolySummons": [
    {
-    "raw": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city",
-    "text": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city"
+    "raw": "declaring war (at most once every 20 turns) grants a [[concept:grantedUnit|melee unit]] in every devout city",
+    "text": "declaring war (at most once every 20 turns) grants a melee unit in every devout city"
    }
   ],
   "theWorkOfGod": [
@@ -8261,6 +8377,86 @@
     "text": "completing a building grants +5 science"
    }
   ],
+  "magisterialTheHeralds": [
+   {
+    "raw": "founding a city grants +30 culture",
+    "text": "founding a city grants +30 culture"
+   }
+  ],
+  "magisterialTheQuarryGangs": [
+   {
+    "raw": "+1 production, +1 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+1 production, +1 culture on every hex with a Quarry"
+   }
+  ],
+  "magisterialTheNineJewels": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   }
+  ],
+  "magisterialTheDivan": [
+   {
+    "raw": "you have one more economic chair",
+    "text": "you have one more economic chair"
+   },
+   {
+    "raw": "you have one more military chair",
+    "text": "you have one more military chair"
+   }
+  ],
+  "magisterialTheHallofHeroes": [
+   {
+    "raw": "+1 combat strength per great person you have gained",
+    "text": "+1 combat strength per great person you have gained"
+   }
+  ],
+  "magisterialTheLawgiver": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a Doctrine offer",
+    "text": "On draft: you gain a Doctrine offer"
+   }
+  ],
+  "magisterialTheHanlinAcademy": [
+   {
+    "raw": "great people cost 20% less renown",
+    "text": "great people cost 20% less renown"
+   },
+   {
+    "raw": "+2 science on every hex carrying a great person's work",
+    "text": "+2 science on every hex carrying a great person's work"
+   }
+  ],
+  "magisterialTheSpiritWay": [
+   {
+    "raw": "Your wonders count as great-person works.",
+    "text": "Your wonders count as great-person works."
+   }
+  ],
+  "magisterialTheFriendsofKhufu": [
+   {
+    "raw": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)"
+   }
+  ],
+  "magisterialTheTwelveTables": [
+   {
+    "raw": "+2 production and +2 culture in your capital per Order you hold, seated or not",
+    "text": "+2 production and +2 culture in your capital per Order you hold, seated or not"
+   }
+  ],
   "magisterialMasterMasons": [
    {
     "raw": "completing a building (a culture building) grants +30 production",
@@ -8269,8 +8465,12 @@
   ],
   "civicGranaries": [
    {
-    "raw": "+1 food and +1 production in every city per [[building:monument|Monument]] there",
-    "text": "+1 food and +1 production in every city per Monument there"
+    "raw": "+1 food in every city per culture building there",
+    "text": "+1 food in every city per culture building there"
+   },
+   {
+    "raw": "+2 production in every city per culture building there",
+    "text": "+2 production in every city per culture building there"
    }
   ],
   "theCivicAccounts": [
@@ -8670,8 +8870,8 @@
   ],
   "theLearnedPatron": [
    {
-    "raw": "15% of the culture in every city with 2 or more culture buildings is gained again as science",
-    "text": "15% of the culture in every city with 2 or more culture buildings is gained again as science"
+    "raw": "30% of the culture in every city with an [[building:amphitheater|Amphitheater]] is gained again as science",
+    "text": "30% of the culture in every city with an Amphitheater is gained again as science"
    }
   ],
   "thePerformersTreasury": [
@@ -8688,12 +8888,12 @@
   ],
   "theSenateCharter": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
    },
    {
-    "raw": "+3 happiness and +30% production toward buildings, in every city with an [[building:assemblyHall|Assembly Hall]]",
-    "text": "+3 happiness and +30% production toward buildings, in every city with an Assembly Hall"
+    "raw": "you may build the [[building:assemblyHall|Assembly Hall]]: you have one more wildcard chair; +3 happiness",
+    "text": "you may build the Assembly Hall: you have one more wildcard chair; +3 happiness"
    }
   ],
   "theSculptorsSchools": [
@@ -8753,8 +8953,12 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens",
-    "text": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens"
+    "raw": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
+    "text": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
+   },
+   {
+    "raw": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
+    "text": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
    }
   ],
   "theLaureateCities": [
@@ -8804,8 +9008,8 @@
   ],
   "theMastersDomain": [
    {
-    "raw": "+3 food, +3 production on every hex carrying a great person's work",
-    "text": "+3 food, +3 production on every hex carrying a great person's work"
+    "raw": "+6 food, +6 production on every hex carrying a great person's work",
+    "text": "+6 food, +6 production on every hex carrying a great person's work"
    }
   ],
   "theGreatChancery": [
@@ -8836,8 +9040,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +2 science and +4 production in your capital each time you spend a great person",
-    "text": "Gains +2 science and +4 production in your capital each time you spend a great person"
+    "raw": "Gains +8 science and +8 production in your capital each time you gain a great person",
+    "text": "Gains +8 science and +8 production in your capital each time you gain a great person"
    }
   ],
   "thePageantsOfPeace": [
@@ -8864,8 +9068,8 @@
   ],
   "theLastCommission": [
    {
-    "raw": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus",
-    "text": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus"
+    "raw": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus for each age you have reached",
+    "text": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus for each age you have reached"
    }
   ],
   "theWonderCommonwealth": [
@@ -8894,8 +9098,12 @@
   ],
   "theCornerstone": [
    {
-    "raw": "+20% production toward wonders",
-    "text": "+20% production toward wonders"
+    "raw": "+25% production toward wonders",
+    "text": "+25% production toward wonders"
+   },
+   {
+    "raw": "+25% production toward culture buildings",
+    "text": "+25% production toward culture buildings"
    }
   ],
   "theRepertory": [
@@ -8912,8 +9120,12 @@
   ],
   "theNomarchs": [
    {
-    "raw": "+1 authority capacity per 2 Orders you have seated",
-    "text": "+1 authority capacity per 2 Orders you have seated"
+    "raw": "+2 authority capacity",
+    "text": "+2 authority capacity"
+   },
+   {
+    "raw": "+1 culture in your capital per spare authority",
+    "text": "+1 culture in your capital per spare authority"
    }
   ],
   "theWorkshopAtOlympia": [
@@ -8938,12 +9150,20 @@
    {
     "raw": "+2 happiness per wonder you hold",
     "text": "+2 happiness per wonder you hold"
+   },
+   {
+    "raw": "+1 food, +1 production, +1 science, +1 culture and +1 faith in every city per wonder standing there",
+    "text": "+1 food, +1 production, +1 science, +1 culture and +1 faith in every city per wonder standing there"
    }
   ],
   "theCeremonialGuard": [
    {
-    "raw": "every city containing a wonder: +5 city defence",
-    "text": "every city containing a wonder: +5 city defence"
+    "raw": "completing a wonder grants a [[concept:grantedUnit|melee unit]]",
+    "text": "completing a wonder grants a melee unit"
+   },
+   {
+    "raw": "completing a wonder grants a [[concept:grantedUnit|ranged unit]]",
+    "text": "completing a wonder grants a ranged unit"
    }
   ],
   "theUnveiling": [
@@ -8954,8 +9174,12 @@
   ],
   "theEncyclopedia": [
    {
-    "raw": "+1 science and +1 culture in your capital per Order you hold but have not seated (at most +15 each)",
-    "text": "+1 science and +1 culture in your capital per Order you hold but have not seated (at most +15 each)"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 science and +1 culture each time you gain an Order or you complete a wonder or you gain a great person",
+    "text": "Gains +1 science and +1 culture each time you gain an Order or you complete a wonder or you gain a great person"
    }
   ],
   "thePrefects": [
@@ -8972,14 +9196,14 @@
   ],
   "lettersPatent": [
    {
-    "raw": "a great person's act pays +50%",
-    "text": "a great person's act pays +50%"
+    "raw": "a great person's act pays +100%",
+    "text": "a great person's act pays +100%"
    }
   ],
   "magisterialTheQuarterOfMasters": [
    {
-    "raw": "the works on every hex carrying a great person's work beside a great person's work pay +100%",
-    "text": "the works on every hex carrying a great person's work beside a great person's work pay +100%"
+    "raw": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work",
+    "text": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work"
    }
   ],
   "theGazetteers": [
@@ -9008,14 +9232,14 @@
   ],
   "theGardenCourts": [
    {
-    "raw": "+20% culture and +20% science in every city working 2 or more hexes carrying a great person's work",
-    "text": "+20% culture and +20% science in every city working 2 or more hexes carrying a great person's work"
+    "raw": "+20% culture and +20% science in every city working a great person's work",
+    "text": "+20% culture and +20% science in every city working a great person's work"
    }
   ],
   "thePrivyCouncil": [
    {
-    "raw": "your Orders that give production give +1 more on every line they pay",
-    "text": "your Orders that give production give +1 more on every line they pay"
+    "raw": "the Orders in your wildcard chairs pay their yields twice",
+    "text": "the Orders in your wildcard chairs pay their yields twice"
    }
   ],
   "theBulwarkOfMarvels": [
@@ -9040,8 +9264,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair",
-    "text": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair"
+    "raw": "Goal: hold 8 Orders, seated or not. Reward: one more Wildcard chair",
+    "text": "Goal: hold 8 Orders, seated or not. Reward: one more Wildcard chair"
    }
   ],
   "magisterialTheWonderOfTheAge": [
@@ -9112,8 +9336,12 @@
   ],
   "theSedFestival": [
    {
-    "raw": "adopting a government grants a great person to call",
-    "text": "adopting a government grants a great person to call"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
    }
   ],
   "thePandects": [
@@ -9128,8 +9356,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier",
-    "text": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier"
+    "raw": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
+    "text": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier"
    }
   ],
   "theImmortals": [
@@ -9144,8 +9372,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture",
-    "text": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture"
+    "raw": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture",
+    "text": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture"
    }
   ],
   "theLandmarkBounds": [
@@ -9172,8 +9400,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production",
-    "text": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production"
+    "raw": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production",
+    "text": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production"
    }
   ],
   "theGrandVizier": [
@@ -9228,8 +9456,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
-    "text": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not"
+    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not",
+    "text": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not"
    }
   ],
   "magisterialTheParadiseGarden": [
@@ -9238,14 +9466,14 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city",
-    "text": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city"
+    "raw": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "text": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
   "theProcessionalWay": [
    {
-    "raw": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders",
-    "text": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders"
+    "raw": "+10 science, +10 culture on every hex beside 2 or more great-person works",
+    "text": "+10 science, +10 culture on every hex beside 2 or more great-person works"
    }
   ],
   "thePullOfTheMasters": [
@@ -9703,8 +9931,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep",
-    "text": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep"
+    "raw": "On draft: your capital raises up to 3 [[concept:grantedUnit|melee units]]. They cost no upkeep",
+    "text": "On draft: your capital raises up to 3 melee units. They cost no upkeep"
    }
   ],
   "theOfficeOfWorks": [
@@ -9792,8 +10020,8 @@
   ],
   "theFrontierMilitia": [
    {
-    "raw": "new cities start with the best melee unit you can build standing in them, free of upkeep",
-    "text": "new cities start with the best melee unit you can build standing in them, free of upkeep"
+    "raw": "new cities start with a [[concept:grantedUnit|melee unit]] standing in them, free of upkeep",
+    "text": "new cities start with a melee unit standing in them, free of upkeep"
    }
   ],
   "publicWells": [
@@ -9943,8 +10171,8 @@
   ],
   "theMusterOfTheFields": [
    {
-    "raw": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
-    "text": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
+    "raw": "a town of at least 5 citizens may spend one citizen for a [[concept:grantedUnit|melee unit]], which counts as trained (once every 5 turns)",
+    "text": "a town of at least 5 citizens may spend one citizen for a melee unit, which counts as trained (once every 5 turns)"
    }
   ],
   "carriedOffScholars": [
@@ -9959,8 +10187,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: the best melee unit you can build joins you in your capital",
-    "text": "On draft: the best melee unit you can build joins you in your capital"
+    "raw": "On draft: a [[concept:grantedUnit|melee unit]] joins you in your capital",
+    "text": "On draft: a melee unit joins you in your capital"
    }
   ],
   "copyingTheEnemy": [
@@ -10791,16 +11019,16 @@
   "armoury": [],
   "theOracle": [
    {
-    "raw": "+1 faith in every city with [[wonder:theOracle|The Oracle]]",
-    "text": "+1 faith in every city with The Oracle"
-   },
-   {
     "raw": "+1 card in every Order hand",
     "text": "+1 card in every Order hand"
    },
    {
     "raw": "+1 card in every Doctrine draft",
     "text": "+1 card in every Doctrine draft"
+   },
+   {
+    "raw": "+3 renown per turn",
+    "text": "+3 renown per turn"
    }
   ],
   "stonehenge": [
@@ -10821,6 +11049,10 @@
    {
     "raw": "newly created workers gain +1 charge",
     "text": "newly created workers gain +1 charge"
+   },
+   {
+    "raw": "+20% production toward wonders",
+    "text": "+20% production toward wonders"
    }
   ],
   "hangingGardens": [
@@ -10835,12 +11067,12 @@
   ],
   "wallsOfUruk": [
    {
-    "raw": "your capital: +10 city defence",
-    "text": "your capital: +10 city defence"
+    "raw": "every city with [[wonder:wallsOfUruk|The Walls of Uruk]]: +10 city defence",
+    "text": "every city with The Walls of Uruk: +10 city defence"
    },
    {
-    "raw": "+4 combat strength inside your capital’s borders",
-    "text": "+4 combat strength inside your capital’s borders"
+    "raw": "+2 combat strength inside your territory",
+    "text": "+2 combat strength inside your territory"
    },
    {
     "raw": "+2 authority capacity",
@@ -10849,30 +11081,26 @@
   ],
   "greatZiggurat": [
    {
-    "raw": "religious units cost −25% to buy",
-    "text": "religious units cost −25% to buy"
+    "raw": "+2 science in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 science in every city with a Shrine"
    },
    {
-    "raw": "+1 science in every city with a [[building:shrine|Shrine]]",
-    "text": "+1 science in every city with a Shrine"
+    "raw": "rites cost 30% less faith, in every city with [[wonder:greatZiggurat|The Great Ziggurat]]",
+    "text": "rites cost 30% less faith, in every city with The Great Ziggurat"
    }
   ],
   "greatLighthouse": [
-   {
-    "raw": "all units: +1 movement while embarked",
-    "text": "all units: +1 movement while embarked"
-   },
    {
     "raw": "+1 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
     "text": "+1 gold on every hex with a Fishing Boat"
    },
    {
-    "raw": "every coastal city: +1 city sight",
-    "text": "every coastal city: +1 city sight"
+    "raw": "+3 combat strength for ships",
+    "text": "+3 combat strength for ships"
    },
    {
-    "raw": "+1 trade route",
-    "text": "+1 trade route"
+    "raw": "ships: +1 movement",
+    "text": "ships: +1 movement"
    }
   ],
   "templeOfArtemis": [
@@ -10885,18 +11113,18 @@
     "text": "+1 food on every hex with a Pasture"
    },
    {
-    "raw": "+1 happiness per improved bonus resource in this city (at most +4 happiness)",
-    "text": "+1 happiness per improved bonus resource in this city (at most +4 happiness)"
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
    }
   ],
   "greatLibrary": [
    {
-    "raw": "+1 science in every city with a [[building:library|Library]]",
-    "text": "+1 science in every city with a Library"
+    "raw": "+2 science on every hex with an [[improvement:academy|Academy]], for each great scholar you have gained this game",
+    "text": "+2 science on every hex with an Academy, for each great scholar you have gained this game"
    },
    {
-    "raw": "on completion, the technology you are researching is finished",
-    "text": "on completion, the technology you are researching is finished"
+    "raw": "on completion, a great person of the scholars is offered",
+    "text": "on completion, a great person of the scholars is offered"
    }
   ],
   "colossus": [
@@ -10907,18 +11135,18 @@
   ],
   "petra": [
    {
-    "raw": "+1 food, +1 production on every desert hex, in every city with [[wonder:petra|Petra]]",
-    "text": "+1 food, +1 production on every desert hex, in every city with Petra"
+    "raw": "+1 food, +1 production on every desert hex",
+    "text": "+1 food, +1 production on every desert hex"
    },
    {
-    "raw": "+1 gold on every floodplain hex, in every city with [[wonder:petra|Petra]]",
-    "text": "+1 gold on every floodplain hex, in every city with Petra"
+    "raw": "+1 gold on every floodplain hex",
+    "text": "+1 gold on every floodplain hex"
    }
   ],
   "circusMaximus": [
    {
-    "raw": "+1 happiness per [[building:barracks|Barracks]]",
-    "text": "+1 happiness per Barracks"
+    "raw": "+1 happiness per military building",
+    "text": "+1 happiness per military building"
    },
    {
     "raw": "+4 happiness",
@@ -10941,12 +11169,16 @@
   ],
   "greatWall": [
    {
-    "raw": "every hex you own exerts zone of control on enemy units, as a unit of yours would",
-    "text": "every hex you own exerts zone of control on enemy units, as a unit of yours would"
+    "raw": "every city: +5 city defence",
+    "text": "every city: +5 city defence"
    },
    {
-    "raw": "this city: +10 city defence",
-    "text": "this city: +10 city defence"
+    "raw": "every city: +25 maximum city hit points",
+    "text": "every city: +25 maximum city hit points"
+   },
+   {
+    "raw": "enemy units in your territory have -1 movement, to a minimum of one",
+    "text": "enemy units in your territory have -1 movement, to a minimum of one"
    }
   ],
   "theatreOfDionysus": [
@@ -10965,26 +11197,18 @@
   ],
   "mausoleum": [
    {
-    "raw": "+1 gold per building in this city",
-    "text": "+1 gold per building in this city"
-   },
-   {
-    "raw": "+1 gold on every hex with a [[improvement:quarry|Quarry]]",
-    "text": "+1 gold on every hex with a Quarry"
-   },
-   {
-    "raw": "+2 authority capacity",
-    "text": "+2 authority capacity"
+    "raw": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "text": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
   "statueOfZeus": [
    {
-    "raw": "+15% combat strength for all units against cities",
-    "text": "+15% combat strength for all units against cities"
+    "raw": "+4 combat strength when attacking cities",
+    "text": "+4 combat strength when attacking cities"
    },
    {
-    "raw": "on completion, the best melee unit you can build joins you",
-    "text": "on completion, the best melee unit you can build joins you"
+    "raw": "on completion, 3 [[concept:grantedUnit|melee units]] join you",
+    "text": "on completion, 3 melee units join you"
    }
   ],
   "chichenItza": [
@@ -10993,8 +11217,8 @@
     "text": "rites last +50% longer"
    },
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
+    "raw": "+2 happiness and +20% culture in every city while it is keeping a rite",
+    "text": "+2 happiness and +20% culture in every city while it is keeping a rite"
    }
   ],
   "hagiaSophia": [
@@ -11013,12 +11237,12 @@
   ],
   "angkorWat": [
    {
-    "raw": "+1 faith per 2 hexes worked here",
-    "text": "+1 faith per 2 hexes worked here"
+    "raw": "+1 faith on every improved hex carrying a resource",
+    "text": "+1 faith on every improved hex carrying a resource"
    },
    {
-    "raw": "a hex costs 25% less to buy",
-    "text": "a hex costs 25% less to buy"
+    "raw": "+3 faith on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 faith on every hex with a Holy Site"
    }
   ],
   "greatMosqueOfDjenne": [
@@ -11037,12 +11261,8 @@
   ],
   "notreDame": [
    {
-    "raw": "+1 happiness per [[building:temple|Temple]]",
-    "text": "+1 happiness per Temple"
-   },
-   {
-    "raw": "+3 culture and +1 happiness in every city with a [[building:cathedral|Cathedral]]",
-    "text": "+3 culture and +1 happiness in every city with a Cathedral"
+    "raw": "+1 happiness per building in your cities that [[concept:supplies|supplies]] faith",
+    "text": "+1 happiness per building in your cities that supplies faith"
    }
   ],
   "houseOfWisdom": [
@@ -11067,23 +11287,18 @@
   ],
   "alhambra": [
    {
-    "raw": "+4 combat strength for mounted units",
-    "text": "+4 combat strength for mounted units"
+    "raw": "you have one more military chair",
+    "text": "you have one more military chair"
    },
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
-   },
-   {
-    "raw": "units raised here begin dug in, as if they had already fortified — not built yet",
-    "text": "units raised here begin dug in, as if they had already fortified — not built yet",
-    "deferred": true
+    "raw": "on completion, a great person of the generals is offered",
+    "text": "on completion, a great person of the generals is offered"
    }
   ],
   "machuPicchu": [
    {
-    "raw": "+25% gold in every city with [[wonder:machuPicchu|Machu Picchu]]",
-    "text": "+25% gold in every city with Machu Picchu"
+    "raw": "+1 gold on every hex beside a mountain, once for each mountain",
+    "text": "+1 gold on every hex beside a mountain, once for each mountain"
    }
   ],
   "waterClockOfSuSong": [
@@ -11304,12 +11519,12 @@
   "cistern": [],
   "assemblyHall": [
    {
-    "raw": "+1 science and +1 culture per wildcard Order you have seated",
-    "text": "+1 science and +1 culture per wildcard Order you have seated"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    },
    {
-    "raw": "+2 authority capacity",
-    "text": "+2 authority capacity"
+    "raw": "+3 happiness",
+    "text": "+3 happiness"
    }
   ],
   "viziersHall": [
@@ -11550,6 +11765,78 @@
    {
     "raw": "+2 science per building in this city that [[concept:supplies|supplies]] faith, while it is keeping a rite",
     "text": "+2 science per building in this city that supplies faith, while it is keeping a rite"
+   }
+  ],
+  "greatSphinx": [
+   {
+    "raw": "+1 culture per building in your cities that [[concept:supplies|supplies]] faith",
+    "text": "+1 culture per building in your cities that supplies faith"
+   },
+   {
+    "raw": "on completion, gain 5 free draft rerolls",
+    "text": "on completion, gain 5 free draft rerolls"
+   }
+  ],
+  "templeOfThoth": [
+   {
+    "raw": "50% of the faith in every city with [[wonder:templeOfThoth|The Temple of Thoth]] is gained again as science",
+    "text": "50% of the faith in every city with The Temple of Thoth is gained again as science"
+   }
+  ],
+  "pyramidOfTheSun": [
+   {
+    "raw": "a city with [[wonder:pyramidOfTheSun|The Pyramid of the Sun]] may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)",
+    "text": "a city with The Pyramid of the Sun may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)"
+   },
+   {
+    "raw": "+2 culture on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 culture on every hex with a Holy Site"
+   }
+  ],
+  "solomonsTemple": [
+   {
+    "raw": "+1 card in every great-person offer",
+    "text": "+1 card in every great-person offer"
+   },
+   {
+    "raw": "great people cost 10% less renown",
+    "text": "great people cost 10% less renown"
+   }
+  ],
+  "ironPillar": [
+   {
+    "raw": "your production buildings pay +50%",
+    "text": "your production buildings pay +50%"
+   },
+   {
+    "raw": "+1 production on every hex carrying a strategic resource",
+    "text": "+1 production on every hex carrying a strategic resource"
+   }
+  ],
+  "libraryOfAshurbanipal": [
+   {
+    "raw": "+5 renown per turn in every captured city, favouring scholars",
+    "text": "+5 renown per turn in every captured city, favouring scholars"
+   },
+   {
+    "raw": "+15 renown per turn in every captured city containing a wonder, favouring scholars",
+    "text": "+15 renown per turn in every captured city containing a wonder, favouring scholars"
+   }
+  ],
+  "weiyangPalace": [
+   {
+    "raw": "+25% production toward buildings, in your capital",
+    "text": "+25% production toward buildings, in your capital"
+   },
+   {
+    "raw": "+1 culture per building in this city, your capital",
+    "text": "+1 culture per building in this city, your capital"
+   }
+  ],
+  "greatStelaeOfAksum": [
+   {
+    "raw": "+2 culture, +2 faith on every trade route you send",
+    "text": "+2 culture, +2 faith on every trade route you send"
    }
   ]
  },

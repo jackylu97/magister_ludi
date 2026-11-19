@@ -608,6 +608,17 @@ function describeFold(
   out: CardClause[],
   subject: ClauseSubject,
 ): number {
+  const base = effects[at];
+  const extra = effects[at + 1];
+  if (base?.kind === 'windfallRider' && base.occasion === 'capture' && !base.capturedWonder &&
+      extra?.kind === 'windfallRider' && extra.capturedWonder && base.grant?.renown !== undefined) {
+    const { capturedWonder: _wonder, ...rest } = extra;
+    if (JSON.stringify(base) === JSON.stringify(rest)) {
+      describeEffect(base, out, subject);
+      out[out.length - 1]!.text += ', doubled if the city holds a wonder';
+      return 2;
+    }
+  }
   return (
     everyVoiceFold(effects, at, out, subject) ||
     sharedCountFold(effects, at, out, subject) ||
@@ -834,13 +845,13 @@ function greatWorkRunFold(effects: readonly CardEffect[], at: number, out: CardC
  */
 function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
   const head = effects[at];
-  if (head === undefined || head.kind !== 'slotPosition' || head.slot === undefined) return 0;
+  if (head?.kind !== 'slotPosition' || head.slot === undefined || typeof head.position !== 'number' || head.position === -1 || head.whole) return 0;
   const slots: ChairType[] = [];
   let run = 0;
   while (at + run < effects.length) {
     const next = effects[at + run];
     if (next === undefined || next.kind !== 'slotPosition' || next.slot === undefined) break;
-    if (next.position !== head.position || next.factor !== head.factor) break;
+    if (next.position !== head.position || next.factor !== head.factor || next.whole) break;
     if (slots.includes(next.slot)) break;
     slots.push(next.slot);
     run += 1;
@@ -977,7 +988,22 @@ export function describeCard(id: CardId): CardClause[] {
     if (building.authorityCapacity !== undefined && building.authorityCapacity !== 0) {
       clauses.push({ text: `${signed(building.authorityCapacity)} authority capacity` });
     }
-    for (const grant of building.onComplete ?? []) {
+    const grants = building.onComplete ?? [];
+    for (let i = 0; i < grants.length; i++) {
+      const grant = grants[i]!;
+      if (grant.grant === 'unit' && grant.unit === 'bestMelee') {
+        let count = 1;
+        while (i + count < grants.length) {
+          const next = grants[i + count]!;
+          if (next.grant !== 'unit' || next.unit !== grant.unit) break;
+          count++;
+        }
+        if (count > 1) {
+          clauses.push({ text: `on completion, ${count} ${grantedClassWords('melee', true)} join you` });
+          i += count - 1;
+          continue;
+        }
+      }
       clauses.push({ text: grantWords(grant) });
     }
   }
@@ -1246,6 +1272,10 @@ function scalerGroupWords(parts: readonly ScalerPart[]): string {
 function scalerMomentWords(line: CardPaysEffect): string {
   const tally = line.tally;
   if (tally === undefined) return '';
+  if (line.alsoTallies?.length) {
+    const moments = [tally, ...line.alsoTallies].map((event) => SCALER_MOMENT_WORDS[event]);
+    return `each time ${moments.join(' or ')}`;
+  }
   const per = line.per ?? 1;
   const moment = SCALER_MOMENT_WORDS[tally];
   if (moment === null || per > 1) return `for every ${countWords(per, TALLY_WORDS[tally])}`;
@@ -1286,6 +1316,8 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   charterTechCompleted: 'you complete a charter technology',
   // Batch R1, The Strongbox: a purchase of any kind with gold.
   goldPurchase: 'you buy something with gold',
+  orderGained: 'you gain an Order',
+  greatPersonGained: 'you gain a great person',
   wonderCompleted: 'you complete a wonder',
   wonderProduction: null,
 };
@@ -2616,6 +2648,10 @@ function describeEffect(
       const who =
         (effect.class ? filterWords(effect.class) : 'all units') +
         (effect.rank === undefined ? '' : ` that are ${rankOrBetter(effect.rank)}`);
+      if (effect.enemyOccupant) {
+        out.push({ text: `enemy units in your territory have ${signed(effect.amount)} movement, to a minimum of one` });
+        return;
+      }
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = effect.amount;
       if (effect.stat === 'combatPercent') {
@@ -2919,6 +2955,7 @@ function describeEffect(
       // such phrase is left alone — which keeps a row written onto the wrong
       // occasion silent rather than wrong.
       const occasionSaid =
+        (effect.eitherSide && effect.occasion === 'declareWar' ? 'entering a war' : undefined) ??
         firstSaid ??
         paidSaid ??
         occasionWords(
@@ -3209,6 +3246,7 @@ function describeEffect(
             ? 'every city of yours'
             : grant.toEveryTown !== undefined
               ? cityScopeWords(grant.toEveryTown)
+              : grant.toCapital ? 'your capital'
               : effect.inTown === undefined
                 ? 'the city where it happens'
                 : 'that city';
@@ -3320,8 +3358,11 @@ function describeEffect(
       // Dominion batch D5's two unit kinds.
       if (grant?.unit === 'bestMelee') {
         out.push({
-          text: `${occasion} grants the best melee unit you can build${unitDeliveryWords(grant)}${per}`,
+          text: `${occasion} grants ${grantedClassWords('melee')}${unitDeliveryWords(grant)}${per}`,
         });
+      }
+      if (grant?.unit === 'bestRanged') {
+        out.push({ text: `${occasion} grants ${grantedClassWords('ranged')}${unitDeliveryWords(grant)}${per}` });
       }
       if (grant?.unit === 'unlockedByTech') {
         out.push({
@@ -3456,7 +3497,7 @@ function describeEffect(
         // reward's own words for a unit.
         const what =
           effect.unit === 'bestMelee'
-            ? 'the best melee unit you can build'
+            ? grantedClassWords('melee')
             : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
         out.push({ text: `new cities start with ${what} standing in them, free of upkeep${limit}` });
       }
@@ -3617,7 +3658,9 @@ function describeEffect(
       const size = Math.abs(extra);
       const count = size === 1 ? 'one' : size === 2 ? 'two' : String(size);
       const change = extra < 0 ? 'fewer' : 'more';
-      out.push({ text: `you have ${count} ${change} wildcard ${size === 1 ? 'chair' : 'chairs'}` });
+      const slot = effect.slot ?? 'wildcard';
+      const counted = effect.count === 'wonders' ? ` for every ${effect.per ?? 1} wonders you hold, up to ${effect.max} more` : '';
+      out.push({ text: `you have ${count} ${change} ${slot} ${size === 1 ? 'chair' : 'chairs'}${counted}` });
       return;
     }
     case 'meterRule': {
@@ -3678,7 +3721,7 @@ function describeEffect(
       return;
     }
     case 'cityStat': {
-      const stat = effect.stat === 'defense' ? 'city defence' : 'city sight';
+      const stat = effect.stat === 'defense' ? 'city defence' : effect.stat === 'hp' ? 'maximum city hit points' : 'city sight';
       // **What buys one helping**, where the row is counted — Siegecraft's
       // citizens on the walls. The count's own noun, the same table a `pays`
       // count prints through, so one card counting townsfolk for hammers and
@@ -3780,7 +3823,7 @@ function describeEffect(
       // where it does not — `grantWords`' sentence, said on a cadence.
       const what =
         effect.unit === 'bestMelee'
-          ? 'the best melee unit you can build'
+          ? grantedClassWords('melee')
           : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
       // The mark on the levy, where the row makes one — "and moves one further,
       // for good". Said as a trailing clause because it is a fact about the
@@ -4149,6 +4192,10 @@ function describeEffect(
     }
     case 'slotPosition': {
       const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
+      if (effect.position === 'all') {
+        out.push({ text: `the Orders in your${flavour} chairs pay their yields ${timesWords(effect.factor)}` });
+        return;
+      }
       const place = effect.position === -1 ? 'last' : ordinalWords(effect.position);
       // The last chair is the last one a malice does not hold (batch DT19c).
       const free = effect.position === -1 ? ' that no malice holds' : '';
@@ -4215,6 +4262,7 @@ function describeEffect(
     }
     case 'levy':
       describeLevy(effect, out);
+      if (effect.freeUpkeep) out.push({ text: 'the unit costs no upkeep' });
       return;
     case 'unlocksImprovement': {
       // Expansionist batch E4: the row a seated card opens, with what the row
@@ -4373,7 +4421,7 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
     effect.rank === undefined
       ? ''
       : ` as ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`;
-  const melee = `the best melee unit you can build${rank}`;
+  const melee = `${grantedClassWords('melee')}${rank}`;
   // Human Sacrifice (batch DT19). The scope's own words are "your capital", which
   // take no article, and each town reached is a step on the rite price.
   const riteTown = effect.scope === undefined ? `${indefinite(noun)} ${noun}` : noun;
@@ -4405,7 +4453,12 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
         what = 'a settler';
         break;
       case 'wonder':
-        what = `${food}, paid to your nearest other town building a world wonder`;
+        what = effect.percentOfCost === undefined
+          ? `${food}, paid to your nearest other town building a world wonder`
+          : `production equal to ${effect.percentOfCost}% of the cost of the world wonder this town is building`;
+        break;
+      case 'faith':
+        what = `${effect.faithPerCitizen} faith per citizen before the levy`;
         break;
       case 'rite':
         what = riteWords;
@@ -4615,6 +4668,7 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
  * same seven arms.
  */
 export function grantWords(grant: CompletionGrant, when = 'on completion'): string {
+  if (grant.grant === 'freeRerolls') return `${when}, gain ${grant.amount} free draft rerolls`;
   if (grant.grant === 'tech') return `${when}, the technology you are researching is finished`;
   if (grant.grant === 'doctrineDraft') return `${when}, a Doctrine draft opens`;
   if (grant.grant === 'bead') return `${when}, a glass bead is yours`;
@@ -4634,10 +4688,15 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
   return `${when}, ${grantedUnitWords(grant.unit)} joins you`;
 }
 
-/** The unit a grant raises, as a noun: "a Trader", "the best melee unit you can build". */
+function grantedClassWords(unitClass: 'melee' | 'ranged', plural = false): string {
+  const noun = ref('concept', 'grantedUnit', `${unitClass} unit${plural ? 's' : ''}`);
+  return plural ? noun : `a ${noun}`;
+}
+
+/** Named units link to their own entry. Class grants link to the selection rule. */
 function grantedUnitWords(unit: Extract<CompletionGrant, { grant: 'unit' }>['unit']): string {
   return unit === 'bestMelee'
-    ? 'the best melee unit you can build'
+    ? grantedClassWords('melee')
     : `${indefinite(unitDef(unit).name)} ${ref('unit', unit, unitDef(unit).name)}`;
 }
 
@@ -4715,19 +4774,29 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
         out.push(`${lead}you gain ${who} to call`);
         break;
       }
+      case 'doctrineOffer':
+        out.push(`${lead}you gain a Doctrine offer`);
+        break;
       case 'completeQueues':
         out.push(`${lead}each town completes its current unit or building, except wonders and the Magnum Opus`);
         break;
       case 'foreignCard':
         out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
+      case 'experience':
+        out.push(`${lead}each of your military units gains ${grant.amount} experience`);
+        break;
       case 'unit': {
+        if (grant.toEveryTown !== undefined) {
+          out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in ${cityScopeWords(grant.toEveryTown)}`);
+          break;
+        }
         const count = onDraftUnitCount(grant.count);
         if (count === 1) {
           out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
         } else {
           const units = grant.unit === 'bestMelee'
-            ? 'of the best melee units you can build'
+            ? grantedClassWords('melee', true)
             : `${ref('unit', grant.unit, unitDef(grant.unit).name)} units`;
           out.push(`${lead}your capital raises up to ${count} ${units}. They cost no upkeep`);
         }
@@ -4822,6 +4891,10 @@ function slotFlavourWords(flavour: ChairType): PluralWords {
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
 function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  if (effect.count === 'defensiveBuildings' && effect.category !== undefined) {
+    const where = place || 'in this city';
+    return { one: `${effect.category} building or fortification ${where}`, many: `${effect.category} buildings or fortifications ${where}` };
+  }
   // **The filtered garrison** — Martial Law's field soldiers, said in the words
   // the filter uses everywhere else. Asked before the town table below, because
   // the filter *replaces* that entry's noun ("combat unit standing …") rather
@@ -6320,7 +6393,7 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       // "Tended" is an adjective with no noun of its own, so the ring names the
       // hex: "beside a tended hex" rather than "beside a tended".
       into.qualifiers.push(
-        `beside ${on.of.test === 'tended' ? 'a tended hex' : besideWords(on.of)}`,
+        (on.atLeast ?? 1) > 1 ? on.of.test === 'greatWork' ? `beside ${on.atLeast} or more great-person works` : `beside at least ${on.atLeast} matching hexes (${besideWords(on.of)})` : `beside ${on.of.test === 'tended' ? 'a tended hex' : besideWords(on.of)}`,
       );
       return;
     case 'all':
@@ -6558,6 +6631,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
   },
   // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
   // a loss adds, and "nothing" at the whole cut.
+  siegeDamage: (percent) => `a city under siege by your units takes ${percent}% more siege damage`,
   unitLossWeariness: (percent) =>
     percent <= -100
       ? 'units you lose add nothing to war weariness'
@@ -6762,6 +6836,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   // The family is not in these words — `describeEffect` prints it, so that "per
   // great general" and "per great engineer" are one entry. `buildingsOfKind`'s
   // bargain, at the third scale.
+  greatPeopleGained: { one: 'great person you have gained', many: 'great people you have gained' },
   greatPeopleOfFamily: { one: 'earned this game', many: 'earned this game' },
   // The flavour is printed by `scaleNoun`, exactly as the family is: "per
   // military Order you have seated" and "per economic Order" are one entry.
@@ -7148,6 +7223,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'unimproved hex worked here',
     many: 'unimproved hexes worked here',
   },
+  worksAndWondersHeld: { one: 'wonder or great-person work you hold', many: 'wonders and great-person works you hold' },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
   // **Courts reached, not roads run** — the partner counted once however many
   // caravans walk to it, which is the whole difference from `foreignTradeRoutes`.
@@ -7557,6 +7633,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   goldPurchase: { one: 'purchase you have made with gold', many: 'purchases you have made with gold' },
   // Magisterial batch MG4. No growing card counts these; the two commissions
   // do, and the table is total.
+  orderGained: { one: 'Order you have gained', many: 'Orders you have gained' },
+  greatPersonGained: { one: 'great person you have gained', many: 'great people you have gained' },
   wonderCompleted: { one: 'wonder you have completed', many: 'wonders you have completed' },
   wonderProduction: {
     one: 'production you have put into wonders or the Magnum Opus',
@@ -7913,6 +7991,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   everyWorkIsAcademy: 'your great people of every family found an Academy as their work, in place of their own',
   // Magisterial batch MG16, The Pull of the Masters: the card's text, with the
   // "rival's own works" said as the great-person works they are.
+  wondersAreWorks: 'Your wonders count as great-person works.',
   worksPullRivalHexes:
     "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken",
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
@@ -8063,7 +8142,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // "Enemy" is an empire at war with you, the word the cards already use.
   shoreRaid:
     'at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it',
-  opusSiege: 'a rival city under siege by your units adds no production toward a Magnum Opus',
+  opusSiege: 'a rival city under siege by your units makes no production',
   // Scientific batch S1, the Galleass. What a blockade does, said once, because
   // a player has met it only on a heavy warship's own description.
   blockades:
@@ -8528,6 +8607,8 @@ const COMMISSION_COUNTED_WORDS: Record<
   goldPurchase: { verb: 'make', one: 'purchase with gold', many: 'purchases with gold', counter: 'purchases with gold' },
   // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
   // Wonder of the Age.
+  orderGained: { verb: 'gain', one: 'Order', many: 'Orders', counter: 'Orders gained' },
+  greatPersonGained: { verb: 'gain', one: 'great person', many: 'great people', counter: 'great people gained' },
   wonderCompleted: { verb: 'complete', one: 'wonder', many: 'wonders', counter: 'wonders completed' },
   wonderProduction: {
     verb: 'put',
@@ -8674,6 +8755,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     noun: 'your council in order',
   },
   // Magisterial batch MG8, Commission: The Patron's Gallery.
+  worksHeld: {
+    goal: (count) => `hold ${count} great-person works`,
+    counter: 'great-person works',
+    noun: 'the great-person works in your borders',
+  },
   workFamilies: {
     goal: (count) => `have great-person works of ${count} different families in your borders`,
     counter: 'families of great-person works',
@@ -8902,7 +8988,7 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
   if (reward.unit !== undefined) {
     const what =
       reward.unit === 'bestMelee'
-        ? 'the best melee unit you can build'
+        ? grantedClassWords('melee')
         : `${indefinite(unitDef(reward.unit).name)} ${ref('unit', reward.unit, unitDef(reward.unit).name)}`;
     out.push(`${what}, trained in your capital free of upkeep`);
   }

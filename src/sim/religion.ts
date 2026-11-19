@@ -810,6 +810,7 @@ export function explainRerollCost(
   if (player && rihlaPaysFor(state, player, kind)) {
     return { lines: [{ source: freeRedrawSource(state, player.id), amount: 0 }], total: 0 };
   }
+  if ((player?.statecraft.freeRerolls ?? 0) > 0) return { lines: [{ source: 'Free draft reroll', amount: 0 }], total: 0 };
   const spec = RELIGION.reroll;
   const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
   const age = player ? highestAge(player.techsResearched) : 1;
@@ -896,6 +897,7 @@ export function explainBeliefRerollCost(
   const offer = player?.pantheon.pending;
   const asked = Math.max(0, Math.floor(offer?.rerolls ?? 0));
   if (!player || !offer || asked === 0) return { lines: [], total: 0 };
+  if ((player.statecraft.freeRerolls ?? 0) > 0) return { lines: [{ source: 'Free draft reroll', amount: 0 }], total: 0 };
   const spec = RELIGION.reroll;
   const age = highestAge(player.techsResearched);
   const multiplier = spec.ageMultiplier[age - 1] ?? 1;
@@ -997,6 +999,7 @@ export function rerollDoorOpen(state: GameState, playerId: number): boolean {
   // **Or the Rihla opened it** (batch L6a). A figure whose whole line is "you
   // always get a second look" would be a figure with no line at all until the
   // Long Count came in, which is four ages of nothing.
+  if ((playerById(state, playerId)?.statecraft.freeRerolls ?? 0) > 0) return true;
   if (cardActionRule(state, playerId, 'rerollOffers')) return true;
   return hasAbility(state, playerId, RELIGION.reroll.ability);
 }
@@ -1195,7 +1198,9 @@ export function settleReroll(
     spend(paid);
     // The banks are a line of the meters too (batch M3, `slate.ts`).
     bumpEconomy(state);
-    offer.rerolls = (old.rerolls ?? 0) + 1;
+    const useStock = (old.rerolls ?? 0) > 0 && (player.statecraft.freeRerolls ?? 0) > 0;
+    if (useStock) player.statecraft.freeRerolls! -= 1;
+    offer.rerolls = (old.rerolls ?? 0) + (useStock ? 0 : 1);
     player.pantheon.pending = offer;
     return { kind, paid, currency, taken: player.statecraft.rerollsTaken };
   }
@@ -1210,7 +1215,10 @@ export function settleReroll(
   spend(paid);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
-  if (!free) sc.rerollsTaken += 1;
+  if (!free) {
+    if ((sc.freeRerolls ?? 0) > 0) sc.freeRerolls! -= 1;
+    else sc.rerollsTaken += 1;
+  }
 
   if (kind === 'doctrine') {
     sc.pendingDoctrine = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
@@ -1483,8 +1491,8 @@ export function riteTeachingCard(rite: RiteId): OrderId | null {
  * A card that changes the price applies in `riteCostAhead`, so every surface
  * still reads one price.
  */
-export function riteCostFor(state: GameState, playerId: number): number {
-  return riteCostAhead(state, playerId, 0);
+export function riteCostFor(state: GameState, playerId: number, city?: City): number {
+  return riteCostAhead(state, playerId, 0, city);
 }
 
 /**
@@ -1499,11 +1507,11 @@ export function riteCostFor(state: GameState, playerId: number): number {
  * caller of the data's ladder, so the button, the refusal, the charge, the count
  * of rites a bank pays for and the bots all read the same price.
  */
-export function riteCostAhead(state: GameState, playerId: number, ahead: number): number {
+export function riteCostAhead(state: GameState, playerId: number, ahead: number, city?: City): number {
   const started = playerById(state, playerId)?.ritesStarted ?? 0;
   const rung = riteCost(started + Math.max(0, Math.floor(ahead)));
   let percent = 0;
-  for (const line of cardRulePercent(state, playerId, 'riteCost')) percent += line.percent;
+  for (const line of cardRulePercent(state, playerId, 'riteCost', city)) percent += line.percent;
   if (percent === 0) return rung;
   return Math.floor((rung * Math.max(0, 100 + percent)) / 100);
 }
@@ -1843,7 +1851,7 @@ function riteClausesBeforeTheBank(
     }
   }
   // Only the bank is left to ask, and `riteGate` asks it.
-  return { player, name: def.name, cost: riteCostFor(state, playerId) };
+  return { player, name: def.name, cost: riteCostFor(state, playerId, city) };
 }
 
 /** What performing a rite did, for the announcement and the chronicle. */
@@ -1918,7 +1926,7 @@ export function performRiteAt(
   rite: RiteId,
 ): RitePerformance {
   const def = riteDef(rite);
-  const cost = riteCostFor(state, player.id);
+  const cost = riteCostFor(state, player.id, city);
   // Through the one subtraction, so the rite counts as faith spent. It
   // announces the bank for the meters too (batch M3, `slate.ts`).
   spendFaith(state, player, cost, true);
@@ -1965,9 +1973,9 @@ function faithAsHammers(cost: number): number {
  * which reaches the same `faithAsHammers` with the price it has just charged.
  * The price does not depend on the bank, so the two cannot disagree.
  */
-export function riteOfferingHammers(state: GameState, playerId: number, rite: RiteId): number {
+export function riteOfferingHammers(state: GameState, playerId: number, rite: RiteId, city?: City): number {
   if (riteDef(rite).atOnce?.hammersFromFaith !== true) return 0;
-  return faithAsHammers(riteCostFor(state, playerId));
+  return faithAsHammers(riteCostFor(state, playerId, city));
 }
 
 /**

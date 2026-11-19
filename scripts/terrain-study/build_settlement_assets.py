@@ -175,9 +175,19 @@ def site_assets():
 def unit_assets():
  runpy.run_path(str(Path(__file__).with_name('build_unit_assets.py')),init_globals=globals())
 
+def fishing_hull():
+ # A clinker-shaped fishing hull, drawn as nested elliptical sections.
+ v=[];f=[];n=12
+ for z,rx,ry in [(0,.24,.06),(.07,.34,.125),(.12,.36,.14)]:
+  for i in range(n):
+   a=i*math.tau/n;v.append((math.cos(a)*rx,math.sin(a)*ry,z))
+ for j in range(2):
+  for i in range(n):f.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
+ mesh('Clinker hull',v,f,WOOD);block((0,0,.08),(.40,.14,.025),DARK,.003)
+
 if '--monuments-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_monument_assets.py')),init_globals=globals());sys.exit(0)
-if '--northstar-only' in sys.argv:
+if '--northstar-only' in sys.argv or '--pillaged-works-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_assets.py')),init_globals=globals());sys.exit(0)
 if '--great-works-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_great_works.py')),init_globals=globals());sys.exit(0)
@@ -222,14 +232,7 @@ for x,y,z,w,d,h in [(-.12,.02,.07,.3,.26,.14),(.14,.12,.10,.20,.22,.20),(.02,-.2
 tube([(-.27,.11,.0),(-.27,.11,.43),(.22,.11,.48)],[.022,.022,.014],WOOD)
 tube([(.05,.11,.46),(.05,.11,.22)],[.004,.004],WOOD,4);export('quarry')
 reset()
-# A clinker-shaped fishing hull, drawn as nested elliptical sections.
-v=[];f=[];n=12
-for z,rx,ry in [(0,.24,.06),(.07,.34,.125),(.12,.36,.14)]:
- for i in range(n):
-  a=i*math.tau/n;v.append((math.cos(a)*rx,math.sin(a)*ry,z))
-for j in range(2):
- for i in range(n):f.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
-mesh('Clinker hull',v,f,WOOD);block((0,0,.08),(.40,.14,.025),DARK,.003)
+fishing_hull()
 tube([(0,0,.07),(0,0,.64)],[.013,.009],WOOD)
 mesh('Linen sail',[(0,0,.61),(0,0,.24),(.26,.015,.25),(.13,.035,.42)],[(0,1,3),(1,2,3),(2,0,3)],WHITE)
 export('fishing-boat')

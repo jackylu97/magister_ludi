@@ -601,6 +601,7 @@ calls P9):
     rate;
   - the Theatre's free Amphitheatre: the hammers it would cost
     (`buildingProductionCost`), as a lump; nought in a town that holds one.
+- The Great Sphinx’s free rerolls are worth the faith they save. A great person on completion is worth the renown needed for the next offer.
 - **One more Wildcard chair** (P9 and the user's addition, `extraChairsWorth`,
   `value.ts`). The Forbidden City opens one for whoever holds its town (a rule of
   the game since this batch, `docs/wonders.md`). A chair takes the best card the
@@ -667,6 +668,7 @@ is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 row
   `workers.planRadius`, and each spade on the board was charged to the town nearest
   it. `workers.planRadius` is still read by the chain's renewal step. Since bot
   batch BP13b each spade walks the list by its own clock instead (below).
+- Workers price repairs alongside new improvements. A repair counts as free when the bot allocates its workers’ charges.
 - **A sleeping worker is asked again** (P6, `wakeIdleWorker`, housekeeping): once a
   turn (`BotSitting.roused`), and the answer is sent unless it is another sleep. A
   worker that slept when its ground was finished used to sleep on while the towns

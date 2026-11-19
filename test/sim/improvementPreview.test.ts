@@ -136,21 +136,20 @@ describe('explainImprovementPreview', () => {
   });
 
   it('reads a hex beyond the borders in the context of the town that claims it', () => {
-    // An outpost goes up on unowned desert and the hex joins the nearest town,
-    // which holds Petra: +1 food and +1 production on its desert.
+    // The claim puts the wheat in the capital. The Home Fields pays it one food.
     const state = bareState(16, 10);
-    const home = town(state, 2, 5);
-    home.buildings.push('petra');
+    town(state, 2, 5);
     seat(state, 'outposts');
+    seat(state, 'theHomeFields');
     const hex = at(state, 5, 5);
-    hex.terrain = 'desert';
+    hex.resource = 'wheat';
     bumpRevision(state);
     expect(tileOwnerPlayerId(state, 5, 5)).toBeNull();
 
     const preview = explainImprovementPreview(state, 0, hex, 'outpost');
-    expect(preview.lines.some((line) => line.source.includes('Petra'))).toBe(true);
+    expect(preview.lines.some((line) => line.source.includes('Home Fields'))).toBe(true);
     expect(preview.delta.food).toBe(1);
-    expect(preview.delta.production).toBe(1);
+    expect(preview.delta.production).toBe(0);
     // Read in the hex's context as it stands, the work adds nothing.
     expect(improvementYieldDelta(hex, 'outpost', tileContextAt(state, 0, hex)).food).toBe(0);
     // The hex is still nobody's: the claim was the ghost's.

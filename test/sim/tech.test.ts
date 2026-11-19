@@ -291,7 +291,7 @@ describe('tech data integrity', () => {
       // toward). It is refused by `buildError` and `purchaseError` rather than
       // gated by the tree, and the day a node names it the marker is deleted
       // and this clause stops skipping it.
-      if (buildingDef(id).awaitsTech === true) continue;
+      if (buildingDef(id).awaitsTech === true || buildingDef(id).retired === true) continue;
       // **And the fourth, the finish line** (Entry LVIII): a row the *world*
       // opens (`BuildingDef.worldUnlockTech` — the Magnum Opus) hangs on no
       // node of anybody's tree, because what opens it is any empire anywhere
@@ -559,6 +559,14 @@ describe('tech data integrity', () => {
       expect(isUnlocked(state, 0, 'building', id), id).toBe(false);
     }
     expect(isUnlocked(state, 0, 'unit', 'swordsman')).toBe(false);
+  });
+
+  it('keeps the retired Water Clock closed after Horology opens Chichen Itza', () => {
+    const state = newGame(config());
+    grant(state, 0, 'horology');
+    expect(isUnlocked(state, 0, 'building', 'chichenItza')).toBe(true);
+    expect(isUnlocked(state, 0, 'building', 'waterClockOfSuSong')).toBe(false);
+    expect(buildError(state, 0, 'building', 'waterClockOfSuSong')).not.toBeNull();
   });
 
   it('treats content no tech names as ungated', () => {
@@ -1896,7 +1904,8 @@ describe('research in the log', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2642,7 +2651,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
 
   it('takes Guildhalls’ wonder bonuses away (batch TT1)', () => {
     expect(techDef('artisanry').effects).toBeUndefined();
-    expect(techDef('artisanry').unlocks.buildings).toEqual(['workshop']);
+    expect(techDef('artisanry').unlocks.buildings).toEqual(['workshop', 'greatMosqueOfDjenne']);
   });
 
   it('stops Horology’s and Chronology’s clocks, and leaves the Water Clock its chime', () => {

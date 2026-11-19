@@ -48,6 +48,7 @@ import {
 } from '../../src/sim/buildingEffects';
 import { cityMaxHp } from '../../src/sim/combat';
 import {
+  realiseItem,
   explainGrowthPercent,
   foundCityAt,
   refreshCityDerived,
@@ -76,7 +77,6 @@ import {
   doctrineDef,
   orderDef,
   orderIsDealt,
-  slotLayout,
 } from '../../src/sim/statecraftData';
 import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
@@ -211,7 +211,7 @@ describe('the charters as a family', () => {
     // and inherits every claim in this file. **Ten again since Scientific
     // batch S4**: Papermaking opens the Scriveners' Scriptorium now.
     expect(SHELF_CHARTERS.length).toBe(10);
-    expect(LIVE_CHARTERS.map((entry) => entry.order)).toEqual(['theSenateCharter']);
+    expect(LIVE_CHARTERS.map((entry) => entry.order)).toEqual([]);
     expect(CHARTERS.length).toBe(SHELF_CHARTERS.length + LIVE_CHARTERS.length);
     for (const { order, building } of CHARTERS) {
       expect(isBuildingId(building), `${order} → ${building}`).toBe(true);
@@ -558,41 +558,17 @@ describe('what each charter building does', () => {
     expect(buildingDef('cistern').deferred).toBeUndefined();
   });
 
-  it('Assembly Hall — one helping per wildcard Order in the spread', () => {
+  it('the Assembly Hall opens a Wildcard chair and grants happiness', () => {
     const state = bench();
     const city = capitalOf(state);
-    slot(state, 0, 'theSenatus');
+    const player = playerById(state, 0)!;
+    player.charteredBuildings.push('assemblyHall');
     expect(buildError(state, 0, 'building', 'assemblyHall', city)).toBeNull();
-    raise(state, city, 'assemblyHall');
-    // The Senatus is itself a wildcard Order, so the floor is one helping —
-    // exactly as every other deck-reader's is.
-    const one = foldCardYields(explainCardCityYields(state, city));
-    expect(one.science).toBe(1);
-    expect(one.culture).toBe(1);
-    slot(state, 0, 'almshouseCharter');
-    const two = foldCardYields(explainCardCityYields(state, city));
-    expect(two.science).toBe(2);
-    expect(two.culture).toBe(2);
-    // These three rows belong to no sorted deck, so each counts as the type
-    // of the chair it sits in (batch C2's interim rule, `countedTypeOf`): the
-    // two above sit in Wildcard chairs past the chiefdom's three. Since batch
-    // DS9 the chiefdom's own three chairs are Wildcard chairs too, so The
-    // Vigil Charter in its first chair is a third helping.
-    const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push('vigilCharter');
-    expect(sc.slots[0]).toBeNull();
-    sc.slots[0] = { card: 'vigilCharter', sealedUntil: state.turn };
-    bumpRevision(state);
-    expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(3);
-    // An Order in a Military chair is not a Wildcard one: in the Council of
-    // Elders' Military chair it is no helping.
-    sc.government = 'councilOfElders';
-    const held = sc.slots.slice(3);
-    sc.slots = [...slotLayout('councilOfElders').map(() => null), ...held];
-    sc.slots[0] = { card: 'vigilCharter', sealedUntil: state.turn };
-    bumpRevision(state);
-    expect(slotTypesOf(sc)[0]).toBe('military');
-    expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(2);
+    const chairs = player.statecraft.slots.length;
+    realiseItem(state, city, { kind: 'building', id: 'assemblyHall' });
+    expect(player.statecraft.slots.length).toBe(chairs + 1);
+    expect(slotTypesOf(player.statecraft)[chairs]).toBe('wildcard');
+    expect(buildingDef('assemblyHall').happiness).toBe(3);
   });
 
   it('Assembly Hall — refuses a town that is not the seat of government', () => {

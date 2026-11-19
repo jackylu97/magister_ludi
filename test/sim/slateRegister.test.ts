@@ -344,6 +344,7 @@ const ANNOUNCING = new Set([
   'improvements.ts#buildImprovementAt',
   'improvements.ts#pillageAt',
   'improvements.ts#removeImprovementAt',
+  'improvements.ts#repairImprovementAt',
   'religion.ts#clearCityRite',
   'religion.ts#foundReligion',
   'religion.ts#placeRelicAt',
@@ -398,6 +399,7 @@ const ANNOUNCING = new Set([
   // banked The Terraces of Moray's science itself until batch R1, when the card
   // became a rider on the levy moment, banked by `payOccasionRiders`.
   'levies.ts#recordLevy',
+  'levies.ts#levyAt',
   // Dominion batch D5: the one writer of the great-people records the
   // `greatPeopleGained` count reads, and the one routine that banks science
   // toward a technology that is not the one under research (Copying the
@@ -424,6 +426,7 @@ const ANNOUNCING = new Set([
  * state whose callers announce instead (named, so the pair can be checked).
  */
 const EXCUSED = new Map<string, string>([
+  ['cardImpact.ts#ghostPair', 'The card preview copies the council slots before changing its own board.'],
   // Batch P3: these two folds name the six voices rather than walk a key list.
   ['hex.ts#foldTileLines', 'writes the fold’s own local total, a new object on each ask, and never a bank'],
   ['town.ts#foldCityFlats', 'writes the fold’s own local total, a new object on each ask, and never a bank'],

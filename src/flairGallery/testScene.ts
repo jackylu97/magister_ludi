@@ -1,3 +1,4 @@
+import { pillageScene, PILLAGE_VIEWS, type PillagePreview } from './pillageScene';
 import { VIEW3D } from '../render3d/lookData';
 import { Renderer3D } from '../render3d/renderer3d';
 import { setUnitArtVariant } from '../render3d/paintedUnits';
@@ -8,7 +9,7 @@ import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from '../render3d/visualTest';
 import type { LensView } from '../ui/mapView';
-import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture, createWorksFixture } from './sceneFixture';
+import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture, createWorksFixture, setSceneAge } from './sceneFixture';
 import { overrideNorthStarUnit } from '../render3d/northStarUnits';
 import { createUnit } from '../sim/state';
 import type { UnitTypeId } from '../sim/unitData';
@@ -33,6 +34,8 @@ import type { UnitTypeId } from '../sim/unitData';
  * - `yields`: how a rich hex is shown: `a` motes, `b` light on the ground, `c`
  *   shapes by yield, `structures` the sheaves, logs and stalls of before, `off`
  *   nothing (it sets `visualTest.yieldLight.show` for this page);
+ * - `pillage`: `intact`, `models`, `ash` or `embers` selects the damage view.
+ *   Add `raids=many&seat=1` for widespread damage and `frameStudy=1` for pan and count controls.
  * - `world`: `works` draws a second, small world where every work and every
  *   great person's work shows its real yield (`createWorksFixture`);
  * - `force`: `2` or `3` raises every hex that shows a yield light to that step;
@@ -63,7 +66,10 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
   let view: SceneView = Object.prototype.hasOwnProperty.call(SCENE_VIEWS, params.get('view') ?? '') ? params.get('view') as SceneView : 'overview';
   let light = params.get('light') ?? 'soft';
-  let still = params.get('still') !== '0';
+  const chosenPillage = PILLAGE_VIEWS.find(([id]) => id === params.get('pillage'))?.[0];
+  let pillage: PillagePreview = chosenPillage ?? 'intact';
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let still = params.has('still') ? params.get('still') !== '0' : pillage !== 'embers' || reduceMotion;
   // `sea=1..5` picks the open water's pattern (`visualTest.coast.open.pattern`), to compare them.
   const pattern = Number(params.get('sea'));
   if (pattern >= 1 && pattern <= 5) VTEST_UNIFORMS.vtestSeaPattern.value = pattern;
@@ -80,8 +86,8 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // `mirror=0` leaves out, and `mirror=all` reflects the whole scene and not only the pieces. It is the sea's mirror pass (`seaMirror.ts`), to compare its cost and its look.
   renderer.mirrorOn = params.get('mirror') !== '0';
   renderer.mirrorAll = params.get('mirror') === 'all';
-  const age = Number(params.get('age'));
-  const aged = age >= 1 && age <= 4;
+  const requestedAge = Number(params.get('age'));
+  let age = Number.isInteger(requestedAge) && requestedAge >= 1 && requestedAge <= 4 ? requestedAge : undefined;
   // Before the renderer is made: the works layer reads the switch when it draws.
   if (params.get('works') === 'old') VIEW3D.visualTest.works.byAge = false;
   if (params.get('towns') === 'old') VIEW3D.visualTest.town.byAge = false;
@@ -91,7 +97,10 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   if (yieldShow && (YIELD_LIGHT_SHOWS as readonly string[]).includes(yieldShow)) VIEW3D.visualTest.yieldLight.show = yieldShow;
   // `world=works` draws the small world of works at their real yields (`createWorksFixture`); use `at` to frame it.
   const worksWorld = params.get('world') === 'works';
-  const state = worksWorld ? createWorksFixture(aged ? age : undefined) : createSceneFixture(aged ? age : undefined);
+  const state = worksWorld ? createWorksFixture(age) : createSceneFixture(age);
+  const seat = params.get('seat') === '1' ? 1 : 0;
+  const damage = chosenPillage && !worksWorld ? pillageScene(state, seat, params.get('raids') === 'many') : undefined;
+  if (damage) damage.show(pillage);
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -112,7 +121,8 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const writeUrl = (): void => {
     const url = new URL(location.href);
     url.searchParams.set('review', 'scene'); url.searchParams.set('view', view); url.searchParams.set('light', light);
-    if (aged) url.searchParams.set('age', String(age));
+    if (age !== undefined) url.searchParams.set('age', String(age));
+    if (damage) url.searchParams.set('pillage',pillage);
     url.searchParams.set('vtest', formatVisualTest(visualTest())); url.searchParams.set('still', still ? '1' : '0');
     history.replaceState(null, '', url);
   };
@@ -156,6 +166,19 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   };
   const title = document.createElement('strong'); title.textContent = 'Visual test scene'; panel.append(title);
   row('View', select('scene-view', Object.entries(SCENE_VIEWS).map(([key, one]) => [key, one.label] as const), view, value => { view = value as SceneView; frame(); }));
+  row('Age', select('scene-age', [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']], String(age ?? 4), value => {
+    age = Number(value);
+    setSceneAge(state, age);
+    renderer.setGameState(state);
+  }));
+  if (damage) row('Pillage', select('scene-pillage', PILLAGE_VIEWS, pillage, value => {
+    pillage = value as PillagePreview;
+    damage.show(pillage);
+    renderer.setPillageEffects(pillage === 'ash' || pillage === 'embers', pillage === 'embers');
+    renderer.setGameState(state);
+    if (pillage === 'embers' && !reduceMotion) { still = false; hold.checked = false; renderer.setClock(null); }
+    renderer.invalidate();
+  }));
   row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['tinted', 'Soft, violet shade'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
     value => { light = value; renderer.setDaylight(value); }));
   const hold = document.createElement('input'); hold.type = 'checkbox'; hold.id = 'scene-still'; hold.checked = still;
@@ -204,8 +227,14 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // And the cost of the last frame: draw calls, triangles and the milliseconds the CPU took to submit it.
   // And what the light of the rich hexes shows, by `col,row`, to check a view against the yield rules.
   (window as unknown as { sceneYields?: () => Record<string, unknown> }).sceneYields = () => Object.fromEntries([...renderer.yieldLightShown].map(([cell, hex]) => [`${cell % state.map.width},${Math.floor(cell / state.map.width)}`, hex]));
-  (window as unknown as { sceneCost?: () => { drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
-  const seat = params.get('seat') === '1' ? 1 : 0;
+  (window as unknown as { sceneCost?: () => { drawnAt: number; drawCalls: number; triangles: number; ms: number } }).sceneCost = () => ({ drawnAt: renderer.lastFrameAt, drawCalls: renderer.stats.drawCalls, triangles: renderer.stats.triangles, ms: renderer.lastFrameMs });
+  if (damage && params.has('frameStudy')) {
+    Object.assign(window, {
+      scenePan: (pixels: number) => renderer.panByScreen(pixels, 0),
+      sceneLandRaids: damage.landWorks,
+    });
+  }
+  if (damage) renderer.setPillageEffects(pillage === 'ash' || pillage === 'embers', pillage === 'embers');
   renderer.setFogSeat(seat);
   // `force=2` or `force=3` raises every hex that shows to that step, to see the look of a step the land alone does not reach.
   const forced = Number(params.get('force'));

@@ -19,6 +19,7 @@
  * the three moments' in `test/sim/momentsR1.test.ts`.
  */
 
+import { openWar } from '../../src/sim/wars';
 import { describe, expect, it } from 'vitest';
 
 import { valueContext } from '../../src/ai/bot';
@@ -305,11 +306,15 @@ describe('a tier-26 government on happiness, authority and renown (batch R1)', (
   it('does not raise a negative figure', () => {
     const state = bareState();
     town(state, 5, 5, 3);
-    // Total War: −3 happiness in each town. A larger cost is not a stronger card.
+    state.wars = [];
+    // Total War charges two happiness per town during a war.
     const totalWar = 'totalWar' as OrderId;
     council(state, 'theSultanate', [[totalWar, 'military']]);
+    expect(cardHappiness(state, 0).some((line) => line.card === totalWar)).toBe(false);
+    openWar(state, 0, 1);
+    bumpRevision(state);
     const lines = cardHappiness(state, 0);
-    expect(lines.filter((line) => line.card === totalWar).every((line) => line.amount < 0)).toBe(true);
+    expect(lines.filter((line) => line.card === totalWar).map((line) => line.amount)).toContain(-2);
     expect(lines.some((line) => line.card === 'theSultanate')).toBe(false);
   });
 

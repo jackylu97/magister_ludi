@@ -54,6 +54,7 @@ export type PaintedWorksAssets = { material: MeshStandardMaterial } & Record<typ
 interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
 export interface PaintedWorksEntry {
   cell: number; resource: ResourceId | null; improvement: CoreImprovement | undefined; level: number;
+  damage?: ImprovementId;
   site?: string;
   /** The age step the work is drawn at, 1 to 4, or 0 for a hex whose look has no steps. See `workAgeSteps`. */
   step: number;
@@ -75,6 +76,7 @@ type Prop = { geometry: BufferGeometry; material: MeshStandardMaterial; matrix: 
 type Patch = { geometry: BufferGeometry; material: MeshStandardMaterial };
 type Recipe = {
   tile: Tile; original: Tile; resource: ResourceId | null; improvement: CoreImprovement | undefined;
+  damage?: ImprovementId;
   site?: string; step: number;
   props: Prop[]; patches: Patch[]; placements: PaintedWorksPlacement[];
 };
@@ -105,6 +107,7 @@ const resourceAt = (state: GameState, seat: number | null, tile: Tile): Resource
  */
 const resourceOrdinal = new Map<ResourceId, number>(RESOURCE_IDS.map((id, index) => [id, index + 1]));
 const improvementOrdinal = new Map<string, number>(DRAWN_WORK_IMPROVEMENTS.map((id, index) => [id, index + 1]));
+const damageOrdinal = new Map(IMPROVEMENT_IDS.map((id, index) => [id, index + 1]));
 const featureOrdinal = new Map<string, number>(FEATURE_IDS.map((id, index) => [id, index + 1]));
 
 /** The improvements that have a row in `NORTH_STAR_WORK_AGES`, so their look follows their owner's age. */
@@ -166,6 +169,8 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
     add(improvement ? improvementOrdinal.get(improvement) ?? 0 : 0);
     // The work's age step, so the works change when their owner enters a new age or the hex changes hands.
     if (improvement) add(stepAt(cell, improvement));
+    const damaged = tile.damagedImprovement?.id;
+    if (damaged) { add(tile.damagedImprovement?.pillagedOn ?? -1); add(0x100 + (damageOrdinal.get(damaged) ?? 0)); add(stepAt(cell, improvementBaseRow(damaged))); }
     add(featureOrdinal.get(tile.feature) ?? 0);
   }
   for (const city of state.cities) { add(city.col); add(city.row); }
@@ -217,11 +222,12 @@ export class PaintedWorksLayer {
       const tile = preparedMap.tiles[cell]; if (!tile) continue;
       const resource = this.source || (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
       const improvement = this.source ? undefined : improvementAt(original), site = sites?.get(cell);
-      if (!resource && !improvement && !site) { this.deleteRecipe(cell); continue; }
-      const step = stepAt(cell, improvement);
-      const entry = { cell, resource, improvement, site, level, step }; this.entries.push(entry);
+      const damage = this.source ? undefined : original.damagedImprovement?.id;
+      if (!resource && !improvement && !site && !damage) { this.deleteRecipe(cell); continue; }
+      const step = stepAt(cell, damage ? improvementBaseRow(damage) : improvement);
+      const entry = { cell, resource, improvement, damage, site, level, step }; this.entries.push(entry);
       let recipe = this.recipes.get(cell);
-      if (!recipe || recipe.tile !== tile || recipe.original !== original || recipe.resource !== resource || recipe.improvement !== improvement || recipe.site !== site || recipe.step !== step) {
+      if (!recipe || recipe.tile !== tile || recipe.original !== original || recipe.resource !== resource || recipe.improvement !== improvement || recipe.damage !== damage || recipe.site !== site || recipe.step !== step) {
         this.deleteRecipe(cell); recipe = this.createRecipe(original, tile, entry); this.recipes.set(cell, recipe);
       }
       this.placements.push(...recipe.placements);
@@ -316,12 +322,13 @@ export class PaintedWorksLayer {
         const tile = preparedMap.tiles[cell]; if (!tile) continue;
         const resource = (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
         const improvement = improvementAt(original);
-        if (!resource && !improvement) continue;
-        const step = stepAt(cell, improvement), recipe = this.recipes.get(cell);
+        const damage = original.damagedImprovement?.id;
+        if (!resource && !improvement && !damage) continue;
+        const step = stepAt(cell, damage ? improvementBaseRow(damage) : improvement), recipe = this.recipes.get(cell);
         if (recipe && recipe.tile === tile && recipe.original === original && recipe.resource === resource && recipe.improvement === improvement
-          && recipe.site === undefined && recipe.step === step) continue;
+          && recipe.site === undefined && recipe.damage === damage && recipe.step === step) continue;
         this.deleteRecipe(cell);
-        this.recipes.set(cell, this.createRecipe(original, tile, { cell, resource, improvement, level: HIDDEN, step }));
+        this.recipes.set(cell, this.createRecipe(original, tile, { cell, resource, improvement, damage, level: HIDDEN, step }));
       }
       return true;
     };
@@ -345,15 +352,16 @@ export class PaintedWorksLayer {
   }
 
   private createRecipe(original: Tile, tile: Tile, entry: PaintedWorksEntry): Recipe {
-    const recipe: Recipe = { tile, original, resource: entry.resource, improvement: entry.improvement, site: entry.site, step: entry.step, props: [], patches: [], placements: [] };
+    const recipe: Recipe = { tile, original, resource: entry.resource, improvement: entry.improvement, site: entry.site, damage: entry.damage, step: entry.step, props: [], patches: [], placements: [] };
     // Resource-only cells never need field clipping. Avoid tessellating a
     // second world just to place their few instanced silhouettes.
     const terraced = entry.improvement === 'terraces';
-    const top = entry.improvement || entry.site ? ((terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as [BufferGeometry, BufferGeometry]) : null;
+    const top = entry.improvement || entry.site || entry.damage ? ((terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as [BufferGeometry, BufferGeometry]) : null;
     const localSurface = top ? createTileSurfaceSampler(top[0], Math.sqrt(3) * (tile.col + tile.row % 2 * .5), tile.row * 1.5) : null;
     const height = (x: number, z: number): number => (localSurface ? localSurface(x, z) : samplePaintedSurface(original, x, z)) ?? surfaceHeight(tile, x, z) as number;
     try {
-      this.art.tile(tile, terraced ? { ...entry, improvement: undefined } : entry, top?.[0], {
+      const drawn = entry.damage ? { ...entry, damage: improvementBaseRow(entry.damage) } : terraced ? { ...entry, improvement: undefined } : entry;
+      this.art.tile(tile, drawn, top?.[0], {
         sampleSurface: height, preciseFit: true,
         prop: (geometry: BufferGeometry, material: MeshStandardMaterial, x: number, y: number, z: number,
           sx: number, sy: number, sz: number, yaw = 0, tint: number | Color = 0xffffff): void => {

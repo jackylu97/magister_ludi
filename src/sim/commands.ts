@@ -83,6 +83,7 @@ import {
   tileOwnerPlayerId,
   tilePurchaseError,
   unitProductionCost,
+  openWaitingDoctrineOffer,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
@@ -101,6 +102,8 @@ import {
   pillageError,
   prospectAt,
   prospectError,
+  repairImprovementAt,
+  repairImprovementError,
   removeImprovementAt,
   removeImprovementError,
 } from './improvements';
@@ -197,6 +200,7 @@ import {
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
+  orderOpensChairs,
   recordScalingOccasion,
   refitSlots,
   settleDoctrineChoice,
@@ -785,6 +789,11 @@ interface ProspectCommand extends PlayerCommand {
  */
 interface RemoveImprovementCommand extends PlayerCommand {
   type: 'removeImprovement';
+  unitId: number;
+}
+
+interface RepairImprovementCommand extends PlayerCommand {
+  type: 'repairImprovement';
   unitId: number;
 }
 
@@ -1778,6 +1787,7 @@ export type Command =
   | BuildImprovementCommand
   | ChopFeatureCommand
   | ProspectCommand
+  | RepairImprovementCommand
   | RemoveImprovementCommand
   | PillageCommand
   | PurchaseTileCommand
@@ -3320,29 +3330,16 @@ function applyProspect(state: GameState, command: ProspectCommand): CommandResul
   return result;
 }
 
-/**
- * Takes a farm back up. See `RemoveImprovementCommand`, and `improvements.ts`
- * for the rules.
- *
- * `applyChopFeature`'s twin, question for question: is this a real seat, may it
- * still act, is that its unit — and everything about the *work* delegated whole
- * to `removeImprovementError`, which is what the unit sheet greys its Remove row
- * with. So an offered row is a command this accepts, and the sentence a player
- * reads on a refusal is this reducer's own.
- *
- * Nothing rides back out on the result, and that is the verb rather than an
- * omission: a raid has figures the interface could not derive (`PillageReport`),
- * and this has none — no salvage, no timber, no refund. The board says the whole
- * of what happened, so the panel's ordinary refresh is the whole of the news.
- */
-function applyRemoveImprovement(
+/** Both actions use an owned worker on its tile and spend its remaining movement. */
+function applyWorkerMaintenance(
   state: GameState,
-  command: RemoveImprovementCommand,
+  command: RemoveImprovementCommand | RepairImprovementCommand,
 ): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot remove improvements`);
+    const action = command.type === 'repairImprovement' ? 'repair' : 'remove';
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot ${action} improvements`);
   }
 
   const unit = unitById(state, command.unitId);
@@ -3351,13 +3348,13 @@ function applyRemoveImprovement(
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
 
-  const problem = removeImprovementError(state, unit.id);
+  const repair = command.type === 'repairImprovement';
+  const problem = repair ? repairImprovementError(state, unit.id) : removeImprovementError(state, unit.id);
   if (problem) return fail(problem);
 
-  // Validation is done — `removeImprovementError` has already established that
-  // the unit is on the map and that this empire's own works stand on the hex.
   const tile = getTileAt(state.map, unit.col, unit.row)!;
-  removeImprovementAt(state, unit, tile);
+  if (repair) repairImprovementAt(state, unit, tile);
+  else removeImprovementAt(state, unit, tile);
   return ok();
 }
 
@@ -3596,6 +3593,7 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   const problem = slotOrderError(state, actor.id, command.cardId, command.slotIndex);
   if (problem) return fail(problem);
 
+  const previous = actor.statecraft.slots[command.slotIndex]?.card;
   const outcome = slotOrderAt(state, actor, command.cardId, command.slotIndex);
   // **The law just changed and is read again below** (`forgetTheLaw`'s
   // register): a slotted Order is a source of `liveEffects`, and the grant's
@@ -3603,6 +3601,7 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   // asks the cards since B1. A slate warmed before this command by any reader
   // (the bot's appraisal, a hover) would answer for the deck as it was.
   forgetTheLaw(state);
+  if (orderOpensChairs(previous) || orderOpensChairs(command.cardId)) refitSlots(state, actor, 'reseat');
   payMomentGrants(state, actor, outcome.granted);
   return ok();
 }
@@ -3653,6 +3652,7 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   const problem = unslotOrderError(state, actor.id, command.slotIndex);
   if (problem) return fail(problem);
 
+  const previous = actor.statecraft.slots[command.slotIndex]?.card;
   unslotOrderAt(actor, command.slotIndex);
   // `slotOrderAt`'s announcement, made here because `unslotOrderAt` is a fact
   // about a player alone and takes no state (batch M3, `slate.ts`).
@@ -3661,7 +3661,8 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   // (Magisterial batch MG12, The Mixed Constitution; the triage's reading 24),
   // the council is re-seated at once by the plain rule. Made here for the
   // reason above: `unslotOrderAt` takes no state, and the fit is read from it.
-  settleCouncilFit(state, actor);
+  const returned = settleCouncilFit(state, actor);
+  if (orderOpensChairs(previous) || returned.some(orderOpensChairs)) refitSlots(state, actor, 'reseat');
   return ok();
 }
 
@@ -3712,6 +3713,7 @@ function applySkipDoctrineOffer(state: GameState, command: SkipDoctrineOfferComm
   if (problem) return fail(problem);
 
   settleDoctrineSkip(actor);
+  openWaitingDoctrineOffer(state, actor);
   return ok();
 }
 
@@ -3746,6 +3748,7 @@ function applyChooseDoctrine(
   // The Arthashastra). After the law is forgotten, because the count reads it. A
   // resize and not a re-seating, so no card moves. `refitSlots` announces itself.
   refitSlots(state, actor);
+  openWaitingDoctrineOffer(state, actor);
   // **A Doctrine that bans routes abroad ends them now** (batch TR2, the reading
   // taken on The Sea Ban and The Inward Roads, `docs/flags.md` (ggggggg)). A
   // route has no term to run out, so a route already abroad would otherwise run
@@ -4811,6 +4814,7 @@ function orderedUnitId(command: Command): number | undefined {
     case 'prospect':
     // A worker told to take a farm up is a piece given an order, exactly as one
     // told to lay it down is — the act spends its whole turn either way.
+    case 'repairImprovement':
     case 'removeImprovement':
     case 'pillage':
     // An augur told to consecrate is an augur given an order, so it wakes like
@@ -4998,6 +5002,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   buildImprovement: 'economy',
   chopFeature: 'economy',
   prospect: 'economy',
+  repairImprovement: 'economy',
   removeImprovement: 'economy',
   pillage: 'economy',
   purchaseTile: 'economy',
@@ -5214,8 +5219,9 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChopFeature(state, command);
     case 'prospect':
       return applyProspect(state, command);
+    case 'repairImprovement':
     case 'removeImprovement':
-      return applyRemoveImprovement(state, command);
+      return applyWorkerMaintenance(state, command);
     case 'pillage':
       return applyPillage(state, command);
     case 'purchaseTile':

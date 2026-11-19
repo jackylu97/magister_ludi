@@ -150,6 +150,8 @@ import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './
 import { cityTimedWithRite, riteOfferingHammers } from './religion';
 import {
   chairCount,
+  refitSlots,
+  chairLayoutUnder,
   chairFitFor,
   councilRefit,
   describeEffects,
@@ -529,7 +531,12 @@ function ghostPair(
       // chairs are the ones the command would leave, so The Arthashastra's stamp
       // does not claim to double the card in today's last Wildcard chair.
       const ghost = ghostSeatUnderDoctrine(player, subject.id, state.turn);
-      return ghost.side === 'with' ? forward(ghost.seat) : backward(ghost.seat);
+      const board = swap(ghost.seat);
+      ghost.seat.statecraft.slots = sc.slots.slice();
+      ghost.seat.malices = player.malices.map((malice) => ({ ...malice }));
+      // Choosing a Doctrine returns the card in a closed chair to the collection.
+      refitSlots(board, ghost.seat);
+      return ghost.side === 'with' ? { without: state, with: board } : { without: board, with: state };
     }
     case 'government': {
       // **The re-seating is the adoption** (`adoptGovernmentAt`, batch C2): the
@@ -565,6 +572,7 @@ function ghostPair(
       // The fit the old council grants, as the adoption reads it (Magisterial
       // batch MG12), and the second re-seating the adoption makes when the
       // card that widened it found no chair.
+      ghost.statecraft.extraTypedChairs = chairLayoutUnder(state, player.id, subject.id);
       reseatCouncil(ghost, sc.slots, state.turn, chairFitFor(state, player.id));
       const adopted = swap(ghost);
       const refit = councilRefit(adopted, player.id);
@@ -1079,20 +1087,14 @@ function meterTotal(state: GameState, playerId: number, meter: MeterId): number 
   return meter === 'happiness' ? happinessOf(state, playerId) : authorityOf(state, playerId);
 }
 
-/**
- * A meter movement, **at the precision a meter is read at**: one tenth, which is
- * `signedFigure`'s rule on the top bar's own chips.
- *
- * Not fastidiousness. Happiness folds a list carrying fractional terms — a
- * demand line multiplied by a `meterRule` factor, a court's share of one — so the
- * difference between two folds is subject to IEEE addition, and Festival Days'
- * four contentment arrives here as `3.9999999999999996`. Rounded at the reading
- * rather than at the printer because a card's stamp is not the only thing that
- * will ever ask this list what a card pays, and a figure that is four everywhere
- * but in one caller's string is the drift that costs an afternoon.
- */
+/** Keep fractional meter changes in the ledger. A subtraction of two meter
+ * totals can leave a rounding error at a whole or tenth (for example, four
+ * points of happiness). Snap only within the precision of those totals. */
 function meterMoved(from: number, to: number): number {
-  return Math.round((to - from) * 10) / 10;
+  const delta = to - from;
+  const tenth = Math.round(delta * 10) / 10;
+  const precision = Number.EPSILON * Math.max(1, Math.abs(from), Math.abs(to));
+  return Math.abs(delta - tenth) <= precision ? tenth : delta;
 }
 
 /**
@@ -1202,7 +1204,7 @@ export interface CardImpactSheet {
   readonly empireLines: () => Map<string, CityYields>;
   readonly meter: (meter: MeterId) => number;
   /** Renown each turn on this board (`renownPerTurn`). */
-  readonly renown: () => number;
+  readonly renownPerTurn: () => number;
   readonly cardSums: (city: City) => Map<string, CityYields>;
   readonly context: (city: City) => TileYieldContext | undefined;
   readonly tileAdds: (city: City, tile: Tile) => readonly TileYieldContribution[];
@@ -1240,7 +1242,7 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
       }
       return held;
     },
-    renown: () => (renown ??= renownPerTurn(state, playerId)),
+    renownPerTurn: () => (renown ??= renownPerTurn(state, playerId)),
     // **The card's own flats out of the town's published list** (batch E2 for
     // the list, E3b for the selector), rather than a private walk of the same
     // evaluator: the real board's card lines are what `readCity` has already
@@ -1470,12 +1472,10 @@ function ghostDiffLines(
 
   // 4b. Renown each turn (stage 7): the fold of `explainRenown`'s recurring
   //     half on both boards, summed over every family, and the difference.
-  //     Exact rather than rounded to a tenth as the meters are: the In play
-  //     screen reads the same two folds and subtracts them the same way, so
-  //     the two readings agree to the last bit.
+  //     The In Play screen also reads the difference between these two folds.
   const renownMoved =
-    (isReal(held) ? shared!.renown() : renownPerTurn(held, playerId)) -
-    (isReal(without) ? shared!.renown() : renownPerTurn(without, playerId));
+    (isReal(held) ? shared!.renownPerTurn() : renownPerTurn(held, playerId)) -
+    (isReal(without) ? shared!.renownPerTurn() : renownPerTurn(without, playerId));
   if (renownMoved !== 0) {
     const line = emptyLine(RENOWN_WORD, 'renown');
     line.amount = renownMoved;
@@ -1567,7 +1567,7 @@ export function explainRitePreview(
   };
   const name = riteDef(rite).name;
   const lines = ghostDiffLines(state, playerId, { without: state, with: ghost }, name, sheet);
-  const hammers = riteOfferingHammers(state, playerId, rite);
+  const hammers = riteOfferingHammers(state, playerId, rite, city);
   if (hammers > 0) {
     const line = emptyLine(name, 'occasion');
     line.occasion = occasionWords('rite', false);

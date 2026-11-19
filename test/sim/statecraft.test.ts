@@ -58,6 +58,7 @@ import {
 import {
   type BuildingId,
   BUILDING_IDS,
+  isBuildingId,
   buildingDef,
 } from "../../src/sim/buildingData";
 import {
@@ -437,6 +438,7 @@ describe("the card table", () => {
       "theSteppeConfederacy",
       "theMarianReforms",
       "theSoldiersShare",
+      "theCitizenPhalanx",
     ]);
     expect(dominionPool(GOVERNMENT_TIERS[1]!)).toEqual([
       "theConsularRoads",
@@ -2321,7 +2323,8 @@ describe("determinism", () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -4480,7 +4483,7 @@ describe("the master-list cut of 2026-08-28, second pass", () => {
       "-4 combat strength",
     ]);
     expect(said("theStandingLevy")).toEqual([
-      "every 12 turns, the best melee unit you can build musters in your capital",
+      "every 12 turns, a melee unit musters in your capital",
     ]);
     expect(said("theLegion")).toEqual([
       "melee units: +1 movement",
@@ -7749,6 +7752,10 @@ describe("a charter carries the description of the building it opens", () => {
         .effects.filter((effect) => effect.kind === "unlocksBuilding")
         .map((effect) => ({ card: id as string, building: effect.building })),
     ),
+    ...ORDER_IDS.flatMap((card) => {
+      const building = orderDef(card).charter?.unlocks.building;
+      return building && isBuildingId(building) ? [{ card, building }] : [];
+    }),
     ...DOCTRINE_IDS.flatMap((id) =>
       doctrineDef(id)
         .effects.filter((effect) => effect.kind === "unlocksBuilding")
@@ -7756,14 +7763,10 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the eighteen rows that open one", () => {
-    // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
-    // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
-    // fourteenth joins this list by being a JSON row, and inherits every claim
-    // below. Scientific batch S8's The Forward Plans is that fourteenth: it
-    // opens the University early, in a town whose Library is old. Batch DT15's
-    // The House of Worship adds four, one for each faith house.
-    expect(OPENERS.length).toBe(18);
+  it("finds every card that opens a building through an effect or a charter", () => {
+    // The Senate Charter gives permanent access to the Assembly Hall when drafted.
+    expect(OPENERS).toContainEqual({ card: "theSenateCharter", building: "assemblyHall" });
+    expect(OPENERS).toHaveLength(20);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -7774,7 +7777,7 @@ describe("a charter carries the description of the building it opens", () => {
         // whose own name carries the article (batch S2, `theBuilding`).
         // "every devout city may buy with faith the Mosque (…), the Wat (…)" is
         // The House of Worship, which opens four bought rows in one sentence.
-        .filter((text) => text.includes("unlocks ") || text.includes(" may buy with "));
+        .filter((text) => text.includes("unlocks ") || text.includes(" may buy with ") || text.startsWith("you may build ") || text.startsWith("you may buy "));
       // A card may open several rows (The House of Worship). A retired row
       // prints no mark, and that card opens one row, so it takes the first.
       const clause =
@@ -7805,6 +7808,11 @@ describe("a charter carries the description of the building it opens", () => {
       );
       for (const entry of row) {
         const text = stripRefs(entry.text);
+        const purchase = /^it is bought with (.+) and never built$/.exec(text);
+        if (said.startsWith("you may buy ") && purchase) {
+          expect(said, card).toContain(` with ${purchase[1]}`);
+          continue;
+        }
         if (listed && (text.startsWith("it is bought with ") || text.startsWith("it may be raised only "))) continue;
         expect(said, `${card} → ${building}`).toContain(listed ? text.replace(ownCity, "") : text);
       }
@@ -9190,7 +9198,7 @@ describe("the engine shapes", () => {
     // Magisterial batch MG3: The Privy Council adds one production to every
     // line of your other Orders that pays production, an amplifier by voice
     // with a flat helping (`CardYieldAmplifierEffect.amount`).
-    "thePrivyCouncil · cardYieldAmplifier",
+    "thePrivyCouncil · slotPosition",
     // Magisterial batch MG10: The Grand Vizier pays the card in the first
     // Economic chair twice, the first live row of the chair reader since the
     // retired shelf above. The Divine Proportion doubles what the other Orders
@@ -9322,6 +9330,8 @@ describe("the engine shapes", () => {
       "tetzcotzinco · cityRenownPercent",
       "funduq · routeYield",
       "funduq · routeYield",
+      "ironPillar · buildingYieldPercent",
+      "greatStelaeOfAksum · routeYield",
       // No technology carries one of these shapes since batch TT1
       // (`docs/flags.md` (iiiiiii)): Chronology's and Horology's clocks, and the
       // route pay of Daughter Cities, The Silk Road and The Golden Roads, were
@@ -11530,11 +11540,11 @@ describe("D2b — counts and reach", () => {
       })
         .filter((line) => line.card === "theLearnedPatron")
         .reduce((sum, line) => sum + line.science, 0);
-    expect(beakers(40)).toBe(6);
+    expect(beakers(40)).toBe(12);
     // Batch DS7 removed The Learned Patron's cap of 18 a town, so the share
     // grows with the culture: 120 culture pays 18 and 400 pays 60.
-    expect(beakers(120)).toBe(18);
-    expect(beakers(400)).toBe(60);
+    expect(beakers(120)).toBe(36);
+    expect(beakers(400)).toBe(120);
     // And the scope is still what admits the town at all.
     city.buildings.length = 0;
     bumpRevision(g.state);

@@ -272,8 +272,9 @@ describe('nothing the list leaves pressable is refused', () => {
       }
       for (const row of rows(shelves)) {
         if (row.kind === 'unit' && !row.enabled) {
-          // Kept although it cannot be queued: it can be bought.
-          expect(row.cells.some((cell) => cell.look.look !== 'none'), row.name).toBe(true);
+          // A row short of resources stays visible with its supply requirement.
+          if (row.wantsResource && !row.tooSmall) expect(row.blocked, row.name).toBeTruthy();
+          else expect(row.cells.some((cell) => cell.look.look !== 'none'), row.name).toBe(true);
         }
         if (row.kind === 'building' && !row.enabled) {
           expect(row.blocked !== null || row.queued !== null, row.name).toBe(true);

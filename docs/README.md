@@ -56,8 +56,17 @@ Reference: **`docs/mapgen.md`** · data: `data/mapgen.json` · code:
   arguments**. The map is not stored in a save; it is regenerated, so anything
   that made the map is in the config.
 - **Nothing may regenerate a tile mid-game.** Features and resources are placed
-  once, in `newGame`. The only mutable tile fields are `improvement`, `feature`,
+  once, in `newGame`. The only mutable tile fields include `improvement`, `improvedOn`, `damagedImprovement`, `feature`,
   `discovery`, `road`, `vein`, `surveyed`.
+- A pillaged work stops providing yields, resource access and bonuses. Orders
+  count the tile as unimproved. Damaged models and ash mark the site. Land
+  improvements also show embers on the turn of the raid. Crossed spears mark
+  the site on the map. The
+  tile panel names the damaged work. A worker
+  in its own territory can repair it, including a great person's work or a
+  fishing boat. Repair uses the worker's remaining movement and costs no
+  charge. It restores the original construction turn. It gives no build
+  rewards and restores no road. A new improvement replaces the damaged work.
 - Generation is two noise fields plus ordered passes: the pangaea mask and its
   island belt, terrain and hills, forest/jungle and the clearings punched through
   them, lakes, coast, the shelf chains, rivers, floodplains, freshwater, then
@@ -382,9 +391,7 @@ Reference: **`docs/units.md`** (the roster; generated) and
      the movement to reach a hex beyond it; `canTransit` admits it, `canStopOn`
      refuses it, and the pass costs the ground and nothing more. A hostile piece
      blocks as it always did, and the wild is at war with everybody.
-  2. **Zone of control is a war toll.** `zocField` counts only the pieces, towns
-     and (under the Great Wall) borders of seats this empire is at war with. A
-     neighbour at peace exerts none.
+  2. **Zone of control** adds a movement cost near hostile units and cities. The Great Wall reduces an enemy’s movement allowance when it starts a turn in the owner’s territory.
   3. **The swap.** A military piece ordered onto a hex holding one of its own
      seat's military pieces trades places with it: the mover walks its route, the
      sitter walks the reverse, and the order is accepted only if **both** walks
@@ -963,7 +970,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     of it. A deficit is never moved, and a town in unrest moves nothing.
   - A production percentage can join the **empire stage** (`stage: 'empire'`),
     so it multiplies what the town's own bonuses made (The Marian Reforms'
-    half speed).
+    25% reduction).
   - A hex test asks whether a **fortified military unit** of the empire stands
     on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
     the `fortifiedUnits` count counts those units inside a town's borders. A write
@@ -1051,9 +1058,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `resetMovement` carries it.
   - The `opusSiege` behaviour rule (Circumvallation) is read in the *rival's*
     town: `explainOpusGate` (`yields/town.ts`), the second gate of step 13 in
-    `docs/yields.md`, holds production at nothing while the town builds a
-    Magnum Opus, is `underSiege`, and a holder that can lay a siege has a
-    combat unit beside it (`cardOpusSiegeBy`). The line names the card, and
+    `docs/yields.md`, stops production while
+    the town is `underSiege` and a holder that can lay a siege has a
+    combat unit beside it (`cardOpusSiegeBy`). The town takes double siege damage. The line names the card, and
     the city panel prints it.
   - The `vsMoreTechs` combat condition (The Upstarts) mirrors `vsFewerTechs`
     through `knowsMoreTechs` (`rivals.ts`), and never holds against the wild.

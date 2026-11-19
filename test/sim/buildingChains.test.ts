@@ -195,7 +195,7 @@ describe('a chained building wants its parent standing in the same town', () => 
 // --- the withdrawn rows ------------------------------------------------------
 
 describe('a withdrawn building keeps its row and leaves the game', () => {
-  it('is the eight rows the cut still keeps out, the Terraces hall and the old Keep', () => {
+  it('lists every retired building and wonder', () => {
     expect([...RETIRED].sort()).toEqual(
       [
         // **The Armoury came back** in M2 (`docs/flags.md` (eeeeee), 2026-09-15):
@@ -216,6 +216,7 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
         // field on `routeYield` now (`destination`). Movable Type opens it, as
         // it always did.
         'reliquary',
+        'waterClockOfSuSong',
         'steleOfLaws',
         // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): not a row the
         // fewer-things pass cut, but a hall the user re-cut as a *field* — the

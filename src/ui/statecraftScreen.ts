@@ -223,7 +223,7 @@ const POSITION_READING_COUNTS: readonly CountKind[] = [];
 function readsSlotPosition(effect: CardEffect): boolean {
   // Batch A shipped the position reader as a modifier (`slotPosition`), not a
   // count: "the Order in your first economic slot pays twice" reads a chair.
-  if (effect.kind === 'slotPosition') return true;
+  if (effect.kind === 'slotPosition') return effect.position !== 'all';
   if (effect.kind !== 'pays' || effect.basis !== 'count' || effect.count === undefined) {
     return false;
   }

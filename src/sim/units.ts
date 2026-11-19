@@ -246,10 +246,10 @@ function hasEscortRoom(
  * so a preview handed a conscript and the simulation marching one agree about
  * what it moves.
  */
-export function fullMovement(unit: Unit, state?: GameState): number {
+export function fullMovement(unit: Unit, state?: GameState, groundOwner?: number | null): number {
   const base = unitDef(unit.type).movement + unitStampMovement(unit);
   if (!state) return Math.max(1, base);
-  return Math.max(1, base + cardUnitStat(state, unit, 'movement'));
+  return Math.max(1, base + cardUnitStat(state, unit, 'movement', groundOwner));
 }
 
 /**

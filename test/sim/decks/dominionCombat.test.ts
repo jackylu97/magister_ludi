@@ -362,7 +362,10 @@ describe('Dominion D2 — the words', () => {
     expect(said('dominionMarchDiscipline')).toEqual([
       'attacking does not break your units’ fortification',
     ]);
-    expect(said('theSwiftRiders')).toEqual(['mounted units may move after attacking']);
+    expect(said('theSwiftRiders')).toEqual([
+      'mounted units may move after attacking',
+      'mounted units pillage without spending movement',
+    ]);
     expect(said('theFabricae')).toEqual([
       '+25% production in every city with a Veteran or better standing in it',
     ]);

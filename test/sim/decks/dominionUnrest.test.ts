@@ -248,16 +248,16 @@ describe('Dominion D4: the counts over this game', () => {
     expect(percentOf(state, home, 'production')).toBe(30);
   });
 
-  it('Spear-won Land pays +3% for every town captured, with no cap', () => {
+  it('Spear-won Land pays +5% for every town captured, with no cap', () => {
     // Batch DS2 cut the +30% cap: conquest limits itself.
     const { state, home } = captured({ orders: ['spearWonLand'] });
     expect(playerById(state, 0)!.citiesCaptured).toBe(1);
-    expect(percentOf(state, home, 'production')).toBe(3);
-    expect(percentOf(state, home, 'science')).toBe(3);
+    expect(percentOf(state, home, 'production')).toBe(5);
+    expect(percentOf(state, home, 'science')).toBe(5);
     playerById(state, 0)!.citiesCaptured = 20;
     touch(state);
-    expect(percentOf(state, home, 'science')).toBe(60);
-    expect(percentOf(state, home, 'production')).toBe(60);
+    expect(percentOf(state, home, 'science')).toBe(100);
+    expect(percentOf(state, home, 'production')).toBe(100);
   });
 });
 
@@ -297,7 +297,7 @@ describe('Dominion D4: pacification', () => {
     expect(player.sciencePool - before).toBe(20 * city.population);
   });
 
-  it('The Bakufu: a great general on the town’s own hex pays +25%, one beside it does not, and neither pacifies it', () => {
+  it('The Bakufu pays a town with a citadel and leaves unrest unchanged', () => {
     // Batch DS2 cut the card's "pacifies it at once" clause.
     const beside = captured({ orders: ['theBakufu'] });
     createUnit(beside.state, 0, 'greatPerson', 7, 4, 'hannibal');
@@ -307,7 +307,7 @@ describe('Dominion D4: pacification', () => {
     expect(beside.city.unrest).toBeDefined();
 
     const inside = captured({ orders: ['theBakufu'] });
-    createUnit(inside.state, 0, 'greatPerson', inside.city.col, inside.city.row, 'hannibal');
+    at(inside.state, inside.city.col + 1, inside.city.row).improvement = 'citadel';
     touch(inside.state);
     expect(percentOf(inside.state, inside.city, 'science')).toBe(25);
     expect(percentOf(inside.state, inside.city, 'culture')).toBe(25);
@@ -369,14 +369,12 @@ describe('Dominion D4: pacification', () => {
 });
 
 describe('Dominion D4: what a town costs the writ', () => {
-  it('The Proconsuls: a captured town with a garrison costs nothing; without one it costs what it did', () => {
-    const plain = captured();
+  it('The Proconsuls give a captured town production and gold', () => {
     const { state, city } = captured({ orders: ['dominionTheProconsuls'] });
-    expect(townWrit(state, city)).toBe(0);
-    const warrior = state.units.find((unit) => unit.col === city.col && unit.row === city.row)!;
-    warrior.col = 7;
-    touch(state);
-    expect(townWrit(state, city)).toBe(townWrit(plain.state, plain.city));
+    expect(percentOf(state, city, 'production')).toBe(25);
+    expect(percentOf(state, city, 'gold')).toBe(25);
+    const home = state.cities.find((town) => town.ownerId === 0 && !town.captured)!;
+    expect(percentOf(state, home, 'production')).toBe(0);
   });
 
   it('The Universal Monarchy: a captured town costs nothing and a founded one costs twice as much', () => {
@@ -413,14 +411,14 @@ describe('Dominion D4: the words', () => {
       'pacifying a city grants science equal to 20 times its population',
     ]);
     expect(said('spearWonLand')).toEqual([
-      '+3% production and +3% science per city you have captured this game',
+      '+5% production and +5% science per city you have captured this game',
     ]);
     expect(said('theBakufu')).toEqual([
-      '+25% science and +25% culture in every city with a great general standing in it',
+      '+25% production, +25% science and +25% culture in every city with a Citadel',
     ]);
     expect(said('paxRomana')).toEqual(['a city you capture is pacified at once']);
     expect(said('dominionTheProconsuls')).toEqual([
-      'the authority a captured city with a unit standing in it costs is 0',
+      '+25% production and +25% gold in every captured city',
     ]);
     expect(said('theConsularRoads')).toEqual([
       '+5 science, +5 culture in every city joined to your capital by road with a unit standing in it',
@@ -434,6 +432,16 @@ describe('Dominion D4: the words', () => {
 });
 
 describe('Dominion D3 follow-ups', () => {
+  it('The Foederati give the citizens to the capital when a different town receives the camp provisions', () => {
+    const state = flat();
+    const capital = foundCityAt(state, 0, at(state, 2, 2));
+    foundCityAt(state, 0, at(state, 12, 7));
+    slot(state, 0, 'dominionTheFoederati');
+    const before = capital.population;
+    settleCampBounty(state, 0, { col: 12, row: 6 });
+    expect(capital.population).toBe(before + 2);
+  });
+
   it('The Outriders’ hammers settle at once in every town, not only the one nearest the camp', () => {
     const state = flat();
     foundCityAt(state, 0, at(state, 2, 2));

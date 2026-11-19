@@ -159,6 +159,7 @@ const SITE_INDEX: Record<SiteKind, number> = {
  * two different boards hash alike.
  */
 const NOTE_INDEX = 5;
+const DAMAGE_INDEX = 6;
 
 /**
  * May this seat be shown this kind of site at all?
@@ -293,15 +294,17 @@ export class SiteLayer {
      * pin is added first so the paper is drawn over its top in the one bucket
      * where draw order still decides anything.
      */
-    const plant = (tile: Tile, kind: DiscoveryKind, atlas: TileIcons): void => {
+    const plant = (tile: Tile, kind: DiscoveryKind | 'pillaged', atlas: TileIcons): void => {
       const centre = cellCenter(tile.col, tile.row);
-      const x = centre.x - LENS.resourceMarkerOffsetX;
-      const z = centre.z - LENS.resourceMarkerOffset;
+      const damaged = kind === 'pillaged';
+      // Keep the raid marker clear of the resource and survey pins.
+      const x = centre.x + (damaged ? LENS.resourceMarkerOffsetX : -LENS.resourceMarkerOffsetX);
+      const z = centre.z + (damaged ? LENS.resourceMarkerOffset : -LENS.resourceMarkerOffset);
       const ground = tileTopY(tile);
       const cell = tileIndex(map, tile.col, tile.row);
       collector.add(
         geometry.resourceStem,
-        [LENS.resourceStemColor],
+        [damaged ? VIEW3D.palette.warRed! : LENS.resourceStemColor],
         new Matrix4().compose(
           new Vector3(x, ground + LENS.glyphLift, z),
           new Quaternion(),
@@ -316,7 +319,7 @@ export class SiteLayer {
         { outlined: false, tile: cell },
       );
       collector.add(
-        geometry.siteMarkers[kind],
+        damaged ? geometry.axisMarkers.war : geometry.siteMarkers[kind],
         // No ink of its own — the quad *is* the texture. See the same note on
         // the resource markers and on the unit badges.
         [],
@@ -388,8 +391,10 @@ export class SiteLayer {
     // as the resource lens draws nothing under the same condition.
     for (const tile of map.tiles) {
       const kind = tile.discovery;
-      if (kind === undefined) continue;
+      if (kind === undefined && !tile.damagedImprovement) continue;
       if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
+      if (tile.damagedImprovement && icons) plant(tile, 'pillaged', icons);
+      if (kind === undefined) continue;
       // The gate, before the fog and before the atlas: a seat with no word for
       // buried antiquities is shown neither the mound nor the pin over it. See
       // `seatSeesKind`.
@@ -534,6 +539,10 @@ export function signSites(state: GameState, seat: number | null = null): number 
     if (seatSeesNote(state, seat, tile)) {
       h = Math.imul(h ^ i, 16777619);
       h = Math.imul(h ^ NOTE_INDEX, 16777619);
+    }
+    if (tile.damagedImprovement) {
+      h = Math.imul(h ^ i, 16777619);
+      h = Math.imul(h ^ DAMAGE_INDEX, 16777619);
     }
     const kind = tile.discovery;
     if (kind === undefined) continue;

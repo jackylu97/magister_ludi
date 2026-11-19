@@ -79,7 +79,7 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('works by the age of their owner',
         for (const model of models) { expect(loaded.has(model), `${improvement}: ${model}`).toBe(true); named.add(model); }
       }
     }
-    // Every model made for the earlier ages is drawn by some row (the rack is the farm's `rack` flag).
+    // The farm's rack has its own switch because it needs extra space in the yard.
     for (const model of NORTH_STAR_AGED_WORK_ASSETS as string[]) expect(named.has(model) || model === 'ns-rack', model).toBe(true);
   });
 
@@ -104,7 +104,7 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('works by the age of their owner',
       1: { farm: 'ns-granary', mine: 'ns-mine-pit', quarry: 'ns-quarry-cut', pasture: 'ns-shelter', lumbermill: 'ns-lumber-camp', plantation: 'ns-granary' },
       2: { farm: 'ns-thatch-barn', mine: 'ns-mine-winch', quarry: 'ns-quarry-frame', pasture: 'ns-shelter', lumbermill: 'ns-lumber-camp', plantation: 'ns-thatch-barn' },
       3: { farm: 'ns-windmill', mine: 'mine', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'lumbermill', plantation: 'ns-barn' },
-      4: { farm: 'ns-windmill', mine: 'mine', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'lumbermill', plantation: 'ns-barn' },
+      4: { farm: 'ns-windmill', mine: 'ns-mine-headframe', quarry: 'ns-quarry', pasture: 'ns-stable', lumbermill: 'ns-saw-hall', plantation: 'ns-loft-barn' },
     };
     for (const age of [1, 2, 3, 4]) {
       setAge(age);
@@ -114,12 +114,40 @@ describe.skipIf(!VIEW3D.visualTest.northStar)('works by the age of their owner',
     }
     // The first farm has sheaves beside its store (and the drying rack where the yard has room); a later farm has haystacks.
     setAge(1); expect(modelsAt(cells.farm!)).toContain('ns-sheaf'); expect(modelsAt(cells.farm!)).not.toContain('ns-haystack');
-    // Ages 3 and 4 share their models: a farm with no windmill is the barn with its haystacks in both (the user, 2026-11-16).
+    // Both late ages keep the mix of windmills and barns with haystacks.
     works.windmillShare = 0;
-    for (const age of [3, 4]) { setAge(age); expect(modelsAt(cells.farm!)).toEqual(expect.arrayContaining(['ns-barn', 'ns-haystack'])); }
-    expect((NORTH_STAR_WORK_AGES as Record<string, unknown[]>).farm![2]).toEqual((NORTH_STAR_WORK_AGES as Record<string, unknown[]>).farm![3]);
+    setAge(3); expect(modelsAt(cells.farm!)).toEqual(expect.arrayContaining(['ns-barn', 'ns-haystack']));
+    setAge(4); expect(modelsAt(cells.farm!)).toEqual(expect.arrayContaining(['ns-loft-barn', 'ns-haystack']));
     // The owner is in the last age, but a farm nobody owns stays at the first step.
     setAge(4); expect(modelsAt(cells.unowned!)).toContain('ns-granary');
+  });
+
+  it('swaps a pillaged work for its broken model and restores it after repair', () => {
+    works.byAge = true;
+    works.windmillShare = 0;
+    const { state, cells, setAge, modelsAt } = fixture();
+    setAge(4);
+    for (const [work, healthy, broken] of [
+      ['farm', 'ns-loft-barn', 'ns-pillaged-grain-loft'],
+      ['pasture', 'ns-stable', 'ns-pillaged-pasture'],
+      ['mine', 'ns-mine-headframe', 'ns-pillaged-mine-hoist'],
+      ['quarry', 'ns-quarry', 'ns-pillaged-quarry'],
+      ['lumbermill', 'ns-saw-hall', 'ns-pillaged-saw-hall'],
+    ] as const) {
+      const cell = cells[work]!;
+      const tile = state.map.tiles[cell]!;
+      const before = signPaintedWorks(state);
+      expect(modelsAt(cell)).toContain(healthy);
+      tile.damagedImprovement = { id: work };
+      delete tile.improvement;
+      expect(signPaintedWorks(state)).not.toBe(before);
+      expect(modelsAt(cell)).toContain(broken);
+      expect(modelsAt(cell)).not.toContain(healthy);
+      delete tile.damagedImprovement;
+      tile.improvement = work;
+      expect(modelsAt(cell)).toContain(healthy);
+      expect(signPaintedWorks(state)).toBe(before);
+    }
   });
 
   it('moves the fingerprint when the owner enters a new age, and not for a technology inside an age', () => {

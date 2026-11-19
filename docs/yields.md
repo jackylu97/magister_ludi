@@ -115,7 +115,7 @@ a town's list, an empire's lines or its meters read where a piece stands, and
 | upkeep rebate with `where: 'garrison'` | who stands in a town | either hex is a town, and the owner's law holds such a row |
 | upkeep rebate or surcharge with `where: 'ownTerritory'` or `'foreignTerritory'` | which side of the border | the step crosses the owner's border, and the owner's law holds such a row (`upkeepAsksWhere`) |
 | `cityBlockaded` | a foreign hull in a harbour mouth | the piece blockades |
-| `cardOpusSiegeBy`, `siegeField` under `explainOpusGate` | who stands around a town building the Opus | the piece is a soldier, and an empire holds `opusSiege` |
+| `cardOpusSiegeBy`, `siegeField` under `explainOpusGate` | who stands around a besieged town | the piece is a soldier, and an empire holds `opusSiege` |
 
 Three other writes of a plain order announce for themselves. A road announces when a
 laden caravan paved a hex (`advanceAlongPath`). A seat's sight announces when a hex is
@@ -162,7 +162,7 @@ reads remembered answers while it runs and not all its writes announce.
 Fourteen steps. Steps 1–11 are `explainCity`, which returns **flats** and a
 **percent list** and applies neither to the other; steps 12 to 14 are
 `foldCity`: the two stages, which are the only place in the simulation a yield
-meets a percentage, then the gates (unrest, and a siege on the Magnum Opus),
+meets a percentage, then the gates (unrest, and a siege or an interdict),
 then the food surplus a card moves into production, then the production a rite
 moves into culture.
 
@@ -170,7 +170,7 @@ moves into culture.
 |---|---|---|---|---|
 | 1 | **The centre** — `foldCentre` (`explainCentreYield`) | the base city yield, plus the town hex's own reading as an *excess* over it | additive | — |
 | 2 | **Each worked hex** — `foldTile` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with three shares inside it — see below) | — |
-| 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
+| 3 | **The cards' city lines** — `explainCardCityYields` | city pay, including a separate line for each card and wonder when The Spirit Way gives a town a great-person work | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
 | 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers. Then, under The Return Leg's rule (`homeRoutesPayOrigin`), a copy of what each domestic route leaving the town pays its destination (`cityReturnLegYields`), line for line, filed under the card | additive | — |
@@ -180,7 +180,7 @@ moves into culture.
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
-| 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. Then the gate on the Opus: a town building a Magnum Opus makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it (Circumvallation, Dominion batch D14), or while it follows a religion a rival is paid by and that rival's law holds the `opusInterdict` rule (`cardOpusInterdictBy`; The Interdict, Devotion batch DV7). One line that names the rival's card; the siege names it when both hold | holds the voice at nothing | — |
+| 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. A town makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it (Circumvallation, Dominion batch D14), or while it is building the Magnum Opus and follows a religion a rival is paid by and that rival's law holds the `opusInterdict` rule (`cardOpusInterdictBy`; The Interdict, Devotion batch DV7). One line that names the rival's card; the siege names it when both hold | holds the voice at nothing | — |
 | 14 | **The surplus moved** — `explainSurplusMoved`, then **the production moved** — `explainProductionMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production a gate of step 13 stops moves nothing. Then the production moved (Devotion batch DV4): while the town keeps a rite that moves its production into culture (the Rite of the Sabbath, `productionMoverFor`), all of its production after the lines above becomes culture, one labelled line, and the basket gains none of it | additive; the surplus moved adds to production, and the production moved takes it all and adds it to culture | — |
 
 ### Inside step 2 — the hex
@@ -400,20 +400,14 @@ banking (Entry XVIII.5).
   gold and faith pass through it untouched. The town's
   list and its percentages above the gate are still its real list, and the city
   panel prints them with the gate's line under them.
-- **The siege on the Opus is the second gate of step 13** (Dominion batch
-  D14, Circumvallation). It holds production at nothing, after both stages and
-  after the unrest gate, for the unrest gate's reason. It asks three things:
-  the row the town builds (`toward`) is a Magnum Opus, a rival whose law holds
-  the `opusSiege` rule has a combat unit beside the town and can lay a siege
-  (`cardOpusSiegeBy`), and the town is under siege (`underSiege`, off its
-  owner's `siegeField`). The line names the besieger's card, not one of the
-  town owner's. The hammers are not banked anywhere else, and step 14 moves
-  nothing into a town this gate has stopped. The rule is a `rule` effect, so
-  the kind stays in the register's silent list: it pays no voice, it only
-  stops one.
+- **Circumvallation stops all production during a siege.** At step 13,
+  `underSiege` checks the town. `cardOpusSiegeBy` checks that an empire
+  with the rule and Siegecraft has a combat unit beside it. The besieger's
+  card labels the production line. Step 14 also stops moving food into
+  production. The town takes double the normal siege damage.
 - **The interdict is the same gate's second question** (Devotion batch DV7,
   The Interdict). If the siege does not stop the town, the gate asks whether
-  a rival's law holds the `opusInterdict` rule and the town follows a
+  the town is building the Magnum Opus, a rival holds `opusInterdict`, and the town follows a
   religion that rival is paid by (`cardOpusInterdictBy`, the `follows` scope
   with the rival as the reader). The first such rival in `realPlayers` order
   names the line. A town is never stopped by its own owner's card. When the
@@ -475,7 +469,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `productionBonus` | | 11 | multiplicative, production only; the city stage, or the empire stage for a row that names it (The Marian Reforms) |
 | `surplusToProduction` | | 14 | additive — the town's food surplus, moved into production after the gate |
 | `productionToCulture` | | 14 | additive — the town's production, moved into culture after the gates and the surplus moved (the Rite of the Sabbath) |
-| `pays` | empire · flat | 18 | additive — the luxuries' signature, and no card row today |
+| `pays` | empire · flat | 18 | additive; luxury signatures and The Encyclopedia's starting yields |
 | `pays` | empire · count | 18, 11 | additive at 18; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
 | `pays` | empire · rate | 18 | additive, off this turn's own rates |
 

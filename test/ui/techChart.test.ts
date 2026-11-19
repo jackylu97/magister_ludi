@@ -665,33 +665,13 @@ describe('packChart', () => {
       }
     }
 
-    // The shipped tree, at the shipped metrics, is laid clear outright: nothing
-    // has to be bowed at all. A future node that forces one is a change worth
-    // seeing in a diff rather than a silent bend.
-    // Revision 4.2's authored shifts created three connectors that span two
-    // columns and thread a packed middle stack — kingship reaching past the
-    // shifted Examination Hall's old column, philosophy past to the shifted
-    // Theology, shipwrights past to Paper Money. None can be nudged clear (the
-    // middle stacks are full at those heights), so all three take the honest
-    // 16px bow the machinery was built for. The exact list is the pin: a
-    // fourth bow is a decision, not a drift.
-    //
-    // Philosophy's bow turned over on 2026-09-03 and the cause is a *face*, not
-    // a lane: Raised Fields stopped unlocking the Terraces (the playtest notes
-    // replaced that building with a farm renewal and the floating gardens), so
-    // its card lost an unlock row, the column it sits in packs a little higher,
-    // and the connector now clears Theology's stack from above instead of from
-    // below. Same three bows, one of them mirrored.
+    // The wonder unlocks change card heights. These four lines need a bend
+    // to clear the middle column at the standard chart width.
     expect(packed.bowed).toEqual([
+      { bow: 16, from: 'currency', to: 'stateWorkforce' },
       { bow: 16, from: 'shipwrights', to: 'paperMoney' },
       { bow: 16, from: 'kingship', to: 'theExaminationHall' },
-      // Stone Walls (item 13) made Siegecraft's card a row taller, which
-      // re-packed column 6 and flipped this bow back below Theology's stack —
-      // and batch D flipped it over again for the same kind of reason: the
-      // buildings cut took the Monastery off Theology's face and the
-      // Examination Hall off its own, so the middle stacks pack differently and
-      // the connector clears from above. Same three bows, one of them mirrored.
-      { bow: 16, from: 'philosophy', to: 'theology' },
+      { bow: -16, from: 'philosophy', to: 'theology' },
     ]);
   });
 
@@ -730,12 +710,8 @@ describe('packChart', () => {
     /** The age-label strip above the cards, measured in Chrome. */
     const STRIP = 22;
     const packed = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
-    // The measured figure, pinned: **606px** of chart under a 22px strip, where
-    // the lanes drew 1032 and overran by 415. A change that moves it is a change
-    // to the card face or to the deepest column, and both are worth a diff.
-    // 526 since batch TT2: Castellany's card, with its two unlocks, took
-    // Divine Right's place in column 9.
-    expect(Math.round(packed.height)).toBe(526);
+    // The new wonder unlocks add one overflow row to the tallest column.
+    expect(Math.round(packed.height)).toBe(541);
     expect(STRIP + packed.height).toBeLessThanOrEqual(STAGE);
     // So nothing is shrunk and nothing scrolls — the two fallbacks stay unused
     // at the size the game is actually played at.

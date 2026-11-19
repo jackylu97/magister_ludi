@@ -1735,19 +1735,15 @@ describe('route slots', () => {
     expect(routeSlots(state, 0)).toBe(2);
   });
 
-  it('reads a card’s routeRider through the one evaluator', () => {
+  it('adds both of Machu Picchu’s routes to the empire', () => {
     const { state, home } = tradeWorld();
-    // The Great Lighthouse carries the first `routeRider` in the game, so the
-    // shape is live rather than declared and forgotten. A wonder's effects are
-    // read off the *board*, so the claim register has to know about it too.
-    home.buildings.push('greatLighthouse');
+    const before = routeSlots(state, 0);
+    home.buildings.push('machuPicchu');
+    claimWonder(state, 'machuPicchu', home);
     bumpRevision(state);
-    claimWonder(state, 'greatLighthouse', home);
     const lines = explainRouteSlots(state, 0);
-    expect(lines).toHaveLength(2);
-    expect(lines[1]!.slots).toBe(1);
-    expect(lines[1]!.source).toMatch(/Lighthouse/);
-    expect(routeSlots(state, 0)).toBe(2);
+    expect(lines.find((line) => line.source.includes('Machu Picchu'))?.slots).toBe(2);
+    expect(routeSlots(state, 0)).toBe(before + 2);
   });
 });
 

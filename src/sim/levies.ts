@@ -54,6 +54,7 @@
 import {
   type WonderCompletion,
   growthThreshold,
+  buildingProductionCost,
   loseCitizen,
   payOccasionRiders,
   realiseItem,
@@ -89,6 +90,7 @@ const LEVY = RULES.cities.levy;
 
 /** One line of the levy menu. See `levyOptions`. */
 export interface LevyOption {
+  faith?: number;
   use: LevyUse;
   /** The card that grants this use, and its name for the line under it. */
   card: CardId;
@@ -122,6 +124,7 @@ interface LevyRiteChoice {
 
 /** What a levy did, for the caller that reports it. */
 interface LevyReport {
+  faith?: number;
   use: LevyUse;
   cityId: number;
   /** The town's population after the levy. */
@@ -177,11 +180,18 @@ export function levyGrantFor(
 ): LevyGrant | undefined {
   const rows = cardLevyGrants(state, playerId, city).filter((row) => row.use === use);
   let best: LevyGrant | undefined;
+  const front = city.queue[0];
+  const localWonder = front?.kind === 'building' && isBuildingId(front.id) && isWonder(front.id);
   for (const row of rows) {
+    if (row.percentOfCost !== undefined && !localWonder) continue;
+    if (row.percentOfCost !== undefined && city.population >= floorOf(row)) return row;
     if (city.population < floorOf(row)) continue;
     if (best === undefined || rankWeight(row) > rankWeight(best)) best = row;
   }
-  if (best !== undefined) return best;
+  if (best !== undefined) {
+    const free = rows.some((row) => row.freeUpkeep && city.population >= floorOf(row));
+    return free ? { ...best, freeUpkeep: true } : best;
+  }
   for (const row of rows) {
     if (best === undefined || floorOf(row) < floorOf(best)) best = row;
   }
@@ -290,6 +300,7 @@ function levyUnitFor(state: GameState, playerId: number, use: LevyUse): UnitType
 
 /** What one use pays from this town, and where — before the citizen leaves. */
 interface LevyPlan {
+  faith?: number;
   hammers: number | null;
   unit: UnitTypeId | null;
   tile: Tile | null;
@@ -303,12 +314,22 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
       return { ...none, hammers: levyHammers(city), target: city };
     case 'opus':
       return { ...none, hammers: levyHammers(city), target: opusWorkshop(state, city.ownerId, city) };
-    case 'wonder':
+    case 'wonder': {
+      const grant = levyGrantFor(state, city.ownerId, city, use);
+      if (grant?.percentOfCost !== undefined) {
+        const front = city.queue[0];
+        if (front?.kind !== 'building' || !isBuildingId(front.id) || !isWonder(front.id)) return none;
+        const cost = buildingProductionCost(front.id, state, city.ownerId);
+        return { ...none, hammers: Math.floor(cost * grant.percentOfCost / 100), target: city };
+      }
       return { ...none, hammers: levyHammers(city), target: wonderWorkshop(state, city.ownerId, city) };
+    }
     // What the rite pays lands in every town and the command names which rite,
     // so there is no figure to read off this town.
     case 'rite':
       return none;
+    case 'faith':
+      return { ...none, faith: city.population * (levyGrantFor(state, city.ownerId, city, use)?.faithPerCitizen ?? 0) };
     case 'muster':
     case 'conscript':
     case 'worker':
@@ -326,14 +347,15 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
 }
 
 /** The menu line's words for a use. */
-function labelFor(use: LevyUse, plan: LevyPlan): string {
+function labelFor(use: LevyUse, plan: LevyPlan, city: City): string {
+  if (use === 'faith') return 'Gain faith';
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
   if (use === 'rite') return 'Perform a rite across your empire';
   if (use === 'wonder') {
     const front = plan.target?.queue[0];
     return front && front.kind === 'building' && isBuildingId(front.id)
-      ? `Send to ${buildingDef(front.id).name}`
+      ? `${plan.target?.id === city.id ? 'Build' : 'Send to'} ${buildingDef(front.id).name}`
       : 'Send to a world wonder';
   }
   return plan.unit === null ? 'Raise a unit' : `Raise ${unitDef(plan.unit).name}`;
@@ -413,7 +435,7 @@ function grantError(state: GameState, city: City, grant: LevyGrant): string | nu
     return 'None of your other towns is building the Magnum Opus';
   }
   if (grant.use === 'wonder' && plan.target === null) {
-    return 'None of your other towns is building a world wonder';
+    return grant.percentOfCost !== undefined ? 'This town must be building a world wonder' : 'None of your other towns is building a world wonder';
   }
   const raises =
     grant.use === 'muster' ||
@@ -461,7 +483,8 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       use,
       card: grant.card,
       cardName: anyCardDef(grant.card).name,
-      label: labelFor(use, plan),
+      label: labelFor(use, plan, city),
+      ...(plan.faith !== undefined ? { faith: plan.faith } : {}),
       hammers: plan.hammers,
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,
@@ -506,7 +529,8 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  */
 export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId): LevyReport {
   const plan = planLevy(state, city, use);
-  const rank = levyGrantFor(state, city.ownerId, city, use)?.rank;
+  const grant = levyGrantFor(state, city.ownerId, city, use);
+  const rank = grant?.rank;
   city.levy = { ...city.levy, turn: state.turn };
   loseCitizen(state, city);
   recordLevy(state, city);
@@ -519,6 +543,11 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
     if (plan.target.id !== city.id) report.targetCityId = plan.target.id;
   }
   const player = playerById(state, city.ownerId);
+  if (plan.faith !== undefined && player) {
+    player.faithPool += plan.faith;
+    bumpEconomy(state);
+    report.faith = plan.faith;
+  }
   if (plan.unit !== null && plan.tile !== null) {
     // Only The Muster of the Fields' unit counts as trained: its text says so.
     // A conscript, a worker and a settler a levy raised are gained, not trained.
@@ -530,6 +559,7 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
       {
         ...(trained ? {} : { untrained: true }),
         ...(rank !== undefined ? { rank } : {}),
+        free: grant?.freeUpkeep === true,
         levied: use,
       },
     );

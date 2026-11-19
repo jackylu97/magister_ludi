@@ -312,6 +312,7 @@ import {
   cityAt,
   settleProductionWindfall,
   settleRanksEarned,
+  unitProductionCost,
 } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
@@ -331,6 +332,7 @@ import {
   takesByWalking,
   tileMoveCost,
 } from './pathfind';
+import { siegeDamageBonus } from './statecraft/evaluator';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -1178,9 +1180,10 @@ export function strikeTownsNear(
  * hands `townShelf`, so walls a card says the town holds count. A caller
  * passing none (the interface, the bot) reads what the town built.
  */
-export function explainCityMaxHp(city: City, shelf: BuildingShelf = city): CityStrengthLine[] {
+export function explainCityMaxHp(city: City, shelf: BuildingShelf = city, state?: GameState): CityStrengthLine[] {
   const lines: CityStrengthLine[] = [{ source: 'Walls', amount: COMBAT.cityBaseHp }];
   for (const line of buildingCityHp(shelf)) lines.push(line);
+  if (state) lines.push(...cardCityStat(state, city, 'hp'));
   return lines;
 }
 
@@ -1190,8 +1193,8 @@ export function explainCityMaxHp(city: City, shelf: BuildingShelf = city): CityS
  * palisade is deeper the same turn and one that is captured is capped by what it
  * actually holds. `shelf` as in `explainCityMaxHp`.
  */
-export function cityMaxHp(city: City, shelf: BuildingShelf = city): number {
-  return foldCityLines(explainCityMaxHp(city, shelf));
+export function cityMaxHp(city: City, shelf: BuildingShelf = city, state?: GameState): number {
+  return foldCityLines(explainCityMaxHp(city, shelf, state));
 }
 
 /**
@@ -1202,8 +1205,8 @@ export function cityMaxHp(city: City, shelf: BuildingShelf = city): number {
  * building today, but a future pillage that did would otherwise leave a town
  * standing above a bar that had shrunk under it.
  */
-function clampCityHp(city: City, shelf: BuildingShelf): void {
-  const max = cityMaxHp(city, shelf);
+function clampCityHp(state: GameState, city: City, shelf: BuildingShelf): void {
+  const max = cityMaxHp(city, shelf, state);
   if (city.hp > max) city.hp = max;
   if (city.hp < 1) city.hp = 1;
 }
@@ -2025,7 +2028,7 @@ function planCombat(
       ? target.city.hp
       : unitHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
     targetMaxHp: target.city
-      ? cityMaxHp(target.city, townShelf(state, target.city))
+      ? cityMaxHp(target.city, townShelf(state, target.city), state)
       : unitMaxHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
     // **The piece on the other side**, whichever side is asking — Lautaro's "+3
     // vs mounted". Absent when the thing opposite is a city, which has no
@@ -2278,7 +2281,7 @@ function planCombat(
     for (const line of own) defenderLines.push({ source: line.source, amount: line.amount });
     defenderName = target.city.name;
     defenderHp = target.city.hp;
-    defenderMaxHp = cityMaxHp(target.city, townShelf(state, target.city));
+    defenderMaxHp = cityMaxHp(target.city, townShelf(state, target.city), state);
   } else {
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
@@ -2765,6 +2768,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 
   // 1 & 2 — the dice, and the damage they decide.
   let defenderDied = false;
+  let captured: WindfallOccasionFacts | undefined;
   if (forecast.plundersUnit) {
     // A laden caravan: destroyed where it stands, its cargo paid to the nearest
     // town the attacker holds. No roll, no counter — see `plundersUnit` on the
@@ -2799,6 +2803,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     );
     payBattleRiders(state, fromOwnerId, 'death', tile, {
       actor: caravan.type,
+      unitCost: caravan.freeUpkeep ? 0 : unitProductionCost(state, fromOwnerId, caravan.type),
       strength: fallenStrength(caravan),
     });
   } else if (!forecast.capturesUnit) {
@@ -2855,7 +2860,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
-        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+        captured = {
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,
@@ -2866,7 +2871,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // halved the population by the time the riders are composed, so the
           // caller is the only thing that still knows.
           population: sackedPopulation,
-        });
+        };
       }
     } else {
       const defender = target.unit!;
@@ -2962,6 +2967,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           );
           payBattleRiders(state, fallenOwner, 'death', tile, {
             actor: defender.type,
+            unitCost: defender.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, defender.type),
             strength: fallenStrength(defender),
             // The piece that was attacked: Songs of the Fallen's losing half.
             defending: true,
@@ -3004,12 +3010,16 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (defenderOwner !== undefined) recordWarLoss(state, fallenOwner, defenderOwner, 'unit');
     payBattleRiders(state, fallenOwner, 'death', tile, {
       actor: attacker.type,
+      unitCost: attacker.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, attacker.type),
       strength: fallenStrength(attacker),
     });
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
     if (defenderOwner !== undefined) {
+      if (target.unit && cardBehaviorRule(state, defenderOwner, 'moveAfterKill', target.unit.type)) {
+        target.unit.movesLeft = fullMovement(target.unit, state);
+      }
       // The **counter-attacker** is who to heal, where one is a piece at all:
       // a city that broke a charge is not a soldier and has no bar this rider
       // can fill.
@@ -3084,7 +3094,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // rather than admitted, so the card would have been a line that never fires.
     // Blitz names no class and still answers every piece, which is that
     // function's own rule for every row written before the filter existed.
-    if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
+    if (outcome.killed.length > 0 && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
       attacker.movesLeft = fullMovement(attacker, state);
     }
     if (firstOfTwo) attacker.firstAttackTurn = state.turn;
@@ -3144,14 +3154,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         townOwnerBefore = town.ownerId;
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
-        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+        captured = {
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,
           actor: attacker.type,
           // Read before the stones change hands, exactly as the wonder is.
           population: sacked,
-        });
+        };
       }
     }
 
@@ -3200,6 +3210,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       if (takenDefender) outcome.capturedUnitId = takenDefender.id;
     }
   }
+
+  // Let the conqueror enter the city before placing units granted by its capture.
+  if (captured !== undefined) payBattleRiders(state, attacker.ownerId, 'capture', tile, captured);
 
   // Against the Odds: the attacker is still standing, the thing it went at is
   // not, and the forecast said the other side was the stronger. Asked of
@@ -3519,7 +3532,7 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   // did not choose to lose the chair, so its council is seated again as an
   // adoption seats it (`refitSlots`' `'reseat'`): a card that fits no free chair
   // returns to the collection with its progress. The gainer's council only grows.
-  if (city.buildings.some(buildingOpensChairs)) {
+  if (city.buildings.some((id) => isWonder(id) || buildingOpensChairs(id))) {
     const gainer = playerById(state, ownerId);
     if (gainer !== undefined) refitSlots(state, gainer);
     const old = playerById(state, loser);
@@ -3593,8 +3606,8 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // walls the town was defended with. Clamped afterwards anyway, because the
   // fraction is data and a designer may set it above 1.
   const shelf = townShelf(state, city);
-  city.hp = Math.max(1, Math.round(cityMaxHp(city, shelf) * COMBAT.cityCaptureHpFraction));
-  clampCityHp(city, shelf);
+  city.hp = Math.max(1, Math.round(cityMaxHp(city, shelf, state) * COMBAT.cityCaptureHpFraction));
+  clampCityHp(state, city, shelf);
   // The Taken. In the mechanism beside the change of hands, for
   // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
   // in one place, and an AI that storms a city earns what a player would.
@@ -4011,7 +4024,8 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
       fields.set(city.ownerId, field);
     }
     if (underSiege(state, city, field)) {
-      const damage = Math.min(COMBAT.siegeDamagePerTurn, Math.max(0, city.hp - 1));
+      const bonus = siegeDamageBonus(state, city);
+      const damage = Math.min(Math.floor(COMBAT.siegeDamagePerTurn * (1 + bonus / 100)), Math.max(0, city.hp - 1));
       if (damage > 0) city.hp -= damage;
       report?.sieges.push({ cityId: city.id, ownerId: city.ownerId, damage });
       continue;
@@ -4027,9 +4041,9 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
     // point forever) is about that town, not this one.
     if (cityBeatenDown(city) && enemyAtTheGate(state, city, field)) continue;
     const shelf = townShelf(state, city);
-    const max = cityMaxHp(city, shelf);
+    const max = cityMaxHp(city, shelf, state);
     if (city.hp >= max) {
-      clampCityHp(city, shelf);
+      clampCityHp(state, city, shelf);
       continue;
     }
     city.hp = Math.min(max, city.hp + amount);

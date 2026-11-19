@@ -17,8 +17,10 @@
  * evaluation moved. The parity fixtures are the gate.
  */
 
+import { atWar } from '../wars';
 import {
   bestMeleeFor,
+  bestOfClassFor,
   capitalCityOf,
   cityAt,
   cityResources,
@@ -322,7 +324,7 @@ import {
 } from './draft';
 // The council's chairs (`council.ts`). That file imports this one back, and
 // these names are used only inside functions.
-import { chairIndexAtPosition, orderAtSlotPosition, slotTypesOf } from './council';
+import { chairIndicesAtPosition, slotTypesOf } from './council';
 import { indefinite, tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
@@ -985,11 +987,13 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   for (let at = 0; at < walked; at++) {
     const entry = list[at]!;
     if (entry.effect.kind !== 'slotPosition' || entry.effect.whole !== true) continue;
-    const seated = orderAtSlotPosition(holder, entry.effect.position, entry.effect.slot);
-    if (seated === null) continue;
-    const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
-    for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
-      readAgain(state, playerId, list, seated, label, orderDef(seated).effects, CHAIR_READS_ONCE);
+    for (const index of chairIndicesAtPosition(holder, entry.effect.position, entry.effect.slot)) {
+      const seated = sc.slots[index]?.card;
+      if (!isOrderId(seated) || seated === entry.card) continue;
+      const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
+      for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
+        readAgain(state, playerId, list, seated, label, orderDef(seated).effects, CHAIR_READS_ONCE);
+      }
     }
   }
   // **The eleventh source** (batch G3, `docs/wager.md` §4): the malices a missed
@@ -1080,10 +1084,13 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       for (const id of city.buildings) {
-        if (!oneOfAKind(id)) continue;
         if (seen.has(id)) continue;
         seen.add(id);
-        push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, buildingDef(id).effects ?? []);
+        const effects = buildingDef(id).effects;
+        if (!effects?.length) continue;
+        // A chair belongs to the holder's council even when an ordinary building opens it.
+        const realm = oneOfAKind(id) ? effects : effects.filter((effect) => effect.kind === 'slotRider');
+        if (realm.length) push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, realm);
       }
     }
   }
@@ -2581,12 +2588,12 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
  * disagreeing about what a culture house is. The shelf is
  * `BuildingDef.category`, the one word every row declares.
  */
-function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingCategory): number {
+function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingCategory, excludeWonders = false): number {
   let here = 0;
   // What the town holds (`townBuildings`, Expansionist batch E12), so a
   // building a card grants counts on its shelf.
   for (const id of townBuildings(state, city)) {
-    if (buildingDef(id).category === category) here += 1;
+    if ((!excludeWonders || !isWonder(id)) && buildingDef(id).category === category) here += 1;
   }
   return here;
 }
@@ -2607,7 +2614,7 @@ function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingC
  * which is that member's own stated bargain.
  */
 function worksHolding(state: GameState, city: City, on: TileCondition): number {
-  let total = 0;
+  let total = on.test === 'greatWork' ? ghostWorksInTown(state, city) : 0;
   // The board's own answers for the tests a tile cannot answer alone
   // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
   const ground = groundFactsFor(state, city.ownerId);
@@ -3327,7 +3334,7 @@ export function countTilesInBorders(
 ): number {
   const ground = groundFactsFor(state, playerId);
   const walk = (town: City): number => {
-    let here = 0;
+    let here = rule.test === 'greatWork' ? ghostWorksInTown(state, town) : 0;
     for (const tile of ownedTiles(state, town)) {
       if (tileConditionHolds(tile, rule, undefined, undefined, state.turn, ground)) here += 1;
     }
@@ -3697,6 +3704,13 @@ export function countOf(
       }
       return total;
     }
+    case 'worksAndWondersHeld': {
+      const town = effect.within === 'city' ? city : undefined;
+      if (effect.within === 'city' && !town) return 0;
+      const works = countTilesInBorders(state, playerId, { test: 'greatWork' }, town);
+      if (cardActionRule(state, playerId, 'wondersAreWorks')) return works;
+      return works + (town ? town.buildings.filter(isWonder).length : wondersHeldBy(state, playerId));
+    }
     case 'wonders': {
       // **Narrowed to the town, where the row says so** (`within: 'city'`, batch
       // L3c): the Valley of Kings is paid for the great houses standing in *its
@@ -3801,12 +3815,12 @@ export function countOf(
         // Through the one walk, which `CityScope`'s own `buildingsOfCategory`
         // also asks — see `buildingsOfCategoryIn`.
         if (!city) return 0;
-        return buildingsOfCategoryIn(state, city, wanted);
+        return buildingsOfCategoryIn(state, city, wanted, effect.excludeWonders);
       }
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        total += buildingsOfCategoryIn(state, town, wanted);
+        total += buildingsOfCategoryIn(state, town, wanted, effect.excludeWonders);
       }
       return total;
     }
@@ -3906,7 +3920,7 @@ export function countOf(
       // Expansionist batch E12).
       let total = 0;
       for (const id of townBuildings(state, city)) {
-        if (isFortification(id)) total += 1;
+        if (isFortification(id) || buildingDef(id).category === effect.category) total += 1;
       }
       return total;
     }
@@ -4823,6 +4837,49 @@ function paysSomething(line: CardYieldLine): boolean {
   return VOICES.some((key) => line[key] !== 0);
 }
 
+export function ghostWorksInTown(state: GameState, city: City): number {
+  const wonders = city.buildings.filter(isWonder).length;
+  return wonders && cardActionRule(state, city.ownerId, 'wondersAreWorks') ? wonders : 0;
+}
+
+/** An amplifier combines its tile condition with the condition on the Order it reads.
+ * A ghost work satisfies a work condition, including inside those combinations. */
+function admitsGhostWork(on: TileCondition): boolean {
+  if (on.test === 'all') return on.of.length > 0 && on.of.every(admitsGhostWork);
+  if (on.test === 'any') return on.of.some(admitsGhostWork);
+  return on.test === 'greatWork';
+}
+
+/** A wonder has no hex or base yield. Only card lines for a work can pay on it. */
+export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLine[] {
+  const wonders = city.buildings.filter(isWonder);
+  if (wonders.length === 0) return [];
+  const lines = [...cardTileLines(state, city.ownerId), ...scopedCardTileLines(state, city)].filter(
+    line => admitsGhostWork(line.on) && !line.perAdjacentMountain && !line.perNeighbour,
+  );
+  const flat = lines.filter(line => line.card !== undefined && VOICES.some(voice => line[voice] !== 0));
+  if (flat.length === 0) return [];
+  const base = Object.fromEntries(VOICES.map(voice => [voice, flat.reduce((sum, line) => sum + line[voice], 0)])) as Record<CityYieldKey, number>;
+  const result: CardYieldLine[] = [];
+  for (const wonder of wonders) {
+    const name = buildingDef(wonder).name;
+    for (const row of flat) {
+      const line = emptyLine(row.card!, `${row.source} · ${name}`);
+      for (const voice of VOICES) line[voice] = row[voice];
+      result.push(line);
+    }
+    // Each multiplier reads the same sum, including the Divine Proportion's flat line.
+    for (const row of lines) {
+      const percent = (row.percent ?? 0) + (row.wholePercent ?? 0);
+      if (percent === 0 || row.card === undefined) continue;
+      const line = emptyLine(row.card, `${row.source} · ${name}`);
+      for (const voice of VOICES) line[voice] = base[voice] * percent / 100;
+      result.push(line);
+    }
+  }
+  return result;
+}
+
 /**
  * Every flat yield this empire's cards pay **this city**: the town `pays`
  * shapes a scope admits, then every city-scoped `pays` count payout.
@@ -4916,6 +4973,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
   for (const line of raised) list.push(line);
   list.push(...targeted.rises);
+  if (ghostWorksInTown(state, city)) list.push(...wonderWorkYieldLines(state, city));
 
   return list;
 }
@@ -5178,22 +5236,24 @@ function deckModifierLines(
     // A `whole` row is the walk's, which has read the card again already. Read
     // here as well, its flat lines would pay a third time.
     if (effect.whole === true) continue;
-    const seated = orderAtSlotPosition(holder, effect.position, effect.slot);
-    // A chair that is empty, does not exist, or holds this very card pays
-    // nothing: an engine that read its own line would be an engine feeding
-    // itself, exactly as an amplifier that read its own would.
-    if (seated === null || seated === card) continue;
-    const extra = effect.factor - 1;
-    if (extra === 0) continue;
-    const line = emptyLine(card, label(source, orderDef(seated).name));
-    for (const paid of base) {
-      if (paid.card !== seated) continue;
-      for (const voice of VOICES) {
-        if (paid[voice] === 0) continue;
-        line[voice] += paid[voice] * extra;
+    for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+      const seated = holder.statecraft.slots[index]?.card;
+      // A chair that is empty, does not exist, or holds this very card pays
+      // nothing: an engine that read its own line would be an engine feeding
+      // itself, exactly as an amplifier that read its own would.
+      if (!isOrderId(seated) || seated === card) continue;
+      const extra = (effect.factor - 1) / chairReadingsAt(state, playerId, index);
+      if (extra === 0) continue;
+      const line = emptyLine(card, label(source, orderDef(seated).name));
+      for (const paid of base) {
+        if (paid.card !== seated) continue;
+        for (const voice of VOICES) {
+          if (paid[voice] === 0) continue;
+          line[voice] += paid[voice] * extra;
+        }
       }
+      if (paysSomething(line)) out.push(line);
     }
-    if (paysSomething(line)) out.push(line);
   }
   return out;
 }
@@ -6334,7 +6394,7 @@ export function tileConditionHolds(
       // hex and not about the one asking.
       return (
         beside !== undefined &&
-        beside().some((next) => tileConditionHolds(next, on.of, undefined, undefined, turn, ground))
+        beside().filter((next) => tileConditionHolds(next, on.of, undefined, undefined, turn, ground)).length >= (on.atLeast ?? 1)
       );
     case 'all': {
       for (const inner of on.of) {
@@ -6954,9 +7014,11 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
   // added by `scopedCardTileLines` from `cityContext`, which does. So are the
   // counted ones, which `hexRows` leaves out for the same reason.
-  const found = hexRows(pickKind(liveEffects(state, playerId), 'pays')).filter(
-    ({ effect }) => effect.scope === undefined,
-  );
+  const rows = pickKind(liveEffects(state, playerId), 'pays');
+  const found = [
+    ...hexRows(rows).filter(({ effect }) => effect.scope === undefined),
+    ...countedHexRows(state, playerId, undefined, rows, []),
+  ];
   const lines = tileLinesFrom(found);
   // The additive amplifier reaching the **ground** — the user's own reason for
   // additive being the default ("so it stacks with '+1 food on each resource
@@ -7086,7 +7148,7 @@ export function scopedCardTileLines(
       )
       // Labelled with where it landed, exactly as a scoped town `pays` line is.
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
-    ...countedHexRows(state, city, rows, hypothetical),
+    ...countedHexRows(state, city.ownerId, city, rows, hypothetical),
   ];
   // The rises of a tier-26 government (batch G1). A counted row reaches them as
   // the flat row this town pays, so the rise is taken of what the town counts.
@@ -7117,16 +7179,19 @@ function scaleTileYieldLine(line: CardTileLine, amplifier: YieldAmplifier): Card
  */
 function countedHexRows(
   state: GameState,
-  city: City,
+  playerId: number,
+  city: City | undefined,
   rows: readonly { source: string; card: CardId; effect: CardPaysEffect }[],
   hypothetical: readonly BuildingId[],
 ): { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] {
-  const counted = hypothetical.length === 0 ? city : { ...city, buildings: [...city.buildings, ...hypothetical] };
+  const counted = !city || hypothetical.length === 0 ? city : { ...city, buildings: [...city.buildings, ...hypothetical] };
   const out: { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] = [];
   for (const { source, card, effect } of rows) {
     if (effect.where !== 'hex' || effect.on === undefined || basisOf(effect) !== 'count') continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const times = helpings(countOf(state, city.ownerId, card, effect, counted), effect.per, effect.max);
+    const needsCity = effect.within !== 'empire' || effect.scope !== undefined;
+    if (needsCity !== (city !== undefined)) continue;
+    if (city && !cityScopeAdmits(state, city, effect.scope)) continue;
+    const times = helpings(countOf(state, playerId, card, effect, counted), effect.per, effect.max);
     if (times === 0) continue;
     const paid: CardPaysEffect & { on: TileCondition } = { ...effect, on: effect.on };
     for (const voice of VOICES) {
@@ -9191,6 +9256,8 @@ function combatScaleCount(
         return 0;
       }
       return strikesOn(state, playerId, situation.targetId);
+    case 'greatPeopleGained':
+      return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
     case 'slottedOrdersOfSlot':
@@ -9481,10 +9548,19 @@ export function cardUnitStat(
   state: GameState,
   unit: Unit,
   stat: 'movement' | 'sight' | 'heal' | 'range',
+  groundOwner?: number | null,
 ): number {
   let total = 0;
+  if (stat === 'movement') {
+    const owner = groundOwner === undefined ? tileOwnerPlayerId(state, unit.col, unit.row) : groundOwner;
+    if (owner !== null && atWar(state, owner, unit.ownerId)) {
+      for (const { effect } of effectsOfKind(state, owner, 'unitStat')) {
+        if (effect.enemyOccupant && effect.stat === stat && unitMatches(unit.type, effect.class)) total += effect.amount;
+      }
+    }
+  }
   for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
-    if (effect.stat !== stat) continue;
+    if (effect.enemyOccupant || effect.stat !== stat) continue;
     if (!unitMatches(unit.type, effect.class)) continue;
     // The Keshik's Veterans and Elites (Dominion batch D2): a fact about the
     // piece in hand, so it is read here and in `cardCombatPercent`, and a row
@@ -9833,7 +9909,7 @@ export interface CardCityStatLine {
 export function cardCityStat(
   state: GameState,
   city: City,
-  stat: 'defense' | 'sight',
+  stat: 'defense' | 'sight' | 'hp',
 ): CardCityStatLine[] {
   const list: CardCityStatLine[] = [];
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityStat')) {
@@ -10110,6 +10186,7 @@ export interface WindfallPayout {
  * caller is the only thing that still knows.
  */
 export interface WindfallOccasionFacts {
+  warDefender?: true;
   vsBarbarians?: boolean;
   /**
    * **Whose piece did it** — the type of the unit whose act opened the occasion,
@@ -10474,6 +10551,7 @@ export function windfallPayout(
    */
   const rides = (effect: CardWindfallRiderEffect, card: CardId): boolean => {
     if (effect.occasion !== occasion) return false;
+    if (facts.warDefender && !effect.eitherSide) return false;
     // The occasion narrowed by who was on the other side of it. A rider that
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
@@ -10798,8 +10876,8 @@ export function windfallPayout(
     if (grant.citizens !== undefined && grant.citizens > 0) {
       const named = facts.townId === undefined ? undefined : cityById(state, facts.townId);
       const towns =
-        grant.toEveryTown !== undefined
-          ? grantTowns(state, playerId, { toEveryTown: grant.toEveryTown })
+        grant.toEveryTown !== undefined || grant.toCapital === true
+          ? grantTowns(state, playerId, grant)
           : named !== undefined && named.ownerId === playerId
             ? [named]
             : [];
@@ -11674,7 +11752,7 @@ function grantsOnlyPayout(grants: WindfallPayout['grants']): WindfallPayout {
  * The ids of this empire's units standing in one of its towns, as `garrisonOf`
  * reads a garrison: fighting units on the town's own hex.
  */
-function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
+export function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
   const ids = new Set<number>();
   for (const city of citiesOf(state, playerId)) {
     for (const unit of garrisonOf(state, city)) ids.add(unit.id);
@@ -11688,7 +11766,7 @@ function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
  * A great general is recognised the way `generalAuraLines` (`combat.ts`)
  * recognises one: a great-person piece whose person is of the general family.
  */
-function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
+export function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
   const generals: { col: number; row: number }[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
@@ -11719,6 +11797,9 @@ function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
 
 /** One row of this empire's law that lets a levy buy something. See `cardLevyGrants`. */
 export interface LevyGrant {
+  faithPerCitizen?: number;
+  freeUpkeep?: true;
+  percentOfCost?: number;
   use: LevyUse;
   card: CardId;
   source: string;
@@ -11750,6 +11831,9 @@ export function cardLevyGrants(state: GameState, playerId: number, city: City): 
       continue;
     }
     const grant: LevyGrant = { use, card, source };
+    if (effect.faithPerCitizen !== undefined) grant.faithPerCitizen = effect.faithPerCitizen;
+    if (effect.freeUpkeep) grant.freeUpkeep = true;
+    if (effect.percentOfCost !== undefined) grant.percentOfCost = effect.percentOfCost;
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
     if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
     if (effect.rank !== undefined) grant.rank = effect.rank;
@@ -12020,11 +12104,11 @@ function unbuiltTechFor(state: GameState, playerId: number, type: UnitTypeId): T
 function grantedUnitTypes(
   state: GameState,
   playerId: number,
-  kind: 'bestMelee' | 'unlockedByTech',
+  kind: 'bestMelee' | 'bestRanged' | 'unlockedByTech',
   facts: WindfallOccasionFacts,
 ): UnitTypeId[] {
-  if (kind === 'bestMelee') {
-    const best = bestMeleeFor(state, playerId);
+  if (kind !== 'unlockedByTech') {
+    const best = bestOfClassFor(state, playerId, kind === 'bestMelee' ? 'melee' : 'ranged');
     return best === null ? [] : [best];
   }
   const tech = facts.tech;
@@ -12771,17 +12855,35 @@ export interface OpusSiege {
  * (`underSiege`) lives in `combat.ts`, which this module does not import.
  */
 export function cardOpusSiegeBy(state: GameState, city: City): OpusSiege | null {
+  if (!opusSiegeInForce(state)) return null;
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return null;
   for (const player of realPlayers(state)) {
     if (player.id === city.ownerId) continue;
     const row = effectsOfKind(state, player.id, 'rule').find(({ effect }) => effect.rule === 'opusSiege');
     if (row === undefined) continue;
-    if (!techsGrant(player.techsResearched, 'siege')) continue;
-    if (!combatUnitBeside(state, player.id, centre)) continue;
+    if (!canBesiegeFrom(state, player, centre)) continue;
     return { playerId: player.id, card: row.card, source: row.source };
   }
   return null;
+}
+
+function canBesiegeFrom(state: GameState, player: Player, centre: Tile): boolean {
+  return techsGrant(player.techsResearched, 'siege') && combatUnitBeside(state, player.id, centre);
+}
+
+/** A shared siege applies the largest damage bonus among its participating empires once. */
+export function siegeDamageBonus(state: GameState, city: City): number {
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return 0;
+  let highest = 0;
+  for (const player of realPlayers(state)) {
+    if (player.id === city.ownerId) continue;
+    const lines = cardRulePercent(state, player.id, 'siegeDamage');
+    if (lines.length === 0 || !canBesiegeFrom(state, player, centre)) continue;
+    highest = Math.max(highest, lines.reduce((sum, line) => sum + line.percent, 0));
+  }
+  return highest;
 }
 
 /**
@@ -14704,12 +14806,20 @@ export function cardYieldsOnlyAmplifier(
  * The sum may be below nought, because a card may take a chair away (batch DT11).
  * `chairCount` holds the floor, so no card takes a typed chair.
  */
-export function cardExtraChairs(state: GameState, playerId: number): number {
+export function countsWondersForChairs(state: GameState, playerId: number): boolean {
+  return effectsOfKind(state, playerId, 'slotRider').some(({ effect }) => effect.count === 'wonders');
+}
+
+export function cardExtraChairs(state: GameState, playerId: number, slot?: ChairType): number {
   let extra = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'slotRider')) {
     // A rider with no figure opens the ordinary one chair, exactly as a route
     // rider with none grants the ordinary one road.
-    extra += effect.extra ?? 1;
+    if (slot !== undefined && slot !== (effect.slot ?? 'wildcard')) continue;
+    const groups = effect.count === 'wonders'
+      ? Math.min(effect.max ?? Infinity, Math.floor(wondersHeldBy(state, playerId) / Math.max(1, effect.per ?? 1)))
+      : 1;
+    extra += (effect.extra ?? 1) * groups;
   }
   return Math.floor(extra);
 }
@@ -14727,7 +14837,7 @@ export function chairReadingsAt(state: GameState, playerId: number, chair: numbe
   let times = 1;
   for (const { effect } of effectsOfKind(state, playerId, 'slotPosition')) {
     if (effect.whole !== true) continue;
-    if (chairIndexAtPosition(player, effect.position, effect.slot) !== chair) continue;
+    if (!chairIndicesAtPosition(player, effect.position, effect.slot).includes(chair)) continue;
     times += Math.max(0, Math.floor(effect.factor) - 1);
   }
   return times;
@@ -14753,10 +14863,9 @@ export function chairsActedOn(state: GameState, playerId: number, card: CardId):
   const chairs = new Set<number>();
   for (const effect of anyCardDef(card).effects) {
     if (effect.kind !== 'slotPosition') continue;
-    const index = chairIndexAtPosition(player, effect.position, effect.slot);
-    if (index < 0) continue;
-    if (player.statecraft.slots[index]?.card === card) continue;
-    chairs.add(index);
+    for (const index of chairIndicesAtPosition(player, effect.position, effect.slot)) {
+      if (player.statecraft.slots[index]?.card !== card) chairs.add(index);
+    }
   }
   return [...chairs].sort((x, y) => x - y);
 }

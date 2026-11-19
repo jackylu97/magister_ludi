@@ -405,7 +405,8 @@ describe('the schema says so', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
   });
 
   it('says in the changelog what a v110 log does now', () => {

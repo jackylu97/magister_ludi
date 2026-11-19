@@ -80,10 +80,11 @@ if (review === 'scene') {
 } else if (review === 'northstar') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;
-  nav.append(element('h1', undefined, 'North-star models'));
+  const pillaged = new URLSearchParams(location.search).get('rows') === 'pillaged';
+  nav.append(element('h1', undefined, pillaged ? 'Pillaged improvements' : 'North-star models'));
   const cabinet = element('a', undefined, 'Full art cabinet'); cabinet.href = '/flair.html#north-star-kit'; nav.append(cabinet);
-  const root = section(document.getElementById('sheet')!, 'north-star-kit', 'Houses, hall, works and monuments',
-    'The models of the visual test, each by itself under a soft light.').root;
+  const root = section(document.getElementById('sheet')!, 'north-star-kit', pillaged ? 'Model comparison' : 'Houses, hall, works and monuments',
+    pillaged ? 'Choose an improvement to compare the two models.' : 'The models of the visual test, each by itself under a soft light.').root;
   void import('./northStarKit').then(module => module.drawNorthStarKit(root));
 } else if (review === 'works') {
   document.body.classList.add('focused-works-review');

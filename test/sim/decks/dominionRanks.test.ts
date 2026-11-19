@@ -22,7 +22,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyCombat } from '../../../src/sim/combat';
-import { foundCityAt, realiseItem, settleRanksEarned } from '../../../src/sim/cities';
+import { foundCityAt, raiseOnDraft, realiseItem, settleRanksEarned } from '../../../src/sim/cities';
 import { type GreatPersonId } from '../../../src/sim/greatPeopleData';
 import { levyAt, levyError, levyGrantFor, levyOptions } from '../../../src/sim/levies';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
@@ -242,8 +242,7 @@ describe('Dominion D1 — the drill', () => {
     expect(worker.experience).toBeUndefined();
   });
 
-  it('The Regimental Schools pay a town +3 science for each garrisoned unit, and drill nobody', () => {
-    // Batch DS2: +3 science, not +2, and the drill clause is cut.
+  it('The Regimental Schools pay a town +6 science and +6 production for each garrisoned unit, and drill nobody', () => {
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theRegimentalSchools');
@@ -252,7 +251,8 @@ describe('Dominion D1 — the drill', () => {
     expect(science()).toBe(0);
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     bumpRevision(state);
-    expect(science()).toBe(3);
+    expect(science()).toBe(6);
+    expect(explainCardCityYields(state, city).reduce((sum, line) => sum + line.production, 0)).toBe(6);
     state.turn = 7;
     drillUnits(state);
     state.turn = 8;
@@ -297,7 +297,7 @@ describe('Dominion D1 — the drill', () => {
 });
 
 describe('Dominion D1 — units gained with experience', () => {
-  it('The Training Cadre gives two experience to a unit gained in a town with a Barracks', () => {
+  it('The Training Cadre grants Veteran rank to a unit gained in a town with a Barracks', () => {
     const state = flat();
     const barracks = foundCityAt(state, 0, at(state, 4, 4))!;
     barracks.buildings.push('barracks' as never);
@@ -305,14 +305,15 @@ describe('Dominion D1 — units gained with experience', () => {
     slot(state, 0, 'drillManuals');
     const a = realiseItem(state, barracks, { kind: 'unit', id: 'warrior', tile: at(state, 4, 4) });
     const b = realiseItem(state, plain, { kind: 'unit', id: 'warrior', tile: at(state, 10, 4) });
-    expect(state.units.find((unit) => unit.id === a.unitId)!.experience).toBe(2);
+    expect(state.units.find((unit) => unit.id === a.unitId)!.experience).toBe(VETERAN);
     expect(state.units.find((unit) => unit.id === b.unitId)!.experience).toBeUndefined();
   });
 
-  it('The Drill Masters make every unit gained a Veteran, which counts as earning the rank', () => {
+  it('A Barracks recruit who starts as a Veteran earns rank rewards', () => {
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
-    slot(state, 0, 'theDrillMasters');
+    city.buildings.push('barracks');
+    slot(state, 0, 'drillManuals');
     slot(state, 0, 'theWarHallSchools');
     const player = playerById(state, 0)!;
     const science = player.sciencePool;
@@ -328,14 +329,36 @@ describe('Dominion D1 — units gained with experience', () => {
     expect(createUnit(state, 0, 'warrior', 7, 7).experience).toBeUndefined();
   });
 
-  it('adds The Training Cadre’s experience on top of a Veteran start', () => {
+  it('The Drill Masters train garrisoned units every turn', () => {
     const state = flat();
-    const city = foundCityAt(state, 0, at(state, 4, 4))!;
-    city.buildings.push('barracks' as never);
+    const town = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theDrillMasters');
-    slot(state, 0, 'drillManuals');
-    const made = realiseItem(state, city, { kind: 'unit', id: 'warrior', tile: at(state, 4, 4) });
-    expect(state.units.find((unit) => unit.id === made.unitId)!.experience).toBe(VETERAN + 2);
+    const guard = createUnit(state, 0, 'warrior', town.col, town.row);
+    const outside = createUnit(state, 0, 'warrior', 7, 4);
+    for (const turn of [3, 4]) {
+      state.turn = turn;
+      drillUnits(state);
+    }
+    expect(guard.experience).toBe(2);
+    expect(outside.experience).toBeUndefined();
+  });
+
+  it('The Field of Mars pays rank rewards only for the drafter’s fighting units', () => {
+    const state = flat();
+    foundCityAt(state, 0, at(state, 4, 4));
+    const player = playerById(state, 0)!;
+    slot(state, 0, 'theWarHallSchools');
+    const soldier = createUnit(state, 0, 'warrior', 4, 4);
+    const worker = createUnit(state, 0, 'worker', 4, 4);
+    const rival = createUnit(state, 1, 'warrior', 7, 4);
+    soldier.experience = VETERAN - 1;
+    const science = player.sciencePool;
+    raiseOnDraft(state, player, 'dominionTheFieldOfMars');
+    expect(soldier.experience).toBe(VETERAN + 3);
+    expect(player.ranksEarned).toBe(1);
+    expect(player.sciencePool - science).toBe(strengthOf(soldier));
+    expect(worker.experience).toBeUndefined();
+    expect(rival.experience).toBeUndefined();
   });
 });
 
@@ -444,12 +467,12 @@ describe('Dominion D1 — the words', () => {
     expect(said('theDrillGrounds')).toEqual([
       'your combat units standing in one of your cities gain 1 experience every 3 turns',
     ]);
-    expect(said('theDrillMasters')).toEqual(['units you gain start as Veterans']);
+    expect(said('theDrillMasters')).toEqual(['your combat units standing in one of your cities gain 1 experience at the end of every turn']);
     expect(said('upThroughTheRanks')).toEqual([
       'one of your units becoming an Elite grants +250 renown, favouring a great general',
     ]);
     expect(said('theDevshirme')).toEqual([
-      'a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)',
+      'a captured city of at least 6 citizens may spend one citizen for a melee unit as a Veteran, which counts as trained (once every 5 turns)',
     ]);
     expect(said('theArmedColony')).toEqual([
       'new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units',

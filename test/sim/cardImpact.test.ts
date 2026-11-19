@@ -55,7 +55,7 @@ import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
-import { authorityOf } from '../../src/sim/meters';
+import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { renownPerTurn } from '../../src/sim/renown';
 import {
   type CardEffect,
@@ -293,6 +293,23 @@ describe('a meter knock-on', () => {
  * because folding them would have a card claiming to pay a beaker it never paid.
  */
 describe('a card that pays a meter', () => {
+  it('preserves a happiness change between tenths in the stamp', () => {
+    const { state } = bench();
+    const card = 'festivalDays';
+    state.players[0]!.timed = [{
+      card,
+      effect: { kind: 'happiness', amount: 0.25 },
+      expiresTurn: state.turn + 1,
+    }];
+    bumpRevision(state);
+    const subject: CardImpactSubject = { kind: 'timed', card, holder: { kind: 'seat' } };
+    const boards = cardImpactWorlds(state, 0, subject)!;
+    const actual = happinessOf(boards.with, 0) - happinessOf(boards.without, 0);
+    const stamp = explainCardImpact(state, 0, subject).find(line => line.meter === 'happiness');
+    expect(actual).toBeCloseTo(0.25, 12);
+    expect(stamp?.amount).toBe(actual);
+  });
+
   /** Festival Days pays four contentment flat, and now says so. */
   it('reports the card\'s own happiness as its own line', () => {
     const { state } = bench();

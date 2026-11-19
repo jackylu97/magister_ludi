@@ -1,5 +1,9 @@
 # The Standing Flags
 
+### Pillaging and repair, 2026-11-19
+
+Pillaging an improvement leaves a damaged work on the tile. Until a worker repairs it, all game rules treat the tile as having no improvement. This includes yields, resource access and the improved-tile counts on Orders. A worker can repair the original work without spending a charge. The player must be able to see the damage and order the repair. Dedicated 3D models for damaged works are deferred.
+
 Every OPEN ruling, deferred half and live thread — **nothing here is done**. The
 log of rulings already made and built moved to `docs/history/flags-log.md` on
 2026-09-11, item letters kept, so a citation like "(pppp)" or "(eeee)" resolves
@@ -3073,3 +3077,36 @@ the name of a religion, not a specific god."
   roster"). A fixed list of names is now allowed. The names are still not the
   world religions that people practise.
 - Nothing is built until the user has chosen the names.
+
+## Leaders: a more mainstream roster, one for each pair of decks (2026-11-19)
+
+The user, while planning leader portraits: "i might change the people to be
+honest. Looking at the current version of the game, i think i want to go with
+slightly more mainstream picks, and find leaders who fit thematically some of
+the playstyles in the decks." Then, on a list of suggestions by deck pair: "ok,
+please do a fable design pass for all the suggestions, i can choose among
+them".
+
+- The roster of thirteen leaders is under review. Portraits wait until it is
+  settled.
+- The direction: leaders that most players know, each a fit for the two decks
+  they play. A proposal on the table is one leader for each of the fifteen
+  pairs of decks.
+- The candidates, by pair (the user chooses among them; nothing is ruled):
+  - Dominion + Expansionist: Alexander the Great (today Mithridates VI)
+  - Dominion + Commerce: Genghis Khan (no leader today)
+  - Dominion + Devotion: Saladin, or Joan of Arc kept (today Modu Chanyu and Joan of Arc)
+  - Dominion + Scientific: Mehmed the Conqueror (no leader today)
+  - Dominion + Magisterial: Qin Shi Huang, or Augustus (today Emperor Taizong)
+  - Expansionist + Commerce: Pachacuti (stays)
+  - Expansionist + Devotion: Isabella of Castile (no leader today)
+  - Expansionist + Scientific: Nezahualcoyotl (stays)
+  - Expansionist + Magisterial: Cyrus the Great (no leader today)
+  - Commerce + Devotion: Mansa Musa (stays)
+  - Commerce + Scientific: Cleopatra (no leader today)
+  - Commerce + Magisterial: Lorenzo de' Medici, or Hatshepsut (today Zheng He)
+  - Devotion + Scientific: Harun al-Rashid (today Al-Ma'mun)
+  - Devotion + Magisterial: Justinian, or Ashoka (today Akhenaten and Hildegard of Bingen)
+  - Scientific + Magisterial: Sejong the Great (today Hypatia)
+- A design pass writes each candidate's abilities and pieces for the user to
+  mark up. Nothing is built until the user picks.

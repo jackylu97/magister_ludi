@@ -4007,3 +4007,11 @@ The yield collection phase includes recording deck totals, assigning citizens, p
 Also count how many towns already fill every citizen slot from locked tiles or have enough citizens for every eligible tile. In either case the final set of tiles is known before scoring them. The assignment writer sorts selected tile indices into a stable order. Measure how many tile evaluations this would remove on early and late boards before changing the rule.
 
 The combined scheduler, renderer and Order changes passed the typecheck, 12,153 core tests, production build and 13 slow tests for replay, bot parity, card pricing and religion. The scheduler and frame measurements above do not include any claimed saving from the renderer’s separate idle unit rebuild removal.
+
+## Reuse technology paths during research review, 2026-11-19
+
+A research review still considers the same goals every turn. Each seat checks how many prerequisites it lacks before it prices a goal. It now passes that same ordered list to the price calculation. A shared roster index breaks ties between technologies at the same depth. It includes charter technologies. Which prerequisites a player still needs is read from the current board.
+
+The comparison used six seats on each of five Standard maps after ten turns (seeds 42, 999, 1, 7 and 2026), plus four archived turn-90 and turn-120 boards from the first two seeds. All 54 research tables matched in full, including all 1,980 candidate scores and explanations. Every ordered prerequisite list matched. Both 120-turn replay tests also kept their published final states.
+
+The isolated path check ran ten sweeps of all goals for all six seats per board, six times after warmup, alternating the two versions. Summing median process CPU time over the nine boards gave 256 ms before and 91 ms after. These times cover only the prerequisite lists. They exclude scoring the goals and the rest of the bot turn.

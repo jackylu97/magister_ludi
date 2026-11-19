@@ -7,14 +7,12 @@
  * between the two. At turn 130 that was about two hundred program lookups and
  * some eighty draw calls on every frame. Where every quad of a mesh faces the
  * same way (a decal lies flat, a bar, a badge or a pin faces the camera), one of
- * the two passes draws no pixel, so the material asks for one pass. The yield
- * light is the exception: one of its meshes holds washes that lie on the ground,
- * seen from their backs, and motes that face the camera, so the order of its
- * two passes is part of its picture.
+ * the two passes draws no pixel, so the material asks for one pass. The yield light and embers use Three.js’s single-pass shader material.
  */
 
 import { describe, expect, it } from 'vitest';
-import { DoubleSide } from 'three';
+import { Color, DoubleSide } from 'three';
+import { createPaintedMotes } from '../../src/render3d/paintedYieldLight';
 
 import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -35,11 +33,15 @@ describe('transparent double-sided quads', () => {
     materials.dispose();
   });
 
-  it('draw the tile icons, the badges and the pins in one pass, and the yield light in two', async () => {
+  it('draw the tile icons, the badges, pins and painted lights in one pass', async () => {
     const badges = await read('src/render3d/badges3d.ts');
     // The flat icons, their quieter copies, and the badge discs.
     expect(badges.match(/forceSinglePass: true/g)?.length).toBe(3);
     expect(await read('src/render3d/lens3d.ts')).toContain('material.forceSinglePass = true');
-    expect(await read('src/render3d/paintedYieldLight.ts')).not.toContain('forceSinglePass');
+    const mote = createPaintedMotes([{ x: 0, y: 0, z: 0, color: new Color('white'), mode: 'spark', size: .2, phase: 0, rnd: 0, strength: 1 }]);
+    expect(mote.material.side).toBe(DoubleSide);
+    expect(mote.material.forceSinglePass).toBe(true);
+    mote.geometry.dispose();
+    mote.material.dispose();
   });
 });

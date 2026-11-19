@@ -54,7 +54,7 @@ import {
   anyCardDef,
   explainCardCityYields,
   explainCardPercentYields,
-  cardPurchaseRiders,
+  cardRenownLines,
   cardRulePercent,
   cardTileLines,
   describeCard,
@@ -64,11 +64,12 @@ import {
   stripRefs,
   tileConditionHolds,
 } from '../../src/sim/statecraft';
+import { foldTile, yieldContextFor } from '../../src/sim/yields/hex';
 import { FAMILIES } from '../../src/sim/greatPeopleData';
-import { pantheonSlots, performRiteAt } from '../../src/sim/religion';
+import { nextRerollCost, rerollDoorOpen, settleReroll, riteCostFor, pantheonSlots, performRiteAt } from '../../src/sim/religion';
 import { explainHappiness, happinessOf } from '../../src/sim/meters';
-import { previewCombat } from '../../src/sim/combat';
-import { explainPurchaseCost } from '../../src/sim/purchase';
+import { cityMaxHp, previewCombat } from '../../src/sim/combat';
+import { levyAt, levyOptions } from '../../src/sim/levies';
 import { projectDef } from '../../src/sim/projectData';
 import { unitDef } from '../../src/sim/unitData';
 import {
@@ -79,12 +80,12 @@ import {
   poolDoctrines,
 } from '../../src/sim/statecraftData';
 import { stockDoctrines } from './statecraftHelpers';
-import { findPath, moveProfile, reachableTiles, stepCost, zocField } from '../../src/sim/pathfind';
-import { advanceAlongPath } from '../../src/sim/movement';
+import { zocField } from '../../src/sim/pathfind';
+
 import { fullMovement } from '../../src/sim/units';
-import { cityResources, claimTile, ownedTiles } from '../../src/sim/cities';
-import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
-import { improvementForResource } from '../../src/sim/improvementData';
+import { claimTile, ownedTiles } from '../../src/sim/cities';
+
+
 
 /** A combat forecast, or a loud failure. `previewCombat` answers one or a refusal. */
 function forecastOf(state: GameState, attackerId: number, tile: { col: number; row: number }) {
@@ -160,13 +161,13 @@ function racing(state: GameState, city: City, hammers = buildingProductionCost(W
 // --- the roster -------------------------------------------------------------
 
 describe('the wonder roster', () => {
-  it('is twenty-seven ratified rows and no placeholder left', () => {
-    expect(WONDER_IDS).toHaveLength(27);
+  it('has 34 active wonders and keeps the retired Water Clock', () => {
+    expect(WONDER_IDS).toHaveLength(34);
     expect(WONDER_IDS).toContain(WONDER);
     for (const id of WONDER_IDS) expect(buildingDef(id).placeholder, id).toBeUndefined();
     // The flag is the only marker. Nothing anywhere compares an id against a
     // wonder's name, which is what made the roster pass a data change.
-    expect(BUILDING_IDS.filter(isWonder)).toEqual([...WONDER_IDS]);
+    expect(BUILDING_IDS.filter((id) => isWonder(id) && !buildingDef(id).retired)).toEqual([...WONDER_IDS]);
   });
 
   it('sorts a wonder into its own production category', () => {
@@ -454,24 +455,13 @@ describe('a bought wonder is news, as a built one is (tidy batch Z1)', () => {
 // --- what a wonder does -----------------------------------------------------
 
 describe('a wonder’s effect is a card', () => {
-  it('reads through liveCityEffects in the city it stands in, and only there', () => {
+  it('applies the Oracle to its current owner', () => {
     const g = game();
     const home = found(g.state, 0);
-    const other = found(g.state, 0);
     racing(g.state, home);
     settleProduction(g.state, home);
-
-    // The empire's own walk carries it (it is `liveEffects`' fifth source), so
-    // every city-scoped reader sees it — the scope is what decides where it
-    // lands.
-    expect(liveEffects(g.state, 0).some((entry) => entry.card === WONDER)).toBe(true);
-    expect(liveCityEffects(g.state, home).some((entry) => entry.card === WONDER)).toBe(true);
-
-    // The placeholder's clause is scoped `hasBuilding: theOracle`, so it pays
-    // its own town and not the one next door.
-    const here = explainCardCityYields(g.state, home).find((line) => line.card === WONDER);
-    expect(here?.faith).toBe(1);
-    expect(explainCardCityYields(g.state, other).some((line) => line.card === WONDER)).toBe(false);
+    expect(liveCityEffects(g.state, home).some((row) => row.card === WONDER)).toBe(true);
+    expect(cardRenownLines(g.state, 0).find((line) => line.card === WONDER)).toMatchObject({amount: 3, family: null});
   });
 
   it('pays every city when the clause names no scope', () => {
@@ -590,9 +580,21 @@ describe('the ratified roster', () => {
       // The doc's ratified figure, and the reason a wonder is a feat: ten
       // renown on the turn it is finished, and a trickle thereafter.
       expect(def.renown?.onComplete, id).toBe(10);
-      expect(def.renown?.perTurn, id).toBeGreaterThan(0);
+      expect(def.renown?.perTurn, id).toBeGreaterThanOrEqual(0);
       expect(FAMILIES).toContain(def.renown!.family);
     }
+  });
+
+  it('lists each active wonder with its technology in the reference', () => {
+    const files = import.meta.glob('../../docs/wonders.md', { eager: true, query: '?raw', import: 'default' });
+    const doc = Object.values(files)[0] as string;
+    const rows = doc.split('\n').filter((line) => line.startsWith('| `'));
+    const expected = WONDER_IDS.map((id) => {
+      const tech = TECH_IDS.find((node) => techDef(node).unlocks.buildings?.includes(id))!;
+      const def = techDef(tech);
+      return `| \`${id}\` | ${buildingDef(id).name} | ${def.age} | ${def.name} |`;
+    });
+    expect(rows.sort()).toEqual(expected.sort());
   });
 
   it('homes every wonder on exactly one technology that exists', () => {
@@ -624,32 +626,8 @@ describe('the ratified roster', () => {
     }
   });
 
-  it('defers, in words, exactly what the vocabulary cannot say', () => {
-    // **Two halves are left** (batch E4a, 2026-09-07). Three of the five were
-    // built the day the vocabulary could say them without bending: the Statue of
-    // Zeus' fifteen percent is a `combatPercent` share that names its fight, the
-    // Terracotta Army's veterans are a `unitStamp` scoped to the town that
-    // raised them, and Notre-Dame's Cathedral clause is an ordinary scoped
-    // `cityYields` beside a scoped happiness. What is still deferred is on the
-    // row and struck through on the card, which is the Statecraft rule applied
-    // to a wonder.
-    for (const id of ['alhambra'] as const) {
-      expect(buildingDef(id).deferred, id).toBeDefined();
-      const struck = describeCard(id).filter((clause) => clause.deferred);
-      expect(struck.length, id).toBeGreaterThan(0);
-    }
-    // And the ones that were built promise nothing any more. The Forbidden City's
-    // chair joined them in bot batch BP7: it is a `slotRider` on the row now.
-    for (const id of ['statueOfZeus', 'terracottaArmy', 'notreDame', 'forbiddenCity'] as const) {
-      expect(buildingDef(id).deferred, id).toBeUndefined();
-      expect(describeCard(id).filter((clause) => clause.deferred).length, id).toBe(0);
-    }
-    // Hagia Sophia's note is gone because the promise it apologised for is
-    // kept: prophets exist (`docs/religion-v2.md`), so the row grants one
-    // outright and presses for its owner's faith into the bargain.
-    expect(buildingDef('hagiaSophia').note).toBeUndefined();
-    expect(buildingDef('hagiaSophia').deferred).toBeUndefined();
-    expect(buildingDef('hagiaSophia').onComplete?.[0]).toEqual({ grant: 'unit', unit: 'prophet' });
+  it('prints every active wonder without a deferred clause', () => {
+    for (const id of WONDER_IDS) expect(describeCard(id).filter((clause) => clause.deferred), id).toEqual([]);
   });
 
   it('reads every shape the roster declares — the register', () => {
@@ -662,9 +640,10 @@ describe('the ratified roster', () => {
     }
     for (const kind of [
       'pantheonSlots',
-      'purchaseRider',
-      'rule',
-      'projectRider',
+      'levy',
+      'renown',
+      'productionBonus',
+      'buildingYieldPercent',
       'combatLine',
       // Batch E5: `countScaled`, `tileYield` and `cityYields` are three
       // (`where`, `basis`) readings of one shape now. The pairs' own register
@@ -723,86 +702,37 @@ describe('a slot grant', () => {
 });
 
 describe('a purchase rider', () => {
-  it('takes a quarter off a religious unit, as a line of the price', () => {
+  it('reduces the rite price only in the city with the Ziggurat', () => {
     const g = game();
-    const city = found(g.state, 0);
-    learn(g.state, 0, 'husbandry', 'divination');
-    const item = { kind: 'unit', id: 'augur' } as const;
-    const full = explainPurchaseCost(g.state, 0, city.id, item, 'faith')!;
-
-    raise(g.state, city, 'greatZiggurat');
-    const cut = explainPurchaseCost(g.state, 0, city.id, item, 'faith')!;
-
-    // One more line, carrying the difference, and the fold is still the price.
-    expect(cut.lines).toHaveLength(full.lines.length + 1);
-    expect(cut.total).toBe(Math.floor((full.total * 75) / 100));
-    expect(cut.lines[cut.lines.length - 1]!.source).toContain('Great Ziggurat');
-    expect(cut.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(cut.total);
-    // The filter is the roster's own marker, not a name: a warrior is not a
-    // religious unit and its price is untouched.
-    expect(cardPurchaseRiders(g.state, 0, 'unit', 'augur')).toHaveLength(1);
-    expect(cardPurchaseRiders(g.state, 0, 'unit', 'warrior')).toHaveLength(0);
-    // And `on` defaults to units: the Ziggurat says nothing about granaries.
-    expect(cardPurchaseRiders(g.state, 0, 'building')).toHaveLength(0);
+    const home = found(g.state, 0), other = found(g.state, 0);
+    const base = riteCostFor(g.state, 0);
+    raise(g.state, home, 'greatZiggurat');
+    expect(riteCostFor(g.state, 0, home)).toBe(Math.floor(base * 0.7));
+    expect(riteCostFor(g.state, 0, other)).toBe(base);
   });
 });
 
 describe('the Great Wall', () => {
-  it('makes every owned hex hold ground, and both searches agree about it', () => {
+  it('reduces enemy movement on the owner’s tiles', () => {
     const state = flatState();
-    // The town is far away, so that nothing here is locked by the *city*
-    // source the field has always had: what is being tested is the border.
-    const town = at(state.map, 9, 8);
-    const theirs = createCity(state, 1, 'Wallstead', town.col, town.row);
-    raise(state, theirs, 'greatWall');
-    const heart = at(state.map, 3, 3);
-    claimTile(state, theirs, heart);
-    for (const tile of ring(state.map, heart)) claimTile(state, theirs, tile);
-
-    const field = zocField(state, 0);
-    expect(field.sources.some((s2) => s2.col === heart.col && s2.row === heart.row)).toBe(true);
-    // A step from one hex of that border to the next stays alongside the same
-    // owned hex, so it is a slide and it pays the toll — every hex of the
-    // crossing, which is what makes a walled country slow rather than shut.
-    const [from, along] = ring(state.map, heart);
-    const walker = unit(state, from!, 'warrior', 0);
-    const mover = moveProfile(state, walker);
-    const inside = stepCost(state.map, from!, along!, mover, field)!;
-    expect(inside.zoc).toBe(true);
-    expect(inside.cost).toBe(1 + RULES.movement.zocExtraCost);
-    // And the same board without the Wall tolls nothing at all.
-    theirs.buildings = [];
-    bumpRevision(state);
-    state.wonders = [];
-    const open = stepCost(state.map, from!, along!, mover, zocField(state, 0))!;
-    expect(open.zoc).toBe(false);
-    expect(open.cost).toBe(1);
+    const city = createCity(state, 1, 'Wallstead', 9, 8);
+    const tile = at(state.map, 3, 3);
+    claimTile(state, city, tile);
+    const walker = unit(state, tile, 'warrior', 0);
+    const base = fullMovement(walker, state);
+    raise(state, city, 'greatWall');
+    expect(fullMovement(walker, state)).toBe(Math.max(1, base - 1));
+    walker.col++;
+    expect(fullMovement(walker, state)).toBe(base);
   });
 
-  it('stops the highlight exactly where the walk stops', () => {
+  it('raises maximum hit points throughout the owner’s empire', () => {
     const state = flatState();
-    const town = at(state.map, 9, 8);
-    const theirs = createCity(state, 1, 'Wallstead', town.col, town.row);
-    raise(state, theirs, 'greatWall');
-    const heart = at(state.map, 3, 3);
-    claimTile(state, theirs, heart);
-    for (const tile of ring(state.map, heart)) claimTile(state, theirs, tile);
-
-    const [from, along] = ring(state.map, heart);
-    const walker = unit(state, from!, 'warrior', 0);
-    // The overlay and the reducer are two readers of one evaluator: the tolled
-    // hex is reachable, at the ground's price plus the toll, and the path to it
-    // is one step.
-    const reach = reachableTiles(state, walker);
-    const found2 = reach.find((entry) => entry.tile === along);
-    expect(found2).toBeDefined();
-    expect(found2!.cost).toBe(1 + RULES.movement.zocExtraCost);
-    expect(findPath(state, walker, along!)).toHaveLength(1);
-    // A two-point warrior spends its whole turn on one hex of a walled border,
-    // and the walk agrees with the sweep about that.
-    advanceAlongPath(state, walker, findPath(state, walker, along!)!);
-    expect([walker.col, walker.row]).toEqual([along!.col, along!.row]);
-    expect(walker.movesLeft).toBe(fullMovement(walker, state) - found2!.cost);
+    const home = createCity(state, 1, 'Wallstead', 9, 8);
+    const other = createCity(state, 1, 'Outpost', 3, 3);
+    const base = cityMaxHp(other, other, state);
+    raise(state, home, 'greatWall');
+    expect(cityMaxHp(other, other, state)).toBe(base + 25);
   });
 
   it('costs nothing at all in a world where nobody holds it', () => {
@@ -886,7 +816,7 @@ describe('a site requirement', () => {
   it('Petra takes desert beside the town, and not desert two hexes out', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'mathematics');
+    learn(g.state, 0, 'irrigation');
     const centre = at(g.state.map, city.col, city.row);
     centre.terrain = 'grassland';
     for (const tile of ring(g.state.map, centre)) tile.terrain = 'grassland';
@@ -922,23 +852,19 @@ describe('a site requirement', () => {
 
 
 describe('the new combat clauses', () => {
-  it('pays a filtered line to the class it names and to nobody else', () => {
-    const state = flatState();
-    const home = at(state.map, 6, 4);
-    const mine = createCity(state, 0, 'Granada', home.col, home.row);
-    raise(state, mine, 'alhambra');
-
-    const target = at(state.map, 2, 2);
-    const prey = unit(state, target, 'warrior', 1);
-    void prey;
-    const from = ring(state.map, target)[0]!;
-    const knight = unit(state, from, 'horseman', 0);
-    const foot = unit(state, from, 'warrior', 0);
-
-    const mounted = forecastOf(state, knight.id, target);
-    expect(mounted.bonuses.some((line) => line.source.includes('Alhambra'))).toBe(true);
-    const marching = forecastOf(state, foot.id, target);
-    expect(marching.bonuses.some((line) => line.source.includes('Alhambra'))).toBe(false);
+  it('grants rerolls at completion before the reroll technology', () => {
+    const g = game();
+    const home = found(g.state, 0);
+    learn(g.state, 0, 'mining');
+    finish(g.state, home, 'greatSphinx');
+    expect(g.state.players[0]!.statecraft.freeRerolls).toBe(5);
+    expect(nextRerollCost(g.state, 0)).toBe(0);
+    expect(rerollDoorOpen(g.state, 0)).toBe(true);
+    const player = g.state.players[0]!;
+    player.pantheon.pending = { options: [], rerolls: 1 };
+    settleReroll(g.state, player);
+    expect(player.statecraft.freeRerolls).toBe(4);
+    expect(player.pantheon.pending?.rerolls).toBe(1);
   });
 
   it('holds the capital’s own borders, and only those', () => {
@@ -998,6 +924,26 @@ describe('the new combat clauses', () => {
   });
 });
 
+describe('great works and wonders', () => {
+  it('pays for past scholars on Academies and doubles their final yield once', () => {
+    const state = flatState();
+    const home = createCity(state, 0, 'Library', 3, 3);
+    const tile = at(state.map, 4, 3);
+    tile.improvement = 'academy';
+    const yields = () => foldTile(tile, yieldContextFor(state, 0));
+    const before = yields();
+    state.players[0]!.greatPeopleByFamily = { scholar: 2 };
+    raise(state, home, 'greatLibrary');
+    const withLibrary = yields();
+    expect(withLibrary.science).toBe(before.science + 4);
+    raise(state, home, 'mausoleum');
+    const doubled = yields();
+    for (const voice of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      expect(doubled[voice]).toBe(withLibrary[voice] * 2);
+    }
+  });
+});
+
 describe('the new counts', () => {
   it('counts buildings of one kind across the empire', () => {
     const g = game();
@@ -1018,13 +964,13 @@ describe('the new counts', () => {
     expect(happinessOf(g.state, 0)).toBe(bare + 2);
   });
 
-  it('counts every building in the town that holds the tomb', () => {
+  it('counts every building in the capital for Weiyang Palace', () => {
     const g = game();
     const city = found(g.state, 0);
     const other = found(g.state, 0);
-    raise(g.state, city, 'mausoleum');
+    raise(g.state, city, 'weiyangPalace');
 
-    const line = () => explainCardCityYields(g.state, city).find((l) => l.card === 'mausoleum')?.gold ?? 0;
+    const line = () => explainCardCityYields(g.state, city).find((l) => l.card === 'weiyangPalace')?.culture ?? 0;
     // The Mausoleum counts itself, because a wonder is a building.
     const withTomb = line();
     expect(withTomb).toBeGreaterThan(0);
@@ -1032,65 +978,31 @@ describe('the new counts', () => {
     bumpRevision(g.state);
     expect(line()).toBe(withTomb + 1);
     // The town next door has the tomb's empire but not its stones.
-    expect(explainCardCityYields(g.state, other).find((l) => l.card === 'mausoleum')).toBeUndefined();
+    expect(explainCardCityYields(g.state, other).find((l) => l.card === 'weiyangPalace')).toBeUndefined();
   });
 
-  it('counts a town’s own improved bonus seams when the line says “in this city”', () => {
+  it('pays faith from population before the levy spends a citizen', () => {
     const g = game();
-    const city = found(g.state, 0);
-    const other = found(g.state, 1);
-    raise(g.state, city, 'templeOfArtemis');
-    const bare = happinessOf(g.state, 0);
-
-    // A seam the town does not already hold, chosen off the table rather than
-    // written here: the count is of *kinds*, and a capital planted on wheat
-    // already holds wheat, so a hard-coded one would be a test that measures
-    // where the start scorer put the settler.
-    const already = new Set(cityResources(g.state, city, 'bonus'));
-    const fresh = RESOURCE_IDS.filter(
-      (id) => resourceDef(id).kind === 'bonus' && !already.has(id) && improvementForResource(id),
-    )[0]!;
-    const mine = ownedTiles(g.state, city).find(
-      (tile) => tile.col !== city.col || tile.row !== city.row,
-    )!;
-    mine.resource = fresh;
-    mine.improvement = improvementForResource(fresh)!;
-    bumpRevision(g.state);
-    expect(happinessOf(g.state, 0)).toBe(bare + 1);
-
-    // …and one in somebody else's, which is not this city's ground and pays
-    // this city nothing.
-    const theirsKind = RESOURCE_IDS.filter(
-      (id) =>
-        resourceDef(id).kind === 'bonus' &&
-        id !== fresh &&
-        !already.has(id) &&
-        improvementForResource(id),
-    )[0]!;
-    const theirs = ownedTiles(g.state, other).find(
-      (tile) => tile.col !== other.col || tile.row !== other.row,
-    )!;
-    theirs.resource = theirsKind;
-    theirs.improvement = improvementForResource(theirsKind)!;
-    bumpRevision(g.state);
-    expect(happinessOf(g.state, 0)).toBe(bare + 1);
+    const home = found(g.state, 0), other = found(g.state, 0);
+    home.population = 4;
+    raise(g.state, home, 'pyramidOfTheSun');
+    expect(levyOptions(g.state, 0, other).some((row) => row.use === 'faith')).toBe(false);
+    expect(levyOptions(g.state, 0, home).find((row) => row.use === 'faith')?.faith).toBe(20);
+    const faith = g.state.players[0]!.faithPool;
+    levyAt(g.state, home, 'faith');
+    expect(g.state.players[0]!.faithPool).toBe(faith + 20);
+    expect(home.population).toBe(3);
   });
 
-  it('counts a town’s worked tiles, two to the point', () => {
+  it('pays the larger scholar rate for a captured city with a wonder', () => {
     const g = game();
-    const city = found(g.state, 0);
-    raise(g.state, city, 'angkorWat');
-    const faith = () => explainCardCityYields(g.state, city).find((l) => l.card === 'angkorWat')?.faith ?? 0;
-
-    city.workedTiles = [];
-    expect(faith()).toBe(0);
-    city.workedTiles = [{ col: city.col, row: city.row }];
-    expect(faith()).toBe(0);
-    city.workedTiles = [
-      { col: city.col, row: city.row },
-      { col: city.col, row: city.row },
-    ];
-    expect(faith()).toBe(1);
+    const home = found(g.state, 0), captured = found(g.state, 0);
+    raise(g.state, home, 'libraryOfAshurbanipal');
+    captured.captured = true;
+    const rate = () => cardRenownLines(g.state, 0).filter((line) => line.card === 'libraryOfAshurbanipal').reduce((sum, line) => sum + line.amount, 0);
+    expect(rate()).toBe(5);
+    raise(g.state, captured, 'pyramids');
+    expect(rate()).toBe(20);
   });
 });
 
@@ -1296,11 +1208,11 @@ describe('a completion grant', () => {
   it('calls the best melee unit the empire can build, through the ordinary spawn', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'stonecraft', 'bronzeWorking', 'ironWorking');
+    learn(g.state, 0, 'stonecraft', 'bronzeWorking', 'ironWorking', 'bronzePanoply');
     const before = g.state.units.length;
 
     const done = finish(g.state, city, 'statueOfZeus');
-    expect(done?.grants).toHaveLength(1);
+    expect(done?.grants).toHaveLength(3);
     const [grant] = done!.grants!;
     // The Spear Wall, not the legionary — and that is the rule working rather than
     // a weak answer: "can build" is `buildError`'s whole question, and this seat
@@ -1309,7 +1221,7 @@ describe('a completion grant', () => {
     // named on the row. (It was the spearman before the re-cut of 2026-09-02
     // put the Spear Wall on this node; what is on trial is the gate, not the name.)
     expect(grant).toMatchObject({ grant: 'unit', name: unitDef('spearWall').name, done: true });
-    expect(g.state.units).toHaveLength(before + 1);
+    expect(g.state.units).toHaveLength(before + 3);
     const born = g.state.units.find((u) => u.id === grant!.unitId)!;
     expect(born.type).toBe('spearWall');
     expect(born.ownerId).toBe(0);
@@ -1320,12 +1232,12 @@ describe('a completion grant', () => {
   it('finishes the technology the seat is aiming at, and re-seats every town', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'earthenware', 'divination', 'letters', 'philosophy');
+    learn(g.state, 0, 'earthenware', 'divination', 'letters', 'education');
     const player = playerById(g.state, 0)!;
     player.researching = 'mathematics';
     player.sciencePool = 0;
 
-    const done = finish(g.state, city, 'greatLibrary');
+    const done = finish(g.state, city, 'houseOfWisdom');
     expect(done?.grants?.[0]).toMatchObject({
       grant: 'tech',
       name: techDef('mathematics').name,
@@ -1341,10 +1253,10 @@ describe('a completion grant', () => {
   it('loses the technology when the seat is aiming at nothing, and says so', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'earthenware', 'divination', 'letters', 'philosophy');
+    learn(g.state, 0, 'earthenware', 'divination', 'letters', 'education');
     playerById(g.state, 0)!.researching = null;
 
-    const done = finish(g.state, city, 'greatLibrary');
+    const done = finish(g.state, city, 'houseOfWisdom');
     expect(done?.grants?.[0]).toMatchObject({ grant: 'tech', done: false });
   });
 
@@ -1402,13 +1314,13 @@ describe('a completion grant', () => {
   it('rides out through the report and the command result', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'stonecraft', 'bronzeWorking', 'ironWorking');
+    learn(g.state, 0, 'stonecraft', 'bronzeWorking', 'ironWorking', 'bronzePanoply');
     city.queue = [{ kind: 'building', id: 'statueOfZeus' }];
     city.hammerBasket = buildingProductionCost('statueOfZeus');
 
     const report = emptyTurnReport();
     advanceProduction(g.state, report);
-    expect(report.grants).toHaveLength(1);
+    expect(report.grants).toHaveLength(3);
     expect(report.grants[0]).toMatchObject({ grant: 'unit', done: true });
   });
 });
@@ -1424,22 +1336,20 @@ describe('a wonder in words', () => {
     expect(describeCard('theatreOfDionysus').map((c) => stripRefs(c.text))).toContain(
       '+1 happiness per Amphitheater',
     );
-    expect(describeCard('greatLibrary').map((c) => stripRefs(c.text))).toContain(
-      '+1 science in every city with a Library',
+    expect(describeCard('greatZiggurat').map((c) => stripRefs(c.text))).toContain(
+      '+2 science in every city with a Shrine',
     );
-    // A wonder is a proper noun: there is exactly one of it, so it takes no
-    // article at all.
-    expect(describeCard('theOracle').map((c) => stripRefs(c.text))).toContain(
-      '+1 faith in every city with The Oracle',
+    expect(describeCard('templeOfThoth').map((c) => stripRefs(c.text))).toContain(
+      '50% of the faith in every city with The Temple of Thoth is gained again as science',
     );
   });
 
   it('prints a completion grant, which is not an effect', () => {
-    expect(describeCard('statueOfZeus').map((c) => c.text)).toContain(
-      'on completion, the best melee unit you can build joins you',
+    expect(describeCard('statueOfZeus').map((c) => stripRefs(c.text))).toContain(
+      'on completion, 3 melee units join you',
     );
     expect(describeCard('greatLibrary').map((c) => c.text)).toContain(
-      'on completion, the technology you are researching is finished',
+      'on completion, a great person of the scholars is offered',
     );
     expect(describeCard('theatreOfDionysus').map((c) => c.text)).toContain(
       'on completion, a Doctrine draft opens',
@@ -1461,11 +1371,11 @@ describe('a wonder in words', () => {
   });
 
   it('names who a filtered combat line is for, and whose ground a tile line is on', () => {
-    expect(describeCard('alhambra').map((c) => c.text)).toContain(
-      '+4 combat strength for mounted units',
+    expect(describeCard('greatLighthouse').map((c) => c.text)).toContain(
+      '+3 combat strength for ships',
     );
     expect(describeCard('petra').map((c) => stripRefs(c.text))).toContain(
-      '+1 food, +1 production on every desert hex, in every city with Petra',
+      '+1 food, +1 production on every desert hex',
     );
   });
 });
@@ -1484,7 +1394,9 @@ describe('the lighthouse’s embarked movement', () => {
     // The same piece standing on water — which for a piece on the board at all
     // means it embarked to get there.
     at(state.map, 2, 2).terrain = 'coast';
-    expect(fullMovement(ashore, state)).toBe(base + 1);
+    expect(fullMovement(ashore, state)).toBe(base);
+    const ship = unit(state, at(state.map, 3, 2), 'galley', 0);
+    expect(fullMovement(ship, state)).toBe(unitDef('galley').movement + 1);
   });
 });
 
@@ -1523,7 +1435,7 @@ describe('the building rows of batch E4a', () => {
     expect(g.state.units.find((u) => u.id === plain.unitId)!.stamp).toBeUndefined();
   });
 
-  it('Notre-Dame pays the cathedral towns in song and in contentment', () => {
+  it('Notre-Dame counts a Cathedral as a faith building', () => {
     const g = game(4112);
     const home = found(g.state, 0);
     home.buildings.push('notreDame');
@@ -1543,7 +1455,7 @@ describe('the building rows of batch E4a', () => {
     const before = mood();
     home.buildings.push('cathedral');
     bumpRevision(g.state);
-    expect(song()).toBe(3);
+    expect(song()).toBe(0);
     expect(mood() - before).toBe(1);
     void happinessOf;
   });

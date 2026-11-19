@@ -597,8 +597,15 @@ import {
  *
  * v246 changes the generic Order pool. A saved draft pick stores the index of
  * the card in the offer. Replaying a v245 log could pick a different Order.
+ *
+ * v247 records the original work when a raid damages it. A v246 raid removed
+ * the work permanently, so its command log would replay to a different state.
+ *
+ * v248 changes the Dominion and Magisterial draft pools and the rules for
+ * wonders and council chairs. A v247 log can select a different card at the
+ * same offer index and produce different yields from the same wonder.
  */
-export const SCHEMA_VERSION = 246;
+export const SCHEMA_VERSION = 248;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2281,6 +2288,7 @@ export interface Unit {
    *      anyway (no unlock tech) and is marked so the rule does not depend on
    *      that staying true;
    *   5. `claimDiscoveryAt` — a ruin's escort.
+   *   6. A levy with free upkeep passes `free: true` to `realiseItem`.
    *
    * A **completion** of a queued unit and a **purchase** deliberately do not
    * write it: those are pieces an empire paid for, and they go on the payroll

@@ -51,6 +51,7 @@ import {
   adoptGovernmentAt,
   describeCard,
   recordScalingOccasion,
+  refitSlots,
   slotOrderAt,
   slotOrderError,
   slotTypesOf,
@@ -121,8 +122,8 @@ function slot(state: GameState, playerId: number, id: string): void {
   touch(state);
 }
 
-/** Seats a commission in the first empty chair it fits, through the slot verb. */
-function seatCommission(state: GameState, id: string): number {
+/** Seats an Order in the first empty chair it fits, through the slot verb. */
+function seatOrder(state: GameState, id: string): number {
   const player = seat(state, 0);
   const card = id as OrderId;
   if (!player.statecraft.orders.includes(card)) player.statecraft.orders.push(card);
@@ -250,7 +251,7 @@ describe('Dominion D6 — Commission: A Victor’s Peace', () => {
     foundCityAt(state, 1, at(state, 16, 9));
     const a = foundCityAt(state, 1, at(state, 6, 4))!;
     const b = foundCityAt(state, 1, at(state, 11, 8))!;
-    seatCommission(state, 'dominionAVictorsPeace');
+    seatOrder(state, 'dominionAVictorsPeace');
     const player = seat(state, 0);
     const sc = player.statecraft;
     take(state, a);
@@ -279,7 +280,7 @@ describe('Dominion D6 — Commission: A Victor’s Peace', () => {
     foundCityAt(state, 0, at(state, 2, 2));
     foundCityAt(state, 1, at(state, 16, 9));
     const a = foundCityAt(state, 1, at(state, 6, 4))!;
-    seatCommission(state, 'dominionAVictorsPeace');
+    seatOrder(state, 'dominionAVictorsPeace');
     take(state, a);
     peace(state);
     expect(tallyOf(seat(state, 0).statecraft, 'dominionAVictorsPeace' as OrderId)).toBe(0);
@@ -291,7 +292,7 @@ describe('Dominion D6 — Commission: A Victor’s Peace', () => {
     foundCityAt(state, 0, at(state, 2, 2));
     const a = foundCityAt(state, 1, at(state, 6, 4))!;
     const b = foundCityAt(state, 1, at(state, 11, 8))!;
-    seatCommission(state, 'dominionAVictorsPeace');
+    seatOrder(state, 'dominionAVictorsPeace');
     take(state, a);
     take(state, b);
     expect(seat(state, 1).eliminated).toBe(true);
@@ -328,7 +329,7 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
       const big = foundCityAt(state, 1, at(state, 11, 8))!;
       small.population = 4;
       big.population = 6;
-      seatCommission(state, 'dominionTakeTheCity');
+      seatOrder(state, 'dominionTakeTheCity');
       const sc = seat(state, 0).statecraft;
       take(state, small);
       expect(tallyOf(sc, 'dominionTakeTheCity' as OrderId)).toBe(0);
@@ -349,7 +350,7 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     }
   });
 
-  it('The Grand Campaign pays ten times the citizens of the three towns it counted', () => {
+  it('The Grand Campaign pays forty times the citizens of the three towns it counted', () => {
     const state = flat();
     foundCityAt(state, 0, at(state, 2, 2));
     foundCityAt(state, 1, at(state, 18, 10));
@@ -361,12 +362,12 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     towns[0]!.population = 2;
     towns[1]!.population = 3;
     towns[2]!.population = 4;
-    seatCommission(state, 'dominionTheGrandCampaign');
+    seatOrder(state, 'dominionTheGrandCampaign');
     for (const town of towns) take(state, town);
     expect(commissionGoalMeasure(state, 0, 'dominionTheGrandCampaign' as OrderId, 'population')).toBe(9);
     seat(state, 0).statecraft.pendingOrder = { options: [] };
     const reports = runCommissions(state);
-    expect(reports[0]!.lines).toEqual(expect.arrayContaining(['+90 science', '+90 culture']));
+    expect(reports[0]!.lines).toEqual(expect.arrayContaining(['+360 science', '+360 culture']));
   });
 
   it('The Captured Marvel counts another empire’s original capital or a world wonder, and not your own capital', () => {
@@ -376,7 +377,7 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     expect(home.originalCapitalOf).toBe(0);
     expect(theirs.originalCapitalOf).toBe(1);
     foundCityAt(state, 0, at(state, 16, 2));
-    seatCommission(state, 'dominionTheCapturedMarvel');
+    seatOrder(state, 'dominionTheCapturedMarvel');
     const sc = seat(state, 0).statecraft;
     // Your own first town, handed over and taken back, is not another
     // empire's original capital.
@@ -438,7 +439,7 @@ describe('Dominion D6 — citizens as a reward', () => {
     // commissions traded rewards.
     const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
-    seatCommission(state, 'dominionBattleHonours');
+    seatOrder(state, 'dominionBattleHonours');
     for (let kill = 0; kill < 6; kill++) recordScalingOccasion(state, 0, 'unitKilled');
     const before = capital.population;
     const reports = runCommissions(state);
@@ -460,7 +461,7 @@ describe('Dominion D6 — citizens as a reward', () => {
     const before = spec.reward;
     spec.reward = [{ citizens: 2, citizensTo: { smallest: 2 } }];
     try {
-      seatCommission(state, 'dominionClearTheFrontier');
+      seatOrder(state, 'dominionClearTheFrontier');
       for (let index = 0; index < 2; index++) settleCampBounty(state, 0, { col: 3, row: 3 });
       // The camps' own bounty may feed the nearest town, so the reward is
       // measured from here.
@@ -524,8 +525,11 @@ describe('Dominion D6 — Vae Victis and Looted Art', () => {
     const town = marvel(state);
     town.queue = [OPUS];
     town.hammerBasket = 80;
-    for (const id of cards) slot(state, 0, id);
     const player = seat(state, 0);
+    // Taking a wonder updates the council. Give each card a chair the empire owns.
+    player.statecraft.chairsWon = Math.max(0, cards.length - player.statecraft.slots.length);
+    refitSlots(state, player);
+    for (const id of cards) seatOrder(state, id);
     player.researching = null;
     delete player.researchQueue;
     const science = player.sciencePool;
@@ -604,7 +608,7 @@ describe('Dominion D6 — words and the bot', () => {
     expect(words('dominionTakeTheCity')).toContain(
       'Reward: capturing a city grants +250 science for each age you have reached',
     );
-    expect(words('dominionTheGrandCampaign')).toContain("science equal to 10 times those cities' total population");
+    expect(words('dominionTheGrandCampaign')).toContain("science equal to 40 times those cities' total population");
     // Since Dominion batch D11 an institution. The D6 words are pinned by the
     // borrowed reward above.
     expect(words('dominionTheCapturedMarvel')).toContain(

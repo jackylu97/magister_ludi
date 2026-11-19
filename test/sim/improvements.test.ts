@@ -57,7 +57,7 @@ import {
   prospectError,
   removeImprovementError,
 } from '../../src/sim/improvements';
-import { type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { type Tile, createMap, getTileAt, raiseImprovement } from '../../src/sim/map';
 import { RESOURCE_IDS, resourceDef, resourceYield } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
 import { windfallPayout } from '../../src/sim/statecraft';
@@ -1838,6 +1838,97 @@ describe('pillage', () => {
     ]);
   });
 
+  it('restores the original work and its resource access, with no road or charge spent', () => {
+    const { state, raider } = raidState();
+    const tile = at(state, 2, 1);
+    const worker = createUnit(state, 1, 'worker', tile.col, tile.row);
+    const charges = chargesLeft(worker);
+    tile.resource = 'gems';
+    tile.road = 1;
+    raiseImprovement(tile, 'academy', state.turn);
+    bumpRevision(state);
+    const built = state.turn;
+    const healthy = foldTile(tile);
+    expect(hasResource(state, 1, 'gems')).toBe(true);
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
+    expect(tile.damagedImprovement).toEqual({ id: 'academy', improvedOn: built, pillagedOn: state.turn });
+    expect(foldTile(tile).science).toBeLessThan(healthy.science);
+    expect(hasResource(state, 1, 'gems')).toBe(false);
+    expect(pillageError(state, raider.id)).not.toBeNull();
+    state.turn += 1;
+    const repair = { type: 'repairImprovement', playerId: 1, unitId: worker.id } as const;
+    expect(applyCommand(state, repair).ok).toBe(true);
+    expect(tile.improvement).toBe('academy');
+    expect(tile.improvedOn).toBe(built);
+    expect(tile.damagedImprovement).toBeUndefined();
+    expect(tile.road).toBeUndefined();
+    expect(foldTile(tile)).toEqual(healthy);
+    expect(hasResource(state, 1, 'gems')).toBe(true);
+    expect(worker.movesLeft).toBe(0);
+    expect(chargesLeft(worker)).toBe(charges);
+    const before = snapshotState(state);
+    expect(applyCommand(state, repair).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('refuses repair by another seat, on foreign land, and after the worker has spent its turn', () => {
+    const { state, raider } = raidState();
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
+    const owner = createUnit(state, 1, 'worker', 2, 1);
+    const invader = createUnit(state, 0, 'worker', 2, 1);
+    const refuse = (unit: Unit, playerId: number) => {
+      const before = snapshotState(state);
+      expect(applyCommand(state, { type: 'repairImprovement', playerId, unitId: unit.id }).ok).toBe(false);
+      expect(snapshotState(state)).toBe(before);
+    };
+    refuse(owner, 0);
+    refuse(invader, 0);
+    refuse(raider, 0);
+    state.turnEnded[1] = true;
+    refuse(owner, 1);
+    state.turnEnded[1] = false;
+    owner.movesLeft = 0;
+    refuse(owner, 1);
+  });
+
+  it('lets an embarked worker repair fishing boats and opens their resource again', () => {
+    const { state, raider } = raidState();
+    const tile = at(state, 2, 1);
+    tile.terrain = 'coast';
+    tile.resource = 'fish';
+    raiseImprovement(tile, 'fishingBoats', state.turn);
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
+    expect(hasResource(state, 1, 'fish')).toBe(false);
+    const worker = createUnit(state, 1, 'worker', 2, 1);
+    expect(applyCommand(state, { type: 'repairImprovement', playerId: 1, unitId: worker.id }).ok).toBe(true);
+    expect(hasResource(state, 1, 'fish')).toBe(true);
+  });
+
+  it('preserves the limit of one work per town on repair', () => {
+    const { state, raider } = raidState();
+    const tile = at(state, 2, 1);
+    raiseImprovement(tile, 'townKeep', state.turn);
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
+    const other = at(state, 3, 2);
+    raiseImprovement(other, 'townKeep', state.turn);
+    const worker = createUnit(state, 1, 'worker', 2, 1);
+    const before = snapshotState(state);
+    const repair = { type: 'repairImprovement', playerId: 1, unitId: worker.id } as const;
+    expect(applyCommand(state, repair).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('removes the damaged work when the owner builds a different improvement', () => {
+    const { state, raider } = raidState();
+    const tile = at(state, 2, 1);
+    raiseImprovement(tile, 'academy', state.turn);
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
+    const worker = createUnit(state, 1, 'worker', 2, 1);
+    expect(applyCommand(state, build(1, worker.id, 'farm')).ok).toBe(true);
+    expect(tile.improvement).toBe('farm');
+    expect(tile.damagedImprovement).toBeUndefined();
+  });
+
   it('heals the raider by the printed figure, capped at its maximum', () => {
     // The user's 2026-08-28 ruling: a raid pays gold **and** health, to
     // everybody, with no card involved. The heal is `improvements.pillageHeal`
@@ -2418,7 +2509,7 @@ describe('improvements in the log', () => {
     return null;
   }
 
-  it('replays a build and a pillage byte for byte', () => {
+  it('saves and replays a build, a pillage and a repair byte for byte', () => {
     const game = improvingGame();
     const { state } = game;
 
@@ -2451,6 +2542,12 @@ describe('improvements in the log', () => {
     for (let turn = 0; turn < 3; turn++) {
       for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
     }
+    const damagedSave = loadGame(saveGame(game));
+    expect(snapshotState(damagedSave.state)).toBe(snapshotState(state));
+    expect(tile.damagedImprovement?.id).toBe(id);
+    expect(dispatch(game, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    expect(tile.improvement).toBe(id);
+    expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(state));
     expect(game.log.some((command) => command.type === 'buildImprovement')).toBe(true);
     expect(game.log.some((command) => command.type === 'pillage')).toBe(true);
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
@@ -2972,7 +3069,8 @@ describe('improvements in the log', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

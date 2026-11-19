@@ -26,7 +26,7 @@
  */
 
 const SOURCES = {
-  ...(import.meta.glob('../../src/ui/*.ts', {
+  ...(import.meta.glob('../../src/ui/*.{ts,css}', {
     eager: true,
     query: '?raw',
     import: 'default',

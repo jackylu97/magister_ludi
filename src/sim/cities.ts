@@ -191,6 +191,7 @@ import {
   type WindfallPayout,
   windfallPayout,
   // Bot batch BP7: a wonder that opens a chair for whoever holds it.
+  countsWondersForChairs,
   buildingOpensChairs,
   refitSlots,
 } from './statecraft';
@@ -209,7 +210,7 @@ import {
 // Dominion batch D8, from the evaluator for the same reason: the rule that
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
-import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
+import { cardBehaviorRule, cardUnitCostLines, cityScopeAdmits } from './statecraft/evaluator';
 // Batch DT16, from the evaluator for the same reason: whose hexes read the works
 // around them, for `refreshRingDerived`.
 import { cardHexLinesReadWorksBeside, lawIsCut } from './statecraft/evaluator';
@@ -3022,6 +3023,8 @@ function chooseCitizens(
  *      "every hex beside a work" pays on the six hexes around it. Another town
  *      may work those hexes, so each town owning one is re-seated while its owner
  *      holds such a line. Entry 30's reason, for a different row.
+ *  36. A worker restores a pillaged work (`repairImprovementAt`). The town can
+ *      work the tile again. Water and nearby great works can affect other towns.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -5734,7 +5737,7 @@ export function realiseItem(
     // the turn the stones go up, as it does for a Doctrine that opens one
     // (`refitSlots`' register). After the claim, because the claim is what opens
     // the walk's wonder source on the first wonder of a game.
-    if (buildingOpensChairs(item.id)) {
+    if (buildingOpensChairs(item.id) || (isWonder(item.id) && countsWondersForChairs(state, city.ownerId))) {
       const holder = playerById(state, city.ownerId);
       if (holder !== undefined) refitSlots(state, holder);
     }
@@ -5908,7 +5911,7 @@ export function realiseItem(
     options.bought !== undefined && cardActionRule(state, city.ownerId, 'boughtUnitsCountAsTrained');
   if (
     (options.bought === undefined || boughtCounts) &&
-    options.free !== true &&
+    (options.free !== true || options.levied === 'muster') &&
     options.untrained !== true
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
@@ -6343,6 +6346,11 @@ export function payGrants(
       });
       continue;
     }
+    if (grant.grant === 'freeRerolls') {
+      player.statecraft.freeRerolls = (player.statecraft.freeRerolls ?? 0) + grant.amount;
+      reports.push({ grant: grant.grant, name: `${grant.amount} free rerolls`, done: true });
+      continue;
+    }
     if (grant.grant === 'greatPerson') {
       // `doctrineDraft`'s arm one roster over, word for word: an offer is a
       // decision the seat owes the game, so one already waiting is kept and this
@@ -6393,6 +6401,12 @@ export function payGrants(
  * that opens one (Magisterial batch MG7, Commission: The Golden Bull): the
  * goal waits while this answers no (the triage's reading 19).
  */
+export function openWaitingDoctrineOffer(state: GameState, player: Player): void {
+  const sc = player.statecraft;
+  if (!sc.waitingDoctrineOffers || !openDoctrineOffer(state, player)) return;
+  if (--sc.waitingDoctrineOffers === 0) delete sc.waitingDoctrineOffers;
+}
+
 export function doctrineOfferCanOpen(state: GameState, player: Player): boolean {
   const sc = player.statecraft;
   if (sc.pendingDoctrine !== undefined) return false;
@@ -6656,19 +6670,41 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
   if (grants === undefined || grants.length === 0) return;
   const capital = capitalCityOf(state, player.id);
   const windfalls: OnDraftWindfall[] = [];
+  const multiplePersonOffers = grants.filter(grant => grant.grant === 'greatPerson').length > 1;
   for (const grant of grants) {
     switch (grant.grant) {
+      case 'doctrineOffer':
+        if (!openDoctrineOffer(state, player)) {
+          const sc = player.statecraft;
+          sc.waitingDoctrineOffers = (sc.waitingDoctrineOffers ?? 0) + 1;
+        }
+        break;
       case 'greatPerson':
-        grantGreatPersonOffer(state, player, grant.family ?? 'any');
+        if (multiplePersonOffers && player.greatPersonOffer !== undefined && grant.family === undefined) {
+          const sc = player.statecraft;
+          sc.waitingGreatPersonOffers = (sc.waitingGreatPersonOffers ?? 0) + 1;
+        } else {
+          grantGreatPersonOffer(state, player, grant.family ?? 'any');
+        }
+        break;
+      case 'experience':
+        // Rank rewards can raise more units. Only units held at draft time gain experience.
+        for (const unit of state.units.filter((u) => u.ownerId === player.id && !isCivilian(unitDef(u.type)))) {
+          settleRanksEarned(state, unit, grantExperience(state, unit, grant.amount));
+        }
         break;
       case 'unit': {
-        if (!capital) break;
+        const towns = grant.toEveryTown === undefined
+          ? (capital ? [capital] : [])
+          : citiesOf(state, player.id).filter((town) => cityScopeAdmits(state, town, grant.toEveryTown, player.id));
         // Choose the type before the first unit claims any strategic resources.
         const unit = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
         if (unit === null) break;
         const count = onDraftUnitCount(grant.count);
-        for (let n = 0; n < count; n++) {
-          if (raiseFreeUnit(state, capital, unit) === null) break;
+        for (const town of towns) {
+          for (let n = 0; n < count; n++) {
+            if (raiseFreeUnit(state, town, unit) === null) break;
+          }
         }
         break;
       }

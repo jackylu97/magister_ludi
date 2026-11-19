@@ -127,7 +127,7 @@ describe('Dominion D3 — the pillage tally and record', () => {
     bumpRevision(state);
     // +1 science at the empire per hex (the production is the capital's; see
     // the last test in this file).
-    expect(foldCardYields(explainCardEmpireYields(state, 0)).science).toBe(1);
+    expect(foldCardYields(explainCardEmpireYields(state, 0)).science).toBe(2);
     // The Sagas: +1% for every three hexes, so one hex pays nothing yet.
     const home = state.cities.find((city) => city.ownerId === 0)!;
     const percent = (voice: string): number =>
@@ -251,8 +251,8 @@ describe('Dominion D3 — where a grant lands', () => {
     const before = [a.hammerBasket, b.hammerBasket];
     payWindfallGrants(state, playerById(state, 0)!, windfallPayout(state, 0, 'camp'), { col: 2, row: 3 });
     // +10 since batch DS2, which also cut the discovery half.
-    expect(a.hammerBasket - before[0]!).toBe(10);
-    expect(b.hammerBasket - before[1]!).toBe(10);
+    expect(a.hammerBasket - before[0]!).toBe(20);
+    expect(b.hammerBasket - before[1]!).toBe(20);
     expect(windfallPayoutIsEmpty(windfallPayout(state, 0, 'discovery'))).toBe(true);
   });
 
@@ -409,7 +409,10 @@ describe('Dominion D3 — what a pillage can do', () => {
     raider.hp = 10;
     const gold = playerById(state, 0)!.gold;
     const report = pillageAt(state, raider, farm);
-    for (const tile of enemy) expect(tile.improvement).toBeUndefined();
+    for (const tile of enemy) {
+      expect(tile.improvement).toBeUndefined();
+      expect(tile.damagedImprovement).toEqual({ id: 'farm', improvedOn: state.turn, pillagedOn: state.turn });
+    }
     expect(wild.improvement).toBe('farm');
     expect(report.spread?.length).toBe(enemy.length);
     // Every hex burnt pays its own salvage and counts on the record.
@@ -439,7 +442,7 @@ describe('Dominion D3 — the raider named on the occasion', () => {
 describe('Dominion D3 — the words', () => {
   it('describes each card in a first-time player’s words', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
-    expect(said('theOutriders')).toEqual(['clearing a barbarian camp grants +10 production to every city']);
+    expect(said('theOutriders')).toEqual(['clearing a barbarian camp grants +20 production to every city']);
     expect(said('spoilsOfWar')).toEqual(['pillaging grants +50 gold', 'pillaging grants +15 culture']);
     expect(said('armouryGuilds')).toEqual([
       'losing a unit grants production equal to its strength to your nearest city with an Armoury',
@@ -465,6 +468,6 @@ describe('Dominion D3 — the words', () => {
     pillageAt(state, raider, farm);
     bumpRevision(state);
     const production = explainCardCityYields(state, home).reduce((sum, line) => sum + line.production, 0);
-    expect(production).toBe(1);
+    expect(production).toBe(2);
   });
 });

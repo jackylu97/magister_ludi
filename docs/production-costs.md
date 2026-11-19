@@ -259,23 +259,30 @@ reading for a once-per-empire row.
 | `templeOfArtemis` | The Temple of Artemis | wonder | 1 | 130 |
 | `greatLibrary` | The Great Library | wonder | 6 | 501 |
 | `colossus` | The Colossus | wonder | 5 | 382 |
-| `petra` | Petra | wonder | 7 | 657 |
+| `petra` | Petra | wonder | 5 | 382 |
 | `circusMaximus` | The Circus Maximus | wonder | 8 | 860 |
 | `terracottaArmy` | The Terracotta Army | wonder | 6 | 501 |
 | `greatWall` | The Great Wall | wonder | 7 | 657 |
 | `theatreOfDionysus` | The Theatre of Dionysus | wonder | 4 | 292 |
 | `mausoleum` | The Mausoleum | wonder | 4 | 292 |
-| `statueOfZeus` | The Statue of Zeus | wonder | 6 | 501 |
+| `statueOfZeus` | The Statue of Zeus | wonder | 4 | 292 |
 | `chichenItza` | Chichen Itza | wonder | 8 | 860 |
 | `hagiaSophia` | Hagia Sophia | wonder | 8 | 860 |
-| `angkorWat` | Angkor Wat | wonder | 8 | 860 |
+| `angkorWat` | Angkor Wat | wonder | 6 | 501 |
 | `greatMosqueOfDjenne` | The Great Mosque of Djenné | wonder | 8 | 860 |
 | `notreDame` | Notre-Dame | wonder | 11 | 1934 |
 | `houseOfWisdom` | The House of Wisdom | wonder | 9 | 1127 |
 | `forbiddenCity` | The Forbidden City | wonder | 7 | 657 |
 | `alhambra` | The Alhambra | wonder | 11 | 1934 |
 | `machuPicchu` | Machu Picchu | wonder | 10 | 1477 |
-| `waterClockOfSuSong` | The Water Clock of Su Song | wonder | 8 | 860 |
+| `greatSphinx` | The Great Sphinx | wonder | 1 | 130 |
+| `templeOfThoth` | The Temple of Thoth | wonder | 2 | 170 |
+| `pyramidOfTheSun` | The Pyramid of the Sun | wonder | 4 | 292 |
+| `solomonsTemple` | Solomon's Temple | wonder | 5 | 382 |
+| `ironPillar` | The Iron Pillar | wonder | 5 | 382 |
+| `libraryOfAshurbanipal` | The Library of Ashurbanipal | wonder | 5 | 382 |
+| `weiyangPalace` | The Weiyang Palace | wonder | 5 | 382 |
+| `greatStelaeOfAksum` | The Great Stelae of Aksum | wonder | 6 | 501 |
 
 ### Units
 

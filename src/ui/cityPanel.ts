@@ -1562,8 +1562,8 @@ export function previewLineText(line: BuildingPreviewLine): string {
  * Pure and module-level, `previewLineText`'s reason exactly: a hover string
  * built off the sim's own list needs no jsdom to pin.
  */
-export function maxHpLedger(city: City): string {
-  return explainCityMaxHp(city)
+export function maxHpLedger(city: City, state?: GameState): string {
+  return explainCityMaxHp(city, city, state)
     .map((line, index) =>
       index === 0 ? `${line.source} ${line.amount}` : `${line.source} ${signedFigure(line.amount)}`,
     )
@@ -5044,8 +5044,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Hit points beside population, in the same small voice — `cityMaxHp` is
     // the fold `explainCityMaxHp` breaks down, so the tooltip and the figure
     // can never disagree.
-    const hp = element('span', 'city-size', `${city.hp}/${cityMaxHp(city)} hp`);
-    noteOn(hp, maxHpLedger(city));
+    const hp = element('span', 'city-size', `${city.hp}/${cityMaxHp(city, city, state)} hp`);
+    noteOn(hp, maxHpLedger(city, state));
     title.append(hp);
     // What this town believes, beside its name — the 2026-08-28 ruling. The
     // full list of claims is a disclosure in the rail below; this is its answer

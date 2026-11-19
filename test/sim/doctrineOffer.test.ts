@@ -207,6 +207,7 @@ describe('the Doctrine data model', () => {
       WEIGHT,
       COMBINED,
       SCOURGE,
+      'theCitizenPhalanx',
     ];
     expect(DECK_FILE_DOCTRINES.dominion).toEqual(dominion);
     expect(fromDecks).toEqual(expect.arrayContaining(dominion));
@@ -245,8 +246,8 @@ describe('the Doctrine data model', () => {
     ]);
   });
 
-  it('sits Dominion’s live rows at the tiers the user’s review left them (3, 4, 3, 3)', () => {
-    expect(TIER_ONE).toEqual([STEPPE, MARIAN, SHARE]);
+  it('sits Dominion’s live rows at the tiers the user’s review left them (4, 4, 3, 3)', () => {
+    expect(TIER_ONE).toEqual([STEPPE, MARIAN, SHARE, 'theCitizenPhalanx']);
     expect(TIER_TWO).toEqual([CONSULAR, SHANG, CENTURIONS, PLUNDER]);
     expect(TIER_THREE).toEqual([MONARCHY, STRATEGOI, COMBINED]);
     expect(TIER_FOUR).toEqual([LANDSTURM, FORTRESS, SCOURGE]);

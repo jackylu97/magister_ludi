@@ -149,15 +149,8 @@ export function playerSecondaryColor(state: GameState, playerId: number): number
 
 // --- the towns --------------------------------------------------------------
 
-/**
- * How many sculpt tiers a town has. Æra I huts, Æra II gables, Æra III stone.
- *
- * Not a tunable: it is the length of the ladder the shapes were carved for, and
- * a fourth tier is new geometry rather than a new number. What *is* tunable is
- * which tier each part joins at — every aged part carries its own `fromTier` in
- * `data/view3d.json`. See `CitySpec.gable`.
- */
-export const CITY_TIERS = 3;
+/** Each of the four playable ages has its own town centre. */
+export const CITY_TIERS = 4;
 
 /**
  * Which sculpt tier a town is built at: its **owner's** age, clamped.
@@ -192,7 +185,7 @@ export function cityTier(state: GameState, city: City): number {
  * **any new visual-affecting city property joins `CityLook` and nothing else.**
  */
 export interface CityLook {
-  /** 1, 2 or 3. See `cityTier`. */
+  /** The owner’s architectural tier. See `cityTier`. */
   tier: number;
   /** A palisade stands: stakes from `palisade.fromTier`, stone from `wall.fromTier`. */
   walls: boolean;

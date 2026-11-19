@@ -43,6 +43,7 @@
  * walked out through `arriveOnTile` — the one seam a piece may come to rest at.
  */
 
+import { isWonder } from './buildingData';
 import { arriveOnTile } from './arrival';
 import { awardOrderBeads } from './beads';
 import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
@@ -320,17 +321,9 @@ export function declareWarAt(
     reseatEmpire(state, playerId);
     reseatEmpire(state, targetId);
   }
-  // **The declaration is an occasion** (The Casus Belli, 2026-09-04), fired here
-  // and nowhere else, for the declaring seat alone: `WindfallOccasion`'s
-  // `declareWar` says why the card pays for *starting* a war rather than for
-  // being in one, and a rider read off `liveEffects` therefore sees exactly the
-  // cards that were in a slot when the herald rode out.
-  //
-  // Last, after the caravans and the bargains are gone, because a rider may hang
-  // a timed effect on the empire and the war it is a consequence of should be
-  // whole before the consequence arrives — `purchaseItemAt`'s ordering, for its
-  // reason.
+  // A declaration pays the attacker. Only riders that name either side also pay the defender.
   payDeclarationRiders(state, playerId);
+  payDeclarationRiders(state, targetId, true);
   return {
     report: { byId: playerId, onId: targetId, turn: state.turn },
     routesEnded: cancelRoutesBetween(state, playerId, targetId),
@@ -349,10 +342,10 @@ export function declareWarAt(
  * rider that granted culture or beakers would need no edit here, which is the
  * whole reason it is written this way today.
  */
-function payDeclarationRiders(state: GameState, playerId: number): void {
+function payDeclarationRiders(state: GameState, playerId: number, defending = false): void {
   const player = playerById(state, playerId);
   if (!player) return;
-  const payout = windfallPayout(state, playerId, 'declareWar');
+  const payout = windfallPayout(state, playerId, 'declareWar', 0, 0, defending ? { warDefender: true } : {});
   if (
     payout.grants.length === 0 &&
     payout.units.length === 0 &&
@@ -1352,7 +1345,7 @@ export function razeCityAt(
   bumpEconomy(state);
   // **A wonder's chair goes with its town** (bot batch BP7, The Forbidden City).
   // The council is seated again as an adoption seats it (`refitSlots`' `'reseat'`).
-  if (city.buildings.some(buildingOpensChairs)) {
+  if (city.buildings.some((id) => isWonder(id) || buildingOpensChairs(id))) {
     const owner = playerById(state, city.ownerId);
     if (owner !== undefined) refitSlots(state, owner, 'reseat');
   }

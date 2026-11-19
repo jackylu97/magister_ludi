@@ -5,11 +5,7 @@
 // only when `visualTest.northStar` in data/view3d.json is true. A plain module
 // with no imports, so Node scripts can read it.
 export const NORTH_STAR_HOUSES=['ns-house-1a','ns-house-1b','ns-house-1c','ns-house-2a','ns-house-2b','ns-house-2c','ns-house-3a','ns-house-3b','ns-house-3c'];
-// What a town draws in each age of its owner (the user, 2026-11-16: "lets have
-// towns contain just huts in age 1, small buildings in age 2, but could we have
-// slightly more intricate buildings for age 3/4"). One entry for each tier of a
-// town's look (`cityTier`): the first age, the second, and the third and fourth
-// together.
+// The owner's age selects the town's houses and civic building.
 // - `houses`: the three house models of that age.
 // - `centre`: the building at the hall's address, and `centreSize`, its size as
 //   a share of `visualTest.town.hall`'s size. The first age has a larger hut,
@@ -22,9 +18,10 @@ export const NORTH_STAR_TOWN_AGES=[
  {houses:['ns-house-1a','ns-house-1b','ns-house-1c'],centre:'ns-great-hut',centreSize:.84,smoke:[0,.80,0]},
  {houses:['ns-house-2a','ns-house-2b','ns-house-2c'],centre:'ns-great-house',centreSize:.84,smoke:[.19,.675,-.10]},
  {houses:['ns-house-3d','ns-house-3e','ns-house-3f'],centre:'ns-hall-3',centreSize:1,smoke:[.27,.82,-.15]},
+ {houses:['ns-house-4a','ns-house-3e','ns-house-3f'],centre:'ns-hall-4',centreSize:1,smoke:[.257,.69,-.13]},
 ];
 export const NORTH_STAR_TOWN_BEFORE=[1,2,3].map(tier=>({houses:['a','b','c'].map(v=>`ns-house-${tier}${v}`),centre:'ns-hall',centreSize:1,smoke:[.22,.66,-.02]}));
-export const NORTH_STAR_AGED_TOWN_ASSETS=['ns-great-hut','ns-great-house','ns-house-3d','ns-house-3e','ns-house-3f','ns-hall-3'];
+export const NORTH_STAR_AGED_TOWN_ASSETS=['ns-great-hut','ns-great-house','ns-house-3d','ns-house-3e','ns-house-3f','ns-hall-3','ns-house-4a','ns-hall-4'];
 export const NORTH_STAR_TOWN_ASSETS=[...NORTH_STAR_HOUSES,'ns-hall',...NORTH_STAR_AGED_TOWN_ASSETS];
 // The animals of the north-star look (the user, 2026-11-13: the horses "seem a
 // bit too simple"). `true` draws the models of
@@ -71,20 +68,27 @@ export const NORTH_STAR_WORK_AGES={
   {store:'ns-granary',size:.66,beside:'ns-sheaf',besideSize:1.15,count:3,rack:true},
   {store:'ns-thatch-barn',size:1,beside:'ns-haystack',besideSize:1,count:2},
   {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
-  {store:'ns-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
+  {store:'ns-loft-barn',size:1,beside:'ns-haystack',besideSize:1,count:3,mill:true},
  ],
- mine:['ns-mine-pit','ns-mine-winch','mine','mine'],
+ mine:['ns-mine-pit','ns-mine-winch','mine','ns-mine-headframe'],
  quarry:['ns-quarry-cut','ns-quarry-frame','ns-quarry','ns-quarry'],
- lumbermill:['ns-lumber-camp','ns-lumber-camp','lumbermill','lumbermill'],
+ lumbermill:['ns-lumber-camp','ns-lumber-camp','lumbermill','ns-saw-hall'],
  pasture:[['ns-shelter',.72],['ns-shelter',.72],['ns-stable',.76],['ns-stable',.76]],
- plantation:[['ns-granary',.9],['ns-thatch-barn',.6],['ns-barn',.6],['ns-barn',.6]],
+ plantation:[['ns-granary',.9],['ns-thatch-barn',.6],['ns-barn',.6],['ns-loft-barn',.6]],
 };
 // The number of age steps a row of the table has.
 export const NORTH_STAR_WORK_STEPS=4;
 // The models the table names that the list of works did not already carry.
-export const NORTH_STAR_AGED_WORK_ASSETS=['ns-granary','ns-rack','ns-thatch-barn','ns-mine-pit','ns-mine-winch','ns-quarry-cut','ns-quarry-frame','ns-shelter','ns-stable','ns-lumber-camp'];
+export const NORTH_STAR_AGED_WORK_ASSETS=['ns-granary','ns-rack','ns-thatch-barn','ns-mine-pit','ns-mine-winch','ns-quarry-cut','ns-quarry-frame','ns-shelter','ns-stable','ns-lumber-camp','ns-loft-barn','ns-mine-headframe','ns-saw-hall'];
+// The renderer replaces only the model the undamaged work would use on this hex.
+export const PILLAGED_WORK_MODELS = {
+ 'ns-loft-barn':'ns-pillaged-grain-loft', 'ns-stable':'ns-pillaged-pasture',
+ 'ns-windmill':'ns-pillaged-windmill', 'fishing-boat':'ns-pillaged-fishing-boat',
+ 'ns-mine-headframe':'ns-pillaged-mine-hoist', 'ns-quarry':'ns-pillaged-quarry',
+ 'ns-saw-hall':'ns-pillaged-saw-hall',
+};
 // The animals and the great works are loaded with the works, so the list of works carries them.
-export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_AGED_WORK_ASSETS,...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS)];
+export const NORTH_STAR_WORK_ASSETS=['ns-mine','ns-quarry','ns-barn','ns-haystack','ns-windmill','ns-windmill-sails','ns-sheaf','ns-logs','ns-stall',...NORTH_STAR_AGED_WORK_ASSETS,...NORTH_STAR_ANIMAL_ASSETS,...Object.values(NORTH_STAR_GREAT_WORKS),...Object.values(PILLAGED_WORK_MODELS)];
 // The unit pieces of the north-star look (the user, 2026-11-14: "lets do a
 // single melee piece for now"). The key is a unit type, the value a model of
 // `scripts/terrain-study/build_northstar_units.py`. A type with no entry keeps

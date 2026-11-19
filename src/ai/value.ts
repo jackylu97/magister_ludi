@@ -142,6 +142,7 @@ import {
   otherCarryingRoutes,
   ownedTiles,
   resourceCopies,
+  spawnTileFor,
   surplusShareCarried,
   tileOwnerCityId,
   tileOwnerField,
@@ -182,7 +183,7 @@ import { commissionFigure, commissionProgress } from '../sim/commissions';
 import { commissionRewardWaits } from '../sim/commissions';
 // Magisterial batch MG17: the work a garden goal names and the seat's work
 // families, read where the goals read them.
-import { gardenWorkFor, workFamiliesHeld } from '../sim/commissions';
+import { gardenWorkFor, townWorksWorked, workFamiliesHeld } from '../sim/commissions';
 // Dominion batch D16: The Upstarts' line is read through feature B's own
 // answer to "which empires know more technologies than this one". Scientific
 // batch S13 reads the mirror (The Edge of the Sword) and the gap (The
@@ -201,7 +202,7 @@ import {
 // Magisterial batch MG17: what an act pays, read through the act's own seams,
 // so the act this bot prices and the act the reducer banks are one figure.
 import { actGainOf, agedActFactor, greatPersonBag } from '../sim/greatPeople';
-import { holdsRank, rankStrength } from '../sim/ranks';
+import { experienceOf, holdsRank, ranksReached, rankStrength } from '../sim/ranks';
 import {
   cityHoldsPost,
   cityPostPays,
@@ -242,6 +243,7 @@ import {
   religionBeliefPool,
   riteCostAhead,
   riteCostFor,
+  nextRerollCost,
   ritesDisplacedBy,
 } from '../sim/religion';
 import {
@@ -285,7 +287,7 @@ import {
   knowsUniqueTech,
   liveEffects,
   opusCityOf,
-  orderAtSlotPosition,
+  chairIndicesAtPosition,
   periodicProbe,
   slotTypesOf,
   statecraftOf,
@@ -317,11 +319,15 @@ import {
   // Batch G1: the kinds a tier-26 government raises, so its price reads them.
   CARD_TYPE_RAISED_KINDS,
   cardTypeAmplifierMatches,
+  wonderWorkYieldLines,
   cardActionRule,
   cardCollectionShare,
   cardRareWeight,
   cardRulePercent,
   effectsOfKind,
+  garrisonedUnitIds,
+  unitIdsNearGenerals,
+  cardBehaviorRule,
   groundFactsFor,
   helpings,
   oneOfAKind,
@@ -361,7 +367,7 @@ import {
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
-import { levyHammers, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
+import { levyHammers, levyGrantFor, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
 // Bot batch BP8: a camp is priced by the raiders it sends, at the wild's own
 // muster cadence.
 import { campCadence } from '../sim/barbarians';
@@ -446,6 +452,7 @@ import {
   isUnitTypeId,
   unitDef,
   unitMaxHp,
+  unitStampStrength,
 } from '../sim/unitData';
 import { explainBuildingUpkeep, unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
@@ -1076,7 +1083,7 @@ export function explainBuildingRow(
     // The bar is the one the town would have, its card-held walls included
     // (`townShelf`, Expansionist batch E13), as the simulation's siege reads it.
     const holding = townHolding(walled, id);
-    const share = hp / Math.max(1, cityMaxHp(holding, townShelf(ctx.state, holding)));
+    const share = hp / Math.max(1, cityMaxHp(holding, townShelf(ctx.state, holding), ctx.state));
     const defence = cityBaseStrength(ctx.state, walled) * ctx.ai.weights.military;
     terms.push({
       label:
@@ -1125,6 +1132,10 @@ export function explainBuildingRow(
       // `weights.military × combatScale` already means everywhere else in this
       // file (`unitStatPoints` reads the same "a piece" figure).
       terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
+    } else if (grant.grant === 'freeRerolls') {
+      terms.push(nest('free draft rerolls', explainLump({ faith: grant.amount * nextRerollCost(ctx.state, ctx.playerId) }, ctx)));
+    } else if (grant.grant === 'greatPerson') {
+      terms.push(nest('a great person on completion', lumpOfPoints(magisterialDraftGrantWorth(grant, ctx), ctx)));
     } else if (grant.grant === 'tech') {
       terms.push(
         // Priced at this age's band of `weights.techByAge` (E1a): a free node
@@ -1137,7 +1148,9 @@ export function explainBuildingRow(
       // `completionGrantTerm`.
       terms.push(completionGrantTerm(grant, ctx, city));
     } else {
-      terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
+      const unhandled: never = grant;
+      void unhandled;
+      terms.push({ label: 'a grant this bot cannot read', value: ctx.ai.score.unknownEffect });
     }
   }
   if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: ctx.ai.weights.victory });
@@ -2154,6 +2167,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
       );
     case 'unitStat':
+      if (effect.enemyOccupant) return unitStatPoints(effect.stat, -effect.amount, ctx) * ctx.threat;
       // One piece's worth, and — since batch X2 — nothing at all when the towns
       // the clause names do not exist: a stat handed to the pieces of coastal
       // towns is worth nothing to a realm with none.
@@ -2298,12 +2312,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // when the card is offered, and the seat logic puts that best card in it.
       if (effect.whole === true) return countedChairWorth(effect.factor, ctx);
       const holder = playerById(ctx.state, ctx.playerId);
-      const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
-      if (seated === null || effect.factor === 1) return 0;
-      const inner = orderDef(seated).effects.filter(
-        (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
-      );
-      return (effect.factor - 1) * scoreEffects(inner, ctx, seated);
+      if (!holder || effect.factor === 1) return 0;
+      let total = 0;
+      for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+        const seated = holder.statecraft.slots[index]?.card;
+        if (!isOrderId(seated)) continue;
+        const inner = orderDef(seated).effects.filter((held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier');
+        total += (effect.factor - 1) * scoreEffects(inner, ctx, seated);
+      }
+      return total;
     }
     case 'periodic':
       // A windfall spread over its period: what one firing pays, divided by how
@@ -2406,8 +2423,19 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // holds off its chairs, or the card it expects to draft, read through
       // `extraChairsWorth`. A chair closed (Scutage) keeps the old stand-in; a
       // Doctrine's stamp already holds what the closing costs.
-      const extra = effect.extra ?? 1;
+      const groups = effect.count === 'wonders'
+        ? Math.min(effect.max ?? Infinity, Math.floor(countProbe(ctx, 'wonders') / (effect.per ?? 1)))
+        : 1;
+      const extra = (effect.extra ?? 1) * groups;
       if (extra <= 0) return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * extra;
+      const sc = statecraftOf(ctx.state, ctx.playerId);
+      if (effect.slot !== undefined && effect.slot !== 'wildcard' && sc !== undefined) {
+        const bench = sc.orders.filter((id) => !isSlotted(sc, id) && neverSeatedError(sc, id) === null);
+        const chair = effect.slot;
+        const fits = chairFitFor(ctx.state, ctx.playerId);
+        const fit = bench.filter((id) => fits(id, chair)).length;
+        return extraChairsWorth(extra, ctx) * ((1 + fit) / (1 + bench.length));
+      }
       return extraChairsWorth(extra, ctx);
     }
     case 'effectAmplifier':
@@ -2451,6 +2479,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // town admits is worth nothing rather than one town's wall. Five live rows
       // carry a scope.
       if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
+      if (effect.stat === 'hp') {
+        return citiesOf(ctx.state, ctx.playerId).reduce((total, city) => {
+          if (!cityScopeAdmits(ctx.state, city, effect.scope)) return total;
+          const max = cityMaxHp(city, townShelf(ctx.state, city), ctx.state);
+          return total + effect.amount / max * cityBaseStrength(ctx.state, city) * ctx.ai.weights.military * (1 + ctx.threat);
+        }, 0);
+      }
       // **The town raising the Opus** (The Bulwark of Marvels, Magisterial
       // batch MG3; priced in batch MG17): the share of the horizon one of this
       // seat's towns raises it, read before the scope, which no town admits
@@ -2475,6 +2510,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // board gives: the inner effects at full price when the empire's own walk
       // already carries them, and nothing when it does not. A card whose gate is
       // shut is a card doing nothing today, which is what the evaluator says.
+      if (effect.when.test === 'atWar') return warIntent(ctx) * scoreEffects(effect.then, ctx);
       return conditionIsLive(effect.when, ctx) ? scoreEffects(effect.then, ctx) : 0;
     case 'purchaseRider': {
       // **A rider on the faith bank alone** (Devotion batch DV3, The Offering
@@ -2675,19 +2711,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // first in batch E13). See `workAgeWorth`.
       return workAgeWorth(effect, ctx);
     case 'drill': {
-      // **Experience is strength paid in instalments** (Dominion batch D1). A
-      // point of experience is priced at what the rank ladder pays for it: the
-      // top rank's strength over the experience it takes to reach (an Elite's
-      // six over ten points). A drill hands every unit it reaches that many
-      // points each time it fires, so the price is `combatLine`'s, scaled by
-      // the points a turn. That the drill reaches part of the army and that the
-      // ladder stops at Elite are both left out, which is the same rough price
-      // `unitStat` gives a point of a piece's own quality.
+      if (cardBehaviorRule(ctx.state, ctx.playerId, 'noExperience')) return 0;
+      // A drill pays only units in reach that can still improve their rank.
       const top = RULES.combat.ranks.ladder.elite;
       const perPoint = top.experience > 0 ? top.strength / top.experience : 0;
       const every = Math.max(1, Math.floor(effect.every ?? 1));
+      const reached = effect.where === 'garrison'
+        ? garrisonedUnitIds(ctx.state, ctx.playerId)
+        : unitIdsNearGenerals(ctx.state, ctx.playerId);
+      const trainees = ctx.state.units.filter((unit) => reached.has(unit.id) && !holdsRank(unit, 'elite')).length;
       return (
-        ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
+        trainees * ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
       );
     }
     case 'surplusToProduction': {
@@ -2805,7 +2839,7 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     case 'shoreRaid':
       return shoreRaidWorth(ctx);
     case 'opusSiege':
-      return opusSiegeWorth(ctx);
+      return opusSiegeWorth(ctx) + warIntent(ctx) * ctx.ai.score.dominion.opusSiege;
 
     // --- Expansionist batches E9 and E12, and batch DT12 (knobs in
     // `score.expansionist`, batch E13) ---------------------------------------
@@ -2902,6 +2936,9 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
       return widerFitWorth(ctx);
     case 'actThenWork': // The Universal Genius
       return actThenWorkWorth(ctx);
+    case 'wondersAreWorks':
+      return citiesOf(ctx.state, ctx.playerId).reduce((value, city) =>
+        value + wonderWorkYieldLines(ctx.state, city).reduce((sum, line) => sum + valueOfYields(bagOf(line), ctx), 0), 0);
     case 'worksPullRivalHexes': // The Pull of the Masters
       return pullWorth(ctx);
     // Batch DT10: the two Doctrines that change what an Order hand deals.
@@ -3770,11 +3807,40 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit': {
-        const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx);
-        once += piece.once;
-        rate += piece.rate;
+        const towns = grant.toEveryTown === undefined
+          ? [capitalCityOf(ctx.state, ctx.playerId)]
+          : citiesOf(ctx.state, ctx.playerId).filter((town) => cityScopeAdmits(ctx.state, town, grant.toEveryTown, ctx.playerId));
+        for (const town of towns) {
+          if (town === undefined) continue;
+          const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx, town);
+          once += piece.once;
+          rate += piece.rate;
+        }
         break;
       }
+      case 'experience': {
+        if (cardBehaviorRule(ctx.state, ctx.playerId, 'noExperience')) break;
+        const top = RULES.combat.ranks.ladder.elite;
+        for (const unit of ctx.state.units) {
+          if (unit.ownerId !== ctx.playerId || !isCombatant(unitDef(unit.type))) continue;
+          const before = experienceOf(unit);
+          const gain = Math.min(grant.amount, Math.max(0, top.experience - before));
+          rate += gain * top.strength / top.experience * ctx.ai.weights.military;
+          const strength = Math.max(0, unitDef(unit.type).combatStrength + unitStampStrength(unit));
+          for (const rank of ranksReached(before, before + gain)) {
+            for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'windfallRider')) {
+              if (effect.occasion !== 'rankEarned' || (effect.rank && effect.rank !== rank) || !effect.grant) continue;
+              const grant = effect.grant;
+              const amount = grant.fromOccasion === 'strength' ? (grant.amount ?? 0) * strength : grant.amount;
+              once += firingPoints(windfallGrantWorth({ ...grant, amount }, ctx));
+            }
+          }
+        }
+        break;
+      }
+      case 'doctrineOffer':
+        rate += doctrineOfferWorth(ctx).worth;
+        break;
       case 'greatPerson':
       case 'windfall':
         once += magisterialDraftGrantWorth(grant, ctx);
@@ -3812,7 +3878,7 @@ export function boonTurns(ctx: ValueContext): number {
 
 /**
  * **A unit a draft hands over** (bot batch BP7, B10), as points paid once
- * (`once`) or points a turn (`rate`):
+ * (`once`) or points a turn (`rate`). Only units the capital can place count:
  *
  *   · a **trader** runs the best route a new caravan could run today
  *     (`RouteOutlook.open`), while a route slot is free for it. A route runs
@@ -3824,19 +3890,55 @@ export function boonTurns(ctx: ValueContext): number {
  *     resolves it, and nothing when there is none.
  */
 function draftedUnitWorth(
-  unit: UnitTypeId | 'bestMelee',
+  unit: UnitTypeId | 'bestMelee' | 'bestRanged',
   count: number,
   ctx: ValueContext,
+  capital = capitalCityOf(ctx.state, ctx.playerId),
 ): { once: number; rate: number } {
-  const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
+  if (capital === undefined) return { once: 0, rate: 0 };
+  const type = unit === 'bestRanged' ? bestOfClassFor(ctx.state, ctx.playerId, 'ranged')
+    : unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
+  const placed = countDraftUnitPlacements(ctx.state, capital, type, count);
+  if (placed === 0) return { once: 0, rate: 0 };
+  if (unitDef(type).foundsCity) return { once: 0, rate: placed * ctx.ai.weights.city };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
-    return { once: 0, rate: routes.open.pay.total * Math.min(count, routes.free) };
+    return { once: 0, rate: routes.open.pay.total * Math.min(placed, routes.free) };
   }
   const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
-  return { once: count * explainYields({ production: hammers }, ctx).total, rate: 0 };
+  return { once: placed * explainYields({ production: hammers }, ctx).total, rate: 0 };
+}
+
+/** Use the same placement rules as the grant, with a private unit list for repeat placements. */
+function countDraftUnitPlacements(
+  state: GameState,
+  capital: City,
+  type: UnitTypeId,
+  count: number,
+): number {
+  if (count === 0) return 0;
+  if (count === 1) return spawnTileFor(state, capital, type) === null ? 0 : 1;
+
+  const units = [...state.units];
+  const def = unitDef(type);
+  for (let placed = 0; placed < count; placed++) {
+    const tile = spawnTileFor({ ...state, units }, capital, type);
+    if (tile === null) return placed;
+    if (placed + 1 === count) break;
+    units.push({
+      id: state.nextEntityId + placed,
+      ownerId: capital.ownerId,
+      type,
+      col: tile.col,
+      row: tile.row,
+      hp: def.maxHp,
+      movesLeft: def.movement,
+      hasAttacked: false,
+    });
+  }
+  return count;
 }
 
 /**
@@ -3962,7 +4064,13 @@ function windfallGrantWorth(
     // and a card's spear are worth the same thing. Since Dominion batch D5 a unit
     // can be raised in every town a scope admits, one unit for each.
     const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
-    once += units * ctx.ai.weights.military * ctx.ai.score.combatScale;
+    if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee') {
+      const piece = draftedUnitWorth(grant.unit, units, ctx);
+      once += piece.once;
+      flat += piece.rate;
+    } else {
+      once += units * ctx.ai.weights.military * ctx.ai.score.combatScale;
+    }
   }
   // Dominion batch D5: science toward a technology the empire lacks, which is
   // real and hard to price, so it is the stand-in.
@@ -4246,6 +4354,8 @@ function ruleRewriteValue(
       // how often a town is taken (`occasionRate`'s capture reading), because
       // the bot does not forecast how long its towns will stay in unrest.
       return share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
+    case 'siegeDamage':
+      return share * warIntent(ctx) * ctx.ai.score.dominion.opusSiege;
     case 'campMuster':
       // **Not priced** (Dominion batch D7, The Hunting Grounds). More raiders
       // near home are a cost and a supply of kills at once, and the bot
@@ -5667,12 +5777,15 @@ function ownBeyond(effect: CardEffect, ctx: ValueContext, card: CardId | undefin
   } else if (effect.kind === 'slotPosition') {
     if (effect.whole === true) return { label: `${label}: a chair still to fill`, value: walkOne(effect, ctx, card) };
     const holder = playerById(ctx.state, ctx.playerId);
-    const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
-    if (seated === null || effect.factor === 1) return null;
-    const inner = orderDef(seated).effects.filter(
-      (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
-    );
-    value = (effect.factor - 1) * beyondTotal(inner, ctx, seated);
+    if (!holder || effect.factor === 1) return null;
+    let total = 0;
+    for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+      const seated = holder.statecraft.slots[index]?.card;
+      if (!isOrderId(seated)) continue;
+      const inner = orderDef(seated).effects.filter((held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier');
+      total += (effect.factor - 1) * beyondTotal(inner, ctx, seated);
+    }
+    value = total;
   } else if (effect.kind === 'conditionRule') {
     value = conditionIsLive(effect.when, ctx) ? beyondTotal(effect.then, ctx, card) : 0;
   } else if (effect.kind === 'metaRule') {
@@ -5821,6 +5934,7 @@ function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['
     case 'riteCost':
     case 'pacificationRate':
     case 'campMuster':
+    case 'siegeDamage':
     case 'townLossWeariness':
     case 'unitCost':
     case 'charterTechCost':
@@ -5947,6 +6061,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'wonderHammersMoveOn':
     case 'cultureBuysWonders':
     case 'actThenWork':
+    case 'wondersAreWorks':
     case 'worksPullRivalHexes':
     case 'thirdCardForeign':
     case 'rareWeight':
@@ -6336,6 +6451,10 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
   // (bot batch BP3, `ValueContext.today`).
   if (ctx.today === true) return [];
   if (effect.count === 'tally') {
+    if (effect.alsoTallies?.length && effect.tally) {
+      return [effect.tally, ...effect.alsoTallies].flatMap((tally) =>
+        potentialTerms({ ...effect, tally, alsoTallies: undefined }, ctx));
+    }
     const occasion = effect.tally;
     if (occasion === 'goldPurchase') {
       // **The Strongbox** (batch R1): a purchase with gold of any kind. The
@@ -7375,6 +7494,8 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Batch R1, The Strongbox. The board keeps no count of purchases with
       // gold, so there is no record and the forecast reads the default.
       return null;
+    case 'orderGained': return countProbe(ctx, 'ordersHeld');
+    case 'greatPersonGained': return player.greatPeopleRecruited;
     case 'wonderCompleted':
       // Magisterial batch MG4, Commission: The Eighth Wonder (batch MG17). The
       // claim register names the empire that finished each wonder, so it is
@@ -8405,6 +8526,9 @@ function scientificLinePoints(
   const per = scale.per > 0 ? scale.per : 1;
   let helpings: number;
   switch (scale.count) {
+    case 'greatPeopleGained':
+      helpings = countProbe(ctx, 'greatPeopleGained') / per;
+      break;
     case 'charterTechsKnown':
     case 'techLead': {
       const ahead = scientificCountAhead(scale.count, ctx);
@@ -9445,6 +9569,11 @@ function occasionMeasureForecast(
   /** The towns a rider is narrowed to, read for the rite's town (batch DV9). */
   inTown?: true | CityScope,
 ): number | null {
+  if (occasion === 'death' && measure === 'unitCost') {
+    const troops = ctx.state.units.filter((unit) => unit.ownerId === ctx.playerId && isCombatant(unitDef(unit.type)));
+    if (troops.length === 0) return 0;
+    return troops.reduce((sum, unit) => sum + (unit.freeUpkeep ? 0 : unitProductionCost(ctx.state, ctx.playerId, unit.type)), 0) / troops.length;
+  }
   if (occasion === 'postEstablished' && measure === 'population') return postTownPopulation(ctx);
   // **Devotion batch DV9**: the citizens of the town a rite is started in (The
   // Psalter), and of the town a conversion turns (The Mass Baptisms).
@@ -10397,7 +10526,14 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
       if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
         continue;
       }
-      sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx).total);
+      if (effect.percentOfCost !== undefined) {
+        const front = city.queue[0];
+        if (front?.kind !== 'building' || !isBuildingId(front.id) || !isWonder(front.id)) continue;
+        const cost = buildingProductionCost(front.id, ctx.state, ctx.playerId);
+        sum += explainYields({ production: Math.floor(cost * effect.percentOfCost / 100) }, ctx).total;
+      } else {
+        sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx, undefined, effect.faithPerCitizen).total);
+      }
     }
     let pace = perTown;
     if (effect.everyAtWar !== undefined && atWarWithAnybody(ctx.state, ctx.playerId)) {
@@ -10578,12 +10714,13 @@ export function explainCitizenLevy(
   use: LevyUse,
   ctx: ValueContext,
   piece?: UnitTypeId | null,
+  faithPerCitizen?: number,
 ): Appraisal {
   const hammers = levyHammers(city);
   const unit = !raisesPiece(use) ? null : piece !== undefined ? piece : levyPieceFor(use, ctx);
   const want = unit === null ? null : levyPieceWant(city, use, ctx);
   const terms: ValueTerm[] = [
-    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx)),
+    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx, faithPerCitizen)),
     nest('the citizen it spends', explainLevyCitizen(city, hammers, ctx), 'sub'),
   ];
   const cards = explainLevyCards(city, use, hammers, unit !== null && want?.wanted === true ? unit : null, ctx);
@@ -10599,6 +10736,7 @@ function explainLevyGain(
   unit: UnitTypeId | null,
   want: { wanted: boolean; why: string } | null,
   ctx: ValueContext,
+  faithPerCitizen?: number,
 ): Appraisal {
   switch (use) {
     case 'production':
@@ -10614,6 +10752,11 @@ function explainLevyGain(
       return appraise([
         nest(`${hammers} hammers toward ${what} in ${target.name}`, explainLump({ production: hammers }, ctx)),
       ]);
+    }
+    case 'faith': {
+      const rate = faithPerCitizen ?? levyGrantFor(ctx.state, city.ownerId, city, use)?.faithPerCitizen ?? 0;
+      const faith = city.population * rate;
+      return explainLump({ faith }, ctx);
     }
     case 'rite': {
       const plan = bestLevyRite(ctx);
@@ -13760,7 +13903,13 @@ function foreignCardWorth(player: Player, ctx: ValueContext): number {
  */
 const DOCTRINE_OFFER_MEMO = new WeakMap<ValueContext, { worth: number; options: number }>();
 function doctrineOfferWorth(ctx: ValueContext): { worth: number; options: number } {
-  return onContext(DOCTRINE_OFFER_MEMO, ctx, () => readDoctrineOffer(ctx));
+  const known = DOCTRINE_OFFER_MEMO.get(ctx);
+  if (known !== undefined) return known;
+  // A Doctrine can price the hand that offers this grant.
+  DOCTRINE_OFFER_MEMO.set(ctx, { worth: 0, options: 0 });
+  const offer = readDoctrineOffer(ctx);
+  DOCTRINE_OFFER_MEMO.set(ctx, offer);
+  return offer;
 }
 
 function readDoctrineOffer(ctx: ValueContext): { worth: number; options: number } {
@@ -13870,6 +14019,8 @@ function magisterialGoalForecast(
             : `${short} typed chairs wait for a new card of their type, at about ${round(rate)} hands a turn`,
       };
     }
+    case 'worksHeld':
+      return { turns: at(remaining, works), why: `${remaining} more great-person works` };
     case 'workFamilies': {
       const families = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined).length;
       const held = workFamiliesHeld(ctx.state, ctx.playerId).length;
@@ -13882,10 +14033,7 @@ function magisterialGoalForecast(
       for (const city of citiesOf(ctx.state, ctx.playerId)) {
         let wonders = 0;
         for (const id of city.buildings) if (isWonder(id)) wonders += 1;
-        let worked = 0;
-        for (const cell of city.workedTiles) {
-          if (holdsWork(ctx, getTileAt(ctx.state.map, cell.col, cell.row))) worked += 1;
-        }
+        const worked = townWorksWorked(ctx.state, city, floor);
         if (best === null || wonders > best.wonders || (wonders === best.wonders && worked > best.works)) {
           best = { wonders, works: worked };
         }

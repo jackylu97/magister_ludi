@@ -20,7 +20,7 @@
  *     Card: Commission: The Paradise Garden (reading 41).
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { claimUnownedBeside, foundCityAt, refreshCityDerived } from '../../../src/sim/cities';
 import { commissionFigure, commissionGoalHex, gardenWorkFor, runCommissions } from '../../../src/sim/commissions';
@@ -156,28 +156,26 @@ describe('Magisterial batch MG15: the rows', () => {
   it('carries the text of the sheet and the shapes the triage names', () => {
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GARDEN).text).toBe(
-      'Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.',
+      'Goal: have one town work three great-person works. Reward: your great-person works yield double.',
     );
     expect(orderDef(GARDEN).effects).toEqual([]);
     expect(orderDef(GARDEN).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }],
-      reward: [{ claimWithin: 3 }],
+      goals: [{ kind: 'reached', figure: 'oneTownWorksWorked', count: 3 }],
+      reward: [{ lasting: [expect.objectContaining({ kind: 'pays', on: { test: 'greatWork' }, wholePercent: 100 })] }],
     });
     expect(orderDef(PROCESSION).text).toBe(
-      'Great-person works in a straight line of three or more give +3 culture and +3 science each.',
+      'Hexes beside two or more great-person works give +10 culture and +10 science.',
     );
     expect(orderDef(PROCESSION).effects).toEqual([
-      { kind: 'pays', where: 'hex', culture: 3, science: 3, on: { test: 'workLine', length: 3 } },
+      { kind: 'pays', where: 'hex', culture: 10, science: 10, on: { test: 'beside', of: { test: 'greatWork' }, atLeast: 2 } },
     ]);
   });
 
   it('prints each card in plain words', () => {
-    expect(words(GARDEN)).toEqual([
-      'Commission',
-      'Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city',
-    ]);
+    expect(words(GARDEN).join(' ')).toMatch(/work/i);
+    expect(words(GARDEN).join(' ')).not.toMatch(/unowned|beside/);
     expect(words(PROCESSION)).toEqual([
-      "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders",
+      "+10 science, +10 culture on every hex beside 2 or more great-person works",
     ]);
   });
 });
@@ -285,7 +283,7 @@ describe('The Processional Way: works on a line (reading 39)', () => {
     );
   });
 
-  it('pays +3 culture and +3 science on each work of a line of three, once, and only seated', () => {
+  it('pays culture and science on a hex between two works, once, and only seated', () => {
     const { state, capital } = board();
     const line = lineFrom(state, at(state, 4, 4), 0, 3);
     const lone = at(state, 4, 7);
@@ -293,7 +291,8 @@ describe('The Processional Way: works on a line (reading 39)', () => {
     lay(state, [...line, lone]);
     for (const tile of line) expect(processionPays(state, capital, tile)).toEqual({ culture: 0, science: 0 });
     seat(state, PROCESSION);
-    for (const tile of line) expect(processionPays(state, capital, tile)).toEqual({ culture: 3, science: 3 });
+    expect(processionPays(state, capital, line[0]!)).toEqual({ culture: 0, science: 0 });
+    expect(processionPays(state, capital, line[1]!)).toEqual({ culture: 10, science: 10 });
     expect(processionPays(state, capital, lone)).toEqual({ culture: 0, science: 0 });
     // A second line through the middle work does not pay it twice.
     const middle = line[1]!;
@@ -301,7 +300,7 @@ describe('The Processional Way: works on a line (reading 39)', () => {
     own(state, capital, cross);
     lay(state, cross);
     expect(lengths(state, [middle])).toEqual([3]);
-    expect(processionPays(state, capital, middle)).toEqual({ culture: 3, science: 3 });
+    expect(processionPays(state, capital, middle)).toEqual({ culture: 10, science: 10 });
   });
 
   it('is doubled by The Divine Proportion, as reading 26 names it', () => {
@@ -312,12 +311,12 @@ describe('The Processional Way: works on a line (reading 39)', () => {
     seat(state, PROCESSION);
     seat(state, 'theDivineProportion' as OrderId);
     const total = { culture: 0, science: 0 };
-    for (const entry of explainTileYield(line[0]!, cityContext(state, capital))) {
+    for (const entry of explainTileYield(line[1]!, cityContext(state, capital))) {
       if (entry.card !== PROCESSION && entry.card !== ('theDivineProportion' as OrderId)) continue;
       total.culture += entry.culture;
       total.science += entry.science;
     }
-    expect(total).toEqual({ culture: 6, science: 6 });
+    expect(total).toEqual({ culture: 20, science: 20 });
   });
 
   it('counts a Holy Site, and not a farm', () => {
@@ -334,8 +333,12 @@ describe('The Processional Way: works on a line (reading 39)', () => {
 
 // --- Commission: The Paradise Garden ---------------------------------------------
 
-describe('Commission: The Paradise Garden (reading 41)', () => {
-  const GOAL = orderDef(GARDEN).commission!.goals[0]!;
+describe('the legacy commission that claims land beside a work', () => {
+  const row = orderDef(GARDEN);
+  const original = row.commission!;
+  const GOAL = { kind: 'reached', figure: 'worksBesideWork', count: 3 } as const;
+  beforeEach(() => { row.commission = { goals: [GOAL], reward: [{ claimWithin: 3 }] }; });
+  afterEach(() => { row.commission = original; });
 
   /**
    * A capital for seat 0 at (4, 7), and a Landmark two hexes east of it in

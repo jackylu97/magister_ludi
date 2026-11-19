@@ -159,19 +159,19 @@ describe('The Spear Makers', () => {
     expect(unitAge(militaryOfAge(2))).toBe(2);
   });
 
-  it('puts +25% behind every military unit, of any age, and nothing behind a civilian', () => {
+  it('puts +40% behind every military unit, of any age, and nothing behind a civilian', () => {
     // Batch DS2 cut the age clause: the card was "first- and second-age
     // military units" and the unit filter that said so is gone.
     const state = flat(false);
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theSpearMakers');
     const unit = (id: UnitTypeId): City['queue'][number] => ({ kind: 'unit', id });
-    expect(cardPercent(state, city, unit(militaryOfAge(1)), 'theSpearMakers')).toBe(25);
-    expect(cardPercent(state, city, unit(militaryOfAge(2)), 'theSpearMakers')).toBe(25);
-    expect(cardPercent(state, city, unit(militaryOfAge(3)), 'theSpearMakers')).toBe(25);
+    expect(cardPercent(state, city, unit(militaryOfAge(1)), 'theSpearMakers')).toBe(40);
+    expect(cardPercent(state, city, unit(militaryOfAge(2)), 'theSpearMakers')).toBe(40);
+    expect(cardPercent(state, city, unit(militaryOfAge(3)), 'theSpearMakers')).toBe(40);
     expect(cardPercent(state, city, unit('worker'), 'theSpearMakers')).toBe(0);
     expect(stripRefs(describeCard('theSpearMakers' as OrderId)[0]!.text)).toBe(
-      '+25% production toward military units',
+      '+40% production toward military units',
     );
   });
 });
@@ -348,7 +348,7 @@ describe('The Fortress Empire: the fortified-units count', () => {
   });
 });
 
-describe('The Marian Reforms: free upkeep, and half speed at the empire stage', () => {
+describe('The Marian Reforms: free upkeep and a production cost at the empire stage', () => {
   it('takes the military payroll off the books', () => {
     const state = flat(false);
     foundCityAt(state, 0, at(state, 4, 4));
@@ -362,7 +362,7 @@ describe('The Marian Reforms: free upkeep, and half speed at the empire stage', 
     expect(rebate() - before).toBe(unitUpkeepTotal(state, 0) - before);
   });
 
-  it('halves what the town makes toward a military unit after its own bonuses, and leaves buildings alone', () => {
+  it('reduces what the town makes by a quarter toward a military unit after its own bonuses, and leaves buildings alone', () => {
     const state = flat(false);
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theSpearMakers');
@@ -372,14 +372,12 @@ describe('The Marian Reforms: free upkeep, and half speed at the empire stage', 
     const plain = foldCity(state, city, [], monument).production;
     hold(state, 0, 'theMarianReforms');
     const line = productionModifiers(state, city, warrior).find((entry) => entry.card === 'theMarianReforms');
-    expect(line?.percent).toBe(-50);
+    expect(line?.percent).toBe(-25);
     expect(line?.stage).toBe('empire');
-    // The city stage keeps The Spear Makers' +30%, and the empire stage loses
-    // fifty points: it multiplies what the town's own bonuses made, so they
-    // soften the halving without cancelling it.
+    // The empire penalty applies after the city bonus from The Spear Makers.
     const after = foldCityStages(state, city, warrior).production;
     expect(after.city).toBe(before.city);
-    expect(after.empire).toBe(before.empire - 50);
+    expect(after.empire).toBe(before.empire - 25);
     expect(foldCity(state, city, [], monument).production).toBe(plain);
   });
 });

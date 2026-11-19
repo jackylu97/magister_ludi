@@ -356,7 +356,7 @@ import {
   familyLayingWork,
   familyWork,
 } from '../sim/greatPeople';
-import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
+import { improvementError, improvementErrorAt, prospectError, repairImprovementError } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
@@ -4790,7 +4790,7 @@ function readTechGoalTable(state: GameState, player: Player, ctx: ValueContext):
       );
       continue;
     }
-    const chain = techChain(state, player, ctx, id, true);
+    const chain = techChain(state, player, ctx, id, true, road);
     const terms: ValueTerm[] = [...chain.terms];
     // **A step toward an open commission** (bot batch BP6, B12): the road's
     // technologies, for a goal that counts technologies or charter
@@ -9979,6 +9979,19 @@ function workerChoice(
     const standing = row.entry.col === unit.col && row.entry.row === unit.row;
     if (standing) {
       const improvement = row.entry.improvement;
+      if (row.entry.repair) {
+        const refusal = repairImprovementError(state, unit.id);
+        if (refusal !== null) {
+          tried.push(refused(label, refusal));
+          continue;
+        }
+        tried.push({ label, score: row.score, chosen: true, terms: row.terms });
+        taken = {
+          command: { type: 'repairImprovement', playerId: player.id, unitId: unit.id },
+          summary: label,
+        };
+        continue;
+      }
       const refusal =
         improvement === null ? prospectError(state, unit.id) : improvementError(state, unit.id, improvement);
       if (refusal !== null) {

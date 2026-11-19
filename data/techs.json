@@ -81,7 +81,11 @@
       "prereqs": [
         "agriculture"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "greatSphinx"
+        ]
+      },
       "flavor": "The hill is asked what it is made of."
     },
     "earthenware": {
@@ -177,7 +181,8 @@
       "unlocks": {
         "buildings": [
           "shrine",
-          "theOracle"
+          "theOracle",
+          "templeOfThoth"
         ],
         "units": [
           "augur"
@@ -263,7 +268,8 @@
           "siege"
         ],
         "buildings": [
-          "stoneWalls"
+          "stoneWalls",
+          "ironPillar"
         ]
       },
       "flavor": "A wall is only a promise about time.",
@@ -281,7 +287,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "garden"
+          "garden",
+          "petra"
         ]
       },
       "flavor": "Water is taught where to go.",
@@ -369,7 +376,9 @@
       "unlocks": {
         "buildings": [
           "steleOfLaws",
-          "imperialThrone"
+          "imperialThrone",
+          "libraryOfAshurbanipal",
+          "weiyangPalace"
         ],
         "projects": [
           "pageants"
@@ -398,7 +407,8 @@
           "theLongCount"
         ],
         "buildings": [
-          "chartTheStars"
+          "chartTheStars",
+          "pyramidOfTheSun"
         ]
       },
       "flavor": "A calendar long enough to outlast the people keeping it.",
@@ -415,7 +425,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "publicBath"
+          "publicBath",
+          "angkorWat"
         ]
       },
       "effects": [
@@ -447,7 +458,8 @@
         ],
         "buildings": [
           "temple",
-          "highTemple"
+          "highTemple",
+          "solomonsTemple"
         ]
       },
       "flavor": "A roof high enough that the god has to look down through it."
@@ -468,7 +480,8 @@
         ],
         "buildings": [
           "smithy",
-          "warHall"
+          "warHall",
+          "statueOfZeus"
         ]
       },
       "flavor": "A shield is only a wall if it stands beside another.",
@@ -543,7 +556,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "workshop"
+          "workshop",
+          "greatMosqueOfDjenne"
         ]
       },
       "flavor": "The guild decides what a thing is worth by how long it took.",
@@ -564,7 +578,6 @@
           "compositeBowman"
         ],
         "buildings": [
-          "petra",
           "armoury"
         ]
       },
@@ -581,12 +594,11 @@
       ],
       "unlocks": {
         "buildings": [
-          "forbiddenCity",
-          "greatWall"
+          "forbiddenCity"
         ]
       },
       "flavor": "The message arrives before the rumour does.",
-      "note": "Opens the Forbidden City and the Great Wall."
+      "note": "Opens the Forbidden City."
     },
     "theExaminationHall": {
       "name": "The Civil Service",
@@ -600,7 +612,8 @@
       "unlocks": {
         "buildings": [
           "examinationHall",
-          "courthouse"
+          "courthouse",
+          "greatWall"
         ]
       },
       "flavor": "The clerk is chosen by the paper, not by the father.",
@@ -646,10 +659,7 @@
         "buildings": [
           "monastery",
           "cathedral",
-          "chichenItza",
-          "hagiaSophia",
-          "angkorWat",
-          "greatMosqueOfDjenne"
+          "hagiaSophia"
         ]
       },
       "flavor": "The library, copied by candlelight, one page a day.",
@@ -672,8 +682,7 @@
           "spearWall"
         ],
         "buildings": [
-          "terracottaArmy",
-          "statueOfZeus"
+          "terracottaArmy"
         ]
       },
       "flavor": "Every age is named for what it kills with.",
@@ -708,12 +717,12 @@
       ],
       "unlocks": {
         "buildings": [
-          "waterClockOfSuSong",
-          "clocktower"
+          "clocktower",
+          "chichenItza"
         ]
       },
       "flavor": "The hour stops being a guess.",
-      "note": "Opens the Water Clock of Su Song."
+      "note": "Opens Chichen Itza."
     },
     "engineering": {
       "name": "Engineering",
@@ -778,7 +787,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "caravanserai"
+          "caravanserai",
+          "greatStelaeOfAksum"
         ]
       },
       "flavor": "Nobody has walked it. Everything has.",

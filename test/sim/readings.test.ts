@@ -1254,7 +1254,7 @@ describe('a reading taken at rest changes no outcome', () => {
     expect(body.length, 'adoptGovernmentAt found').toBeGreaterThan(100);
     const charter = body.indexOf('sc.government = id');
     const drop = body.indexOf('forgetTheLaw(state)', charter);
-    const chairs = body.indexOf('chairCount(', charter);
+    const chairs = body.indexOf('chairLayoutUnder(', charter);
     expect(charter, 'the charter is written').toBeGreaterThan(-1);
     expect(chairs, 'the chairs are counted after it').toBeGreaterThan(charter);
     expect(drop, 'the law is dropped after the charter').toBeGreaterThan(charter);

@@ -526,7 +526,7 @@ import {
   isTechId,
   techColumn,
   techDef,
-  techDepth,
+  compareResearchOrder,
   techsGrant,
   traitsReaching,
 } from './techData';
@@ -841,7 +841,9 @@ function unlockedFor(
     }
   }
   const gate = gatingTech(kind, id);
-  if (gate === null) return true;
+  // Retired buildings can still have an explicit unlock in older games.
+  // Removing their technology must not give everyone access from turn one.
+  if (gate === null) return !(kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true);
   if (hasTech(state, playerId, gate)) return true;
   // The Prototype Works (Scientific batch S9): the rows of the current
   // research, last, so every gate above still refuses first.
@@ -1832,12 +1834,7 @@ export function researchExpansion(
     for (const prereq of techDef(id).prereqs) walk(prereq);
   };
   walk(techId);
-  // Every row, so a plan that ends on a charter technology still sorts. The
-  // charter rows follow the sky in the file, so the sky's ties are unchanged.
-  const order = new Map(ALL_TECH_IDS.map((id, index) => [id, index]));
-  return [...needed].sort(
-    (a, b) => techDepth(a) - techDepth(b) || order.get(a)! - order.get(b)!,
-  );
+  return [...needed].sort(compareResearchOrder);
 }
 
 /**

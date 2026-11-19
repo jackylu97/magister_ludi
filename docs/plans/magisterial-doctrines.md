@@ -1,5 +1,7 @@
 # Magisterial Doctrines (the proposal, now built)
 
+The November 19 Magisterial deck pass changes The Jinshi to two extra Civic chairs. Its new Tier II Doctrine, The Stele of Deeds, gives one Wildcard chair for every three wonders held, up to two. The current texts are in `docs/decks/magisterial.md`.
+
 **Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
 
 **Status:** built. All 16 are dealt. The sheet, `docs/decks/magisterial.md`, is the spec of record for their text, and `docs/plans/doctrines-build-triage.md` gives the batch that built each one. This file is the proposal of 2026-10-25, stage 6 of the deck pass (the card-design skill, "Doctrines"), kept for its reasons and pairs.

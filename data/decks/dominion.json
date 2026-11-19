@@ -187,7 +187,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 1,
+      "band": 0,
       "line": "none",
       "rarity": "rare",
       "type": "military",
@@ -289,7 +289,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The names go on the standard, one by one.",
-      "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and a melee unit is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -567,14 +567,14 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The scouts ride ahead, and every town hears what they found.",
-      "text": "Clearing a barbarian camp grants 10 production to every town.",
+      "text": "Clearing a barbarian camp grants 20 production to every town.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "camp",
           "grant": {
             "yield": "production",
-            "amount": 10,
+            "amount": 20,
             "toEveryTown": true
           }
         }
@@ -694,15 +694,15 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The recruits arrive already knowing how to stand in line.",
-      "text": "Units gained in a town with a Barracks start with 2 experience.",
+      "text": "Units gained in a town with a Barracks start as Veterans.",
       "effects": [
         {
           "kind": "unitStamp",
-          "experience": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "barracks"
-          }
+          },
+          "rank": "veteran"
         }
       ]
     },
@@ -1483,11 +1483,18 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Strike, wheel away, and strike again somewhere else.",
-      "text": "Mounted units may move after attacking.",
+      "text": "Mounted units may move after attacking, and pillage without spending movement.",
       "effects": [
         {
           "kind": "rule",
           "rule": "moveAfterAttack",
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "freePillage",
           "class": {
             "modelClass": "mounted"
           }
@@ -1504,14 +1511,14 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The smiths came home with the army, though not by choice.",
-      "text": "Gains +1 science and +1 production each time you pillage a hex.",
+      "text": "Gains +2 science and +2 production each time you pillage a hex.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "count": "tally",
           "tally": "hexPillaged"
         },
@@ -1520,7 +1527,7 @@
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 1,
+          "amount": 2,
           "count": "tally",
           "tally": "hexPillaged",
           "scope": {
@@ -1595,7 +1602,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "No new law today, so the drums call the men instead.",
-      "text": "Passing a draft hand grants the best melee unit you can build in your capital. It costs no upkeep.",
+      "text": "Passing a draft hand grants a melee unit in your capital. It costs no upkeep.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1678,7 +1685,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "Walls are patient. The engines are not.",
-      "text": "Siege units gain +4 strength against towns.",
+      "text": "Siege units gain +1 movement and +4 strength against towns.",
       "effects": [
         {
           "kind": "combatLine",
@@ -1687,6 +1694,14 @@
           "when": {
             "test": "vsCity"
           },
+          "class": {
+            "modelClass": "siege"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
           "class": {
             "modelClass": "siege"
           }
@@ -1810,13 +1825,13 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Their records are ours now, and they were good records.",
-      "text": "Captured cities gain +6 science and +6 culture.",
+      "text": "Captured cities gain +10 science and +10 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 6,
-          "culture": 6,
+          "science": 10,
+          "culture": 10,
           "scope": {
             "test": "captured"
           }
@@ -2024,7 +2039,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "They burn the farm without slowing to a walk.",
       "text": "Pillaging costs your mounted units one less movement point.",
       "note": "A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.",
@@ -2036,7 +2050,8 @@
             "modelClass": "mounted"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "fortifications": {
       "name": "Fortifications",
@@ -2442,12 +2457,12 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Each fortress keeps a library of its own sieges.",
-      "text": "Citadels gain +5 science and +3 general renown.",
+      "text": "Citadels gain +8 science and +8 general renown.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "science": 5,
+          "science": 8,
           "on": {
             "test": "improvement",
             "improvement": "citadel"
@@ -2455,7 +2470,7 @@
         },
         {
           "kind": "renown",
-          "amount": 3,
+          "amount": 8,
           "count": "tilesInBorders",
           "tile": {
             "test": "improvement",
@@ -2595,7 +2610,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "The army eats what it finds.",
       "text": "Military units outside your territory cost no upkeep.",
       "effects": [
@@ -2607,7 +2621,8 @@
           },
           "where": "foreignTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSerriedRanks": {
       "name": "The Serried Ranks",
@@ -2646,7 +2661,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every large town owes the army its share of men.",
-      "text": "Every ten turns, each town of at least eight citizens raises the best melee unit you can build.",
+      "text": "Every ten turns, each town of at least eight citizens raises a melee unit.",
       "effects": [
         {
           "kind": "periodicMuster",
@@ -2842,14 +2857,14 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Land taken by the spear is held by the spear.",
-      "text": "+3% production and science for each town you have captured.",
+      "text": "+5% production and science for each town you have captured.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "production",
-          "percent": 3,
+          "percent": 5,
           "stage": "empire",
           "count": "citiesCaptured"
         },
@@ -2858,7 +2873,7 @@
           "where": "empire",
           "basis": "count",
           "to": "science",
-          "percent": 3,
+          "percent": 5,
           "stage": "empire",
           "count": "citiesCaptured"
         }
@@ -2874,23 +2889,15 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The arrows fall before the enemy is near enough to see the bows.",
-      "text": "Ranged units gain +2 strength and +1 range.",
+      "text": "Ranged units gain +4 strength.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "both",
           "when": {
             "test": "always"
           },
-          "class": {
-            "ranged": true
-          }
-        },
-        {
-          "kind": "unitStat",
-          "stat": "range",
-          "amount": 1,
           "class": {
             "ranged": true
           }
@@ -2906,7 +2913,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Each new art of war goes first to the arsenal in the capital.",
-      "text": "Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep.",
+      "text": "Each time you research a technology, your capital raises a melee unit. It costs no upkeep.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -3050,7 +3057,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The engines go ahead, and the infantry follow the ruts.",
       "text": "Siege units gain +1 movement, and +5 strength when defending.",
       "effects": [
@@ -3073,7 +3079,8 @@
             "test": "always"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "reserveOfficers": {
       "name": "Reserve Officers",
@@ -3382,31 +3389,39 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Everything is for the war. Everything.",
-      "text": "All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness.",
+      "text": "While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness.",
       "effects": [
         {
-          "kind": "combatLine",
-          "amount": 5,
-          "side": "both",
+          "kind": "conditionRule",
           "when": {
-            "test": "always"
+            "test": "atWar"
           },
-          "class": {
-            "category": "military"
-          }
-        },
-        {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "class": {
-            "category": "military"
-          }
-        },
-        {
-          "kind": "happiness",
-          "amount": -3,
-          "per": "city"
+          "then": [
+            {
+              "kind": "combatLine",
+              "amount": 4,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "category": "military"
+              }
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "category": "military"
+              }
+            },
+            {
+              "kind": "happiness",
+              "amount": -2,
+              "per": "city"
+            }
+          ]
         }
       ]
     },
@@ -3479,14 +3494,14 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The conquered city's silver is struck into our coins.",
-      "text": "Capturing a city grants gold equal to thirty times its population.",
+      "text": "Capturing a city grants gold equal to sixty times its population.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "capture",
           "grant": {
             "yield": "gold",
-            "amount": 30,
+            "amount": 60,
             "fromOccasion": "population"
           }
         }
@@ -3552,11 +3567,12 @@
       "rarity": "common",
       "type": "military",
       "flavor": "No recruit leaves the yard until the sergeant says so.",
-      "text": "Units you gain start as Veterans.",
+      "text": "Garrisoned units gain 1 experience each turn.",
       "effects": [
         {
-          "kind": "unitStamp",
-          "rank": "veteran"
+          "kind": "drill",
+          "experience": 1,
+          "where": "garrison"
         }
       ]
     },
@@ -3592,7 +3608,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Recruited in the conquered provinces, trained for years in the capital.",
-      "text": "Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran.",
+      "text": "Captured towns of at least six citizens may spend a citizen to raise a melee unit, as a Veteran.",
       "effects": [
         {
           "kind": "levy",
@@ -3616,14 +3632,22 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Between campaigns, the regiment teaches its soldiers to read.",
-      "text": "Each garrisoned unit gives its town +3 science.",
+      "text": "Each garrisoned unit gives its town +6 science and +6 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 3,
+          "amount": 6,
+          "count": "garrison"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 6,
           "count": "garrison"
         }
       ]
@@ -3783,23 +3807,34 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The government of the tent: where the general camps, the realm is ruled.",
-      "text": "A great general standing in a town gives it +25% science and culture.",
+      "text": "A town with a citadel gains +25% production, science and culture.",
       "effects": [
         {
           "kind": "percentYields",
-          "yield": "science",
           "percent": 25,
           "scope": {
-            "test": "generalPresent"
-          }
+            "test": "hasImprovement",
+            "improvement": "citadel"
+          },
+          "yield": "production"
         },
         {
           "kind": "percentYields",
-          "yield": "culture",
           "percent": 25,
           "scope": {
-            "test": "generalPresent"
-          }
+            "test": "hasImprovement",
+            "improvement": "citadel"
+          },
+          "yield": "science"
+        },
+        {
+          "kind": "percentYields",
+          "percent": 25,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "citadel"
+          },
+          "yield": "culture"
         }
       ]
     },
@@ -3940,7 +3975,7 @@
       "retired": true
     },
     "dominionHoldTheCapitals": {
-      "name": "Commission: Hold the Capitals",
+      "name": "Commission: Hold the Capital",
       "decks": [
         "dominion"
       ],
@@ -3949,14 +3984,14 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Two thrones, and neither of them yours by birth.",
-      "text": "Goal: hold two rival capitals. Reward: a great general, and +25% production in every town for twenty turns.",
+      "text": "Goal: hold a rival capital. Reward: a great general, and +25% production in every town for twenty turns.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "reached",
             "figure": "originalCapitalsHeld",
-            "count": 2
+            "count": 1
           }
         ],
         "reward": [
@@ -4088,14 +4123,14 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Every regiment sends its reports to the capital.",
-      "text": "Your capital gains +3 science and +3 culture for each military unit you have.",
+      "text": "Your capital gains +6 science and +6 culture for each military unit you have.",
       "effects": [
         {
           "kind": "pays",
           "where": "capital",
           "basis": "count",
           "to": "science",
-          "amount": 3,
+          "amount": 6,
           "count": "unitsInField",
           "class": {
             "category": "military"
@@ -4106,7 +4141,7 @@
           "where": "capital",
           "basis": "count",
           "to": "culture",
-          "amount": 3,
+          "amount": 6,
           "count": "unitsInField",
           "class": {
             "category": "military"
@@ -4213,7 +4248,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Every armoury opens its doors on the same morning.",
-      "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep.",
+      "text": "Every ten turns, each city with an Armoury raises a melee unit. They cost no upkeep.",
       "effects": [
         {
           "kind": "periodicMuster",
@@ -4238,11 +4273,16 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "A wall facing in, and a wall facing out.",
-      "text": "While a rival town is under siege by your units, it adds no production toward a Magnum Opus.",
+      "text": "A town under siege by your units makes no production and takes twice the siege damage.",
       "effects": [
         {
           "kind": "rule",
           "rule": "opusSiege"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "siegeDamage",
+          "percent": 100
         }
       ]
     },
@@ -4299,25 +4339,25 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
+      "type": "economic",
       "flavor": "A governor with a legion behind him needs no other argument.",
-      "text": "Captured towns with a garrison cost no authority.",
+      "text": "Captured towns gain +25% production and +25% gold.",
       "effects": [
         {
-          "kind": "meterRule",
-          "rule": "cityCost",
-          "value": 0,
+          "kind": "percentYields",
+          "percent": 25,
           "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "captured"
-              },
-              {
-                "test": "garrisoned"
-              }
-            ]
-          }
+            "test": "captured"
+          },
+          "yield": "production"
+        },
+        {
+          "kind": "percentYields",
+          "percent": 25,
+          "scope": {
+            "test": "captured"
+          },
+          "yield": "gold"
         }
       ]
     },
@@ -4331,7 +4371,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Three cities, one season, one name on every banner.",
-      "text": "Goal: capture three cities. Reward: a great general, and science and culture equal to ten times their population.",
+      "text": "Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population.",
       "effects": [],
       "commission": {
         "goals": [
@@ -4347,12 +4387,12 @@
           },
           {
             "yield": "science",
-            "amount": 10,
+            "amount": 40,
             "fromGoal": "population"
           },
           {
             "yield": "culture",
-            "amount": 10,
+            "amount": 40,
             "fromGoal": "population"
           }
         ]
@@ -4545,12 +4585,12 @@
       "rarity": "common",
       "type": "military",
       "flavor": "Every village smith knows the shape of a spearhead.",
-      "text": "+25% production toward military units.",
+      "text": "+40% production toward military units.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 25,
+          "percent": 40,
           "class": {
             "category": "military"
           }
@@ -4717,7 +4757,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Nobody mourns a hero. They envy him.",
-      "text": "Your losses never count toward war weariness.",
+      "text": "Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -4728,6 +4768,16 @@
           "kind": "rulePercent",
           "rule": "townLossWeariness",
           "percent": -100
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "production",
+            "amount": 0.5,
+            "fromOccasion": "unitCost",
+            "toCapital": true
+          }
         }
       ]
     },
@@ -4764,13 +4814,13 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The fields under the castle walls feed the men who guard them.",
-      "text": "Citadels give +3 food and +3 production.",
+      "text": "Citadels give +5 food and +5 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 3,
-          "production": 3,
+          "food": 5,
+          "production": 5,
           "on": {
             "test": "improvement",
             "improvement": "citadel"
@@ -4894,7 +4944,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 2,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -5034,7 +5084,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The client kings keep their crowns and send their taxes.",
-      "text": "Your capital gains +1 production and +1 gold for each citizen in your puppet towns.",
+      "text": "Your capital gains +2 production and +2 gold for each citizen in your puppet towns.",
       "effects": [
         {
           "kind": "pays",
@@ -5042,7 +5092,7 @@
           "basis": "count",
           "count": "puppetPopulation",
           "to": "production",
-          "amount": 1
+          "amount": 2
         },
         {
           "kind": "pays",
@@ -5050,7 +5100,7 @@
           "basis": "count",
           "count": "puppetPopulation",
           "to": "gold",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -5161,7 +5211,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "A general's last work is a wall that outlives him.",
-      "text": "Goal: plant a citadel. Reward: citadels gain +2 food and +2 production.",
+      "text": "Goal: plant a citadel. Reward: choose a great general.",
       "effects": [],
       "commission": {
         "goals": [
@@ -5174,18 +5224,7 @@
         ],
         "reward": [
           {
-            "lasting": [
-              {
-                "kind": "pays",
-                "where": "hex",
-                "food": 2,
-                "production": 2,
-                "on": {
-                  "test": "improvement",
-                  "improvement": "citadel"
-                }
-              }
-            ]
+            "greatPerson": "general"
           }
         ]
       }
@@ -5200,7 +5239,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "The best of the line, picked by name.",
-      "text": "Goal: have three units become Elite. Reward: your Elite units ignore enemy zone of control.",
+      "text": "Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control.",
       "effects": [],
       "commission": {
         "goals": [
@@ -5217,6 +5256,12 @@
               {
                 "kind": "rule",
                 "rule": "ignored",
+                "rank": "elite"
+              },
+              {
+                "kind": "unitStat",
+                "stat": "movement",
+                "amount": 1,
                 "rank": "elite"
               }
             ]
@@ -5311,11 +5356,11 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The old empire had the libraries. The young one had the spears.",
-      "text": "Your units gain +3 strength against the units of an empire that knows more technologies than you.",
+      "text": "Your units gain +5 strength against an empire that knows more technologies than you.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 5,
           "side": "both",
           "when": {
             "test": "vsMoreTechs"
@@ -5325,6 +5370,296 @@
           }
         }
       ]
+    },
+    "dominionTheVerSacrum": {
+      "name": "The Ver Sacrum",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "effects": [],
+      "text": "On draft: gain a Settler and a melee unit.",
+      "rarity": "rare",
+      "type": "military",
+      "onDraft": [
+        {
+          "grant": "unit",
+          "unit": "settler"
+        },
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        }
+      ],
+      "flavor": "Each family sent a wagon and one guard for the road."
+    },
+    "dominionTheAmabutho": {
+      "name": "The Amabutho",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [],
+      "text": "On draft: every town with a Barracks gains a melee unit.",
+      "rarity": "uncommon",
+      "type": "military",
+      "onDraft": [
+        {
+          "grant": "unit",
+          "unit": "bestMelee",
+          "toEveryTown": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        }
+      ],
+      "flavor": "The barracks emptied into the assembly ground."
+    },
+    "dominionTheFieldOfMars": {
+      "name": "The Field of Mars",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [],
+      "text": "On draft: every military unit you have gains 4 experience.",
+      "rarity": "uncommon",
+      "type": "military",
+      "onDraft": [
+        {
+          "grant": "experience",
+          "amount": 4
+        }
+      ],
+      "flavor": "The recruits practised on the field outside the city."
+    },
+    "dominionTheGrassCrown": {
+      "name": "The Grass Crown",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "renown": 200,
+            "renownFamily": "general"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "renown": 200,
+            "renownFamily": "general"
+          },
+          "capturedWonder": true
+        }
+      ],
+      "text": "Capturing a city grants 200 renown, favouring great generals, doubled if the city holds a wonder.",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The soldiers wove the crown from grass where they had fought."
+    },
+    "dominionTheMeltedArms": {
+      "name": "The Melted Arms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "production",
+            "amount": 2,
+            "fromOccasion": "strength",
+            "toCapital": true
+          }
+        }
+      ],
+      "text": "Killing a unit grants production equal to twice its strength in your capital.",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The smith sorted the spearheads by weight."
+    },
+    "dominionTheAuxilia": {
+      "name": "The Auxilia",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "unit": "bestMelee"
+          }
+        }
+      ],
+      "text": "Capturing a city grants a melee unit in that city. It costs no upkeep.",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The new garrison knew every street."
+    },
+    "dominionTheFoederati": {
+      "name": "The Foederati",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "citizens": 2,
+            "toCapital": true
+          }
+        }
+      ],
+      "text": "Clearing a barbarian camp adds 2 citizens to your capital.",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The families from the camp settled beside the capital."
+    },
+    "dominionTheDecisiveBattle": {
+      "name": "Commission: The Decisive Battle",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [],
+      "text": "Goal: kill 10 units. Reward: your military units gain +3 strength.",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "unitKilled",
+            "count": 10
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "combatLine",
+                "amount": 3,
+                "side": "both",
+                "when": {
+                  "test": "always"
+                },
+                "class": {
+                  "category": "military"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "flavor": "The officers counted the enemy standards after the battle."
+    },
+    "dominionTheMesta": {
+      "name": "The Mesta",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "pasture",
+              "camp"
+            ]
+          },
+          "food": 4,
+          "production": 4,
+          "gold": 4
+        }
+      ],
+      "text": "Worked pastures and camps give +4 food, +4 production and +4 gold.",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Each spring the herds crossed the mountains to pasture."
+    },
+    "dominionTheMasterOfSoldiers": {
+      "name": "The Master of Soldiers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "effects": [],
+      "text": "On draft: choose a great general.",
+      "rarity": "uncommon",
+      "type": "civic",
+      "onDraft": [
+        {
+          "grant": "greatPerson",
+          "family": "general"
+        }
+      ],
+      "flavor": "The army elected its commander at the assembly."
+    },
+    "dominionTheCompanionCavalry": {
+      "name": "The Companion Cavalry",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "moveAfterKill"
+        }
+      ],
+      "text": "A unit of yours that kills a unit regains its movement.",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "The riders changed horses after the charge."
+    },
+    "dominionTheCastellans": {
+      "name": "The Castellans",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 6,
+          "count": "defensiveBuildings",
+          "category": "military"
+        }
+      ],
+      "text": "Towns gain +6 production for each military and defensive building.",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The garrison bought stone from the local quarry."
     }
   },
   "doctrines": {
@@ -5446,7 +5781,7 @@
       "band": 3,
       "line": "none",
       "flavor": "In war every town sends its sons. In peace every town has more of them.",
-      "text": "While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster.",
+      "text": "While at war, each town of six or more citizens raises a melee unit every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster.",
       "effects": [
         {
           "kind": "conditionRule",
@@ -5491,18 +5826,20 @@
       "band": 4,
       "line": "none",
       "flavor": "When the army has marched, the last levy of every town takes up arms.",
-      "text": "After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general.",
+      "text": "When a war begins, each city of five or more citizens raises a melee unit, at most once every twenty turns. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general.",
       "effects": [
         {
           "kind": "windfallRider",
-          "occasion": "draftPassed",
+          "occasion": "declareWar",
           "grant": {
             "unit": "bestMelee",
             "toEveryTown": {
               "test": "populationAtLeast",
               "value": 5
             }
-          }
+          },
+          "eitherSide": true,
+          "oncePerTurns": 20
         },
         {
           "kind": "combatLine",
@@ -5536,7 +5873,7 @@
       "band": 1,
       "line": "none",
       "flavor": "The state arms the soldier, and the soldier serves the state.",
-      "text": "Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected.",
+      "text": "Your military units cost no upkeep, but your towns build them 25% more slowly. Buying them is unaffected.",
       "effects": [
         {
           "kind": "upkeepRebate",
@@ -5548,7 +5885,7 @@
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": -50,
+          "percent": -25,
           "class": {
             "category": "military"
           },
@@ -5874,6 +6211,24 @@
           }
         }
       ]
+    },
+    "theCitizenPhalanx": {
+      "name": "The Citizen Phalanx",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "levy",
+          "use": "muster",
+          "minPopulation": 3,
+          "freeUpkeep": true
+        }
+      ],
+      "text": "Towns of three or more citizens may spend a citizen to raise a melee unit. It costs no upkeep.",
+      "flavor": "The town kept a shield for each household."
     }
   }
 }

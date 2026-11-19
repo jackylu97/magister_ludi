@@ -674,8 +674,9 @@ describe('the schema, as landed', () => {
     // The Brick Kilns and The Building Programme add two more.
     // The Liturgies and The Learned Embassy add two more.
     // Ten final Orders complete the generic set.
-    expect(live).toBe(505);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
+    // The Dominion and Magisterial revisions add twelve more live Orders between them.
+    expect(live).toBe(517);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(517);
   });
 
   /**
@@ -1172,7 +1173,8 @@ describe('the schema, as landed', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1447,8 +1449,8 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(0);
-      // The generic set retires 16 rows, including four deferred rows. City Watches becomes live.
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(436);
+      // The generic set retired sixteen rows. The next two deck revisions retire ten more.
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(446);
     }
   });
 

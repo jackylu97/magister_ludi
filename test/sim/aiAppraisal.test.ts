@@ -3050,6 +3050,9 @@ describe('the whole deck, priced (batch H2)', () => {
     // divides it.
     const { state, player } = board();
     const ctx = valueContext(state, player);
+    const guardTown = state.cities.find((city) => city.ownerId === player.id)!;
+    createUnit(state, player.id, 'warrior', guardTown.col, guardTown.row);
+    bumpRevision(state);
     const elite = RULES.combat.ranks.ladder.elite;
     const point = (elite.strength / elite.experience) * ctx.ai.weights.military * (1 + ctx.threat);
     expect(scoreEffects([{ kind: 'drill', experience: 1, where: 'garrison' }], ctx)).toBe(point);
@@ -3658,11 +3661,9 @@ describe('the two missing signs (batch X5)', () => {
   }
 
   it('folds every wall row’s hit points as a share of the town’s own bar', () => {
-    // Seven rows carry `cityHp` — the whole wall chain, three of them (the Walls
-    // of Uruk, the Great Wall and the Keep) carrying no strength at all, which is
-    // why they read *nothing* from this fold before X5.
-    expect(WALL_ROWS.length).toBe(7);
-    expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(3);
+    // The Great Wall grants hit points across the empire. These rows grant them locally.
+    expect(WALL_ROWS).toHaveLength(6);
+    expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(2);
     const { state, player, cities } = realm(2);
     const ctx = valueContext(state, player);
     const town = cities[1]!;
@@ -3683,6 +3684,10 @@ describe('the two missing signs (batch X5)', () => {
       );
       expect(row.total).toBe(foldTerms(row.terms));
     }
+    const empireHp = buildingDef('greatWall').effects!.filter((effect) => effect.kind === 'cityStat' && effect.stat === 'hp');
+    const hpGain = cities.reduce((sum, city) =>
+      sum + 25 / cityMaxHp(city, city, state) * cityBaseStrength(state, city) * ctx.ai.weights.military * (1 + ctx.threat), 0);
+    expect(scoreEffects(empireHp, ctx)).toBeCloseTo(hpGain, 10);
     // And a shelf that is not a wall says nothing about hit points.
     expect(findTerm(explainBuildingRow('granary', ctx, town).terms, /town hit points/)).toBeNull();
   });
@@ -4048,12 +4053,9 @@ describe('the five charter lines (batch X8)', () => {
 
 describe('the site, refused out loud (batch X8)', () => {
   it('gives the simulation’s own sentence for a row the town has no ground for', () => {
-    // Fourteen live rows carry a `requiresSite` — thirteen until the Longjiang
-    // Dockyard joined them in batch L6a — and `canQueueBuilding` dropped every
-    // one of them out of the candidate list without a word. The refusal is
-    // `buildError`'s, and it names the site rather than the flag.
     const sited = BUILDING_IDS.filter((id) => buildingDef(id).requiresSite !== undefined);
-    expect(sited.length).toBe(14);
+    expect(sited).toHaveLength(15);
+    expect(sited).toContain('templeOfThoth');
     const { state, player, cities } = x8Realm(1, 6);
     player.techsResearched.push('sailing');
     bumpRevision(state);

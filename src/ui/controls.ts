@@ -249,6 +249,7 @@ import {
   pillageError,
   prospectError,
   prospectTechError,
+  repairImprovementError,
   removeImprovementError,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
@@ -1062,6 +1063,8 @@ interface GrantNotice {
  * be the interface inventing the half it was not told.
  */
 function grantSentence(report: CompletionGrantReport): string {
+  if (report.grant === 'freeRerolls') return report.name;
+  if (report.grant === 'greatPerson') return report.done ? 'choose a great person' : 'no great person could be offered';
   if (report.grant === 'unit') {
     return report.done ? `${withArticle(report.name)} answers the call` : 'nothing answered the call';
   }
@@ -2325,6 +2328,8 @@ export interface GameControls {
   removeImprovementName(): string | null;
   /** Takes the improvement under the selected worker back off the hex. */
   removeImprovement(): void;
+  repairImprovementBlocker(): string | null | undefined;
+  repairImprovement(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
    * `undefined` with nothing selected — the same three-valued shape as
@@ -5981,7 +5986,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function riteOptions(cityId: number): RiteOption[] {
     const { state } = getGame();
     const ended = !canOrder();
-    const cost = riteCostFor(state, localPlayerId);
+    const cost = riteCostFor(state, localPlayerId, state.cities.find((city) => city.id === cityId));
     return LIVE_RITE_IDS.map((id) => {
       const blocked = ended
         ? `You have ended turn ${state.turn}`
@@ -6691,6 +6696,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (removed) {
       announce(`Removed: ${removed.toLowerCase()}`, { cell: { col: unit.col, row: unit.row } });
     }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  function repairImprovementBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return repairImprovementError(getGame().state, unit.id);
+  }
+
+  function repairImprovement(): void {
+    const unit = selectedUnit();
+    if (!unit || repairImprovementBlocker() !== null) return;
+    const command: Command = { type: 'repairImprovement', playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const work = getTileAt(getGame().state.map, unit.col, unit.row)?.improvement;
+    if (work) announce(`Repaired ${improvementDef(work).name}`, { cell: { col: unit.col, row: unit.row } });
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -8638,6 +8666,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     chopPreview,
     chopTechName,
     chop,
+    repairImprovement,
+    repairImprovementBlocker,
     removeImprovementBlocker,
     removeImprovementName,
     removeImprovement,

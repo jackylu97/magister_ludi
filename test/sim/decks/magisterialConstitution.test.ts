@@ -130,7 +130,7 @@ describe('The Mixed Constitution: the row', () => {
     expect(orderIsDealt(MIXED)).toBe(true);
     expect(ordersForDecks(['magisterial'])).toContain(MIXED);
     expect(def.decks).toEqual(['magisterial']);
-    expect(def.band).toBe(3);
+    expect(def.band).toBe(2);
     expect(def.rarity).toBe('rare');
     expect(def.type).toBe('wildcard');
     expect(def.deferred).toBeUndefined();
@@ -529,6 +529,7 @@ describe('the register of chair writers', () => {
     'council.ts#seatMalice',
   ];
   const EXCUSED: Record<string, string> = {
+    'cardImpact.ts#ghostPair': 'it copies the chairs to a scratch board and applies refitSlots',
     'council.ts#settleCouncilFit': 'it is the re-seating',
     'council.ts#slotOrderAt': 'a card going into a chair never narrows the fit',
     'council.ts#unslotOrderAt':

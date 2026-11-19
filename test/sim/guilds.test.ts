@@ -671,7 +671,7 @@ describe('determinism', () => {
 describe('the cadence', () => {
   it('gives an ordinary town its first guild inside a dozen turns of holding the buildings', () => {
     const g = game();
-    // Library + Market + Amphitheater + The Oracle: five renown a turn.
+    // These four buildings supply five renown each turn.
     const city = town(
       g.state,
       0,
@@ -679,7 +679,7 @@ describe('the cadence', () => {
       'library',
       'market',
       'amphitheater',
-      'theOracle',
+      'pyramids',
     );
     openGround(g.state, city, 12);
     expect(foldRenown(explainCityRenown(city))).toBe(5);

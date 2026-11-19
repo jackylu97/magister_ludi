@@ -207,7 +207,7 @@ describe('Magisterial batch MG4: the rows', () => {
     // Batch DS8: the Commission keyword first, then "Goal: … Reward: …".
     expect(said(ROLL_OF_THE_SENATE)).toEqual([
       'Commission',
-      'Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair',
+      'Goal: hold 8 Orders, seated or not. Reward: one more Wildcard chair',
     ]);
     expect(said(EIGHTH_WONDER)[1]).toMatch(/^Goal: complete 1 wonder\. Reward: /);
     expect(said(WONDER_OF_THE_AGE)[1]).toBe(
@@ -264,20 +264,20 @@ describe('Magisterial batch MG4: the Orders held', () => {
     expect(toward('granary')).toBe(0);
   });
 
-  it('Commission: The Roll of the Senate is met at ten Orders held and gives a Wildcard chair for good', () => {
+  it('Commission: The Roll of the Senate is met at eight Orders held and gives a Wildcard chair for good', () => {
     const state = bareState();
     town(state, 0, 5, 5);
     const sc = playerById(state, 0)!.statecraft;
     const chair = seatInChair(state, ROLL_OF_THE_SENATE);
-    hold(state, 0, ...fillers(8));
+    hold(state, 0, ...fillers(6));
     // Nine held, this card among them.
-    expect(commissionProgress(state, 0, ROLL_OF_THE_SENATE)[0]).toMatchObject({ have: 9, need: 10, met: false });
+    expect(commissionProgress(state, 0, ROLL_OF_THE_SENATE)[0]).toMatchObject({ have: 7, need: 8, met: false });
     expect(runCommissions(state)).toEqual([]);
     // A Doctrine does not make the tenth.
     sc.doctrines.push(DOCTRINE_IDS[0]!);
     bumpRevision(state);
-    expect(commissionProgress(state, 0, ROLL_OF_THE_SENATE)[0]!.have).toBe(9);
-    hold(state, 0, ...fillers(9).slice(8));
+    expect(commissionProgress(state, 0, ROLL_OF_THE_SENATE)[0]!.have).toBe(7);
+    hold(state, 0, ...fillers(7).slice(6));
     const chairs = sc.slots.length;
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual([ROLL_OF_THE_SENATE]);
@@ -287,7 +287,7 @@ describe('Magisterial batch MG4: the Orders held', () => {
     expect(sc.slots[chair]).toBeNull();
     expect(commissionFulfilledTurn(sc, ROLL_OF_THE_SENATE)).toBe(state.turn);
     // A fulfilled commission stays in the collection, and still counts.
-    expect(ordersHeldCount(state, 0)).toBe(10);
+    expect(ordersHeldCount(state, 0)).toBe(8);
   });
 });
 

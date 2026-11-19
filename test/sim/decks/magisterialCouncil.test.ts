@@ -30,6 +30,8 @@ import { foundCityAt, refreshCityDerived } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
 import { commissionFigure, commissionRewardWaits, runCommissions } from '../../../src/sim/commissions';
 import { snapshotState } from '../../../src/sim/game';
+import { raiseOnDraft } from '../../../src/sim/cities';
+import { settleGreatPersonChoice } from '../../../src/sim/greatPeople';
 import { renownThreshold } from '../../../src/sim/renown';
 import { type City, type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
 import {
@@ -38,6 +40,7 @@ import {
   describeCard,
   doctrineBagFor,
   explainCardPercentYields,
+  refitSlots,
   slotTypesOf,
   stripRefs,
 } from '../../../src/sim/statecraft';
@@ -50,7 +53,6 @@ import {
   ORDER_IDS,
   doctrineDef,
   governmentDef,
-  governmentsAtTier,
   isCharter,
   orderDef,
   orderIsDealt,
@@ -68,7 +70,7 @@ const BULL = 'magisterialTheGoldenBull' as OrderId;
 
 /** The three rows batch MG7 dealt, with the tier, rarity and type the sheet gives each. */
 const MG7_ROWS: readonly [OrderId, number, string, string][] = [
-  [SED, 2, 'rare', 'civic'],
+  [SED, 2, 'uncommon', 'civic'],
   [PANDECTS, 3, 'uncommon', 'civic'],
   [BULL, 3, 'uncommon', 'wildcard'],
 ];
@@ -140,23 +142,6 @@ function cardsOf(type: CardTypeReading, count: number): OrderId[] {
   return ids;
 }
 
-/** Banks this tier's government offer on seat 0, as a draft reaching the rung does. */
-function bank(state: GameState, tier: number): void {
-  const sc = playerById(state, 0)!.statecraft;
-  sc.drafts = Math.max(sc.drafts, tier);
-  sc.pendingGovernment = { tier, options: governmentsAtTier(tier) };
-  bumpRevision(state);
-}
-
-/** Seat 0 adopts this government of the banked offer, through the reducer. */
-function adopt(state: GameState, id: GovernmentId): void {
-  const options = playerById(state, 0)!.statecraft.pendingGovernment!.options;
-  const index = options.indexOf(id);
-  expect(index, id).toBeGreaterThanOrEqual(0);
-  const result = applyCommand(state, { type: 'adoptGovernment', playerId: 0, choiceIndex: index });
-  expect(result.ok, result.ok ? '' : result.error).toBe(true);
-}
-
 /** The percentage one card puts on this town, in one voice. */
 function townPercent(
   state: GameState,
@@ -187,10 +172,8 @@ describe('Magisterial batch MG7: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
-    expect(orderDef(SED).text).toBe('Each time you adopt a government, gain a free great-person draft.');
-    expect(orderDef(SED).effects).toEqual([
-      { kind: 'windfallRider', occasion: 'governmentAdopted', grant: { greatPerson: 'any' } },
-    ]);
+    expect(orderDef(SED).text).toBe('On draft: gain a free great-person draft.');
+    expect(orderDef(SED).onDraft).toEqual([{ grant: 'greatPerson' }]);
     expect(orderDef(PANDECTS).text).toBe('+5% science and production for each Doctrine you hold.');
     expect(orderDef(PANDECTS).effects).toEqual(
       (['science', 'production'] as const).map((to) => ({
@@ -205,138 +188,77 @@ describe('Magisterial batch MG7: the rows', () => {
     );
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(BULL).text).toBe(
-      'Goal: fill every Military, Economic and Civic chair with a card of its type. Reward: a Doctrine offer.',
+      'Goal: hold 20 Orders. Reward: a Doctrine offer.',
     );
     expect(orderDef(BULL).effects).toEqual([]);
     expect(orderDef(BULL).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'councilInOrder', count: 1 }],
+      goals: [{ kind: 'reached', figure: 'ordersHeld', count: 20 }],
       reward: [{ doctrineOffer: true }],
     });
   });
 
   it('prints each card in plain words', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
-    expect(words(SED)).toEqual(['adopting a government grants a great person to call']);
+    expect(words(SED)).toEqual(['Boon', 'On draft: you gain a great person to call']);
     expect(words(PANDECTS)).toEqual([
       '+5% science and +5% production in every city per Doctrine you hold',
     ]);
     expect(words(BULL)).toEqual([
       'Commission',
-      "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier",
+      "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
     ]);
   });
 });
 
 // --- The Sed Festival ------------------------------------------------------------
 
-describe('The Sed Festival (feature G, reading 17)', () => {
-  /** A board at the Chiefdom with The Sed Festival in its Wildcard chair and the tier-4 offer banked. */
-  function seated(): { state: GameState; player: Player } {
+describe('The Magisterial council grants', () => {
+  it('keeps a Doctrine boon until the current offer has been answered', () => {
     const { state, player } = board();
-    council(state, 'chiefdom', [null, null, SED]);
-    bank(state, 4);
-    return { state, player };
-  }
-
-  it('deals a great-person offer when a government is adopted, and the Doctrine offer still opens', () => {
-    const { state, player } = seated();
-    know(state, RITES, true);
-    expect(player.greatPersonOffer).toBeUndefined();
-    adopt(state, 'councilOfElders');
-    // The card kept a chair in the new council: the Civic chair.
-    const chairs = slotTypesOf(player.statecraft);
-    const at = player.statecraft.slots.findIndex((slot) => slot?.card === SED);
-    expect(chairs[at]).toBe('civic');
-    expect(player.greatPersonOffer).toBeDefined();
-    expect(player.greatPersonOffer!.options.length).toBeGreaterThan(0);
-    // The Doctrine offer still opens, of the adopted government's tier.
-    expect(player.statecraft.pendingDoctrine).toBeDefined();
-    for (const id of player.statecraft.pendingDoctrine!.options) {
-      expect(poolDoctrines(4), id).toContain(id);
-    }
+    council(state, 'imperium', slotLayout('imperium').map(() => null));
+    const options = doctrineBagFor(state, player, governmentDef('imperium').tier);
+    player.statecraft.pendingDoctrine = { options: options.slice(0, 1) };
+    raiseOnDraft(state, player, 'magisterialTheLawgiver');
+    expect(player.statecraft.waitingDoctrineOffers).toBe(1);
+    expect(applyCommand(state, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
+    expect(player.statecraft.pendingDoctrine?.options.length).toBeGreaterThan(0);
+    expect(player.statecraft.waitingDoctrineOffers).toBeUndefined();
   });
 
-  it('pays the renown still needed for the next great person when the seat cannot call one yet', () => {
-    const { state, player } = seated();
+  it('adds the Divan and Jinshi chairs with their printed types', () => {
+    const { state, player } = board();
+    council(state, 'chiefdom', ['magisterialTheDivan', null, null]);
+    player.statecraft.doctrines.push('theJinshi');
+    bumpRevision(state);
+    refitSlots(state, player);
+    expect(slotTypesOf(player.statecraft)).toEqual(['wildcard', 'wildcard', 'wildcard', 'economic', 'military', 'civic', 'civic']);
+  });
+});
+
+describe('The Sed Festival and The Nine Jewels', () => {
+  it('opens a great-person draft when taken', () => {
+    const { state, player } = board();
+    know(state, RITES, true);
+    raiseOnDraft(state, player, SED);
+    expect(player.greatPersonOffer?.options.length).toBeGreaterThan(0);
+  });
+
+  it('banks renown before great people are available', () => {
+    const { state, player } = board();
     know(state, RITES, false);
-    adopt(state, 'councilOfElders');
-    expect(player.greatPersonOffer).toBeUndefined();
+    raiseOnDraft(state, player, SED);
     expect(player.renownPool).toBe(renownThreshold(state, player));
   });
 
-  /**
-   * The renown an adoption of this government pays seat 0 when The Sed
-   * Festival sits in no chair: the Triumph's, and nothing else. The council
-   * holds `cards` under the Chiefdom, and the offer of `tier` is banked.
-   */
-  function renownOfAdoption(cards: readonly (OrderId | null)[], tier: number, id: GovernmentId): number {
+  it('opens the second free draft after the first name is chosen', () => {
     const { state, player } = board();
     know(state, RITES, true);
-    council(state, 'chiefdom', cards);
-    bank(state, tier);
-    adopt(state, id);
-    expect(player.greatPersonOffer).toBeUndefined();
-    return player.renownEarned;
-  }
-
-  it('pays nothing from the collection', () => {
-    const plain = renownOfAdoption([null, null, null], 4, 'councilOfElders');
-    // Held and not seated.
-    const { state, player } = board();
-    know(state, RITES, true);
-    council(state, 'chiefdom', [null, null, null]);
-    player.statecraft.orders.push(SED);
-    bank(state, 4);
-    adopt(state, 'councilOfElders');
-    expect(player.greatPersonOffer).toBeUndefined();
-    expect(player.renownEarned).toBe(plain);
-  });
-
-  it('pays nothing when the re-seating returns it to the collection', () => {
-    // The Chiefdom's chairs, and four more Wildcard chairs past them, written
-    // by hand. Since batch G1 Tyranny has one Civic chair (the fifth) and one
-    // Wildcard chair (the sixth). A civic card sits in the fifth chair and a
-    // Wildcard card in the sixth, so both keep their chairs, and The Sed
-    // Festival in the seventh chair fits no chair left.
-    const [wild] = cardsOf('wildcard', 1);
-    const [priest] = cardsOf('civic', 2).filter((id) => id !== SED);
-    const plain = renownOfAdoption([null, null, null, null, priest!, wild!], 10, 'tyranny');
-    const { state, player } = board();
-    know(state, RITES, true);
-    council(state, 'chiefdom', [null, null, null, null, priest!, wild!, SED]);
-    bank(state, 10);
-    adopt(state, 'tyranny');
-    expect(player.statecraft.slots.some((slot) => slot?.card === SED)).toBe(false);
-    expect(player.statecraft.orders).toContain(SED);
-    expect(player.greatPersonOffer).toBeUndefined();
-    expect(player.renownEarned).toBe(plain);
-  });
-
-  it('pays again at the next adoption', () => {
-    const { state, player } = seated();
-    know(state, RITES, true);
-    adopt(state, 'councilOfElders');
-    expect(player.greatPersonOffer).toBeDefined();
-    // Answer both offers.
-    expect(applyCommand(state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-    expect(applyCommand(state, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
-    expect(player.greatPersonOffer).toBeUndefined();
-    // The next tier's government pays a second great person. The Aristocracy
-    // replaced the retired Theocracy in batch G1.
-    bank(state, 10);
-    adopt(state, 'aristocracy');
-    expect(player.statecraft.slots.some((slot) => slot?.card === SED)).toBe(true);
-    expect(player.greatPersonOffer).toBeDefined();
-  });
-
-  it('gives the same board twice from the same adoption', () => {
-    const run = (): string => {
-      const { state } = seated();
-      know(state, RITES, true);
-      adopt(state, 'priestKing');
-      return snapshotState(state);
-    };
-    expect(run()).toBe(run());
+    raiseOnDraft(state, player, 'magisterialTheNineJewels');
+    const first = player.greatPersonOffer!.options[0]!;
+    settleGreatPersonChoice(state, player, 0);
+    expect(player.greatPersonOffer?.options.length).toBeGreaterThan(0);
+    expect(player.greatPersonOffer?.options).not.toContain(first);
+    expect(player.statecraft.waitingGreatPersonOffers).toBeUndefined();
   });
 });
 
@@ -399,6 +321,8 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
       'wildcard',
     ]);
     council(state, 'imperium', [...military, ...economic, civic!, BULL, null]);
+    const held = player.statecraft.orders;
+    held.push(...ORDER_IDS.filter((id) => !held.includes(id)).slice(0, 20 - held.length));
     return { state, player };
   }
 
@@ -437,9 +361,9 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     expect(runCommissions(state)).toEqual([]);
   });
 
-  it('pays nothing while the council is out of order', () => {
+  it('waits while the seat holds fewer than twenty Orders', () => {
     const { state, player } = inOrder();
-    player.statecraft.slots[3] = null;
+    player.statecraft.orders.pop();
     bumpRevision(state);
     expect(runCommissions(state)).toEqual([]);
     expect(player.statecraft.pendingDoctrine).toBeUndefined();

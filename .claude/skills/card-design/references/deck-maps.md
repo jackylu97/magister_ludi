@@ -8,6 +8,8 @@ A card is noted with: its themes, the throughlines it serves, its role (glue, pa
 
 ## Dominion
 
+The November 19 pass gives the garrison theme the Citizen Phalanx, The Amabutho and The Field of Mars. The Drill Masters train garrisons each turn. The Foederati turns an early camp into citizens. The Auxilia and The Grass Crown reward a capture, and Circumvallation stops production during a siege.
+
 Source: `docs/decks/deck-design.md` (Dominion, its 11 bonus themes) and `docs/decks/dominion.md`. The user's tempo ruling, current-band ruling and principles apply.
 
 ### Themes
@@ -50,7 +52,7 @@ Minor threads: naval force (map-dependent; its two cards are among those the use
 | Leader | Decks | Ability points at | Cards behind it today |
 |---|---|---|---|
 | Emperor Taizong | Dominion, Magisterial | melee strength and movement; garrisoned towns pay happiness and culture | garrison cards (Martial Law, Sword and Plough, The Soldier-Farmers) |
-| Modu Chanyu | Dominion, Devotion | mounted movement, pillage pays half again; pastures pay production and faith | The Horse Herds, Horse Lords, Riders of the Steppe, Spoils of War |
+| Modu Chanyu | Dominion, Devotion | mounted movement, pillage pays half again; pastures pay production and faith | The Horse Herds, Horse Lords, The Swift Riders, Spoils of War |
 | Mithridates VI | Dominion, Expansionist | strength against an empire holding more cities; food on plantations and camps | camps: The Horse Herds. "Against a wider empire" reads no quantity any card raises: no throughline to draft toward yet. |
 | Joan of Arc | Dominion, Devotion | kills pay faith and press her faith; strength on her faith's ground | kill cards (Songs of the Fallen, Battle Honours, The Art of War) |
 

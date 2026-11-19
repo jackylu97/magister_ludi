@@ -117,6 +117,18 @@ describe('the Dominion batch — taking a city', () => {
     return { state, theirs, ours };
   }
 
+  it('The Auxilia arrive at the captured town after the conqueror enters it', () => {
+    const { state, theirs } = siege();
+    slot(state, 0, 'dominionTheAuxilia');
+    const conqueror = createUnit(state, 0, 'warrior', 3, 3);
+    expect(applyCombat(state, conqueror.id, { col: theirs.col, row: theirs.row }).ok).toBe(true);
+    expect([conqueror.col, conqueror.row]).toEqual([theirs.col, theirs.row]);
+    const recruits = state.units.filter((unit) => unit.ownerId === 0 && unit.freeUpkeep);
+    expect(recruits).toHaveLength(1);
+    expect(Math.abs(recruits[0]!.col - theirs.col)).toBeLessThanOrEqual(1);
+    expect(Math.abs(recruits[0]!.row - theirs.row)).toBeLessThanOrEqual(1);
+  });
+
   it('counts the capture for the commissions and pays them off the town that was taken', () => {
     const { state, theirs } = siege();
     // Take the City counts only a town of eight citizens or more (five in

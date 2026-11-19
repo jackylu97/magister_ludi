@@ -36,9 +36,10 @@ import {
 // Magisterial batch MG7 the adoption's. Called inside a function only, so the
 // import cycle through `cities.ts` stays a function-level one
 // (`test/mapgen/moduleCycles.test.ts`).
-import { payOccasionRiders } from '../cities';
+import { openWaitingDoctrineOffer, payOccasionRiders } from '../cities';
 import {
   type Band,
+  type ChairType,
   type CardId,
   type DeckId,
   type DoctrineId,
@@ -87,7 +88,7 @@ import {
 } from './evaluator';
 // The council (`council.ts`), which an adoption seats again. That file imports
 // this one back, and these names are used only inside `adoptGovernmentAt`.
-import { chairCount, chairFitFor, reseatCouncil, settleCouncilFit } from './council';
+import { chairLayoutUnder, rememberChairLayout, chairFitFor, refitSlots, reseatCouncil, settleCouncilFit } from './council';
 import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
@@ -523,6 +524,9 @@ export interface PlayerStatecraft {
    * slots is a fact about the government and the array's length says so.
    */
   slots: (SlottedOrder | null)[];
+  extraTypedChairs?: ChairType[];
+  waitingDoctrineOffers?: number;
+  waitingGreatPersonOffers?: number;
   /**
    * Doctrines held, in the order they were taken. Permanent and slotless: a
    * Doctrine is held for the whole game, takes no chair, and is the second
@@ -586,6 +590,7 @@ export interface PlayerStatecraft {
    * Always present, never optional — `orderSkips`' rule.
    */
   rerollsTaken: number;
+  freeRerolls?: number;
   /**
    * **What each growing card has watched happen** — the counters the scaling
    * family reads (`docs/history/doctrine-ideas.md`, ruled 2026-09-04).
@@ -891,7 +896,7 @@ function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
   for (const effect of orderDef(id).effects) {
     if (effect.kind !== 'pays' || effect.basis !== 'count') continue;
     if (effect.count !== 'tally') continue;
-    if (effect.tally !== occasion) continue;
+    if (effect.tally !== occasion && !effect.alsoTallies?.includes(occasion)) continue;
     return true;
   }
   // A commission's counted goal uses the same per-card tally, so its progress
@@ -1927,6 +1932,7 @@ export function runStatecraft(state: GameState): void {
   for (const player of state.players) {
     if (player.barbarian) continue;
     settleDraft(state, player);
+    openWaitingDoctrineOffer(state, player);
   }
 }
 
@@ -2107,6 +2113,7 @@ export function applyCharter(player: Player, id: OrderId): boolean {
  * them.
  */
 export function payCardDrafted(state: GameState, player: Player, price?: number): void {
+  recordScalingOccasion(state, player.id, 'orderGained');
   const capital = capitalCityOf(state, player.id);
   payOccasionRiders(
     state,
@@ -2360,7 +2367,9 @@ export function adoptGovernmentAt(
   // it: the walk this count takes records the **old chairs**, and the drop after
   // the rebuild is what throws that reading away again. One drop each side, and
   // each for its own half of the sentence.
-  sc.slots = new Array<SlottedOrder | null>(chairCount(state, player.id, id)).fill(null);
+  const layout = chairLayoutUnder(state, player.id, id);
+  rememberChairLayout(sc, layout);
+  sc.slots = new Array<SlottedOrder | null>(layout.length).fill(null);
   // **The reroll's ladder starts again** (B1 rule 3, `docs/flags.md` (aaaaaa)):
   // a fresh charter arrives with a cheap reroll. An event write here, in the
   // one place a government changes hands, and never a countdown — see the
@@ -2383,6 +2392,7 @@ export function adoptGovernmentAt(
   // the fit is the plain one again, and the council is re-seated by it at
   // once (Magisterial batch MG12; reading 24). It does nothing otherwise.
   settleCouncilFit(state, player);
+  refitSlots(state, player, 'reseat');
   // What the adoption did, read off the old council and the final one, in
   // the old seat order: so the second re-seating above is counted too.
   const seating = councilOutcome(previous, sc.slots);

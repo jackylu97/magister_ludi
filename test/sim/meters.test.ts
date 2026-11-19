@@ -488,7 +488,7 @@ describe('authority: what a city costs', () => {
     const state = flatState();
     const first = foundCityAt(state, 0, at(state.map, 4, 4));
     const second = foundCityAt(state, 0, at(state.map, 10, 4));
-    const monument = buildingDef('assemblyHall');
+    const monument = buildingDef('examinationHall');
     const capacity = monument.authorityCapacity!;
     const bare = meterStanding(explainAuthority(state, 0)).gain;
 
@@ -496,18 +496,18 @@ describe('authority: what a city costs', () => {
     // everything the player has not done.
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBeUndefined();
 
-    first.buildings.push('assemblyHall');
+    first.buildings.push('examinationHall');
     bumpRevision(state);
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBe(capacity);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
     // Two of them are one line that counts them, not two lines.
-    second.buildings.push('assemblyHall');
+    second.buildings.push('examinationHall');
     bumpRevision(state);
     const entries = explainAuthority(state, 0);
     const named = entries.filter((entry) => entry.source.includes(monument.name));
     expect(named).toHaveLength(1);
-    expect(named[0]!.source).toBe(`Assembly Halls ×2`);
+    expect(named[0]!.source).toBe(`Examination Halls ×2`);
     expect(named[0]!.value).toBe(2 * capacity);
     expect(meterStanding(entries).gain).toBe(bare + 2 * capacity);
 
@@ -540,14 +540,14 @@ describe('authority: what a city costs', () => {
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
     // Two kinds of building are two lines, each counting its own type — which is
-    // what makes "Assembly Halls ×3" a reading of the halls rather than of the
+    // what makes "Examination Halls ×3" a reading of the halls rather than of the
     // whole shelf.
-    city.buildings.push('assemblyHall');
+    city.buildings.push('examinationHall');
     bumpRevision(state);
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, stele.name)).toBe(capacity);
-    expect(lineFor(entries, buildingDef('assemblyHall').name)).toBe(
-      buildingDef('assemblyHall').authorityCapacity!,
+    expect(lineFor(entries, buildingDef('examinationHall').name)).toBe(
+      buildingDef('examinationHall').authorityCapacity!,
     );
   });
 
@@ -1276,7 +1276,8 @@ describe('a captured city, end to end', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 248 changes the draft pools and wonder effects used during replay.
+    expect(SCHEMA_VERSION).toBe(248);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

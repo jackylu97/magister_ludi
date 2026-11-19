@@ -15,6 +15,7 @@ import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import type { TriumphAward } from '../../src/sim/triumphs';
 import { wonderPlateReading, wonderTriumphPairs } from '../../src/ui/wonderPlate';
 import { isTechId } from '../../src/sim/techData';
+import { bumpRevision } from '../../src/sim/state';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { readEmpire } from '../../src/sim/readings';
 import { renownPerTurn } from '../../src/sim/renown';
@@ -60,6 +61,18 @@ describe('what is in each stack comes from the rules’ own walk', () => {
     expect(layout.crest).toHaveLength(2);
     expect(layout.leader).toBe('Pachacuti');
     expect(layout.government[0]!.form).toBe('government');
+  });
+
+  it('shows one Assembly Hall for the council chair and leaves local buildings to their towns', () => {
+    const state = board();
+    const town = state.cities.find(city => city.ownerId === 0)!;
+    town.buildings.push('assemblyHall', 'library');
+    bumpRevision(state);
+    const entries = inPlayLayout(state, 0).stacks.flatMap(stack => stack.entries);
+    const halls = entries.filter(entry => entry.card === 'assemblyHall');
+    expect(halls).toHaveLength(1);
+    expect(halls[0]!.link).toEqual({ kind: 'city', cityId: town.id });
+    expect(entries.some(entry => entry.card === 'library')).toBe(false);
   });
 
   it('never makes a technology a piece', () => {
