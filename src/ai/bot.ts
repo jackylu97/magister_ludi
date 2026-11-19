@@ -937,6 +937,95 @@ export function botSitting(playerId: number): BotSitting {
 }
 
 /**
+ * **The marks of a sitting that bound what it asks again** (bot batch BP16,
+ * stage C1), as plain data: the pieces and towns already asked or ordered this
+ * turn, the re-aims spent, and the phases closed.
+ *
+ * A seat plans its turn on a copy of the frozen board (`frozenBoard.ts`), and
+ * the plan keeps these marks after each command. When the plan is cut, the
+ * seat finishes its turn on the real board with a sitting that starts from the
+ * marks the plan held at its last landed command (`resumedSitting`), so it does
+ * not ask a piece again that the same sitting had already asked. Without them a
+ * fresh sitting re-asked such a piece, met the order the plan had already
+ * landed, and the driver's repeat guard stopped the seat (seed 2026, turn 70,
+ * the first C1 games).
+ *
+ * The readings are not marks: the context, the books, the escort and guard
+ * plans, the threats, the beeline's table, the hunt, the print and the spend
+ * memo were read on the copy, so the live sitting reads them again.
+ */
+export interface SittingMarks {
+  reaims: number;
+  focused: number[];
+  reasked: [number, number][];
+  called: number[];
+  roused: number[];
+  levyWeighed: number[];
+  escortOrders: string[];
+  guardOrders: string[];
+  steppedBack: number[];
+  closed: SittingPhase[];
+}
+
+/** A copy of the sitting's marks, as they stand now. */
+export function sittingMarks(sitting: BotSitting): SittingMarks {
+  return {
+    reaims: sitting.reaims,
+    focused: [...sitting.focused],
+    reasked: [...sitting.reasked],
+    called: [...sitting.called],
+    roused: [...sitting.roused],
+    levyWeighed: [...sitting.levyWeighed],
+    escortOrders: [...sitting.escortOrders],
+    guardOrders: [...sitting.guardOrders],
+    steppedBack: [...sitting.steppedBack],
+    closed: [...sitting.closed],
+  };
+}
+
+/**
+ * A fresh sitting that carries these marks. `realId` gives the id a piece or
+ * town has on the board the sitting will read: a copy's new id is mapped, and
+ * a mark for an id with no mapping (a piece the plan made after its last landed
+ * command) is dropped.
+ */
+export function resumedSitting(
+  playerId: number,
+  marks: SittingMarks,
+  realId: (id: number) => number | null,
+): BotSitting {
+  const sitting = botSitting(playerId);
+  const each = (ids: readonly number[], into: Set<number>): void => {
+    for (const id of ids) {
+      const real = realId(id);
+      if (real !== null) into.add(real);
+    }
+  };
+  // An escort or guard order is written `piece>col,row`.
+  const orders = (keys: readonly string[], into: Set<string>): void => {
+    for (const key of keys) {
+      const at = key.indexOf('>');
+      const real = realId(Number(key.slice(0, at)));
+      if (real !== null) into.add(`${real}${key.slice(at)}`);
+    }
+  };
+  sitting.reaims = marks.reaims;
+  each(marks.focused, sitting.focused);
+  for (const [id, count] of marks.reasked) {
+    const real = realId(id);
+    if (real !== null) sitting.reasked.set(real, count);
+  }
+  each(marks.called, sitting.called);
+  each(marks.roused, sitting.roused);
+  each(marks.levyWeighed, sitting.levyWeighed);
+  orders(marks.escortOrders, sitting.escortOrders);
+  orders(marks.guardOrders, sitting.guardOrders);
+  each(marks.steppedBack, sitting.steppedBack);
+  for (const phase of marks.closed) sitting.closed.add(phase);
+  return sitting;
+}
+
+/**
  * The context this arm appraises against — the sitting's, or a fresh one.
  *
  * The seat guard is not defensive tidiness: a context carries the seat's own
