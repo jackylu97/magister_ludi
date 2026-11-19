@@ -1393,3 +1393,56 @@ Not in this stage: the great person card and the Reliquary (stage 2), the
 Order draft, the city screen, diplomacy, faith, setup, the unit panel, the HUD
 overflow fix (all wait for the fourth pass), the age plate on the ribbon and
 the endings (they wait for paintings or their own stage).
+
+### Quiet Table, fourth pass: the user's comments (2026-11-19)
+
+Board: https://claude.ai/artifact/GkKwKd5K49uk68E3fjXm2p, repo copy in
+`docs/plans/mockups/scholars-study/quiet-table-fourth-pass/`. The user: "ok
+great, i made more notes, we're very close." The comments, in their words:
+
+| Frame | On | The user's comment |
+|---|---|---|
+| 1 City, at rest | the row "Great houses" | "lets label these as empire buildings everywhere in the game. That name makes it clearer that it's one per empire. Make sure the tech tree and compendium note this and it's easy to tell what they are." |
+| 2 Diplomacy, the strip of courts | the frame's title | "love this, great" |
+| 3 Religion and followers | the pantheon graphic | "I don't like this graphic anymore, let's just cut it." |
+| 3 Religion and followers | a religion's name ("The Children of Elder and Cloud") | "could we do a naming pass, lets make these religion names way shorter. They can be proper nouns that just sound arcane/cool, or reference obscure religions from history" |
+| 4 Order draft | the frame's title | "great, everything here is great" |
+| 5 Setup | the frame's title | "Great, love the new layout" |
+| 5 Setup | the colour words "maroon and sun gold" | "this is unneeded" |
+| 5 Setup | the head "Choose your civ" | "this should really say choose your leader. Could we have smaller font in the selector that also notes their civ in smaller print." and "in doing so, the individual rows can be larger, and that can leave more room so the icons are more readable. Are the icons going to be crops of the splash art?" |
+| 6 Forecast | the forecast block | "lets make this more readable. Could we label the bottom as \"you\" vs \"them\", and have the health bars appear under the unit it belongs to." |
+| 7 Corner panel fix | the three states | "great" |
+| 8 Technology hint | the line | "lets just have it read \"click a technology to research it - shift click to queue\"" |
+
+What follows:
+- **Approved:** diplomacy layout B with the strip of courts; the Order draft
+  sheet and its slower reveal; the setup layout; the corner panel fix.
+- **"Empire buildings" is the name everywhere** for the buildings an empire
+  may hold once ("great houses" before). The technology screen and the
+  Compendium say what they are.
+- **Religion and followers:** the pantheon graphic is cut. The rest of the
+  redrawn tab stands.
+- **Religion names get a naming pass:** much shorter, proper nouns that sound
+  arcane, or obscure religions from history.
+- **Setup:** the head reads "Choose your leader"; each row has the leader's
+  name with their civilisation in smaller print under it, and is taller so its
+  mark reads; the words that describe the seat's colours go.
+- **Combat forecast:** the two sides are labelled "You" and "Them", and each
+  health bar sits under the unit it belongs to.
+- **The technology hint is exactly:** "click a technology to research it ·
+  shift-click to queue".
+- The city frame had no objection beyond the name. The move of the Supply line
+  into the Units tab is not yet answered.
+
+### The build list and supply (2026-11-19)
+
+The user, answering the question on the city screen's Supply line: "the supply
+is already in the corner panel, could we gray out units we have access to, but
+can't because we don't have supply? the other rules for unavailable builds can
+stay in the dropdown".
+
+- The city screen needs no Supply line of its own: the corner panel has it.
+- A unit that the town could build, and that is refused only because the
+  empire has no supply left, stays in the build list in grey, with its reason.
+  It is not moved to the unavailable drop-down.
+- Every other reason a build is unavailable stays in the drop-down, as today.
