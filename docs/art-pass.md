@@ -378,3 +378,13 @@ badge is a **candle** for `BadgeClass.religious`: an augur is sculpted as a work
 hill and build a mine. Deliberately not the faith yield's flame — the flame is a number's
 voice, the candle is a piece's name, and one mark doing both would read as "this tile makes
 faith". All ten are on `flair.html`.
+
+## Town and improvement models, 2026-11-19
+
+The player wants more arcane architecture on the existing painted board. Use the wonder paintings as references, including the buildings in the backgrounds. Keep an improvement's job visible at play zoom. Increase architectural detail as the owner's age advances. Historical building forms are a starting point. Artistic merit takes priority. This pass covers standing towns and improvements. Models for pillaged improvements will follow separately.
+
+- The Great Ziggurat and the Walls of Uruk use broad warm planes, battered walls and deeply shaded openings. Use a stepped roofline or a projecting lintel where it helps a small building read.
+- The House of Wisdom and the Alhambra set quiet roof terraces beside taller towers. Keep the town's civic roof above the houses. Use lapis, copper and muted gold in small areas that catch light.
+- On working land, make the equipment carry the detail. A hoist should still look like a hoist, a drying rack like a rack. Reserve the strongest silhouettes for civic buildings and great works.
+
+The pasture has an open shelter in Ages I and II and a larger shelter in Ages III and IV. The owner’s age selects it. The Stable is a separate military building inside a city. Completing a Stable currently has no city model.

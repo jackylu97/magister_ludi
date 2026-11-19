@@ -14,14 +14,16 @@ nothing: `visualTest.northStar` in data/view3d.json picks which set is drawn.
   the middle ages, in the materials of that age's houses.
 - ns-house-3d/3e/3f, ns-hall-3: the richer houses and hall of the late ages.
 - ns-mine: a dark tunnel mouth with a timber frame in a round rock.
-- ns-quarry: pale stone cut in square steps, with a crane.
+- ns-quarry: a stepped stone face and a treadwheel crane.
 - ns-barn, ns-haystack: the farm's building and its stacks.
 - ns-granary, ns-rack, ns-thatch-barn: the farm before the barn. A small store
   on legs and a drying rack in the first age, a low straw barn in the second.
 - ns-mine-pit, ns-mine-winch: the mine before the pithead.
 - ns-quarry-cut, ns-quarry-frame: the quarry before the crane.
 - ns-shelter, ns-stable: the pasture's straw shed, and the stable that follows it.
-- ns-lumber-camp: the lumber camp before the saw shed.
+- ns-lumber-camp: a trestle saw and a roofed timber shelter.
+- ns-loft-barn, ns-mine-headframe, ns-saw-hall: a raised grain loft, a mine
+  hoist and a roofed frame saw for the fourth age.
 - ns-windmill, ns-windmill-sails: a tower mill for some farms. The sails are a
   separate model, flat in the X-Z plane round the origin, so the renderer can
   turn them about their hub (`visualTest.works.windmillHub`).
@@ -165,6 +167,59 @@ def hall():
  for x in [-.24,.24]:window(x,-.201,.28,.06,.10)
 
 # --- Works -------------------------------------------------------------------
+COPPER_WORK=pigment('Work copper','518982')
+BRASS_WORK=pigment('Work bronze','bf8b47')
+OCHRE_WORK=pigment('Work fired earth','bd7550')
+INK_WORK=pigment('Work deep shade','354447')
+CLAY_WORK=pigment('Work sunlit clay','e0a174')
+
+def work_profile(x,y,levels,m,sides=8):
+ """Widths measure to a flat face, so four sides give a square footing."""
+ verts=[];faces=[]
+ for z,rx,ry in levels:
+  for i in range(sides):
+   a=(i+.5)*math.tau/sides
+   verts.append((x+rx*math.cos(a)/math.cos(math.pi/sides),y+ry*math.sin(a)/math.cos(math.pi/sides),z))
+ for level in range(len(levels)-1):
+  for i in range(sides):
+   a=level*sides+i;b=level*sides+(i+1)%sides
+   faces.append((a,b,b+sides,a+sides))
+ faces.extend([tuple(reversed(range(sides))),tuple(range(len(verts)-sides,len(verts)))])
+ return mesh('Work profile',verts,faces,m)
+
+def work_panel(outline,front,back,m):
+ """A panel cut to shape in the plane facing the board camera."""
+ n=len(outline)
+ verts=[(x,y,z) for y in [front,back] for x,z in outline]
+ faces=[tuple(range(n)),tuple(reversed(range(n,2*n)))]
+ faces.extend((i,(i+1)%n,n+(i+1)%n,n+i) for i in range(n))
+ return mesh('Cut panel',verts,faces,m)
+
+def work_arcade(x,y,width,spring,peak,top,depth,m):
+ """A plaster wall with a pointed opening cut all the way through it."""
+ half=width/2;opening=width*.36
+ profile=[(-half,0),(-opening,0),(-opening,spring),(-opening*.68,spring+(peak-spring)*.57),
+          (0,peak),(opening*.68,spring+(peak-spring)*.57),(opening,spring),
+          (opening,0),(half,0),(half,top),(-half,top)]
+ return work_panel([(x+dx,z) for dx,z in profile],y-depth/2,y+depth/2,m)
+
+def hoist_wheel(x,y,z,r,depth,m,arms=3):
+ """The open rim and its spokes show where the hoist rope winds."""
+ verts=[];faces=[];n=12
+ for yy,rr in [(y-depth/2,r),(y-depth/2,r*.77),(y+depth/2,r*.77),(y+depth/2,r)]:
+  for i in range(n):
+   a=i*math.tau/n
+   verts.append((x+rr*math.cos(a),yy,z+rr*math.sin(a)))
+ for j in range(4):
+  for i in range(n):
+   k=(i+1)%n;jj=(j+1)%4
+   faces.append((j*n+i,j*n+k,jj*n+k,jj*n+i))
+ mesh('Hoist rim',verts,faces,m)
+ for i in range(arms):
+  a=(i+.18)*math.pi/arms;dx=r*.84*math.cos(a);dz=r*.84*math.sin(a)
+  tube([(x-dx,y,z-dz),(x+dx,y,z+dz)],[r*.085,r*.085],TIMBER,4)
+ tube([(x,y-depth*.74,z),(x,y+depth*.74,z)],[r*.18,r*.18],BRASS_WORK,8)
+
 def mine():
  # One round rock, darker than the land, with a black mouth in a timber frame.
  # A low rock floor carries the rock and the cart, and reaches below the ground line.
@@ -183,56 +238,109 @@ def mine():
  for x in [-.035,.075]:
   wheel=cylinder((0,0,0),.03,.13,PIT,8);wheel.rotation_euler[0]=math.pi/2;wheel.location=(x,-.52,.03)
 
+def quarry_benches(floor,ledge,upper=0):
+ # A continuous face for each cut keeps the corner clean at low camera angles.
+ def bench(plan,base,top,m):
+  n=len(plan);verts=[(x,y,z) for z in [base,top] for x,y in plan]
+  faces=[tuple(reversed(range(n))),tuple(range(n,2*n))]
+  faces.extend((i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n))
+  return mesh('Stone bench',verts,faces,m)
+ base=[(-.42,-.24),(-.35,-.31),(.35,-.31),(.427,-.21),(.427,.25),(.33,.38),(-.33,.38),(-.42,.27)]
+ bench(base,-.24,floor,CUT_SHADE)
+ bench([(-.42,-.24),(-.35,-.31),(-.22,-.31),(-.22,.065),(-.09,.065),(-.09,.159),
+        (.427,.159),(.427,.25),(.33,.38),(-.33,.38),(-.42,.27)],floor,ledge,CUT)
+ if upper:
+  bench([(-.42,-.04),(-.314,-.04),(-.314,.233),(.144,.233),(.144,.38),(-.33,.38),(-.42,.27)],
+        ledge,upper,CUT_SHADE)
+
 def quarry():
- # Pale stone cut in square steps round a corner, and a crane.
- for w,d,h,x,y in [(.86,.70,.14,0,.04),(.86,.24,.30,0,.27),(.26,.70,.30,-.30,.04),(.62,.16,.46,-.12,.31),(.18,.44,.46,-.34,.17)]:
-  block((x,y,h/2-.12),(w,d,h+.24),CUT if h>.2 else CUT_SHADE,.012)
+ quarry_benches(.14,.29,.417)
  # Loose blocks waiting on the floor.
  block((.12,-.10,.19),(.17,.13,.10),CUT,.008);block((.27,.02,.18),(.12,.12,.08),CUT,.008)
  block((.16,-.08,.285),(.11,.10,.09),CUT,.008)
- # The crane: a post, a jib and a hanging block.
- tube([(.32,-.22,.14),(.32,-.22,.66)],[.032,.026],TIMBER,6)
- tube([(.36,-.20,.62),(.02,-.30,.72)],[.022,.018],TIMBER,6)
- tube([(.32,-.22,.40),(.14,-.27,.685)],[.014,.014],TIMBER,5)
- tube([(.04,-.295,.71),(.04,-.295,.50)],[.006,.006],PIT,4)
- block((.04,-.295,.46),(.09,.09,.08),CUT,.006)
+ # A treadwheel raises stone on a jib. Its open rim stands clear of the pale cut face.
+ work_profile(.24,-.07,[(.14,.12,.11),(.18,.12,.11),(.47,.061,.057)],CLAY_WORK,4)
+ block((.24,-.07,.47),(.19,.16,.035),CUT,0)
+ hoist_wheel(.24,-.17,.39,.147,.073,TIMBER,4)
+ pole((.24,-.06,.46),(.24,-.06,.62),.027)
+ pole((.31,-.06,.52),(-.17,-.19,.68),.029,TIMBER,4)
+ pole((.24,-.06,.40),(-.12,-.175,.665),.018)
+ for x,z in [(.24,.62),(-.16,.676)]:
+  yy=-.06 if x>0 else -.19
+  tube([(x,yy-.026,z),(x,yy+.026,z)],[.030,.030],BRASS_WORK,8)
+ pole((-.16,-.19,.67),(-.16,-.19,.40),.008,INK_WORK)
+ for dx in [-.056,.056]:pole((-.16,-.19,.409),(-.16+dx,-.19,.338),.007,INK_WORK)
+ block((-.16,-.19,.302),(.15,.105,.075),CUT,.004)
 
 def barn():
- # A broad barn: a deep roof, a wide dark door.
- block((0,0,.02),(.50,.38,.04),STONE,.008);block((0,0,.14),(.46,.34,.24),WALL,.018)
- eaves(0,0,.24,.54,.42,TILE_DEEP);gable(0,0,.275,.51,.39,.24,TILE,'y')
- block((0,-.171,.10),(.16,.02,.20),DOOR,.004)
- block((0,-.201,.40),(.06,.02,.06),DOOR,.003)
+ # Tall loading doors and a covered side bay leave the outline of a working barn.
+ block((-.055,.124,.131),(.358,.05,.262),MUD,0)
+ for x in [-.221,.111]:block((x,0,.13),(.033,.284,.26),WALL,0)
+ work_arcade(-.055,-.137,.36,.161,.229,.271,.041,WALL)
+ work_panel([(-.254,.267),(-.055,.48),(.144,.267)],-.166,.166,CLAY_WORK)
+ work_panel([(-.277,.259),(-.055,.494),(.165,.259),(.151,.253),(-.055,.466),(-.26,.253)],-.187,.187,TILE)
+ # The half-open leaves give the loading bay depth when it faces the camera.
+ block((-.055,.077,.108),(.245,.018,.211),INK_WORK,0)
+ for side in [-1,1]:
+  leaf=block((-.055+side*.096,-.108,.087),(.089,.014,.174),TIMBER,0)
+  leaf.rotation_euler.z=side*math.pi*.22
+ block((-.055,-.165,.255),(.274,.034,.027),TIMBER,0)
+ block((-.055,-.168,.349),(.078,.02,.092),TIMBER,0)
+ block((-.055,-.208,.407),(.031,.105,.034),TIMBER,0)
+ for y in [-.122,.122]:
+  block((.235,y,.099),(.029,.035,.198),TIMBER,0)
+ work_panel([(.09,.279),(.268,.204),(.268,.181),(.09,.252)],-.15,.15,TILE_DEEP)
+
+def loft_barn():
+ # Grain dries in the vented tower above a long, low loading gallery.
+ work_profile(-.151,.015,[(0,.122,.14),(.29,.114,.125),(.315,.127,.137)],CLAY_WORK,4)
+ block((-.151,.015,.369),(.19,.207,.11),INK_WORK,0)
+ for dx in [-.089,.089]:
+  for dy in [-.093,.093]:
+   block((-.151+dx,.015+dy,.37),(.024,.024,.11),CUT,0)
+ work_profile(-.151,.015,[(.417,.134,.148),(.44,.134,.148),(.523,.044,.063)],COPPER_WORK,4)
+ block((.097,.115,.109),(.31,.085,.218),MUD,0)
+ for x in [-.011,.100,.211]:work_arcade(x,-.11,.111,.094,.158,.198,.055,CUT)
+ eaves(.096,.008,.198,.36,.298,TILE_DEEP,.02)
+ hip(.096,.008,.217,.352,.292,.113,TILE,.54)
+ block((-.151,-.127,.13),(.103,.025,.225),TIMBER,0)
 def haystack():
  rock((0,0,.05),(.12,.12,.13),STRAW,21,1,.06)
  cone(0,0,.13,.085,.08,STRAW_DEEP,8)
 
 CANVAS=pigment('NS sail canvas','f6edd6')
 def windmill():
- # A round tower that narrows upward, under a tiled cap. The hub is at (0,-.15,.50).
- cylinder((0,0,.02),.17,.04,STONE,10)
- tube([(0,0,.04),(0,0,.30),(0,0,.47)],[.145,.115,.098],WALL,10)
- cone(0,0,.47,.135,.17,TILE,10)
- block((0,-.139,.10),(.07,.02,.14),DOOR,.004)
- block((0,-.112,.33),(.045,.02,.055),DOOR,.003)
- tube([(0,-.06,.50),(0,-.16,.50)],[.022,.022],TIMBER,6)
+ # The cap and bearing sit on an octagonal service gallery. The sails turn at (0,-.165,.50).
+ work_profile(0,0,[(0,.158,.151),(.037,.158,.151),(.055,.137,.132)],STONE)
+ work_profile(0,0,[(.036,.135,.133),(.247,.113,.112),(.282,.12,.118),(.436,.088,.090)],WALL)
+ work_profile(0,0,[(.24,.116,.115),(.266,.145,.142),(.284,.145,.142)],OCHRE_WORK)
+ for x in [-.082,.082]:
+  work_panel([(x-.026,.035),(x+.026,.035),(x+.013,.177),(x-.013,.177)],-.112,-.073,CLAY_WORK)
+ work_profile(0,0,[(.424,.09,.093),(.447,.133,.134),(.473,.133,.134)],TIMBER)
+ work_profile(0,0,[(.47,.132,.132),(.51,.129,.129),(.567,.081,.081),(.602,.039,.039),(.636,.020,.020)],COPPER_WORK)
+ block((0,-.128,.097),(.063,.022,.122),INK_WORK,0)
+ block((0,-.104,.344),(.032,.016,.066),INK_WORK,0)
+ tube([(0,-.072,.50),(0,-.164,.50)],[.036,.027],BRASS_WORK,8)
 def windmill_sails():
- block((0,0,0),(.06,.035,.06),TIMBER,.006)
- for spar,spar_size,sail,sail_size in [
-  ((0,0,.17),(.018,.016,.34),(.05,0,.215),(.08,.010,.24)),
-  ((.17,0,0),(.34,.016,.018),(.215,0,-.05),(.24,.010,.08)),
-  ((0,0,-.17),(.018,.016,.34),(-.05,0,-.215),(.08,.010,.24)),
-  ((-.17,0,0),(.34,.016,.018),(-.215,0,.05),(.24,.010,.08)),
- ]:
-  block(spar,spar_size,TIMBER,.002);block(sail,sail_size,CANVAS,.002)
+ tube([(0,-.023,0),(0,.021,0)],[.034,.034],BRASS_WORK,10)
+ for i in range(4):
+  angle=i*math.pi/2
+  def blade(points,front,back,m):
+   outline=[(x*math.cos(angle)+z*math.sin(angle),z*math.cos(angle)-x*math.sin(angle)) for x,z in points]
+   return work_panel(outline,front,back,m)
+  blade([(-.010,.016),(.010,.016),(.007,.345),(-.007,.345)],-.009,.009,TIMBER)
+  blade([(.006,.087),(.066,.108),(.112,.277),(.104,.312),(.006,.339)],-.004,.005,CANVAS)
+  blade([(.006,.248),(.102,.242),(.108,.257),(.006,.265)],-.006,-.004,OCHRE_WORK)
 
 # Scenery for rich hexes (docs/flags.md (nnnnnnn), "Yields on the board"):
 # what a hex shows as its food, production or gold rises.
 AWNING=pigment('NS awning red','c8553d')
 def sheaf():
- # Three bound stooks of grain.
- for x,y,s in [(-.07,.02,1.0),(.06,.04,.9),(0,-.06,.82)]:
-  cone(x,y,0,.055*s,.17*s,STRAW,7,.012*s);cone(x,y,.15*s,.03*s,.05*s,STRAW_DEEP,7)
+ # A bound sheaf flares above the tie and spreads at the ground.
+ for x,y,s in [(-.055,.021,1.0),(.053,.03,.92),(0,-.048,.78)]:
+  work_profile(x,y,[(0,.057*s,.045*s),(.095*s,.020*s,.019*s),(.153*s,.042*s,.031*s),
+                    (.187*s,.017*s,.012*s)],STRAW,6)
+  cylinder((x,y,.096*s),.024*s,.017*s,TIMBER,6)
 def logs():
  # A stack of three logs and a cut block of stone.
  for y,z in [(-.045,.04),(.045,.04),(0,.115)]:
@@ -258,54 +366,88 @@ def basket(x,y,z,load,seed):
  tube([(x,y,z),(x,y,z+.065)],[.032,.044],STRAW_DEEP,7);rock((x,y,z+.066),(.034,.034,.02),load,seed,1)
 
 def granary():
- # The farm of the first age: a small round store on four legs, under a straw cone.
+ # A raised clay bin keeps grain dry. A second skin of thatch covers its round shoulder.
  for x,y in [(-.07,-.07),(.07,-.07),(.07,.07),(-.07,.07)]:block((x,y,.04),(.032,.032,.08),TIMBER,.004)
  cylinder((0,0,.092),.135,.03,TIMBER,8)
- tube([(0,0,.105),(0,0,.19),(0,0,.25)],[.098,.118,.102],MUD,8)
- cone(0,0,.235,.17,.045,STRAW_DEEP,8);cone(0,0,.262,.152,.21,STRAW,8)
+ work_profile(0,0,[(.103,.094,.091),(.147,.124,.116),(.234,.121,.112),(.266,.093,.088)],CLAY_WORK)
+ work_profile(0,0,[(.228,.152,.144),(.25,.158,.148),(.304,.110,.104)],STRAW_DEEP)
+ work_profile(0,0,[(.286,.133,.127),(.335,.104,.097),(.409,.035,.035),(.446,.014,.014)],STRAW)
  block((0,-.112,.175),(.05,.02,.075),DOOR,.003)
  pole((-.03,-.20,0),(-.03,-.115,.11),.009);pole((.03,-.20,0),(.03,-.115,.11),.009)
+ for i in range(1,4):
+  y=-.20+.021*i;z=.027*i
+  pole((-.034,y,z),(.034,y,z),.008)
 def rack():
  # A drying rack: two pairs of crossed poles, a rail, and bundles of grain hung over it.
  for x in [-.17,.17]:
   pole((x,-.07,0),(x,.02,.25));pole((x,.07,0),(x,-.02,.25))
  pole((-.21,0,.218),(.21,0,.218),.012)
- for i in range(5):
-  x=-.13+i*.065;m=STRAW if i%2==0 else STRAW_DEEP
-  block((x,0,.15),(.052,.085,.15),m,.010)
+ for i in range(4):
+  x=-.126+i*.083;m=STRAW if i%2==0 else STRAW_DEEP
+  work_profile(x,0,[(.062,.036,.039),(.137,.020,.04),(.205,.034,.052),(.23,.019,.023)],m,6)
+  work_profile(x,0,[(.13,.023,.042),(.143,.023,.042)],TIMBER,6)
 def thatch_barn():
- # The farm of the second age: a low, long barn with timber posts under a heavy straw roof.
- block((0,0,.095),(.50,.30,.19),MUD,.016)
- for x in [-.245,-.09,.09,.245]:block((x,-.152,.095),(.03,.022,.19),TIMBER,.004)
- eaves(0,0,.18,.60,.40,STRAW_DEEP,.04);hip(0,0,.22,.57,.37,.25,STRAW,.55)
- block((0,-.153,.08),(.13,.02,.16),DOOR,.004)
+ # A raised ridge ventilates the threshing floor. The shaded loading bay stays open.
+ work_profile(0,.028,[(0,.25,.128),(.175,.226,.116)],MUD,4)
+ for x in [-.219,-.09,.09,.219]:
+  block((x,-.157,.089),(.028,.031,.178),TIMBER,0)
+ work_profile(0,0,[(.162,.293,.192),(.189,.298,.196),(.293,.202,.067)],STRAW_DEEP,4)
+ work_profile(0,0,[(.190,.288,.19),(.288,.199,.067)],STRAW,4)
+ block((-.018,0,.305),(.324,.086,.063),TIMBER,0)
+ hip(-.018,0,.325,.394,.163,.092,STRAW,.60)
+ block((-.035,-.095,.096),(.137,.017,.168),INK_WORK,0)
 
 def mine_pit():
  # The mine of the first age: a hole dug into an outcrop, propped with three logs, and baskets of ore.
  rock((0,.11,.07),(.25,.20,.18),ROCK,31)
  rock((-.19,.13,.03),(.13,.13,.10),ROCK_LIGHT,33,1);rock((.19,.14,.02),(.12,.12,.09),ROCK,35,1)
  block((0,-.06,.075),(.14,.12,.15),PIT,0)
- for x in [-.09,.09]:pole((x,-.125,0),(x*.92,-.115,.20),.024,TIMBER,6)
- pole((-.13,-.12,.195),(.13,-.12,.195),.024,TIMBER,6)
+ for x in [-.089,.089]:
+  work_profile(x,-.104,[(0,.027,.046),(.181,.018,.035)],OCHRE_WORK,4)
+  pole((x*1.5,-.146,0),(x,-.113,.149),.014)
+ work_panel([(-.144,.164),(.143,.164),(.121,.202),(-.086,.212)],-.153,-.063,CUT_SHADE)
  basket(.20,-.15,0,ORE,37);basket(.27,-.05,0,ORE,38)
  rock((-.20,-.13,.0),(.085,.075,.05),ROCK_LIGHT,39,1)
 def mine_winch():
  # The mine of the second age: a square shaft with a timber curb, and a windlass over it.
  rock((-.04,.19,.05),(.24,.12,.13),ROCK,41,1);rock((.20,.17,.02),(.10,.10,.08),ROCK_LIGHT,43,1)
  block((0,-.02,.03),(.27,.27,.06),TIMBER,.008);block((0,-.02,.061),(.19,.19,.006),PIT,0)
- for x in [-.16,.16]:
-  pole((x,-.13,0),(x,-.02,.31),.02);pole((x,.09,0),(x,-.02,.31),.02)
- tube([(-.20,-.02,.285),(.20,-.02,.285)],[.032,.032],TIMBER,7)
- block((.225,-.02,.25),(.016,.016,.09),TIMBER,.002);block((.25,-.02,.21),(.05,.016,.016),TIMBER,.002)
+ for y in [-.141,.109]:
+  for side in [-1,1]:
+   pole((side*.152,y,.011),(side*.015,y,.295),.020)
+ tube([(0,-.186,.285),(0,.139,.285)],[.027,.027],TIMBER,8)
+ tube([(0,-.071,.285),(0,.049,.285)],[.047,.047],STRAW_DEEP,8)
+ hoist_wheel(0,-.17,.285,.089,.028,BRASS_WORK)
  tube([(0,-.02,.28),(0,-.02,.13)],[.006,.006],PIT,4)
  tube([(0,-.02,.07),(0,-.02,.13)],[.032,.042],TIMBER,7)
  block((-.24,-.17,.045),(.15,.11,.07),TIMBER,.008);rock((-.24,-.17,.09),(.06,.045,.03),ORE,45,1)
  basket(.24,-.18,0,ORE,47)
 
+def mine_headframe():
+ # The lifting cage rises between battered piers. An overhead sheave leads its rope back to the winding drum.
+ work_profile(0,0,[(0,.268,.191),(.039,.268,.191)],ROCK_LIGHT,4)
+ block((0,-.028,.042),(.221,.225,.009),PIT,0)
+ for x in [-.158,.158]:
+  work_profile(x,.036,[(.026,.079,.155),(.09,.065,.124),(.397,.042,.059),(.445,.055,.069)],CLAY_WORK,4)
+  block((x,.036,.456),(.129,.155,.026),CUT,0)
+  pole((x,.168,.043),(x,.045,.429),.021,TIMBER,4)
+ block((0,.027,.469),(.423,.127,.034),TIMBER,0)
+ work_panel([(.045,.484),(.12,.484),(.10,.556),(.069,.556)],-.017,.045,TIMBER)
+ hoist_wheel(.081,-.038,.548,.082,.043,BRASS_WORK,4)
+ pole((0,-.048,.548),(0,-.048,.269),.008,INK_WORK)
+ for x in [-.061,.061]:pole((0,-.048,.269),(x,-.047,.22),.006,INK_WORK)
+ block((0,-.042,.118),(.146,.107,.066),TIMBER,.003)
+ for x in [-.061,.061]:pole((x,-.082,.124),(x,-.082,.217),.007)
+ block((0,-.042,.215),(.142,.106,.019),BRASS_WORK,0)
+ pole((.162,-.028,.548),(.106,.19,.14),.007,INK_WORK)
+ tube([(-.111,.182,.13),(.111,.182,.13)],[.044,.044],TIMBER,8)
+ for x in [-.062,.062]:pole((x,-.299,.039),(x,-.119,.052),.009)
+ block((.186,-.231,.045),(.111,.086,.055),TIMBER,.003)
+ rock((.186,-.231,.079),(.045,.033,.025),ORE,71,1)
+
 def quarry_cut():
  # The quarry of the first age: a low face cut by hand, rough stone left above it, and a block on log rollers.
- for w,d,h,x,y,m in [(.86,.70,.10,0,.04,CUT_SHADE),(.84,.22,.22,0,.28,CUT),(.22,.48,.20,-.31,.12,CUT)]:
-  block((x,y,h/2-.12),(w,d,h+.24),m,.012)
+ quarry_benches(.10,.21)
  rock((.24,.30,.25),(.15,.09,.09),CUT_SHADE,51,1);rock((-.30,.28,.24),(.11,.10,.09),CUT_SHADE,53,1)
  for x in [.04,.13,.22]:tube([(x,-.22,.12),(x,-.02,.12)],[.02,.02],TIMBER,6)
  block((.13,-.12,.19),(.22,.15,.10),CUT,.010)
@@ -313,38 +455,52 @@ def quarry_cut():
  pole((.30,-.26,.10),(.20,-.06,.20),.012)
 def quarry_frame():
  # The quarry of the second age: deeper steps, and two poles tied at the top to lift a block.
- for w,d,h,x,y in [(.86,.70,.12,0,.04),(.86,.24,.27,0,.27),(.26,.70,.27,-.30,.04),(.50,.16,.39,-.16,.31)]:
-  block((x,y,h/2-.12),(w,d,h+.24),CUT if h>.2 else CUT_SHADE,.012)
+ quarry_benches(.12,.257,.352)
  block((.26,.04,.16),(.13,.12,.08),CUT,.008);block((-.02,.08,.16),(.12,.11,.08),CUT,.008)
  top=(.14,-.16,.60)
- pole((-.04,-.30,.12),top,.022,TIMBER,6);pole((.34,-.06,.12),top,.022,TIMBER,6);pole((.36,-.30,.12),top,.014)
- tube([(.14,-.16,.58),(.14,-.16,.33)],[.006,.006],PIT,4)
+ for x,y in [(-.04,-.26),(.34,-.06),(.32,-.27)]:
+  work_profile(x,y,[(.12,.043,.038),(.162,.032,.031)],CUT,4)
+  pole((x,y,.135),top,.022,TIMBER,6)
+ hoist_wheel(.14,-.177,.55,.044,.028,BRASS_WORK,2)
+ tube([(.137,-.18,.53),(.137,-.18,.33)],[.008,.008],PIT,4)
  block((.14,-.16,.28),(.11,.10,.09),CUT,.006)
 
 def straw_shed(x,y,w,d,h):
- """An open shed: four short posts, a dark space, and a steep straw roof of two slopes that comes low. The ridge runs north to south, so the two slopes take different light and the open end faces the camera."""
- for px in [-1,1]:
-  for py in [-1,1]:block((x+px*(w/2-.03),y+py*(d/2-.04),.05),(.028,.028,.10),TIMBER,.004)
- block((x,y+.01,.045),(w-.09,d-.10,.09),DOOR,0)
- eaves(x,y,.085,w+.03,d+.03,STRAW_DEEP,.03);gable(x,y,.112,w,d,h,STRAW,'y')
- block((x,y-d/2-.002,.15),(w*.34,.012,.075),DOOR,.002)
+ """Unequal rafters leave a high sheltered end where an animal or a cut log can fit."""
+ for yy in [y-d*.37,y+d*.37]:
+  pole((x-w*.40,yy,.004),(x-w*.125,yy,.129+h*.73),.017)
+  pole((x+w*.38,yy,.004),(x+w*.27,yy,.162),.017)
+ block((x,y+d*.36,.076),(w*.74,.029,.15),MUD,0)
+ for edge,inner,m in [
+  ([(-.52,.088),(-.16,.128+h),(.53,.135)],[(-.51,.064),(-.16,.098+h),(.52,.11)],STRAW_DEEP),
+  ([(-.49,.115),(-.16,.146+h),(.49,.153)],[(-.49,.09),(-.16,.117+h),(.49,.127)],STRAW)]:
+  outline=[(x+dx*w,z) for dx,z in edge+list(reversed(inner))]
+  work_panel(outline,y-d/2,y+d/2,m)
+
+def trough(x,y,w,m):
+ block((x,y,.026),(w,.065,.052),m,.004)
+ block((x,y,.052),(w-.025,.041,.006),COPPER_WORK,0)
+
 def shelter():
- # The pasture of the early ages: an open straw shed and a water trough.
- straw_shed(0,0,.34,.30,.26)
- block((.02,-.24,.025),(.17,.055,.05),TIMBER,.006)
+ straw_shed(0,0,.33,.27,.146)
+ trough(.04,-.189,.18,TIMBER)
 def stable():
- # The pasture of the late ages: a small stable of pale walls and tile, open at the front.
- block((0,0,.015),(.40,.28,.03),STONE,.006)
- block((0,.105,.115),(.36,.04,.19),WALL,.008)
- for x in [-.16,.16]:block((x,-.005,.115),(.04,.21,.19),WALL,.008)
- block((0,-.005,.10),(.28,.19,.15),DOOR,0)
- eaves(0,0,.20,.44,.32,TILE_DEEP,.03);gable(0,0,.23,.42,.30,.13,TILE)
- block((0,-.118,.115),(.03,.03,.19),TIMBER,.004)
- block((.02,-.24,.025),(.17,.055,.05),STONE,.006)
+ # The pointed arcade shades two stalls. A high hay door opens above the feed trough.
+ block((0,.101,.107),(.42,.05,.213),OCHRE_WORK,0)
+ for x in [-.122,.023]:
+  work_arcade(x,-.076,.145,.092,.157,.179,.042,CUT)
+  block((x,.066,.073),(.108,.022,.134),TIMBER,0)
+  block((x,.024,.060),(.086,.059,.043),STRAW_DEEP,0)
+ for x in [-.186,-.049]:block((x,.019,.088),(.021,.176,.176),MUD,0)
+ eaves(-.05,0,.179,.333,.269,TILE_DEEP,.018);hip(-.05,0,.197,.326,.26,.089,TILE,.56)
+ work_profile(.146,.012,[(0,.072,.118),(.231,.066,.104),(.254,.072,.111)],CLAY_WORK,4)
+ block((.146,-.094,.179),(.063,.014,.092),INK_WORK,0)
+ hip(.146,.012,.251,.165,.251,.116,TILE_DEEP,.5)
+ trough(.015,-.188,.19,STONE)
 
 def lumber_camp():
  # The lumber camp before the saw shed: a log on two trestles with a long saw in it, a block and axe, an open straw shed.
- straw_shed(0,.13,.36,.26,.25)
+ straw_shed(0,.13,.36,.26,.13)
  for x in [-.13,.13]:
   pole((x,-.20,0),(x,-.08,.15),.016);pole((x,-.08,0),(x,-.20,.15),.016)
  tube([(-.23,-.14,.135),(.23,-.14,.135)],[.042,.042],TIMBER,7)
@@ -353,6 +509,27 @@ def lumber_camp():
  for y in [-.25,-.03]:block((.03,y,.235),(.016,.016,.07),TIMBER,.002)
  cylinder((-.22,.0,.035),.045,.07,TIMBER,7);cylinder((-.22,.0,.071),.036,.004,STRAW,7)
  block((-.22,.0,.12),(.012,.012,.10),TIMBER,.002);block((-.20,.0,.165),(.05,.012,.03),BLADE,.002)
+
+def saw_hall():
+ # The saw frame stands taller than the covered timber run. The open front shows the carriage and blade.
+ for x in [-.154,.154]:
+  work_profile(x,-.048,[(0,.043,.073),(.048,.043,.073),(.339,.029,.043)],CLAY_WORK,4)
+  block((x,-.048,.341),(.08,.105,.024),CUT,0)
+  pole((x,.091,0),(x,-.047,.312),.018,TIMBER,4)
+ block((0,-.048,.366),(.364,.10,.044),TIMBER,0)
+ for x in [-.077,.077]:pole((x,-.102,.117),(x,-.102,.379),.012,BRASS_WORK,4)
+ for z in [.156,.31]:block((0,-.106,z),(.168,.024,.022),TIMBER,0)
+ block((0,-.104,.234),(.016,.016,.151),BLADE,0)
+ for y in [-.198,.116]:
+  for x in [-.06,.06]:pole((x*1.44,y,0),(x*.77,y,.134),.016,TIMBER,4)
+ block((0,-.044,.126),(.14,.415,.031),TIMBER,0)
+ tube([(.008,-.273,.159),(.008,.193,.159)],[.034,.034],TIMBER,8)
+ tube([(.008,-.275,.159),(.008,-.272,.159)],[.028,.028],STRAW,8)
+ for x in [-.15,.15]:
+  block((x,.167,.105),(.032,.042,.21),TIMBER,0)
+ work_panel([(-.204,.203),(-.01,.285),(.205,.203),(.203,.182),(-.01,.257),(-.201,.183)],.038,.211,TILE_DEEP)
+ block((-.091,-.048,.416),(.042,.093,.075),TIMBER,0)
+ work_panel([(-.206,.399),(-.091,.484),(.206,.397),(.203,.377),(-.09,.452),(-.203,.379)],-.119,.023,COPPER_WORK)
 
 # --- Town centres by age, and the richer houses of the late ages ---------------
 # The user, 2026-11-16: "The town center building feels out of place in age
@@ -439,6 +616,111 @@ def hall_3():
  disc=cylinder((0,0,0),.05,.012,GILT_NS,12);disc.rotation_euler[0]=math.pi/2;disc.location=(0,-.248,.60)
  chimney(.27,.15,.58,.22)
 
+
+# The four civic buildings use one palette. Early settlements use fired clay.
+# Deep blue glaze appears on the later civic roofs in larger areas.
+LAPIS = pigment('Town lapis glaze', '405780')
+COPPER = pigment('Town weathered copper', '588783')
+TERRA = pigment('Town red slip', 'a75036')
+LIME = pigment('Town limewash', 'eddfbf')
+OCHRE = pigment('Town brass edge', 'd6aa58')
+
+def lantern(x, y, z, radius, height, roof):
+    """An open octagonal lantern with a domed cap. The sky shows between its piers."""
+    cylinder((x, y, z + height * .06), radius, height * .12, LIME, 8)
+    spring = z + height * .43
+    for i in range(8):
+        angle = math.tau * i / 8
+        px = x + math.cos(angle) * radius * .81
+        py = y + math.sin(angle) * radius * .81
+        cylinder((px, py, (z + spring) / 2), radius * .13, spring - z, LIME, 4)
+    rings = [(spring, 1), (spring + height * .07, 1.08), (z + height * .73, .79),
+             (z + height * .91, .40), (z + height, .12)]
+    tube([(x, y, top) for top, _ in rings], [radius * width for _, width in rings], roof, 8)
+    for i in range(0, 8, 2):
+        a = math.tau * i / 8
+        points = [(x + math.cos(a) * radius * w, y + math.sin(a) * radius * w, top) for top, w in rings[1:]]
+        tube(points, [radius * .044] * len(points), OCHRE, 4)
+    cone(x, y, z + height, radius * .13, height * .15, OCHRE, 6)
+
+def court_hut():
+    great_hut()
+    # A low fired-clay porch projects beyond the thatch. Its ridge rises into
+    # the roof, so the entrance remains visible from the board camera.
+    for side in [-1, 1]:
+        block((side * .118, -.390, .095), (.061, .16, .19), TERRA, .005)
+        pole((side * .119, -.447, .17), (side * .119, -.410, .318), .020, TIMBER, 5)
+    gable(0, -.364, .273, .333, .28, .129, TERRA, 'y')
+    block((0, -.437, .026), (.256, .122, .052), LIME, .004)
+    block((0, -.508, .014), (.289, .063, .028), TERRA, .003)
+    cylinder((0, 0, .568), .139, .052, TERRA, 12)
+
+def portico_house():
+    great_house()
+    # The sheltered work yard shares the house's front wall. Low terracotta
+    # coping and the blue fascia trace its two roof levels.
+    for x in [.035, .245]:
+        block((x, -.202, .139), (.042, .052, .215), STONE, .003)
+    block((.140, -.204, .256), (.269, .066, .036), LAPIS, .002)
+    hip(.14, -.169, .274, .29, .15, .07, TILE, .65)
+    # Three steps on each gable end give the ridge a distinct sawtooth profile.
+    for side in [-1, 1]:
+        x = side * .288
+        for y, top in [(-.104, .447), (-.044, .525), (.019, .601), (.080, .590), (.141, .509), (.201, .437)]:
+            block((x, y, (.362 + top) / 2), (.047, .063, top - .362), TERRA, 0)
+            block((x, y, top), (.059, .068, .019), LIME, .002)
+    block((0, .042, .595), (.54, .036, .025), TERRA, 0)
+
+def tower_hall():
+    hall_3()
+    # A glazed clock stage and buttresses frame the hall's existing gold dial.
+    # The darker band holds the top of the tower together at map scale.
+    block((0, -.12, .722), (.285, .284, .044), LAPIS, .004)
+    # Give the dial a dark face and brass hands so it reads on pale masonry.
+    face = cylinder((0, 0, 0), .048, .010, LAPIS, 12)
+    face.rotation_euler[0] = math.pi / 2
+    face.location = (0, -.259, .60)
+    pole((0, -.269, .598), (0, -.269, .635), .006, OCHRE, 5)
+    pole((0, -.269, .598), (.028, -.269, .609), .006, OCHRE, 5)
+    for side in [-1, 1]:
+        block((side * .137, -.213, .26), (.058, .085, .41), LIME, .006)
+        hip(side * .137, -.213, .463, .071, .099, .055, TILE, 0)
+
+def lantern_hall():
+    # The pitched roof covers the hall at the back. An open loggia occupies
+    # the front third of the same footprint and casts its own arcade shadows.
+    block((0, 0, .036), (.85, .61, .072), STONE, .012)
+    block((0, .085, .275), (.70, .36, .414), LIME, .012)
+    hip(0, .085, .473, .77, .42, .164, TILE, .57)
+    for x in [-.234, 0, .234]:
+        arch(x, -.212, .067, .166, .288, .080, LIME)
+    block((0, -.179, .385), (.74, .166, .060), LIME, .005)
+    block((0, -.170, .422), (.756, .193, .025), COPPER, .003)
+    block((-.05, .018, .71), (.315, .315, .41), LIME, .012)
+    block((-.05, .018, .884), (.349, .348, .047), LAPIS, .004)
+    for dx in [-.096, 0, .096]:
+        pane(-.05 + dx, -.141, .705, .043, .157)
+    lantern(-.05, .018, .906, .207, .385, LAPIS)
+    for x in [-.313, .313]:
+        cylinder((x, -.19, .457), .047, .072, LIME, 6)
+        cone(x, -.19, .49, .055, .116, COPPER, 6)
+    chimney(.257, .13, .485, .205)
+
+def courtyard_house():
+    # The townhouse stays low beside the civic lantern. Its roof terrace
+    # steps back from a pair of openings that go through the front gallery.
+    block((0, 0, .022), (.47, .36, .044), STONE, .006)
+    block((0, .055, .175), (.405, .234, .277), LIME, .011)
+    for x in [-.103, .103]:
+        arch(x, -.117, .042, .14, .21, .057, LIME)
+    block((0, -.001, .298), (.449, .335, .041), TERRA, .005)
+    block((-.037, .045, .409), (.297, .220, .189), LIME, .006)
+    for x in [-.105, .035]:
+        pane(x, -.070, .413, .051, .097)
+    hip(-.037, .046, .502, .332, .258, .134, COPPER, .25)
+    chimney(.152, .079, .308, .212)
+
+
 MODELS=[
  ('ns-sheaf',sheaf),('ns-logs',logs),('ns-stall',stall),
  ('ns-windmill',windmill),('ns-windmill-sails',windmill_sails),
@@ -449,7 +731,9 @@ MODELS=[
  ('ns-granary',granary),('ns-rack',rack),('ns-thatch-barn',thatch_barn),
  ('ns-mine-pit',mine_pit),('ns-mine-winch',mine_winch),('ns-quarry-cut',quarry_cut),('ns-quarry-frame',quarry_frame),
  ('ns-shelter',shelter),('ns-stable',stable),('ns-lumber-camp',lumber_camp),
- ('ns-great-hut',great_hut),('ns-great-house',great_house),('ns-house-3d',house_3d),('ns-house-3e',house_3e),('ns-house-3f',house_3f),('ns-hall-3',hall_3),
+ ('ns-loft-barn',loft_barn),('ns-mine-headframe',mine_headframe),('ns-saw-hall',saw_hall),
+ ('ns-great-hut',court_hut),('ns-great-house',portico_house),('ns-house-3d',house_3d),('ns-house-3e',house_3e),('ns-house-3f',house_3f),('ns-hall-3',tower_hall),
+ ('ns-hall-4',lantern_hall),('ns-house-4a',courtyard_house),
 ]
 # `--only=ns-rack,ns-granary` writes those models and leaves every other file as it is.
 ONLY=next((a[7:].split(',') for a in sys.argv if a.startswith('--only=')),None)

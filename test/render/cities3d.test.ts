@@ -187,18 +187,15 @@ describe('a town shows its era', () => {
     built.layer.dispose();
   });
 
-  it('has three sculpt tiers, and clamps every era past the last', () => {
-    // **Three sculpts, four eras** since the tree pass of 2026-08-30, and that
-    // is what the clamp has always been for: a fourth era's town is roofed like
-    // a third era's until the art pass draws it a fourth. The board never
-    // disagrees with the ledger about which *era* the town is in — `highestAge`
-    // is still the one derivation — only about how many roofs have been drawn.
+  it('changes the sculpt tier when the owner reaches the fourth age', () => {
     const state = townState();
     expect(cityTier(state, state.cities[0]!)).toBe(1);
     ageUp(state, 0, 3);
-    expect(cityTier(state, state.cities[0]!)).toBe(CITY_TIERS);
+    expect(cityTier(state, state.cities[0]!)).toBe(3);
+    const before = signCities(state);
     ageUp(state, 0, 4);
     expect(cityTier(state, state.cities[0]!)).toBe(CITY_TIERS);
+    expect(signCities(state)).not.toBe(before);
   });
 
   /**

@@ -22,8 +22,8 @@ import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
 type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
   | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | NorthStarCentre;
-type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}` | `ns-house-3${'d' | 'e' | 'f'}`;
-type NorthStarCentre = 'ns-hall' | 'ns-great-hut' | 'ns-great-house' | 'ns-hall-3';
+type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}` | `ns-house-3${'d' | 'e' | 'f'}` | 'ns-house-4a';
+type NorthStarCentre = 'ns-hall' | 'ns-great-hut' | 'ns-great-house' | 'ns-hall-3' | 'ns-hall-4';
 /** One tier's entry of `NORTH_STAR_TOWN_AGES`. */
 type TownAge = { houses: NorthStarHouse[]; centre: NorthStarCentre; centreSize: number; smoke: number[] };
 
@@ -342,9 +342,11 @@ export class PaintedCityLayer {
    * town of before (`NORTH_STAR_TOWN_BEFORE`) otherwise.
    */
   private townAge(tier: number): TownAge {
-    const index = Math.max(1, Math.min(3, tier)) - 1;
-    const aged = (NORTH_STAR_TOWN_AGES as TownAge[])[index]!;
-    return this.town?.byAge && this.assets[aged.centre] && aged.houses.every(name => this.assets[name]) ? aged : (NORTH_STAR_TOWN_BEFORE as TownAge[])[index]!;
+    const index = tier - 1;
+    const aged = (NORTH_STAR_TOWN_AGES as TownAge[])[index];
+    if (aged && this.town?.byAge && this.assets[aged.centre] && aged.houses.every(name => this.assets[name])) return aged;
+    const previous = NORTH_STAR_TOWN_BEFORE as TownAge[];
+    return previous[Math.max(0, Math.min(index, previous.length - 1))]!;
   }
 
   private city(
@@ -597,13 +599,14 @@ export class PaintedCityLayer {
       patch([[-.11, .79], [.11, .79], [.105, .27], [-.10, .27]], '#cdc3a0', .009);
       // The monumental capital remains legible at population one. Its front
       // steps stop behind the garrison court rather than under the unit's base.
+      const studyTier = Math.min(look.tier, 3) - 1;
       const civic = look.capital ? 'civic-sanctum' : 'city-loggia';
-      building('civic', civic, 0, -.58, look.capital ? [.59, .64, .70][look.tier - 1]! : [.59, .65, .70][look.tier - 1]!);
+      building('civic', civic, 0, -.58, look.capital ? [.59, .64, .70][studyTier]! : [.59, .65, .70][studyTier]!);
       const houses = Math.max(1, Math.min(city.population, CITY.houseCap, houseSlots.length));
       for (let i = 0; i < houses; i++) {
         const [x, z, scale, yaw] = houseSlots[i]!;
         const name = look.tier === 1 && this.assets.house ? 'house' : look.tier >= 3 && i % 3 === 1 ? 'city-dome' : i % 3 === 2 ? 'city-loggia' : 'city-house';
-        building('house', name, x, z, scale * [1, 1.08, 1.14][look.tier - 1]!, yaw);
+        building('house', name, x, z, scale * [1, 1.08, 1.14][studyTier]!, yaw);
       }
       if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
       if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);

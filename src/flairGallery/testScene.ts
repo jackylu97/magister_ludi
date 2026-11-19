@@ -8,7 +8,7 @@ import {
   BORDER_STYLES, type BorderStyleKey, VISUAL_SWITCHES, formatVisualTest, setVisualTest, visualTest,
 } from '../render3d/visualTest';
 import type { LensView } from '../ui/mapView';
-import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture, createWorksFixture } from './sceneFixture';
+import { SCENE_RICHNESS, SCENE_VIEWS, type SceneView, createSceneFixture, createWorksFixture, setSceneAge } from './sceneFixture';
 import { overrideNorthStarUnit } from '../render3d/northStarUnits';
 import { createUnit } from '../sim/state';
 import type { UnitTypeId } from '../sim/unitData';
@@ -80,8 +80,8 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   // `mirror=0` leaves out, and `mirror=all` reflects the whole scene and not only the pieces. It is the sea's mirror pass (`seaMirror.ts`), to compare its cost and its look.
   renderer.mirrorOn = params.get('mirror') !== '0';
   renderer.mirrorAll = params.get('mirror') === 'all';
-  const age = Number(params.get('age'));
-  const aged = age >= 1 && age <= 4;
+  const requestedAge = Number(params.get('age'));
+  let age = Number.isInteger(requestedAge) && requestedAge >= 1 && requestedAge <= 4 ? requestedAge : undefined;
   // Before the renderer is made: the works layer reads the switch when it draws.
   if (params.get('works') === 'old') VIEW3D.visualTest.works.byAge = false;
   if (params.get('towns') === 'old') VIEW3D.visualTest.town.byAge = false;
@@ -91,7 +91,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   if (yieldShow && (YIELD_LIGHT_SHOWS as readonly string[]).includes(yieldShow)) VIEW3D.visualTest.yieldLight.show = yieldShow;
   // `world=works` draws the small world of works at their real yields (`createWorksFixture`); use `at` to frame it.
   const worksWorld = params.get('world') === 'works';
-  const state = worksWorld ? createWorksFixture(aged ? age : undefined) : createSceneFixture(aged ? age : undefined);
+  const state = worksWorld ? createWorksFixture(age) : createSceneFixture(age);
   for (const pair of (params.get('nsunit') ?? '').split(',').filter(Boolean)) {
     const [type, model, turn] = pair.split(':');
     overrideNorthStarUnit(type!, model === 'old' ? null : model!, turn === undefined ? undefined : Number(turn));
@@ -112,7 +112,7 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   const writeUrl = (): void => {
     const url = new URL(location.href);
     url.searchParams.set('review', 'scene'); url.searchParams.set('view', view); url.searchParams.set('light', light);
-    if (aged) url.searchParams.set('age', String(age));
+    if (age !== undefined) url.searchParams.set('age', String(age));
     url.searchParams.set('vtest', formatVisualTest(visualTest())); url.searchParams.set('still', still ? '1' : '0');
     history.replaceState(null, '', url);
   };
@@ -156,6 +156,11 @@ export async function drawTestScene(into: HTMLElement): Promise<() => void> {
   };
   const title = document.createElement('strong'); title.textContent = 'Visual test scene'; panel.append(title);
   row('View', select('scene-view', Object.entries(SCENE_VIEWS).map(([key, one]) => [key, one.label] as const), view, value => { view = value as SceneView; frame(); }));
+  row('Age', select('scene-age', [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']], String(age ?? 4), value => {
+    age = Number(value);
+    setSceneAge(state, age);
+    renderer.setGameState(state);
+  }));
   row('Light', select('scene-light', [['soft', 'Soft afternoon'], ['tinted', 'Soft, violet shade'], ['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], light,
     value => { light = value; renderer.setDaylight(value); }));
   const hold = document.createElement('input'); hold.type = 'checkbox'; hold.id = 'scene-still'; hold.checked = still;
