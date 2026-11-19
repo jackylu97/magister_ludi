@@ -638,3 +638,21 @@ Letters Patent. These are open until the user rules.
 From the comment on 17: when a card that acts on one chair (such as The Grand
 Vizier) is seated, the chair it acts on is highlighted. This is a Council
 screen change, recorded in `docs/plans/ui-critique-2026-10-16.md`.
+
+## The user's second round of comments (2026-11-19)
+
+| On | The user's comment | Result |
+|---|---|---|
+| 02 The Cornerstone | "great" | Approved as proposed. |
+| 05 The Nomarchs | "great" | Approved as proposed. |
+| 16 The Unveiling and The Symposium to Civic | "great" | Approved as proposed. |
+| 19 Letters Patent | "great" | Approved as proposed. |
+| Q1 The Spirit Way | "how i imagine it would work: treat each wonder as if it were a ghost hex, so each order that pays the hex adds its yields to the wonder. Orders that double yields or multiplies yields only multiply the yields from other orders. Orders that reference towns working a great work apply to towns with a wonder." | The user's model replaces the recommended reading: one ghost work for each wonder; a card that pays a work's hex pays it on the wonder; a doubler multiplies only what other Orders put on it, not the wonder's own yields; a card that reads "a town working a work" reads a town with a wonder. |
+| Q2 The Paradise Garden | "yup, recommendation is good" | The recommended reading. |
+| Q3 The Friends of Khufu | "Yup, the city building the wonder." and "go with the recommendation" | The recommended reading. |
+| Q4 The Sed Festival | "ah i see, yes we can keep both i think" | Kept beside The Wandering Muse, at Tier II. |
+| Q5 Wording, game-wide | "great" | Card text says "a melee unit" or "a ranged unit" everywhere, with the rule in the keyword tooltip. |
+
+No comment on the two gaps (the Tier 0 fillers The Quarry Gangs and The
+Heralds; commons for Tiers II and III). They stay proposals, outside the build.
+The readings R1 to R7 had no objection and stand.
