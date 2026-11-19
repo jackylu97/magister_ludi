@@ -1433,3 +1433,16 @@ What follows:
   shift-click to queue".
 - The city frame had no objection beyond the name. The move of the Supply line
   into the Units tab is not yet answered.
+
+### The build list and supply (2026-11-19)
+
+The user, answering the question on the city screen's Supply line: "the supply
+is already in the corner panel, could we gray out units we have access to, but
+can't because we don't have supply? the other rules for unavailable builds can
+stay in the dropdown".
+
+- The city screen needs no Supply line of its own: the corner panel has it.
+- A unit that the town could build, and that is refused only because the
+  empire has no supply left, stays in the build list in grey, with its reason.
+  It is not moved to the unavailable drop-down.
+- Every other reason a build is unavailable stays in the drop-down, as today.
