@@ -9,6 +9,7 @@ Kinds:
   people    5:6,  at most 720 px wide (great people's portraits)
   ages      16:9, at most 1600 px wide (three sets of four: form, still, abstract)
   endings   16:9, at most 1600 px wide (win and loss)
+  beliefs   1:1,  at most 480 px wide (shown in a round window)
 
 What it does to each picture:
   1. cuts off a border, if the picture has one: black bars, or a paper mount
@@ -58,7 +59,19 @@ AGES = {
 }
 # The two paintings of the ending page: the local player wins, or another seat does.
 ENDINGS = {'ending_win': 'win', 'ending_loss_alt': 'loss'}
+# One square picture a belief, shown in a round window.
+BELIEFS = {
+    'harvest': 'goddessOfTheHarvest', 'hearth': 'keeperOfTheHearth', 'star_readers': 'starReaders',
+    'calendar': 'keeperOfTheCalendar', 'standing_stones': 'theStandingStones',
+    'ancestor_worship': 'ancestorWorship', 'hunt': 'ladyOfTheHunt', 'woods': 'spiritsOfTheWood',
+    'river': 'riverMother', 'lord_sea': 'lordOfTheSea', 'anvil': 'godOfTheForge',
+    'blood': 'ritesOfBlood', 'crossroads': 'oracleOfTheCrossroads', 'sacred_fire': 'sacredFire',
+    'desert': 'desertFathers', 'winter': 'winterMother', 'stone_hoard': 'lordOfTheHoard',
+    'vigil': 'courtAugurs', 'vineyard': 'vineyardRites', 'heroes': 'cultOfHeroes',
+    'herd_gods': 'herdGods', 'merchants': 'patronOfMerchants', 'muses': 'theMuses',
+}
 KINDS = {
+    'beliefs': {'names': BELIEFS, 'ratio': (1, 1), 'width': 480},
     'endings': {'names': ENDINGS, 'ratio': (16, 9), 'width': 1600},
     'ages': {'names': AGES, 'ratio': (16, 9), 'width': 1600},
     'wonders': {'names': WONDERS, 'ratio': (16, 9), 'width': 1600},
