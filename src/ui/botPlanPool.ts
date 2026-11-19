@@ -2,9 +2,13 @@ import type { SeatPlanner } from '../ai/driver';
 import type { FrozenBoard, Warn } from '../ai/frozenBoard';
 import { type BotPlanReply, type BotPlanRequest, readBotTuning } from './botPlanProtocol';
 
+export type BotPlanPriority = 'background' | 'foreground';
+
 interface PoolOptions {
   workerFactory?: () => Worker;
+  hardwareConcurrency?: number;
   concurrency?: number;
+  backgroundConcurrency?: number;
   timeoutMs?: number;
   includeDecisions?: boolean;
 }
@@ -28,7 +32,11 @@ function startWorker(): Worker {
 
 /** The coordinator waits for a complete set of plans before it dispatches any command. */
 export function createBotPlanPool(options: PoolOptions = {}) {
-  const capacity = Math.min(6, Math.floor(options.concurrency ?? ((globalThis.navigator?.hardwareConcurrency ?? 2) - 2)));
+  const cores = options.hardwareConcurrency ?? globalThis.navigator?.hardwareConcurrency ?? 2;
+  const capacity = Math.min(6, Math.floor(options.concurrency ?? (cores - 2)));
+  // While the player can act, use the coordinator alone on smaller machines.
+  // A machine with more cores can plan two seats at once.
+  const backgroundCapacity = Math.min(capacity, Math.floor(options.backgroundConcurrency ?? (cores >= 8 ? 2 : 1)));
   const timeoutMs = options.timeoutMs ?? 60_000;
   const canStart = options.workerFactory !== undefined || typeof Worker !== 'undefined';
   const slots: Slot[] = [];
@@ -94,10 +102,18 @@ export function createBotPlanPool(options: PoolOptions = {}) {
     return reply.seats;
   }
 
-  async function planBatch(board: FrozenBoard, seats: readonly number[], warn: Warn) {
-    const count = Math.min(seats.length, capacity);
+  function capacityFor(priority: BotPlanPriority): number {
+    return priority === 'background' ? backgroundCapacity : capacity;
+  }
+
+  function supports(priority: BotPlanPriority): boolean {
+    return canStart && !disabled && capacityFor(priority) >= 2;
+  }
+
+  async function planBatch(board: FrozenBoard, seats: readonly number[], warn: Warn, priority: BotPlanPriority) {
     if (seats.length === 0) return [];
-    if (!canStart || disabled || count < 2) throw new Error('Parallel seat planning is unavailable');
+    const count = Math.min(seats.length, capacityFor(priority));
+    if (!supports(priority) || count < 2) throw new Error('Parallel seat planning is unavailable');
     if (working) throw new Error('Another group of seat plans is pending');
     working = true;
     try {
@@ -122,9 +138,10 @@ export function createBotPlanPool(options: PoolOptions = {}) {
   }
 
   return {
-    get available(): boolean { return canStart && !disabled && capacity >= 2; },
-    plan(warn: Warn = (message, detail) => console.warn(message, detail)): SeatPlanner {
-      return (board, seats) => planBatch(board, seats, warn);
+    get available(): boolean { return supports('foreground'); },
+    supports,
+    plan(warn: Warn = (message, detail) => console.warn(message, detail), priority: BotPlanPriority = 'foreground'): SeatPlanner {
+      return (board, seats) => planBatch(board, seats, warn, priority);
     },
     dispose(): void {
       disabled = true;

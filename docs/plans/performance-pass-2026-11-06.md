@@ -3959,3 +3959,51 @@ Port 5199 served the local play checkout at `7f800de0` for this measurement. A s
 | 999 | 120 | 3,931 ms | 2,301 ms | 1,698 ms | 1,451 ms |
 
 Each cell is the median of four warm runs. Each board had one earlier warmup, and the two modes took turns running first. All 32 measured pairs matched on attempted commands, acceptances, final state and bot memory. Parallel planning finished sooner in 13 of 16 WebKit pairs and all 16 Chromium pairs. Across the timed samples, WebKit used 28.5% less elapsed time and Chromium used 35.9% less. The first WebKit request, with a cold worker pool, took 2.26 seconds against 1.50 seconds in serial. These are repeated turns on two maps. They show the range a player can see with a late board on this laptop. The raw runs are in `/private/tmp/webciv-live-bots.crKOC9NR`.
+
+The archived five-seed comparison of planning every seat from the same board also records settler captures. Accepted foundings dropped from 340 to 307 by turn 100. Recorded barbarian settler captures fell from 33 to 24 and no rival captures were observed. Those traces did not count new settlers or surviving settlers, so they leave open whether the bots produced fewer settlers or spent longer reaching a site. That comparison changed which board each seat saw. The worker scheduling comparisons use the same board for each seat.
+
+## Reduce stalls at the start of a human turn, 2026-11-19
+
+The player reports lag as a turn begins and asks to try staggering bot planning according to hardware. Give board drawing and input priority while the player can act. Keep preparation during the human turn. Use the ordinary End Turn path when the player is waiting. The schedule must preserve the snapshot checks, the order of commands and the spectator explanations. Compare the first frames, input delay and time left at End Turn. Measure a control with background preparation disabled to see how much comes from the board itself.
+
+Background preparation now waits for the handover to announce the new turn. It then allows 650 ms for the opening camera movement, waits for a frame, and asks the browser for idle time. On browsers without an idle callback, it posts the snapshot in a timer after that frame. A group of human commands gets a 250 ms delay from the last command. It keeps the opening grace period if the player acts during it. A pending handover or End Turn defers the snapshot again. Hidden pages schedule fresh work when the player returns.
+
+On fewer than eight reported logical cores, or with no core count, the coordinator plans background seats in sequence. On eight or more it uses up to two seat workers. A fresh foreground request can use the existing larger pool. End Turn reuses a matching background result, including one still running. These limits change scheduling only. Opening the game with `?botPrep=off` disables speculative work for that tab and keeps the normal End Turn path. This provides a control on the player's own machine.
+
+At the same handover, the 3D renderer calls `skipAnimations` before starting the new movements. Check whether a turn with no active unit animation can use the normal redraw without an immediate duplicate rebuild. Keep the existing handling for hidden pieces, walking or falling meshes, and glows.
+
+### Main-thread work with a finished bot plan
+
+A separate native WebKit run used the release code and restored four Standard map snapshots with one human and five bots. The production worker prepared the bot commands. For each snapshot, seven warm repetitions applied that reply to a fresh copy, dispatched the human’s End Turn and sampled the Ledger. Every reply applied, advanced the turn and reached the same state on each repetition.
+
+| Seed | Turn | Apply bot moves | Resolve End Turn | Sample Ledger | Combined median |
+|---:|---:|---:|---:|---:|---:|
+| 42 | 90 | 26 ms | 142 ms | 1 ms | 169 ms |
+| 42 | 120 | 48 ms | 430 ms | 3 ms | 481 ms |
+| 999 | 90 | 34 ms | 195 ms | 5 ms | 235 ms |
+| 999 | 120 | 107 ms | 611 ms | 22 ms | 746 ms |
+
+These are separate medians. The timers exclude rendering, reporting each action to the interface, autosave and the test’s snapshot copies. The pending Order on the second turn-120 board means a real player must first clear the draft or choose to proceed. After that, the same resolution runs on the page. The measured pause was mostly in the game rules even with bot planning complete. Raw timings are in `/private/tmp/webciv-main-turn.XazNRf/webkit.json`.
+
+### Frame timing on a painted board
+
+A native WebKit window panned the real 3D board for 1.25 seconds before pressing End Turn. The Standard map used seed 42 at turn 90, with 53 towns and 278 units. WebKit reported eight logical cores. The window was 1280 by 960 CSS pixels at device pixel ratio two. The coordinator and its pool were warm. Two runs used opposite orders for the four settings. Each reply contained 67 attempts. The accepted command log, final state and bot memory matched across settings.
+
+| Preparation during play | Longest gap without a frame in the first 650 ms | Click to bot reply applied |
+|---|---|---|
+| Off | 84 ms, 64 ms | 3.49 s, 1.54 s |
+| Previous five-worker start at 250 ms | 145 ms, 84 ms | 0.41 s, 2.29 s |
+| Two workers starting at 250 ms | 111 ms, 103 ms | 1.13 s, 0.64 s |
+| Two workers after the opening delay | 67 ms, 70 ms | 0.87 s, 0.95 s |
+
+The last setting posted at 665 and 670 ms. The longest frame gaps later in the same 1.25 seconds were 187 and 98 ms for that setting. The off control delivered about 21 to 22 frames per second during the pan. A timer scheduled every 50 ms measured event-loop delay. Its pooled 95th percentile was 34 ms with preparation off, 41 ms with the old start, 45 ms with the early two-worker start and 28 ms with the delayed start. A long gap between frames can coexist with prompt input. Two runs of one board give a comparison for the opening window, with considerable variation in the overall frame rate and click wait. Raw samples are in `/private/tmp/webciv-turn-start.5zvdTbK1/webkit-t90-repeat.json`.
+
+Five additional warm WebKit repetitions timed each of the 35 resolution phases on the two turn-120 boards. Collecting city yields took 163 and 237 ms, or 45% and 44% of the median reducer time. Barbarians took 59 and 86 ms (16% each). On seed 999, spending leftover movement took another 77 ms. The sums of the phases were within 1 ms of the whole command. The instrumented and ordinary games produced the same command result, log and final state.
+
+A control on the previous play build (`7f800de0`) took 657 ms median for the End Turn reducer on seed 999, across four warm runs ranging from 507 to 890 ms. A comparable pause existed before the new Orders. The samples do not establish a speed difference between game versions. The next target for the pause is the per-city work in `collectYields`. Raw phase times are in `/private/tmp/webciv-turn-phases.N934MX/webkit.json`.
+
+The yield collection phase includes recording deck totals, assigning citizens, pricing towns and banking their yields. The deck totals intentionally read the board before citizen reassignment. Time these separate steps before reusing any computed result. One specific candidate is `borderGrowth`. Collection needs the new border culture, but this read also computes the adjusted cost and time for the next tile. Another is reusing the list of standing empire yields when a card reads an empire rate from the same state. Neither saving has been measured.
+
+Also count how many towns already fill every citizen slot from locked tiles or have enough citizens for every eligible tile. In either case the final set of tiles is known before scoring them. The assignment writer sorts selected tile indices into a stable order. Measure how many tile evaluations this would remove on early and late boards before changing the rule.
+
+The combined scheduler, renderer and Order changes passed the typecheck, 12,153 core tests, production build and 13 slow tests for replay, bot parity, card pricing and religion. The scheduler and frame measurements above do not include any claimed saving from the renderer’s separate idle unit rebuild removal.

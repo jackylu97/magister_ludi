@@ -33,6 +33,7 @@ import { adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
 import type { Game } from '../sim/game';
 import { realPlayers } from '../sim/state';
 import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
+import type { BotPlanPriority } from './botPlanPool';
 import { readBotTuning } from './botPlanProtocol';
 
 /** How a drive in the worker ended. Only `applied` means the bots have played. */
@@ -123,7 +124,13 @@ function personOffers(state: Game['state']): string {
   return JSON.stringify(realPlayers(state).map((player) => player.greatPersonOffer));
 }
 
-function botInput(game: Game, { memory, tuning }: ReturnType<typeof requestFor>): BotInput {
+function botInput(
+  game: Game,
+  { memory, tuning }: Pick<ReturnType<typeof requestFor>, 'memory' | 'tuning'> = {
+    memory: readHarnessMemory(game.state),
+    tuning: readBotTuning(game.state),
+  },
+): BotInput {
   const { state } = game;
   return {
     game,
@@ -167,10 +174,10 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
   let generation = 0;
   let foreground = 0;
   // Only a matching prepared reply can be claimed. An invalidated drive can
-  // still be running, so keep only the latest game to read when it finishes.
+  // still be running, so keep at most one other request and its input.
   let prepared: PreparedDrive | null = null;
   let runningBackground: PreparedDrive | null = null;
-  let queued: Game | null = null;
+  let queued: BotInput | null = null;
   let backgroundAvailable = true;
   let lastDriveMs = 0;
   const waiting = new Map<number, (reply: BotWorkerReply | null) => void>();
@@ -241,9 +248,11 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
 
   function prepareQueued(): void {
     if (foreground > 0 || runningBackground !== null || queued === null) return;
-    const game = queued;
+    const input = queued;
     queued = null;
-    prepare(game);
+    // Only the page schedules new work after a change. A queued request
+    // cannot pick up board changes that are still waiting for that schedule.
+    if (sameInput(input, input.game)) prepare(input.game);
   }
 
   function prepare(game: Game): void {
@@ -252,10 +261,10 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
     if (prepared !== null && sameInput(prepared.input, game)) return;
     prepared = null;
     if (foreground > 0 || runningBackground !== null) {
-      queued = game;
+      queued = botInput(game);
       return;
     }
-    const work = askDrive(game, false);
+    const work = askDrive(game, 'background');
     prepared = work;
     runningBackground = work;
     void work.reply.then((result) => {
@@ -271,12 +280,12 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
     });
   }
 
-  function askDrive(game: Game, report: boolean): PreparedDrive {
+  function askDrive(game: Game, priority: BotPlanPriority): PreparedDrive {
     const request = requestFor(game, nextId++);
     const input = botInput(game, request);
     const postedAt = performance.now();
     const started = generation;
-    const reply = ask({ kind: 'drive', ...request }, report);
+    const reply = ask({ kind: 'drive', priority, ...request }, priority === 'foreground');
     void reply.then((result) => {
       if (generation === started && result?.kind === 'driven') {
         lastDriveMs = performance.now() - postedAt;
@@ -358,7 +367,7 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
           const waitingForWorker = waitForBackground();
           if (waitingForWorker !== null) await waitingForWorker;
           if (generation !== started || getGame() !== game) return 'cancelled';
-          work = askDrive(game, true);
+          work = askDrive(game, 'foreground');
         }
         const reply = await work.reply;
         if (generation !== started || getGame() !== game) return 'cancelled';
