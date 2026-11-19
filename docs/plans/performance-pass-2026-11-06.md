@@ -3946,3 +3946,16 @@ The shortlist reduced aggregate CPU by 0.35% and elapsed time by 0.62%. Eight pa
 In a separate test, all three decisions used less CPU when they needed fresh prices. Filling a chair saved 11.9%, replacing a seated card saved 3.5% and adoption saved 5.1%. Repeating each decision with the same bot memory needed no new board calculations under either rule. In that case shortlisting added a median 0.15 ms to adoption and had little effect on the other two decisions.
 
 The private candidate passed typecheck, all 12,108 core tests, the production build and all four slow card-pricing checks. The play build keeps its previous Council rules and 120-turn reference results.
+
+## Late-game parallel planning in the play build, 2026-11-19
+
+Port 5199 served the local play checkout at `7f800de0` for this measurement. A separate test page built from that checkout ran the serial coordinator and the parallel coordinator in browser workers. Each sample restored the same Standard map and bot memory. Seat zero was human and the five other seats planned. Each parallel request received five successful nested-worker replies. The time below starts in the coordinator and ends after it applies the bot commands. It excludes rendering, human turn resolution and the trip back to the page.
+
+| Map seed | Turn | WebKit serial | WebKit parallel | Chromium serial | Chromium parallel |
+|---:|---:|---:|---:|---:|---:|
+| 42 | 90 | 678 ms | 639 ms | 637 ms | 393 ms |
+| 42 | 120 | 1,174 ms | 1,075 ms | 943 ms | 692 ms |
+| 999 | 90 | 644 ms | 384 ms | 564 ms | 201 ms |
+| 999 | 120 | 3,931 ms | 2,301 ms | 1,698 ms | 1,451 ms |
+
+Each cell is the median of four warm runs. Each board had one earlier warmup, and the two modes took turns running first. All 32 measured pairs matched on attempted commands, acceptances, final state and bot memory. Parallel planning finished sooner in 13 of 16 WebKit pairs and all 16 Chromium pairs. Across the timed samples, WebKit used 28.5% less elapsed time and Chromium used 35.9% less. The first WebKit request, with a cold worker pool, took 2.26 seconds against 1.50 seconds in serial. These are repeated turns on two maps. They show the range a player can see with a late board on this laptop. The raw runs are in `/private/tmp/webciv-live-bots.crKOC9NR`.

@@ -10,7 +10,7 @@
  *     npm run evolve -- --generations 20                         # overnight
  *     npx vite-node scripts/evolve.ts --out /tmp/run --rng-seed 3
  *
- *   --quick          2 acceptance seeds, the duel board only (8 games a child)
+ *   --quick          2 acceptance seeds, the duel board only (4 games per child)
  *   --generations N  generations to run (default 20)
  *   --workers N      child processes (default `os.cpus().length − 1`)
  *   --out DIR        the run directory (default `.claude/scratch/evolve/<timestamp>/`)
