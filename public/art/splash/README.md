@@ -9,7 +9,7 @@ painting shows are in `docs/splash-art.md`.
 | `leaders/` | One portrait a leader | 3:4 | 960 x 1280 | the leader's id, for example `pachacuti.jpg` |
 | `ages/` | One plate an age | 16:9 | 2560 x 1440 | `age1.jpg` to `age4.jpg` |
 | `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id |
-| `people/` | One portrait a great person | 5:6 | 600 x 720 | the person's id, for example `imhotep.jpg` |
+| `people/` | One portrait a great person, written by `scripts/splashArt.py people` | 5:6 | made from the master, 720 x 864 | the person's id, for example `imhotep.jpg` |
 
 - Use JPEG (quality about 85) or WebP for the files in this folder. Keep
   each under about 600 KB; the game loads them in the browser.
@@ -42,13 +42,19 @@ stand-in. Leaders, ages and beliefs are not wired yet.
 ## How a great person's portrait gets into the game
 
 The great person card (the offer and the Reliquary) has an arched picture
-window of 5:6. No portrait exists yet, so every card shows its family's emblem
-in the window.
+window of 5:6. The first twenty portraits arrived on 2026-11-19. A person with
+no portrait shows their family's emblem in the window.
 
-1. Make the portrait 5:6, at 600 x 720 or larger. The window's top is an arch,
-   so keep the face and anything important out of the two top corners.
-2. Save it as `people/<person id>.jpg` (JPEG, quality about 85).
-3. Add the id to the list in `src/ui/greatPersonPaintings.ts`. A test fails if
+1. Put the full-size portrait in `art-masters/people/` under any name. Make it
+   5:6. The window's top is a shallow arch, so keep the face out of the two
+   top corners.
+2. Add its name and the person's id to the `PEOPLE` table in
+   `scripts/splashArt.py`.
+3. Run `python3 scripts/splashArt.py people` from the repo root. It cuts off a
+   black border or a paper mount if there is one, cuts the picture to 5:6
+   (keeping the top, where the head is), and writes `people/<person id>.jpg`
+   at 720 by 864.
+4. Add the id to the list in `src/ui/greatPersonPaintings.ts`. A test fails if
    the list and the folder disagree.
 
 The portrait then shows in the window of that person's card, in the offer and
