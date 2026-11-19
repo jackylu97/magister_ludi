@@ -6,6 +6,18 @@ At turn 100, current production was 54.9% higher across the 15 matched maps (95%
 
 At turn 120, production was higher on 10 of the 11 remaining maps. The paired estimate was +70.6%. These 11 maps exclude all five early current wins. One map supplied 14,235 of the 49,872 current production, so the pooled total gives it more weight than the paired estimate.
 
+## Changing seats on seed 2026
+
+In the original game, seat 3 held Magisterial and Expansionist with the Zealot persona. Seat 2 held Commerce and Devotion with the Tall persona. Two more games used the same six seats, starting map, unit positions and turn limit on `2d7b503a`. Each changed one setting between those seats.
+
+| Game | Outcome | Final state digest |
+|---|---|---|
+| Original | Seat 3 won on state turn 100, before the turn-100 checkpoint. | `d7d2eef8:1057153` |
+| Exchange decks only | No winner after resolving turn 120. | `c8f9041a:1031568` |
+| Exchange personas only | No winner after resolving turn 120. | `6277195c:1094541` |
+
+Both runs ended on state turn 121 without a warning or stall. The starting map and unit hashes matched the original in both cases. Either exchange changed the outcome on this map. Each exchange affected two rivals, so these results cannot rank the individual decks or personas. Repeat the controls on the other winning seeds and on maps where nobody won. The two probe bundles and their per-seat results are in `/private/tmp/webciv-rotation-2026.jLFeuW`.
+
 ## Games
 
 The baseline is `9164452f`, the build used for the original BP13 before measurements. The current build is `2d7b503a`. Both games use the same 16 seeds from the earlier end check and stop after turn 120 or at a win. The turn number labels the turn just played. A game that finishes turn 100 normally has 101 as its next turn.
