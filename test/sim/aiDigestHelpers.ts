@@ -129,8 +129,14 @@ export function sheetSeatedSpec(
  * The loop is `runArenaGame`'s: stop on the target turn, on a decided game, and
  * on a stall — a `driveBots` pass that left the clock where it was means a seat
  * could not end its turn, and spinning on that is the one way this could hang.
+ *
+ * The observer reads the live state after a turn advances. It receives the
+ * number of the completed turn so callers can record only the states they need.
  */
-export function playSeatedGame(spec: PlaySpec): Played {
+export function playSeatedGame(
+  spec: PlaySpec,
+  afterTurn?: (turnPlayed: number, state: Readonly<GameState>) => void,
+): Played {
   for (const [index, seat] of spec.seats.entries()) {
     if (seat.sheet !== undefined && seat.sheet !== null) setAiTuning(seat.sheet, { playerId: index });
   }
@@ -161,6 +167,7 @@ export function playSeatedGame(spec: PlaySpec): Played {
         stalled = true;
         break;
       }
+      afterTurn?.(before, game.state);
     }
     return {
       game,
