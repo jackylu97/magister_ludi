@@ -1,0 +1,42 @@
+/*
+ * Page rules for the Abacus style options (`abacusLooks.ts`). Every rule here
+ * is under `[data-abacus-look]` or `[data-abacus-dark]`, which only the look
+ * switch sets. With no switch, nothing in this file applies.
+ */
+
+/* A look with a dark ground: the words over the canvas turn light. */
+[data-abacus-dark] .bead-page,
+[data-abacus-dark] .opus-page,
+[data-abacus-dark] .opus-page .opus-label,
+[data-abacus-dark] .opus-page-title,
+[data-abacus-dark] .abacus-stage,
+[data-abacus-dark] #labels {
+  color: #f1e7cd;
+}
+
+[data-abacus-dark] .bead-page-praise,
+[data-abacus-dark] .bead-page .bead-award-tally,
+[data-abacus-dark] .abacus-stage .abacus-total,
+[data-abacus-dark] .opus-page .opus-total,
+[data-abacus-dark] .opus-page-hint {
+  color: #c9bfa6;
+}
+
+[data-abacus-dark] .abacus-stage .abacus-swatch,
+[data-abacus-dark] .bead-page .abacus-swatch {
+  border-color: #f1e7cd;
+}
+
+/* The looks put the seat's colour on the frame, so the label's dot grows to match it. */
+[data-abacus-look] .abacus-swatch {
+  width: 11px;
+  height: 11px;
+}
+
+/* The look-dev page (`abacus.html`) on a dark ground. */
+[data-abacus-dark] #masthead,
+[data-abacus-dark] #masthead .sub,
+[data-abacus-dark] #hint,
+[data-abacus-dark] #status {
+  color: #f1e7cd;
+}

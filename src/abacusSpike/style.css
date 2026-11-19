@@ -206,3 +206,10 @@ body {
   color: var(--ink-soft);
   pointer-events: none;
 }
+
+/* The style options row (2026-11-18): six buttons, so it wraps. */
+#controls #looks {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 440px;
+}

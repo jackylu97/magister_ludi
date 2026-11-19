@@ -95,6 +95,20 @@ import {
   shade,
 } from './lookData';
 import { MaterialLibrary, computeHullNormals } from './toon';
+// The style options of 2026-11-18. `today` is the default and changes nothing.
+import {
+  type LookRamp,
+  LookKit,
+  activeAbacusLook,
+  lookBand,
+  lookBead,
+  lookFinial,
+  lookFrameParts,
+  placesOverride,
+  seatStudRim,
+  seatStudStone,
+  slideFreeze,
+} from './abacusLooks';
 
 export type { AbacusFamily, FamilyId } from './lookData';
 export { FAMILY_IDS } from './lookData';
@@ -105,6 +119,12 @@ const ABACUS = VIEW3D.abacus;
 const FRAME = ABACUS.frame;
 const CLOSE = ABACUS.close;
 const DEG = Math.PI / 180;
+
+/**
+ * The places on a rod. `bead.perRod`, unless the look-dev switch
+ * `?abacusPlaces=` asks for another number (`abacusLooks.ts`).
+ */
+const PLACES = placesOverride() ?? ABACUS.bead.perRod;
 
 // --- the pure arithmetic ----------------------------------------------------
 
@@ -194,7 +214,7 @@ export function beadX(layout: RodLayout, index: number, earned: number): number 
   if (index < earned) {
     return -layout.runEdge + layout.beadStep / 2 + index * layout.beadStep;
   }
-  const fromRight = ABACUS.bead.perRod - 1 - index;
+  const fromRight = PLACES - 1 - index;
   return layout.runEdge - layout.beadStep / 2 - fromRight * layout.beadStep;
 }
 
@@ -211,8 +231,12 @@ export function beadX(layout: RodLayout, index: number, earned: number): number 
  * short one, and a bead should knock into the stack by the same amount however
  * far it came.
  */
-export function slidePosition(from: number, to: number, t: number): number {
-  const slide = ABACUS.slide;
+export function slidePosition(
+  from: number,
+  to: number,
+  t: number,
+  slide: { travel: number; overshoot: number } = ABACUS.slide,
+): number {
   if (t >= 1) return to;
   const over = to + Math.sign(to - from) * slide.overshoot;
   if (t < slide.travel) {
@@ -284,12 +308,18 @@ interface BeadView {
   elapsed: number | null;
   /** Whether the landing clack has already been fired for this slide. */
   struck: boolean;
+  /** A style option's metal band, shown on an earned bead. */
+  band: Mesh | null;
+  /** A style option's size for this bead at rest: smaller while it waits. */
+  rest: number;
 }
 
 interface RodView {
   y: number;
   beads: BeadView[];
   earned: FamilyId[];
+  /** A style option's knock: seconds since a bead landed on this rod, or null. */
+  knock: number | null;
 }
 
 /**
@@ -368,6 +398,11 @@ export class AbacusStage {
 
   private layout: RodLayout;
   private readonly waitingColor: number;
+  /** The style option in use (`abacusLooks.ts`), and its materials. A null kit is today's look. */
+  private readonly look = activeAbacusLook();
+  private readonly kit: LookKit | null = this.look.id === 'today' ? null : new LookKit(this.look);
+  private readonly freezeAt = slideFreeze();
+  private lookShadow: Mesh | null = null;
 
   private aspect = 1;
   private frustum = 1;
@@ -413,10 +448,10 @@ export class AbacusStage {
     this.renderer.shadowMap.enabled = LOOK.shadows;
     // `PCFSoftShadowMap` is deprecated in three r185, which warns and uses this.
     this.renderer.shadowMap.type = PCFShadowMap;
-    this.scene.background = new Color(VIEW3D.table.color);
+    this.scene.background = new Color(this.look.ground?.edge ?? VIEW3D.table.color);
 
-    this.materials = new MaterialLibrary(LOOK.rampSteps, VIEW3D.palette.ink!);
-    this.materials.outlineWidth.value = LOOK.outline;
+    this.materials = new MaterialLibrary(LOOK.rampSteps, this.look.outlineColor ?? VIEW3D.palette.ink!);
+    this.materials.outlineWidth.value = LOOK.outline * this.look.outline;
 
     // Unearned beads are bone warmed toward the frame's timber: a waiting bead
     // is not *painted*, it is bare turned wood, and pure bone read as ivory
@@ -429,14 +464,15 @@ export class AbacusStage {
 
     this.camera = new OrthographicCamera(-1, 1, 1, -1, 1, 600);
 
-    this.key = new DirectionalLight(LIGHTS.keyColor, LIGHTS.keyIntensity);
+    const lit = this.look.light;
+    this.key = new DirectionalLight(LIGHTS.keyColor, lit?.key ?? LIGHTS.keyIntensity);
     this.key.castShadow = LOOK.shadows;
     this.key.shadow.mapSize.set(LOOK.shadowMapSize, LOOK.shadowMapSize);
     this.key.shadow.bias = LOOK.shadowBias;
     this.key.shadow.normalBias = LOOK.shadowNormalBias;
     this.scene.add(this.key, this.key.target);
-    this.scene.add(new HemisphereLight(LIGHTS.skyColor, LIGHTS.groundColor, LIGHTS.hemiIntensity));
-    this.scene.add(new AmbientLight(LIGHTS.ambientColor, LIGHTS.ambientIntensity));
+    this.scene.add(new HemisphereLight(LIGHTS.skyColor, LIGHTS.groundColor, lit?.hemi ?? LIGHTS.hemiIntensity));
+    this.scene.add(new AmbientLight(LIGHTS.ambientColor, lit?.ambient ?? LIGHTS.ambientIntensity));
 
     this.scene.add(this.object);
     this.object.add(this.rodGroup);
@@ -461,7 +497,7 @@ export class AbacusStage {
   }
 
   get beadsPerRod(): number {
-    return ABACUS.bead.perRod;
+    return PLACES;
   }
 
   earnedCount(rodIndex: number): number {
@@ -528,7 +564,7 @@ export class AbacusStage {
     rod.earned.push(family);
     const index = rod.earned.length - 1;
     const bead = rod.beads[index]!;
-    bead.mesh.material = this.materials.get(familyOf(family).color);
+    this.paintBead(bead, family);
     bead.from = bead.x;
     bead.to = beadX(this.layout, index, rod.earned.length);
     bead.elapsed = 0;
@@ -553,7 +589,10 @@ export class AbacusStage {
     const index = rod.earned.length;
     const bead = rod.beads[index]!;
     bead.elapsed = null;
-    bead.mesh.material = this.materials.get(CLOSE.goldenColor);
+    bead.rest = 1;
+    bead.mesh.material = this.kit
+      ? this.kit.toon(this.look.bead?.golden ?? CLOSE.goldenColor, 'metal')
+      : this.materials.get(CLOSE.goldenColor);
     const glow = new Sprite(
       new SpriteMaterial({
         map: this.glowTexture(),
@@ -656,7 +695,9 @@ export class AbacusStage {
     if (!bead) return;
     const t = golden.seconds === 0 ? 1 : Math.min(1, golden.elapsed / golden.seconds);
     const lit = 1 - (1 - t) ** 3;
-    bead.mesh.scale.setScalar(1 + (CLOSE.goldenScale - 1) * lit);
+    // A style option draws a waiting place smaller, so the bead grows from that size.
+    const start = this.kit ? (this.look.bead?.waitingScale ?? 1) : 1;
+    bead.mesh.scale.setScalar(start + (CLOSE.goldenScale - start) * lit);
     (golden.glow.material as SpriteMaterial).opacity = CLOSE.glowOpacity * lit;
     // Only while it stands: once it slides, the slide owns its place.
     if (bead.elapsed === null) {
@@ -705,15 +746,36 @@ export class AbacusStage {
     if (!rod) return;
     if (this.golden?.rod === rodIndex) this.clearGolden();
     rod.earned = earned.slice(0, rod.beads.length);
+    rod.knock = null;
     rod.beads.forEach((bead, index) => {
       const family = rod.earned[index];
-      bead.mesh.material = this.materials.get(
-        family ? familyOf(family).color : this.waitingColor,
-      );
+      this.paintBead(bead, family ?? null);
+      bead.mesh.scale.setScalar(bead.rest);
       bead.elapsed = null;
       bead.x = beadX(this.layout, index, rod.earned.length);
       bead.mesh.position.x = bead.x;
     });
+  }
+
+  /**
+   * Gives a bead the material of its family, or of a place not earned yet.
+   * A style option may also show a metal band on an earned bead and draw a
+   * waiting place smaller (`bead.rest`).
+   */
+  private paintBead(bead: BeadView, family: FamilyId | null): void {
+    const style = this.look.bead;
+    if (!this.kit || !style) {
+      bead.mesh.material = this.materials.get(family ? familyOf(family).color : this.waitingColor);
+      return;
+    }
+    if (family === null) {
+      bead.mesh.material = this.kit.toon(style.waiting, style.waitingRamp);
+      bead.rest = style.waitingScale;
+    } else {
+      bead.mesh.material = this.kit.toon(style.families?.[family] ?? familyOf(family).color, style.ramp);
+      bead.rest = 1;
+    }
+    if (bead.band) bead.band.visible = family !== null;
   }
 
   // --- labels --------------------------------------------------------------
@@ -786,6 +848,15 @@ export class AbacusStage {
    * screen's chrome is drawn on.
    */
   private buildTable(): void {
+    if (this.kit && this.look.ground) {
+      // A style option's ground: an unlit plane with a pool of light, and a
+      // soft shadow under the frame in place of the cast one.
+      const { ground, shadow } = this.kit.ground(FRAME.width, FRAME.footDepth);
+      this.scene.add(ground, shadow);
+      this.lookShadow = shadow;
+      this.frameDraws += 2;
+      return;
+    }
     const plane = new PlaneGeometry(400, 400);
     this.frameGeometries.push(plane);
     const table = new Mesh(plane, this.materials.get(VIEW3D.table.color));
@@ -813,6 +884,16 @@ export class AbacusStage {
   private buildFrame(): void {
     const metrics = frameMetrics();
     const half = FRAME.width / 2;
+    const styled = this.kit ? lookFrameParts(this.look, { ...FRAME, ...metrics }) : null;
+    if (styled) {
+      for (const part of styled) this.addSolid(part.geometry, part.color, false, part.ramp, part.outline);
+      const plaque = this.kit?.plaque({ ...FRAME, ...metrics });
+      if (plaque) {
+        this.object.add(plaque);
+        this.frameDraws += 1;
+      }
+      return;
+    }
     const railY = [
       metrics.footTop + FRAME.railHeight / 2,
       metrics.innerTop + FRAME.railHeight / 2,
@@ -853,6 +934,13 @@ export class AbacusStage {
     }
 
     const timber = FRAME.timberColor;
+    const own = this.look.frame;
+    if (own) {
+      // Style option A: the same timber frame in its own colours.
+      this.addSolid(weld(light), own.rail, false, own.ramp);
+      this.addSolid(weld(dark), own.stile, false, own.ramp);
+      return;
+    }
     this.addSolid(weld(light), timber, false);
     this.addSolid(weld(dark), shade(timber, VIEW3D.sideDarken * FRAME.postShade), false);
   }
@@ -863,24 +951,44 @@ export class AbacusStage {
     const bead = ABACUS.bead;
     const metrics = frameMetrics();
 
-    const beadGeometry = beadShape({
-      radius: this.layout.beadRadius,
-      halfThickness: this.layout.halfThickness,
-      bore: rod.radius + bead.boreClearance,
-      segments: bead.segments,
-    });
+    const style = this.look.bead;
+    const rodStyle = this.look.rod;
+    const rodRadius = rod.radius * (rodStyle?.radius ?? 1);
+    const beadGeometry =
+      style && style.shape !== 'bicone'
+        ? lookBead(
+            style.shape,
+            this.layout.beadRadius,
+            this.layout.halfThickness,
+            rodRadius + bead.boreClearance,
+            style.segments,
+          )
+        : beadShape({
+            radius: this.layout.beadRadius,
+            halfThickness: this.layout.halfThickness,
+            bore: rodRadius + bead.boreClearance,
+            segments: style?.segments ?? bead.segments,
+          });
+    let bandGeometry: BufferGeometry | null = null;
+    if (this.kit && style && style.band !== null) {
+      bandGeometry = lookBand(this.layout.beadRadius, this.layout.halfThickness, style.segments);
+      this.rodGeometries.push(bandGeometry);
+    }
+    const studs: BufferGeometry[] = [];
     computeHullNormals(beadGeometry);
     this.rodGeometries.push(beadGeometry);
     const beadTriangles = beadGeometry.getAttribute('position').count / 3;
 
     const brass: BufferGeometry[] = [];
     this.layout.rodY.forEach((y, index) => {
-      const bar = rodBar(rod.radius, metrics.innerHalfSpan * 2 + rod.tenon * 2);
+      const bar = rodBar(rodRadius, metrics.innerHalfSpan * 2 + rod.tenon * 2);
       bar.translate(0, y, 0);
       brass.push(bar);
 
       for (const side of [-1, 1]) {
-        const knob = rodFinial(rod.finialSize, rod.finialSegments);
+        const knob = rodStyle
+          ? lookFinial(rod.finialSize, rod.finialSegments)
+          : rodFinial(rod.finialSize, rod.finialSegments);
         // Turned to face inward rather than mirrored: a negative scale would
         // flip every triangle's winding and the knob would render inside out.
         if (side > 0) knob.rotateY(Math.PI);
@@ -888,8 +996,25 @@ export class AbacusStage {
         brass.push(knob);
       }
 
-      const rodView: RodView = { y, beads: [], earned: [] };
-      for (let b = 0; b < bead.perRod; b++) {
+      if (this.kit && rodStyle?.seatStud) {
+        // The seat's colour on the frame: a stud on the front of the left
+        // stile at this rod, in a metal rim.
+        const studX = -(FRAME.width / 2 - FRAME.stileWidth / 2);
+        const studZ =
+          (this.look.frame?.kind === 'reliquary' ? FRAME.stileWidth * 0.33 : FRAME.stileDepth / 2) - 0.004;
+        const rim = seatStudRim();
+        rim.translate(studX, y, studZ);
+        studs.push(rim);
+        const stoneGeometry = seatStudStone();
+        this.rodGeometries.push(stoneGeometry);
+        const stone = new Mesh(stoneGeometry, this.kit.toon(this.players[index]?.color ?? 0xffffff, 'gloss'));
+        stone.position.set(studX, y, studZ);
+        this.rodGroup.add(stone);
+        this.rodDraws += 1;
+      }
+
+      const rodView: RodView = { y, beads: [], earned: [], knock: null };
+      for (let b = 0; b < PLACES; b++) {
         const mesh = new Mesh(beadGeometry, this.materials.get(this.waitingColor));
         mesh.castShadow = LOOK.shadows;
         mesh.receiveShadow = LOOK.shadows;
@@ -899,7 +1024,14 @@ export class AbacusStage {
         mesh.add(shell);
         mesh.position.set(0, y, 0);
         this.rodGroup.add(mesh);
-        rodView.beads.push({ mesh, x: 0, from: 0, to: 0, elapsed: null, struck: true });
+        let band: Mesh | null = null;
+        if (this.kit && style && bandGeometry && style.band !== null) {
+          band = new Mesh(bandGeometry, this.kit.toon(style.band, 'metal'));
+          band.visible = false;
+          mesh.add(band);
+          this.rodDraws += 1;
+        }
+        rodView.beads.push({ mesh, x: 0, from: 0, to: 0, elapsed: null, struck: true, band, rest: 1 });
         this.rodDraws += 2;
         this.rodTriangles += beadTriangles;
       }
@@ -911,7 +1043,12 @@ export class AbacusStage {
     // it — it is a highlight, not a silhouette — but it gets one anyway, because
     // dropping the shell on one part of a toon object is exactly how a look
     // starts to come apart. The finials need it more than the rods do.
-    if (brass.length > 0) this.addSolid(weld(brass), rod.color, true);
+    if (brass.length > 0 && this.kit && rodStyle) {
+      this.addSolid(weld(brass), rodStyle.color, true, rodStyle.ramp);
+      if (studs.length > 0) {
+        this.addSolid(weld(studs), this.look.frame?.fitting ?? rodStyle.color, true, 'metal', false);
+      }
+    } else if (brass.length > 0) this.addSolid(weld(brass), rod.color, true);
   }
 
   /** Takes the rods off the frame and gives their geometry back. */
@@ -926,26 +1063,36 @@ export class AbacusStage {
   }
 
   /** A lit mesh with its inverted-hull shell — the two-mesh sandwich, verbatim. */
-  private addSolid(geometry: BufferGeometry, color: number, perRoster: boolean): void {
+  private addSolid(
+    geometry: BufferGeometry,
+    color: number,
+    perRoster: boolean,
+    /** A style option's ramp, and whether the part has an ink outline. */
+    ramp: LookRamp | null = null,
+    outlined = true,
+  ): void {
     computeHullNormals(geometry);
-    const mesh = new Mesh(geometry, this.materials.get(color));
+    const mesh = new Mesh(geometry, this.kit && ramp ? this.kit.toon(color, ramp) : this.materials.get(color));
     mesh.castShadow = LOOK.shadows;
     mesh.receiveShadow = LOOK.shadows;
-    const shell = new Mesh(geometry, this.materials.outline);
-    shell.castShadow = false;
-    shell.receiveShadow = false;
-    mesh.add(shell);
+    if (outlined) {
+      const shell = new Mesh(geometry, this.materials.outline);
+      shell.castShadow = false;
+      shell.receiveShadow = false;
+      mesh.add(shell);
+    }
+    const draws = outlined ? 2 : 1;
     const triangles = geometry.getAttribute('position').count / 3;
     if (perRoster) {
       this.rodGeometries.push(geometry);
       this.rodGroup.add(mesh);
-      this.rodDraws += 2;
+      this.rodDraws += draws;
       this.rodTriangles += triangles;
       return;
     }
     this.frameGeometries.push(geometry);
     this.object.add(mesh);
-    this.frameDraws += 2;
+    this.frameDraws += draws;
     this.frameTriangles += triangles;
   }
 
@@ -989,13 +1136,14 @@ export class AbacusStage {
    * object is not arithmetic anybody should keep true by hand.
    */
   private fit(): void {
-    const view = ABACUS.camera;
+    const view = { ...ABACUS.camera, ...(this.look.camera ?? {}) };
     const metrics = frameMetrics();
     const halfX = FRAME.width / 2 + view.labelGutter;
     const halfZ = FRAME.footDepth / 2;
     const bounds = new Box3(
       new Vector3(-halfX, 0, -halfZ),
-      new Vector3(halfX, metrics.totalHeight, halfZ),
+      // The reliquary look has an arch over the top rail.
+      new Vector3(halfX, metrics.totalHeight + (this.look.frame?.kind === 'reliquary' ? 0.7 : 0), halfZ),
     );
 
     const el = view.elevation * DEG;
@@ -1063,8 +1211,8 @@ export class AbacusStage {
   }
 
   private applyLight(center: Vector3): void {
-    const el = LOOK.lightElevation * DEG;
-    const az = LOOK.lightAzimuth * DEG;
+    const el = (this.look.light?.elevation ?? LOOK.lightElevation) * DEG;
+    const az = (this.look.light?.azimuth ?? LOOK.lightAzimuth) * DEG;
     this.key.position
       .copy(center)
       .addScaledVector(
@@ -1091,7 +1239,10 @@ export class AbacusStage {
 
   private loop(now: number): void {
     if (!this.running || this.disposed) return;
-    const motion = ABACUS.motion;
+    const own = this.look.motion;
+    const motion = own
+      ? { ...ABACUS.motion, swayRadians: own.swayRadians, swaySeconds: own.swaySeconds }
+      : ABACUS.motion;
     const dt = this.lastFrame === 0 ? 0 : Math.min(0.1, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
     this.clock += dt;
@@ -1137,30 +1288,63 @@ export class AbacusStage {
       this.applyGolden();
     }
 
-    const slide = ABACUS.slide;
+    const slide = own
+      ? { seconds: own.slideSeconds, travel: own.travel, overshoot: own.overshoot }
+      : ABACUS.slide;
     for (const rod of this.rods) {
       for (const bead of rod.beads) {
         if (bead.elapsed === null) continue;
         bead.elapsed += dt;
+        // The look-dev switch `?abacusFreeze=` holds the slide for a still picture.
+        if (this.freezeAt !== null) bead.elapsed = Math.min(bead.elapsed, this.freezeAt * slide.seconds);
         const t = Math.min(1, bead.elapsed / slide.seconds);
-        bead.x = slidePosition(bead.from, bead.to, t);
+        bead.x = slidePosition(bead.from, bead.to, t, slide);
         bead.mesh.position.x = bead.x;
+        // A style option draws a waiting place smaller: the bead grows to full
+        // size over the first part of its slide. The golden bead has its own size.
+        if (own && this.golden?.glow.parent !== bead.mesh) {
+          const start = this.look.bead?.waitingScale ?? 1;
+          const grown = Math.min(1, t / (slide.travel * 0.6));
+          bead.mesh.scale.setScalar(start + (bead.rest - start) * (1 - (1 - grown) ** 3));
+        }
         if (!bead.struck && t >= slide.travel) {
           bead.struck = true;
+          if (own && own.knock > 0) rod.knock = 0;
           this.onStrike?.();
         }
         if (t >= 1) bead.elapsed = null;
       }
+      if (own && rod.knock !== null) this.applyKnock(rod, dt, own.knock, own.knockSeconds);
     }
+    if (this.lookShadow) this.lookShadow.rotation.z = this.object.rotation.y;
 
     this.renderer.render(this.scene, this.camera);
     this.onFrame?.();
     requestAnimationFrame(this.loop);
   }
 
+  /**
+   * A style option's knock: the beads already on the earned side move a little
+   * away from the bead that hit them and come back, less the farther they are
+   * from it. One damped swing, over `seconds`.
+   */
+  private applyKnock(rod: RodView, dt: number, reach: number, seconds: number): void {
+    rod.knock = (rod.knock ?? 0) + dt;
+    const t = Math.min(1, rod.knock / seconds);
+    const swing = Math.sin(t * Math.PI) * (1 - t);
+    for (let index = 0; index < rod.earned.length; index++) {
+      const bead = rod.beads[index]!;
+      if (bead.elapsed !== null) continue;
+      const fromNewest = rod.earned.length - 1 - index;
+      bead.mesh.position.x = bead.x - reach * swing * 0.6 ** Math.max(0, fromNewest - 1);
+    }
+    if (t >= 1) rod.knock = null;
+  }
+
   dispose(): void {
     this.running = false;
     this.disposed = true;
+    this.kit?.dispose();
     this.clearRods();
     this.glowMap?.dispose();
     this.glowMap = null;
