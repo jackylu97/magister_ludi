@@ -872,7 +872,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Good Years | 3 | ○ | S | Your bonus from spare happiness is doubled. |
 | City Watches | 3 | ● | S | Your towns gain +8 defence. |
 | Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |
-| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
+| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three melee units. They cost no upkeep. |
 | The Old Patterns | 3 | ◆ | S | Towns build buildings of earlier ages 40% faster. |
 | The Old Foundations | 3 | ● | S | Buildings of the first two ages cost no gold upkeep. |
 | The Long Memory | 3 | ○ | S | Your scalers gain twice as much each time. |

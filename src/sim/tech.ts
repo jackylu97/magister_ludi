@@ -741,8 +741,6 @@ function unlockedFor(
   city: City | undefined,
   prototypes: boolean,
 ): boolean {
-  // Retired buildings can remain on a city's shelf after their technology stops offering them.
-  if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) return false;
   // **A row a card opens is asked of the cards**, before the tree, because it
   // has no gate in the tree to be asked about: a building no technology names is
   // otherwise available from turn one, which is the right default for content
@@ -843,7 +841,9 @@ function unlockedFor(
     }
   }
   const gate = gatingTech(kind, id);
-  if (gate === null) return true;
+  // Retired buildings can still have an explicit unlock in older games.
+  // Removing their technology must not give everyone access from turn one.
+  if (gate === null) return !(kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true);
   if (hasTech(state, playerId, gate)) return true;
   // The Prototype Works (Scientific batch S9): the rows of the current
   // research, last, so every gate above still refuses first.
