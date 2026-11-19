@@ -273,8 +273,10 @@ import { knowsMoreTechs, metRivals } from '../rivals';
 import { techsGrant } from '../techData';
 import {
   type AbilityId,
+  type TechAge,
   type TechId,
   BUILDING_UNLOCK_TECH,
+  buildingTechAge,
   UNIT_UNLOCK_TECH,
   eraNumeral,
   highestAge,
@@ -7385,6 +7387,37 @@ export interface CardProductionLine {
   stage: ModifierStage;
 }
 
+// Production and card appraisal share the same building filters.
+export function buildingProductionBonusMatches(
+  state: GameState,
+  city: City,
+  effect: Extract<CardEffect, { kind: 'productionBonus' }>,
+  building: BuildingId | undefined,
+): boolean {
+  if (effect.building !== undefined && effect.building !== building) return false;
+  if (building === undefined) {
+    return effect.buildingCategory === undefined &&
+      effect.empireBuilding === undefined && effect.publicWork !== true &&
+      effect.buildingFilter === undefined;
+  }
+  if (effect.buildingCategory !== undefined && buildingDef(building).category !== effect.buildingCategory) {
+    return false;
+  }
+  if (effect.empireBuilding !== undefined && isEmpireBuilding(building) !== effect.empireBuilding) {
+    return false;
+  }
+  if (effect.publicWork === true && !isPublicWork(building)) return false;
+  if (effect.buildingFilter === 'earlierAges') {
+    const age = buildingTechAge(building);
+    return age !== undefined && age < ownerAgeOf(state, city.ownerId);
+  }
+  if (effect.buildingFilter === 'capitalHas') {
+    const capital = capitalCityOf(state, city.ownerId);
+    return capital !== undefined && capital.id !== city.id && townHoldsBuilding(state, capital, building);
+  }
+  return true;
+}
+
 /**
  * The hammers this empire's cards put behind `category` — and behind *this
  * unit*, when the row narrows to one silhouette.
@@ -7403,35 +7436,10 @@ export function cardProduction(
   const list: CardProductionLine[] = [];
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'productionBonus')) {
     if (effect.category !== category) continue;
-    // The named row, where `modelClass` names a silhouette: Mimar Sinan's
-    // mosques. Asked of what the city is actually building, exactly as the
-    // silhouette is, so a bonus naming a building is silent on everything else.
-    if (effect.building !== undefined && effect.building !== building) continue;
-    // And the wider narrowing: what the row is *for* rather than which row it
-    // is — The Encyclopaedia's science buildings.
-    if (effect.buildingCategory !== undefined) {
-      if (building === undefined) continue;
-      if (buildingDef(building).category !== effect.buildingCategory) continue;
-    }
-    // And the class the realm allows one of — the marker on the row, never
-    // `oneOfAKind`, so a marvel is left to `category: 'wonder'` and a card that
-    // says "empire buildings" does not quietly speed the Pyramids. See
-    // `CardProductionBonusEffect.empireBuilding`.
-    // `false` is the ordinary-building reading (Private Patronage, batch C4):
-    // the same marker asked the other way round, which is the shape
-    // `CardWindfallRiderEffect.empireBuilding` has always had. A row with no
-    // building in hand — a unit, a project — satisfies neither reading.
-    if (effect.empireBuilding !== undefined) {
-      if (building === undefined) continue;
-      if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
-    }
+    if (!buildingProductionBonusMatches(state, city, effect, building)) continue;
     // The Academy of Gondishapur (batch DT3): not the rows that grant a bead.
     // See `CardProductionBonusEffect.skipsBeadRows`.
     if (effect.skipsBeadRows === true && building !== undefined && grantsABead(building)) continue;
-    // The Curator of Waters (batch DT6): public works only.
-    if (effect.publicWork === true) {
-      if (building === undefined || !isPublicWork(building)) continue;
-    }
     // The Great Designs (Scientific batch S3): only while no empire this one
     // has met knows the technology that names the row in its unlocks. A row no
     // technology opens never matches (the triage's reading 46).
@@ -7568,6 +7576,41 @@ export function cardUpkeepRebateLines(
   return list;
 }
 
+/** The bot uses the same age filter to price a waiver before seating it. */
+export function buildingUpkeepRebateMatches(building: BuildingId, maxAge: TechAge): boolean {
+  const age = buildingTechAge(building);
+  return age !== undefined && age <= maxAge;
+}
+
+export function buildingUpkeepWaived(state: GameState, playerId: number, building: BuildingId): boolean {
+  return effectsOfKind(state, playerId, 'upkeepRebate').some(({ effect }) =>
+    effect.buildingAgeAtMost !== undefined && buildingUpkeepRebateMatches(building, effect.buildingAgeAtMost),
+  );
+}
+
+/** Each building's first applicable waiver gets credit, up to the price of that building. */
+export function cardBuildingUpkeepRebateLines(
+  state: GameState,
+  playerId: number,
+  bills: readonly { building: BuildingId; gold: number }[],
+): CardUpkeepLine[] {
+  if (bills.length === 0) return [];
+  const covered = new Set<number>();
+  const lines: CardUpkeepLine[] = [];
+  for (const { card, source, effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+    const maxAge = effect.buildingAgeAtMost;
+    if (maxAge === undefined) continue;
+    let gold = 0;
+    for (const [index, bill] of bills.entries()) {
+      if (covered.has(index) || !buildingUpkeepRebateMatches(bill.building, maxAge)) continue;
+      covered.add(index);
+      gold += bill.gold;
+    }
+    if (gold > 0) lines.push({ card, source, gold });
+  }
+  return lines;
+}
+
 /**
  * **Whether one rebate row reaches one piece**, as the number of helpings it
  * takes off (nought: it does not reach it). Split out of
@@ -7580,6 +7623,7 @@ function rebateReaches(
   effect: CardUpkeepRebateEffect,
   unit: Unit,
 ): number {
+  if (effect.buildingAgeAtMost !== undefined) return 0;
   if (unit.ownerId !== playerId) return 0;
   if (!unitMatches(unit.type, effect.class)) return 0;
   // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
@@ -8268,20 +8312,27 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
   return list;
 }
 
-/** The percentage points this empire's cards add to the positive happiness rungs. */
+/** Fixed and proportional increases to the positive happiness bonus. */
 export function cardTierBoost(state: GameState, playerId: number): {
-  lines: CardMeterLine[];
+  lines: (CardMeterLine & { proportional?: true })[];
   points: number;
+  percent: number;
 } {
-  const lines: CardMeterLine[] = [];
+  const lines: (CardMeterLine & { proportional?: true })[] = [];
   let points = 0;
+  let percent = 0;
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'happinessTierBoost')) {
-    const amount = effect.points;
-    if (amount === 0) continue;
-    points += amount;
-    lines.push({ card, source: label(source, 'happiness'), amount });
+    const name = label(source, 'happiness');
+    if (effect.points !== undefined && effect.points !== 0) {
+      points += effect.points;
+      lines.push({ card, source: name, amount: effect.points });
+    }
+    if (effect.percent !== undefined && effect.percent !== 0) {
+      percent += effect.percent;
+      lines.push({ card, source: name, amount: effect.percent, proportional: true });
+    }
   }
-  return { lines, points };
+  return { lines, points, percent };
 }
 
 /**

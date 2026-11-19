@@ -1003,7 +1003,7 @@ function empireLinesOf(
     // the diff. Every other line keeps its whole label, less the `· ×2` an
     // amplifier hangs on a card's, so a doubled payout stays one row too.
     const key =
-      line.origin === 'gold'
+      line.origin === 'gold' && line.card === undefined
         ? (line.source.split(' · ')[0] ?? line.source)
         : line.source.replace(/ · ×\d+$/, '');
     record(key, line);

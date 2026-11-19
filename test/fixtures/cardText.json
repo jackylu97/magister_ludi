@@ -10132,6 +10132,30 @@
     "raw": "+1 faith and +1 culture in every city while it is building a wonder, a [[building:cathedral|Cathedral]] or [[building:theMagnumOpus|The Magnum Opus]] per 10% of the current build already done there",
     "text": "+1 faith and +1 culture in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there"
    }
+  ],
+  "theCapitalsExample": [
+   {
+    "raw": "Your other towns build buildings your capital already has 25% faster",
+    "text": "Your other towns build buildings your capital already has 25% faster"
+   }
+  ],
+  "theOldPatterns": [
+   {
+    "raw": "Towns build buildings of earlier ages 40% faster",
+    "text": "Towns build buildings of earlier ages 40% faster"
+   }
+  ],
+  "theOldFoundations": [
+   {
+    "raw": "Buildings of the first two ages cost no gold upkeep",
+    "text": "Buildings of the first two ages cost no gold upkeep"
+   }
+  ],
+  "theGoodYears": [
+   {
+    "raw": "Your bonus from spare happiness is doubled",
+    "text": "Your bonus from spare happiness is doubled"
+   }
   ]
  },
  "belief": {

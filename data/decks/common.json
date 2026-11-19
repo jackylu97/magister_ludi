@@ -2691,6 +2691,75 @@
       ],
       "note": "The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue.",
       "retired": true
+    },
+    "theCapitalsExample": {
+      "name": "The Capital's Example",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The village masons follow the plans they learned in the capital.",
+      "text": "Your other towns build buildings your capital already has 25% faster.",
+      "note": "This uses the town with your palace.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingFilter": "capitalHas",
+          "percent": 25
+        }
+      ]
+    },
+    "theOldPatterns": {
+      "name": "The Old Patterns",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The old plans still hang on the workshop wall.",
+      "text": "Towns build buildings of earlier ages 40% faster.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingFilter": "earlierAges",
+          "percent": 40
+        }
+      ]
+    },
+    "theOldFoundations": {
+      "name": "The Old Foundations",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The town still uses the halls its founders built.",
+      "text": "Buildings of the first two ages cost no gold upkeep.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "buildingAgeAtMost": 2
+        }
+      ]
+    },
+    "theGoodYears": {
+      "name": "The Good Years",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The schools and theatres are full.",
+      "text": "Your bonus from spare happiness is doubled.",
+      "effects": [
+        {
+          "kind": "happinessTierBoost",
+          "percent": 100
+        }
+      ]
     }
   }
 }

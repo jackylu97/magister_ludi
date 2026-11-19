@@ -7175,6 +7175,8 @@ interface CardPercentYieldsEffect {
 interface CardProductionBonusEffect {
   kind: 'productionBonus';
   category: ProductionCategory;
+  /** Limits the bonus to older buildings or buildings already in the true capital. */
+  buildingFilter?: 'earlierAges' | 'capitalHas';
   percent: number;
   /**
    * **The empire stage** (Dominion batch D7, The Marian Reforms' "your towns
@@ -7475,7 +7477,10 @@ export interface CardAuthorityEffect {
 /** Percentage points on the positive happiness rungs. Amber's shape. */
 export interface CardHappinessTierBoostEffect {
   kind: 'happinessTierBoost';
-  points: number;
+  /** Fixed points added after the tier clamp. Luxuries use this field. */
+  points?: number;
+  /** Increases the positive bonus by this percent after fixed points are added. */
+  percent?: number;
 }
 
 /** A labelled strength line under a stated condition. See `CombatCondition`. */
@@ -9937,6 +9942,8 @@ interface CardUpkeepSurchargeEffect {
 
 export interface CardUpkeepRebateEffect {
   kind: 'upkeepRebate';
+  /** Waives the upkeep of buildings up to this research age, inclusive. */
+  buildingAgeAtMost?: TechAge;
   /** Gold off each matching piece's own figure. Ignored when `free` is set. */
   amount?: number;
   /** The matching piece costs nothing at all — The Wintering Grounds'. */

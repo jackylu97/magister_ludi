@@ -90,7 +90,6 @@ import {
   buildingDef,
   buildingRowSupplies,
   isBuildingId,
-  isEmpireBuilding,
   isPublicWork,
   isWonder,
 } from '../sim/buildingData';
@@ -171,7 +170,7 @@ import {
   tileNeighbors,
   wrappedDistance,
 } from '../sim/map';
-import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
+import { authorityOf, happinessDemand, happinessOf, meterEffects, tierPercent } from '../sim/meters';
 import { ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
@@ -221,6 +220,7 @@ import {
   cityResourceYields,
   empireResourceYields,
   importedLuxuries,
+  resourceTierBoost,
 } from '../sim/resourceEffects';
 import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
@@ -347,6 +347,9 @@ import {
   scopeAsks,
   heldReligions,
   buildingPassesTest,
+  buildingProductionBonusMatches,
+  buildingUpkeepRebateMatches,
+  cardTierBoost,
   isCityScopedCount,
   isRaisingWonderOrOpus,
   noMetEmpireAhead,
@@ -439,7 +442,7 @@ import {
   unitDef,
   unitMaxHp,
 } from '../sim/unitData';
-import { unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
+import { explainBuildingUpkeep, unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
 import { round } from './decision';
 import { signed } from './decision';
@@ -2105,8 +2108,21 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // never took it. Left at the realm's own count, which is what "per city"
       // says when nothing narrows it.
       return effect.amount * meterWeight(ctx, 'authority') * (effect.per === 'city' ? ctx.cities : 1);
-    case 'happinessTierBoost':
-      return effect.points * meterWeight(ctx, 'happiness');
+    case 'happinessTierBoost': {
+      const happiness = happinessOf(ctx.state, ctx.playerId);
+      if (tierPercent(happiness) <= 0) return 0;
+      const boost = cardTierBoost(ctx.state, ctx.playerId);
+      const fixed = boost.points + resourceTierBoost(ctx.state, ctx.playerId).points;
+      const bonus = tierPercent(happiness, fixed);
+      const live = meterEffects(ctx.state, ctx.playerId).find(
+        (entry) => entry.meter === 'happiness' && entry.yields.length > 0,
+      )?.percent ?? 0;
+      const rates = ratesOf(ctx);
+      const rate = (rates.sciencePerTurn ?? 0) * voiceWeight(ctx, 'science') +
+        (rates.culturePerTurn ?? 0) * voiceWeight(ctx, 'culture');
+      const increase = ((effect.points ?? 0) * (100 + boost.percent) + bonus * (effect.percent ?? 0)) / 100;
+      return (rate * increase) / (100 + live);
+    }
     case 'combatLine':
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
@@ -2179,7 +2195,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         effect.max === undefined ? helpings : Math.min(helpings, Math.max(0, effect.max));
       return effect.amount * capped * ctx.ai.weights.renown;
     }
-    case 'upkeepRebate':
+    case 'upkeepRebate': {
+      const maxAge = effect.buildingAgeAtMost;
+      if (maxAge !== undefined) {
+        let gold = 0;
+        for (const bill of explainBuildingUpkeep(ctx.state, ctx.playerId)) {
+          if (buildingUpkeepRebateMatches(bill.building, maxAge)) gold += bill.gold;
+        }
+        return costOfUpkeep(gold, ctx);
+      }
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
@@ -2194,6 +2218,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         return costOfUpkeep((effect.amount ?? 1) * ranked, ctx);
       }
       return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
+    }
     // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) ----------
     // Every one of them is priced off **what this empire actually holds**, which
     // is `explainCounted`'s own rule read one shape over: an engine is worth what
@@ -3651,7 +3676,7 @@ function finishedRowRate(
     recent += stampedSince(city, passing, span, ctx.state.turn);
   }
   let open = 0;
-  for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns;
+  for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns.length;
   // The recent window as well as the whole game (bot batch BP4), as
   // `buildingPace` reads every building.
   const rate = Math.max(
@@ -8285,17 +8310,19 @@ function buildingBonusReach(
     effect.building !== undefined ||
     effect.buildingCategory !== undefined ||
     effect.empireBuilding !== undefined ||
-    effect.publicWork === true;
+    effect.publicWork === true ||
+    effect.buildingFilter !== undefined;
   if (!narrowed) return 1;
   let reached = 0;
   let every = 0;
-  for (const { id, hammers } of openRows(ctx)) {
+  for (const { id, hammers, towns } of openRows(ctx)) {
     every += hammers;
-    if (effect.building !== undefined && effect.building !== id) continue;
-    if (effect.buildingCategory !== undefined && buildingDef(id).category !== effect.buildingCategory) continue;
-    if (effect.empireBuilding !== undefined && isEmpireBuilding(id) !== effect.empireBuilding) continue;
-    if (effect.publicWork === true && !isPublicWork(id)) continue;
-    reached += hammers;
+    if (effect.buildingFilter === 'capitalHas') {
+      const eligible = towns.filter((city) => buildingProductionBonusMatches(ctx.state, city, effect, id));
+      reached += (hammers / towns.length) * eligible.length;
+    } else if (buildingProductionBonusMatches(ctx.state, towns[0]!, effect, id)) {
+      reached += hammers;
+    }
   }
   return every === 0 ? 0 : reached / every;
 }
@@ -8303,7 +8330,7 @@ function buildingBonusReach(
 /** One building row this seat could raise now: in how many towns, and at what cost in all. */
 interface OpenRow {
   id: BuildingId;
-  towns: number;
+  towns: readonly City[];
   hammers: number;
 }
 
@@ -8318,12 +8345,14 @@ function openRows(ctx: ValueContext): readonly OpenRow[] {
     const towns = citiesOf(ctx.state, ctx.playerId);
     for (const id of BUILDING_IDS) {
       if (isWonder(id)) continue;
-      let open = 0;
-      for (const city of towns) {
-        if (townHoldsBuilding(ctx.state, city, id)) continue;
-        if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+      const inTowns = towns.filter((city) =>
+        !townHoldsBuilding(ctx.state, city, id) &&
+        buildError(ctx.state, ctx.playerId, 'building', id, city) === null,
+      );
+      const open = inTowns.length;
+      if (open > 0) {
+        rows.push({ id, towns: inTowns, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
       }
-      if (open > 0) rows.push({ id, towns: open, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
     }
     return rows;
   });

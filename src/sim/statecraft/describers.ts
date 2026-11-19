@@ -2377,6 +2377,14 @@ function describeEffect(
       return;
     }
     case 'productionBonus': {
+      if (effect.buildingFilter === 'capitalHas') {
+        out.push({ text: `Your other towns build buildings your capital already has ${effect.percent}% faster` });
+        return;
+      }
+      if (effect.buildingFilter === 'earlierAges') {
+        out.push({ text: `Towns build buildings of earlier ages ${effect.percent}% faster` });
+        return;
+      }
       // The named row beats the silhouette beats the category, because that is
       // the order of how specific they are: "toward Temples", "toward mounted
       // units", "toward buildings".
@@ -2531,11 +2539,15 @@ function describeEffect(
       });
       return;
     case 'happinessTierBoost':
-      out.push({
-        text:
-          `${signed(effect.points)} percentage points ` +
-          'to the bonus your positive happiness pays',
-      });
+      if (effect.points !== undefined) {
+        out.push({ text: `${signed(effect.points)} percentage points to the bonus your positive happiness pays` });
+      }
+      if (effect.percent !== undefined) {
+        const text = effect.percent === 100
+          ? 'Your bonus from spare happiness is doubled'
+          : `${signed(effect.percent)}% to the bonus from spare happiness`;
+        out.push({ text });
+      }
       return;
     case 'combatLine': {
       const each = signed(effect.amount);
@@ -4004,6 +4016,11 @@ function describeEffect(
       return;
     }
     case 'upkeepRebate': {
+      if (effect.buildingAgeAtMost !== undefined) {
+        const ages = ['the first age', 'the first two ages', 'the first three ages', 'all ages'];
+        out.push({ text: `Buildings of ${ages[effect.buildingAgeAtMost - 1]} cost no gold upkeep` });
+        return;
+      }
       // A rank narrows the pieces (Centurions' Elite units, batch DT1), said as
       // `rankedWords` says it for the surcharge below.
       const who =

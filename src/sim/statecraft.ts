@@ -196,6 +196,8 @@ export {
   holdsTendedUnlock,
   cardUnlocksUnit,
   charterOpensUnit,
+  buildingUpkeepWaived,
+  cardBuildingUpkeepRebateLines,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
   // Commerce batch T6: the upkeep waiver a unit carries (Mercenary Contracts).
