@@ -69,18 +69,25 @@ section. When an item is done, mark it `[x]` and give the commit.
   - Older open items go with it: per-leader bot personas, and the name of a
     seat with no leader.
   - Do it after the deck polish, because a leader's theme depends on the cards.
-  - **Leaders to rework** (the user, 2026-11-19): nine of the thirteen.
-    - [ ] Emperor Taizong
-    - [ ] Akhenaten
-    - [ ] Al-Ma'mun
-    - [ ] Mithridates VI
-    - [ ] Joan of Arc
-    - [ ] Hypatia
-    - [ ] Zheng He
-    - [ ] Hildegard of Bingen
-    - [ ] Modu Chanyu
-  - Not on the user's list, so they stay as they are unless the pass finds a
-    reason: Pachacuti, Mansa Musa, Nezahualcoyotl, Ibn Battuta.
+  - **The roster is chosen** (the user, 2026-11-19; `docs/plans/leader-roster-pass-2026-11-19.md`,
+    "The user's ruling on the roster"): one leader for each pair of decks.
+    - [ ] Alexander the Great (new)
+    - [ ] Genghis Khan (new; inherits Modu Chanyu's built pieces)
+    - [ ] Joan of Arc (stays as she is)
+    - [ ] Mehmed the Conqueror (new)
+    - [ ] Qin Shi Huang (new)
+    - [ ] Pachacuti (stays)
+    - [ ] Jayavarman VII (new; design not yet seen by the user)
+    - [ ] Nezahualcoyotl (stays; The Dikes changes)
+    - [ ] Cyrus the Great (new)
+    - [ ] Mansa Musa (stays)
+    - [ ] Cleopatra (new; inherits Hypatia's built pieces)
+    - [ ] Lorenzo de' Medici (new)
+    - [ ] Harun al-Rashid (new; inherits Al-Ma'mun's built pieces)
+    - [ ] Justinian (new)
+    - [ ] Sejong the Great (new)
+  - Leaving: Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun, Mithridates VI,
+    Zheng He, Hypatia, Hildegard of Bingen. Ibn Battuta is not yet ruled.
 
 ## Interface
 

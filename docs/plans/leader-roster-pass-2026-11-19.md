@@ -718,3 +718,33 @@ What follows:
 - **No comment yet:** Saladin, Augustus, Ashoka, Pachacuti, Mansa Musa, and the
   lines of the others that have no row above. The user edited Justinian and
   did not comment on Ashoka, so the Devotion + Magisterial pick is open.
+
+## The user's ruling on the roster (2026-11-19, in chat)
+
+"justinian over ashoka. assume the leaders with comments are the ones i've
+selected. Pachacuti and mansa musa are approved."
+
+The roster, one leader for each pair of decks:
+
+| Pair | Leader | State |
+|---|---|---|
+| Dominion + Expansionist | Alexander the Great | selected, with the user's changes |
+| Dominion + Commerce | Genghis Khan | selected, with the user's changes |
+| Dominion + Devotion | Joan of Arc | selected: today's abilities and building |
+| Dominion + Scientific | Mehmed the Conqueror | selected, with the user's changes |
+| Dominion + Magisterial | Qin Shi Huang | selected as designed |
+| Expansionist + Commerce | Pachacuti | approved, stays |
+| Expansionist + Devotion | Jayavarman VII | being designed; the user has not seen the design |
+| Expansionist + Scientific | Nezahualcoyotl | selected, with the user's change to The Dikes |
+| Expansionist + Magisterial | Cyrus the Great | selected, with the user's changes |
+| Commerce + Devotion | Mansa Musa | approved, stays |
+| Commerce + Scientific | Cleopatra | selected, with the user's changes |
+| Commerce + Magisterial | Lorenzo de' Medici | selected, with the user's changes |
+| Devotion + Scientific | Harun al-Rashid | selected, with the user's change |
+| Devotion + Magisterial | Justinian | selected over Ashoka, with the user's changes |
+| Scientific + Magisterial | Sejong the Great | selected, with the user's changes |
+
+Not selected: Saladin, Augustus, Ashoka, Isabella of Castile, Hatshepsut.
+Leaving the game: Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun,
+Mithridates VI, Zheng He, Hypatia, Hildegard of Bingen. Ibn Battuta (the
+every-deck seat) is not yet ruled.
