@@ -2958,3 +2958,19 @@ answer, 2026-11-18: "2 3 4 are great, 5 is fine too."
   that goes to the wager rework. `ai.wager.ageTurns` (32) was measured under
   the old clock and may now be too long.
 - Stage C (parallel bots) waits for it, because both cut the digest pins.
+
+## The user's answers, 2026-11-18 (afternoon)
+
+"1 land now 2. yes 3. what colors are they now? 4. could we support both? 5. no
+need for now"
+
+1. **The world clock rule lands now.** Landed; schema 245; older saves are
+   refused.
+2. **Fix the card figures that disagree, with stage 2.** One reading feeds a
+   card's pay plate, its chip and the totals, for yields and for the two
+   meters. Details in `docs/plans/ui-critique-2026-10-16.md`.
+3. Meter colours: the user asked what they are now. Ink, as built, until the
+   user says otherwise.
+4. **The Council screen supports both** real drag and drop and click then
+   click.
+5. **No lower resolution while the camera moves**, for now.

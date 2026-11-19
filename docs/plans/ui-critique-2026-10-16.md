@@ -1050,3 +1050,23 @@ Council screen keeps the title "Orders & Doctrines".
 The user: "the trade route screen should not close after buying a route,
 oftentimes i want to purchase multiple." `dispatchSend` in
 `src/ui/tradeScreen.ts` now draws the sheet again and does not close it.
+
+### After the Council screen landed: figures and drag (2026-11-18)
+
+The Council screen (stage 1) landed at `b29b4c8e`. Two faults show in it: a
+card's pay plate and the totals can disagree (The Farming Garrisons' plate
+reads +13 food, the food total +12, its chip -12), and the happiness and
+authority totals miss cards whose effect the rules fold into a line no card
+owns (The Forbidden Silks shows +16 happiness, the total +0).
+
+The user, 2026-11-18, asked "Fix the card figures that disagree now, with
+stage 2?": "yes". Asked "Real drag and drop, or click then click?": "could we
+support both?"
+
+- **Stage 2 now has two parts:** per-turn figures for wonders and temporary
+  effects, and one reading that feeds the pay plate, the chip and the totals.
+  A plate, the chips and the totals must agree for every card, for the six
+  yields and for happiness and authority.
+- **The Council screen supports drag and drop and click then click.**
+- Meter colours stay ink, as built, unless the user chooses the board's green
+  and brown.
