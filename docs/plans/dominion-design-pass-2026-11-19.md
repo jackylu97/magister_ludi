@@ -778,6 +778,22 @@ Castellans, 47 The Marian Reforms, 48 The Landsturm, 49 The Citizen Phalanx.
 01 The Spear Makers (+25% to +40% production toward military units). Open
 until the user rules.
 
+## The user's second round of comments (2026-11-19)
+
+| On | The user's comment | Result |
+|---|---|---|
+| 01 The Spear Makers | "great" | Approved as proposed. |
+| 29 Total War | "only at war" | The at-war reading is confirmed. |
+| 31 The Drill Masters | "ok great, lets add this" | Goes in. |
+| 34 The Regimental Schools | "lets nerf to +6 science and +6 production." | +6 and +6, not +8 and +8. |
+| 24 The Grass Crown | "lets say doubled for a wonder." | Doubled for a wonder city, not tripled. |
+| 27 The Foederati at Tier I | "great" | Confirmed. |
+| 05 and 31, a Veteran start earns a rank | "yes" | Confirmed. |
+| Rares at Tier 0, boons for tempo | "great" | Confirmed. |
+| The pairs that depended on each other | "great" | Confirmed. |
+
+Nothing waits on the user.
+
 ## Ready for the build
 
 This section stands alone. It is the whole specification for the Dominion build that follows the user's rulings of 2026-11-19. The sections above it are the record.
