@@ -23,9 +23,16 @@ export type CouncilForm = keyof typeof COUNCIL_FORMS;
 /** The order the layout tries the forms in: the largest card first. */
 const FORM_ORDER: readonly CouncilForm[] = ['full', 'mid', 'compact', 'narrow'];
 
-/** The room the screen's own parts take, in pixels (the board's C6, C8 and C11). */
+/**
+ * The room the screen's own parts take, in pixels (the board's C6, C8 and
+ * C11, with the user's comments on stage 3, 2026-11-18: "it could use more
+ * vertical space for the title and government slot areas, that should be the
+ * focus of the page, and there's too much room for the hand"). The head is
+ * taller than the board's 46, and the hand shows at most `fanMax`; the height
+ * that leaves goes round the government and its chairs (`CouncilLayout.spare`).
+ */
 export const COUNCIL_FRAME = {
-  head: 46,
+  head: 62,
   side: 24,
   /** The government card: the full face, or the narrow card with the compact forms. */
   government: { wide: 200, narrow: 145 },
@@ -38,12 +45,28 @@ export const COUNCIL_FRAME = {
   band: 56,
   /** The least of each fan card kept in view: its name and the top of its picture. */
   fanMin: 96,
+  /**
+   * The most of each fan card in view: its name and its picture. The rest of
+   * the card shows when it is lifted or held, so more of it here is height
+   * taken from the chairs.
+   */
+  fanMax: 150,
   /** A fan card: the full face's type scale in a box 190 wide, as the board draws the hand. */
   fanCard: { width: 190, height: 258 },
   /** The draft pile's column at the left of the fan. */
   pile: 126,
   /** The most rows of chairs the screen lays out. */
   maxRows: 4,
+  /**
+   * **A few chairs sit in a cluster** (the user, 2026-11-18: "I'd also like for
+   * few government seats to be clustered in the middle with negative space
+   * around it instead of having it be evenly spaced"). Up to `most` chairs,
+   * which are the tier 0 and tier 4 governments' three and five, take at most
+   * `cols` to a row, the last row centred under the others, and the block is
+   * centred on the page rather than on the room beside the government. Six
+   * chairs and more keep the board's layout (C6, C8 and C11).
+   */
+  cluster: { most: 5, cols: 3 },
 } as const;
 
 /** Which card form and how many rows a window gets (`councilLayout`). */
@@ -55,8 +78,21 @@ export interface CouncilLayout {
   government: number;
   /** The chairs' block, frames and gaps included, in pixels. */
   chairs: { width: number; height: number };
-  /** How much of each fan card is in view below the band, in pixels. */
+  /** How much of each fan card is in view below the band, in pixels: at most `fanMax`. */
   fanView: number;
+  /**
+   * The height left over once the hand has `fanMax`, in pixels. Half goes
+   * above the government and its chairs and half below, so the council sits
+   * in the middle of its part of the page.
+   */
+  spare: number;
+  /**
+   * Set for a few chairs (`COUNCIL_FRAME.cluster`): how far left of the room's
+   * middle the block moves, in pixels, so it sits on the page's middle. Never
+   * so far that it reaches the government's column. `null` for the board's
+   * layout.
+   */
+  cluster: { shift: number; width: number } | null;
   /** True when no form fits the window, so the chairs take the narrow form and the fan what is left. */
   cramped: boolean;
 }
@@ -70,32 +106,49 @@ export interface CouncilLayout {
  * in two rows of four at the full face; eleven in rows of six and five at the
  * 176 px card. Where no form fits, the chairs take the narrow form on the
  * fewest rows the width allows, and the fan keeps what height is left.
+ *
+ * Five chairs or fewer are a cluster (`COUNCIL_FRAME.cluster`): three or fewer
+ * to a row, in the page's middle. The hand keeps at most `fanMax` of height,
+ * and the rest goes round the council (`spare`).
  */
 export function councilLayout(window: { width: number; height: number }, chairs: number): CouncilLayout {
   const count = Math.max(1, chairs);
   const frame = COUNCIL_FRAME;
   const most = Math.min(count, frame.maxRows);
+  const clustered = count <= frame.cluster.most;
+  // A cluster takes at most `cluster.cols` to a row, so it starts at the rows that gives.
+  const fewest = clustered ? Math.min(most, Math.ceil(count / frame.cluster.cols)) : 1;
   const measure = (form: CouncilForm, rows: number): CouncilLayout => {
     const card = COUNCIL_FORMS[form];
     const cols = Math.ceil(count / rows);
     const width = cols * (card.width + 2 * card.inset) + (cols - 1) * frame.slotGap;
     const height = rows * (card.height + 2 * card.inset) + (rows - 1) * frame.rowGap;
     const government = form === 'full' || form === 'mid' ? frame.government.wide : frame.government.narrow;
+    const left = window.height - frame.head - frame.chairsTop - height - frame.band;
+    const fanView = Math.min(left, frame.fanMax);
+    const room = window.width - 2 * frame.side - government - frame.columnGap;
+    // To the page's middle: half the government's column and its gap, or as
+    // far as the room beside the block allows.
+    const shift = Math.max(0, Math.min((government + frame.columnGap) / 2, (room - width) / 2));
     return {
       form,
       rows,
       cols,
       government,
       chairs: { width, height },
-      fanView: window.height - frame.head - frame.chairsTop - height - frame.band,
+      fanView,
+      spare: Math.max(0, left - fanView),
+      // The block's width as the page draws it: each chair's frame has a
+      // hairline round its inset, so a row of `cols` keeps room for them.
+      cluster: clustered ? { shift: Math.floor(shift), width: width + cols * 4 } : null,
       cramped: false,
     };
   };
   const room = (layout: CouncilLayout): number => window.width - 2 * frame.side - layout.government - frame.columnGap;
   for (const form of FORM_ORDER) {
-    for (let rows = 1; rows <= most; rows += 1) {
+    for (let rows = fewest; rows <= most; rows += 1) {
       // A row count that leaves the columns as they were adds height and nothing else.
-      if (rows > 1 && Math.ceil(count / (rows - 1)) === Math.ceil(count / rows)) continue;
+      if (rows > fewest && Math.ceil(count / (rows - 1)) === Math.ceil(count / rows)) continue;
       const layout = measure(form, rows);
       if (layout.chairs.width > room(layout)) continue;
       // More rows are only taller.

@@ -2,11 +2,13 @@
  * **Orders & Doctrines, the Council screen** (`statecraftScreen.ts`), stage 1
  * of the approved Council and In play board
  * (`docs/plans/mockups/scholars-study/council-and-in-play/`, frames N4, C6,
- * C8, C11 and CH). The values are the board's at 1440 by 900: the head 46 px;
- * the chairs 34 px under it, in gilt frames 6 px round the card, 6 px apart
- * and 14 px between rows; the band 56 px; the fan under it, cut by the
- * window's edge; the government column 200 px at the left, 25 px from the
- * chairs.
+ * C8, C11 and CH). The values are the board's at 1440 by 900: the chairs 34 px
+ * under the head, in gilt frames 6 px round the card, 6 px apart and 14 px
+ * between rows; the band 56 px; the fan under it, cut by the window's edge;
+ * the government column 200 px at the left, 25 px from the chairs. Since the
+ * user's comments on stage 3 the head's height, the fan's and the room round
+ * the council are the layout's (`COUNCIL_FRAME`, `councilLayout`), set by the
+ * screen as custom properties.
  *
  * **Full screen** (batch SS10 part C1, kept). The cloth is the whole window,
  * as the star chart's ink is: the overlay covers the top bar and the corner
@@ -61,7 +63,9 @@
   align-items: center;
   flex: none;
   gap: 16px;
-  height: 46px;
+  /* Taller than the board's 46 px (the user's comments on stage 3): the
+     height is the layout's (`COUNCIL_FRAME.head`), set by the screen. */
+  height: var(--council-head-h);
   padding: 0;
   border-bottom: 1px solid rgba(200, 144, 31, 0.45);
 }
@@ -75,7 +79,7 @@
 #statecraft-overlay .statecraft-title {
   margin: 0;
   color: var(--parchment);
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 500;
   line-height: 1;
 }
@@ -83,6 +87,29 @@
 /* The red initial, lifted for the dark ground as the star chart lifts its. */
 #statecraft-overlay .statecraft-title::first-letter {
   color: var(--vermilion-lit);
+}
+
+/* The link to In play (stage 3), beside the title: "In play · 9" and its key,
+   in the gilt of a link on the dark cloth, on the head's one centre line. */
+.council-inplay-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--y-gold-lit);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.council-inplay-link > span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 /* The totals line (frame N4): one fine line of eight figures at the head's
@@ -179,28 +206,9 @@
   color: #f5a088;
 }
 
-/* The close button, drawn as the board's "Esc closes". */
-#statecraft-overlay .statecraft-close.council-close {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  width: auto;
-  height: 28px;
+/* The close control is the star chart's (`.tech-close`, style.css), a step from the totals. */
+#statecraft-overlay .tech-close {
   margin-left: 6px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: rgba(247, 242, 225, 0.72);
-  font-family: var(--face-ui);
-  font-size: var(--size-label);
-  font-weight: 500;
-}
-
-#statecraft-overlay .statecraft-close.council-close:hover {
-  border: 0;
-  background: transparent;
-  color: var(--y-gold-lit);
 }
 
 /* Focus on the dark ground: a gilt ring, clear of the control. */
@@ -234,11 +242,15 @@
   color: var(--fg);
 }
 
+/* The government and its chairs: the focus of the page. The layout's spare
+   height (`CouncilLayout.spare`) goes half above them and half below, so they
+   sit in the middle of the room between the head and the band. */
 .council-main {
   display: flex;
-  flex: none;
+  flex: 1 1 auto;
   gap: 25px;
-  padding-top: 28px;
+  min-height: 0;
+  padding-top: calc(28px + var(--council-spare-top, 0px));
 }
 
 /* --- the government column ----------------------------------------------- */
@@ -342,6 +354,23 @@
 
 .orders-chair {
   position: relative;
+}
+
+/* A few chairs (`COUNCIL_FRAME.cluster`): a block three wide at most, the
+   last row centred under the others, moved to the page's middle so there is
+   empty space on both sides (the user, 2026-11-18). The width and the move
+   are the layout's. */
+#statecraft-overlay .orders-sheet[data-cluster] .orders-table {
+  position: relative;
+  left: calc(-1 * var(--council-cluster-shift));
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  width: var(--council-cluster-w);
+  margin-right: auto;
+  margin-left: auto;
 }
 
 /* A chair: a gilt frame round the card, with a bracket at two corners and the
@@ -725,17 +754,23 @@
 
 /* --- the foot: the draft pile and the fan -------------------------------- */
 
+/* The hand: as much of each card as the layout gives it (`CouncilLayout.fanView`,
+   at most `COUNCIL_FRAME.fanMax`), cut by the window's edge. */
 .council-foot {
   position: relative;
-  flex: 1 1 auto;
+  flex: none;
+  height: var(--council-fan-h);
   min-height: 0;
 }
 
+/* The draft pile stands on the window's foot: the hand is short now (the
+   user's comments on stage 3), so the pile's card and its lines rise into
+   the band's left end, which holds nothing, rather than run off the window. */
 .council-pile {
   position: absolute;
   z-index: 2;
   left: 0;
-  top: 26px;
+  bottom: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1,0 +1,139 @@
+/* --- the wonder plate (frame A1 of the Council and In play board) ------------
+
+   `src/ui/wonderPlate.ts`. The age plate's page (`agePlate.css`): the lapis
+   ground, the gilt double frame and Continue are its classes. On it, the
+   wonder's picture in a window of exactly 16:9 (the shape of its painting,
+   `docs/splash-art.md` row 3, about 960 by 540), and under it the name, the
+   plain line, the turn and what it pays each turn. */
+
+.wonder-plate-eyebrow {
+  margin: 0 0 2vh;
+  color: var(--plate-gilt-lit);
+  font-family: var(--face-name);
+  font-size: var(--size-name);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  animation: age-plate-fade 300ms ease-out 200ms both;
+}
+
+/* The picture: exactly 16:9 at every window size. As wide as the window
+   allows, at most the painting's own 960, and short enough to leave room for
+   the words and Continue under it. A painting covers it from its centre
+   (`inPlayScreen.css`); the engraved stand-in fills it today. */
+.wonder-plate-window {
+  --k: var(--plate-gilt);
+  position: relative;
+  box-sizing: content-box;
+  flex: none;
+  width: min(960px, 72vw, calc((100vh - 460px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 2px solid var(--plate-gilt);
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.12) 0 1px, transparent 1px 5px),
+    linear-gradient(#fcf7e7, #e9dcb8);
+  box-shadow: 8px 8px 0 rgba(14, 12, 16, 0.6);
+  animation: age-plate-settle 640ms var(--plate-ease) 120ms both;
+}
+
+/* The engraved stand-in, scaled to the window: the hills across it, the
+   temple front standing on them. */
+.wonder-plate-window .ip-hills {
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.wonder-plate-window .ip-device {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  width: 24%;
+  height: 58%;
+  color: var(--lapis, #2757b8);
+  transform: translateX(-50%);
+}
+
+.wonder-plate-name {
+  margin: 2.4vh 0 0;
+  color: var(--plate-paper);
+  font-family: var(--face-display);
+  font-size: clamp(30px, 4.6vh, 50px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.wonder-plate-line {
+  margin-top: 1vh;
+}
+
+/* The turn, as a figure with its label: no number inside the sentence. */
+.wonder-plate-turn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 0.6vh;
+  color: var(--plate-paper);
+  font-family: var(--face-num);
+  font-size: var(--size-ui);
+  opacity: 0.8;
+}
+
+.wonder-plate-turn b {
+  color: var(--plate-gilt-lit);
+  font-weight: 600;
+}
+
+/* What it pays each turn: the figures at their size, wrapping between whole
+   figures, in the lit inks of the dark ground; the meters in the paper's ink. */
+.wonder-plate-pays {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 14px;
+  margin-top: 1.4vh;
+  font-family: var(--face-card-text);
+  font-size: 24px;
+  font-variant-numeric: lining-nums;
+  font-weight: 700;
+}
+
+.wonder-plate-pays .of-pay-fig {
+  color: var(--plate-paper);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='food'] {
+  color: var(--y-food-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='production'] {
+  color: var(--y-prod-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='gold'] {
+  color: var(--y-gold-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='science'] {
+  color: var(--y-sci-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='culture'] {
+  color: var(--y-cul-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-voice='faith'] {
+  color: var(--y-faith-lit);
+}
+
+.wonder-plate-pays .of-pay-fig[data-sign='minus'] {
+  color: var(--rubric-lit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wonder-plate-eyebrow,
+  .wonder-plate-window {
+    animation: none;
+  }
+}

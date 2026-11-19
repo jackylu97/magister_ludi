@@ -14,13 +14,18 @@
  *
  * The layout, top to bottom
  * -------------------------
- *   - **The head**: the title, the totals line and the close hint, on one
- *     centre line (the user: "please make sure these are vertically centered
- *     in the real build"). The totals line is eight figures: the six yields, a
+ *   - **The head**: the title, the totals line and the star chart's "×", on
+ *     one centre line (the user: "please make sure these are vertically
+ *     centered in the real build"; "re-use the convention of the 'x' to close
+ *     as in the technology screen"). It is taller than the board's, and the
+ *     hand shorter: the government and its chairs are the focus of the page,
+ *     and the height the hand gives up goes round them (`councilLayout`). Five
+ *     chairs or fewer sit in a cluster in the page's middle. The totals line is eight figures: the six yields, a
  *     hairline, then happiness and authority (`councilTotals.ts`). While a
  *     card is held over a chair, a chip beside each figure says what the
- *     total would gain or lose if the card were dropped there (frame CH). The
- *     In play link is left out until stage 3 builds that screen.
+ *     total would gain or lose if the card were dropped there (frame CH).
+ *     Beside the title, the link to In play ("In play · 9", and the I key)
+ *     opens the screen of everything in force (stage 3, `inPlayScreen.ts`).
  *   - **The government column** at the left: the government as a full card
  *     with its own pay plate, and each Doctrine tucked under it as a strip
  *     with its name and its figures. A strip lifts the Doctrine's full face
@@ -272,7 +277,6 @@ export const ORDERS_WORDS = {
   totalsLabel: 'What your council pays each turn',
   totalsTitle:
     'What your council pays each turn. A card’s figure is what it adds by itself, so when cards multiply each other the figures need not add up to the total.',
-  closes: 'closes',
   revert: 'Revert',
   confirm: 'Confirm',
   confirmTitle: 'Seal the arrangement. Leaving the screen does the same.',
@@ -307,6 +311,8 @@ export const ORDERS_WORDS = {
   noOrders: 'You hold no Orders yet. Culture pays for the first draft.',
   countsTwice: 'counts twice',
   sealed: (turns: number) => `Sealed for ${turns} more turn${turns === 1 ? '' : 's'}`,
+  /** The head's link to In play (stage 3): the screen's name and how many pieces are in force. */
+  inPlayLink: (count: number) => `In play · ${count} →`,
 } as const;
 
 /** How long a refusal stands in place of the hint. The board's four seconds. */
@@ -334,7 +340,7 @@ interface StatecraftScreenOptions {
   overlay: HTMLElement;
   /** The element the sheet's body is built into. */
   body: HTMLElement;
-  /** The overlay's own close button. Drawn here as the "Esc closes" hint. */
+  /** The overlay's own close control: the star chart's "×" (`.tech-close`). Escape closes too. */
   closeButton: HTMLElement;
   /** The bar control that opens it, for the `aria-expanded` mirror. */
   trigger?: HTMLElement;
@@ -353,6 +359,12 @@ interface StatecraftScreenOptions {
   onRefuse?: (message: string) => void;
   /** Called when this screen opens, so the others can close. */
   onOpen?: () => void;
+  /**
+   * The In play screen (stage 3): the link in the head says how many pieces
+   * are in force, and it and the I key open that screen. Opening it closes
+   * this one through the screen registry, which signs the arrangement.
+   */
+  inPlay?: { count: () => number; open: () => void };
 }
 
 /** A card's type, for sorting the hand: the chair types in order, then the rest. */
@@ -487,9 +499,19 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     totalsNode.append(cell);
     totalCells.set(voice, { figure, chip });
   });
-  closeButton.replaceChildren(keyMark('Esc'), ` ${ORDERS_WORDS.closes}`);
-  closeButton.classList.add('council-close');
+  // The close control is the star chart's "×" (`index.html`, `.tech-close`;
+  // the user, 2026-11-18). Its title says Escape closes too, so the head has
+  // one close control and no second hint.
   if (head !== null) head.insertBefore(totalsNode, closeButton);
+  // The head's height is the layout's, from the first paint on.
+  sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
+  // The link to In play (stage 3), beside the title: "In play · 9" and its key.
+  const inPlayLink = element('button', 'council-inplay-link') as HTMLButtonElement;
+  inPlayLink.type = 'button';
+  const inPlayCount = element('span');
+  inPlayLink.append(inPlayCount, keyMark('I'));
+  inPlayLink.addEventListener('click', () => options.inPlay?.open());
+  if (options.inPlay !== undefined) head?.querySelector('.statecraft-head-titles')?.after(inPlayLink);
 
   // The band's tools: the changes, Revert and Confirm, at the right above the
   // hand. Built once, so the buttons keep their place in the tab order.
@@ -898,6 +920,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       else delete cell.figure.dataset.sign;
     }
     totalsNode.title = ORDERS_WORDS.totalsTitle;
+    if (options.inPlay !== undefined) inPlayCount.textContent = ORDERS_WORDS.inPlayLink(options.inPlay.count());
     if (countTotal) counting.push(countUp([...totalsNode.querySelectorAll('.council-total-fig b')]));
     paintChips();
   }
@@ -1306,6 +1329,15 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     sheetNode?.style.setProperty('--council-inset', `${form.inset}px`);
     sheetNode?.style.setProperty('--council-cols', String(screenLayout.cols));
     sheetNode?.style.setProperty('--council-gov-w', `${screenLayout.government}px`);
+    // The heights are the layout's (the user's comments on stage 3): the hand
+    // keeps at most `fanMax`, and what that leaves goes round the council.
+    sheetNode?.style.setProperty('--council-head-h', `${COUNCIL_FRAME.head}px`);
+    sheetNode?.style.setProperty('--council-fan-h', `${screenLayout.fanView}px`);
+    sheetNode?.style.setProperty('--council-spare-top', `${Math.floor(screenLayout.spare / 2)}px`);
+    // A few chairs sit in a cluster in the page's middle (`COUNCIL_FRAME.cluster`).
+    sheetNode?.toggleAttribute('data-cluster', screenLayout.cluster !== null);
+    sheetNode?.style.setProperty('--council-cluster-w', `${screenLayout.cluster?.width ?? 0}px`);
+    sheetNode?.style.setProperty('--council-cluster-shift', `${screenLayout.cluster?.shift ?? 0}px`);
     sheetNode?.toggleAttribute('data-holding', held !== null);
 
     if (council !== null) paintHead(council);
@@ -1883,6 +1915,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       toggleLayer(event.key.toLowerCase() === 'h' ? 'hand' : 'binder');
       return true;
     }
+    // I goes to In play (stage 3), as the link in the head does. Leaving signs
+    // the arrangement, as every door out of this screen does.
+    if ((event.key === 'i' || event.key === 'I') && options.inPlay !== undefined && held === null) {
+      event.preventDefault();
+      event.stopPropagation();
+      options.inPlay.open();
+      return true;
+    }
     if (event.key === 'Escape' && held !== null) {
       event.preventDefault();
       event.stopPropagation();
@@ -1976,6 +2016,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       layerHost.removeEventListener('click', onDragClick, true);
       tools.remove();
       totalsNode.remove();
+      inPlayLink.remove();
       // The hint lives in the band while the screen is up; it goes back to the
       // head it came from, so the next screen built on this overlay finds it.
       if (head !== null && hintNode !== null) head.insertBefore(hintNode, closeButton);

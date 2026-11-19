@@ -109,9 +109,11 @@ export interface NotificationEntry {
  * The five kinds of news the Marks board drew a mark for, and culture, whose
  * mark is the culture yield's own: an age opens (the sun on the horizon), a
  * Triumph (the arch), a great person (the laurel), research (the compass star)
- * and a bead (the bead on its wire).
+ * and a bead (the bead on its wire). And a wonder of the seat's own (the temple
+ * front of the In play screen, stage 4 of the Council and In play board): its
+ * page is its announcement, so it gets no toast, as an age opening gets none.
  */
-export type NewsMarkKind = 'age' | 'triumph' | 'greatPerson' | 'research' | 'bead' | 'culture';
+export type NewsMarkKind = 'age' | 'triumph' | 'greatPerson' | 'research' | 'bead' | 'culture' | 'wonder';
 
 /**
  * Whether an entry should render as a control rather than plain text.

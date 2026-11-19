@@ -122,6 +122,7 @@ import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abac
 import { type BeadsScreen, createBeadsScreen, isGoldenBead } from './ui/beadsScreen';
 import { type VictoryScreen, createVictoryScreen, wonByOpus } from './ui/victoryScreen';
 import { type AgePlate, agePlateReading, createAgePlate } from './ui/agePlate';
+import { type WonderPlate, type WonderPlateReading, createWonderPlate, wonderPlateReading } from './ui/wonderPlate';
 import { type OpusClose, createOpusClose, opusCloseReading } from './ui/opusClose';
 import {
   type BeadModal,
@@ -159,6 +160,10 @@ import { type CommissionRail, createCommissionRail } from './ui/commissionRail';
 import { commissionCounters } from './ui/commissionGoal';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
+import { type InPlayScreen, createInPlayScreen, inPlayDoorCount } from './ui/inPlayScreen';
+import { type InPlayEntry, createInPlayArrivals, inPlayCount, inPlayLayout } from './ui/inPlayPieces';
+import { ARRIVAL_FLIGHT_MS, flyToDoor, topFormNode } from './ui/inPlayForms';
+import { wantsMotion } from './ui/motion';
 import { type DiplomacyScreen, type EnvoyAnswer, createDiplomacyScreen } from './ui/diplomacyScreen';
 import { type WarDispatch, createWarDispatch } from './ui/warDispatch';
 import { createDiplomacyOffers } from './ui/diplomacyOffers';
@@ -252,7 +257,7 @@ import {
 } from './ui/gameSetup';
 import { isLeaderId, leaderDef, seatName, seatPeople } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
-import { cityAt } from './sim/cities';
+import { type WonderCompletion, cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
 import {
   type EndTurnList,
@@ -456,6 +461,8 @@ const victoryAbacusButton = requireElement<HTMLButtonElement>('victory-abacus');
    section, the ☰ menu, the End Turn blocker, and `C`. */
 const statecraftOverlayEl = requireElement<HTMLElement>('statecraft-overlay');
 const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
+const inPlayOverlayEl = requireElement<HTMLElement>('inplay-overlay');
+const inPlayBodyEl = requireElement<HTMLElement>('inplay-body');
 /* Religion's overlay and body — Statecraft's sibling sheet, opened from the
    empire drawer's Faith row, by the End Turn blocker, and by `H`. */
 const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
@@ -508,6 +515,7 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 /* The age plate (batch SS7): news raised when the world's age turns over. */
 const agePlateOverlayEl = requireElement<HTMLElement>('age-plate-overlay');
+const wonderPlateOverlayEl = requireElement<HTMLElement>('wonder-plate-overlay');
 /* The Opus close (batch SS7): news raised when the Magnum Opus is finished. */
 const opusCloseOverlayEl = requireElement<HTMLElement>('opus-close-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
@@ -922,6 +930,19 @@ let victory: VictoryScreen | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
+/** In play (stage 3 of the Council and In play board): everything in force, read only. */
+let inPlay: InPlayScreen | null = null;
+/**
+ * What arrived in In play since the seat last looked (frames A2 and A3). A
+ * fact about what the page has shown, not about the game: emptied with the
+ * news when the game goes away (`clearBeadNews`).
+ */
+const inPlayArrivals = createInPlayArrivals();
+/**
+ * What the arrival's flight holds back from the door while it flies (frame
+ * A2): the count goes up and the dot shows when the piece lands.
+ */
+let inPlayFlights = 0;
 /**
  * What must unbind before another boot replaces these screen instances.
  * Restart and load go through `adoptGame`, which reuses them: those journeys
@@ -1075,6 +1096,14 @@ let pendingCensus: CensusRecord | null = null;
 let agePlate: AgePlate | null = null;
 let pendingAgePlate: TechAge | null = null;
 /**
+ * The wonder plate (stage 4 of the Council and In play board, `wonderPlate.ts`)
+ * and the local seat's finished wonders it waits to show, oldest first.
+ * Queued through the same pump, last of the pages: a wonder is the seat's own
+ * news and the world's turns over first.
+ */
+let wonderPlate: WonderPlate | null = null;
+let pendingWonders: { building: WonderCompletion['building']; cityId: number; turn: number }[] = [];
+/**
  * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
  * that a game closed by the Magnum Opus ends on, before the standings. Held
  * here for the age plate's reason.
@@ -1087,8 +1116,13 @@ function clearBeadNews(): void {
   pendingBeadAge = null;
   pendingCensus = null;
   pendingAgePlate = null;
+  pendingWonders = [];
   beadSheet?.clear();
   agePlate?.clear();
+  wonderPlate?.clear();
+  // In play's arrivals are news too: a new game or a load starts with none.
+  inPlayArrivals.reset();
+  inPlayFlights = 0;
 }
 
 /**
@@ -1227,6 +1261,7 @@ screens.register(held('saves', 'screen', () => savesPanel));
 screens.register(held('starChart', 'screen', () => techTree));
 screens.register(held('abacus', 'screen', () => abacus));
 screens.register(held('statecraft', 'screen', () => statecraft));
+screens.register(held('inPlay', 'screen', () => inPlay));
 screens.register(held('religion', 'screen', () => religion));
 screens.register(held('trade', 'screen', () => trade));
 screens.register(held('wager', 'screen', () => wagerSheet));
@@ -1276,6 +1311,13 @@ screens.register({
   kind: 'news',
   isOpen: () => agePlate?.isOpen ?? false,
   close: () => agePlate?.clear(),
+});
+// Closed by `clear` for the age plate's reason: a sweep raises nothing behind it.
+screens.register({
+  name: 'wonderPlate',
+  kind: 'news',
+  isOpen: () => wonderPlate?.isOpen ?? false,
+  close: () => wonderPlate?.clear(),
 });
 // Closed by `clear` for the same reason: a sweep must not raise the standings
 // the close was about to hand over to.
@@ -3080,6 +3122,22 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => agePlate?.dispose());
 
   /**
+   * The wonder plate (stage 4 of the Council and In play board,
+   * `wonderPlate.ts`): news, raised by `pumpBeadNews` when one of the local
+   * seat's towns finishes a wonder. Closing it flies the wonder to the In play
+   * door (frame A2), and lets the news behind it come up.
+   */
+  wonderPlate = createWonderPlate({
+    overlay: wonderPlateOverlayEl,
+    onOpen: () => screens.opening('wonderPlate'),
+    onClosed: (reading, from) => {
+      landWonder(reading, from);
+      pumpBeadNews();
+    },
+  });
+  gameDisposers.push(() => wonderPlate?.dispose());
+
+  /**
    * The Opus close (batch SS7, `opusClose.ts`): raised by `onVictory` for a game
    * the Magnum Opus closed. When its beats end, or a key cuts them short, the
    * standings rise.
@@ -3589,6 +3647,55 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * **The arrival's flight** (frame A2): the piece just taken flies in its own
+   * form from where it was chosen to the corner panel's In play door. The
+   * door's count and dot are held back while it flies, and land with it. With
+   * less motion there is no flight and the count and the dot change at once.
+   */
+  function flyToInPlay(seat: number, key: string, from: DOMRect | null): void {
+    const entry: InPlayEntry | undefined = inPlayLayout(game.state, seat)
+      .stacks.flatMap((stack) => stack.entries)
+      .find((piece) => piece.key === key);
+    if (entry === undefined) return;
+    const rect = from ?? new DOMRect(window.innerWidth / 2 - 103, window.innerHeight / 2 - 100, 206, 200);
+    inPlayFlights += 1;
+    empireDrawer?.refreshInPlay();
+    let landed = false;
+    const land = (): void => {
+      if (landed) return;
+      landed = true;
+      inPlayFlights = Math.max(0, inPlayFlights - 1);
+      empireDrawer?.refreshInPlay();
+    };
+    flyToDoor(topFormNode(entry, undefined), rect, document.getElementById('quick-inPlay'), land, wantsMotion());
+    // A flight the page never finishes (a hidden tab) still lands.
+    window.setTimeout(land, ARRIVAL_FLIGHT_MS + 400);
+  }
+
+  /**
+   * **The wonder lands in In play** (frame A2): after its plate closes, the
+   * wonder flies from where the plate drew it to the corner panel's In play
+   * door, and the door's count and dot, held back since the wonder was
+   * finished, land with it. With less motion there is no flight.
+   */
+  function landWonder(reading: WonderPlateReading, from: DOMRect | null): void {
+    let landed = false;
+    const land = (): void => {
+      if (landed) return;
+      landed = true;
+      inPlayFlights = Math.max(0, inPlayFlights - 1);
+      empireDrawer?.refreshInPlay();
+    };
+    if (from === null) {
+      land();
+      return;
+    }
+    flyToDoor(topFormNode(reading.entry, reading.plate), from, document.getElementById('quick-inPlay'), land, wantsMotion());
+    // A flight the page never finishes (a hidden tab) still lands.
+    window.setTimeout(land, ARRIVAL_FLIGHT_MS + 400);
+  }
+
+  /**
    * Puts the local seat's belief offer on screen, if it has one.
    *
    * `showStatecraftOffer`'s third sibling, and the same generic card
@@ -3683,6 +3790,9 @@ async function boot(initial: Game | null): Promise<void> {
         }),
       },
       (index) => {
+        // Where the chosen card was, for its flight to In play (frame A2).
+        const picked = document.activeElement instanceof HTMLElement ? document.activeElement.closest('.offer-option') : null;
+        const from = picked?.getBoundingClientRect() ?? null;
         // Checked, like every pick (the offer-loop bug of 2026-08-30).
         const result = send({ type: 'chooseBelief', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
@@ -3715,6 +3825,9 @@ async function boot(initial: Game | null): Promise<void> {
                 : `${mine?.name ?? 'Your faith'} teaches ${beliefDef(taken).name}.`,
           });
           notifications?.refresh();
+          // A pantheon god or an enhancer belief lands in In play (frame A2);
+          // a follower belief pays the towns that follow it and is not a piece.
+          if (result.ok && pool !== 'follower') flyToInPlay(seat, `belief:${taken}`, from);
         }
         religion?.refresh();
         // **The founding's second draft.** A prophet spent on founding opens two
@@ -4072,6 +4185,7 @@ async function boot(initial: Game | null): Promise<void> {
       (triumphSheet?.isOpen ?? false) ||
       (beadSheet?.isOpen ?? false) ||
       (agePlate?.isOpen ?? false) ||
+      (wonderPlate?.isOpen ?? false) ||
       (opusClose?.isOpen ?? false) ||
       (victory?.isOpen ?? false) ||
       confirmCard.isOpen
@@ -4151,6 +4265,22 @@ async function boot(initial: Game | null): Promise<void> {
       pendingCensus = null;
       const seat = controls.localPlayerId();
       if (censusBlocker(game.state, seat) !== null) censusSheet.open();
+      return;
+    }
+    // **The wonder plate, last** (stage 4 of the Council and In play board):
+    // the seat's own wonder, one page each, oldest first. Its close calls back
+    // here. A wonder In play no longer lists (its town has changed hands since)
+    // is skipped, and its held door lands at once.
+    while (pendingWonders.length > 0 && wonderPlate) {
+      const next = pendingWonders.shift()!;
+      const reading = wonderPlateReading(game.state, controls.localPlayerId(), next.building, next.cityId, next.turn);
+      if (reading === null) {
+        inPlayFlights = Math.max(0, inPlayFlights - 1);
+        empireDrawer?.refreshInPlay();
+        continue;
+      }
+      wonderPlate.show(reading);
+      return;
     }
   }
 
@@ -4189,8 +4319,9 @@ async function boot(initial: Game | null): Promise<void> {
       // Only the seat actually at the keyboard gets a card. The log is written
       // for everyone, because a seat comes back to it. An age opening gets no
       // card: the age plate is its announcement (batch SS7), and the
-      // chronicle keeps the line.
-      if (seatId === controls.localPlayerId() && entry.mark !== 'age') toasts?.show(entry);
+      // chronicle keeps the line. The seat's own wonder is the same: its plate
+      // announces it (stage 4 of the Council and In play board).
+      if (seatId === controls.localPlayerId() && entry.mark !== 'age' && entry.mark !== 'wonder') toasts?.show(entry);
       notifications?.refresh();
     },
     // The commit funnel, straight through to the guide: a tutorial step is
@@ -4294,6 +4425,14 @@ async function boot(initial: Game | null): Promise<void> {
     onStatecraftPause: (kind) => openStatecraftPause(kind),
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
+    // The local seat's own wonder (stage 4): its plate is news, and the In
+    // play door's count and dot wait for the wonder to land there.
+    onWonderArrived: (done) => {
+      pendingWonders.push({ building: done.building, cityId: done.cityId, turn: done.turn });
+      inPlayFlights += 1;
+      empireDrawer?.refreshInPlay();
+      pumpBeadNews();
+    },
     /**
      * The spend ceremony — the card rises, the legacy counts, the deed appears,
      * the card descends into the renown figure in the top bar
@@ -4725,11 +4864,52 @@ async function boot(initial: Game | null): Promise<void> {
     // which is what `controls.guide` writes (see its docblock).
     onRefuse: (message) => controls.guide(`☞ ${message}`),
     onOpen: () => screens.opening('statecraft'),
+    // The link in the head and the I key (stage 3). Opening In play closes
+    // this screen through the registry, which signs the arrangement.
+    inPlay: {
+      count: () => inPlayDoorCount(game.state, controls.localPlayerId()),
+      open: () => inPlay?.open(),
+    },
   });
 
   // The parchment sheets share the boot's lifetime. Their capturing keyboard
   // listeners come off only when that boot is replaced, not on Restart.
   gameDisposers.push(() => statecraft?.dispose());
+
+  /**
+   * In play (stage 3 of the Council and In play board, `inPlayScreen.ts`):
+   * everything in force, read only. Its doors are the corner panel's fifth
+   * mark, the link in the Council screen's head and the I key. A piece in its
+   * tray goes to the screen that owns it, through those screens' own doors.
+   */
+  inPlay = createInPlayScreen({
+    overlay: inPlayOverlayEl,
+    body: inPlayBodyEl,
+    closeButton: requireElement('inplay-close'),
+    trigger: document.getElementById('quick-inPlay'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    arrivals: inPlayArrivals,
+    openCouncil: (card) => {
+      if (card !== null) statecraft?.openAt(card);
+      else statecraft?.open();
+    },
+    openCity: (cityId) => controls.setOpenCity(cityId),
+    openFaith: (cityId) => {
+      if (cityId !== null) religion?.openRitesFor(cityId);
+      else religion?.open();
+    },
+    openReliquary: (person) => {
+      if (person !== null) reliquary?.showPerson(person);
+      reliquary?.open();
+    },
+    openLeader: () => leaderSheet?.open(),
+    openLedger: (voice) => ledger?.open(voice),
+    onOpen: () => screens.opening('inPlay'),
+    // The arrivals were seen: the corner panel's dot goes.
+    onSeen: () => empireDrawer?.refreshInPlay(),
+  });
+  gameDisposers.push(() => inPlay?.dispose());
 
   /**
    * The Faith sheet (`religionScreen.ts`): rites, the bonuses the religion
@@ -5154,7 +5334,21 @@ async function boot(initial: Game | null): Promise<void> {
       diplomacy: () => diplomacy?.open(),
       routes: () => trade?.open(),
       faith: () => religion?.open(),
+      inPlay: () => inPlay?.open(),
       standings: () => victory?.open(),
+    },
+    // The In play mark's count and dot (frame D1). Asked on every render of
+    // the panel, which is every change of the board: the arrivals are learnt
+    // here, so a wonder finished or a belief chosen lights the dot (frame A2).
+    // A piece in flight is held back until it lands.
+    inPlay: () => {
+      const seat = controls.localPlayerId();
+      const layout = inPlayLayout(game.state, seat);
+      inPlayArrivals.note(seat, layout);
+      return {
+        count: inPlayCount(layout) - inPlayFlights,
+        fresh: inPlayFlights === 0 && inPlayArrivals.fresh(seat).size > 0,
+      };
     },
     // A greyed door (Faith before Divination, Routes before Currency, batch
     // SS9a) says what opens it on the guidance line, as its key does.
@@ -5468,6 +5662,30 @@ async function boot(initial: Game | null): Promise<void> {
   window.addEventListener('keydown', onStandingsKey);
   gameDisposers.push(() => window.removeEventListener('keydown', onStandingsKey));
 
+  // `I` opens In play (stage 3, frame D1): the corner panel's fifth mark, and
+  // the key the board names. Nothing else binds I (`controls.ts`'s board
+  // switch has no branch for it). Swept with the boot like `E` and `S`. The
+  // screen claims I itself while it is up, to close, and the Council screen
+  // claims it to come here.
+  const onInPlayKey = (event: KeyboardEvent): void => {
+    if (event.key !== 'i' && event.key !== 'I') return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (isInputBlocked()) return;
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+    if (typing) return;
+    event.preventDefault();
+    if (inPlay?.isOpen === true) inPlay.close();
+    else inPlay?.open();
+  };
+  window.addEventListener('keydown', onInPlayKey);
+  gameDisposers.push(() => window.removeEventListener('keydown', onInPlayKey));
+
   /**
    * The two city views. Both are pure readers of the simulation plus one
    * command (the panel's `setCityProduction`), and both are declared after
@@ -5574,11 +5792,13 @@ async function boot(initial: Game | null): Promise<void> {
     controls.handOverPending() ||
     pendingBeadNews.length > 0 ||
     pendingAgePlate !== null ||
+    pendingWonders.length > 0 ||
     pendingBeadAge !== null ||
     pendingCensus !== null ||
     (triumphSheet?.isOpen ?? false) ||
     (beadSheet?.isOpen ?? false) ||
     (agePlate?.isOpen ?? false) ||
+    (wonderPlate?.isOpen ?? false) ||
     (wagerSheet?.isOpen ?? false) ||
     (censusSheet?.isOpen ?? false) ||
     (opusClose?.isOpen ?? false) ||
@@ -5642,8 +5862,9 @@ async function boot(initial: Game | null): Promise<void> {
   // (the sea, the smoke, the swaying trees) is not drawn.
   //
   // `opaque`: the screens that hide every pixel of the board. Each fills the
-  // window with an opaque ground: the orders screen's cloth is lampblack, the
-  // Abacus's is the table colour, and the landing is the table.
+  // window with an opaque ground: the orders screen's cloth is lampblack, as
+  // In play's is (stage 3), the Abacus's is the table colour, and the landing
+  // is the table.
   //
   // `dimmed` (the second batch; the user accepted that the board's motion
   // stands still behind a sheet): the star chart, and every parchment sheet on
@@ -5663,7 +5884,7 @@ async function boot(initial: Game | null): Promise<void> {
   // is still listed by `getAnimations`, so the test is its play state, not
   // whether the list is empty. A closing sheet is `hidden` at once, so the
   // board moves again under its leaving fade.
-  const opaqueScreens = [statecraftOverlayEl, abacusOverlayEl, landingEl];
+  const opaqueScreens = [statecraftOverlayEl, inPlayOverlayEl, abacusOverlayEl, landingEl];
   const dimmingScreens = [
     techOverlayEl,
     ...document.querySelectorAll<HTMLElement>('.statecraft-overlay:not(.loading-overlay)'),
@@ -6200,6 +6421,7 @@ async function boot(initial: Game | null): Promise<void> {
     splash.clear();
     offerCard.clear();
     agePlate?.clear();
+    wonderPlate?.clear();
     opusClose?.clear();
   };
 

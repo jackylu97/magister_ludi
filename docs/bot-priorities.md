@@ -15,10 +15,57 @@ weigh a charter). Every knob is a leaf of `data/ai.json` and therefore appears o
 arena A/B, seed sweep and before/after profile — is
 `docs/history/bot-priorities-log.md`.
 
+## The turn's bot step: plans on a frozen board
+
+Since bot batch BP16, stage C1 (`docs/flags.md`, "Bots after BP16 stage B",
+item 3), the bot seats do not take their turns one after another on the live
+board. The driver (`driveBots`) and the stepper do this (`frozenBoard.ts`):
+
+1. **Freeze.** At the start of the bot step the board is copied once
+   (`freezeBoard`). The muster roll's mark for the turn is written on the real
+   state at that moment.
+2. **Plan.** Each bot seat runs its whole sitting (the order below) on its own
+   copy of the frozen board, applying its own commands to its copy as it goes.
+   The result is the seat's **plan**: its accepted commands, in order, without
+   the End Turn. No seat sees what another seat does this turn, as hard rule 3
+   says turns are simultaneous.
+3. **Apply.** The plans are put to the real game in seat order
+   (`realPlayers`), one command at a time through `dispatch`. A seat that an
+   earlier seat knocked out is skipped. A command a seat's copy handed a new id
+   (a town founded, a unit bought) gets the real state's id, and the seat's
+   later commands are rewritten to name it.
+4. **Cut.** A plan stops at the first command that the real board refuses (a
+   hex now taken, a target gone, a paper withdrawn), or that would not mean
+   what it meant on the copy: a new id with no mapping, a different count of
+   new ids, a choice from an offer that is not the offer the copy held, or a
+   great person another seat called first. The seat then finishes its turn with
+   a live sitting on the real board (`driveSeat`). It carries on the budget,
+   the orders the plan landed, and the plan's marks at its last landed command
+   (the pieces and towns already asked, the re-aims spent, the phases closed;
+   `resumedSitting`), and reads the board again.
+5. **Memories.** The seat's war windows and focus rows from its copy join the
+   real state's (`mergeSeatMemory`) after its plan, before any live sitting.
+6. **End Turn.** A plan that ran to its end sends the seat's End Turn and asks
+   nothing more.
+
+What changes in play: a seat answers a paper another bot sent this turn on its
+next turn, and acts on a war declared on it this turn on its next turn, unless
+its plan was cut. A paper a person sends is on the frozen board, so it is
+answered in the same turn. Stage C2 makes the plans in parallel workers; the
+plans, and so the log, are the same.
+
+Measured on five seeds to turn 100 (`docs/plans/performance-pass-2026-11-06.md`,
+"Stage C"): 4.8% of plans are cut (55 by a refusal and 87 by a different offer
+in 3,000 seat-turns), 5.4% of planned commands are dropped and about as many
+are sent by the live sittings, and no yield is worse clear of chance. Towns
+fell 10% on four seeds of five, not clear of chance.
+
 ## The order of a sitting
 
 A **sitting** is one bot seat's turn: a run of decisions, one command each,
 until the seat has nothing more it wants and the driver sends its End Turn.
+Since stage C1 a sitting runs on the seat's copy of the frozen board (the
+section above), and on the live board only after a cut.
 Since bot batch BP16 (stage B; `docs/flags.md`, the bullet "The bot's turn in
 phases") a sitting runs in this order (`phasedDecision`, `bot.ts`;
 `sittingPhases.ts`):

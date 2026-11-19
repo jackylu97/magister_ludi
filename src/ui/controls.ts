@@ -1769,6 +1769,12 @@ export interface GameControlsOptions {
    */
   onOfferGreatPerson?: () => void;
   /**
+   * A wonder the local seat has just finished (stage 4 of the Council and In
+   * play board): `main.ts` queues the wonder plate as news. Another seat's
+   * wonder is not reported here; it keeps its toast.
+   */
+  onWonderArrived?: (done: WonderCompletion) => void;
+  /**
    * Raises the wager's deal sheet — `main.ts`'s `wagerSheet.open()`.
    *
    * The fifth of the five, for `onOfferStatecraft`'s reason exactly: the button
@@ -2612,6 +2618,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onStatecraftPause,
     onOfferReligion,
     onOfferGreatPerson,
+    onWonderArrived,
     onOfferWager,
     onOfferCensus,
     onCensusTaken,
@@ -3183,10 +3190,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const city = cityById(state, done.cityId);
       const empire = seatName(state, done.playerId);
       const where = city ? cityDisplayName(state, city) : 'a distant city';
+      // The seat's own wonder is announced by its plate (`wonderPlate.ts`):
+      // the line keeps the chronicle, marked so it raises no toast.
+      const own = done.playerId === localPlayerId;
       announce(
         `✶ ${empire} has completed ${done.name} in ${where}`,
-        city ? { cell: { col: city.col, row: city.row } } : {},
+        { ...(city ? { cell: { col: city.col, row: city.row } } : {}), ...(own ? { mark: 'wonder' as const } : {}) },
       );
+      if (own) onWonderArrived?.(done);
       for (const refund of done.refunds) {
         if (refund.playerId !== localPlayerId) continue;
         const beaten = cityById(state, refund.cityId);

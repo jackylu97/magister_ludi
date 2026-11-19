@@ -372,6 +372,55 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     }
   });
 
+  it('gives the head and the council more height and the hand at most fanMax (the user’s comments on stage 3)', () => {
+    expect(COUNCIL_FRAME.head).toBeGreaterThan(46);
+    for (const [width, height] of [
+      [1280, 720],
+      [1440, 900],
+      [1920, 1080],
+    ] as const) {
+      for (const chairs of [3, 5, 6, 8, 11, 12]) {
+        const layout = councilLayout({ width, height }, chairs);
+        const where = `${width}x${height}, ${chairs} chairs`;
+        expect(layout.fanView, where).toBeLessThanOrEqual(COUNCIL_FRAME.fanMax);
+        // Every pixel of the window is the head's, the council's, the band's or the hand's.
+        const used = COUNCIL_FRAME.head + COUNCIL_FRAME.chairsTop + layout.chairs.height + COUNCIL_FRAME.band + layout.fanView + layout.spare;
+        expect(used, where).toBe(height);
+      }
+    }
+    // The heights are set from the layout, never written in the stylesheet.
+    const paint = braceBody(SCREEN, 'function paint(): void');
+    for (const name of ['--council-head-h', '--council-fan-h', '--council-spare-top']) expect(paint, name).toContain(`'${name}'`);
+  });
+
+  it('clusters five chairs or fewer in the page’s middle, three to a row, and keeps the board’s layout from six', () => {
+    expect(COUNCIL_FRAME.cluster).toEqual({ most: 5, cols: 3 });
+    const three = councilLayout({ width: 1440, height: 900 }, 3);
+    expect([three.form, three.rows, three.cols]).toEqual(['full', 1, 3]);
+    // To the page's middle: half the government's column and its gap.
+    expect(three.cluster!.shift).toBe(Math.floor((COUNCIL_FRAME.government.wide + COUNCIL_FRAME.columnGap) / 2));
+    const five = councilLayout({ width: 1440, height: 900 }, 5);
+    expect([five.form, five.rows, five.cols]).toEqual(['full', 2, 3]);
+    expect(five.cluster).not.toBeNull();
+    // Six and more: the board's C6, C8 and C11, with no cluster.
+    for (const chairs of [6, 8, 11]) expect(councilLayout({ width: 1440, height: 900 }, chairs).cluster, String(chairs)).toBeNull();
+    // A cluster never reaches the government's column.
+    for (const width of [1180, 1280, 1440]) {
+      for (const chairs of [1, 2, 3, 4, 5]) {
+        const layout = councilLayout({ width, height: 800 }, chairs);
+        const room = width - 2 * COUNCIL_FRAME.side - layout.government - COUNCIL_FRAME.columnGap;
+        expect(layout.cluster!.shift, `${width}, ${chairs}`).toBeLessThanOrEqual((room - layout.chairs.width) / 2);
+      }
+    }
+  });
+
+  it('closes with the star chart’s ×, and has no second close hint', () => {
+    const html = uiSource('index.html');
+    expect(html).toContain('<button id="statecraft-close" class="tech-close" type="button" aria-label="Close" title="Close (Esc)">');
+    expect(SCREEN).not.toContain("closeButton.replaceChildren(keyMark('Esc')");
+    expect(SCREEN).not.toContain('council-close');
+  });
+
   it('says when a window is too small for every form, and keeps the narrow form then', () => {
     const small = councilLayout({ width: 1024, height: 700 }, 11);
     expect(small.cramped).toBe(true);

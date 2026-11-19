@@ -3662,3 +3662,154 @@ Not cut: no code changed. `test/sim/aiDigest.slow.test.ts` passes with the stage
 - `docs/bot-priorities.md` ("The order of a sitting": the corrected reason, and the note on stale context memos), and this section. No source or test file changed.
 - Kept outside the repo: `/Users/jacky/code/webciv-baselines/bp16fix/` (`README.md`, `exact-fix.patch`, `small-fix.patch`, `games/`).
 - Scratch, in the session's scratch folder `bp16fix/`: the check (`shadow/src/ai/memoShadow.ts`, `patch_shadow.py`, `patch_shadowfix.py`, `shadowrun.ts`, `shadowtable.py`, `fixtable.py`, `readers.py`), the order switch (`patch_order.py`), the variant (`patch_v.py`), the smaller fix's builder (`patch_mini.py`), the timers (`pair2.ts`, `pair2.sh`, `timing.py`, `prof1.sh`, `profsum.py`, `patch_count.py`, `countrun.ts`), the tables (`abl.py`, `mktable.py`), and the games in `out/` (`shadow/`, `A1-allfirst/`, `F0-fresh-final/`, `F1-fresh-allfirst/`, `fix-allfirst/`, `after-fullfix/`, `after/`). The scratch trees (`base/`, `shadow/`, `fix/`, `fixorder/`, `shadowfix/`, `varV/`, `mini/`, `costprobe/`, `basecount/`, `fixcount/`) can be removed.
+
+## Stage C: parallel bots from a frozen board, 2026-11-18
+
+`docs/flags.md`, "Bots after BP16 stage B (2026-11-18)", item 3: *"Each bot decides from the board as it stood at the start of the turn's bot step, in its own worker. Results change once."* The work has two stages. C1 changes what the bots see, on one thread, so the play change is measured on its own. C2 puts the plans in workers. This section reports C1 and sketches C2.
+
+### Method
+
+- **Trees.** The **before tree** is `3e85400e` (the head of `decks`, which contains the world clock rule of `7847f279`), copied to the scratch folder `bp16c/before/`. Seeds 42 and 999 on it reached the stored digests of `/Users/jacky/code/webciv-baselines/7847f279/six-seat-standard-t130/` at turns 20, 50, 75, 100, 110, 120 and 130, and all five seeds reached the stored turn-100 digests with the new probe, so the baseline is valid for it. The **first C1 tree** (`bp16c/c1a/`) is the before tree with this stage's files as first built. The **final tree** (`bp16c/c1c/`, the worktree) adds the resumed sitting after a cut (part 2) and the corrected outcome tally (part 5).
+- **Probe.** `bp16c/PROBE.ts`: the `7847f279` baseline's probe, with every key it records unchanged except that a command's decision is found by the command object (a plan's commands are decided on a copy before they land). Added a turn: the plan of each seat (planned, landed, cut), the frozen board's tally (refusals by kind and reason, cuts by reason, outcomes unlike the copy's), decisions asked on a copy and on the real state, the blows struck by real seats and what they left on the board, the warnings' text; and at the end a replay of the save. Six seats, standard map, seeds 42, 999, 1, 7 and 2026, to turn 100. The before games were played again with this probe.
+- **Timings.** `bp16c/pair.ts`: BP14's pair timer, both trees from the same snapshot in one process, a turn each in rotation, three repeats, with the split of a frozen-board turn: the freeze, each seat's plan (from its first decision to the next seat's), the apply phase (from the first command put to the real game to the end, the turn's resolution included). Snapshots of the before tree at turns 90 and 120 of seeds 42 and 999 (`bp16c/snaps/`).
+- **Load.** `nice -n 15`, at most two of my game processes at once. Other jobs loaded the machine heavily (load average 6 to 200). Counts and yields do not depend on load; each timing compares the two trees under the same load.
+
+### 1. The rule as built
+
+`src/ai/frozenBoard.ts` (new), `driveBots` (`driver.ts`) and the stepper (`stepper.ts`):
+
+1. **Freeze.** When the turn's bot step begins, `freezeBoard` writes the muster roll's mark for the turn on the real state, then copies the state once (`structuredClone`) with the bot memories beside it.
+2. **Plan.** Each bot seat runs its whole sitting on its own copy of the frozen board (`planSeat`). The loop is the live loop (`runSitting`, moved out of `driveSeat` unchanged, with its four guards), and its commands are applied to the copy with `applyCommand`. The plan is the list of accepted commands without the End Turn, each with the copy's new ids, the offer it chose from, what a march or a blow left, and the sitting's marks after it. The driver makes every plan before any command lands; the last seat takes the frozen copy itself. The stepper makes each plan when the seat's moment comes. A plan is a function of the frozen board and the seat, so the plans are the same (pinned: plans made in reverse order, and again after another seat's plan has landed, are the same).
+3. **Apply.** The plans are put to the real game in seat order through `dispatch` (`applyNextStep`). A seat that an earlier seat knocked out is skipped.
+4. **Cut and repair** (part 2): the plan stops at the first command that cannot mean on the real board what it meant on the copy. The seat finishes its turn with a live sitting (`driveSeat`, the code before this stage), which carries the plan's budget and the orders it landed (`SeatGuards`) and the plan's marks at its last landed command (`resumedSitting`, `bot.ts`: the pieces and towns already asked, the re-aims spent, the phases closed), and reads the board again.
+5. **Memories.** After a seat's plan, its war windows and focus rows from its copy join the real state's (`mergeSeatMemory`); the refusal memory is banked as each answer lands; the muster mark was written at the freeze.
+6. **End Turn.** A plan that ran to its end sends the End Turn and asks nothing more.
+7. **Reports.** `SeatDriveReport` gains `planned`, `landed` and `cut`. A refused planned command is a **conflict**, not a bug: it is not warned about and not counted in `refused`. `frozenTally` counts landings, refusals, cuts and unlike outcomes; nothing reads it to decide.
+
+### 2. The repair, and its counts
+
+The candidates were: stop the plan at the first refusal and finish with a live sitting; skip only the refused command and those naming the same piece or town; or apply the plans command by command in turn. Counts, five seeds, turns 1 to 100 (3,000 seat-turns), the final tree:
+
+| | Count | A turn of six seats |
+|---|---:|---:|
+| Plans cut | 143 (4.8% of seat-turns) | 0.29 |
+| of them by a refusal | 55 | 0.11 |
+| of them by an offer that differed | 87 | 0.17 |
+| of them by a great person already called | 1 | |
+| Planned commands | 25,855 | |
+| dropped after a cut | 1,401 (5.4%) | |
+| sent by the live sittings after a cut | 1,371 | |
+| Decisions asked on the real board (live) | 1,514 of 30,369 (5.0%) | |
+
+- **Refusals are rare.** By reason: a target gone ("Nothing to attack on", 18; "No unit with id", 3), a hex taken ("cannot stop on", 14), a peace made earlier in the step ("You are not at war", 11; "their land is closed", 1), a friend with no movement to trade places (3), a civilian that another seat's piece now stands on, taken by walking onto it (2), a wonder another seat finished first (1), a luxury no longer there to lend (1), a route the purse could no longer pay (1). 20 of the 55 came after a march or a blow of the same plan had landed differently from the copy's (part 5).
+- **Most cuts are offers.** An offer drawn during the sitting (a belief when a faith is founded, 40; a Doctrine when a government is adopted, 27; an Order after an Order, 12; a reroll, 4; a skip, 3; a great person, 1) is drawn from the state's random stream, which earlier seats have moved on the real board. The real offer is another hand, so the plan is cut before the choice and the live sitting chooses from the real hand.
+- **A cut came halfway through its plan** on average (45% of the plan had landed). The live sittings sent about as many commands as the cuts dropped.
+- **The live sitting starts from the plan's marks.** In the first build (`c1a`) it was a fresh sitting. In 2 of its 155 cuts it sent nothing: its first ask re-asked a piece the plan had already ordered, met the order already landed, and the driver's repeat guard stopped the seat (seed 2026, turn 70, seat 4: 7 planned commands dropped and none sent, and the one warning in those games). With the marks carried on, every live sitting of the final tree sent its commands, and there was no warning in the five games.
+- **The simplest repair wins**: stop at the first problem and finish live. A skip-and-continue repair could save at most the live sittings' own cost (0.1 s to 1.2 s of bot time a turn, part 6) and would need a rule for which later commands depend on a refused one. A round-robin apply would make every plan depend on the others again, which is what the ruling removes.
+
+### 3. The hazards, one by one
+
+- **The readings of other seats** (the list "What a sitting reads of other seats" above): **read from the frozen copy**. That is the rule. A reading that is stale by the time the command lands shows up as a refusal or a cut.
+- **The unit id counter: a real hazard, fixed.** Units, towns, deals and papers take ids from one counter. Every copy starts at the frozen counter, so two seats' copies hand out the same ids (pinned). The plan records how many ids each command handed out on the copy; the applier records how many the real state handed out, maps the copy's ids to the real ones, and rewrites every later command's `unitId`, `settlerUnitId`, `cityId`, `fromCityId`, `toCityId`, `dealId` and a peace paper's ceded towns, and the ids in the sitting's marks. Ids below the frozen counter name the same thing on both boards. An id with no mapping cuts the plan; a different count of new ids cuts it after the command (0 in five games). The log holds the real ids, and all five games' saves replayed to the same state.
+- **Diplomacy within a turn.** A paper one bot sends another this turn is answered at the receiver's next sitting; papers stand until answered (no rule reads `DealProposal.turn`), so nothing is lost. A person's paper is answered at once by the audience (`answerAudience`, unchanged), and a paper still standing is on the frozen board, so the bot's plan answers it in the same turn (pinned). An answer to a paper that is no longer good is refused and cuts the plan (1 in five games).
+- **War declared this turn by an earlier seat.** The seat it names does not see it until its next sitting, unless its plan is cut: its soldiers do not answer the declaration in the same turn. A command the new war makes illegal is refused and cuts the plan, and the live sitting sees the war. A peace made earlier in the step (a seat answering the other's standing peace paper) turns a planned blow into a refusal (11 in five games), and the plan is cut there. Wars declared: 20 before, 24 after.
+- **The tuning sheets.** On one thread the module's sheets are the same for every plan, so C1 needs no change. For C2 a worker must be sent the page's sheet and each planned seat's sheet (`aiTuning()`, `aiTuning({ playerId })`) and install them around the plan (`withAiTuning`); part 8.
+- **Memos keyed on the state.** A copy is a new key, so every reading a sitting builds on its copy starts cold. Nothing leaks between copies or into the real state: every memo on a board is a `WeakMap` keyed on the state, the map or a context; the two string-to-number tables (`INPUT_CODES` in `bot.ts`, `TYPE_CODES` in `routeMemo.ts`) are read for equality only; the decision memo's counters are compared within one context. The cold memos cost little (part 6: the bot's own time is about the same).
+- **The random stream.** No bot decision draws from it (pinned by `aiBot.test.ts`). The commands the bots send do: a blow's roll (`combat.ts`), a ruin's discovery (`discoveries.ts`), a great person's hand and its redraw (`greatPeople.ts`), an Order or Doctrine draft and a reroll (`statecraft/draft.ts`), a faith's name (`religion.ts`), a consecration (`cities.ts`) and a card that musters a piece (`statecraft/evaluator.ts`). Every copy starts at the same point of the stream, so two seats' copies draw the same numbers; those draws stay on the copies, which are dropped. The real state draws when a command lands, in the fixed seat order, so the log does not depend on the order in which the plans were made. Where a copy's draw shaped a later command, the applier checks it: an offer is compared before a choice, and a march or a blow that left a different board is counted.
+- **The one refusal that changes the state** (`chooseGreatPerson` when another seat called the name first) is asked of the rule before the command is sent, so the applier never sends it; the plan is cut (1 in five games, pinned) and the live sitting calls from the real hand. A known gap, not new: when a live sitting finds every name of its hand spent, the bot sends a pick to make the reducer redraw (`greatPersonDecision`), and the log does not hold that refusal, so such a save would not replay. That path is the same before and after this stage.
+
+### 4. Play, five seeds to turn 100
+
+Before is the before tree, after the final tree, both with this probe. Six seats summed. Paired is the geometric mean of the per-seed ratios with a 95% t interval.
+
+| Figure | Before | After | After against before, paired | Per seed (42, 999, 1, 7, 2026) |
+|---|---:|---:|---|---|
+| Towns | 340 | 307 | −10% [−19%, +1%], 4 down, 0 up | 65→52, 67→61, 56→54, 88→76, 64→64 |
+| Citizens | 1,684 | 1,749 | +4% [−14%, +26%], 2 down, 3 up | 331→287, 420→406, 316→329, 326→342, 291→385 |
+| Food | 6,160 | 7,290 | +20% [−6%, +54%], 0 down, 5 up | 1,357→1,367, 1,760→1,871, 1,078→1,319, 1,054→1,212, 911→1,521 |
+| Production | 5,993 | 8,168 | +29% [−5%, +76%], 0 down, 5 up | 1,011→1,049, 1,836→2,424, 709→964, 1,022→1,051, 1,415→2,680 |
+| Gold | 2,582 | 3,058 | +11% [−24%, +61%], 3 down, 2 up | 488→479, 898→1,173, 278→269, 468→367, 450→770 |
+| Science | 4,092 | 4,984 | +18% [−14%, +62%], 1 down, 4 up | 615→676, 1,155→1,401, 800→729, 759→808, 763→1,370 |
+| Culture | 2,005 | 2,638 | +26% [−16%, +89%], 0 down, 5 up | 303→347, 617→724, 310→330, 400→401, 375→836 |
+| Faith | 911 | 1,086 | +19% [−19%, +74%], 1 down, 4 up | 140→233, 250→305, 178→131, 117→166, 226→251 |
+| Techs known | 740 | 764 | **+3% [+0%, +6%]**, 0 down, 5 up | 128→136, 162→171, 146→147, 150→152, 154→158 |
+| Units | 1,260 | 1,182 | −6% [−19%, +11%], 4 down, 1 up | 209→190, 329→278, 255→252, 260→223, 207→239 |
+| Soldiers | 965 | 846 | −12% [−26%, +5%], 4 down, 1 up | 150→123, 245→185, 224→208, 197→167, 149→163 |
+| Improvements started | 1,266 | 1,316 | +4% [−1%, +9%], 1 down, 4 up | 216→214, 320→322, 235→255, 249→260, 246→265 |
+| Workers built | 419 | 426 | +1% [−3%, +6%], 1 down, 4 up | 71→68, 100→101, 79→81, 81→86, 88→90 |
+| Workers taken (the wild and rivals) | 43 | 41 | −13% [−53%, +59%], 3 down, 2 up | 6→3, 7→6, 8→13, 10→12, 12→7 |
+| Units lost to the wild | 450 | 442 | +1% [−19%, +25%], 2 down, 3 up | 71→87, 60→67, 115→107, 83→87, 121→94 |
+| Deals signed | 91 | 98 | +9% [−3%, +22%], 1 down, 4 up | 13→15, 27→29, 22→21, 14→17, 15→16 |
+| Wars declared | 20 | 24 | −20% [−48%, +22%], 2 down, 1 up | 1→1, 5→3, 11→11, 3→2, 0→7 |
+| Peace proposed | 33 | 40 | −13% [−33%, +14%], 2 down, 1 up | 2→2, 7→5, 20→16, 4→4, 0→13 |
+| March orders | 11,096 | 10,349 | −8% [−23%, +11%], 3 down, 2 up | 2,047→1,499, 1,995→2,108, 2,521→2,629, 2,513→2,199, 2,020→1,914 |
+| Decisions | 29,634 | 30,369 | +2% [−10%, +15%], 2 down, 3 up | 5,355→4,712, 6,056→6,557, 6,319→7,138, 6,388→6,140, 5,516→5,822 |
+
+- **No yield is worse clear of chance.** The one figure clear of chance is a gain: techs known +3% on all five seeds. Food, production and culture rose on all five seeds, not clear of chance.
+- **Towns fell on four seeds of five** (−10%, the interval's top at +1%): close to clear, and the one figure to watch. A likely reading, not proven: a seat chooses its settlers' sites without seeing the towns other seats found in the same step, so a march goes on toward a site that has just become worse or illegal. No `foundCity` was refused in the final games (1 in `c1a`), so the loss is more likely in the marches than in the foundings. Not tuned: the brief says to report first.
+- **Decisions a sitting**: 9.9 before, 10.1 after.
+- **The first tree** (`c1a`, five seeds to turn 130 with the first probe) gave the same picture: at turn 100 no interval excluded nought (production +14%, science +16%, towns −4%); at turn 130 none either (production −15% [−35%, +11%], towns −3%).
+
+### 5. Fighting
+
+| Figure, five seeds, turns 1 to 100 | Before | After |
+|---|---:|---:|
+| Blows struck by seats (landed) | 1,969 | 1,889 |
+| of them on a town | 55 | 53 |
+| Blows on a piece that left no enemy on the hex, a share of blows on pieces | 27% (518) | 27% (488) |
+| Attackers lost in their own blow | 7 | 6 |
+| Towns taken by force | 1 | 2 |
+| Planned blows refused (target gone 18, war already over 11, attacker gone 2, a civilian to take by walking 2) | | 33 (1.7% of blows) |
+| Planned marches refused (hex taken 14, friend without movement 3, piece gone 1, closed land 1) | | 19 (0.2% of marches) |
+| Blows that landed and left another board than the copy's | | 65 (3.4%) |
+| Marches that landed and stopped elsewhere than on the copy | | 29 (0.3%) |
+| Units lost to the wild | 450 | 442 |
+
+- **Armies are not visibly worse at fighting.** The share of blows that clear a hex and the attackers lost in their own blow did not move. Collisions are a small share: 1.7% of planned blows were refused and 3.4% of blows came out differently from the copy's, and every refusal cut its plan so the live sitting gave the seat's remaining pieces their orders on the real board. Soldiers at turn 100 fell 12% (4 seeds of 5, not clear of chance); fewer towns would explain some of it.
+- The blow print (`outcomePrint`) replaced a first tally that read `CommandResult.combats`, which an ordinary blow does not carry (`applyAttack` reports only a plunder).
+
+### 6. Seconds a turn
+
+CPU seconds of the window, the two trees from the same before snapshot in one process, a turn each in rotation, three repeats. The play parts after the first turn, so the windows compare the same turns of two games. "C2 estimate" is the freeze, the slowest seat's plan, and the apply phase, summed over the window.
+
+| Window | Load | Before, repeats 1 to 3 | C1, repeats 1 to 3 | C1 against before | Decisions | C2 estimate, against before |
+|---|---|---|---|---|---|---|
+| 42, turns 90 to 100 | 10 to 60 | 20.95, 15.16, 14.24 | 22.14, 16.80, 15.86 | +9.3% | 1,076, 1,100 | 51%, 57%, 57% |
+| 999, turns 90 to 100 | 41 to 116 | 116.23, 62.50, 52.68 | 126.30, 64.39, 56.80 | +6.5% | 1,347, 1,376 | 53%, 50%, 51% |
+| 42, turns 120 to 125 | 22 to 116 | 53.57, 36.79, 40.20 | 54.30, 36.48, 39.79 | −0.2% | 702, 719 | 63%, 63%, 62% |
+| 999, turns 120 to 125 | 22 to 77 | 69.27, 55.79, 28.20 | 82.32, 65.46, 32.14 | +16.7% | 1,112, 1,223 | 67%, 65%, 64% |
+
+- **C1 costs about 0% to 17% more a turn, about 8% on average.** The bot's own CPU is about the same per decision (the cold memos on a copy cost little); the extra is the copies (one freeze and five more clones a turn, about 8 ms each at turn 120 on a quiet machine, `clonecost.ts`) and the reducer running every command twice, once on the copy and once on the real board. Seed 999 at turns 120 to 125 is the dearest window: its after game made 10% more decisions and spent 2.8 s to 7.3 s of bot time in live sittings after cuts.
+- The first tree (`c1a`) on seed 42, turns 90 to 100, at load 14 to 23: +8.9%, the same as the final tree.
+- **The split of a C1 turn**, seed 999, turns 90 to 100, repeat 3: the freeze 0.52 s, the plans 41.49 s, the apply phase 14.78 s (every command on the real board, the live sittings with 2.89 s of bot time, and the turn's resolution). The slowest seat's plan, summed over the turns, was 11.55 s, 28% of the plans.
+- **A cheaper copy** was measured and not built: copying the tiles by spread (every `Tile` field is a primitive) and the rest by `structuredClone` cost 63% of a full `structuredClone` (`clonecost2.ts`). It would save about 1% of a turn.
+
+### 7. Pins and tests
+
+- **Pins.** Not cut by this stage: the coordinator runs the gate. Both digests in `test/sim/aiDigest.slow.test.ts` (duel `2fa80e05:339704`, standard `040c052c:1045966`) will **move**: from turn 1 every seat after the first decides on the frozen board, not on the board the earlier seats left, so a six-seat game parts at once (seed 42's turn-100 digest moved from `e0494721:951439` to `a23917a1:949123`).
+- **Tests written first and run while building**: `test/sim/aiFrozenBoard.test.ts` (new, 7 tests: the frozen property, the same hex, new ids and the replay, a person's paper answered in the same turn, a great person already called, a cut plan leaving no piece without orders, the stepper and the driver on a short game), `test/sim/aiDriverEliminated.test.ts` (3, reworked) and `test/sim/aiDriverRepeat.test.ts` (5); all passed.
+- **The closing sweep was left to the coordinator** (the user's word): every file that plays bots or reads the bot's sources (listed in the hand-back), and the slow tier.
+
+### 8. Stage C2: the plans in workers (a sketch, not built)
+
+The plans are the only part that moves. The freeze, the apply, the cuts, the live sittings and the memory merge stay on one thread as built, so C2 gives the C1 log byte for byte when every plan is the same.
+
+- **A planner, handed to the driver.** `driveBots` takes the plans from a planner: `plan(board, seats) → SeatPlan[]`. The planner of C1 is the loop as built (in-process, in seat order). A worker planner sends the work out and waits. The driver becomes `driveBotsAsync(game, options & { planner })` for the callers that have workers; the synchronous `driveBots` stays for the tests and for one core.
+- **What goes to a worker**: the frozen state (the `postMessage` structured clone; nothing else is needed, since every plan starts from a copy of it), the bot memories (`HarnessMemory`), the frozen id counter, the seats this worker plans, and the tuning sheets: the page's and each of those seats' own (`aiTuning()`, `aiTuning({ playerId })`), which the worker installs around the plans and clears after.
+- **What comes back**: each seat's `SeatPlan` as plain data: the steps (command, new ids, offer print, outcome print, the sitting's marks), the decisions with their candidates and terms (what the spectator prints; a flag can leave them out for the headless driver, where they are most of the message), the copy's memories, and the warnings as text, which the main thread says in seat order so that they do not depend on which worker answered first.
+- **How many workers**: `min(seats, cap)`, with the cap at `navigator.hardwareConcurrency − 2` in a browser (the page and the coordinating worker keep one core each) and `os.availableParallelism() − 1` in a node script, and never above six. With one core, or no `Worker`, the planner is the in-process loop, which is C1 exactly. A worker plans its seats one after another, each on its own copy, so fewer workers than seats gives the same plans. Workers live across turns.
+- **The browser.** Today the page sends its state to one bot worker, which runs `driveBots` on its copy, and the page puts the same commands to its own state (`replayBotAttempts`). In C2 that worker coordinates: it freezes its copy, hands the plans to a pool of plan workers it owns, applies the plans and the live sittings to its copy as now, and the page replays the attempts as now. The page's own work and the audience are unchanged.
+- **The headless driver** (tests, the arena, the probe): the arena and the tuner already run one game a core, so they keep the in-process planner. A test pins that a worker planner (a fake one, through `structuredClone`, as `botWorker.test.ts` fakes the bot worker) gives the same log and digest as the in-process one, with the replies taken in seat order, in reverse and shuffled, and that a worker that has planned other seats first gives the same plan as a fresh one.
+- **The spectator** keeps the stepper, which plans each seat when its moment comes; it can ask the pool for all plans at the freeze.
+- **Expected speed-up** for six seats on six workers: the freeze, the slowest seat's plan, the apply phase and the messages. From part 6 the estimate is 50% to 57% of today's turn at turns 90 to 100 and 62% to 67% at turns 120 to 125, so **about 1.8× to 2× faster at turns 90 to 100 and 1.5× to 1.6× at turns 120 to 125**, before the messages (one structured clone of the state to each worker, 1% to 2% of a turn). Late in the game one seat's plan is often half of all the planning (seed 42, turns 120 to 125), and the apply phase, most of it the turn's resolution, is a quarter to a third of a turn. The next gains after C2 are there: the resolution, the slowest seat, and the 5% of plans that are cut (per-seat random streams would remove most offer cuts, but that is a rules change).
+
+### Files
+
+- `src/ai/frozenBoard.ts` (new): the guards of one seat's loop and the loop (`SeatGuards`, `runSitting`, moved from `driver.ts`), the frozen board (`freezeBoard`), the plan (`planSeat`), the applier (`startPlanRun`, `applyNextStep`, the id mapping, the offer and great-person checks, the outcome tally), the live sitting after a cut (`liveSittingAfter`), the memory merge (`mergeSeatMemory`) and the tally (`frozenTally`).
+- `src/ai/bot.ts`: `SittingMarks`, `sittingMarks` and `resumedSitting` (a sitting's marks as plain data, and a fresh sitting that carries them).
+- `src/ai/driver.ts`: `driveBots` freezes, plans every seat, and puts the plans in seat order; `driveSeat` is the live sitting and takes the plan's guards and sitting; `SeatDriveReport` gains `planned`, `landed` and `cut`; the guard helpers are re-exported by name.
+- `src/ai/stepper.ts`: the same, a command a step; a seat is planned when its moment comes.
+- `src/ai/harnessMemory.ts`, `src/ui/bot.worker.ts`: docblocks only.
+- Tests: `test/sim/aiFrozenBoard.test.ts` (new); `test/sim/aiDriverEliminated.test.ts` (a seat is knocked out on the real board through the driver's `attempt` hook and between the stepper's steps, since a policy now acts on a copy); `test/sim/aiBot.test.ts` (the register of bot files lists `frozenBoard.ts`).
+- `docs/bot-priorities.md` ("The turn's bot step: plans on a frozen board", new, above "The order of a sitting"), and this section.
+- Scratch, in the session's scratch folder `bp16c/`: the trees (`before/`, `c1a/`, `c1b/`, `c1c/`), the probe (`PROBE.ts`, `run.sh`), the snapshot maker (`play.ts`, `snap.sh`, `snaps/`), the timer (`pair.ts`, `pair.sh`, `timings.sh`, `timing.py`, `out/timing/`), the copy measurements (`clonecost.ts`, `clonecost2.ts`), the table (`c1table.py`), a quick game (`quick.ts`), a debug script (`debug1.ts`), and the games: `out/c1/` (the before and final games to turn 100) and `out/c1old/` (the before and `c1a` games to turn 130, with the first probe).

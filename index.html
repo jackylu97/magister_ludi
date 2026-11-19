@@ -865,14 +865,14 @@
           </li>
           <li>
             The panel at the top left names your research and the next draft:
-            click either name to open the star chart or Statecraft. Its four
-            marks open <b>Diplomacy</b>, the trade routes, Faith and the
-            <b>Standings</b>. Click anywhere else on it, or press <kbd>Q</kbd>,
-            to open it, with the names of the four, your leader, the age wager
+            click either name to open the star chart or Statecraft. Its five
+            marks open <b>Diplomacy</b>, the trade routes, Faith, <b>In play</b>
+            and the <b>Standings</b>. Click anywhere else on it, or press <kbd>Q</kbd>,
+            to open it, with the names of the five, your leader, the age wager
             and your strategic resources
           </li>
           <li>
-            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Faith · <kbd>L</kbd> your leader ·
+            <kbd>C</kbd> Statecraft · <kbd>I</kbd> In play · <kbd>H</kbd> Faith · <kbd>L</kbd> your leader ·
             <kbd>W</kbd> Diplomacy · <kbd>E</kbd> Trade · <kbd>S</kbd> the Standings ·
             <kbd>A</kbd> the Abacus · <kbd>V</kbd> the Bead Race
           </li>
@@ -1051,6 +1051,12 @@
           <span id="quick-faith-line" class="quick-line" aria-hidden="true"></span>
           <kbd class="drawer-key quick-key" aria-hidden="true">H</kbd>
         </button>
+        <button id="quick-inPlay" class="quick-button is-inplay" type="button" aria-haspopup="dialog" aria-controls="inplay-overlay" aria-keyshortcuts="I">
+          <span class="quick-mark" aria-hidden="true"></span>
+          <span class="quick-name">In play</span>
+          <span id="quick-inPlay-figure" class="quick-figure"></span>
+          <kbd class="drawer-key quick-key" aria-hidden="true">I</kbd>
+        </button>
         <button id="quick-standings" class="quick-button is-standings" type="button" aria-haspopup="dialog" aria-controls="victory-overlay" aria-keyshortcuts="S">
           <span class="quick-mark" aria-hidden="true"></span>
           <span class="quick-name">Standings</span>
@@ -1172,13 +1178,43 @@
                statecraftScreen.ts (batch SS10, part 2), between the title and
                the close button. -->
           <p class="statecraft-hint">play a card from your hand to a chair</p>
-          <button id="statecraft-close" class="statecraft-close" type="button" aria-label="Close">
+          <!-- The star chart's close control (the user, 2026-11-18: "re-use the convention of the 'x' to close as in the technology screen"); Escape closes it too. -->
+          <button id="statecraft-close" class="tech-close" type="button" aria-label="Close" title="Close (Esc)">
             ×
           </button>
         </header>
         <!-- Everything below the rule is built by statecraftScreen.ts on each
              open: nothing on this screen is stored, it is all derived. -->
         <div id="statecraft-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= In play ========================
+         Everything in force for your seat, in five stacks: the council,
+         Wonders, Beliefs, Legacies and Temporary, with the leader's crest and
+         the government column. Read only: nothing moves here. Built by
+         src/ui/inPlayScreen.ts on each open; nothing on it is stored. It wears
+         the statecraft-overlay classes like every parchment sheet. -->
+    <div
+      id="inplay-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="In play"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <h2 class="statecraft-title">In play</h2>
+          </div>
+          <p class="statecraft-hint">everything in force</p>
+          <!-- The star chart's close control (the user, 2026-11-18: "re-use the convention of the 'x' to close as in the technology screen"); Escape closes it too. -->
+          <button id="inplay-close" class="tech-close" type="button" aria-label="Close" title="Close (Esc)">
+            ×
+          </button>
+        </header>
+        <div id="inplay-body" class="statecraft-body"></div>
       </div>
     </div>
 
@@ -1641,6 +1677,20 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="age-plate-name"
+      hidden
+    ></div>
+
+    <!-- ================= the wonder plate (Council and In play, stage 4) ====
+         One of your towns has finished a wonder: the wonder in its In play
+         form with its text, the town and the turn, on the age plate's lapis
+         page. Built whole by src/ui/wonderPlate.ts and raised as news; on
+         Continue the wonder flies to the In play door. -->
+    <div
+      id="wonder-plate-overlay"
+      class="age-plate-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wonder-plate-name"
       hidden
     ></div>
 

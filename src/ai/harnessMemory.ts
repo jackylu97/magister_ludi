@@ -15,6 +15,11 @@
  * window on a later turn, and the two games would part. So every request to
  * the worker carries this value, and every reply brings it back.
  *
+ * Since bot batch BP16, stage C1, each bot seat also plans its turn on its own
+ * copy of the frozen board (`frozenBoard.ts`). Each copy is handed these
+ * memories at the freeze, and the seat's own rows come back to the real state
+ * after its plan (`mergeSeatMemory`).
+ *
  * This file is the list of such memories. A new `WeakMap<GameState, …>` in
  * `src/ai/` that a bot decision reads and that is not a pure cache keyed on
  * `state.revision` joins here, or the worker's bots and the page's bots stop
