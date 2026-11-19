@@ -5,34 +5,49 @@
  * every frame (WebGL audit 2026-10-06, finding 4). These tests drive the real
  * frame loop with WebGL stubbed out and count the sweeps.
  */
+import { Group } from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeathAnimations3D, MoveAnimations3D } from '../../src/render3d/animation3d';
 import { Renderer3D } from '../../src/render3d/renderer3d';
+import { TraitGlows } from '../../src/render3d/traitGlow';
 
 interface Loop { loop(): void; syncStateLayers(): void }
 
-function fixture() {
+function fixture(state: unknown = null) {
   const sync = vi.fn();
   const setBadgeSelection = vi.fn();
+  const clearHidden = vi.fn();
+  const isDrawing = vi.fn();
+  const animations = new MoveAnimations3D();
+  const deaths = new DeathAnimations3D();
+  const glows = new TraitGlows();
+  const walkers = new Map<number, Group>();
+  const fallers = new Map<number, Group>();
+  const walkerModels = new Map<number, unknown>();
+  const remove = vi.fn();
   const rebuildUnits = vi.fn();
   const view = { pan: vi.fn(), zoomByFactor: vi.fn(), stepPan: () => false, camera: { right: 1, left: -1 } };
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
-    state: null, map: null, hover: null, hoveredUnitId: null,
-    animations: { pending: false }, glows: { pending: false }, walkers: new Map(), fallers: new Map(),
+    state, map: null, hover: null, hoveredUnitId: null,
+    animations, deaths, glows, walkers, fallers, walkerModels,
     vignette: { step: () => false, place: vi.fn(), focus: () => null, setFocus: vi.fn() },
     view, paintedBoard: null, paintedLook: null,
     canvas: { clientWidth: 800, clientHeight: 600 },
     renderer: { render: vi.fn(), info: { render: { calls: 0, triangles: 0 } } },
-    units: { setHoveredUnitId: vi.fn(), setBadgeSelection },
+    units: { setHoveredUnitId: vi.fn(), setBadgeSelection, clearHidden, isDrawing },
     selectedUnitId: null, rebuildUnits,
-    scene: {}, frameListener: null,
+    scene: { remove }, frameListener: null,
     syncStateLayers: sync, applyLight: vi.fn(), cityFocusAnchor: () => null,
     rebuildOverlays(this: { redraw(): void }) { this.redraw(); },
   };
   const runtime = Object.assign(Object.create(Renderer3D.prototype), data) as Renderer3D;
   const frame = (): void => (runtime as unknown as Loop).loop();
   const drawn = (): number => (data.renderer as { render: ReturnType<typeof vi.fn> }).render.mock.calls.length;
-  return { runtime, sync, frame, drawn, setBadgeSelection, rebuildUnits };
+  return {
+    runtime, sync, frame, drawn, setBadgeSelection, clearHidden, isDrawing, rebuildUnits,
+    animations, deaths, glows, walkers, fallers, walkerModels, remove,
+  };
 }
 
 describe('a camera frame draws without re-reading the state', () => {
@@ -99,5 +114,60 @@ describe('a camera frame draws without re-reading the state', () => {
     f.frame();
     expect(f.sync).toHaveBeenCalledOnce();
     expect(f.drawn()).toBe(1);
+  });
+});
+
+describe('skipping unit animations', () => {
+  it('defers an idle unit layer to the next dirty frame', () => {
+    vi.stubGlobal('requestAnimationFrame', () => 0);
+    try {
+      const f = fixture({});
+      f.runtime.skipAnimations();
+      expect(f.clearHidden).toHaveBeenCalledOnce();
+      expect(f.rebuildUnits).not.toHaveBeenCalled();
+      expect(f.sync).not.toHaveBeenCalled();
+      f.frame();
+      f.frame();
+      expect(f.sync).toHaveBeenCalledOnce();
+      expect(f.drawn()).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it.each(['walk', 'walker mesh', 'fall', 'glow'] as const)('restores the unit layer when it skips a %s', (kind) => {
+    const f = fixture({});
+    const id = 1;
+    const mesh = new Group();
+    if (kind === 'walk') f.animations.start(id, { col: 0, row: 0 }, [{ col: 1, row: 0 }], 0);
+    if (kind === 'walker mesh') {
+      f.walkers.set(id, mesh);
+      f.walkerModels.set(id, {});
+    }
+    if (kind === 'fall') {
+      f.deaths.start(id, 0);
+      f.fallers.set(id, mesh);
+    }
+    if (kind === 'glow') f.glows.start([id], 0);
+
+    f.runtime.skipAnimations();
+    expect(f.animations.pending).toBe(false);
+    expect(f.deaths.activeUnits()).toEqual([]);
+    expect(f.glows.pending).toBe(false);
+    expect(f.walkers.size + f.fallers.size + f.walkerModels.size).toBe(0);
+    if (kind === 'walker mesh' || kind === 'fall') expect(f.remove).toHaveBeenCalledWith(mesh);
+    expect(f.clearHidden.mock.invocationCallOrder[0]).toBeLessThan(f.rebuildUnits.mock.invocationCallOrder[0]!);
+    expect(f.rebuildUnits).toHaveBeenCalledOnce();
+  });
+
+  it('checks the updated unit layer when the handover starts a glow before the next frame', () => {
+    const f = fixture({ units: [], wars: [] });
+    f.rebuildUnits.mockImplementation(() => f.isDrawing.mockReturnValue(true));
+    f.runtime.skipAnimations();
+    expect(f.rebuildUnits).not.toHaveBeenCalled();
+
+    f.runtime.glowUnits([1]);
+    expect(f.rebuildUnits.mock.invocationCallOrder[0]).toBeLessThan(f.isDrawing.mock.invocationCallOrder[0]!);
+    expect(f.glows.activeUnits()).toEqual([1]);
   });
 });
