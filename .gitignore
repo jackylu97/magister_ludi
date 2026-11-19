@@ -17,4 +17,5 @@ gridsearch-results.json
 .claude/scratch/
 
 # Full-size splash art sources stay on the machine (see public/art/splash/README.md).
-public/art/splash/masters/
+# They live outside public/ so a build does not copy them into dist/.
+art-masters/

@@ -5,16 +5,16 @@ painting shows are in `docs/splash-art.md`.
 
 | Folder | What | Shape | Size to deliver | File name |
 |---|---|---|---|---|
-| `wonders/` | One painting a wonder | 16:9 | 2560 x 1440 (1920 x 1080 at least) | the wonder's id, for example `greatSphinx.jpg` |
+| `wonders/` | One painting a wonder, written by `scripts/splashArt.py` | 16:9 | made from the master, at most 1600 wide | the wonder's id, for example `greatSphinx.jpg` |
 | `leaders/` | One portrait a leader | 3:4 | 960 x 1280 | the leader's id, for example `pachacuti.jpg` |
 | `ages/` | One plate an age | 16:9 | 2560 x 1440 | `age1.jpg` to `age4.jpg` |
 | `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id |
-| `masters/` | Full-size source files | any | any | any. **Git ignores this folder.** |
 
-- Use JPEG (quality about 85) or WebP for the files outside `masters/`. Keep
+- Use JPEG (quality about 85) or WebP for the files in this folder. Keep
   each under about 600 KB; the game loads them in the browser.
-- Keep layered or very large source files in `masters/`. They stay on this
-  machine and do not go into the repository.
+- Keep full-size source files in `art-masters/` at the repo root (for wonders,
+  `art-masters/wonders/`). Git ignores that folder, and it is outside
+  `public/`, so the files stay on this machine and a build does not copy them.
 
 ## How a wonder's painting is cut
 
@@ -23,11 +23,20 @@ painting shows are in `docs/splash-art.md`.
   width and loses about 5.6% of the height at the top and at the bottom. Keep
   anything important out of those two bands.
 
-## The game does not read these files yet
+## How a wonder's painting gets into the game
 
-A file placed here shows nowhere until it is wired in. For wonders that is one
-function, `wonderPicture(id)` in `src/ui/inPlayForms.ts`. Tell the Claude
-session when the first paintings are in, and it will wire the folder.
+1. Put the full-size picture in `art-masters/wonders/` under any name.
+2. Add its name and the wonder's id to the `NAMES` table in
+   `scripts/splashArt.py`.
+3. Run `python3 scripts/splashArt.py` from the repo root (it needs Pillow). It
+   cuts off a black border if there is one, cuts the picture to 16:9, and
+   writes `wonders/<wonder id>.jpg`.
+4. Add the id to the list in `src/ui/wonderPaintings.ts`. A test fails if the
+   list and the folder disagree.
+
+The painting then shows on the full-screen wonder plate and on the wonder's
+piece on the In play screen. A wonder without a painting shows the engraved
+stand-in. Leaders, ages and beliefs are not wired yet.
 
 ## Wonder ids
 

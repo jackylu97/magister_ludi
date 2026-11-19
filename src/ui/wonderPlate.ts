@@ -134,34 +134,56 @@ export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HT
   const inner = element('div', 'age-plate-inner wonder-plate-inner');
   // No deeds on this plate: Continue comes up after the wonder settles.
   inner.style.setProperty('--deed-count', '0');
-  inner.append(element('p', 'wonder-plate-eyebrow', WONDER_PLATE_WORDS.eyebrow));
-  // The picture, full-bleed in a window of exactly 16:9 (the CSS ratio).
-  inner.append(wonderWindowNode(reading.building, 'wonder-plate-window'));
+  const eyebrow = element('p', 'wonder-plate-eyebrow', WONDER_PLATE_WORDS.eyebrow);
+  // The picture, in a window of exactly 16:9 (the CSS ratio).
+  const picture = wonderWindowNode(reading.building, 'wonder-plate-window');
   const name = element('h2', 'wonder-plate-name', reading.entry.name);
   name.id = 'wonder-plate-name';
-  inner.append(name);
   const where = element('p', 'age-plate-line wonder-plate-line', WONDER_PLATE_WORDS.finished(reading.town));
   const turn = element('span', 'wonder-plate-turn');
   turn.append(element('small', undefined, WONDER_PLATE_WORDS.turn), element('b', undefined, String(reading.turn)));
-  inner.append(where, turn);
   // What it pays each turn, in the plate's lit inks.
   const pays = element('div', 'wonder-plate-pays');
   for (const figure of reading.plate) pays.append(plateFigureNode(figure));
-  if (reading.plate.length > 0) inner.append(pays);
   // The Triumph it earned, as one line: the laurel, the Triumph's name, and
   // its renown as a figure with the word apart, as the Triumph sheet sets it.
+  let triumph: HTMLElement | null = null;
   if (reading.triumph !== null) {
-    const line = element('p', 'wonder-plate-triumph');
-    line.append(renownMarkNode());
-    line.append(element('span', 'wonder-plate-triumph-name', WONDER_PLATE_WORDS.triumph(reading.triumph.name)));
-    line.append(element('span', 'wonder-plate-triumph-figure', signedFigure(reading.triumph.pays)));
-    line.append(element('span', 'wonder-plate-triumph-word', WONDER_PLATE_WORDS.renown));
-    inner.append(line);
+    triumph = element('p', 'wonder-plate-triumph');
+    triumph.append(renownMarkNode());
+    triumph.append(element('span', 'wonder-plate-triumph-name', WONDER_PLATE_WORDS.triumph(reading.triumph.name)));
+    triumph.append(element('span', 'wonder-plate-triumph-figure', signedFigure(reading.triumph.pays)));
+    triumph.append(element('span', 'wonder-plate-triumph-word', WONDER_PLATE_WORDS.renown));
   }
   const button = element('button', 'age-plate-continue', WONDER_PLATE_WORDS.go);
   button.type = 'button';
   button.addEventListener('click', go);
-  inner.append(button);
+
+  if (picture.dataset.picture === 'painted') {
+    // A painting takes the page (the user, 2026-11-19: "have the art shine").
+    // The window is as large as the page allows, and the words sit on the
+    // foot of the painting: what it is on the left, the Triumph and Continue
+    // on the right.
+    plate.classList.add('wonder-plate--painted');
+    const words = element('div', 'wonder-plate-words');
+    const placed = element('p', 'wonder-plate-placed');
+    placed.append(where, turn);
+    words.append(eyebrow, name, placed);
+    if (reading.plate.length > 0) words.append(pays);
+    const close = element('div', 'wonder-plate-close');
+    if (triumph !== null) close.append(triumph);
+    close.append(button);
+    const caption = element('div', 'wonder-plate-caption');
+    caption.append(words, close);
+    picture.append(caption);
+    inner.append(picture);
+  } else {
+    // The engraved stand-in: the picture in a smaller window, the words under it.
+    inner.append(eyebrow, picture, name, where, turn);
+    if (reading.plate.length > 0) inner.append(pays);
+    if (triumph !== null) inner.append(triumph);
+    inner.append(button);
+  }
   plate.append(inner);
   return plate;
 }

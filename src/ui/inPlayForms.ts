@@ -22,11 +22,10 @@
  * neighbours.
  *
  * **A wonder's picture window has one source** (`wonderPicture`, drawn by
- * `wonderWindowNode`). Today every wonder draws the engraved stand-in: the
- * temple mark over a line of hills.
- * When a wonder has a painted picture (the user: "the wonders should
- * eventually have splash art"), that function answers its address and the
- * window shows it; nothing else changes.
+ * `wonderWindowNode`). A wonder with a painting shows it (the user: "the
+ * wonders should eventually have splash art"; the first paintings landed
+ * 2026-11-19, listed in `wonderPaintings.ts`). A wonder without one draws the
+ * engraved stand-in: the temple mark over a line of hills.
  */
 
 import { type InPlayMarkId, inPlayMarkDataUri } from '../art/inPlayMarks';
@@ -38,17 +37,19 @@ import { IN_PLAY_WORDS } from './inPlayPieces';
 import { setDescriptorText } from './keywords';
 import { type PlateFigure, orderFaceModel, plateFigureNode } from './orderFace';
 import { suitMarkDataUri } from './suitFace';
+import { wonderPaintingUrl } from './wonderPaintings';
 
-/** What a wonder's picture window shows. One answer for every wonder today. */
+/** What a wonder's picture window shows: its painting, or the engraved stand-in. */
 export type WonderPicture = { kind: 'engraved'; mark: InPlayMarkId } | { kind: 'painted'; url: string };
 
 /**
- * **The one source of a wonder's picture.** Every wonder draws the engraved
- * stand-in until it has a painted picture; then this answers its address.
- * A painting is 16:9 (`docs/splash-art.md`, row 3, about 960 by 540).
+ * **The one source of a wonder's picture.** A wonder with a painting
+ * (`wonderPaintings.ts`) answers its address; any other draws the engraved
+ * stand-in. A painting is 16:9 (`docs/splash-art.md`, row 3).
  */
-export function wonderPicture(_id: BuildingId): WonderPicture {
-  return { kind: 'engraved', mark: 'wonder' };
+export function wonderPicture(id: BuildingId): WonderPicture {
+  const url = wonderPaintingUrl(id);
+  return url === null ? { kind: 'engraved', mark: 'wonder' } : { kind: 'painted', url };
 }
 
 /**
