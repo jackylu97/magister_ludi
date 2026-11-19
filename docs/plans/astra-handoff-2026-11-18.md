@@ -238,6 +238,20 @@ keep word for word.
 5. Magisterial change 34 and The Spirit Way;
 6. the wording batch, last, so it also covers the new cards.
 
+### 3.8 Religion names (ready)
+
+- The user chose a roster of 59 short names that read as a religion, a school
+  or an order, tied to the pantheon's axis. The spec is the last section of
+  `docs/plans/religion-names-2026-11-19.md`, "Ready for the build", with the
+  builder's notes in the same file. The ruling is in `docs/flags.md`,
+  "Religion names: short names that sound like a religion (2026-11-19)"; it
+  replaces the part of the 2026-08-27 ruling that forbade a fixed roster.
+- It is small: a data shape, one function (`generateReligionName` in
+  `src/sim/religion.ts`), a validator, a few tests and docs.
+- A founding goes from two or three dice rolls to one, so every seeded game
+  changes after the first founding. It needs a schema step and cuts the digest
+  pins. Do it with any of the card batches.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
