@@ -4631,6 +4631,12 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
   };
   for (const grant of grants) {
     if (grant.grant === 'windfall') {
+      if (grant.fromTownPopulation === true || grant.fromRate !== undefined || grant.toEveryTown === true) {
+        flush();
+        say();
+        out.push(`${lead}${scaledDraftWindfallWords(grant)}`);
+        continue;
+      }
       const last = run[run.length - 1];
       if (last !== undefined && JSON.stringify(last.perCount) !== JSON.stringify(grant.perCount)) flush();
       run.push(grant);
@@ -4669,6 +4675,22 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
   say();
   return out;
 }
+
+/** Name the place that receives the grant and the figure that sets its size. */
+function scaledDraftWindfallWords(grant: OnDraftWindfall): string {
+  const town = grant.toEveryTown === true ? 'every town' : 'your capital';
+  if (grant.fromTownPopulation === true) {
+    return `${town} gains ${grant.yield} equal to ${grant.amount} times its citizens`;
+  }
+  if (grant.fromRate !== undefined) {
+    const rate = grant.fromRate === `${grant.yield}PerTurn`
+      ? `${grant.amount} turns of your ${grant.yield}`
+      : `${grant.amount} times your ${RATE_WORDS[grant.fromRate].many}`;
+    return `gain ${grant.yield} equal to ${rate}`;
+  }
+  return `${town} gains ${grant.amount} ${grant.yield}`;
+}
+
 
 function conditionValue(when: EmpireCondition): string {
   if (when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast') {
@@ -7543,6 +7565,7 @@ const RATE_WORDS: Record<RateSource, PluralWords> = {
     many: 'faith gained per turn in your cities that follow your religion',
   },
   culturePerTurn: { one: 'culture gained per turn', many: 'culture gained per turn' },
+  sciencePerTurn: { one: 'science gained per turn', many: 'science gained per turn' },
   goldPerTurn: { one: 'gold gained per turn', many: 'gold gained per turn' },
   happiness: { one: 'point of positive happiness', many: 'points of positive happiness' },
   authority: { one: 'point of positive authority', many: 'points of positive authority' },

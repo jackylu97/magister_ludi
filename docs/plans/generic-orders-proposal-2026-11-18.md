@@ -1435,3 +1435,19 @@ building gains value for advancing a seated Building Programme in the bot's
 queue, gold and faith plans.
 
 Typecheck, all 12,090 core tests and the production build passed on this branch.
+
+## The Liturgies and The Learned Embassy, 2026-11-19
+
+The Liturgies adds ten production per citizen to each owned town. The grant
+uses each town's population before any town settles. It can finish a queued
+wonder or any other queue item the town can finish through ordinary production.
+Overflow and production in idle towns stay in their normal baskets.
+
+The Learned Embassy pays eight times the current empire science rate when the
+Order enters the collection. The normal science windfall can finish research
+and fire its completion effects. Those effects do not change the rate used for
+the grant. The bot prices both Orders as one-time yields using these same
+population and science readings.
+
+The generic branch implements 29 of the 39 approved Orders. Typecheck, all
+12,094 core tests and the production build passed with this pair.

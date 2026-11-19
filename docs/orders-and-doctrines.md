@@ -841,9 +841,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Cistern Works | 1 | ● | S | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. |
 | The Brick Kilns | 1 | ◆ | P | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. |
 | Commission: The Land Register | 1 | ◆ | S | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. |
+| The Liturgies | 1 | ● | S | On draft: every town gains production equal to ten times its citizens. |
 | The Founders' Rights | 1 | ○ | S | +3 authority. Cities you found start with one extra citizen. |
 | The Public Peace | 2 | ● | S | While you are at peace, every town gains +2 food and +1 happiness. |
 | The Town Watch | 2 | ● | S | Your units gain +5 strength when defending in your territory. |
+| The Learned Embassy | 2 | ● | S | On draft: gain science equal to eight turns of your science. |
 | The Royal Annals | 2 | ◆ | P | +4% production and gold for each commission you have fulfilled this game, at most +28%. |
 | Commission: The Building Programme | 2 | ◆ | S | Goal: finish 12 buildings. Reward: every town gains +10% production. |
 | Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |

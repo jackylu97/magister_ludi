@@ -2977,8 +2977,8 @@ function rateKeyOf(voice: string): keyof EmpireRates {
 }
 
 /**
- * **What a `RateSource` reads on this board** — the same five books and two
- * meters the evaluator hands a `pays` rate (`statecraft.ts`), and the two
+ * **What a `RateSource` reads on this board**. The evaluator uses the same
+ * books and meters for `pays` rates. The two
  * meters read **positive part only**, which is that function's own rule: "per
  * point of positive happiness" is what the cards say, and a conversion that paid
  * a malus would be a card that rewards misery.
@@ -13633,7 +13633,14 @@ function magisterialDraftGrantWorth(
       }
       if (found <= 0) return 0;
       const bag: YieldBag = {};
-      bag[grant.yield as Voice] = grant.amount * found;
+      const rate = grant.fromRate === undefined ? 1 : rateSourceValue(grant.fromRate, ctx);
+      const towns = grant.toEveryTown === true ? citiesOf(ctx.state, ctx.playerId) : [];
+      const recipients = grant.toEveryTown !== true
+        ? 1
+        : grant.fromTownPopulation === true
+          ? towns.reduce((sum, town) => sum + town.population, 0)
+          : towns.length;
+      bag[grant.yield as Voice] = grant.amount * found * rate * recipients;
       return explainYields(bag, ctx).total;
     }
     default: {

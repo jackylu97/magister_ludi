@@ -672,8 +672,9 @@ describe('the schema, as landed', () => {
     // The generic set adds 20 rows, activates City Watches, and retires 12 dealt rows.
     // The General Summons, The Land Register and The Master Plan add three more.
     // The Brick Kilns and The Building Programme add two more.
-    expect(live).toBe(493);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(493);
+    // The Liturgies and The Learned Embassy add two more.
+    expect(live).toBe(495);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(495);
   });
 
   /**

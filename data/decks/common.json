@@ -1212,6 +1212,20 @@
         "reward": [{ "lasting": [{ "kind": "pays", "where": "city", "food": 2, "production": 2 }] }]
       }
     },
+    "theLiturgies": {
+      "name": "The Liturgies",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The town posted a list of the work and who paid for it.",
+      "text": "On draft: every town gains production equal to ten times its citizens.",
+      "effects": [],
+      "onDraft": [
+        { "grant": "windfall", "yield": "production", "amount": 10, "toEveryTown": true, "fromTownPopulation": true }
+      ]
+    },
     "theFoundersRights": {
       "name": "The Founders' Rights",
       "decks": [],
@@ -1280,6 +1294,20 @@
             "test": "ownTerritory"
           }
         }
+      ]
+    },
+    "theLearnedEmbassy": {
+      "name": "The Learned Embassy",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The envoys brought back more books than letters.",
+      "text": "On draft: gain science equal to eight turns of your science.",
+      "effects": [],
+      "onDraft": [
+        { "grant": "windfall", "yield": "science", "amount": 8, "fromRate": "sciencePerTurn" }
       ]
     },
     "theRoyalAnnals": {

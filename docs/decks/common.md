@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 6 | 0 | 4 | 10 | 6 | 2 | 2 |
-| Tier II | 5 | 0 | 3 | 8 | 4 | 2 | 2 |
+| Tier I | 7 | 0 | 3 | 10 | 6 | 2 | 2 |
+| Tier II | 6 | 0 | 2 | 8 | 4 | 2 | 2 |
 | Tier III | 4 | 0 | 4 | 8 | 2 | 4 | 2 |
 | Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **27** | **0** | **12** | **39** | **22** | **9** | **8** |
+| **All** | **29** | **0** | **10** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -60,7 +60,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **Cistern Works** | common | implemented | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | Economic | Charter | G1-5 |
 | **The Brick Kilns** | uncommon | implemented | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | Civic | Scaler | G1-6 |
 | **Commission: The Land Register** | uncommon | implemented | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
-| **The Liturgies** | common | add | On draft: every town gains production equal to ten times its citizens. | Economic | Boon | G1-9 |
+| **The Liturgies** | common | implemented | On draft: every town gains production equal to ten times its citizens. | Economic | Boon | G1-9 |
 | **The Builders' Lodge** | rare | add | Orders that add yields to buildings pay double. | Wildcard |  | G1-10 |
 | **The Founders' Rights** | rare | implemented | +3 authority. Cities you found start with one extra citizen. | Civic |  | G1-11 |
 
@@ -71,7 +71,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **Local Clerks** | common | implemented | Gain +3 authority. | Civic |  | G2-1 |
 | **The Public Peace** | common | implemented | While you are at peace, every town gains +2 food and +1 happiness. | Economic |  | G2-2 |
 | **The Town Watch** | common | implemented | Your units gain +5 strength when defending in your territory. | Military |  | G2-3 |
-| **The Learned Embassy** | common | add | On draft: gain science equal to eight turns of your science. | Civic | Boon | G2-4 |
+| **The Learned Embassy** | common | implemented | On draft: gain science equal to eight turns of your science. | Civic | Boon | G2-4 |
 | **The Royal Annals** | uncommon | implemented | +4% production and gold for each commission you have fulfilled this game, at most +28%. | Economic |  | G2-5 |
 | **Commission: The Building Programme** | uncommon | implemented | Goal: finish 12 buildings. Reward: every town gains +10% production. | Wildcard | Commission | G2-6 |
 | **The Summer Palace** | rare | add | Cards that pay your capital pay 50% more. | Wildcard |  | G2-7 |

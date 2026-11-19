@@ -918,7 +918,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `grantGreatPersonOffer`: an offer, or the renown for the next one.
   - Since Magisterial batch MG14 an Order can pay yields when it is drafted
     (the `windfall` arm, The Grand Retrospective). Its windfall arms are
-    composed once (`onDraftPayout`) and paid through `payWindfallGrants`.
+    composed once (`onDraftPayout`) and paid through `payWindfallGrants`. The
+    Liturgies banks production in every owned town based on its own population
+    before any town settles. The Learned Embassy reads the current empire
+    science rate before the payment, then settles research as a windfall.
     A grant's count may name the hexes it counts (`GrantCount.tile`). An
     Order can also hand over a random card from a deck the seat does not
     hold (the `foreignCard` arm, The Cabinet of Curiosities;

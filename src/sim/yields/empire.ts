@@ -330,10 +330,7 @@ export function foldEmpireRates(
     faithPerTurn: 0,
     culturePerTurn: 0,
     goldPerTurn: 0,
-    // The fourth voice, and the one no `pays` rate asks for: a great
-    // scholar's act is quoted in *turns of your own science* (the nerf pass of
-    // 2026-09-03), and it reads this fold rather than summing the cities a
-    // second time. See `EmpireRates.sciencePerTurn`.
+    // Scholars and The Learned Embassy read this same rate for their grants.
     sciencePerTurn: 0,
     capitalFaithPerTurn: 0,
     followingFaithPerTurn: 0,

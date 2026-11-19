@@ -3856,6 +3856,8 @@ export type RateSource =
   | 'culturePerTurn'
   /** Gold the empire banked this turn. */
   | 'goldPerTurn'
+  /** Science the empire gains per turn. */
+  | 'sciencePerTurn'
   /** The happiness meter, counted only while positive. */
   | 'happiness'
   /** The authority meter, counted only while positive. */
@@ -10836,28 +10838,27 @@ export function onDraftUnitCount(count?: number): number {
  * **A yield paid once when the card is drafted** (Magisterial batch MG14, The
  * Grand Retrospective; the triage's reading 38).
  *
- * The fields are the windfall grant's own (`WindfallGrantSpec`): a voice and
- * an amount, a count that pays the amount once for each item it finds
- * (`perCount`), and the capital as the town that takes food and production
- * (`toCapital`). The other fields of a rider's grant read a moment, such as
- * a kill's strength or a town's people, and a draft has none of these, so
- * the type leaves them out.
+ * The grant can pay a fixed amount, pay once per item counted, or read a
+ * current rate. A grant to every town can use each town's own population.
+ * These fields match the corresponding `WindfallGrantSpec` fields.
  *
  * All of a card's windfall arms make one payout, composed by
  * `onDraftPayout` (`statecraft/evaluator.ts`) before anything is paid, and
  * delivered once by `payWindfallGrants`, the one delivery. So every count is
  * read at the same moment, after the card has entered the collection: a
  * count of the Orders held counts the card itself. The era and the council do
- * not multiply the figure, because the card pays from no chair. Without
- * `toCapital`, food and production land in the capital too, because a draft
- * happens nowhere on the map.
+ * not multiply the figure, because the card pays from no chair. Food and
+ * production go to the capital by default.
  */
 export interface OnDraftWindfall {
   grant: 'windfall';
   yield: CityYieldKey;
   amount: number;
   perCount?: GrantCount;
+  fromRate?: RateSource;
   toCapital?: true;
+  toEveryTown?: true;
+  fromTownPopulation?: true;
 }
 
 /**

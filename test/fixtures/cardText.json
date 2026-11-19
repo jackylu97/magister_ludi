@@ -9629,6 +9629,16 @@
     "text": "Goal: have 30 citizens. Reward: +2 food, +2 production in every city"
    }
   ],
+  "theLiturgies": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: every town gains production equal to 10 times its citizens",
+    "text": "On draft: every town gains production equal to 10 times its citizens"
+   }
+  ],
   "theFoundersRights": [
    {
     "raw": "+3 authority capacity",
@@ -9649,6 +9659,16 @@
    {
     "raw": "+5 combat strength when defending inside your territory",
     "text": "+5 combat strength when defending inside your territory"
+   }
+  ],
+  "theLearnedEmbassy": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: gain science equal to 8 turns of your science",
+    "text": "On draft: gain science equal to 8 turns of your science"
    }
   ],
   "theRoyalAnnals": [
