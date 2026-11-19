@@ -454,8 +454,8 @@ describe('a bonus on named buildings reaches the hammers those rows cost', () =>
     bumpRevision(state);
     const ctx = valueContext(state, player);
     const row = doctrineDef('theGobelins' as DoctrineId).effects[0]!;
-    // +4% for each of two works, so +8%, in the one town raising the Opus.
-    expect(ownPrice(row, ctx)).toBeCloseTo(0.08 * NOMINAL * voiceWeight(ctx, 'production'), 10);
+    // +10% for each of two works, so +20%, in the one town raising the Opus.
+    expect(ownPrice(row, ctx)).toBeCloseTo(0.20 * NOMINAL * voiceWeight(ctx, 'production'), 10);
   });
 
   it('reads a bonus on one row at that row’s share of what the seat could still raise', () => {

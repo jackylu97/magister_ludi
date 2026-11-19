@@ -208,8 +208,8 @@ describe('Magisterial batch MG9: the rows', () => {
     ]);
     expect(words(IDEAL)).toEqual([
       'Commission',
-      'Goal: have one of your cities hold 2 wonders and work 3 great-person works. ' +
-        'Reward: that city gains +25% culture, +25% science and +25% production',
+      'Goal: have one of your cities hold 2 wonders and work 2 great-person works. ' +
+        'Reward: that city gains +100% culture, +100% science and +100% production',
     ]);
   });
 });

@@ -400,7 +400,6 @@ import {
   type CardLevyEffect,
   type ChairFit,
   type ChairType,
-  orderFitsSlot,
   GOVERNMENT_TIERS,
   LEVY_USES,
   doctrineDef,
@@ -2432,7 +2431,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       const sc = statecraftOf(ctx.state, ctx.playerId);
       if (effect.slot !== undefined && effect.slot !== 'wildcard' && sc !== undefined) {
         const bench = sc.orders.filter((id) => !isSlotted(sc, id) && neverSeatedError(sc, id) === null);
-        const fit = bench.filter((id) => orderFitsSlot(id, effect.slot!)).length;
+        const chair = effect.slot;
+        const fits = chairFitFor(ctx.state, ctx.playerId);
+        const fit = bench.filter((id) => fits(id, chair)).length;
         return extraChairsWorth(extra, ctx) * ((1 + fit) / (1 + bench.length));
       }
       return extraChairsWorth(extra, ctx);

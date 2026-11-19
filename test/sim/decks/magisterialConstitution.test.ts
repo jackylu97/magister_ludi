@@ -529,6 +529,7 @@ describe('the register of chair writers', () => {
     'council.ts#seatMalice',
   ];
   const EXCUSED: Record<string, string> = {
+    'cardImpact.ts#ghostPair': 'it copies the chairs to a scratch board and applies refitSlots',
     'council.ts#settleCouncilFit': 'it is the re-seating',
     'council.ts#slotOrderAt': 'a card going into a chair never narrows the fit',
     'council.ts#unslotOrderAt':

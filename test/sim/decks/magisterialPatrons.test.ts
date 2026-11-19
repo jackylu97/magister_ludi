@@ -11,7 +11,7 @@
  *     21);
  *   · a rider filter, `whileRaisingOpus`: the rider pays only while one of the
  *     empire's towns has the Magnum Opus at the front of its queue. Card: The
- *     Last Commission, 150 production into that town, at most once a turn;
+ *     Last Commission, 150 production per age into that town, at most once a turn;
  *   · the shared Sacred Patronage: faith buys a great-person draft (the rule
  *     that existed) and spending a person paid 30 faith, at most once a turn.
  *     Devotion batch DS5 removed that second clause, so the tests of the
@@ -362,7 +362,7 @@ describe('Sacred Patronage', () => {
 // --- The Last Commission ---------------------------------------------------------
 
 describe('The Last Commission', () => {
-  it('pays 150 production into the town raising the Magnum Opus, not the capital', () => {
+  it('pays 600 production at age four into the town raising the Magnum Opus', () => {
     const { state, player, capital } = board();
     const raiser = town(state, 12, 5);
     raiser.queue = [OPUS];
@@ -371,7 +371,7 @@ describe('The Last Commission', () => {
     const capitalBasket = capital.hammerBasket;
     const basket = raiser.hammerBasket;
     spendMerchant(state, player, capital);
-    expect(raiser.hammerBasket - basket).toBe(150);
+    expect(raiser.hammerBasket - basket).toBe(600);
     expect(capital.hammerBasket).toBe(capitalBasket);
     expect(player.opusBank).toBeUndefined();
   });
@@ -384,10 +384,10 @@ describe('The Last Commission', () => {
     const basket = capital.hammerBasket;
     spendMerchant(state, player, capital);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(150);
+    expect(capital.hammerBasket - basket).toBe(600);
     nextTurn(state);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(300);
+    expect(capital.hammerBasket - basket).toBe(1200);
   });
 
   it('pays nothing and keeps nothing while no town raises the Opus', () => {
@@ -404,7 +404,7 @@ describe('The Last Commission', () => {
     capital.queue = [OPUS];
     bumpRevision(state);
     spendMerchant(state, player, capital);
-    expect(capital.hammerBasket - basket).toBe(150);
+    expect(capital.hammerBasket - basket).toBe(600);
   });
 
   it('gives the same board twice from the same spending', () => {

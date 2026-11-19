@@ -138,6 +138,7 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
+  ['magisterialTheSteleofDeeds', 2],
   ['theArthashastra', 1],
   ['theHospitium', 1],
   ['theJinshi', 2],

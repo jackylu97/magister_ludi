@@ -219,11 +219,11 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
 
   it('doubles the town lines of the card in the first Economic chair, and not the second', () => {
     const { state, city } = republic([null, GRANARIES, PRYTANEION, null, null, VIZIER]);
-    // Civic Granaries: +1 food and +1 production for the Monument.
+    // Civic Granaries: +1 food and +2 production for the Monument.
     expect(townPays(state, city, GRANARIES, 'food')).toBe(1);
-    expect(townPays(state, city, GRANARIES, 'production')).toBe(1);
+    expect(townPays(state, city, GRANARIES, 'production')).toBe(2);
     expect(townPays(state, city, VIZIER, 'food')).toBe(1);
-    expect(townPays(state, city, VIZIER, 'production')).toBe(1);
+    expect(townPays(state, city, VIZIER, 'production')).toBe(2);
     // The line names the card it doubled.
     const lines = explainCardCityYields(state, city).filter((line) => line.card === VIZIER);
     expect(lines).toHaveLength(1);
@@ -320,7 +320,7 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     refreshCityDerived(state, city);
     // The Masters' Domain pays on the hex, so the Vizier finds no town line to double.
     council(state, 'republic', [null, DOMAIN, null, null, null, VIZIER]);
-    expect(hexPays(state, city, work, DOMAIN).food).toBe(3);
+    expect(hexPays(state, city, work, DOMAIN).food).toBe(6);
     expect(hexPays(state, city, work, VIZIER)).toEqual({ food: 0, production: 0, gold: 0, science: 0, culture: 0 });
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
     // The Prefects pay a percentage: the Vizier adds no line and no percentage.
@@ -357,10 +357,10 @@ describe('The Divine Proportion: what the cards pay on a great-person work, twic
     slot(state, DOMAIN);
     expect(hexPays(state, city, work, PROPORTION).food).toBe(0);
     slot(state, PROPORTION);
-    expect(hexPays(state, city, work, DOMAIN)).toEqual({ food: 3, production: 3, gold: 0, science: 0, culture: 0 });
+    expect(hexPays(state, city, work, DOMAIN)).toEqual({ food: 6, production: 6, gold: 0, science: 0, culture: 0 });
     expect(hexPays(state, city, work, PROPORTION)).toEqual({
-      food: 3,
-      production: 3,
+      food: 6,
+      production: 6,
       gold: 0,
       science: 0,
       culture: 0,
@@ -400,15 +400,16 @@ describe('The Divine Proportion: what the cards pay on a great-person work, twic
     expect(hexPays(state, city, farm, PROPORTION)).toEqual({ food: 0, production: 0, gold: 0, science: 0, culture: 0 });
   });
 
-  it('does not double a share of a work’s own yield, or a town line', () => {
+  it('doubles the Quarter of Masters bonus and leaves town yields and the Mausoleum multiplier alone', () => {
     const { state, city, work, beside } = workBoard();
     // A second work beside the first, so The Quarter of Masters pays.
     raiseImprovement(beside[0]!, 'landmark' as never, state.turn);
     refreshCityDerived(state, city);
+    addBuilding(state, city, 'mausoleum');
     slot(state, QUARTER);
     slot(state, LAUREATE);
     slot(state, PROPORTION);
-    expect(hexPays(state, city, work, PROPORTION)).toEqual({ food: 0, production: 0, gold: 0, science: 0, culture: 0 });
+    expect(hexPays(state, city, work, PROPORTION)).toEqual({ food: 0, production: 4, gold: 0, science: 0, culture: 4 });
     expect(explainCardCityYields(state, city).filter((line) => line.card === PROPORTION)).toEqual([]);
   });
 

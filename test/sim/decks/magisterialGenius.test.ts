@@ -22,7 +22,7 @@
  *     only for a person who is spent.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { foundCityAt, ownedTiles, refreshCityDerived } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
@@ -51,8 +51,16 @@ import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../s
 import { at, bareState } from '../improvementHelpers';
 
 const GENIUS = 'theUniversalGenius' as OrderId;
-/** The Honoured Dead: a growing card that counts the `greatPersonSpent` tally. */
+/** This fixture records when the game spends a great person. */
 const HONOURED = 'theHonouredDead' as OrderId;
+const originalEffects = orderDef(HONOURED).effects;
+beforeEach(() => {
+  orderDef(HONOURED).effects = [{
+    kind: 'pays', where: 'capital', basis: 'count', count: 'tally',
+    tally: 'greatPersonSpent', amount: 1, to: 'science',
+  }];
+});
+afterEach(() => { orderDef(HONOURED).effects = originalEffects; });
 
 /** Puts a card in a chair for seat 0, the way the reading sees it. */
 function seat(state: GameState, card: OrderId): void {

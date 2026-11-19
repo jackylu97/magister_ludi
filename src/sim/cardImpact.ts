@@ -534,7 +534,8 @@ function ghostPair(
       const board = swap(ghost.seat);
       ghost.seat.statecraft.slots = sc.slots.slice();
       ghost.seat.malices = player.malices.map((malice) => ({ ...malice }));
-      refitSlots(board, ghost.seat, 'reseat');
+      // Choosing a Doctrine returns the card in a closed chair to the collection.
+      refitSlots(board, ghost.seat);
       return ghost.side === 'with' ? { without: state, with: board } : { without: board, with: state };
     }
     case 'government': {
