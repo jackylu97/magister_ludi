@@ -1612,3 +1612,28 @@ circle feels a bit awkward, maybe an arch again?"
   person is on the board.
 - **A belief tablet's picture window is an arch,** across the tablet's width,
   following the tablet's own arched top. The 1:1 pictures stay as they are.
+
+### The UI buildout is the priority; the age plate build (2026-11-19)
+
+The user: "yes, please continue with the UI buildout. make that the
+priority." This answered "Shall I start it?" for the age plate build as I
+described it: on the ribbon, with the three painting sets and an opening plate
+for age I.
+
+- **The age plate is on the ribbon** (frame A7 of the Quiet Table boards, "i
+  like the ribbon better, so it doesn't take you out of the game"): the same
+  form as the painted wonder's plate (`wonderPlate.ts`), over the dimmed
+  board, with the slow arrival. This replaces the full-screen age page of
+  2026-11-18.
+- **The painting** is `public/art/splash/ages/<set><age>.jpg`. The set is one
+  of `form`, `still`, `abstract`, the same for a whole game, chosen from a
+  hash of the game's seed in the UI (never the sim's random numbers).
+- **Words on the foot of the painting:** the age's numeral, its name, and the
+  line the plate says today (`agePlateLine`). The seat's deeds and the tally
+  that the plate shows today stay, on the foot at the right, if they fit; the
+  builder shows the result.
+- **An opening plate for age I** shows once when a new game starts, before the
+  first turn. It does not show when a saved game is loaded.
+- **A missing painting** falls back to the lapis age page the game has today.
+- Next in the queue, in this order: diplomacy layout B with the strip of
+  courts, the simpler city screen, the government banners, the title screen.
