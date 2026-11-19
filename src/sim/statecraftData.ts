@@ -2151,7 +2151,7 @@ export type TileCondition =
    * cannot ask what a hex is worth, because what a hex is worth is partly the
    * granary.
    */
-  | { test: 'yields'; yield: CityYieldKey }
+  | { test: 'yields'; yield: CityYieldKey; atLeast?: number }
   /**
    * The hex carries a **great person's work** — an academy, a landmark, a
    * manufactory, a customs house, a citadel.
@@ -5224,6 +5224,8 @@ export type MetaRuleId =
    * read once.
    */
   | 'techCountsTwice'
+  /** Multiply future tally gains for seated Scalers. Commissions use their usual count. */
+  | 'scalersCountTwice'
   /**
    * **How many times this empire reads each legacy it holds** (Magisterial
    * batch MG8, The Immortals; the triage's reading 22). The value is the
@@ -10834,7 +10836,8 @@ export type OnDraftGrant =
   | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number })
   | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
-  | OnDraftForeignCard;
+  | OnDraftForeignCard
+  | { grant: 'completeQueues' };
 
 /** The number of units an on-draft grant attempts to raise. */
 export function onDraftUnitCount(count?: number): number {
@@ -11540,6 +11543,8 @@ interface OrderDef extends CardDefBase {
    * held keeps its chair. `needsTendedWork`'s twin.
    */
   needsLevy?: true;
+  /** Deal only if the seat owns a Scaler, even if it has never seated it. */
+  needsScaler?: true;
   /**
    * **Not dealt to a seat that knows this technology** (Scientific batch S9,
    * The Great Instrument: "not dealt to a seat that knows Alchemy"). Read in

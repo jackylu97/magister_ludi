@@ -459,7 +459,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 
 | kind | where · basis | steps | additive or multiplicative |
 |---|---|---|---|
-| `pays` | hex · flat | 2 | additive; `percent`/`basePercent`/`wholePercent` are the hex's three shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road |
+| `pays` | hex · flat | 2 | additive; `percent`/`basePercent`/`wholePercent` are the hex's three shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road; a stated yield threshold reads the other additive hex lines before percentages |
 | `pays` | hex · count | 2 | additive. The helpings multiply the **bag** into one line, as `perEndpointLuxury` does on a road. The count is asked of the town working the hex (`scopedCardTileLines`), so two towns pay one row differently: The Hydraulic Empire's public works, The Builder Kings' wonders |
 | `pays` | city · flat | 3 | additive |
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |

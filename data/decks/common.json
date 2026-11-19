@@ -2793,6 +2793,51 @@
       "flavor": "Two crowns rested on one desk.",
       "text": "Cards that belong to two decks pay 50% more.",
       "effects": [{ "kind": "cardTypeAmplifier", "shared": true, "percent": 50 }]
+    },
+    "theLongMemory": {
+      "name": "The Long Memory",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The clerk read the old list before he drew up the new one.",
+      "text": "Your scalers gain twice as much each time.",
+      "needsScaler": true,
+      "effects": [
+        { "kind": "metaRule", "rule": "scalersCountTwice", "value": 2 }
+      ]
+    },
+    "theGildedCountry": {
+      "name": "The Gilded Country",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The smallest plots brought goods to market too.",
+      "text": "Every tile that makes at least 1 gold gains 1 more.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": { "test": "yields", "yield": "gold", "atLeast": 1 },
+          "gold": 1
+        }
+      ]
+    },
+    "theGreatRaising": {
+      "name": "The Great Raising",
+      "decks": [],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The foremen called their crews in before dawn.",
+      "text": "On draft: every town finishes what it is building. Not wonders.",
+      "note": "Puppet towns keep their queues. A finished unit needs the same space as a bought unit.",
+      "onDraft": [{ "grant": "completeQueues" }],
+      "effects": []
     }
   }
 }

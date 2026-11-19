@@ -37,6 +37,7 @@ import {
   timedCityTileLines,
   tileConditionHolds,
   tileConditionReadsFold,
+  tileConditionReadsThreshold,
 } from '../statecraft';
 import { HEX_MARK_IDS, RULES } from '../rulesData';
 // The ground facts (Expansionist batch E3; Dominion batch D7), straight from
@@ -482,6 +483,8 @@ interface TileLinePlan {
   plain: readonly TileLine[];
   /** The lines whose condition reads the fold so far (`tileConditionReadsFold`). */
   asking: readonly TileLine[];
+  /** Lines that check a stated threshold after the other additives have landed. */
+  thresholds: readonly TileLine[];
   /** The lines carrying a share of the works or of the ground. */
   shares: readonly TileLine[];
   /** The lines carrying a share of everything the hex pays. */
@@ -494,7 +497,7 @@ interface TileLinePlan {
  * plan wrong. Each context builds its own list, so a plan never outlives a reading.
  */
 const TILE_LINE_PLANS = new WeakMap<readonly TileLine[], TileLinePlan>();
-const NO_LINES: TileLinePlan = { plain: [], asking: [], shares: [], whole: [] };
+const NO_LINES: TileLinePlan = { plain: [], asking: [], thresholds: [], shares: [], whole: [] };
 const WHOLE_PASSES = [false, true] as const;
 const NO_PASSES = [] as const;
 
@@ -504,7 +507,9 @@ function linePlanOf(lines: readonly TileLine[] | undefined): TileLinePlan {
   if (plan === undefined) {
     plan = {
       plain: lines.filter((line) => !tileConditionReadsFold(line.on)),
-      asking: lines.filter((line) => tileConditionReadsFold(line.on)),
+      asking: lines.filter((line) =>
+        tileConditionReadsFold(line.on) && !tileConditionReadsThreshold(line.on)),
+      thresholds: lines.filter((line) => tileConditionReadsThreshold(line.on)),
       shares: lines.filter((line) => (line.percent ?? 0) !== 0 || (line.basePercent ?? 0) !== 0),
       whole: lines.filter((line) => (line.wholePercent ?? 0) !== 0),
     };
@@ -520,6 +525,7 @@ function linePlanOf(lines: readonly TileLine[] | undefined): TileLinePlan {
 export function explainTileYield(
   tile: Tile,
   ctx?: TileYieldContext,
+  stopBefore?: 'yieldThresholds',
 ): TileYieldContribution[] {
   const list: TileYieldContribution[] = [];
 
@@ -703,8 +709,8 @@ export function explainTileYield(
 
   const sourceIndex = new Map<string, number>();
   const plan = linePlanOf(ctx?.lines);
-  const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) return;
+  const pushLine = (line: TileLine, paid = paidSoFar): void => {
+    if (!tileConditionHolds(tile, line.on, paid, besideThunk, ctx?.turn, ctx?.ground)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -803,6 +809,15 @@ export function explainTileYield(
   paid = undefined;
   for (const line of plan.asking) pushLine(line);
 
+  if (stopBefore === 'yieldThresholds') return list;
+  // Each threshold sees the same total, so these lines cannot qualify themselves
+  // or one another. Percentages are applied after the threshold lines.
+  const prior = plan.thresholds.length > 0 ? foldTileLines(list) : undefined;
+  const priorFold = prior === undefined ? undefined : () => prior;
+  for (const line of plan.thresholds) pushLine(line, priorFold);
+  const paidForShare = (line: TileLine) =>
+    priorFold !== undefined && tileConditionReadsThreshold(line.on) ? priorFold : paidSoFar;
+
   // **A percentage on the works, and on nothing else** — The Commonwealth's half
   // again on a great person's academy. Last, so the figure it is a share of is
   // whole, and taken off the *improvement's own* entries (`worksFrom` …
@@ -836,7 +851,7 @@ export function explainTileYield(
   for (const line of plan.shares) {
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
+    if (!tileConditionHolds(tile, line.on, paidForShare(line), besideThunk, ctx?.turn, ctx?.ground)) continue;
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);
@@ -919,7 +934,7 @@ export function explainTileYield(
     for (const line of plan.whole) {
       const whole = line.wholePercent ?? 0;
       if ((line.appliedLast === true) !== appliedLast) continue;
-      if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
+      if (!tileConditionHolds(tile, line.on, paidForShare(line), besideThunk, ctx?.turn, ctx?.ground)) continue;
       wholePercent += whole;
       if (!wholeSources.includes(line.source)) wholeSources.push(line.source);
       if (line.card !== undefined && !wholeCards.includes(line.card)) wholeCards.push(line.card);

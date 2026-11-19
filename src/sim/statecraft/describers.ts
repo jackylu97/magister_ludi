@@ -1011,6 +1011,9 @@ export function describeCard(id: CardId): CardClause[] {
     if (spec !== undefined) clauses.push(...describeCommission(spec));
     // **The deal gate** (Scientific batch S9, The Great Instrument): a card a
     // seat cannot be dealt once it knows a technology says so.
+    if (orderDef(id).needsScaler === true) {
+      clauses.push({ text: 'you can draw this Order if you own a Scaler' });
+    }
     const known = orderDef(id).notDealtKnowing;
     if (known !== undefined) {
       clauses.push({ text: `not dealt to an empire that knows ${ref('tech', known, techDef(known).name)}` });
@@ -3710,6 +3713,12 @@ function describeEffect(
         });
         return;
       }
+      if (effect.rule === 'scalersCountTwice') {
+        const scaler = ref('concept', 'scaler', 'Scalers');
+        const gain = effect.value === 2 ? 'twice as much' : `${effect.value} times as much`;
+        out.push({ text: `your ${scaler} gain ${gain} each time` });
+        return;
+      }
       // The Immortals (Magisterial batch MG8) is the fourth rule: how many
       // times each legacy you hold is read.
       if (effect.rule === 'legaciesCountTwice') {
@@ -4680,6 +4689,9 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
         out.push(`${lead}you gain ${who} to call`);
         break;
       }
+      case 'completeQueues':
+        out.push(`${lead}each town completes its current unit or building, except wonders and the Magnum Opus`);
+        break;
       case 'foreignCard':
         out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
@@ -6269,7 +6281,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       into.qualifiers.push('beside a mountain');
       return;
     case 'yields':
-      into.qualifiers.push(`that yields ${on.yield}`);
+      into.qualifiers.push(on.atLeast === undefined
+        ? `that yields ${on.yield}`
+        : `that makes at least ${on.atLeast} ${on.yield}`);
       return;
     case 'road':
       // "With a road", the sentence a city scope uses for a building it holds,

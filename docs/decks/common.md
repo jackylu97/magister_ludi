@@ -2,7 +2,7 @@
 
 The generic Orders, by tier: name, rarity, status, ability and type. They belong to no deck. Every seat may be dealt them, whatever its two decks are. Their rows live in `data/decks/common.json` with an empty `decks` list. The shared cards, which name two decks, are in the same file and are listed on the six deck sheets, not here.
 
-**This sheet is the spec of record for the generic set.** You approved the set on 2026-11-18 with ten comments (`docs/flags.md`, "Generic Orders: a candidate set of changes (2026-11-18)"). The reasoning for each card, your comments, and the build list are in `docs/plans/generic-orders-proposal-2026-11-18.md` (sections 7 and 8 are current). The first build adds the Orders that use current effects. The final set has 39 Orders.
+**This sheet is the spec of record for the generic set.** You approved the set on 2026-11-18 with ten comments (`docs/flags.md`, "Generic Orders: a candidate set of changes (2026-11-18)"). The reasoning for each card, your comments, and the build list are in `docs/plans/generic-orders-proposal-2026-11-18.md` (sections 7 and 8 are current). All 39 approved Orders are in the game.
 
 - **How a seat meets them.** On every second draft the third card of the hand is generic. That is 2 looks in Tier 0, 3 in Tier I, 4 in Tier II, 4 in Tier III and 0 to 2 in Tier IV.
 - **Status** uses the words of the deck sheets:
@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 9 | 0 | 1 | 10 | 6 | 2 | 2 |
+| Tier I | 10 | 0 | 0 | 10 | 6 | 2 | 2 |
 | Tier II | 8 | 0 | 0 | 8 | 4 | 2 | 2 |
-| Tier III | 7 | 0 | 1 | 8 | 2 | 4 | 2 |
-| Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **36** | **0** | **3** | **39** | **22** | **9** | **8** |
+| Tier III | 8 | 0 | 0 | 8 | 2 | 4 | 2 |
+| Tier IV | 4 | 0 | 0 | 4 | 2 | 1 | 1 |
+| **All** | **39** | **0** | **0** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -56,7 +56,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **Common Festivals** | common | implemented | Every town gains +1 happiness. | Civic |  | G1-1 |
 | **The Capital's Example** | common | implemented | Your other towns build buildings your capital already has 25% faster. | Economic |  | G1-2 |
 | **The Hall of Fame** | common | implemented | +30% renown in your capital. | Civic |  | G1-3 |
-| **The Gilded Country** | common | add | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
+| **The Gilded Country** | common | implemented | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
 | **Cistern Works** | common | implemented | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | Economic | Charter | G1-5 |
 | **The Brick Kilns** | uncommon | implemented | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | Civic | Scaler | G1-6 |
 | **Commission: The Land Register** | uncommon | implemented | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
@@ -87,7 +87,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The General Summons** | uncommon | implemented | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. | Military | Boon | G3-4 |
 | **The Old Patterns** | uncommon | implemented | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
 | **The Old Foundations** | common | implemented | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |
-| **The Long Memory** | rare | add | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
+| **The Long Memory** | rare | implemented | Your scalers gain twice as much each time. | Wildcard |  | G3-8 |
 | **The Office of Works** | uncommon | implemented | On draft: gain a great engineer draft. | Civic | Boon | G3-9 |
 
 ## Tier IV
@@ -96,7 +96,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 |---|---|---|---|---|---|---|
 | **The Grand Design** | uncommon | implemented | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. | Economic |  | G4-1 |
 | **The Last Walls** | common | implemented | The town raising your Magnum Opus gains +15 defence. | Military |  | G4-2 |
-| **The Great Raising** | rare | add | On draft: every town finishes what it is building. Not wonders. | Wildcard | Boon | G4-3 |
+| **The Great Raising** | rare | implemented | On draft: every town finishes what it is building. Not wonders. | Wildcard | Boon | G4-3 |
 | **The Settled Realm** | common | implemented | Every town gains +2 happiness. | Civic |  | G4-4 |
 
 ## How these Orders raise payments

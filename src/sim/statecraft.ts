@@ -261,6 +261,7 @@ export {
   slottedOrdersOfFlavour,
   tileConditionHolds,
   tileConditionReadsFold,
+  tileConditionReadsThreshold,
   // Batch K2: the one walk for "does this scope or hex test name X".
   scopeAsks,
   yieldAmplifierReads,
