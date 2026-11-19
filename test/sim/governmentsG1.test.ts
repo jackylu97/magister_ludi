@@ -63,7 +63,7 @@ const SPEAR_MAKERS = 'theSpearMakers' as OrderId;
 const BLOODED_SPEARS = 'dominionBloodedSpears' as OrderId;
 const RITES_OF_PASSAGE = 'commonRitesOfPassage' as OrderId;
 const SCHOLARS_ROADS = 'theScholarsRoads' as OrderId;
-const CEREMONIAL_GUARD = 'theCeremonialGuard' as OrderId;
+const WALLS_OF_LEARNING = 'theWallsOfLearning' as OrderId;
 
 /** One town of three citizens for seat 0, with an empty queue. */
 function town(state: GameState): City {
@@ -285,14 +285,13 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
 
   it('raises a town’s defence, which is strength, and not its sight', () => {
     const { state, city } = board();
-    // The Ceremonial Guard: +5 defence in a town with a wonder. 30% of 5 is
-    // 1.5, which rounds to 2.
-    council(state, 'theSultanate', [[CEREMONIAL_GUARD, 'military']]);
-    city.buildings.push('stonehenge');
+    // A university activates the Order. The government rounds its 30% share of six to two.
+    council(state, 'theSultanate', [[WALLS_OF_LEARNING, 'military']]);
+    city.buildings.push('university');
     bumpRevision(state);
     const lines = cardCityStat(state, city, 'defense');
     expect(lines.map((line) => [line.card, line.amount])).toEqual([
-      [CEREMONIAL_GUARD, 5],
+      [WALLS_OF_LEARNING, 6],
       ['theSultanate', 2],
     ]);
     expect(cardCityStat(state, city, 'sight').some((line) => line.card === 'theSultanate')).toBe(false);

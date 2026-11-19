@@ -207,6 +207,7 @@ describe('the Doctrine data model', () => {
       WEIGHT,
       COMBINED,
       SCOURGE,
+      'theCitizenPhalanx',
     ];
     expect(DECK_FILE_DOCTRINES.dominion).toEqual(dominion);
     expect(fromDecks).toEqual(expect.arrayContaining(dominion));

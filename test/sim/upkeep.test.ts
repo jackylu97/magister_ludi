@@ -203,7 +203,8 @@ describe('the free-upkeep marker', () => {
       .filter(([, text]) => /freeUpkeep\s*=\s*true/.test(text))
       .map(([path]) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
-    expect(writers).toEqual(['cities.ts', 'discoveries.ts', 'greatPeople.ts', 'state.ts']);
+    // The evaluator sets the grant option. The unit still receives it in cities.ts.
+    expect(writers).toEqual(['cities.ts', 'discoveries.ts', 'greatPeople.ts', 'state.ts', 'statecraft/evaluator.ts']);
   });
 
   it('is set by a wonder’s completion grant', () => {

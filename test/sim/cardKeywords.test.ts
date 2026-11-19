@@ -189,7 +189,7 @@ describe('the keyword on the card', () => {
     // Two places: the gain in the capital is said first, so "in your capital"
     // cannot be read as true of the gain to the empire.
     expect(said('theCaptiveCraftsmen' as OrderId)[1]).toBe(
-      'Gains +1 production in your capital and +1 science each time you pillage a hex',
+      'Gains +2 production in your capital and +2 science each time you pillage a hex',
     );
   });
 });

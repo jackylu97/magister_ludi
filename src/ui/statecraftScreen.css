@@ -431,11 +431,8 @@
   white-space: nowrap;
 }
 
-/* The ties (stage 8; the user, 2026-11-19, on The Grand Vizier): a card that
-   acts on another chair wears a small filled gilt lozenge, and the chair it acts
-   on wears an open one on its label. The two light together while the pointer
-   or the keyboard is on either (`lightTies`). A mark on the label only, so it
-   never fights the drop ring, which is the chair's frame. No animation. */
+/* A filled diamond marks the card. An open diamond marks the chair it affects.
+   Both light when the player points to or focuses either label. */
 .council-tie {
   flex: none;
   width: 8px;

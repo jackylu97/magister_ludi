@@ -204,7 +204,8 @@ describe('the council, read off the source', () => {
   it('builds every chair in its frame with its label, and an empty one in its ink', () => {
     // The Council screen (stage 1, frame C6): the chair's label sits on its
     // frame's top edge, and an empty chair says its type and what it takes.
-    expect(TABLE).toContain("frame.append(chairLegend(type, index, note.join(' · '), sealedTurns));");
+    expect(TABLE).toContain("const legend = chairLegend(type, index, note.join(' · '), sealedTurns);");
+    expect(TABLE).toContain('frame.append(legend);');
     expect(TABLE).toContain('empty.dataset.ink = type;');
     expect(TABLE).toContain("empty.append(element('span', 'council-empty-type', chairWord(type)));");
     expect(braceBody(SCREEN, 'function chairLegend(')).toContain('`${index + 1} · ${chairWord(type)}`');
