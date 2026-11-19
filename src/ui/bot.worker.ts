@@ -14,6 +14,8 @@
  * memories that live beside the state rather than in it (`harnessMemory.ts`).
  * The worker runs the ordinary `driveBots` or `answerAudience` on that copy and
  * records every command the driver put to the reducer, accepted or refused.
+ * (Since bot batch BP16, stage C1, `driveBots` plans each seat on a further copy
+ * of its own; only the commands put to the worker's game are recorded.)
  * The page then puts the same commands, in the same order, to its own state
  * through `dispatch` (`replayBotAttempts`), so its log and its state come out
  * exactly as if the bots had thought on the page. Nothing here decides
