@@ -20,6 +20,7 @@ import type { AbacusRow } from '../../src/ui/abacusScreen';
 import { frameBeads } from '../../src/ui/abacusScreen';
 import { OPUS_CLOSE_TIMING, opusCloseReading, opusCloseSchedule } from '../../src/ui/opusClose';
 import { opusName, seatTitle } from '../../src/ui/victoryScreen';
+import { shownAge } from '../../src/ui/topBar';
 import { found, game } from '../sim/statecraftHelpers';
 import { uiSource } from './sourceHelpers';
 
@@ -64,6 +65,12 @@ describe('the Opus close, as data', () => {
     expect(rows[close.winnerRod]?.playerId).toBe(1);
     // Words only (hard rule 7).
     for (const line of [close.nigredo, close.builder, close.albedo]) expect(line).not.toMatch(/\d/);
+  });
+
+  it('puts the world’s age on the plaque, as the top bar prints it (look B, 2026-11-19)', () => {
+    const { state, rows } = closed();
+    expect(opusCloseReading(state, rows).age).toBe(shownAge(state).age);
+    expect(uiSource('opusClose.ts')).toContain('{ age: read.age },');
   });
 
   it('leaves the golden bead off the frame until the close lights it', () => {

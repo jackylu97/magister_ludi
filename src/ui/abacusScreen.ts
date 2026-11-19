@@ -201,6 +201,12 @@ interface AbacusScreenOptions {
    * not drawn.
    */
   census?: () => CensusPage | null;
+  /**
+   * **The world's age**, for the numeral on the frame's plaque. A closure for
+   * `rows`' reason, asked on every open: the stage outlives an age. Absent
+   * leaves the plate plain.
+   */
+  age?: () => number;
 }
 
 /** Two DOM labels per rod: the name at the earned end, the tally at the waiting end. */
@@ -577,6 +583,7 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     // After `hidden` is cleared, never before: the stage measures the element it
     // is being built into, and an element with `display: none` measures zero.
     ensureStage();
+    abacus?.setAge(options.age?.() ?? null);
     drawRegister(rows());
     abacus?.setRunning(true);
     abacus?.resize();

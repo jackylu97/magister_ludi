@@ -43,9 +43,10 @@
         <button type="button" id="sound" class="quiet is-on">Sound</button>
       </div>
 
-      <!-- The style options of 2026-11-18 (src/render3d/abacusLooks.ts). Each
-           button loads the page again with ?look= set. Built by main.ts. -->
-      <div class="group" id="looks" role="group" aria-label="Style option"></div>
+      <!-- The look-dev row: 8 or 13 places on a rod, and the three pages the
+           game shows the frame on (?stage=bead|screen|close). Built by main.ts;
+           the switches are read by entry.ts. -->
+      <div class="group" id="looks" role="group" aria-label="Look-dev views"></div>
 
       <p id="status">—</p>
     </nav>
@@ -58,6 +59,6 @@
       ships with this page.
     </p>
 
-    <script type="module" src="/src/abacusSpike/main.ts"></script>
+    <script type="module" src="/src/abacusSpike/entry.ts"></script>
   </body>
 </html>

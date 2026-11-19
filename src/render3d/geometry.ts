@@ -4606,45 +4606,70 @@ export function rodBar(radius: number, length: number): BufferGeometry {
 }
 
 /**
- * The turned knob on a rod's end, built along +x from the stile it grows out of.
+ * A surface of revolution about the x axis, flat-shaded.
  *
- * A rod that simply stops at the frame reads as a wire pushed through a hole.
- * The finial is what says the rod was *fitted*: a collar, a bulb and a nose,
- * which is the same vocabulary the miniatures' lathed bodies are cut from.
+ * `profile` is a list of `[radius, x]` pairs with x rising. A radius of 0 at an
+ * end closes that end; any other radius leaves it open. The abacus's turned
+ * parts (look B, "Walnut and gilt", 2026-11-19) are built with this rather than
+ * with `lathe`, because the first ring starts at the top of the part (+y). The
+ * approved renders were made that way, and `lathe` would turn every facet by
+ * half a segment.
+ */
+function latheAlongX(profile: readonly (readonly [number, number])[], segments: number): BufferGeometry {
+  const out: number[] = [];
+  const point = (i: number, k: number): [number, number, number] => {
+    const [r, x] = profile[i]!;
+    const angle = (k / segments) * Math.PI * 2;
+    return [x, r * Math.cos(angle), r * Math.sin(angle)];
+  };
+  for (let i = 0; i < profile.length - 1; i++) {
+    for (let k = 0; k < segments; k++) {
+      const a = point(i, k);
+      const b = point(i + 1, k);
+      const c = point(i + 1, k + 1);
+      const d = point(i, k + 1);
+      // Outward for a profile whose x rises: (A, D, C) and (A, C, B). A ring of
+      // radius 0 has no area, so its half of the quad is left out.
+      if (profile[i]![0] > 0) out.push(...a, ...d, ...c);
+      if (profile[i + 1]![0] > 0) out.push(...a, ...c, ...b);
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(out), 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * The knob on a rod's end: a ball on a short neck, pointing along +x from the
+ * stile it grows out of. The caller turns it to face the other way for the
+ * other end.
  */
 export function rodFinial(size: number, segments: number): BufferGeometry {
-  const knob = lathe(
+  return latheAlongX(
     [
       [0, 0],
-      [0.62 * size, 0],
-      [0.66 * size, 0.16 * size],
-      [0.42 * size, 0.3 * size],
-      [0.9 * size, 0.46 * size],
-      [1.0 * size, 0.66 * size],
-      [0.74 * size, 0.86 * size],
-      [0.34 * size, 1.0 * size],
+      [0.5 * size, 0],
+      [0.5 * size, 0.14 * size],
+      [0.3 * size, 0.24 * size],
+      [0.62 * size, 0.42 * size],
+      [0.8 * size, 0.62 * size],
+      [0.62 * size, 0.84 * size],
       [0, 1.0 * size],
     ],
     segments,
   );
-  // Lathed about +y, then tipped so it points along +x — the direction a rod end
-  // faces. The caller mirrors it for the other end.
-  knob.rotateZ(-Math.PI / 2);
-  return flatten(knob);
 }
 
 /**
- * A bead: a flattened bicone with a bore down the middle, lying on the x axis.
+ * A bead: a full round barrel with a bore down the middle, lying on the x axis.
  *
- * This is the shape the whole object is judged on, and a lathe is the only
- * honest way to get it. The profile starts and ends at the bore radius rather
- * than at zero, so the surface of revolution is an open tube — the hole is not
- * modelled, it is simply *never closed*, and the rod passing through it is what
- * the eye reads as a drilled bead. A sphere with a cylinder subtracted would be
- * a CSG library and about four hundred more triangles for the same silhouette.
+ * The profile starts and ends at the bore radius rather than at zero, so the
+ * surface of revolution is an open tube. The hole is not modelled: it is never
+ * closed, and the rod through it is what the eye reads as a drilled bead.
  *
- * The waist is a hair proud of the shoulders so the widest ring is a real edge
- * the ramp can break on. A bead with a smooth barrel is a pill.
+ * There is no band round the middle. The user, on the approved render: "Could
+ * we remove the stripe running down the bead?" (2026-11-19).
  */
 export function beadShape(spec: {
   radius: number;
@@ -4655,20 +4680,99 @@ export function beadShape(spec: {
   const r = spec.radius;
   const h = spec.halfThickness;
   const b = spec.bore;
-  const bead = lathe(
+  return latheAlongX(
     [
       [b, -h],
-      [b * 1.9, -h],
-      [r * 0.6, -h * 0.74],
-      [r * 0.93, -h * 0.3],
+      [r * 0.42, -h],
+      [r * 0.74, -h * 0.72],
+      [r * 0.95, -h * 0.34],
       [r, 0],
-      [r * 0.93, h * 0.3],
-      [r * 0.6, h * 0.74],
-      [b * 1.9, h],
+      [r * 0.95, h * 0.34],
+      [r * 0.74, h * 0.72],
+      [r * 0.42, h],
       [b, h],
     ],
     spec.segments,
   );
-  bead.rotateZ(Math.PI / 2);
-  return flatten(bead);
+}
+
+/** `latheAlongX` stood up: a surface of revolution about the y axis. */
+function latheAlongY(profile: readonly (readonly [number, number])[], segments: number): BufferGeometry {
+  const geometry = latheAlongX(profile, segments);
+  geometry.rotateZ(Math.PI / 2);
+  return geometry;
+}
+
+/** `latheAlongX` facing the reader: a surface of revolution about the z axis. */
+function latheAlongZ(profile: readonly (readonly [number, number])[], segments: number): BufferGeometry {
+  const geometry = latheAlongX(profile, segments);
+  geometry.rotateY(-Math.PI / 2);
+  return geometry;
+}
+
+/** A turned bun foot whose base stands at the origin: `radius` wide, `height` tall. */
+export function bunFoot(radius: number, height: number, segments: number): BufferGeometry {
+  return latheAlongY(
+    [
+      [0, 0],
+      [radius * 0.55, 0],
+      [radius, height * 0.32],
+      [radius, height * 0.62],
+      [radius * 0.5, height],
+      [0, height],
+    ],
+    segments,
+  );
+}
+
+/** A turned knob whose base stands at the origin: the cap on top of a stile. */
+export function turnedKnob(size: number, segments: number): BufferGeometry {
+  return latheAlongY(
+    [
+      [0, 0],
+      [size * 0.62, 0],
+      [size * 0.62, size * 0.16],
+      [size * 0.3, size * 0.3],
+      [size * 0.7, size * 0.62],
+      [size * 0.62, size * 0.95],
+      [size * 0.2, size * 1.3],
+      [0, size * 1.36],
+    ],
+    segments,
+  );
+}
+
+/**
+ * The metal rim of a seat stud, facing +z from the origin: a flat ring with a
+ * bevel on its inner edge. `radius` is its outer radius.
+ */
+export function studRim(radius: number, segments: number): BufferGeometry {
+  return latheAlongZ(
+    [
+      [0, 0],
+      [radius, 0],
+      [radius, radius * 0.24],
+      [radius * 0.68, radius * 0.36],
+      [0, radius * 0.36],
+    ],
+    segments,
+  );
+}
+
+/** The stone set in a seat stud's rim, facing +z. `radius` is the rim's outer radius. */
+export function studStone(radius: number, segments: number): BufferGeometry {
+  return latheAlongZ(
+    [
+      [0, radius * 0.32],
+      [radius * 0.68, radius * 0.32],
+      [radius * 0.48, radius * 0.6],
+      [0, radius * 0.68],
+    ],
+    segments,
+  );
+}
+
+/** A flat box with flat normals, for a line let into a face. */
+export function flatBox(width: number, height: number, depth: number): BufferGeometry {
+  return flatten(new BoxGeometry(width, height, depth));
 }

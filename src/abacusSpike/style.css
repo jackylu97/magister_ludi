@@ -207,7 +207,7 @@ body {
   pointer-events: none;
 }
 
-/* The style options row (2026-11-18): six buttons, so it wraps. */
+/* The look-dev row: four buttons, so it wraps on a narrow window. */
 #controls #looks {
   flex-wrap: wrap;
   justify-content: flex-end;

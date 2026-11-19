@@ -22,7 +22,9 @@ import type { BeadCardId } from '../../src/sim/beadData';
 import { opusBuildingId } from '../../src/sim/score';
 import type { EarnedBead } from '../../src/sim/state';
 import type { AbacusRow } from '../../src/ui/abacusScreen';
-import { type BeadTable, frameSeeds } from '../../src/ui/beadAwardFrame';
+import { type BeadTable, frameGround, frameSeeds } from '../../src/ui/beadAwardFrame';
+import { cssHex } from '../../src/render3d/abacus3d';
+import { VIEW3D } from '../../src/render3d/lookData';
 import { beadPraise } from '../../src/ui/beadModal';
 import { BEAD_GRANT_IDS } from '../../src/sim/beadData';
 import { braceBody, uiSource } from './sourceHelpers';
@@ -202,11 +204,24 @@ describe('the sheet’s wiring', () => {
     expect(frame).toContain("from './abacusScreen'");
   });
 
-  it('is handed the Abacus screen’s own rows and the local seat by the page', () => {
+  it('is handed the Abacus screen’s own rows, the local seat and the world’s age by the page', () => {
+    // Look B (2026-11-19): the age is the plaque's numeral, as the top bar prints it.
     const main = uiSource('main.ts');
     const sheet = main.slice(main.indexOf('beadSheet = createBeadModal('));
     expect(sheet.slice(0, sheet.indexOf('});'))).toContain(
-      'table: () => ({ rows: abacusRows(), seat: controls.localPlayerId() }),',
+      'table: () => ({ rows: abacusRows(), seat: controls.localPlayerId(), age: shownAge(game.state).age }),',
     );
+    expect(frame).toContain('{ age: table.age ?? null }');
+  });
+});
+
+describe('the ground under the frame (look B, 2026-11-19)', () => {
+  it('is the colour at the edge of the abacus’s own ground, so no seam shows between canvas and page', () => {
+    expect(frameGround()).toBe(cssHex(VIEW3D.abacus.ground.edgeColor));
+  });
+
+  it('is the background of the bead page and of the Opus close’s page', () => {
+    expect(braceBody(uiSource('beadModal.ts'), 'function renderPage(')).toContain('page.style.background = frameGround();');
+    expect(uiSource('opusClose.ts')).toContain('page.style.background = frameGround();');
   });
 });

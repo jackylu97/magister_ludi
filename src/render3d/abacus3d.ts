@@ -8,11 +8,26 @@
  * the earned ones is an event, and this whole module exists to make that
  * half-second worth watching.
  *
- * It is built out of the shipping look and nothing else: `MaterialLibrary` with
- * `view3d.json`'s three-band ramp and its outline width, the game's own key +
- * hemisphere + ambient rig, an orthographic camera. Every proportion it is cut
- * from is `VIEW3D.abacus` — this file holds no tuned constant of its own, which
- * is the same bargain the board keeps.
+ * The look
+ * --------
+ * Look B, "Walnut and gilt", which the user chose on 2026-11-19 from a board of
+ * renders (`docs/plans/ui-critique-2026-10-16.md`, the last subsection), with
+ * the gilt band on the beads removed at the user's request. The parts:
+ * - a dark walnut frame with gilt shoes on the rail ends, a gilt line let into
+ *   each rail, a turned knob on each post and turned feet under each sledge;
+ * - a brass plaque on the top rail with the world's age (`setAge`);
+ * - pale brass rods with a ball at each end;
+ * - a stud in each seat's colour on the left post, at that seat's rod;
+ * - enamel beads in the four family colours, and smaller ivory beads for the
+ *   places not earned yet;
+ * - a parchment ground with a pool of light and a soft shadow under the frame.
+ *
+ * Every number the look is cut from is `VIEW3D.abacus` (`data/view3d.json`), and
+ * every colour is a palette name there. This file holds the algorithms only.
+ * The outline is the board's inverted hull (`MaterialLibrary.outline`), at a
+ * share of the board's width and in a dark brown. Each part takes the light
+ * through one of three toon ramps (`abacus.ramps`): matte for the walnut and
+ * the ivory, gloss for the enamel, metal for the gilt and the brass.
  *
  * Two consumers
  * -------------
@@ -21,16 +36,16 @@
  * look-dev page, which keeps the demo buttons — earning a bead is a thing the
  * *game* will do at M11, and a button that fakes it has no business in the game.
  * Both drive exactly the API below, so the page cannot drift from the screen.
+ * The bead page (`beadAwardFrame.ts`) and the Opus close (`opusClose.ts`) mount
+ * the same stage.
  *
  * Geometry
  * --------
- * Every part is a primitive or an extrusion of one, and all of it lives in
- * `geometry.ts` beside the board's own kit (see its "the Abacus" section). The
- * frame is chamfered timber bars — one closed convex shell each, so the
- * inverted-hull outline stays a silhouette instead of laying stripes down the
- * rails. The rods are cylinders with turned finials. The beads are lathed
- * bicones whose profile simply never closes at the bore, so the hole is real
- * without any CSG.
+ * Every part is a primitive, an extrusion or a lathe, and all of the shapes live
+ * in `geometry.ts` (its "the Abacus" section). The bars are chamfered timber,
+ * one closed convex shell each, so the inverted-hull outline stays a silhouette
+ * instead of laying stripes down the rails. Parts of one colour and one ramp
+ * are welded into one geometry, so the frame is five draws and not thirty.
  *
  * Ordering
  * --------
@@ -49,10 +64,10 @@
  * it: a bead's *colour* is its scoring family, so instancing would need a
  * vertex-coloured toon material and a per-instance colour buffer, and the
  * inverted-hull shell would need a second instanced mesh kept in step with it.
- * The whole object is around fifty draws at two seats and stays under a hundred
- * at six — and it is a modal screen, so the board is not drawing while it is up.
- * The saving is real only in the world where the Abacus becomes a corner widget
- * on top of a live board, and that is the day to spend it.
+ * The whole object is under a hundred draws at three seats, and it is a modal
+ * screen, so the board is not drawing while it is up. The saving is real only
+ * in the world where the Abacus becomes a corner widget on top of a live board,
+ * and that is the day to spend it.
  *
  * Built for N players. Rod pitch, bead size and the tally all fall out of the
  * player count; the game seats two today and nothing here knows that.
@@ -64,51 +79,49 @@ import {
   type BufferGeometry,
   CanvasTexture,
   Color,
+  DataTexture,
   DirectionalLight,
   Group,
   HemisphereLight,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
+  MeshToonMaterial,
+  NearestFilter,
   OrthographicCamera,
   PCFShadowMap,
   PlaneGeometry,
+  RedFormat,
+  SRGBColorSpace,
   Scene,
   Sprite,
   SpriteMaterial,
+  UnsignedByteType,
   Vector3,
   WebGLRenderer,
 } from 'three';
 
+import { eraNumeral } from '../sim/techData';
 import {
   beadShape,
+  bunFoot,
   chamferedBar,
+  flatBox,
   rodBar,
   rodFinial,
+  studRim,
+  studStone,
+  turnedKnob,
   uprightBar,
   weld,
 } from './geometry';
 import {
   type AbacusFamily,
+  type AbacusRamp,
   type FamilyId,
   VIEW3D,
-  mixColor,
-  shade,
 } from './lookData';
 import { MaterialLibrary, computeHullNormals } from './toon';
-// The style options of 2026-11-18. `today` is the default and changes nothing.
-import {
-  type LookRamp,
-  LookKit,
-  activeAbacusLook,
-  lookBand,
-  lookBead,
-  lookFinial,
-  lookFrameParts,
-  placesOverride,
-  seatStudRim,
-  seatStudStone,
-  slideFreeze,
-} from './abacusLooks';
 
 export type { AbacusFamily, FamilyId } from './lookData';
 export { FAMILY_IDS } from './lookData';
@@ -120,11 +133,34 @@ const FRAME = ABACUS.frame;
 const CLOSE = ABACUS.close;
 const DEG = Math.PI / 180;
 
+// --- the look-dev switches ----------------------------------------------------
+
+/** `abacus.html?abacusPlaces=8`: the places on a rod, or null for `bead.perRod`. */
+let lookDevPlaces: number | null = null;
+/** `abacus.html?abacusFreeze=0.5`: the share of a slide at which it stops, or null. */
+let lookDevFreeze: number | null = null;
+
 /**
- * The places on a rod. `bead.perRod`, unless the look-dev switch
- * `?abacusPlaces=` asks for another number (`abacusLooks.ts`).
+ * **The look-dev switches**, for `abacus.html` and nothing else. The game never
+ * calls this.
+ *
+ * - `places`: the number of places on a rod. That number is an open rule
+ *   question, so the user can see the frame at 8 as well as at the data's 13.
+ * - `freezeAt`: stops every slide at that share of its time, for a still picture.
+ *
+ * Call it before any stage is built: a stage reads both when it is made. A value
+ * out of range is ignored.
  */
-const PLACES = placesOverride() ?? ABACUS.bead.perRod;
+export function setAbacusLookDev(options: { places?: number | null; freezeAt?: number | null }): void {
+  if (options.places !== undefined) {
+    const places = options.places;
+    lookDevPlaces = places !== null && Number.isInteger(places) && places >= 1 && places <= 20 ? places : null;
+  }
+  if (options.freezeAt !== undefined) {
+    const at = options.freezeAt;
+    lookDevFreeze = at !== null && Number.isFinite(at) && at > 0 && at < 1 ? at : null;
+  }
+}
 
 // --- the pure arithmetic ----------------------------------------------------
 
@@ -179,9 +215,11 @@ interface RodLayout {
   runEdge: number;
   /** World y of each rod, top first. */
   rodY: readonly number[];
+  /** The places on each rod: `bead.perRod`, or the look-dev number. */
+  places: number;
 }
 
-export function rodLayout(playerCount: number): RodLayout {
+export function rodLayout(playerCount: number, places: number = ABACUS.bead.perRod): RodLayout {
   const bead = ABACUS.bead;
   const metrics = frameMetrics();
   const pitch = FRAME.innerHeight / (playerCount + 1);
@@ -198,6 +236,7 @@ export function rodLayout(playerCount: number): RodLayout {
     beadStep: halfThickness * 2 + bead.clearance,
     runEdge: metrics.innerHalfSpan - ABACUS.rod.finialSize - bead.finialClearance,
     rodY,
+    places,
   };
 }
 
@@ -214,7 +253,7 @@ export function beadX(layout: RodLayout, index: number, earned: number): number 
   if (index < earned) {
     return -layout.runEdge + layout.beadStep / 2 + index * layout.beadStep;
   }
-  const fromRight = PLACES - 1 - index;
+  const fromRight = layout.places - 1 - index;
   return layout.runEdge - layout.beadStep / 2 - fromRight * layout.beadStep;
 }
 
@@ -245,6 +284,40 @@ export function slidePosition(
   }
   const u = (t - slide.travel) / (1 - slide.travel);
   return over + (to - over) * (1 - (1 - u) ** 3);
+}
+
+/**
+ * **How large a sliding bead is**, as a share of an earned bead, `t` from 0 to 1
+ * into the slide. A place not earned is drawn at `bead.waitingScale`; the bead
+ * that leaves it grows to full size over the first `bead.growShare` of the
+ * slide's travel, easing out, so it is full size well before it lands.
+ */
+export function growScale(t: number): number {
+  const bead = ABACUS.bead;
+  const span = ABACUS.slide.travel * bead.growShare;
+  const grown = span <= 0 ? 1 : Math.max(0, Math.min(1, t / span));
+  return bead.waitingScale + (1 - bead.waitingScale) * (1 - (1 - grown) ** 3);
+}
+
+/** One damped swing, `sin(πt)·(1 − t)`: at rest at both ends. */
+function knockSwing(t: number): number {
+  const clamped = Math.max(0, Math.min(1, t));
+  return Math.sin(clamped * Math.PI) * (1 - clamped);
+}
+
+/** The swing's highest point (about 0.58, a third of the way in), so `knock.reach` is the real peak. */
+const KNOCK_PEAK = Math.max(...Array.from({ length: 401 }, (_, i) => knockSwing(i / 400)));
+
+/**
+ * **The knock**: how far the earned bead `fromNewest` places from the bead that
+ * just landed is pushed away from it, `t` from 0 to 1 into the knock. One damped
+ * swing, so it starts and ends at rest. At its peak the bead next to the new one
+ * has moved `knock.reach`; each bead past it moves `knock.falloff` of its
+ * neighbour's move.
+ */
+export function knockOffset(fromNewest: number, t: number): number {
+  const knock = ABACUS.knock;
+  return (knock.reach * knockSwing(t) * knock.falloff ** Math.max(0, fromNewest - 1)) / KNOCK_PEAK;
 }
 
 /**
@@ -289,12 +362,55 @@ export function cssHex(color: number): string {
   return `#${color.toString(16).padStart(6, '0')}`;
 }
 
+/** "ÆRA II": the plaque's words for an age, as the tech chart labels an age. */
+export function plaqueWords(age: number): string {
+  return `ÆRA ${eraNumeral(age)}`;
+}
+
+/**
+ * **The plaque's size and whether it shows the numeral**, given how many CSS
+ * pixels tall the plate is at its own size.
+ *
+ * The plate grows (up to `plaque.maxHeight` of the rail) until the numeral is
+ * `plaque.minNumeralPx` tall. If the numeral would still be under
+ * `plaque.blankBelowPx`, the plate is drawn without it: a numeral nobody can
+ * read is worse than a plain brass plate. Pure, so a test can pin it.
+ */
+export function plaqueFit(basePx: number): { scale: number; numeral: boolean } {
+  const spec = ABACUS.plaque;
+  if (!(basePx > 0)) return { scale: 1, numeral: false };
+  const most = Math.max(1, spec.maxHeight / spec.height);
+  const wanted = spec.minNumeralPx / spec.numeralShare / basePx;
+  const scale = Math.min(most, Math.max(1, wanted));
+  return { scale, numeral: basePx * scale * spec.numeralShare >= spec.blankBelowPx };
+}
+
+/**
+ * **How far the Opus close may move in**: `close.zoom`, or less where that much
+ * would push the frame past the sides of the canvas.
+ *
+ * `halfWidth` is the half-width of the fitted view, `centre` is where the camera
+ * looks once it has slid toward the rod, and `left`/`right` are the frame's
+ * edges, all in the fitted camera's x. The frame keeps the fit's own padding.
+ */
+export function closeZoom(halfWidth: number, centre: number, left: number, right: number, padding: number): number {
+  const reach = Math.max(Math.abs(left - centre), Math.abs(right - centre)) * padding;
+  if (!(reach > 0)) return CLOSE.zoom;
+  return Math.max(1, Math.min(CLOSE.zoom, halfWidth / reach));
+}
+
 // --- state ------------------------------------------------------------------
 
 export interface AbacusPlayer {
   name: string;
-  /** The player's diorama ink, for the label swatch. Not painted on the beads. */
+  /** The player's diorama ink, for the label swatch and the stud on the post. */
   color: number;
+}
+
+/** What a stage can be told when it is built. */
+export interface AbacusStageOptions {
+  /** The world's age, for the plaque's numeral. Null or absent leaves the plate plain. */
+  age?: number | null;
 }
 
 /** One bead on one rod: a mesh, where it is, and where it is going. */
@@ -308,9 +424,7 @@ interface BeadView {
   elapsed: number | null;
   /** Whether the landing clack has already been fired for this slide. */
   struck: boolean;
-  /** A style option's metal band, shown on an earned bead. */
-  band: Mesh | null;
-  /** A style option's size for this bead at rest: smaller while it waits. */
+  /** Its size at rest: `bead.waitingScale` while it waits, 1 once earned. */
   rest: number;
 }
 
@@ -318,7 +432,7 @@ interface RodView {
   y: number;
   beads: BeadView[];
   earned: FamilyId[];
-  /** A style option's knock: seconds since a bead landed on this rod, or null. */
+  /** Seconds since a bead landed on this rod and knocked the others, or null. */
   knock: number | null;
 }
 
@@ -360,6 +474,51 @@ interface LabelPlacement {
   opacity: number;
 }
 
+/**
+ * The abacus's toon materials: one per colour and ramp, made once. The three
+ * ramps are `abacus.ramps`; each is a row of brightness bands, read with
+ * nearest filtering so the bands stay hard.
+ */
+class RampMaterials {
+  private readonly maps = new Map<AbacusRamp, DataTexture>();
+  private readonly cache = new Map<string, MeshToonMaterial>();
+
+  get(color: number, ramp: AbacusRamp): MeshToonMaterial {
+    const key = `${color}|${ramp}`;
+    const existing = this.cache.get(key);
+    if (existing) return existing;
+    let map = this.maps.get(ramp);
+    if (!map) {
+      const bands = ABACUS.ramps[ramp];
+      const data = new Uint8Array(bands.map((band) => Math.round(band * 255)));
+      map = new DataTexture(data, data.length, 1, RedFormat, UnsignedByteType);
+      map.magFilter = NearestFilter;
+      map.minFilter = NearestFilter;
+      map.generateMipmaps = false;
+      map.needsUpdate = true;
+      this.maps.set(ramp, map);
+    }
+    const material = new MeshToonMaterial({ color, gradientMap: map });
+    this.cache.set(key, material);
+    return material;
+  }
+
+  dispose(): void {
+    for (const material of this.cache.values()) material.dispose();
+    for (const map of this.maps.values()) map.dispose();
+    this.cache.clear();
+    this.maps.clear();
+  }
+}
+
+/** A palette colour as CSS `rgba()`, for the 2D canvases the ground and plaque are drawn on. */
+function rgba(color: number, alpha = 1): string {
+  return `rgba(${(color >> 16) & 255},${(color >> 8) & 255},${color & 255},${alpha})`;
+}
+
+/** The plaque's picture, in texture pixels. */
+const PLAQUE_PIXELS = { width: 320, height: 80 } as const;
+
 export class AbacusStage {
   private players: readonly AbacusPlayer[];
   /** Fired the instant a bead knocks into the earned stack. */
@@ -376,7 +535,10 @@ export class AbacusStage {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera: OrthographicCamera;
+  /** The board's material kit, for the outline shell and its width. */
   private readonly materials: MaterialLibrary;
+  /** The abacus's own toon materials, by colour and ramp. */
+  private readonly ramps = new RampMaterials();
   private readonly key: DirectionalLight;
 
   /** Everything that is the abacus. Sway and turntable turn this and nothing else. */
@@ -395,14 +557,21 @@ export class AbacusStage {
   private readonly frameGeometries: BufferGeometry[] = [];
   /** Geometries owned by the current roster, disposed when it changes. */
   private rodGeometries: BufferGeometry[] = [];
+  /** Textures and materials of the ground and the plaque, disposed with the stage. */
+  private readonly owned: { dispose(): void }[] = [];
 
   private layout: RodLayout;
-  private readonly waitingColor: number;
-  /** The style option in use (`abacusLooks.ts`), and its materials. A null kit is today's look. */
-  private readonly look = activeAbacusLook();
-  private readonly kit: LookKit | null = this.look.id === 'today' ? null : new LookKit(this.look);
-  private readonly freezeAt = slideFreeze();
-  private lookShadow: Mesh | null = null;
+  private readonly places = lookDevPlaces ?? ABACUS.bead.perRod;
+  private readonly freezeAt = lookDevFreeze;
+  /** The soft shadow on the ground, which turns with the frame. */
+  private groundShadow: Mesh | null = null;
+
+  /** The plaque, its picture, and what the picture shows. */
+  private plaque: Mesh | null = null;
+  private plaqueCanvas: HTMLCanvasElement | null = null;
+  private plaqueMap: CanvasTexture | null = null;
+  private age: number | null;
+  private plaqueNumeral = false;
 
   private aspect = 1;
   private frustum = 1;
@@ -438,45 +607,42 @@ export class AbacusStage {
   private readonly baseRight = new Vector3(1, 0, 0);
   private readonly baseUp = new Vector3(0, 1, 0);
   private readonly baseView = new Matrix4();
+  /** The frame's left and right edges in the fitted camera's x, gutters left out. */
+  private frameLeft = -1;
+  private frameRight = 1;
 
-  constructor(canvas: HTMLCanvasElement, players: readonly AbacusPlayer[]) {
+  constructor(canvas: HTMLCanvasElement, players: readonly AbacusPlayer[], options: AbacusStageOptions = {}) {
     this.players = players;
-    this.layout = rodLayout(players.length);
+    this.age = options.age ?? null;
+    this.layout = rodLayout(players.length, this.places);
 
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = LOOK.shadows;
     // `PCFSoftShadowMap` is deprecated in three r185, which warns and uses this.
     this.renderer.shadowMap.type = PCFShadowMap;
-    this.scene.background = new Color(this.look.ground?.edge ?? VIEW3D.table.color);
+    // The colour at the edge of the ground, so the view has no edge where the
+    // ground plane stops. `frameGround` gives the pages the same colour.
+    this.scene.background = new Color(ABACUS.ground.edgeColor);
 
-    this.materials = new MaterialLibrary(LOOK.rampSteps, this.look.outlineColor ?? VIEW3D.palette.ink!);
-    this.materials.outlineWidth.value = LOOK.outline * this.look.outline;
-
-    // Unearned beads are bone warmed toward the frame's timber: a waiting bead
-    // is not *painted*, it is bare turned wood, and pure bone read as ivory
-    // against the rails.
-    this.waitingColor = mixColor(
-      ABACUS.bead.waitingColor,
-      ABACUS.bead.waitingWarmth,
-      ABACUS.bead.waitingWarmthMix,
-    );
+    this.materials = new MaterialLibrary(LOOK.rampSteps, ABACUS.outline.color);
+    this.materials.outlineWidth.value = LOOK.outline * ABACUS.outline.share;
 
     this.camera = new OrthographicCamera(-1, 1, 1, -1, 1, 600);
 
-    const lit = this.look.light;
-    this.key = new DirectionalLight(LIGHTS.keyColor, lit?.key ?? LIGHTS.keyIntensity);
+    const light = ABACUS.light;
+    this.key = new DirectionalLight(LIGHTS.keyColor, light.key);
     this.key.castShadow = LOOK.shadows;
     this.key.shadow.mapSize.set(LOOK.shadowMapSize, LOOK.shadowMapSize);
     this.key.shadow.bias = LOOK.shadowBias;
     this.key.shadow.normalBias = LOOK.shadowNormalBias;
     this.scene.add(this.key, this.key.target);
-    this.scene.add(new HemisphereLight(LIGHTS.skyColor, LIGHTS.groundColor, lit?.hemi ?? LIGHTS.hemiIntensity));
-    this.scene.add(new AmbientLight(LIGHTS.ambientColor, lit?.ambient ?? LIGHTS.ambientIntensity));
+    this.scene.add(new HemisphereLight(LIGHTS.skyColor, LIGHTS.groundColor, light.hemi));
+    this.scene.add(new AmbientLight(LIGHTS.ambientColor, light.ambient));
 
     this.scene.add(this.object);
     this.object.add(this.rodGroup);
-    this.buildTable();
+    this.buildGround();
     this.buildFrame();
     this.buildRods();
 
@@ -497,7 +663,7 @@ export class AbacusStage {
   }
 
   get beadsPerRod(): number {
-    return PLACES;
+    return this.places;
   }
 
   earnedCount(rodIndex: number): number {
@@ -512,6 +678,17 @@ export class AbacusStage {
   setSway(on: boolean): void {
     this.sway = on;
     if (!on && !this.spin) this.yaw = 0;
+  }
+
+  /**
+   * **The age on the plaque**: the world's age, or null for a plain plate. The
+   * Abacus screen calls this each time it opens, because its stage outlives an
+   * age.
+   */
+  setAge(age: number | null): void {
+    if (age === this.age) return;
+    this.age = age;
+    this.paintPlaque();
   }
 
   /**
@@ -541,7 +718,7 @@ export class AbacusStage {
    */
   setPlayers(players: readonly AbacusPlayer[]): void {
     this.players = players;
-    this.layout = rodLayout(players.length);
+    this.layout = rodLayout(players.length, this.places);
     this.clearRods();
     this.buildRods();
     // The frustum is fitted to the frame, not to the rods, so it does not move —
@@ -576,9 +753,9 @@ export class AbacusStage {
 
   /**
    * **Lights the golden bead** on a rod: the first of its unearned beads turns
-   * gold, grows to `close.goldenScale` and takes its halo, over `seconds` (0 for
-   * at once). It moves left by the width it gains, so it never presses into the
-   * waiting bead beside it.
+   * gold, grows from its waiting size to `close.goldenScale` and takes its halo,
+   * over `seconds` (0 for at once). It moves left by the width it gains, so it
+   * never presses into the waiting bead beside it.
    *
    * Returns false when the rod has no unearned bead left to light, or a golden
    * bead is already lit: there is one golden bead in a game.
@@ -590,9 +767,7 @@ export class AbacusStage {
     const bead = rod.beads[index]!;
     bead.elapsed = null;
     bead.rest = 1;
-    bead.mesh.material = this.kit
-      ? this.kit.toon(this.look.bead?.golden ?? CLOSE.goldenColor, 'metal')
-      : this.materials.get(CLOSE.goldenColor);
+    bead.mesh.material = this.ramps.get(CLOSE.goldenColor, CLOSE.goldenRamp);
     const glow = new Sprite(
       new SpriteMaterial({
         map: this.glowTexture(),
@@ -643,8 +818,8 @@ export class AbacusStage {
 
   /**
    * **Moves the camera in on a rod**, to `amount` (0 is the fitted view, 1 is
-   * `close.zoom` times closer), over `seconds`. The DOM labels are projected
-   * through the live camera, so they follow without being told.
+   * as far in as `closeZoom` allows), over `seconds`. The DOM labels are
+   * projected through the live camera, so they follow without being told.
    */
   focusRod(rodIndex: number, amount: number, seconds: number): void {
     const from = this.focus.amount;
@@ -695,8 +870,8 @@ export class AbacusStage {
     if (!bead) return;
     const t = golden.seconds === 0 ? 1 : Math.min(1, golden.elapsed / golden.seconds);
     const lit = 1 - (1 - t) ** 3;
-    // A style option draws a waiting place smaller, so the bead grows from that size.
-    const start = this.kit ? (this.look.bead?.waitingScale ?? 1) : 1;
+    // It grows from the waiting place's size, not from an earned bead's.
+    const start = ABACUS.bead.waitingScale;
     bead.mesh.scale.setScalar(start + (CLOSE.goldenScale - start) * lit);
     (golden.glow.material as SpriteMaterial).opacity = CLOSE.glowOpacity * lit;
     // Only while it stands: once it slides, the slide owns its place.
@@ -718,7 +893,7 @@ export class AbacusStage {
   }
 
   /**
-   * The camera for the move's present amount: closer by up to `close.zoom`, and
+   * The camera for the move's present amount: closer by up to `closeZoom`, and
    * slid toward the rod by up to `close.focusPan` of the way, both measured from
    * the camera `fit` left.
    */
@@ -731,7 +906,16 @@ export class AbacusStage {
       .copy(this.basePosition)
       .addScaledVector(this.baseRight, target.x * pan)
       .addScaledVector(this.baseUp, target.y * pan);
-    const frustum = this.baseFrustum / (1 + (CLOSE.zoom - 1) * amount);
+    // The camera's centre in the fitted view's x, at the full move. The zoom is
+    // limited there, so the frame keeps its sides at every amount on the way.
+    const zoom = closeZoom(
+      this.baseFrustum * this.aspect,
+      target.x * CLOSE.focusPan,
+      this.frameLeft,
+      this.frameRight,
+      ABACUS.camera.padding,
+    );
+    const frustum = this.baseFrustum / (1 + (zoom - 1) * amount);
     this.camera.left = -frustum * this.aspect;
     this.camera.right = frustum * this.aspect;
     this.camera.top = frustum;
@@ -758,24 +942,18 @@ export class AbacusStage {
   }
 
   /**
-   * Gives a bead the material of its family, or of a place not earned yet.
-   * A style option may also show a metal band on an earned bead and draw a
-   * waiting place smaller (`bead.rest`).
+   * Gives a bead the enamel of its family, or the ivory of a place not earned
+   * yet, and the size it rests at: a waiting place is drawn smaller.
    */
   private paintBead(bead: BeadView, family: FamilyId | null): void {
-    const style = this.look.bead;
-    if (!this.kit || !style) {
-      bead.mesh.material = this.materials.get(family ? familyOf(family).color : this.waitingColor);
-      return;
-    }
+    const style = ABACUS.bead;
     if (family === null) {
-      bead.mesh.material = this.kit.toon(style.waiting, style.waitingRamp);
+      bead.mesh.material = this.ramps.get(style.waitingColor, style.waitingRamp);
       bead.rest = style.waitingScale;
     } else {
-      bead.mesh.material = this.kit.toon(style.families?.[family] ?? familyOf(family).color, style.ramp);
+      bead.mesh.material = this.ramps.get(familyOf(family).color, style.ramp);
       bead.rest = 1;
     }
-    if (bead.band) bead.band.visible = family !== null;
   }
 
   // --- labels --------------------------------------------------------------
@@ -839,156 +1017,278 @@ export class AbacusStage {
   // --- construction --------------------------------------------------------
 
   /**
-   * The table the abacus stands on: one lit plane in the board's own vellum.
+   * The ground: one unlit plane with a lighter pool of light under the frame,
+   * fading to `ground.edgeColor` at its edges, and a soft shadow under the frame.
    *
-   * Lit rather than unlit, unlike the Armory's, because this object is judged on
-   * whether it *sits* anywhere — and a cast shadow needs a surface that receives
-   * one, which `MeshBasicMaterial` cannot. It is a single flat plane, so the toon
-   * ramp resolves it to one uniform band and it reads as the flat vellum tone the
-   * screen's chrome is drawn on.
+   * Unlit, so the pool is exactly the colours in the data and the page around
+   * the canvas can match its edge (`frameGround`). A plane cannot receive the
+   * cast shadow unlit, so the frame's shadow on the ground is a drawn blot that
+   * turns with the frame. The cast shadows of the beads on the rails stay.
    */
-  private buildTable(): void {
-    if (this.kit && this.look.ground) {
-      // A style option's ground: an unlit plane with a pool of light, and a
-      // soft shadow under the frame in place of the cast one.
-      const { ground, shadow } = this.kit.ground(FRAME.width, FRAME.footDepth);
-      this.scene.add(ground, shadow);
-      this.lookShadow = shadow;
-      this.frameDraws += 2;
-      return;
+  private buildGround(): void {
+    const ground = ABACUS.ground;
+    const size = 256;
+    const pool = document.createElement('canvas');
+    pool.width = size;
+    pool.height = size;
+    const poolContext = pool.getContext('2d');
+    if (poolContext) {
+      poolContext.fillStyle = rgba(ground.edgeColor);
+      poolContext.fillRect(0, 0, size, size);
+      const gradient = poolContext.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      gradient.addColorStop(0, rgba(ground.centerColor, 1));
+      gradient.addColorStop(0.45, rgba(ground.centerColor, 0.8));
+      gradient.addColorStop(1, rgba(ground.centerColor, 0));
+      poolContext.fillStyle = gradient;
+      poolContext.fillRect(0, 0, size, size);
     }
-    const plane = new PlaneGeometry(400, 400);
-    this.frameGeometries.push(plane);
-    const table = new Mesh(plane, this.materials.get(VIEW3D.table.color));
-    table.rotation.x = -Math.PI / 2;
-    table.position.y = -0.004;
-    table.receiveShadow = LOOK.shadows;
-    this.scene.add(table);
-    this.frameDraws += 1;
+    const poolMap = new CanvasTexture(pool);
+    poolMap.colorSpace = SRGBColorSpace;
+    const planeGeometry = new PlaneGeometry(ground.poolX * 2, ground.poolZ * 2);
+    const planeMaterial = new MeshBasicMaterial({ map: poolMap });
+    const plane = new Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -0.006;
+
+    const blot = document.createElement('canvas');
+    blot.width = size;
+    blot.height = size / 2;
+    const ink = blot.getContext('2d');
+    if (ink) {
+      ink.translate(size / 2, size / 4);
+      ink.scale(1, 0.5);
+      const gradient = ink.createRadialGradient(0, 0, 0, 0, 0, size / 2);
+      gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.55, 'rgba(255,255,255,0.75)');
+      gradient.addColorStop(0.8, 'rgba(255,255,255,0.25)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ink.fillStyle = gradient;
+      ink.fillRect(-size / 2, -size / 2, size, size);
+    }
+    const blotMap = new CanvasTexture(blot);
+    const shadowGeometry = new PlaneGeometry(FRAME.width * ground.shadowWidth, FRAME.footDepth * ground.shadowDepth);
+    const shadowMaterial = new MeshBasicMaterial({
+      map: blotMap,
+      color: ground.shadowColor,
+      transparent: true,
+      opacity: ground.shadowOpacity,
+      depthWrite: false,
+    });
+    const shadow = new Mesh(shadowGeometry, shadowMaterial);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(0, 0.002, -FRAME.footDepth * ground.shadowOffset);
+
+    this.scene.add(plane, shadow);
+    this.groundShadow = shadow;
+    this.owned.push(poolMap, planeGeometry, planeMaterial, blotMap, shadowGeometry, shadowMaterial);
+    this.frameDraws += 2;
   }
 
   /**
-   * The timber: rails in the warm ink, stiles and feet in progressively darker
-   * ones.
+   * The frame: walnut rails, darker posts and darker sledges, with the gilt
+   * fittings and the gilt line on each rail.
    *
-   * Two welded geometries, not eight meshes. Every part in one ink is merged
-   * into a single shell, which is what keeps a nine-piece frame down to four
-   * draws — and, more usefully, keeps the outline one continuous silhouette
-   * around the whole light-timber assembly rather than a seam at every joint.
-   *
-   * The darkening is the "end cap" rule board pieces already follow
-   * (`sideDarken`): a face that turns away from the light is painted darker
-   * rather than lit darker, because a three-band ramp cannot be trusted to make
-   * that distinction on its own at a shallow camera angle.
+   * Every part of one colour and ramp is welded into one geometry, so the frame
+   * is five draws and its outline is one silhouette per colour rather than a
+   * seam at every joint. The gilt line has no outline: it is let into the rail,
+   * not stood on it.
    */
   private buildFrame(): void {
     const metrics = frameMetrics();
+    const fit = ABACUS.fittings;
+    const inlay = ABACUS.inlay;
     const half = FRAME.width / 2;
-    const styled = this.kit ? lookFrameParts(this.look, { ...FRAME, ...metrics }) : null;
-    if (styled) {
-      for (const part of styled) this.addSolid(part.geometry, part.color, false, part.ramp, part.outline);
-      const plaque = this.kit?.plaque({ ...FRAME, ...metrics });
-      if (plaque) {
-        this.object.add(plaque);
-        this.frameDraws += 1;
-      }
-      return;
-    }
-    const railY = [
-      metrics.footTop + FRAME.railHeight / 2,
-      metrics.innerTop + FRAME.railHeight / 2,
-    ];
+    const railY = [metrics.footTop + FRAME.railHeight / 2, metrics.innerTop + FRAME.railHeight / 2];
 
-    const light: BufferGeometry[] = [];
+    const rails: BufferGeometry[] = [];
+    const posts: BufferGeometry[] = [];
+    const sledges: BufferGeometry[] = [];
+    const gilt: BufferGeometry[] = [];
+    const lines: BufferGeometry[] = [];
+
     for (const y of railY) {
       const rail = chamferedBar(FRAME.width, FRAME.railHeight, FRAME.railDepth, FRAME.chamfer);
       rail.translate(0, y, 0);
-      light.push(rail);
+      rails.push(rail);
+      // A shoe on each end: one closed bar a little larger than the rail.
+      for (const side of [-1, 1]) {
+        const shoe = chamferedBar(
+          fit.shoeWidth,
+          FRAME.railHeight + fit.shoeSwell,
+          FRAME.railDepth + fit.shoeSwell,
+          FRAME.chamfer * fit.shoeChamfer,
+        );
+        shoe.translate(side * (half - fit.shoeInset), y, 0);
+        gilt.push(shoe);
+      }
+      const line = flatBox(FRAME.width - inlay.endGap * 2, inlay.height, inlay.depth);
+      line.translate(0, y, FRAME.railDepth / 2 + inlay.proud);
+      lines.push(line);
     }
 
-    const dark: BufferGeometry[] = [];
     for (const side of [-1, 1]) {
-      const stile = uprightBar(
-        FRAME.innerHeight + FRAME.railHeight,
-        FRAME.stileWidth,
-        FRAME.stileDepth,
-        FRAME.chamfer,
-      );
-      // Run half a rail into each rail — a mortice, so the post reads as seated
-      // in the frame rather than balanced on it, and no joint can show daylight.
-      stile.translate(
-        side * (half - FRAME.stileWidth / 2),
-        metrics.innerBottom + FRAME.innerHeight / 2,
-        0,
-      );
-      dark.push(stile);
+      const x = side * (half - FRAME.stileWidth / 2);
+      // Half a rail into each rail: a mortice, so the post reads as seated in
+      // the frame rather than balanced on it, and no joint can show daylight.
+      const post = uprightBar(FRAME.innerHeight + FRAME.railHeight, FRAME.stileWidth, FRAME.stileDepth, FRAME.chamfer);
+      post.translate(x, metrics.innerBottom + FRAME.innerHeight / 2, 0);
+      posts.push(post);
+      const knob = turnedKnob(fit.knobSize, fit.segments);
+      knob.translate(x, metrics.totalHeight, 0);
+      gilt.push(knob);
 
-      const foot = chamferedBar(
-        FRAME.footWidth,
-        FRAME.footHeight,
-        FRAME.footDepth,
-        FRAME.chamfer * 0.8,
-      );
-      foot.translate(side * (half - FRAME.footWidth / 2), FRAME.footHeight / 2, 0);
-      dark.push(foot);
+      // The sledge stands on two turned feet, so the frame clears the ground.
+      const lift = FRAME.footHeight * fit.sledgeLift;
+      const sledgeX = side * (half - FRAME.footWidth / 2);
+      const sledge = chamferedBar(FRAME.footWidth, FRAME.footHeight - lift, FRAME.footDepth, FRAME.chamfer * fit.sledgeChamfer);
+      sledge.translate(sledgeX, lift + (FRAME.footHeight - lift) / 2, 0);
+      sledges.push(sledge);
+      for (const end of [-1, 1]) {
+        const foot = bunFoot(fit.footRadius, lift + fit.footSink, fit.segments);
+        foot.translate(sledgeX, 0, end * (FRAME.footDepth / 2 - fit.footInset));
+        gilt.push(foot);
+      }
     }
 
-    const timber = FRAME.timberColor;
-    const own = this.look.frame;
-    if (own) {
-      // Style option A: the same timber frame in its own colours.
-      this.addSolid(weld(light), own.rail, false, own.ramp);
-      this.addSolid(weld(dark), own.stile, false, own.ramp);
-      return;
+    this.addSolid(weld(rails), FRAME.railColor, FRAME.ramp, false);
+    this.addSolid(weld(posts), FRAME.stileColor, FRAME.ramp, false);
+    this.addSolid(weld(sledges), FRAME.footColor, FRAME.ramp, false);
+    this.addSolid(weld(gilt), fit.color, fit.ramp, false);
+    this.addSolid(weld(lines), inlay.color, inlay.ramp, false, false);
+    this.buildPlaque();
+  }
+
+  /**
+   * The plaque on the top rail: a brass plate with the age cut into it. The
+   * picture is drawn on a small canvas (`paintPlaque`), so a new age is a
+   * repaint and not a rebuild.
+   */
+  private buildPlaque(): void {
+    const spec = ABACUS.plaque;
+    const metrics = frameMetrics();
+    const canvas = document.createElement('canvas');
+    canvas.width = PLAQUE_PIXELS.width;
+    canvas.height = PLAQUE_PIXELS.height;
+    const map = new CanvasTexture(canvas);
+    map.colorSpace = SRGBColorSpace;
+    map.anisotropy = 4;
+    const height = FRAME.railHeight * spec.height;
+    const geometry = new PlaneGeometry(height * spec.aspect, height);
+    const material = new MeshBasicMaterial({ map });
+    const mesh = new Mesh(geometry, material);
+    mesh.position.set(0, metrics.innerTop + FRAME.railHeight / 2, FRAME.railDepth / 2 + spec.proud);
+    this.object.add(mesh);
+    this.owned.push(map, geometry, material);
+    this.frameDraws += 1;
+    this.plaque = mesh;
+    this.plaqueCanvas = canvas;
+    this.plaqueMap = map;
+    this.paintPlaque();
+    // The numeral is set in the interface's display face. A face that has not
+    // loaded yet would draw in the fallback, so the plate is drawn again once
+    // it has.
+    void document.fonts?.load(this.plaqueFont()).then(() => {
+      if (!this.disposed) this.paintPlaque();
+    }, () => undefined);
+  }
+
+  /** The numeral's font: the display face, at the plate's share. */
+  private plaqueFont(): string {
+    const face =
+      getComputedStyle(document.documentElement).getPropertyValue('--face-display').trim() || 'Georgia, serif';
+    return `600 ${Math.round(PLAQUE_PIXELS.height * ABACUS.plaque.numeralShare)}px ${face}`;
+  }
+
+  /** Draws the plate, and the numeral when there is an age and it can be read. */
+  private paintPlaque(): void {
+    const canvas = this.plaqueCanvas;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context || !this.plaqueMap) return;
+    const spec = ABACUS.plaque;
+    const w = canvas.width;
+    const h = canvas.height;
+    context.clearRect(0, 0, w, h);
+    // A dark edge, the plate inside it shading down a little, a cut line inside
+    // that, and a pin at each end.
+    const gradient = context.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, rgba(spec.plateColor));
+    gradient.addColorStop(1, rgba(spec.plateColor, 0.82));
+    context.fillStyle = rgba(spec.cutColor);
+    context.fillRect(0, 0, w, h);
+    context.fillStyle = gradient;
+    context.fillRect(3, 3, w - 6, h - 6);
+    context.strokeStyle = rgba(spec.cutColor, 0.85);
+    context.lineWidth = 2;
+    context.strokeRect(9, 9, w - 18, h - 18);
+    context.fillStyle = rgba(spec.cutColor);
+    for (const x of [26, w - 26]) {
+      context.beginPath();
+      context.arc(x, h / 2, 4, 0, Math.PI * 2);
+      context.fill();
     }
-    this.addSolid(weld(light), timber, false);
-    this.addSolid(weld(dark), shade(timber, VIEW3D.sideDarken * FRAME.postShade), false);
+    if (this.age !== null && this.plaqueNumeral) {
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.font = this.plaqueFont();
+      context.fillText(plaqueWords(this.age), w / 2, h / 2 + 3);
+    }
+    this.plaqueMap.needsUpdate = true;
+  }
+
+  /**
+   * Sizes the plaque for how large the frame is drawn now (`plaqueFit`), and
+   * repaints it if the numeral appears or goes.
+   */
+  private fitPlaque(): void {
+    const plaque = this.plaque;
+    if (!plaque) return;
+    const metrics = frameMetrics();
+    const base = FRAME.railHeight * ABACUS.plaque.height;
+    const y = metrics.innerTop + FRAME.railHeight / 2;
+    const z = plaque.position.z;
+    const bottom = this.project(0, y - base / 2, z);
+    const top = this.project(0, y + base / 2, z);
+    const fitted = plaqueFit(Math.abs(bottom.y - top.y));
+    plaque.scale.set(fitted.scale, fitted.scale, 1);
+    if (fitted.numeral !== this.plaqueNumeral) {
+      this.plaqueNumeral = fitted.numeral;
+      this.paintPlaque();
+    }
   }
 
   /** The rods and the beads on them, all of it under `rodGroup`. */
   private buildRods(): void {
     const rod = ABACUS.rod;
     const bead = ABACUS.bead;
+    const stud = ABACUS.stud;
     const metrics = frameMetrics();
 
-    const style = this.look.bead;
-    const rodStyle = this.look.rod;
-    const rodRadius = rod.radius * (rodStyle?.radius ?? 1);
-    const beadGeometry =
-      style && style.shape !== 'bicone'
-        ? lookBead(
-            style.shape,
-            this.layout.beadRadius,
-            this.layout.halfThickness,
-            rodRadius + bead.boreClearance,
-            style.segments,
-          )
-        : beadShape({
-            radius: this.layout.beadRadius,
-            halfThickness: this.layout.halfThickness,
-            bore: rodRadius + bead.boreClearance,
-            segments: style?.segments ?? bead.segments,
-          });
-    let bandGeometry: BufferGeometry | null = null;
-    if (this.kit && style && style.band !== null) {
-      bandGeometry = lookBand(this.layout.beadRadius, this.layout.halfThickness, style.segments);
-      this.rodGeometries.push(bandGeometry);
-    }
-    const studs: BufferGeometry[] = [];
+    const beadGeometry = beadShape({
+      radius: this.layout.beadRadius,
+      halfThickness: this.layout.halfThickness,
+      bore: rod.radius + bead.boreClearance,
+      segments: bead.segments,
+    });
     computeHullNormals(beadGeometry);
     this.rodGeometries.push(beadGeometry);
     const beadTriangles = beadGeometry.getAttribute('position').count / 3;
+    const stoneGeometry = studStone(stud.radius, stud.segments);
+    this.rodGeometries.push(stoneGeometry);
+
+    // The seat's colour on the frame: a stud on the front of the left post at
+    // each rod, in a gilt rim, set a little into the post.
+    const studX = -(FRAME.width / 2 - FRAME.stileWidth / 2);
+    const studZ = FRAME.stileDepth / 2 - stud.sink;
 
     const brass: BufferGeometry[] = [];
+    const rims: BufferGeometry[] = [];
     this.layout.rodY.forEach((y, index) => {
-      const bar = rodBar(rodRadius, metrics.innerHalfSpan * 2 + rod.tenon * 2);
+      const bar = rodBar(rod.radius, metrics.innerHalfSpan * 2 + rod.tenon * 2);
       bar.translate(0, y, 0);
       brass.push(bar);
 
       for (const side of [-1, 1]) {
-        const knob = rodStyle
-          ? lookFinial(rod.finialSize, rod.finialSegments)
-          : rodFinial(rod.finialSize, rod.finialSegments);
+        const knob = rodFinial(rod.finialSize, rod.finialSegments);
         // Turned to face inward rather than mirrored: a negative scale would
         // flip every triangle's winding and the knob would render inside out.
         if (side > 0) knob.rotateY(Math.PI);
@@ -996,26 +1296,17 @@ export class AbacusStage {
         brass.push(knob);
       }
 
-      if (this.kit && rodStyle?.seatStud) {
-        // The seat's colour on the frame: a stud on the front of the left
-        // stile at this rod, in a metal rim.
-        const studX = -(FRAME.width / 2 - FRAME.stileWidth / 2);
-        const studZ =
-          (this.look.frame?.kind === 'reliquary' ? FRAME.stileWidth * 0.33 : FRAME.stileDepth / 2) - 0.004;
-        const rim = seatStudRim();
-        rim.translate(studX, y, studZ);
-        studs.push(rim);
-        const stoneGeometry = seatStudStone();
-        this.rodGeometries.push(stoneGeometry);
-        const stone = new Mesh(stoneGeometry, this.kit.toon(this.players[index]?.color ?? 0xffffff, 'gloss'));
-        stone.position.set(studX, y, studZ);
-        this.rodGroup.add(stone);
-        this.rodDraws += 1;
-      }
+      const rim = studRim(stud.radius, stud.segments);
+      rim.translate(studX, y, studZ);
+      rims.push(rim);
+      const stone = new Mesh(stoneGeometry, this.ramps.get(this.players[index]?.color ?? ABACUS.bead.waitingColor, stud.stoneRamp));
+      stone.position.set(studX, y, studZ);
+      this.rodGroup.add(stone);
+      this.rodDraws += 1;
 
       const rodView: RodView = { y, beads: [], earned: [], knock: null };
-      for (let b = 0; b < PLACES; b++) {
-        const mesh = new Mesh(beadGeometry, this.materials.get(this.waitingColor));
+      for (let b = 0; b < this.places; b++) {
+        const mesh = new Mesh(beadGeometry, this.ramps.get(bead.waitingColor, bead.waitingRamp));
         mesh.castShadow = LOOK.shadows;
         mesh.receiveShadow = LOOK.shadows;
         const shell = new Mesh(beadGeometry, this.materials.outline);
@@ -1024,14 +1315,7 @@ export class AbacusStage {
         mesh.add(shell);
         mesh.position.set(0, y, 0);
         this.rodGroup.add(mesh);
-        let band: Mesh | null = null;
-        if (this.kit && style && bandGeometry && style.band !== null) {
-          band = new Mesh(bandGeometry, this.kit.toon(style.band, 'metal'));
-          band.visible = false;
-          mesh.add(band);
-          this.rodDraws += 1;
-        }
-        rodView.beads.push({ mesh, x: 0, from: 0, to: 0, elapsed: null, struck: true, band, rest: 1 });
+        rodView.beads.push({ mesh, x: 0, from: 0, to: 0, elapsed: null, struck: true, rest: 1 });
         this.rodDraws += 2;
         this.rodTriangles += beadTriangles;
       }
@@ -1043,12 +1327,8 @@ export class AbacusStage {
     // it — it is a highlight, not a silhouette — but it gets one anyway, because
     // dropping the shell on one part of a toon object is exactly how a look
     // starts to come apart. The finials need it more than the rods do.
-    if (brass.length > 0 && this.kit && rodStyle) {
-      this.addSolid(weld(brass), rodStyle.color, true, rodStyle.ramp);
-      if (studs.length > 0) {
-        this.addSolid(weld(studs), this.look.frame?.fitting ?? rodStyle.color, true, 'metal', false);
-      }
-    } else if (brass.length > 0) this.addSolid(weld(brass), rod.color, true);
+    if (brass.length > 0) this.addSolid(weld(brass), rod.color, rod.ramp, true);
+    if (rims.length > 0) this.addSolid(weld(rims), ABACUS.fittings.color, ABACUS.fittings.ramp, true, false);
   }
 
   /** Takes the rods off the frame and gives their geometry back. */
@@ -1066,13 +1346,13 @@ export class AbacusStage {
   private addSolid(
     geometry: BufferGeometry,
     color: number,
+    ramp: AbacusRamp,
     perRoster: boolean,
-    /** A style option's ramp, and whether the part has an ink outline. */
-    ramp: LookRamp | null = null,
+    /** Whether the part has an ink outline. A line let into a face does not. */
     outlined = true,
   ): void {
     computeHullNormals(geometry);
-    const mesh = new Mesh(geometry, this.kit && ramp ? this.kit.toon(color, ramp) : this.materials.get(color));
+    const mesh = new Mesh(geometry, this.ramps.get(color, ramp));
     mesh.castShadow = LOOK.shadows;
     mesh.receiveShadow = LOOK.shadows;
     if (outlined) {
@@ -1124,27 +1404,23 @@ export class AbacusStage {
   /**
    * Frames the object, with the gutters the labels live in counted as part of it.
    *
-   * The camera is orthographic and fixed, like the board's, but much lower — 24°
+   * The camera is orthographic and fixed, like the board's, but much lower — 20°
    * rather than 57°. The board is a map and wants to be looked *into*; this is an
    * object standing on a table and wants to be looked *at*, and a scoreboard seen
-   * from above is a diagram of a scoreboard. The azimuth is swung a quarter turn
-   * off square so the rails show their depth and the beads are visibly threaded
-   * rather than stamped on.
+   * from above is a diagram of a scoreboard. The azimuth is swung off square so
+   * the rails show their depth and the beads are visibly threaded rather than
+   * stamped on.
    *
    * The fit itself is the Armory's: project the bounding box's eight corners into
    * camera space and cover the rectangle they make. Tilted camera plus a tall
    * object is not arithmetic anybody should keep true by hand.
    */
   private fit(): void {
-    const view = { ...ABACUS.camera, ...(this.look.camera ?? {}) };
+    const view = ABACUS.camera;
     const metrics = frameMetrics();
     const halfX = FRAME.width / 2 + view.labelGutter;
     const halfZ = FRAME.footDepth / 2;
-    const bounds = new Box3(
-      new Vector3(-halfX, 0, -halfZ),
-      // The reliquary look has an arch over the top rail.
-      new Vector3(halfX, metrics.totalHeight + (this.look.frame?.kind === 'reliquary' ? 0.7 : 0), halfZ),
-    );
+    const bounds = new Box3(new Vector3(-halfX, 0, -halfZ), new Vector3(halfX, metrics.totalHeight, halfZ));
 
     const el = view.elevation * DEG;
     const az = view.azimuth * DEG;
@@ -1164,6 +1440,9 @@ export class AbacusStage {
     let maxX = -Infinity;
     let minY = Infinity;
     let maxY = -Infinity;
+    // The frame's own sides, without the gutters, for `closeZoom`.
+    let frameMinX = Infinity;
+    let frameMaxX = -Infinity;
     const corner = new Vector3();
     for (const cx of [bounds.min.x, bounds.max.x]) {
       for (const cy of [bounds.min.y, bounds.max.y]) {
@@ -1173,15 +1452,17 @@ export class AbacusStage {
           maxX = Math.max(maxX, corner.x);
           minY = Math.min(minY, corner.y);
           maxY = Math.max(maxY, corner.y);
+          corner.set(Math.sign(cx) * (FRAME.width / 2), cy, cz).applyMatrix4(inv);
+          frameMinX = Math.min(frameMinX, corner.x);
+          frameMaxX = Math.max(frameMaxX, corner.x);
         }
       }
     }
 
     const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
     const up = new Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
-    this.camera.position
-      .addScaledVector(right, (minX + maxX) / 2)
-      .addScaledVector(up, (minY + maxY) / 2);
+    const shiftX = (minX + maxX) / 2;
+    this.camera.position.addScaledVector(right, shiftX).addScaledVector(up, (minY + maxY) / 2);
     this.camera.updateMatrixWorld();
 
     const pad = view.padding;
@@ -1207,12 +1488,15 @@ export class AbacusStage {
     this.baseRight.copy(right);
     this.baseUp.copy(up);
     this.baseView.copy(this.camera.matrixWorldInverse);
+    this.frameLeft = frameMinX - shiftX;
+    this.frameRight = frameMaxX - shiftX;
+    this.fitPlaque();
     if (this.focus.amount !== 0) this.applyFocus();
   }
 
   private applyLight(center: Vector3): void {
-    const el = (this.look.light?.elevation ?? LOOK.lightElevation) * DEG;
-    const az = (this.look.light?.azimuth ?? LOOK.lightAzimuth) * DEG;
+    const el = ABACUS.light.elevation * DEG;
+    const az = ABACUS.light.azimuth * DEG;
     this.key.position
       .copy(center)
       .addScaledVector(
@@ -1239,10 +1523,7 @@ export class AbacusStage {
 
   private loop(now: number): void {
     if (!this.running || this.disposed) return;
-    const own = this.look.motion;
-    const motion = own
-      ? { ...ABACUS.motion, swayRadians: own.swayRadians, swaySeconds: own.swaySeconds }
-      : ABACUS.motion;
+    const motion = ABACUS.motion;
     const dt = this.lastFrame === 0 ? 0 : Math.min(0.1, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
     this.clock += dt;
@@ -1257,9 +1538,9 @@ export class AbacusStage {
       this.object.rotation.y =
         Math.sin((this.clock / motion.swaySeconds) * Math.PI * 2) * motion.swayRadians;
       this.object.rotation.x =
-        Math.sin((this.clock / (motion.swaySeconds * 1.37)) * Math.PI * 2) *
+        Math.sin((this.clock / (motion.swaySeconds * motion.tiltPeriod)) * Math.PI * 2) *
         motion.swayRadians *
-        0.22;
+        motion.tiltShare;
     } else {
       this.object.rotation.set(0, this.yaw, 0);
     }
@@ -1288,9 +1569,7 @@ export class AbacusStage {
       this.applyGolden();
     }
 
-    const slide = own
-      ? { seconds: own.slideSeconds, travel: own.travel, overshoot: own.overshoot }
-      : ABACUS.slide;
+    const slide = ABACUS.slide;
     for (const rod of this.rods) {
       for (const bead of rod.beads) {
         if (bead.elapsed === null) continue;
@@ -1300,23 +1579,19 @@ export class AbacusStage {
         const t = Math.min(1, bead.elapsed / slide.seconds);
         bead.x = slidePosition(bead.from, bead.to, t, slide);
         bead.mesh.position.x = bead.x;
-        // A style option draws a waiting place smaller: the bead grows to full
-        // size over the first part of its slide. The golden bead has its own size.
-        if (own && this.golden?.glow.parent !== bead.mesh) {
-          const start = this.look.bead?.waitingScale ?? 1;
-          const grown = Math.min(1, t / (slide.travel * 0.6));
-          bead.mesh.scale.setScalar(start + (bead.rest - start) * (1 - (1 - grown) ** 3));
-        }
+        // The bead that leaves a waiting place grows to full size on the way.
+        // The golden bead has its own size.
+        if (this.golden?.glow.parent !== bead.mesh) bead.mesh.scale.setScalar(growScale(t) * bead.rest);
         if (!bead.struck && t >= slide.travel) {
           bead.struck = true;
-          if (own && own.knock > 0) rod.knock = 0;
+          rod.knock = 0;
           this.onStrike?.();
         }
         if (t >= 1) bead.elapsed = null;
       }
-      if (own && rod.knock !== null) this.applyKnock(rod, dt, own.knock, own.knockSeconds);
+      if (rod.knock !== null) this.applyKnock(rod, dt);
     }
-    if (this.lookShadow) this.lookShadow.rotation.z = this.object.rotation.y;
+    if (this.groundShadow) this.groundShadow.rotation.z = this.object.rotation.y;
 
     this.renderer.render(this.scene, this.camera);
     this.onFrame?.();
@@ -1324,19 +1599,18 @@ export class AbacusStage {
   }
 
   /**
-   * A style option's knock: the beads already on the earned side move a little
-   * away from the bead that hit them and come back, less the farther they are
-   * from it. One damped swing, over `seconds`.
+   * The knock (`knockOffset`): the beads already on the earned side move a
+   * little away from the bead that hit them and come back, less the farther
+   * they are from it.
    */
-  private applyKnock(rod: RodView, dt: number, reach: number, seconds: number): void {
+  private applyKnock(rod: RodView, dt: number): void {
     rod.knock = (rod.knock ?? 0) + dt;
-    const t = Math.min(1, rod.knock / seconds);
-    const swing = Math.sin(t * Math.PI) * (1 - t);
+    const seconds = ABACUS.knock.seconds;
+    const t = seconds <= 0 ? 1 : Math.min(1, rod.knock / seconds);
     for (let index = 0; index < rod.earned.length; index++) {
       const bead = rod.beads[index]!;
       if (bead.elapsed !== null) continue;
-      const fromNewest = rod.earned.length - 1 - index;
-      bead.mesh.position.x = bead.x - reach * swing * 0.6 ** Math.max(0, fromNewest - 1);
+      bead.mesh.position.x = bead.x - knockOffset(rod.earned.length - 1 - index, t);
     }
     if (t >= 1) rod.knock = null;
   }
@@ -1344,12 +1618,14 @@ export class AbacusStage {
   dispose(): void {
     this.running = false;
     this.disposed = true;
-    this.kit?.dispose();
     this.clearRods();
     this.glowMap?.dispose();
     this.glowMap = null;
     for (const geometry of this.frameGeometries) geometry.dispose();
     this.frameGeometries.length = 0;
+    for (const item of this.owned) item.dispose();
+    this.owned.length = 0;
+    this.ramps.dispose();
     this.materials.dispose();
     this.renderer.dispose();
     // `dispose` frees three's own resources but leaves the WebGL context alive

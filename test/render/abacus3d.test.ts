@@ -6,10 +6,15 @@ import {
   FAMILY_IDS,
   type FamilyId,
   beadX,
+  closeZoom,
   cssHex,
   familyOf,
   frameMetrics,
   goldenRestX,
+  growScale,
+  knockOffset,
+  plaqueFit,
+  plaqueWords,
   rodLayout,
   slidePosition,
   turnYaw,
@@ -247,17 +252,25 @@ describe('the promoted look data', () => {
   });
 
   it('resolves every abacus colour through a palette name', () => {
-    const raw = viewJson.abacus as unknown as {
-      frame: { timberColor: string };
-      rod: { color: string };
-      bead: { waitingColor: string; waitingWarmth: string };
-      families: { color: string }[];
-    };
+    // Look B, "Walnut and gilt" (2026-11-19): every colour the look adds is a
+    // palette name too, so the object opens no second colour vocabulary.
+    const raw = viewJson.abacus;
     const names = [
-      raw.frame.timberColor,
+      raw.outline.color,
+      raw.frame.railColor,
+      raw.frame.stileColor,
+      raw.frame.footColor,
+      raw.fittings.color,
+      raw.inlay.color,
+      raw.plaque.plateColor,
+      raw.plaque.cutColor,
       raw.rod.color,
       raw.bead.waitingColor,
-      raw.bead.waitingWarmth,
+      raw.ground.centerColor,
+      raw.ground.edgeColor,
+      raw.ground.shadowColor,
+      raw.close.goldenColor,
+      raw.close.glowColor,
       ...raw.families.map((family) => family.color),
     ];
     for (const name of names) {
@@ -272,7 +285,8 @@ describe('the promoted look data', () => {
     expect(abacus.frame.innerHeight).toBeGreaterThan(0);
     expect(abacus.rod.radius).toBeGreaterThan(0);
     expect(abacus.bead.perRod).toBeGreaterThan(1);
-    expect(abacus.bead.segments % 2).toBe(1); // odd, like every lathe here
+    // Look B's round bead has an even count (14): the user chose the render.
+    expect(abacus.bead.segments).toBeGreaterThanOrEqual(8);
     expect(abacus.rod.finialSegments % 2).toBe(1);
     expect(abacus.slide.seconds).toBeGreaterThan(0);
     expect(abacus.slide.travel).toBeGreaterThan(0);
@@ -422,5 +436,133 @@ describe('the Opus close', () => {
     expect(close.focusPan).toBeLessThanOrEqual(1);
     // The board's angle.
     expect(close.turnDegrees).toBe(30);
+  });
+});
+
+/**
+ * **Look B, "Walnut and gilt"** (the user's choice, 2026-11-19, with the gilt
+ * band on the beads removed). The moments the look adds are pure arithmetic,
+ * so they are pinned here: the waiting bead's growth, the knock, the plaque's
+ * fit and the Opus close's zoom.
+ */
+describe('look B', () => {
+  const bead = VIEW3D.abacus.bead;
+  const slide = VIEW3D.abacus.slide;
+  const knock = VIEW3D.abacus.knock;
+  const plaque = VIEW3D.abacus.plaque;
+
+  it('grows a bead from its waiting size to full size early in the slide', () => {
+    expect(bead.waitingScale).toBeGreaterThan(0);
+    expect(bead.waitingScale).toBeLessThan(1);
+    expect(growScale(0)).toBeCloseTo(bead.waitingScale, 10);
+    // Full size before it lands, so it never knocks in at the waiting size.
+    expect(growScale(slide.travel * bead.growShare)).toBeCloseTo(1, 10);
+    expect(growScale(slide.travel)).toBeCloseTo(1, 10);
+    let previous = growScale(0);
+    for (let i = 1; i <= 20; i++) {
+      const now = growScale((i / 20) * slide.travel);
+      expect(now).toBeGreaterThanOrEqual(previous - 1e-12);
+      previous = now;
+    }
+  });
+
+  it('knocks the earned beads by `knock.reach` at the peak, less the farther they are, and lets them rest', () => {
+    expect(knockOffset(1, 0)).toBeCloseTo(0, 10);
+    expect(knockOffset(1, 1)).toBeCloseTo(0, 10);
+    let peak = 0;
+    for (let i = 0; i <= 400; i++) peak = Math.max(peak, knockOffset(1, i / 400));
+    expect(peak).toBeCloseTo(knock.reach, 6);
+    // The bead beside the new one moves most; each one past it moves less.
+    expect(knockOffset(2, 0.35)).toBeCloseTo(knockOffset(1, 0.35) * knock.falloff, 10);
+    expect(knockOffset(3, 0.35)).toBeLessThan(knockOffset(2, 0.35));
+  });
+
+  it('keeps the plaque at its own size where the numeral reads, and grows it where the frame is small', () => {
+    const big = (plaque.minNumeralPx / plaque.numeralShare) * 2;
+    expect(plaqueFit(big)).toEqual({ scale: 1, numeral: true });
+    const most = plaque.maxHeight / plaque.height;
+    const small = plaqueFit(plaque.minNumeralPx / plaque.numeralShare / 1.2);
+    expect(small.scale).toBeCloseTo(1.2, 10);
+    expect(small.scale).toBeLessThanOrEqual(most);
+    expect(small.numeral).toBe(true);
+    // Never past the rail.
+    expect(plaque.maxHeight).toBeLessThanOrEqual(1);
+    expect(plaqueFit(1).scale).toBeCloseTo(most, 10);
+  });
+
+  it('leaves the plate plain where even the largest plate could not carry a readable numeral', () => {
+    const most = plaque.maxHeight / plaque.height;
+    const unreadable = (plaque.blankBelowPx * 0.9) / plaque.numeralShare / most;
+    expect(plaqueFit(unreadable).numeral).toBe(false);
+    expect(plaqueFit(0)).toEqual({ scale: 1, numeral: false });
+  });
+
+  it('writes the age as the tech chart labels one', () => {
+    expect(plaqueWords(1)).toBe('ÆRA I');
+    expect(plaqueWords(2)).toBe('ÆRA II');
+    expect(plaqueWords(4)).toBe('ÆRA IV');
+  });
+
+  it('moves the Opus close in by `close.zoom`, or less where the frame would leave the sides', () => {
+    const close = VIEW3D.abacus.close;
+    const pad = VIEW3D.abacus.camera.padding;
+    // A frame well inside the view takes the whole move.
+    expect(closeZoom(10, 0, -3, 3, pad)).toBe(close.zoom);
+    // A frame that fills the view at rest is not moved in at all.
+    expect(closeZoom(3 * pad, 0, -3, 3, pad)).toBe(1);
+    // Between the two, the frame's far side stays inside the view with the fit's padding.
+    // The camera looks 0.5 right of the middle, so the left side (3.5 away) limits it.
+    const halfWidth = 3.5 * pad * 1.15;
+    const zoom = closeZoom(halfWidth, 0.5, -3, 3, pad);
+    expect(zoom).toBeGreaterThan(1);
+    expect(zoom).toBeLessThan(close.zoom);
+    expect((3.5 * pad * zoom) / halfWidth).toBeCloseTo(1, 10);
+  });
+
+  it('cuts any number of places, for the look-dev page’s 8', () => {
+    const layout = rodLayout(3, 8);
+    expect(layout.places).toBe(8);
+    expect(beadX(layout, 7, 0)).toBeCloseTo(layout.runEdge - layout.beadStep / 2, 10);
+    expect(beadX(layout, 0, 8)).toBeCloseTo(-layout.runEdge + layout.beadStep / 2, 10);
+    expect(rodLayout(3).places).toBe(PER_ROD);
+  });
+});
+
+/**
+ * **Every row of `abacus` is read** (the knob register for this block, after
+ * `paintedKnobs.test.ts`): a row nothing reads is a knob that does nothing. The
+ * stage reads its groups through aliases, so this checks that each leaf name
+ * is read off something in the stage's source.
+ */
+describe('the abacus knob register', () => {
+  const SOURCE = Object.values(
+    import.meta.glob('../../src/render3d/abacus3d.ts', { query: '?raw', import: 'default', eager: true }) as Record<
+      string,
+      string
+    >,
+  )[0]!;
+
+  it('reads every leaf of every group', () => {
+    const raw = viewJson.abacus as unknown as Record<string, unknown>;
+    for (const [group, rows] of Object.entries(raw)) {
+      // The ramps are read by name through `ABACUS.ramps[ramp]`; the families
+      // through `ABACUS.families`.
+      if (group === 'ramps' || group === 'families') {
+        expect(SOURCE, group).toContain(`ABACUS.${group}`);
+        continue;
+      }
+      for (const leaf of Object.keys(rows as Record<string, unknown>)) {
+        expect(SOURCE, `${group}.${leaf}`).toMatch(new RegExp(`\\.${leaf}\\b`));
+      }
+    }
+  });
+
+  it('has no look table or band left behind', () => {
+    // The user, on the approved render: "Could we remove the stripe running
+    // down the bead?" An earned bead is one enamel mesh and its outline.
+    expect(SOURCE).not.toContain('abacusLooks');
+    expect(SOURCE).not.toContain('lookBand');
+    expect(SOURCE).not.toMatch(/band: Mesh/);
+    expect(Object.keys(viewJson.abacus.bead)).not.toContain('band');
   });
 });
