@@ -402,6 +402,7 @@ import {
 import { type TurnBlocker, allBlockers, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
+import { wonderTriumphPairs } from './wonderPlate';
 import { seatName, seatPeople } from '../sim/leaderData';
 
 /** Radius in CSS pixels: hand wobble inside it is a click, not a camera pan. */
@@ -1771,9 +1772,11 @@ export interface GameControlsOptions {
   /**
    * A wonder the local seat has just finished (stage 4 of the Council and In
    * play board): `main.ts` queues the wonder plate as news. Another seat's
-   * wonder is not reported here; it keeps its toast.
+   * wonder is not reported here; it keeps its toast. `triumph` is the award
+   * the plate draws as its renown line (`wonderTriumphPairs`), and that award
+   * raises no Triumph page of its own; `null` when there is none.
    */
-  onWonderArrived?: (done: WonderCompletion) => void;
+  onWonderArrived?: (done: WonderCompletion, triumph: TriumphAward | null) => void;
   /**
    * Raises the wager's deal sheet — `main.ts`'s `wagerSheet.open()`.
    *
@@ -3186,6 +3189,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function reportWonders(result: CommandResult): void {
     if (!result.ok || !result.wonders) return;
     const { state } = getGame();
+    // The Triumph each of the seat's own wonders earned, for its plate.
+    const plated = wonderTriumphPairs(result, localPlayerId);
     for (const done of result.wonders) {
       const city = cityById(state, done.cityId);
       const empire = seatName(state, done.playerId);
@@ -3197,7 +3202,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         `✶ ${empire} has completed ${done.name} in ${where}`,
         { ...(city ? { cell: { col: city.col, row: city.row } } : {}), ...(own ? { mark: 'wonder' as const } : {}) },
       );
-      if (own) onWonderArrived?.(done);
+      if (own) onWonderArrived?.(done, plated.find(([wonder]) => wonder === done)?.[1] ?? null);
       for (const refund of done.refunds) {
         if (refund.playerId !== localPlayerId) continue;
         const beaten = cityById(state, refund.cityId);
@@ -3681,6 +3686,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function reportTriumphs(result: CommandResult): void {
     if (!result.ok || !result.triumphs) return;
     const mine: TriumphAward[] = [];
+    // The Triumphs the wonder plate draws (the user, 2026-11-19: "put the
+    // renown line on the plate, no second page"). The same result carries the
+    // wonder, and `reportWonders` hands each of these to its plate.
+    const plated = new Set(wonderTriumphPairs(result, localPlayerId).map(([, award]) => award));
     for (const triumph of result.triumphs) {
       if (triumph.playerId !== localPlayerId) continue;
       announce(`Triumph: ${triumph.name}, ${signedFigure(triumph.pays)} renown`, {
@@ -3696,6 +3705,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // announces its own Triumph, it sets the same field and needs no edit in
       // this file. The record on `Player.triumphs` and the renown are untouched.
       if (triumphDef(triumph.id).quiet === true) continue;
+      // A wonder's Triumph is on the wonder's plate: the line stays, the page goes.
+      if (plated.has(triumph)) continue;
       mine.push(triumph);
     }
     if (mine.length === 0) return;

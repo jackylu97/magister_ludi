@@ -181,6 +181,7 @@ import { createPamphletOverlay, shouldShowPamphlet } from './ui/pamphlet';
 import { authorityOf, happinessOf } from './sim/meters';
 import { type ConfirmCard, type ConfirmRequest, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
+import type { TriumphAward } from './sim/triumphs';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
 import {
@@ -1099,10 +1100,16 @@ let pendingAgePlate: TechAge | null = null;
  * The wonder plate (stage 4 of the Council and In play board, `wonderPlate.ts`)
  * and the local seat's finished wonders it waits to show, oldest first.
  * Queued through the same pump, last of the pages: a wonder is the seat's own
- * news and the world's turns over first.
+ * news and the world's turns over first. Each carries the Triumph the wonder
+ * earned, which the plate draws as its renown line in place of a Triumph page.
  */
 let wonderPlate: WonderPlate | null = null;
-let pendingWonders: { building: WonderCompletion['building']; cityId: number; turn: number }[] = [];
+let pendingWonders: {
+  building: WonderCompletion['building'];
+  cityId: number;
+  turn: number;
+  triumph: TriumphAward | null;
+}[] = [];
 /**
  * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
  * that a game closed by the Magnum Opus ends on, before the standings. Held
@@ -3673,6 +3680,30 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * Raises the Triumph sheet over these awards: `controls`' `onTriumphs`, and
+   * the wonder plate's fallback when a wonder's plate cannot be shown.
+   */
+  function raiseTriumphSheet(awards: readonly TriumphAward[]): void {
+    // News: the open cards close under the sheet. Both callers hand over a
+    // list with something in it, so there is always a sheet to raise.
+    screens.opening('triumph');
+    triumphSheet?.show(
+      awards.map((award) => {
+        // `art` is declared optional and no row carries one yet; the day a
+        // row does, this reads it with no second pass here.
+        const row: { text: string; epigram: string; art?: string } = triumphDef(award.id);
+        return {
+          name: award.name,
+          text: row.text,
+          epigram: row.epigram,
+          pays: award.pays,
+          art: row.art ?? null,
+        };
+      }),
+    );
+  }
+
+  /**
    * **The wonder lands in In play** (frame A2): after its plate closes, the
    * wonder flies from where the plate drew it to the corner panel's In play
    * door, and the door's count and dot, held back since the wonder was
@@ -4270,13 +4301,18 @@ async function boot(initial: Game | null): Promise<void> {
     // **The wonder plate, last** (stage 4 of the Council and In play board):
     // the seat's own wonder, one page each, oldest first. Its close calls back
     // here. A wonder In play no longer lists (its town has changed hands since)
-    // is skipped, and its held door lands at once.
+    // is skipped, and its held door lands at once. Its Triumph then has no
+    // plate to be drawn on, so it gets the Triumph page it would have had.
     while (pendingWonders.length > 0 && wonderPlate) {
       const next = pendingWonders.shift()!;
-      const reading = wonderPlateReading(game.state, controls.localPlayerId(), next.building, next.cityId, next.turn);
+      const reading = wonderPlateReading(game.state, controls.localPlayerId(), next.building, next.cityId, next.turn, next.triumph);
       if (reading === null) {
         inPlayFlights = Math.max(0, inPlayFlights - 1);
         empireDrawer?.refreshInPlay();
+        if (next.triumph !== null) {
+          raiseTriumphSheet([next.triumph]);
+          return;
+        }
         continue;
       }
       wonderPlate.show(reading);
@@ -4427,8 +4463,8 @@ async function boot(initial: Game | null): Promise<void> {
     onOfferGreatPerson: showGreatPersonOffer,
     // The local seat's own wonder (stage 4): its plate is news, and the In
     // play door's count and dot wait for the wonder to land there.
-    onWonderArrived: (done) => {
-      pendingWonders.push({ building: done.building, cityId: done.cityId, turn: done.turn });
+    onWonderArrived: (done, triumph) => {
+      pendingWonders.push({ building: done.building, cityId: done.cityId, turn: done.turn, triumph });
       inPlayFlights += 1;
       empireDrawer?.refreshInPlay();
       pumpBeadNews();
@@ -4461,31 +4497,13 @@ async function boot(initial: Game | null): Promise<void> {
     /**
      * The Triumph sheet, over the awards this seat has just earned.
      *
-     * The row is looked up here rather than carried on `TriumphAward`, because
+     * The row is looked up in `raiseTriumphSheet` rather than carried on `TriumphAward`, because
      * `data/triumphs.json` is the one place a Triumph's *words* live and the
      * award carries only what happened. `art` is read the same way and is
      * absent from every row today: the sheet's plate is a slot that waits for
      * the first row that names one, and hides itself until then.
      */
-    onTriumphs: (awards) => {
-      // News: the open cards close under the sheet. `controls` only reports a
-      // list with something in it, so there is always a sheet to raise.
-      screens.opening('triumph');
-      triumphSheet?.show(
-        awards.map((award) => {
-          // `art` is declared optional and no row carries one yet; the day a
-          // row does, this reads it with no second pass here.
-          const row: { text: string; epigram: string; art?: string } = triumphDef(award.id);
-          return {
-            name: award.name,
-            text: row.text,
-            epigram: row.epigram,
-            pays: award.pays,
-            art: row.art ?? null,
-          };
-        }),
-      );
-    },
+    onTriumphs: (awards) => raiseTriumphSheet(awards),
     /**
      * The bead sheet, over the beads this seat has just taken.
      *

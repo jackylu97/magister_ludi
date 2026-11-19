@@ -4,7 +4,7 @@
    ground, the gilt double frame and Continue are its classes. On it, the
    wonder's picture in a window of exactly 16:9 (the shape of its painting,
    `docs/splash-art.md` row 3, about 960 by 540), and under it the name, the
-   plain line, the turn and what it pays each turn. */
+   plain line, the turn, what it pays each turn, and the Triumph it earned. */
 
 .wonder-plate-eyebrow {
   margin: 0 0 2vh;
@@ -129,6 +129,49 @@
 
 .wonder-plate-pays .of-pay-fig[data-sign='minus'] {
   color: var(--rubric-lit);
+}
+
+/* The Triumph the wonder earned, as one line (the user, 2026-11-19: "put the
+   renown line on the plate, no second page"): the laurel and the Triumph's
+   name in the gilt, the renown as a figure in the paper's ink, and the word
+   apart, as the Triumph sheet sets them. */
+.wonder-plate-triumph {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 8px;
+  margin: 1.4vh 0 0;
+  color: var(--plate-gilt-lit);
+  font-family: var(--face-name);
+  font-size: var(--size-name);
+}
+
+.wonder-plate-triumph .meter-mark {
+  width: 1.2em;
+  height: 1.2em;
+  align-self: center;
+}
+
+.wonder-plate-triumph-name {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.wonder-plate-triumph-figure {
+  margin-left: 4px;
+  color: var(--plate-paper);
+  font-family: var(--face-num);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.wonder-plate-triumph-word {
+  color: var(--plate-paper);
+  font-family: var(--face-num);
+  font-size: var(--size-ui);
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: reduce) {

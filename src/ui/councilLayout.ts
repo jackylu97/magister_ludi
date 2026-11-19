@@ -60,13 +60,13 @@ export const COUNCIL_FRAME = {
   /**
    * **A few chairs sit in a cluster** (the user, 2026-11-18: "I'd also like for
    * few government seats to be clustered in the middle with negative space
-   * around it instead of having it be evenly spaced"). Up to `most` chairs,
-   * which are the tier 0 and tier 4 governments' three and five, take at most
-   * `cols` to a row, the last row centred under the others, and the block is
-   * centred on the page rather than on the room beside the government. Six
-   * chairs and more keep the board's layout (C6, C8 and C11).
+   * around it instead of having it be evenly spaced"). Up to `most` chairs
+   * take at most `cols` to a row, the last row centred under the others, and
+   * the block is centred on the page rather than on the room beside the
+   * government. Six chairs are two rows of three (the user, 2026-11-19: "sure").
+   * Seven chairs and more keep the board's layout (C8 and C11).
    */
-  cluster: { most: 5, cols: 3 },
+  cluster: { most: 6, cols: 3 },
 } as const;
 
 /** Which card form and how many rows a window gets (`councilLayout`). */
@@ -107,7 +107,7 @@ export interface CouncilLayout {
  * 176 px card. Where no form fits, the chairs take the narrow form on the
  * fewest rows the width allows, and the fan keeps what height is left.
  *
- * Five chairs or fewer are a cluster (`COUNCIL_FRAME.cluster`): three or fewer
+ * Six chairs or fewer are a cluster (`COUNCIL_FRAME.cluster`): three or fewer
  * to a row, in the page's middle. The hand keeps at most `fanMax` of height,
  * and the rest goes round the council (`spare`).
  */

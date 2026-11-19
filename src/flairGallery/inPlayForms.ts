@@ -19,6 +19,7 @@ import { MALICE_IDS, maliceDef } from '../sim/maliceData';
 import { BELIEF_IDS, RITE_IDS, beliefDef, riteDef } from '../sim/religionData';
 import { buildingDef } from '../sim/buildingData';
 import { ORDER_IDS, orderDef, orderIsDealt } from '../sim/statecraftData';
+import { TRIUMPH_IDS, triumphDef } from '../sim/triumphData';
 import type { InPlayEntry, InPlayForm, InPlayStackId } from '../ui/inPlayPieces';
 import {
   beliefTabletNode,
@@ -157,9 +158,11 @@ export function drawInPlayForms(into: HTMLElement): void {
   const page = block(
     into,
     'The wonder plate — src/ui/wonderPlate.ts',
-    'A wonder your town has finished, on the age plate’s lapis page: its picture in a window of exactly 16:9, its name, the town, the turn and what it pays each turn. Its text stays on In play. Continue sends it flying to the In play door. Its picture is the one `wonderPicture` gives.',
+    'A wonder your town has finished, on the age plate’s lapis page: its picture in a window of exactly 16:9, its name, the town, the turn, what it pays each turn, and the Triumph it earned as one renown line (no second page). Its text stays on In play. Continue sends it flying to the In play door. Its picture is the one `wonderPicture` gives.',
   );
   const stage = element('div', 'age-plate-overlay ip-gallery-plate');
+  // The Triumph a finished wonder earns, found by its trigger as the plate's pairing finds it.
+  const marvel = TRIUMPH_IDS.find((id) => triumphDef(id).when.kind === 'wonderCompleted');
   stage.append(
     wonderPlatePage(
       {
@@ -168,6 +171,7 @@ export function drawInPlayForms(into: HTMLElement): void {
         plate: PAYS,
         town: 'Quito',
         turn: 74,
+        triumph: marvel === undefined ? null : { name: triumphDef(marvel).name, pays: triumphDef(marvel).pays },
       },
       () => {},
     ),

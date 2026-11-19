@@ -15,6 +15,13 @@
  * town, the turn and what it pays each turn. Its text is In play's (the
  * piece's hover and its tray), so the picture keeps the height.
  *
+ * **One page for a wonder** (the user, 2026-11-19: "put the renown line on the
+ * plate, no second page"). The Triumph a finished wonder earns is drawn on the
+ * plate as one line, its name and its renown, and its own Triumph page does not
+ * open. `wonderTriumphPairs` says which award belongs to which wonder; only
+ * those awards skip the Triumph page, and every other Triumph is unchanged.
+ * The record, the chronicle line and the renown itself are not touched.
+ *
  * It is news, queued in `main.ts`'s `pumpBeadNews` behind the bead, age, wager
  * and census pages, so the player reads one thing at a time. When it closes,
  * the wonder flies to the In play door in the corner panel (frame A2) and the
@@ -25,12 +32,17 @@ import './agePlate.css';
 import './wonderPlate.css';
 
 import type { BuildingId } from '../sim/buildingData';
+import type { WonderCompletion } from '../sim/cities';
 import { type GameState, cityById } from '../sim/state';
+import { triumphDef } from '../sim/triumphData';
+import type { TriumphAward } from '../sim/triumphs';
 import { roundYield } from '../sim/yieldFormat';
 import { COUNCIL_VOICES } from './councilTotals';
 import { element } from './dom';
+import { signedFigure } from './figures';
 import { wonderWindowNode } from './inPlayForms';
 import { type InPlayEntry, inPlayLayout, piecesFigures } from './inPlayPieces';
+import { renownMarkNode } from './meterMark';
 import { type PlateFigure, plateFigureNode } from './orderFace';
 
 /** The plate's words. Plain, and no number inside a sentence (hard rule 7). */
@@ -38,6 +50,9 @@ export const WONDER_PLATE_WORDS = {
   eyebrow: 'A wonder is finished',
   finished: (town: string) => `Finished in ${town}.`,
   turn: 'turn',
+  /** The Triumph's line: the Triumph sheet's and the census sheet's words. */
+  triumph: (name: string) => `Triumph · ${name}`,
+  renown: 'renown',
   go: 'Continue',
 } as const;
 
@@ -50,13 +65,44 @@ export interface WonderPlateReading {
   plate: PlateFigure[];
   town: string;
   turn: number;
+  /** The Triumph the wonder earned, drawn on the plate as one line; `null` for none. */
+  triumph: { name: string; pays: number } | null;
+}
+
+/**
+ * **Which Triumph goes on which plate.** The seat's own wonders in one result,
+ * paired in order with the seat's own awards from a row whose trigger is a
+ * finished wonder (the trigger kind is the marker, never a name, as
+ * `censusTriumphIds` finds the census's row). Both come from the same result,
+ * because the occasion that finishes a wonder is the one that awards it. An
+ * award with no wonder to pair keeps its Triumph page.
+ */
+export function wonderTriumphPairs(
+  result: { wonders?: readonly WonderCompletion[]; triumphs?: readonly TriumphAward[] },
+  seat: number,
+): [WonderCompletion, TriumphAward][] {
+  const wonders = (result.wonders ?? []).filter((done) => done.playerId === seat);
+  const awards = (result.triumphs ?? []).filter(
+    (award) => award.playerId === seat && triumphDef(award.id).when.kind === 'wonderCompleted',
+  );
+  const pairs: [WonderCompletion, TriumphAward][] = [];
+  for (let index = 0; index < Math.min(wonders.length, awards.length); index += 1) pairs.push([wonders[index]!, awards[index]!]);
+  return pairs;
 }
 
 /**
  * The plate for a wonder the seat holds, or `null` when In play does not list
- * it (the town has changed hands since). Pure, so the suite can pin it.
+ * it (the town has changed hands since). `triumph` is the award
+ * `wonderTriumphPairs` gave this wonder. Pure, so the suite can pin it.
  */
-export function wonderPlateReading(state: GameState, seat: number, building: BuildingId, cityId: number, turn: number): WonderPlateReading | null {
+export function wonderPlateReading(
+  state: GameState,
+  seat: number,
+  building: BuildingId,
+  cityId: number,
+  turn: number,
+  triumph: TriumphAward | null = null,
+): WonderPlateReading | null {
   const entry = inPlayLayout(state, seat)
     .stacks.flatMap((stack) => stack.entries)
     .find((piece) => piece.key === `wonder:${building}`);
@@ -67,12 +113,19 @@ export function wonderPlateReading(state: GameState, seat: number, building: Bui
     const amount = roundYield(own[voice]);
     if (amount !== 0) plate.push({ voice, amount });
   }
-  return { building, entry, plate, town: cityById(state, cityId)?.name ?? '', turn };
+  return {
+    building,
+    entry,
+    plate,
+    town: cityById(state, cityId)?.name ?? '',
+    turn,
+    triumph: triumph === null ? null : { name: triumph.name, pays: triumph.pays },
+  };
 }
 
 /**
  * **The plate's page**, built whole: the frame, the 16:9 picture, the name,
- * the line, the turn, the figures and Continue. `go` is what
+ * the line, the turn, the figures, the Triumph's line and Continue. `go` is what
  * Continue does. The Flair Cabinet draws the same page.
  */
 export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HTMLElement {
@@ -95,6 +148,16 @@ export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HT
   const pays = element('div', 'wonder-plate-pays');
   for (const figure of reading.plate) pays.append(plateFigureNode(figure));
   if (reading.plate.length > 0) inner.append(pays);
+  // The Triumph it earned, as one line: the laurel, the Triumph's name, and
+  // its renown as a figure with the word apart, as the Triumph sheet sets it.
+  if (reading.triumph !== null) {
+    const line = element('p', 'wonder-plate-triumph');
+    line.append(renownMarkNode());
+    line.append(element('span', 'wonder-plate-triumph-name', WONDER_PLATE_WORDS.triumph(reading.triumph.name)));
+    line.append(element('span', 'wonder-plate-triumph-figure', signedFigure(reading.triumph.pays)));
+    line.append(element('span', 'wonder-plate-triumph-word', WONDER_PLATE_WORDS.renown));
+    inner.append(line);
+  }
   const button = element('button', 'age-plate-continue', WONDER_PLATE_WORDS.go);
   button.type = 'button';
   button.addEventListener('click', go);

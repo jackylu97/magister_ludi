@@ -19,10 +19,11 @@
  *     centered in the real build"; "re-use the convention of the 'x' to close
  *     as in the technology screen"). It is taller than the board's, and the
  *     hand shorter: the government and its chairs are the focus of the page,
- *     and the height the hand gives up goes round them (`councilLayout`). Five
- *     chairs or fewer sit in a cluster in the page's middle. The totals line is eight figures: the six yields, a
- *     hairline, then happiness and authority (`councilTotals.ts`). While a
- *     card is held over a chair, a chip beside each figure says what the
+ *     and the height the hand gives up goes round them (`councilLayout`). Six
+ *     chairs or fewer sit in a cluster in the page's middle. The totals line
+ *     is eight figures: the six yields, a hairline, then happiness and
+ *     authority (`councilTotals.ts`). While a card is held over a chair, a
+ *     chip beside each figure says what the
  *     total would gain or lose if the card were dropped there (frame CH).
  *     Beside the title, the link to In play ("In play · 9", and the I key)
  *     opens the screen of everything in force (stage 3, `inPlayScreen.ts`).
