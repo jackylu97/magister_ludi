@@ -11,7 +11,7 @@ import { BoxGeometry, type BufferAttribute, type BufferGeometry, InstancedMesh, 
 import {
   RELEASED_AFTER_UPLOAD, buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets,
 } from '../../src/render3d/paintedBoard.js';
-import { packPaintedKit, unpackPaintedKit, packPaintedBatches, unpackPaintedBatches, paintedTransferBuffers } from '../../src/render3d/paintedBoardTransfer.js';
+import { packPaintedKit, unpackPaintedKit, packPaintedBatches, unpackPaintedBatches, paintedTransferBuffers } from '../../src/render3d/paintedBoardTransfer';
 // @ts-expect-error Shared study surface helpers are JavaScript.
 import { packTerrainMap, restoreTerrainMap } from '../../src/terrainStudy/surface.js';
 import { createMap } from '../../src/sim/map';

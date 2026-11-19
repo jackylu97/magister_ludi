@@ -7,7 +7,7 @@
 import {buildPaintedBoard, paintedRegionKey} from './paintedBoard.js';
 import {VIEW3D} from './lookData';
 import {restoreTerrainMap, riverStyle, coastStyle} from '../terrainStudy/surface.js';
-import {packPaintedKit, unpackPaintedBatches} from './paintedBoardTransfer.js';
+import {packPaintedKit, unpackPaintedBatches} from './paintedBoardTransfer';
 
 /** The steps a worker reports, in the order it reaches them. A split build shows the step its slowest part is on. */
 /** @type {BuildStage[]} */
@@ -45,7 +45,7 @@ export function paintedBuildWorkers() {
   return Math.max(1, Math.min(VIEW3D.painted.build.workers, cores - 1));
 }
 
-/** @param {import('./paintedBoardTransfer.js').PaintedBatchPacket} a @param {import('./paintedBoardTransfer.js').PaintedBatchPacket} b */
+/** @param {import('./paintedBoardTransfer').PaintedBatchPacket} a @param {import('./paintedBoardTransfer').PaintedBatchPacket} b */
 const byOrder = (a, b) => a.order[0] - b.order[0] || a.order[1] - b.order[1] || a.order[2] - b.order[2];
 
 /**
