@@ -674,3 +674,43 @@ Each theme has a path through the tiers. The cards named are the ones a seat lea
 - Whether the Doctrine The Universal Monarchy and the new Hegemony should stack or not. I left them as they fold today.
 - The history is from my own knowledge, not from a source in the repo. Two fits are loose and are marked: The Amabutho is a 19th-century institution in a Tier II place, and The Mesta is a sheep guild on a card that also pays for horse pastures.
 - Three sheet texts differ from the game's own words for the built card. Riders of the Steppe: the sheet says "one less movement point", the game says "without spending movement". The Sword of State: the game's words leave out "It costs no upkeep". The Upstarts: the sheet says "the units of an empire", and the built card also counts towns.
+
+## The user's comments on the page (2026-11-19)
+
+The user commented on the review page ("ok commented on the dominion decks").
+The comments below are the user's words. They are the spec.
+
+### Approved as proposed
+
+"great", "sure" or similar on: 02 The Outriders, 03 Blood Brothers, 04 The Ver
+Sacrum, 05 The Training Cadre, 07 The Upstarts, 08 The Captive Craftsmen, 09
+The Castle Demesne, 10 The Swift Riders, 11 The Naadam, 12 Riders of the Steppe
+(cut), 13 Siege Works, 14 Conquered Archives, 15 The Citadel Works, 17 The
+Longbowmen, 18 Spear-won Land, 21 Commission: The Border Fortress, 22 The
+Amabutho, 23 The Field of Mars, 25 The Melted Arms, 26 The Auxilia, 28
+Commission: The Decisive Battle, 30 The Siege Train (cut, "sure"), 32 The
+Victory Mint, 33 The Bakufu, 35 The Tributary Kings, 36 Commission: The Chosen
+Men, 37 The Mesta, 38 The Master of Soldiers, 39 The Companion Cavalry, 40 The
+Grand Army, 41 The Proconsuls, 42 Commission: The Grand Campaign, 43
+Commission: Hold the Capitals, 44 Circumvallation, 45 The Glorious Dead, 46 The
+Castellans, 47 The Marian Reforms, 48 The Landsturm, 49 The Citizen Phalanx.
+
+### Changed or rejected by the user
+
+| # | Card | The user's comment |
+|---|---|---|
+| 06 | War Foundries | "already strong, keep as is" |
+| 16 | Hegemony | "this is fine as it is, no buff needed" |
+| 19 | War Feeds Itself | "this is a small bonus, lets keep it as is for simplicity" |
+| 20 | Living off the Land | "this is a small bonus, lets cut anyways" (the card is cut, though 19 is not reworked to take its rule) |
+| 24 | The Grass Crown | "Great, let's revise: capturing a city grants 200 renown favoring great generals, tripled if the city contains a wonder." |
+| 27 | The Foederati | "lets make this a tier 1" |
+| 29 | Total War | "lets revise: +4 strength and +1 movement, every city demands +2 more happiness. (+4 is a huge buff already)" |
+| 31 | The Drill Masters | "isn't this already in the game? if not lets put this in" |
+| 34 | The Regimental Schools | "let's say: each garrisoned unit gives its town +8 science and +8 production" |
+| 50 | The Devshirme | "reject, doesn't seem useful in the late game" |
+
+### No comment
+
+01 The Spear Makers (+25% to +40% production toward military units). Open
+until the user rules.
