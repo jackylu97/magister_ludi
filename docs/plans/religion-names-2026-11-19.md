@@ -313,16 +313,34 @@ short names that sound like a religion (2026-11-19)".
 
 | Axis | Names |
 |---|---|
-| hearth | Nongjia, Vestals, Marzeah, Eleusinia, Kinunites |
-| sky | Harranians, Zurvanism, Haruspices, Yinyangjia, Sabaziasts, Asterites |
-| stone | Dactyls, Metragyrtai, Chavin Cult, Saxari |
-| wild | Selloi, Arktoi, Maenads, Orgeones, Silvari |
-| water | Apkallu, Isiacs, Telchines, Arioi, Hydrophoroi, Thalassari |
-| war | Salii, Korybantes, Mithraism, Hwarang, Qarradites |
-| road | Pochteca, Fetials, Peripatetics |
-| sun | Atenism, Manichee, Shemsu Hor, Mingjiao, Solari, Shamshites |
-| frost | Hyperboreans, Hiemari, Nivites |
-| none | Mojia, Fangshi, Orphism, Epoptai, Eleatics, Hermetism, Pythagoreans, Lokayata, Ajnana, Hypsistarians, Huang-Lao, Kapnobatai, Volkhvy, Filid, Ajivika, Kryptari |
+| hearth | Nongjia, Vestals, Marzeah, Eleusinia, Kinunites, Epoptai |
+| sky | Harranians, Zurvanism, Haruspices, Yinyangjia, Sabaziasts, Asterites, Pythagoreans |
+| stone | Dactyls, Metragyrtai, Chavin Cult, Saxari, Eleatics, Lokayata, Kryptari |
+| wild | Selloi, Arktoi, Maenads, Orgeones, Silvari, Orphism |
+| water | Apkallu, Isiacs, Telchines, Arioi, Hydrophoroi, Thalassari, Huang-Lao |
+| war | Salii, Korybantes, Mithraism, Hwarang, Qarradites, Mojia |
+| road | Pochteca, Fetials, Peripatetics, Hermetism, Filid, Ajivika, Fangshi |
+| sun | Atenism, Manichee, Shemsu Hor, Mingjiao, Solari, Shamshites, Hypsistarians |
+| frost | Hyperboreans, Hiemari, Nivites, Ajnana, Kapnobatai, Volkhvy |
+
+**No name has the axis "none"** (the user, 2026-11-19: "could you distribute
+the 'none' to across the suits"). The sixteen names that had it were given to
+the nine other axes by the Claude session, by subject and to even the counts
+(six or seven an axis):
+- hearth: Epoptai (the highest grade at Eleusis, the grain mysteries);
+- sky: Pythagoreans (number and the harmony of the spheres);
+- stone: Eleatics (being is one and does not change), Lokayata (only matter
+  is real), Kryptari (invented, "the hidden");
+- wild: Orphism (Orpheus, who charmed beasts and trees);
+- water: Huang-Lao (the Way, which the Laozi likens to water);
+- war: Mojia (the Mohists were experts in the defence of towns);
+- road: Hermetism (Hermes, god of roads), Filid (poets who went from court to
+  court), Ajivika (wandering ascetics), Fangshi (travelling experts);
+- sun: Hypsistarians (they worshipped with fire and light);
+- frost: Volkhvy (the north, Rus), Kapnobatai (Thrace, the north), Ajnana
+  (the weakest fit, placed here to give frost a sixth name).
+
+A pantheon with no axis prefers nothing and draws from the whole list.
 
 Notes for the builder:
 - Invented names (not historical): Kinunites, Asterites, Saxari, Silvari,
@@ -331,6 +349,6 @@ Notes for the builder:
   checked. The names are data; the one-line sources are not shown in the game
   today. If a Compendium entry for religion names is ever written, check each
   source first.
-- The road axis has three names and the game holds at most eight religions, so
-  a road pantheon can fall through to the whole list. That is the designed
-  behaviour.
+- Every axis has six or seven names and a game holds at most eight religions,
+  so a pantheon can fall through to the whole list only when several religions
+  share an axis. That is the designed behaviour.
