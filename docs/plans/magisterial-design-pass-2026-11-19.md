@@ -792,3 +792,13 @@ screen change, recorded in `docs/plans/ui-critique-2026-10-16.md`.
 No comment on the two gaps (the Tier 0 fillers The Quarry Gangs and The
 Heralds; commons for Tiers II and III). They stay proposals, outside the build.
 The readings R1 to R7 had no objection and stand.
+
+## The user's third round of comments (2026-11-19)
+
+| On | The user's comment | Result |
+|---|---|---|
+| W1 The Spirit Way: does a ghost work count toward counts and goals? | "Yes, for the ideal city, just dont double count wonders, so four wonders would work for that condition. that should make it more clean to code too. same for counting wonders and works together, wonders should only be counted once." | A ghost work counts for every count and goal, Commission: The Ideal City included (no exception). Where a card or goal counts wonders and works together, a wonder is counted once, not once as a wonder and again as a work. |
+| W2 Tier 0 is short: two fillers | "works for me" | The Quarry Gangs and The Heralds are approved. |
+| W3 Commons for Tiers II and III | "sgtm" | The Hall of Heroes and The Learned Patron become common. |
+
+Nothing waits on the user.
