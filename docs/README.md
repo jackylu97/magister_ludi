@@ -1744,13 +1744,17 @@ Eight root pages, all named in `vite.config.ts` inputs:
     16:9, the shape of its painting (`docs/splash-art.md`, row 3), filled by
     `wonderWindowNode` from `wonderPicture`. Under it are the name, the town,
     the turn and what it pays each turn; its text stays on In play, so the
-    picture keeps its height. Continue flies the wonder to the
+    picture keeps its height. The Triumph the wonder earned is one line on
+    the plate, its name and its renown, and its own Triumph page does not
+    open (`wonderTriumphPairs`); every other Triumph keeps its page, and the
+    record, the chronicle line and the renown are unchanged. If the plate
+    cannot be shown, the Triumph gets its page. Continue flies the wonder to the
     In play door, and the door's count and dot land with it. The chronicle
     keeps the line; another seat's wonder keeps its toast.
 - **The Council screen's heights** (the user's comments on stage 3): the head
   is taller, the hand shows at most `COUNCIL_FRAME.fanMax` of each card, and
   the height left goes round the government and its chairs
-  (`CouncilLayout.spare`). Five chairs or fewer sit in a cluster, three to a
+  (`CouncilLayout.spare`). Six chairs or fewer sit in a cluster, three to a
   row, in the page's middle (`COUNCIL_FRAME.cluster`). Both sheets close with
   the star chart's "×" (`.tech-close`).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via

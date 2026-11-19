@@ -159,13 +159,13 @@ describe('the wonder plate (frame A1)', () => {
   it('is raised for the seat’s own wonder only, which then gets no toast; another seat’s keeps its toast', () => {
     const report = braceBody(CONTROLS, 'function reportWonders(result: CommandResult): void');
     expect(report).toContain('const own = done.playerId === localPlayerId;');
-    expect(report).toContain('if (own) onWonderArrived?.(done);');
+    expect(report).toContain('if (own) onWonderArrived?.(done, plated.find(([wonder]) => wonder === done)?.[1] ?? null);');
     expect(report).toContain("...(own ? { mark: 'wonder' as const } : {})");
     expect(MAIN).toContain("entry.mark !== 'age' && entry.mark !== 'wonder'");
   });
 
   it('flies the wonder to the door when it closes, and holds the door’s count until it lands', () => {
-    const arrived = between(MAIN, 'onWonderArrived: (done) => {', 'pumpBeadNews();');
+    const arrived = between(MAIN, 'onWonderArrived: (done, triumph) => {', 'pumpBeadNews();');
     expect(arrived).toContain('inPlayFlights += 1;');
     const land = braceBody(MAIN, 'function landWonder(reading: WonderPlateReading, from: DOMRect | null): void');
     expect(land).toContain('wantsMotion()');
@@ -191,6 +191,29 @@ describe('the wonder plate (frame A1)', () => {
   it('says no number inside its sentence', () => {
     expect(PLATE).toContain('finished: (town: string) => `Finished in ${town}.`');
     expect(PLATE).toContain("turn: 'turn',");
+    // The Triumph's line in the Triumph and census sheets' words: the renown is a figure.
+    expect(PLATE).toContain('triumph: (name: string) => `Triumph · ${name}`,');
+    expect(PLATE).toContain("renown: 'renown',");
+  });
+
+  // The user, 2026-11-19: "put the renown line on the plate, no second page".
+  it('carries the wonder’s Triumph as its renown line, and that Triumph raises no page of its own', () => {
+    // The plate draws the line: the laurel, the name, the figure and the word.
+    const page = braceBody(PLATE, 'export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HTMLElement');
+    expect(page).toContain('renownMarkNode()');
+    expect(page).toContain('signedFigure(reading.triumph.pays)');
+    // Only the awards paired with the seat’s own wonders skip the Triumph page;
+    // the chronicle line is written before the skip, and every other award keeps its page.
+    const triumphs = braceBody(CONTROLS, 'function reportTriumphs(result: CommandResult): void');
+    expect(triumphs).toContain('wonderTriumphPairs(result, localPlayerId)');
+    expect(triumphs.indexOf('announce(')).toBeLessThan(triumphs.indexOf('if (plated.has(triumph)) continue;'));
+    expect(triumphs).toContain('mine.push(triumph);');
+    // The pump hands the award to the plate, and a plate that cannot be shown
+    // gives its Triumph the page it would have had.
+    const pump = braceBody(MAIN, 'function pumpBeadNews(): void');
+    expect(pump).toContain('next.triumph)');
+    expect(pump).toContain('raiseTriumphSheet([next.triumph]);');
+    expect(MAIN).toContain('onTriumphs: (awards) => raiseTriumphSheet(awards),');
   });
 });
 

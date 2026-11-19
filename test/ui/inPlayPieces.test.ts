@@ -10,7 +10,10 @@ import { describe, expect, it } from 'vitest';
 
 import { BUILDING_IDS, type BuildingId, isWonder } from '../../src/sim/buildingData';
 import { cardImpactWorlds } from '../../src/sim/cardImpact';
-import { wonderPlateReading } from '../../src/ui/wonderPlate';
+import type { WonderCompletion } from '../../src/sim/cities';
+import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
+import type { TriumphAward } from '../../src/sim/triumphs';
+import { wonderPlateReading, wonderTriumphPairs } from '../../src/ui/wonderPlate';
 import { isTechId } from '../../src/sim/techData';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { readEmpire } from '../../src/sim/readings';
@@ -163,6 +166,45 @@ describe('the wonder plate’s reading (frame A1)', () => {
     const held = new Set(state.cities.filter((city) => city.ownerId === 0).flatMap((city) => city.buildings));
     const other = BUILDING_IDS.find((id) => isWonder(id) && !held.has(id))!;
     expect(wonderPlateReading(state, 0, other, state.cities[0]!.id, 74)).toBeNull();
+  });
+
+  it('carries the Triumph it is handed as its renown line, and none without one', () => {
+    const state = board();
+    const piece = inPlayLayout(state, 0).stacks.find((stack) => stack.id === 'wonders')!.entries.find((entry) => entry.form === 'wonder')!;
+    const award = { id: MARVEL, name: triumphDef(MARVEL).name, pays: 12.5, family: null, playerId: 0, turn: 74 } as TriumphAward;
+    expect(wonderPlateReading(state, 0, piece.card as BuildingId, piece.cityId!, 74, award)!.triumph).toEqual({ name: award.name, pays: 12.5 });
+    expect(wonderPlateReading(state, 0, piece.card as BuildingId, piece.cityId!, 74)!.triumph).toBeNull();
+  });
+});
+
+// The Triumph a finished wonder earns, found by its trigger, and one that is not.
+const MARVEL = TRIUMPH_IDS.find((id) => triumphDef(id).when.kind === 'wonderCompleted')!;
+const OTHER = TRIUMPH_IDS.find((id) => triumphDef(id).when.kind !== 'wonderCompleted' && triumphDef(id).deferred === undefined)!;
+
+describe('which Triumph goes on which plate (the user, 2026-11-19: one page for a wonder)', () => {
+  const wonder = (building: string, playerId: number): WonderCompletion =>
+    ({ building, name: building, cityId: 1, playerId, turn: 74, refunds: [] }) as unknown as WonderCompletion;
+  const award = (id: typeof MARVEL, playerId: number): TriumphAward => ({ id, name: triumphDef(id).name, pays: triumphDef(id).pays, family: null, playerId, turn: 74 });
+
+  it('pairs the seat’s own wonders, in order, with its own Triumphs for a finished wonder', () => {
+    const first = wonder('a', 0);
+    const second = wonder('b', 0);
+    const marvels = [award(MARVEL, 0), award(MARVEL, 0)];
+    const pairs = wonderTriumphPairs({ wonders: [first, second], triumphs: [award(OTHER, 0), marvels[0]!, marvels[1]!] }, 0);
+    expect(pairs).toEqual([
+      [first, marvels[0]],
+      [second, marvels[1]],
+    ]);
+    expect(pairs[0]![1]).toBe(marvels[0]);
+  });
+
+  it('leaves every other Triumph, and another seat’s wonders and Triumphs, alone', () => {
+    const theirs = wonder('a', 1);
+    expect(wonderTriumphPairs({ wonders: [theirs], triumphs: [award(MARVEL, 1)] }, 0)).toEqual([]);
+    expect(wonderTriumphPairs({ wonders: [wonder('a', 0)], triumphs: [award(OTHER, 0)] }, 0)).toEqual([]);
+    // A Triumph with no wonder to pair keeps its page.
+    expect(wonderTriumphPairs({ triumphs: [award(MARVEL, 0)] }, 0)).toEqual([]);
+    expect(wonderTriumphPairs({}, 0)).toEqual([]);
   });
 });
 

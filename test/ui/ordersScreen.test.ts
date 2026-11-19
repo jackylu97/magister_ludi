@@ -352,7 +352,9 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     // A smaller window: the compact forms, and the narrow government card.
     expect(councilLayout({ width: 1180, height: 900 }, 11)).toMatchObject({ form: 'compact', rows: 3, cramped: false });
     expect(councilLayout({ width: 1180, height: 700 }, 11)).toMatchObject({ form: 'narrow', rows: 2, cramped: false });
-    expect(councilLayout({ width: 1440, height: 700 }, 6)).toMatchObject({ form: 'mid', rows: 1, cramped: false });
+    // Six chairs are a cluster of two rows of three (the user, 2026-11-19), so a
+    // short window takes the compact form rather than one row of six.
+    expect(councilLayout({ width: 1440, height: 700 }, 6)).toMatchObject({ form: 'compact', rows: 2, cramped: false });
     expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FRAME.government.narrow);
   });
 
@@ -393,8 +395,8 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     for (const name of ['--council-head-h', '--council-fan-h', '--council-spare-top']) expect(paint, name).toContain(`'${name}'`);
   });
 
-  it('clusters five chairs or fewer in the page’s middle, three to a row, and keeps the board’s layout from six', () => {
-    expect(COUNCIL_FRAME.cluster).toEqual({ most: 5, cols: 3 });
+  it('clusters six chairs or fewer in the page’s middle, three to a row, and keeps the board’s layout from seven', () => {
+    expect(COUNCIL_FRAME.cluster).toEqual({ most: 6, cols: 3 });
     const three = councilLayout({ width: 1440, height: 900 }, 3);
     expect([three.form, three.rows, three.cols]).toEqual(['full', 1, 3]);
     // To the page's middle: half the government's column and its gap.
@@ -402,11 +404,22 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     const five = councilLayout({ width: 1440, height: 900 }, 5);
     expect([five.form, five.rows, five.cols]).toEqual(['full', 2, 3]);
     expect(five.cluster).not.toBeNull();
-    // Six and more: the board's C6, C8 and C11, with no cluster.
-    for (const chairs of [6, 8, 11]) expect(councilLayout({ width: 1440, height: 900 }, chairs).cluster, String(chairs)).toBeNull();
+    // Six: two rows of three (the user, 2026-11-19), at both sizes the board is checked at.
+    for (const [width, height] of [
+      [1440, 900],
+      [1280, 720],
+    ] as const) {
+      const six = councilLayout({ width, height }, 6);
+      expect([six.rows, six.cols], `${width}x${height}`).toEqual([2, 3]);
+      expect(six.cluster, `${width}x${height}`).not.toBeNull();
+      // Above the hand: the hand keeps all of fanMax, so nothing overlaps it.
+      expect(six.fanView, `${width}x${height}`).toBe(COUNCIL_FRAME.fanMax);
+    }
+    // Seven and more: the board's C8 and C11, with no cluster.
+    for (const chairs of [7, 8, 11]) expect(councilLayout({ width: 1440, height: 900 }, chairs).cluster, String(chairs)).toBeNull();
     // A cluster never reaches the government's column.
     for (const width of [1180, 1280, 1440]) {
-      for (const chairs of [1, 2, 3, 4, 5]) {
+      for (const chairs of [1, 2, 3, 4, 5, 6]) {
         const layout = councilLayout({ width, height: 800 }, chairs);
         const room = width - 2 * COUNCIL_FRAME.side - layout.government - COUNCIL_FRAME.columnGap;
         expect(layout.cluster!.shift, `${width}, ${chairs}`).toBeLessThanOrEqual((room - layout.chairs.width) / 2);
