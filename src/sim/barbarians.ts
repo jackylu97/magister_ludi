@@ -135,6 +135,7 @@ import {
   findPath,
   findPathAround,
   isPassable,
+  moveProfile,
   takesByWalking,
 } from './pathfind';
 import { nextInt } from './rng';
@@ -789,6 +790,13 @@ export function nearestTarget(
   let order = 0;
   const consider = (col: number, row: number, ownerId: number): void => {
     if (ownerId === wild.id) return;
+    const tile = getTileAt(map, col, row);
+    if (!tile) return;
+    const distance = wrappedDistance(map, hex, tileHex(tile));
+    if (distance > BARB.aggressionRadius) return;
+    if (!isVisibleTo(state, wild.id, tile.col, tile.row)) return;
+    if (limits.leash && !insideLeash(map, limits.leash, tile)) return;
+    if (limits.land && limits.land[tileIndex(map, tile.col, tile.row)] !== region) return;
     // Wolf-Mother's Pact: **barbarians never attack you.** The one
     // world's rule the vocabulary has, and it is read here rather than inside
     // `applyCombat` on purpose — the pact is a fact about what the wild *wants*,
@@ -798,13 +806,6 @@ export function nearestTarget(
     // function: the wolves take their share, they just do not come for the
     // spears. See `docs/deprecated/statecraft-cards.md`.
     if (cardBehaviorRule(state, ownerId, 'barbariansPassive')) return;
-    const tile = getTileAt(map, col, row);
-    if (!tile) return;
-    const distance = wrappedDistance(map, hex, tileHex(tile));
-    if (distance > BARB.aggressionRadius) return;
-    if (!isVisibleTo(state, wild.id, tile.col, tile.row)) return;
-    if (limits.leash && !insideLeash(map, limits.leash, tile)) return;
-    if (limits.land && limits.land[tileIndex(map, tile.col, tile.row)] !== region) return;
     candidates.push({ tile, distance, order: order++ });
   };
 
@@ -839,13 +840,14 @@ function approachTile(state: GameState, unit: Unit, goal: Tile, leash?: Leash): 
   if (!from) return null;
   const hex = tileHex(from);
 
+  const mover = moveProfile(state, unit);
   let best: Tile | null = null;
   let bestDistance = Infinity;
   let bestIndex = Infinity;
   for (const tile of mapRange(map, tileHex(goal), 1)) {
     if (tile.col === goal.col && tile.row === goal.row) continue;
     if (leash && !insideLeash(map, leash, tile)) continue;
-    if (!canStopOn(state, unit, tile)) continue;
+    if (!canStopOn(state, unit, tile, mover)) continue;
     const distance = wrappedDistance(map, hex, tileHex(tile));
     const index = tileIndex(map, tile.col, tile.row);
     if (distance < bestDistance || (distance === bestDistance && index < bestIndex)) {
@@ -1327,9 +1329,10 @@ function wander(state: GameState, unit: Unit, leash?: Leash): void {
     }
   }
 
+  const mover = moveProfile(state, unit);
   const options = mapRange(map, tileHex(home), radius).filter(
     (tile) =>
-      !(tile.col === from.col && tile.row === from.row) && canStopOn(state, unit, tile),
+      !(tile.col === from.col && tile.row === from.row) && canStopOn(state, unit, tile, mover),
   );
   if (options.length === 0) return;
   const goal = options[nextInt(state.rng, 0, options.length)]!;

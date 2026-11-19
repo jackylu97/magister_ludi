@@ -3910,11 +3910,8 @@ export function countOf(
       }
     }
     case 'rerollsWhileSlotted': {
-      // The **chair's** counter, not the card's: the ruled sentence is "while
-      // this Order is slotted", so a card benched and re-slotted starts a new
-      // watch. Nothing writes `rerollsSeen` until batch C1 builds the reroll, so
-      // this reads nought in every empire today — the honest answer for a thing
-      // that has not happened yet.
+      // Count Order draft rerolls during this seating. Removing and reseating
+      // the Order starts a new count.
       const sc = statecraftOf(state, playerId);
       if (!sc) return 0;
       let total = 0;

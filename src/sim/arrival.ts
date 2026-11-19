@@ -161,7 +161,8 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   // pays for converting the wild's fallen — and the refusal belongs here beside
   // the wild's own, because this is the one place a camp stops existing and the
   // reason is the same one sentence: whoever arrived has no quarrel with it.
-  const clears = !isWild && !cardBehaviorRule(state, unit.ownerId, 'noCampClearing');
+  const clears = !isWild && hasCampAt(state, tile.col, tile.row) &&
+    !cardBehaviorRule(state, unit.ownerId, 'noCampClearing');
 
   /**
    * **Archimedes hears the soldier at the door.**
@@ -200,7 +201,7 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
     }
   }
 
-  if (clears && hasCampAt(state, tile.col, tile.row)) {
+  if (clears) {
     removeCampAt(state, tile.col, tile.row);
     report.camp = settleCampBounty(state, unit.ownerId, { col: tile.col, row: tile.row });
     // **The tally.** `Player.campsCleared` is the one thing a burnt-out camp
@@ -366,9 +367,9 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    * standing on (`cityAt`) rather than of the borders: the clause is about the
    * gate, not the province.
    */
-  if (cardBehaviorRule(state, unit.ownerId, 'cityRestoresMovement')) {
-    const here = cityAt(state, tile.col, tile.row);
-    if (here && here.ownerId === unit.ownerId) unit.movesLeft = fullMovement(unit, state);
+  const here = cityAt(state, tile.col, tile.row);
+  if (here?.ownerId === unit.ownerId && cardBehaviorRule(state, unit.ownerId, 'cityRestoresMovement')) {
+    unit.movesLeft = fullMovement(unit, state);
   }
 
   /**
@@ -402,13 +403,12 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    *     piece's owner's. A rival riding through your pastures waters no horses,
    *     and a hex outside anybody's borders has no herds on it at all.
    */
-  if (isCombatant(unitDef(unit.type))) {
+  if (tile.improvement !== undefined && isCombatant(unitDef(unit.type))) {
     const holder = tileOwnerCityId(state, tile.col, tile.row);
     const town = holder === null ? undefined : cityById(state, holder);
     if (
       town &&
       town.ownerId === unit.ownerId &&
-      tile.improvement !== undefined &&
       buildingRestoresMovementOn(townShelf(state, town)) === tile.improvement
     ) {
       unit.movesLeft = fullMovement(unit, state);

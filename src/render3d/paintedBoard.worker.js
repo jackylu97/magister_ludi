@@ -5,7 +5,7 @@
 /** @typedef {import('./paintedBoard.js').PaintedBuildShare} BuildShare */
 import {buildPaintedBoard} from './paintedBoard.js';
 import {packTerrainMap, setRiverStyle, setCoastStyle} from '../terrainStudy/surface.js';
-import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './paintedBoardTransfer.js';
+import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './paintedBoardTransfer';
 
 // `part` is `{regions, terrain}` when the build is split across workers: this
 // worker builds those regions only, and sends the prepared terrain only when
@@ -60,8 +60,13 @@ function build({map, kit, shadows, riverStyle, coastStyle, part, terrainPort, gr
   /** @param {TerrainPacket} terrain */
   const toBake = (terrain) => {
     if (!terrainPort) return;
-    try { terrainPort.postMessage({terrain}); } catch (error) { terrainPort.postMessage({error: error instanceof Error ? error.message : String(error)}); }
-    terrainPort.close(); terrainPort = undefined;
+    try {
+      terrainPort.postMessage({terrain});
+    } catch (error) {
+      terrainPort.postMessage({error: error instanceof Error ? error.message : String(error)});
+    }
+    terrainPort.close();
+    terrainPort = undefined;
   };
   try {
     // The worker has its own copy of the terrain modules, so the river cut the
@@ -82,11 +87,18 @@ function build({map, kit, shadows, riverStyle, coastStyle, part, terrainPort, gr
       if (prepared && !terrainSent && (!part || part.terrain)) {
         terrainSent = true;
         const terrain = packTerrainMap(prepared);
-        postReply({type: 'terrain', terrain}); toBake(terrain);
+        postReply({type: 'terrain', terrain});
+        toBake(terrain);
       }
-      if (stage !== 'land') { postReply({type: 'progress', percent: last < 0 ? 0 : last, stage}); return; }
+      if (stage !== 'land') {
+        postReply({type: 'progress', percent: Math.max(0, last), stage});
+        return;
+      }
       const percent = Math.floor(done / Math.max(1, total) * 100);
-      if (percent !== last || done === total) { last = percent; postReply({type: 'progress', percent, stage, done, total}); }
+      if (percent !== last || done === total) {
+        last = percent;
+        postReply({type: 'progress', percent, stage, done, total});
+      }
     }, null, part ? {regions: new Set(part.regions)} : null, share, ground);
     postReply({type: 'progress', percent: Math.max(0, last), stage: 'packing'});
     const batches = packPaintedBatches(board.exportBatches(), resources.bindings);
@@ -96,7 +108,10 @@ function build({map, kit, shadows, riverStyle, coastStyle, part, terrainPort, gr
   } catch (error) {
     postReply({type: 'error', message: error instanceof Error ? error.message : String(error)});
     // The bake waits on this port; tell it that no terrain is coming.
-    if (terrainPort) { terrainPort.postMessage({error: 'The board build failed'}); terrainPort.close(); terrainPort = undefined; }
+    if (terrainPort) {
+      terrainPort.postMessage({error: 'The board build failed'});
+      terrainPort.close();
+    }
   } finally {
     board?.dispose();
     for (const resource of resources?.bindings || []) resource.dispose();

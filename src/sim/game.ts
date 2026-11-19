@@ -69,8 +69,8 @@ export function createGame(config: GameConfig): Game {
  * rejected command leaves both the state and the log untouched, so the log is
  * always a script that reproduces the current state exactly.
  *
- * The command is copied on the way in: the log is the save file, and a caller
- * that reuses and mutates one command object must not rewrite history.
+ * Copy the accepted command into the log so later edits by its caller cannot
+ * change a saved game.
  */
 export function dispatch(game: Game, command: Command): CommandResult {
   const result = applyCommand(game.state, command);

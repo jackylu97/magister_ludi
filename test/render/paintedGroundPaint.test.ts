@@ -18,7 +18,7 @@ import {
 } from 'three';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardBatch, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
 import { createGroundPaint, groundPaintBox, groundPaintEntries, groundPaintPlan, groundPaintSquares, type GroundPaintPlan } from '../../src/render3d/groundPaint.js';
-import { packPaintedBatches, packPaintedKit, unpackPaintedBatches, unpackPaintedKit } from '../../src/render3d/paintedBoardTransfer.js';
+import { packPaintedBatches, packPaintedKit, unpackPaintedBatches, unpackPaintedKit } from '../../src/render3d/paintedBoardTransfer';
 import { buildPaintedBoardAsync } from '../../src/render3d/paintedBoardAsync.js';
 import { CloseGroundPaint } from '../../src/render3d/closeGroundPaint';
 import { VIEW3D } from '../../src/render3d/lookData';

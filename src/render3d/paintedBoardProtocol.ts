@@ -1,7 +1,9 @@
+import type { TerrainPacket } from '../terrainStudy/terrainPacket';
+export type { TerrainPacket } from '../terrainStudy/terrainPacket';
 import type { GameMap } from '../sim/map';
 import type { GroundPaintPlan } from './groundPaint.js';
 import type { PaintedBuildPart, PaintedBuildReport } from './paintedBoardAsync.js';
-import type { PaintedBatchPacket, PaintedKitPacket } from './paintedBoardTransfer.js';
+import type { PaintedBatchPacket, PaintedKitPacket } from './paintedBoardTransfer';
 
 export interface BoardBuildRequest {
   map: GameMap;
@@ -14,12 +16,6 @@ export interface BoardBuildRequest {
   terrainPort?: MessagePort;
   shareTo?: MessagePort[];
   shareFrom?: MessagePort;
-}
-
-export interface TerrainPacket {
-  map: GameMap;
-  wrap: boolean;
-  mounds: unknown;
 }
 
 export interface BoardComplete {

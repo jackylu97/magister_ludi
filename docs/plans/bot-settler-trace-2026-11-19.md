@@ -96,4 +96,30 @@ At Pinehollow, the live-board calculation was 98.42355 × (56/60) ÷ 4 = 22.97. 
 
 On turns 51 through 75, 31 pairs of accepted queue orders scored a settler for the same seat, town location and turn, with a site named in both games. In 16 pairs, the site also matched. Eight of those 16 went from positive town value to negative, and none moved in the opposite direction. In five of those eight, the build effort stayed the same or fell. Among the 15 pairs with different sites, seven went from positive to negative and one moved in the opposite direction.
 
-The bot selects the nearest available site after accounting for existing settler claims. The town value combines the value of another town, the plans it would help, the walk to the site, wagers, and charges for authority and happiness. The trace kept only that combined value for the selected site. For the next check, start with the same-site cases. Compare the number of towns held or already claimed, the value of the plans a town would help, and the authority and happiness charges on the two boards. For Pinehollow's build time, compare the settler's hammer cost, any progress on its queue row, and the town's production rate.
+The bot selects the nearest available site after accounting for existing settler claims. The town value combines the value of another town, the plans it would help, the walk to the site, wagers, and charges for authority and happiness. The first trace recorded the combined value for the selected site. The follow-up below reads the contributions to that value at the time of each decision.
+
+### Why the same site changed sign
+
+On seed 42, three of the eight reversals had their largest loss in authority, three in happiness, one in planned buildings and one in a wager. The table gives the change from the live to the frozen board in points of proposed town value. The town and building columns include the walk discount. The two happiness columns show the charge for a founding that exceeds available happiness and the separate charge for the first citizen. Values are rounded after subtraction.
+
+| Town and turn | Town after existing towns and claims | Planned buildings | Authority deficit | Happiness deficit | First citizen | Wager |
+|---|---:|---:|---:|---:|---:|---:|
+| Ironford, 52 | 0 | −12.52 | 0 | −31.17 | +0.97 | 0 |
+| Northwatch, 58 | −11.42 | −23.69 | −60.00 | 0 | 0 | 0 |
+| Pinehollow, 58 | 0 | −101.70 | −60.00 | −32.72 | +4.36 | 0 |
+| Northwatch, 60 | −11.42 | −74.94 | −150.00 | 0 | 0 | 0 |
+| Northwatch, 63 | −11.42 | −20.83 | −125.21 | 0 | 0 | 0 |
+| Pinehollow, 64 | 0 | −6.98 | 0 | −224.78 | +9.66 | 0 |
+| S0 1, 70 | +25.06 | −40.09 | +35.57 | 0 | 0 | −504.42 |
+| Aldermarch, 70 | 0 | +33.96 | +90.00 | −376.44 | +4.89 | 0 |
+
+At S0 1 on turn 70, one town would complete The Marcher Lords on the live board. The frozen board gave no wager credit for a town. This also explains why the different-site examples above had large positive values on the live board. A town advanced a wager worth 463.13 at Northwatch on turn 68 and 324.08 at Brightwater on turn 73. The corresponding frozen-board choices had zero wager credit.
+
+**Pinehollow, turn 58.** Both empires held six towns, had no settler claims and valued the next town at 273 before buildings. Both expected a two-turn walk. The site lay four hexes away. Its terrain score changed from 168.7 to 159.8, but the production calculation gives that term zero weight.
+
+- **Research and buildings.** On turn 56 the live-board seat chose to research toward Shipwrights. Its plan credited the new town for a Market, the Mausoleum, a Harbour and the Colossus. They were worth 126.75 together before the walk, including 97.90 for the Mausoleum. The frozen-board seat had chosen Engineering on turn 53. Its only credited building was the Terracotta Army at 21.54. The different plans cost 101.70 points after the walk.
+- **Authority.** Both sites cost three authority. The live-board seat had adopted Tyranny on turn 57. Its five authority raised the balance to six. The frozen-board seat still had one authority when it chose Pinehollow's queue. Founding there would leave a deficit of two, priced at 30 each.
+- **Happiness.** Both sites required one happiness. The live-board seat had a balance of −6, against −8 on the frozen board. The Curator of Waters supplied four happiness on the live board. The frozen board gained one from Civic Peace and spent one less on Millbrook's population. The resulting deficits were seven and nine. The price per point fell from 36 to 31.64, so the deficit charge rose by 32.72 and the charge for the first citizen fell by 4.36.
+- **Build time.** Both settlers cost 63 hammers. Both seats had already produced five. Pinehollow had three citizens on the same three tiles in both games. The live-board seat had slotted The Secret Arts on turn 39. It supplied four extra production, raising the flat total from eight to twelve. The higher authority also granted a 10% empire production bonus. Pinehollow produced 14.52 hammers per turn toward the settler on the live board and 8.80 on the frozen board. It had 6.82 and 0.80 hammers available, respectively. Those quotes yield four and eight turns. The live town already had a Library and had just finished a Monument. The frozen town had a Monument and a Palisade and could still choose the Library.
+
+The two instrumented games matched all eight archived state digests, each turn's founding and town counts, both final command log lengths and both unit histories. All 1,077 accepted queue orders matched the earlier trace in their queues, candidate scores and choices. The comparison reads the nested terms attached to each actual decision. It identifies the decisions and board conditions that changed these eight scores. It leaves the first divergence between the games open. The local reproduction directory is `/private/tmp/webciv-site-terms.c0pGmR/`. Run `bash cities-run.sh 42`, `python3 verify.py`, `python3 compare.py` and `bash inspect.sh` there in that order.
