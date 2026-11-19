@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { METER_GLYPH, YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
+import { METER_GLYPH, METER_MARK_GLYPH, RENOWN_FIGURE_GLYPH, YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import { hasYieldGlyph, splitYieldText } from '../../src/ui/yieldMark';
 import type { MeterId } from '../../src/sim/meters';
 
@@ -28,7 +28,7 @@ function marks(text: string): { key: YieldKey; lead: boolean }[] {
 }
 
 /** The same for the two meter marks — the printer's second table. */
-function meterMarks(text: string): { key: MeterId; lead: boolean }[] {
+function meterMarks(text: string): { key: MeterId | 'renown'; lead: boolean }[] {
   return splitYieldText(text).flatMap((part) =>
     part.kind === 'meter' ? [{ key: part.key, lead: part.lead }] : [],
   );
@@ -150,6 +150,21 @@ describe('splitYieldText', () => {
       ]);
       expect(words(row)).toBe('+2 +4 +3');
     });
+
+    // Stage 8 (the user, 2026-11-19: "card's printed face yes"): a card stamp's
+    // renown is a private-use character drawn as the laurel, after the meters.
+    it('draws renown each turn as a meter-like mark, from a character nothing else prints', () => {
+      expect(RENOWN_FIGURE_GLYPH.codePointAt(0)).toBeGreaterThanOrEqual(0xe000);
+      expect(RENOWN_FIGURE_GLYPH.codePointAt(0)).toBeLessThanOrEqual(0xf8ff);
+      const row = `+2${YIELD_GLYPH.science} +4${METER_GLYPH.happiness} +3${RENOWN_FIGURE_GLYPH}`;
+      expect(meterMarks(row)).toEqual([
+        { key: 'happiness', lead: true },
+        { key: 'renown', lead: false },
+      ]);
+      expect(words(row)).toBe('+2 +4 +3');
+      // The top bar's star and the Compendium's fleurons stay text.
+      for (const used of ['✦', '❦', '❧']) expect(hasYieldGlyph(used), used).toBe(false);
+    });
   });
 
   it('never leaves a yield glyph in the text it hands back', () => {
@@ -166,7 +181,7 @@ describe('splitYieldText', () => {
       const rebuilt = splitYieldText(text)
         .map((part) => {
           if (part.kind === 'text') return part.text;
-          return part.kind === 'meter' ? METER_GLYPH[part.key] : YIELD_GLYPH[part.key];
+          return part.kind === 'meter' ? METER_MARK_GLYPH[part.key] : YIELD_GLYPH[part.key];
         })
         .join('');
       expect(rebuilt).toBe(text);

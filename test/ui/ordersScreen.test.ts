@@ -451,6 +451,26 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     expect(SCREEN).toContain("sheetNode?.style.setProperty('--council-gap', `${COUNCIL_FRAME.columnGap}px`);");
   });
 
+  // Stage 8 (the user, 2026-11-19, on The Grand Vizier): the chair a card acts on is marked.
+  it('marks the chair a card acts on from the sim’s own reading, for a card in force and a card held', () => {
+    const ties = braceBody(SCREEN, 'function chairTies(');
+    expect(ties).toContain('const board = stagedState(state, seat, arrangement);');
+    expect(ties).toContain('chairsActedOn(board, seat, id)');
+    expect(ties).toContain('chairsActedOn(board, seat, held)');
+    // The government, each Doctrine and each Order in a chair can act on a chair.
+    expect(ties).toContain('[sc.government, ...sc.doctrines, ...arrangement.flatMap(');
+    const table = braceBody(SCREEN, 'function drawTable(');
+    expect(table).toContain("legend.append(tieMark('actor', ORDERS_WORDS.tieActor));");
+    expect(table).toContain('cell.dataset.tieTarget = actedBy.join');
+    expect(table).toContain("legend.append(tieMark('held', ORDERS_WORDS.tieHeld));");
+    // Quiet and still: a mark on the label, lit by hover or focus, never animated.
+    const css = style('statecraftScreen.css');
+    const rule = css.slice(css.indexOf('.council-tie {'));
+    expect(rule.slice(0, rule.indexOf('}'))).not.toMatch(/animation|transition/);
+    expect(css).toContain('.is-tie-lit .council-tie {');
+    expect(SCREEN).toContain("body.addEventListener('focusin', (event) => lightTies(event.target));");
+  });
+
   it('closes with the star chart’s ×, and has no second close hint', () => {
     const html = uiSource('index.html');
     expect(html).toContain('<button id="statecraft-close" class="tech-close" type="button" aria-label="Close" title="Close (Esc)">');
@@ -541,10 +561,9 @@ describe('the pay plate (frames PL and PM)', () => {
 
   it('picks the plate by the reading: figures, "+0" and the reason, or none', () => {
     const plate = braceBody(LIVE, 'function plateOfStamp(');
-    expect(plate).toContain('if (reading.figures.length > 0 || reading.renown !== undefined) {');
-    expect(plate).toContain('const figures = plateFigures(reading.figures);');
-    // Renown each turn joins the figures, after them (stage 7).
-    expect(plate).toContain("if (reading.renown !== undefined) figures.push({ voice: 'renown', amount: reading.renown });");
+    expect(plate).toContain("if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };");
+    // Renown each turn is one of the stamp's figures since stage 8, read back to its voice by its glyph.
+    expect(braceBody(LIVE, 'function voiceOfGlyph(')).toContain("if (glyph === RENOWN_FIGURE_GLYPH) return 'renown';");
     // A card that pays on an occasion has no plate, and so has a rule.
     expect(plate).toContain('if (!stampIsEmpty(reading)) return null;');
     expect(plate).toContain('if (!cardCanPay(card)) return null;');

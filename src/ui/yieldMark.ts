@@ -47,8 +47,8 @@
  */
 
 import { element } from './dom';
-import { METER_GLYPH, YIELD_GLYPH, type YieldKey } from './figures';
-import { meterMarkNode } from './meterMark';
+import { METER_MARK_GLYPH, YIELD_GLYPH, type YieldKey } from './figures';
+import { meterMarkNode, renownMarkNode } from './meterMark';
 import { yieldMarkDataUri } from '../art/yieldMarks';
 import type { MeterId } from '../sim/meters';
 
@@ -73,10 +73,16 @@ const GLYPH_YIELD = new Map<string, YieldKey>(
  * swap for a drawing. One walk, two tables, one seam: a surface that composes
  * either kind of mark into a sentence prints the drawing, and a surface that
  * needs a string still imports the character from `figures.ts`.
+ *
+ * Renown joined it in stage 8 (`RENOWN_FIGURE_GLYPH`, a private-use character
+ * nothing else prints), so a card stamp's renown figure is drawn as the laurel.
  */
-const GLYPH_METER = new Map<string, MeterId>(
-  (Object.keys(METER_GLYPH) as MeterId[]).map((key) => [METER_GLYPH[key], key]),
+const GLYPH_METER = new Map<string, MarkedMeter>(
+  (Object.keys(METER_MARK_GLYPH) as MarkedMeter[]).map((key) => [METER_MARK_GLYPH[key], key]),
 );
+
+/** What a meter-like mark stands for: one of the two meters, or renown each turn. */
+export type MarkedMeter = MeterId | 'renown';
 
 /**
  * The mark for one yield, as a span.
@@ -123,7 +129,7 @@ export function hasYieldGlyph(text: string): boolean {
 type YieldTextPart =
   | { kind: 'text'; text: string }
   | { kind: 'mark'; key: YieldKey; lead: boolean }
-  | { kind: 'meter'; key: MeterId; lead: boolean };
+  | { kind: 'meter'; key: MarkedMeter; lead: boolean };
 
 /**
  * A composed figure, split into the runs of text and the marks between them.
@@ -179,7 +185,7 @@ export function splitYieldText(text: string): YieldTextPart[] {
 function partNode(part: YieldTextPart): Node {
   if (part.kind === 'text') return document.createTextNode(part.text);
   if (part.kind === 'meter') {
-    const node = meterMarkNode(part.key);
+    const node = part.key === 'renown' ? renownMarkNode() : meterMarkNode(part.key);
     // The meter mark's own class knows nothing about sitting in a sentence, so
     // the *composition* rule is applied here: `.is-lead` is what moves a mark's
     // air to its right, and it is the same rule for both kinds of mark.

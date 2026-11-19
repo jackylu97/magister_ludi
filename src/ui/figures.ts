@@ -128,6 +128,24 @@ export const METER_GLYPH: Record<MeterId, string> = {
 };
 
 /**
+ * **Renown each turn as a figure's mark** in the text register (stage 8 of the
+ * Council and In play board; the user, 2026-11-19: "card's printed face yes").
+ * A card stamp composes it after the yields and the meters (`+2` and this), and
+ * `yieldMark.ts` draws it as the laurel (`renownMarkNode`), as the plates do.
+ *
+ * A **private-use character**, and on purpose: nothing else in the game prints
+ * it, so drawing it as the laurel changes no other text. The top bar's `✦` and
+ * the Compendium's fleurons are used elsewhere and are left alone. A string
+ * surface that draws no marks would show it as an empty box, so it is only ever
+ * composed into a figure the stamp prints through `setYieldText` or
+ * `yieldTextWriter`; the live line and labels say "renown" in words.
+ */
+export const RENOWN_FIGURE_GLYPH = '\u{E001}';
+
+/** The meters' glyphs and renown's, by key: every glyph `yieldMark.ts` draws as a meter-like mark. */
+export const METER_MARK_GLYPH: Record<MeterId | 'renown', string> = { ...METER_GLYPH, renown: RENOWN_FIGURE_GLYPH };
+
+/**
  * A sentence a yield's hover card ends with, for a yield that needs an
  * explanation rather than a breakdown.
  *

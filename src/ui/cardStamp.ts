@@ -73,7 +73,7 @@
  */
 
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
-import { METER_GLYPH, YIELD_GLYPH } from './figures';
+import { METER_GLYPH, RENOWN_FIGURE_GLYPH, YIELD_GLYPH } from './figures';
 import { setYieldText, yieldTextWriter } from './yieldMark';
 import { roundYield, yieldShows } from '../sim/yieldFormat';
 import type { CardImpactLine } from '../sim/cardImpact';
@@ -160,14 +160,6 @@ export interface StampReading {
   occasion?: string;
   /** A grant with no countable figure — "heals 25", "gifts a piece". */
   note?: string;
-  /**
-   * **Renown each turn** (stage 7 of the Council and In play board), rounded
-   * as a figure is, and absent when it rounds to nothing. Carried beside the
-   * figures rather than among them: the stamp's text register has no renown
-   * glyph, so the card's printed face does not draw it. The Council screen's
-   * plate and its live line read it (`orderLive.ts`).
-   */
-  renown?: number;
   /**
    * **A charter's stamp** (Scientific batch S10): the name of the technology
    * the charter opened. The stamp then reads "Opened" over that name, dropped
@@ -286,7 +278,8 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
       if (line.meter !== undefined) meters[line.meter] += line.amount ?? 0;
       continue;
     }
-    // Renown each turn: its own figure, beside the stamp's (see `StampReading.renown`).
+    // Renown each turn (stage 7): summed on its own, and printed after the
+    // meters with the laurel (stage 8, `RENOWN_FIGURE_GLYPH`).
     if (line.kind === 'renown') {
       renown += line.amount ?? 0;
       continue;
@@ -298,12 +291,11 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
   }
   const knockOn = figuresOf(cascade);
   const reading: StampReading = {
-    figures: [...figuresOf(standing), ...meterFiguresOf(meters)],
+    figures: [...figuresOf(standing), ...meterFiguresOf(meters), ...renownFiguresOf(renown)],
     occasionFigures: figuresOf(occasion),
     knockOn,
   };
   if (knockOn.length > 0 && knockOnLabel !== undefined) reading.knockOnLabel = knockOnLabel;
-  if (roundYield(renown) !== 0) reading.renown = roundYield(renown);
   if (occasionWords !== undefined) reading.occasion = occasionWords;
   if (note !== undefined) reading.note = note;
   return reading;
@@ -368,6 +360,15 @@ function meterFiguresOf(meters: Record<MeterId, number>): StampFigure[] {
 }
 
 const METER_ORDER: readonly MeterId[] = ['happiness', 'authority'];
+
+/**
+ * Renown each turn as a figure, after the meters: the laurel on the printed face
+ * (the user, 2026-11-19: "card's printed face yes"). Rounded as every figure
+ * is, and none when it rounds to nothing.
+ */
+function renownFiguresOf(renown: number): StampFigure[] {
+  return yieldShows(renown) ? [{ glyph: RENOWN_FIGURE_GLYPH, amount: roundYield(renown) }] : [];
+}
 
 /**
  * A signed figure the way every other number in this interface is written: an

@@ -28,7 +28,7 @@ import {
   stampText,
   stampThunks,
 } from '../../src/ui/cardStamp';
-import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
+import { METER_GLYPH, RENOWN_FIGURE_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
 import type { CardImpactLine } from '../../src/sim/cardImpact';
 import type { MeterId } from '../../src/sim/meters';
 
@@ -102,6 +102,30 @@ describe('stampReading — the sim\'s list as a stamp', () => {
     expect(reading.knockOn).toEqual([{ glyph: YIELD_GLYPH.science, amount: 2 }]);
     expect(reading.knockOnLabel).toBe('Happiness');
     expect(stampCascadeText(reading)).toBe(`+2${YIELD_GLYPH.science} · Happiness`);
+  });
+
+  /**
+   * **Renown each turn is a figure on the printed face** (stage 8; the user,
+   * 2026-11-19: "card's printed face yes"): after the yields and the meters,
+   * with the renown glyph the printer draws as the laurel. A card that pays only
+   * renown is no longer an empty stamp.
+   */
+  it('prints renown each turn after the yields and the meters', () => {
+    const reading = stampReading([
+      line({ kind: 'city', gold: 1 }),
+      meter('happiness', 2),
+      line({ kind: 'renown', source: 'Renown', amount: 2.4 }),
+    ]);
+    expect(reading.figures).toEqual([
+      { glyph: YIELD_GLYPH.gold, amount: 1 },
+      { glyph: METER_GLYPH.happiness, amount: 2 },
+      { glyph: RENOWN_FIGURE_GLYPH, amount: 2 },
+    ]);
+    const alone = stampReading([line({ kind: 'renown', source: 'Renown', amount: 3 })]);
+    expect(alone.figures).toEqual([{ glyph: RENOWN_FIGURE_GLYPH, amount: 3 }]);
+    expect(stampIsEmpty(alone)).toBe(false);
+    // Less than half a point rounds to nothing, and prints nothing.
+    expect(stampReading([line({ kind: 'renown', source: 'Renown', amount: 0.2 })]).figures).toEqual([]);
   });
 
   /** An ordinary card — a flat, a percentage, a conversion — has no cascade. */

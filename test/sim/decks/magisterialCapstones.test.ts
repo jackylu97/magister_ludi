@@ -30,6 +30,7 @@ import { type Tile, raiseImprovement, tileNeighbors } from '../../../src/sim/map
 import { type City, type GameState, addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
 import {
   cardTileLines,
+  chairsActedOn,
   describeCard,
   describeEffects,
   explainCardCityYields,
@@ -249,6 +250,24 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     playerById(state, 0)!.malices.push({ id: 'leanYears', untilAge: 3, chair: 1 });
     bumpRevision(state);
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
+  });
+
+  // Stage 8 of the Council and In play board: the screen marks the chair the
+  // Vizier acts on, through the sim's own resolution of its row.
+  it('names the first Economic chair as the one it acts on, held or seated, and none where there is none', () => {
+    const { state } = republic([null, GRANARIES, PRYTANEION, null, null, VIZIER]);
+    expect(chairsActedOn(state, 0, VIZIER)).toEqual([1]);
+    // Read off the row, so a card not yet seated names its target too.
+    council(state, 'republic', [null, GRANARIES, null, null, null, null]);
+    expect(chairsActedOn(state, 0, VIZIER)).toEqual([1]);
+    // Seated in that chair itself, it acts on nothing: an engine does not read its own line.
+    council(state, 'republic', [null, VIZIER, null, null, null, null]);
+    expect(chairsActedOn(state, 0, VIZIER)).toEqual([]);
+    // A government with no Economic chair: no chair to mark.
+    council(state, 'theocracy', [null, null, null, null, VIZIER]);
+    expect(chairsActedOn(state, 0, VIZIER)).toEqual([]);
+    // A card that names no chair.
+    expect(chairsActedOn(state, 0, GRANARIES)).toEqual([]);
   });
 
   it('pays nothing under a government with no Economic chair', () => {
