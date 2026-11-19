@@ -127,8 +127,6 @@ another WebKit browser as well as in Chromium.
   count waits for the wager rework, which is gameplay. Leave it.
 - Wonders will later get painted splash art in the interface. That is an
   interface job. 3D wonder models on the map are Astra's.
-- There is an untracked note by the user, `docs/plans/strategic-resource-art.md`.
-  Ask the user if it is a job for Astra.
 
 ### 3.4 Code cleanliness and general performance
 
