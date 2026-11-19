@@ -1,6 +1,6 @@
 # Magisterial design pass (2026-11-19)
 
-**Status, 2026-11-19:** the user has ruled on this pass. Of the 48 changes, 30 are approved as proposed, 13 carry the user's own text, 3 cards are cut by the user, 2 cards stay as they are today, after two rounds of comments. No change is without a ruling. Nothing is built. The section "Ready for the build" stands alone. The user's comments of both rounds, in their words, are the last two sections and are the spec.
+**Status, 2026-11-19:** the user has ruled on this pass. Of the 50 changes (the 48 of the pass and two Tier 0 cards added in the third round), 32 are approved as proposed, 13 carry the user's own text, 3 cards are cut by the user, 2 cards stay as they are today, after three rounds of comments. No change is without a ruling. Nothing is built. The section "Ready for the build" stands alone. The user's comments of the three rounds, in their words, are the last three sections and are the spec.
 
 The user's request, 2026-11-19, verbatim:
 
@@ -48,12 +48,12 @@ Then, on the review page: *"look at my comments for the magisterial deck, please
 | 21 | Commission: The Patron's Gallery | approved as proposed | Tier II, uncommon, Wildcard | Goal: hold three great-person works. Reward: a free great-person draft and 200 culture. |
 | 22 | The Quarter of Masters | approved as proposed | Tier II, common, Civic | A great-person work beside another great-person work gives +4 culture and +4 production. |
 | 23 | The Golden Age | approved as proposed | Tier II, rare, Civic | Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns. |
-| 24 | The Learned Patron | approved as proposed | Tier II, uncommon, Civic | Towns with an Amphitheater gain science equal to 30% of their culture. |
+| 24 | The Learned Patron | approved as proposed | Tier II, common (was uncommon), Civic | Towns with an Amphitheater gain science equal to 30% of their culture. |
 | 25 | The Unwritten Chapter | approved as proposed | Tier II, common, Civic | Cut. The row is retired. |
 | 26 | The Hanlin Academy | changed by the user | Tier II, uncommon, Civic | Great people cost 20% less renown. Great-person works give +2 science. |
 | 27 | The Spirit Way | changed by the user | Tier II, uncommon, Civic | Your wonders count as great-person works. |
 | 28 | The Lawgiver | approved as proposed | Tier II, rare, Civic (Boon) | On draft: gain a Doctrine offer. |
-| 29 | The Hall of Heroes | approved as proposed | Tier II, uncommon, Military | Your units gain +1 strength for each great person you have gained. |
+| 29 | The Hall of Heroes | approved as proposed | Tier II, common, Military | Your units gain +1 strength for each great person you have gained. |
 | 30 | The Mixed Constitution | approved as proposed | Tier III to Tier II, rare, Wildcard | Tier II. Your cards fit any chair. |
 | 31 | Commission: The Golden Bull | approved as proposed | Tier III, uncommon, Wildcard | Goal: hold 20 Orders. Reward: a Doctrine offer. |
 | 32 | The Masters' Domain | approved as proposed | Tier III, uncommon, Economic | Worked great-person works give +6 food and +6 production. |
@@ -73,33 +73,17 @@ Then, on the review page: *"look at my comments for the magisterial deck, please
 | 46 | The Bourgs | approved as proposed | Tier III Doctrine, buff, landscape | Towns working a great-person work grow 50% faster. |
 | 47 | The Gobelins | approved as proposed | Tier IV Doctrine, buff, landscape | Each great-person work in your borders gives +10% production toward the Magnum Opus, at most +50%. |
 | 48 | The Stele of Deeds | approved as proposed | Tier II Doctrine, new, monuments | You have one more Wildcard chair for every three wonders you hold, at most two more. |
+| 49 | The Quarry Gangs | approved as proposed | Tier 0, common, Economic | Quarries give +1 production and +1 culture. |
+| 50 | The Heralds | approved as proposed | Tier 0, common, Civic | Founding a town grants 30 culture. |
 
-## 3. What still waits on the user
+## 3. Nothing waits on the user
 
-None of these stops the build: it takes the reading of W1 below and leaves W2 and W3 out.
+The three rounds of comments settled every change. A short record:
 
-### W1. The Spirit Way: does a ghost work count toward counts and goals?
-
-Your model covers three things: pay on the hex, multipliers, and towns working a work. It does not say if a wonder counts where a card or a goal counts works. My reading: it counts as one work with no family, with one exception.
-
-- It counts for the Doctrine The Gobelins (+10% toward the Opus for each work, at most +50%), for Commission: The Patron's Gallery (hold three works) and for Commission: The Paradise Garden (one town works three works).
-- The exception is Commission: The Ideal City (one town holds two wonders and works two works). If the two wonders were also the two works, the goal would be only "two wonders". So there the works must be real ones.
-- A wonder is counted once where a card counts wonders and works together (The Grand Retrospective, Looted Art).
-- If you want the smaller reading (a ghost work is paid, multiplied and "worked", but never counted), say so. The build then leaves the three counts above alone.
-
-### W2. Tier 0 is short: two fillers
-
-Tier 0 has six cards. Two new cards are proposed, with no ruling. Neither is in the build.
-
-- The Quarry Gangs (Tier 0, common, Economic): "Quarries give +1 production and +1 culture."
-- The Heralds (Tier 0, common, Civic): "Founding a town grants 30 culture."
-
-### W3. Commons for Tiers II and III
-
-Tier II has one common (The Quarter of Masters) and Tier III has none. A hand rolls a rarity first, so a lone common comes up very often.
-
-- Proposal: make The Hall of Heroes and The Learned Patron common (Tier II). No new card.
-- Tier III can stay with no common: the generic set gives it two.
+- **Round 2.** 02, 05, 16 and 19 approved. Q2 to Q5 at the recommended readings. The Spirit Way takes your ghost-hex model.
+- **W1.** "Yes, for the ideal city, just dont double count wonders, so four wonders would work for that condition. that should make it more clean to code too. same for counting wonders and works together, wonders should only be counted once." A ghost work counts for every count and goal. A wonder is never counted twice.
+- **W2.** "works for me". The Quarry Gangs and The Heralds join Tier 0 (changes 49 and 50).
+- **W3.** "sgtm". The Hall of Heroes and The Learned Patron are common.
 
 ### Readings taken
 
@@ -124,7 +108,7 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 3. **Pay on a work is paid to the town.** A card that pays yields "on a great-person work" pays them once for each wonder, as lines in the wonder's town (labelled with the card and the wonder). "Worked" is taken as true.
 4. **Multipliers touch only what cards put there.** A card, Doctrine, wonder, leader or legacy that doubles or multiplies a work's yields multiplies the sum of what other cards pay on the ghost work. It never touches the wonder's own yields or effects, or the town centre. Two such multipliers sum and multiply once (the reading of Q2). The Divine Proportion doubles the cards' flats first.
 5. **A wonder town works a work.** A card that reads "a town working a great-person work" reads every town that holds a wonder. Where a card asks for a number of works worked, each wonder is one.
-6. **Counts and goals: to confirm (W1).** My reading: a ghost work counts as one work with no family wherever works are counted, except in a goal that already counts the wonder.
+6. **Ghost works count.** A ghost work counts as one work with no family wherever works are counted or a goal asks for works. A wonder is never counted twice: where one card or goal counts wonders and works together, each wonder is counted once.
 7. **No neighbours.** A ghost work is beside nothing and nothing is beside it. Cards that read "beside a work" or "beside two or more works" never read a wonder.
 8. **No family.** A card that names one kind of work (an Academy, a Holy Site, a Citadel, a Manufactory, a customs house, a Landmark) does not read a ghost work. The Scientific Doctrine that makes every work an Academy does not change a ghost work.
 9. **Nothing is laid.** A card that pays when a great person lays a work does not fire for a wonder.
@@ -139,14 +123,14 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 | The Garden Courts | Magisterial III | Pays +20% culture and science in each town that holds a wonder. |
 | The Bourgs | Magisterial Doctrine III | Each town that holds a wonder grows 50% faster. |
 | The Divine Proportion | Magisterial III | Doubles what your other cards pay on each ghost work (The Masters' Domain, The Hanlin Academy). |
-| Commission: The Paradise Garden | Magisterial III | Goal: each wonder in the town is one work worked (to confirm, W1). Reward: doubles what cards pay on each ghost work, and nothing else there. |
+| Commission: The Paradise Garden | Magisterial III | Goal: each wonder in the town is one work worked, so three wonders in one town meet it. Reward: doubles what cards pay on each ghost work, and nothing else there. |
 | The Mausoleum | approved wonder | Its doubling of great-person works doubles what cards pay on each ghost work, and nothing else there. With the Paradise Garden reward: three times, not four. |
 | Hypatia, and the legacy The Commentaries | leader, great person | A work "pays half again": half again of what cards pay on each ghost work. To confirm with the leader tuning. |
-| The Gobelins | Magisterial Doctrine IV | Each wonder is one work: +10% toward the Opus, at most +50% (to confirm, W1). |
-| Commission: The Patron's Gallery | Magisterial II | Each wonder is one of the three works (to confirm, W1). |
-| Commission: The Ideal City | Magisterial IV | No change: its two works must be real ones, because the goal already counts the wonders. |
-| The Grand Retrospective | Magisterial IV | No change: a wonder is counted once. |
-| Looted Art | shared with Dominion | No change: a wonder in a captured town is counted once. |
+| The Gobelins | Magisterial Doctrine IV | Each wonder is one work: +10% toward the Opus, at most +50%. |
+| Commission: The Patron's Gallery | Magisterial II | Each wonder is one of the three works. |
+| Commission: The Ideal City | Magisterial IV | The first two wonders in the town are the goal's wonders. Each further wonder there is one work. Four wonders in one town meet the goal. |
+| The Grand Retrospective | Magisterial IV | No change: it counts wonders and works together, so a wonder is counted once. |
+| Looted Art | shared with Dominion | No change: it counts wonders and works together, so a wonder is counted once. |
 | The Quarter of Masters | Magisterial II | Nothing: it reads a work beside a work. |
 | The Processional Way | Magisterial IV | Nothing: it reads hexes beside two or more works. |
 | The Peregrini | Magisterial Doctrine II | Nothing: it pays hexes beside a work, and its discount needs a work laid. |
@@ -156,6 +140,14 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 | The Pull of the Masters | Magisterial IV | Nothing: a ghost work has no hex beside it to take. |
 | Cards that name one kind of work | all decks | Nothing. For example The Old Academy, The Saints' Fields, The Castle Demesne, The Customs Houses, The House of Wisdom, and the Doctrines The Pandidakterion and The Two Sanctuaries. |
 | The Friends of Khufu, The Keepers of Wonders and the other wonder cards | Magisterial | No change: they read wonders, not works. |
+
+**Commission: The Ideal City under the rules**
+
+- The goal as ruled in change 40: one town holds two wonders and works two great-person works.
+- The code's figure (`oneTownWorksWorked`, commissions.ts) looks only at towns with at least two wonders, and takes the most works worked by one of them.
+- With The Spirit Way seated, each wonder is a ghost work, but a wonder is counted once. So the first two wonders are the goal's two wonders, and each further wonder in that town is one work.
+- Result: a town meets the goal with two wonders and two real works worked, or three wonders and one real work, or four wonders and no real work. Your "four wonders would work" is exactly right.
+- Without The Spirit Way the goal is as written: two wonders and two real works.
 
 **The size.** A seat at Tier III with The Spirit Way seated, four wonders in three towns (two in the capital) and two real works, both worked by the capital. The figures are what The Spirit Way adds, in yield a turn.
 
@@ -183,7 +175,7 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 - Hex pay: the lines of `pays`, where hex, whose `on` test is the plain `greatWork` test are also paid once for each wonder in a town, as town lines. They join the town's list (`explainCardCityYields`, statecraft/evaluator.ts), not `explainTileYield`, because no hex exists. docs/yields.md needs a row for the step, and its sync test follows.
 - Multipliers: `cardYieldAmplifier` on greatWork (The Divine Proportion), the whole-hex doubling of the wonders build (The Mausoleum, the Paradise Garden reward) and the "half again" of Hypatia and The Commentaries each need an arm that applies to the ghost lines' sum.
 - Town scopes: `workingGreatWork` and `workingTiles` on greatWork in `cityScopeAdmits` (statecraft/evaluator.ts) admit a town with a wonder, and count one for each wonder.
-- Counts and goals (to confirm, W1): the count `tilesInBorders` with the greatWork test (The Gobelins), and the commission figures `oneTownWorksWorked` and works held (commissions.ts). The Ideal City's figure stays on real works.
+- Counts and goals: the count `tilesInBorders` with the greatWork test (The Gobelins) adds one for each wonder. The commission figures add ghost works too: works held (The Patron's Gallery), and `oneTownWorksWorked` (The Paradise Garden, The Ideal City), where the wonders that a goal's `wondersAtLeast` already asks for are not added again. The Grand Retrospective and Looted Art need no change.
 - Words: the rule's line in statecraft/describers.ts and the Compendium, and the label of a ghost line on the city screen ("The Masters' Domain · The Colossus").
 - Bots: a term for the rule in `ruleWorth` (src/ai/value.ts), from the wonders the seat holds and the work cards it has seated.
 - Order: build it after the wonders rework and after this deck's main batch. It reads the doubling shape that the wonders build adds, the 34-wonder set, and the new texts of The Masters' Domain, The Hanlin Academy and The Garden Courts. It is one batch of its own.
@@ -256,17 +248,19 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 - **46 The Bourgs.** A bourg was the settlement that grew at the gate of an abbey or a castle, drawn by the work inside. A seat has two or three towns with a work. +25% growth in those towns is slow to show, and it is the weakest Doctrine of its tier. With The Spirit Way (change 27) it also reaches wonder towns.
 - **47 The Gobelins.** The French crown gathered the royal workshops at the Gobelins to furnish the king's greatest houses. A seat holds three to five works at Tier IV, so the Doctrine pays 12 to 20%. Its cap needs ten works, which no seat reaches. At +10% it pays 30 to 50%.
 - **48 The Stele of Deeds.** Rulers carved the list of what they had built and won as their claim to rule: Darius at Behistun, Augustus in the Res Gestae. The monuments were the proof of the right to govern. Tier II has no Doctrine for the monuments. This one joins the monuments to the council: wonders become chairs. A builder holds three wonders by Tier III. It gives a wonder seat a reason to keep building after the percentages cap.
+- **49 The Quarry Gangs.** Stone was cut by standing gangs that the state fed and named, long before a town had a monument to show for it. The quarry is where a builder's reign starts. Tier 0 lost its two builder cards. A Tier 0 seat has quarries before it has Monuments or great people, so the card pays from the first worker. Two quarries are +2 production and +2 culture, and early culture is scarce. It points at the monuments theme.
+- **50 The Heralds.** Heralds proclaimed a new town and read out its laws. The founding was a public act that the whole realm heard of. Tier 0 had no card that feeds the draft except the rare. An age 1 seat founds two or three towns, so the card pays 60 to 90 culture, which is two early hands. It pays nothing after the land is settled, which is right for a Tier 0 card. Expansionist's The Founding Furrow pays culture on the same moment, by the number of towns.
 
 ## 6. The recount
 
 | Tier | Cards | Common / uncommon / rare | Military / Economic / Civic / Wildcard | What changed |
 |---|---|---|---|---|
-| Tier 0 | 6 | 3 / 2 / 1 | 1 / 2 / 2 / 1 | was 7. Cut: The Court Painter, Master Masons. New: The Twelve Tables. |
+| Tier 0 | 8 | 5 / 2 / 1 | 1 / 3 / 3 / 1 | was 7. Cut: The Court Painter, Master Masons. New: The Twelve Tables, The Quarry Gangs, The Heralds. |
 | Tier I | 15 | 4 / 10 / 1 | 1 / 5 / 8 / 1 | was 16. Cut: The Guild of Masons, The Open Door. New: The Friends of Khufu. The Unveiling is Civic. |
-| Tier II | 19 | 1 / 14 / 4 | 1 / 3 / 12 / 3 | was 15. Cut: The Unwritten Chapter. New: The Hanlin Academy, The Spirit Way, The Lawgiver, The Hall of Heroes. In: The Mixed Constitution. The Symposium is Civic. The Sed Festival is an uncommon boon. |
+| Tier II | 19 | 3 / 12 / 4 | 1 / 3 / 12 / 3 | was 15. Cut: The Unwritten Chapter. New: The Hanlin Academy, The Spirit Way, The Lawgiver, The Hall of Heroes. In: The Mixed Constitution. The Symposium is Civic. The Sed Festival is an uncommon boon. The Hall of Heroes and The Learned Patron are common. |
 | Tier III | 15 | 0 / 8 / 7 | 0 / 3 / 6 / 6 | was 16. Cut: The Second Sitting. Out: The Mixed Constitution. New: The Divan. |
 | Tier IV | 10 | 0 / 0 / 10 | 0 / 3 / 5 / 2 | was 10. Cut: The Hall of Wonders. New: The Nine Jewels. |
-| All | 65 | 8 / 34 / 23 | 3 / 16 / 33 / 13 | was 64: 7 cut, 8 new. |
+| All | 67 | 12 / 32 / 23 | 3 / 17 / 34 / 13 | was 64: 7 cut, 10 new. |
 
 - Wildcard cards: 13 (was 18). Six of them are commissions and one is a boon, so 6 Wildcard cards ask for a lasting chair.
 - Boons: 6 (The Wandering Muse, The Sed Festival, The Lawgiver, The Cabinet of Curiosities, The Grand Retrospective, The Nine Jewels). It was 3.
@@ -276,19 +270,17 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 
 **Is a tier short of a role?**
 
-- Tier 0 is short: six cards, and no card that feeds the draft except the rare (W2).
-- Tier II has one common and Tier III has none (W3).
+- Tier 0 has eight cards and every type. No tier is short of a role.
+- Tier III has no common. The generic set gives that tier two.
 - Tiers III and IV have no Military card. The generic set gives them four.
-
-The proposals for these gaps are W2 and W3 in section 3. They are not in the build.
 
 ## 7. The throughlines and example councils after the rulings
 
 - **The council.** Tier 0: The Prytaneion, The Polemarch, The Twelve Tables. Tier I: The Nomarchs, The Roll of the Senate (eight Orders). Tier II: The Grand Vizier, The Prefects, The Mixed Constitution, the Assembly Hall, The Lawgiver. Tier III: The Boule, The Pandects, The Divan, The Golden Bull. Tier IV: The Privy Council.
 - **The patrons.** Tier I: The Wandering Muse, The Overseers of Works, The Encyclopedia. Tier II: The Hanlin Academy, The Honoured Dead, The Sed Festival, The Symposium, The Hall of Heroes, The Golden Age. Tier III: The Universal Genius, The Roll of Masters. Tier IV: The Immortals, The Nine Jewels, The Last Commission. Tier 0 has no patrons card, by your ruling: great people open in age 2.
 - **The landscape.** Tier I: The Laureate, The Landmark Bounds. Tier II: The Quarter of Masters, The Hanlin Academy, The Spirit Way, The Patron's Gallery. Tier III: The Masters' Domain, The Garden Courts, The Divine Proportion, The Paradise Garden. Tier IV: The Processional Way, The Pull of the Masters, The Ideal City.
-- **The monuments.** Tier 0: The Cornerstone. Tier I: The Friends of Khufu, The Keepers of Wonders, The Ceremonial Guard, The Eighth Wonder, The Workshop at Olympia, The Unveiling. Tier II: The Seven Sights, The Golden Age, The Spirit Way. Tier III: Magnificence, The Wonder Commonwealth, The Wonder of the Age. Tier IV: The Ideal City, The Grand Retrospective.
-- **The engine.** Tier 0: The Twelve Tables, The Second Reading. Tier I: The Encyclopedia, The Working Court, Civic Granaries. Tier II: The Accessions Register, The Learned Patron. Tier III: Officials by Merit, The Cabinet of Curiosities. Tier IV: The Universal Library, The Polymath's Study, The Grand Retrospective.
+- **The monuments.** Tier 0: The Cornerstone, The Quarry Gangs. Tier I: The Friends of Khufu, The Keepers of Wonders, The Ceremonial Guard, The Eighth Wonder, The Workshop at Olympia, The Unveiling. Tier II: The Seven Sights, The Golden Age, The Spirit Way. Tier III: Magnificence, The Wonder Commonwealth, The Wonder of the Age. Tier IV: The Ideal City, The Grand Retrospective.
+- **The engine.** Tier 0: The Twelve Tables, The Second Reading, The Heralds. Tier I: The Encyclopedia, The Working Court, Civic Granaries. Tier II: The Accessions Register, The Learned Patron. Tier III: Officials by Merit, The Cabinet of Curiosities. Tier IV: The Universal Library, The Polymath's Study, The Grand Retrospective.
 
 **Early: the lawful city (end of Tier I, the Priest-King, five chairs and one won)**
 
@@ -329,11 +321,11 @@ This section stands alone. It is the whole specification for the Magisterial bui
 
 ### Scope
 
-- 39 changes are ready: 9 new rows (8 Orders and 1 Doctrine), 30 changed rows (26 Orders and 4 Doctrines), and 7 rows to retire. With the two cards that stay as they are (The Working Court, The Grand Vizier), that is all 48 changes of the pass.
+- 41 changes are ready: 11 new rows (10 Orders and 1 Doctrine), 30 changed rows (26 Orders and 4 Doctrines), and 7 rows to retire. With the two cards that stay as they are (The Working Court, The Grand Vizier), that is all 48 changes of the pass and the two Tier 0 cards of the third round.
 - 10 of them need a small extension (eight distinct extensions, listed next). Two need a new shape: The Spirit Way (27), and the reward of Commission: The Paradise Garden (34), which uses the shape the wonders build adds.
 - **Order:** the main batch first (everything but 27 and 34). Then 34 with or after the wonders rework. Then 27, The Spirit Way, as a batch of its own after the wonders rework.
 - A retired row keeps its data with `retired: true`, so a save that holds it still loads.
-- Not in this build: the two Tier 0 fillers and the rarity changes for Tiers II and III (see "Waiting on the user").
+- Nothing waits on the user.
 
 ### The extensions
 
@@ -357,7 +349,7 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 3. **Pay on a work is paid to the town.** A card that pays yields "on a great-person work" pays them once for each wonder, as lines in the wonder's town (labelled with the card and the wonder). "Worked" is taken as true.
 4. **Multipliers touch only what cards put there.** A card, Doctrine, wonder, leader or legacy that doubles or multiplies a work's yields multiplies the sum of what other cards pay on the ghost work. It never touches the wonder's own yields or effects, or the town centre. Two such multipliers sum and multiply once (the reading of Q2). The Divine Proportion doubles the cards' flats first.
 5. **A wonder town works a work.** A card that reads "a town working a great-person work" reads every town that holds a wonder. Where a card asks for a number of works worked, each wonder is one.
-6. **Counts and goals: to confirm (W1).** My reading: a ghost work counts as one work with no family wherever works are counted, except in a goal that already counts the wonder.
+6. **Ghost works count.** A ghost work counts as one work with no family wherever works are counted or a goal asks for works. A wonder is never counted twice: where one card or goal counts wonders and works together, each wonder is counted once.
 7. **No neighbours.** A ghost work is beside nothing and nothing is beside it. Cards that read "beside a work" or "beside two or more works" never read a wonder.
 8. **No family.** A card that names one kind of work (an Academy, a Holy Site, a Citadel, a Manufactory, a customs house, a Landmark) does not read a ghost work. The Scientific Doctrine that makes every work an Academy does not change a ghost work.
 9. **Nothing is laid.** A card that pays when a great person lays a work does not fire for a wonder.
@@ -372,14 +364,14 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 | The Garden Courts | Magisterial III | Pays +20% culture and science in each town that holds a wonder. |
 | The Bourgs | Magisterial Doctrine III | Each town that holds a wonder grows 50% faster. |
 | The Divine Proportion | Magisterial III | Doubles what your other cards pay on each ghost work (The Masters' Domain, The Hanlin Academy). |
-| Commission: The Paradise Garden | Magisterial III | Goal: each wonder in the town is one work worked (to confirm, W1). Reward: doubles what cards pay on each ghost work, and nothing else there. |
+| Commission: The Paradise Garden | Magisterial III | Goal: each wonder in the town is one work worked, so three wonders in one town meet it. Reward: doubles what cards pay on each ghost work, and nothing else there. |
 | The Mausoleum | approved wonder | Its doubling of great-person works doubles what cards pay on each ghost work, and nothing else there. With the Paradise Garden reward: three times, not four. |
 | Hypatia, and the legacy The Commentaries | leader, great person | A work "pays half again": half again of what cards pay on each ghost work. To confirm with the leader tuning. |
-| The Gobelins | Magisterial Doctrine IV | Each wonder is one work: +10% toward the Opus, at most +50% (to confirm, W1). |
-| Commission: The Patron's Gallery | Magisterial II | Each wonder is one of the three works (to confirm, W1). |
-| Commission: The Ideal City | Magisterial IV | No change: its two works must be real ones, because the goal already counts the wonders. |
-| The Grand Retrospective | Magisterial IV | No change: a wonder is counted once. |
-| Looted Art | shared with Dominion | No change: a wonder in a captured town is counted once. |
+| The Gobelins | Magisterial Doctrine IV | Each wonder is one work: +10% toward the Opus, at most +50%. |
+| Commission: The Patron's Gallery | Magisterial II | Each wonder is one of the three works. |
+| Commission: The Ideal City | Magisterial IV | The first two wonders in the town are the goal's wonders. Each further wonder there is one work. Four wonders in one town meet the goal. |
+| The Grand Retrospective | Magisterial IV | No change: it counts wonders and works together, so a wonder is counted once. |
+| Looted Art | shared with Dominion | No change: it counts wonders and works together, so a wonder is counted once. |
 | The Quarter of Masters | Magisterial II | Nothing: it reads a work beside a work. |
 | The Processional Way | Magisterial IV | Nothing: it reads hexes beside two or more works. |
 | The Peregrini | Magisterial Doctrine II | Nothing: it pays hexes beside a work, and its discount needs a work laid. |
@@ -389,6 +381,14 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 | The Pull of the Masters | Magisterial IV | Nothing: a ghost work has no hex beside it to take. |
 | Cards that name one kind of work | all decks | Nothing. For example The Old Academy, The Saints' Fields, The Castle Demesne, The Customs Houses, The House of Wisdom, and the Doctrines The Pandidakterion and The Two Sanctuaries. |
 | The Friends of Khufu, The Keepers of Wonders and the other wonder cards | Magisterial | No change: they read wonders, not works. |
+
+**Commission: The Ideal City under the rules**
+
+- The goal as ruled in change 40: one town holds two wonders and works two great-person works.
+- The code's figure (`oneTownWorksWorked`, commissions.ts) looks only at towns with at least two wonders, and takes the most works worked by one of them.
+- With The Spirit Way seated, each wonder is a ghost work, but a wonder is counted once. So the first two wonders are the goal's two wonders, and each further wonder in that town is one work.
+- Result: a town meets the goal with two wonders and two real works worked, or three wonders and one real work, or four wonders and no real work. Your "four wonders would work" is exactly right.
+- Without The Spirit Way the goal is as written: two wonders and two real works.
 
 **The size.** A seat at Tier III with The Spirit Way seated, four wonders in three towns (two in the capital) and two real works, both worked by the capital. The figures are what The Spirit Way adds, in yield a turn.
 
@@ -416,7 +416,7 @@ The user's model, 2026-11-19, verbatim: *"how i imagine it would work: treat eac
 - Hex pay: the lines of `pays`, where hex, whose `on` test is the plain `greatWork` test are also paid once for each wonder in a town, as town lines. They join the town's list (`explainCardCityYields`, statecraft/evaluator.ts), not `explainTileYield`, because no hex exists. docs/yields.md needs a row for the step, and its sync test follows.
 - Multipliers: `cardYieldAmplifier` on greatWork (The Divine Proportion), the whole-hex doubling of the wonders build (The Mausoleum, the Paradise Garden reward) and the "half again" of Hypatia and The Commentaries each need an arm that applies to the ghost lines' sum.
 - Town scopes: `workingGreatWork` and `workingTiles` on greatWork in `cityScopeAdmits` (statecraft/evaluator.ts) admit a town with a wonder, and count one for each wonder.
-- Counts and goals (to confirm, W1): the count `tilesInBorders` with the greatWork test (The Gobelins), and the commission figures `oneTownWorksWorked` and works held (commissions.ts). The Ideal City's figure stays on real works.
+- Counts and goals: the count `tilesInBorders` with the greatWork test (The Gobelins) adds one for each wonder. The commission figures add ghost works too: works held (The Patron's Gallery), and `oneTownWorksWorked` (The Paradise Garden, The Ideal City), where the wonders that a goal's `wondersAtLeast` already asks for are not added again. The Grand Retrospective and Looted Art need no change.
 - Words: the rule's line in statecraft/describers.ts and the Compendium, and the label of a ghost line on the city screen ("The Masters' Domain · The Colossus").
 - Bots: a term for the rule in `ruleWorth` (src/ai/value.ts), from the wonders the seat holds and the work cards it has seated.
 - Order: build it after the wonders rework and after this deck's main batch. It reads the doubling shape that the wonders build adds, the 34-wonder set, and the new texts of The Masters' Domain, The Hanlin Academy and The Garden Courts. It is one batch of its own.
@@ -435,7 +435,7 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 - `theSecondSitting` The Second Sitting (Tier III).
 - `theHallOfWonders` The Hall of Wonders (Tier IV).
 
-### New rows (8)
+### New rows (10)
 
 #### 04. The Twelve Tables
 
@@ -461,7 +461,7 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 
 - **Row:** `magisterialTheSpiritWay (new)`. Tier II, uncommon, Civic.
 - **Text:** Your wonders count as great-person works.
-- **Build:** New shape, in its own batch after the wonders rework. A holder rule (`rule: wondersAreWorks`) and the readers listed in "The Spirit Way: the ghost work" below. The reading that a ghost work counts toward counts and goals is to confirm.
+- **Build:** New shape, in its own batch after the wonders rework. A holder rule (`rule: wondersAreWorks`) and the readers listed in "The Spirit Way: the ghost work" below.
 
 #### 28. The Lawgiver
 
@@ -471,9 +471,9 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 
 #### 29. The Hall of Heroes
 
-- **Row:** `magisterialTheHallofHeroes (new)`. Tier II, uncommon, Military.
+- **Row:** `magisterialTheHallofHeroes (new)`. Tier II, common, Military.
 - **Text:** Your units gain +1 strength for each great person you have gained.
-- **Build:** New row. `combatLine`, amount 1, count greatPeopleGained, no max. Joins `cardCombatLines`. No code.
+- **Build:** New row, rarity common. `combatLine`, amount 1, count greatPeopleGained, no max. Joins `cardCombatLines`. No code.
 
 #### 36. The Divan
 
@@ -486,6 +486,18 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 - **Row:** `magisterialTheNineJewels (new)`. Tier IV, rare, Civic (Boon).
 - **Text:** On draft: gain two free great-person drafts.
 - **Build:** New row, orderKeyword boon, onDraft two greatPerson grants. To confirm: the second grant opens a second draft after the first is taken. Today a grant that finds a great person already waiting pays renown instead.
+
+#### 49. The Quarry Gangs
+
+- **Row:** `magisterialTheQuarryGangs (new)`. Tier 0, common, Economic.
+- **Text:** Quarries give +1 production and +1 culture.
+- **Build:** New row. `pays`, where hex, production 1, culture 1, on { test improvement, improvement quarry }. Joins the cards' hex lines in `explainTileYield`. No code.
+
+#### 50. The Heralds
+
+- **Row:** `magisterialTheHeralds (new)`. Tier 0, common, Civic.
+- **Text:** Founding a town grants 30 culture.
+- **Build:** New row. `windfallRider`, occasion found, grant { yield culture, amount 30 } (The Founding Furrow's form, with a flat amount). The culture goes through `settleCultureWindfall`. No code.
 
 ### Changed Orders (26)
 
@@ -585,9 +597,9 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 
 #### 24. The Learned Patron
 
-- **Row:** `theLearnedPatron`. Tier II, uncommon, Civic.
+- **Row:** `theLearnedPatron`. Tier II, common (was uncommon), Civic.
 - **Text:** Towns with an Amphitheater gain science equal to 30% of their culture.
-- **Build:** Data: scope hasBuilding amphitheater, percent 30.
+- **Build:** Data: scope hasBuilding amphitheater, percent 30, rarity common.
 
 #### 30. The Mixed Constitution
 
@@ -642,7 +654,7 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 
 - **Row:** `magisterialTheIdealCity`. Tier IV, rare, Wildcard.
 - **Text:** Goal: have one town hold two wonders and work two great-person works. Reward: that town's culture, science and production are doubled.
-- **Build:** Data: goal count 2 (wondersAtLeast stays 2); the three lasting percentYields lines go to 100.
+- **Build:** Data: goal count 2 (wondersAtLeast stays 2); the three lasting percentYields lines go to 100. With The Spirit Way seated, the figure `oneTownWorksWorked` (commissions.ts) adds one work for each wonder in the town beyond the two the goal asks for.
 
 #### 42. The Grand Retrospective
 
@@ -709,12 +721,23 @@ Q5 is approved: card text says "a melee unit" or "a ranged unit" everywhere, and
 - data/buildings.json: the Assembly Hall row (18), and its Compendium text.
 - A save that holds a retired row keeps it with its effects, as before. The two new tallies and the `bestRanged` word may need a save schema step; the builder decides.
 
+### What the builder must still check in the code
+
+- The Assembly Hall (18): that the field `buildingOpensChairs` reads (statecraft/council.ts) can open a Wildcard chair from a building, and that a Charter row may carry `unlocksBuilding`.
+- The Golden Age (23): that two riders granting the same timed effect restart one clock and do not stack (`payWindfallGrants`).
+- The Nine Jewels (43): that a second on-draft great-person grant opens a second draft. Today a grant that finds a great person waiting pays renown instead.
+- Commission: The Patron's Gallery (21): which commission figure reads "works held" (today the goal uses `workFamilies`; a plain count of works may be a new figure).
+- The Ceremonial Guard (09): that a windfall unit grant can place a unit in the town of the occasion (the rider has an `inTown` field; I did not trace it).
+- The Grand Vizier and The Privy Council with The Arthashastra (37): that `slotPosition` factors add (three times, not four), as the reading says.
+- The Twelve Tables (04) and The Nomarchs (05): that `pays` at where capital reads the counts `ordersHeld` and `authoritySurplus` (both counts exist; The Encyclopedia and The Mandarinate use the forms).
+- The Spirit Way (27): how Hypatia's "half again" and the legacy The Commentaries are coded, so that they multiply only the ghost lines; and where a ghost line joins the order of docs/yields.md.
+- The save schema: whether the two new tallies, the `bestRanged` grant word and the new rule need a schema step.
+- The tests: I matched the deck's test files to cards by file name. Run each file under test/sim/decks/magisterial*.test.ts to find what a change breaks.
+- Great people opening in age 2 (the user's comment on 01): I did not check `techsGrant`. The Wandering Muse and The Sed Festival pay renown if no great person can be called yet, which the rows' notes already say.
+
 ### Waiting on the user
 
-- **W1. The Spirit Way: does a ghost work count toward counts and goals?** Your model covers three things: pay on the hex, multipliers, and towns working a work. It does not say if a wonder counts where a card or a goal counts works. My reading: it counts as one work with no family, with one exception. It counts for the Doctrine The Gobelins (+10% toward the Opus for each work, at most +50%), for Commission: The Patron's Gallery (hold three works) and for Commission: The Paradise Garden (one town works three works). The exception is Commission: The Ideal City (one town holds two wonders and works two works). If the two wonders were also the two works, the goal would be only "two wonders". So there the works must be real ones. A wonder is counted once where a card counts wonders and works together (The Grand Retrospective, Looted Art). If you want the smaller reading (a ghost work is paid, multiplied and "worked", but never counted), say so. The build then leaves the three counts above alone.
-- **W2. Tier 0 is short: two fillers** Tier 0 has six cards. Two new cards are proposed, with no ruling. Neither is in the build. The Quarry Gangs (Tier 0, common, Economic): "Quarries give +1 production and +1 culture." The Heralds (Tier 0, common, Civic): "Founding a town grants 30 culture."
-- **W3. Commons for Tiers II and III** Tier II has one common (The Quarter of Masters) and Tier III has none. A hand rolls a rarity first, so a lone common comes up very often. Proposal: make The Hall of Heroes and The Learned Patron common (Tier II). No new card. Tier III can stay with no common: the generic set gives it two.
-- **The chair highlight** the user asked for in comment 17 is a Council screen change and is not part of this build.
+Nothing. The chair highlight the user asked for in comment 17 is a Council screen change, recorded in `docs/plans/ui-critique-2026-10-16.md`, and is not part of this build.
 
 ## How this was made
 
