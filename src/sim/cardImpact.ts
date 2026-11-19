@@ -1202,7 +1202,7 @@ export interface CardImpactSheet {
   readonly empireLines: () => Map<string, CityYields>;
   readonly meter: (meter: MeterId) => number;
   /** Renown each turn on this board (`renownPerTurn`). */
-  readonly renown: () => number;
+  readonly renownPerTurn: () => number;
   readonly cardSums: (city: City) => Map<string, CityYields>;
   readonly context: (city: City) => TileYieldContext | undefined;
   readonly tileAdds: (city: City, tile: Tile) => readonly TileYieldContribution[];
@@ -1240,7 +1240,7 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
       }
       return held;
     },
-    renown: () => (renown ??= renownPerTurn(state, playerId)),
+    renownPerTurn: () => (renown ??= renownPerTurn(state, playerId)),
     // **The card's own flats out of the town's published list** (batch E2 for
     // the list, E3b for the selector), rather than a private walk of the same
     // evaluator: the real board's card lines are what `readCity` has already
@@ -1474,8 +1474,8 @@ function ghostDiffLines(
   //     screen reads the same two folds and subtracts them the same way, so
   //     the two readings agree to the last bit.
   const renownMoved =
-    (isReal(held) ? shared!.renown() : renownPerTurn(held, playerId)) -
-    (isReal(without) ? shared!.renown() : renownPerTurn(without, playerId));
+    (isReal(held) ? shared!.renownPerTurn() : renownPerTurn(held, playerId)) -
+    (isReal(without) ? shared!.renownPerTurn() : renownPerTurn(without, playerId));
   if (renownMoved !== 0) {
     const line = emptyLine(RENOWN_WORD, 'renown');
     line.amount = renownMoved;
