@@ -456,7 +456,7 @@ const MOVED_READERS: Record<string, string> = {
     '`buildingsOfKind`, `buildingsInCity`, `buildingsOfCategories`, `defensiveBuildings`, `distinctBuildingCategories`, `publicWorks`, `buildingsSupplying`',
   // Batch R2b: a building's package carries card and luxury lines only for a
   // building the town holds.
-  'statecraft/evaluator.ts › explainBuildingPackage': 'whether the town holds the building',
+  'statecraft/evaluator.ts › buildingPackage': 'whether the town holds the building',
   'statecraft/evaluator.ts › followingCount': 'the following towns with a building, and their shelves',
   'statecraft/evaluator.ts › explainCardCityYields': 'a `pays` mirror over a shelf',
   'statecraft/evaluator.ts › buildingProductionBonusMatches': 'the building The Capital’s Example checks in the capital',

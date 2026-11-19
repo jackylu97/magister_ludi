@@ -204,7 +204,7 @@ describe('the out-of-view tab', () => {
     const update = chartFunction('function updateTab(');
     expect(update).toContain('shelfTab({ left: 0, top: 0, width: chart.clientWidth, height: chart.clientHeight }, nodes)');
     expect(update).toContain('if (!open || shelf.length === 0)');
-    expect(tree).toContain("chart.addEventListener('scroll', () => updateTab(), { passive: true });");
+    expect(tree).toContain("chart.addEventListener('scroll', () => updateTab(), { passive: true, signal: options.signal });");
     const click = tree.slice(tree.indexOf("tab.addEventListener('click'"));
     expect(click.slice(0, 220)).toContain('centreOn(card, true);');
     expect(click.slice(0, 220)).toContain('ringNode(card);');

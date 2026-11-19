@@ -180,9 +180,8 @@ describe('the sheet itself', () => {
     const main = uiSource('main.ts');
     expect(main).toContain('victory = createVictoryScreen({');
     expect(main).toContain('trigger: quickStandingsButton,');
-    expect(main).toContain('victory?.open();');
+    expect(main).toContain("case 's': victory?.open(); break;");
     expect(main).toContain('standings: () => victory?.open(),');
-    expect(main).toContain("if (event.key !== 's' && event.key !== 'S') return;");
     expect(main).toContain("onOpen: () => screens.opening('standings'),");
     expect(main).not.toContain('hudDock.standingsButton');
   });

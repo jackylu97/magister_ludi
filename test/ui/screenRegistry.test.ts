@@ -421,27 +421,19 @@ describe('main.ts keeps no hand-written close lists', () => {
     expect(runs).toEqual([]);
   });
 
-  it('closes a surface by name only to toggle it or to step aside for what it raises', () => {
-    // What is left: a card closing under its own row (the menu's Compendium and
-    // tutorial rows, the controls card's link, a lens picked); a sheet stepping
-    // aside for the offer it raises (Statecraft's charter, the Reliquary's
-    // call); and the five letter keys closing the sheet they opened (S, for
-    // the standings, since batch SS2b; I, for In play, since stage 3 of the
-    // Council and In play board).
+  it('closes a surface directly only for its own action or to clean up a failed start', () => {
+    // Menu rows and offers close their current screen. A failed start also
+    // closes the tutorial. Each screen handles its own close shortcut.
     const closes = [...code.matchAll(/([\w.]+)\??\.close\(\);/g)].map((match) => match[1]!);
     expect(closes.sort()).toEqual(
       [
-        'diplomacy',
         'help',
-        'inPlay',
         'lens',
         'menu',
         'menu',
-        'religion',
         'reliquary',
         'statecraft',
-        'trade',
-        'victory',
+        'tutorial',
       ].sort(),
     );
   });
