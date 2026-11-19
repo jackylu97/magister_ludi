@@ -1451,3 +1451,24 @@ population and science readings.
 
 The generic branch implements 29 of the 39 approved Orders. Typecheck, all
 12,094 core tests and the production build passed with this pair.
+
+## The final ten Orders, 2026-11-19
+
+All 39 approved generic Orders are implemented.
+
+- The Capital's Example reads the buildings in the town with your palace.
+  The Old Patterns uses the age of the technology that unlocks each building
+  and compares it with your current research age. The Old Foundations lists
+  each upkeep rebate beside the building bill. The Good Years doubles both
+  positive happiness levels for science and culture.
+- The Gilded Country checks gold on worked tiles after the other flat tile
+  yields and before the percentage bonuses. The Builders' Lodge doubles
+  recurring yields that Orders add to buildings. The Summer Palace increases
+  recurring card payments directed to your capital. The Personal Union increases
+  the eligible effects of seated Orders that belong to two decks.
+- The Long Memory appears in offers once you own a Scaler. While seated, it
+  doubles new gains on your Scalers. The Great Raising completes the current
+  unit or ordinary building in each eligible town when drafted. Each completed
+  item uses the normal production rules.
+
+The dealable pool now contains 505 Orders, including all 39 generic Orders. Save version 246 identifies the new pool because draft commands store an index into an offer. The two six-seat, 120-turn reference states are `52d790f9:384223` (Duel) and `b7eb7f33:1015904` (Standard). Both games finished without a bot warning or stall. The card batch and turn-start work passed 12,153 core checks and 13 targeted slow checks, including the independent draft-price comparison.

@@ -1417,10 +1417,12 @@ describe('determinism', () => {
    * no countdown starts and `ageClose` stays absent for all twenty turns. Checked
    * with the change in place and the version printed as 244, which gives the
    * hashes before the batch exactly.
+   *
+   * Version 246 changes the generic Order pool. These seats make no draft picks.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '251dc59b:190677',
-    2026: '8780c7c6:190843',
+    11: 'fb31c5f0:190677',
+    2026: 'd0d7a739:190843',
   };
 
   for (const seed of [11, 2026]) {

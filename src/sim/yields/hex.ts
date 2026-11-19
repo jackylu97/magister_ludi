@@ -505,11 +505,18 @@ function linePlanOf(lines: readonly TileLine[] | undefined): TileLinePlan {
   if (lines === undefined) return NO_LINES;
   let plan = TILE_LINE_PLANS.get(lines);
   if (plan === undefined) {
+    const plain: TileLine[] = [];
+    const asking: TileLine[] = [];
+    const thresholds: TileLine[] = [];
+    for (const line of lines) {
+      if (!tileConditionReadsFold(line.on)) plain.push(line);
+      else if (tileConditionReadsThreshold(line.on)) thresholds.push(line);
+      else asking.push(line);
+    }
     plan = {
-      plain: lines.filter((line) => !tileConditionReadsFold(line.on)),
-      asking: lines.filter((line) =>
-        tileConditionReadsFold(line.on) && !tileConditionReadsThreshold(line.on)),
-      thresholds: lines.filter((line) => tileConditionReadsThreshold(line.on)),
+      plain,
+      asking,
+      thresholds,
       shares: lines.filter((line) => (line.percent ?? 0) !== 0 || (line.basePercent ?? 0) !== 0),
       whole: lines.filter((line) => (line.wholePercent ?? 0) !== 0),
     };

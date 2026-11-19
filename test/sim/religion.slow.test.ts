@@ -679,7 +679,8 @@ describe('determinism', () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

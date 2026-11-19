@@ -7706,6 +7706,7 @@ export function cardUpkeepRebateLines(
 ): CardUpkeepLine[] {
   const list: CardUpkeepLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+    if (effect.buildingAgeAtMost !== undefined) continue;
     // `free` is not a figure and is deliberately not scaled: a deeper Wintering
     // Grounds cannot make an army more free than free. A flat rebate scales like
     // every other number in the vocabulary.
@@ -7744,9 +7745,11 @@ export function cardBuildingUpkeepRebateLines(
   bills: readonly { building: BuildingId; gold: number }[],
 ): CardUpkeepLine[] {
   if (bills.length === 0) return [];
+  const rows = effectsOfKind(state, playerId, 'upkeepRebate');
+  if (!rows.some(({ effect }) => effect.buildingAgeAtMost !== undefined)) return [];
   const covered = new Set<number>();
   const lines: CardUpkeepLine[] = [];
-  for (const { card, source, effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+  for (const { card, source, effect } of rows) {
     const maxAge = effect.buildingAgeAtMost;
     if (maxAge === undefined) continue;
     let gold = 0;

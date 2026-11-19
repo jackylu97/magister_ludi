@@ -901,13 +901,16 @@ describe('the source register', () => {
     // rather than fails quietly on the sheet.
     const sc = source('statecraft/evaluator.ts');
     expect(sc.split('): CardPercentLine[] {')).toHaveLength(2);
-    const body = region(sc, 'export function explainCardPercentYields', 'export interface CardProductionLine');
-    const pushes = [...body.matchAll(/list\.push\(\{[\s\S]*?\}\);/g)];
-    // Three since batch G1: the card's own percentage, a count's, and the rise
-    // a tier-26 government gives a seated card's line, which names the
-    // government's card.
+    const body = region(sc, 'export function explainCardPercentYields', 'export interface SurplusMover');
+    const pushes = [...body.matchAll(/list\.push\((?:targeted\.record\(effect,\s*)?(\{[\s\S]*?\})\){1,2};/g)];
+    // The direct percentage, the counted percentage, and the type amplifier
+    // each provide a card. The targeted amplifier adds a separate line.
     expect(pushes).toHaveLength(3);
-    for (const [push] of pushes) expect(push).toContain('card');
+    for (const [, line] of pushes) expect(line).toMatch(/\{\s*card(?:,|:\s*raise\.card,)/);
+    expect(body.match(/list\.push\(/g)).toHaveLength(4);
+    expect(body).toContain('list.push(...targeted.rises)');
+    const targeted = region(sc, 'function targetedYieldRises', 'function yieldAmplifierShare');
+    expect(targeted).toMatch(/rises\.push\(\{\s*\.\.\.extra,\s*card:\s*row\.card,\s*source:/);
     // The hammers behind a build travel the same seam, in one emitter of their
     // own — and `CardProductionLine.card` is required, so a push that dropped
     // it would not compile.

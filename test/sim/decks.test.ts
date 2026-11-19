@@ -673,8 +673,9 @@ describe('the schema, as landed', () => {
     // The General Summons, The Land Register and The Master Plan add three more.
     // The Brick Kilns and The Building Programme add two more.
     // The Liturgies and The Learned Embassy add two more.
-    expect(live).toBe(495);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(495);
+    // Ten final Orders complete the generic set.
+    expect(live).toBe(505);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
   });
 
   /**
@@ -1170,7 +1171,8 @@ describe('the schema, as landed', () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

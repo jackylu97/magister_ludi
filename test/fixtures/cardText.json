@@ -10174,6 +10174,32 @@
     "raw": "Cards that belong to two decks pay 50% more",
     "text": "Cards that belong to two decks pay 50% more"
    }
+  ],
+  "theLongMemory": [
+   {
+    "raw": "your [[concept:scaler|Scalers]] gain twice as much each time",
+    "text": "your Scalers gain twice as much each time"
+   },
+   {
+    "raw": "you can draw this Order if you own a Scaler",
+    "text": "you can draw this Order if you own a Scaler"
+   }
+  ],
+  "theGildedCountry": [
+   {
+    "raw": "+1 gold on every hex that makes at least 1 gold",
+    "text": "+1 gold on every hex that makes at least 1 gold"
+   }
+  ],
+  "theGreatRaising": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus",
+    "text": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus"
+   }
   ]
  },
  "belief": {

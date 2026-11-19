@@ -107,6 +107,8 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
   Under The Two Capitals, each eligible town gets an extra half of its own payment.
 - The Personal Union raises eligible payments from seated Orders that belong to two decks.
   If a government raises the same Order, add the percentages before rounding the increase.
+  A shared Order can add strength during combat or give a bonus when a unit is bought.
+  The first counts as a combat payment. The purchased unit keeps its printed bonus and duration.
 - Each bonus reads the original payment and appears in the breakdown. The bot estimates the
   value from the payments available under the current council.
 

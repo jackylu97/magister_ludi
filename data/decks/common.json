@@ -2792,6 +2792,7 @@
       "type": "wildcard",
       "flavor": "Two crowns rested on one desk.",
       "text": "Cards that belong to two decks pay 50% more.",
+      "note": "This uses the same bonuses as a government that raises a chair type. It includes yields, production bonuses and strength added during a fight. A bonus attached to a unit when you buy it keeps its printed value and duration.",
       "effects": [{ "kind": "cardTypeAmplifier", "shared": true, "percent": 50 }]
     },
     "theLongMemory": {
