@@ -741,8 +741,9 @@ export function proposeDealAt(
     id: allocateEntityId(state),
     by: playerId,
     to: targetId,
-    give,
-    take,
+    // The player can keep editing the draft after sending it.
+    give: structuredClone(give),
+    take: structuredClone(take),
     turn: state.turn,
   };
   state.dealProposals.push(row);

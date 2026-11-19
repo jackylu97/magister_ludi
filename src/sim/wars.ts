@@ -340,7 +340,8 @@ export function setPeaceOffer(
   // A new paper — or somebody else's paper answered with one's own, which is a
   // counter-offer. Either way the signatures that were on the old one are void:
   // nobody has signed this.
-  war.terms = paper;
+  // The other seat signs these terms even if the sender edits the draft.
+  war.terms = structuredClone(paper);
   war.offers = [from];
   return true;
 }

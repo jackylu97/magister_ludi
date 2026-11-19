@@ -35,7 +35,7 @@ import {
 } from '../../src/sim/cities';
 import { proposeDealError, openBordersError, warConsequences } from '../../src/sim/diplomacy';
 import { explainEmpireGold } from '../../src/sim/empireGold';
-import { dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, loadGame, saveGame, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { explainHappiness } from '../../src/sim/meters';
 import { withExtraResources } from '../../src/sim/resourceData';
@@ -392,6 +392,16 @@ describe('a lent luxury', () => {
     expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: id }).ok).toBe(true);
   }
 
+  it('keeps the offered luxury when the sender edits the draft', () => {
+    const { state } = silkBench();
+    const give = { luxuries: ['silk'] };
+    expect(applyCommand(state, propose(0, 1, give, {})).ok).toBe(true);
+    give.luxuries.length = 0;
+    expect(state.dealProposals[0]?.give.luxuries).toEqual(['silk']);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: onlyProposal(state) }).ok).toBe(true);
+    expect(hasResource(state, 1, 'silk')).toBe(true);
+  });
+
   it('leaves the giver’s hands and arrives in the receiver’s', () => {
     const { state } = silkBench();
     expect(hasResource(state, 0, 'silk')).toBe(true);
@@ -688,13 +698,15 @@ describe('a town ceded in a peace', () => {
     const ground = tileIndex(state.map, 8, 3);
     expect(state.tileOwner[ground]).toBe(town.id);
 
-    applyCommand(state, {
+    const cities = [town.id];
+    expect(applyCommand(state, {
       type: 'proposePeace',
       playerId: 1,
       targetId: 0,
-      give: { cities: [town.id] },
+      give: { cities },
       take: {},
-    } as unknown as Command);
+    }).ok).toBe(true);
+    cities.length = 0;
     const signed = applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
 
     expect(town.ownerId).toBe(0);
@@ -905,15 +917,11 @@ describe('a bargain is made of ordinary commands', () => {
     const game = createGame(config);
     // The treasury is not in the log, so the bargain has to be one the opening
     // treasuries can afford: a tribute, which promises rather than pays.
-    expect(
-      dispatch(game, {
-        type: 'proposeDeal',
-        playerId: 0,
-        targetId: 1,
-        give: { goldPerTurn: 2 },
-        take: {},
-      } as unknown as Command).ok,
-    ).toBe(true);
+    const give = { goldPerTurn: 2 };
+    expect(dispatch(game, { type: 'proposeDeal', playerId: 0, targetId: 1, give, take: {} }).ok).toBe(true);
+    give.goldPerTurn = 99;
+    expect(game.state.dealProposals[0]?.give.goldPerTurn).toBe(2);
+    expect(game.log[0]).toMatchObject({ give: { goldPerTurn: 2 } });
     const id = game.state.dealProposals[0]!.id;
     expect(dispatch(game, { type: 'acceptDeal', playerId: 1, dealId: id }).ok).toBe(true);
     expect(game.state.deals).toHaveLength(1);
@@ -929,5 +937,6 @@ describe('a bargain is made of ordinary commands', () => {
     const second = game.state.dealProposals[0]!.id;
     expect(dispatch(game, { type: 'withdrawDeal', playerId: 1, dealId: second }).ok).toBe(true);
     expect(game.state.dealProposals).toEqual([]);
+    expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 });
