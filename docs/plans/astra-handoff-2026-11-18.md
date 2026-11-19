@@ -252,6 +252,40 @@ keep word for word.
   changes after the first founding. It needs a schema step and cuts the digest
   pins. Do it with any of the card batches.
 
+### 3.9 The great people pass (ready, with two small points open)
+
+The spec is `docs/plans/great-people-pass-2026-11-19.md`. Read the three
+rulings sections at its end first ("The user's first rulings", "second
+rulings", "third rulings"): they overrule the tables above them wherever the
+two differ. A row the user did not comment on is approved as its table shows.
+
+- **The roster:** 157 people, ten or eleven a family in each of Æra II to IV.
+  Additions A01 to A74, changes C01 to C33, returned rows U1 to U5.
+- **System changes that are approved:** S1 (deal each roster age in its own
+  game age: remove the +1 in `rosterAgeFor`), S2, S3 as the user rewrote it (a
+  work pays 4, and two technologies add 2 each; propose the two technologies),
+  S4 at 8 turns, S5, S11.
+- **Not adopted:** S6, S7, S8, S9, S10. Do not build them.
+- **One rule for every legacy:** no percentage of combat strength. Flat points
+  only.
+- **Renown feeders:** five wonders change family (Stonehenge and Chichen Itza
+  to the artist, The Great Ziggurat and Solomon's Temple to the engineer, The
+  Great Sphinx to the general). The Library of Ashurbanipal keeps 10 a turn.
+  This meets section 3.6 (the wonders rework): do the two in one batch or in
+  that order.
+- **New shapes are likely** for Li Bai (a hex beside a river or a mountain),
+  Aḥmad ibn Mājid (sea routes), the "pays double" rows (Ibn al-Haytham,
+  Copernicus), the spare-authority count (Ibn Khaldun), and the one-time
+  grants on spending (Aesop, John Dee). Each is a design decision under
+  CLAUDE.md: say which you add. A row that fits no shape is deferred and
+  annotated, never bent.
+- **Open with the user:** S12 (the ratings) and Deborah. Neither blocks the
+  rest.
+- **The card:** `greatPersonCard.ts` no longer prints "When spent". Portraits
+  are in `public/art/splash/people/`, one a row id; a new row needs no
+  picture.
+- **Schema:** the roster and the deal change saved games. Raise the schema.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
