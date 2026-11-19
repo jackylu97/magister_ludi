@@ -333,6 +333,47 @@ void main() {
 
 type Quad = { x: number; y: number; z: number; size: number; type: number; kind: number; phase: number; rnd: number; strength: number };
 
+function paintedLightMaterial(): ShaderMaterial {
+  return new ShaderMaterial({
+      vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms: { vtestTime: VTEST_UNIFORMS.vtestTime, vtestIdle: VTEST_UNIFORMS.vtestIdle },
+      // Light that also has a little body: the colour is added, and `alpha` takes away some of what is behind it, so a
+      // tinted halo still shows on bright grass, where light that is only added turns to white.
+      blending: CustomBlending, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor, transparent: true, depthWrite: false, depthTest: true,
+      // A flat quad on the ground is seen from its back.
+      side: DoubleSide,
+    });
+}
+
+function paintedLightGeometry(quads: readonly Quad[], tints: readonly Color[]): InstancedBufferGeometry {
+  const geometry = new InstancedBufferGeometry();
+  const plane = new PlaneGeometry(2, 2);
+  geometry.setIndex(plane.getIndex()); geometry.setAttribute('position', plane.getAttribute('position'));
+  const at = new Float32Array(quads.length * 3), seed = new Float32Array(quads.length * 4), tint = new Float32Array(quads.length * 4), size = new Float32Array(quads.length);
+  quads.forEach((quad, i) => {
+    at.set([quad.x, quad.y, quad.z], i * 3);
+    seed.set([quad.phase, quad.rnd, quad.type, quad.kind], i * 4);
+    tint.set([tints[i]!.r, tints[i]!.g, tints[i]!.b, quad.strength], i * 4);
+    size[i] = quad.size;
+  });
+  geometry.setAttribute('aAt', new InstancedBufferAttribute(at, 3));
+  geometry.setAttribute('aSeed', new InstancedBufferAttribute(seed, 4));
+  geometry.setAttribute('aTint', new InstancedBufferAttribute(tint, 4));
+  geometry.setAttribute('aSize', new InstancedBufferAttribute(size, 1));
+  geometry.instanceCount = quads.length;
+  return geometry;
+}
+
+export type PaintedMote = Omit<Quad, 'type' | 'kind'> & { color: Color; mode: 'matte' | 'hot' | 'glow' | 'spark' };
+
+/** Embers use the same soft dot and rise as the motes on rich tiles. */
+export function createPaintedMotes(motes: readonly PaintedMote[]) {
+  const geometry = paintedLightGeometry(motes.map(mote => ({ ...mote, type: { matte: MATTE, hot: MOTE, glow: GLOW, spark: SHAPE }[mote.mode], kind: 1 })), motes.map(mote => mote.color));
+  const mesh = new Mesh(geometry, paintedLightMaterial());
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 6;
+  return mesh;
+}
+
 export class PaintedYieldLightLayer {
   readonly group = new Group();
   private readonly material: ShaderMaterial;
@@ -358,14 +399,7 @@ export class PaintedYieldLightLayer {
 
   constructor() {
     this.group.name = 'painted-yield-light';
-    this.material = new ShaderMaterial({
-      vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms: { vtestTime: VTEST_UNIFORMS.vtestTime, vtestIdle: VTEST_UNIFORMS.vtestIdle },
-      // Light that also has a little body: the colour is added, and `alpha` takes away some of what is behind it, so a
-      // tinted halo still shows on bright grass, where light that is only added turns to white.
-      blending: CustomBlending, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor, transparent: true, depthWrite: false, depthTest: true,
-      // A flat quad on the ground is seen from its back.
-      side: DoubleSide,
-    });
+    this.material = paintedLightMaterial();
   }
 
   /** `prepared` is the board's own map, whose tiles carry the ground's heights. `period` is the wrap width in world units. */
@@ -466,21 +500,7 @@ export class PaintedYieldLightLayer {
       });
     });
     if (!quads.length) return;
-    const geometry = this.geometry = new InstancedBufferGeometry();
-    const plane = new PlaneGeometry(2, 2);
-    geometry.setIndex(plane.getIndex()); geometry.setAttribute('position', plane.getAttribute('position'));
-    const at = new Float32Array(quads.length * 3), seed = new Float32Array(quads.length * 4), tint = new Float32Array(quads.length * 4), size = new Float32Array(quads.length);
-    quads.forEach((quad, i) => {
-      at.set([quad.x, quad.y, quad.z], i * 3);
-      seed.set([quad.phase, quad.rnd, quad.type, quad.kind], i * 4);
-      tint.set([tints[i]!.r, tints[i]!.g, tints[i]!.b, quad.strength], i * 4);
-      size[i] = quad.size;
-    });
-    geometry.setAttribute('aAt', new InstancedBufferAttribute(at, 3));
-    geometry.setAttribute('aSeed', new InstancedBufferAttribute(seed, 4));
-    geometry.setAttribute('aTint', new InstancedBufferAttribute(tint, 4));
-    geometry.setAttribute('aSize', new InstancedBufferAttribute(size, 1));
-    geometry.instanceCount = quads.length;
+    const geometry = this.geometry = paintedLightGeometry(quads, tints);
     for (const offset of [-period, 0, period]) {
       const mesh = new Mesh(geometry, this.material);
       mesh.castShadow = false; mesh.receiveShadow = false;
@@ -491,7 +511,7 @@ export class PaintedYieldLightLayer {
     // `rise` at most, drifts sideways by under half a hex unit, and a billboard turns its corners anywhere round its
     // centre. The bounds are the centres widened by that, so each copy is culled like any other mesh (`wrapCulling.ts`).
     let largest = 0;
-    for (const one of size) largest = Math.max(largest, one);
+    for (const quad of quads) largest = Math.max(largest, quad.size);
     cullWrapQuads(this.meshes, geometry, geometry.getAttribute('aAt') as InstancedBufferAttribute, largest * 1.5 + LIGHT.rise + .45);
   }
 
