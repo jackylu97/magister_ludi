@@ -7,15 +7,15 @@ The page for review is generated from the same source: `scratchpad/great-people/
 ## What I found
 
 1. **The roster runs one age ahead of the game.** `rosterAgeFor` (`src/sim/greatPeople.ts`) adds one to the game’s age. A seat in Æra II is dealt the names marked Æra III, and a seat in Æra IV is dealt the names marked Æra V.
-2. **So the 19 people of Æra V are in play today.** They are the first names dealt in Æra IV, the last built age. The names that are almost never dealt are the 16 of Æra II: they come only when a later age has fewer names left than the hand shows.
+2. **You approved the fix (S1) on 2026-11-19.** Until it is built, the 19 people of Æra V are in play. They are the first names dealt in Æra IV, the last built age. The names that are almost never dealt are the 16 of Æra II: they come only when a later age has fewer names left than the hand shows.
 3. **Great people open with Epic Poetry** (Æra II, the ability `ancestorRites`), which bots reach about turn 55. Renown banked before that waits, so the first person comes at once.
 4. **A seat calls more people than the deck passes assumed.** On today’s prices, the measured renown banks buy 3 or 4 people by turn 100 and 7 to 9 by turn 150. The Magisterial and Dominion passes used 2 or 3 and 5 or 6, the figures of the old prices.
 5. **The act is almost always the right choice.** A scholar’s act is about one technology in every age. A work pays 3 a turn. The work is right only for a seat with cards that read works.
 6. **The five acts are not equal.** In Æra IV a scholar’s act is 8 turns of science and a merchant’s is 3 turns of gold.
 7. **A general’s legacy starts only when the general is spent,** and six Dominion cards want the general alive beside the army.
 8. **A family with more names fills more of each hand,** because each name has its own chance. Æra III has 8 scholars and 2 artists. No card reads a Landmark or a great artist.
-9. **Verdicts on the 78 live people:** 7 odd, 49 fine, 14 weak, 5 dull, 3 strong. I propose 32 changes to people, 12 changes to the system and families, and 35 new people. No change needs a new shape; 12 need a small extension or a small code change.
-10. **Clashes:** Hypatia and Ibn Battuta are leaders and great people today. Zheng He is a leader and a retired row. There is no faith family: prophets are units of the religion system. But a Holy Site already counts as a great person’s work.
+9. **Verdicts on the 78 live people:** 7 odd, 49 fine, 14 weak, 5 dull, 3 strong. I propose 33 changes to people (one is withdrawn), 12 changes to the system and families (S1 is approved; S9 is withdrawn), 74 new people and 5 retired rows brought back. That fills every cell of the grid, family by age, to ten or eleven: 157 people. No change needs a new shape; 13 need a small extension or a small code change.
+10. **Clashes:** with the chosen leader roster only Ibn Battuta clashes, and his great person row is renamed Ibn Jubayr. Hypatia leaves the leaders and keeps her row. There is no faith family: prophets are units of the religion system. But a Holy Site already counts as a great person’s work.
 
 ## The system in numbers
 
@@ -38,6 +38,7 @@ The page for review is generated from the same source: `scratchpad/great-people/
 | 50 | 0 | Epic Poetry opens great people about turn 55 (bots). The renown waits. |
 | 100 | 3 or 4 | The measured seats had banked 650 to 980 renown by turn 100 (`docs/great-people.md`). Today’s ladder sells the third at 406 and the fourth at 673. |
 | 150 | 7 to 9 | The same seats had banked 2,000 to 3,900. The seventh costs 1,993 in all and the ninth 3,433. |
+| Your playtests | 2 or 3 an age | Your words of 2026-11-19. Over the three ages that is 6 to 9 people, which agrees with the sums above. |
 
 - These are sums on old measurements, not a new measurement: the games were played on the ladder of September, and play changes when people arrive sooner. To tune in playtest.
 - The Magisterial pass used “2 or 3 by turn 100 and 5 or 6 by turn 150”. That is the old ladder (linear 225). Cards that count great people are about half again as strong as that pass worked out: The Hall of Heroes gives +7 to +9 strength by turn 150, and The Honoured Dead +56 to +72 of each yield.
@@ -47,7 +48,7 @@ The page for review is generated from the same source: `scratchpad/great-people/
 - A hand shows 3 names (`rules.offers.greatPerson`), and at most 5 with riders. Every unclaimed name of the seat’s roster age is in the bag. Each name has a weight of 1,000, plus up to 1,000 more by the share of the seat’s renown that its family fed. So the bias is at most two to one, and a family’s share of a hand follows how many names it has.
 - If the age has fewer unclaimed names than the hand, the draw adds the age before it, then the ages before that, then the ages after. A name called by one seat is gone for every seat.
 - A narrowed hand (a great general to call, A Court of Engineers, the Academy’s scholars) walks the same ages with one family. It spills as soon as that family has fewer than 3 names left in the age.
-- **What the draw wants:** at least 5 names for each family in each age, so that a narrowed hand of 3 holds after two seats have taken one each. Scholars and generals have the most narrowed sources, and Æra IV is the longest age, so they want 8 or more there.
+- **What the draw wants:** your ruling of 2026-11-19 is about ten names for each family in each age. See “The roster at 150” for what ten holds against.
 
 | Names today, as the rows are marked | Æra II | Æra III | Æra IV | Æra V |
 |---|---|---|---|---|
@@ -61,14 +62,14 @@ The page for review is generated from the same source: `scratchpad/great-people/
 
 | Names after this pass | Æra II | Æra III | Æra IV | Æra V (not built) |
 |---|---|---|---|---|
-| Scholars | 5 | 8 | 11 | 0 |
-| Artists | 5 | 6 | 9 | 2 |
-| Engineers | 5 | 7 | 8 | 1 |
-| Merchants | 5 | 6 | 10 | 0 |
-| Generals | 6 | 7 | 11 | 1 |
-| All | 26 | 34 | 49 | 4 |
+| Scholars | 10 | 10 | 11 | 0 |
+| Artists | 10 | 10 | 11 | 2 |
+| Engineers | 10 | 10 | 10 | 1 |
+| Merchants | 10 | 10 | 10 | 0 |
+| Generals | 10 | 10 | 11 | 1 |
+| All | 50 | 50 | 53 | 4 |
 
-- Demand, as a first guess: six seats call about 12 people in Æra II, 20 in Æra III and 30 in Æra IV.
+- Demand: at your rate of 2 to 3 people a seat an age, six seats call 12 to 18 people an age and twelve seats 24 to 36, from about 50 names.
 
 ### What an act, a work and a legacy are worth
 
@@ -107,9 +108,73 @@ The page for review is generated from the same source: `scratchpad/great-people/
 | Æra III | Æra IV | Æra III, then Æra II, then Æra V |
 | Æra IV | Æra V | Æra IV, then Æra III, then Æra II |
 
+## The grid: family by age
+
+### Today (live rows, as marked)
+
+|  | Æra II | Æra III | Æra IV |
+|---|---|---|---|
+| Scholars | 3 | 8 | 4 |
+| Artists | 5 | 2 | 3 |
+| Engineers | 2 | 5 | 4 |
+| Merchants | 2 | 5 | 4 |
+| Generals | 4 | 4 | 4 |
+| All | 16 | 24 | 19 |
+
+### After the approved fix and the moves (S1, S2, three other moves), before any addition
+
+|  | Æra II | Æra III | Æra IV |
+|---|---|---|---|
+| Scholars | 2 | 7 | 8 |
+| Artists | 5 | 2 | 5 |
+| Engineers | 4 | 5 | 6 |
+| Merchants | 2 | 5 | 8 |
+| Generals | 4 | 4 | 7 |
+| All | 17 | 23 | 34 |
+
+### The gap to ten
+
+|  | Æra II | Æra III | Æra IV |
+|---|---|---|---|
+| Scholars | 8 | 3 | 2 |
+| Artists | 5 | 8 | 5 |
+| Engineers | 6 | 5 | 4 |
+| Merchants | 8 | 5 | 2 |
+| Generals | 6 | 6 | 3 |
+
+### After both rounds of additions
+
+|  | Æra II | Æra III | Æra IV |
+|---|---|---|---|
+| Scholars | 10 | 10 | 11 |
+| Artists | 10 | 10 | 11 |
+| Engineers | 10 | 10 | 10 |
+| Merchants | 10 | 10 | 10 |
+| Generals | 10 | 10 | 11 |
+| All | 50 | 50 | 53 |
+
+- Today, as the rows are marked, Æra V holds 19 more people (4 scholars, 4 artists, 3 engineers, 4 merchants, 4 generals).
+- **What S2 does to each cell:** all fifteen go to Æra IV: 4 scholars, 2 artists, 2 engineers, 4 merchants, 3 generals. I checked each by date. The earliest is Christine de Pizan (1364 to about 1430) and the latest is Nzinga (died 1663), so none belongs in Æra III or Æra II.
+- **Other moves in the middle grid:** Imhotep to the engineers of Æra II, Archimedes to the engineers of Æra III, and Eupalinos from Æra III to Æra II (his tunnel dates from about 550 BC, beside Theodorus of Samos.).
+- **Round 1** added 35 people (A01 to A35). **Round 2** adds 39 more (A36 to A74) and brings back 5 retired rows (U1 to U5).
+
+## The roster at 150
+
+- **The draw.** Each name has its own weight, so with ten names in every cell each family has one chance in five before the renown bias. The bias can raise one family to two chances in six at most. Equal cells fix the scholar-heavy hands of Æra III with no rule change. I confirm this from `greatPersonWeights`.
+- **S9 is withdrawn.** With equal cells an unbiased hand shows three of one family about once in 25 hands.
+- **A name is never seen twice as a pick.** A name that any seat calls joins `state.recruited`, and `greatPersonPool` leaves it out for every seat from then on. If two seats hold the same name in their hands, the first to choose gets it and the other hand is drawn again.
+- **What one game sees.** At your rate of 2 to 3 people a seat an age, six seats call 12 to 18 of an age’s 50 names and twelve seats call 24 to 36. Over the game a table of six uses 36 to 54 of the 153 names, and a table of twelve 72 to 108. Each seat sees about three names for each one it calls.
+- **When one cell runs out: an ordinary hand.** The bag is every unclaimed name of the seat’s age, all families together. It reaches into another age only when the whole age has fewer names left than the hand. So when the artists of the age are gone, an ordinary hand shows no artist. It does not fetch one from another age.
+- **When one cell runs out: a narrowed hand** (a great general to call, A Court of Merchants, the Academy’s scholars). It takes the family’s names of the seat’s age, then of the age before, then of earlier ages, then of later ages, and stops when it has three. So with one general left in Æra III, the hand shows that general and two of the unclaimed generals of Æra II. All are fresh names; the older ones carry legacies sized for an earlier age.
+- **The case you named.** Ten artists in an age, and three seats that each call two or three artists: 6 to 9 are gone and 1 to 4 are left. With 4 left, a seat that feeds artist renown sees an artist in about half of its hands; with 1 left, in about one hand in seven. Every name shown is still fresh. So ten is enough for three such seats, with a thin end to the age.
+- **Twelve seats.** The age as a whole holds: 24 to 36 called from 50. One cell does not hold if four or more seats draft the same family: they want 8 to 12 of its ten names. I did not grow the roster for this. Two answers, for you to choose: (a) twelve to fourteen names in the cells that have their own hands (scholars, generals, engineers, merchants), about 30 more people; or (b) one rule: when a family has no name left in the seat’s age, an ordinary hand adds that family’s unclaimed names of the age before. The rule is a small change in `greatPersonPool` and costs no portraits. I recommend the rule.
+- **Tiers.** Nothing in the draw reads a tier: a defining name is as likely as any other. For a cell of ten I propose one defining (with a cost), four strong and five situational. Today’s cells do not all meet that, and I did not re-rate old rows.
+- **The Reliquary** shows only the legacies a seat holds, so it does not grow. **The Compendium** shelf grows from 86 entries to about 165: it needs the grid (family by age) as its index, or a filter.
+- **Build cost.** 74 new rows and 5 returned rows. 73 new portraits (Hildegard’s leader art can serve), and 5 more for the returned rows if they have none.
+
 ## Changes to the system and the families
 
-### S1. Deal each roster age in its own game age
+### S1. Deal each roster age in its own game age (approved 2026-11-19)
 
 - **Now:** The roster age is the game age plus one.
 - **Proposed:** A seat in Æra II is dealt the people of Æra II, and so on.
@@ -165,12 +230,12 @@ The page for review is generated from the same source: `scratchpad/great-people/
 - **Shape:** small extension: happiness on an improvement row, as the Physic Garden has from Herbals
 - **Why:** Every other work has cards that read it by name. No card reads a Landmark. Happiness is the artist’s second voice already (the festival), and every seat can use it.
 
-### S9. An ordinary hand shows at most two of one family
+### S9. An ordinary hand shows at most two of one family (withdrawn)
 
 - **Now:** A hand may show three scholars.
 - **Proposed:** When the third name drawn is of the same family as the first two, draw again once from the other families, if any is left.
 - **Shape:** small code change in `drawGreatPersonOffer`; a narrowed hand is not touched
-- **Why:** Three names of one family differ only by legacy. Two families in a hand make the pick a choice of act and work too.
+- **Why:** Withdrawn after your ruling on ten in a cell: equal cells give each family one chance in five, so a hand of one family is rare. I keep the entry so that the number stays.
 
 ### S10. A limit on what multiplies an act
 
@@ -200,13 +265,13 @@ The page for review is generated from the same source: `scratchpad/great-people/
 - **Job:** a technology now, or an Academy. **Deck:** Scientific, which has 17 Orders and 4 Doctrines that read scholars or Academies, and five ways to call a scholar and nobody else.
 - **The problem:** the scholar is the pick for every seat. Its act is the largest, and 20 buildings and wonders feed scholar renown, against 9 for generals. S4 to S6 raise the other acts; the scholar does not change.
 - **The legacies** lean on “buildings that supply science” five times (Aristotle, Zhang Heng, Maimonides, Āryabhaṭa, and Wang Xizhi if added). That is a theme, and each pays a different yield, so I kept it.
-- **Counts:** 3 scholars in Æra II and 8 in Æra III today. After the pass: 5, 8 and 11.
+- **Counts:** 3 scholars in Æra II and 8 in Æra III today. After the pass: 10, 10 and 11.
 
 ### Artists
 
 - **Job:** culture toward the next draft, a festival, or a Landmark. **Deck:** Magisterial by intent. But Magisterial reads any family, and no card in any deck reads a Landmark or a great artist.
 - **So the artist is never the best pick for a plan.** S8 gives the Landmark happiness. The legacies now carry the family’s ties: faith for Devotion (Enheduanna, Dante), wonders for the monuments (Phidias, Dürer, Michelangelo), great people for the patrons (Homer, Ferdowsi), routes for Commerce (Kālidāsa).
-- **Counts:** 2 artists in Æra III today, so an Æra III hand almost never shows one. After the pass: 5, 6 and 9.
+- **Counts:** 2 artists in Æra III today, so an Æra III hand almost never shows one. After the pass: 10, 10 and 11.
 - A later deck pass can add one Magisterial Order that reads Landmarks. I did not write it here.
 
 ### Engineers
@@ -214,20 +279,20 @@ The page for review is generated from the same source: `scratchpad/great-people/
 - **Job:** half a wonder now, or a Manufactory. **Decks:** Expansionist (The Engineers’ Yards, The Builder Kings, The Cathedral Lodges, A Court of Engineers) and the monuments of Magisterial. The Office of Works and The Mausoleum’s renown supply them.
 - **The problem:** five legacies were only “+X% production toward wonders” (Imhotep, Amenhotep, Hemiunu, Villard, Leonardo). A hand with two of them is one choice. The changes to Imhotep, Amenhotep and Villard give three of them a second, plain line; Hemiunu and Leonardo keep the big percentages.
 - **Two moves:** Imhotep and Archimedes become engineers. Taqī al-Dīn gets an engineer’s clause.
-- **Counts:** 2 in Æra II today. After the pass: 5, 7 and 8. A Court of Engineers takes every person as an engineer, so one seat can use 7 to 9.
+- **Counts:** 2 in Æra II today. After the pass: 10 in each age. A Court of Engineers takes every person as an engineer, so one seat can use 7 to 9. Named builders before 500 BC are few and mostly Egyptian: four of the ten in Æra II are from Egypt, and one is a retired row brought back.
 
 ### Merchants
 
 - **Job:** gold now, or a Customs House. **Deck:** Commerce (The Customs Houses, The Customs Service, A Court of Merchants, The Strongroom, Merchant Princes).
 - **The problem:** the act falls behind (S4). The legacies are sound: hexes, routes, connections and buying, which are the things Commerce does.
 - **Changes:** Ea-nāṣir’s bargain was a loss and becomes a real one. Pytheas and Lamassī now read trade routes. Cosimo de’ Medici gets a cap.
-- **Counts:** 2 in Æra II today. After the pass: 5, 6 and 10.
+- **Counts:** 2 in Æra II today. After the pass: 10 in each age. Æra II is the hardest cell in the grid: two of its ten are retired rows brought back, and three are known only from tablets or one line of Herodotus.
 
 ### Generals
 
 - **Job:** an aura beside the army, a rally, or a Citadel that takes the ring of hexes around it, from a rival too. **Deck:** Dominion, with 12 Orders and 2 Doctrines, and after its pass about seven ways to call a general.
 - **At peace** a general today is a Citadel and nothing else. Three fixes: the legacy starts at the call (S7); the Citadel grows (S3); and more legacies carry a peace line, as Gaius Marius does. New: Fu Hao (faith from garrisons), Zhuge Liang (food from garrisons), Amina (gold from walls), Julius Caesar (gold and culture from a capture). Changed: Ahmose (gold from kills).
-- **Counts:** 4 in every age today. After the pass: 6, 7 and 11.
+- **Counts:** 4 in every age today. After the pass: 10, 10 and 11.
 
 ### Prophets and Devotion
 
@@ -372,7 +437,7 @@ Every live Order, Doctrine, leader and belief whose printed words name great peo
 - **The Spirit Way stack** (about +370 a turn at its top). One person adds to it: Benjamin of Tudela, +3 on each wonder, so +12 on four wonders and +36 if both doublers reach a legacy’s line (S11). The Immortals doubles that. No other person pays on the plain work test. Under S3 the real works in the stack pay more, about +50 for two works under three doublers.
 - **The act stack.** Letters Patent, Leonardo and The Immortals together triple an act. S10 limits it to double.
 - **The Immortals** counts every legacy twice. With eight legacies at this pass’s bar it pays about +240 to +480 a turn in Æra IV, for a rare of the last tier whose headline is 200 or more. It is the reason not to raise the legacy bar further.
-- **The price cuts.** The Hanlin Academy, Solomon’s Temple and The Peregrini together cut a person’s price by half: about 12 people by turn 150 for one seat. Six seats can then empty today’s 78 names. With the additions the roster has 113.
+- **The price cuts.** The Hanlin Academy, Solomon’s Temple and The Peregrini together cut a person’s price by half: about 12 people by turn 150 for one seat. Six seats can then empty today’s 78 names. With the additions the roster has 157.
 
 ## Everyone in the game
 
@@ -409,7 +474,7 @@ Verdicts: fine, weak, strong, odd (the effect does not fit the person or the fam
 | Li Bing | Engineer | Æra III | ○ situational | Dujiangyan. | +1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct | odd | C17 |
 | Dinocrates | Engineer | Æra III | ◆ strong | The planner of impossible wonders; Alexandria laid out in a cloak-sweep. | completing a wonder grants +3 production in every city for 10 turns | fine |  |
 | Vitruvius | Engineer | Æra III | ◆ strong | The ten books. | Aqueducts supply +1 happiness · Granaries supply +1 happiness | strong | C18 |
-| Eupalinos | Engineer | Æra III | ○ situational | Samos. | +1 food on every improved hex beside a mountain | fine |  |
+| Eupalinos | Engineer | Æra III | ○ situational | Samos. | +1 food on every improved hex beside a mountain | fine | C33 |
 | Zhang Qian | Merchant | Æra III | ◆ strong | The Silk Road's envoy. | +2 gold per 80 hexes you have revealed | fine |  |
 | Nanaivandak | Merchant | Æra III | ◆ strong | The Sogdian Ancient Letters, found sealed at Dunhuang. | each connected city pays +2 gold | fine |  |
 | Hippalus | Merchant | Æra III | ○ situational | The monsoon. | +1 gold on every hex with a Fishing Boat | weak | C19 |
@@ -458,11 +523,6 @@ Verdicts: fine, weak, strong, odd (the effect does not fit the person or the fam
 | Nzinga of Ndongo | General | Æra V, moves to Æra IV (S2) | ○ situational | The forty-year war. | +5 combat strength when defending in forest · +5 combat strength when defending in jungle | fine |  |
 | Yi Sun-sin | General | Æra V, moves to Æra IV (S2) | ○ situational | Myeongnyang. | +5 combat strength for ships | fine |  |
 | Lautaro | General | Æra V, moves to Æra IV (S2) | ○ situational | The Mapuche toqui. | +5 combat strength against mounted units | fine |  |
-| Senenmut (retired) | Engineer | Æra II | ◆ strong | Hatshepsut's architect. | +10% production toward buildings | retired |  |
-| Kushim (retired) | Merchant | Æra II | ◆ strong | The first named person in writing — an accountant. | +1 gold in every city with a Granary | retired |  |
-| Aššur-idī (retired) | Merchant | Æra II | ○ situational | Old Assyrian trader of the Kanesh letters. | +1 gold in every city but your capital | retired |  |
-| Sima Qian (retired) | Artist | Æra III | ○ situational | The Grand Historian. | +1 culture in every city per age that has closed | retired |  |
-| Han Xin (retired) | General | Æra III | ◆ strong | Jingxing. | +2 combat strength beside fresh water · +2 combat strength on the coast | retired |  |
 | Shen Kuo (retired) | Scholar | Æra IV | ○ situational | The Dream Pool Essays. | +2 science per improved strategic resource | retired |  |
 | Snorri Sturluson (retired) | Artist | Æra IV | ● defining | The Edda, the Heimskringla. | losing a unit grants +15 culture · losing a unit grants +15 faith · -2 authority capacity | retired |  |
 | Zheng He (retired) | Merchant | Æra V | ◆ strong | The treasure fleet. | +3 gold in every coastal city · all units: +2 movement while embarked | retired |  |
@@ -500,7 +560,7 @@ Every person also has the family’s act and work, printed above.
 - **Li Bing** (odd). Three conditions in one line: a Farm, fresh water, and an Aqueduct in the town. About ten such hexes once the Aqueducts stand.
 - **Dinocrates** (fine). Eight towns × 3 production × 10 turns is 240 for each wonder, about 8 a turn. Note: the row’s id is heroOfAlexandria and its name is Dinocrates.
 - **Vitruvius** (strong). Six to eight towns with both buildings: +12 to +16 happiness. Ibn Sīnā gives +6 to +10 with no building.
-- **Eupalinos** (fine). From 0 to about 10 hexes, by the map. A fair situational row.
+- **Eupalinos** (fine). From 0 to about 10 hexes, by the map. A fair situational row. It is +1 food a hex, which also suits Æra II.
 - **Zhang Qian** (fine). 400 to 800 hexes revealed: +10 to +20 gold. You ruled “keep at 80”.
 - **Nanaivandak** (fine). Five to nine connected towns: +10 to +18 gold.
 - **Hippalus** (weak). Three to six Fishing Boats: +3 to +6 gold.
@@ -552,11 +612,6 @@ Every person also has the family’s act and work, printed above.
 
 ### The retired rows
 
-- **Senenmut** (engineer, Æra II): +10% production toward buildings. Cut by the user in the pass of 2026-09-09 (flags-log, item (lll)). No reason is written down.
-- **Kushim** (merchant, Æra II): +1 gold in every city with a Granary. Cut by the user in the pass of 2026-09-09. No reason is written down.
-- **Aššur-idī** (merchant, Æra II): +1 gold in every city but your capital. Cut by the user in the pass of 2026-09-09. No reason is written down.
-- **Sima Qian** (artist, Æra III): +1 culture in every city per age that has closed. Cut by the user in the pass of 2026-09-09. No reason is written down.
-- **Han Xin** (general, Æra III): +2 combat strength beside fresh water · +2 combat strength on the coast. Cut by the user in the pass of 2026-09-09. No reason is written down.
 - **Shen Kuo** (scholar, Æra IV): +2 science per improved strategic resource. Cut by the user in the pass of 2026-09-09. No reason is written down.
 - **Snorri Sturluson** (artist, Æra IV): losing a unit grants +15 culture · losing a unit grants +15 faith · -2 authority capacity. Cut by the user in the pass of 2026-09-09. No reason is written down.
 - **Zheng He** (merchant, Æra V): +3 gold in every coastal city · all units: +2 movement while embarked. Cut by the user in the pass of 2026-09-09. No reason is written down. Zheng He is a leader today, which may be the reason.
@@ -664,9 +719,9 @@ Every person also has the family’s act and work, printed above.
 ### C15. Hypatia (fine)
 
 - **Now:** +10% science in every city · lost the first turn your happiness goes negative
-- **Proposed:** If Hypatia stays a leader: rename the row Ptolemy, +8% science in every city, with no loss clause
-- **Shape:** data (name, epigram, kernel, percent, revokedWhen)
-- **Why:** One person cannot be a leader and a great scholar in the same game. If Sejong takes her leader’s place, nothing changes here.
+- **Proposed:** Withdrawn: no change. The row keeps its name and its legacy.
+- **Shape:** none
+- **Why:** Ruled 2026-11-19: Hypatia leaves the leaders, so the clash is gone.
 
 ### C16. Qu Yuan (weak)
 
@@ -688,6 +743,13 @@ Every person also has the family’s act and work, printed above.
 - **Proposed:** Aqueducts supply +1 happiness · Public Baths supply +1 happiness
 - **Shape:** data (the second building)
 - **Why:** Every town has a Granary from Æra I, so the second line is free. A Public Bath is a building of this age that a player must choose to build.
+
+### C33. Eupalinos (fine)
+
+- **Now:** +1 food on every improved hex beside a mountain
+- **Proposed:** Moves to Æra II. The legacy does not change.
+- **Shape:** data (age)
+- **Why:** His tunnel on Samos dates from about 550 BC, the time of Theodorus of Samos. Æra II needs engineers and Æra III has enough.
 
 ### C19. Hippalus (weak)
 
@@ -734,9 +796,9 @@ Every person also has the family’s act and work, printed above.
 ### C25. Ibn Baṭṭūṭa (fine)
 
 - **Now:** +5% culture per other empire you trade with
-- **Proposed:** If Ibn Battuta stays a leader: rename the row Ibn Jubayr. The legacy does not change.
+- **Proposed:** Rename the row Ibn Jubayr. The legacy does not change.
 - **Shape:** data (name, epigram, kernel)
-- **Why:** Ibn Jubayr of Valencia wrote the first famous Rihla, 150 years earlier. The kernel “The Rihla” stays true.
+- **Why:** Ruled 2026-11-19: Ibn Battuta stays a leader. Ibn Jubayr of Valencia wrote the first famous Rihla, 150 years earlier, so the kernel “The Rihla” stays true.
 
 ### C26. Marco Polo (weak)
 
@@ -792,31 +854,31 @@ Every person also has the family’s act and work, printed above.
 ### The gaps
 
 - **By family and age:** see “The draw” above. Æra II has 2 engineers and 2 merchants; Æra III has 2 artists; generals have 4 in each age.
-- **By region** (the 78 live people, then the 35 additions):
+- **By region** (the 78 live people, then the 74 additions):
 
 | Region | Today | Added | After |
 |---|---|---|---|
-| Egypt | 7 | 1 | 8 |
-| Mesopotamia, the Levant and Anatolia | 9 | 1 | 10 |
-| Greece, Rome and the Hellenistic world | 16 | 6 | 22 |
+| Egypt | 7 | 7 | 14 |
+| Mesopotamia, the Levant and Anatolia | 9 | 7 | 16 |
+| Greece, Rome and the Hellenistic world | 16 | 21 | 37 |
 | North Africa (Carthage, the Maghreb) | 2 | 3 | 5 |
 | Celtic and northern Europe (ancient) | 1 | 0 | 1 |
-| China | 5 | 10 | 15 |
-| Persia, Central Asia and the Islamic Near East | 8 | 3 | 11 |
+| China | 5 | 19 | 24 |
+| Persia, Central Asia and the Islamic Near East | 8 | 5 | 13 |
 | Jewish scholars and merchants of the Mediterranean | 3 | 0 | 3 |
-| India | 1 | 3 | 4 |
+| India | 1 | 7 | 8 |
 | Japan and Korea | 5 | 1 | 6 |
-| Medieval and Renaissance Europe | 18 | 3 | 21 |
+| Medieval and Renaissance Europe | 18 | 5 | 23 |
 | Africa south of the Sahara | 1 | 1 | 2 |
 | The Americas | 2 | 1 | 3 |
 | Southeast Asia and the Pacific | 0 | 2 | 2 |
 
-- **Women:** 13 of 78 today. 7 of the 35 additions. Named women in these families and ages are few in the record; I chose ones with a real story.
+- **Women:** 13 of 78 today. 16 of the 74 additions. After the pass: 29 of 157. Named women in these families and ages are few in the record; I chose ones with a real story.
 - **By fame:** a player would look for Sun Tzu, Julius Caesar, Virgil, Michelangelo, Dante, Gutenberg and Li Bai and not find them.
-- Left out on purpose: Pythagoras (the religion names plan has “Pythagoreans”), Confucius and Laozi (founders that living traditions revere), Khadija and Khalid ibn al-Walid (companions of the Prophet), Guan Yu and Trần Hưng Đạo (worshipped today), and every leader and leader candidate.
-- Held in reserve, with no effect written: Euclid, Hippocrates, Leonidas, Hero of Alexandria (the id heroOfAlexandria is taken by Dinocrates), Ban Zhao, Omar Khayyam, Li Qingzhao, Brunelleschi, Anna Komnene, Yue Fei, Afanasy Nikitin, Jacques Cœur.
+- Left out on purpose: Pythagoras (the religion names plan has “Pythagoreans”), Confucius and Laozi (founders that living traditions revere), Khadija and Khalid ibn al-Walid (companions of the Prophet), Guan Yu and Trần Hưng Đạo (worshipped today), Mozi, Parmenides and Mani (the religion roster has the Mojia, the Eleatics and the Manichees), Saladin and Augustus (alternates for the leader roster), and every chosen leader.
+- Held in reserve, with no effect written: Themistocles, Democritus, Galen, Zu Chongzhi, Scipio Africanus, Zenobia, Ovid, Omar Khayyam, Anna Komnene, Bi Sheng, Afanasy Nikitin, Jacques Cœur, and the retired rows Shen Kuo, Snorri Sturluson and Zheng He (he leaves the leaders).
 
-### The new people (35; ★ marks the 15 strongest)
+### The new people (74; ★ marks the 15 strongest of round 1, ☆ the best new person of each cell in round 2)
 
 | No. | Name | Family | Age | Rating | Effect | Shape |
 |---|---|---|---|---|---|---|
@@ -855,6 +917,45 @@ Every person also has the family’s act and work, printed above.
 | A33 | Jang Yeong-sil | Engineer | Æra IV | ◆ strong | +1 food and +1 science on every hex with a Farm beside fresh water | existing (pays, hex, as Li Bing) |
 | A34 | Aḥmad ibn Mājid | Merchant | Æra IV | ○ situational | you may send 1 more trade route · all units: +1 movement while embarked | existing (routeRider; unitStat, embarked) |
 | A35 | Fatima al-Fihri | Merchant | Æra IV | ◆ strong | buildings that supply science or faith cost 30% less to buy | small extension (purchaseRider on buildings, filtered by yield) |
+| A36 | ☆ Hippocrates | Scholar | Æra II | ◆ strong | +15% food surplus stored toward growth, in every city | existing (the growth percentage that The Bourgs uses) |
+| A37 | Anaximander | Scholar | Æra II | ○ situational | +1 science for each foreign city you have seen | existing (pays, empire, count sightedCities) |
+| A38 | Baudhāyana | Scholar | Æra II | ○ situational | +2 science in every city with a Shrine | existing (pays, city, hasBuilding) |
+| A39 | Peseshet | Scholar | Æra II | ○ situational | +2 happiness · +1 food in every city | existing (happiness; pays, city) |
+| A40 | Solon | Scholar | Æra II | ◆ strong | +2 authority capacity · +2 science in your capital | existing (authority; pays, city, trueCapital) |
+| A41 | ☆ Hesiod | Artist | Æra II | ◆ strong | +1 food and +1 culture in every city with a Granary | existing (pays, city, hasBuilding) |
+| A42 | Aesop | Artist | Æra II | ○ situational | +1 culture and +1 gold in every city with a Market | existing (pays, city, hasBuilding) |
+| A43 | Exekias | Artist | Æra II | ○ situational | +2 culture on every trade route you send | existing (pays, route) |
+| A44 | Telesilla | Artist | Æra II | ○ situational | +5 to the defence of your cities · +1 culture in every city with a garrison | existing (cityStat, defense; pays, city, garrisoned) |
+| A45 | Thutmose the Sculptor | Artist | Æra II | ◆ strong | +2 culture on every hex with a Quarry | existing (pays, hex) |
+| A46 | Mandrocles of Samos | Engineer | Æra II | ○ situational | all units: +1 movement while embarked · +1 production in every coastal city | existing (unitStat, embarked; pays, city, coastal) |
+| A47 | Ineni | Engineer | Æra II | ○ situational | +1 production on every hex with a Quarry | existing (pays, hex) |
+| A48 | ☆ Sunshu Ao | Engineer | Æra II | ◆ strong | +2 food in every city on fresh water | existing (pays, city, freshwater) |
+| A49 | ☆ Colaeus of Samos | Merchant | Æra II | ○ situational | +1 gold for each foreign city you have seen | existing (pays, empire, count sightedCities) |
+| A50 | Wenamun | Merchant | Æra II | ○ situational | +1 gold and +1 production on every hex with a Lumbermill | existing (pays, hex) |
+| A51 | Iddin-Marduk | Merchant | Æra II | ○ situational | +1 gold on every hex with a Farm, in your capital | existing (pays, hex, with the trueCapital scope) |
+| A52 | ☆ Leonidas | General | Æra II | ◆ strong | +4 combat strength when defending while fortified | existing (combatLine, fortified) |
+| A53 | Djehuty | General | Æra II | ○ situational | +4 combat strength when attacking cities | existing (combatLine, vsCity) |
+| A54 | Artemisia of Caria | General | Æra II | ○ situational | +4 combat strength for ships · ships: +1 movement | existing (combatLine and unitStat with a class) |
+| A55 | Tomyris | General | Æra II | ◆ strong | +3 combat strength for mounted units · +1 food on every hex with a Pasture | existing (combatLine with a class; pays, hex) |
+| A56 | ☆ Euclid | Scholar | Æra III | ◆ strong | +30% production toward Libraries, Universities and Observatories | existing (productionBonus, one row a building) |
+| A57 | Ban Zhao | Scholar | Æra III | ○ situational | +3 science in your capital · +1 authority capacity | existing (pays, city, trueCapital; authority) |
+| A58 | ☆ Sophocles | Artist | Æra III | ◆ strong | Amphitheaters supply +1 happiness · +1 culture in every city with an Amphitheater | existing (happiness with a building; pays, city, hasBuilding) |
+| A59 | Tiruvalluvar | Artist | Æra III | ○ situational | +2 culture on every hex with a Plantation | existing (pays, hex) |
+| A60 | Auvaiyar | Artist | Æra III | ○ situational | +3 culture in every city while you are at peace | existing (conditionRule, atPeace; pays, city) |
+| A61 | ☆ Hero of Alexandria | Engineer | Æra III | ◆ strong | +1 science per building in your cities that supplies production | existing (pays, empire, count buildingsSupplying) |
+| A62 | Apollodorus of Damascus | Engineer | Æra III | ○ situational | +2 production in every city connected to your capital | small extension (a town scope: connected to the capital) |
+| A63 | Sostratus of Cnidus | Engineer | Æra III | ○ situational | +2 gold and +2 production in every city with a Harbour | existing (pays, city, hasBuilding) |
+| A64 | Zheng Guo | Engineer | Æra III | ◆ strong | +1 food on every hex with a Farm, in every city not on fresh water | existing (pays, hex, with the notFreshwater town scope) |
+| A65 | Pasion | Merchant | Æra III | ◆ strong | +1 gold per 50 gold in your treasury (at most +20) | existing (pays, empire, count bankedGold, with a cap) |
+| A66 | ☆ Widow Qing of Ba | Merchant | Æra III | ◆ strong | +4 gold per improved strategic resource | existing (pays, empire, count improvedStrategicResources) |
+| A67 | Marcus Ulpius Yarhai | Merchant | Æra III | ○ situational | you may send 1 more trade route | existing (routeRider) |
+| A68 | Sang Hongyang | Merchant | Æra III | ○ situational | +10% gold in every city with a Market | existing (percentYields with a hasBuilding scope) |
+| A69 | Modu Chanyu | General | Æra III | ◆ strong | +3 combat strength for mounted units · mounted units cost 20% less production | existing (combatLine with a class; productionBonus with a class) |
+| A70 | ☆ Chanakya | General | Æra III | ◆ strong | your garrisons cost no upkeep · +1 authority capacity | existing (upkeepRebate, garrison, as The Standing Army; authority) |
+| A71 | ☆ Li Qingzhao | Artist | Æra IV | ○ situational | +4 culture for each unique luxury you hold | existing (pays, empire, count uniqueLuxuries) |
+| A72 | Hildegard of Bingen | Artist | Æra IV | ◆ strong | +2 culture and +2 faith in every city with a Cathedral | existing (pays, city, hasBuilding) |
+| A73 | ☆ Filippo Brunelleschi | Engineer | Æra IV | ◆ strong | +25% production in your capital toward buildings and wonders | existing (productionBonus, trueCapital, two rows) |
+| A74 | Guo Shoujing | Engineer | Æra IV | ○ situational | +2 food and +2 gold in every city connected to your capital | small extension (the town scope of A62: connected to the capital) |
 
 #### A01. Thales of Miletus
 
@@ -908,7 +1009,7 @@ Every person also has the family’s act and work, printed above.
 - **Flavour:** Past the Pillars the coast keeps going.
 - **Effect:** +2 gold in every coastal city · founding a city grants +60 gold
 - **Shape:** existing (pays, city, coastal; windfallRider, found)
-- **Feeds:** Expansionist and Commerce. He was on the old leader shelf in docs/leaders.md, not on today’s candidate list.
+- **Feeds:** Expansionist and Commerce. He is not in the chosen leader roster.
 
 #### A07. Fan Li
 
@@ -989,7 +1090,7 @@ Every person also has the family’s act and work, printed above.
 - **Flavour:** The die is cast.
 - **Effect:** capturing a city grants +200 gold and +200 culture · −3 happiness in your capital
 - **Shape:** existing (windfallRider, capture; happiness, trueCapital)
-- **Feeds:** Dominion: the provinces. A general with no combat line, paid for with trouble at home. Augustus, his heir, is a leader candidate: a pair, not a clash.
+- **Feeds:** Dominion: the provinces. A general with no combat line, paid for with trouble at home.
 
 #### A16. ★ Zhuge Liang
 
@@ -1016,7 +1117,7 @@ Every person also has the family’s act and work, printed above.
 - **Flavour:** A rare thing. Worth keeping.
 - **Effect:** +2 authority capacity · you gain culture equal to 10% of your gold per turn
 - **Shape:** existing (authority; pays, empire, share): the builder confirms the share reads gold
-- **Feeds:** Commerce and Magisterial. +5 culture now and +30 in Æra IV. Qin Shi Huang, a leader candidate, was that prince’s son: a pair.
+- **Feeds:** Commerce and Magisterial. +5 culture now and +30 in Æra IV. Qin Shi Huang, a leader, was that prince’s son: a pair.
 
 #### A19. ★ Cai Lun
 
@@ -1106,7 +1207,7 @@ Every person also has the family’s act and work, printed above.
 - **Flavour:** Give me the few, and the city.
 - **Effect:** +4 combat strength when attacking cities · capturing a city grants the best melee unit you can build
 - **Shape:** small extension (windfallRider, capture, with the free unit grant the commissions use)
-- **Feeds:** Dominion: the provinces. Justinian is a leader candidate: a pair.
+- **Feeds:** Dominion: the provinces. Justinian is a leader: a pair.
 
 #### A29. Gajah Mada
 
@@ -1151,7 +1252,7 @@ Every person also has the family’s act and work, printed above.
 - **Flavour:** The rain was measured, and the harvest known.
 - **Effect:** +1 food and +1 science on every hex with a Farm beside fresh water
 - **Shape:** existing (pays, hex, as Li Bing)
-- **Feeds:** Expansionist and Scientific. About 20 such Farms pay +40. Sejong is a leader candidate: a pair.
+- **Feeds:** Expansionist and Scientific. About 20 such Farms pay +40. Sejong is a leader: a pair.
 
 #### A34. Aḥmad ibn Mājid
 
@@ -1171,15 +1272,392 @@ Every person also has the family’s act and work, printed above.
 - **Shape:** small extension (purchaseRider on buildings, filtered by yield)
 - **Feeds:** Commerce with Scientific or Devotion: gold becomes Universities and Temples.
 
+#### A36. ☆ Hippocrates
+
+- Scholar, Æra II, ◆ strong. Kos, about 460 to 370 BC.
+- **Who:** The physician who taught that illness has natural causes. Doctors still swear an oath in his name.
+- **Flavour:** Life is short, the art long.
+- **Effect:** +15% food surplus stored toward growth, in every city
+- **Shape:** existing (the growth percentage that The Bourgs uses)
+- **Feeds:** Expansionist: bigger towns. The only growth legacy of the age.
+
+#### A37. Anaximander
+
+- Scholar, Æra II, ○ situational. Miletus, about 610 to 546 BC.
+- **Who:** He drew the first Greek map of the whole world and said the earth floats free in space.
+- **Flavour:** The earth hangs on nothing.
+- **Effect:** +1 science for each foreign city you have seen
+- **Shape:** existing (pays, empire, count sightedCities)
+- **Feeds:** Commerce and Dominion: the seats that travel. Eight cities seen pay +8 science.
+
+#### A38. Baudhāyana
+
+- Scholar, Æra II, ○ situational. North India, about 800 to 600 BC (the date is not certain).
+- **Who:** He wrote the rules for building fire altars with rope and pegs. They hold the right-angle rule, long before Greece.
+- **Flavour:** Stretch the cord across the square.
+- **Effect:** +2 science in every city with a Shrine
+- **Shape:** existing (pays, city, hasBuilding)
+- **Feeds:** Devotion with Scientific. Five Shrines pay +10 science.
+
+#### A39. Peseshet
+
+- Scholar, Æra II, ○ situational. Egypt, about 2500 BC.
+- **Who:** Her tomb stone calls her “overseer of the women physicians”: the first woman doctor whose name we have. Nothing else about her is known.
+- **Flavour:** Overseer of the women who heal.
+- **Effect:** +2 happiness · +1 food in every city
+- **Shape:** existing (happiness; pays, city)
+- **Feeds:** Every seat that grows. Plain and useful.
+
+#### A40. Solon
+
+- Scholar, Æra II, ◆ strong. Athens, about 630 to 560 BC.
+- **Who:** The lawgiver of Athens. He cancelled the debts that made farmers slaves, wrote the laws, and left the city for ten years so that nobody could ask him to change them.
+- **Flavour:** I grow old, always learning.
+- **Effect:** +2 authority capacity · +2 science in your capital
+- **Shape:** existing (authority; pays, city, trueCapital)
+- **Feeds:** Expansionist and Dominion: room for one more town.
+
+#### A41. ☆ Hesiod
+
+- Artist, Æra II, ◆ strong. Boeotia, about 700 BC.
+- **Who:** A farmer poet. Works and Days tells his brother when to plough, when to sail and why to work.
+- **Flavour:** Work, foolish Perses.
+- **Effect:** +1 food and +1 culture in every city with a Granary
+- **Shape:** existing (pays, city, hasBuilding)
+- **Feeds:** Expansionist with an artist. Five Granaries pay +10.
+
+#### A42. Aesop
+
+- Artist, Æra II, ○ situational. Samos, by tradition about 620 to 564 BC.
+- **Who:** The teller of the fables: the fox and the grapes, the tortoise and the hare. Tradition makes him a slave who talked his way free; he may be a legend.
+- **Flavour:** Slow and steady.
+- **Effect:** +1 culture and +1 gold in every city with a Market
+- **Shape:** existing (pays, city, hasBuilding)
+- **Feeds:** Commerce: the Market is its building of this age.
+
+#### A43. Exekias
+
+- Artist, Æra II, ○ situational. Athens, about 550 to 525 BC.
+- **Who:** The best of the black-figure vase painters. His pots were sold from Etruria to the Black Sea, and he signed them.
+- **Flavour:** Exekias made me.
+- **Effect:** +2 culture on every trade route you send
+- **Shape:** existing (pays, route)
+- **Feeds:** Commerce and Magisterial. Three routes pay +6 culture, when a seat makes 25.
+
+#### A44. Telesilla
+
+- Artist, Æra II, ○ situational. Argos, about 500 BC.
+- **Who:** A poet. When Sparta killed the army of Argos, the story says she armed the women and held the walls. The story is from later writers.
+- **Flavour:** The women took the spears down from the temple.
+- **Effect:** +5 to the defence of your cities · +1 culture in every city with a garrison
+- **Shape:** existing (cityStat, defense; pays, city, garrisoned)
+- **Feeds:** Dominion, and any seat with a strong neighbour.
+
+#### A45. Thutmose the Sculptor
+
+- Artist, Æra II, ◆ strong. Amarna, Egypt, about 1350 BC.
+- **Who:** The court sculptor in whose workshop the painted head of Nefertiti was found.
+- **Flavour:** The king’s favourite, the master of works.
+- **Effect:** +2 culture on every hex with a Quarry
+- **Shape:** existing (pays, hex)
+- **Feeds:** Magisterial: the monuments, with The Quarry Gangs. Four Quarries pay +8.
+
+#### A46. Mandrocles of Samos
+
+- Engineer, Æra II, ○ situational. Samos, about 513 BC.
+- **Who:** He bridged the Bosporus with boats so that the army of Persia could walk into Europe, and paid for a painting of it.
+- **Flavour:** He roped the two shores together.
+- **Effect:** all units: +1 movement while embarked · +1 production in every coastal city
+- **Shape:** existing (unitStat, embarked; pays, city, coastal)
+- **Feeds:** Dominion and Commerce on the water.
+
+#### A47. Ineni
+
+- Engineer, Æra II, ○ situational. Thebes, Egypt, about 1500 BC.
+- **Who:** Architect to four kings. He cut the first royal tomb in the Valley of the Kings, “no one seeing, no one hearing”.
+- **Flavour:** No one seeing, no one hearing.
+- **Effect:** +1 production on every hex with a Quarry
+- **Shape:** existing (pays, hex)
+- **Feeds:** Expansionist and the monuments. With Thutmose the Sculptor a Quarry pays both ways.
+
+#### A48. ☆ Sunshu Ao
+
+- Engineer, Æra II, ◆ strong. State of Chu, about 630 to 593 BC.
+- **Who:** A minister who dammed a valley to make the Peony Dam reservoir. It still waters the fields of Anhui.
+- **Flavour:** He held the river until the fields asked for it.
+- **Effect:** +2 food in every city on fresh water
+- **Shape:** existing (pays, city, freshwater)
+- **Feeds:** Expansionist: growth. Four such towns pay +8 food.
+
+#### A49. ☆ Colaeus of Samos
+
+- Merchant, Æra II, ○ situational. Samos, about 640 BC.
+- **Who:** A ship’s master blown past the Pillars of Hercules to Tartessos. He came home with the richest cargo of silver the Greeks had seen.
+- **Flavour:** The wind was wrong, and made him rich.
+- **Effect:** +1 gold for each foreign city you have seen
+- **Shape:** existing (pays, empire, count sightedCities)
+- **Feeds:** Commerce: the seat that meets everyone. Eight cities seen pay +8 gold.
+
+#### A50. Wenamun
+
+- Merchant, Æra II, ○ situational. Thebes and Byblos, about 1075 BC.
+- **Who:** A temple agent sent to buy cedar. He was robbed, ignored and made to wait, and wrote it all down. The report may be a story.
+- **Flavour:** I sat on the shore for twenty-nine days.
+- **Effect:** +1 gold and +1 production on every hex with a Lumbermill
+- **Shape:** existing (pays, hex)
+- **Feeds:** Expansionist and Commerce in forest country.
+
+#### A51. Iddin-Marduk
+
+- Merchant, Æra II, ○ situational. Babylon, 6th century BC.
+- **Who:** A trader of onions and barley whose tablets survive in hundreds. He bought the crop in the villages and sold it in the city.
+- **Flavour:** Onions, by the boatload.
+- **Effect:** +1 gold on every hex with a Farm, in your capital
+- **Shape:** existing (pays, hex, with the trueCapital scope)
+- **Feeds:** Any tall seat. A deep cut: I know him only from the business archive.
+
+#### A52. ☆ Leonidas
+
+- General, Æra II, ◆ strong. Sparta, died 480 BC.
+- **Who:** The king who held the pass at Thermopylae with three hundred Spartans until all were dead.
+- **Flavour:** Come and take them.
+- **Effect:** +4 combat strength when defending while fortified
+- **Shape:** existing (combatLine, fortified)
+- **Feeds:** Every seat that must hold a line. A name players expect.
+
+#### A53. Djehuty
+
+- General, Æra II, ○ situational. Egypt, about 1450 BC.
+- **Who:** A general of Thutmose III. The tale says he took the city of Joppa with soldiers hidden in baskets.
+- **Flavour:** Two hundred baskets, and a man in each.
+- **Effect:** +4 combat strength when attacking cities
+- **Shape:** existing (combatLine, vsCity)
+- **Feeds:** Dominion: the first conquest, before siege engines.
+
+#### A54. Artemisia of Caria
+
+- General, Æra II, ○ situational. Halicarnassus, about 480 BC.
+- **Who:** A queen who led her own ships for Persia at Salamis. She told the king not to fight there, and was right.
+- **Flavour:** My men have become women, and my women men.
+- **Effect:** +4 combat strength for ships · ships: +1 movement
+- **Shape:** existing (combatLine and unitStat with a class)
+- **Feeds:** Dominion and Commerce at sea.
+
+#### A55. Tomyris
+
+- General, Æra II, ◆ strong. The Massagetae of the steppe, about 530 BC.
+- **Who:** The queen who, in Herodotus, defeated and killed Cyrus the Great. Cyrus is a leader in this game; she is his match, not his clash.
+- **Flavour:** I will give you your fill of blood.
+- **Effect:** +3 combat strength for mounted units · +1 food on every hex with a Pasture
+- **Shape:** existing (combatLine with a class; pays, hex)
+- **Feeds:** Dominion, with a line that pays at peace.
+
+#### A56. ☆ Euclid
+
+- Scholar, Æra III, ◆ strong. Alexandria, about 300 BC.
+- **Who:** He wrote the Elements. Schools taught geometry from it for two thousand years.
+- **Flavour:** There is no royal road.
+- **Effect:** +30% production toward Libraries, Universities and Observatories
+- **Shape:** existing (productionBonus, one row a building)
+- **Feeds:** Scientific: the buildings its legacies count. It makes a wide seat’s schools cheap.
+
+#### A57. Ban Zhao
+
+- Scholar, Æra III, ○ situational. Han China, about 45 to 116.
+- **Who:** She finished the Book of Han after her brother died, and taught the empress and the court library’s scholars.
+- **Flavour:** The brother began it. The sister finished it.
+- **Effect:** +3 science in your capital · +1 authority capacity
+- **Shape:** existing (pays, city, trueCapital; authority)
+- **Feeds:** Magisterial and any tall seat.
+
+#### A58. ☆ Sophocles
+
+- Artist, Æra III, ◆ strong. Athens, about 497 to 406 BC.
+- **Who:** The playwright of Oedipus and Antigone. He won the festival of Dionysus more often than anyone.
+- **Flavour:** Call no man happy until he is dead.
+- **Effect:** Amphitheaters supply +1 happiness · +1 culture in every city with an Amphitheater
+- **Shape:** existing (happiness with a building; pays, city, hasBuilding)
+- **Feeds:** Every wide seat: happiness. Pairs with The Theatre of Dionysus.
+
+#### A59. Tiruvalluvar
+
+- Artist, Æra III, ○ situational. Tamil country, between the 1st century BC and the 5th century AD.
+- **Who:** The poet of the Kural: 1,330 couplets on virtue, wealth and love. Tradition says he was a weaver. Little about his life is certain.
+- **Flavour:** Learn well, then live as you have learned.
+- **Effect:** +2 culture on every hex with a Plantation
+- **Shape:** existing (pays, hex)
+- **Feeds:** Expansionist and Commerce: luxury land.
+
+#### A60. Auvaiyar
+
+- Artist, Æra III, ○ situational. Tamil country, about the 1st or 2nd century AD.
+- **Who:** A poet who walked from court to court. One of her poems is said to have stopped a war between two kings.
+- **Flavour:** What we know is a handful of earth.
+- **Effect:** +3 culture in every city while you are at peace
+- **Shape:** existing (conditionRule, atPeace; pays, city)
+- **Feeds:** The builders: Expansionist, Scientific, Magisterial. Eight towns pay +24, and war turns it off.
+
+#### A61. ☆ Hero of Alexandria
+
+- Engineer, Æra III, ◆ strong. Alexandria, 1st century AD.
+- **Who:** He built a steam ball that spun, temple doors that opened by fire, and a machine that sold holy water for a coin.
+- **Flavour:** Light the fire, and the doors open.
+- **Effect:** +1 science per building in your cities that supplies production
+- **Shape:** existing (pays, empire, count buildingsSupplying)
+- **Feeds:** Expansionist with Scientific. The row needs the id heronOfAlexandria: heroOfAlexandria holds Dinocrates.
+
+#### A62. Apollodorus of Damascus
+
+- Engineer, Æra III, ○ situational. Damascus and Rome, died about 130.
+- **Who:** Trajan’s engineer. He bridged the Danube in two years and built the forum and the column that tell the story.
+- **Flavour:** Twenty piers, and the river crossed.
+- **Effect:** +2 production in every city connected to your capital
+- **Shape:** small extension (a town scope: connected to the capital)
+- **Feeds:** Every wide seat with roads: Dominion and Expansionist. Seven towns pay +14.
+
+#### A63. Sostratus of Cnidus
+
+- Engineer, Æra III, ○ situational. Alexandria, about 280 BC.
+- **Who:** The builder of the Pharos, the lighthouse of Alexandria. The story says he cut his own name under the plaster that named the king.
+- **Flavour:** For those who sail the sea.
+- **Effect:** +2 gold and +2 production in every city with a Harbour
+- **Shape:** existing (pays, city, hasBuilding)
+- **Feeds:** Commerce on the coast. Pairs with The Great Lighthouse.
+
+#### A64. Zheng Guo
+
+- Engineer, Æra III, ◆ strong. Han and Qin, about 246 BC.
+- **Who:** Sent as a spy to waste Qin’s strength on a great canal. He was found out, and told the king the canal would feed Qin for ever. It did.
+- **Flavour:** I came to ruin you, and I have made you rich.
+- **Effect:** +1 food on every hex with a Farm, in every city not on fresh water
+- **Shape:** existing (pays, hex, with the notFreshwater town scope)
+- **Feeds:** Expansionist: dry towns. Qin Shi Huang, a leader, was that king: a pair.
+
+#### A65. Pasion
+
+- Merchant, Æra III, ◆ strong. Athens, died 370 BC.
+- **Who:** A slave at a banker’s table who became the banker, the richest man in Athens, and at last a citizen.
+- **Flavour:** He began by carrying the coin.
+- **Effect:** +1 gold per 50 gold in your treasury (at most +20)
+- **Shape:** existing (pays, empire, count bankedGold, with a cap)
+- **Feeds:** Commerce: a reason to hold gold, with The Strongroom.
+
+#### A66. ☆ Widow Qing of Ba
+
+- Merchant, Æra III, ◆ strong. Ba, in Qin China, 3rd century BC.
+- **Who:** She ran her family’s cinnabar mines for decades. The First Emperor honoured her and built a terrace in her name. Sima Qian gives her a few lines, and that is all we have.
+- **Flavour:** The red stone, and the quicksilver in it.
+- **Effect:** +4 gold per improved strategic resource
+- **Shape:** existing (pays, empire, count improvedStrategicResources)
+- **Feeds:** Dominion and Commerce. Cinnabar was the alchemists’ stone, which fits the frame.
+
+#### A67. Marcus Ulpius Yarhai
+
+- Merchant, Æra III, ○ situational. Palmyra, about 150 AD.
+- **Who:** A patron of the desert caravans between Rome and the Gulf. Palmyra raised at least ten statues to thank him. A deep cut.
+- **Flavour:** The caravan came home whole.
+- **Effect:** you may send 1 more trade route
+- **Shape:** existing (routeRider)
+- **Feeds:** Commerce. One more route is worth 8 to 15 gold in this age, and more with route cards.
+
+#### A68. Sang Hongyang
+
+- Merchant, Æra III, ○ situational. Han China, about 152 to 80 BC.
+- **Who:** A merchant’s son who could reckon in his head at thirteen. He set up the state trade in salt and iron and defended it in a famous debate.
+- **Flavour:** Wealth does not fall from heaven.
+- **Effect:** +10% gold in every city with a Market
+- **Shape:** existing (percentYields with a hasBuilding scope)
+- **Feeds:** Commerce. The only percentage among the age’s merchants.
+
+#### A69. Modu Chanyu
+
+- General, Æra III, ◆ strong. The Xiongnu of the steppe, ruled 209 to 174 BC.
+- **Who:** He trained his riders to shoot where his whistling arrow went, and joined the steppe into one power. He is a leader today and leaves the leaders in the chosen roster.
+- **Flavour:** Shoot where the arrow sings.
+- **Effect:** +3 combat strength for mounted units · mounted units cost 20% less production
+- **Shape:** existing (combatLine with a class; productionBonus with a class)
+- **Feeds:** Dominion: the horse army of this age, at 151 production a Horseman.
+
+#### A70. ☆ Chanakya
+
+- General, Æra III, ◆ strong. Maurya India, about 350 to 275 BC.
+- **Who:** The minister who put Chandragupta on the throne. Tradition names him the author of the Arthashastra, a manual of rule, spies and war.
+- **Flavour:** The arrow may miss. The plan does not.
+- **Effect:** your garrisons cost no upkeep · +1 authority capacity
+- **Shape:** existing (upkeepRebate, garrison, as The Standing Army; authority)
+- **Feeds:** Dominion and Expansionist. A general with no combat line: the whole legacy pays at peace.
+
+#### A71. ☆ Li Qingzhao
+
+- Artist, Æra IV, ○ situational. Song China, 1084 to about 1155.
+- **Who:** The great poet of the song lyric. She and her husband collected old bronzes and rubbings, and she lost nearly all of it in flight from the war.
+- **Flavour:** Thinner than the yellow flowers.
+- **Effect:** +4 culture for each unique luxury you hold
+- **Shape:** existing (pays, empire, count uniqueLuxuries)
+- **Feeds:** Commerce and Expansionist. Eight luxuries pay +32.
+
+#### A72. Hildegard of Bingen
+
+- Artist, Æra IV, ◆ strong. The Rhineland, 1098 to 1179.
+- **Who:** An abbess who wrote music, a play, books of medicine and letters to emperors. She is a leader today and leaves the leaders in the chosen roster. The Catholic Church honours her as a saint and teacher.
+- **Flavour:** A feather on the breath of God.
+- **Effect:** +2 culture and +2 faith in every city with a Cathedral
+- **Shape:** existing (pays, city, hasBuilding)
+- **Feeds:** Devotion with Magisterial. Her leader portrait can serve.
+
+#### A73. ☆ Filippo Brunelleschi
+
+- Engineer, Æra IV, ◆ strong. Florence, 1377 to 1446.
+- **Who:** He raised the dome of Florence cathedral with no wooden frame under it, with hoists of his own design.
+- **Flavour:** He showed them how to stand an egg on its end.
+- **Effect:** +25% production in your capital toward buildings and wonders
+- **Shape:** existing (productionBonus, trueCapital, two rows)
+- **Feeds:** Magisterial and any tall seat. Lorenzo de’ Medici, a leader, is of the next generation: a pair.
+
+#### A74. Guo Shoujing
+
+- Engineer, Æra IV, ○ situational. Yuan China, 1231 to 1316.
+- **Who:** He finished the Grand Canal into Beijing, built the instruments of the observatory and measured the year to within half a minute.
+- **Flavour:** Water to the capital, and the year to the second.
+- **Effect:** +2 food and +2 gold in every city connected to your capital
+- **Shape:** small extension (the town scope of A62: connected to the capital)
+- **Feeds:** Every wide seat. Ten towns pay +40.
+
+### Retired rows to bring back
+
+- **U1. Senenmut** (engineer, Æra II). Was: +10% production toward buildings. Proposed: +2 production in every city beside a mountain. Shape: existing (pays, city, mountainAdjacent). Æra II has few named builders outside Egypt. His temple is cut into a cliff. His old line, +10% toward buildings, is now Lu Ban’s.
+- **U2. Kushim** (merchant, Æra II). Was: +1 gold in every city with a Granary. Proposed: +2 gold in every city with a Granary. Shape: data (his old line at +2). Æra II merchants are the hardest cell. The first person named in writing is a good deep cut.
+- **U3. Aššur-idī** (merchant, Æra II). Was: +1 gold in every city but your capital. Proposed: +2 gold in every city but your capital. Shape: data (his old line at +2). The same cell. A plain line for a wide seat.
+- **U4. Sima Qian** (artist, Æra III). Was: +1 culture in every city per age that has closed. Proposed: gaining a great person grants +80 culture. Shape: existing (windfallRider, greatPersonGained). The Grand Historian wrote the lives of great men. His old line counted closed ages, which you cut.
+- **U5. Han Xin** (general, Æra III). Was: +2 combat strength beside fresh water · +2 combat strength on the coast. Proposed: +4 combat strength beside fresh water. Shape: data (his old first line at +4; the coast line goes). A famous general with a story a player can use: fight with your back to the river.
+
+### The hard cells
+
+- **Merchants of Æra II.** Few traders before 500 BC have a name. Ten are reached with two returned rows (Kushim, Aššur-idī) and three deep cuts (Colaeus, Wenamun, Iddin-Marduk). If you do not bring rows back, the honest count is eight.
+- **Engineers of Æra II.** Four of the ten are Egyptian court builders, one is a returned row (Senenmut) and one moves from Æra III (Eupalinos). No named builder from India or the Americas exists for this age.
+- **Artists of Æra II.** Seven of the ten are Greek or Mesopotamian poets. I found no honest named artist from China, India or the Americas before 500 BC who is not the author of a sacred text.
+- **Engineers of every age:** no woman. The record names none whom I can describe with confidence.
+- **The Americas and Africa south of the Sahara** stay thin: named people before 1500 are rare in the sources I know.
+
+Round 2 by family and age (new people and returned rows):
+
+|  | Æra II | Æra III | Æra IV | All |
+|---|---|---|---|---|
+| Scholars | 5 | 2 | 0 | 7 |
+| Artists | 5 | 4 | 2 | 11 |
+| Engineers | 4 | 4 | 2 | 10 |
+| Merchants | 5 | 4 | 0 | 9 |
+| Generals | 4 | 3 | 0 | 7 |
+
 Additions by family and age:
 
 |  | Æra II | Æra III | Æra IV | All |
 |---|---|---|---|---|
-| Scholars | 3 | 1 | 3 | 7 |
-| Artists | 0 | 4 | 4 | 8 |
-| Engineers | 2 | 1 | 2 | 5 |
-| Merchants | 3 | 1 | 2 | 6 |
-| Generals | 2 | 3 | 4 | 9 |
+| Scholars | 8 | 3 | 3 | 14 |
+| Artists | 5 | 7 | 6 | 18 |
+| Engineers | 5 | 5 | 4 | 14 |
+| Merchants | 6 | 5 | 2 | 13 |
+| Generals | 6 | 5 | 4 | 15 |
 
 ### People to retire or move
 
@@ -1187,32 +1665,34 @@ Additions by family and age:
 - **Move family:** Imhotep and Archimedes to the engineers.
 - **Move age:** the 15 people of S2. I left your moves of 2026-09-09 alone (Sappho, Hemiunu, Ptahhotep, Ibn Sīnā, Mimar Sinan), though Ptahhotep and Ibn Sīnā sit far from their own centuries.
 - **The 19 of Æra V:** 15 come forward (S2); 4 wait.
+- **Round 2:** Eupalinos moves from Æra III to Æra II (change C33): his tunnel dates from about 550 BC, beside Theodorus of Samos.
 
 ## Clashes with leaders, and names to check
 
-- **Hypatia** is a leader (`hypatiaOfAlexandria`) and a great scholar (`hypatia`). The leader review may replace her with Sejong. If she stays a leader, change C15 renames the scholar row.
-- **Ibn Battuta** is a leader (`ibnBattutaOfTangier`) and a great merchant (`ibnBattuta`). He is not on the candidate list, so he may leave the leaders. If he stays, change C25 renames the merchant row.
-- **Zheng He** is a leader today and a retired great merchant row. Nothing to do: the row is out of every draw.
-- **Cosimo de’ Medici** is a great merchant and **Lorenzo de’ Medici** is a leader candidate. They are two men of one house, so this is not a clash. If you want only one Medici, keep Lorenzo and rename the merchant row Giovanni di Bicci.
-- **No other leader or candidate is a great person row.** I checked Alexander, Genghis Khan, Saladin, Joan of Arc, Mehmed II, Qin Shi Huang, Augustus, Isabella, Cyrus, Cleopatra, Lorenzo de’ Medici, Hatshepsut, Harun al-Rashid, Justinian, Ashoka, Sejong, Pachacuti, Nezahualcoyotl, Mansa Musa, Taizong, Modu Chanyu, Akhenaten, Al-Ma’mun, Mithridates, Hildegard and Zheng He against all 86 rows and the 35 additions.
-- **Pairs, which I think are good:** Subutai with Genghis Khan; Maimonides with Saladin, whose court he served; Dinocrates with Alexander; al-Khwārizmī with Al-Ma’mun. Among the additions: Belisarius with Justinian, Jang Yeong-sil with Sejong, Lü Buwei with Qin Shi Huang, Julius Caesar with Augustus, Tlacaelel with Nezahualcoyotl, Cai Yan with Modu Chanyu’s people.
-- **Other names:** the wonder The Water Clock of Su Song shares a name with the great engineer Su Song. The Order The Art of War pairs with Sun Tzu. The religion names plan has “Pythagoreans”, so I left Pythagoras out. Sun Tzu and Hanno are on the old leader shelf in `docs/leaders.md`, not on the candidate list.
-- **Names to check for respect:** Deborah is a prophetess in Jewish tradition (change C12; if you rename her, Tomyris fits the effect). Rūmī is a poet whom Sufi orders revere as a teacher, not as a prophet or founder; I would keep him. Lu Ban and Fan Li are honoured in Chinese folk tradition, and the Trưng sisters in Vietnam, as heroes and patrons.
+- **The chosen leaders** (ruled 2026-11-19): Alexander, Genghis Khan, Joan of Arc, Mehmed the Conqueror, Qin Shi Huang, Pachacuti, Jayavarman VII, Nezahualcoyotl, Cyrus, Mansa Musa, Cleopatra, Lorenzo de’ Medici, Harun al-Rashid, Justinian, Sejong and Ibn Battuta. None of them is a great person row after this pass.
+- **Ibn Battuta** stays a leader. Change C25 renames the great merchant row Ibn Jubayr.
+- **Hypatia** leaves the leaders, so her great scholar row keeps its name (change C15 is withdrawn).
+- **Leaders who leave the roster and return as great people in this pass:** Modu Chanyu (a general of Æra III) and Hildegard of Bingen (an artist of Æra IV). Zheng He also leaves the leaders; his retired merchant row could come back, and I hold it in reserve because that cell is full.
+- **Not used, because they are alternates for the leader roster:** Saladin and Augustus.
+- **Cosimo de’ Medici** is a great merchant and **Lorenzo de’ Medici** is a leader. They are two men of one house, so this is not a clash. If you want only one Medici, rename the merchant row Giovanni di Bicci.
+- **Pairs, which I think are good:** Subutai with Genghis Khan; Dinocrates with Alexander; Tomyris with Cyrus, whom she defeated; Artemisia with Cyrus’s Persia; Belisarius with Justinian; Jang Yeong-sil with Sejong; Lü Buwei, Zheng Guo and Widow Qing with Qin Shi Huang; Tlacaelel with Nezahualcoyotl; Brunelleschi with Lorenzo de’ Medici.
+- **Other names:** the wonder The Water Clock of Su Song shares a name with the great engineer Su Song. The Order The Art of War pairs with Sun Tzu, The Theatre of Dionysus with Sophocles, The Great Lighthouse with Sostratus. The religion roster has the Pythagoreans, the Mojia, the Eleatics and the Peripatetics: I left out Pythagoras, Mozi and Parmenides. Aristotle, a present row, founded the Peripatetic school; the two names do not match, so I see no clash.
+- **Names to check for respect:** Deborah is a prophetess in Jewish tradition (change C12; if you rename her, Ahhotep, the Egyptian queen who rallied the army about 1550 BC, fits the effect). Rūmī is a poet whom Sufi orders revere as a teacher, not as a prophet or founder; I would keep him. Hildegard is a saint of the Catholic Church. Baudhāyana wrote a ritual manual and founded nothing. Lu Ban, Fan Li, Tiruvalluvar and the Trưng sisters are honoured as heroes and patrons.
 
 ## What a builder needs
 
 - **Order of work.** S1 and S2 first, with the tests and `docs/great-people.md`. Then the changes to people (data). Then the additions (data and portraits). Then S3 to S10, each a small batch.
-- **Data rows** (`data/greatPeople.json`): 35 new rows; 15 rows change `age` from 5 to 4; 2 rows change `family` (Imhotep, Archimedes); 30 rows change `legacy`, a figure or a name; 6 rows change `tier`. Add new rows at the end of the file: the file order is the draw order and the index of the piece’s fingerprint, so rows must not move.
-- **A new id for Hero of Alexandria.** The id `heroOfAlexandria` holds Dinocrates. If Hero is ever added, he needs another id.
+- **Data rows** (`data/greatPeople.json`): 74 new rows; 5 rows lose `retired` and get a new legacy; 15 rows change `age` from 5 to 4 and 1 from 3 to 2 (Eupalinos); 2 rows change `family` (Imhotep, Archimedes); about 28 rows change `legacy`, a figure or a name; 6 rows change `tier`. Add new rows at the end of the file: the file order is the draw order and the index of the piece’s fingerprint, so rows must not move.
+- **A new id for Hero of Alexandria** (A61): `heronOfAlexandria`. The id `heroOfAlexandria` holds Dinocrates.
 - **S1 in code:** `rosterAgeFor` in `src/sim/greatPeople.ts` returns the game age, held between the first and last roster ages. Tests to change: `test/sim/greatPeople.test.ts` (“maps an empire’s era onto a roster age”, and the spill tests that say the roster runs one past the tree). Text to change: the docblocks in `greatPeopleData.ts` and `greatPeople.ts` that say the tree has three ages.
 - **Saves and replays.** A change to the roster changes every seeded draw. This needs a schema step, as every roster change has.
-- **Small extensions and small code changes (12):** S3 (a work’s yield by age; a row in `docs/yields.md` and its sync test), S4 (`actGainOf` for gold; the bot’s act pricing), S6 (aura and rally by age), S7 (a general’s legacy from the call), S8 (happiness on the Landmark row), S9 (the hand rule), S10 (the act limit); and in the rows: C27 El Cid, A17 Trưng Trắc, A27 Brahmagupta, A28 Belisarius, A35 Fatima al-Fihri.
+- **Small extensions and small code changes (13):** S3 (a work’s yield by age; a row in `docs/yields.md` and its sync test), S4 (`actGainOf` for gold; the bot’s act pricing), S6 (aura and rally by age), S7 (a general’s legacy from the call), S8 (happiness on the Landmark row), S10 (the act limit); and in the rows: C27 El Cid, A17 Trưng Trắc, A27 Brahmagupta, A28 Belisarius, A35 Fatima al-Fihri, A62 Apollodorus of Damascus, A74 Guo Shoujing.
 - **New shapes:** none.
 - **Shapes to confirm.** I read `statecraftData.ts` and the live deck rows. I did not run any row. The builder confirms the exact fields for: `pays` with a share of gold or faith (Lü Buwei, Dante), `routeRider` on a legacy (Ibn Mājid), `conditionRule` on a legacy (Gajah Mada), and the route scope of Pytheas.
 - **Tests.** `test/sim/greatPeopleDocSync.test.ts` needs every live row in its age’s table in `docs/great-people.md`. The register test in `test/sim/statecraft.test.ts` covers any new option. Each small extension gets its own narrow test.
 - **Docs.** `docs/great-people.md`: the roster tables, the count of names, the figures table (S4 to S6) and one line on the roster ages. `docs/flags.md`: the ruling, before any agent builds.
 - **The Compendium** prints each row from the data, so new people need no text there. The Holy Site entry gets one line (it is a great person’s work).
-- **Portraits:** 35 new people: Thales of Miletus, Tapputi, Pāṇini, Lu Ban, Theodorus of Samos, Hanno the Navigator, Fan Li, Harkhuf, Fu Hao, Sun Tzu, Virgil, Kālidāsa, Wang Xizhi, Cai Yan, Julius Caesar, Zhuge Liang, Trưng Trắc, Lü Buwei, Cai Lun, Maria Hebraea, Li Bai, Dante Alighieri, Ferdowsi, Michelangelo, Ibn al-Haytham, Ibn Khaldun, Brahmagupta, Belisarius, Gajah Mada, Amina of Zazzau, Tlacaelel, Johannes Gutenberg, Jang Yeong-sil, Aḥmad ibn Mājid, Fatima al-Fihri. Also Ptolemy and Ibn Jubayr if the two rows are renamed. I did not check which of the 86 present rows have portraits.
+- **Portraits:** 74 new people: Thales of Miletus, Tapputi, Pāṇini, Lu Ban, Theodorus of Samos, Hanno the Navigator, Fan Li, Harkhuf, Fu Hao, Sun Tzu, Virgil, Kālidāsa, Wang Xizhi, Cai Yan, Julius Caesar, Zhuge Liang, Trưng Trắc, Lü Buwei, Cai Lun, Maria Hebraea, Li Bai, Dante Alighieri, Ferdowsi, Michelangelo, Ibn al-Haytham, Ibn Khaldun, Brahmagupta, Belisarius, Gajah Mada, Amina of Zazzau, Tlacaelel, Johannes Gutenberg, Jang Yeong-sil, Aḥmad ibn Mājid, Fatima al-Fihri, Hippocrates, Anaximander, Baudhāyana, Peseshet, Solon, Hesiod, Aesop, Exekias, Telesilla, Thutmose the Sculptor, Mandrocles of Samos, Ineni, Sunshu Ao, Colaeus of Samos, Wenamun, Iddin-Marduk, Leonidas, Djehuty, Artemisia of Caria, Tomyris, Euclid, Ban Zhao, Sophocles, Tiruvalluvar, Auvaiyar, Hero of Alexandria, Apollodorus of Damascus, Sostratus of Cnidus, Zheng Guo, Pasion, Widow Qing of Ba, Marcus Ulpius Yarhai, Sang Hongyang, Modu Chanyu, Chanakya, Li Qingzhao, Hildegard of Bingen, Filippo Brunelleschi, Guo Shoujing. Also Ibn Jubayr, and the five returned rows if they have none. Hildegard’s leader art can serve. I did not check which of the 86 present rows have portraits.
 - **Bots.** `src/ai/value.ts` prices acts and works. S3 to S6 change those prices; the arena panel needs no edit.
 
 ## What I could not determine
@@ -1226,10 +1706,10 @@ Additions by family and age:
 
 ## Questions
 
-1. **The ages.** Do you approve S1 and S2: each roster age is dealt in its own game age, and 15 people of Æra V come into Æra IV? Recommended: yes. The other choice is to leave the code and move the marks on the rows down by one age, which leaves the 16 early people out.
-2. **The size of a legacy.** I held every legacy to about half a regular Order of its band (8 to 15, 15 to 30, 30 to 60 a turn), from your ruling of 2026-11-12. Is that the size you want, now that a seat gets 7 to 9 people by turn 150?
-3. **Works.** Should a work grow with the ages (S3), or stay at +3 as a thing only the work cards make good?
-4. **The two leaders in the roster.** Rename the great person rows for Hypatia and Ibn Battuta now, or wait for the leader decision? And does the rule on prophets reach Deborah?
+1. **The size of a legacy.** I held every legacy to about half a regular Order of its band (8 to 15, 15 to 30, 30 to 60 a turn), from your ruling of 2026-11-12. Is that the size you want?
+2. **Works.** Should a work grow with the ages (S3), or stay at +3 as a thing only the work cards make good?
+3. **The retired rows.** May five rows you cut on 2026-09-09 come back to fill hard cells (Senenmut, Kushim, Aššur-idī, Sima Qian, Han Xin)? If not, those five cells stand at nine, or at eight for the merchants of Æra II.
+4. **Popular cells in a large lobby.** Ten holds for three seats that draft one family, and not for four or more (see “The roster at 150”). Do you want twelve to fourteen names in the cells of the families with their own hands (scholars, generals, engineers, merchants), or is spill to the age before good enough? And does the rule on prophets reach Deborah?
 
 ## The user's first rulings (2026-11-19)
 
@@ -1250,3 +1730,10 @@ Additions by family and age:
   her great person row keeps its name. Ibn Battuta stays a leader, so his
   great person row is renamed.
 - The user has not yet read the verdicts, the other changes or the additions.
+- On ten people in a cell against eight (the user answered before the
+  question was asked): "I unlock about 2-3 great people per age in my
+  playtests, so for a large lobby we could end up drafting all of them. I
+  don't want players to see the same people in every draft, so there should be
+  enough for a few players focusing on a particular type to draft". So **ten
+  in a cell is confirmed**, and the user's own rate (2 to 3 people a seat an
+  age) stands beside the bot arithmetic.
