@@ -43,6 +43,7 @@
  * walked out through `arriveOnTile` — the one seam a piece may come to rest at.
  */
 
+import { isWonder } from './buildingData';
 import { arriveOnTile } from './arrival';
 import { awardOrderBeads } from './beads';
 import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
@@ -1317,7 +1318,7 @@ export function razeCityAt(
   bumpEconomy(state);
   // **A wonder's chair goes with its town** (bot batch BP7, The Forbidden City).
   // The council is seated again as an adoption seats it (`refitSlots`' `'reseat'`).
-  if (city.buildings.some(buildingOpensChairs)) {
+  if (city.buildings.some((id) => isWonder(id) || buildingOpensChairs(id))) {
     const owner = playerById(state, city.ownerId);
     if (owner !== undefined) refitSlots(state, owner, 'reseat');
   }

@@ -137,6 +137,8 @@
   "score.devotion.opusInterdict": { "min": 0, "max": 200 },
   "score.devotion.faithfulPeace": { "min": 0, "max": 60 },
   "score.devotion.beliefSlotShare": { "min": 0, "max": 1 },
+  "score.tallyForecast.orderGained": { "min": 0, "max": 40 },
+  "score.tallyForecast.greatPersonGained": { "min": 0, "max": 15 },
   "score.tallyForecast.wonderCompleted": { "min": 0, "max": 8 },
   "score.magisterial.wonderFrontShare": { "min": 0, "max": 0.6 },
   "score.magisterial.lostRaceShare": { "min": 0, "max": 0.8 },

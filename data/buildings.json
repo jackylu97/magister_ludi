@@ -2497,35 +2497,17 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "authorityCapacity": 2,
       "requiresSite": {
         "test": "trueCapital"
       },
-      "renown": {
-        "family": "scholar",
-        "perTurn": 1
-      },
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "science",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "wildcard"
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "wildcard"
+          "kind": "slotRider",
+          "extra": 1
         }
       ],
-      "note": "Built in the seat of your government and nowhere else."
+      "note": "Built in the seat of your government and nowhere else.",
+      "happiness": 3
     },
     "viziersHall": {
       "name": "The Vizier's Hall",

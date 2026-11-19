@@ -20,6 +20,7 @@
 import { atWar } from '../wars';
 import {
   bestMeleeFor,
+  bestOfClassFor,
   capitalCityOf,
   cityAt,
   cityResources,
@@ -323,7 +324,7 @@ import {
 } from './draft';
 // The council's chairs (`council.ts`). That file imports this one back, and
 // these names are used only inside functions.
-import { chairIndexAtPosition, orderAtSlotPosition, slotTypesOf } from './council';
+import { chairIndicesAtPosition, slotTypesOf } from './council';
 import { indefinite, tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
@@ -986,11 +987,13 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   for (let at = 0; at < walked; at++) {
     const entry = list[at]!;
     if (entry.effect.kind !== 'slotPosition' || entry.effect.whole !== true) continue;
-    const seated = orderAtSlotPosition(holder, entry.effect.position, entry.effect.slot);
-    if (seated === null) continue;
-    const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
-    for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
-      readAgain(state, playerId, list, seated, label, orderDef(seated).effects, CHAIR_READS_ONCE);
+    for (const index of chairIndicesAtPosition(holder, entry.effect.position, entry.effect.slot)) {
+      const seated = sc.slots[index]?.card;
+      if (!isOrderId(seated) || seated === entry.card) continue;
+      const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
+      for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
+        readAgain(state, playerId, list, seated, label, orderDef(seated).effects, CHAIR_READS_ONCE);
+      }
     }
   }
   // **The eleventh source** (batch G3, `docs/wager.md` §4): the malices a missed
@@ -1081,10 +1084,13 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       for (const id of city.buildings) {
-        if (!oneOfAKind(id)) continue;
         if (seen.has(id)) continue;
         seen.add(id);
-        push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, buildingDef(id).effects ?? []);
+        const effects = buildingDef(id).effects;
+        if (!effects?.length) continue;
+        // A chair belongs to the holder's council even when an ordinary building opens it.
+        const realm = oneOfAKind(id) ? effects : effects.filter((effect) => effect.kind === 'slotRider');
+        if (realm.length) push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, realm);
       }
     }
   }
@@ -5179,22 +5185,24 @@ function deckModifierLines(
     // A `whole` row is the walk's, which has read the card again already. Read
     // here as well, its flat lines would pay a third time.
     if (effect.whole === true) continue;
-    const seated = orderAtSlotPosition(holder, effect.position, effect.slot);
-    // A chair that is empty, does not exist, or holds this very card pays
-    // nothing: an engine that read its own line would be an engine feeding
-    // itself, exactly as an amplifier that read its own would.
-    if (seated === null || seated === card) continue;
-    const extra = effect.factor - 1;
-    if (extra === 0) continue;
-    const line = emptyLine(card, label(source, orderDef(seated).name));
-    for (const paid of base) {
-      if (paid.card !== seated) continue;
-      for (const voice of VOICES) {
-        if (paid[voice] === 0) continue;
-        line[voice] += paid[voice] * extra;
+    for (const index of chairIndicesAtPosition(holder, effect.position, effect.slot)) {
+      const seated = holder.statecraft.slots[index]?.card;
+      // A chair that is empty, does not exist, or holds this very card pays
+      // nothing: an engine that read its own line would be an engine feeding
+      // itself, exactly as an amplifier that read its own would.
+      if (!isOrderId(seated) || seated === card) continue;
+      const extra = (effect.factor - 1) / chairReadingsAt(state, playerId, index);
+      if (extra === 0) continue;
+      const line = emptyLine(card, label(source, orderDef(seated).name));
+      for (const paid of base) {
+        if (paid.card !== seated) continue;
+        for (const voice of VOICES) {
+          if (paid[voice] === 0) continue;
+          line[voice] += paid[voice] * extra;
+        }
       }
+      if (paysSomething(line)) out.push(line);
     }
-    if (paysSomething(line)) out.push(line);
   }
   return out;
 }
@@ -6335,7 +6343,7 @@ export function tileConditionHolds(
       // hex and not about the one asking.
       return (
         beside !== undefined &&
-        beside().some((next) => tileConditionHolds(next, on.of, undefined, undefined, turn, ground))
+        beside().filter((next) => tileConditionHolds(next, on.of, undefined, undefined, turn, ground)).length >= (on.atLeast ?? 1)
       );
     case 'all': {
       for (const inner of on.of) {
@@ -9197,6 +9205,8 @@ function combatScaleCount(
         return 0;
       }
       return strikesOn(state, playerId, situation.targetId);
+    case 'greatPeopleGained':
+      return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
     case 'slottedOrdersOfSlot':
@@ -11738,6 +11748,7 @@ export function unitIdsNearGenerals(state: GameState, playerId: number): Set<num
 export interface LevyGrant {
   faithPerCitizen?: number;
   freeUpkeep?: true;
+  percentOfCost?: number;
   use: LevyUse;
   card: CardId;
   source: string;
@@ -11771,6 +11782,7 @@ export function cardLevyGrants(state: GameState, playerId: number, city: City): 
     const grant: LevyGrant = { use, card, source };
     if (effect.faithPerCitizen !== undefined) grant.faithPerCitizen = effect.faithPerCitizen;
     if (effect.freeUpkeep) grant.freeUpkeep = true;
+    if (effect.percentOfCost !== undefined) grant.percentOfCost = effect.percentOfCost;
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
     if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
     if (effect.rank !== undefined) grant.rank = effect.rank;
@@ -12041,11 +12053,11 @@ function unbuiltTechFor(state: GameState, playerId: number, type: UnitTypeId): T
 function grantedUnitTypes(
   state: GameState,
   playerId: number,
-  kind: 'bestMelee' | 'unlockedByTech',
+  kind: 'bestMelee' | 'bestRanged' | 'unlockedByTech',
   facts: WindfallOccasionFacts,
 ): UnitTypeId[] {
-  if (kind === 'bestMelee') {
-    const best = bestMeleeFor(state, playerId);
+  if (kind !== 'unlockedByTech') {
+    const best = bestOfClassFor(state, playerId, kind === 'bestMelee' ? 'melee' : 'ranged');
     return best === null ? [] : [best];
   }
   const tech = facts.tech;
@@ -14743,12 +14755,20 @@ export function cardYieldsOnlyAmplifier(
  * The sum may be below nought, because a card may take a chair away (batch DT11).
  * `chairCount` holds the floor, so no card takes a typed chair.
  */
-export function cardExtraChairs(state: GameState, playerId: number): number {
+export function countsWondersForChairs(state: GameState, playerId: number): boolean {
+  return effectsOfKind(state, playerId, 'slotRider').some(({ effect }) => effect.count === 'wonders');
+}
+
+export function cardExtraChairs(state: GameState, playerId: number, slot?: ChairType): number {
   let extra = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'slotRider')) {
     // A rider with no figure opens the ordinary one chair, exactly as a route
     // rider with none grants the ordinary one road.
-    extra += effect.extra ?? 1;
+    if (slot !== undefined && slot !== (effect.slot ?? 'wildcard')) continue;
+    const groups = effect.count === 'wonders'
+      ? Math.min(effect.max ?? Infinity, Math.floor(wondersHeldBy(state, playerId) / Math.max(1, effect.per ?? 1)))
+      : 1;
+    extra += (effect.extra ?? 1) * groups;
   }
   return Math.floor(extra);
 }
@@ -14766,7 +14786,7 @@ export function chairReadingsAt(state: GameState, playerId: number, chair: numbe
   let times = 1;
   for (const { effect } of effectsOfKind(state, playerId, 'slotPosition')) {
     if (effect.whole !== true) continue;
-    if (chairIndexAtPosition(player, effect.position, effect.slot) !== chair) continue;
+    if (!chairIndicesAtPosition(player, effect.position, effect.slot).includes(chair)) continue;
     times += Math.max(0, Math.floor(effect.factor) - 1);
   }
   return times;
@@ -14792,10 +14812,9 @@ export function chairsActedOn(state: GameState, playerId: number, card: CardId):
   const chairs = new Set<number>();
   for (const effect of anyCardDef(card).effects) {
     if (effect.kind !== 'slotPosition') continue;
-    const index = chairIndexAtPosition(player, effect.position, effect.slot);
-    if (index < 0) continue;
-    if (player.statecraft.slots[index]?.card === card) continue;
-    chairs.add(index);
+    for (const index of chairIndicesAtPosition(player, effect.position, effect.slot)) {
+      if (player.statecraft.slots[index]?.card !== card) chairs.add(index);
+    }
   }
   return [...chairs].sort((x, y) => x - y);
 }

@@ -1420,14 +1420,14 @@
   ],
   "theMagnaura": [
    {
-    "raw": "+1 science in every city per civic Order you have seated",
-    "text": "+1 science in every city per civic Order you have seated"
+    "raw": "+2 science in every city per civic Order you have seated",
+    "text": "+2 science in every city per civic Order you have seated"
    }
   ],
   "theJinshi": [
    {
-    "raw": "rare cards come up twice as often in your Order hands",
-    "text": "rare cards come up twice as often in your Order hands"
+    "raw": "you have two more civic chairs",
+    "text": "you have two more civic chairs"
    }
   ],
   "thePeregrini": [
@@ -1464,8 +1464,8 @@
   ],
   "theBourgs": [
    {
-    "raw": "+25% food surplus stored toward growth, in every city working a great person's work",
-    "text": "+25% food surplus stored toward growth, in every city working a great person's work"
+    "raw": "+50% food surplus stored toward growth, in every city working a great person's work",
+    "text": "+50% food surplus stored toward growth, in every city working a great person's work"
    }
   ],
   "theCarroccio": [
@@ -1488,8 +1488,8 @@
   ],
   "theGobelins": [
    {
-    "raw": "+4% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +40%)",
-    "text": "+4% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +40%)"
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +50%)",
+    "text": "+10% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +50%)"
    }
   ],
   "theEscorial": [
@@ -1506,6 +1506,12 @@
    {
     "raw": "the unit costs no upkeep",
     "text": "the unit costs no upkeep"
+   }
+  ],
+  "magisterialTheSteleofDeeds": [
+   {
+    "raw": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more",
+    "text": "you have one more wildcard chair for every 3 wonders you hold, up to 2 more"
    }
   ]
  },
@@ -8283,8 +8289,12 @@
   ],
   "civicGranaries": [
    {
-    "raw": "+1 food and +1 production in every city per [[building:monument|Monument]] there",
-    "text": "+1 food and +1 production in every city per Monument there"
+    "raw": "+1 food in every city per culture building there",
+    "text": "+1 food in every city per culture building there"
+   },
+   {
+    "raw": "+2 production in every city per culture building there",
+    "text": "+2 production in every city per culture building there"
    }
   ],
   "theCivicAccounts": [
@@ -8684,8 +8694,8 @@
   ],
   "theLearnedPatron": [
    {
-    "raw": "15% of the culture in every city with 2 or more culture buildings is gained again as science",
-    "text": "15% of the culture in every city with 2 or more culture buildings is gained again as science"
+    "raw": "30% of the culture in every city with an [[building:amphitheater|Amphitheater]] is gained again as science",
+    "text": "30% of the culture in every city with an Amphitheater is gained again as science"
    }
   ],
   "thePerformersTreasury": [
@@ -8702,12 +8712,12 @@
   ],
   "theSenateCharter": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science and +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
    },
    {
-    "raw": "+3 happiness and +30% production toward buildings, in every city with an [[building:assemblyHall|Assembly Hall]]",
-    "text": "+3 happiness and +30% production toward buildings, in every city with an Assembly Hall"
+    "raw": "you may build the [[building:assemblyHall|Assembly Hall]]: you have one more wildcard chair; +3 happiness",
+    "text": "you may build the Assembly Hall: you have one more wildcard chair; +3 happiness"
    }
   ],
   "theSculptorsSchools": [
@@ -8767,8 +8777,12 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens",
-    "text": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens"
+    "raw": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
+    "text": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
+   },
+   {
+    "raw": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
+    "text": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
    }
   ],
   "theLaureateCities": [
@@ -8818,8 +8832,8 @@
   ],
   "theMastersDomain": [
    {
-    "raw": "+3 food, +3 production on every hex carrying a great person's work",
-    "text": "+3 food, +3 production on every hex carrying a great person's work"
+    "raw": "+6 food, +6 production on every hex carrying a great person's work",
+    "text": "+6 food, +6 production on every hex carrying a great person's work"
    }
   ],
   "theGreatChancery": [
@@ -8850,8 +8864,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +2 science and +4 production in your capital each time you spend a great person",
-    "text": "Gains +2 science and +4 production in your capital each time you spend a great person"
+    "raw": "Gains +8 science and +8 production in your capital each time you gain a great person",
+    "text": "Gains +8 science and +8 production in your capital each time you gain a great person"
    }
   ],
   "thePageantsOfPeace": [
@@ -8878,8 +8892,8 @@
   ],
   "theLastCommission": [
    {
-    "raw": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus",
-    "text": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus"
+    "raw": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus for each age you have reached",
+    "text": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus for each age you have reached"
    }
   ],
   "theWonderCommonwealth": [
@@ -8908,8 +8922,12 @@
   ],
   "theCornerstone": [
    {
-    "raw": "+20% production toward wonders",
-    "text": "+20% production toward wonders"
+    "raw": "+25% production toward wonders",
+    "text": "+25% production toward wonders"
+   },
+   {
+    "raw": "+25% production toward culture buildings",
+    "text": "+25% production toward culture buildings"
    }
   ],
   "theRepertory": [
@@ -8926,8 +8944,12 @@
   ],
   "theNomarchs": [
    {
-    "raw": "+1 authority capacity per 2 Orders you have seated",
-    "text": "+1 authority capacity per 2 Orders you have seated"
+    "raw": "+2 authority capacity",
+    "text": "+2 authority capacity"
+   },
+   {
+    "raw": "+1 culture in your capital per spare authority",
+    "text": "+1 culture in your capital per spare authority"
    }
   ],
   "theWorkshopAtOlympia": [
@@ -8952,12 +8974,20 @@
    {
     "raw": "+2 happiness per wonder you hold",
     "text": "+2 happiness per wonder you hold"
+   },
+   {
+    "raw": "+1 food, +1 production, +1 science, +1 culture and +1 faith in every city per wonder standing there",
+    "text": "+1 food, +1 production, +1 science, +1 culture and +1 faith in every city per wonder standing there"
    }
   ],
   "theCeremonialGuard": [
    {
-    "raw": "every city containing a wonder: +5 city defence",
-    "text": "every city containing a wonder: +5 city defence"
+    "raw": "completing a wonder grants the best melee unit you can build",
+    "text": "completing a wonder grants the best melee unit you can build"
+   },
+   {
+    "raw": "completing a wonder grants a ranged unit",
+    "text": "completing a wonder grants a ranged unit"
    }
   ],
   "theUnveiling": [
@@ -8968,8 +8998,12 @@
   ],
   "theEncyclopedia": [
    {
-    "raw": "+1 science and +1 culture in your capital per Order you hold but have not seated (at most +15 each)",
-    "text": "+1 science and +1 culture in your capital per Order you hold but have not seated (at most +15 each)"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 science and +1 culture each time you gain an Order or you complete a wonder or you gain a great person",
+    "text": "Gains +1 science and +1 culture each time you gain an Order or you complete a wonder or you gain a great person"
    }
   ],
   "thePrefects": [
@@ -8986,14 +9020,14 @@
   ],
   "lettersPatent": [
    {
-    "raw": "a great person's act pays +50%",
-    "text": "a great person's act pays +50%"
+    "raw": "a great person's act pays +100%",
+    "text": "a great person's act pays +100%"
    }
   ],
   "magisterialTheQuarterOfMasters": [
    {
-    "raw": "the works on every hex carrying a great person's work beside a great person's work pay +100%",
-    "text": "the works on every hex carrying a great person's work beside a great person's work pay +100%"
+    "raw": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work",
+    "text": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work"
    }
   ],
   "theGazetteers": [
@@ -9022,14 +9056,14 @@
   ],
   "theGardenCourts": [
    {
-    "raw": "+20% culture and +20% science in every city working 2 or more hexes carrying a great person's work",
-    "text": "+20% culture and +20% science in every city working 2 or more hexes carrying a great person's work"
+    "raw": "+20% culture and +20% science in every city working a great person's work",
+    "text": "+20% culture and +20% science in every city working a great person's work"
    }
   ],
   "thePrivyCouncil": [
    {
-    "raw": "your Orders that give production give +1 more on every line they pay",
-    "text": "your Orders that give production give +1 more on every line they pay"
+    "raw": "the Orders in your wildcard chairs pay their yields twice",
+    "text": "the Orders in your wildcard chairs pay their yields twice"
    }
   ],
   "theBulwarkOfMarvels": [
@@ -9054,8 +9088,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair",
-    "text": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair"
+    "raw": "Goal: hold 8 Orders, seated or not. Reward: one more Wildcard chair",
+    "text": "Goal: hold 8 Orders, seated or not. Reward: one more Wildcard chair"
    }
   ],
   "magisterialTheWonderOfTheAge": [
@@ -9126,8 +9160,12 @@
   ],
   "theSedFestival": [
    {
-    "raw": "adopting a government grants a great person to call",
-    "text": "adopting a government grants a great person to call"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
    }
   ],
   "thePandects": [
@@ -9142,8 +9180,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier",
-    "text": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier"
+    "raw": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
+    "text": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier"
    }
   ],
   "theImmortals": [
@@ -9158,8 +9196,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture",
-    "text": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture"
+    "raw": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture",
+    "text": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture"
    }
   ],
   "theLandmarkBounds": [
@@ -9186,8 +9224,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production",
-    "text": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production"
+    "raw": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production",
+    "text": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production"
    }
   ],
   "theGrandVizier": [
@@ -9242,8 +9280,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
-    "text": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not"
+    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
+    "text": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not"
    }
   ],
   "magisterialTheParadiseGarden": [
@@ -9258,8 +9296,8 @@
   ],
   "theProcessionalWay": [
    {
-    "raw": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders",
-    "text": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders"
+    "raw": "+10 science, +10 culture on every hex beside 2 or more great-person works",
+    "text": "+10 science, +10 culture on every hex beside 2 or more great-person works"
    }
   ],
   "thePullOfTheMasters": [
@@ -10309,6 +10347,80 @@
    {
     "raw": "+6 production in every city per military building or fortification there",
     "text": "+6 production in every city per military building or fortification there"
+   }
+  ],
+  "magisterialTheHeralds": [
+   {
+    "raw": "founding a city grants +30 culture",
+    "text": "founding a city grants +30 culture"
+   }
+  ],
+  "magisterialTheQuarryGangs": [
+   {
+    "raw": "+1 production, +1 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+1 production, +1 culture on every hex with a Quarry"
+   }
+  ],
+  "magisterialTheNineJewels": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
+   }
+  ],
+  "magisterialTheDivan": [
+   {
+    "raw": "you have one more economic chair",
+    "text": "you have one more economic chair"
+   },
+   {
+    "raw": "you have one more military chair",
+    "text": "you have one more military chair"
+   }
+  ],
+  "magisterialTheHallofHeroes": [
+   {
+    "raw": "+1 combat strength per great person you have gained",
+    "text": "+1 combat strength per great person you have gained"
+   }
+  ],
+  "magisterialTheLawgiver": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a Doctrine offer",
+    "text": "On draft: you gain a Doctrine offer"
+   }
+  ],
+  "magisterialTheHanlinAcademy": [
+   {
+    "raw": "great people cost 20% less renown",
+    "text": "great people cost 20% less renown"
+   },
+   {
+    "raw": "+2 science on every hex carrying a great person's work",
+    "text": "+2 science on every hex carrying a great person's work"
+   }
+  ],
+  "magisterialTheFriendsofKhufu": [
+   {
+    "raw": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to 25% of the cost of the world wonder this town is building (once every 5 turns)"
+   }
+  ],
+  "magisterialTheTwelveTables": [
+   {
+    "raw": "+2 production and +2 culture in your capital per Order you hold, seated or not",
+    "text": "+2 production and +2 culture in your capital per Order you hold, seated or not"
    }
   ]
  },
@@ -11409,12 +11521,12 @@
   "cistern": [],
   "assemblyHall": [
    {
-    "raw": "+1 science and +1 culture per wildcard Order you have seated",
-    "text": "+1 science and +1 culture per wildcard Order you have seated"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    },
    {
-    "raw": "+2 authority capacity",
-    "text": "+2 authority capacity"
+    "raw": "+3 happiness",
+    "text": "+3 happiness"
    }
   ],
   "viziersHall": [

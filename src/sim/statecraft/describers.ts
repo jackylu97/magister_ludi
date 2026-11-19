@@ -1231,6 +1231,10 @@ function scalerGroupWords(parts: readonly ScalerPart[]): string {
 function scalerMomentWords(line: CardPaysEffect): string {
   const tally = line.tally;
   if (tally === undefined) return '';
+  if (line.alsoTallies?.length) {
+    const moments = [tally, ...line.alsoTallies].map((event) => SCALER_MOMENT_WORDS[event]);
+    return `each time ${moments.join(' or ')}`;
+  }
   const per = line.per ?? 1;
   const moment = SCALER_MOMENT_WORDS[tally];
   if (moment === null || per > 1) return `for every ${countWords(per, TALLY_WORDS[tally])}`;
@@ -1271,6 +1275,8 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   charterTechCompleted: 'you complete a charter technology',
   // Batch R1, The Strongbox: a purchase of any kind with gold.
   goldPurchase: 'you buy something with gold',
+  orderGained: 'you gain an Order',
+  greatPersonGained: 'you gain a great person',
   wonderCompleted: 'you complete a wonder',
   wonderProduction: null,
 };
@@ -3314,6 +3320,9 @@ function describeEffect(
           text: `${occasion} grants the best melee unit you can build${unitDeliveryWords(grant)}${per}`,
         });
       }
+      if (grant?.unit === 'bestRanged') {
+        out.push({ text: `${occasion} grants a ranged unit${unitDeliveryWords(grant)}${per}` });
+      }
       if (grant?.unit === 'unlockedByTech') {
         out.push({
           text: `${occasion} grants one of each military unit it unlocks${unitDeliveryWords(grant)}${per}`,
@@ -3608,7 +3617,9 @@ function describeEffect(
       const size = Math.abs(extra);
       const count = size === 1 ? 'one' : size === 2 ? 'two' : String(size);
       const change = extra < 0 ? 'fewer' : 'more';
-      out.push({ text: `you have ${count} ${change} wildcard ${size === 1 ? 'chair' : 'chairs'}` });
+      const slot = effect.slot ?? 'wildcard';
+      const counted = effect.count === 'wonders' ? ` for every ${effect.per ?? 1} wonders you hold, up to ${effect.max} more` : '';
+      out.push({ text: `you have ${count} ${change} ${slot} ${size === 1 ? 'chair' : 'chairs'}${counted}` });
       return;
     }
     case 'meterRule': {
@@ -4140,6 +4151,10 @@ function describeEffect(
     }
     case 'slotPosition': {
       const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
+      if (effect.position === 'all') {
+        out.push({ text: `the Orders in your${flavour} chairs pay their yields ${timesWords(effect.factor)}` });
+        return;
+      }
       const place = effect.position === -1 ? 'last' : ordinalWords(effect.position);
       // The last chair is the last one a malice does not hold (batch DT19c).
       const free = effect.position === -1 ? ' that no malice holds' : '';
@@ -4397,7 +4412,9 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
         what = 'a settler';
         break;
       case 'wonder':
-        what = `${food}, paid to your nearest other town building a world wonder`;
+        what = effect.percentOfCost === undefined
+          ? `${food}, paid to your nearest other town building a world wonder`
+          : `production equal to ${effect.percentOfCost}% of the cost of the world wonder this town is building`;
         break;
       case 'faith':
         what = `${effect.faithPerCitizen} faith per citizen before the levy`;
@@ -4711,6 +4728,9 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
         out.push(`${lead}you gain ${who} to call`);
         break;
       }
+      case 'doctrineOffer':
+        out.push(`${lead}you gain a Doctrine offer`);
+        break;
       case 'completeQueues':
         out.push(`${lead}each town completes its current unit or building, except wonders and the Magnum Opus`);
         break;
@@ -6327,7 +6347,7 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       // "Tended" is an adjective with no noun of its own, so the ring names the
       // hex: "beside a tended hex" rather than "beside a tended".
       into.qualifiers.push(
-        `beside ${on.of.test === 'tended' ? 'a tended hex' : besideWords(on.of)}`,
+        (on.atLeast ?? 1) > 1 ? on.of.test === 'greatWork' ? `beside ${on.atLeast} or more great-person works` : `beside at least ${on.atLeast} matching hexes (${besideWords(on.of)})` : `beside ${on.of.test === 'tended' ? 'a tended hex' : besideWords(on.of)}`,
       );
       return;
     case 'all':
@@ -6770,6 +6790,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   // The family is not in these words — `describeEffect` prints it, so that "per
   // great general" and "per great engineer" are one entry. `buildingsOfKind`'s
   // bargain, at the third scale.
+  greatPeopleGained: { one: 'great person you have gained', many: 'great people you have gained' },
   greatPeopleOfFamily: { one: 'earned this game', many: 'earned this game' },
   // The flavour is printed by `scaleNoun`, exactly as the family is: "per
   // military Order you have seated" and "per economic Order" are one entry.
@@ -7565,6 +7586,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   goldPurchase: { one: 'purchase you have made with gold', many: 'purchases you have made with gold' },
   // Magisterial batch MG4. No growing card counts these; the two commissions
   // do, and the table is total.
+  orderGained: { one: 'Order you have gained', many: 'Orders you have gained' },
+  greatPersonGained: { one: 'great person you have gained', many: 'great people you have gained' },
   wonderCompleted: { one: 'wonder you have completed', many: 'wonders you have completed' },
   wonderProduction: {
     one: 'production you have put into wonders or the Magnum Opus',
@@ -8536,6 +8559,8 @@ const COMMISSION_COUNTED_WORDS: Record<
   goldPurchase: { verb: 'make', one: 'purchase with gold', many: 'purchases with gold', counter: 'purchases with gold' },
   // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
   // Wonder of the Age.
+  orderGained: { verb: 'gain', one: 'Order', many: 'Orders', counter: 'Orders gained' },
+  greatPersonGained: { verb: 'gain', one: 'great person', many: 'great people', counter: 'great people gained' },
   wonderCompleted: { verb: 'complete', one: 'wonder', many: 'wonders', counter: 'wonders completed' },
   wonderProduction: {
     verb: 'put',
@@ -8682,6 +8707,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     noun: 'your council in order',
   },
   // Magisterial batch MG8, Commission: The Patron's Gallery.
+  worksHeld: {
+    goal: (count) => `hold ${count} great-person works`,
+    counter: 'great-person works',
+    noun: 'the great-person works in your borders',
+  },
   workFamilies: {
     goal: (count) => `have great-person works of ${count} different families in your borders`,
     counter: 'families of great-person works',

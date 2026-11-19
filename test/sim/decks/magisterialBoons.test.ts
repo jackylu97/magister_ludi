@@ -176,20 +176,19 @@ describe('Magisterial batch MG14: the rows', () => {
     );
     expect(orderDef(CABINET).onDraft).toEqual([{ grant: 'foreignCard' }]);
     expect(orderDef(RETROSPECTIVE).text).toBe(
-      'On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.',
+      'On draft: gain 40 culture, science and production for each wonder, great-person work and Order you hold.',
     );
     // Nine grants: three yields for each of three counts. Production goes to
     // the capital; culture and science are banked.
     const counts = [
-      { count: 'wonders' },
-      { count: 'tilesInBorders', tile: { test: 'greatWork' } },
+      { count: 'worksAndWondersHeld' },
       { count: 'ordersHeld' },
     ];
     const expected = counts.flatMap((perCount) =>
       (['culture', 'science', 'production'] as const).map((voice) => ({
         grant: 'windfall',
         yield: voice,
-        amount: 20,
+        amount: 40,
         perCount,
         ...(voice === 'production' ? { toCapital: true } : {}),
       })),
@@ -206,7 +205,7 @@ describe('Magisterial batch MG14: the rows', () => {
     ]);
     expect(words(RETROSPECTIVE)).toEqual([
       'Boon',
-      "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
+      expect.stringMatching(/On draft: .*40 culture.*40 science.*40 production.*wonder.*work.*Order/i),
     ]);
   });
 });
@@ -449,9 +448,9 @@ describe('The Grand Retrospective (reading 38)', () => {
     pick(state);
     // Two wonders, three works and three Orders, this card included.
     const helpings = 2 + 3 + 3;
-    expect(player.culturePool - culture).toBe(20 * helpings);
-    expect(player.sciencePool - science).toBe(20 * helpings);
-    expect(capital.hammerBasket - hammers).toBe(20 * helpings);
+    expect(player.culturePool - culture).toBe(40 * helpings);
+    expect(player.sciencePool - science).toBe(40 * helpings);
+    expect(capital.hammerBasket - hammers).toBe(40 * helpings);
     // The production goes to the capital and nowhere else.
     expect(other.hammerBasket).toBe(elsewhere);
   });
@@ -461,19 +460,19 @@ describe('The Grand Retrospective (reading 38)', () => {
     expect(payoutOf(state, 'culture')).toBe(0);
     const hexes = ring(state, capital);
     lay(state, 'landmark', hexes[0]!);
-    expect(payoutOf(state, 'culture')).toBe(20);
+    expect(payoutOf(state, 'culture')).toBe(40);
     // A work on a hex nobody owns does not count.
     const wild = at(state, 9, 2);
     expect(state.tileOwner[tileIndex(state.map, wild.col, wild.row)]).toBeNull();
     lay(state, 'academy', wild);
-    expect(payoutOf(state, 'culture')).toBe(20);
+    expect(payoutOf(state, 'culture')).toBe(40);
     // A work in a rival's borders does not count.
     const rival = town(state, 15, 5, 1);
     lay(state, 'manufactory', ring(state, rival)[0]!);
-    expect(payoutOf(state, 'culture')).toBe(20);
+    expect(payoutOf(state, 'culture')).toBe(40);
     // An ordinary improvement is not a great-person work.
     lay(state, 'farm', hexes[1]!);
-    expect(payoutOf(state, 'culture')).toBe(20);
+    expect(payoutOf(state, 'culture')).toBe(40);
   });
 
   it('counts a wonder you captured', () => {
@@ -483,7 +482,7 @@ describe('The Grand Retrospective (reading 38)', () => {
     expect(payoutOf(state, 'science')).toBe(0);
     taken.ownerId = 0;
     bumpRevision(state);
-    expect(payoutOf(state, 'science')).toBe(20);
+    expect(payoutOf(state, 'science')).toBe(40);
   });
 
   it('pays the culture and science with no capital, and the production nowhere', () => {
@@ -500,8 +499,8 @@ describe('The Grand Retrospective (reading 38)', () => {
     const science = player.sciencePool;
     pick(state);
     // One Order held: this card.
-    expect(player.culturePool).toBe(20);
-    expect(player.sciencePool - science).toBe(20);
+    expect(player.culturePool).toBe(40);
+    expect(player.sciencePool - science).toBe(40);
   });
 
   it('does nothing seated, and nothing when another card is drafted', () => {

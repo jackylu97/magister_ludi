@@ -314,6 +314,8 @@ export function commissionFigure(
       // Commission: The Golden Bull (Magisterial batch MG7, the triage's
       // reading 18). Yes or no, so the goal asks for 1.
       return councilInOrder(player) ? 1 : 0;
+    case 'worksHeld':
+      return countTilesInBorders(state, playerId, { test: 'greatWork' });
     case 'workFamilies':
       // Commission: The Patron's Gallery (Magisterial batch MG8, the
       // triage's reading 32).

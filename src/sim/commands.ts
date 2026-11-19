@@ -83,6 +83,7 @@ import {
   tileOwnerPlayerId,
   tilePurchaseError,
   unitProductionCost,
+  openWaitingDoctrineOffer,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
@@ -199,6 +200,7 @@ import {
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
+  orderOpensChairs,
   recordScalingOccasion,
   refitSlots,
   settleDoctrineChoice,
@@ -3591,6 +3593,7 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   const problem = slotOrderError(state, actor.id, command.cardId, command.slotIndex);
   if (problem) return fail(problem);
 
+  const previous = actor.statecraft.slots[command.slotIndex]?.card;
   const outcome = slotOrderAt(state, actor, command.cardId, command.slotIndex);
   // **The law just changed and is read again below** (`forgetTheLaw`'s
   // register): a slotted Order is a source of `liveEffects`, and the grant's
@@ -3598,6 +3601,7 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   // asks the cards since B1. A slate warmed before this command by any reader
   // (the bot's appraisal, a hover) would answer for the deck as it was.
   forgetTheLaw(state);
+  if (orderOpensChairs(previous) || orderOpensChairs(command.cardId)) refitSlots(state, actor, 'reseat');
   payMomentGrants(state, actor, outcome.granted);
   return ok();
 }
@@ -3648,6 +3652,7 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   const problem = unslotOrderError(state, actor.id, command.slotIndex);
   if (problem) return fail(problem);
 
+  const previous = actor.statecraft.slots[command.slotIndex]?.card;
   unslotOrderAt(actor, command.slotIndex);
   // `slotOrderAt`'s announcement, made here because `unslotOrderAt` is a fact
   // about a player alone and takes no state (batch M3, `slate.ts`).
@@ -3656,7 +3661,8 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   // (Magisterial batch MG12, The Mixed Constitution; the triage's reading 24),
   // the council is re-seated at once by the plain rule. Made here for the
   // reason above: `unslotOrderAt` takes no state, and the fit is read from it.
-  settleCouncilFit(state, actor);
+  const returned = settleCouncilFit(state, actor);
+  if (orderOpensChairs(previous) || returned.some(orderOpensChairs)) refitSlots(state, actor, 'reseat');
   return ok();
 }
 
@@ -3707,6 +3713,7 @@ function applySkipDoctrineOffer(state: GameState, command: SkipDoctrineOfferComm
   if (problem) return fail(problem);
 
   settleDoctrineSkip(actor);
+  openWaitingDoctrineOffer(state, actor);
   return ok();
 }
 
@@ -3741,6 +3748,7 @@ function applyChooseDoctrine(
   // The Arthashastra). After the law is forgotten, because the count reads it. A
   // resize and not a re-seating, so no card moves. `refitSlots` announces itself.
   refitSlots(state, actor);
+  openWaitingDoctrineOffer(state, actor);
   // **A Doctrine that bans routes abroad ends them now** (batch TR2, the reading
   // taken on The Sea Ban and The Inward Roads, `docs/flags.md` (ggggggg)). A
   // route has no term to run out, so a route already abroad would otherwise run

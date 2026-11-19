@@ -409,7 +409,7 @@ describe('The Periclean Works', () => {
 });
 
 describe('The Magnaura', () => {
-  it('pays +1 science in every town for each Civic card seated', () => {
+  it('pays +2 science in every town for each Civic card seated', () => {
     const state = bareState(24, 10);
     const first = town(state, 5, 5);
     const second = town(state, 15, 5);
@@ -417,11 +417,11 @@ describe('The Magnaura', () => {
     hold(state, 'theMagnaura');
     expect(linePays(state, first, 'theMagnaura', 'science')).toBe(0);
     slot(state, one!);
-    expect(linePays(state, first, 'theMagnaura', 'science')).toBe(1);
-    expect(linePays(state, second, 'theMagnaura', 'science')).toBe(1);
-    slot(state, two!);
     expect(linePays(state, first, 'theMagnaura', 'science')).toBe(2);
     expect(linePays(state, second, 'theMagnaura', 'science')).toBe(2);
+    slot(state, two!);
+    expect(linePays(state, first, 'theMagnaura', 'science')).toBe(4);
+    expect(linePays(state, second, 'theMagnaura', 'science')).toBe(4);
   });
 
   it('counts no other type of card, and no Civic card off its chair', () => {
@@ -443,7 +443,7 @@ describe('The Magnaura', () => {
     slot(state, ordersOfType('civic')[0]!);
     const before = explainCity(state, city).flats.science;
     hold(state, 'theMagnaura');
-    expect(explainCity(state, city).flats.science).toBe(before + 1);
+    expect(explainCity(state, city).flats.science).toBe(before + 2);
   });
 });
 
@@ -517,11 +517,11 @@ describe('The Bourgs', () => {
 
   const growth = (state: GameState, city: City): number => foldGrowthPercent(explainGrowthPercent(state, city));
 
-  it('grows a town working a great-person work 25% faster, and no other town', () => {
+  it('grows a town working a great-person work 50% faster, and no other town', () => {
     const { state, city, plain } = withWork(true);
     const before = [growth(state, city), growth(state, plain)];
     hold(state, 'theBourgs');
-    expect(growth(state, city)).toBe(before[0]! + 25);
+    expect(growth(state, city)).toBe(before[0]! + 50);
     expect(growth(state, plain)).toBe(before[1]!);
   });
 
@@ -536,7 +536,7 @@ describe('The Bourgs', () => {
     const holy = withWork(true, 'holySite');
     const before = growth(holy.state, holy.city);
     hold(holy.state, 'theBourgs');
-    expect(growth(holy.state, holy.city)).toBe(before + 25);
+    expect(growth(holy.state, holy.city)).toBe(before + 50);
 
     const farm = withWork(true, 'farm');
     const unmoved = growth(farm.state, farm.city);
@@ -554,7 +554,7 @@ describe('The Bourgs', () => {
     bumpRevision(state);
     const before = growth(state, city);
     hold(state, 'theBourgs');
-    expect(growth(state, city)).toBe(before + 25);
+    expect(growth(state, city)).toBe(before + 50);
   });
 });
 
@@ -850,7 +850,7 @@ describe('The Gobelins (batch DT6)', () => {
       .reduce((sum, entry) => sum + entry.percent, 0);
   }
 
-  it('gives +4% toward the Opus for each great-person work in the borders, in any of the seat’s towns', () => {
+  it('gives +10% toward the Opus for each great-person work in the borders, in any of the seat’s towns', () => {
     const state = bareState(30, 10);
     const first = town(state, 5, 5);
     const second = town(state, 20, 5);
@@ -858,8 +858,8 @@ describe('The Gobelins (batch DT6)', () => {
     raiseImprovement(at(state, 20, 4), 'manufactory', 0);
     bumpRevision(state);
     hold(state, NAME);
-    expect(percent(state, first, 'theMagnumOpus')).toBe(8);
-    expect(percent(state, second, 'theMagnumOpus')).toBe(8);
+    expect(percent(state, first, 'theMagnumOpus')).toBe(20);
+    expect(percent(state, second, 'theMagnumOpus')).toBe(20);
   });
 
   it('counts a holy site, and no farm, and no work outside the borders', () => {
@@ -870,10 +870,10 @@ describe('The Gobelins (batch DT6)', () => {
     raiseImprovement(at(state, 25, 5), 'academy', 0);
     bumpRevision(state);
     hold(state, NAME);
-    expect(percent(state, city, 'theMagnumOpus')).toBe(4);
+    expect(percent(state, city, 'theMagnumOpus')).toBe(10);
   });
 
-  it('stops at +40%', () => {
+  it('stops at +50%', () => {
     const state = bareState(30, 10);
     const city = town(state, 8, 5);
     const owned = ownedTiles(state, city).filter((tile) => tile.col !== city.col || tile.row !== city.row);
@@ -889,7 +889,7 @@ describe('The Gobelins (batch DT6)', () => {
     bumpRevision(state);
     expect(ownedTiles(state, city).length).toBeGreaterThan(11);
     hold(state, NAME);
-    expect(percent(state, city, 'theMagnumOpus')).toBe(40);
+    expect(percent(state, city, 'theMagnumOpus')).toBe(50);
   });
 
   it('reaches nothing but the Magnum Opus', () => {
@@ -1837,7 +1837,7 @@ describe('The Hospitium', () => {
 describe('The Jinshi', () => {
   it('says what its text says', () => {
     expect(describeCard(JINSHI).map((clause) => stripRefs(clause.text))).toEqual([
-      'rare cards come up twice as often in your Order hands',
+      'you have two more civic chairs',
     ]);
   });
 
@@ -1879,11 +1879,12 @@ describe('The Jinshi', () => {
     }
   });
 
-  it('reads one figure off the seat: a hundred for a holder, nothing for another', () => {
+  it('reads one figure off the seat: two Civic chairs for a holder, nothing for another', () => {
     const { state } = handSeat();
     expect(cardRareWeight(state, 0)).toBe(0);
     hold(state, JINSHI);
-    expect(cardRareWeight(state, 0)).toBe(100);
+    expect(cardExtraChairs(state, 0, 'civic')).toBe(2);
+    expect(cardRareWeight(state, 0)).toBe(0);
     expect(cardRareWeight(state, 1)).toBe(0);
   });
 
@@ -1900,9 +1901,9 @@ describe('The Jinshi', () => {
       held.push(deal(state, player).options[0]!);
       plain.push(deal(twin.state, twin.player).options[0]!);
     }
-    expect(Math.abs(rungShare(held, 'rare') - oddsOfRung(rarityFirstOdds(own, 0, 100), 'rare'))).toBeLessThan(0.03);
+    expect(Math.abs(rungShare(held, 'rare') - oddsOfRung(rarityFirstOdds(own, 0), 'rare'))).toBeLessThan(0.03);
     expect(Math.abs(rungShare(plain, 'rare') - oddsOfRung(rarityFirstOdds(own, 0), 'rare'))).toBeLessThan(0.03);
-    expect(rungShare(held, 'rare')).toBeGreaterThan(rungShare(plain, 'rare') * 1.5);
+    expect(held).toEqual(plain);
   });
 
   it('reaches The Hospitium’s third card as well, because that card is part of the hand', () => {
@@ -1915,7 +1916,7 @@ describe('The Jinshi', () => {
       state.rng = makeRng(seed);
       thirds.push(deal(state, player).options[2]!);
     }
-    expect(Math.abs(rungShare(thirds, 'rare') - oddsOfRung(rarityFirstOdds(bag, 0, 100), 'rare'))).toBeLessThan(0.03);
+    expect(Math.abs(rungShare(thirds, 'rare') - oddsOfRung(rarityFirstOdds(bag, 0), 'rare'))).toBeLessThan(0.03);
   });
 
   it('does not change The Cabinet of Curiosities’ draw', () => {

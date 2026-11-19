@@ -469,7 +469,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `productionBonus` | | 11 | multiplicative, production only; the city stage, or the empire stage for a row that names it (The Marian Reforms) |
 | `surplusToProduction` | | 14 | additive — the town's food surplus, moved into production after the gate |
 | `productionToCulture` | | 14 | additive — the town's production, moved into culture after the gates and the surplus moved (the Rite of the Sabbath) |
-| `pays` | empire · flat | 18 | additive — the luxuries' signature, and no card row today |
+| `pays` | empire · flat | 18 | additive; luxury signatures and The Encyclopedia's starting yields |
 | `pays` | empire · count | 18, 11 | additive at 18; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
 | `pays` | empire · rate | 18 | additive, off this turn's own rates |
 

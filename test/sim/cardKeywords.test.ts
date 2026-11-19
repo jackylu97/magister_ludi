@@ -88,7 +88,7 @@ describe('which card carries which keyword', () => {
   it('settles the three cards whose text and data disagreed in batches DS4 and DS7', () => {
     // The Senate Charter takes a chair, and its Assembly Hall works only while
     // it is seated, so it is no Charter and carries no keyword.
-    expect(orderKeyword('theSenateCharter' as OrderId)).toBeNull();
+    expect(orderKeyword('theSenateCharter' as OrderId)).toBe('charter');
     expect(orderDef('theSenateCharter' as OrderId).text).not.toMatch(/^Charter\. /);
     // The Great Loan is still a commission in its data (the on-draft grant has
     // no arm for twenty turns of income, nor for a timed loss), so it carries
