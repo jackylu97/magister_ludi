@@ -16,7 +16,7 @@ import { packUnitAsset } from '../terrainStudy/unitAssets.js';
 import { createPrimitiveUnitScene } from '../terrainStudy/primitiveUnitModels.js';
 // @ts-expect-error The study inventory remains JavaScript.
 import { paintedUnitTypes, unitReviewVariants } from '../terrainStudy/unitCatalog.js';
-import { buildNorthStarUnit, installUnitIdle, northStarUnitModel, northStarUnitTurn } from './northStarUnits';
+import { buildNorthStarUnit, installUnitIdle, northStarUnitModel, northStarUnitTurn, type NorthStarUnitAsset } from './northStarUnits';
 
 export interface PaintedUnitModel {
   readonly geometry: BufferGeometry;
@@ -79,6 +79,7 @@ export function setUnitArtVariant(unit: object, variant: string): void { artVari
 /** Geometry and owner pigments shared by resting, moving and falling pieces. */
 export class PaintedUnitKit {
   private readonly models = new Map<string, PaintedUnitModel>();
+  private readonly sculptures = new Map<string, { asset: NorthStarUnitAsset; poses: Map<string, PaintedUnitModel> }>();
   private readonly materials = new Map<number, MeshStandardMaterial>();
   private disposed = false;
 
@@ -94,16 +95,18 @@ export class PaintedUnitKit {
     // A north-star model, when `NORTH_STAR_UNITS` names one for this type (`northStarUnits.ts`).
     const northStar = embarked ? null : northStarUnitModel(unit.type);
     if (northStar) {
-      const made = this.models.get(`ns:${northStar}`);
-      if (made) return made;
-      const asset = buildNorthStarUnit(northStar);
-      asset.geometry.name = `Painted unit ${northStar}`;
-      asset.geometry.userData.paintedUnitAsset = northStar;
-      asset.geometry.computeBoundingBox();
-      asset.geometry.computeBoundingSphere();
-      const model: PaintedUnitModel = { ...asset, yaw: northStarUnitTurn(unit.type) ?? studyYaw(unit.type), trimmed: true };
-      this.models.set(`ns:${northStar}`, model);
-      return model;
+      let sculpture = this.sculptures.get(northStar);
+      if (!sculpture) {
+        sculpture = { asset: buildNorthStarUnit(northStar), poses: new Map() };
+        this.sculptures.set(northStar, sculpture);
+      }
+      // Units can share a mesh while facing different directions. Ground contacts depend on the pose.
+      const yaw = northStarUnitTurn(unit.type) ?? studyYaw(unit.type);
+      const cached = sculpture.poses.get(unit.type);
+      if (cached?.yaw === yaw) return cached;
+      const pose = { ...sculpture.asset, yaw, trimmed: true };
+      sculpture.poses.set(unit.type, pose);
+      return pose;
     }
     const cached = this.models.get(key);
     if (cached) return cached;
@@ -209,8 +212,10 @@ export class PaintedUnitKit {
     if (this.disposed) return;
     this.disposed = true;
     for (const model of this.models.values()) model.geometry.dispose();
+    for (const { asset } of this.sculptures.values()) asset.geometry.dispose();
     for (const material of this.materials.values()) material.dispose();
     this.models.clear();
+    this.sculptures.clear();
     this.materials.clear();
   }
 }
