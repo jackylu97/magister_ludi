@@ -81,3 +81,19 @@ Two towns show how those scores affected an actual choice. Each comparison uses 
 The two versions sometimes valued even the same site differently. At Pinehollow on turn 58, both priced a town at (43, 34). The live-board bot expected a four-turn build and scored the settler at 22.97. The frozen-board bot expected eight turns and scored it at −9.93. It chose a Library at 10.48. The games had already diverged, so these examples establish how the recorded boards led to different queues. They do not isolate which earlier change first lowered the value of a new town.
 
 The seed 42 follow-up matched all eight archived state digests. It linked all 541 live-board and 536 frozen-board accepted queue orders to the bot's candidate scores using turn, seat, town coordinates and queue contents. The extra trace files are alongside the unit histories. The reproduction command is `./cities-run.sh 42`.
+
+### What changed in the settler scores
+
+The production formula matches in both archived versions. Multiply the value of the next town by the build delay factor, subtract upkeep, and divide by turns of build effort. Settler upkeep was zero in all 241 recorded settler candidates on turns 51 through 75. The calculation reproduced every score in those orders. The number of negative town values rose from 37 to 90. A nearby settler waiting for an escort accounted for the remaining one live-board and five frozen-board zero scores.
+
+| Town and turn | Next-town value, live → frozen | Build effort, live → frozen |
+|---|---:|---:|
+| Pinehollow, 58 | 98.42 → −91.64 | 4 → 8 |
+| Northwatch, 68 | 439.71 → −12.00 | 4 → 5 |
+| Brightwater, 73 | 269.70 → −13.00 | 5 → 4 |
+
+At Pinehollow, the live-board calculation was 98.42355 × (56/60) ÷ 4 = 22.97. The frozen-board calculation was −91.63542 × (52/60) ÷ 8 = −9.93. If only the build time had changed to eight turns, the score would have been 10.66. The archived frozen-board Library scored 10.48. This arithmetic holds the Library and the live-board town value fixed. With the frozen-board town value and a four-turn build, the settler still scores −21.38.
+
+On turns 51 through 75, 31 pairs of accepted queue orders scored a settler for the same seat, town location and turn, with a site named in both games. In 16 pairs, the site also matched. Eight of those 16 went from positive town value to negative, and none moved in the opposite direction. In five of those eight, the build effort stayed the same or fell. Among the 15 pairs with different sites, seven went from positive to negative and one moved in the opposite direction.
+
+The bot selects the nearest available site after accounting for existing settler claims. The town value combines the value of another town, the plans it would help, the walk to the site, wagers, and charges for authority and happiness. The trace kept only that combined value for the selected site. For the next check, start with the same-site cases. Compare the number of towns held or already claimed, the value of the plans a town would help, and the authority and happiness charges on the two boards. For Pinehollow's build time, compare the settler's hammer cost, any progress on its queue row, and the town's production rate.
