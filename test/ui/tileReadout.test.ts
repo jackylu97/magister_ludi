@@ -383,6 +383,8 @@ describe('an empty row', () => {
   it('is null, not an em dash', () => {
     expect(describeImprovement(tile())).toBeNull();
     expect(describeImprovement(tile({ improvement: 'farm' }))).toContain('Farm');
+    expect(describeImprovement(tile({ damagedImprovement: { id: 'farm', improvedOn: 3 } })))
+      .toContain('Farm (pillaged). Send a worker to repair it.');
   });
 });
 

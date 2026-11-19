@@ -457,6 +457,10 @@ export function describeOccupant(
  * recognise.
  */
 export function describeImprovement(tile: Tile): string | null {
+  if (tile.damagedImprovement) {
+    const def = improvementDef(tile.damagedImprovement.id);
+    return `${def.emoji} ${def.name} (pillaged). Send a worker to repair it.`;
+  }
   const id = tile.improvement;
   if (id === undefined) return null;
   const def = improvementDef(id);

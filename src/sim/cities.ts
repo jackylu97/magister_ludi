@@ -3022,6 +3022,8 @@ function chooseCitizens(
  *      "every hex beside a work" pays on the six hexes around it. Another town
  *      may work those hexes, so each town owning one is re-seated while its owner
  *      holds such a line. Entry 30's reason, for a different row.
+ *  36. A worker restores a pillaged work (`repairImprovementAt`). The town can
+ *      work the tile again. Water and nearby great works can affect other towns.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`

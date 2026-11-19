@@ -3689,7 +3689,8 @@ describe('determinism with cities', () => {
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 247 keeps the pillaged work for repair.
+    expect(SCHEMA_VERSION).toBe(247);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -4051,6 +4052,7 @@ describe('the mid-turn refresh register', () => {
     // on your own ground. Entry 5 with the ownership turned round — the town
     // that has to be told is the one that asked for it.
     { file: 'improvements.ts', fn: 'removeImprovementAt' },
+    { file: 'improvements.ts', fn: 'repairImprovementAt' },
     { file: 'improvements.ts', fn: 'chopFeatureAt' },
     { file: 'cities.ts', fn: 'foundCityAt' },
     // The border bucket's own settlement (2026-08-27): culture poured into a

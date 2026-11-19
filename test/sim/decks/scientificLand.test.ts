@@ -275,10 +275,13 @@ describe('the Qanat (reading 30)', () => {
     expect(hexLines(state, beside, irrigation, 'food')).toBe(1);
     // Two hexes away is not beside it: the water goes no further by itself.
     expect(hexLines(state, beyond, irrigation, 'food')).toBe(0);
-    // Pillaged, it waters nothing.
-    razeImprovement(qanat);
-    bumpRevision(state);
+    const raider = createUnit(state, 1, 'warrior', qanat.col, qanat.row);
+    expect(applyCommand(state, { type: 'declareWar', playerId: 1, targetId: 0 }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'pillage', playerId: 1, unitId: raider.id }).ok).toBe(true);
     expect(hexLines(state, beside, irrigation, 'food')).toBe(0);
+    const worker = createUnit(state, 0, 'worker', qanat.col, qanat.row);
+    expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    expect(hexLines(state, beside, irrigation, 'food')).toBe(1);
   });
 
   it('counts for the cards’ fresh-water test and for a farm built on dry ground', () => {
@@ -525,6 +528,13 @@ describe('the moments a work is laid (reading 35)', () => {
     const scholar = createUnit(state, 0, 'greatPerson', 5, 5, 'ahmes');
     const before = city.hammerBasket;
     expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: scholar.id }).ok).toBe(true);
+    expect(at(state, 5, 5).improvement).toBe('academy');
+    expect(city.hammerBasket - before).toBe(150);
+    const raider = createUnit(state, 1, 'warrior', 5, 5);
+    expect(applyCommand(state, { type: 'declareWar', playerId: 1, targetId: 0 }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'pillage', playerId: 1, unitId: raider.id }).ok).toBe(true);
+    const worker = createUnit(state, 0, 'worker', 5, 5);
+    expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
     expect(at(state, 5, 5).improvement).toBe('academy');
     expect(city.hammerBasket - before).toBe(150);
   });

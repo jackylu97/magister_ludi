@@ -824,6 +824,7 @@ describe("the clock as a register", () => {
     // is two ages past it or half the seats are one age past it, so a v244
     // log's ages open on different turns.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
-    expect(SCHEMA_VERSION).toBe(246);
+    // Version 247 keeps the pillaged work for repair.
+    expect(SCHEMA_VERSION).toBe(247);
   });
 });

@@ -19,7 +19,7 @@ export function layerVisibility(state: GameState, levels: FogLevels, seat: numbe
     if (tile.improvement) add('improvements', cell);
     if (tile.improvement || tile.resource) add('works', cell);
     if (tile.road !== undefined) add('roads', cell);
-    if (tile.discovery || (seat !== null && seatSeesSleepingVein(state, seat, tile))) add('sites', cell);
+    if (tile.damagedImprovement || tile.discovery || (seat !== null && seatSeesSleepingVein(state, seat, tile))) add('sites', cell);
     if (state.tileOwner[cell] != null) add('territory', cell);
   }
   return hashes;

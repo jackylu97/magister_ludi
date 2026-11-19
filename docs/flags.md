@@ -1,5 +1,9 @@
 # The Standing Flags
 
+### Pillaging and repair, 2026-11-19
+
+Pillaging an improvement leaves a damaged work on the tile. Until a worker repairs it, all game rules treat the tile as having no improvement. This includes yields, resource access and the improved-tile counts on Orders. A worker can repair the original work without spending a charge. The player must be able to see the damage and order the repair. Dedicated 3D models for damaged works are deferred.
+
 Every OPEN ruling, deferred half and live thread — **nothing here is done**. The
 log of rulings already made and built moved to `docs/history/flags-log.md` on
 2026-09-11, item letters kept, so a citation like "(pppp)" or "(eeee)" resolves

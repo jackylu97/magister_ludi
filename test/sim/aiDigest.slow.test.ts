@@ -1317,10 +1317,11 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
 /**
  * Version 246 changes the generic draft pool and adds bot prices for the new
  * Orders. Both boards make draft picks during these 120 turns.
+ * Version 247 records damaged works and lets bot workers repair them.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '52d790f9:384223',
-  standard: 'b7eb7f33:1015904',
+  duel: '87835a7c:384223',
+  standard: 'b606a354:1018951',
 };
 
 /**

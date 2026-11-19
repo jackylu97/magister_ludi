@@ -44,6 +44,7 @@ import {
 } from '../../../src/sim/statecraft';
 import { type OrderId } from '../../../src/sim/statecraftData';
 import { computeFreshwater } from '../../../src/sim/water';
+import { applyCommand } from '../../../src/sim/commands';
 import { at, bareState } from '../improvementHelpers';
 
 /** Puts a card in a chair for this seat, the way the reading sees it. */
@@ -161,16 +162,23 @@ describe('the Expansionist batch E0: counted land', () => {
     for (const tile of hexes.slice(0, 4)) raiseImprovement(tile, 'farm', state.turn);
     raiseImprovement(hexes[4]!, 'wildOrchard', state.turn);
     bumpRevision(state);
-    const faith = explainCardCityYields(state, city)
+    const faith = () => explainCardCityYields(state, city)
       .filter((line) => line.card === 'theSpiritsOfPlace')
       .reduce((sum, line) => sum + line.faith, 0);
     // +1 for every two of the four farms. Batch DS3 removed the capital's +1.
-    expect(faith).toBe(2);
+    expect(faith()).toBe(2);
     const culture = explainCardEmpireYields(state, 0)
       .filter((line) => line.card === 'theWildMarches')
       .reduce((sum, line) => sum + line.culture, 0);
     const wild = ownedTiles(state, city).length - 4;
     expect(culture).toBe(Math.floor(wild / 4));
+    const farm = hexes[0]!;
+    const raider = createUnit(state, 1, 'warrior', farm.col, farm.row);
+    expect(applyCommand(state, { type: 'pillage', playerId: 1, unitId: raider.id }).ok).toBe(true);
+    expect(faith()).toBe(1);
+    const worker = createUnit(state, 0, 'worker', farm.col, farm.row);
+    expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    expect(faith()).toBe(2);
   });
 });
 

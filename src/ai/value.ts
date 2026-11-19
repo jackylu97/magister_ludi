@@ -142,6 +142,7 @@ import {
   otherCarryingRoutes,
   ownedTiles,
   resourceCopies,
+  spawnTileFor,
   surplusShareCarried,
   tileOwnerCityId,
   tileOwnerField,
@@ -3812,7 +3813,7 @@ export function boonTurns(ctx: ValueContext): number {
 
 /**
  * **A unit a draft hands over** (bot batch BP7, B10), as points paid once
- * (`once`) or points a turn (`rate`):
+ * (`once`) or points a turn (`rate`). Only units the capital can place count:
  *
  *   · a **trader** runs the best route a new caravan could run today
  *     (`RouteOutlook.open`), while a route slot is free for it. A route runs
@@ -3828,15 +3829,49 @@ function draftedUnitWorth(
   count: number,
   ctx: ValueContext,
 ): { once: number; rate: number } {
+  const capital = capitalCityOf(ctx.state, ctx.playerId);
+  if (capital === undefined) return { once: 0, rate: 0 };
   const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
+  const placed = countDraftUnitPlacements(ctx.state, capital, type, count);
+  if (placed === 0) return { once: 0, rate: 0 };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
-    return { once: 0, rate: routes.open.pay.total * Math.min(count, routes.free) };
+    return { once: 0, rate: routes.open.pay.total * Math.min(placed, routes.free) };
   }
   const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
-  return { once: count * explainYields({ production: hammers }, ctx).total, rate: 0 };
+  return { once: placed * explainYields({ production: hammers }, ctx).total, rate: 0 };
+}
+
+/** Use the same placement rules as the grant, with a private unit list for repeat placements. */
+function countDraftUnitPlacements(
+  state: GameState,
+  capital: City,
+  type: UnitTypeId,
+  count: number,
+): number {
+  if (count === 0) return 0;
+  if (count === 1) return spawnTileFor(state, capital, type) === null ? 0 : 1;
+
+  const units = [...state.units];
+  const def = unitDef(type);
+  for (let placed = 0; placed < count; placed++) {
+    const tile = spawnTileFor({ ...state, units }, capital, type);
+    if (tile === null) return placed;
+    if (placed + 1 === count) break;
+    units.push({
+      id: state.nextEntityId + placed,
+      ownerId: capital.ownerId,
+      type,
+      col: tile.col,
+      row: tile.row,
+      hp: def.maxHp,
+      movesLeft: def.movement,
+      hasAttacked: false,
+    });
+  }
+  return count;
 }
 
 /**

@@ -101,6 +101,8 @@ import {
   pillageError,
   prospectAt,
   prospectError,
+  repairImprovementAt,
+  repairImprovementError,
   removeImprovementAt,
   removeImprovementError,
 } from './improvements';
@@ -785,6 +787,11 @@ interface ProspectCommand extends PlayerCommand {
  */
 interface RemoveImprovementCommand extends PlayerCommand {
   type: 'removeImprovement';
+  unitId: number;
+}
+
+interface RepairImprovementCommand extends PlayerCommand {
+  type: 'repairImprovement';
   unitId: number;
 }
 
@@ -1778,6 +1785,7 @@ export type Command =
   | BuildImprovementCommand
   | ChopFeatureCommand
   | ProspectCommand
+  | RepairImprovementCommand
   | RemoveImprovementCommand
   | PillageCommand
   | PurchaseTileCommand
@@ -3320,29 +3328,16 @@ function applyProspect(state: GameState, command: ProspectCommand): CommandResul
   return result;
 }
 
-/**
- * Takes a farm back up. See `RemoveImprovementCommand`, and `improvements.ts`
- * for the rules.
- *
- * `applyChopFeature`'s twin, question for question: is this a real seat, may it
- * still act, is that its unit — and everything about the *work* delegated whole
- * to `removeImprovementError`, which is what the unit sheet greys its Remove row
- * with. So an offered row is a command this accepts, and the sentence a player
- * reads on a refusal is this reducer's own.
- *
- * Nothing rides back out on the result, and that is the verb rather than an
- * omission: a raid has figures the interface could not derive (`PillageReport`),
- * and this has none — no salvage, no timber, no refund. The board says the whole
- * of what happened, so the panel's ordinary refresh is the whole of the news.
- */
-function applyRemoveImprovement(
+/** Both actions use an owned worker on its tile and spend its remaining movement. */
+function applyWorkerMaintenance(
   state: GameState,
-  command: RemoveImprovementCommand,
+  command: RemoveImprovementCommand | RepairImprovementCommand,
 ): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot remove improvements`);
+    const action = command.type === 'repairImprovement' ? 'repair' : 'remove';
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot ${action} improvements`);
   }
 
   const unit = unitById(state, command.unitId);
@@ -3351,13 +3346,13 @@ function applyRemoveImprovement(
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
 
-  const problem = removeImprovementError(state, unit.id);
+  const repair = command.type === 'repairImprovement';
+  const problem = repair ? repairImprovementError(state, unit.id) : removeImprovementError(state, unit.id);
   if (problem) return fail(problem);
 
-  // Validation is done — `removeImprovementError` has already established that
-  // the unit is on the map and that this empire's own works stand on the hex.
   const tile = getTileAt(state.map, unit.col, unit.row)!;
-  removeImprovementAt(state, unit, tile);
+  if (repair) repairImprovementAt(state, unit, tile);
+  else removeImprovementAt(state, unit, tile);
   return ok();
 }
 
@@ -4811,6 +4806,7 @@ function orderedUnitId(command: Command): number | undefined {
     case 'prospect':
     // A worker told to take a farm up is a piece given an order, exactly as one
     // told to lay it down is — the act spends its whole turn either way.
+    case 'repairImprovement':
     case 'removeImprovement':
     case 'pillage':
     // An augur told to consecrate is an augur given an order, so it wakes like
@@ -4998,6 +4994,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   buildImprovement: 'economy',
   chopFeature: 'economy',
   prospect: 'economy',
+  repairImprovement: 'economy',
   removeImprovement: 'economy',
   pillage: 'economy',
   purchaseTile: 'economy',
@@ -5214,8 +5211,9 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChopFeature(state, command);
     case 'prospect':
       return applyProspect(state, command);
+    case 'repairImprovement':
     case 'removeImprovement':
-      return applyRemoveImprovement(state, command);
+      return applyWorkerMaintenance(state, command);
     case 'pillage':
       return applyPillage(state, command);
     case 'purchaseTile':

@@ -112,6 +112,7 @@ import {
   chargesLeft,
   hexStanding,
   improvementErrorAt,
+  repairGroundError,
   improvementGroundError,
   improvementOpenTo,
   improvementYieldDelta,
@@ -150,6 +151,8 @@ export interface PlanEntry {
   row: number;
   /** The improvement to lay, or `null` when the entry is a survey. */
   improvement: ImprovementId | null;
+  /** A worker can restore the original work without a charge. */
+  repair?: true;
   /** What a candidate row calls it. */
   label: string;
   /** Weighted value per turn, in the one currency. Folds from `terms`. */
@@ -398,7 +401,15 @@ function bestEntryOn(
   // The hex as it stands, read once: each entry's yield with its improvement on is
   // this plus the entry's own delta (bot batch BP13b, `PlanEntry.improved`).
   let bare: TileYield | undefined;
+  const damaged = tile.damagedImprovement;
+  if (damaged && standing.owner === player.id && repairGroundError(state, tile) === null) {
+    bare = foldTile(tile, ground(tile));
+    best = pricedEntry(state, player, ctx, tile, damaged.id, ground, bare);
+    best.repair = true;
+    best.label = `Repair ${best.label}`;
+  }
   for (const improvement of roster) {
+    if (improvement === damaged?.id && standing.owner === player.id) continue;
     if (improvementGroundError(state, player.id, tile, improvement, standing) !== null) continue;
     bare ??= foldTile(tile, ground(tile));
     const entry = pricedEntry(state, player, ctx, tile, improvement, ground, bare);
@@ -1272,7 +1283,7 @@ function walkTheList(
 
 /** The charges one entry costs: its row's `chargeCost`, nothing for a survey. */
 function entryChargeCost(entry: PlanEntry): number {
-  return entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
+  return entry.repair || entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
 }
 
 /** Every hex a citizen of this seat works or will work next, over all its towns. */

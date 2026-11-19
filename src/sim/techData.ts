@@ -757,6 +757,13 @@ const TECH_DATA: TechData = techsJson as TechData;
  */
 export const ALL_TECH_IDS = Object.keys(TECH_DATA.techs) as TechId[];
 
+const TECH_ROSTER_INDEX = new Map(ALL_TECH_IDS.map((id, index) => [id, index]));
+
+/** Research paths use roster order to break ties between technologies at the same depth. */
+export function compareResearchOrder(a: TechId, b: TechId): number {
+  return techDepth(a) - techDepth(b) || TECH_ROSTER_INDEX.get(a)! - TECH_ROSTER_INDEX.get(b)!;
+}
+
 /**
  * **The sky**: every ordinary technology, in file order, which is the order the
  * star chart lays them out.
