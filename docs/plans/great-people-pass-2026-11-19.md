@@ -1230,3 +1230,23 @@ Additions by family and age:
 2. **The size of a legacy.** I held every legacy to about half a regular Order of its band (8 to 15, 15 to 30, 30 to 60 a turn), from your ruling of 2026-11-12. Is that the size you want, now that a seat gets 7 to 9 people by turn 150?
 3. **Works.** Should a work grow with the ages (S3), or stay at +3 as a thing only the work cards make good?
 4. **The two leaders in the roster.** Rename the great person rows for Hypatia and Ibn Battuta now, or wait for the leader decision? And does the rule on prophets reach Deborah?
+
+## The user's first rulings (2026-11-19)
+
+- On the finding that the roster runs one age ahead of the game: "ah i see,
+  it's because you unlock great people in age 2. great people should be
+  drafted from the age of the player, remove the +1 age thing." So **S1 is
+  approved**: a seat is dealt people of its own age.
+- In chat: "i haven't looked at the great people yet, could we have ~10 of
+  each type in each age?" So **the target is about ten people of each family
+  in each age** in which great people can be called (ages 2, 3 and 4: about
+  150 in all, where the pass as written reaches 109).
+- The leader roster is now chosen
+  (`docs/plans/leader-roster-pass-2026-11-19.md`, "The user's ruling on the
+  roster"): Alexander, Genghis Khan, Joan of Arc, Mehmed the Conqueror, Qin Shi
+  Huang, Pachacuti, Jayavarman VII, Nezahualcoyotl, Cyrus, Mansa Musa,
+  Cleopatra, Lorenzo de' Medici, Harun al-Rashid, Justinian, Sejong, and Ibn
+  Battuta. None of them may be a great person. Hypatia leaves the leaders, so
+  her great person row keeps its name. Ibn Battuta stays a leader, so his
+  great person row is renamed.
+- The user has not yet read the verdicts, the other changes or the additions.
