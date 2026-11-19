@@ -39,6 +39,7 @@ import {
   sameChairs,
   stage,
   stagedFit,
+  stagedState,
   validate,
 } from '../../src/ui/statecraftStaging';
 import { game } from '../sim/statecraftHelpers';
@@ -276,6 +277,39 @@ describe('the refusals are the reducer’s own', () => {
 });
 
 describe('confirming', () => {
+  it('keeps the live history when a card returns to its original chair', () => {
+    const g = game();
+    seatFixture(g.state, 0);
+    const chair = WILD[0]!;
+    const history = {
+      card: 'bloodedSpears' as const,
+      sealedUntil: g.state.turn,
+      rerollsSeen: 2,
+      nextFiresTurn: g.state.turn + 3,
+      firePeriod: 5,
+    };
+    live(g.state)[chair] = history;
+    grant(g.state, 0, history.card);
+
+    const staged = stage(live(g.state));
+    expect(staged[chair]).toEqual({ ...history, staged: false });
+    const unchanged = stagedState(g.state, 0, staged);
+    expect(live(unchanged)).toEqual(live(g.state));
+    expect(live(unchanged)[chair]).not.toBe(history);
+
+    const removed = remove(staged, chair);
+    expect(live(stagedState(g.state, 0, removed))[chair]).toBeNull();
+    history.rerollsSeen++;
+    const restored = place(removed, chair, history.card, g.state.turn);
+    expect(councilDiff(g.state, 0, restored)).toEqual([]);
+    expect(live(stagedState(g.state, 0, restored))[chair]).toEqual({
+      ...history,
+      rerollsSeen: 3,
+    });
+    expect(live(g.state)[chair]).toBe(history);
+    expect(staged[chair]?.rerollsSeen).toBe(2);
+  });
+
   it('applies to exactly the arrangement the player was looking at', () => {
     const g = game();
     seatFixture(g.state, 0);
@@ -283,20 +317,29 @@ describe('confirming', () => {
     grant(g.state, 0, 'firstRites');
     grant(g.state, 0, 'campFollowers');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 0 } as Command);
-    g.state.turn = live(g.state)[0]!.sealedUntil;
+    const original = live(g.state)[0]!;
+    g.state.turn = original.sealedUntil;
+    Object.assign(original, { rerollsSeen: 3, nextFiresTurn: g.state.turn + 2, firePeriod: 5 });
 
     // One card moved, one taken out of the collection into a wildcard office.
     let staged = stage(live(g.state));
     staged = remove(staged, 0);
     staged = place(staged, WILD[1]!, 'bloodedSpears', g.state.turn);
-    staged = place(staged, WILD[0]!, 'firstRites', g.state.turn);
+    staged = place(staged, 0, 'firstRites', g.state.turn);
     const wanted = occupants(staged);
+    const preview = live(stagedState(g.state, 0, staged));
+    expect(preview[0]).toEqual({ card: 'firstRites', sealedUntil: g.state.turn });
+    expect(preview[WILD[1]!]).toEqual({ card: 'bloodedSpears', sealedUntil: g.state.turn });
+    expect(live(g.state)[0]).toBe(original);
 
     expect(validate(g.state, 0, staged)).toBeNull();
     for (const command of diff(live(g.state), staged, 0)) {
       expect(dispatch(g, command as Command).ok).toBe(true);
     }
     expect(occupants(live(g.state))).toEqual(wanted);
+    expect(live(g.state)).toEqual(preview.map((slot, index) =>
+      slot === null ? null : { ...slot, sealedUntil: live(g.state)[index]!.sealedUntil },
+    ));
     // And the seals are the reducer's, stamped on the way in — staging never
     // decided how long one lasts.
     expect(sealRemaining(g.state, live(g.state)[WILD[1]!])).toBeGreaterThan(0);

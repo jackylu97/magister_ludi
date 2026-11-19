@@ -70,11 +70,7 @@ import { playerById } from '../sim/state';
  * may still pick up. The real seal is stamped by the reducer on Confirm, which
  * is the only place in the game that decides how long a seal lasts.
  */
-interface StagedSlot {
-  readonly card: OrderId;
-  readonly sealedUntil: number;
-  readonly staged: boolean;
-}
+type StagedSlot = Readonly<SlottedOrder & { staged: boolean }>;
 
 /** An arrangement of the offices, indexed exactly as `slotLayout` is. */
 export type StagedSlots = readonly (StagedSlot | null)[];
@@ -91,7 +87,7 @@ export type SlotCommand = SlotOrderCommand | UnslotOrderCommand;
  */
 export function stage(live: readonly (SlottedOrder | null)[]): StagedSlots {
   return live.map((slot) =>
-    slot === null ? null : { card: slot.card, sealedUntil: slot.sealedUntil, staged: false },
+    slot === null ? null : { ...slot, staged: false },
   );
 }
 
@@ -143,10 +139,12 @@ export function remove(staged: StagedSlots, index: number): StagedSlots {
  * a question about a state that is not true yet. Nothing ever mutates it and
  * nothing keeps it.
  */
-function shadowState(state: GameState, playerId: number, staged: StagedSlots): GameState {
-  const slots: (SlottedOrder | null)[] = staged.map((slot) =>
-    slot === null ? null : { card: slot.card, sealedUntil: slot.sealedUntil },
-  );
+function shadowState(
+  state: GameState,
+  playerId: number,
+  staged: StagedSlots,
+  keepLiveOccupants = false,
+): GameState {
   // The seating is destructured rather than reached for by name, and it is
   // deliberately **not** the roster question `test/ui/seatRoster.test.ts`
   // forbids the interface from asking of `state.players` by hand. That rule is
@@ -157,24 +155,30 @@ function shadowState(state: GameState, playerId: number, staged: StagedSlots): G
   const { players, ...rest } = state;
   return {
     ...rest,
-    players: players.map((player) =>
-      player.id === playerId
-        ? { ...player, statecraft: { ...player.statecraft, slots } }
-        : player,
-    ),
+    players: players.map((player) => {
+      if (player.id !== playerId) return player;
+      const slots = staged.map((slot, index) => {
+        if (slot === null) return null;
+        const live = player.statecraft.slots[index];
+        if (keepLiveOccupants && live?.card === slot.card) return { ...live };
+        const { staged: _staged, ...order } = slot;
+        return order;
+      });
+      return { ...player, statecraft: { ...player.statecraft, slots } };
+    }),
   };
 }
 
 /**
  * **The game as it would stand under an arrangement**, for a reader that asks
  * what the arrangement would pay (the Council screen's totals line, while a
- * card is held over a chair). The same read-only shadow `placeError` asks, so
- * the yields are read by the turn's own evaluators. Every memo is keyed on
- * the state object, so a shadow is read fresh and never answers from the
- * live board's memo.
+ * card is held over a chair). Confirm skips chairs where the occupant matches
+ * the live board. Read those chairs from the live board so they keep any
+ * history added since staging began. Use a new state object so the turn's
+ * evaluators read the proposed arrangement.
  */
 export function stagedState(state: GameState, playerId: number, staged: StagedSlots): GameState {
-  return shadowState(state, playerId, staged);
+  return shadowState(state, playerId, staged, true);
 }
 
 /**
