@@ -236,14 +236,14 @@ describe('the shared shelf is two kinds of row and no third', () => {
 });
 
 describe('a live row', () => {
-  it('carries effects, and is dealt', () => {
+  it('has a rule or reward and is dealt', () => {
     for (const id of LIVE) {
-      // A charter's grant is the whole of the card (The Chartered Company), and
-      // so is a grant on the draft (The Sword of State, Dominion batch D5).
-      if (orderDef(id).charter === undefined && orderDef(id).onDraft === undefined) {
-        expect(orderDef(id).effects.length, `${id} is live and pays nothing`).toBeGreaterThan(0);
+      const def = orderDef(id);
+      if (def.charter === undefined && def.onDraft === undefined) {
+        const effectsAndRewards = def.effects.length + (def.commission?.reward.length ?? 0);
+        expect(effectsAndRewards, `${id} is live and pays nothing`).toBeGreaterThan(0);
       }
-      expect(orderDef(id).deferred, id).toBeUndefined();
+      expect(def.deferred, id).toBeUndefined();
       expect(orderIsDealt(id), `${id} is live and in no pool`).toBe(true);
     }
   });
@@ -260,7 +260,11 @@ describe('a live row', () => {
         if (effect.kind === 'conditionRule') walk(effect.then, id);
       }
     }
-    for (const id of LIVE) walk(orderDef(id).effects, id);
+    for (const id of LIVE) {
+      const def = orderDef(id);
+      walk(def.effects, id);
+      for (const reward of def.commission?.reward ?? []) walk(reward.lasting ?? [], id);
+    }
   });
 
   it('prints through the describers, in whole sentences, with no raw keyword ref', () => {
@@ -277,10 +281,10 @@ describe('a live row', () => {
         expect(stripRefs(clause.text), `${id} — a raw ref survives`).not.toContain('[[');
         expect(clause.deferred, `${id} — a live row prints a struck clause`).not.toBe(true);
       }
-      // The card's face is its effects' words first, whatever it adds after. A
-      // card whose whole text is a grant on the draft has no effects to print.
-      if (orderDef(id).onDraft !== undefined && orderDef(id).effects.length === 0) continue;
-      const printed = describeEffects(orderDef(id).effects, 'empire');
+      const def = orderDef(id);
+      // Grants on the draft and Commission rewards have their own clauses above.
+      if (def.effects.length === 0 && (def.onDraft !== undefined || def.commission !== undefined)) continue;
+      const printed = describeEffects(def.effects, 'empire');
       expect(printed.length, `${id} — the effects describe as nothing`).toBeGreaterThan(0);
     }
   });

@@ -8467,6 +8467,16 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'hexes owned',
     noun: 'the hexes you own',
   },
+  empirePopulation: {
+    goal: (count) => `have ${count} citizens`,
+    counter: 'citizens in your empire',
+    noun: 'the citizens in your empire',
+  },
+  townsAtPopulation: {
+    goal: (count) => `hold ${count} towns of the required size`,
+    counter: 'towns of the required size',
+    noun: 'your towns of the required size',
+  },
   improvedTilesWorked: {
     goal: (count) => `work ${count} improved tiles at the same time`,
     counter: 'improved tiles worked',
@@ -8667,6 +8677,9 @@ export function commissionGoalWords(goal: CommissionGoal): string {
     const towns = citiesAdmittedWords(goal.admits);
     return `have ${goal.count} ${goal.count === 1 ? towns.one : towns.many}, at the same time`;
   }
+  if (goal.figure === 'townsAtPopulation' && goal.populationAtLeast !== undefined) {
+    return `hold ${goal.count} ${goal.count === 1 ? 'town' : 'towns'} of ${goal.populationAtLeast} or more citizens`;
+  }
   // The floor on the town's wonders (Magisterial batch MG9, The Ideal City):
   // "have one of your cities hold 2 wonders and work 3 great-person works".
   if (goal.figure === 'oneTownWorksWorked' && goal.wondersAtLeast !== undefined && goal.wondersAtLeast > 0) {
@@ -8698,6 +8711,9 @@ export function commissionCounterWords(goal: CommissionGoal): string {
   if (goal.kind === 'reached' && goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
     if (goal.every === true) return `cities, ${everyAdmittedWords(goal.admits)}`;
     return citiesAdmittedWords(goal.admits).many;
+  }
+  if (goal.kind === 'reached' && goal.figure === 'townsAtPopulation' && goal.populationAtLeast !== undefined) {
+    return `towns with ${goal.populationAtLeast} or more citizens`;
   }
   // The floor on the town's wonders (Magisterial batch MG9, The Ideal City).
   if (

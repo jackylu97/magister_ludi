@@ -1409,4 +1409,12 @@ strength on attack and defence, and card text against the sheet.
 
 The generic branch now implements 23 of the 39 Orders. The General Summons raises up to three units of the best melee type available when the card is drafted. The capital uses its normal placement rules for each unit. Each placed unit costs no upkeep. A capital with one legal space gets one unit. The bot values the three units at their production cost and can overvalue a crowded capital. The type check, 12,084 core tests and the production build passed. The new pool will land together when the remaining 16 Orders are ready.
 
+## The Land Register and The Master Plan, 2026-11-19
+
+The generic branch now implements 25 of the 39 Orders. The Land Register counts the citizens in towns the seat holds. The Master Plan counts its towns that meet the population floor. Both check the current board at turn end while seated. Fulfilment frees the chair and keeps the reward active for the rest of the game.
+
+The bot estimates when each town will meet The Master Plan's goal from its current growth rate and food basket. It uses the ordinary Commission price and chair rules for both Orders.
+
+Typecheck, all 12,087 core tests and the production build passed on the generic Orders branch.
+
 **The Old Foundations.** The data already sets a useful bound on this proposed card. Four Age I buildings can pay one gold upkeep each. Ten Age II buildings can pay two each, including four once-per-empire buildings. For example, a town with a Barracks, Library, Market and Smithy saves six gold a turn. A town with only a Granary and Monument saves zero. The card scales with the number of eligible buildings already built. These are examples from the cost rules, rather than observations of play. Check actual holdings in the next human playtest.

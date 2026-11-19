@@ -10891,6 +10891,10 @@ export type CommissionFigure =
   | 'tradeRoutes'
   /** Hexes inside this empire's borders. */
   | 'hexesOwned'
+  /** The total population of the towns this empire holds. */
+  | 'empirePopulation'
+  /** Towns this empire holds that meet the goal's population floor. */
+  | 'townsAtPopulation'
   /** Tiles worked by this empire's towns that carry an improvement. */
   | 'improvedTilesWorked'
   /**
@@ -11035,6 +11039,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'luxuryCopies',
   'tradeRoutes',
   'hexesOwned',
+  'empirePopulation',
+  'townsAtPopulation',
   'improvedTilesWorked',
   'improvedOnlyTilesWorked',
   'oneTownWorkedHexes',
@@ -11077,6 +11083,8 @@ export type CommissionGoal =
  * sibling for towns rather than for hexes.
  */
 interface GoalTowns {
+  /** The minimum population of each town that counts toward `townsAtPopulation`. */
+  populationAtLeast?: number;
   /**
    * Only a town of this empire that this scope admits counts: Commission: The
    * Great Fair's "towns that a domestic trade route arrives at" is

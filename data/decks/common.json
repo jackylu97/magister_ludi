@@ -1183,6 +1183,21 @@
       "effects": [],
       "note": "The Cistern also gives food on worked desert tiles and irrigates the farms its town works."
     },
+    "theLandRegister": {
+      "name": "Commission: The Land Register",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The survey starts at the first doorstep.",
+      "text": "Goal: have 30 citizens. Reward: every town gains +2 food and +2 production.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "empirePopulation", "count": 30 }],
+        "reward": [{ "lasting": [{ "kind": "pays", "where": "city", "food": 2, "production": 2 }] }]
+      }
+    },
     "theFoundersRights": {
       "name": "The Founders' Rights",
       "decks": [],
@@ -1284,6 +1299,21 @@
           "max": 7
         }
       ]
+    },
+    "theMasterPlan": {
+      "name": "Commission: The Master Plan",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "Four towns sent their plans. The builders drew one.",
+      "text": "Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "townsAtPopulation", "populationAtLeast": 20, "count": 4 }],
+        "reward": [{ "lasting": [{ "kind": "productionBonus", "category": "building", "building": "theMagnumOpus", "percent": 40 }] }]
+      }
     },
     "theGeneralSummons": {
       "name": "The General Summons",

@@ -137,6 +137,7 @@ import {
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
+  growthThreshold as citizenGrowthThreshold,
   lendableCopies,
   otherCarryingRoutes,
   ownedTiles,
@@ -7101,11 +7102,11 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
     // A goal met by completing a technology is forecast from the research
     // itself (Scientific batch S13): The Great Instrument's Alchemy and The
     // Royal Charter Commission's charter technology. See `researchGoalForecast`.
-    const research = researchGoalForecast(goal, ctx);
-    if (research !== null) {
-      if (research.turns < turns) continue;
-      turns = Math.max(1, research.turns);
-      why = research.why;
+    const forecast = researchGoalForecast(goal, ctx) ?? townPopulationGoalForecast(goal, ctx);
+    if (forecast !== null) {
+      if (forecast.turns < turns) continue;
+      turns = Math.max(1, forecast.turns);
+      why = forecast.why;
       continue;
     }
     // **The Magisterial goals** (Magisterial batch MG17): a wonder its towns
@@ -7133,6 +7134,28 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
         : `${round(remaining)} more ${what} still to come, and no pace to forecast them from`;
   }
   return { turns, why };
+}
+
+/** Use each town's own growth because a surplus in one town cannot make another qualify. */
+function townPopulationGoalForecast(goal: CommissionGoal, ctx: ValueContext): { turns: number; why: string } | null {
+  if (goal.kind !== 'reached' || goal.figure !== 'townsAtPopulation' || goal.populationAtLeast === undefined) return null;
+  const population = goal.populationAtLeast;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  if (towns.length < goal.count) return { turns: horizon, why: `${goal.count} towns are needed for the goal` };
+
+  const arrivals = towns.map((town) => {
+    if (town.population >= population) return 0;
+    let food = -town.foodBasket;
+    for (let size = town.population; size < population; size++) food += citizenGrowthThreshold(size);
+    // Growth settles at most one citizen per town at the end of a turn.
+    const wait = food <= 0 ? 0 : Math.ceil(regrowTurns(town, food, ctx));
+    return Math.max(population - town.population, wait);
+  }).sort((a, b) => a - b);
+  return {
+    turns: Math.min(horizon, arrivals[goal.count - 1] ?? horizon),
+    why: `time for ${goal.count} towns to reach ${population} citizens at their current growth`,
+  };
 }
 
 /** Does a counted goal count only some moments (`GoalFloor`)? */

@@ -18,11 +18,11 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier | Implemented | Modify | Add | All | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 8 | 0 | 1 |
-| Tier I | 4 | 0 | 6 | 10 | 6 | 2 | 2 |
+| Tier I | 5 | 0 | 5 | 10 | 6 | 2 | 2 |
 | Tier II | 4 | 0 | 4 | 8 | 4 | 2 | 2 |
-| Tier III | 3 | 0 | 5 | 8 | 2 | 4 | 2 |
+| Tier III | 4 | 0 | 4 | 8 | 2 | 4 | 2 |
 | Tier IV | 3 | 0 | 1 | 4 | 2 | 1 | 1 |
-| **All** | **23** | **0** | **16** | **39** | **22** | **9** | **8** |
+| **All** | **25** | **0** | **14** | **39** | **22** | **9** | **8** |
 
 **By type** (the chair a card fits):
 
@@ -59,7 +59,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | **The Gilded Country** | common | add | Every tile that makes at least 1 gold gains 1 more. | Economic |  | G1-4 |
 | **Cistern Works** | common | implemented | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | Economic | Charter | G1-5 |
 | **The Brick Kilns** | uncommon | add | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | Civic | Scaler | G1-6 |
-| **Commission: The Land Register** | uncommon | add | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
+| **Commission: The Land Register** | uncommon | implemented | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | Wildcard | Commission | G1-8 |
 | **The Liturgies** | common | add | On draft: every town gains production equal to ten times its citizens. | Economic | Boon | G1-9 |
 | **The Builders' Lodge** | rare | add | Orders that add yields to buildings pay double. | Wildcard |  | G1-10 |
 | **The Founders' Rights** | rare | implemented | +3 authority. Cities you found start with one extra citizen. | Civic |  | G1-11 |
@@ -83,7 +83,7 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 |---|---|---|---|---|---|---|
 | **The Good Years** | rare | add | Your bonus from spare happiness is doubled. | Civic |  | G3-1 |
 | **City Watches** | common | implemented | Your towns gain +8 defence. | Military |  | G3-2 |
-| **Commission: The Master Plan** | uncommon | add | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | Wildcard | Commission | G3-3 |
+| **Commission: The Master Plan** | uncommon | implemented | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | Wildcard | Commission | G3-3 |
 | **The General Summons** | uncommon | implemented | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. | Military | Boon | G3-4 |
 | **The Old Patterns** | uncommon | add | Towns build buildings of earlier ages 40% faster. | Economic |  | G3-6 |
 | **The Old Foundations** | common | add | Buildings of the first two ages cost no gold upkeep. | Economic |  | G3-7 |

@@ -839,10 +839,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Common Festivals | 1 | ● | S | Every town gains +1 happiness. |
 | The Hall of Fame | 1 | ● | S | +30% renown in your capital. |
 | Cistern Works | 1 | ● | S | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. |
+| Commission: The Land Register | 1 | ◆ | S | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. |
 | The Founders' Rights | 1 | ○ | S | +3 authority. Cities you found start with one extra citizen. |
 | The Public Peace | 2 | ● | S | While you are at peace, every town gains +2 food and +1 happiness. |
 | The Town Watch | 2 | ● | S | Your units gain +5 strength when defending in your territory. |
 | The Royal Annals | 2 | ◆ | P | +4% production and gold for each commission you have fulfilled this game, at most +28%. |
+| Commission: The Master Plan | 3 | ◆ | S | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. |
 | The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
 | The Office of Works | 3 | ◆ | S | On draft: gain a great engineer draft. |
 | The Grand Design | 4 | ◆ | P | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. |

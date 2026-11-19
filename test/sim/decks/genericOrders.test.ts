@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { bestMeleeFor, foundCityAt, spawnTileFor } from '../../../src/sim/cities';
+import { valueContext } from '../../../src/ai/bot';
+import { explainCommission, explainCommissionChair } from '../../../src/ai/value';
+import { bestMeleeFor, foundCityAt, growthThreshold, spawnTileFor } from '../../../src/sim/cities';
 import { previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
+import { commissionProgress, runCommissions } from '../../../src/sim/commissions';
 import { bumpRevision, createUnit, type GameState } from '../../../src/sim/state';
-import { cardCityStat, explainCardCityYields } from '../../../src/sim/statecraft';
+import { cardCityStat, explainCardCityYields, slotOrderError, slotTypesOf } from '../../../src/sim/statecraft';
 import type { OrderId } from '../../../src/sim/statecraftData';
-import { explainCity } from '../../../src/sim/yields/town';
+import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 
 function seatOrders(state: GameState, ...orders: OrderId[]): void {
@@ -15,6 +18,111 @@ function seatOrders(state: GameState, ...orders: OrderId[]): void {
   council.slots.push(...orders.map((card) => ({ card, sealedUntil: state.turn })));
   bumpRevision(state);
 }
+
+function seatCommission(state: GameState, card: OrderId): number {
+  const player = state.players[0]!;
+  player.statecraft.orders.push(card);
+  const chair = slotTypesOf(player.statecraft).indexOf('wildcard');
+  expect(applyCommand(state, { type: 'slotOrder', playerId: 0, cardId: card, slotIndex: chair }).ok).toBe(true);
+  return chair;
+}
+
+describe('Generic population commissions', () => {
+  it('completes The Land Register at thirty citizens and pays every current and future town', () => {
+    const state = bareState(24, 12);
+    const capital = foundCityAt(state, 0, at(state, 3, 5));
+    const second = foundCityAt(state, 0, at(state, 9, 5));
+    const rival = foundCityAt(state, 1, at(state, 16, 5));
+    capital.population = 18;
+    second.population = 11;
+    rival.population = 30;
+    const player = state.players[0]!;
+    const card = 'theLandRegister';
+    const chair = seatCommission(state, card);
+    const linesFor = (city: typeof capital) => explainCardCityYields(state, city).filter((line) => line.card === card);
+    expect(commissionProgress(state, 0, card)[0]).toMatchObject({ have: 29, need: 30, met: false });
+    expect(runCommissions(state)).toEqual([]);
+    expect(linesFor(capital)).toEqual([]);
+    expect(explainCommission(card, valueContext(state, player))!.total).toBeGreaterThan(0);
+
+    // A reached goal keeps no tally. It can be met while unseated and paid once reseated.
+    state.turn = player.statecraft.slots[chair]!.sealedUntil;
+    expect(applyCommand(state, { type: 'unslotOrder', playerId: 0, slotIndex: chair }).ok).toBe(true);
+    second.population += 1;
+    bumpRevision(state);
+    expect(commissionProgress(state, 0, card)[0]).toMatchObject({ have: 30, need: 30, met: true });
+    expect(runCommissions(state)).toEqual([]);
+    expect(applyCommand(state, { type: 'slotOrder', playerId: 0, cardId: card, slotIndex: chair }).ok).toBe(true);
+    expect(runCommissions(state).map((report) => report.card)).toEqual([card]);
+    expect(player.statecraft.slots[chair]).toBeNull();
+    expect(slotOrderError(state, 0, card, chair)).toMatch(/fulfilled/);
+
+    const newTown = foundCityAt(state, 0, at(state, 3, 10));
+    second.population = 9;
+    state.turn += 1;
+    bumpRevision(state);
+    expect(runCommissions(state)).toEqual([]);
+    for (const city of [capital, second, newTown]) {
+      expect(linesFor(city)).toEqual([expect.objectContaining({ food: 2, production: 2 })]);
+    }
+    expect(linesFor(rival)).toEqual([]);
+    expect(explainCommission(card, valueContext(state, player))!.total).toBe(0);
+  });
+
+  it('completes The Master Plan when its fourth town reaches twenty citizens', () => {
+    const state = bareState(30, 12);
+    const towns = [3, 9, 15, 21].map((col) => foundCityAt(state, 0, at(state, col, 5)));
+    const fourth = towns[3]!;
+    const rival = foundCityAt(state, 1, at(state, 3, 10));
+    for (const town of [...towns, rival]) town.population = 20;
+    fourth.population = 19;
+    const card = 'theMasterPlan';
+    const chair = seatCommission(state, card);
+    const opus = { kind: 'building', id: 'theMagnumOpus' } as const;
+    const ordinary = { kind: 'building', id: 'granary' } as const;
+    const modifiers = (city: typeof fourth, toward: typeof opus | typeof ordinary) =>
+      productionModifiers(state, city, toward).filter((line) => line.card === card).map((line) => line.percent);
+    expect(commissionProgress(state, 0, card)[0]).toMatchObject({ have: 3, need: 4, met: false });
+    expect(runCommissions(state)).toEqual([]);
+    expect(modifiers(fourth, opus)).toEqual([]);
+
+    fourth.population = 20;
+    bumpRevision(state);
+    expect(commissionProgress(state, 0, card)[0]).toMatchObject({ have: 4, need: 4, met: true });
+    expect(runCommissions(state).map((report) => report.card)).toEqual([card]);
+    expect(state.players[0]!.statecraft.slots[chair]).toBeNull();
+    expect(slotOrderError(state, 0, card, chair)).toMatch(/fulfilled/);
+    fourth.population = 18;
+    state.turn += 1;
+    bumpRevision(state);
+    expect(runCommissions(state)).toEqual([]);
+    expect(modifiers(fourth, opus)).toEqual([40]);
+    expect(modifiers(fourth, ordinary)).toEqual([]);
+    expect(modifiers(rival, opus)).toEqual([]);
+  });
+
+  it('prices the growth of four separate towns before offering a chair to The Master Plan', () => {
+    const state = bareState(30, 12);
+    const towns = [3, 9, 15, 21].map((col) => foundCityAt(state, 0, at(state, col, 5)));
+    const player = state.players[0]!;
+    const card = 'theMasterPlan';
+    player.statecraft.orders.push(card);
+    towns[0]!.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
+    for (const town of towns) town.population = 10;
+    bumpRevision(state);
+    const far = explainCommission(card, valueContext(state, player))!.total;
+
+    for (const town of towns) {
+      town.population = 19;
+      town.foodBasket = growthThreshold(town.population);
+    }
+    bumpRevision(state);
+    const near = valueContext(state, player);
+    expect(commissionProgress(state, 0, card)[0]).toMatchObject({ have: 0, need: 4, met: false });
+    expect(explainCommission(card, near)!.total).toBeGreaterThan(far);
+    expect(explainCommissionChair(card, near)!.total).toBe(0);
+  });
+});
 
 describe('Generic Order effects', () => {
   it('adds food only to worked resource tiles in the capital', () => {
