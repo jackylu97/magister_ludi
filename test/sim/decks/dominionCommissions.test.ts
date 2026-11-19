@@ -32,7 +32,7 @@ import {
 } from '../../../src/sim/cities';
 import { applyCombat } from '../../../src/sim/combat';
 import { commissionFigure, commissionProgress, runCommissions } from '../../../src/sim/commissions';
-import { type GreatPersonId } from '../../../src/sim/greatPeopleData';
+import { type GreatPersonId, greatPersonDef } from '../../../src/sim/greatPeopleData';
 import { greatPersonWorkAt } from '../../../src/sim/greatPeople';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
 import { moveProfile } from '../../../src/sim/pathfind';
@@ -370,7 +370,9 @@ describe('Dominion D11 — Commission: The Border Fortress', () => {
     expect(tallyOf(sc, FORTRESS)).toBe(1);
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual([FORTRESS]);
-    expect(seat(state, 0).greatPersonOffer).toBeDefined();
+    const options = seat(state, 0).greatPersonOffer?.options ?? [];
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.every(id => greatPersonDef(id).family === 'general')).toBe(true);
     bumpRevision(state);
     expect(hexPaid(state, hex, FORTRESS)).toEqual({ food: 0, production: 0 });
   });

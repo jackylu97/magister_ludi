@@ -243,7 +243,6 @@ describe('Dominion D1 — the drill', () => {
   });
 
   it('The Regimental Schools pay a town +6 science and +6 production for each garrisoned unit, and drill nobody', () => {
-    // Batch DS2: +3 science, not +2, and the drill clause is cut.
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theRegimentalSchools');

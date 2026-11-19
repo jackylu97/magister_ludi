@@ -374,9 +374,7 @@ describe('The Marian Reforms: free upkeep and a production cost at the empire st
     const line = productionModifiers(state, city, warrior).find((entry) => entry.card === 'theMarianReforms');
     expect(line?.percent).toBe(-25);
     expect(line?.stage).toBe('empire');
-    // The city stage keeps The Spear Makers' +30%, and the empire stage loses
-    // fifty points: it multiplies what the town's own bonuses made, so they
-    // soften the halving without cancelling it.
+    // The empire penalty applies after the city bonus from The Spear Makers.
     const after = foldCityStages(state, city, warrior).production;
     expect(after.city).toBe(before.city);
     expect(after.empire).toBe(before.empire - 25);

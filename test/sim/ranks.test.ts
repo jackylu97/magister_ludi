@@ -591,14 +591,10 @@ describe('the register', () => {
     expect(callers).toEqual(['combat.ts#applyCombat', 'combat.ts#applyCombat']);
   });
 
-  it('pays a card’s experience from the drill and the gaining of a unit, and a rank from a founding', () => {
-    // Dominion batch D1. The drill phase (The Drill Grounds, The Regimental
-    // Schools, The Tactica) and `realiseItem` (The Training Cadre, The Drill
-    // Masters, The Devshirme) grant experience; a founding (The Armed Colony)
-    // raises its escort to a rank. Since Dominion batch D8 a capture (The
-    // Soldiers' Share) raises the units around it a rank too (`rallyAround`).
-    // A new way for a card to hand out experience joins one of these lists.
+  it('registers the places where a card grants experience or a rank', () => {
+    // A draft can train units already in the field. A new unit or an end-of-turn drill can also grant experience.
     expect(sitesOf(/(?<!function )\bgrantExperience\(/)).toEqual([
+      'cities.ts#raiseOnDraft',
       'cities.ts#realiseItem',
       'evaluator.ts#drillUnits',
     ]);
@@ -609,12 +605,10 @@ describe('the register', () => {
   });
 
   it('settles the ranks reached wherever experience rises, and keeps the record in one place', () => {
-    // Every caller of the three raises hands what it reached to
-    // `settleRanksEarned`, so a rank earned in any of the four ways pays the
-    // cards that pay on the moment. The lifetime record is written there and
-    // nowhere else.
+    // Each caller settles the ranks it awarded so rank rewards and the lifetime count agree.
     expect(sitesOf(/(?<!function )\bsettleRanksEarned\(/)).toEqual([
       'cities.ts#foundCityAt',
+      'cities.ts#raiseOnDraft',
       'cities.ts#realiseItem',
       'combat.ts#applyCombat',
       'combat.ts#applyCombat',
