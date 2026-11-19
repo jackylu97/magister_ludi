@@ -3897,3 +3897,52 @@ Five six-seat Standard games used seeds 42, 999, 1, 7 and 2026. Each reached tur
 With the two-turn limit, seeds 42, 7 and 2026 matched the existing final state exactly. On seed 999, production fell from 2,424 to 1,537. One seat accounted for most of the difference. It had 109 citizens against the original 122, and produced 193 against the original 1,051. The saved measurements do not identify a single decision that caused the decline.
 
 A separate timing check used the same turn-90 snapshot on seed 42. It warmed each version for one turn, then timed four turns, reversing the order for the second pair. The existing version used 5.32 and 3.99 CPU seconds. The two-turn version used 5.17 and 4.19. Each made the same 411 decisions and ended in the same state. The two-turn version saved one of 29 research table builds in each run. The timing gave no repeatable gain to offset the risk to play. The two private versions are on `codex/bot-research-review`. The detailed results are in `/private/tmp/webciv-bp18-evidence/variants-report.md`.
+
+## Council card prices, 2026-11-19
+
+The candidate estimates every eligible card when a chair has more than three choices. It prices the top three on copies of the board. It also keeps close estimates, Commissions, seated cards, reusable exact prices, and cards whose meters or effects the estimate cannot capture well. A setting of zero prices every eligible card on copies of the board. The spectator distinguishes estimates from exact prices.
+
+The same candidate also corrects the extra value previously given to flat production and science. It uses the same price for a hammer or beaker when comparing current and expected pay. A production bonus uses the actual item at the front of each town's queue to find what it pays now. An empty chair requires a positive score. Replacing an Order requires the challenger to beat the incumbent by the existing switch margin.
+
+**Agreement on saved boards.** The first test ranked 387 chairs in 12 board states from seeds 42 and 999 around turns 90 and 120. Keeping only the top three estimates could miss The Pandects by over 250 score points. The second test called each of the three actual decision functions for each seat on those boards. Both sides used the same corrected prices, margin and floor. They differed only in whether the shortlist ran. For empty-chair checks, the test opened one chair if they were all full. Government checks used all governments in the current tier.
+
+| Decision | Paired calls | Changed choices | Full board calculations, all cards | Full board calculations, shortlist |
+|---|---:|---:|---:|---:|
+| Fill an empty chair | 72 | 0 | 491 | 284 |
+| Replace a seated card | 72 | 0 | 247 | 233 |
+| Adopt a government | 72 | 0 | 1,014 | 911 |
+
+The counts are new calculations. A cached price costs much less. The timings from this test overlap other work, so they cannot establish the saving on a whole turn. The source and records are in `/private/tmp/webciv-bp19.QaFgCX`.
+
+**First changed action on seed 42.** The command log matched through turn 42. On turn 43, seat 2 previously replaced Salt Tithes, worth 10, with The Wayside Shrines, worth 10.66. The candidate kept Salt Tithes with both full pricing and the shortlist. Keeping the corrected prices and setting the switch margin to one restored that swap. A 6.6% gain is below the usual 10% margin. This check identifies that decision. Many later choices can contribute to the outcome of the game.
+
+**Five games.** The play build and candidate each played the same five Standard maps with the same six seats. All ten games replayed without warnings or stalls. The table sums the six seats across all five games at turn 100.
+
+| Measure | Play build | Candidate |
+|---|---:|---:|
+| Towns | 307 | 281 |
+| Citizens | 1,749 | 1,630 |
+| Food per turn | 7,290 | 5,681 |
+| Production per turn | 8,168 | 7,025 |
+| Science per turn | 4,984 | 5,150 |
+| Known technologies, counted per seat | 764 | 762 |
+| Orders seated | 422 | 420 |
+| Orders unseated | 221 | 215 |
+
+Food fell on four maps. Across the five paired seed ratios the geometric mean fell 22.4%, with a 95% interval between a 38.3% and a 2.3% decline. Production varied in both directions. Two original winners, on seeds 42 and 999, finished on turns 133 and 147. The candidate reached turn 150 without a winner on those maps. Seed 2026 kept the same winner and moved from turn 112 to 142. Seed 7 finished ten turns earlier with a different winner. On seed 1, the candidate won on turn 150 and the play build reached the limit without a winner. Only seed 1 had a turn-150 board from both versions. The complete paired checkpoints are in `/private/tmp/webciv-bp19-evidence/report.md`.
+
+The combined policy stays on the private branch. Six fewer unseatings in five games and mixed progress toward victory do not justify the change. The single-variable timing test below holds the corrected prices, floor and margin fixed, so it measures only the cost of running the shortlist.
+
+**Whole-turn timing.** Sixteen paired serial turns used turns 90 and 120 on seeds 42 and 999. Each pair started from the same board and bot memory after warmup. Measurement order alternated. Full pricing and shortlisting produced the same commands and final state in all 16 pairs.
+
+| Measure over 16 turns | Full pricing | Shortlist |
+|---|---:|---:|
+| CPU seconds | 35.858 | 35.731 |
+| Elapsed seconds | 30.853 | 30.662 |
+| New board calculations | 672 | 636 |
+
+The shortlist reduced aggregate CPU by 0.35% and elapsed time by 0.62%. Eight pairs used less CPU and nine finished sooner. All 36 avoided calculations came from checking replacements. The 160 empty-chair checks needed no new board calculation, and no government adoption occurred on those turns. The median elapsed difference by board ranged from 45 ms sooner to 11 ms later. These results give little reason to add a separate shortlist to the live bot. The traces and per-board samples are in `/private/tmp/webciv-bp19-controlled`.
+
+In a separate test, all three decisions used less CPU when they needed fresh prices. Filling a chair saved 11.9%, replacing a seated card saved 3.5% and adoption saved 5.1%. Repeating each decision with the same bot memory needed no new board calculations under either rule. In that case shortlisting added a median 0.15 ms to adoption and had little effect on the other two decisions.
+
+The private candidate passed typecheck, all 12,108 core tests, the production build and all four slow card-pricing checks. The play build keeps its previous Council rules and 120-turn reference results.
