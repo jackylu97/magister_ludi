@@ -183,29 +183,131 @@
 
 /* --- a painted wonder -------------------------------------------------------
 
-   The user, 2026-11-19, on the first paintings: "the full screen splash for
-   wonders looks off… have the art shine". A wonder with a painting gets a
-   plate made for it:
-   - the ground is near-black, so the page does not compete with the
-     painting's own blue sky (the lapis page is kept for the engraved
-     stand-in and for the age plate);
-   - the window is as large as the page allows, still exactly 16:9, so the
-     whole painting shows;
-   - the words sit on the foot of the painting over a dark fall-off: the name
-     and what it pays on the left, the Triumph and Continue on the right. */
+   The user, 2026-11-19, in three steps: "have the art shine"; then, after
+   playing with a full dark page, "a bit jarring… still take up most of the
+   screen, leaving room for the image, but having some of the background
+   show"; then the choice of the ribbon ("version 3" of the mock-ups): a
+   narrow lapis sash across the whole window with a sun and a moon on it, and
+   the painting standing in front of it over the dimmed board.
+
+   - The board stays in view under a light dim. The lapis page and its frame
+     are for the engraved stand-in and the age plate only.
+   - The ribbon runs from the left edge to the right edge at mid height: deep
+     lapis, a field of small gilt dots, gilt rules, and a line of stars, moons
+     and suns along each edge (the card corners' own marks).
+   - The painting is exactly 16:9 and taller than the ribbon. The words sit on
+     its foot over a dark fall-off.
+   - The arrival is slow, in order: the board dims, the ribbon draws out from
+     the centre, the sun and moon come up, the painting rises, the words show. */
+
+.age-plate-overlay:has(.wonder-plate--painted) {
+  background: rgba(14, 12, 17, 0.4);
+  animation: age-plate-fade 520ms ease-out both;
+}
 
 .age-plate.wonder-plate--painted {
-  background: #0e0c11;
+  /* The painting's width: three quarters of the window, or what its height allows. */
+  --wp-w: min(76vw, calc((100vh - 110px) * 16 / 9));
+  background: none;
+  animation: none;
+}
+
+.wonder-plate--painted .age-plate-frame {
+  display: none;
 }
 
 .wonder-plate--painted .wonder-plate-inner {
-  padding: 40px;
+  padding: 40px 0;
+}
+
+.wonder-plate-ribbon {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: clamp(150px, 30vh, 320px);
+  transform: translateY(-50%);
+  border-top: 2px solid var(--plate-gilt);
+  border-bottom: 2px solid var(--plate-gilt);
+  background:
+    radial-gradient(circle, rgba(236, 193, 84, 0.55) 0 1px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(circle, rgba(236, 193, 84, 0.3) 0 0.8px, transparent 1.3px) 11px 11px / 22px 22px,
+    linear-gradient(#1b3068, #142350 55%, #0f1a3d);
+  box-shadow:
+    0 0 0 4px #0f1a3d,
+    0 0 0 5px rgba(200, 144, 31, 0.85),
+    0 18px 50px rgba(0, 0, 0, 0.55);
+  animation: wonder-ribbon-draw 760ms var(--plate-ease) 260ms both;
+}
+
+/* The line of marks along each edge: a darker strip between two hairlines,
+   with the stars, moons and suns cut out of the gilt by three masks. */
+.wonder-plate-ribbon-edge {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 17px;
+  border-top: 1px solid rgba(200, 144, 31, 0.7);
+  border-bottom: 1px solid rgba(200, 144, 31, 0.7);
+  background: #101b40;
+}
+
+.wonder-plate-ribbon-edge.is-top {
+  top: 6px;
+}
+
+.wonder-plate-ribbon-edge.is-foot {
+  bottom: 6px;
+}
+
+.wonder-plate-ribbon-edge::before {
+  content: '';
+  position: absolute;
+  inset: 3px 0;
+  background: var(--plate-gilt-lit);
+  /* Stars every 60 px; between them a moon and a sun in turn. */
+  -webkit-mask:
+    var(--wp-star) 0 50% / 60px 9px repeat-x,
+    var(--wp-moon) 30px 50% / 120px 11px repeat-x,
+    var(--wp-sun) 90px 50% / 120px 11px repeat-x;
+  mask:
+    var(--wp-star) 0 50% / 60px 9px repeat-x,
+    var(--wp-moon) 30px 50% / 120px 11px repeat-x,
+    var(--wp-sun) 90px 50% / 120px 11px repeat-x;
+}
+
+/* The sun and the moon on the band, each in the middle of the room between
+   the painting and the window's edge. */
+.wonder-plate-ribbon-mark {
+  position: absolute;
+  top: 50%;
+  width: clamp(26px, 3.4vw, 54px);
+  height: clamp(26px, 3.4vw, 54px);
+  background: var(--plate-gilt-lit);
+  transform: translate(-50%, -50%);
+  animation: age-plate-fade 420ms ease-out 900ms both;
+}
+
+.wonder-plate-ribbon-mark.is-sun {
+  left: calc((100vw - var(--wp-w)) / 4);
+  -webkit-mask: var(--wp-sun) center / contain no-repeat;
+  mask: var(--wp-sun) center / contain no-repeat;
+}
+
+.wonder-plate-ribbon-mark.is-moon {
+  left: calc(100vw - (100vw - var(--wp-w)) / 4);
+  -webkit-mask: var(--wp-moon) center / contain no-repeat;
+  mask: var(--wp-moon) center / contain no-repeat;
 }
 
 .wonder-plate--painted .wonder-plate-window {
-  width: min(100vw - 84px, calc((100vh - 84px) * 16 / 9));
+  width: var(--wp-w);
   border-width: 1px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  outline: 1px solid rgba(236, 193, 84, 0.75);
+  outline-offset: 4px;
+  overflow: visible;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.6);
+  animation: wonder-painting-rise 760ms var(--plate-ease) 780ms both;
 }
 
 .wonder-plate-caption {
@@ -218,7 +320,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px 32px;
-  padding: clamp(60px, 16vh, 150px) clamp(20px, 3vw, 44px) clamp(18px, 3.2vh, 34px);
+  padding: clamp(60px, 14vh, 130px) clamp(18px, 2.6vw, 40px) clamp(16px, 2.8vh, 30px);
   background: linear-gradient(
     to bottom,
     rgba(14, 12, 17, 0) 0%,
@@ -227,7 +329,7 @@
     rgba(14, 12, 17, 0.94) 100%
   );
   text-align: left;
-  animation: age-plate-fade 420ms ease-out 520ms both;
+  animation: age-plate-fade 460ms ease-out 1380ms both;
 }
 
 .wonder-plate-words {
@@ -241,7 +343,7 @@
 
 .wonder-plate--painted .wonder-plate-name {
   margin: 0;
-  font-size: clamp(34px, 6vh, 64px);
+  font-size: clamp(30px, 5.2vh, 56px);
   line-height: 1.05;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
 }
@@ -289,7 +391,39 @@
   background: rgba(236, 193, 84, 0.22);
 }
 
+/* The ribbon opens from its middle to both edges. */
+@keyframes wonder-ribbon-draw {
+  from {
+    clip-path: inset(-60px 50% -60px 50%);
+  }
+  to {
+    clip-path: inset(-60px 0 -60px 0);
+  }
+}
+
+@keyframes wonder-painting-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A narrow window has no room beside the painting for the sun and the moon. */
+@media (max-width: 760px) {
+  .wonder-plate-ribbon-mark {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .age-plate-overlay:has(.wonder-plate--painted),
+  .wonder-plate-ribbon,
+  .wonder-plate-ribbon-mark,
+  .wonder-plate--painted .wonder-plate-window,
   .wonder-plate-caption {
     animation: none;
   }
