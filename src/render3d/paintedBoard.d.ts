@@ -54,6 +54,15 @@ export interface PaintedBoard extends BuiltBoard {
   /** The register's live knobs, so a review page can move one without a rebuild. */
   fogUniforms: Record<string, { value: unknown }>;
   readonly shadowRevision: number;
+  /** The measuring test for the ground paint texture (`groundPaintTest.js`), or null when `painted.groundTexture.test` is off. */
+  readonly groundPaintTest: null | {
+    readonly info: null | {width: number; height: number; density: number; bytes: number; ms: number; meshes: number};
+    readonly shown: boolean;
+    /** Bakes the texture if it is not baked yet. */
+    ready(renderer: WebGLRenderer): void;
+    bake(renderer: WebGLRenderer, density?: number): unknown;
+    show(on: boolean): boolean;
+  };
   geometryBytes: number;
   instanceBytes: number;
   readonly triangleCount: number;

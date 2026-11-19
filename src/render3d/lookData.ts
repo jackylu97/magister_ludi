@@ -2064,9 +2064,33 @@ interface PaintedBuildSpec {
   share: boolean;
 }
 
+/**
+ * The measuring test for the ground paint texture (2026-11-18,
+ * `docs/plans/ground-paint-texture-2026-11-18.md`). It is a test, not the
+ * build, and it is off.
+ *
+ * With `test` on, the board's far land is built a second way: the hex grid and
+ * the hill mounds with no brush patch cut into them, in the same 6 by 6 chunks
+ * as the near land. That land reads its paint from one texture, which the page
+ * bakes once from the near land's own colours, seen from above. `show` draws
+ * that land at every zoom; with `show` off it is drawn only where the far land
+ * was. `texelsPerUnit` is the texture's density (a hex is 1.73 units wide),
+ * `grid` is `near` for the near land's grid or `far` for the overview's coarser
+ * one, and `anisotropy` is the texture's filter setting.
+ * See `groundPaintTest.js`.
+ */
+interface PaintedGroundTextureSpec {
+  test: boolean;
+  show: boolean;
+  texelsPerUnit: number;
+  grid: string;
+  anisotropy: number;
+}
+
 interface PaintedSpec {
   canvas: PaintedCanvasSpec;
   build: PaintedBuildSpec;
+  groundTexture: PaintedGroundTextureSpec;
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
   contact: PaintedContactSpec;
