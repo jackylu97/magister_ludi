@@ -67,7 +67,7 @@ describe('The Builders’ Lodge', () => {
 
     const rises = explainCardCityYields(state, capital).filter((line) => line.card === LODGE);
     expect(rises.some((line) => line.production === 5 && line.source === "Order · The Builders' Lodge · The General Staff")).toBe(true);
-    expect(rises.filter((line) => line.source.endsWith('Civic Granaries')).map((line) => [line.food, line.production])).toEqual([[1, 0], [0, 1]]);
+    expect(rises.filter((line) => line.source.endsWith('Civic Granaries')).map((line) => [line.food, line.production])).toEqual([[2, 0], [0, 4]]);
     expect(rises).toHaveLength(3);
     expect(explainCardCityYields(state, capital).find((line) => line.card === 'theChoregia')?.culture).toBe(6);
     expect(explainCardCityYields(state, town).filter((line) => line.card === LODGE)).toEqual([]);
@@ -102,11 +102,11 @@ describe('The Builders’ Lodge', () => {
 
 it('keeps a building completion grant at its original amount', () => {
   const { state, capital } = board('theCuria');
-  seat(state, 'magisterialMasterMasons', LODGE, PALACE);
+  seat(state, 'theApprentices', LODGE, PALACE);
   const payout = windfallPayout(state, 0, 'buildingCompletion', 0, 0, {
     hex: { col: capital.col, row: capital.row }, building: 'monument',
   });
-  expect(payout.grants).toEqual([expect.objectContaining({ card: 'magisterialMasterMasons', amount: 30 })]);
+  expect(payout.grants).toEqual([expect.objectContaining({ card: 'theApprentices', yield: 'science', amount: 5 })]);
 });
 
 describe('The Summer Palace', () => {

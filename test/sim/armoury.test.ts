@@ -99,7 +99,7 @@ describe('the War Hall', () => {
     expect(row.effects).toEqual([
       { kind: 'unitStamp', hp: 10, scope: { test: 'hasBuilding', building: 'warHall' } },
     ]);
-    expect(techDef('bronzePanoply').unlocks.buildings).toEqual(['smithy', 'warHall']);
+    expect(techDef('bronzePanoply').unlocks.buildings).toEqual(['smithy', 'warHall', 'statueOfZeus']);
   });
 
   it('stamps ten more hit points on a soldier raised under it, for life', () => {
