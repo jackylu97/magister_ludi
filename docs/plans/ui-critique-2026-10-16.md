@@ -1505,3 +1505,25 @@ The user: "yup, lets do a consistent card size, go ahead and start."
 
 Not in this stage: the unit panel's other parts, diplomacy, the city screen,
 the government banners.
+
+### The great person card, after the first portraits (2026-11-19)
+
+The user saw the first twenty portraits on the card and in a preview with a
+rounder arch (`scratchpad/people/arched.jpg`, published at
+https://claude.ai/artifact/9GuvmhW1FuoLAv722wFUvW): "i like the arched window
+instead of the current frame. remove the word \"flavour\" from the bottom of
+the card. Could we give the art a bit more room, the cards feel a bit busy,
+maybe we lower a bit of the detail/flourishes on the card and make the
+pictures a bit bigger. keep the sun and moon."
+
+- **The picture window is a true arch:** a round top, as in the preview (a
+  half-ellipse about 46% of the window's height), in place of the present
+  shallow frame.
+- **The picture is larger.** The art gets more of the card.
+- **Fewer flourishes.** The card is quieter: less ornament and fewer rules and
+  frames. The sun and the moon in the top corners stay.
+- **The word "Flavour" goes from the foot of this card.** The flavour line
+  itself stays, set apart by its italic face. This is the user's exception,
+  for the great person card, to the project rule that flavour is always
+  labelled; the rule stands everywhere else. A screen reader still hears the
+  label.
