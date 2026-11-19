@@ -19,7 +19,10 @@ arena A/B, seed sweep and before/after profile — is
 
 Since bot batch BP16, stage C1 (`docs/flags.md`, "Bots after BP16 stage B",
 item 3), the bot seats do not take their turns one after another on the live
-board. The driver (`driveBots`) and the stepper do this (`frozenBoard.ts`):
+board. The game, arena, and spectator use `runBotTurn` in `src/ai/driver.ts`.
+The game and arena prepare all seat plans before the first dispatch. The
+spectator prepares a seat when its turn comes and pauses after each dispatch.
+It shows the original scores and the command sent to the real board.
 
 1. **Freeze.** At the start of the bot step the board is copied once
    (`freezeBoard`). The muster roll's mark for the turn is written on the real
@@ -39,7 +42,7 @@ board. The driver (`driveBots`) and the stepper do this (`frozenBoard.ts`):
    what it meant on the copy: a new id with no mapping, a different count of
    new ids, a choice from an offer that is not the offer the copy held, or a
    great person another seat called first. The seat then finishes its turn with
-   a live sitting on the real board (`driveSeat`). It carries on the budget,
+   a live sitting on the real board. It carries on the budget,
    the orders the plan landed, and the plan's marks at its last landed command
    (the pieces and towns already asked, the re-aims spent, the phases closed;
    `resumedSitting`), and reads the board again.

@@ -320,6 +320,34 @@ describe('a cut plan', () => {
 });
 
 describe('the stepper and the driver', () => {
+  it('shows the city id used by the reducer and keeps the reasons from the plan', () => {
+    const walked = createGame(FOUR);
+    const stepper = createBotStepper(walked);
+    stepper.playTurn();
+    const start = walked.log.length;
+    const playerId = 3;
+    const board = freezeBoard(structuredClone(walked.state));
+    const plan = planSeat(board, playerId, { warn: () => undefined });
+    const planned = plan.steps.find(({ command }) => command.type === 'setCityProduction');
+    if (planned?.command.type !== 'setCityProduction' || planned.decision === null) {
+      throw new Error('Expected the seat to plan production in its new city');
+    }
+    expect(planned.decision.candidates.length).toBeGreaterThan(0);
+
+    const steps = stepper.playTurn();
+    const sent = walked.log.slice(start).find(
+      (command) => command.playerId === playerId && command.type === 'setCityProduction',
+    );
+    if (sent?.type !== 'setCityProduction') throw new Error('Expected the seat to set production');
+    // An earlier seat founded a city and used the id from this seat's copy.
+    expect(sent.cityId).not.toBe(planned.command.cityId);
+    expect(walked.state.cities.find((city) => city.id === sent.cityId)?.ownerId).toBe(playerId);
+
+    const step = steps.find((step) => step.playerId === playerId && step.decision.kind === 'build');
+    expect(step?.result.ok).toBe(true);
+    expect(step?.decision).toEqual({ ...planned.decision, command: sent });
+  });
+
   it('play the same short game, and its log replays', () => {
     const driven = createGame(FOUR);
     const walked = createGame(FOUR);

@@ -19,9 +19,8 @@
  * What this page deliberately does not do:
  *
  *   · **It never drives a seat itself.** Every command goes through
- *     `createBotStepper`, which is `driveBots` unrolled and pinned byte-identical
- *     to it (`test/sim/aiDecision.slow.test.ts`). A page with its own loop would
- *     be a page showing a game the product does not play.
+ *     `createBotStepper`, which pauses the shared turn runner after each command.
+ *     The feed shows the original appraisal and the command sent to the real board.
  *   · **It holds no opinion.** Nothing here scores, sorts by anything but a
  *     score the bot produced, or paraphrases a reason. `rankedCandidates` is a
  *     reading order and says so.

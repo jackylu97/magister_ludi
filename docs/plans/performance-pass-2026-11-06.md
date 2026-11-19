@@ -3813,3 +3813,28 @@ The plans are the only part that moves. The freeze, the apply, the cuts, the liv
 - Tests: `test/sim/aiFrozenBoard.test.ts` (new); `test/sim/aiDriverEliminated.test.ts` (a seat is knocked out on the real board through the driver's `attempt` hook and between the stepper's steps, since a policy now acts on a copy); `test/sim/aiBot.test.ts` (the register of bot files lists `frozenBoard.ts`).
 - `docs/bot-priorities.md` ("The turn's bot step: plans on a frozen board", new, above "The order of a sitting"), and this section.
 - Scratch, in the session's scratch folder `bp16c/`: the trees (`before/`, `c1a/`, `c1b/`, `c1c/`), the probe (`PROBE.ts`, `run.sh`), the snapshot maker (`play.ts`, `snap.sh`, `snaps/`), the timer (`pair.ts`, `pair.sh`, `timings.sh`, `timing.py`, `out/timing/`), the copy measurements (`clonecost.ts`, `clonecost2.ts`), the table (`c1table.py`), a quick game (`quick.ts`), a debug script (`debug1.ts`), and the games: `out/c1/` (the before and final games to turn 100) and `out/c1old/` (the before and `c1a` games to turn 130, with the first probe).
+
+## One turn runner for the game, arena and spectator
+
+The game and arena finish one pass of `runBotTurn`. The spectator advances the same pass one command at a time. Each seat still plans against a copy of the board from the start of the pass. The game prepares all plans before applying the first one. The spectator prepares one plan at a time so its first step can display promptly. The spectator keeps each decision's original explanation and candidate scores.
+
+A planning copy can give a newly founded city a different id from the real board. The game already mapped that id when it dispatched the command. The spectator now shows the mapped id in the command details. A regression test checks the actual command and the entire explanation.
+
+### Before and after
+
+The comparison used the original bot code at `9aa47a2c`. Both runs used a duel map and barbarians. The six seats used balanced, wide, warmonger, tall, zealot, and balanced, in that order. Each run compared driver attempts and their results, accepted-command reports, per-seat reports, command logs, and final states. It also compared the spectator's candidates, scores, reasons, focus, and turn labels.
+
+| Seed | Turns | Attempts | Scored decisions | Candidates | Plan conflicts | Displayed ids corrected |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 20260831 | 24 | 340 | 196 | 1,426 | 0 | 6 |
+| 42 | 50 | 1,323 | 1,023 | 5,975 | 4 | 21 |
+
+Every comparison matched byte for byte apart from the corrected ids in the spectator's command details. All 1,663 spectator commands matched their corresponding driver attempts on the new code. The second game included a refused founding command and three conflicting offers. Neither run produced a bot warning.
+
+A Chromium check also exercised the spectator page. Next action added one decision.
+The expanded row showed the chosen score, nested terms, and command JSON. Play
+turn advanced to turn 2, and Next action added the next decision.
+
+Typecheck, all 12,073 core tests in 520 files, and the production build passed
+with the Council layout from `99854d70`. Both 120-turn bot digests kept their
+original values. The six slow decision and spectator tests also passed.

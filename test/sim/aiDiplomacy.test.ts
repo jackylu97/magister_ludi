@@ -430,12 +430,10 @@ function halves(decision: BotDecision): { give: DealTerms; take: DealTerms } {
  * The rival sends the standing paper back — **the harness's own two lines**, run
  * by hand.
  *
- * `driveSeat`, the stepper and `answerAudience` all read the pending refusal
- * before the dispatch (the decline takes the row off the register) and bank it
- * after; a test that called neither would be testing a policy against a memory
- * nothing fills. Written out here rather than driven through a harness because
- * the case that matters most is a *person* declining, and a person's decline is
- * dispatched by the interface.
+ * The shared turn runner and `answerAudience` read the pending refusal before
+ * dispatch removes the proposal. They record it after an accepted dispatch.
+ * This test does the same for a human seat, whose decline goes through the
+ * interface.
  */
 function sendItBack(game: Game): void {
   const row = game.state.dealProposals[0]!;
@@ -558,22 +556,19 @@ describe('the paper remembers', () => {
     expect(dealMemorySize(game.state)).toBe(0);
   });
 
-  it('is one module, and both harnesses fill it at their own dispatch', () => {
-    // The stepper is `driveSeat` unrolled (`test/sim/aiDecision.slow.test.ts`
-    // pins them byte for byte), so a memory either of them kept privately would
-    // be a fifth piece of per-seat state to keep in step. There is one store and
-    // it is `dealMemory.ts`': the two loops import it, the policy reads it, and
-    // neither holds a table of its own.
+  it('shares one refusal store across bot turns, worker replay and audiences', () => {
     const memory = aiSource('dealMemory.ts');
     expect(memory).toContain('new WeakMap<GameState, RefusalRecord[]>');
-    for (const name of ['stepper.ts', 'driver.ts']) {
+    for (const name of ['frozenBoard.ts', 'driver.ts']) {
       const text = aiSource(name);
       expect(text, name).toContain("from './dealMemory'");
       expect(text, name).toContain('pendingDealRefusal(');
       expect(text, name).toContain('rememberDealRefusal(');
       expect(text, name).not.toContain('new WeakMap');
-      expect(text, name).not.toContain('new Map<');
     }
+    const stepper = aiSource('stepper.ts');
+    expect(stepper).toContain('runBotTurn(');
+    expect(stepper).not.toContain('rememberDealRefusal');
     // The policy reads the memory and never writes it: a bot arm that banked a
     // refusal would be banking one for a decision nobody dispatched.
     const policy = aiSource('diplomacy.ts');

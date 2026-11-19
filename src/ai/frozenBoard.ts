@@ -174,27 +174,22 @@ export type SittingAsk = (state: GameState, playerId: number, sitting: BotSittin
 /** Where a refusal or a repeat is said out loud. */
 export type Warn = (message: string, detail?: unknown) => void;
 
-/**
- * **One seat's loop, from its first decision to the moment it has nothing more
- * to send.** The End Turn is the caller's.
- *
- * It is `driveSeat`'s inner loop, moved here unchanged so that the plan on a
- * copy and the live sitting on the real state are one loop. Three ways it
- * ends: the policy is content, the policy asks for something refused or
- * repeated, or the budget is spent. `put` is where the command goes: the copy
- * for a plan, the real game for a live sitting. `landed` hears every accepted
- * command.
- */
-export function runSitting(
+/** The result is available before the next decision so a spectator can pause here. */
+export interface SittingStep extends Asked {
+  result: CommandResult;
+  turn: number;
+}
+
+/** Runs the same guards on a planning copy and after a conflict on the real board. */
+export function* runSitting(
   state: GameState,
   playerId: number,
   sitting: BotSitting,
   guards: SeatGuards,
   ask: SittingAsk,
-  put: (command: Command) => CommandResult,
+  put: (asked: Asked) => CommandResult,
   warn: Warn,
-  landed?: (asked: Asked, result: CommandResult) => void,
-): void {
+): Generator<SittingStep, void> {
   // **The seat's own sheet**, not a module global: a persona is a sparse
   // override of the whole configuration, the `driver` block included, so two
   // seats may be allowed different budgets in the same pass.
@@ -221,23 +216,21 @@ export function runSitting(
     // table (the decline takes the row off the register), and banked only if
     // the reducer took the answer.
     const refusal = pendingDealRefusal(state, command);
-    const result = put(command);
+    const turn = state.turn;
+    const result = put(asked);
     if (result.ok) {
       if (refusal !== null) rememberDealRefusal(state, refusal);
       noteSentOrder(guards.sentOrders, state, command, key);
       guards.accepted += 1;
-      landed?.(asked, result);
-      continue;
-    }
-    // The one refusal that is not a bug: a great-person hand another seat has
-    // emptied is refused *and redrawn*, so asking again asks about a new hand.
-    if (command.type === 'chooseGreatPerson' && guards.redraws < ai.driver.greatPersonRedraws) {
+    } else if (command.type === 'chooseGreatPerson' && guards.redraws < ai.driver.greatPersonRedraws) {
+      // A refusal can replace the hand. Give the bot a chance to choose again.
       guards.redraws += 1;
-      continue;
+    } else {
+      guards.refused += 1;
+      guards.refusedCommands.add(key);
+      warn(`[ai] seat ${playerId}: the reducer refused ${command.type} — ${result.error}`, command);
     }
-    guards.refused += 1;
-    guards.refusedCommands.add(key);
-    warn(`[ai] seat ${playerId}: the reducer refused ${command.type} — ${result.error}`, command);
+    yield { ...asked, turn, result };
   }
 }
 
@@ -339,37 +332,30 @@ export function planSeat(
   const guards = freshGuards();
   const sitting = botSitting(playerId);
   let asks = 0;
-  // The step `put` built for the command it just sent, waiting for the loop to
-  // say the command landed (`runSitting`'s `landed`), which hands the decision.
-  let pending = null as PlannedStep | null;
   const counted: SittingAsk = (at, seat, held) => {
     asks += 1;
     return ask(at, seat, held);
   };
-  const put = (command: Command): CommandResult => {
+  const put = ({ command, decision }: Asked): CommandResult => {
     const firstMinted = state.nextEntityId;
     const offer = choosesFromAnOffer(command) ? offerPrint(state, playerId) : null;
     const result = applyCommand(state, command);
-    pending = result.ok
-      ? {
-          command,
-          decision: null,
-          firstMinted,
-          minted: state.nextEntityId - firstMinted,
-          offer,
-          after: outcomePrint(state, command, board.firstNewId),
-          marks: NO_MARKS,
-        }
-      : null;
+    if (result.ok) {
+      steps.push({
+        command,
+        decision,
+        firstMinted,
+        minted: state.nextEntityId - firstMinted,
+        offer,
+        after: outcomePrint(state, command, board.firstNewId),
+        marks: sittingMarks(sitting),
+      });
+    }
     return result;
   };
-  runSitting(state, playerId, sitting, guards, counted, put, warn, (asked) => {
-    if (pending === null) return;
-    pending.decision = asked.decision;
-    pending.marks = sittingMarks(sitting);
-    steps.push(pending);
-    pending = null;
-  });
+  for (const _step of runSitting(state, playerId, sitting, guards, counted, put, warn)) {
+    // Finish planning on the private copy before any of its commands enter the game.
+  }
   return {
     playerId,
     steps,
@@ -380,20 +366,6 @@ export function planSeat(
     asks,
   };
 }
-
-/** A step's marks before the loop hands them over. Never read: `landed` replaces it. */
-const NO_MARKS: SittingMarks = {
-  reaims: 0,
-  focused: [],
-  reasked: [],
-  called: [],
-  roused: [],
-  levyWeighed: [],
-  escortOrders: [],
-  guardOrders: [],
-  steppedBack: [],
-  closed: [],
-};
 
 /** The commands that choose from an offer by index, or spend or redraw one. */
 function choosesFromAnOffer(command: Command): boolean {
