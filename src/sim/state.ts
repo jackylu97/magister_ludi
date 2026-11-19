@@ -600,8 +600,12 @@ import {
  *
  * v247 records the original work when a raid damages it. A v246 raid removed
  * the work permanently, so its command log would replay to a different state.
+ *
+ * v248 changes the Dominion and Magisterial draft pools and the rules for
+ * wonders and council chairs. A v247 log can select a different card at the
+ * same offer index and produce different yields from the same wonder.
  */
-export const SCHEMA_VERSION = 247;
+export const SCHEMA_VERSION = 248;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
