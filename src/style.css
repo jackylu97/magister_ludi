@@ -9599,9 +9599,11 @@ p.city-trade-link {
   color: var(--ink-soft);
 }
 
+/* 11px, a little larger than the board's dots, to match the stud in the same
+   colour on the frame's post (look B, 2026-11-19). */
 .abacus-swatch {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   flex: none;
   border-radius: 50%;
   border: 1px solid var(--ink-line);

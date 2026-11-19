@@ -2974,3 +2974,31 @@ need for now"
 4. **The Council screen supports both** real drag and drop and click then
    click.
 5. **No lower resolution while the camera moves**, for now.
+
+## Generic Orders: a candidate set of changes (2026-11-18)
+
+The user: "can you start a fable subagent for suggesting a candidate set of
+changes for the generic orders? they're weak at the moment and we havent
+givenmuch thought ot them. Aim for cards that would be generally useful for
+themes across all decks, please reference the card design skill we drafted."
+
+- A proposal only: candidate changes to the generic Orders (the cards every
+  seat can be dealt, whatever its two decks). Nothing is built until the user
+  picks.
+- The method is the `card-design` skill (`.claude/skills/card-design/`).
+- The proposal goes in `docs/plans/generic-orders-proposal-2026-11-18.md`.
+
+## Ground paint texture: build stages 1 and 2 (2026-11-18)
+
+The test measured 13% to 17.5% off a panning frame at the middle and farthest
+zoom, no firm gain at the closest, where the picture also goes soft
+(`docs/plans/ground-paint-texture-2026-11-18.md`; pictures at
+https://claude.ai/artifact/A3qHr7HXdTzcoi8WggmCKV). The user, 2026-11-18, on
+the pictures: "icant tell the difference between the before/after so you're
+good to proceed."
+
+- **Build stages 1 and 2 of the plan**: the plain, textured land at the middle
+  and farthest zoom, in place of the far mesh; today's cut land stays at the
+  closest zoom. Behind a switch.
+- The test path is on branch `worktree-agent-a61bfcdb3b66ab6f8` (`99744c63`).
+- Stage 3 (a coarser plain land) and stage 4 wait for the result.

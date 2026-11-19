@@ -206,3 +206,10 @@ body {
   color: var(--ink-soft);
   pointer-events: none;
 }
+
+/* The look-dev row: four buttons, so it wraps on a narrow window. */
+#controls #looks {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 440px;
+}

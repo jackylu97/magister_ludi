@@ -595,6 +595,18 @@ body {
   background: var(--table);
 }
 
+/* The Abacus review (`abacus.ts`): the real stage in a box the labels can hang
+   from. The canvas clears to the frame's own ground, so the box has no
+   background of its own. */
+.abacus-stall {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
 /* One caption per figure, stacked rather than columned: each carries a sentence
    about what the silhouette is doing, which does not survive being a third of a
    line wide. */

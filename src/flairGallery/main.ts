@@ -404,6 +404,17 @@ drawPaletteAndRamp(
   root.append(element('br'), glow);
 }
 
+// --- the Abacus (look B, 2026-11-19) -----------------------------------------
+
+// A link, not a stall: the frame needs a WebGL context of its own, and the
+// focused review gives it one without the other stalls beside it.
+{
+  const root = open('abacus', 'The Abacus',
+    'The score frame of the bead page, the Abacus screen and the Opus close: walnut and gilt, the age plaque, a stud in each seat’s colour, and enamel beads.');
+  const link = element('a', undefined, 'Open the Abacus review');
+  link.href = '/flair.html?review=abacus'; root.append(link);
+}
+
 // --- court marks (batch SS6) -------------------------------------------------
 
 drawCourtMarks(

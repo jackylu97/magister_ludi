@@ -56,12 +56,13 @@
  */
 
 import { AbacusStage, Clack, cssHex } from '../render3d/abacus3d';
-import { VIEW3D } from '../render3d/lookData';
 import { seatName } from '../sim/leaderData';
 import type { GameState } from '../sim/state';
 import { opusMarkDataUri } from '../art/lineMarks';
 import { type AbacusRow, frameBeads } from './abacusScreen';
+import { frameGround } from './beadAwardFrame';
 import { beadsTowardThreshold } from './beadsScreen';
+import { shownAge } from './topBar';
 import { element } from './dom';
 import { prefersReducedMotion } from './motion';
 import { opusCity, opusName, seatTitle } from './victoryScreen';
@@ -81,7 +82,11 @@ export const OPUS_CLOSE_TIMING = {
   pageMs: 400,
   /** Beat 4, the camera moving in and the golden bead lighting. */
   lightMs: 600,
-  /** Beat 5, the slide home (the frame's slide is 0.46 s of it). */
+  /**
+   * Beat 5, the slide home. The frame's slide (`abacus.slide.seconds`) is a
+   * little longer: the bead lands inside this beat, and its last short settle
+   * runs into the start of the turn.
+   */
   slideMs: 500,
   /** Beat 6, the turn there and back. */
   turnMs: 2000,
@@ -128,6 +133,8 @@ export interface OpusCloseReading {
   rows: readonly AbacusRow[];
   /** Which rod is the winner's, or -1 when the winner has none. */
   winnerRod: number;
+  /** The world's age when the work was finished, as the top bar prints it: the plaque's numeral. */
+  age: number;
 }
 
 /** The close for a decided game. Pure, so the suite can pin the words. */
@@ -141,6 +148,7 @@ export function opusCloseReading(state: GameState, rows: readonly AbacusRow[]): 
     albedo: winnerId < 0 ? '' : `${seatName(state, winnerId)} has finished ${work}.`,
     rows,
     winnerRod: rows.findIndex((row) => row.playerId === winnerId),
+    age: shownAge(state).age,
   };
 }
 
@@ -214,9 +222,9 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
     albedo.append(element('h2', 'opus-builder', read.builder), element('p', 'opus-albedo-line', read.albedo));
 
     const page = element('section', 'opus-beat opus-page');
-    // The table the frame stands on, read off the look data, so the canvas has
-    // no edge against the page before its first frame.
-    page.style.background = cssHex(VIEW3D.table.color);
+    // The ground the frame stands on, as the bead page has it, so the canvas
+    // has no edge against the page before its first frame.
+    page.style.background = frameGround();
     const title = element('h2', 'opus-page-title', 'The Abacus');
     const hint = element('p', 'opus-page-hint', 'Esc closes');
     const stageBox = element('div', 'opus-stage');
@@ -238,6 +246,7 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
     stage = new AbacusStage(
       canvas,
       read.rows.map((row) => ({ name: row.name, color: row.color })),
+      { age: read.age },
     );
     // Nothing is drawn until the page opens: a loop running under the black
     // and the parchment would be frames nobody sees.

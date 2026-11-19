@@ -170,7 +170,7 @@ import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { faithPlates } from './ui/faithPlates';
-import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
+import { type CivYieldStrip, createCivYieldStrip, shownAge } from './ui/topBar';
 import { type CardImpactSubject, explainCardImpact } from './sim/cardImpact';
 import { stampIsEmpty, stampReading } from './ui/cardStamp';
 import { type OfferCard, type OfferOption, createOfferCard } from './ui/offerCard';
@@ -3085,8 +3085,9 @@ async function boot(initial: Game | null): Promise<void> {
     onClosed: () => pumpBeadNews(),
     // The 3D frame on the sheet (2026-11-18): the Abacus screen's own rows, and
     // the seat whose rod the new bead slides onto. Asked when a sheet is drawn,
-    // which is always after `controls` exists.
-    table: () => ({ rows: abacusRows(), seat: controls.localPlayerId() }),
+    // which is always after `controls` exists. The age is the plaque's numeral,
+    // as the top bar prints it.
+    table: () => ({ rows: abacusRows(), seat: controls.localPlayerId(), age: shownAge(game.state).age }),
   });
 
   /**
@@ -5021,6 +5022,8 @@ async function boot(initial: Game | null): Promise<void> {
       const record = lastCensus(game.state);
       return record ? censusPage(game.state, controls.localPlayerId(), record) : null;
     },
+    // The plaque on the frame shows the world's age, as the top bar prints it.
+    age: () => shownAge(game.state).age,
   });
 
   // The Abacus disposes more than listeners — it holds a WebGL context of its

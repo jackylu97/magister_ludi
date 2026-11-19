@@ -69,6 +69,13 @@ describe('the Abacus stage is capped at a third of the sheet', () => {
     expect(body).toContain('host.replaceChildren(canvas, labelLayer)');
   });
 
+  it('gives the plaque the world’s age on every open, as the top bar prints it (look B, 2026-11-19)', () => {
+    // The stage outlives an age, so the age is asked each time the screen opens.
+    const open = braceBody(uiSource('abacusScreen.ts'), 'function setOpen(');
+    expect(open.indexOf('ensureStage();')).toBeLessThan(open.indexOf('abacus?.setAge(options.age?.() ?? null);'));
+    expect(uiSource('main.ts')).toContain('age: () => shownAge(game.state).age,');
+  });
+
   it('draws the wager band above the bead rods', () => {
     // The reading order of the mock's second sheet: what the age asks, then
     // where everybody stands, then the score. The band is appended into the

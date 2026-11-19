@@ -30,6 +30,16 @@ if (review === 'scene') {
     cards.mountKeywordCards();
     module.drawOrderFaces(root);
   });
+} else if (review === 'abacus') {
+  // The 3D Abacus (look B, 2026-11-19): the real stage, alone, because it needs
+  // a WebGL context of its own.
+  document.body.classList.add('focused-works-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'The Abacus'));
+  const cabinet = element('a', undefined, 'Full art cabinet'); cabinet.href = '/flair.html#abacus'; nav.append(cabinet);
+  const root = section(document.getElementById('sheet')!, 'abacus', 'The Abacus',
+    'The score frame of the bead page, the Abacus screen and the Opus close, drawn by the game renderer.').root;
+  void import('./abacus').then(module => module.drawAbacus(root));
 } else if (review === 'elephants') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;

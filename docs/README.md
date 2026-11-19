@@ -1450,7 +1450,7 @@ Eight root pages, all named in `vite.config.ts` inputs:
 | `compendium.html` | every entry generated from data rows and the sim's own describers; stable `kind:id` anchors; also mounts as the in-game "?" |
 | `mapgen.html` | the generator's experimental loop, every tunable live |
 | `pieces.html` · `flair.html` | the piece gallery and every drawn mark with live sliders (**a new visual asset joins `flair.html` in the pass that ships it**) |
-| `abacus.html` | the bead rods |
+| `abacus.html` | the bead rods; `?stage=bead`, `screen` or `close` mounts the game's bead page, Abacus screen or Opus close, and `?abacusPlaces=8` cuts 8 places on a rod (look-dev only) |
 
 - `src/render3d/` is the default renderer (Three.js ortho toon diorama,
   procedural primitives only; tunables in `data/view3d.json`). `src/render/` is
