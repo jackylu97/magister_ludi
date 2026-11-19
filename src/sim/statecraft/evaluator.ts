@@ -4842,12 +4842,20 @@ export function ghostWorksInTown(state: GameState, city: City): number {
   return wonders && cardActionRule(state, city.ownerId, 'wondersAreWorks') ? wonders : 0;
 }
 
+/** An amplifier combines its tile condition with the condition on the Order it reads.
+ * A ghost work satisfies a work condition, including inside those combinations. */
+function admitsGhostWork(on: TileCondition): boolean {
+  if (on.test === 'all') return on.of.length > 0 && on.of.every(admitsGhostWork);
+  if (on.test === 'any') return on.of.some(admitsGhostWork);
+  return on.test === 'greatWork';
+}
+
 /** A wonder has no hex or base yield. Only card lines for a work can pay on it. */
 export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLine[] {
   const wonders = city.buildings.filter(isWonder);
   if (wonders.length === 0) return [];
   const lines = [...cardTileLines(state, city.ownerId), ...scopedCardTileLines(state, city)].filter(
-    line => line.on.test === 'greatWork' && !line.perAdjacentMountain && !line.perNeighbour,
+    line => admitsGhostWork(line.on) && !line.perAdjacentMountain && !line.perNeighbour,
   );
   const flat = lines.filter(line => line.card !== undefined && VOICES.some(voice => line[voice] !== 0));
   if (flat.length === 0) return [];
