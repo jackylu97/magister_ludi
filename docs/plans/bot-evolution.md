@@ -814,7 +814,7 @@ population will push it.
 ## How to run (E1b, built 2026-09-15)
 
 - `npm run evolve -- --quick --generations 1 --workers 4` is the smoke (2
-  acceptance seeds, the duel board only, 8 games a child); `npm run evolve --
+  acceptance seeds, the duel board only, 4 games per child); `npm run evolve --
   --generations 20` is the overnight run at the honest evaluation (4 seeds ×
   {duel, standard} × 2 mirrors = 16 games a child). Flags: `--workers N`
   (default `os.cpus().length − 1`), `--out DIR` (default
@@ -860,3 +860,20 @@ population will push it.
   six-seat, `Player.persona` stripped, `e9ea292c:248813` both ways).
   `runArenaGame` hands back a reading and not the state, so the play loop is
   restated in the helper — the one thing the door was missing.
+
+## Settings audit before the next tuning run, 2026-11-19
+
+The play sheet at `7f800de0` has 270 numeric paths, counting each array of numbers as one path. The tuner searches 173 of these, including nine array paths. All 173 resolve to a numeric value or array on the base sheet. A new setting only enters the evolutionary search when it has a row in `data/ai.bounds.json`.
+
+The four named personas override 56 numeric leaves across 37 different paths. Wide has 10 overrides, Tall has 14, Zealot has six and Warmonger has 26. Balanced uses the base values. The arena now shows the effective value beside an edited control when a selected persona uses a different value. It also retains those values and the original map size with a completed run. The evolutionary harness supplies each seat its merged genome directly. Its repair step preserves the four out-of-range diplomatic overrides for Tall and Zealot.
+
+| Setting | Current use | Effect on the tuning run |
+|---|---|---|
+| `workers.planRadius` | Present in the base, bounds and integer check. The production bot has no reader. | Safe candidate to remove from the search. |
+| `score.devotion.frontRowShare`, `score.tallyForecast.wonderAnywhere` | The matching data rows are The Rising Nave and The Bell-Founders. Both are retired. | New games do not draft these Orders. Keep the readers for positions that already hold them. |
+| `war.openBordersPrice`, `war.counterMarkup`, `war.refusalMemoryTurns` | Read when pricing passage, writing a counter or remembering a refused offer. A bot checks another bot's response before sending an ordinary swap. | A normal bot-only match exercises different diplomacy from a human negotiating a deal. These controls need a targeted diplomacy check. |
+| `score.deck.shareCap`, `military.wildAggression` | The first caps a premium whose base value is zero. The second affects the normal attack threshold when the exchange floor allows it. | Both can matter if the tuner also changes their companion setting. A one-setting sweep at current defaults can miss that interaction. |
+
+The 32-turn sweep in `docs/plans/bot-simplification-audit-2026-11-17.md` remains the recorded decision-frequency sample. The counts above check the current data and readers. This audit leaves the search bounds and the live balance sheet in place.
+
+A one-generation smoke test used one child, two workers and four scored duel matches of 120 turns. Both copies of the unchanged champion produced `3a521ad0:359671`. All six games finished without a stall or warning. The existing champion kept its place. This checks the tuner and the replay comparison. Four scored matches do not establish playing strength.
