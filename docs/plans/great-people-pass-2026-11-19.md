@@ -1880,3 +1880,22 @@ Qian (U4).
 - The questions of the first round that the comments did not answer: the five
   retired rows (U1 to U5; U1 and U4 now have comments, so I read all five as
   returning), and Deborah.
+
+## The user's third rulings (2026-11-19)
+
+"library of ashurbanipal is good, the renown is the identity of the wonder.
+the other fixes look good for adjusting renown. copernicus approved #1.
+Brahmagupta #1 is fine. Cai Yan #2 is interesting, lets use that."
+
+- **The Library of Ashurbanipal keeps 10 scholar renown a turn.**
+- **Five wonders change the family they feed:** Stonehenge and Chichen Itza to
+  the artist, The Great Ziggurat and Solomon's Temple to the engineer, The
+  Great Sphinx to the general. The totals become scholar 18, artist 21,
+  engineer 17, general 10 (merchant 18, unchanged).
+- **Copernicus:** your Observatories pay double, counting what cards and
+  legacies add to them.
+- **Brahmagupta:** +1 gold in every city per building there that supplies
+  science.
+- **Cai Yan:** +4 culture for each great person that other empires have
+  called.
+- Still open: S12 (ratings), and Deborah.
