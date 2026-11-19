@@ -1,7 +1,7 @@
 import type { BufferGeometry, DataTexture, Group, InstancedBufferAttribute, Mesh, MeshStandardMaterial, Texture, WebGLRenderer } from 'three';
 import type { GameMap } from '../sim/map';
 import type { BuiltBoard } from './board3d';
-import type { GroundPaintInfo, GroundPaintPlan } from './groundPaint.js';
+import type { GroundPaint, GroundPaintInfo, GroundPaintPlan } from './groundPaint.js';
 
 export interface PaintedVegetationAsset {
   geometry: BufferGeometry;
@@ -68,6 +68,11 @@ export interface PaintedBoard extends BuiltBoard {
    */
   readonly groundPaint: null | {
     readonly plan: GroundPaintPlan;
+    readonly trial?: {
+      bakeClose(plan: GroundPaintPlan): { paint: GroundPaint; step(renderer: WebGLRenderer): boolean };
+      /** Pass null for cut land or omit the argument to resume the normal zoom rule. */
+      show(paint?: GroundPaint | null): void;
+    };
     /** The texture is baked, so the plain land may be drawn. */
     readonly ready: boolean;
     readonly pending: boolean;

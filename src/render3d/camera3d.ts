@@ -168,6 +168,8 @@ export class DioramaCamera {
   /** The live pitch in degrees — read by tests and by the founding probe. */
   get elevationDegrees(): number { return this.elevation; }
 
+  get atClosestZoom(): boolean { return this.frustum <= this.minFrustum; }
+
   /**
    * The orientation the camera-*facing* layers are built against: the pitch the
    * camera is **going** to while it is easing, and the live one otherwise.

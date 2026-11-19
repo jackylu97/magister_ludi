@@ -11,7 +11,7 @@
  * board workers.
  */
 import { expectSameArray } from './geometryArrayHelpers';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   BoxGeometry, type BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, InstancedMesh, Mesh, MeshStandardMaterial, Raycaster,
   type Texture, Vector3, type WebGLRenderTarget, type Scene,
@@ -20,6 +20,7 @@ import { buildPaintedBoard, type PaintedBoard, type PaintedBoardBatch, type Pain
 import { createGroundPaint, groundPaintBox, groundPaintEntries, groundPaintPlan, groundPaintSquares, type GroundPaintPlan } from '../../src/render3d/groundPaint.js';
 import { packPaintedBatches, packPaintedKit, unpackPaintedBatches, unpackPaintedKit } from '../../src/render3d/paintedBoardTransfer.js';
 import { buildPaintedBoardAsync } from '../../src/render3d/paintedBoardAsync.js';
+import { CloseGroundPaint } from '../../src/render3d/closeGroundPaint';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { createMap } from '../../src/sim/map';
 // @ts-expect-error The terrain study's painter is JavaScript.
@@ -99,6 +100,8 @@ function fakeRenderer(maxTextureSize = 16384) {
     },
   };
   const renderer = {
+    compile: vi.fn(),
+    compileAsync: vi.fn(),
     getContext: () => gl,
     properties: { get: (texture: Texture) => ({ __webglTexture: texture }) },
     state: {
@@ -389,6 +392,67 @@ describe('play on the plain land', () => {
 });
 
 describe('the bake', () => {
+  it('keeps the cut mesh while a local texture loads and restores the base texture after zooming out', () => {
+    const { build, plan } = fixture();
+    const board = build({ ...plan, closeTrial: true });
+    const ground = board.groundPaint!;
+    const { renderer } = fakeRenderer();
+    bake(board, renderer);
+    const base = ground.texture;
+    const trial = ground.trial!;
+    const local = trial.bakeClose({ ...plan, x0: -2, period: 4, wrapPeriod: plan.period, width: 256 });
+    owned.push(local.paint);
+    board.updateDetail(250);
+    trial.show(local.paint);
+    expect(ground.drawn).toBe(false);
+    for (let i = 0; i < 100 && local.paint.pending; i++) local.step(renderer as never);
+    expect(local.paint.ready).toBe(true);
+    trial.show(local.paint);
+    expect(ground.drawn).toBe(true);
+    expect(ground.texture).toBe(local.paint.uniforms.groundPaintMap.value);
+    trial.show(null);
+    expect(ground.drawn).toBe(false);
+    board.updateDetail(0);
+    trial.show();
+    expect(ground.drawn).toBe(true);
+    expect(ground.texture).toBe(base);
+  });
+
+  it('reuses a covered texture across the seam and draws cut land after a jump', () => {
+    const { build, plan } = fixture(32, 4);
+    const board = build({ ...plan, closeTrial: true });
+    const ground = board.groundPaint!;
+    const { renderer } = fakeRenderer();
+    bake(board, renderer);
+    const close = new CloseGroundPaint(plan, ground.trial!, [0, 1]);
+    owned.push(close);
+    const move = (x: number) => close.update(renderer as never, x, 3, 7, 5, 50, true);
+    const finishAt = (x: number) => {
+      for (let i = 0; i < 100 && close.pending; i++) move(x);
+      expect(close.mode).toBe('close');
+    };
+    move(plan.period - 1);
+    expect(close.mode).toBe('cut');
+    finishAt(plan.period - 1);
+    const first = ground.texture;
+    move(0);
+    expect(close.pending).toBe(false);
+    expect(ground.texture).toBe(first);
+    move(2);
+    expect(close.pending).toBe(true);
+    expect(ground.texture).toBe(first);
+    expect(close.bytes).toBe(24 * 1048576);
+    move(16);
+    expect(close.mode).toBe('cut');
+    expect(ground.drawn).toBe(false);
+    finishAt(16);
+    expect(close.bytes).toBe(12 * 1048576);
+    board.setBakeDetail(true);
+    expect(ground.drawn).toBe(false);
+    board.setBakeDetail(false);
+    expect(ground.drawn).toBe(true);
+  });
+
   it('draws one square a step, uploads land nobody has drawn through stand-ins, and makes the mipmaps once', () => {
     const { build } = fixture();
     const board = build(), { renderer, renders, copies, bound, clear } = fakeRenderer();
@@ -431,6 +495,8 @@ describe('the bake', () => {
     const { build } = fixture();
     const board = build(), { renderer, renders } = fakeRenderer();
     board.groundPaint!.prepare(renderer as never);
+    expect(renderer.compile).toHaveBeenCalledTimes(1);
+    expect(renderer.compileAsync).not.toHaveBeenCalled();
     expect(renders).toHaveLength(0);
     board.groundPaint!.prime(renderer as never);
     // One draw of one degenerate face into each kind of target the bake draws into: the texel nobody reads, and the square.

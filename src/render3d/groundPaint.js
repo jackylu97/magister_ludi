@@ -127,6 +127,16 @@ export function groundPaintEntries(lands, box, period) {
  * material; `plan` is `groundPaintPlan`'s answer, with `plain` true.
  */
 export function createGroundPaint(base, plan) {
+  // A local texture can cross the map seam. Read the copy of this point
+  // nearest its centre, even when the drawn mesh belongs to another copy.
+  const sampleX = plan.closeTrial ? 'paintX' : '(studyPosition.x - groundPaintBox.x)';
+  const wrapSample = plan.closeTrial ? `
+      float paintX = studyPosition.x - groundPaintBox.x;
+      float mapPeriod = ${plan.period.toFixed(8)};
+      float boxWidth = 1.0 / groundPaintBox.z;
+      if (boxWidth < mapPeriod - 0.001) {
+        paintX -= mapPeriod * floor((paintX - 0.5 * boxWidth) / mapPeriod + 0.5);
+      }` : '';
   const uniforms = {
     groundPaintMap: { value: null },
     groundPaintBox: { value: new T.Vector4(plan.x0, plan.z1, 1 / plan.period, 1 / plan.depth) },
@@ -138,11 +148,12 @@ export function createGroundPaint(base, plan) {
     // `studyPosition` is the vertex's own position, which the land's shader already carries. The base's own
     // `#include <color_fragment>` line is the first one; what the base adds after it (the grain, the turf) follows.
     shader.fragmentShader = 'uniform sampler2D groundPaintMap; uniform vec4 groundPaintBox;\n' + shader.fragmentShader.replace('#include <color_fragment>', `
-      vec3 groundPaint = texture2D(groundPaintMap, vec2((studyPosition.x - groundPaintBox.x) * groundPaintBox.z, (groundPaintBox.y - studyPosition.z) * groundPaintBox.w)).rgb;
+      ${wrapSample}
+      vec3 groundPaint = texture2D(groundPaintMap, vec2(${sampleX} * groundPaintBox.z, (groundPaintBox.y - studyPosition.z) * groundPaintBox.w)).rgb;
       diffuseColor.rgb *= vColor.r > 1.5 ? groundPaint * vColor.g : vColor.rgb;
     `);
   };
-  material.customProgramCacheKey = () => `${base.customProgramCacheKey()}:ground-paint`;
+  material.customProgramCacheKey = () => `${base.customProgramCacheKey()}:ground-paint${plan.closeTrial ? `:trial:${plan.period}` : ''}`;
 
   let target = null, job = null, info = null, failed = false, disposed = false;
 
@@ -154,7 +165,7 @@ export function createGroundPaint(base, plan) {
       colorSpace: T.SRGBColorSpace, depthBuffer: false,
       // The mipmaps are made once, after the last square; three would make them again after every square.
       generateMipmaps: false,
-      minFilter: T.LinearMipmapLinearFilter, magFilter: T.LinearFilter, wrapS: T.RepeatWrapping, wrapT: T.ClampToEdgeWrapping,
+      minFilter: T.LinearMipmapLinearFilter, magFilter: T.LinearFilter, wrapS: plan.wrapPeriod ? T.ClampToEdgeWrapping : T.RepeatWrapping, wrapT: T.ClampToEdgeWrapping,
       anisotropy: Math.min(GROUND.anisotropy, renderer.capabilities.getMaxAnisotropy()),
     });
     // Each square is drawn with MSAA (`bakeSamples`), so a patch edge is smooth in the texture.
@@ -180,18 +191,17 @@ export function createGroundPaint(base, plan) {
     for (const name of BAKED) shape.setAttribute(name, new T.BufferAttribute(new Float32Array(name === 'position' || name === 'color' ? 9 : 3), name === 'position' || name === 'color' ? 3 : 1));
     const probeMesh = new T.Mesh(shape, paint);
     probeMesh.frustumCulled = false; probe.add(probeMesh);
-    job = { tile, sink, paint, camera, probe, shape, phase: 'link', linked: false, primed: false, sent: new Set(),
+    job = { tile, sink, paint, camera, probe, shape, phase: 'link', primed: false, sent: new Set(),
       squares: groundPaintSquares(plan.width, plan.height, GROUND.bakeSquare), next: 0, square: null,
       drawn: 0, skipped: 0, uploadedBytes: 0, steps: 0, ms: 0, longestMs: 0, times: [], started: null };
     // The targets' memory is taken now, and not in the first step that draws.
     for (const one of [target, tile, sink]) renderer.initRenderTarget?.(one);
-    // The program is linked off the page's thread where the GPU allows it (`compileAsync`), against a render target,
-    // as the bake draws.
-    if (!renderer.compileAsync) { job.linked = true; return; }
+    // Start linking now. The first draw waits for the program if needed.
+    // compileAsync polls the material after disposal if the board closes during startup.
     const previous = renderer.getRenderTarget();
     try {
       renderer.setRenderTarget(tile);
-      renderer.compileAsync(probe, camera).then(() => { if (job) job.linked = true; }, () => { if (job) job.linked = true; });
+      renderer.compile(probe, camera);
     } finally { renderer.setRenderTarget(previous); }
   }
 
@@ -276,7 +286,7 @@ export function createGroundPaint(base, plan) {
 
   /**
    * The work of one step, by phase:
-   * - `link`: waits for the program, uses it once if `prime` has not, and clears the texture to the sand tone.
+   * - `link`: uses the program once if `prime` has not, and clears the texture to the sand tone.
    * - `squares`: the next square with land in it. Its stand-ins go to the GPU at most `bakeStepMiB` a step (drawn
    *   into a texel nobody reads); then one step draws the whole square with MSAA, and the GPU copies it into the
    *   texture (`copySquare`, which needs no program of its own).
@@ -286,7 +296,6 @@ export function createGroundPaint(base, plan) {
    */
   function work(renderer, lands, plains) {
     if (job.phase === 'link') {
-      if (!job.linked) return false;
       if (!job.primed) firstUse(renderer);
       renderer.setClearColor(CLEAR, 1);
       renderer.setRenderTarget(target); renderer.clear(true, false, false);
@@ -297,7 +306,7 @@ export function createGroundPaint(base, plan) {
       const size = GROUND.bakeSquare;
       while (!job.square && job.next < job.squares.length) {
         const [px, py] = job.squares[job.next++], box = squareBox(plan, px, py, size);
-        const entries = groundPaintEntries(lands, box, plan.period);
+        const entries = groundPaintEntries(lands, box, plan.wrapPeriod ?? plan.period);
         if (entries.length) job.square = { px, py, box, entries, uploaded: 0 };
         else job.skipped++;
       }
@@ -403,7 +412,7 @@ export function createGroundPaint(base, plan) {
     /** Makes the bake's targets and starts linking its program. The renderer calls it when the board is built. */
     prepare(renderer) { guarded(() => { if (!job) begin(renderer); }); },
     /**
-     * Uses the bake's program once, linking it now if `compileAsync` has not finished. The renderer calls it just
+     * Uses the bake's program once, waiting for the link if needed. The renderer calls it just
      * before the board's first frame, which is long anyway and has nothing queued before it (see `firstUse`).
      * Without it, the bake's first step does it.
      */

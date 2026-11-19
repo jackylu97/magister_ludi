@@ -10,7 +10,7 @@ Use a fresh browser session and intercept the Vite response for `src/main.ts` in
 
 In Chromium with `?art=flat`, the first attempt reported the exception on the landing form. Begin succeeded on retry without a page reload. One resize event called the renderer once. Shift-clicking End Turn issued one End Turn command. W and S each opened their screen and a second press left it open. I opened and closed In Play. H and E kept the initial access checks. Restart reused the running interface. Loading the saved game restored its one command and its local seat.
 
-The default painted renderer also needs a check with the same injected exception. In Chromium, an asynchronous Three.js material check ran after renderer disposal. The rendering fix and its browser verification are pending.
+The same forced failure on the painted board exposed a second problem. Three.js polled the ground texture's shader after the failed game released the material. Terrain preparation now starts the shader link with `renderer.compile`. The first draw uses the linked program. Repeating the test on the painted board produced no uncaught browser errors. Retry, shortcuts, resize, End Turn, Restart and Load all passed, including the saved command and local seat check.
 
 ## Automated checks
 

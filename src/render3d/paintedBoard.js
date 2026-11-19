@@ -219,8 +219,11 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // the land and `drawingPlain` the memo. The plain land is drawn only once its
   // texture is baked, and never into the static sun's bake (it casts nothing).
   let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
-  let showingPlain = false, drawingPlain = false;
+  let showingPlain = false, drawingPlain = false, trialPlain = null;
 
+  // The trial temporarily points the plain material at a local texture.
+  // Keep the base texture and box so a zoom change can restore both.
+  let baseMap, baseBox;
   /** Whether a batch's band is drawn, by the two memos. */
   function drawnAtThisZoom(detail) {
     if (detail === 'always') return true;
@@ -234,7 +237,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   }
   function applyDetail() {
     const distant = showingDistant && !bakingDetail;
-    const plainLand = showingPlain && !!groundPaint?.ready && !bakingDetail;
+    const plainLand = (trialPlain ?? showingPlain) && !!groundPaint?.ready && !bakingDetail;
     if (drawingDistant === distant && drawingPlain === plainLand) return false;
     drawingDistant = distant; drawingPlain = plainLand;
     for (const batch of visibilityBatches) showBatch(batch);
@@ -794,6 +797,23 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
      * drawn at every zoom.
      */
     groundPaint: groundPaint && {
+      ...(paintPlan.closeTrial && { trial: {
+        bakeClose(plan) {
+          const paint = createGroundPaint(materials.mergedLand, plan);
+          return { paint, step: renderer => paint.step(renderer, groundPaintLands) };
+        },
+        show(paint) {
+          if (!groundPaint.ready) return;
+          const { groundPaintMap, groundPaintBox } = groundPaint.uniforms;
+          baseMap ??= groundPaintMap.value;
+          baseBox ??= groundPaintBox.value.clone();
+          // Undefined resumes ordinary zoom selection. Null requests the cut mesh.
+          trialPlain = paint === undefined ? null : !!paint?.ready;
+          groundPaintMap.value = paint?.uniforms.groundPaintMap.value ?? baseMap;
+          groundPaintBox.value.copy(paint?.uniforms.groundPaintBox.value ?? baseBox);
+          applyDetail();
+        },
+      } }),
       get plan() { return paintPlan; },
       get ready() { return !disposed && groundPaint.ready; },
       get pending() { return !disposed && groundPaint.pending; },
