@@ -646,7 +646,8 @@ describe("the bead catalogue", () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

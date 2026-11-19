@@ -109,10 +109,10 @@ describe('the unit sheet’s upkeep line', () => {
 });
 
 describe('the build list’s hover', () => {
-  it('asks the roster’s reader for a unit and the row’s reader for a building', () => {
+  it('shows unit upkeep and applies the owner’s waivers to building upkeep', () => {
     const panel = source('cityPanel.ts');
     expect(panel).toContain('upkeepFigure(unitUpkeep(id))');
-    expect(panel).toContain('upkeepFigure(buildingUpkeep(id))');
+    expect(panel).toContain('upkeepFigure(buildingUpkeepFor(getGame().state, city.ownerId, id))');
   });
 
   /**

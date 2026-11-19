@@ -36,7 +36,7 @@ function workerHarness() {
   return { workerFactory, requests, terminations, get started() { return started; } };
 }
 
-function requestFor(game: ReturnType<typeof createGame>): BotWorkerRequest {
+function requestFor(game: ReturnType<typeof createGame>): Extract<BotWorkerRequest, { kind: 'drive' }> {
   return { kind: 'drive', id: 1, config: game.config, state: game.state, logLength: 0, memory: readHarnessMemory(game.state) };
 }
 
@@ -69,6 +69,50 @@ describe('browser seat planning', () => {
       pool.dispose();
     }
     expect(workers.terminations).toEqual([1, 2]);
+  });
+
+  it.each([7, 8])('limits background planning on a machine with %i reported cores', async (cores) => {
+    const request = requestFor(createGame(CONFIG));
+    const workers = workerHarness();
+    const pool = createBotPlanPool({ ...workers, hardwareConcurrency: cores });
+    try {
+      const expected = answerBotWorker(structuredClone(request));
+      if (expected.kind !== 'driven') throw new Error('The coordinator did not drive');
+
+      const background = answerBotWorkerAsync(structuredClone({ ...request, priority: 'background' as const }), pool);
+      const scheduled = workers.requests.splice(0);
+      expect(scheduled.map(({ request: plan }) => plan.seats)).toEqual(cores === 7 ? [] : [[1, 3], [2]]);
+      for (const { request: plan, reply } of scheduled.reverse()) reply(answerBotPlan(plan));
+      expect(await background).toMatchObject({ attempts: expected.attempts, memory: expected.memory });
+
+      const foreground = answerBotWorkerAsync(structuredClone(request), pool);
+      const immediate = workers.requests.splice(0);
+      expect(immediate.map(({ request: plan }) => plan.seats)).toEqual([[1], [2], [3]]);
+      for (const { request: plan, reply } of immediate.reverse()) reply(answerBotPlan(plan));
+      expect(await foreground).toMatchObject({ attempts: expected.attempts, memory: expected.memory });
+      expect(workers.started).toBe(3);
+      expect(workers.terminations).toEqual([]);
+    } finally {
+      pool.dispose();
+    }
+  });
+
+  it('uses the coordinator for background work when the hardware count is missing', async () => {
+    vi.stubGlobal('navigator', undefined);
+    const workers = workerHarness();
+    const pool = createBotPlanPool({ ...workers, concurrency: 3 });
+    try {
+      const request = requestFor(createGame(CONFIG));
+      expect(pool.available).toBe(true);
+      expect(await answerBotWorkerAsync({ ...request, priority: 'background' }, pool)).toMatchObject({
+        kind: 'driven',
+      });
+      expect(workers.started).toBe(0);
+      expect(workers.requests).toEqual([]);
+    } finally {
+      pool.dispose();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('uses request tuning for both planning and replay, then restores the previous tuning', async () => {
@@ -110,15 +154,15 @@ describe('browser seat planning', () => {
     }
   });
 
-  it('discards a partially successful turn and replans it synchronously on worker failure', async () => {
+  it('replans a failed background turn in the coordinator and retries the pool in the foreground', async () => {
     const request = requestFor(createGame(CONFIG));
     const workers = workerHarness();
-    const pool = createBotPlanPool({ ...workers, concurrency: 2 });
+    const pool = createBotPlanPool({ ...workers, hardwareConcurrency: 4, concurrency: 3, backgroundConcurrency: 2 });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const expected = answerBotWorker(structuredClone(request));
-      const run = answerBotWorkerAsync(structuredClone(request), pool);
-      const [first, second] = workers.requests;
+      const run = answerBotWorkerAsync(structuredClone({ ...request, priority: 'background' as const }), pool);
+      const [first, second] = workers.requests.splice(0);
       const output = answerBotPlan(first!.request);
       if (output.kind !== 'planned') throw new Error(output.message);
       output.seats[0]!.warnings.push({ message: 'An unused plan warned' });
@@ -130,6 +174,11 @@ describe('browser seat planning', () => {
       expect(result.memory).toEqual(expected.memory);
       expect(warn.mock.calls.map(([message]) => message)).not.toContain('An unused plan warned');
       expect(workers.terminations).toEqual([1, 2]);
+
+      const retry = answerBotWorkerAsync(structuredClone({ ...request, priority: 'foreground' as const }), pool);
+      expect(workers.requests.map(({ request: plan }) => plan.seats)).toEqual([[1], [2], [3]]);
+      for (const { request: plan, reply } of workers.requests) reply(answerBotPlan(plan));
+      expect(await retry).toMatchObject({ attempts: expected.attempts, memory: expected.memory });
     } finally {
       warn.mockRestore();
       pool.dispose();

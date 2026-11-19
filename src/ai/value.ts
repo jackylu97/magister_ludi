@@ -90,7 +90,6 @@ import {
   buildingDef,
   buildingRowSupplies,
   isBuildingId,
-  isEmpireBuilding,
   isPublicWork,
   isWonder,
 } from '../sim/buildingData';
@@ -134,9 +133,11 @@ import {
   channelSurplus,
   cityResources,
   controlledResources,
+  draftCompletionHammers,
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
+  growthThreshold as citizenGrowthThreshold,
   lendableCopies,
   otherCarryingRoutes,
   ownedTiles,
@@ -170,7 +171,7 @@ import {
   tileNeighbors,
   wrappedDistance,
 } from '../sim/map';
-import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
+import { authorityOf, happinessDemand, happinessOf, meterEffects, tierPercent } from '../sim/meters';
 import { ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
@@ -220,6 +221,7 @@ import {
   cityResourceYields,
   empireResourceYields,
   importedLuxuries,
+  resourceTierBoost,
 } from '../sim/resourceEffects';
 import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
@@ -314,6 +316,7 @@ import {
   type GroundFacts,
   // Batch G1: the kinds a tier-26 government raises, so its price reads them.
   CARD_TYPE_RAISED_KINDS,
+  cardTypeAmplifierMatches,
   cardActionRule,
   cardCollectionShare,
   cardRareWeight,
@@ -344,8 +347,12 @@ import {
   isLineAbroadRow,
   // Batch K2: the one walk for "does this scope name X".
   scopeAsks,
+  yieldAmplifierReads,
   heldReligions,
   buildingPassesTest,
+  buildingProductionBonusMatches,
+  buildingUpkeepRebateMatches,
+  cardTierBoost,
   isCityScopedCount,
   isRaisingWonderOrOpus,
   noMetEmpireAhead,
@@ -397,6 +404,9 @@ import {
   isOrderId,
   countedTypeOf,
   orderDef,
+  orderKeyword,
+  scalerShape,
+  onDraftUnitCount,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
@@ -437,7 +447,7 @@ import {
   unitDef,
   unitMaxHp,
 } from '../sim/unitData';
-import { unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
+import { explainBuildingUpkeep, unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
 import { round } from './decision';
 import { signed } from './decision';
@@ -2103,8 +2113,21 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // never took it. Left at the realm's own count, which is what "per city"
       // says when nothing narrows it.
       return effect.amount * meterWeight(ctx, 'authority') * (effect.per === 'city' ? ctx.cities : 1);
-    case 'happinessTierBoost':
-      return effect.points * meterWeight(ctx, 'happiness');
+    case 'happinessTierBoost': {
+      const happiness = happinessOf(ctx.state, ctx.playerId);
+      if (tierPercent(happiness) <= 0) return 0;
+      const boost = cardTierBoost(ctx.state, ctx.playerId);
+      const fixed = boost.points + resourceTierBoost(ctx.state, ctx.playerId).points;
+      const bonus = tierPercent(happiness, fixed);
+      const live = meterEffects(ctx.state, ctx.playerId).find(
+        (entry) => entry.meter === 'happiness' && entry.yields.length > 0,
+      )?.percent ?? 0;
+      const rates = ratesOf(ctx);
+      const rate = (rates.sciencePerTurn ?? 0) * voiceWeight(ctx, 'science') +
+        (rates.culturePerTurn ?? 0) * voiceWeight(ctx, 'culture');
+      const increase = ((effect.points ?? 0) * (100 + boost.percent) + bonus * (effect.percent ?? 0)) / 100;
+      return (rate * increase) / (100 + live);
+    }
     case 'combatLine':
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
@@ -2177,7 +2200,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         effect.max === undefined ? helpings : Math.min(helpings, Math.max(0, effect.max));
       return effect.amount * capped * ctx.ai.weights.renown;
     }
-    case 'upkeepRebate':
+    case 'upkeepRebate': {
+      const maxAge = effect.buildingAgeAtMost;
+      if (maxAge !== undefined) {
+        let gold = 0;
+        for (const bill of explainBuildingUpkeep(ctx.state, ctx.playerId)) {
+          if (buildingUpkeepRebateMatches(bill.building, maxAge)) gold += bill.gold;
+        }
+        return costOfUpkeep(gold, ctx);
+      }
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
@@ -2192,6 +2223,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
         return costOfUpkeep((effect.amount ?? 1) * ranked, ctx);
       }
       return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
+    }
     // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) ----------
     // Every one of them is priced off **what this empire actually holds**, which
     // is `explainCounted`'s own rule read one shape over: an engine is worth what
@@ -2201,6 +2233,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
     // appraised in isolation cannot see the deck it would be drafted into, and
     // the marginal reading `V(deck ∪ card) − V(deck)` is batch F2's.
     case 'cardYieldAmplifier': {
+      if (effect.reads === 'buildingOrders' || effect.reads === 'capitalCards') {
+        return targetedYieldAmplifierWorth(effect, ctx);
+      }
       const each = (effect.amount ?? 0) + ((effect.percent ?? 0) / 100) * nominal;
       if (each === 0) return 0;
       // The amplifier's **own** scope, beside the amplified lines' (batch X2):
@@ -2592,6 +2627,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // off those Orders (batch S13): the technology riders and tallies the
       // seat has seated, paid again.
       if (effect.rule === 'techCountsTwice') return techCountsTwiceWorth(effect.value, ctx);
+      if (effect.rule === 'scalersCountTwice') return scalersCountTwiceWorth(effect.value, ctx);
       // **The Immortals' `legaciesCountTwice`** (Magisterial batch MG8; priced
       // in batch MG17): the legacies the seat holds and will hold, read again.
       // See `immortalsWorth`.
@@ -2975,8 +3011,8 @@ function rateKeyOf(voice: string): keyof EmpireRates {
 }
 
 /**
- * **What a `RateSource` reads on this board** — the same five books and two
- * meters the evaluator hands a `pays` rate (`statecraft.ts`), and the two
+ * **What a `RateSource` reads on this board**. The evaluator uses the same
+ * books and meters for `pays` rates. The two
  * meters read **positive part only**, which is that function's own rule: "per
  * point of positive happiness" is what the cards say, and a conversion that paid
  * a malus would be a card that rewards misery.
@@ -3649,7 +3685,7 @@ function finishedRowRate(
     recent += stampedSince(city, passing, span, ctx.state.turn);
   }
   let open = 0;
-  for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns;
+  for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns.length;
   // The recent window as well as the whole game (bot batch BP4), as
   // `buildingPace` reads every building.
   const rate = Math.max(
@@ -3734,7 +3770,7 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit': {
-        const piece = draftedUnitWorth(grant.unit, ctx);
+        const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx);
         once += piece.once;
         rate += piece.rate;
         break;
@@ -3743,6 +3779,12 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
       case 'windfall':
         once += magisterialDraftGrantWorth(grant, ctx);
         break;
+      case 'completeQueues': {
+        const hammers = citiesOf(ctx.state, ctx.playerId)
+          .reduce((sum, city) => sum + draftCompletionHammers(ctx.state, city), 0);
+        once += explainYields({ production: hammers }, ctx).total;
+        break;
+      }
       case 'foreignCard': {
         const player = playerById(ctx.state, ctx.playerId);
         if (player !== undefined) rate += foreignCardWorth(player, ctx);
@@ -3781,16 +3823,20 @@ export function boonTurns(ctx: ValueContext): number {
  *     the best melee unit the seat can build now (`bestMeleeFor`), as the grant
  *     resolves it, and nothing when there is none.
  */
-function draftedUnitWorth(unit: UnitTypeId | 'bestMelee', ctx: ValueContext): { once: number; rate: number } {
+function draftedUnitWorth(
+  unit: UnitTypeId | 'bestMelee',
+  count: number,
+  ctx: ValueContext,
+): { once: number; rate: number } {
   const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
-    return { once: 0, rate: routes.open.pay.total };
+    return { once: 0, rate: routes.open.pay.total * Math.min(count, routes.free) };
   }
   const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
-  return { once: explainYields({ production: hammers }, ctx).total, rate: 0 };
+  return { once: count * explainYields({ production: hammers }, ctx).total, rate: 0 };
 }
 
 /**
@@ -4811,6 +4857,19 @@ function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
   return list;
 }
 
+/** Price the current lines that the building or capital selector would raise. */
+function targetedYieldAmplifierWorth(
+  amplifier: Extract<CardEffect, { kind: 'cardYieldAmplifier' }>,
+  ctx: ValueContext,
+): number {
+  let worth = 0;
+  for (const { card, effect } of liveEffects(ctx.state, ctx.playerId)) {
+    if (!yieldAmplifierReads(amplifier, card, effect)) continue;
+    worth += Math.max(0, scoreEffects([effect], ctx, card));
+  }
+  return ((amplifier.percent ?? 0) / 100) * worth;
+}
+
 /**
  * **How many line instances an amplifier would find**, in one voice — the count
  * that makes the additive engine worth anything at all.
@@ -5650,6 +5709,7 @@ function metaRuleBeyond(effect: Extract<CardEffect, { kind: 'metaRule' }>, ctx: 
     case 'governmentsOfTier':
       return otherGovernmentsWorth(ctx, beyondTotal);
     case 'techCountsTwice':
+    case 'scalersCountTwice':
     case 'sealTurns':
     case 'turnEffectRepeats':
       return walkOne(effect, ctx);
@@ -6292,6 +6352,11 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       ];
     }
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
+    if (occasion === 'buildingCompleted') {
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = Math.max(ordinaryBuildingPace(ctx) * horizon, forecast ?? 0);
+      return [{ label: `+ ${round(more)} more buildings finished over the horizon`, value: more }];
+    }
     if (forecast === undefined) {
       return [
         {
@@ -6897,18 +6962,28 @@ function pullOfSteps(ctx: ValueContext, steps: readonly CommissionStep[]): Value
  * **A building row's step toward the seat's open commissions** (bot batch BP6,
  * B12), for the production table: a world wonder is one wonder completed, and
  * a wonder or the Magnum Opus takes its cost in hammers put into a wonder (the
- * `wonderProduction` tally counts the hammers a town puts into either). `null`
- * for any other row, and for every row of a seat with no open commission.
+ * `wonderProduction` tally counts the hammers a town puts into either). An
+ * ordinary building counts once toward a goal for finished buildings.
  */
 export function buildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
   const def = buildingDef(id);
   const wonder = isWonder(id);
-  if (!wonder && def.endsTheGame !== true) return null;
+  if (!wonder && def.endsTheGame !== true) return ordinaryBuildingPullTerm(ctx, id);
   const steps: CommissionStep[] = [
     { occasion: 'wonderProduction', count: buildingProductionCost(id, ctx.state, ctx.playerId) },
   ];
   if (wonder) steps.push({ occasion: 'wonderCompleted', count: 1 });
   return pullOfSteps(ctx, steps);
+}
+
+const ORDINARY_BUILDING_PULL = new WeakMap<ValueContext, ValueTerm | null>();
+
+/** A built or bought ordinary building advances the same counted goal. */
+export function ordinaryBuildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
+  if (isWonder(id) || buildingDef(id).endsTheGame === true) return null;
+  return onContext(ORDINARY_BUILDING_PULL, ctx, () =>
+    commissionPullTerm(ctx, { occasion: 'buildingCompleted', count: 1 }),
+  );
 }
 
 /**
@@ -7096,11 +7171,11 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
     // A goal met by completing a technology is forecast from the research
     // itself (Scientific batch S13): The Great Instrument's Alchemy and The
     // Royal Charter Commission's charter technology. See `researchGoalForecast`.
-    const research = researchGoalForecast(goal, ctx);
-    if (research !== null) {
-      if (research.turns < turns) continue;
-      turns = Math.max(1, research.turns);
-      why = research.why;
+    const forecast = researchGoalForecast(goal, ctx) ?? townPopulationGoalForecast(goal, ctx);
+    if (forecast !== null) {
+      if (forecast.turns < turns) continue;
+      turns = Math.max(1, forecast.turns);
+      why = forecast.why;
       continue;
     }
     // **The Magisterial goals** (Magisterial batch MG17): a wonder its towns
@@ -7128,6 +7203,28 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
         : `${round(remaining)} more ${what} still to come, and no pace to forecast them from`;
   }
   return { turns, why };
+}
+
+/** Use each town's own growth because a surplus in one town cannot make another qualify. */
+function townPopulationGoalForecast(goal: CommissionGoal, ctx: ValueContext): { turns: number; why: string } | null {
+  if (goal.kind !== 'reached' || goal.figure !== 'townsAtPopulation' || goal.populationAtLeast === undefined) return null;
+  const population = goal.populationAtLeast;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  if (towns.length < goal.count) return { turns: horizon, why: `${goal.count} towns are needed for the goal` };
+
+  const arrivals = towns.map((town) => {
+    if (town.population >= population) return 0;
+    let food = -town.foodBasket;
+    for (let size = town.population; size < population; size++) food += citizenGrowthThreshold(size);
+    // Growth settles at most one citizen per town at the end of a turn.
+    const wait = food <= 0 ? 0 : Math.ceil(regrowTurns(town, food, ctx));
+    return Math.max(population - town.population, wait);
+  }).sort((a, b) => a - b);
+  return {
+    turns: Math.min(horizon, arrivals[goal.count - 1] ?? horizon),
+    why: `time for ${goal.count} towns to reach ${population} citizens at their current growth`,
+  };
 }
 
 /** Does a counted goal count only some moments (`GoalFloor`)? */
@@ -7158,6 +7255,21 @@ function smoothedRate(record: number | null, fallback: number, ctx: ValueContext
   return (Math.max(0, record) + fallback * weight) / span;
 }
 
+const BUILDING_COMPLETION_PACE = new WeakMap<ValueContext, number>();
+
+/** Use recent ordinary buildings as an estimate. The board keeps no lifetime count. */
+function ordinaryBuildingPace(ctx: ValueContext): number {
+  return onContext(BUILDING_COMPLETION_PACE, ctx, () => {
+    const turns = recentWindow(ctx);
+    let recent = 0;
+    for (const town of citiesOf(ctx.state, ctx.playerId)) {
+      const ordinary = town.buildings.filter((id) => !isWonder(id) && buildingDef(id).endsTheGame !== true);
+      recent += stampedSince(town, ordinary, turns, ctx.state.turn);
+    }
+    return recent / turns;
+  });
+}
+
 /**
  * **How often this seat meets an occasion a commission counts**, per turn.
  *
@@ -7176,6 +7288,7 @@ function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): numbe
   // seat's towns keep now are its recent pace (`seasonPace`). The cautious
   // default is the floor.
   if (occasion === 'riteStarted') return Math.max(seasonPace(ctx).rate, fallback);
+  if (occasion === 'buildingCompleted') return Math.max(ordinaryBuildingPace(ctx), fallback);
   // **The production put into wonders** (Magisterial batch MG17, Commission:
   // The Wonder of the Age): no record, but the towns raising a wonder or the
   // Opus now are its pace. See `wonderHammerRate`.
@@ -7252,6 +7365,7 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Scientific batch S6: the charter technologies among them.
       return player.techsResearched.filter((id) => isTechId(id) && techDef(id).charter === true)
         .length;
+    case 'buildingCompleted':
     case 'buildingBoughtWithGold':
     case 'riteStarted':
     case 'foreignCityConverted':
@@ -8225,17 +8339,19 @@ function buildingBonusReach(
     effect.building !== undefined ||
     effect.buildingCategory !== undefined ||
     effect.empireBuilding !== undefined ||
-    effect.publicWork === true;
+    effect.publicWork === true ||
+    effect.buildingFilter !== undefined;
   if (!narrowed) return 1;
   let reached = 0;
   let every = 0;
-  for (const { id, hammers } of openRows(ctx)) {
+  for (const { id, hammers, towns } of openRows(ctx)) {
     every += hammers;
-    if (effect.building !== undefined && effect.building !== id) continue;
-    if (effect.buildingCategory !== undefined && buildingDef(id).category !== effect.buildingCategory) continue;
-    if (effect.empireBuilding !== undefined && isEmpireBuilding(id) !== effect.empireBuilding) continue;
-    if (effect.publicWork === true && !isPublicWork(id)) continue;
-    reached += hammers;
+    if (effect.buildingFilter === 'capitalHas') {
+      const eligible = towns.filter((city) => buildingProductionBonusMatches(ctx.state, city, effect, id));
+      reached += (hammers / towns.length) * eligible.length;
+    } else if (buildingProductionBonusMatches(ctx.state, towns[0]!, effect, id)) {
+      reached += hammers;
+    }
   }
   return every === 0 ? 0 : reached / every;
 }
@@ -8243,7 +8359,7 @@ function buildingBonusReach(
 /** One building row this seat could raise now: in how many towns, and at what cost in all. */
 interface OpenRow {
   id: BuildingId;
-  towns: number;
+  towns: readonly City[];
   hammers: number;
 }
 
@@ -8258,12 +8374,14 @@ function openRows(ctx: ValueContext): readonly OpenRow[] {
     const towns = citiesOf(ctx.state, ctx.playerId);
     for (const id of BUILDING_IDS) {
       if (isWonder(id)) continue;
-      let open = 0;
-      for (const city of towns) {
-        if (townHoldsBuilding(ctx.state, city, id)) continue;
-        if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+      const inTowns = towns.filter((city) =>
+        !townHoldsBuilding(ctx.state, city, id) &&
+        buildError(ctx.state, ctx.playerId, 'building', id, city) === null,
+      );
+      const open = inTowns.length;
+      if (open > 0) {
+        rows.push({ id, towns: inTowns, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
       }
-      if (open > 0) rows.push({ id, towns: open, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
     }
     return rows;
   });
@@ -8598,6 +8716,26 @@ function techCountsTwiceWorth(value: number, ctx: ValueContext): number {
     again += (forecast / per) * scorePayout(held, ctx);
   }
   return extra * again;
+}
+
+/** Value only the additional gains expected from Scalers in chairs. */
+function scalersCountTwiceWorth(value: number, ctx: ValueContext): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const multiplier = Math.floor(value);
+  if (sc === undefined || multiplier <= 1 || ctx.today === true) return 0;
+  let extra = 0;
+  for (const slot of sc.slots) {
+    const card = slot?.card;
+    if (card === undefined || !isOrderId(card) || orderKeyword(card) !== 'scaler') continue;
+    for (const { line } of scalerShape(orderDef(card).effects).parts) {
+      const current = countOf(ctx.state, ctx.playerId, card, line);
+      const ahead = potentialTerms(line, ctx).reduce((sum, term) => sum + term.value, 0);
+      const usual = helpings(current + ahead, line.per, line.max);
+      const doubled = helpings(current + multiplier * ahead, line.per, line.max);
+      extra += (doubled - usual) * scorePayout(line, ctx);
+    }
+  }
+  return extra;
 }
 
 /**
@@ -13116,7 +13254,7 @@ export function orderReadAgain(id: OrderId, ctx: ValueContext): number {
  * **What a card-type amplifier is worth** (batch G1, the tier-26 governments):
  * its share of what this seat's seated cards of the type are worth, over the
  * kinds the rise reaches (`CARD_TYPE_RAISED_KINDS`, the evaluator's own list).
- * A card counts as the simulation counts it (`countedTypeOf`, in its chair).
+ * The Personal Union selects seated Orders by membership in two decks.
  *
  * Three stated readings. The rise of a small figure is at least one, and this
  * reads the plain share, so a small card is under-read. A clause inside a
@@ -13132,11 +13270,15 @@ function cardTypeAmplifierWorth(
   const sc = statecraftOf(ctx.state, ctx.playerId);
   if (sc === undefined) return 0;
   const layout = slotTypesOf(sc);
+  const live = effect.shared === true ? liveEffects(ctx.state, ctx.playerId) : undefined;
   let worth = 0;
   sc.slots.forEach((slot, index) => {
     if (slot === null || !isOrderId(slot.card)) return;
-    if (countedTypeOf(slot.card, layout[index] ?? 'wildcard') !== effect.type) return;
-    const lines = orderDef(slot.card).effects.filter((held) => CARD_TYPE_RAISED_KINDS.includes(held.kind));
+    if (!cardTypeAmplifierMatches(effect, slot.card, layout[index] ?? 'wildcard')) return;
+    const effects = live === undefined
+      ? orderDef(slot.card).effects
+      : live.filter(({ card }) => card === slot.card).map((entry) => entry.effect);
+    const lines = effects.filter((held) => CARD_TYPE_RAISED_KINDS.includes(held.kind));
     if (lines.length > 0) worth += scoreEffects(lines, ctx, slot.card);
   });
   return (effect.percent / 100) * worth;
@@ -13573,7 +13715,14 @@ function magisterialDraftGrantWorth(
       }
       if (found <= 0) return 0;
       const bag: YieldBag = {};
-      bag[grant.yield as Voice] = grant.amount * found;
+      const rate = grant.fromRate === undefined ? 1 : rateSourceValue(grant.fromRate, ctx);
+      const towns = grant.toEveryTown === true ? citiesOf(ctx.state, ctx.playerId) : [];
+      const recipients = grant.toEveryTown !== true
+        ? 1
+        : grant.fromTownPopulation === true
+          ? towns.reduce((sum, town) => sum + town.population, 0)
+          : towns.length;
+      bag[grant.yield as Voice] = grant.amount * found * rate * recipients;
       return explainYields(bag, ctx).total;
     }
     default: {

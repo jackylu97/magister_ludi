@@ -127,6 +127,7 @@ import {
   type FirstKind,
   type LevyUse,
   type OnDraftWindfall,
+  onDraftUnitCount,
   type OrderId,
   type WindfallOccasion,
   governmentDef,
@@ -236,6 +237,7 @@ import {
   bankedTowardItem,
   capitalCityOf,
   cityById,
+  citiesOf,
   claimWonder,
   createCity,
   createUnit,
@@ -2825,7 +2827,8 @@ function chooseCitizens(
  *      may take a hex from another town of the empire (`takeTile`), and the
  *      town that lost it is re-seated through this helper in the same command.
  *   2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
- *   3. `settleProductionWindfall` — a one-time grant that completes an item.
+ *   3. `settleProductionWindfall` — a one-time grant that completes an item,
+ *      including a draft that finishes the front item.
  *      **The `contribute` verb joins here rather than as an entry of its own**
  *      (Entry LV): a contribution is hammers into the basket like any windfall,
  *      so `contributeAt` (`purchase.ts`) settles through this wrapper and owes
@@ -5132,6 +5135,7 @@ function planQueueItem(
   city: City,
   hammers: number,
   index: number,
+  usePurchasePlacement = false,
 ): ProductionPlan | null {
   const item = city.queue[index];
   if (!item) return null;
@@ -5139,7 +5143,9 @@ function planQueueItem(
   if (item.kind === 'unit') {
     const payable = payableUnitAt(state, city, hammers, index);
     if (!payable) return null;
-    const tile = builtSpawnTileFor(state, city, payable.id);
+    const tile = usePurchasePlacement
+      ? spawnTileFor(state, city, payable.id, { onCityHexOnly: true })
+      : builtSpawnTileFor(state, city, payable.id);
     if (!tile) return null;
     return { kind: 'unit', item, index, id: payable.id, cost: payable.cost, tile };
   }
@@ -5180,6 +5186,26 @@ function planQueueItem(
   const cost = buildingProductionCost(id, state, city.ownerId);
   if (hammers < cost) return null;
   return { kind: 'building', item, index, id, cost };
+}
+
+type DraftCompletionPlan = Extract<ProductionPlan, { kind: 'building' | 'unit' }>;
+
+/** Find the front item the draft can finish. Unrest still allows completion. */
+function planDraftCompletion(state: GameState, city: City): DraftCompletionPlan | null {
+  const first = city.queue[0];
+  if (city.puppet === true || !first || first.kind === 'project') return null;
+  if (first.kind === 'building' &&
+    (!isBuildingId(first.id) || isWonder(first.id) || buildingDef(first.id).endsTheGame === true)) {
+    return null;
+  }
+  const plan = planQueueItem(state, city, Infinity, 0, true);
+  return plan?.kind === 'building' || plan?.kind === 'unit' ? plan : null;
+}
+
+/** Hammers the draft would save on this town's front item, if it can finish. */
+export function draftCompletionHammers(state: GameState, city: City): number {
+  const plan = planDraftCompletion(state, city);
+  return plan === null ? 0 : Math.max(0, plan.cost - city.hammerBasket);
 }
 
 /**
@@ -5374,8 +5400,14 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
 
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
   const plan = planProduction(state, city);
-  if (!plan) return null;
+  return plan === null ? null : settleProductionPlan(state, city, plan);
+}
 
+function settleProductionPlan(
+  state: GameState,
+  city: City,
+  plan: ProductionPlan,
+): ProductionCompletion | null {
   // What the basket is aimed at going in. Every arm below that changes the queue
   // hands this to `reaimProduction`, which is the one seam a town's hammers may
   // change rows at (schema 111). Nothing here is a *switch* — a thing finished,
@@ -5468,7 +5500,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   reaimProduction(city, before, false);
 
   if (plan.kind === 'building') {
-    const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
+    const realised = realiseItem(state, city, { kind: 'building', id: plan.id }, { fromProduction: true });
     if (realised.wonder) done.wonder = realised.wonder;
     if (realised.grants) done.grants = realised.grants;
     if (realised.consecration) done.consecration = realised.consecration;
@@ -5515,6 +5547,8 @@ type CompletedItem =
  * discipline, read from the other end).
  */
 interface RealiseOptions {
+  /** A queue completion counts toward Orders that watch finished buildings. */
+  fromProduction?: true;
   /**
    * The empire is not paying for this. Sets `Unit.freeUpkeep`; ignored for a
    * building, which has no such mark — a granted building's maintenance follows
@@ -5665,7 +5699,15 @@ export function realiseItem(
     // pays for a roof somebody bought — so the till now says which bank it was
     // and the town writes it down beside the date. Absent on every other way
     // stones arrive, which is what a completion, a grant and a relic all are.
-    addBuilding(state, city, item.id, options.bought);
+    const added = addBuilding(state, city, item.id, options.bought);
+    // A purchase finishes the building as well. Free grants enter through this
+    // routine too, so use the source to distinguish them from work in the queue.
+    if (
+      added && (options.fromProduction || options.bought !== undefined) &&
+      !isWonder(item.id) && buildingDef(item.id).endsTheGame !== true
+    ) {
+      recordScalingOccasion(state, city.ownerId, 'buildingCompleted');
+    }
     // **The law changed under this very call** (batch E3a). A wonder is the
     // fifth source of `liveEffects`, the stones go up before the grants below
     // are asked for, and the remembered law is keyed on `GameState.revision` —
@@ -6619,11 +6661,29 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
       case 'greatPerson':
         grantGreatPersonOffer(state, player, grant.family ?? 'any');
         break;
-      case 'unit':
-        if (capital) raiseFreeUnit(state, capital, grant.unit);
+      case 'unit': {
+        if (!capital) break;
+        // Choose the type before the first unit claims any strategic resources.
+        const unit = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
+        if (unit === null) break;
+        const count = onDraftUnitCount(grant.count);
+        for (let n = 0; n < count; n++) {
+          if (raiseFreeUnit(state, capital, unit) === null) break;
+        }
         break;
+      }
       case 'windfall':
         windfalls.push(grant);
+        break;
+      case 'completeQueues':
+        for (const town of citiesOf(state, player.id)) {
+          const plan = planDraftCompletion(state, town);
+          if (plan === null) continue;
+          // Spend the front item's progress. The next item keeps any progress
+          // it already had when the queue advances.
+          town.hammerBasket = plan.cost;
+          settleProductionWindfall(state, town, plan);
+        }
         break;
       case 'foreignCard': {
         const drawn = drawForeignCard(state, player);
@@ -6811,8 +6871,9 @@ function payCompletionRiders(
 export function settleProductionWindfall(
   state: GameState,
   city: City,
+  plan?: ProductionPlan,
 ): ProductionCompletion | null {
-  const done = settleProduction(state, city);
+  const done = plan === undefined ? settleProduction(state, city) : settleProductionPlan(state, city, plan);
   // A completed building can change what a citizen is worth on a tile, so the
   // dots are re-seated before the panel next reads them — through the one
   // helper every mid-turn mutation goes through. See `refreshCityDerived`.

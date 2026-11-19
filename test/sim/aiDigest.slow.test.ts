@@ -1314,9 +1314,13 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * step. Bot play changes from turn 1. Duel `2fa80e05:339704` ->
  * `790d090f:340520`, standard `040c052c:1045966` -> `56726d32:1056345`.
  */
+/**
+ * Version 246 changes the generic draft pool and adds bot prices for the new
+ * Orders. Both boards make draft picks during these 120 turns.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '790d090f:340520',
-  standard: '56726d32:1056345',
+  duel: '52d790f9:384223',
+  standard: 'b7eb7f33:1015904',
 };
 
 /**

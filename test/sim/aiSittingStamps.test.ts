@@ -19,13 +19,14 @@ import { describe, expect, it } from 'vitest';
 import { valueContext } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
 import { cardStampChair, explainCardStamp, extraChairsWorth } from '../../src/ai/value';
-import type { Game } from '../../src/sim/game';
 import { type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
 import { isOrderId } from '../../src/sim/statecraftData';
 import { cardsToPrice } from './aiCardStampHelpers';
+import { playedGameFixture } from './grownGameHelpers';
 import { createGame } from './newGameHelpers';
+import { found, game as councilGame } from './statecraftHelpers';
 
-function played(): Game {
+const played = playedGameFixture(() => {
   const game = createGame({
     seed: 20260831,
     sizeName: 'duel',
@@ -37,7 +38,7 @@ function played(): Game {
   });
   while (game.state.turn <= 30) driveBots(game, { warn: () => {} });
   return game;
-}
+});
 
 /** A sitting's context for a seat, and one built with no sitting. */
 function contexts(state: GameState, player: Player) {
@@ -98,17 +99,24 @@ describe('the card stamps kept for a sitting (bot batch BP15)', () => {
 
 describe('the chair reading once a sitting (bot batch BP15)', () => {
   it('is read once, and every context of the sitting takes it', () => {
-    const game = played();
-    const state = game.state;
+    const { state } = councilGame();
+    found(state, 0);
     const player = playerById(state, 0)!;
-    const { sat, plain } = contexts(state, player);
-    // A copy of the sitting's context at other prices, as `valueContext` makes them.
-    const dearer = { ...sat, prices: { ...sat.prices, culture: sat.prices.culture * 5, gold: sat.prices.gold * 5 } };
-    const plainDearer = { ...plain, prices: { ...plain.prices, culture: plain.prices.culture * 5, gold: plain.prices.gold * 5 } };
+    player.statecraft.orders = ['thePalaceSchool', 'theRoyalHousehold'];
+    player.statecraft.slots.fill(null);
+    bumpRevision(state);
+
+    // Start the comparison at final prices. Building a context can itself price a chair at provisional prices.
+    const plain = { ...valueContext(state, player) };
+    const sat = { ...plain, sitting: { seat: player.id } };
+    const prices = { ...plain.prices, culture: plain.prices.culture * 5 };
+    const dearer = { ...sat, prices };
+    const plainDearer = { ...plain, prices };
     const worth = extraChairsWorth(2, sat);
     expect(extraChairsWorth(2, dearer)).toBe(worth);
     // With no sitting each context reads its own, as before.
     expect(extraChairsWorth(2, plain)).toBe(worth);
-    if (worth > 0) expect(extraChairsWorth(2, plainDearer)).not.toBe(worth);
+    expect(worth).toBeGreaterThan(0);
+    expect(extraChairsWorth(2, plainDearer)).toBeGreaterThan(worth);
   }, 120_000);
 });

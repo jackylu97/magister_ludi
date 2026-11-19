@@ -32,7 +32,7 @@
  * it cannot show one instead of silently omitting it.
  */
 
-import type { PersonaOverride } from '../ai/aiConfig';
+import { aiConfigFor, personaLabel, withAiTuning, type PersonaOverride } from '../ai/aiConfig';
 
 type KnobKind = 'number' | 'numbers' | 'strings' | 'unreadable';
 
@@ -207,6 +207,25 @@ export function sheetOfEdits(edits: readonly KnobEdit[]): PersonaOverride | null
 /** One edit, printed the way the marker lists it: `weights.food 7,6,5,4 → 9,6,5,4`. */
 export function describeEdit(edit: KnobEdit): string {
   return `${knobKey(edit.knob.path)} ${printValue(edit.from)} → ${printValue(edit.to)}`;
+}
+
+/** Show the value each selected persona will actually use if it differs from the edit. */
+export function describeRunEdits(edits: readonly KnobEdit[], personas: readonly string[]): string[] {
+  if (edits.length === 0) return [];
+  return withAiTuning(sheetOfEdits(edits), () => {
+    const selected = [...new Set(personas)].map((id) => ({ name: personaLabel(id), config: aiConfigFor(id) }));
+    return edits.map((edit) => {
+      const parts = [describeEdit(edit)];
+      for (const { name, config } of selected) {
+        // Editable paths come from this same configuration. Each ends in a number or an array of numbers.
+        let value: unknown = config;
+        for (const key of edit.knob.path) value = (value as Record<string, unknown>)[key];
+        const effective = value as number | readonly number[];
+        if (!sameValue(effective, edit.to)) parts.push(`${name} uses ${printValue(effective)}`);
+      }
+      return parts.join(' · ');
+    });
+  });
 }
 
 export function printValue(value: number | readonly number[] | readonly string[]): string {

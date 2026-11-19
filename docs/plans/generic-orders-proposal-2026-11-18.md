@@ -1380,3 +1380,110 @@ The user: "summer palace pay 50% more is fine."
 - It no longer repeats the Scientific Doctrine The Two Capitals.
 - This replaces the text of G2-7 in section 7 and on `docs/decks/common.md`. The builder updates the sheet row with the card.
 - The number is to tune in playtest.
+
+## First implementation batch
+
+The branch `codex/generic-orders` implements 22 of the 39 approved Orders.
+It retires the 16 rows in section 8.4 and updates Local Clerks and City Watches
+in place. The tier tables in `docs/decks/common.md` list the remaining 17.
+
+Two cards from group 1 need more work. The Good Years must double both positive
+happiness levels. A fixed increase gives a different result at each level.
+The Summer Palace needs the capital payment increase in the final ruling above.
+
+Cistern Works unlocks the existing Cistern. The Office of Works uses the same
+grant as The Wandering Muse. If an offer is already waiting, that grant banks
+renown toward recruitment. It does not reserve an engineer for the next offer.
+
+Before integrating the new pool into the play build, update the save version
+and verify the bot results on the combined branch. Draft commands record an
+option index. A command log from the old pool can select a different card
+under the new rules.
+
+This batch passed typecheck, all 12,080 core tests in 521 files, and the
+production build with the shared turn runner at `e3d89148`. The focused
+tests check resource improvements, capital yields, the Opus queue, combat
+strength on attack and defence, and card text against the sheet.
+
+## The General Summons, 2026-11-19
+
+The generic branch now implements 23 of the 39 Orders. The General Summons raises up to three units of the best melee type available when the card is drafted. The capital uses its normal placement rules for each unit. Each placed unit costs no upkeep. A capital with one legal space gets one unit. The bot values the three units at their production cost and can overvalue a crowded capital. The type check, 12,084 core tests and the production build passed. The new pool will land together when the remaining 16 Orders are ready.
+
+## The Land Register and The Master Plan, 2026-11-19
+
+The generic branch now implements 25 of the 39 Orders. The Land Register counts the citizens in towns the seat holds. The Master Plan counts its towns that meet the population floor. Both check the current board at turn end while seated. Fulfilment frees the chair and keeps the reward active for the rest of the game.
+
+The bot estimates when each town will meet The Master Plan's goal from its current growth rate and food basket. It uses the ordinary Commission price and chair rules for both Orders.
+
+Typecheck, all 12,087 core tests and the production build passed on the generic Orders branch.
+
+**The Old Foundations.** The data already sets a useful bound on this proposed card. Four Age I buildings can pay one gold upkeep each. Ten Age II buildings can pay two each, including four once-per-empire buildings. For example, a town with a Barracks, Library, Market and Smithy saves six gold a turn. A town with only a Granary and Monument saves zero. The card scales with the number of eligible buildings already built. These are examples from the cost rules, rather than observations of play. Check actual holdings in the next human playtest.
+
+## The Brick Kilns and The Building Programme, 2026-11-19
+
+Both cards count a building when a town finishes it from its queue or buys it.
+The same count covers a queue item finished by a windfall. Wonders, the Magnum
+Opus, free grants and capture give no progress. Each card keeps its own progress
+when unseated. The Brick Kilns caps each yield at +20. The Building Programme
+leaves its chair after twelve and gives +10% production to every current and
+future town.
+
+The bot estimates the completion rate from recent buildings in its towns. The
+board keeps the dates when buildings arrived. These dates cannot distinguish
+mid-game grants from paid construction, so the rate is an estimate. An ordinary
+building gains value for advancing a seated Building Programme in the bot's
+queue, gold and faith plans.
+
+Typecheck, all 12,090 core tests and the production build passed on this branch.
+
+## The Liturgies and The Learned Embassy, 2026-11-19
+
+The Liturgies adds ten production per citizen to each owned town. The grant
+uses each town's population before any town settles. It can finish a queued
+wonder or any other queue item the town can finish through ordinary production.
+Overflow and production in idle towns stay in their normal baskets.
+
+The Learned Embassy pays eight times the current empire science rate when the
+Order enters the collection. The normal science windfall can finish research
+and fire its completion effects. Those effects do not change the rate used for
+the grant. The bot prices both Orders as one-time yields using these same
+population and science readings.
+
+The generic branch implements 29 of the 39 approved Orders. Typecheck, all
+12,094 core tests and the production build passed with this pair.
+
+## The final ten Orders, 2026-11-19
+
+All 39 approved generic Orders are implemented.
+
+- The Capital's Example reads the buildings in the town with your palace.
+  The Old Patterns uses the age of the technology that unlocks each building
+  and compares it with your current research age. The Old Foundations lists
+  each upkeep rebate beside the building bill. The Good Years doubles both
+  positive happiness levels for science and culture.
+- The Gilded Country checks gold on worked tiles after the other flat tile
+  yields and before the percentage bonuses. The Builders' Lodge doubles
+  recurring yields that Orders add to buildings. The Summer Palace increases
+  recurring card payments directed to your capital. The Personal Union increases
+  the eligible effects of seated Orders that belong to two decks.
+- The Long Memory appears in offers once you own a Scaler. While seated, it
+  doubles new gains on your Scalers. The Great Raising completes the current
+  unit or ordinary building in each eligible town when drafted. Each completed
+  item uses the normal production rules.
+
+The dealable pool now contains 505 Orders, including all 39 generic Orders. Save version 246 identifies the new pool because draft commands store an index into an offer. The two six-seat, 120-turn reference states are `52d790f9:384223` (Duel) and `b7eb7f33:1015904` (Standard). Both games finished without a bot warning or stall. The card batch and turn-start work passed 12,153 core checks and 13 targeted slow checks, including the independent draft-price comparison.
+
+### Release audit
+
+The release contains 9 generic Orders in Tier 0, 10 in Tier I, 8 in Tier II,
+8 in Tier III and 4 in Tier IV. That is 39 live Orders. The data keeps 16
+retired generic rows and excludes them from the deal.
+
+- The General Summons raises up to three units, subject to placement space.
+  The bot prices all three and can overvalue the card when the capital is crowded.
+- If a great-person offer is pending when you draft The Office of Works, the
+  game adds renown toward the current threshold. The next offer follows the
+  usual family rules.
+- The [common deck sheet](../decks/common.md#to-tune-in-playtest) lists 17 cards
+  with numbers to tune in playtest. Record the upkeep saved by The Old Foundations
+  on actual late-game boards.

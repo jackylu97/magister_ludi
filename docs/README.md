@@ -142,6 +142,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     tile index order, and remembers them on the economy clock; the test reads
     them through `GroundFacts.workLine`, so the hex fold asks a lookup and
     never a walk (The Processional Way).
+  - The Gilded Country adds gold to each tile that already makes at least one gold.
+    Its threshold reads the other additive tile lines, including lines from
+    cards. Tile percentages apply after the bonus.
   - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
     of Improvement) raises the Orders' hex lines on those hexes only. Since
     Magisterial batch MG10 an amplifier's share of a hex line keeps the line's
@@ -759,6 +762,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     is the start plus one gain a helping of the card's tally. The face prints
     it in tabular mono (`scalerFigure.ts`, read by `scalerValue.ts`): the offer
     hand, the collection, and the Compendium's "Value" row (the start).
+  - The Long Memory is dealt to seats that own a Scaler. While seated, it doubles
+    new tally gains for Scalers in chairs. Counted commissions still gain at
+    their usual rate.
   - **A Boon takes no chair** (schema 238): `slotOrderError` refuses it as it
     refuses a charter (`isBoon`), so the council screen, the bots and the End
     Turn pause never offer one a chair.
@@ -854,6 +860,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   never be seated again. Private: nothing reads another empire. UI: the counter
   on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
+  - The Brick Kilns and The Building Programme count a building when a town
+    finishes it from its queue or buys it. Only seated cards count it. Wonders,
+    the Magnum Opus and free building grants give no progress.
   - Since Dominion batch D6 a counted goal may have a floor (`minPopulation`,
     `minTownsTaken`, read off the moment's `TallyFacts`) and keeps the towns it
     counted on its tally row (`OrderTally.people`, `.wonders`, `.town`).
@@ -915,11 +924,18 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `grantGreatPersonOffer`: an offer, or the renown for the next one.
   - Since Magisterial batch MG14 an Order can pay yields when it is drafted
     (the `windfall` arm, The Grand Retrospective). Its windfall arms are
-    composed once (`onDraftPayout`) and paid through `payWindfallGrants`.
+    composed once (`onDraftPayout`) and paid through `payWindfallGrants`. The
+    Liturgies banks production in every owned town based on its own population
+    before any town settles. The Learned Embassy reads the current empire
+    science rate before the payment, then settles research as a windfall.
     A grant's count may name the hexes it counts (`GrantCount.tile`). An
     Order can also hand over a random card from a deck the seat does not
     hold (the `foreignCard` arm, The Cabinet of Curiosities;
     `drawForeignCard`, rarity first from `state.rng`, with no pity).
+  - Drafting The Great Raising completes the front unit or ordinary building
+    in each owned town. It skips puppets and permits towns in unrest. Units use
+    purchase placement. Existing progress on the finished item is spent, and
+    normal completion riders apply.
   - Every way a card enters the collection ends in `settleCardTaken`
     (`cities.ts`): what drafting it hands over, the law dropped for a
     charter, and the `cardDrafted` moment last. The pick of an Order hand

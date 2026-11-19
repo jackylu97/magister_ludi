@@ -2151,7 +2151,7 @@ export type TileCondition =
    * cannot ask what a hex is worth, because what a hex is worth is partly the
    * granary.
    */
-  | { test: 'yields'; yield: CityYieldKey }
+  | { test: 'yields'; yield: CityYieldKey; atLeast?: number }
   /**
    * The hex carries a **great person's work** — an academy, a landmark, a
    * manufactory, a customs house, a citadel.
@@ -3725,6 +3725,8 @@ export type TallyOccasion =
    * captured Granary adds nothing.
    */
   | 'publicWorkCompleted'
+  /** An ordinary building enters a town through queue completion or purchase. */
+  | 'buildingCompleted'
   /**
    * This empire **completed a technology** (Scientific batch S6, The
    * Astronomical Diaries). Written in `settleResearch` (`tech.ts`), the one
@@ -3812,6 +3814,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'warEnded',
   'sizeRecord',
   'publicWorkCompleted',
+  'buildingCompleted',
   'techCompleted',
   'charterTechCompleted',
   'goldPurchase',
@@ -3853,6 +3856,8 @@ export type RateSource =
   | 'culturePerTurn'
   /** Gold the empire banked this turn. */
   | 'goldPerTurn'
+  /** Science the empire gains per turn. */
+  | 'sciencePerTurn'
   /** The happiness meter, counted only while positive. */
   | 'happiness'
   /** The authority meter, counted only while positive. */
@@ -5219,6 +5224,8 @@ export type MetaRuleId =
    * read once.
    */
   | 'techCountsTwice'
+  /** Multiply future tally gains for seated Scalers. Commissions use their usual count. */
+  | 'scalersCountTwice'
   /**
    * **How many times this empire reads each legacy it holds** (Magisterial
    * batch MG8, The Immortals; the triage's reading 22). The value is the
@@ -7170,6 +7177,8 @@ interface CardPercentYieldsEffect {
 interface CardProductionBonusEffect {
   kind: 'productionBonus';
   category: ProductionCategory;
+  /** Limits the bonus to older buildings or buildings already in the true capital. */
+  buildingFilter?: 'earlierAges' | 'capitalHas';
   percent: number;
   /**
    * **The empire stage** (Dominion batch D7, The Marian Reforms' "your towns
@@ -7470,7 +7479,10 @@ export interface CardAuthorityEffect {
 /** Percentage points on the positive happiness rungs. Amber's shape. */
 export interface CardHappinessTierBoostEffect {
   kind: 'happinessTierBoost';
-  points: number;
+  /** Fixed points added after the tier clamp. Luxuries use this field. */
+  points?: number;
+  /** Increases the positive bonus by this percent after fixed points are added. */
+  percent?: number;
 }
 
 /** A labelled strength line under a stated condition. See `CombatCondition`. */
@@ -9932,6 +9944,8 @@ interface CardUpkeepSurchargeEffect {
 
 export interface CardUpkeepRebateEffect {
   kind: 'upkeepRebate';
+  /** Waives the upkeep of buildings up to this research age, inclusive. */
+  buildingAgeAtMost?: TechAge;
   /** Gold off each matching piece's own figure. Ignored when `free` is set. */
   amount?: number;
   /** The matching piece costs nothing at all — The Wintering Grounds'. */
@@ -10009,10 +10023,8 @@ export interface CardUpkeepRebateEffect {
  *     name which town they landed in, and a second scope on one fold would be two
  *     answers to one question.)
  *
- * `scope: { test: 'capital' }` is the ruled capital engine — *"yields to your
- * capital from Orders are 50% more effective"* — and needs nothing of its own:
- * the seat of government is an ordinary `CityScope`, so the row says where and
- * the one evaluator answers.
+ * The building and capital selectors read the original effect of each line.
+ * This lets a card pay a separate bonus on one of another card's effects.
  */
 interface CardYieldAmplifierEffect {
   kind: 'cardYieldAmplifier';
@@ -10025,12 +10037,13 @@ interface CardYieldAmplifierEffect {
   /** Which towns the amplified line must land in. Absent means everywhere. */
   scope?: CityScope;
   /**
-   * **Whose lines are raised.** Absent reads your Orders' lines, which is what
-   * every row before The Doctors of the Church meant. `'followerBeliefs'` reads
-   * the follower beliefs' town lines instead (never their hex lines), in your
-   * own towns only, since that is the only place their lines reach your fold.
+   * Which lines receive the bonus. The default selects Order yield lines.
+   * `followerBeliefs` selects local belief flat yields. `buildingOrders` selects
+   * yield lines from Orders that require or count buildings in a town.
+   * `capitalCards` selects recurring payments that Orders and Doctrines
+   * direct to a capital.
    */
-  reads?: 'followerBeliefs';
+  reads?: 'followerBeliefs' | 'buildingOrders' | 'capitalCards';
   /**
    * **Only on hexes where this holds** (Expansionist batch E3, The Age of
    * Improvement's improved hexes).
@@ -10227,18 +10240,19 @@ interface CardSlotPositionEffect {
  * tier-18 counts take). A card off its chair (Scutage) and a fulfilled
  * commission's lasting reward are not seated, so they are not raised.
  *
- * Two rows that name the same type add their percentages before the rise is
- * taken once. A cost (a figure below nought) is not raised, because a larger
+ * Matching rows add their percentages before the rise is taken once. The
+ * shared Order selector matches any seated Order that names two decks. A cost (a figure below nought) is not raised, because a larger
  * cost is not a stronger card. A row with a percentage of nought or less raises
  * nothing.
  */
-interface CardTypeAmplifierEffect {
+type CardTypeAmplifierEffect = {
   kind: 'cardTypeAmplifier';
-  /** Which type of seated card is raised. */
-  type: ChairType;
   /** How much larger each number is, in whole percent. */
   percent: number;
-}
+} & (
+  | { type: ChairType; shared?: never }
+  | { shared: true; type?: never }
+);
 
 /**
  * **Every so many turns, a boon** — the periodic occasion of
@@ -10819,36 +10833,42 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
-  | Extract<CompletionGrant, { grant: 'unit' | 'greatPerson' }>
+  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number })
+  | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
-  | OnDraftForeignCard;
+  | OnDraftForeignCard
+  | { grant: 'completeQueues' };
+
+/** The number of units an on-draft grant attempts to raise. */
+export function onDraftUnitCount(count?: number): number {
+  return count === undefined ? 1 : Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
 
 /**
  * **A yield paid once when the card is drafted** (Magisterial batch MG14, The
  * Grand Retrospective; the triage's reading 38).
  *
- * The fields are the windfall grant's own (`WindfallGrantSpec`): a voice and
- * an amount, a count that pays the amount once for each item it finds
- * (`perCount`), and the capital as the town that takes food and production
- * (`toCapital`). The other fields of a rider's grant read a moment, such as
- * a kill's strength or a town's people, and a draft has none of these, so
- * the type leaves them out.
+ * The grant can pay a fixed amount, pay once per item counted, or read a
+ * current rate. A grant to every town can use each town's own population.
+ * These fields match the corresponding `WindfallGrantSpec` fields.
  *
  * All of a card's windfall arms make one payout, composed by
  * `onDraftPayout` (`statecraft/evaluator.ts`) before anything is paid, and
  * delivered once by `payWindfallGrants`, the one delivery. So every count is
  * read at the same moment, after the card has entered the collection: a
  * count of the Orders held counts the card itself. The era and the council do
- * not multiply the figure, because the card pays from no chair. Without
- * `toCapital`, food and production land in the capital too, because a draft
- * happens nowhere on the map.
+ * not multiply the figure, because the card pays from no chair. Food and
+ * production go to the capital by default.
  */
 export interface OnDraftWindfall {
   grant: 'windfall';
   yield: CityYieldKey;
   amount: number;
   perCount?: GrantCount;
+  fromRate?: RateSource;
   toCapital?: true;
+  toEveryTown?: true;
+  fromTownPopulation?: true;
 }
 
 /**
@@ -10885,6 +10905,10 @@ export type CommissionFigure =
   | 'tradeRoutes'
   /** Hexes inside this empire's borders. */
   | 'hexesOwned'
+  /** The total population of the towns this empire holds. */
+  | 'empirePopulation'
+  /** Towns this empire holds that meet the goal's population floor. */
+  | 'townsAtPopulation'
   /** Tiles worked by this empire's towns that carry an improvement. */
   | 'improvedTilesWorked'
   /**
@@ -11029,6 +11053,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'luxuryCopies',
   'tradeRoutes',
   'hexesOwned',
+  'empirePopulation',
+  'townsAtPopulation',
   'improvedTilesWorked',
   'improvedOnlyTilesWorked',
   'oneTownWorkedHexes',
@@ -11071,6 +11097,8 @@ export type CommissionGoal =
  * sibling for towns rather than for hexes.
  */
 interface GoalTowns {
+  /** The minimum population of each town that counts toward `townsAtPopulation`. */
+  populationAtLeast?: number;
   /**
    * Only a town of this empire that this scope admits counts: Commission: The
    * Great Fair's "towns that a domestic trade route arrives at" is
@@ -11515,6 +11543,8 @@ interface OrderDef extends CardDefBase {
    * held keeps its chair. `needsTendedWork`'s twin.
    */
   needsLevy?: true;
+  /** Deal only if the seat owns a Scaler, even if it has never seated it. */
+  needsScaler?: true;
   /**
    * **Not dealt to a seat that knows this technology** (Scientific batch S9,
    * The Great Instrument: "not dealt to a seat that knows Alchemy"). Read in

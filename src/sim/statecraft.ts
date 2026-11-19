@@ -99,6 +99,7 @@ export {
   offTheChairRows,
   // Batch G1: the tier-26 governments' rise on the seated cards of one type.
   CARD_TYPE_RAISED_KINDS,
+  cardTypeAmplifierMatches,
   cardTypeRaise,
   cardTypeRaises,
   // Batch K2: what a second reading leaves out, for the bots' prices.
@@ -196,6 +197,8 @@ export {
   holdsTendedUnlock,
   cardUnlocksUnit,
   charterOpensUnit,
+  buildingUpkeepWaived,
+  cardBuildingUpkeepRebateLines,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
   // Commerce batch T6: the upkeep waiver a unit carries (Mercenary Contracts).
@@ -258,8 +261,10 @@ export {
   slottedOrdersOfFlavour,
   tileConditionHolds,
   tileConditionReadsFold,
+  tileConditionReadsThreshold,
   // Batch K2: the one walk for "does this scope or hex test name X".
   scopeAsks,
+  yieldAmplifierReads,
   tileConditionAsks,
   timedCityTileLines,
   timedEffectIsLive,

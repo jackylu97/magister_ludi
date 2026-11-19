@@ -35,7 +35,7 @@ import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from '../ai
 import type { Command, CommandResult } from '../sim/commands';
 import type { Game } from '../sim/game';
 import type { GameConfig, GameState } from '../sim/state';
-import { createBotPlanPool } from './botPlanPool';
+import { type BotPlanPriority, createBotPlanPool } from './botPlanPool';
 import { type BotTuning, installBotTuning } from './botPlanProtocol';
 
 /** What every request carries: the page's game as it stands, and an id to answer by. */
@@ -51,7 +51,7 @@ interface TwinRequest {
 
 /** Page → worker. */
 export type BotWorkerRequest =
-  | (TwinRequest & { kind: 'drive' })
+  | (TwinRequest & { kind: 'drive'; priority?: BotPlanPriority })
   | (TwinRequest & { kind: 'audience'; seatId: number; askerId: number; dealId?: number });
 
 /** What the worker did, for the page to do again. */
@@ -115,18 +115,18 @@ export function answerBotWorker(request: BotWorkerRequest): BotWorkerReply {
   }
 }
 
-/** A single seat and diplomacy already run off the page thread. */
+/** Use the coordinator alone when the request cannot use two seat workers. */
 export async function answerBotWorkerAsync(
   request: BotWorkerRequest,
   pool: ReturnType<typeof createBotPlanPool>,
 ): Promise<BotWorkerReply> {
-  if (request.kind !== 'drive' || !pool.available || botSeatsToDrive(request.state).length < 2) {
-    return answerBotWorker(request);
-  }
+  if (request.kind !== 'drive') return answerBotWorker(request);
+  const priority = request.priority ?? 'foreground';
+  if (!pool.supports(priority) || botSeatsToDrive(request.state).length < 2) return answerBotWorker(request);
   const restore = request.tuning === undefined ? undefined : installBotTuning(request.tuning);
   try {
     const { game, attempt, reply } = startRequest(request);
-    await driveBotsAsync(game, pool.plan(), { attempt });
+    await driveBotsAsync(game, pool.plan(undefined, priority), { attempt });
     return { kind: 'driven', ...reply() };
   } catch (error) {
     return failedReply(request, error);

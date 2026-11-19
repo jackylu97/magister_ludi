@@ -69,13 +69,15 @@ import { found, game } from './statecraftHelpers';
  * batch that adds or moves a card does not break a claim about the rule.
  */
 
-/** The first `count` dealt cards of one type, in table order. A charter never sits, so none is taken. */
+/** Retired unsorted cards model older saves. All dealt cards now have a type. */
 function cardsOf(type: CardTypeReading, count: number): OrderId[] {
-  const ids = ORDER_IDS.filter((id) => orderIsDealt(id) && !isCharter(id) && orderType(id) === type).slice(
-    0,
-    count,
-  );
-  expect(ids, `${count} dealt ${type} card(s)`).toHaveLength(count);
+  const ids = ORDER_IDS.filter((id) => {
+    if (isCharter(id) || orderType(id) !== type) return false;
+    if (type !== 'unsorted') return orderIsDealt(id);
+    const def = orderDef(id);
+    return def.retired === true && def.effects.length > 0;
+  }).slice(0, count);
+  expect(ids, `${count} ${type} card(s)`).toHaveLength(count);
   return ids;
 }
 

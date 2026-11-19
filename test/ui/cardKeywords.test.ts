@@ -108,7 +108,8 @@ describe('the keyword pages', () => {
       const rules = page.clauses.filter((clause) => clause.standing !== true);
       const mark = keyword === null ? null : `[[concept:${keyword}|`;
       if (mark === null) {
-        expect(rules.some((clause) => /\[\[concept:(commission|charter|scaler|boon)\|/.test(clause.text)), id).toBe(false);
+        // A rule may link to another card’s keyword. The badge occupies a whole clause.
+        expect(rules.some((clause) => /^\[\[concept:(commission|charter|scaler|boon)\|[^\]]+\]\]$/.test(clause.text)), id).toBe(false);
       } else {
         expect(rules[0]?.text.startsWith(mark), id).toBe(true);
       }

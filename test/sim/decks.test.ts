@@ -669,8 +669,13 @@ describe('the schema, as landed', () => {
     // **And batch R1** (`docs/flags.md` (jjjjjjj)): two more. The Pilgrim Staff
     // is a new Devotion row at Tier I, and The Country Fair a new shared row
     // at Tier 0.
-    expect(live).toBe(479);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(479);
+    // The generic set adds 20 rows, activates City Watches, and retires 12 dealt rows.
+    // The General Summons, The Land Register and The Master Plan add three more.
+    // The Brick Kilns and The Building Programme add two more.
+    // The Liturgies and The Learned Embassy add two more.
+    // Ten final Orders complete the generic set.
+    expect(live).toBe(505);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
   });
 
   /**
@@ -1166,7 +1171,8 @@ describe('the schema, as landed', () => {
     // a borrowed copy cannot be lent on.
     // 245 since the faster world clock: an age starts to close when one seat
     // is two ages past it or half the seats are one age past it.
-    expect(SCHEMA_VERSION).toBe(245);
+    // Version 246 changes the generic draft pool. Old picks record offer positions.
+    expect(SCHEMA_VERSION).toBe(246);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1440,8 +1446,9 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(5);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(420);
+      ).toHaveLength(0);
+      // The generic set retires 16 rows, including four deferred rows. City Watches becomes live.
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(436);
     }
   });
 

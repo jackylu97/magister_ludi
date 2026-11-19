@@ -594,8 +594,11 @@ import {
  * different turns, so its wagers would be dealt and judged on different turns.
  * The branch migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v246 changes the generic Order pool. A saved draft pick stores the index of
+ * the card in the offer. Replaying a v245 log could pick a different Order.
  */
-export const SCHEMA_VERSION = 245;
+export const SCHEMA_VERSION = 246;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

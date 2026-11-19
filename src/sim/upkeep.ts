@@ -77,7 +77,7 @@
  * is `cities.ts`' line in `cityYieldPercents`.
  */
 
-import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
+import { buildingTechAge, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
 // The age of the row that opens a unit the tree does not name — the ruling of
@@ -90,6 +90,7 @@ import { RULES } from './rulesData';
 // so the arrow between the two modules stays one-way.
 import { resourceUpkeepRebateLines } from './resourceEffects';
 import {
+  buildingUpkeepWaived,
   cardRulePercent,
   cardSpendFloor,
   cardUpkeepRebateLines,
@@ -180,9 +181,13 @@ export function buildingUpkeep(id: BuildingId): number {
   const def = buildingDef(id);
   if (def.wonder === true) return 0;
   if (def.renown === undefined) return 0;
-  const tech = BUILDING_UNLOCK_TECH.get(id);
-  if (tech === undefined) return 0;
-  return techDef(tech).age * RULES.upkeep.goldPerBuildingAge;
+  return (buildingTechAge(id) ?? 0) * RULES.upkeep.goldPerBuildingAge;
+}
+
+/** The cost of one building after the current owner's waivers. */
+export function buildingUpkeepFor(state: GameState, playerId: number, id: BuildingId): number {
+  const gold = buildingUpkeep(id);
+  return gold > 0 && buildingUpkeepWaived(state, playerId, id) ? 0 : gold;
 }
 
 /**

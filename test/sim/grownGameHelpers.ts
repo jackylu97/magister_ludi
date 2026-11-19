@@ -19,6 +19,7 @@
  * before the first board is grown, as `aiWants.test.ts` does in `beforeAll`.
  */
 import { driveBots } from '../../src/ai/driver';
+import { adoptHarnessMemory, readHarnessMemory } from '../../src/ai/harnessMemory';
 import type { Game } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
 import { createGame } from './newGameHelpers';
@@ -37,5 +38,20 @@ export function grownGames(config: GameConfig): (turns: number) => Game {
       boards.push(structuredClone(live));
     }
     return structuredClone(boards[turns]!);
+  };
+}
+
+/**
+ * Play one opening per file and give each caller a private game at that turn.
+ * Bots also keep decisions in weak maps. Copy those as the bot worker does so
+ * each caller can continue the opening with the same decisions.
+ */
+export function playedGameFixture(build: () => Game): () => Game {
+  let original: Game | undefined;
+  return () => {
+    original ??= build();
+    const copy = structuredClone(original);
+    adoptHarnessMemory(copy.state, readHarnessMemory(original.state));
+    return copy;
   };
 }

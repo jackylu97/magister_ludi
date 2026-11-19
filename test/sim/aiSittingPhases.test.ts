@@ -26,6 +26,7 @@ import { SITTING_PHASES, phaseTally, setSittingEndCheck } from '../../src/ai/sit
 import { applyCommand } from '../../src/sim/commands';
 import { type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { digestOfState } from './aiDigestHelpers';
+import { playedGameFixture } from './grownGameHelpers';
 import { createGame } from './newGameHelpers';
 
 const SEATS = [
@@ -39,12 +40,11 @@ function game(seed = 7) {
   return createGame({ seed, sizeName: 'duel', players: SEATS as never, barbarians: true });
 }
 
-/** A played board at the start of `turn`, shared by the tests that only read it. */
-function boardAt(turn: number) {
+const openingAtTurn24 = playedGameFixture(() => {
   const played = game();
-  while (played.state.turn < turn && played.state.winnerId === null) driveBots(played, { warn: () => {} });
+  while (played.state.turn < 24 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
   return played;
-}
+});
 
 /** A copy of one tally table, so a test can read what one sitting added. */
 function snapshot(table: Record<string, number>): Record<string, number> {
@@ -69,7 +69,7 @@ function sit(state: GameState, playerId: number, sitting = botSitting(playerId))
 
 describe('a phase is asked until it has nothing more to do', () => {
   it('closes every phase by the end of the sitting, and asks each only once more than it answers', () => {
-    const { state } = boardAt(24);
+    const { state } = openingAtTurn24();
     for (const playerId of [0, 1, 2, 3]) {
       const asked = snapshot(phaseTally.asked);
       const answered = snapshot(phaseTally.answered);
@@ -96,7 +96,7 @@ describe('a phase is asked until it has nothing more to do', () => {
 
 describe('an event opens its phase again', () => {
   it('asks the spending phase again after the purse moved, and not before', () => {
-    const { state } = boardAt(24);
+    const { state } = openingAtTurn24();
     const sitting = botSitting(0);
     for (let step = 0; step < 300 && !sitting.closed.has('spending'); step++) {
       const decision = nextBotDecision(state, 0, sitting);
@@ -121,7 +121,7 @@ describe('an event opens its phase again', () => {
 
 describe('a town is pointed after it chooses its build', () => {
   it('asks the focus of no town while a town of the seat has an empty queue', () => {
-    const { state } = boardAt(24);
+    const { state } = openingAtTurn24();
     const town = state.cities.find((city) => city.ownerId === 0 && city.unrest === undefined)!;
     town.queue = [];
     bumpRevision(state);

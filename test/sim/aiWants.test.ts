@@ -1412,30 +1412,45 @@ describe('the hammer price', () => {
 });
 
 describe('the focus arm', () => {
-  /**
-   * The arm on the rich board above: in six turns it leans a town onto a sheet
-   * and later puts towns back, so both directions are reached without a long
-   * game. Since bot batch BP13b the lean may be any of the three sheets
-   * (`growth.allFocusSheets`). The played-duel versions of these claims, on
-   * boards nobody arranged, are in `aiWants.slow.test.ts`.
-   */
   it('points towns both ways, once a town a sitting, never at the focus it has, and the rules accept each', () => {
-    const focus = richSittings().filter((sat) => sat.decision.kind === 'focus');
-    const words = focus.map((sat) => (sat.decision.command as { focus: string }).focus);
-    expect(words.some((word) => word !== 'default')).toBe(true);
-    expect(words).toContain('default');
-    const asked = new Set<string>();
-    for (const sat of focus) {
-      const command = sat.decision.command as { cityId: number; focus: string };
-      // A command this bot proposes is a command the rules take.
-      expect(sat.ok).toBe(true);
-      // Idempotence: never the focus the town already has, and never a second
-      // order to one town inside one sitting.
-      expect(command.focus).not.toBe(sat.focusBefore);
-      const key = `${sat.sitting}:${command.cityId}`;
-      expect(asked.has(key)).toBe(false);
-      asked.add(key);
-    }
+    const state = benchState(2);
+    const [lean, balance] = state.cities;
+    for (const tile of state.map.tiles) tile.hills = false;
+    for (const city of state.cities) city.population = 2;
+    // Balanced focus prefers the wheat. Gold focus offers tea without risking
+    // starvation. The other town has identical tiles and gains nothing from a lean.
+    const fields = neighborTiles(state.map, tileHex(getTileAt(state.map, lean!.col, lean!.row)!));
+    for (const field of fields.slice(0, 2)) field.resource = 'wheat';
+    for (const field of fields.slice(2, 4)) field.resource = 'tea';
+    bumpRevision(state);
+    for (const city of state.cities) refreshCityDerived(state, city);
+    expect(applyCommand(state, {
+      type: 'setCitizenFocus', playerId: 0, cityId: balance!.id, focus: 'gold',
+    }).ok).toBe(true);
+
+    withAiTuning({
+      driver: { focusOrders: 1 },
+      growth: { allFocusSheets: 1 },
+      weights: { food: [1, 1, 1, 1], gold: [20, 20, 20, 20] },
+    }, () => {
+      const sitting = botSitting(0);
+      const asked = new Set<number>();
+      for (let step = 0; step < 40; step++) {
+        const decision = nextBotDecision(state, 0, sitting);
+        if (decision === null) break;
+        const command = decision.command;
+        if (command.type === 'setCitizenFocus') {
+          const city = state.cities.find((entry) => entry.id === command.cityId)!;
+          expect(command.focus).not.toBe(cityFocus(city));
+          expect(asked.has(command.cityId)).toBe(false);
+          asked.add(command.cityId);
+        }
+        expect(applyCommand(state, command).ok).toBe(true);
+      }
+      expect(asked).toEqual(new Set([lean!.id, balance!.id]));
+      expect(cityFocus(lean!)).toBe('gold');
+      expect(cityFocus(balance!)).toBe('default');
+    });
   });
 
   it('prints every sheet and folds each candidate, and every part, from its own terms', () => {
@@ -2279,7 +2294,12 @@ describe('the marginal draft reading', () => {
     // Orders already pay on great-person works. The Grand Vizier, written in
     // the same batch, is not one of them: the chair reader is priced by the
     // walk, as the card in that chair over again.
-    expect(engines).toBe(25);
+    // The Hall of Fame raises capital renown. The Builders' Lodge and The
+    // Summer Palace raise eligible payments in the same books.
+    for (const id of ['theHallOfFame', 'theBuildersLodge', 'theSummerPalace'] as const) {
+      expect(hasFoldReadEngine(orderDef(id).effects), id).toBe(true);
+    }
+    expect(engines).toBe(28);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books
@@ -2289,6 +2309,28 @@ describe('the marginal draft reading', () => {
     // rite's duration is a stamp, not a rate.
     expect(hasFoldReadEngine([{ kind: 'effectAmplifier', target: 'riteDuration', percent: 50 }]))
       .toBe(false);
+  });
+
+  it.each([
+    ['theBuildersLodge', 'civicGranaries'],
+    ['theSummerPalace', 'thePalaceSchool'],
+  ] as const)('uses the same price for %s in a draft pool and in an offer', (engine, payer) => {
+    const { state, player } = deckBench([payer]);
+    for (const city of state.cities) {
+      if (!city.buildings.includes('monument')) city.buildings.push('monument');
+    }
+    bumpRevision(state);
+    const effects = orderDef(engine).effects;
+    const ctx = valueContext(state, player);
+    const pool = explainCardEffects(engine, effects, ctx, 'walk');
+    const offer = explainCardEffects(engine, effects, ctx, 'stamp');
+    const stamp = explainCardStamp(ctx, engine);
+
+    expect(stamp?.total).toBeGreaterThan(0);
+    expect(pool).toEqual(offer);
+    expect(pool.terms[0]?.value).toBe(stamp?.total);
+    expect(pool.terms[0]?.parts).toEqual(stamp?.terms);
+    expect(foldTerms(pool.terms)).toBe(pool.total);
   });
 
   it('reads a card already in its chair as what it pays there, not as nothing', () => {

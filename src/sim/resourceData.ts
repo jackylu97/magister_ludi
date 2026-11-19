@@ -405,7 +405,7 @@ export type ResourceEffect =
     }>
   | Signature<{ kind: 'rulePercent'; rule: ResourceRule; percent: number }>
   // Amber's shape, and `CardHappinessTierBoostEffect` down to the field name.
-  | Signature<CardHappinessTierBoostEffect>
+  | Signature<CardHappinessTierBoostEffect & { points: number; percent?: never }>
   | Signature<{ kind: 'improvementYields'; improvement: ImprovementId } & ResourceYieldBag>
   | Signature<
       {

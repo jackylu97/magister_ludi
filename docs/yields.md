@@ -319,6 +319,10 @@ banking (Entry XVIII.5).
   means everything the hex pays. Its riders sum before one multiplication, so
   two whole shares of one pass never pay each other. An `appliedLast` whole share
   is taken over the ordinary ones (batch DT19c), because its card's text says so.
+- **Building upkeep rebates appear as separate lines.** A waiver covers buildings
+  in its stated research ages. Each building's upkeep can be waived once.
+- **Happiness multipliers apply after the tier clamp and fixed increases.** They
+  apply only when happiness gives a bonus.
 - **The empire's bills stay outside the empire stage.** Maintenance, the levy's
   surcharge, the charter's rebate and the treaties are costs rather than yields:
   a contented empire earns more from its roads without paying its soldiers less.
@@ -455,14 +459,14 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 
 | kind | where · basis | steps | additive or multiplicative |
 |---|---|---|---|
-| `pays` | hex · flat | 2 | additive; `percent`/`basePercent`/`wholePercent` are the hex's three shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road |
+| `pays` | hex · flat | 2 | additive; `percent`/`basePercent`/`wholePercent` are the hex's three shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road; a stated yield threshold reads the other additive hex lines before percentages |
 | `pays` | hex · count | 2 | additive. The helpings multiply the **bag** into one line, as `perEndpointLuxury` does on a road. The count is asked of the town working the hex (`scopedCardTileLines`), so two towns pay one row differently: The Hydraulic Empire's public works, The Builder Kings' wonders |
 | `pays` | city · flat | 3 | additive |
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
 | `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer. Under The Two Capitals, an Order's or a Doctrine's row pays once in each of the two towns `cardCapitalIds` names. Every other such row carries the scope `trueCapital` and stays in one town |
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
-| `cardYieldAmplifier` | | 2, 3, 18 | additive flat and a percentage, over the *card lines* of the fold it reads |
-| `cardTypeAmplifier` | | 2, 3, 6, 11, 16, 18 | additive: one labelled rise beside each line a seated card of the named type prints, at that line's own step (and, for a percentage, at its own stage). Batch G1, the tier-26 governments. Its rise on a one-time reward or a boon is paid through `windfallPayout`, outside this sequence |
+| `cardYieldAmplifier` | | 2, 3, 10, 11, 18 | Adds to the original card line. The Builders' Lodge selects Order lines that pay from or require buildings. The Summer Palace selects Order and Doctrine lines directed to a capital. A rise on a percentage keeps the original stage. |
+| `cardTypeAmplifier` | | 2, 3, 6, 11, 16, 18 | additive: one labelled rise beside each line a selected seated Order prints, at that line's own step (and, for a percentage, at its own stage). The tier-26 governments select an Order type. The Personal Union selects Orders that belong to two decks. Its rise on a one-time reward or a boon is paid through `windfallPayout`, outside this sequence |
 | `pays` | route · flat | 6, 16 | additive (arrivals at 6, the caravans abroad at 16); `crossing` narrows a row to one of the two |
 | `pays` | route · count | 6, 16 | additive, at the same two steps. The helpings multiply the **bag**, as `perEndpointLuxury` does. The count is the road's own length (`routeLength`), the technologies the destination's owner knows that you do not (`techGap`), or a count read at the **origin** town with `within: 'city'`: its citizens (The Grain Barges) or the Academies in its borders (`tilesInBorders`, Merchant Scholars). Strategic Exports counted the origin's improved strategic resources until batch DS4 |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |

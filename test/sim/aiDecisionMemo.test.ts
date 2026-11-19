@@ -40,6 +40,7 @@ import { heldFieldsTally, transitField, withFieldsHeld, zocField } from '../../s
 import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { playerById } from '../../src/sim/state';
 import { ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
+import { playedGameFixture } from './grownGameHelpers';
 import { createGame } from './newGameHelpers';
 
 const SEATS = [
@@ -52,6 +53,12 @@ const SEATS = [
 function game(seed = 42) {
   return createGame({ seed, sizeName: 'duel', players: SEATS as never, barbarians: true });
 }
+
+const openingAtTurn20 = playedGameFixture(() => {
+  const played = game(7);
+  while (played.state.turn < 20 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
+  return played;
+});
 
 /** An Order whose row carries effects, so its price is a walk of them. */
 function someOrder() {
@@ -160,7 +167,7 @@ describe('the search fields held for one decision', () => {
 
 describe('a short game of real bot commands, with both shadow checks on', () => {
   it('hands back only what a fresh reading gives, and the memos answer', () => {
-    const played = game(7);
+    const played = openingAtTurn20();
     // The opening turns with no check, so the walk below reaches towns, cards
     // and soldiers.
     while (played.state.turn < 28 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
@@ -198,8 +205,7 @@ describe('a short game of real bot commands, with both shadow checks on', () => 
 
 describe('the spend arm keeps "nothing to buy" for the sitting (bot batch BP16)', () => {
   it('keeps the answer while the purse stands, and reads again when the purse moves', () => {
-    const played = game(7);
-    while (played.state.turn < 20 && played.state.winnerId === null) driveBots(played, { warn: () => {} });
+    const played = openingAtTurn20();
     // Find a seat whose spending phase closed with nothing to buy, and open
     // the phase again with nothing changed: the bank's answer is kept.
     for (const playerId of [0, 1, 2, 3]) {
