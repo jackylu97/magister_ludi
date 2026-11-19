@@ -845,13 +845,13 @@ function greatWorkRunFold(effects: readonly CardEffect[], at: number, out: CardC
  */
 function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
   const head = effects[at];
-  if (head === undefined || head.kind !== 'slotPosition' || head.slot === undefined) return 0;
+  if (head?.kind !== 'slotPosition' || head.slot === undefined || typeof head.position !== 'number' || head.position === -1 || head.whole) return 0;
   const slots: ChairType[] = [];
   let run = 0;
   while (at + run < effects.length) {
     const next = effects[at + run];
     if (next === undefined || next.kind !== 'slotPosition' || next.slot === undefined) break;
-    if (next.position !== head.position || next.factor !== head.factor) break;
+    if (next.position !== head.position || next.factor !== head.factor || next.whole) break;
     if (slots.includes(next.slot)) break;
     slots.push(next.slot);
     run += 1;

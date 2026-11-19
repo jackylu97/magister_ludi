@@ -1149,7 +1149,9 @@ export function explainBuildingRow(
       // `completionGrantTerm`.
       terms.push(completionGrantTerm(grant, ctx, city));
     } else {
-      terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
+      const unhandled: never = grant;
+      void unhandled;
+      terms.push({ label: 'a grant this bot cannot read', value: ctx.ai.score.unknownEffect });
     }
   }
   if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: ctx.ai.weights.victory });

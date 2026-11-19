@@ -36,7 +36,6 @@ import {
   orderDef,
   orderFitsSlot,
   orderType,
-  slotCount,
   slotLayout,
   slotSpread,
 } from '../statecraftData';

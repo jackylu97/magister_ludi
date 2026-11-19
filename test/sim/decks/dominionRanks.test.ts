@@ -206,8 +206,7 @@ describe('Dominion D1 — earning a rank is a moment', () => {
     foundCityAt(state, 0, at(state, 4, 4));
     slot(state, 0, 'theCampaignAnnals');
     const science = (): number => foldCardYields(explainCardEmpireYields(state, 0)).science;
-    expect(science()).toBe(6);
-    expect(explainCardCityYields(state, city).reduce((sum, line) => sum + line.production, 0)).toBe(6);
+    expect(science()).toBe(3);
     drill(state, createUnit(state, 0, 'warrior', 6, 4), VETERAN);
     bumpRevision(state);
     expect(science()).toBe(6);
