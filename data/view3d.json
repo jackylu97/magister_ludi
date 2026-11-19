@@ -33,7 +33,23 @@
     "wildRed": "#7a1f2b",
     "cream": "#efe3c8",
     "inkBlue": "#5d7fd6",
-    "goldLeaf": "#e9b934"
+    "goldLeaf": "#e9b934",
+    "walnut": "#5f3d27",
+    "walnutDeep": "#4d301f",
+    "walnutDark": "#3d2619",
+    "walnutInk": "#241a17",
+    "walnutShadow": "#3d2c1d",
+    "giltMetal": "#cfa03a",
+    "giltLine": "#e3b84c",
+    "paleBrass": "#dcb659",
+    "ivory": "#ece2c9",
+    "deskLight": "#eadfc2",
+    "deskShade": "#cbb98f",
+    "enamelRed": "#b5402f",
+    "enamelViolet": "#7a4f94",
+    "enamelBlue": "#2f57a6",
+    "enamelAmber": "#c77f1c",
+    "brightGold": "#f4c63a"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -968,6 +984,15 @@
     }
   },
   "abacus": {
+    "outline": {
+      "share": 0.42,
+      "color": "walnutInk"
+    },
+    "ramps": {
+      "matte": [0.45, 0.725, 1],
+      "gloss": [0.36, 0.6, 0.86, 1, 1],
+      "metal": [0.3, 0.52, 0.8, 0.8, 1, 1]
+    },
     "frame": {
       "width": 6,
       "stileWidth": 0.4,
@@ -979,45 +1004,115 @@
       "footHeight": 0.18,
       "footDepth": 0.66,
       "chamfer": 0.055,
-      "timberColor": "timber",
-      "postShade": 0.62
+      "railColor": "walnut",
+      "stileColor": "walnutDeep",
+      "footColor": "walnutDark",
+      "ramp": "matte"
+    },
+    "fittings": {
+      "color": "giltMetal",
+      "ramp": "metal",
+      "shoeWidth": 0.34,
+      "shoeInset": 0.15,
+      "shoeSwell": 0.05,
+      "shoeChamfer": 1.6,
+      "knobSize": 0.15,
+      "footRadius": 0.13,
+      "footInset": 0.1,
+      "footSink": 0.02,
+      "sledgeLift": 0.5,
+      "sledgeChamfer": 0.8,
+      "segments": 10
+    },
+    "inlay": {
+      "color": "giltLine",
+      "ramp": "metal",
+      "endGap": 0.65,
+      "height": 0.034,
+      "depth": 0.012,
+      "proud": 0.004
+    },
+    "plaque": {
+      "plateColor": "giltMetal",
+      "cutColor": "walnutDark",
+      "height": 0.62,
+      "aspect": 4,
+      "proud": 0.012,
+      "numeralShare": 0.575,
+      "minNumeralPx": 9,
+      "maxHeight": 0.94,
+      "blankBelowPx": 7
     },
     "rod": {
-      "radius": 0.05,
+      "radius": 0.04,
       "tenon": 0.16,
       "finialSize": 0.15,
       "finialSegments": 9,
-      "color": "brass"
+      "color": "paleBrass",
+      "ramp": "metal"
+    },
+    "stud": {
+      "radius": 0.125,
+      "sink": 0.004,
+      "segments": 10,
+      "stoneRamp": "gloss"
     },
     "bead": {
       "perRod": 13,
-      "segments": 11,
+      "segments": 14,
       "maxRadius": 0.3,
       "pitchFraction": 0.36,
       "thicknessRatio": 0.43,
       "clearance": 0.014,
       "boreClearance": 0.006,
       "finialClearance": 0.05,
-      "waitingColor": "bone",
-      "waitingWarmth": "timber",
-      "waitingWarmthMix": 0.22
+      "ramp": "gloss",
+      "waitingColor": "ivory",
+      "waitingRamp": "matte",
+      "waitingScale": 0.78,
+      "growShare": 0.6
     },
     "slide": {
-      "seconds": 0.46,
-      "travel": 0.8,
-      "overshoot": 0.05
+      "seconds": 0.56,
+      "travel": 0.76,
+      "overshoot": 0.045
+    },
+    "knock": {
+      "reach": 0.018,
+      "seconds": 0.26,
+      "falloff": 0.6
     },
     "motion": {
       "spinRate": 0.36,
-      "swayRadians": 0.085,
-      "swaySeconds": 7.5
+      "swayRadians": 0.05,
+      "swaySeconds": 10,
+      "tiltShare": 0.22,
+      "tiltPeriod": 1.37
     },
     "camera": {
-      "elevation": 24,
-      "azimuth": 66,
+      "elevation": 20,
+      "azimuth": 71,
       "eyeDistance": 240,
       "padding": 1.1,
       "labelGutter": 1.3
+    },
+    "light": {
+      "elevation": 54,
+      "azimuth": 148,
+      "key": 2.3,
+      "hemi": 1.1,
+      "ambient": 0.42
+    },
+    "ground": {
+      "centerColor": "deskLight",
+      "edgeColor": "deskShade",
+      "poolX": 8.5,
+      "poolZ": 14,
+      "shadowColor": "walnutShadow",
+      "shadowOpacity": 0.5,
+      "shadowWidth": 1.3,
+      "shadowDepth": 3.2,
+      "shadowOffset": 0.35
     },
     "label": {
       "reach": 0.18,
@@ -1025,7 +1120,8 @@
       "fadeSpan": 0.3
     },
     "close": {
-      "goldenColor": "goldLeaf",
+      "goldenColor": "brightGold",
+      "goldenRamp": "metal",
       "goldenScale": 1.28,
       "glowColor": "goldLeaf",
       "glowRadius": 2.4,
@@ -1038,22 +1134,22 @@
       {
         "id": "conquest",
         "name": "Conquest",
-        "color": "crimson"
+        "color": "enamelRed"
       },
       {
         "id": "culture",
         "name": "Culture",
-        "color": "grape"
+        "color": "enamelViolet"
       },
       {
         "id": "philosophy",
         "name": "Philosophy",
-        "color": "lapis"
+        "color": "enamelBlue"
       },
       {
         "id": "commerce",
         "name": "Commerce",
-        "color": "gilt"
+        "color": "enamelAmber"
       }
     ]
   },

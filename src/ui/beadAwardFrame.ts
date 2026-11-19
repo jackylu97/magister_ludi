@@ -18,7 +18,8 @@
  *
  * What does not change
  * --------------------
- * - The frame's look. A styling pass for the 3D abacus is scheduled on its own.
+ * - The frame's look is the stage's own (look B, "Walnut and gilt",
+ *   2026-11-19). The page passes it the world's age for the plaque.
  * - The sheet's words, its tally line and its keys.
  * - Reduced motion: the sheet shows the rod as it now stands, with no slide,
  *   which is the 2D rod's rule (`BeadAwardFace.arriving` is null).
@@ -50,6 +51,8 @@ export interface BeadTable {
   rows: readonly AbacusRow[];
   /** The seat reading the sheet. Its rod is the one the bead slides onto. */
   seat: number;
+  /** The world's age, for the numeral on the frame's plaque. Absent leaves the plate plain. */
+  age?: number;
 }
 
 /** How long after the sheet rises the bead starts to slide: the sheet's settle. */
@@ -59,12 +62,13 @@ const SLIDE_DELAY_MS = 320;
 const CLEAR_GAP_PX = 12;
 
 /**
- * The colour of the table the frame stands on, as CSS: the bead page's ground,
- * so the canvas has no edge against the page. The Opus close's page does the
- * same.
+ * The colour of the ground the frame stands on, as CSS: the bead page's and the
+ * Opus close's background, so the canvas has no edge against the page. It is
+ * the colour at the edge of the abacus's own ground (`abacus.ground.edgeColor`),
+ * which is also the colour the stage clears to.
  */
 export function frameGround(): string {
-  return cssHex(VIEW3D.table.color);
+  return cssHex(VIEW3D.abacus.ground.edgeColor);
 }
 
 /** What each rod is seeded with, and the one bead that then slides. Pure. */
@@ -151,6 +155,7 @@ export function mountBeadAwardFrame(
     stage = new AbacusStage(
       canvas,
       table.rows.map((row) => ({ name: row.name, color: row.color })),
+      { age: table.age ?? null },
     );
   } catch {
     box.remove();

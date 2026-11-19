@@ -2109,19 +2109,155 @@ interface SurveyNoteSpec {
  * dividing the clear height by the rod count and cutting the beads to whatever
  * pitch falls out, so two seats get fat beads on a wide pitch and six get
  * smaller ones on a tight one without a second table of numbers.
+ *
+ * The look is B, "Walnut and gilt", which the user chose on 2026-11-19 from a
+ * board of renders (`docs/plans/ui-critique-2026-10-16.md`, the last
+ * subsection): dark walnut, gilt fittings, a brass plaque with the age, a stud
+ * in each seat's colour, enamel beads with no band, and ivory places not yet
+ * earned, on a parchment ground. Every colour is a palette name.
  */
 interface AbacusSpec {
+  /** The ink line round every part: thinner than the board's, and dark brown. */
+  outline: AbacusOutlineSpec;
+  /** The three toon ramps a part can take the light with. */
+  ramps: Record<AbacusRamp, readonly number[]>;
   frame: AbacusFrameSpec;
+  /** The gilt shoes, knobs and feet. */
+  fittings: AbacusFittingsSpec;
+  /** The gilt line let into the front of each rail. */
+  inlay: AbacusInlaySpec;
+  /** The brass plate on the top rail that carries the age numeral. */
+  plaque: AbacusPlaqueSpec;
   rod: AbacusRodSpec;
+  /** The stud in a seat's colour on the left post, at each rod. */
+  stud: AbacusStudSpec;
   bead: AbacusBeadSpec;
   slide: AbacusSlideSpec;
+  /** The earned beads' small move when a new bead lands against them. */
+  knock: AbacusKnockSpec;
   motion: AbacusMotionSpec;
   camera: AbacusCameraSpec;
+  /** The abacus's own key, sky and ambient strengths. The colours are the board's. */
+  light: AbacusLightSpec;
+  /** The parchment the frame stands on, and its soft shadow. */
+  ground: AbacusGroundSpec;
   label: AbacusLabelSpec;
   /** The Opus close's two new things: the golden bead and the camera move. */
   close: AbacusCloseSpec;
   /** The scoring families, in the order a cycling control walks them. */
   families: readonly AbacusFamily[];
+}
+
+/** How a part of the abacus takes the light: the bands of its toon ramp. */
+export type AbacusRamp = 'matte' | 'gloss' | 'metal';
+
+/** The ramp names `abacus.*.ramp` may use. */
+const ABACUS_RAMPS: readonly AbacusRamp[] = ['matte', 'gloss', 'metal'];
+
+interface AbacusOutlineSpec {
+  /** The outline's width as a share of the board's (`look.outline`). */
+  share: number;
+  color: number;
+}
+
+interface AbacusFittingsSpec {
+  color: number;
+  ramp: AbacusRamp;
+  /** A shoe on each rail end: its length, and how far its middle sits in from the end. */
+  shoeWidth: number;
+  shoeInset: number;
+  /** How much taller and deeper than the rail a shoe is. */
+  shoeSwell: number;
+  /** A shoe's chamfer, as a multiple of the frame's. */
+  shoeChamfer: number;
+  /** The knob on top of each post. */
+  knobSize: number;
+  /** The turned feet under each sledge. */
+  footRadius: number;
+  /** How far a foot sits in from the sledge's front and back. */
+  footInset: number;
+  /** How far a foot runs up into the sledge, so no gap shows at the joint. */
+  footSink: number;
+  /** The share of `frame.footHeight` the feet lift the sledge off the ground. */
+  sledgeLift: number;
+  /** A sledge's chamfer, as a multiple of the frame's. */
+  sledgeChamfer: number;
+  /** Lathe segments for the knobs and the feet. */
+  segments: number;
+}
+
+interface AbacusInlaySpec {
+  color: number;
+  ramp: AbacusRamp;
+  /** How far short of each rail end the line stops. */
+  endGap: number;
+  height: number;
+  depth: number;
+  /** How far the line stands proud of the rail's face. */
+  proud: number;
+}
+
+/**
+ * The plaque. Its height is a share of the rail's. Where the frame is drawn
+ * small (the Abacus screen), the plaque grows toward `maxHeight` of the rail
+ * so the numeral stays at least `minNumeralPx` CSS pixels tall. Where even that
+ * would leave the numeral under `blankBelowPx`, the plate is drawn without it.
+ */
+interface AbacusPlaqueSpec {
+  plateColor: number;
+  cutColor: number;
+  /** The plate's height as a share of `frame.railHeight`. */
+  height: number;
+  /** Width over height. */
+  aspect: number;
+  proud: number;
+  /** The numeral's font size as a share of the plate's height. */
+  numeralShare: number;
+  minNumeralPx: number;
+  /** The tallest the plate may grow, as a share of `frame.railHeight`. */
+  maxHeight: number;
+  blankBelowPx: number;
+}
+
+interface AbacusStudSpec {
+  /** The rim's outer radius. The stone's size follows it. */
+  radius: number;
+  /** How far the stud is set into the post's face. */
+  sink: number;
+  segments: number;
+  stoneRamp: AbacusRamp;
+}
+
+interface AbacusKnockSpec {
+  /** How far the earned bead nearest the new one moves, in world units. */
+  reach: number;
+  seconds: number;
+  /** Each bead farther from the new one moves this share of its neighbour's move. */
+  falloff: number;
+}
+
+interface AbacusLightSpec {
+  elevation: number;
+  azimuth: number;
+  key: number;
+  hemi: number;
+  ambient: number;
+}
+
+interface AbacusGroundSpec {
+  /** The pool of light under the frame, and the colour at the edge of the view. */
+  centerColor: number;
+  edgeColor: number;
+  /** Half sizes of the ground plane, in world units. */
+  poolX: number;
+  poolZ: number;
+  shadowColor: number;
+  shadowOpacity: number;
+  /** The soft shadow's size, as multiples of the frame's width and its foot depth. */
+  shadowWidth: number;
+  shadowDepth: number;
+  /** How far back the shadow sits, as a multiple of the foot depth. */
+  shadowOffset: number;
 }
 
 /**
@@ -2134,8 +2270,9 @@ interface AbacusSpec {
  * is here is how the object looks while they play.
  */
 interface AbacusCloseSpec {
-  /** The golden bead's body. Brighter than the commerce bead's gilt, so the two never read as one. */
+  /** The golden bead's body. Brighter than the commerce bead's amber, so the two never read as one. */
   goldenColor: number;
+  goldenRamp: AbacusRamp;
   /** How much larger than its neighbours the golden bead is drawn. */
   goldenScale: number;
   /** The halo behind the golden bead. */
@@ -2144,7 +2281,11 @@ interface AbacusCloseSpec {
   glowRadius: number;
   /** The halo's opacity at its centre. */
   glowOpacity: number;
-  /** How far the camera moves in on the winner's rod: the frustum is divided by this. */
+  /**
+   * How far the camera moves in on the winner's rod: the frustum is divided by
+   * this. The stage moves in less where this would cut the frame at the sides
+   * (`AbacusStage.closeZoom`).
+   */
   zoom: number;
   /**
    * How far the camera slides toward the winner's rod as it moves in, from 0
@@ -2172,9 +2313,11 @@ interface AbacusFrameSpec {
   footDepth: number;
   /** The 45° cut on every arris. */
   chamfer: number;
-  timberColor: number;
-  /** How far the posts and feet are darkened off `sideDarken`, as a multiple. */
-  postShade: number;
+  /** The walnut: rails, then the posts a shade darker, then the sledges darker still. */
+  railColor: number;
+  stileColor: number;
+  footColor: number;
+  ramp: AbacusRamp;
 }
 
 interface AbacusRodSpec {
@@ -2184,12 +2327,13 @@ interface AbacusRodSpec {
   finialSize: number;
   finialSegments: number;
   color: number;
+  ramp: AbacusRamp;
 }
 
 interface AbacusBeadSpec {
   /** Beads per rod: the tally's denominator and the rod's capacity. */
   perRod: number;
-  /** Lathe segments. Odd, like every turned thing here. */
+  /** Lathe segments. */
   segments: number;
   /** A ceiling on the radius, for a table seating very few. */
   maxRadius: number;
@@ -2203,10 +2347,15 @@ interface AbacusBeadSpec {
   boreClearance: number;
   /** Daylight left between the outermost bead and the finial it stops against. */
   finialClearance: number;
-  /** An unearned bead is bare turned wood: bone, warmed toward the frame. */
+  /** An earned bead is enamel in its family's colour. */
+  ramp: AbacusRamp;
+  /** A place not earned yet is a smaller ivory bead. */
   waitingColor: number;
-  waitingWarmth: number;
-  waitingWarmthMix: number;
+  waitingRamp: AbacusRamp;
+  /** Its size as a share of an earned bead. */
+  waitingScale: number;
+  /** A sliding bead reaches full size over this share of the slide's travel. */
+  growShare: number;
 }
 
 interface AbacusSlideSpec {
@@ -2221,8 +2370,12 @@ interface AbacusSlideSpec {
 interface AbacusMotionSpec {
   /** Radians per second of turntable. */
   spinRate: number;
+  /** The idle turn: how far each way, and how long one turn there and back takes. */
   swayRadians: number;
   swaySeconds: number;
+  /** The small forward tilt under the turn: its size as a share of the turn, and its period as a multiple. */
+  tiltShare: number;
+  tiltPeriod: number;
 }
 
 interface AbacusCameraSpec {
@@ -2247,11 +2400,10 @@ interface AbacusLabelSpec {
 /**
  * The four scoring families a victory bead can belong to.
  *
- * Two are the board's own player inks by name, because a conquest bead must be
- * the same red the crimson player's pieces are; the other two are `lapis` and
- * `gilt`, promoted into the palette when the Abacus came in-game. All four are
- * palette *names*, so the object cannot open a second colour vocabulary beside
- * the table it stands on.
+ * Since look B (2026-11-19) the beads are enamel: `enamelRed`, `enamelViolet`,
+ * `enamelBlue` and `enamelAmber`, a little brighter than the board's inks, so a
+ * bead does not read as a seat's colour. All four are palette *names*, so the
+ * object cannot open a second colour vocabulary beside the table it stands on.
  */
 export interface AbacusFamily {
   id: FamilyId;
@@ -2750,6 +2902,32 @@ function parseFamilies(
 }
 
 /**
+ * An abacus ramp name, checked. A typo would otherwise give a part no toon
+ * ramp, and it would draw as a smooth plastic shape among faceted ones.
+ */
+function abacusRamp(value: string, where: string): AbacusRamp {
+  if ((ABACUS_RAMPS as readonly string[]).includes(value)) return value as AbacusRamp;
+  throw new Error(`view3d.json: ${where} must be one of ${ABACUS_RAMPS.join(', ')}, got ${value}`);
+}
+
+/**
+ * The abacus's three toon ramps, checked: every ramp named, and each band a
+ * brightness from 0 to 1, so a typo cannot paint a part black or blown out.
+ */
+function parseAbacusRamps(raw: Record<string, readonly number[]>): Record<AbacusRamp, readonly number[]> {
+  const out = {} as Record<AbacusRamp, readonly number[]>;
+  for (const name of ABACUS_RAMPS) {
+    const bands = raw[name];
+    if (!bands || bands.length === 0) throw new Error(`view3d.json: abacus.ramps is missing ${name}`);
+    for (const band of bands) {
+      if (!(band >= 0 && band <= 1)) throw new Error(`view3d.json: abacus.ramps.${name} has a band outside 0 to 1: ${band}`);
+    }
+    out[name] = bands;
+  }
+  return out;
+}
+
+/**
  * The three kinds a resource can be. Written out here rather than derived,
  * because `ResourceKind` is a closed union in `resourceData.ts` and this is
  * the loop that has to visit every member of it — the same trade `parseFamilies`
@@ -3202,26 +3380,64 @@ export const VIEW3D: View3DData = {
     },
   },
   abacus: {
+    outline: {
+      share: viewJson.abacus.outline.share,
+      color: named(viewJson.abacus.outline.color, 'abacus.outline.color'),
+    },
+    ramps: parseAbacusRamps(viewJson.abacus.ramps),
     frame: {
       ...viewJson.abacus.frame,
-      timberColor: named(viewJson.abacus.frame.timberColor, 'abacus.frame.timberColor'),
+      railColor: named(viewJson.abacus.frame.railColor, 'abacus.frame.railColor'),
+      stileColor: named(viewJson.abacus.frame.stileColor, 'abacus.frame.stileColor'),
+      footColor: named(viewJson.abacus.frame.footColor, 'abacus.frame.footColor'),
+      ramp: abacusRamp(viewJson.abacus.frame.ramp, 'abacus.frame.ramp'),
+    },
+    fittings: {
+      ...viewJson.abacus.fittings,
+      color: named(viewJson.abacus.fittings.color, 'abacus.fittings.color'),
+      ramp: abacusRamp(viewJson.abacus.fittings.ramp, 'abacus.fittings.ramp'),
+    },
+    inlay: {
+      ...viewJson.abacus.inlay,
+      color: named(viewJson.abacus.inlay.color, 'abacus.inlay.color'),
+      ramp: abacusRamp(viewJson.abacus.inlay.ramp, 'abacus.inlay.ramp'),
+    },
+    plaque: {
+      ...viewJson.abacus.plaque,
+      plateColor: named(viewJson.abacus.plaque.plateColor, 'abacus.plaque.plateColor'),
+      cutColor: named(viewJson.abacus.plaque.cutColor, 'abacus.plaque.cutColor'),
     },
     rod: {
       ...viewJson.abacus.rod,
       color: named(viewJson.abacus.rod.color, 'abacus.rod.color'),
+      ramp: abacusRamp(viewJson.abacus.rod.ramp, 'abacus.rod.ramp'),
+    },
+    stud: {
+      ...viewJson.abacus.stud,
+      stoneRamp: abacusRamp(viewJson.abacus.stud.stoneRamp, 'abacus.stud.stoneRamp'),
     },
     bead: {
       ...viewJson.abacus.bead,
+      ramp: abacusRamp(viewJson.abacus.bead.ramp, 'abacus.bead.ramp'),
       waitingColor: named(viewJson.abacus.bead.waitingColor, 'abacus.bead.waitingColor'),
-      waitingWarmth: named(viewJson.abacus.bead.waitingWarmth, 'abacus.bead.waitingWarmth'),
+      waitingRamp: abacusRamp(viewJson.abacus.bead.waitingRamp, 'abacus.bead.waitingRamp'),
     },
     slide: viewJson.abacus.slide,
+    knock: viewJson.abacus.knock,
     motion: viewJson.abacus.motion,
     camera: viewJson.abacus.camera,
+    light: viewJson.abacus.light,
+    ground: {
+      ...viewJson.abacus.ground,
+      centerColor: named(viewJson.abacus.ground.centerColor, 'abacus.ground.centerColor'),
+      edgeColor: named(viewJson.abacus.ground.edgeColor, 'abacus.ground.edgeColor'),
+      shadowColor: named(viewJson.abacus.ground.shadowColor, 'abacus.ground.shadowColor'),
+    },
     label: viewJson.abacus.label,
     close: {
       ...viewJson.abacus.close,
       goldenColor: named(viewJson.abacus.close.goldenColor, 'abacus.close.goldenColor'),
+      goldenRamp: abacusRamp(viewJson.abacus.close.goldenRamp, 'abacus.close.goldenRamp'),
       glowColor: named(viewJson.abacus.close.glowColor, 'abacus.close.glowColor'),
     },
     families: parseFamilies(viewJson.abacus.families),

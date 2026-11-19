@@ -48,7 +48,12 @@ const PLAYERS: readonly AbacusPlayer[] = [
   { name: 'Plinio Designori', color: VIEW3D.palette.teal! },
 ];
 
-const stage = new AbacusStage(canvas, PLAYERS);
+const query = new URLSearchParams(location.search);
+
+/** The age on the plaque: `?abacusAge=`, or the second age, as the stages have it. */
+const AGE = Math.max(1, Math.round(Number(query.get('abacusAge') ?? '2')) || 2);
+
+const stage = new AbacusStage(canvas, PLAYERS, { age: AGE });
 const clack = new Clack();
 
 /**
@@ -185,6 +190,41 @@ familyButton.addEventListener('click', () => {
 
 paintFamilyButton();
 refreshStatus();
+
+// --- the look-dev row -------------------------------------------------------
+
+/**
+ * The places on a rod (8 or the data's 13, an open rule question), and the
+ * three pages the game shows the frame on. The stage reads its places once,
+ * when it is built, so each button loads the page again with the query changed
+ * (`entry.ts` reads it).
+ */
+const lookRow = requireElement<HTMLElement>('looks');
+function reloadWith(name: string, value: string | null): void {
+  const url = new URL(location.href);
+  if (value === null) url.searchParams.delete(name);
+  else url.searchParams.set(name, value);
+  location.href = url.toString();
+}
+const placesButton = document.createElement('button');
+placesButton.type = 'button';
+placesButton.className = 'quiet';
+placesButton.classList.toggle('is-on', stage.beadsPerRod !== VIEW3D.abacus.bead.perRod);
+placesButton.textContent = `${stage.beadsPerRod} places`;
+placesButton.addEventListener('click', () => reloadWith('abacusPlaces', stage.beadsPerRod === 8 ? null : '8'));
+lookRow.append(placesButton);
+for (const [id, words] of [
+  ['bead', 'Bead page'],
+  ['screen', 'Abacus screen'],
+  ['close', 'Opus close'],
+] as const) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'quiet';
+  button.textContent = words;
+  button.addEventListener('click', () => reloadWith('stage', id));
+  lookRow.append(button);
+}
 
 // --- motion ----------------------------------------------------------------
 
