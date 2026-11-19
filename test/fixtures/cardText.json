@@ -10156,6 +10156,24 @@
     "raw": "Your bonus from spare happiness is doubled",
     "text": "Your bonus from spare happiness is doubled"
    }
+  ],
+  "theBuildersLodge": [
+   {
+    "raw": "Orders that add yields to buildings pay double",
+    "text": "Orders that add yields to buildings pay double"
+   }
+  ],
+  "theSummerPalace": [
+   {
+    "raw": "Cards that pay your capital pay 50% more",
+    "text": "Cards that pay your capital pay 50% more"
+   }
+  ],
+  "thePersonalUnion": [
+   {
+    "raw": "Cards that belong to two decks pay 50% more",
+    "text": "Cards that belong to two decks pay 50% more"
+   }
   ]
  },
  "belief": {

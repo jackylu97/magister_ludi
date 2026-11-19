@@ -4833,6 +4833,7 @@ function paysSomething(line: CardYieldLine): boolean {
 export function explainCardCityYields(state: GameState, city: City): CardYieldLine[] {
   const owner = city.ownerId;
   const list: CardYieldLine[] = [];
+  const targeted = targetedYieldRises<CardYieldLine>(state, owner, scaleYieldLine);
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.where !== 'city' || basisOf(effect) !== 'flat') continue;
@@ -4844,7 +4845,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const line = emptyLine(card, label(source, scopeNote(effect.scope)));
     for (const key of VOICES) line[key] = (effect[key] ?? 0);
-    if (paysSomething(line)) list.push(line);
+    if (paysSomething(line)) list.push(targeted.record(effect, line));
   }
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
@@ -4871,7 +4872,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
-    if (paysSomething(line)) list.push(line);
+    if (paysSomething(line)) list.push(targeted.record(effect, line));
   }
 
   // One voice paid again as another, off the buildings of one category — The
@@ -4893,7 +4894,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     if (mirrored === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to as CityYieldKey] = mirrored;
-    if (paysSomething(line)) list.push(line);
+    if (paysSomething(line)) list.push(targeted.record(effect, line));
   }
 
   // **The rises a tier-26 government gives the seated cards** (batch G1), taken
@@ -4914,6 +4915,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   // order cannot change what either pays.
   for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
   for (const line of raised) list.push(line);
+  list.push(...targeted.rises);
 
   return list;
 }
@@ -4973,6 +4975,123 @@ function foreignPostLines(state: GameState, city: City): CardYieldLine[] {
   return list;
 }
 
+type YieldAmplifier = Extract<CardEffect, { kind: 'cardYieldAmplifier' }>;
+
+/** Check that the line requires a matching test, including in a compound scope. */
+function scopeRequires(scope: CityScope | undefined, test: (part: CityScope) => boolean): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'all') return scope.of.some((part) => scopeRequires(part, test));
+  if (scope.test === 'any') return scope.of.length > 0 && scope.of.every((part) => scopeRequires(part, test));
+  return test(scope);
+}
+
+/** Keep the rules for which lines these amplifiers reach in one place for the bot and the folds. */
+export function yieldAmplifierReads(amplifier: YieldAmplifier, card: CardId, effect: CardEffect): boolean {
+  if (amplifier.reads === 'buildingOrders') {
+    if (!isOrderId(card)) return false;
+    if (effect.kind === 'pays') {
+      if (effect.payee !== undefined || effect.where === 'empire' || effect.where === 'route') return false;
+      if (effect.basis === 'count' && effect.stage === undefined && effect.to !== undefined && !paysAVoice(effect)) return false;
+      if (effect.basis === 'mirror') return true;
+      if (effect.basis === 'count' && effect.within === 'city' &&
+          (effect.count === 'buildingsOfKind' || effect.count === 'buildingsOfCategory' ||
+           effect.count === 'buildingsOfCategories' || effect.count === 'buildingsSupplying' ||
+           effect.count === 'publicWorks')) return true;
+    } else if (effect.kind !== 'percentYields' && effect.kind !== 'productionBonus') {
+      return false;
+    }
+    return scopeRequires(effect.scope, (part) => part.test === 'hasBuilding' ||
+      part.test === 'buildingsOfCategory' || part.test === 'hasEmpireBuilding' || part.test === 'hasBuildingYielding');
+  }
+  if (amplifier.reads !== 'capitalCards' || (!isOrderId(card) && !isDoctrineId(card))) return false;
+  switch (effect.kind) {
+    case 'pays':
+      if (effect.payee !== undefined || effect.where === 'empire' || effect.where === 'route') return false;
+      if (effect.where === 'capital') return true;
+      break;
+    case 'happiness':
+    case 'authority':
+      if (effect.per !== 'city') return false;
+      break;
+    case 'renown':
+      if (effect.per !== 'city' && effect.within !== 'city') return false;
+      break;
+    case 'cityRenownPercent':
+      if (effect.where === 'empire') return false;
+      break;
+    case 'productionBonus':
+    case 'percentYields':
+      break;
+    default:
+      return false;
+  }
+  return scopeRequires(effect.scope, (part) => part.test === 'capital' || part.test === 'trueCapital');
+}
+
+const NO_TARGETED_YIELD_RISES = {
+  rises: [],
+  record<T>(_effect: CardEffect, line: T): T {
+    return line;
+  },
+};
+
+/**
+ * Collect rises as the reader resolves each original effect. Append them after
+ * all the original lines so another amplifier cannot use a rise as its base.
+ */
+function targetedYieldRises<T extends { card?: CardId; source: string }>(
+  state: GameState,
+  playerId: number,
+  scale: (line: T, amplifier: YieldAmplifier) => T | undefined,
+) {
+  const rows = effectsOfKind(state, playerId, 'cardYieldAmplifier');
+  if (rows.length === 0) return NO_TARGETED_YIELD_RISES;
+  const rises: T[] = [];
+  return {
+    rises,
+    record(effect: CardEffect, line: T): T {
+      if (line.card === undefined) return line;
+      for (const row of rows) {
+        if (row.card === line.card || (row.effect.percent ?? 0) <= 0) continue;
+        if (!yieldAmplifierReads(row.effect, line.card, effect)) continue;
+        const extra = scale(line, row.effect);
+        if (extra !== undefined) {
+          rises.push({ ...extra, card: row.card, source: label(row.source, anyCardDef(line.card).name) });
+        }
+      }
+      return line;
+    },
+  };
+}
+
+function yieldAmplifierShare(amount: number, amplifier: YieldAmplifier): number {
+  return (Math.max(0, amount) * (amplifier.percent ?? 0)) / 100;
+}
+
+function scaledYields<T extends Pick<CardYieldLine, CityYieldKey>>(line: T, amplifier: YieldAmplifier): T {
+  const extra = { ...line };
+  for (const voice of VOICES) {
+    extra[voice] = amplifier.yield === 'all' || amplifier.yield === voice ? yieldAmplifierShare(line[voice], amplifier) : 0;
+  }
+  return extra;
+}
+
+function scaleYieldLine<T extends Pick<CardYieldLine, CityYieldKey>>(line: T, amplifier: YieldAmplifier): T | undefined {
+  const extra = scaledYields(line, amplifier);
+  return VOICES.some((voice) => extra[voice] !== 0) ? extra : undefined;
+}
+
+function scaleYieldPercent<T extends { percent: number; yield?: CityYieldKey }>(line: T, amplifier: YieldAmplifier): T | undefined {
+  if (amplifier.yield !== 'all' && amplifier.yield !== (line.yield ?? 'production')) return undefined;
+  const percent = yieldAmplifierShare(line.percent, amplifier);
+  return percent === 0 ? undefined : { ...line, percent };
+}
+
+function scaleMeterAmount<T extends { amount: number }>(line: T, amplifier: YieldAmplifier): T | undefined {
+  const amount = yieldAmplifierShare(line.amount, amplifier);
+  return amount === 0 ? undefined : { ...line, amount };
+}
+
 /**
  * **What the deck's engines add to a fold of card lines** — the additive
  * amplifier by voice (`cardYieldAmplifier`) and the position reader
@@ -5018,7 +5137,7 @@ function deckModifierLines(
     }
     // An amplifier with a tile test raises hex lines only (The Age of
     // Improvement, Expansionist batch E3), so it says nothing to a ledger.
-    if (effect.on !== undefined) continue;
+    if (effect.on !== undefined || effect.reads === 'buildingOrders' || effect.reads === 'capitalCards') continue;
     const line = emptyLine(card, source);
     let instances = 0;
     // **Whose lines** (`CardYieldAmplifierEffect.reads`): the Orders', or the
@@ -5133,36 +5252,39 @@ export const CARD_TYPE_RAISED_KINDS: readonly CardEffect['kind'][] = [
 
 const NO_RAISES: ReadonlyMap<CardId, CardTypeRaise> = new Map();
 
+/** A shared Order names two decks, regardless of which chair it occupies. */
+export function cardTypeAmplifierMatches(
+  effect: Extract<CardEffect, { kind: 'cardTypeAmplifier' }>,
+  card: OrderId,
+  chair: ChairType,
+): boolean {
+  return effect.shared === true ? orderDef(card).decks.length === 2 : countedTypeOf(card, chair) === effect.type;
+}
+
 /**
- * **Which of this seat's seated cards a `cardTypeAmplifier` row raises, and by
- * how much.** Keyed by the card. Empty when the seat's law holds no such row,
- * which is the common case and costs one lookup.
- *
- * A card counts while it sits in a chair, as `countedTypeOf` reads it: its own
- * type, or its chair's type if it is unsorted. So a card off its chair (Scutage)
- * and a fulfilled commission are never in the map. Every reader looks a line's
- * own `card` up here. The map is only looked up and never walked, so its order
- * decides nothing.
+ * Find the combined rise for each seated Order. Sum matching percentages
+ * before rounding, so a type bonus and a shared Order bonus apply together.
  */
 export function cardTypeRaises(state: GameState, playerId: number): ReadonlyMap<CardId, CardTypeRaise> {
   const rows = effectsOfKind(state, playerId, 'cardTypeAmplifier');
   if (rows.length === 0) return NO_RAISES;
   const sc = statecraftOf(state, playerId);
   if (!sc) return NO_RAISES;
-  const byType = new Map<ChairType, CardTypeRaise>();
-  for (const { source, card, effect } of rows) {
-    if (!(effect.percent > 0)) continue;
-    const held = byType.get(effect.type);
-    if (held === undefined) byType.set(effect.type, { card, source, percent: effect.percent });
-    else held.percent += effect.percent;
-  }
-  if (byType.size === 0) return NO_RAISES;
   const layout = slotTypesOf(sc);
   const out = new Map<CardId, CardTypeRaise>();
   sc.slots.forEach((slot, index) => {
     if (slot === null || !isOrderId(slot.card)) return;
-    const raise = byType.get(countedTypeOf(slot.card, layout[index] ?? 'wildcard'));
-    if (raise !== undefined) out.set(slot.card, raise);
+    for (const { source, card, effect } of rows) {
+      if (!(effect.percent > 0) || card === slot.card) continue;
+      if (!cardTypeAmplifierMatches(effect, slot.card, layout[index] ?? 'wildcard')) continue;
+      const held = out.get(slot.card);
+      if (held === undefined) {
+        out.set(slot.card, { card, source, percent: effect.percent });
+      } else {
+        held.percent += effect.percent;
+        if (held.source !== source) held.source += ` + ${source}`;
+      }
+    }
   });
   return out;
 }
@@ -5488,6 +5610,7 @@ export function cardYieldConversions(
   flats: Readonly<Record<CityYieldKey, number>>,
 ): CardYieldLine[] {
   const list: CardYieldLine[] = [];
+  const targeted = targetedYieldRises<CardYieldLine>(state, city.ownerId, scaleYieldLine);
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.basis !== 'share' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
@@ -5497,11 +5620,12 @@ export function cardYieldConversions(
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to as CityYieldKey] = paid;
-    if (paysSomething(line)) list.push(line);
+    if (paysSomething(line)) list.push(targeted.record(effect, line));
   }
   // **The rises of a tier-26 government** (batch G1), taken of what each share
   // pays this town, as the town fold takes them of its other card lines.
   for (const line of cardTypeRaiseLines(state, city.ownerId, list)) list.push(line);
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -5817,6 +5941,7 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
   const owner = city.ownerId;
   const category = buildingDef(id).category;
   const list: BuildingPackageLine[] = [];
+  const targeted = targetedYieldRises<BuildingPackageLine>(state, owner, scaleYieldLine);
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (isRiteId(card)) continue;
     if (effect.payee !== undefined) continue;
@@ -5830,7 +5955,7 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
       if (!cityScopeAdmits(state, city, effect.scope)) continue;
       const line = emptyPackageLine(label(source, scopeNote(effect.scope)), card);
       for (const key of VOICES) line[key] = effect[key] ?? 0;
-      if (VOICES.some((key) => line[key] !== 0)) list.push(line);
+      if (VOICES.some((key) => line[key] !== 0)) list.push(targeted.record(effect, line));
       continue;
     }
     if (basis !== 'count' || !paysAVoice(effect)) continue;
@@ -5865,8 +5990,9 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
     // building, as the town fold pays it (`explainCardCityYields`).
     const whole = (effect.amount ?? 0) * times;
     line[effect.to as CityYieldKey] = byShelf ? whole / many : whole;
-    if (VOICES.some((key) => line[key] !== 0)) list.push(line);
+    if (VOICES.some((key) => line[key] !== 0)) list.push(targeted.record(effect, line));
   }
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -6959,7 +7085,19 @@ export function scopedCardTileLines(
   ];
   // The rises of a tier-26 government (batch G1). A counted row reaches them as
   // the flat row this town pays, so the rise is taken of what the town counts.
-  return [...tileLinesFrom(found), ...cardTypeRaiseTileLines(state, city.ownerId, found)];
+  const targeted = targetedYieldRises<CardTileLine>(state, city.ownerId, scaleTileYieldLine);
+  const lines = tileLinesFrom(found, targeted.record);
+  return [...lines, ...cardTypeRaiseTileLines(state, city.ownerId, found), ...targeted.rises];
+}
+
+function scaleTileYieldLine(line: CardTileLine, amplifier: YieldAmplifier): CardTileLine | undefined {
+  const extra = scaledYields(line, amplifier);
+  for (const key of ['percent', 'basePercent', 'wholePercent'] as const) {
+    if (line[key] !== undefined) extra[key] = yieldAmplifierShare(line[key], amplifier);
+  }
+  return VOICES.some((voice) => extra[voice] !== 0) || extra.percent || extra.basePercent || extra.wholePercent
+    ? extra
+    : undefined;
 }
 
 /**
@@ -7146,6 +7284,7 @@ function tileLinesFrom(
     card?: CardId;
     effect: CardPaysEffect & { on: TileCondition };
   }[],
+  record?: (effect: CardPaysEffect, line: CardTileLine) => CardTileLine,
 ): CardTileLine[] {
   const list: CardTileLine[] = [];
   for (const { source, card, effect } of found) {
@@ -7179,7 +7318,7 @@ function tileLinesFrom(
       line.basePercent !== undefined ||
       line.wholePercent !== undefined
     ) {
-      list.push(line);
+      list.push(record === undefined ? line : record(effect, line));
     }
   }
   return list;
@@ -7238,6 +7377,7 @@ export function cardEmpireIncomeShares(state: GameState, playerId: number): Card
 export function explainCardPercentYields(state: GameState, city: City): CardPercentLine[] {
   const owner = city.ownerId;
   const list: CardPercentLine[] = [];
+  const targeted = targetedYieldRises<CardPercentLine>(state, owner, scaleYieldPercent);
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'percentYields')) {
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
@@ -7247,7 +7387,7 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     const note = scopeNote(effect.scope);
     const keys = effect.yield === 'all' ? VOICES : [effect.yield];
     for (const key of keys) {
-      list.push({ card, source: label(source, note), yield: key, percent, stage });
+      list.push(targeted.record(effect, { card, source: label(source, note), yield: key, percent, stage }));
     }
   }
 
@@ -7259,17 +7399,18 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     // the shape and a percentage arm that ignored it would pay every town for a
     // clause written about one kind of them.
     if (!cityScopeAdmits(state, city, effect.scope, owner)) continue;
+    if (effect.where === 'capital' && !cardCapitalIds(state, owner).includes(city.id)) continue;
     const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const percent = (effect.percent ?? 0) * times;
     if (percent === 0) continue;
-    list.push({
+    list.push(targeted.record(effect, {
       card,
       source: label(source, `×${times}`),
       yield: effect.to as CityYieldKey,
       percent,
       stage: effect.stage,
-    });
+    }));
   }
 
   // **The rises of a tier-26 government** (batch G1): one more line beside each
@@ -7288,6 +7429,7 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     }
   }
 
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -7434,6 +7576,7 @@ export function cardProduction(
   building?: BuildingId,
 ): CardProductionLine[] {
   const list: CardProductionLine[] = [];
+  const targeted = targetedYieldRises<CardProductionLine>(state, city.ownerId, scaleYieldPercent);
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'productionBonus')) {
     if (effect.category !== category) continue;
     if (!buildingProductionBonusMatches(state, city, effect, building)) continue;
@@ -7497,15 +7640,15 @@ export function cardProduction(
         effect.max,
       );
       if (times === 0) continue;
-      list.push({
+      list.push(targeted.record(effect, {
         card,
         source: label(source, `×${times}`),
         percent: percent * times,
         stage: effect.stage ?? 'city',
-      });
+      }));
       continue;
     }
-    list.push({ card, source, percent, stage: effect.stage ?? 'city' });
+    list.push(targeted.record(effect, { card, source, percent, stage: effect.stage ?? 'city' }));
   }
   // **The rises of a tier-26 government** (batch G1): one more line beside each
   // bonus a seated card of the type puts behind this build, at the same stage.
@@ -7521,6 +7664,7 @@ export function cardProduction(
       list.push({ card: raise.card, source: raiseLabel(raise, line.card), percent: extra, stage: line.stage });
     }
   }
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -8051,6 +8195,7 @@ export interface CardMeterLine {
  */
 export function cardHappiness(state: GameState, playerId: number): CardMeterLine[] {
   const list: CardMeterLine[] = [];
+  const targeted = targetedYieldRises<CardMeterLine>(state, playerId, scaleMeterAmount);
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'happiness')) {
     const each = effect.amount;
@@ -8071,7 +8216,7 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
       if (cityScopeAdmits(state, city, effect.scope)) towns += 1;
     }
     if (towns === 0) continue;
-    list.push({ card, source: label(source, `${towns} cities`), amount: each * towns });
+    list.push(targeted.record(effect, { card, source: label(source, `${towns} cities`), amount: each * towns }));
   }
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
@@ -8098,13 +8243,14 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
       times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     }
     if (times === 0) continue;
-    list.push({ card, source: label(source, `×${times}`), amount: each * times });
+    list.push(targeted.record(effect, { card, source: label(source, `×${times}`), amount: each * times }));
   }
 
   list.push(...cityLocalHappiness(state, playerId));
   // **The rises of a tier-26 government** (batch R1): each raised card's line
   // gains a line of its own, so the meter is still the fold of its list.
   list.push(...cardTypeRaiseMeterLines(state, playerId, list));
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -8249,6 +8395,7 @@ export function cardBuildingHappiness(
  */
 export function cardAuthority(state: GameState, playerId: number): CardMeterLine[] {
   const list: CardMeterLine[] = [];
+  const targeted = targetedYieldRises<CardMeterLine>(state, playerId, scaleMeterAmount);
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'authority')) {
     const each = effect.amount;
@@ -8274,14 +8421,14 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
           : Math.min(raw, effect.max)
         : raw;
     if (amount === 0) continue;
-    list.push({
+    list.push(targeted.record(effect, {
       card,
       source:
         effect.per === 'city'
           ? label(source, `${towns} ${scopeNote(effect.scope) ?? 'cities'}`)
           : source,
       amount,
-    });
+    }));
   }
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
@@ -8304,11 +8451,12 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
       times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     }
     if (times === 0) continue;
-    list.push({ card, source: label(source, `×${times}`), amount: each * times });
+    list.push(targeted.record(effect, { card, source: label(source, `×${times}`), amount: each * times }));
   }
 
   // **The rises of a tier-26 government** (batch R1), as on happiness.
   list.push(...cardTypeRaiseMeterLines(state, playerId, list));
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -13938,6 +14086,7 @@ function countedRenownHelpings(
 
 export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
   const list: CardRenownLine[] = [];
+  const targeted = targetedYieldRises<CardRenownLine>(state, playerId, scaleMeterAmount);
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'renown')) {
     const each = effect.amount;
     if (each === 0) continue;
@@ -14000,7 +14149,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
           : per === undefined
             ? 'helping'
             : per;
-    list.push({
+    list.push(targeted.record(effect, {
       card,
       source:
         per === undefined && effect.count === undefined
@@ -14008,7 +14157,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
           : `${source} · ${each} per ${word} × ${times}`,
       family: effect.family ?? null,
       amount,
-    });
+    }));
   }
   // **The rises of a tier-26 government** (batch R1): a raised card's trickle
   // gains a line of its own, favouring the same family.
@@ -14021,6 +14170,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
       (line, raise, extra) => ({ card: raise.card, source: raiseLabel(raise, line.card), family: line.family, amount: extra }),
     ),
   );
+  list.push(...targeted.rises);
   return list;
 }
 
@@ -14045,6 +14195,7 @@ export interface CardCityRenownShare {
  */
 export function cardCityRenownShares(state: GameState, city: City): CardCityRenownShare[] {
   const list: CardCityRenownShare[] = [];
+  const targeted = targetedYieldRises<CardCityRenownShare>(state, city.ownerId, scaleYieldPercent);
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityRenownPercent')) {
     if (effect.percent === 0) continue;
     // **An empire-scoped share is not a town's** — it is taken once, over the
@@ -14052,14 +14203,15 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
     // and counted there, exactly once. See `CardCityRenownPercentEffect.where`.
     if (effect.where === 'empire') continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    list.push({
+    list.push(targeted.record(effect, {
       card,
       source: label(source, scopeNote(effect.scope)),
       percent: effect.percent,
       ...(effect.of !== undefined ? { of: effect.of } : {}),
-    });
+    }));
   }
   list.push(...renownShareRises(state, city.ownerId, list));
+  list.push(...targeted.rises);
   return list;
 }
 

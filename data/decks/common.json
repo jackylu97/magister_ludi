@@ -2760,6 +2760,39 @@
           "percent": 100
         }
       ]
+    },
+    "theBuildersLodge": {
+      "name": "The Builders' Lodge",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The builders kept a common book of plans.",
+      "text": "Orders that add yields to buildings pay double.",
+      "effects": [{ "kind": "cardYieldAmplifier", "reads": "buildingOrders", "yield": "all", "percent": 100 }]
+    },
+    "theSummerPalace": {
+      "name": "The Summer Palace",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Petitions followed the court into the garden.",
+      "text": "Cards that pay your capital pay 50% more.",
+      "effects": [{ "kind": "cardYieldAmplifier", "reads": "capitalCards", "yield": "all", "percent": 50 }]
+    },
+    "thePersonalUnion": {
+      "name": "The Personal Union",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Two crowns rested on one desk.",
+      "text": "Cards that belong to two decks pay 50% more.",
+      "effects": [{ "kind": "cardTypeAmplifier", "shared": true, "percent": 50 }]
     }
   }
 }

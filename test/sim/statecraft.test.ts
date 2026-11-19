@@ -9223,6 +9223,8 @@ describe("the engine shapes", () => {
     // chair's counter, two voices).
     "thePenitentsRoll · rerollsWhileSlotted",
     "thePenitentsRoll · rerollsWhileSlotted",
+    "theBuildersLodge · cardYieldAmplifier",
+    "theSummerPalace · cardYieldAmplifier",
   ];
 
   it("registers exactly which live rows use each shape batch A declared", () => {

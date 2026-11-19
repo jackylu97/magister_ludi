@@ -161,6 +161,9 @@ governments, so Tier IV opened at 29.
   does not reach happiness, authority, renown, unit stats other than strength, rules, costs,
   a commission's reward, or a card off its chair. An unsorted card counts as the type of the
   chair it sits in.
+- **The Personal Union** uses the same rounding and effect types for seated Orders
+  that belong to two decks. If a government also raises that Order, add both
+  percentages before rounding.
 - **Great people cost 15% less renown** under the Aristocracy (`greatPersonCost`, a card
   rule). The cut comes off the price once, beside The Peregrini's discount.
 - **Theocracy is retired** (batch G1): the Aristocracy takes its place at tier 10, and its row
@@ -856,6 +859,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Settled Realm | 4 | ● | S | Every town gains +2 happiness. |
 | Local Clerks | 2 | ● | S | Gain +3 authority. |
 | City Watches | 3 | ● | S | Your towns gain +8 defence. |
+| The Builders' Lodge | 1 | ○ | E | Orders that add yields to buildings pay double. |
+| The Summer Palace | 2 | ○ | E | Cards that pay your capital pay 50% more. |
+| The Personal Union | 2 | ○ | E | Cards that belong to two decks pay 50% more. |
 
 ### Notes and deferred halves (from the data rows)
 
