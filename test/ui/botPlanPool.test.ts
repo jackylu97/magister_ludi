@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { aiTuning } from '../../src/ai/aiConfig';
-import { freezeBoard, planSeat } from '../../src/ai/frozenBoard';
+import * as frozenBoard from '../../src/ai/frozenBoard';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import { snapshotState } from '../../src/sim/game';
 import { type BotWorkerRequest, answerBotWorker, answerBotWorkerAsync } from '../../src/ui/bot.worker';
@@ -41,14 +41,46 @@ function requestFor(game: ReturnType<typeof createGame>): Extract<BotWorkerReque
 }
 
 describe('browser seat planning', () => {
+  it('releases ordinary decision scores before the planner records each step', () => {
+    const board = frozenBoard.freezeBoard(createGame(CONFIG).state);
+    const request = { id: 1, board, seats: [1], tuning: { global: null, seats: [] } };
+    const original = frozenBoard.planSeat;
+    const decisionsAtRecording: boolean[] = [];
+    const spy = vi.spyOn(frozenBoard, 'planSeat').mockImplementation((board, seat, options, consume) => {
+      const ask = options?.ask ?? frozenBoard.askTheBot;
+      return original(board, seat, {
+        ...options,
+        ask: (state, playerId, sitting) => {
+          const answer = ask(state, playerId, sitting);
+          if (answer) decisionsAtRecording.push(answer.decision !== null);
+          return answer;
+        },
+      }, consume);
+    });
+    try {
+      for (const includeDecisions of [false, true]) {
+        decisionsAtRecording.length = 0;
+        expect(answerBotPlan(structuredClone({ ...request, includeDecisions })).kind).toBe('planned');
+        expect(decisionsAtRecording.length).toBeGreaterThan(0);
+        expect(decisionsAtRecording.every(kept => kept === includeDecisions)).toBe(true);
+      }
+      decisionsAtRecording.length = 0;
+      expect(answerBotWorker(requestFor(createGame(CONFIG))).kind).toBe('driven');
+      expect(decisionsAtRecording.length).toBeGreaterThan(0);
+      expect(decisionsAtRecording).not.toContain(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('reuses a bounded pool and delivers complete plans and warnings in seat order', async () => {
     const game = createGame(CONFIG);
-    const board = freezeBoard(game.state);
+    const board = frozenBoard.freezeBoard(game.state);
     const seats = [1, 2, 3];
     const workers = workerHarness();
     const pool = createBotPlanPool({ ...workers, concurrency: 2, includeDecisions: true });
     const warn = vi.fn();
-    const expected = seats.map((id) => planSeat(board, id));
+    const expected = seats.map((id) => frozenBoard.planSeat(board, id));
     try {
       for (let turn = 0; turn < 2; turn++) {
         const run = pool.plan(warn)(board, seats);
@@ -189,7 +221,7 @@ describe('browser seat planning', () => {
     const workers = workerHarness();
     const pool = createBotPlanPool({ ...workers, concurrency: 2, timeoutMs: 10 });
     try {
-      const board = freezeBoard(createGame(CONFIG).state);
+      const board = frozenBoard.freezeBoard(createGame(CONFIG).state);
       await expect(pool.plan()(board, [1, 2])).rejects.toThrow('timed out');
       expect(workers.terminations).toEqual([1, 2]);
     } finally {
