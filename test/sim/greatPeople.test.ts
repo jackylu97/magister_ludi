@@ -46,7 +46,7 @@ import {
 } from '../../src/sim/yields/empire';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
-import { dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, restoreState, saveGame, snapshotState, tryReplayResuming, type SaveFile } from '../../src/sim/game';
 import {
   actGainOf,
   agedActFactor,
@@ -339,7 +339,7 @@ describe('chooseGreatPerson', () => {
     expect(piece.chargesLeft).toBe(1);
   });
 
-  it('refuses a name another empire took first, and re-deals the hand', () => {
+  it('saves a contested choice and replays the replacement offer and the next recruit', () => {
     const g = game(23);
     found(g.state, 0);
     found(g.state, 1);
@@ -353,20 +353,32 @@ describe('chooseGreatPerson', () => {
     const contested = g.state.players[0]!.greatPersonOffer!.options[0]!;
     g.state.players[1]!.greatPersonOffer = { options: [contested] };
 
-    expect(applyCommand(g.state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok)
-      .toBe(true);
-    const refused = applyCommand(g.state, {
-      type: 'chooseGreatPerson',
-      playerId: 1,
-      optionIndex: 0,
+    const before = snapshotState(g.state);
+    const prefix = [...g.log];
+    const firstPick = { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 } as const;
+    const secondPick = { ...firstPick, playerId: 1 };
+    expect(dispatch(g, firstPick).ok).toBe(true);
+    const revision = g.state.revision;
+    expect(dispatch(g, secondPick)).toMatchObject({
+      ok: true, greatPersonOfferRefreshed: expect.stringContaining('already been called'),
     });
-    expect(refused.ok).toBe(false);
-    expect(refused.ok === false && refused.error).toContain('already been called');
-    // And the second seat is not stuck: it holds a fresh hand with none of the
-    // spent names on it, and can still end its turn.
-    const redrawn = g.state.players[1]!.greatPersonOffer!;
-    expect(redrawn.options).not.toContain(contested);
-    expect(redrawn.options.length).toBeGreaterThan(0);
+    expect(g.state.revision).toBeGreaterThan(revision);
+    expect(g.state.recruited).toEqual([contested]);
+    const replacement = g.state.players[1]!.greatPersonOffer!.options;
+    expect(replacement.length).toBeGreaterThan(0);
+    expect(replacement).not.toContain(contested);
+
+    const save: SaveFile = JSON.parse(saveGame(g));
+    expect(save.log).toEqual([...prefix, firstPick, secondPick]);
+    const replay = tryReplayResuming(save.config, save.log, { state: restoreState(before), from: prefix.length });
+    expect(replay.resumedFrom).toBe(prefix.length);
+    if (!replay.ok) throw new Error(replay.failure.error);
+    expect(snapshotState(replay.state)).toBe(snapshotState(g.state));
+
+    expect(dispatch(g, secondPick).ok).toBe(true);
+    expect(applyCommand(replay.state, secondPick).ok).toBe(true);
+    expect(g.state.recruited).toEqual([contested, replacement[0]]);
+    expect(snapshotState(replay.state)).toBe(snapshotState(g.state));
   });
 
   it('refuses an index it was never dealt, byte-identically', () => {
@@ -376,8 +388,9 @@ describe('chooseGreatPerson', () => {
       { family: null, amount: renownThreshold(g.state, g.state.players[0]!) },
     ]);
     const before = snapshotState(g.state);
-    expect(applyCommand(g.state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 9 }).ok)
-      .toBe(false);
+    const log = [...g.log];
+    expect(dispatch(g, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 9 }).ok).toBe(false);
+    expect(g.log).toEqual(log);
     expect(snapshotState(g.state)).toBe(before);
   });
 });

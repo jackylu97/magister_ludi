@@ -1505,3 +1505,97 @@ The user: "yup, lets do a consistent card size, go ahead and start."
 
 Not in this stage: the unit panel's other parts, diplomacy, the city screen,
 the government banners.
+
+### The great person card, after the first portraits (2026-11-19)
+
+The user saw the first twenty portraits on the card and in a preview with a
+rounder arch (`scratchpad/people/arched.jpg`, published at
+https://claude.ai/artifact/9GuvmhW1FuoLAv722wFUvW): "i like the arched window
+instead of the current frame. remove the word \"flavour\" from the bottom of
+the card. Could we give the art a bit more room, the cards feel a bit busy,
+maybe we lower a bit of the detail/flourishes on the card and make the
+pictures a bit bigger. keep the sun and moon."
+
+- **The picture window is a true arch:** a round top, as in the preview (a
+  half-ellipse about 46% of the window's height), in place of the present
+  shallow frame.
+- **The picture is larger.** The art gets more of the card.
+- **Fewer flourishes.** The card is quieter: less ornament and fewer rules and
+  frames. The sun and the moon in the top corners stay.
+- **The word "Flavour" goes from the foot of this card.** The flavour line
+  itself stays, set apart by its italic face. This is the user's exception,
+  for the great person card, to the project rule that flavour is always
+  labelled; the rule stands everywhere else. A screen reader still hears the
+  label.
+
+### The age paintings: three sets, one a game (2026-11-19)
+
+The user made three sets of four age paintings (landscapes, still lifes and
+abstracts) and saw them on a mock-up of the ribbon plate
+(https://claude.ai/artifact/NSrK4UB18VVvXBK7dN2KG8): "tbh i like all of them,
+could we cycle between the three themes? So each game will have a consistent
+set, but game to game the themes will vary and be randomly chosen. i like
+age1form_alt, age2form_alt2, age4form_alt. Please crop the borders out for
+the chosen ones."
+
+- **Three sets:** `form`, `still` and `abstract`. The files are
+  `public/art/splash/ages/<set><age>.jpg`, for example `form2.jpg`, made by
+  `scripts/splashArt.py ages` from `art-masters/ages/`. The landscape set uses
+  the user's picks (`age1form_alt`, `age2form_alt2`, `age3form`,
+  `age4form_alt`); the other takes are in `art-masters/ages/unused/`.
+- **One set a game.** Every age plate in a game shows the same set. The set
+  differs from game to game.
+- **The choice does not use the sim's random numbers.** The page picks the set
+  from a hash of the game's seed, so a saved game shows the same set when it
+  is loaded, and the rules' outcomes do not change (hard rule 4).
+- **Not built yet.** It goes in with the age plate on the ribbon. That build
+  also needs a decision the user has not made: an age I plate when the game
+  starts (recommended), since no plate shows age I today.
+
+### The ending paintings (2026-11-19)
+
+The user added a painting for a win and two for a loss: "i added the win/loss
+splash, lets visualize these. i think i like the alt better for the loss
+screen". The files are `public/art/splash/endings/win.jpg` and `loss.jpg` (the
+alternate), made by `scripts/splashArt.py endings`. The first loss take is in
+`art-masters/endings/unused/`. They go in the painting window of the approved
+ending page (frame A9 of the Quiet Table boards). Not built yet. The preview
+(https://claude.ai/artifact page "Ending Paintings Preview") also shows a
+second layout, the painting as the whole page, which the user has not ruled on.
+
+### The ending page is the painting, full screen (2026-11-19)
+
+The user saw both layouts with the real paintings
+(https://claude.ai/artifact/6DEcEGE33Y1H2EE9VeMRs3; source
+`scratchpad/endings/build.py`, function `big`) and chose the second: "ok the
+full screen is better. lets build that." This replaces frame A9's layout
+(painting in a window on a lapis page or dark cloth).
+
+- **The painting fills the window.** `endings/win.jpg` when the local player
+  closed the Great Work, `endings/loss.jpg` when another seat did. It covers
+  the window (centre crop) at every window shape.
+- **The words are on the foot of the painting, at the left,** over a dark
+  fade: the sun (a win) or the moon (a loss), the small line "The Great Work
+  is closed", the winner's name with "wins" in gilt italic, and one sentence.
+  The sentence is words only (hard rule 7): who closed the work and where,
+  and "The game is yours." or "The game is theirs."
+- **Three doors at the foot, at the right:** "Back to the title", "Look at the
+  board" (closes the page; the game goes on), and "See the Abacus" in
+  cinnabar.
+- **The order of the close** (my reading of frame A9's note that the 3D
+  abacus "stays the next screen"; the user may change it): the painting page
+  comes first and takes the place of the two colour beats (black, then
+  parchment) of `opusClose.ts`. "See the Abacus" runs the Abacus page as it is
+  today (the golden bead, the slide, the turn), and the standings rise after
+  it as today. The bead count and the standings table are not on the painting
+  page.
+- **No painting, no change:** if the picture fails to load, the page shows the
+  lapis page (a win) or the dark cloth (a loss) behind the same words.
+
+### The belief pictures (2026-11-19)
+
+The user added pictures for the 23 live pantheon beliefs and saw them in the
+round window (https://claude.ai/artifact/E4Pb6hTnFhVkRRmULvG6mR). I named four
+that read weakly at tablet size (Lord of the Sea, Lady of the Hunt, Desert
+Fathers, Lord of the Hoard). The user: "its fine, let's add these." All 23 go
+in as they are. The files are `public/art/splash/beliefs/<belief id>.jpg`.

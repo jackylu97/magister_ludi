@@ -17,7 +17,7 @@ import { BoxGeometry, BufferAttribute, type BufferGeometry, IcosahedronGeometry,
 import { MeshStandardMaterial } from 'three';
 import { createMap } from '../../src/sim/map';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardBatch, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
-import { packPaintedBatches, packPaintedKit, paintedTransferBuffers, unpackPaintedBatches, unpackPaintedKit } from '../../src/render3d/paintedBoardTransfer.js';
+import { packPaintedBatches, packPaintedKit, paintedTransferBuffers, unpackPaintedBatches, unpackPaintedKit } from '../../src/render3d/paintedBoardTransfer';
 // @ts-expect-error The vegetation kit is JavaScript, shared with the study page.
 import { VEGETATION_SPECIES, farSculpt } from '../../src/terrainStudy/vegetation.js';
 import { VIEW3D } from '../../src/render3d/lookData';

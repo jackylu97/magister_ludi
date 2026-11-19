@@ -391,8 +391,8 @@ mean those things.
   = who, in the piece fingerprint). Renown is added in ONE place
   (`settleRenownWindfall`); `explainRenown` is its rule-5 list; a spent roster
   banks rather than blocks. The draw is weighted (1000 + feed share), never
-  restricted, spills `[age, previous…, next…]`; `chooseGreatPerson` is the
-  reducer's one refusal that mutates (redraw on a taken name). The three card
+  restricted, spills `[age, previous…, next…]`; If another seat took the name,
+  `chooseGreatPerson` records a redraw so the save reproduces the offer. The three card
   clauses that buy a great person are `OFFER_PURCHASES` — the Academy's scholar
   draft (`buys`, not currency; charges faith, moves no renown) beside the two
   tier-38 governments' (The Commonwealth's gold, The Magisterium's faith).

@@ -666,8 +666,8 @@ describe('the greyed doors (batch SS9a)', () => {
     expect(doorGate(state, 0, 'faith')).toEqual(glance.gates.faith);
     expect(doorGate(state, 0, 'routes')).toEqual(glance.gates.routes);
     const main = uiSource('main.ts');
-    expect(main).toContain("else if (!greyedDoorRefuses('faith')) religion?.open();");
-    expect(main).toContain("else if (!greyedDoorRefuses('routes')) trade?.open();");
+    expect(main).toContain("if (!greyedDoorRefuses('faith')) religion?.open();");
+    expect(main).toContain("if (!greyedDoorRefuses('routes')) trade?.open();");
     expect(main).toContain('onGreyed: (line) => controls.guide(`☞ ${line}.`),');
   });
 
@@ -1105,14 +1105,8 @@ describe('the Q, L and S keys', () => {
   });
 
   it('binds S to the standings sheet, and leaves Cmd + S and Ctrl + S to the browser', () => {
-    const at = main.indexOf('const onStandingsKey = (event: KeyboardEvent): void => {');
-    expect(at).toBeGreaterThan(-1);
-    const handler = main.slice(at, main.indexOf('\n  };', at));
-    expect(handler).toContain("if (event.key !== 's' && event.key !== 'S') return;");
-    expect(handler).toContain('if (event.ctrlKey || event.metaKey || event.altKey) return;');
-    expect(handler).toContain('if (isInputBlocked()) return;');
-    expect(handler).toContain('else victory?.open();');
-    expect(main).toContain("gameDisposers.push(() => window.removeEventListener('keydown', onStandingsKey));");
+    expect(main).toContain("case 's': victory?.open();");
+    expect(main).toContain('bindScreenHotkeys(window, signal, isInputBlocked,');
     // Nothing else binds S: the board's own switch has no branch for it.
     expect(controls).not.toContain("event.key === 's'");
     expect(controls).not.toContain("event.key === 'S'");

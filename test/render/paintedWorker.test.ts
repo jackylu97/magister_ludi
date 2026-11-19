@@ -1,7 +1,8 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 // @ts-expect-error Node is provided by the test runner, outside the browser TS target.
 import {createHash} from 'node:crypto';
-import {BoxGeometry, Mesh, MeshStandardMaterial} from 'three';
+import {BoxGeometry, InstancedBufferAttribute, Mesh, MeshStandardMaterial} from 'three';
+import type {TerrainPacket} from '../../src/terrainStudy/terrainPacket';
 import {createMap} from '../../src/sim/map';
 // @ts-expect-error Shared study surface helpers are JavaScript.
 import {packTerrainMap, restoreTerrainMap, hillMounds, surfaceHeight, neighbour, setRiverStyle, setCoastStyle} from '../../src/terrainStudy/surface.js';
@@ -11,7 +12,7 @@ import * as surfaceModule from '../../src/terrainStudy/surface.js';
 import * as riversModule from '../../src/render3d/organicRivers.js';
 import {buildPaintedBoard, paintedRegionKey, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets} from '../../src/render3d/paintedBoard.js';
 import {buildPaintedBoardAsync, paintedBuildParts} from '../../src/render3d/paintedBoardAsync.js';
-import {packPaintedKit, unpackPaintedKit, packPaintedBatches, unpackPaintedBatches, paintedTransferBuffers} from '../../src/render3d/paintedBoardTransfer.js';
+import {packPaintedKit, unpackPaintedKit, packPaintedBatches, unpackPaintedBatches, paintedTransferBuffers} from '../../src/render3d/paintedBoardTransfer';
 // @ts-expect-error The sea's bake is JavaScript.
 import {bakeSeaDistanceData} from '../../src/render3d/seaDistances.js';
 import {VIEW3D} from '../../src/render3d/lookData';
@@ -56,6 +57,21 @@ function fakeWorker() {
 }
 
 describe('painted worker transfer', () => {
+  it('keeps empty and absent mound lists distinct on a finite map', () => {
+    const map = createMap({width: 2, height: 1, terrain: 'grassland'});
+    const raw: TerrainPacket = {map, wrap: false, mounds: [[], null]};
+    expect(restoreTerrainMap(raw)).toBe(map);
+    const packed: TerrainPacket = packTerrainMap(map);
+    if (Array.isArray(packed.mounds)) throw new Error('Expected packed triangles');
+    expect([...packed.mounds.present]).toEqual([1, 0]);
+    expect([...packed.mounds.pieces]).toEqual([0, 0]);
+    expect(packed.mounds.corners).toHaveLength(0);
+    const copy = structuredClone(packed);
+    expect(restoreTerrainMap(copy)).toBe(copy.map);
+    expect(neighbour(copy.map.tiles[0], copy.map, 3)).toBeNull();
+    expect(packTerrainMap(copy.map)).toEqual(packed);
+  });
+
   it('retains exact terrain, prop transforms, live material hooks, fog, LOD and wrapped picking', () => {
     const {map, assets, materials} = fixture();
     const original = JSON.stringify(map), livePosition = assets.broadleaf.geometry.attributes.position;
@@ -63,6 +79,7 @@ describe('painted worker transfer', () => {
     const reference = buildPaintedBoard(map,assets,materials); owned.push(reference);
     const kit = packPaintedKit(assets,materials), remote = unpackPaintedKit(structuredClone(kit.packet));
     owned.push(...remote.bindings);
+    expect(remote.assets.broadleaf.geometry.attributes.position).not.toBeInstanceOf(InstancedBufferAttribute);
     const built = buildPaintedBoard(structuredClone(map),remote.assets,remote.materials); owned.push(built);
     expect(fingerprint(built)).toBe(fingerprint(reference));
     const packets = packPaintedBatches(built.exportBatches(),remote.bindings), transfers = paintedTransferBuffers(packets);
@@ -71,7 +88,11 @@ describe('painted worker transfer', () => {
     const received = structuredClone(packets,{transfer: transfers});
     expect(transfers.every(buffer => buffer.byteLength === 0)).toBe(true);
     expect(livePosition.array.byteLength).toBeGreaterThan(0);
-    const terrain = restoreTerrainMap(structuredClone(packTerrainMap(built.renderMap)));
+    const packet: TerrainPacket = structuredClone(packTerrainMap(built.renderMap));
+    if (Array.isArray(packet.mounds)) throw new Error('Expected packed triangles');
+    expect(packet.mounds.corners.length).toBeGreaterThan(0);
+    const terrain = restoreTerrainMap(packet);
+    expect(terrain).toBe(packet.map);
     const hydrated = buildPaintedBoard(map,assets,materials,true,unpackPaintedBatches(received,kit.bindings),undefined,terrain); owned.push(hydrated);
     expect(fingerprint(hydrated)).toBe(fingerprint(reference));
     for (let i=0;i<map.tiles.length;i++) {
@@ -104,6 +125,20 @@ describe('painted worker transfer', () => {
     expect(JSON.stringify(map)).toBe(original);
     hydrated.dispose();
     expect(assets.broadleaf.geometry.attributes.position).toBe(livePosition);
+  });
+
+  it('builds the same board on the page when workers are unavailable', async () => {
+    const {map, assets, materials} = fixture();
+    vi.stubGlobal('Worker', undefined);
+    try {
+      const {board, metrics} = await buildPaintedBoardAsync(map, assets, materials, true);
+      const reference = buildPaintedBoard(map, assets, materials, true);
+      owned.push(board, reference);
+      expect(metrics.mode).toBe('synchronous');
+      expect(fingerprint(board)).toEqual(fingerprint(reference));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('aborts pending CPU work and ignores late output', async () => {

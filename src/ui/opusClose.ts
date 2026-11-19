@@ -1,37 +1,63 @@
 /**
- * **The Opus close**: what every seat sees when the Magnum Opus is finished
- * (batch SS7; the board is "The Magnum Opus closes" on
- * `docs/plans/mockups/scholars-study/Moments.dc.html`).
+ * **The Opus close**: what every seat sees when the Magnum Opus is finished.
  *
- * Before this batch the close was a splash card ("X is victorious") and then
- * the standings. The user's review of the board kept two beats in the colours
- * of the Great Work, removed the third, and replaced the fourth with a
- * full-screen page that animates the 3D Abacus:
+ * It has two pages: the ending page, then the Abacus page (batch SS7; the
+ * board is "The Magnum Opus closes" on
+ * `docs/plans/mockups/scholars-study/Moments.dc.html`). The standings rise
+ * after the Abacus page.
  *
- * 1. **Nigredo** (black, iron-gall ink). The board goes dark. The sign of the
- *    work appears, and the town that finished it: "The Magnum Opus is finished
- *    in Baghdad."
- * 2. **Albedo** (white, parchment). The black fades to parchment, and the
- *    display face names the builder.
- * 3. **The Abacus page opens** over the parchment, on the table's vellum: the
+ * The ending page
+ * ---------------
+ * The spec is `docs/plans/ui-critique-2026-10-16.md`, "The ending page is the
+ * painting, full screen" (the user, 2026-11-19). The page takes the place of
+ * the two colour beats (black, then parchment) that opened the close before.
+ *
+ * - One painting covers the window, cut from its centre: `win.jpg` if the seat
+ *   reading the page closed the work, `loss.jpg` if another seat did
+ *   (`endingPaintings.ts`).
+ * - A dark fade covers the lower third. On it, at the left: the sun for a win
+ *   or the moon for a loss, the line "The Great Work is closed", the winner's
+ *   name with "wins", and one sentence. At the right: three doors.
+ * - The doors:
+ *   - "See the Abacus" is the primary door. Enter or Space takes it. It opens
+ *     the Abacus page.
+ *   - "Look at the board" closes the whole close, and the game goes on, as
+ *     the standings' "Continue playing" lets it. Escape takes it.
+ *   - "Back to the title" takes the same path as the standings' door of that
+ *     name: `toTitle`, which `main.ts` sets to the landing screen's own path.
+ * - The painting fades in slowly, and the words and doors come after it. With
+ *   reduced motion, everything shows at once. The lengths are in
+ *   `opusClose.css`.
+ * - If the painting does not load, the page shows its ground behind the same
+ *   words: deep lapis for a win, the dark cloth for a loss.
+ * - The page has no clock. It waits for a door. While it waits, the Abacus
+ *   stage is built behind it, so a press on "See the Abacus" does not wait for
+ *   a WebGL context.
+ *
+ * The Abacus page
+ * ---------------
+ * "See the Abacus" starts these beats:
+ *
+ * 1. **The Abacus page opens** over the painting, on the table's vellum: the
  *    frame fills the window, with a name and a tally at each rod, and sways a
  *    little as it does on the Abacus screen.
- * 4. **The golden bead lights**: the camera moves in on the winner's rod, and a
+ * 2. **The golden bead lights**: the camera moves in on the winner's rod, and a
  *    golden bead lights at the start of the unearned beads, larger than the
  *    rest and with a halo.
- * 5. **It slides home** with the frame's own slide and knock. The tally does
+ * 3. **It slides home** with the frame's own slide and knock. The tally does
  *    not move: the golden bead is not one of the beads the threshold counts.
- * 6. **The turn**: the frame turns on its turntable and back, so the gilt bead
+ * 4. **The turn**: the frame turns on its turntable and back, so the gilt bead
  *    catches the light, and the labels fade while it is turned. Then the
  *    standings page rises.
  *
- * About six seconds in all (`OPUS_CLOSE_TIMING`, the board's beat lengths). A
- * key or a press at any time goes straight to the standings.
+ * About three and a half seconds in all (`OPUS_CLOSE_TIMING`, the board's beat
+ * lengths). A key or a press during these beats goes straight to the
+ * standings.
  *
  * Reduced motion: the board's rule. No camera move and no turn, and no sway.
- * The beats still cross-fade, and the bead slide stays, because the slide is
- * the event. The golden bead lights at once, and the still frame is held for a
- * moment where the turn would be.
+ * The Abacus page still fades in, and the bead slide stays, because the slide
+ * is the event. The golden bead lights at once, and the still frame is held for
+ * a moment where the turn would be.
  *
  * The Abacus, mounted, not rebuilt
  * --------------------------------
@@ -49,86 +75,93 @@
  *
  * Words
  * -----
- * Every word is a reading: the work's name off its own row (`opusName`), the
- * town off the stones (`opusCity`), the builder by `seatTitle` and `seatName`.
- * The tallies are the Abacus screen's own count over the frame's size. No
- * figure is written inside a sentence.
+ * Every word is a reading. The winner's name is `seatName`. The sentence is the
+ * standings' own line (`victoryHead`, with the verb "closed"), so the two pages
+ * cannot disagree about who closed the work or where: the work's name comes off
+ * its own row and the town off the stones. The tallies are the Abacus screen's
+ * own count over the frame's size. No figure is written inside a sentence.
  */
 
+import { orderFaceMarkUri } from '../art/orderFaceMarks';
 import { AbacusStage, Clack, cssHex } from '../render3d/abacus3d';
 import { seatName } from '../sim/leaderData';
 import type { GameState } from '../sim/state';
-import { opusMarkDataUri } from '../art/lineMarks';
 import { type AbacusRow, frameBeads } from './abacusScreen';
 import { frameGround } from './beadAwardFrame';
 import { beadsTowardThreshold } from './beadsScreen';
+import { endingPaintingUrl } from './endingPaintings';
 import { shownAge } from './topBar';
 import { element } from './dom';
 import { prefersReducedMotion } from './motion';
-import { opusCity, opusName, seatTitle } from './victoryScreen';
+import { headText, victoryHead } from './victoryScreen';
+import './agePlate.css';
 import './opusClose.css';
 
 /**
- * The beats, in milliseconds: the board's lengths. Here rather than in the
- * stylesheet because the page schedules them; the stylesheet's fades sit
- * inside these lengths.
+ * The lengths the page schedules, in milliseconds. The ending page's own
+ * arrival (the painting's fade, then the words) is in the stylesheet, because
+ * nothing waits on it.
  */
 export const OPUS_CLOSE_TIMING = {
-  /** Beat 1, nigredo. */
-  nigredoMs: 1200,
-  /** Beat 2, albedo. */
-  albedoMs: 1200,
-  /** Beat 3, the Abacus page opening. */
+  /**
+   * The longest the ending page waits for its painting to load. After this it
+   * fades in anyway, over its ground, and the painting shows when it arrives.
+   */
+  paintingWaitMs: 600,
+  /**
+   * When the Abacus stage is built, from the start of the ending page's
+   * arrival. The stylesheet's arrival ends at 1700 ms, so the stage is built
+   * while the page stands still and the moment a WebGL context costs is not
+   * seen.
+   */
+  buildMs: 1900,
+  /** Beat 1, the Abacus page opening. */
   pageMs: 400,
-  /** Beat 4, the camera moving in and the golden bead lighting. */
+  /** Beat 2, the camera moving in and the golden bead lighting. */
   lightMs: 600,
   /**
-   * Beat 5, the slide home. The frame's slide (`abacus.slide.seconds`) is a
+   * Beat 3, the slide home. The frame's slide (`abacus.slide.seconds`) is a
    * little longer: the bead lands inside this beat, and its last short settle
    * runs into the start of the turn.
    */
   slideMs: 500,
-  /** Beat 6, the turn there and back. */
+  /** Beat 4, the turn there and back. */
   turnMs: 2000,
   /** How long the camera takes to move back out at the start of the turn. */
   outMs: 600,
   /** Reduced motion: how long the still frame holds where the turn would be. */
   stillMs: 900,
-  /** How long the page takes to fade as the standings rise. */
+  /** How long the close takes to fade as it goes: to the standings, or to the board. */
   leaveMs: 260,
-  /**
-   * When the stage is built: the end of nigredo's fade-in, while the screen is
-   * black and still, so the moment a WebGL context costs is not seen.
-   */
-  buildMs: 700,
 } as const;
 
-/** When each beat starts, from the moment the close is raised. */
+/**
+ * When each beat of the Abacus page starts, from the press on "See the Abacus".
+ * The page starts to open at once.
+ */
 export function opusCloseSchedule(reduced: boolean): {
-  albedo: number;
-  page: number;
   light: number;
   slide: number;
   turn: number;
   finish: number;
 } {
   const t = OPUS_CLOSE_TIMING;
-  const albedo = t.nigredoMs;
-  const page = albedo + t.albedoMs;
-  const light = page + t.pageMs;
+  const light = t.pageMs;
   const slide = light + t.lightMs;
   const turn = slide + t.slideMs;
-  return { albedo, page, light, slide, turn, finish: turn + (reduced ? t.stillMs : t.turnMs) };
+  return { light, slide, turn, finish: turn + (reduced ? t.stillMs : t.turnMs) };
 }
 
 /** Everything the close says and draws, as data. */
 export interface OpusCloseReading {
-  /** Beat 1: "The Magnum Opus is finished in Baghdad." */
-  nigredo: string;
-  /** Beat 2's name: "Al-Ma’mun of the Abbasids". */
-  builder: string;
-  /** Beat 2's line: "Al-Ma’mun has finished The Magnum Opus." */
-  albedo: string;
+  /** True when the seat reading the page closed the work: the win painting and the sun. */
+  win: boolean;
+  /** The painting's address (`endingPaintings.ts`). */
+  painting: string;
+  /** The winner's name, before "wins": "Al-Ma’mun". */
+  winner: string;
+  /** The sentence under the name: "You closed The Magnum Opus in Baghdad. The game is yours." */
+  line: string;
   /** The rods, in roster order, as the Abacus screen strings them. */
   rows: readonly AbacusRow[];
   /** Which rod is the winner's, or -1 when the winner has none. */
@@ -137,28 +170,61 @@ export interface OpusCloseReading {
   age: number;
 }
 
-/** The close for a decided game. Pure, so the suite can pin the words. */
-export function opusCloseReading(state: GameState, rows: readonly AbacusRow[]): OpusCloseReading {
+/**
+ * The close for a decided game, as the seat `localPlayerId` reads it. Pure, so
+ * the suite can pin the words and the painting.
+ */
+export function opusCloseReading(
+  state: GameState,
+  rows: readonly AbacusRow[],
+  localPlayerId: number,
+): OpusCloseReading {
   const winnerId = state.winnerId ?? -1;
-  const work = opusName();
-  const city = opusCity(state, state.winnerId);
+  const win = winnerId >= 0 && winnerId === localPlayerId;
   return {
-    nigredo: city === null ? `${work} is finished.` : `${work} is finished in ${city.name}.`,
-    builder: winnerId < 0 ? '' : seatTitle(state, winnerId),
-    albedo: winnerId < 0 ? '' : `${seatName(state, winnerId)} has finished ${work}.`,
+    win,
+    painting: endingPaintingUrl(win),
+    winner: winnerId < 0 ? '' : seatName(state, winnerId),
+    line: headText(victoryHead(state, localPlayerId, 'closed')),
     rows,
     winnerRod: rows.findIndex((row) => row.playerId === winnerId),
     age: shownAge(state).age,
   };
 }
 
+/** The ending page's fixed words. Plain, and no number in them (hard rule 7). */
+export const OPUS_ENDING_WORDS = {
+  closed: 'The Great Work is closed',
+  wins: 'wins',
+} as const;
+
+/** The ending page's three doors. */
+export type OpusEndingDoor = 'title' | 'board' | 'abacus';
+
+/** The doors, left to right, as the spec places them. */
+export const OPUS_ENDING_DOORS: readonly { readonly door: OpusEndingDoor; readonly label: string }[] = [
+  { door: 'title', label: 'Back to the title' },
+  { door: 'board', label: 'Look at the board' },
+  { door: 'abacus', label: 'See the Abacus' },
+];
+
+/** The primary door: drawn in cinnabar, and the one Enter or Space takes. */
+export const OPUS_ENDING_PRIMARY: OpusEndingDoor = 'abacus';
+
+/** The door a key takes on the ending page, or `null` for a key that takes none. */
+export function opusEndingDoorForKey(key: string): OpusEndingDoor | null {
+  if (key === 'Enter' || key === ' ') return OPUS_ENDING_PRIMARY;
+  if (key === 'Escape') return 'board';
+  return null;
+}
+
 // --- the page ----------------------------------------------------------------
 
 export interface OpusClose {
   readonly isOpen: boolean;
-  /** Raises the close and runs its beats. */
+  /** Raises the close on its ending page. */
   play(reading: OpusCloseReading): void;
-  /** Goes straight to the standings, as any key or press does. */
+  /** Goes straight to the standings, as a key or a press on the Abacus page does. */
   skip(): void;
   /** Takes it down without opening anything: the title screen's and a load's sweep. */
   clear(): void;
@@ -169,8 +235,10 @@ interface OpusCloseOptions {
   overlay: HTMLElement;
   /** Raised as the close goes up, so the open cards close under it. */
   onOpen?: () => void;
-  /** The close is over, by its own clock or by a key: the standings rise. */
+  /** The Abacus page is over, by its own clock or by a key: the standings rise. */
   onFinished: () => void;
+  /** "Back to the title": the landing screen's own path, as the standings' door takes it. */
+  toTitle: () => void;
 }
 
 /** One rod's two labels on the page, and its swatch's ink. */
@@ -179,15 +247,22 @@ interface RodLabels {
   tally: HTMLElement;
 }
 
+/** Where the close is: on the ending page, on the Abacus page, fading out, or down. */
+type OpusClosePhase = 'ending' | 'abacus' | 'leaving' | 'down';
+
+/** The overlay's state classes, all taken off when the close comes down. */
+const PHASE_CLASSES = ['is-ending', 'is-page', 'is-leaving'] as const;
+
 export function createOpusClose(options: OpusCloseOptions): OpusClose {
   const { overlay } = options;
   const timers = new Set<number>();
   let reading: OpusCloseReading | null = null;
+  let phase: OpusClosePhase = 'down';
+  /** True once the ending page has started to fade in. */
+  let arrived = false;
   let stage: AbacusStage | null = null;
   let labelLayer: HTMLElement | null = null;
   let labels: RodLabels[] = [];
-  /** True from the first key or the last beat until the page is down. */
-  let finishing = false;
   const clack = new Clack();
 
   function isOpen(): boolean {
@@ -209,18 +284,55 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
 
   // --- building ------------------------------------------------------------
 
+  /**
+   * The ending page: the painting over its ground, and the foot with the words
+   * at the left and the three doors at the right. The spec's layout B.
+   */
+  function endingPage(read: OpusCloseReading): HTMLElement {
+    const page = element('section', `opus-beat opus-ending ${read.win ? 'is-win' : 'is-loss'}`);
+    const painting = element('img', 'opus-ending-painting');
+    // The words say what the painting shows, so the picture itself is not read out.
+    painting.alt = '';
+    painting.decoding = 'async';
+    // No painting: the page shows its ground (lapis or the dark cloth) behind the same words.
+    painting.addEventListener('error', () => page.classList.add('is-unpainted'), { once: true });
+    painting.src = read.painting;
+
+    const words = element('div', 'opus-ending-words');
+    const mark = element('i', 'opus-ending-mark');
+    mark.setAttribute('aria-hidden', 'true');
+    // The wonder plate's sun and moon: the card corners' marks, handed to the
+    // stylesheet as a mask under the plate's names, so they take the gilt.
+    if (read.win) mark.style.setProperty('--wp-sun', `url("${orderFaceMarkUri('sun')}")`);
+    else mark.style.setProperty('--wp-moon', `url("${orderFaceMarkUri('moon')}")`);
+    const name = element('h2', 'opus-ending-name', `${read.winner} `);
+    name.append(element('i', 'opus-ending-wins', OPUS_ENDING_WORDS.wins));
+    words.append(
+      mark,
+      element('p', 'opus-ending-closed', OPUS_ENDING_WORDS.closed),
+      name,
+      element('p', 'opus-ending-line', read.line),
+    );
+
+    // The Quiet Table kit's two buttons on a dark ground: the plates' gilt
+    // outline (`.age-plate-continue`) and the cinnabar primary (`.btn-primary`).
+    const doors = element('div', 'opus-ending-doors');
+    for (const { door, label } of OPUS_ENDING_DOORS) {
+      const kit = door === OPUS_ENDING_PRIMARY ? 'btn btn-primary' : 'age-plate-continue';
+      const button = element('button', `${kit} opus-ending-door`, label);
+      button.type = 'button';
+      button.dataset.door = door;
+      button.addEventListener('click', () => takeDoor(door));
+      doors.append(button);
+    }
+
+    const foot = element('div', 'opus-ending-foot');
+    foot.append(words, doors);
+    page.append(painting, foot);
+    return page;
+  }
+
   function build(read: OpusCloseReading): void {
-    const nigredo = element('section', 'opus-beat opus-nigredo');
-    const sign = element('span', 'opus-sign');
-    sign.setAttribute('aria-hidden', 'true');
-    const drawn = element('span', 'line-mark');
-    drawn.style.setProperty('--line-mark', `url("${opusMarkDataUri()}")`);
-    sign.append(drawn);
-    nigredo.append(sign, element('p', 'opus-nigredo-line', read.nigredo));
-
-    const albedo = element('section', 'opus-beat opus-albedo');
-    albedo.append(element('h2', 'opus-builder', read.builder), element('p', 'opus-albedo-line', read.albedo));
-
     const page = element('section', 'opus-beat opus-page');
     // The ground the frame stands on, as the bead page has it, so the canvas
     // has no edge against the page before its first frame.
@@ -230,10 +342,10 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
     const stageBox = element('div', 'opus-stage');
     page.append(stageBox, title, hint);
 
-    overlay.replaceChildren(nigredo, albedo, page);
+    overlay.replaceChildren(endingPage(read), page);
   }
 
-  /** The stage, on the page's own canvas. Built once the screen is black and still. */
+  /** The stage, on the page's own canvas. Built behind the ending page while it stands still. */
   function buildStage(read: OpusCloseReading): void {
     const box = overlay.querySelector<HTMLElement>('.opus-stage');
     if (!box || stage) return;
@@ -248,8 +360,8 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
       read.rows.map((row) => ({ name: row.name, color: row.color })),
       { age: read.age },
     );
-    // Nothing is drawn until the page opens: a loop running under the black
-    // and the parchment would be frames nobody sees.
+    // Nothing is drawn until the page opens: a loop running under the painting
+    // would be frames nobody sees.
     stage.setRunning(false);
     stage.setSway(!prefersReducedMotion());
     const perRod = stage.beadsPerRod;
@@ -322,53 +434,104 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
     });
   }
 
-  // --- the beats -----------------------------------------------------------
-
-  function setBeat(beat: 'nigredo' | 'albedo' | 'page'): void {
-    overlay.classList.toggle('is-nigredo', true);
-    overlay.classList.toggle('is-albedo', beat === 'albedo' || beat === 'page');
-    overlay.classList.toggle('is-page', beat === 'page');
-  }
+  // --- the ending page -----------------------------------------------------
 
   function play(read: OpusCloseReading): void {
     clear();
     reading = read;
+    phase = 'ending';
     options.onOpen?.();
-    finishing = false;
-    const reduced = prefersReducedMotion();
-    const at = opusCloseSchedule(reduced);
     build(read);
-    overlay.classList.remove('is-albedo', 'is-page', 'is-leaving');
     overlay.hidden = false;
-    // A frame for the black to start from transparent, so it fades rather than cuts.
-    requestAnimationFrame(() => {
-      if (isOpen() && reading === read) setBeat('nigredo');
-    });
-    overlay.focus({ preventScroll: true });
+    // The keyboard starts on the primary door. Focus also makes the browser
+    // style the page at its transparent start, so the arrival fades rather
+    // than cuts.
+    const primary = overlay.querySelector<HTMLElement>(`[data-door="${OPUS_ENDING_PRIMARY}"]`);
+    (primary ?? overlay).focus({ preventScroll: true });
     // The knock is the stage's own voice. The page has had a press by now
     // (End Turn, or the order that finished the work), so the audio device
     // may start.
     clack.arm();
+    // The page fades in when its painting has loaded, so the painting itself
+    // fades in rather than appearing over its ground. A slow or missing file
+    // waits no longer than `paintingWaitMs`.
+    const painting = overlay.querySelector<HTMLImageElement>('.opus-ending-painting');
+    const arrive = (): void => raise(read);
+    painting?.addEventListener('load', arrive, { once: true });
+    painting?.addEventListener('error', arrive, { once: true });
+    after(OPUS_CLOSE_TIMING.paintingWaitMs, arrive);
+  }
 
-    // Each beat waits from the moment the one before it started, not from the
-    // raise: a slow moment (the WebGL context is made during nigredo) then
-    // lengthens the beat it falls in, and never cuts the next one short.
+  /** The ending page's arrival: the stylesheet fades the painting in, then the words and doors. */
+  function raise(read: OpusCloseReading): void {
+    if (reading !== read || phase !== 'ending' || arrived) return;
+    arrived = true;
+    overlay.classList.add('is-ending');
+    after(OPUS_CLOSE_TIMING.buildMs, () => {
+      if (reading === read && phase === 'ending') buildStage(read);
+    });
+  }
+
+  /** Where each door leads. A door counts only while the ending page is up. */
+  function takeDoor(door: OpusEndingDoor): void {
+    if (!isOpen() || phase !== 'ending') return;
+    switch (door) {
+      case 'abacus':
+        openAbacus();
+        break;
+      case 'board':
+        // The close comes down and the game goes on, as after "Continue playing".
+        leave(null);
+        break;
+      case 'title':
+        // The standings' own door: this page comes down first, so the title
+        // card is not raised over a page still standing.
+        clear();
+        options.toTitle();
+        break;
+    }
+  }
+
+  /** The door the keyboard is on, or `null` when it is on none of the three. */
+  function focusedDoor(): OpusEndingDoor | null {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !overlay.contains(active)) return null;
+    return OPUS_ENDING_DOORS.find((entry) => entry.door === active.dataset.door)?.door ?? null;
+  }
+
+  /** Tab and Shift+Tab go round the three doors and do not leave the page. */
+  function moveAmongDoors(step: number): void {
+    const doors = Array.from(overlay.querySelectorAll<HTMLElement>('.opus-ending-door'));
+    if (doors.length === 0) return;
+    const at = doors.findIndex((door) => door === document.activeElement);
+    const next = at < 0 ? doors.length - 1 : (at + step + doors.length) % doors.length;
+    doors[next]?.focus({ preventScroll: true });
+  }
+
+  // --- the Abacus page -----------------------------------------------------
+
+  function openAbacus(): void {
+    const read = reading;
+    if (!read || phase !== 'ending') return;
+    phase = 'abacus';
+    clearTimers();
+    const reduced = prefersReducedMotion();
+    const at = opusCloseSchedule(reduced);
     const t = OPUS_CLOSE_TIMING;
+    // Built behind the painting while it waited, or here if the press came first.
+    buildStage(read);
+    overlay.classList.add('is-page');
+    stage?.setRunning(true);
+    stage?.resize();
+    layoutLabels();
+    // The doors are under the Abacus page now; the keyboard leaves them.
+    overlay.focus({ preventScroll: true });
+
+    // Each beat waits from the moment the one before it started, so a slow
+    // moment lengthens the beat it falls in and never cuts the next one short.
     const steps: readonly (readonly [number, () => void])[] = [
-      [t.buildMs, () => buildStage(read)],
-      [at.albedo - t.buildMs, () => setBeat('albedo')],
       [
-        at.page - at.albedo,
-        () => {
-          buildStage(read);
-          setBeat('page');
-          stage?.setRunning(true);
-          stage?.resize();
-          layoutLabels();
-        },
-      ],
-      [
-        at.light - at.page,
+        at.light,
         () => {
           if (!stage || read.winnerRod < 0) return;
           if (!reduced) stage.focusRod(read.winnerRod, 1, t.lightMs / 1000);
@@ -408,45 +571,60 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
   }
 
   /**
-   * The standings rise, and the page fades off them. `onFinished` is called
-   * first, so the sheet is already rising under the page as it fades.
+   * The close fades and comes down. `then` runs first, so what comes next (the
+   * standings) is already rising under the page as it fades.
    */
-  function finish(): void {
-    if (!isOpen() || finishing) return;
-    finishing = true;
+  function leave(then: (() => void) | null): void {
+    if (!isOpen() || phase === 'leaving' || phase === 'down') return;
+    phase = 'leaving';
     clearTimers();
-    options.onFinished();
+    then?.();
     overlay.classList.add('is-leaving');
-    after(prefersReducedMotion() ? 0 : OPUS_CLOSE_TIMING.leaveMs, () => {
-      overlay.hidden = true;
-      overlay.classList.remove('is-nigredo', 'is-albedo', 'is-page', 'is-leaving');
-      overlay.replaceChildren();
-      dropStage();
-      reading = null;
-      finishing = false;
-    });
+    after(prefersReducedMotion() ? 0 : OPUS_CLOSE_TIMING.leaveMs, clear);
+  }
+
+  /** The standings rise, and the page fades off them. */
+  function finish(): void {
+    leave(options.onFinished);
   }
 
   function clear(): void {
     clearTimers();
     overlay.hidden = true;
-    overlay.classList.remove('is-nigredo', 'is-albedo', 'is-page', 'is-leaving');
+    overlay.classList.remove(...PHASE_CLASSES);
     overlay.replaceChildren();
     dropStage();
     reading = null;
-    finishing = false;
+    phase = 'down';
+    arrived = false;
   }
 
-  /** Any key, Escape included, goes straight to the standings. */
+  /**
+   * The keys. On the ending page: Enter or Space takes the primary door (or
+   * the door the keyboard is on), Escape looks at the board, and Tab moves
+   * among the doors. On the Abacus page any key, Escape included, goes
+   * straight to the standings. No key reaches the board under the close.
+   */
   function onKeyDown(event: KeyboardEvent): void {
     if (!isOpen() || event.defaultPrevented) return;
     event.preventDefault();
     event.stopPropagation();
+    if (phase === 'ending') {
+      if (event.key === 'Tab') {
+        moveAmongDoors(event.shiftKey ? -1 : 1);
+        return;
+      }
+      const door = opusEndingDoorForKey(event.key);
+      if (door === null) return;
+      takeDoor(door === OPUS_ENDING_PRIMARY ? (focusedDoor() ?? door) : door);
+      return;
+    }
     finish();
   }
 
+  /** A press on the Abacus page goes straight to the standings. The ending page waits for a door. */
   function onPress(event: PointerEvent): void {
-    if (!isOpen()) return;
+    if (!isOpen() || phase !== 'abacus') return;
     event.preventDefault();
     finish();
   }

@@ -77,6 +77,7 @@ import {
   type ReplayFailure,
   type ReplayResume,
   type ReplayWatcher,
+  isSavedConfig,
   tryReplayResuming,
 } from '../sim/game';
 import {
@@ -629,6 +630,9 @@ export function readSaveEnvelope(json: string): EnvelopeResult {
   }
   if (typeof payload.config !== 'object' || payload.config === null) {
     return { ok: false, error: 'That save has no game setup in it.' };
+  }
+  if (!isSavedConfig(payload.config)) {
+    return { ok: false, error: 'That save has an invalid game setup.' };
   }
   if (!Array.isArray(payload.log)) {
     return { ok: false, error: 'That save has no command log in it.' };

@@ -10,8 +10,11 @@
  * stays one page.
  *
  * - `?abacusAge=3` sets the age on the plaque (default 2).
- * - `?hold=1` stops the Opus close just after the golden bead lands, with the
- *   camera still in, for a still picture.
+ * - `?stage=close` opens on the ending page as the winner sees it;
+ *   `?ending=loss` shows it as another seat sees it, and `?painting=missing`
+ *   asks for a file that is not there, to show the page without its painting.
+ * - `?hold=1` takes "See the Abacus" at once and stops the Opus close just
+ *   after the golden bead lands, with the camera still in, for a still picture.
  */
 
 import '../style.css';
@@ -21,7 +24,8 @@ import type { EarnedBead } from '../sim/state';
 import { type AbacusRow, createAbacusScreen } from '../ui/abacusScreen';
 import { createBeadModal } from '../ui/beadModal';
 import { requireElement } from '../ui/dom';
-import { OPUS_CLOSE_TIMING, createOpusClose, opusCloseSchedule } from '../ui/opusClose';
+import { endingPaintingUrl } from '../ui/endingPaintings';
+import { OPUS_CLOSE_TIMING, OPUS_ENDING_PRIMARY, createOpusClose, opusCloseSchedule } from '../ui/opusClose';
 
 const params = new URLSearchParams(location.search);
 
@@ -58,7 +62,7 @@ const ROWS: AbacusRow[] = [
 const OVERLAYS = `
   <div id="bead-overlay" class="triumph-overlay" role="dialog" aria-modal="true" aria-label="A bead" hidden></div>
   <div id="opus-close-overlay" class="opus-close" role="dialog" aria-modal="true"
-       aria-label="The Magnum Opus is finished" tabindex="-1" hidden></div>
+       aria-label="The Great Work is closed" tabindex="-1" hidden></div>
   <button id="abacus-trigger" type="button" hidden>Abacus</button>
   <div id="abacus-overlay" class="abacus-overlay" role="dialog" aria-modal="true" aria-label="The Abacus" hidden>
     <div class="abacus-sheet">
@@ -92,19 +96,28 @@ export function mountStage(stage: 'bead' | 'screen' | 'close'): void {
   }
 
   if (stage === 'close') {
+    const overlay = requireElement('opus-close-overlay');
     const close = createOpusClose({
-      overlay: requireElement('opus-close-overlay'),
+      overlay,
       onFinished: () => undefined,
+      toTitle: () => undefined,
     });
+    // The winner is the first seat; with `?ending=loss` it is the second, and
+    // the page reads as the first seat sees it.
+    const win = params.get('ending') !== 'loss';
     close.play({
-      nigredo: 'The Magnum Opus is finished in Cusco.',
-      builder: 'Pachacuti of the Inca',
-      albedo: 'Pachacuti has finished The Magnum Opus.',
+      win,
+      painting: params.get('painting') === 'missing' ? '/art/splash/endings/missing.jpg' : endingPaintingUrl(win),
+      winner: win ? 'Pachacuti' : 'Hypatia',
+      line: win
+        ? 'You closed The Magnum Opus in Cusco. The game is yours.'
+        : 'Hypatia of the Alexandrians closed The Magnum Opus in Alexandria. The game is theirs.',
       rows: ROWS,
-      winnerRod: 0,
+      winnerRod: win ? 0 : 1,
       age: AGE,
     });
     if (params.has('hold')) {
+      overlay.querySelector<HTMLButtonElement>(`[data-door="${OPUS_ENDING_PRIMARY}"]`)?.click();
       // Stop the page's clock just after the golden bead has landed, so the
       // picture is the frame with the golden bead home and the camera still in.
       const at = opusCloseSchedule(false);

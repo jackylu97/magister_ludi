@@ -280,6 +280,7 @@ import {
   createEndTurnList,
   waitingRows,
 } from './ui/endTurnList';
+import { bindScreenHotkeys } from './ui/screenHotkeys';
 import { requireElement } from './ui/dom';
 
 /**
@@ -962,10 +963,30 @@ let inPlayFlights = 0;
  * close screens without disposing their listeners. Disposing on the way to
  * the landing left the reused Statecraft screen without either close handler.
  */
-let gameDisposers: Array<() => void> = [];
+const gameDisposers: Array<() => void> = [];
 function disposeGameScreens(): void {
-  for (const dispose of gameDisposers) dispose();
-  gameDisposers = [];
+  for (const dispose of gameDisposers.splice(0).reverse()) {
+    try {
+      dispose();
+    } catch (error) {
+      console.error('Could not release a game control.', error);
+    }
+  }
+  techTree = statecraft = inPlay = religion = trade = null;
+  wagerSheet = censusSheet = abacus = beads = reliquary = null;
+  ledger = capture = ceremony = meterCards = empireDrawer = null;
+  commissionRail = diplomacy = diplomacyOffers = warDispatch = null;
+  leaderSheet = victory = offerCardHolder = triumphSheet = beadSheet = null;
+  agePlate = wonderPlate = opusClose = endTurnList = null;
+  notifications = toasts = tutorialBoardAnchor = null;
+  tutorialWaits = () => false;
+  graphicsResetting = false;
+  graphicsFallbackNotice = null;
+  notificationLog.clear();
+  ledgerHistory.clear();
+  clearBeadNews();
+  pamphlet.cancel();
+  tutorial.close();
 }
 let religion: ReligionScreen | null = null;
 /* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
@@ -1123,9 +1144,9 @@ let pendingWonders: {
   triumph: TriumphAward | null;
 }[] = [];
 /**
- * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
- * that a game closed by the Magnum Opus ends on, before the standings. Held
- * here for the age plate's reason.
+ * The Opus close (batch SS7, `opusClose.ts`): the painted ending page and the
+ * Abacus page that a game closed by the Magnum Opus ends on, before the
+ * standings. Held here for the age plate's reason.
  */
 let opusClose: OpusClose | null = null;
 
@@ -1624,7 +1645,14 @@ async function beginGame(
       loaded = result.game;
     }
     if (takeOverGame) await takeOverGame(loaded);
-    else await boot(loaded);
+    else {
+      try {
+        await boot(loaded);
+      } catch (error) {
+        disposeGameScreens();
+        throw error;
+      }
+    }
     hideLanding();
     performance.mark('magisterludi:playable');
     // The sheet stays up past that mark, until a frame has actually been drawn
@@ -2395,6 +2423,7 @@ function keepCanvases(keep: 'toon3d' | 'canvas2d'): void {
  * with `?profile`.
  */
 function build3DPanel(renderer: Renderer3D): () => void {
+  gameDisposers.push(() => menuExtrasEl.replaceChildren());
   const profiling = new URLSearchParams(location.search).has('profile');
   const heading = document.createElement('p');
   heading.className = 'eyebrow menu-heading';
@@ -2506,7 +2535,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     // One honest line per board, in the console as well as on the page — but a
     // frame late, because the draw-call count only means anything once a frame
     // has actually been drawn.
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       performance.mark('magisterludi:first-board-frame');
       const s = renderer.stats;
       console.log(
@@ -2515,6 +2544,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
       );
       report();
     });
+    if (takeOverGame === null) gameDisposers.push(() => cancelAnimationFrame(frame));
   };
 }
 
@@ -2631,16 +2661,20 @@ async function createRenderer(
     artist,
     game.state.map,
   );
-  renderer.setGameState(game.state);
-  return { view: renderer, report: () => undefined };
+  try {
+    renderer.setGameState(game.state);
+    return { view: renderer, report: () => undefined };
+  } catch (error) {
+    renderer.dispose();
+    throw error;
+  }
 }
 
 // --- boot ------------------------------------------------------------------
 
 /**
  * Builds the whole page around a first game: the renderer, the input layer, the
- * HUD and every panel. Runs exactly once, inside the first Start press — see the
- * boot-order note at the top of the file.
+ * HUD and every panel. A failed Start releases its controls before a retry.
  *
  * `initial` is a game loaded from a save, when the first press was Continue or a
  * row in the load list rather than Start. It is the *only* difference a resumed
@@ -2649,11 +2683,12 @@ async function createRenderer(
  * chosen.
  */
 async function boot(initial: Game | null): Promise<void> {
-  // Only a replacement boot removes listeners. Ordinary restart/load uses
-  // `adoptGame` and must keep these instances' close handlers connected.
-  disposeGameScreens();
+  const subscriptions = new AbortController();
+  const { signal } = subscriptions;
+  gameDisposers.push(() => subscriptions.abort());
   let game: Game = initial ?? (await createGameAsync(currentConfig()));
   const { view: renderer, report } = await createRenderer(artMode(), game, initial === null ? 0 : resumeSeat(game.state));
+  gameDisposers.push(() => renderer.dispose?.());
   // A lost WebGL context (a GPU switch, a driver update, memory pressure) does
   // not touch the game, so the renderer rebuilds the board from the state. The
   // loading sheet covers the board meanwhile and `isInputBlocked` holds the
@@ -2751,7 +2786,7 @@ async function boot(initial: Game | null): Promise<void> {
    * there is nothing in it to click, and a card that could take the pointer
    * would be a card standing between the player and the hex underneath it.
    */
-  const faithInfo = createInfoCard({ className: 'info-card is-board' });
+  const faithInfo = createInfoCard({ signal, className: 'info-card is-board' });
 
   /**
    * The bottom-left context card: what the pointer is over, and what the game
@@ -3083,6 +3118,7 @@ async function boot(initial: Game | null): Promise<void> {
    * and a harness seat hop says whose chair you have just been moved to.
    */
   const splash = createTurnSplash(turnSplashEl);
+  gameDisposers.push(() => splash.dispose());
 
   /**
    * The discovery card. Created before `controls` for `splash`'s reason: the
@@ -3109,7 +3145,8 @@ async function boot(initial: Game | null): Promise<void> {
       pumpBeadNews();
     },
   });
-  offerReturnEl.addEventListener('click', () => offerCard.reopen());
+  gameDisposers.push(() => offerCard.dispose());
+  offerReturnEl.addEventListener('click', () => offerCard.reopen(), { signal });
   offerCardHolder = offerCard;
 
   /**
@@ -3123,6 +3160,7 @@ async function boot(initial: Game | null): Promise<void> {
     // `pumpBeadNews`, which is where the whole of that ordering lives.
     onClosed: () => pumpBeadNews(),
   });
+  gameDisposers.push(() => triumphSheet?.dispose());
 
   /**
    * The bead sheet — the Triumph sheet's twin, over the Bead Race's own news
@@ -3137,6 +3175,7 @@ async function boot(initial: Game | null): Promise<void> {
     // as the top bar prints it.
     table: () => ({ rows: abacusRows(), seat: controls.localPlayerId(), age: shownAge(game.state).age }),
   });
+  gameDisposers.push(() => beadSheet?.dispose());
 
   /**
    * The age plate (batch SS7, `agePlate.ts`): news, raised by `pumpBeadNews`
@@ -3168,30 +3207,20 @@ async function boot(initial: Game | null): Promise<void> {
 
   /**
    * The Opus close (batch SS7, `opusClose.ts`): raised by `onVictory` for a game
-   * the Magnum Opus closed. When its beats end, or a key cuts them short, the
-   * standings rise.
+   * the Magnum Opus closed. It opens on the painted ending page. "See the
+   * Abacus" runs the Abacus page, and when its beats end, or a key cuts them
+   * short, the standings rise. "Back to the title" is the standings' own path
+   * to the landing (`showLanding`).
    */
   opusClose = createOpusClose({
     overlay: opusCloseOverlayEl,
     onOpen: () => screens.opening('opusClose'),
     onFinished: () => victory?.open(),
+    toTitle: () => showLanding(),
   });
   gameDisposers.push(() => opusClose?.dispose());
 
-  /*
-   * The standings sheet is **built further down**, after the top bar, because
-   * the shell keeps the keyboard's return path on the control that opened a
-   * sheet. It was the bar's Standings tab, which had to exist first; since
-   * batch SS2b it is the corner panel's Standings mark, which is markup, and
-   * the order is kept (`leaderSheet`'s reason exactly). Its disposer is here, in the
-   * order the register has always carried it: a closure over the holder, run
-   * long after the holder is filled.
-   */
-  gameDisposers.push(() => splash.dispose());
-  gameDisposers.push(() => offerCard.dispose());
-  gameDisposers.push(() => triumphSheet?.dispose());
-  gameDisposers.push(() => beadSheet?.dispose());
-  gameDisposers.push(() => victory?.dispose());
+
 
   /**
    * The header line for an offer dealt wider than the table deals: the fold's
@@ -3283,14 +3312,7 @@ async function boot(initial: Game | null): Promise<void> {
    * first chair every time a player picked a card.
    */
   function send(command: Command): CommandResult {
-    const picker = command.type === 'chooseGreatPerson' ? game.state.players[command.playerId] : undefined;
-    const offer = picker?.greatPersonOffer;
     const result = dispatch(game, command);
-    // Picking a person another seat took can replace the hand even though the command fails.
-    if (!result.ok && picker && picker.greatPersonOffer !== offer) {
-      botTwin.invalidate();
-      scheduleBotPreparation();
-    }
     controls.reportCommand(command, result);
     if (result.ok) controls.repaint();
     return result;
@@ -4011,12 +4033,10 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         const taken = offer.options[index];
-        // Checked (the offer-loop bug of 2026-08-30) — and the recruit is
-        // announced only when the reducer actually seated them: this arm can
-        // legitimately refuse-and-redraw when another seat took the name.
         const result = send({ type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
-        if (result.ok && taken !== undefined) announceRecruit(seat, taken);
+        else if (result.greatPersonOfferRefreshed) controls.guide(`☞ ${result.greatPersonOfferRefreshed}`);
+        else if (taken !== undefined) announceRecruit(seat, taken);
         statecraft?.refresh();
       },
       undefined,
@@ -4394,6 +4414,7 @@ async function boot(initial: Game | null): Promise<void> {
   let botsToTheWorker = false;
 
   const controls = createGameControls({
+    signal,
     viewport: viewportEl,
     renderer,
     getGame: () => game,
@@ -4435,10 +4456,10 @@ async function boot(initial: Game | null): Promise<void> {
       // its capital would tick off the step asking the player to found theirs.
       // The reports underneath are not filtered: an age opening is news about
       // the world whoever caused it.
-      if (command.playerId === controls.localPlayerId()) {
+      if (!result.ok) return;
+      if (command.playerId === controls.localPlayerId() && !result.greatPersonOfferRefreshed) {
         tutorial.note({ kind: 'command', command: command.type });
       }
-      if (!result.ok) return;
       if (game.state.players[command.playerId]?.isHuman) {
         botTwin.invalidate();
         scheduleBotPreparation();
@@ -4672,10 +4693,11 @@ async function boot(initial: Game | null): Promise<void> {
       const player = game.state.players[playerId];
       if (!player) return;
       // **A game the Magnum Opus closed ends on the Opus close** (batch SS7):
-      // nigredo, albedo and the Abacus page, and then the standings, which the
-      // close raises itself. It is raised for every seat, as the sheet is.
+      // the painted ending page, the Abacus page, and then the standings, which
+      // the close raises itself. It is raised for every seat, as the sheet is,
+      // and the seat reading it decides the painting: the win or the loss.
       if (opusClose && wonByOpus(game.state)) {
-        opusClose.play(opusCloseReading(game.state, abacusRows()));
+        opusClose.play(opusCloseReading(game.state, abacusRows(), controls.localPlayerId()));
         return;
       }
       // Any other win: two volumes, one moment, `reportTriumphs`' own split: the
@@ -4741,7 +4763,9 @@ async function boot(initial: Game | null): Promise<void> {
     onAction: runAction,
   });
 
+  gameDisposers.push(() => toasts?.clear());
   notifications = createNotificationsPanel({
+    signal,
     panel: logPopoverEl,
     trigger: logButton,
     closeButton: requireElement('log-close'),
@@ -4758,6 +4782,10 @@ async function boot(initial: Game | null): Promise<void> {
    * The lens menu's rows: the exclusive lens choices, built off `LENS_OPTIONS`
    * (declared above `controls`, and see that declaration for why).
    */
+  gameDisposers.push(() => {
+    lensOptionsEl.replaceChildren();
+    lensTogglesEl.replaceChildren();
+  });
   const lensButtons = LENS_OPTIONS.map(({ mode, label, hint, legend }, index) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -4878,6 +4906,7 @@ async function boot(initial: Game | null): Promise<void> {
    * knot between the two.
    */
   techTree = createTechTree({
+    signal,
     overlay: techOverlayEl,
     chart: techChartEl,
     closeButton: requireElement('tech-close'),
@@ -5005,6 +5034,7 @@ async function boot(initial: Game | null): Promise<void> {
    * prophet's rite over the realm. A refusal shows the reducer's own sentence.
    */
   religion = createReligionScreen({
+    signal,
     overlay: religionOverlayEl,
     body: religionBodyEl,
     closeButton: requireElement('religion-close'),
@@ -5360,6 +5390,7 @@ async function boot(initial: Game | null): Promise<void> {
    * over the local seat's cities, refreshed with everything else.
    */
   const civYields: CivYieldStrip = createCivYieldStrip({
+    signal,
     container: civYieldsEl,
     // The turn line at the head of the bar's right group, and renown and beads
     // at the end of its left group (batch SS2b). The strip writes both on
@@ -5646,133 +5677,18 @@ async function boot(initial: Game | null): Promise<void> {
     toTitle: () => showLanding(),
     onOpen: () => screens.opening('standings'),
   });
+  gameDisposers.push(() => victory?.dispose());
 
-  // `H` opens the Religion screen (the empire drawer's Faith row; the dock's
-  // until batch UX3), and is deliberately its own small listener rather than
-  // one more branch in `controls.ts`'s keydown
-  // switch: that module owns the board's verbs (fortify, sleep, move mode, the
-  // lens…) and this is a screen with no unit or tile behind it, the same kind of
-  // thing `T`/`C`/`A` are but wired where their *screens* are built instead of
-  // where the board's own hotkeys are. Same two guards as every hotkey in that
-  // switch: nothing while a screen owns the keyboard (`isInputBlocked`, above)
-  // and nothing while the keystroke is actually text landing in a field. `F` was
-  // Fortify's already; `H` reads as "Holy" and was free — see `index.html`'s
-  // help sheet for where it is documented alongside the rest.
-  window.addEventListener('keydown', (event) => {
-    if (event.key !== 'h' && event.key !== 'H') return;
-    if (isInputBlocked()) return;
-    const target = event.target as HTMLElement | null;
-    const typing =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
-    if (typing) return;
-    event.preventDefault();
-    if (religion?.isOpen === true) religion.close();
-    else if (!greyedDoorRefuses('faith')) religion?.open();
+  // The board opens these screens. Each screen handles its own close keys.
+  bindScreenHotkeys(window, signal, isInputBlocked, (key) => {
+    switch (key) {
+      case 'h': if (!greyedDoorRefuses('faith')) religion?.open(); break;
+      case 'w': diplomacy?.open(); break;
+      case 'e': if (!greyedDoorRefuses('routes')) trade?.open(); break;
+      case 's': victory?.open(); break;
+      case 'i': inPlay?.open(); break;
+    }
   });
-
-  // `W` opens the Diplomacy screen — the Diplomacy mark's hotkey, wired here
-  // beside `H` and for its stated reason exactly: a screen with no unit and no
-  // tile behind it belongs where its screen is built, not in `controls.ts`'s
-  // board switch. `D` reads as a direction and `G` is the 2D grid's already;
-  // `W` reads as "war" and was free. See `index.html`'s help sheet, where it is
-  // documented alongside the rest.
-  window.addEventListener('keydown', (event) => {
-    if (event.key !== 'w' && event.key !== 'W') return;
-    if (isInputBlocked()) return;
-    const target = event.target as HTMLElement | null;
-    const typing =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
-    if (typing) return;
-    event.preventDefault();
-    if (diplomacy?.isOpen === true) diplomacy.close();
-    else diplomacy?.open();
-  });
-
-  // `E` opens the Trade sheet — the fourth screen with a letter, wired here
-  // beside `H` and `W` and for their stated reason exactly: a screen with no
-  // unit and no tile behind it belongs where its screen is built, not in
-  // `controls.ts`'s board switch. `T` is the star chart's and `R` is the
-  // roundels'; `E` reads as "exchange" and was free. Added with batch R2, when
-  // the sheet became the only place a route is hired.
-  //
-  // Unlike its two neighbours it goes into `gameDisposers`: a hotkey bound in
-  // `boot` and never unbound is a second copy of itself on the next game, which
-  // is Entry LVII's bug wearing a keystroke. The two above it are older and are
-  // flagged rather than swept here — not this batch's fence.
-  const onTradeKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'e' && event.key !== 'E') return;
-    if (isInputBlocked()) return;
-    const target = event.target as HTMLElement | null;
-    const typing =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
-    if (typing) return;
-    event.preventDefault();
-    if (trade?.isOpen === true) trade.close();
-    else if (!greyedDoorRefuses('routes')) trade?.open();
-  };
-  window.addEventListener('keydown', onTradeKey);
-  gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));
-
-  // `S` opens the standings sheet (batch SS2b): the corner panel's Standings
-  // mark is its one door, and every other mark in that row has a key. Wired
-  // here beside `E` and for its reasons, and swept with the boot like `E`.
-  // Nothing else binds S (`controls.ts`'s board switch has no branch for it).
-  // A press with a modifier is the browser's: Cmd + S and Ctrl + S save the
-  // page, and must not open a sheet instead.
-  const onStandingsKey = (event: KeyboardEvent): void => {
-    if (event.key !== 's' && event.key !== 'S') return;
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (isInputBlocked()) return;
-    const target = event.target as HTMLElement | null;
-    const typing =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
-    if (typing) return;
-    event.preventDefault();
-    if (victory?.isOpen === true) victory.close();
-    else victory?.open();
-  };
-  window.addEventListener('keydown', onStandingsKey);
-  gameDisposers.push(() => window.removeEventListener('keydown', onStandingsKey));
-
-  // `I` opens In play (stage 3, frame D1): the corner panel's fifth mark, and
-  // the key the board names. Nothing else binds I (`controls.ts`'s board
-  // switch has no branch for it). Swept with the boot like `E` and `S`. The
-  // screen claims I itself while it is up, to close, and the Council screen
-  // claims it to come here.
-  const onInPlayKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'i' && event.key !== 'I') return;
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (isInputBlocked()) return;
-    const target = event.target as HTMLElement | null;
-    const typing =
-      target !== null &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'SELECT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable);
-    if (typing) return;
-    event.preventDefault();
-    if (inPlay?.isOpen === true) inPlay.close();
-    else inPlay?.open();
-  };
-  window.addEventListener('keydown', onInPlayKey);
-  gameDisposers.push(() => window.removeEventListener('keydown', onInPlayKey));
 
   /**
    * The two city views. Both are pure readers of the simulation plus one
@@ -5788,6 +5704,7 @@ async function boot(initial: Game | null): Promise<void> {
     container: bannersEl,
     renderer,
   });
+  gameDisposers.push(() => damageNumbers.dispose());
 
   const banners: CityBanners = createCityBanners({
     container: bannersEl,
@@ -5812,6 +5729,7 @@ async function boot(initial: Game | null): Promise<void> {
       controls.selectPiece(unitId);
     },
   });
+  gameDisposers.push(() => banners.dispose());
 
   /**
    * The renderer has one frame-listener slot and two things now want the beat,
@@ -5835,6 +5753,7 @@ async function boot(initial: Game | null): Promise<void> {
       updatePanel(null, renderer.getHover());
     },
   });
+  gameDisposers.push(() => priceTags.dispose());
 
   /**
    * The faith lens's standing captions: which towns follow you, how many
@@ -5862,6 +5781,7 @@ async function boot(initial: Game | null): Promise<void> {
         : [],
     onPick: () => {},
   });
+  gameDisposers.push(() => faithMarks.dispose());
 
   /**
    * **When a tutorial note waits** (2026-11-18, `docs/flags.md`, "Age turn-over:
@@ -5984,6 +5904,7 @@ async function boot(initial: Game | null): Promise<void> {
   );
 
   const cityPanel: CityPanel = createCityPanel({
+    signal,
     container: cityPanelEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
@@ -6026,6 +5947,7 @@ async function boot(initial: Game | null): Promise<void> {
    * is the same one the reducer decides by.
    */
   const unitPanel: UnitPanel = createUnitPanel({
+    signal,
     container: unitPanelEl,
     getGame: () => game,
     getUnit: () => controls.selectedUnit(),
@@ -6231,12 +6153,6 @@ async function boot(initial: Game | null): Promise<void> {
     }
   }
 
-  // Every start after this one comes back through here rather than through
-  // `boot`: a restart is a new game and a load is a game that already exists,
-  // and this is the path both take — one that resets the selection, the lens,
-  // the panels and the camera.
-  takeOverGame = adoptGame;
-
   // --- the menu's save verbs ------------------------------------------------
 
   /** The ☰ menu's one message line: what the last press did, or why it did not. */
@@ -6270,7 +6186,7 @@ async function boot(initial: Game | null): Promise<void> {
   menuSaveButton.addEventListener('click', () => {
     resetSaveMenu();
     saveTo(QUICKSAVE_SLOT, 'Quick Save');
-  });
+  }, { signal });
 
   menuSaveAsButton.addEventListener('click', () => {
     resetSaveMenu();
@@ -6278,12 +6194,12 @@ async function boot(initial: Game | null): Promise<void> {
     saveAsNameInput.value = currentSaveName === 'Magister Ludi' ? '' : currentSaveName;
     saveAsNameInput.focus();
     saveAsNameInput.select();
-  });
+  }, { signal });
 
   saveAsCancelButton.addEventListener('click', () => {
     resetSaveMenu();
     menuSaveAsButton.focus();
-  });
+  }, { signal });
 
   /**
    * Save As, with the overwrite confirm folded into the button rather than into
@@ -6311,14 +6227,14 @@ async function boot(initial: Game | null): Promise<void> {
     saveAsForm.hidden = true;
     saveAsGoButton.textContent = 'Save';
     saveTo(slotId, name);
-  });
+  }, { signal });
 
   menuLoadButton.addEventListener('click', () => {
     resetSaveMenu();
     // The menu goes as the list opens: the list is a screen, and the registry
     // closes the cards under a screen.
     openSaves();
-  });
+  }, { signal });
 
   // The guide, from the top: the sequence *and* every one-time note, because a
   // player asking for it again is almost always showing the game to somebody
@@ -6328,7 +6244,7 @@ async function boot(initial: Game | null): Promise<void> {
     menu.close();
     tutorial.replay();
     tutorialToggle.checked = tutorial.enabled();
-  });
+  }, { signal });
 
   menuExportButton.addEventListener('click', () => {
     resetSaveMenu();
@@ -6338,7 +6254,7 @@ async function boot(initial: Game | null): Promise<void> {
     const payload = makeSavePayload(game, currentSaveName, Date.now());
     downloadJson(exportFilename(payload), JSON.stringify(payload));
     saveNote(`Exported ${exportFilename(payload)}.`, false);
-  });
+  }, { signal });
 
   /**
    * The End Turn press, in two halves: the button raises, *then* the bots think.
@@ -6462,7 +6378,7 @@ async function boot(initial: Game | null): Promise<void> {
   // click, so Shift ⏎ and Shift-click are genuinely one gesture.
   endTurnButton.addEventListener('click', (event) => {
     pressEndTurn(event.shiftKey);
-  });
+  }, { signal });
 
   /**
    * What the Statecraft pause opens: the charter card for a banked government,
@@ -6509,20 +6425,7 @@ async function boot(initial: Game | null): Promise<void> {
     endTurnGeneration += 1;
   }
   gameDisposers.push(cancelPendingEndTurn);
-  // The surfaces themselves are closed by `screens.closeAll()`, which both
-  // callers run first; this is the delayed work behind them (the dispatch's
-  // timer and queue, a pending End Turn, the splash, the offer held off screen).
-  suspendGame = () => {
-    warDispatch?.clear();
-    cancelPendingEndTurn();
-    splash.clear();
-    offerCard.clear();
-    agePlate?.clear();
-    wonderPlate?.clear();
-    opusClose?.clear();
-  };
-
-  window.addEventListener('resize', () => renderer.resize());
+  window.addEventListener('resize', () => renderer.resize(), { signal });
 
   updateMapInfo();
   updatePanel(null, null);
@@ -6550,4 +6453,15 @@ async function boot(initial: Game | null): Promise<void> {
   else tutorial.resume();
   backgroundPlansEnabled = true;
   scheduleBotPreparation('turn');
+  // Restart and load keep these controls and cancel work for the previous game.
+  suspendGame = () => {
+    warDispatch?.clear();
+    cancelPendingEndTurn();
+    splash.clear();
+    offerCard.clear();
+    agePlate?.clear();
+    wonderPlate?.clear();
+    opusClose?.clear();
+  };
+  takeOverGame = adoptGame;
 }

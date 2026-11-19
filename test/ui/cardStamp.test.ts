@@ -265,6 +265,10 @@ describe('the eased count', () => {
 });
 
 describe('the design of record, held at the source', () => {
+  // The engraved Order face overrides the stamp margin in a more specific rule.
+  const base = /^\.card-stamp\s*\{([^}]*)\}/m.exec(STYLE);
+  if (!base) throw new Error('Missing base card stamp rule');
+  const baseRule = base[1]!;
   /**
    * **Boxless** (user, revision 3). No border, no background fill, no radius on
    * the stamp or its digits — the number is a mark on paper, not a widget.
@@ -273,7 +277,7 @@ describe('the design of record, held at the source', () => {
     // Everything the player reads — the seat, the digits, the flourish and the
     // words. The glow below is the one exception and is checked as what it is:
     // a soft radial wash *behind* the number, never a ring.
-    const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-glow {'));
+    const block = STYLE.slice(base.index, STYLE.indexOf('.card-stamp-glow {', base.index));
     expect(block.length).toBeGreaterThan(0);
     for (const banned of ['border:', 'border-radius:', 'background-color:', 'box-shadow:', 'background:']) {
       expect(block.split(banned).length - 1, banned).toBe(0);
@@ -283,13 +287,21 @@ describe('the design of record, held at the source', () => {
     expect(glow).not.toContain('border:');
   });
 
+  it('places the engraved draft face’s dividing line above its stamp', () => {
+    const seat = /^\.order-face \.offer-face-seat\s*\{([^}]*)\}/m.exec(STYLE)?.[1];
+    const stamp = /^\.order-face \.offer-face-seat \.card-stamp\s*\{([^}]*)\}/m.exec(STYLE)?.[1];
+    expect(seat).toMatch(/border-top:[^;]+solid/);
+    expect(stamp).toMatch(/margin:\s*0;/);
+    expect(stamp).not.toMatch(/(?:border(?:-top)?|background|box-shadow)\s*:/);
+  });
+
   /**
    * Digits and the words beside them share one baseline; the row wraps
    * **between** figures and never through one (the user, 2026-09-07: a deck
    * paying five or six voices ran past the card's edge under `nowrap`).
    */
   it('keeps each figure on one baseline and one line, and lets the row wrap between them', () => {
-    const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-flourish'));
+    const block = baseRule;
     expect(block).toContain('align-items: baseline');
     expect(block).toContain('flex-wrap: wrap');
     const figure = STYLE.slice(
@@ -366,7 +378,7 @@ describe('the design of record, held at the source', () => {
    * the figure occupy identical boxes and the reveal moves nothing below it.
    */
   it('gives the flourish and the figure the same box', () => {
-    const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-flourish'));
+    const block = baseRule;
     const height = /min-height: (\d+)px/.exec(block)?.[1];
     const leading = /line-height: (\d+)px/.exec(block)?.[1];
     expect(height).toBeDefined();
@@ -375,7 +387,7 @@ describe('the design of record, held at the source', () => {
 
   /** The digits sit close under the clauses; the air is above the flavour. */
   it('leaves no dead band between the clauses and the digits', () => {
-    const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-flourish'));
+    const block = baseRule;
     expect(block).toContain('margin: 1px 0 12px');
   });
 

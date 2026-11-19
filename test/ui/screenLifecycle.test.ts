@@ -135,9 +135,7 @@ describe('the game-screen disposal register', () => {
     expect(sheet).not.toContain("window.addEventListener('keydown'");
     // The sheet's disposer, and the hotkey's, both in the one register.
     expect(main).toContain('gameDisposers.push(() => trade?.dispose());');
-    expect(main).toContain(
-      "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
-    );
+    expect(main).toContain("case 'e': if (!greyedDoorRefuses('routes')) trade?.open();");
   });
 
   /**
@@ -205,8 +203,19 @@ describe('the game-screen disposal register', () => {
     expect(landing).toContain('suspendGame?.();');
     expect(landing).not.toContain('disposeGameScreens();');
     const boot = main.slice(main.indexOf('async function boot('));
-    expect(boot.indexOf('disposeGameScreens();')).toBeLessThan(boot.indexOf('createStatecraftScreen({'));
+    expect(begin).toMatch(/await boot\(loaded\);\s*} catch \(error\) {\s*disposeGameScreens\(\);/);
+    expect(boot.indexOf('takeOverGame = adoptGame;')).toBeGreaterThan(boot.lastIndexOf("scheduleBotPreparation('turn');"));
     expect(main.match(/disposeGameScreens\(\);/g)).toHaveLength(1);
+  });
+
+  it('disconnects board input, End Turn and resize when startup fails', () => {
+    const main = source('main.ts');
+    const boot = main.slice(main.indexOf('async function boot('));
+    expect(boot).toContain('gameDisposers.push(() => subscriptions.abort());');
+    expect(boot).toContain('gameDisposers.push(() => renderer.dispose?.());');
+    expect(boot).toMatch(/createGameControls\(\{\s*signal,/);
+    expect(boot).toMatch(/endTurnButton\.addEventListener\('click', [^}]+}, \{ signal }\)/);
+    expect(boot).toContain("window.addEventListener('resize', () => renderer.resize(), { signal });");
   });
 
   it('clears old dialogs and delayed turns on both Restart and direct load', () => {

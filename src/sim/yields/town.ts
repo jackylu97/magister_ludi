@@ -1223,13 +1223,14 @@ export function explainSurplusMoved(
   yields: CityYields,
   toward?: QueueItem | null,
 ): SurplusMovedLine[] {
+  // Only a town with a matching card needs to check what stops its production.
+  const mover = surplusMoverFor(state, city, toward);
+  if (mover === null) return [];
   if (explainUnrestGate(city).some((gate) => gate.yield === 'production')) return [];
   // A town whose work on the Opus is stopped by a siege or an interdict moves
   // nothing into it either (Dominion batch D14, Circumvallation; Devotion batch
   // DV7, The Interdict): its food goes on toward growth, as in unrest.
   if (explainOpusGate(state, city, toward).some((gate) => gate.yield === 'production')) return [];
-  const mover = surplusMoverFor(state, city, toward);
-  if (mover === null) return [];
   const amount = channelSurplus(state, city, yields);
   if (amount <= 0) return [];
   return [{ source: mover.source, card: mover.card, amount }];

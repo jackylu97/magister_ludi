@@ -40,7 +40,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { valueContext } from '../../src/ai/bot';
-import { driveBots } from '../../src/ai/driver';
 import {
   explainCardEffects,
   explainCardStamp,
@@ -60,8 +59,8 @@ import {
   shapeOf,
   stampOfTheSim,
 } from './aiCardStampHelpers';
-import { DIGEST_SEED, sixSeatSpec } from './aiDigestHelpers';
-import { createGame } from './newGameHelpers';
+import { playSeatedGame, sixSeatSpec, type Played } from './aiDigestHelpers';
+import { expectSixSeatDigest } from './aiDigestPins';
 
 /** The turns the positions are recorded at. */
 const RECORDED = [40, 80, 120];
@@ -84,26 +83,9 @@ interface Findings {
   booksShapes: Map<string, { instances: number; moved: number; walked: number }>;
 }
 
-/** The positions, recorded once from one played game. */
-function recordPositions(): GameState[] {
-  const spec = sixSeatSpec('duel', DIGEST_SEED, Math.max(...RECORDED));
-  const game = createGame({
-    seed: spec.seed,
-    sizeName: spec.sizeName,
-    players: spec.seats.map((seat) => ({
-      name: seat.name,
-      color: seat.color,
-      ...(seat.persona === undefined || seat.persona === 'balanced' ? {} : { persona: seat.persona }),
-    })),
-    barbarians: spec.barbarians,
-  });
-  const positions: GameState[] = [];
-  while (game.state.turn <= spec.turns && game.state.winnerId === null) {
-    const before = game.state.turn;
-    driveBots(game, { warn: () => {} });
-    if (game.state.turn === before) throw new Error(`the game stalled at turn ${before}`);
-    if (RECORDED.includes(before)) positions.push(restoreState(snapshotState(game.state)));
-  }
+/** Give the audit private states so it can change them independently of the digest. */
+function auditPositions(snapshots: readonly string[]): GameState[] {
+  const positions = snapshots.map((snapshot) => restoreState(snapshot));
   // **The last position again, with every seat's recent losses** (bot batch
   // BP12). The unit-loss rule (The Funeral Oration, The Glorious Dead) is read
   // as a line on the books, and the fourth case below asks some position to
@@ -216,36 +198,53 @@ function check(positions: readonly GameState[]): Findings {
   return findings;
 }
 
-describe('the bot’s card price against the card’s stamp, over recorded positions (bot batch BP3)', () => {
-  let findings: Findings;
+describe('the six-seat duel', () => {
+  let played: Played;
+  const snapshots: string[] = [];
   beforeAll(() => {
-    findings = check(recordPositions());
+    played = playSeatedGame(sixSeatSpec('duel'), (turn, state) => {
+      if (RECORDED.includes(turn)) snapshots.push(snapshotState(state));
+    });
   }, PATIENCE);
 
-  it('reads the stamp of every card it stamps as the sim’s own stamp', () => {
-    expect(findings.stamped).toBeGreaterThan(1000);
-    expect(findings.stampOff).toEqual([]);
-    expect(findings.meterLinesOff).toEqual([]);
+  describe('the six-seat digest', () => {
+    it('plays a hundred and twenty turns on the duel board to the state it always reaches', () => {
+      expectSixSeatDigest('duel', played);
+    });
   });
 
-  it('prices a card of lines the books show at its stamp, and nothing more', () => {
-    expect(findings.seenChecked).toBeGreaterThan(200);
-    expect(findings.seenOff).toEqual([]);
-  });
+  describe('the bot’s card price against the card’s stamp, over recorded positions (bot batch BP3)', () => {
+    let findings: Findings;
+    beforeAll(() => {
+      if (played.stalled) throw new Error(`the game stalled at turn ${played.game.state.turn}`);
+      findings = check(auditPositions(snapshots));
+    }, PATIENCE);
 
-  it('finds no footprint on the books for an effect it prices by its own reading', () => {
-    expect(findings.unseenChecked).toBeGreaterThan(200);
-    expect(findings.unseenOff).toEqual([]);
-  });
+    it('reads the stamp of every card it stamps as the sim’s own stamp', () => {
+      expect(findings.stamped).toBeGreaterThan(1000);
+      expect(findings.stampOff).toEqual([]);
+      expect(findings.meterLinesOff).toEqual([]);
+    });
 
-  it('finds a footprint on the books for each shape it reads as on them', () => {
-    const missing: string[] = [];
-    for (const [shape, row] of findings.booksShapes) {
-      if (row.walked > 0 && row.moved === 0) {
-        missing.push(`${shape}: ${row.instances} cards, the walk prices ${row.walked} today, none moves the books`);
+    it('prices a card of lines the books show at its stamp, and nothing more', () => {
+      expect(findings.seenChecked).toBeGreaterThan(200);
+      expect(findings.seenOff).toEqual([]);
+    });
+
+    it('finds no footprint on the books for an effect it prices by its own reading', () => {
+      expect(findings.unseenChecked).toBeGreaterThan(200);
+      expect(findings.unseenOff).toEqual([]);
+    });
+
+    it('finds a footprint on the books for each shape it reads as on them', () => {
+      const missing: string[] = [];
+      for (const [shape, row] of findings.booksShapes) {
+        if (row.walked > 0 && row.moved === 0) {
+          missing.push(`${shape}: ${row.instances} cards, the walk prices ${row.walked} today, none moves the books`);
+        }
       }
-    }
-    expect(findings.booksShapes.size).toBeGreaterThan(15);
-    expect(missing).toEqual([]);
+      expect(findings.booksShapes.size).toBeGreaterThan(15);
+      expect(missing).toEqual([]);
+    });
   });
 });

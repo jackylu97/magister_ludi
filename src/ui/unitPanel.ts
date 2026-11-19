@@ -123,6 +123,7 @@ function techHoverTitle(techName: string | null, blocked: string | null): string
 }
 
 interface UnitPanelOptions {
+  signal?: AbortSignal;
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
   getGame: () => Game;
@@ -630,7 +631,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * reads identically wherever a player meets one. One per panel, appended to
    * the body once at construction; `render` puts it away before it rebuilds.
    */
-  const info = createInfoCard({ className: 'info-card' });
+  const info = createInfoCard({ signal: options.signal, className: 'info-card' });
 
   /**
    * How many more turns the unit's standing order will take, as an estimate the

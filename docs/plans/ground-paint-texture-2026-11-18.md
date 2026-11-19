@@ -392,3 +392,42 @@ The comparison used the shipped renderer at its minimum camera distance. Native 
 At 32 texels per world unit the transition from sand to grass and the edges of the river banks look softer than the cut mesh. At 64 those edges track the reference more closely in both engines. In the full WebKit river frame, 7.55% of pixels differed from the cut frame by more than two RGB levels at 32, and 3.85% at 64. These percentages include variation between repeated renders.
 
 The memory tradeoff depends on map size. On the 26 × 18 gallery board the atlas used 6.6 MiB at 32 and 26.3 MiB at 64. The atlas planner on the Apple GPU gives 57.0 and 228.1 MiB respectively for Standard. On Giant, the 256 MiB budget limits both requests to about 30.9 texels per world unit. These are figures for the atlas alone. The close-zoom switch stays in the play build pending the visual decision. If close zoom needs 64 on Giant, detail confined to the visible area is worth testing.
+
+## Reuse the land grid when building both meshes, 2026-11-19
+
+The close and textured versions of a land tile start from the same grid. The board now builds that grid once and copies its top before either painter changes it. Each top owns its vertex counts. The separate coarse grid is still used when the texture is unavailable.
+
+The comparison used Standard maps with seeds 42 and 999, including the organic rivers, free coasts and hill mounds. Six pairs per map timed the CPU work to construct and paint both tile tops, with ordering reversed between pairs. Each timed run sampled every third land tile. Building one common grid also avoided building and discarding a second skirt for each tile.
+
+| Seed | Land tiles timed | Median CPU time with two grids | Median CPU time with one grid |
+|---|---:|---:|---:|
+| 42 | 592 | 1,710 ms | 1,297 ms |
+| 999 | 589 | 1,498 ms | 1,255 ms |
+
+The verification run compared every top, textured top and skirt on all 3,540 land tiles of the two maps. For each map the old and new builds produced the same hash of the attribute arrays and geometry metadata. These timings cover mesh construction on Node. They exclude map generation, the GPU bake and the rest of the loading screen.
+
+A separate sample compared the surfaces of the painted cut and plain tops at 4,740 points on the two maps. Both meshes returned a hit at every point. The largest height difference was 0.0000022 world units. This supports trying the plain mesh for picking. Coast aprons, beaches and river ribbons need their own checks before replacing the full picker. The next close-zoom test is a higher-density texture for the visible area, within the Giant map's existing texture budget.
+
+### Time from Continue to the first playable board
+
+Native WebKit loaded the historical Standard turn-one setup, seed 20261116, with six seats on an 80 × 52 map. The harness created a current-format save from the original setup. Its command log was empty, as in the historical fixture. The two builds differed only in the grid change from commit `7ec83b51`. Each used two terrain workers and the textured ground. Each build had one unmeasured warm-up before the paired runs. Each load used a fresh WebKit session.
+
+| Run order | Continue to first playable board, two grids / one grid | Board build, two grids / one grid | Land step, two grids / one grid |
+|---|---:|---:|---:|
+| Two grids first | 51.6 / 46.1 s | 45.9 / 40.9 s | 38.5 / 35.2 s |
+| One grid first | 66.3 / 54.1 s | 59.9 / 48.7 s | 53.1 / 42.6 s |
+
+The first playable board appeared 5.4 s and 12.2 s sooner with one grid. The one-minute host load was lower at the end of the one-grid run in both pairs (28 versus 34 and 31 versus 47). The two-grid loads themselves differed by 14.7 s. These runs show where the CPU savings can reach the player, but they cannot establish a reliable whole-load saving.
+
+### Budget for a close-view texture
+
+At the closest game zoom the orthographic camera has a half-height of 5 world units, a pitch of 50° and an azimuth of 90°. On level ground the view spans `10 × viewport aspect` in x and `10 / sin(50°)` in z. This agrees with the gallery capture at 249.4 drawing-buffer pixels per hex. The steeper 60° city view covers 11.55 units in z. A surface at height `h` shifts the footprint along z by `h × cot(pitch)`, so the trial should include the painted ground's height bounds when it checks coverage.
+
+| Viewport | Level ground visible, x × z (world units) | Proposed coverage at 64 texels/unit | Margin per side, x / z | One RGBA8 texture with mipmaps |
+|---|---:|---:|---:|---:|
+| 1280 × 960 CSS pixels, the WebKit capture | 13.33 × 13.05 | 24 × 24 units, 1536 × 1536 texels | 5.33 / 5.47 units | 12 MiB |
+| 3440 × 1440, ultrawide | 23.89 × 13.05 | 32 × 24 units, 2048 × 1536 texels | 4.06 / 5.47 units | 16 MiB |
+
+For the ultrawide trial, keep two close textures so one can draw while the other bakes. **Giant must give up some base-atlas resolution.** Plan its base at 180 MiB before allocation. The current planner then gives 8080 × 4380 texels, 25.92 texels per unit, and a switch band of about 73 to 81 pixels per hex. The proposed peak for ground-paint targets is **about 252 MiB**: 180 MiB base, 32 MiB for the two close textures, and up to 40 MiB for one shared 1024² bake square (4× MSAA colour and depth plus resolved colour and depth). Run the base and close bakes in sequence so only one square exists. The 256 MiB cap leaves about 4 MiB for rounding and the one-texel sink. On Standard the existing 57 MiB base fits, for about 129 MiB at the same peak. These figures estimate target storage. Geometry, the rest of the renderer and driver overhead are outside the estimate.
+
+For an in-game trial, start at closest zoom on the gallery shore, river and hill. Snap each bake origin to a texel. Start the next bake after a two-unit pan, and draw the existing cut mesh wherever the ready texture does not cover the current view. Across the east-west seam, keep the camera centre in continuous world coordinates and draw both wrapped intervals into the same texture. Repeat on Standard and Giant with a slow pan, a fast drag, a jump to a distant city and a zoom change. Compare the shore and river pixels to the cut mesh, and record frame gaps, time to refill and the fraction of frames using the cut mesh. Check the Giant base's wider-view quality at its reduced density before choosing the memory split.

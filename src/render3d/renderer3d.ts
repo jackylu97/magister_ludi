@@ -148,6 +148,7 @@ import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
 import { shadowTargetBytes as untypedShadowTargetBytes } from './paintedShadows.js';
 import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics, type PaintedBuildReport } from './paintedBoardAsync.js';
+import { closeGroundBaseSheet, closeGroundFor, type CloseGroundPaint } from './closeGroundPaint';
 import { groundPaintPlan, type GroundPaintPlan } from './groundPaint.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
@@ -405,6 +406,10 @@ export class Renderer3D implements MapView {
   private board: BuiltBoard | null = null;
   private paintedLook: PaintedLook | null = null;
   private paintedBoard: PaintedBoard | null = null;
+  private readonly closeGroundEnabled: boolean;
+  private closeGround: CloseGroundPaint | null = null;
+  /** The study takes a cut reference at the same camera position. */
+  private closeGroundCut = false;
   private boardBuild: AbortController | null = null;
   private preparedBoard: {map: GameMap; board: PaintedBoard; shadows: boolean} | null = null;
   paintedBuildMetrics: PaintedBuildMetrics | null = null;
@@ -702,8 +707,10 @@ export class Renderer3D implements MapView {
    * and the painted look needs none of the multisampling, depth or stencil the
    * toon look draws with. See `canvasAttributes`.
    */
-  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number; painted?: boolean } = {}) {
+  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number; painted?: boolean; closeGround?: boolean } = {}) {
     this.canvas = canvas;
+    this.closeGroundEnabled = options.closeGround ?? (typeof location !== 'undefined' &&
+      new URLSearchParams(location.search).get('closeGround') === '1');
     this.paintedCanvas = options.painted === true;
     this.view = new DioramaCamera(options.minFrustum);
     this.renderer = new WebGLRenderer({ canvas, ...canvasAttributes(this.paintedCanvas) });
@@ -873,7 +880,9 @@ export class Renderer3D implements MapView {
    * the plain land or the present far land by it.
    */
   private groundPaintPlanFor(map: GameMap): GroundPaintPlan | null {
-    return groundPaintPlan(map.width, map.height, this.renderer.capabilities.maxTextureSize);
+    const plan = groundPaintPlan(map.width, map.height, this.renderer.capabilities.maxTextureSize,
+      this.closeGroundEnabled ? closeGroundBaseSheet() : undefined);
+    return this.closeGroundEnabled && plan ? { ...plan, closeTrial: true } : plan;
   }
 
   /**
@@ -2517,6 +2526,7 @@ export class Renderer3D implements MapView {
    * per game.
    */
   private rebuildBoard(map: GameMap): void {
+    this.closeGround?.dispose();
     if (this.map) uninstallPaintedSurface(this.map);
     if (this.board) {
       this.scene.remove(this.board.group);
@@ -2532,6 +2542,7 @@ export class Renderer3D implements MapView {
     this.paintedBoard = ready ? prepared.board : this.paintedLook
       ? buildPaintedBoard(map, this.paintedLook.assets, this.paintedLook.materials, this.shadows, null, undefined, null, null, null,
         this.groundPaintPlanFor(map)) : null;
+    this.closeGround = this.closeGroundEnabled && this.paintedBoard ? closeGroundFor(this.paintedBoard) : null;
     this.boardDrawnAt = null;
     // The ground paint bake's targets, and its program linking off the page's thread while the layers are built.
     this.paintedBoard?.groundPaint?.prepare(this.renderer);
@@ -4524,6 +4535,9 @@ export class Renderer3D implements MapView {
     const ground = this.paintedBoard?.groundPaint;
     if (ground?.pending && this.boardDrawnAt !== null && now - this.boardDrawnAt >= VIEW3D.painted.groundTexture.bakeAfterMs
       && ground.step(this.renderer)) this.frameDirty = true;
+    if (ground?.ready && this.closeGround && this.closeGround.update(this.renderer, this.view.target.x, this.view.target.z,
+      this.view.camera.right, this.view.camera.top, this.view.elevationDegrees, this.view.atClosestZoom,
+      this.closeGroundCut)) this.frameDirty = true;
     const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || settled || revealing;
     // The motion has gone to rest: keep the time of the last frame drawn, which
     // is the time the motion's clock stopped at.
@@ -4747,6 +4761,8 @@ export class Renderer3D implements MapView {
    * look itself. The non-painted layers stay; their arrays are intact.
    */
   private tearDownPaintedLook(): void {
+    this.closeGround?.dispose();
+    this.closeGround = null;
     this.boardBuild?.abort(); this.boardBuild = null;
     this.preparedBoard?.board.dispose(); this.preparedBoard = null;
     if (this.map) uninstallPaintedSurface(this.map);
@@ -4815,6 +4831,8 @@ export class Renderer3D implements MapView {
     this.fog?.dispose();
     this.reveal?.dispose();
     if (this.map) uninstallPaintedSurface(this.map);
+    this.closeGround?.dispose();
+    this.closeGround = null;
     if (this.board) this.board.dispose();
     this.paintedLook?.dispose();
     this.geometry.dispose();

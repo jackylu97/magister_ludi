@@ -223,7 +223,7 @@ describe('the card is the faith lens’s and nothing else’s', () => {
   });
 
   it('is the shared hover card, non-sticky, anchored to the hex', () => {
-    expect(main).toContain("createInfoCard({ className: 'info-card is-board' })");
+    expect(main).toContain("createInfoCard({ signal, className: 'info-card is-board' })");
     expect(main).not.toContain("className: 'info-card is-board', sticky");
     // Anchored through the renderer's own projection, which is the inverse of
     // picking — the city banners' mechanism, one card over.

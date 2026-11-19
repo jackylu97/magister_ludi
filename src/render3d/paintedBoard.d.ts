@@ -1,32 +1,32 @@
 import type { BufferGeometry, DataTexture, Group, InstancedBufferAttribute, Mesh, MeshStandardMaterial, Texture, WebGLRenderer } from 'three';
 import type { GameMap } from '../sim/map';
 import type { BuiltBoard } from './board3d';
-import type { GroundPaintInfo, GroundPaintPlan } from './groundPaint.js';
+import type { GroundPaint, GroundPaintInfo, GroundPaintPlan } from './groundPaint.js';
 
-export interface PaintedVegetationAsset {
-  geometry: BufferGeometry;
-  shoulderGeometry?: BufferGeometry | null;
+export interface PaintedVegetationAsset<G = BufferGeometry, M = MeshStandardMaterial> {
+  geometry: G;
+  shoulderGeometry?: G | null;
   /** The map-scale stand-in, where the distance sheet names this family. */
-  farGeometry?: BufferGeometry | null;
-  farShoulderGeometry?: BufferGeometry | null;
-  material: MeshStandardMaterial;
+  farGeometry?: G | null;
+  farShoulderGeometry?: G | null;
+  material: M;
 }
-export interface PaintedVegetationAssets {
-  broadleaves: PaintedVegetationAsset[];
-  cypresses: PaintedVegetationAsset[];
-  escarpments: PaintedVegetationAsset[];
-  limestone: PaintedVegetationAsset;
-  broadleaf: PaintedVegetationAsset;
-  rangeMaterial: MeshStandardMaterial;
+export interface PaintedVegetationAssets<G = BufferGeometry, M = MeshStandardMaterial> {
+  broadleaves: PaintedVegetationAsset<G, M>[];
+  cypresses: PaintedVegetationAsset<G, M>[];
+  escarpments: PaintedVegetationAsset<G, M>[];
+  limestone: PaintedVegetationAsset<G, M>;
+  broadleaf: PaintedVegetationAsset<G, M>;
+  rangeMaterial: M;
 }
-export interface PaintedBoardMaterials {
-  ground: Record<string, MeshStandardMaterial>;
-  earth: MeshStandardMaterial;
-  mergedLand: MeshStandardMaterial;
-  mergedWater: MeshStandardMaterial;
-  mergedDetails: MeshStandardMaterial;
-  water: Record<string, MeshStandardMaterial>;
-  features: Record<string, MeshStandardMaterial>;
+export interface PaintedBoardMaterials<M = MeshStandardMaterial> {
+  ground: Record<string, M>;
+  earth: M;
+  mergedLand: M;
+  mergedWater: M;
+  mergedDetails: M;
+  water: Record<string, M>;
+  features: Record<string, M>;
 }
 export interface PaintedBoardBatch {
   geometry: BufferGeometry;
@@ -50,9 +50,10 @@ export interface PaintedBoardBatch {
   /** Where the batch stands in a whole build's order: [step, rank, count]. See `buildPaintedBoard`'s `part`. */
   order?: [number, number, number];
 }
+export type ExportedPaintedBatch = PaintedBoardBatch & Required<Pick<PaintedBoardBatch, 'order'>>;
 export interface PaintedBoard extends BuiltBoard {
   replaceHillRelief(cells: ReadonlySet<number>): boolean;
-  exportBatches(): PaintedBoardBatch[];
+  exportBatches(): ExportedPaintedBatch[];
   renderMap: GameMap;
   pickMeshes: Mesh[];
   /** The three wrap copies (x = −W, 0, +W), in that order. See `copyCulling.ts`. */
@@ -68,6 +69,11 @@ export interface PaintedBoard extends BuiltBoard {
    */
   readonly groundPaint: null | {
     readonly plan: GroundPaintPlan;
+    readonly trial?: {
+      bakeClose(plan: GroundPaintPlan): { paint: GroundPaint; step(renderer: WebGLRenderer): boolean };
+      /** Pass null for cut land or omit the argument to resume the normal zoom rule. */
+      show(paint?: GroundPaint | null): void;
+    };
     /** The texture is baked, so the plain land may be drawn. */
     readonly ready: boolean;
     readonly pending: boolean;

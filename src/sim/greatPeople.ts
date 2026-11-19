@@ -41,16 +41,9 @@
  *
  * Contention
  * ----------
- * Under simultaneous turns two seats may hold offers naming the same person.
- * That is not a bug to design away — it is the shape of every shared pool in
- * this game — and it is settled the way every other contention is: **by log
- * order**. The first `chooseGreatPerson` to reach the reducer takes the name;
- * the second is refused with a sentence, and its offer is **re-drawn on the
- * spot** so the seat is not left holding a hand it cannot play. The redraw
- * spends `state.rng`, which is a mutation inside a *refused* command — so it is
- * deliberately performed by the **handler after the refusal is decided**, never
- * inside the error function, and the refusal is a `fail` whose state change is
- * exactly one redraw. See `greatPersonChoiceError` and `redrawGreatPersonOffer`.
+ * Two seats can hold offers with the same name. The first seat to choose it
+ * recruits the person. If the other seat picks that name, the command redraws
+ * its offer. The log records both commands so replay repeats the same draw.
  */
 
 import {
@@ -794,57 +787,40 @@ function chargeBank(
 
 // --- taking a name ----------------------------------------------------------
 
-/**
- * Why this player cannot take this option, or `null` when they can.
- *
- * **The** gate: the `chooseGreatPerson` command refuses with this sentence and
- * the offer card is built from exactly the offer it answers `null` about, so a
- * name a player can click is a command the reducer takes. `orderChoiceError`'s
- * shape, refusal for refusal, with **one refusal of its own** — the name may
- * already be somebody else's, because the roster is the world's and two seats
- * looking at the same window may have been dealt the same person.
- */
-export function greatPersonChoiceError(
+/** A taken name needs a new offer. Invalid input leaves the existing offer alone. */
+export function greatPersonChoiceProblem(
   state: GameState,
   playerId: number,
   optionIndex: unknown,
-): string | null {
+): { kind: 'invalid' | 'taken'; reason: string } | null {
   const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
+  if (!player) return { kind: 'invalid', reason: `No player with id ${String(playerId)}` };
   const offer = player.greatPersonOffer;
-  if (!offer) return `${player.name} has no great person waiting to be chosen`;
+  if (!offer) return { kind: 'invalid', reason: `${player.name} has no great person waiting to be chosen` };
   if (!Number.isInteger(optionIndex)) {
-    return `chooseGreatPerson needs an integer optionIndex, got ${String(optionIndex)}`;
+    return { kind: 'invalid', reason: `chooseGreatPerson needs an integer optionIndex, got ${String(optionIndex)}` };
   }
   const index = optionIndex as number;
   if (index < 0 || index >= offer.options.length) {
-    return `Option ${index} is not one of the ${offer.options.length} offered`;
+    return { kind: 'invalid', reason: `Option ${index} is not one of the ${offer.options.length} offered` };
   }
   const id = offer.options[index];
   // Only reachable from a hand-edited save or a retuned roster under a live game.
-  if (!isGreatPersonId(id)) return `Option ${index} names no known great person`;
+  if (!isGreatPersonId(id)) return { kind: 'invalid', reason: `Option ${index} names no known great person` };
   // The contention clause, and the only one in this file. See the module
   // docblock: the roster is shared by every seat and resolved by log order.
   if (state.recruited.includes(id)) {
-    return `${greatPersonDef(id).name} has already been called by another empire`;
+    return { kind: 'taken', reason: `${greatPersonDef(id).name} has already been called by another empire` };
   }
   return null;
 }
 
-/**
- * Deals this empire a fresh hand, because the one it held named somebody who is
- * now spent.
- *
- * Called by the reducer **after** a refusal, never inside the gate: a rejected
- * command must leave the state byte-identical, and a redraw is a mutation, so
- * the two cannot be the same step. What makes it defensible anyway is that the
- * alternative is worse — a seat holding a hand of names another empire has taken
- * is a seat that can never end its turn.
- *
- * A redraw that finds the roster empty **clears the offer** rather than leaving
- * an empty one, which is the same thing `settleRenownWindfall` does when the
- * roster is spent: the renown stays banked, and the empire may end its turn.
- */
+/** The bot uses the same reason when it rules out a name in its offer. */
+export function greatPersonChoiceError(state: GameState, playerId: number, optionIndex: unknown): string | null {
+  return greatPersonChoiceProblem(state, playerId, optionIndex)?.reason ?? null;
+}
+
+/** An empty roster clears the offer so the player can still end the turn. */
 export function redrawGreatPersonOffer(state: GameState, player: Player): GreatPersonOffer | null {
   if (player.greatPersonOffer === undefined) return null;
   const offer = drawGreatPersonOffer(state, player);

@@ -7,9 +7,10 @@ painting shows are in `docs/splash-art.md`.
 |---|---|---|---|---|
 | `wonders/` | One painting a wonder, written by `scripts/splashArt.py` | 16:9 | made from the master, at most 1600 wide | the wonder's id, for example `greatSphinx.jpg` |
 | `leaders/` | One portrait a leader | 3:4 | 960 x 1280 | the leader's id, for example `pachacuti.jpg` |
-| `ages/` | One plate an age | 16:9 | 2560 x 1440 | `age1.jpg` to `age4.jpg` |
-| `beliefs/` | One vignette a belief | 1:1 | 480 x 480 | the belief's id, for example `sacredFire.jpg` |
-| `people/` | One portrait a great person | 5:6 | 600 x 720 | the person's id, for example `imhotep.jpg` |
+| `ages/` | Three sets of four age paintings (`form`, `still`, `abstract`), written by `scripts/splashArt.py ages`; a game shows one set | 16:9 | made from the master, at most 1600 wide | the set and the age, for example `form2.jpg` |
+| `endings/` | The ending page's painting: `win.jpg` and `loss.jpg`, written by `scripts/splashArt.py endings` | 16:9 | made from the master, at most 1600 wide | `win.jpg`, `loss.jpg` |
+| `beliefs/` | One vignette a belief, written by `scripts/splashArt.py beliefs` | 1:1 | made from the master, 480 x 480 | the belief's id, for example `sacredFire.jpg` |
+| `people/` | One portrait a great person, written by `scripts/splashArt.py people` | 5:6 | made from the master, 720 x 864 | the person's id, for example `imhotep.jpg` |
 
 - Use JPEG (quality about 85) or WebP for the files in this folder. Keep
   each under about 600 KB; the game loads them in the browser.
@@ -39,16 +40,32 @@ The painting then shows on the full-screen wonder plate and on the wonder's
 piece on the In play screen. A wonder without a painting shows the engraved
 stand-in. Ages are not wired yet.
 
+## The ending paintings
+
+The two ending paintings are wired. The ending page of the Opus close
+(`src/ui/opusClose.ts`) covers the whole window with one of them, cut from the
+centre: `win.jpg` for the seat that closed the Great Work, `loss.jpg` for every
+other seat. `src/ui/endingPaintings.ts` names the two files, and a test fails
+if the list and the folder disagree. The lower third of the page is under a
+dark fade, with the words at the left and the doors at the right, so keep the
+subject of a painting out of its lower third.
+
 ## How a great person's portrait gets into the game
 
 The great person card (the offer and the Reliquary) has an arched picture
-window of 5:6. No portrait exists yet, so every card shows its family's emblem
-in the window.
+window of 5:6. The first twenty portraits arrived on 2026-11-19. A person with
+no portrait shows their family's emblem in the window.
 
-1. Make the portrait 5:6, at 600 x 720 or larger. The window's top is an arch,
-   so keep the face and anything important out of the two top corners.
-2. Save it as `people/<person id>.jpg` (JPEG, quality about 85).
-3. Add the id to the list in `src/ui/greatPersonPaintings.ts`. A test fails if
+1. Put the full-size portrait in `art-masters/people/` under any name. Make it
+   5:6. The window's top is a round arch, so keep the face out of the two
+   top corners.
+2. Add its name and the person's id to the `PEOPLE` table in
+   `scripts/splashArt.py`.
+3. Run `python3 scripts/splashArt.py people` from the repo root. It cuts off a
+   black border or a paper mount if there is one, cuts the picture to 5:6
+   (keeping the top, where the head is), and writes `people/<person id>.jpg`
+   at 720 by 864.
+4. Add the id to the list in `src/ui/greatPersonPaintings.ts`. A test fails if
    the list and the folder disagree.
 
 The portrait then shows in the window of that person's card, in the offer and
@@ -74,14 +91,19 @@ The portrait then shows in the window when that leader is chosen.
 ## How a belief's vignette gets into the game
 
 On the Faith sheet's Bonuses tab, each god, each belief and the holy city is a
-tablet with a round window of 1:1. No vignette exists yet, so every window
-shows the drawn belief mark (the holy city shows its own mark).
+tablet with a round window of 1:1. The 23 pantheon beliefs have a vignette
+(2026-11-19). A belief with none shows the drawn belief mark, and the holy
+city shows its own mark.
 
-1. Make the vignette 1:1, at 480 x 480 or larger. The window is a circle, so
-   keep anything important inside the circle that touches the four edges.
-2. Save it as `beliefs/<belief id>.jpg` (JPEG, quality about 85). The ids
-   are the keys of `beliefs` in `data/religion.json`.
-3. Add the id to the list in `src/ui/beliefPictures.ts`. A test
+1. Put the full-size picture in `art-masters/beliefs/` under any name. Make it
+   1:1. The window is a circle, so keep anything important inside the circle
+   that touches the four edges.
+2. Add its name and the belief's id to the `BELIEFS` table in
+   `scripts/splashArt.py`. The ids are the keys of `beliefs` in
+   `data/religion.json`.
+3. Run `python3 scripts/splashArt.py beliefs` from the repo root. It writes
+   `beliefs/<belief id>.jpg` at 480 by 480.
+4. Add the id to the list in `src/ui/beliefPictures.ts`. A test
    (`test/ui/beliefPictures.test.ts`) fails if the list and the folder
    disagree.
 

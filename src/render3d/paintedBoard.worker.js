@@ -1,6 +1,11 @@
+// @ts-check
+/** @typedef {import('./paintedBoardProtocol').BoardBuildRequest} BoardBuildRequest */
+/** @typedef {import('./paintedBoardProtocol').BoardBuildReply} BoardBuildReply */
+/** @typedef {import('./paintedBoardProtocol').TerrainPacket} TerrainPacket */
+/** @typedef {import('./paintedBoard.js').PaintedBuildShare} BuildShare */
 import {buildPaintedBoard} from './paintedBoard.js';
 import {packTerrainMap, setRiverStyle, setCoastStyle} from '../terrainStudy/surface.js';
-import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './paintedBoardTransfer.js';
+import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './paintedBoardTransfer';
 
 // `part` is `{regions, terrain}` when the build is split across workers: this
 // worker builds those regions only, and sends the prepared terrain only when
@@ -13,21 +18,31 @@ import {unpackPaintedKit, packPaintedBatches, paintedTransferBuffers} from './pa
 // the part with `shareTo` posts each as it is done, and a part with
 // `shareFrom` waits for both and then builds on them (`buildPaintedBoard`'s
 // `share`; the fourth render speed pass).
+/** @param {BoardBuildReply} reply @param {Transferable[]} [buffers] */
+function postReply(reply, buffers = []) {
+  const worker = /** @type {{postMessage(value: BoardBuildReply, transfer: Transferable[]): void}} */ (self);
+  worker.postMessage(reply, buffers);
+}
+
+/** @param {MessageEvent<BoardBuildRequest>} event */
 self.onmessage = ({data}) => {
   if (!data.shareFrom) { build(data, data.shareTo ? publisher(data.shareTo) : null); return; }
   // Until the shape and the rivers arrive, this part is on the first step, as the part working them out is.
-  self.postMessage({type: 'progress', percent: 0, stage: 'shape'});
-  const port = data.shareFrom, share = {};
+  postReply({type: 'progress', percent: 0, stage: 'shape'});
+  const port = data.shareFrom;
+  /** @type {unknown} */
+  let shape;
+  /** @param {MessageEvent<{kind: 'shape' | 'rivers', payload: unknown}>} event */
   port.onmessage = ({data: {kind, payload}}) => {
-    share[kind] = payload;
-    if (kind !== 'rivers') return;
+    if (kind === 'shape') { shape = payload; return; }
     port.close();
-    build(data, share);
+    build(data, {shape, rivers: payload});
   };
-  port.onmessageerror = () => { port.close(); self.postMessage({type: 'error', message: 'Could not read the shared terrain'}); };
+  port.onmessageerror = () => { port.close(); postReply({type: 'error', message: 'Could not read the shared terrain'}); };
 };
 
 /** Posts each early step's result to every other part as it is done, then lets the ports go. */
+/** @param {MessagePort[]} ports @returns {Extract<BuildShare, {publish: Function}>} */
 function publisher(ports) {
   return {
     publish(kind, payload) {
@@ -39,12 +54,19 @@ function publisher(ports) {
 
 // `ground` is the page's plan for the ground paint texture (`groundPaintPlan`), or null: with one, this part builds
 // the plain land in place of the far land.
-function build({map, kit, shadows, riverStyle, coastStyle, part = null, terrainPort = null, ground = null}, share) {
+/** @param {BoardBuildRequest} request @param {BuildShare | null} share */
+function build({map, kit, shadows, riverStyle, coastStyle, part, terrainPort, ground = null}, share) {
   let board, resources;
+  /** @param {TerrainPacket} terrain */
   const toBake = (terrain) => {
     if (!terrainPort) return;
-    try { terrainPort.postMessage({terrain}); } catch (error) { terrainPort.postMessage({error: error instanceof Error ? error.message : String(error)}); }
-    terrainPort.close(); terrainPort = null;
+    try {
+      terrainPort.postMessage({terrain});
+    } catch (error) {
+      terrainPort.postMessage({error: error instanceof Error ? error.message : String(error)});
+    }
+    terrainPort.close();
+    terrainPort = undefined;
   };
   try {
     // The worker has its own copy of the terrain modules, so the river cut the
@@ -65,21 +87,31 @@ function build({map, kit, shadows, riverStyle, coastStyle, part = null, terrainP
       if (prepared && !terrainSent && (!part || part.terrain)) {
         terrainSent = true;
         const terrain = packTerrainMap(prepared);
-        self.postMessage({type: 'terrain', terrain}); toBake(terrain);
+        postReply({type: 'terrain', terrain});
+        toBake(terrain);
       }
-      if (stage !== 'land') { self.postMessage({type: 'progress', percent: last < 0 ? 0 : last, stage}); return; }
+      if (stage !== 'land') {
+        postReply({type: 'progress', percent: Math.max(0, last), stage});
+        return;
+      }
       const percent = Math.floor(done / Math.max(1, total) * 100);
-      if (percent !== last || done === total) { last = percent; self.postMessage({type: 'progress', percent, stage, done, total}); }
+      if (percent !== last || done === total) {
+        last = percent;
+        postReply({type: 'progress', percent, stage, done, total});
+      }
     }, null, part ? {regions: new Set(part.regions)} : null, share, ground);
-    self.postMessage({type: 'progress', percent: Math.max(0, last), stage: 'packing'});
+    postReply({type: 'progress', percent: Math.max(0, last), stage: 'packing'});
     const batches = packPaintedBatches(board.exportBatches(), resources.bindings);
     const terrain = (!part || part.terrain) && !terrainSent ? packTerrainMap(board.renderMap) : null;
     if (terrain) toBake(terrain);
-    self.postMessage({type: 'complete', batches, terrain, buildMs: performance.now() - started}, paintedTransferBuffers(batches));
+    postReply({type: 'complete', batches, terrain, buildMs: performance.now() - started}, paintedTransferBuffers(batches));
   } catch (error) {
-    self.postMessage({type: 'error', message: error instanceof Error ? error.message : String(error)});
+    postReply({type: 'error', message: error instanceof Error ? error.message : String(error)});
     // The bake waits on this port; tell it that no terrain is coming.
-    if (terrainPort) { terrainPort.postMessage({error: 'The board build failed'}); terrainPort.close(); terrainPort = null; }
+    if (terrainPort) {
+      terrainPort.postMessage({error: 'The board build failed'});
+      terrainPort.close();
+    }
   } finally {
     board?.dispose();
     for (const resource of resources?.bindings || []) resource.dispose();

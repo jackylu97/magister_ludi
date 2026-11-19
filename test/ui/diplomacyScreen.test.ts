@@ -377,7 +377,7 @@ describe('the wiring that spans files', () => {
     // The mark and `W` open the sheet, and the sheet's own opening closes
     // whatever else is up (the screen registry, batch UX2).
     expect(main).toContain('diplomacy: () => diplomacy?.open(),');
-    expect(main).toContain('else diplomacy?.open();');
+    expect(main).toContain('case \'w\': diplomacy?.open();');
     expect(main).toContain("onOpen: () => screens.opening('diplomacy'),");
     // The sheet gives the keyboard back to the mark.
     expect(main).toContain('trigger: quickDiplomacyButton,');

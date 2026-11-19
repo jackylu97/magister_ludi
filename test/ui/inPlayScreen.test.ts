@@ -55,10 +55,7 @@ describe('the sheet', () => {
 
 describe('the doors', () => {
   it('opens on I from the map, swept with the boot, and on the corner panel’s fifth mark', () => {
-    const key = braceBody(MAIN, 'const onInPlayKey = (event: KeyboardEvent): void =>');
-    expect(key).toContain("if (event.key !== 'i' && event.key !== 'I') return;");
-    expect(key).toContain('if (isInputBlocked()) return;');
-    expect(MAIN).toContain("gameDisposers.push(() => window.removeEventListener('keydown', onInPlayKey));");
+    expect(MAIN).toContain("case 'i': inPlay?.open();");
     expect(MAIN).toContain('inPlay: () => inPlay?.open(),');
     // The help card names the key.
     expect(HTML).toContain('<kbd>I</kbd> In play');

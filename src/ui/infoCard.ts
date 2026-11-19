@@ -275,6 +275,7 @@ export interface InfoCard {
 }
 
 interface InfoCardOptions {
+  signal?: AbortSignal;
   /**
    * The class the card wears. `info-card` is the ground; a caller adds its own
    * modifier (`is-night` over the star chart) so the two surfaces can differ in
@@ -405,7 +406,7 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
   // Any scroll anywhere: the anchor has moved and the card has not. Captured,
   // because the panels that raise these cards are themselves the scrollers and
   // their scroll events do not bubble to the window.
-  window.addEventListener('scroll', () => dismiss(), true);
+  window.addEventListener('scroll', () => dismiss(), { capture: true, signal: options.signal });
 
   // --- the sticky half ------------------------------------------------------
   //
@@ -465,7 +466,7 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
         const target = event.target;
         if (target instanceof Element && target.closest('[data-ref]') !== null) send('keyword');
       },
-      true,
+      { capture: true, signal: options.signal },
     );
     // Captured and stopped **only while the card is up**, so the first Escape
     // takes the card down and the second still closes the screen behind it.
@@ -485,7 +486,7 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
         event.stopPropagation();
         send('escape');
       },
-      true,
+      { capture: true, signal: options.signal },
     );
     window.addEventListener(
       'pointerdown',
@@ -502,7 +503,7 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
           (card.contains(target) || (anchoredTo?.contains(target) ?? false));
         if (!inside) send('elsewhere');
       },
-      true,
+      { capture: true, signal: options.signal },
     );
   }
 
@@ -544,5 +545,6 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     });
   }
 
+  options.signal?.addEventListener('abort', () => { dismiss(); card.remove(); }, { once: true });
   return { bind, showAt, hide: dismiss };
 }

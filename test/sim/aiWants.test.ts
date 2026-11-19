@@ -1678,8 +1678,6 @@ describe('batch 8 — the name a hand calls', () => {
   });
 
   it('still sends the first option when every name in the hand is spent', () => {
-    // The redraw, byte-identical: the reducer's one refusal that mutates is what
-    // an all-spent hand is *for*, and this batch left it alone.
     const state = benchState(1);
     const player = seat(state, 0);
     const options = GREAT_PERSON_IDS.slice(0, 2);

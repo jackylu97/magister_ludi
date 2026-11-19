@@ -8,6 +8,10 @@ export interface GroundPaintBox { x0: number; period: number; z0: number; z1: nu
  * GPU. Plain data, so it travels to the board workers in their message.
  */
 export interface GroundPaintPlan extends GroundPaintBox {
+  /** The dev trial can switch the base material to a close view across the wrap seam. */
+  closeTrial?: boolean;
+  /** A local bake repeats land geometry at this map width. */
+  wrapPeriod?: number;
   /** Texels a world unit, after the GPU's limit and the byte budget. */
   density: number;
   /** `density` over the sheet's `texelsPerUnit`; the zoom band is scaled by it. */

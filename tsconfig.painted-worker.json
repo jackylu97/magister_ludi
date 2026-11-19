@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "allowJs": true, "checkJs": false },
+  "include": ["src/render3d/paintedBoardAsync.js", "src/render3d/paintedBoard.worker.js"]
+}

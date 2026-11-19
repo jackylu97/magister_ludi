@@ -575,6 +575,7 @@ export interface TechTree {
 }
 
 interface TechTreeOptions {
+  signal?: AbortSignal;
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
   /**
@@ -1056,7 +1057,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * surface in a light interface, and a parchment card glaring over the sky
    * would undo the reason it is dark.
    */
-  const info = createInfoCard({ className: 'info-card is-night', sticky: true });
+  const info = createInfoCard({ signal: options.signal, className: 'info-card is-night', sticky: true });
 
   /**
    * What a node's own rules do, in the words the row itself was written in.
@@ -2319,6 +2320,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   tabArrow.setAttribute('aria-hidden', 'true');
   tab.append(charterSealNode(), document.createTextNode('Charters'), tabCount, tabArrow);
   chart.after(tab);
+  options.signal?.addEventListener('abort', () => tab.remove(), { once: true });
   let tabTarget: TechId | null = null;
 
   function updateTab(): void {
@@ -2369,11 +2371,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (!card) return;
     centreOn(card, true);
     ringNode(card);
-  });
+  }, { signal: options.signal });
   // The stage's own scroll, so the tab goes the moment a charter node comes
   // into view and comes back when the last one leaves. An element listener,
   // which dies with the stage, so nothing has to unbind it.
-  chart.addEventListener('scroll', () => updateTab(), { passive: true });
+  chart.addEventListener('scroll', () => updateTab(), { passive: true, signal: options.signal });
 
   /** One column-ish, for the sideways arrow keys and for a wheel notch. */
   const NUDGE = 260;
@@ -2407,7 +2409,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       left: chart.scrollLeft,
       top: chart.scrollTop,
     };
-  });
+  }, { signal: options.signal });
 
   chart.addEventListener('pointermove', (event) => {
     if (!panFrom || event.pointerId !== panFrom.id) return;
@@ -2429,7 +2431,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     }
     chart.scrollLeft = panFrom.left - dx;
     chart.scrollTop = panFrom.top - dy;
-  });
+  }, { signal: options.signal });
 
   function endPan(event: PointerEvent): void {
     if (!panFrom || event.pointerId !== panFrom.id) return;
@@ -2442,8 +2444,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     panned = false;
   }
 
-  chart.addEventListener('pointerup', endPan);
-  chart.addEventListener('pointercancel', endPan);
+  chart.addEventListener('pointerup', endPan, { signal: options.signal });
+  chart.addEventListener('pointercancel', endPan, { signal: options.signal });
 
   chart.addEventListener(
     'click',
@@ -2453,7 +2455,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       event.stopPropagation();
       event.preventDefault();
     },
-    true,
+    { capture: true, signal: options.signal },
   );
 
   /**
@@ -2485,7 +2487,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       if (down) chart.scrollTop += event.deltaY * unit;
       else chart.scrollLeft += event.deltaY * unit;
     },
-    { passive: false },
+    { passive: false, signal: options.signal },
   );
 
   // --- the empire drawer's research section ---------------------------------
@@ -2734,8 +2736,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     render();
   }
 
-  closeButton.addEventListener('click', () => setOpen(false));
-  statusCard.addEventListener('click', () => setOpen(!open));
+  closeButton.addEventListener('click', () => setOpen(false), { signal: options.signal });
+  statusCard.addEventListener('click', () => setOpen(!open), { signal: options.signal });
 
   // Escape belongs to whatever is in front, and while this is up that is this.
   // `main.ts` reports the overlay as blocking, so `controls.ts` never sees the
@@ -2773,7 +2775,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       event.stopPropagation();
       chart.scrollTop += event.key === 'ArrowUp' ? -NUDGE_DOWN : NUDGE_DOWN;
     }
-  });
+  }, { signal: options.signal });
 
   /**
    * Escape, from **any** focus state — not only from inside the chart.
@@ -2803,7 +2805,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   // Clicking the ink around the chart closes it, like the popovers do.
   overlay.addEventListener('pointerdown', (event) => {
     if (event.target === overlay) setOpen(false);
-  });
+  }, { signal: options.signal });
 
   // A resize changes the height the chart was packed for as readily as the
   // width the lines were measured in, so both are redone, in the same order

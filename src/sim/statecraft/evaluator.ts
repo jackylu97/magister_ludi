@@ -2512,11 +2512,21 @@ export function buildingSupplies(
   id: BuildingId,
   voice: CityYieldKey,
 ): boolean {
+  return buildingSuppliesFrom(state, city, id, voice);
+}
+
+function buildingSuppliesFrom(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+  voice: CityYieldKey,
+  readPayments?: () => readonly LiveOfKind<'pays'>[],
+): boolean {
   if (buildingDef(id).category === voice) return true;
   if (suppliesDepth > 0) return buildingRowSupplies(id, voice);
   suppliesDepth += 1;
   try {
-    return foldBuildingPackage(explainBuildingPackage(state, city, id))[voice] > 0;
+    return foldBuildingPackage(buildingPackage(state, city, id, readPayments))[voice] > 0;
   } finally {
     suppliesDepth -= 1;
   }
@@ -3671,9 +3681,13 @@ export function countOf(
       const voice = effect.voice;
       if (voice === undefined) return 0;
       const here = (town: City): number => {
+        // Every building in this count uses the same town and card conditions.
+        // Resolve them inside the supply depth guard, once for this town.
+        let payments: LiveOfKind<'pays'>[] | undefined;
+        const readPayments = () => (payments ??= cityEffectsOfKind(state, town, 'pays'));
         let found = 0;
         for (const id of townBuildings(state, town)) {
-          if (buildingSupplies(state, town, id, voice)) found += 1;
+          if (buildingSuppliesFrom(state, town, id, voice, readPayments)) found += 1;
         }
         return found;
       };
@@ -3896,11 +3910,8 @@ export function countOf(
       }
     }
     case 'rerollsWhileSlotted': {
-      // The **chair's** counter, not the card's: the ruled sentence is "while
-      // this Order is slotted", so a card benched and re-slotted starts a new
-      // watch. Nothing writes `rerollsSeen` until batch C1 builds the reroll, so
-      // this reads nought in every empire today — the honest answer for a thing
-      // that has not happened yet.
+      // Count Order draft rerolls during this seating. Removing and reseating
+      // the Order starts a new count.
       const sc = statecraftOf(state, playerId);
       if (!sc) return 0;
       let total = 0;
@@ -5900,6 +5911,15 @@ export function explainBuildingPackage(
   city: City,
   id: BuildingId,
 ): BuildingPackageLine[] {
+  return buildingPackage(state, city, id);
+}
+
+function buildingPackage(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+  readPayments?: () => readonly LiveOfKind<'pays'>[],
+): BuildingPackageLine[] {
   const list: BuildingPackageLine[] = [];
   for (const row of explainBuildingYield(id)) {
     list.push({
@@ -5915,7 +5935,7 @@ export function explainBuildingPackage(
     });
   }
   if (!townHoldsBuilding(state, city, id)) return list;
-  for (const line of cardLinesOnBuilding(state, city, id)) list.push(line);
+  for (const line of cardLinesOnBuilding(state, city, id, readPayments)) list.push(line);
   for (const line of resourceLinesOnBuilding(state, city, id)) {
     list.push({
       source: line.source,
@@ -5997,12 +6017,18 @@ export function foldBuildingPackage(
  * second question from the category and the row, so the Cathedral School's
  * count never asks for its own count again.
  */
-function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): BuildingPackageLine[] {
+function cardLinesOnBuilding(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+  readPayments?: () => readonly LiveOfKind<'pays'>[],
+): BuildingPackageLine[] {
   const owner = city.ownerId;
   const category = buildingDef(id).category;
   const list: BuildingPackageLine[] = [];
   const targeted = targetedYieldRises<BuildingPackageLine>(state, owner, scaleYieldLine);
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+  const payments = readPayments ? readPayments() : cityEffectsOfKind(state, city, 'pays');
+  for (const { source, card, effect } of payments) {
     if (isRiteId(card)) continue;
     if (effect.payee !== undefined) continue;
     const basis = basisOf(effect);

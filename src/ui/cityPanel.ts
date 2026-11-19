@@ -1302,6 +1302,7 @@ const openDisclosures = new Set<string>();
 const closedDisclosures = new Set<string>();
 
 interface CityPanelOptions {
+  signal?: AbortSignal;
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
   getGame: () => Game;
@@ -2367,7 +2368,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * from under an open card without a `pointerleave` ever firing, so `render`
    * puts it away first thing.
    */
-  const info = createInfoCard({ className: 'info-card' });
+  const info = createInfoCard({ signal: options.signal, className: 'info-card' });
 
   /**
    * **The yield chips' card** (batch UX6): one card for the band's six chips. It

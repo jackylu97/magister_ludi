@@ -57,10 +57,8 @@ interface DriveOptions {
    * Called after **every** command the driver puts to the real game, accepted
    * or refused, in order. The commands a plan sends to its own copy are not
    * reported here. The bot worker records these so the page can put the
-   * same commands to its own copy of the game (`replayBotAttempts`). Refusals
-   * are included because one refusal changes the state: a great-person pick
-   * whose name was taken redraws the hand (`applyChooseGreatPerson`), and the
-   * log, which holds accepted commands only, does not record it.
+   * same commands to its own copy of the game (`replayBotAttempts`). Checking
+   * refusals as well lets the page detect a disagreement with the worker.
    */
   attempt?: (command: Command, result: CommandResult) => void;
   /** Called after every accepted bot command. `controls.reportCommand`. */
@@ -250,7 +248,7 @@ function* applyBotPlans(
   return reports;
 }
 
-/** The worker replays even a refused attempt because a refused great-person pick can redraw the hand. */
+/** The page compares every attempt with the result reported by the worker. */
 function dispatchAttempt(game: Game, command: Command, options: TurnOptions): CommandResult {
   const result = dispatch(game, command);
   options.attempt?.(command, result);

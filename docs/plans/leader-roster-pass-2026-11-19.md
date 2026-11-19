@@ -1,14 +1,550 @@
 # Leader roster pass, 2026-11-19
 
-A design pass on every candidate in the ruling "Leaders: a more mainstream roster, one for each pair of decks" (`docs/flags.md`, 2026-11-19). The user chooses among them. Nothing here is built, and no game data or code changed.
+A design pass on the leaders, in three steps: the first pass on sixteen candidates, the user's comments on the page, and the user's ruling on the roster. No game data or code changed. The page for review is generated from the same source (`roster_data.py`, `final_data.py`, `build.py` and `build2.py` in the session scratchpad).
 
-- The page for review is generated from the same source (`roster_data.py` and `build.py`, in the session scratchpad).
-- History is written from memory and is not checked against sources. Thin points are marked in each block.
+- This page is the roster after your comments and your ruling of 2026-11-19. Your words are the spec; they are copied at the end of the doc.
+- Sixteen seats: one leader for each of the fifteen pairs, and Ibn Battuta, who plays every deck.
+- Open for you: the readings in part 1, and Jayavarman VII in part 2. Everything else is ready for the build.
 - Power bar used below (`.claude/skills/card-design/references/power-bar.md`): a regular new card pays 4 to 8 yield a turn at the end of age 1 and 35 to 60 in age 3; a headline card pays 10 to 15 and 100 or more. Early culture counts three times. A regular combat line is +2 to +3 in age 1 and +5 in age 3. A1 is the end of age 1 (about turn 55, 3 to 4 towns). A3 is the end of age 3 (about turn 150, 8 towns, 70 citizens). Every number is a first guess, to tune in playtest.
-- "Existing" on an ability means a live or built row already uses that effect shape. The reader is `src/sim/statecraft/evaluator.ts`.
-- The decks are read as they will be after the approved builds: the Dominion and Magisterial passes of 2026-11-19, the generic Orders (section 7), the wonders review and the religion names.
+- History is written from memory and is not checked against sources.
 
-## 1. The structure
+## 1. Your lines: the final wording, the shape, the arithmetic and the readings
+
+Each reading is a short question with the reading I recommend. The build uses the recommended reading unless you mark it.
+
+### Alexander the Great: Ability II
+
+- **You wrote:** "training a military unit gives science equal to half the unit's strength"
+- **Final line:** **The Royal Army.** Gaining a military unit grants science equal to half its strength.
+- **Shape:** Existing. `windfallRider` on `unitCompletion` with `class: {category: military}` and `grant: {yield: science, amount: 0.5, fromOccasion: strength, whole: true}`. The moment is paid in `realiseItem` (`src/sim/cities.ts`), which carries the strength and serves trained, bought and free units. For the builder to check: that a levied unit reaches it.
+- **Arithmetic:** A1: strength 15 to 33, so 7 to 16 science a unit; a unit every six turns is about 2 science a turn against a median of 4. A3: strength 45 to 50, so 22 to 25 a unit; a unit every three turns is about 8 a turn. Under a regular card in both ages, and it scales with every levy, boon and purchase.
+- **Q: Trained only, or every unit gained?** Recommended: Every military unit gained: trained, bought, levied or granted. That is your ruling of 2026-10-13 ("a unit gained"), and the text says "gaining".
+- **Q: How is half rounded?** Recommended: Down. A Warrior of strength 15 gives 7.
+- **Q: The name?** Recommended: "The Royal Army" is a placeholder; you gave the line and no name.
+
+### Alexander the Great: Building
+
+- **You wrote:** "Basilikoi: +2 culture, +1 science and culture on all strategic resources in the city, unlocks with the barracks. … counts as a military building"
+- **Final line:** **The Royal Pages** (Basilikoi Paides). +2 culture. Each strategic resource the city works gives +1 science and +1 culture. A military building.
+- **Shape:** Existing. A building row with `category: military`, `culture: 2`, and `tileYields` on a strategic resource hex (the Stable's shape, with a `resourceKind` test). Its column is the Barracks' technology, Bronzeworking (age 1).
+- **Arithmetic:** A1: three towns, +6 culture and about +3 science and +3 culture from the hexes (culture worth about 27): strong for a small building. A3: eight towns, +16 culture and about +10 of each from the hexes.
+- **Q: Is "Basilikoi" the right word?** Recommended: Nearly. The Basilikoi Paides were the royal pages: sons of nobles who served the king and trained as officers. It was a school, not a building. "Basilikoi" alone means "the royal ones". Recommended name: The Royal Pages, with Basilikoi Paides as the second line. Your word is kept if you prefer it short.
+- **Q: "Unlocks with the barracks"?** Recommended: It opens with the same technology as the Barracks (Bronzeworking). It does not need a Barracks in the town. The other reading is `requiresBuilding: barracks`.
+- **Q: Which hexes are "in the city"?** Recommended: Hexes the city works that hold a strategic resource your empire can see, improved or not. This is how the Stable reads pastures.
+- **Q: What does "a military building" feed?** Recommended: The Circus Maximus (+1 happiness for each military building), The Castellans (+6 production for each military and defensive building, Dominion Tier IV), and Mehmed-style lines that name the category. It does not count as defensive: that reading is "gives city defence or hit points" (`isFortification`), so Stockpiles and The Burhs do not read it.
+
+### Genghis Khan: Building
+
+- **You wrote:** "trade routes from this city can travel twice as far. +30% production towards mounted units, counts as a military building"
+- **Final line:** **The Yam.** Trade routes from this city reach twice as far. +30% production toward mounted units. A military building.
+- **Shape:** **Small extension.** Route range is one number (`routeRange`, `src/sim/trade.ts`), raised by `rulePercent` rows with `rule: routeRange` (The Trade Winds, +50%). It reads the empire's rows only. The row needs to be read for the origin city: `rulePercent` has a `scope`, and `routeRange` must test it against the city the route starts from. The +30% is the Stable's `productionBonus` field. `category: military` is data.
+- **Arithmetic:** A1: range matters once the first trader exists; double range reaches the second or third neighbour, not only the first. A3: +30% on a Horseman (151 hammers) saves 35 hammers a unit. It stacks with the Stable's +25%.
+- **Q: The name?** Recommended: The Yam, the Mongol relay stations. A retired Dominion card has that name (its row id differs). "The Horde Camp" is the other choice.
+- **Q: One a city, or one an empire?** Recommended: One a city, as you wrote "from this city".
+
+### Joan of Arc: Both abilities and the building
+
+- **You wrote:** "lets revert: units killed spread their faith, your units gain strength in cities that follow your religion. … keep it as it was."
+- **Final line:** **The Voices.** Killing a unit pays faith, and presses your faith on the towns around the field. **The Maid.** +4 combat strength on any ground that follows your faith. **The Sainte-Chapelle** as built.
+- **Shape:** Built. "Revert" restores the three rows of today exactly. The Voices: `windfallRider` on `kill`, 8 faith, and 15 pressure on towns within 4 hexes. The Maid: `combatLine` +4, `when: followingTerritory` (all ground that follows your faith, not only cities). The Sainte-Chapelle: +3 faith, needs a Temple, military units may be bought with faith there, +1 artist renown.
+- **Arithmetic:** A1: a kill every four turns is 2 faith a turn; The Maid does nothing before a religion spreads. A3: +4 on 45 is 9% on your faith's ground; a kill every two turns is 4 faith a turn.
+- **Q: One line for your decision.** Recommended: Today's The Maid is the same rule as the Devotion card The Spiritual Host (+4 in territory that follows your religion), and The Voices is the shared card The Sacred Host (kills grant 15 faith) at half the size. They stack. You have chosen today's text, so nothing changes unless you say so.
+- **Q: "In cities" or on all ground that follows?** Recommended: All ground that follows your faith, as built. "In cities" would be narrower than today.
+
+### Mehmed the Conqueror: Ability I
+
+- **You wrote:** "Barracks give +1 science, an additional +1 for every great scholar or great general you've recruited this game."
+- **Final line:** **The Enderun.** Each Barracks gives +1 science, and +1 more for every great scholar and great general you have gained this game.
+- **Shape:** Existing. Three `pays` rows with `scope: hasBuilding barracks`: one flat (+1 science), and two with `basis: count`, `count: greatPeopleGained`, `family: scholar` and `family: general` (The Mural Crown reads that count by family). They sit on the Barracks' own line, so a card that multiplies military buildings multiplies them.
+- **Arithmetic:** A1: three Barracks and no great person, +3 science (under regular). A3, with 3 to 5 scholars and generals gained: 4 to 6 science a Barracks. Six towns: +24 to +36. Twelve towns: +48 to +72. It reaches a regular card at six towns and a strong one at twelve, and it grows all game.
+- **Q: Is it for each Barracks?** Recommended: Yes: each town with a Barracks. A seat has one Barracks a town.
+- **Q: Does a great person taken by capture or boon count?** Recommended: Yes: every scholar or general gained, however gained. The count is `greatPeopleByFamily`.
+
+### Mehmed the Conqueror: Building
+
+- **You wrote:** "change: +2 science, +2 faith, +1 happiness."
+- **Final line:** **The Külliye.** +2 science, +2 faith, +1 happiness.
+- **Shape:** Existing. A building row with flat fields. Category `science` is recommended, so it reads as a school.
+- **Arithmetic:** A1: not yet open (age 3 or 4 column, to set). A3: eight towns, +16 science, +16 faith, +8 happiness.
+- **Q: Which category?** Recommended: Science. It then counts for science-building cards (The Common Tables, The Royal Tutors). Faith is the other choice.
+
+### Nezahualcoyotl: Ability I, The Dikes
+
+- **You wrote:** "cities with an aqueduct gain +1 science and +1 production on farms. Aqueducts arrive late so this should be stronger."
+- **Final line:** **The Dikes.** In cities with an Aqueduct, farms give +1 science and +1 production.
+- **Shape:** Existing. Today's second row (`pays` on a farm hex, `scope: hasBuilding aqueduct`) gains `science: 1`; the city's +1 culture row goes.
+- **Arithmetic:** The Aqueduct opens at Engineering (age 3), or at age 2 with the Surveying charter. A1: nothing. A3: eight towns with about five farms each, +40 science and +40 production (80 a turn): above a regular card (35 to 60), under a headline (100). The other reading (+1 science in the city, +1 production on each farm) gives +8 science and +40 production.
+- **Q: Is the +1 science on each farm, or once in the city?** Recommended: On each farm. You asked for stronger, the ability pays nothing for two ages, and 80 a turn is inside the bar. If it proves too strong, the science goes to every second farm.
+
+### Cyrus the Great: Ability I
+
+- **You wrote:** "revise: cities connected by road gain +1 happiness and +2 culture for every civic and wildcard slot in your government."
+- **Final line:** **The Cyrus Cylinder.** Cities joined to your capital by road gain +1 happiness. Your capital gains +2 culture for every Civic and Wildcard chair in your government.
+- **Shape:** **Small extension.** The happiness is Pachacuti's row (`scope: connected`). The culture needs a count of chairs by type: `slottedOrdersOfSlot` counts cards seated, not chairs. A new count reads `slotTypesOf` (`statecraft/council.ts`), which already holds every chair a card, wonder or hall adds.
+- **Arithmetic:** Civic and Wildcard chairs: Chiefdom 1; tier 4, 2 or 3; tier 10, 1 to 4 (Tyranny has 1, Theocracy 4); tier 18, 3 to 5; tier 26, 5 to 7. Recommended reading: A1, three joined towns and three chairs, +3 happiness and +6 culture (culture worth 18: a headline). A3, eight towns and five chairs, +8 happiness and +10 culture. The other reading pays the culture in every joined city: A1, +18 culture a turn against a median of 3; A3, +80; tier 26 with twelve towns, +168. That is four to six times a headline card in age 1.
+- **Q: Is the culture paid once, or in every joined city?** Recommended: Once, in the capital. In every city it is the strongest line in the game from turn 32. If you want it between the two, pay +1 culture in each joined city for every two such chairs.
+- **Q: Do chairs added by cards, wonders and the Assembly Hall count?** Recommended: Yes. They are chairs in your government, and the count reads the same list.
+- **Q: "Connected by road" to what?** Recommended: To your capital, as Pachacuti's line reads. The capital counts as joined.
+
+### Cyrus the Great: Improvement, The Paradise Garden
+
+- **You wrote:** "that's so good. let's say +1 happiness and +1 culture and counts as a great person work."
+- **Final line:** **The Paradise Garden.** A worker lays it on flat land beside a river, a lake or an oasis, one in each city. +1 culture, and +1 happiness in its city. It counts as a great-person work.
+- **Shape:** **Small extension.** It is a real hex, so it is simpler than The Spirit Way's ghost work: the `greatWork` tile test admits it by a mark on the improvement row, and every reader of that test then reads it with no other change. Two things are missing: that mark, and happiness from an improvement (a hex pays yields only). One garden in each city is a placement rule, to add in `improvementError`.
+- **Arithmetic:** A1 (Agriculture or a later column, to set): three gardens, +3 culture and +3 happiness. With cards, each garden is a full work: The Laureate (+5 culture, +3 science in its town), The Masters' Domain (+6 food, +6 production), The Hanlin Academy (+2 science), The Garden Courts (+20% culture and science in the town), The Bourgs (grows 50% faster), The Gobelins (+10% toward the Opus), and the goals of The Patron's Gallery and The Paradise Garden. A3 with eight gardens and The Masters' Domain alone: +96 a turn. With The Divine Proportion or the Paradise Garden reward that doubles. The Mausoleum doubles it again.
+- **Q: How many gardens?** Recommended: One in each city. Without a limit, a worker makes works at will and the doublers reach several hundred a turn.
+- **Q: Which rules of The Spirit Way apply?** Recommended: It has no family (cards that name an Academy, a Holy Site or another kind do not read it). Nothing "lays" it (The Landmark Bounds and The Founding Gift do not fire). Unlike a ghost work it has neighbours: The Quarter of Masters and The Processional Way read it, and a garden beside a real work pays both.
+- **Q: Does it count for Hypatia-style lines and legacies?** Recommended: Yes, as any work: a line that multiplies a work's yields multiplies the garden's +1 culture and what cards put on it.
+
+### Cleopatra: Building, The Museion
+
+- **You wrote:** "let's buff this to +2 science for every great person called."
+- **Final line:** **The Museion.** +2 science for every great person your realm has called this game.
+- **Shape:** Existing. The built row's `amount` goes from 1 to 2.
+- **Arithmetic:** A1: none or one called, 0 to 2. A3: 7 to 9 called, +14 to +18 science in each city that holds one. It is a building in every city, so eight cities give +112 to +144: a headline.
+- **Q: One a city, or one an empire?** Recommended: As built: every city may hold one. At +2 that is a headline card in age 3. If that is too much, make it once an empire, which also suits the one Museion of Alexandria.
+
+### Cleopatra: Ability II, The Queen's Alliances
+
+- **You wrote:** "lets make this +4 gold and +2 culture per age."
+- **Final line:** **The Queen's Alliances.** Your capital gains +4 gold and +2 culture for each age you have reached.
+- **Shape:** Existing. A flat capital row (+4 gold, +2 culture) and a `pays` row with `basis: count`, `count: agesClosed` (ages closed is one less than ages reached, so the two rows together make "each age reached").
+- **Arithmetic:** A1: +4 gold and +2 culture (culture worth 6): a regular card. A3: +12 gold and +6 culture (18): under regular. Age 4: +16 and +8. It no longer depends on deals or on the bots.
+- **Q: Does this replace the count of deals?** Recommended: Yes, whole. The name stays; the line no longer reads deals.
+- **Q: Where is it paid?** Recommended: In the capital, as before.
+
+### Lorenzo de' Medici: Ability I, The Medici Bank
+
+- **You wrote:** "let's change this to +1 renown for every 8 gold per turn you earn."
+- **Final line:** **The Medici Bank.** +1 renown a turn for every 8 gold your empire makes each turn, at most +40.
+- **Shape:** **Small extension.** `pays` with `basis: rate`, `fromRate: goldPerTurn`, `per: 8` exists (The Learned Clergy reads faith this way), but it pays a yield, happiness or authority. Renown is not a target (`PayTarget`). Add `renown` as a target, or give the `renown` effect a `fromRate`.
+- **Arithmetic:** See the table below. A1: 5 to 15 gold a turn, +1 renown. A3: 47 gold for a median seat and 100 to 150 for a Commerce seat, +6 to +19. Age 4: 300 to 600 gold, +37 to +75. A normal seat calls 7 to 9 people by turn 150, about 20 renown a turn late. So at 150 gold this doubles a seat's great people, and at 600 gold with no cap it calls one about every 9 turns even at the eighth step of the ladder.
+- **Q: Gross or net gold?** Recommended: The rate the game already has: `goldPerTurn`, the gold the empire banked this turn, after maintenance, never below zero. Gold spent on purchases does not lower it.
+- **Q: A cap, or none?** Recommended: A cap of +40 a turn (320 gold a turn). Below the cap the line is as you wrote it. Without one, a late Commerce seat calls a great person every 4 to 9 turns for the rest of the game.
+- **Q: Which family does it favour?** Recommended: None: it feeds the pool. The Bottega favours engineers and artists.
+
+| Gold a turn | Renown a turn | Turns for the 1st person (75) | for the 4th (267) | for the 8th (654) | Turns for all eight (2,647) | With the cap of 40 | the 8th, capped | all eight, capped |
+|---|---|---|---|---|---|---|---|---|
+| 40 | 5 | 15 | 54 | 131 | 530 | 5 | 131 | 530 |
+| 150 | 18.75 | 4 | 15 | 35 | 142 | 18.75 | 35 | 142 |
+| 600 | 75 | 1 | 4 | 9 | 36 | 40 | 17 | 67 |
+
+- The ladder: 75, 134, 197, 267, 346, 436, 538, 654. The line alone, with no other renown.
+- At 40 gold a turn it is a slow second source: a person every 15 to 130 turns. At 150 it alone calls all eight in about 140 turns, which is what a whole normal seat does. At 600 it calls all eight in 36 turns.
+- Bot seats made a median of 47 gold a turn in age 3 and 298 in age 4, so a Commerce seat passes 150 near the end of age 3 and 600 in age 4.
+- So the line is modest for three ages and then runs away. The cap of +40 leaves it as you wrote it up to 320 gold a turn, and holds the late game to a person about every 17 turns from this line.
+
+### Lorenzo de' Medici: Ability II
+
+- **You wrote:** "lets change this to: gain 10% production towards wonders for every gold building in a city."
+- **Final line:** **Florins.** A city builds wonders 10% faster for each gold building in it, at most +50%.
+- **Shape:** Existing fields, one point to check. `productionBonus` with `category: wonder`, `percent: 10`, `count: buildingsOfCategory`, `max: 5`, counted in the city. For the builder to check: that the count on a `productionBonus` takes a building category and counts in the town (The Many Hands counts across the empire).
+- **Arithmetic:** Gold buildings a city can hold: Market, Bazaar, Gilded Hall, Bank, Lighthouse, Assay House, Coinworks, Plantation House, and the two great houses. A1: one Market, +10%. A3: three or four in the wonder city, +30% to +40%, where the best wonder cards give +25% to +30%.
+- **Q: In that city, or across the empire?** Recommended: In that city: its own gold buildings speed its own wonders.
+- **Q: A cap?** Recommended: +50%, five buildings. With no cap a capital with eight gold buildings builds wonders at +80%.
+
+### Lorenzo de' Medici: Building, The Bottega
+
+- **You wrote:** "+5 renown towards great engineers and great artists (+10 total). +2 production for every luxury resource or great work in this city."
+- **Final line:** **The Bottega.** +5 renown a turn toward great engineers and +5 toward great artists. +2 production for every luxury resource and great-person work in this city. One in your empire.
+- **Shape:** Existing. Two `renown` effects with a `family` in the row's `effects` (the row's own `renown` field holds one family), and a `pays` row with `count: tilesInBorders`, `within: city` and a tile test for a luxury or a work. `oncePerEmpire` is a marker that exists.
+- **Arithmetic:** A Barracks gives 1 renown a turn and The General Staff 2. One Bottega at +10 is about half a normal seat's late renown. A3: a city with three luxuries and two works, +10 production. If every city may hold one: eight cities give +80 renown a turn, a great person every 4 to 8 turns from this building alone.
+- **Q: One in each city, or one in your empire?** Recommended: One in your empire. In each city it is +80 renown a turn by age 3, on top of The Medici Bank.
+- **Q: Do the Paradise Garden and wonders under The Spirit Way count as works here?** Recommended: A real work on a hex counts. A ghost work does not: it has no hex in the city's borders.
+
+### Harun al-Rashid: Ability I, The Storehouse of Wisdom
+
+- **You wrote:** "+1 science and +1 faith on faith and science buildings. (these can be multiplied by orders)."
+- **Final line:** **The Storehouse of Wisdom.** Faith buildings and science buildings give +1 science and +1 faith each.
+- **Shape:** Existing, written so that it is multiplied. Four `pays` rows with `where: city`, `basis: count`, `count: buildingsOfCategory`, `within: city`: categories `faith` and `science`, each to science and to faith. `cardLinesOnBuilding` (`statecraft/evaluator.ts`) puts exactly these rows in each building's own package, and `buildingYieldPercent` ("buildings of a category produce X% more") multiplies the package. Al-Ma'mun's row uses `buildingsOfCategories`, which is not packaged, so it is not reused.
+- **Arithmetic:** A1: four such buildings, +4 science and +4 faith (regular). A3: eight towns with four each, +32 and +32 (64: the top of regular). With a card that makes science buildings pay half again, the science-building half becomes +24 and +24.
+- **Q: Does a building that is both count twice?** Recommended: No. A building has one category, so each building pays once.
+
+### Justinian: Ability II
+
+- **You wrote:** "+2 happiness and +5 production on holy sites."
+- **Final line:** **One Faith, One Empire.** Each holy site gives +5 production and +2 happiness.
+- **Shape:** Existing. `pays` on the hex (`improvement: holySite`, `production: 5`), and `pays` to happiness with `count: tilesInBorders` and the same tile test. A hex cannot hold happiness, so that half is an empire line.
+- **Arithmetic:** A holy site needs a prophet's two charges. A1: none. A3: two or three sites, +10 to +15 production and +4 to +6 happiness. Under a regular card; The Anchorites (a further site for one charge) and The Saints' Fields stack with it.
+- **Q: Is the happiness for the city that works the site, or the empire?** Recommended: The empire's happiness, +2 for each site you hold. The game has one happiness figure.
+- **Q: Must the site be worked?** Recommended: The production needs a citizen on the hex, as any hex yield. The happiness does not.
+
+### Justinian: Building, The Basilica
+
+- **You wrote:** "+3 faith and +3 city defense. +20% production towards wonders if the city has a holy site (should unlock in age 2, counts as a defensive building and a faith building)."
+- **Final line:** **The Basilica.** +3 faith and +3 city defence. Its city builds wonders 20% faster if it works a holy site. A faith building and a defensive building.
+- **Shape:** Existing: no change to the types is needed. A building has one category, so it is `category: faith`. "Defensive" is not a category: the game calls a building a fortification when it gives city defence or hit points (`isFortification`, `src/sim/buildingData.ts`), so `cityStat: defense 3` makes it one. The wonder line is a `productionBonus` with `scope: hasImprovement holySite`. Its column is The High Temple's (age 2), with the Temple.
+- **Arithmetic:** A1: not open. A3: eight towns, +24 faith; +20% toward wonders in the one or two holy-site towns (Akhenaten had this line as an ability). It feeds Stockpiles (+8 food), The Burhs (+3 defence), The Castellans (+6 production) and The Sacred Precincts (+3 defence), and every faith-building card.
+- **Q: Does it need a Temple first?** Recommended: No. It opens with the Temple's technology and stands alone.
+
+### Sejong the Great: Ability II, The Royal Lectures
+
+- **You wrote:** "Each time you complete a technology, gain an extra turn of renown."
+- **Final line:** **The Royal Lectures.** Each time you complete a technology, gain renown equal to one turn of your renown.
+- **Shape:** **Small extension.** `windfallRider` on `tech` exists, and a grant can pay renown, but only as a fixed number. `fromRate` has no renown rate. Add `renownPerTurn` to `RateSource` and let the grant's renown read it.
+- **Arithmetic:** A technology comes about every seven turns, so this is about +14% renown. A1: 1 to 3 renown a technology. A3: about 20 a technology, 3 a turn. It is small: Hypatia's line was +25% renown. Three turns of renown (+43%) would be felt.
+- **Q: Which families does the extra turn feed?** Recommended: The same split as that turn's renown, family by family.
+- **Q: Is one turn enough?** Recommended: It is your line and it is safe. I would make it two or three turns.
+
+### Sejong the Great: Building, The Hall of Worthies
+
+- **You wrote:** "Rework: +5 renown towards scholars. +4 science."
+- **Final line:** **The Hall of Worthies.** +4 science, and +5 renown a turn toward great scholars. One in your empire.
+- **Shape:** Existing. A building row with `science: 4`, `renown: {family: scholar, perTurn: 5}` and `oncePerEmpire`.
+- **Arithmetic:** A1: if it opens with the Library, +4 science doubles a median seat's science; set its column in age 2. A3: +5 scholar renown is a quarter of a normal seat's renown. In every city it would be +40 renown and +32 science.
+- **Q: One in each city, or one in your empire?** Recommended: One in your empire, for the reason given for the Bottega. The Hall was one house in the palace.
+
+## 2. Jayavarman VII, for Expansionist + Devotion
+
+- **Who:** King of the Khmer empire from 1181 to about 1218. They took Angkor back after its sack, built the walled city of Angkor Thom and the Bayon with its towers of faces, and raised 102 hospitals and 121 rest houses along the royal roads. They were a Buddhist king; their own inscriptions say they felt the sickness of their people as their own.
+- **Fit:** **Expansionist, the engine and public works** (citizens, and the buildings that let towns grow). Their cards read citizens gained and spent, and roads that join towns.
+- **Fit:** **Devotion, the devout realm** (Shrines and faith buildings first, then devout towns). Their cards read Shrines, Temples and other faith buildings: faith, food, happiness, defence, and purchases with faith.
+- **Ability I, The Hospitals of the King:** Faith buildings give +2 food and +1 happiness each.
+  - Shape: Existing. Two `pays` rows with `count: buildingsOfCategory`, `category: faith`, `within: city`, to food and to happiness (Houses of Account pays happiness this way). The food sits on each building's own line, so Orders that multiply faith buildings multiply it.
+  - Arithmetic: A1: three Shrines, +6 food and +3 happiness (a regular card, near a headline). A3: sixteen faith buildings, +32 food and +16 happiness (regular).
+- **Ability II, The Great City:** Finishing a faith building adds 1 citizen to its city.
+  - Shape: Existing. `windfallRider` on `buildingCompletion` with `buildingCategory: faith` and `grant: {citizens: 1}`; the grant goes to the town the moment names. For the builder to check: that a building bought with faith also pays it.
+  - Arithmetic: A1: three Shrines, three citizens of about fifteen (each is 2 to 3 yield a turn, or a levy). A3: about sixteen faith buildings finished, sixteen citizens of seventy. It changes play: temples come before granaries, and each one is a citizen to work or to spend.
+- **Unique unit:** **Ballista Elephant** (new row): stands in the War Elephant line (age 3). It has a ranged attack with range 2. The Bayon's reliefs show them. The base War Elephant exists.
+- **Building:** **The House of Fire** (new building, a faith building): the rest houses of the royal roads. +2 faith and +2 food. Its city must be joined to your capital by road.
+- **Start bias:** Terrain: river 4, lake 2, forest 1; wants `riverOrFloodplainWithin 1`. Served today (Nezahualcoyotl's want).
+- **Colours:** Angkor sandstone, forest green (`#c9a27a`, `#1e6a45`).
+- **Charge:** A naga with seven heads spread as a fan, from the causeways of Angkor Thom. The three towers of Angkor Wat are on the flag of Cambodia and belong to another king, so they are not used.
+- **Cities:** Angkor Thom · Phimai · Banteay Chhmar · Lavo · Beng Mealea · Koh Ker
+- **Bot persona:** `wide`, with the zealot's faith weights: roads to every town, a Shrine first in each.
+- **Portrait (3:4, gouache poster):** After the seated portrait statue in Phnom Penh: a heavy-set man of sixty, hair in a small knot, eyes lowered, a slight smile, bare shoulders and a plain cloth. A stone face tower behind, half in fig roots, green morning light.
+- **Overlaps and risks:** Angkor Wat is a wonder in the game and was built by Suryavarman II, sixty years earlier, for Vishnu. Nothing here uses or needs it, and a rival may build it. The Bayon is not in the game. Buddhism is a living faith: the abilities name hospitals, a city and roads, never a teaching, and the game's religions have invented names. The year of their death is uncertain. They are on the shelf in `docs/leaders.md` with other lines (rites, wonders); this design is new. The House of Fire also reads roads, as Pachacuti's and Cyrus's lines do: three leaders of Expansionist now reward roads.
+- **Confidence:** good.
+
+**An alternate, if they do not suit: Ramesses II** (Egyptians, ruled 1279 to 1213 BC).
+
+- The builder pharaoh of Abu Simbel and the Ramesseum; the best-known king of Egypt, which loses Akhenaten.
+- Takes all of Akhenaten's built kit: the Khopesh, the Obelisk, the ankh banner, the colours, the start bias, and The Nile's Gift (+1 faith on watered farms) as it is. Ancient Egypt is the pair's own model in `deck-design.md`. The cheapest seat on the page. It adds no region the roster lacks.
+
+## 3. Your two questions on Genghis Khan
+
+### What does the Horde Camp do?
+
+- It is a military building of the fifth column (`hordeCamp` in `data/buildings.json`), built for Modu Chanyu.
+- Every pasture its town works gives +1 faith.
+- A unit of yours regains its movement each time it steps onto one of those pastures (`restoresMovementOn: pasture`).
+- It gives no production and no renown. The faith is Devotion's, which is not one of Genghis Khan's decks. Your line replaces it: see "The Yam" in the readings.
+
+### Should the colours change?
+
+- Modu Chanyu's built colours are sky blue `#3a78b5` and bone `#efe6d2`. I proposed the same two, because the banner and pieces exist and the blue is the Eternal Blue Sky that the Mongols also swore by.
+- They do not clash with anyone in the sixteen. The nearest primaries are Joan of Arc's azure and Sejong's navy, both over the rule of 40 and told apart by how light they are.
+- What players expect: other games paint the Mongols red or dark red. Here red is taken twice over (Mehmed's Ottoman red, Qin's cinnabar, and Pachacuti's maroon).
+- **Recommended: keep sky blue and bone.** It is true to the subject, it is built, and it keeps a fourth red off the map. If you want a change, the device can change alone: a white horse-tail standard in place of the sun and moon.
+
+## 4. The roster as it stands: ready for the build, except the open readings
+
+A struck line is my first proposal; your line follows it. The mark at the end of each row says where the row comes from.
+
+### Alexander the Great (Dominion + Expansionist)
+
+- **State:** selected, with your changes.
+- **Ability I:** **The Unbroken Charge.** Your units gain +3 combat strength when they attack. Capturing a city heals all your units. *(as designed)*
+- **Ability II:** ~~The Alexandrias. Capturing a city grants a Settler.~~ **The Royal Army.** Gaining a military unit grants science equal to half its strength. *(your line)*
+- **Unique unit:** **Hypaspist**: stands in the Swordsman line (age 2). +1 movement and +5 strength against cities. The base Swordsman exists. *(new row)*
+- **Building:** ~~The Gymnasium.~~ **The Royal Pages** (Basilikoi Paides). +2 culture. Each strategic resource the city works gives +1 science and +1 culture. A military building, opened with the Barracks' technology. *(your line)*
+- **Start bias:** Terrain: river 2, hills 0.6, coast 0.4. No hard want. The map script serves it today.
+- **Colours:** Tyrian purple, sun gold (`#6b2d7a`, `#e3b93a`; Mithridates' purple).
+- **Charge:** The ram's horns of Ammon, from their coin portraits. The Vergina sun is disputed between Greece and North Macedonia, so it is not used.
+- **Cities:** Pella · Aigai · Amphipolis · Alexandria Eschate · Bucephala · Kandahar
+- **Bot persona:** `warmonger`: attacks early and keeps the army moving.
+- **Portrait:** Young, clean-shaven, a white diadem band, the linen cuirass of the Alexander Mosaic. A long spear in one hand, a rolled map in the other, a dry plain at dusk behind.
+
+### Genghis Khan (Dominion + Commerce)
+
+- **State:** selected, with your changes.
+- **Ability I:** **The Riders of the Steppe.** Mounted units gain +1 movement on grassland and plains. Pillaging pays half again. *(inherited, built)*
+- **Ability II:** **The Pax Mongolica.** Your traders cannot be plundered. Trade routes pay +3 gold. *(as designed)*
+- **Unique unit:** **Keshig**: the Xiongnu Horse Archer row with a new name (age 3, 5 movement). *(inherited, built)*
+- **Building:** ~~The Horde Camp, as built.~~ **The Yam.** Trade routes from this city reach twice as far. +30% production toward mounted units. A military building. *(your line)*
+- **Start bias:** Modu Chanyu's row as it is: grassland 0.45, plains 0.4, hills -0.3; wants `pastureGroundWithin 3`; horses furnished. Served today.
+- **Colours:** sky blue, bone (`#3a78b5`, `#efe6d2`; Modu Chanyu's, as built).
+- **Charge:** Modu Chanyu's sun and moon banner can stay: both are steppe signs. Or a horse-tail standard.
+- **Cities:** Karakorum · Avarga · Almaliq · Samarkand · Zhongdu · Sarai
+- **Bot persona:** `warmonger`, with more mounted units in the army mix and routes kept running at war.
+- **Portrait:** Older, broad-faced, a fur-trimmed robe and a plain cap, after the Yuan court album (painted after their death; no portrait from life exists). A white horse-tail standard, steppe at dawn.
+- **Note:** Inherited from Modu Chanyu: ability I, the unit row, the start bias, the colours and the sun and moon banner.
+
+### Joan of Arc (Dominion + Devotion)
+
+- **State:** selected: today's abilities and building.
+- **Ability I:** ~~Killing a unit grants faith equal to its strength.~~ **The Voices.** Killing a unit pays faith, and presses your faith on the towns around the field. *(built)*
+- **Ability II:** ~~Every city may buy military units with faith; they start as Veterans.~~ **The Maid.** +4 combat strength on any ground that follows your faith. *(built)*
+- **Unique unit:** **The Gendarme**, as built. *(built)*
+- **Building:** **The Sainte-Chapelle**, as built: +3 faith, and military units may be bought with faith in its city. *(built)*
+- **Start bias:** As today: river 3, no hard want.
+- **Colours:** royal azure, gold (`#2c3e9e`, `#d9a521`; as built).
+- **Charge:** The single fleur-de-lis, approved 2026-09-19.
+- **Cities:** Orléans · Reims · Paris · Bourges · Chinon · Rouen (the list of today)
+- **Bot persona:** `zealot` that also attacks: a new persona row, zealot weights with the warmonger's war settings.
+- **Portrait:** A young soldier in plain plate armour, short dark hair, no helmet. A white banner in hand, the walls of Orléans behind, morning light.
+- **Note:** Nothing to build. The whole kit is today's.
+
+### Mehmed the Conqueror (Dominion + Scientific)
+
+- **State:** selected, with your changes.
+- **Ability I:** ~~Military buildings give +2 science each.~~ **The Enderun.** Each Barracks gives +1 science, and +1 more for every great scholar and great general you have gained this game. *(your line)*
+- **Ability II:** **The Great Bombard.** Your units gain +5 combat strength against cities. Capturing a city grants science equal to thirty times its population. *(as designed)*
+- **Unique unit:** **Janissary**: stands in the Longswordsman line (age 4). Starts as a Veteran. The base Longswordsman exists; the game has no gunpowder foot unit to stand in for. *(new row)*
+- **Building:** ~~+2 science, +2 food and +1 happiness.~~ **The Külliye.** +2 science, +2 faith, +1 happiness. *(your line)*
+- **Start bias:** Terrain: coast 1.5, hills 0.6, river 2. No hard want (a coast want was served on half of boards for Zheng He).
+- **Colours:** Ottoman red, white (`#d81e2c`, `#f5f1e6`; new).
+- **Charge:** The çintamani: three discs over two wavy lines, a pattern of their court robes. It is not the crescent of a modern flag.
+- **Cities:** Istanbul · Edirne · Bursa · Thessalonica · Trebizond · Sarajevo
+- **Bot persona:** `warmonger` that builds siege engines first and attacks the nearest walled capital.
+- **Portrait:** Thirty, hooked nose, a red robe and a large white turban, after the Bellini portrait and the one where they smell a rose. A bronze bombard behind, sea walls beyond.
+
+### Qin Shi Huang (Dominion + Magisterial)
+
+- **State:** selected as designed ("this design is great").
+- **Ability I:** **The Great Works of Qin.** Garrisoned cities build wonders and buildings 25% faster. *(as designed)*
+- **Ability II:** **The Registered Households.** Every city gains +1 production for every three citizens. *(as designed)*
+- **Unique unit:** **Qin Crossbowman**: stands in the Bowman line (age 2). +3 ranged strength, and it costs as an Archer does (size `light`). *(new row)*
+- **Building:** **The Commandery** (building): the benched Post Station with a new name. Its town builds faster while a road joins it to the capital. Qin built the straight roads. *(inherited, built)*
+- **Start bias:** Taizong's row as it is: grassland 0.9, river 2; wants `grasslandWithin 2`. Served today.
+- **Colours:** cinnabar, lacquer black (`#a83224`, `#1c1a1a`; new).
+- **Charge:** A round coin with a square hole (the ban liang), the sign of one coinage.
+- **Cities:** Xianyang · Yong · Yueyang · Handan · Linzi · Langya
+- **Bot persona:** `wide`, with a garrison in every town and wonders high in the build order.
+- **Portrait:** A heavy-set man in black robes with a flat beaded crown (the mianguan), drawn as later ages imagined them; no portrait from life exists. Ranks of clay soldiers behind, lamp light.
+- **Note:** Inherited: Taizong's start bias, and the benched Post Station row as the Commandery.
+
+### Pachacuti (Expansionist + Commerce)
+
+- **State:** approved, stays.
+- **Ability I:** **The Qhapaq Ñan.** Every city joined to your capital by road pays +1 happiness and +1 production. *(built)*
+- **Ability II:** **The Gold of the Peaks.** Farms pay +1 gold for every mountain standing beside them. *(built)*
+- **Unique unit:** **The Slinger**, as built. *(built)*
+- **Improvement:** **Terraces**, as built. *(built)*
+- **Start bias:** As built: river 6, hills 1.5, mountain 2.5; wants `mountainWithin 2`, `riverWithin 1`.
+- **Colours:** maroon, sun gold (`#8b2635`, `#e0b21a`; as built).
+- **Charge:** The sun of Inti, as built.
+- **Cities:** Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa
+- **Bot persona:** `wide`.
+- **Portrait:** A man of forty with the red fringe of the Sapa Inca on the brow, gold ear discs, a checked tunic. A stone road climbing terraces behind, high clear light.
+- **Note:** A note only: The Qhapaq Ñan is under a regular card in age 3.
+
+### Jayavarman VII (Expansionist + Devotion)
+
+- **State:** designed here; you have not seen it.
+- **Ability I:** **The Hospitals of the King.** Faith buildings give +2 food and +1 happiness each. *(for your review)*
+- **Ability II:** **The Great City.** Finishing a faith building adds 1 citizen to its city. *(for your review)*
+- **Unique unit:** **Ballista Elephant** (new row): stands in the War Elephant line (age 3). It has a ranged attack with range 2. The Bayon's reliefs show them. The base War Elephant exists. *(for your review)*
+- **Building:** **The House of Fire** (new building, a faith building): the rest houses of the royal roads. +2 faith and +2 food. Its city must be joined to your capital by road. *(for your review)*
+- **Start bias:** Terrain: river 4, lake 2, forest 1; wants `riverOrFloodplainWithin 1`. Served today (Nezahualcoyotl's want).
+- **Colours:** Angkor sandstone, forest green (`#c9a27a`, `#1e6a45`; new).
+- **Charge:** A naga with seven heads spread as a fan, from the causeways of Angkor Thom. The three towers of Angkor Wat are on the flag of Cambodia and belong to another king, so they are not used.
+- **Cities:** Angkor Thom · Phimai · Banteay Chhmar · Lavo · Beng Mealea · Koh Ker
+- **Bot persona:** `wide`, with the zealot's faith weights: roads to every town, a Shrine first in each.
+- **Portrait:** After the seated portrait statue in Phnom Penh: a heavy-set man of sixty, hair in a small knot, eyes lowered, a slight smile, bare shoulders and a plain cloth. A stone face tower behind, half in fig roots, green morning light.
+
+### Nezahualcoyotl (Expansionist + Scientific)
+
+- **State:** selected, with your change to The Dikes.
+- **Ability I:** ~~Cities with an aqueduct pay +1 culture, and their farms +1 production.~~ **The Dikes.** In cities with an Aqueduct, farms give +1 science and +1 production. *(your line)*
+- **Ability II:** **Flower and Song.** +1 culture for every two citizens in your capital. *(built)*
+- **Unique unit:** **The Eagle Warrior**, as built. *(built)*
+- **Building:** **The Tetzcotzinco**, as built. *(built)*
+- **Start bias:** As built: lake 2.5, river 2; wants `riverOrFloodplainWithin 1`, `lakeWithin 2`.
+- **Colours:** turquoise, ochre (`#1fb3a5`, `#c98b2e`; as built).
+- **Charge:** The Tlaloc mask, approved 2026-09-19.
+- **Cities:** Texcoco · Tenochtitlan · Tlacopan · Huexotla · Coatlinchan · Teotihuacan
+- **Bot persona:** `tall`.
+- **Portrait:** A man of fifty in a turquoise mosaic diadem and a knotted blue cloak. A codex open on the knee, the hill gardens and the aqueduct of Tetzcotzinco behind, late sun on the lake.
+
+### Cyrus the Great (Expansionist + Magisterial)
+
+- **State:** selected, with your changes.
+- **Ability I:** ~~Every city gains +1 culture and +1 happiness.~~ **The Cyrus Cylinder.** Cities joined to your capital by road gain +1 happiness. Your capital gains +2 culture for every Civic and Wildcard chair in your government. *(your line)*
+- **Ability II:** **The King's Gardeners.** Cities you found start with a Worker. *(as designed)*
+- **Unique unit:** **Sparabara**: stands in the Phalanx line (age 2). +5 strength when it defends. The card The Immortals exists (it is about great people), so the unit is not an Immortal. *(new row)*
+- **Improvement:** ~~+1 food and +2 culture.~~ **The Paradise Garden.** On flat land beside fresh water, one in each city. +1 culture, and +1 happiness in its city. It counts as a great-person work. *(your line)*
+- **Start bias:** Terrain: river 4, plains 0.4, oasis 2; wants `riverWithin 2`. Served today.
+- **Colours:** Susa glaze teal, gold (`#0f7c8c`, `#dcae3a`; new).
+- **Charge:** A twelve-petal rosette, as on the stone of Persepolis. The winged figure (the Faravahar) is a sign of a living faith, so it is not used.
+- **Cities:** Pasargadae · Ecbatana · Susa · Babylon · Sardis · Anshan
+- **Bot persona:** `wide`: many towns, workers first, war only when attacked.
+- **Portrait:** A man of fifty with a curled beard, a long pleated robe and a plain fluted crown. A hand on a clay cylinder, a walled garden with water channels behind, soft morning.
+
+### Mansa Musa (Commerce + Devotion)
+
+- **State:** approved, stays.
+- **Ability I:** **The Gold of Wangara.** +2 gold on mines and camps, and +1 gold on every desert hex worked. *(built)*
+- **Ability II:** **The Hajj.** Trade routes that begin or end at a city holding a holy site pay +2 gold and +2 faith. *(built)*
+- **Unique unit:** **The Mandekalu**, as built. *(built)*
+- **Building:** **The Sankore Madrasa**, as built. *(built)*
+- **Start bias:** As built: desert 2, river 2, oasis 2; wants `aridWithin 2`; gold furnished. The arid want was served on 30% of boards.
+- **Colours:** Wangara gold, indigo (`#e6c419`, `#27306e`; as built).
+- **Charge:** The royal parasol, as built.
+- **Cities:** Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh
+- **Bot persona:** `balanced`, with gold and routes weighted up.
+- **Portrait:** Seated as on the Catalan Atlas: a gold crown, a white robe, a gold nugget held up in one hand. A mud-brick mosque and a camel train behind, noon light.
+- **Note:** A note only: The Hajj pays nothing before the first holy site, in age 2 or later.
+
+### Cleopatra (Commerce + Scientific)
+
+- **State:** selected ("great, i like her kit"), with two changes.
+- **Ability I:** **Books from the Ships.** Your trade routes pay +2 science, and your foreign routes +2 more. *(as designed)*
+- **Ability II:** ~~+4 gold and +2 culture for each empire you hold a deal with.~~ **The Queen's Alliances.** Your capital gains +4 gold and +2 culture for each age you have reached. *(your line)*
+- **Unique unit:** **The Alexandrian Galley**, as built. *(inherited, built)*
+- **Building:** ~~+1 science for every great person called.~~ **The Museion.** +2 science for every great person your realm has called this game. *(your line)*
+- **Start bias:** Hypatia's row as it is: coast 2, river 3; wants `coastalWithin 1`, `riverWithin 2`.
+- **Colours:** papyrus, deep lapis (`#e8dcae`, `#1c3f7a`; Hypatia's, as built).
+- **Charge:** The knot of Isis (the tyet). It stands apart from the ankh.
+- **Cities:** Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium (Hypatia's list)
+- **Bot persona:** `tall`: one great port city, deals accepted readily, war avoided.
+- **Portrait:** A woman of thirty with the broad diadem band and the knot of hair of their coin portraits, a Greek gown, a strong nose. Scrolls and a ship model on a table, the Pharos through the window.
+- **Note:** Inherited from Hypatia: the unit, the building row, the city list, the colours and the start bias.
+
+### Lorenzo de' Medici (Commerce + Magisterial)
+
+- **State:** selected, with your changes.
+- **Ability I:** ~~+1 renown a turn for every 100 gold in your treasury, at most +12.~~ **The Medici Bank.** +1 renown a turn for every 8 gold your empire makes each turn, at most +40. *(your line)*
+- **Ability II:** ~~Gold buildings give +2 culture each.~~ **Florins.** A city builds wonders 10% faster for each gold building in it, at most +50%. *(your line)*
+- **Unique unit:** **Condottiere**: stands in the Longswordsman line (age 4). It costs 40% less to buy with gold (`purchaseRider` on its own type). *(new row)*
+- **Building:** ~~+1 production, +1 culture and +1 renown a turn.~~ **The Bottega.** +5 renown a turn toward great engineers and +5 toward great artists. +2 production for every luxury resource and great-person work in this city. One in your empire. *(your line)*
+- **Start bias:** Terrain: river 3, hills 1; wants `riverWithin 1`. Served today.
+- **Colours:** iris violet, florin gold (`#7b5ea7`, `#e0b548`; new).
+- **Charge:** The Medici balls: six discs on a shield. The Florentine lily is too close to Joan's.
+- **Cities:** Florence · Pisa · Arezzo · Volterra · Prato · Pistoia
+- **Bot persona:** `tall`: holds a treasury, buys buildings, avoids war.
+- **Portrait:** A dark-haired man of forty with a broken-looking flat nose and a strong jaw, a plain red gown, after the Verrocchio bust and the Vasari portrait. A ledger and a small bronze on the desk, the dome of Florence in the window.
+- **Note:** The caps (+40, +50%) and "one in your empire" are my recommended readings, not your words.
+
+### Harun al-Rashid (Devotion + Scientific)
+
+- **State:** selected, with your change.
+- **Ability I:** ~~Each faith or science building gives its city +1 science and +1 faith.~~ **The Storehouse of Wisdom.** Faith buildings and science buildings give +1 science and +1 faith each (on the building's own line, so Orders multiply it). *(your line)*
+- **Ability II:** **The Learned Court.** Completing a technology grants faith equal to a fifth of its cost. *(as designed)*
+- **Unique unit:** **The Camel Archer**, as built. *(inherited, built)*
+- **Building:** **The House of Learning**, as built. *(inherited, built)*
+- **Start bias:** Al-Ma'mun's row as it is: river 5, coast 0.6; wants `riverWithin 2`.
+- **Colours:** Abbasid black, gold (`#1c1a1a`, `#d4a934`; Al-Ma'mun's, as built).
+- **Charge:** Al-Ma'mun's palmette on the black field, as built.
+- **Cities:** Baghdad · Raqqa · Kufa · Basra · Merv · Rayy (Al-Ma'mun's list without Samarra, which was built after them)
+- **Bot persona:** `zealot`, with science weighted beside faith.
+- **Portrait:** A man of forty with a full dark beard, a black robe and turban with gold bands. A brass water clock and a pile of books, the round city of Baghdad at night behind, lamp light.
+- **Note:** Inherited from Al-Ma'mun: the unit, the building, the colours, the banner and the start bias.
+
+### Justinian (Devotion + Magisterial)
+
+- **State:** selected over Ashoka, with your changes.
+- **Ability I:** **Solomon, I Have Surpassed You.** Completing a wonder grants faith equal to its production cost. *(as designed)*
+- **Ability II:** ~~Faith buildings give +1 happiness and +1 culture each.~~ **One Faith, One Empire.** Each holy site gives +5 production and +2 happiness. *(your line)*
+- **Unique unit:** **Cataphract**: the retired row (age 3, +5 against ranged units), opened again for this seat. *(inherited, built)*
+- **Building:** ~~+2 faith, +2 culture and +3 city defence.~~ **The Basilica.** +3 faith and +3 city defence. Its city builds wonders 20% faster if it works a holy site. A faith building and a defensive building, opened in age 2. *(your line)*
+- **Start bias:** Terrain: coast 2, hills 0.6, river 2. No hard want.
+- **Colours:** porphyry, mosaic gold (`#5a1e4a`, `#d9b23c`; new).
+- **Charge:** A dome on four arches. The double-headed eagle is 700 years later.
+- **Cities:** Constantinople · Ravenna · Carthage · Thessalonica · Antioch · Justiniana Prima
+- **Bot persona:** `tall`: wonders in the capital, walls, a small strong army.
+- **Portrait:** The Ravenna mosaic as a living man: round face, dark eyes, a purple cloak with a gold panel and a jewelled crown. A model of the great church in hand, gold light.
+- **Note:** Inherited: the retired Cataphract row, opened again.
+
+### Sejong the Great (Scientific + Magisterial)
+
+- **State:** selected, with your changes.
+- **Ability I:** **The Correct Sounds.** Every city gains +1 science and +1 culture for every four citizens. *(as designed)*
+- **Ability II:** ~~Each time you gain a great person, gain science equal to four turns of your science.~~ **The Royal Lectures.** Each time you complete a technology, gain renown equal to one turn of your renown. *(your line)*
+- **Unique unit:** **Hwacha**: stands in the Trebuchet line (age 4). +10 ranged strength against units, and no bonus against cities. *(new row)*
+- **Building:** ~~The Museion's rule, +1 science for every great person called.~~ **The Hall of Worthies.** +4 science, and +5 renown a turn toward great scholars. One in your empire. *(your line)*
+- **Start bias:** Terrain: river 3, hills 1, coast 0.5; wants `riverWithin 2`. Served today.
+- **Colours:** ink navy, porcelain white (`#25346b`, `#f3f1ea`; new).
+- **Charge:** The bowl sundial of their reign (the angbuilgu): a half circle with a pointer.
+- **Cities:** Hanseong · Gaeseong · Pyongyang · Gyeongju · Jeonju · Hamhung
+- **Bot persona:** `tall`: science first, great people of any family taken when offered.
+- **Portrait:** A man of forty in the red dragon robe and the black winged cap of a Joseon king, a gentle scholarly face, after the modern standard portrait (none from life survives). A printed page of the new letters in hand, a water clock behind.
+
+### Ibn Battuta (Every deck)
+
+- **State:** stays ("ibn battuta is great, he's my favorite").
+- **Ability I:** **A Guest at Every Court.** One more chair in every government. *(built)*
+- **Ability II:** **The Rihla.** The first redraw of every hand you are dealt costs nothing: an Order, a Doctrine or a great person, and never a belief. *(built)*
+- **Unique unit:** **The Rihla Caravan**, as built. *(built)*
+- **Building:** **The Funduq**, as built. *(built)*
+- **Start bias:** None, as built.
+- **Colours:** ochre, sea teal (`#b5651d`, `#0d6b78`; as built).
+- **Charge:** As built.
+- **Cities:** Tangier · Fez · Marrakesh · Sijilmasa · Ceuta · Tlemcen
+- **Bot persona:** `balanced`.
+- **Portrait:** A traveller of forty in a plain wool cloak and a white turban, a staff and a satchel of papers. A caravan and a harbour behind, clear noon light.
+- **Note:** The sixteenth seat. It plays every deck (`rainbow: true`) and stands outside the fifteen pairs. Both abilities are draft effects. No start bias, by design.
+
+## 5. Who is out, the rows of the leaders who leave, and the clashes
+
+- **Not selected** (designed in the first pass, kept in the record below): Saladin, Augustus, Ashoka, Isabella of Castile ("i dont like isabella as a pick"), Hatshepsut ("not needed").
+- **Leaving the game:** Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun, Mithridates VI, Zheng He, Hypatia, Hildegard of Bingen.
+- **Their rows.** A save is `{config, log}`, and a config that names a missing leader does not replay. So the eight rows stay in `data/leaders.json`, hidden. `LeaderDef` has no such flag today: the code needs a `retired` field on the row, checked at load (`src/sim/leaderData.ts`), and the leader screen, the random seat and the Compendium shelf must skip a retired row (`src/ui/leaderSelect.ts` and the roster readers). Removing the rows needs no code and breaks every save that seats one of the eight.
+- **Their pieces.** Rows that a new leader takes are renamed or pointed at the new leader (the Xiongnu Horse Archer, the Alexandrian Galley, the Museion, the Camel Archer, the House of Learning, the Post Station, the Cataphract). The rest stay on the bench with `unlockedByLeader` and nobody to open them: the Tang Heavy Cavalry, the Examination Court, the Horde Camp, the Khopesh, the Obelisk, the Pontic Peltast, the Mountain Hold, the Treasure Ship, the Longjiang Dockyard, the Canoness, the Scriptorium.
+- **A retired leader who keeps a piece a new leader uses** (Modu and the Keshig, Hypatia and the Museion, Al-Ma'mun and the House of Learning) still names it in an old save. If the row is renamed and changed, an old save replays with the new rule. Accept that, or give the new leader a copy of the row.
+
+### Clashes the roster settles or leaves
+
+- **Hypatia** leaves as a leader and stays a great person (scholar, age 3). The leader key `hypatiaOfAlexandria` stays on the hidden row; the clash is over.
+- **Ibn Battuta** stays a leader, so the great person row with that name is renamed. The great people pass proposes Ibn Jubayr (change C25).
+- **Zheng He** leaves as a leader; the great person row of that name is already retired.
+- **Cosimo de' Medici** (merchant, age 5) stands beside Lorenzo. A Florentine seat can call Lorenzo's grandfather. Recommended: replace the row (Jacques Cœur suits the age), in the great people pass. To accept it is also defensible: every other seat can call Cosimo too.
+- **Wonders that are a selected leader's own:** The Terracotta Army and The Great Wall (Qin), Hagia Sophia (Justinian, and Mehmed's mosque), The Great Library and The Great Lighthouse (Cleopatra's city), The House of Wisdom (Harun's city), Machu Picchu (Pachacuti), The Great Mosque of Djenné (Mansa Musa's realm). Angkor Wat is not Jayavarman's. None is required by any ability.
+- **Two capitals in one city:** Justinian's list starts with Constantinople and Mehmed's with Istanbul. Alexander's list leaves Alexandria to Cleopatra.
+
+## 6. The recount
+
+- **Sixteen seats:** fifteen pairs and Ibn Battuta. Seven are built already or inherit most of a kit (Joan, Pachacuti, Nezahualcoyotl, Mansa Musa, Ibn Battuta; Genghis Khan, Cleopatra and Harun inherit). Seven kits are fully new: Alexander, Mehmed, Qin, Jayavarman VII, Cyrus, Lorenzo, Sejong. Justinian is new but for the unit.
+- **Women: two of sixteen** (Joan of Arc, Cleopatra). Today it is three of thirteen. Isabella and Hatshepsut were the other two.
+- **Regions:** Europe and Byzantium four (Alexander, Joan, Lorenzo, Justinian); the Middle East, Egypt and North Africa five (Mehmed, Cyrus, Cleopatra, Harun, Ibn Battuta); East Asia and the steppe three (Qin, Sejong, Genghis Khan); the Americas two; Southeast Asia one (Jayavarman VII, new); sub-Saharan Africa one (Mansa Musa). South Asia has none, since Ashoka is not selected.
+- **Time:** four ancient (Cyrus, Alexander, Qin, Cleopatra); six between 500 and 1400 (Justinian, Harun, Jayavarman VII, Genghis Khan, Mansa Musa, Ibn Battuta); six in the 15th century. Jayavarman VII fills the gap that Isabella's century did not.
+- **What Jayavarman VII changes:** the first seat from Southeast Asia, a seat in the empty 12th century, and no charged history beside the two American leaders. The roster loses a woman by it.
+- **A note for later, not a proposal:** every pair is filled, so a woman can join only as a second leader on a pair or as a shared seat. The strongest are Wu Zetian (Dominion + Magisterial, with all of Taizong's built kit), Theodora (beside Justinian, as the shelf in `docs/leaders.md` already pairs them) and Hatshepsut (designed in the record).
+
+### Colours of the sixteen
+
+The game's rule is 40 between primaries (`inkDistance`). The closest pair here is at 59.
+
+| Leader | Primary | Secondary | Words | Source | Nearest primary | Distance |
+|---|---|---|---|---|---|---|
+| Alexander the Great | `#6b2d7a` | `#e3b93a` | Tyrian purple, sun gold | Mithridates' purple | Justinian | 87 |
+| Genghis Khan | `#3a78b5` | `#efe6d2` | sky blue, bone | Modu Chanyu's, as built | Cyrus the Great | 94 |
+| Joan of Arc | `#2c3e9e` | `#d9a521` | royal azure, gold | as built | Sejong the Great | 89 |
+| Mehmed the Conqueror | `#d81e2c` | `#f5f1e6` | Ottoman red, white | new | Qin Shi Huang | 90 |
+| Qin Shi Huang | `#a83224` | `#1c1a1a` | cinnabar, lacquer black | new | Pachacuti | 59 |
+| Pachacuti | `#8b2635` | `#e0b21a` | maroon, sun gold | as built | Qin Shi Huang | 59 |
+| Jayavarman VII | `#c9a27a` | `#1e6a45` | Angkor sandstone, forest green | new | Cleopatra | 148 |
+| Nezahualcoyotl | `#1fb3a5` | `#c98b2e` | turquoise, ochre | as built | Cyrus the Great | 120 |
+| Cyrus the Great | `#0f7c8c` | `#dcae3a` | Susa glaze teal, gold | new | Genghis Khan | 94 |
+| Mansa Musa | `#e6c419` | `#27306e` | Wangara gold, indigo | as built | Jayavarman VII | 165 |
+| Cleopatra | `#e8dcae` | `#1c3f7a` | papyrus, deep lapis | Hypatia's, as built | Jayavarman VII | 148 |
+| Lorenzo de' Medici | `#7b5ea7` | `#e0b548` | iris violet, florin gold | new | Genghis Khan | 115 |
+| Harun al-Rashid | `#1c1a1a` | `#d4a934` | Abbasid black, gold | Al-Ma'mun's, as built | Justinian | 123 |
+| Justinian | `#5a1e4a` | `#d9b23c` | porphyry, mosaic gold | new | Pachacuti | 85 |
+| Sejong the Great | `#25346b` | `#f3f1ea` | ink navy, porcelain white | new | Joan of Arc | 89 |
+| Ibn Battuta | `#b5651d` | `#0d6b78` | ochre, sea teal | as built | Qin Shi Huang | 105 |
+
+- Three reds (Pachacuti, Mehmed, Qin), three blues (Genghis Khan, Joan, Sejong) and two purples (Alexander, Justinian) are over the rule and are told apart by how light they are. Justinian's porphyry and Alexander's purple are the pair to look at on the map.
+
+### For the builder
+
+- **New shapes: none. Small extensions: five.** (1) Route range read for the origin city (The Yam). (2) A count of chairs by type (The Cyrus Cylinder). (3) An improvement that the `greatWork` test admits, with happiness from an improvement and one in each city (The Paradise Garden). (4) Renown paid from a rate (The Medici Bank). (5) A renown rate for a grant (The Royal Lectures).
+- **The earlier extension is gone:** Alexander's Settler on a capture was replaced by your line, which is an existing shape.
+- **Points to check in the code:** a levied unit reaches `unitCompletion` (Alexander); `foundingRider` takes a civilian unit id (Cyrus); a `completion` rider can measure `production` (Justinian's ability I); a `productionBonus` count takes a building category inside the town (Lorenzo); a faith purchase pays `buildingCompletion` (Jayavarman VII); `pays` reads `greatPeopleGained` with a family (Mehmed).
+- **New unit rows (7):** Hypaspist, Janissary, Qin Crossbowman, Ballista Elephant, Sparabara, Condottiere, Hwacha. Renamed: Keshig. Opened again: Cataphract.
+- **New building rows (7):** The Royal Pages, The Yam, The Külliye, The House of Fire, The Bottega, The Basilica, The Hall of Worthies. Renamed: The Commandery (the Post Station). Changed: The Museion (+2). New improvement: The Paradise Garden.
+- **Leader rows:** eleven new rows (Alexander, Genghis Khan, Mehmed, Qin, Jayavarman VII, Cyrus, Cleopatra, Lorenzo, Harun, Justinian, Sejong), one changed row (Nezahualcoyotl), eight hidden rows.
+- **Art:** eleven portraits for the new leaders and five for those who stay. New banners: Alexander, Mehmed, Qin, Jayavarman VII, Cyrus, Cleopatra, Lorenzo, Justinian, Sejong. Reused: Genghis Khan (Modu's), Harun (Al-Ma'mun's).
+- **Bot personas:** each kit names one of the five in `data/ai.json`. Joan keeps today's.
+- **Docs and tests:** as in the record's "For the builder": `docs/leaders.md` tables with `test/sim/leaders.test.ts` and `test/render/seatInks.test.ts`, the seed sweep cast, `docs/mapgen.md`, the skill's "Leaders" section and the deck maps.
+
+## 7. What I could not check
+
+- No bot game was run, so no number is measured.
+- The six code points in "For the builder".
+- The history is from memory. For Jayavarman VII, the counts of 102 hospitals and 121 rest houses are from their own inscriptions as I recall them; check before any text ships.
+
+## Record: 1. The structure
 
 This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, "Leaders: a more mainstream roster, one for each pair of decks"). Nothing here is built or ruled. You choose; the build follows your choice.
 
@@ -41,7 +577,7 @@ This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, 
 - Thirteen would save two of the eight new kits. Fifteen costs about a third more data work than thirteen, and the same code work.
 - Art is the larger cost either way: eleven or twelve new portraits, and eight new banners (three are reused).
 
-## 2. The roster by pair
+## Record: 2. The roster by pair
 
 | Pair | Recommended | People | Region | Time | Status | Also designed |
 |---|---|---|---|---|---|---|
@@ -79,7 +615,7 @@ This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, 
 | Devotion + Magisterial | Ashoka | *The Edicts*: Your capital gains +3 culture and +2 faith for each foreign city that follows your religion. | *The Pillars*: Culture buildings give +2 faith each. |
 | Scientific + Magisterial | Sejong the Great | *The Correct Sounds*: Every city gains +1 science and +1 culture for every four citizens. | *The Royal Lectures*: Each time you gain a great person, gain science equal to four turns of your science. |
 
-## 3. The pairs
+## Record: 3. The pairs
 
 ### Dominion + Expansionist: the frontier
 
@@ -567,7 +1103,7 @@ This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, 
 - **Portrait (3:4, gouache poster):** A man of forty in the red dragon robe and the black winged cap of a Joseon king, a gentle scholarly face, after the modern standard portrait (none from life survives). A printed page of the new letters in hand, a water clock behind.
 - **Overlaps and risks:** Yi Sun-sin (general, age 5) is a great person of Joseon 150 years later, which is fine. The Magisterial cards The Jinshi and The Hanlin Academy are the Chinese models of their court. Hwarang, a religion name, is from Silla, not Joseon. A much-loved figure in Korea, on the 10,000 won note.
 
-## 4. Ibn Battuta
+## Record: 4. Ibn Battuta
 
 - **Ibn Battuta is a real, playable leader, and the only one outside the pair grid.** The row in `data/leaders.json` has `rainbow: true` in place of `decks`.
 - `leaderDecks` (`src/sim/leaderData.ts`) gives a rainbow seat all six decks, and each hand it is dealt samples two different decks (`src/sim/statecraft/draft.ts`). The leader screen prints "Rainbow · every deck" (`src/ui/leaderSelect.ts`).
@@ -576,7 +1112,7 @@ This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, 
 - Two things to know. Both abilities are draft effects, the kind you now reject. And Ibn Battuta is also a great person (merchant, age 4), which is why the leader's key is `ibnBattutaOfTangier`.
 - This pass leaves the seat as it is. If the roster becomes one leader a pair, the rainbow seat is a sixteenth, and a better-known traveller could hold it (Marco Polo is a great person too, so the same clash would follow).
 
-## 5. Gaps in the spread, and three more candidates
+## Record: 5. Gaps in the spread, and three more candidates
 
 The recommended fifteen, by region: Europe four (Alexander, Joan of Arc, Isabella, Lorenzo); the Middle East and Egypt four (Mehmed, Cyrus, Cleopatra, Harun al-Rashid); East Asia and the steppe three (Qin Shi Huang, Sejong, Genghis Khan); the Americas two (Pachacuti, Nezahualcoyotl); South Asia one (Ashoka); sub-Saharan Africa one (Mansa Musa).
 
@@ -598,7 +1134,7 @@ Three more mainstream candidates that would each fix a gap. They are not designe
   - Builder of Angkor Thom, the Bayon and 102 hospitals. Already on the shelf in `docs/leaders.md`.
   - Fixes Southeast Asia. On Expansionist + Devotion (temple cities and their reservoirs) they would replace Isabella with a far less charged figure. Angkor Wat is a wonder of an earlier king.
 
-## 6. What a successor can reuse
+## Record: 6. What a successor can reuse
 
 - **Genghis Khan takes all of Modu Chanyu's kit.** The first ability is Modu's as built. The Xiongnu Horse Archer becomes the Keshig. The Horde Camp, the start bias, the colours and the sun and moon banner stay. New: one ability row, a city list, a portrait.
 - **Cleopatra takes all of Hypatia's kit:** the Alexandrian Galley, the Museion, the city list, the colours and the start bias. New: two ability rows, a banner, a portrait. Hypatia stays a great person.
@@ -611,7 +1147,7 @@ Three more mainstream candidates that would each fix a gap. They are not designe
 - **The bench after the change:** the Pontic Peltast and the Mountain Hold (Mithridates), the Tang Heavy Cavalry and the Examination Court (Taizong), the Treasure Ship and the Longjiang Dockyard (Zheng He), the Canoness and the Scriptorium (Hildegard), and the first cut's pieces. The Canoness's row is the model for Ashoka's envoy.
 - **Abilities that leave with their leaders** stay valid rows of effects and can be reused by any later leader: The Mandate, The Garrison Towns, The Herds, The Poison King, The Groves and the Hunt, The Great Works, The Nile's Gift, The Mu'tazila, The Treasure Fleet, The Museion (+25% renown), The Commentaries, The Rites, Symphonia.
 
-## 7. Colours
+## Record: 7. Colours
 
 Two for each leader, as in `docs/leaders.md`, "The colours". The distance is the game's own measure (`inkDistance`, `src/art/seatInks.ts`); the rule is 40 between primaries. Every pair here is over the rule, so any mix of candidates can ship. Reused colours come from the leader who leaves.
 
@@ -644,7 +1180,7 @@ Close to the eye, though over the rule:
 - Qin Shi Huang and Harun al-Rashid both have black as their historic colour. Harun keeps it, because the banner is drawn; Qin leads with cinnabar.
 - The roster would hold three reds (Pachacuti, Mehmed, Qin) and three blues (Genghis Khan, Joan of Arc, Sejong), told apart by how light they are.
 
-## 8. For the builder
+## Record: 8. For the builder
 
 - **Leader rows** (`data/leaders.json`): eleven new rows and one changed row for the recommended fifteen. Each has `name`, `people`, `decks`, two `abilities`, `unit`, `building` or `improvement`, `colors`, `cities`, `startBias`.
 - **Leaders that leave.** A save is `{config, log}`, and a config that names a removed leader will not replay. Keep the nine rows and hide them from the leader screen (a `retired` flag on `LeaderDef`, as card rows have), or accept that old saves break. This needs your builder's check of `validateLeaders` (`src/sim/leaderData.ts`).
@@ -662,17 +1198,95 @@ Close to the eye, though over the rule:
 - **Tests and docs:** `test/sim/leaders.test.ts` and `test/render/seatInks.test.ts` hold the doc tables to the data, so `docs/leaders.md` ("The thirteen", "The biases", "The colours", "The cities") changes with the rows. Also `.claude/skills/card-design/SKILL.md` ("Leaders"), `references/deck-maps.md`, the "Leaders" part of each `docs/plans/<deck>-themes.md`, `test/ui/seatRoster.test.ts` if it names leaders, and the Compendium's leader shelf (generated).
 - **Card checks after the build:** The Shrine Guards is nearly dead for Joan. Mansa Musa's The Hajj and Nezahualcoyotl's The Dikes are weak early (see their blocks).
 
-## 9. Questions for you
+## Record: 9. Questions for you
 
 1. **One leader a pair, or two on some pairs?** I recommend fifteen now, one a pair. The alternates (Saladin, Augustus, Justinian) can be added later as second leaders with no change to the fifteen.
 2. **The four contested pairs.** My picks are Joan of Arc (over Saladin), Qin Shi Huang (over Augustus), Lorenzo de' Medici (over Hatshepsut) and Ashoka (over Justinian). Which do you change?
 3. **Isabella of Castile.** The fit to the decks is good and the history is heavy (the Inquisition, the expulsions, the Americas, with two American leaders in the same roster). Keep them, or take Jayavarman VII for Expansionist + Devotion?
 4. **Ibn Battuta.** Keep the seat that plays every deck as a sixteenth leader, with a later rework of its two draft abilities? I recommend yes.
 
-## 10. What I could not check
+## Record: 10. What I could not check
 
 - No bot game was run, so no number is measured.
 - The history is from memory. The points most worth a check before any text ships: the House of Wisdom under Harun, the "books from the ships" story, the Hagia Sophia quote, and the dates of the Hermandad and the first khanqah.
 - Whether bots offer deals often enough for Cleopatra's second ability.
 - The three code points in "For the builder".
 - Whether a portrait in the wonder paintings' style reads well at 3:4: no portrait was drawn.
+
+## The user's comments on the page (2026-11-19)
+
+The user commented on the review page ("ok i commented on the leader page").
+The comments below are the user's words. They are the spec. A leader or a line
+with no comment is not yet ruled.
+
+| Leader | On | The user's comment |
+|---|---|---|
+| Alexander the Great | ability two, The Alexandrias (a capture grants a Settler) | "Change: training a military unit gives science equal to half the unit's strength." |
+| Alexander the Great | the building, The Gymnasium | "Basilikoi: +2 culture, +1 science and culture on all strategic resources in the city, unlocks with the barracks." and "counts as a military building" |
+| Genghis Khan | the building, The Horde Camp | "what does the horde camp do? A better effect for genghis khan: trade routes from this city can travel twice as far. +30% production towards mounted units, counts as a military building." |
+| Genghis Khan | the colours (sky blue, bone) | "should the colors change?" |
+| Joan of Arc | ability two, The Maid (buy units with faith; they start as Veterans) | "lets revert: units killed spread their faith, your units gain strength in cities that follow your religion." |
+| Joan of Arc | the building, The Sainte-Chapelle | "keep it as it was." |
+| Mehmed the Conqueror | ability one, The Enderun (military buildings give +2 science each) | "Barracks give +1 science, an additional +1 for every great scholar or great general you've recruited this game." |
+| Mehmed the Conqueror | the building, The Külliye | "change: +2 science, +2 faith, +1 happiness." |
+| Qin Shi Huang | the leader | "this design is great." |
+| Isabella of Castile | the leader | "what does jayavarman look like? i dont like isabella as a pick." |
+| Nezahualcoyotl | ability one, The Dikes | "cities with an aqueduct gain +1 science and +1 production on farms. Aqueducts arrive late so this should be stronger." |
+| Cyrus the Great | ability one, The Cyrus Cylinder | "revise: cities connected by road gain +1 happiness and +2 culture for every civic and wildcard slot in your government." |
+| Cyrus the Great | the improvement, The Paradise Garden | "that's so good. let's say +1 happiness and +1 culture and counts as a great person work." |
+| Cleopatra | the leader | "great, i like her kit." |
+| Cleopatra | the building, The Museion | "let's buff this to +2 science for every great person called." |
+| Cleopatra | ability two, The Queen's Alliances | "lets make this +4 gold and +2 culture per age." |
+| Lorenzo de' Medici | ability one, The Medici Bank | "let's change this to +1 renown for every 8 gold per turn you earn." |
+| Lorenzo de' Medici | ability two, Florins | "lets change this to: gain 10% production towards wonders for every gold building in a city." |
+| Lorenzo de' Medici | the building, The Bottega | "+5 renown towards great engineers and great artists (+10 total). +2 production for every luxury resource or great work in this city." |
+| Hatshepsut | the leader | "not needed" |
+| Harun al-Rashid | ability one, The Storehouse of Wisdom | "+1 science and +1 faith on faith and science buildings. (these can be multiplied by orders)." |
+| Justinian | ability two, One Faith, One Empire | "+2 happiness and +5 production on holy sites." |
+| Justinian | the building, The Basilica | "+3 faith and +3 city defense. +20% production towards wonders if the city has a holy site (should unlock in age 2, counts as a defensive building and a faith building)." |
+| Sejong the Great | ability two, The Royal Lectures | "Each time you complete a technology, gain an extra turn of renown." |
+| Sejong the Great | the building, The Hall of Worthies | "Rework: +5 renown towards scholars. +4 science." |
+
+What follows:
+- **Out:** Isabella of Castile and Hatshepsut.
+- **Approved as designed:** Qin Shi Huang; Cleopatra with two changes.
+- **A design is wanted for Jayavarman VII** (Expansionist + Devotion).
+- **No comment yet:** Saladin, Augustus, Ashoka, Pachacuti, Mansa Musa, and the
+  lines of the others that have no row above. The user edited Justinian and
+  did not comment on Ashoka, so the Devotion + Magisterial pick is open.
+
+## The user's ruling on the roster (2026-11-19, in chat)
+
+"justinian over ashoka. assume the leaders with comments are the ones i've
+selected. Pachacuti and mansa musa are approved."
+
+The roster, one leader for each pair of decks:
+
+| Pair | Leader | State |
+|---|---|---|
+| Dominion + Expansionist | Alexander the Great | selected, with the user's changes |
+| Dominion + Commerce | Genghis Khan | selected, with the user's changes |
+| Dominion + Devotion | Joan of Arc | selected: today's abilities and building |
+| Dominion + Scientific | Mehmed the Conqueror | selected, with the user's changes |
+| Dominion + Magisterial | Qin Shi Huang | selected as designed |
+| Expansionist + Commerce | Pachacuti | approved, stays |
+| Expansionist + Devotion | Jayavarman VII | being designed; the user has not seen the design |
+| Expansionist + Scientific | Nezahualcoyotl | selected, with the user's change to The Dikes |
+| Expansionist + Magisterial | Cyrus the Great | selected, with the user's changes |
+| Commerce + Devotion | Mansa Musa | approved, stays |
+| Commerce + Scientific | Cleopatra | selected, with the user's changes |
+| Commerce + Magisterial | Lorenzo de' Medici | selected, with the user's changes |
+| Devotion + Scientific | Harun al-Rashid | selected, with the user's change |
+| Devotion + Magisterial | Justinian | selected over Ashoka, with the user's changes |
+| Scientific + Magisterial | Sejong the Great | selected, with the user's changes |
+
+Not selected: Saladin, Augustus, Ashoka, Isabella of Castile, Hatshepsut.
+Leaving the game: Emperor Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun,
+Mithridates VI, Zheng He, Hypatia, Hildegard of Bingen. Ibn Battuta (the
+every-deck seat) is not yet ruled.
+
+**Ibn Battuta stays** (the user, 2026-11-19: "ibn battuta is great, he's my
+favorite"). He is the sixteenth seat, the every-deck leader, outside the
+fifteen pairs. His two abilities stay as they are; nobody is to rework them
+unless the user asks. Because he stays a leader, the great person row with his
+name is renamed (the great people pass proposes Ibn Jubayr, change C25).

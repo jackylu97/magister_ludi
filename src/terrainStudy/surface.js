@@ -1,5 +1,7 @@
 // Shared dimensions and cut planes for terrain, water and prop placement.
 import {makeHillMounds,moundSurfaceHeight,createMapHillMounds} from './hillMounds.js';
+import {moundCache, wrappingMaps} from './terrainTransfer.js';
+export {packTerrainMap, restoreTerrainMap} from './terrainTransfer.js';
 export const WATER_LEVEL = .04;
 export const LAND_LEVEL = .12;
 export const BANK_TOE = .005;
@@ -18,6 +20,7 @@ const shapes = new Map();
 // mesh's own cache reads, and the board must then be built again.
 const STUDY_RIVER = {crest:.125, toe:RIVER_HALF_WIDTH, corner:.065, organic:false, clearance:0};
 let river = STUDY_RIVER, riverKey = 0;
+/** @param {{crest: number, toe: number, corner: number, organic?: boolean, clearance?: number} | null} style */
 export function setRiverStyle(style = null) {
  const next = style ? {crest:style.crest, toe:style.toe, corner:style.corner, organic:!!style.organic, clearance:style.clearance||0} : STUDY_RIVER;
  if (next.crest === river.crest && next.toe === river.toe && next.corner === river.corner
@@ -37,7 +40,6 @@ export function setCoastStyle(free) { free = !!free; if (free === freeCoast) ret
 export function coastStyle() { return freeCoast; }
 // Wrapping belongs to a prepared render map, never to simulation tiles or the
 // standalone study's global state.
-const wrappingMaps = new WeakSet();
 export function terrainMapWraps(map){return wrappingMaps.has(map)}
 export function isWater(tile){return ['ocean','coast','lake'].includes(tile.terrain)}
 export function centre(tile){return {x:Math.sqrt(3)*(tile.col+(tile.row%2)*.5),z:tile.row*1.5}}
@@ -78,60 +80,6 @@ export function prepareTerrainMap(map,{wrap=false}={}) {
  const mounds=createMapHillMounds(result,{centre,neighbour,tileShape,baseHeight:baseSurfaceHeight,wrap});
  for(const [tile,pieces]of mounds)moundCache.set(tile,pieces);
  return result;
-}
-
-// Carry the already-built hill contacts across the worker boundary. WeakMap
-// entries cannot be structured-cloned; rebuilding them would repeat the most
-// expensive part of preparation on the UI thread.
-//
-// The mounds' faces travel as one Float64Array of corners, nine numbers a
-// triangle, and not as arrays of [x, y, z] (the fourth render speed pass).
-// Copying nested arrays costs a step for every number and every array; a typed
-// array is copied as bytes. A double holds every number exactly, and each
-// piece's other fields travel beside it in their own order, so the restored
-// mounds equal the built ones field for field. One thing is not kept: in a
-// built mound two faces may share one corner array, and restored faces each
-// have their own. Nothing writes to a mound's corners after it is built, so
-// nothing can tell.
-export function packTerrainMap(map) {
- const lists=map.tiles.map(tile=>moundCache.get(tile)||null);
- return {map,wrap:terrainMapWraps(map),mounds:packMounds(lists)??lists};
-}
-export function restoreTerrainMap({map,wrap,mounds}) {
- if(wrap)wrappingMaps.add(map);
- if(Array.isArray(mounds)){map.tiles.forEach((tile,i)=>{if(mounds[i])moundCache.set(tile,mounds[i])});return map}
- const {present,pieces,faces,corners,rest}=mounds;
- let piece=0,at=0;
- map.tiles.forEach((tile,i)=>{
-  if(!present[i])return;
-  const list=[];
-  for(let k=0;k<pieces[i];k++,piece++){
-   const triangles=[];
-   for(let f=0;f<faces[piece];f++,at+=9)triangles.push([[corners[at],corners[at+1],corners[at+2]],[corners[at+3],corners[at+4],corners[at+5]],[corners[at+6],corners[at+7],corners[at+8]]]);
-   list.push({faces:triangles,...rest[piece]});
-  }
-  moundCache.set(tile,list);
- });
- return map;
-}
-/** The packed form of `restoreTerrainMap`, or null when a mound is not made of triangles with `faces` as its first field. */
-function packMounds(lists){
- const present=new Uint8Array(lists.length),pieces=new Uint32Array(lists.length),faces=[],rest=[];
- let total=0;
- for(let i=0;i<lists.length;i++){
-  const list=lists[i];if(!list)continue;
-  present[i]=1;pieces[i]=list.length;
-  for(const piece of list){
-   if(Object.keys(piece)[0]!=='faces')return null;
-   for(const face of piece.faces)if(face.length!==3||face.some(corner=>corner.length!==3))return null;
-   const {faces:own,...others}=piece;
-   faces.push(own.length);rest.push(others);total+=own.length*9;
-  }
- }
- const corners=new Float64Array(total);
- let at=0;
- for(const list of lists)if(list)for(const {faces:own}of list)for(const face of own)for(const corner of face){corners[at++]=corner[0];corners[at++]=corner[1];corners[at++]=corner[2]}
- return {present,pieces,faces:Uint32Array.from(faces),corners,rest};
 }
 
 /** The edges where this hex's ground runs on into the next hex with no bank: land joins, and every shore edge of a free coast. */
@@ -193,7 +141,6 @@ export function onTileTop(tile,x,z,margin=0) {
   && surfaceHeight(tile,x,z)>WATER_LEVEL+.035;
 }
 
-const moundCache=new WeakMap();
 export function hillMounds(tile){
  if(!tile.hills||isWater(tile)||tile.terrain==='mountain'||tile.feature==='oasis')return [];
  if(!moundCache.has(tile))moundCache.set(tile,makeHillMounds(tile,tileShape(tile),(x,z)=>baseSurfaceHeight(tile,x,z)));

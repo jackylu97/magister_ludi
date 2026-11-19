@@ -52,6 +52,7 @@ export interface NotificationsPanel {
 }
 
 interface NotificationsPanelOptions {
+  signal?: AbortSignal;
   /** The card. Hidden with `hidden` while closed, like every other popover. */
   panel: HTMLElement;
   /** The bar button that opens it, and carries the badge. */
@@ -135,6 +136,7 @@ export function createNotificationsPanel(
   }
 
   const card: Popover = createPopover({
+    signal: options.signal,
     panel,
     trigger,
     closeButton,

@@ -932,11 +932,7 @@ describe('the sheet’s frame and its doors', () => {
     expect(main).toContain('trigger: quickRoutesButton,');
     expect(main).toContain('onOpenTrade: () => trade?.open(),');
     expect(main).not.toContain('hudDock.tradeButton');
-    expect(main).toContain("if (event.key !== 'e' && event.key !== 'E') return;");
-    // The hotkey is unbound between games, unlike its two older neighbours.
-    expect(main).toContain(
-      "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
-    );
+    expect(main).toContain("case 'e': if (!greyedDoorRefuses('routes')) trade?.open();");
     // The bar keeps no typed glyph for trade either.
     expect(source('topBar.ts')).not.toContain("'⇄'");
     // Since batch SS2b the corner panel's Routes mark is the sheet's one door
