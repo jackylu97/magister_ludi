@@ -156,9 +156,10 @@ function tryReplayFrom(
     const command = log[i]!;
     const result = applyCommand(state, command);
     if (!result.ok) {
+      const type = typeof command?.type === 'string' ? command.type : 'unknown';
       return {
         ok: false,
-        failure: { index: i, type: String(command.type), error: result.error },
+        failure: { index: i, type, error: result.error },
       };
     }
     if (state.turn !== turn) {
@@ -223,6 +224,31 @@ export function saveGame(game: Game): string {
   return JSON.stringify(save);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Check saved field types before normalization can coerce or discard them. */
+export function isSavedConfig(value: unknown): value is GameConfig {
+  if (!isRecord(value) || !Number.isFinite(value.seed) || typeof value.sizeName !== 'string') {
+    return false;
+  }
+  if (value.barbarians !== undefined && typeof value.barbarians !== 'boolean') return false;
+  if (value.mapgenOverrides !== undefined && !isRecord(value.mapgenOverrides)) return false;
+  if (!Array.isArray(value.players)) return false;
+  return value.players.every((seat: unknown) => {
+    if (!isRecord(seat) || typeof seat.name !== 'string' || typeof seat.color !== 'string') {
+      return false;
+    }
+    if (seat.isHuman !== undefined && typeof seat.isHuman !== 'boolean') return false;
+    for (const key of ['secondary', 'charge', 'persona', 'leader']) {
+      if (seat[key] !== undefined && typeof seat[key] !== 'string') return false;
+    }
+    return seat.decks === undefined ||
+      (Array.isArray(seat.decks) && seat.decks.every((deck: unknown) => typeof deck === 'string'));
+  });
+}
+
 /** Parses a save file and replays it into a live game. */
 export function loadGame(json: string): Game {
   const parsed: unknown = JSON.parse(json);
@@ -241,6 +267,7 @@ export function loadGame(json: string): Game {
   }
   if (!Array.isArray(save.log)) throw new Error('Save file has no command log');
 
+  if (!isSavedConfig(save.config)) throw new Error('Save file has an invalid game setup');
   const config = normalizeConfig(save.config);
   const log = save.log as Command[];
   return { config, state: replay(config, log), log };

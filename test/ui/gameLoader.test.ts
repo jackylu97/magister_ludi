@@ -167,6 +167,35 @@ describe('loadSaveAsync', () => {
     expect(there.error).toMatch(/not one this build can play/);
   });
 
+  it.each([
+    {},
+    { ...CONFIG, players: {} },
+    { ...CONFIG, players: [null] },
+    { ...CONFIG, players: [{ ...CONFIG.players[0], decks: 'commerce' }] },
+    { ...CONFIG, players: [{ ...CONFIG.players[0], decks: [null] }] },
+    { ...CONFIG, players: [{ ...CONFIG.players[0], isHuman: 'yes' }] },
+    { ...CONFIG, mapgenOverrides: [] },
+    { ...CONFIG, barbarians: 1 },
+  ])('refuses malformed setup fields before starting replay', async (config) => {
+    const payload = JSON.parse(developedSave(1).json);
+    const json = JSON.stringify({ ...payload, config });
+    const workerFactory = vi.fn(fakeWorkerFactory());
+    const result = loadSave(json);
+    expect(result).toMatchObject({ ok: false, error: /setup/ });
+    expect(await loadSaveAsync(json, { workerFactory })).toEqual(result);
+    expect(workerFactory).not.toHaveBeenCalled();
+  });
+
+  it.each([null, 3, 'bad'])('reports the index of a malformed command', async (entry) => {
+    const payload = JSON.parse(developedSave(1).json);
+    const index = payload.log.length;
+    payload.log.push(entry);
+    const json = JSON.stringify(payload);
+    const result = loadSave(json);
+    expect(result).toMatchObject({ ok: false, detail: expect.stringContaining(`command ${index} (unknown)`) });
+    expect(await loadSaveAsync(json, { workerFactory: fakeWorkerFactory() })).toEqual(result);
+  });
+
   it('refuses a bad envelope without ever asking a worker', async () => {
     const asked = vi.fn(fakeWorkerFactory());
     expect(await loadSaveAsync('{ not json', { workerFactory: asked })).toMatchObject({
