@@ -183,7 +183,7 @@ import { commissionFigure, commissionProgress } from '../sim/commissions';
 import { commissionRewardWaits } from '../sim/commissions';
 // Magisterial batch MG17: the work a garden goal names and the seat's work
 // families, read where the goals read them.
-import { gardenWorkFor, workFamiliesHeld } from '../sim/commissions';
+import { gardenWorkFor, townWorksWorked, workFamiliesHeld } from '../sim/commissions';
 // Dominion batch D16: The Upstarts' line is read through feature B's own
 // answer to "which empires know more technologies than this one". Scientific
 // batch S13 reads the mirror (The Edge of the Sword) and the gap (The
@@ -318,6 +318,7 @@ import {
   // Batch G1: the kinds a tier-26 government raises, so its price reads them.
   CARD_TYPE_RAISED_KINDS,
   cardTypeAmplifierMatches,
+  wonderWorkYieldLines,
   cardActionRule,
   cardCollectionShare,
   cardRareWeight,
@@ -2903,6 +2904,9 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
       return widerFitWorth(ctx);
     case 'actThenWork': // The Universal Genius
       return actThenWorkWorth(ctx);
+    case 'wondersAreWorks':
+      return citiesOf(ctx.state, ctx.playerId).reduce((value, city) =>
+        value + wonderWorkYieldLines(ctx.state, city).reduce((sum, line) => sum + valueOfYields(bagOf(line), ctx), 0), 0);
     case 'worksPullRivalHexes': // The Pull of the Masters
       return pullWorth(ctx);
     // Batch DT10: the two Doctrines that change what an Order hand deals.
@@ -5982,6 +5986,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'wonderHammersMoveOn':
     case 'cultureBuysWonders':
     case 'actThenWork':
+    case 'wondersAreWorks':
     case 'worksPullRivalHexes':
     case 'thirdCardForeign':
     case 'rareWeight':
@@ -13917,10 +13922,7 @@ function magisterialGoalForecast(
       for (const city of citiesOf(ctx.state, ctx.playerId)) {
         let wonders = 0;
         for (const id of city.buildings) if (isWonder(id)) wonders += 1;
-        let worked = 0;
-        for (const cell of city.workedTiles) {
-          if (holdsWork(ctx, getTileAt(ctx.state.map, cell.col, cell.row))) worked += 1;
-        }
+        const worked = townWorksWorked(ctx.state, city, floor);
         if (best === null || wonders > best.wonders || (wonders === best.wonders && worked > best.works)) {
           best = { wonders, works: worked };
         }

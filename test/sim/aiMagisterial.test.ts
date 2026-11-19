@@ -992,21 +992,28 @@ describe('the commissions', () => {
     expect(explainCommission(PATRONS_GALLERY, ctx)!.terms[1]!.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
   });
 
-  it('forecasts The Paradise Garden at the share of works laid beside a work', () => {
-    const { state, player, towns } = board([6]);
-    hold(state, 0, WORKSHOP);
-    towns[0]!.buildings.push(WONDER);
-    const work = at(state.map, 4, 5);
-    own(state, work, towns[0]!);
-    work.improvement = WORK;
-    refreshCityDerived(state, towns[0]!);
-    bumpRevision(state);
-    const ctx = valueContext(state, player);
-    const rate = personRateOf(state, player) * (1 / 2) * MAGISTERIAL.workBesideShare;
-    const turns = Math.min(HORIZON, Math.max(1, Math.ceil(3 / rate)));
-    const forecast = explainCommission(PARADISE_GARDEN, ctx)!.terms[1]!;
-    expect(forecast.label).toContain('more works beside a work');
-    expect(forecast.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
+  it('forecasts a legacy commission at the share of works laid beside a work', () => {
+    const row = orderDef(PARADISE_GARDEN);
+    const original = row.commission;
+    row.commission = { goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }], reward: [{ claimWithin: 3 }] };
+    try {
+      const { state, player, towns } = board([6]);
+      hold(state, 0, WORKSHOP);
+      towns[0]!.buildings.push(WONDER);
+      const work = at(state.map, 4, 5);
+      own(state, work, towns[0]!);
+      work.improvement = WORK;
+      refreshCityDerived(state, towns[0]!);
+      bumpRevision(state);
+      const ctx = valueContext(state, player);
+      const rate = personRateOf(state, player) * (1 / 2) * MAGISTERIAL.workBesideShare;
+      const turns = Math.min(HORIZON, Math.max(1, Math.ceil(3 / rate)));
+      const forecast = explainCommission(PARADISE_GARDEN, ctx)!.terms[1]!;
+      expect(forecast.label).toContain('more works beside a work');
+      expect(forecast.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
+    } finally {
+      row.commission = original;
+    }
   });
 
   it('prices The Golden Bull’s Doctrine offer at the expected best of the offer, and nothing from an empty bag', () => {
@@ -1067,25 +1074,32 @@ describe('the commissions', () => {
     expect(term.value).toBe(0);
   });
 
-  it('prices The Paradise Garden’s land at the unowned hexes within three of the seat’s first work', () => {
-    const { state, player, towns } = board([6]);
-    const work = at(state.map, 4, 5);
-    own(state, work, towns[0]!);
-    work.improvement = WORK;
-    bumpRevision(state);
-    const ctx = valueContext(state, player);
-    expect(gardenWorkFor(state, 0, 0)).toBe(work);
-    const owner = tileOwnerField(state);
-    let expected = 0;
-    for (const tile of mapRange(state.map, tileHex(work), 3)) {
-      if (owner.at(tileIndex(state.map, tile.col, tile.row)) !== null) continue;
-      expected += claimedHex(ctx, tile);
+  it('prices a legacy land reward at the unowned hexes within three of the seat’s first work', () => {
+    const row = orderDef(PARADISE_GARDEN);
+    const original = row.commission;
+    row.commission = { goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }], reward: [{ claimWithin: 3 }] };
+    try {
+      const { state, player, towns } = board([6]);
+      const work = at(state.map, 4, 5);
+      own(state, work, towns[0]!);
+      work.improvement = WORK;
+      bumpRevision(state);
+      const ctx = valueContext(state, player);
+      expect(gardenWorkFor(state, 0, 0)).toBe(work);
+      const owner = tileOwnerField(state);
+      let expected = 0;
+      for (const tile of mapRange(state.map, tileHex(work), 3)) {
+        if (owner.at(tileIndex(state.map, tile.col, tile.row)) !== null) continue;
+        expected += claimedHex(ctx, tile);
+      }
+      expect(expected).toBeGreaterThan(0);
+      const land = allTerms(explainCommission(PARADISE_GARDEN, ctx)!.terms).find((term) =>
+        term.label.includes('unowned hexes within 3'),
+      )!;
+      expect(land.value).toBeCloseTo(expected, 8);
+    } finally {
+      row.commission = original;
     }
-    expect(expected).toBeGreaterThan(0);
-    const land = allTerms(explainCommission(PARADISE_GARDEN, ctx)!.terms).find((term) =>
-      term.label.includes('unowned hexes within 3'),
-    )!;
-    expect(land.value).toBeCloseTo(expected, 8);
   });
 });
 

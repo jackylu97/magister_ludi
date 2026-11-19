@@ -7122,6 +7122,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'unimproved hex worked here',
     many: 'unimproved hexes worked here',
   },
+  worksAndWondersHeld: { one: 'wonder or great-person work you hold', many: 'wonders and great-person works you hold' },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
   // **Courts reached, not roads run** — the partner counted once however many
   // caravans walk to it, which is the whole difference from `foreignTradeRoutes`.
@@ -7887,6 +7888,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   everyWorkIsAcademy: 'your great people of every family found an Academy as their work, in place of their own',
   // Magisterial batch MG16, The Pull of the Masters: the card's text, with the
   // "rival's own works" said as the great-person works they are.
+  wondersAreWorks: 'Your wonders count as great-person works.',
   worksPullRivalHexes:
     "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken",
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',

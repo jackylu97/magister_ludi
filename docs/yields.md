@@ -170,7 +170,7 @@ moves into culture.
 |---|---|---|---|---|
 | 1 | **The centre** — `foldCentre` (`explainCentreYield`) | the base city yield, plus the town hex's own reading as an *excess* over it | additive | — |
 | 2 | **Each worked hex** — `foldTile` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with three shares inside it — see below) | — |
-| 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
+| 3 | **The cards' city lines** — `explainCardCityYields` | city pay, including a separate line for each card and wonder when The Spirit Way gives a town a great-person work | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
 | 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers. Then, under The Return Leg's rule (`homeRoutesPayOrigin`), a copy of what each domestic route leaving the town pays its destination (`cityReturnLegYields`), line for line, filed under the card | additive | — |

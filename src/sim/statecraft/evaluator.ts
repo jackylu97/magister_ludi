@@ -2607,7 +2607,7 @@ function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingC
  * which is that member's own stated bargain.
  */
 function worksHolding(state: GameState, city: City, on: TileCondition): number {
-  let total = 0;
+  let total = on.test === 'greatWork' ? ghostWorksInTown(state, city) : 0;
   // The board's own answers for the tests a tile cannot answer alone
   // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
   const ground = groundFactsFor(state, city.ownerId);
@@ -3327,7 +3327,7 @@ export function countTilesInBorders(
 ): number {
   const ground = groundFactsFor(state, playerId);
   const walk = (town: City): number => {
-    let here = 0;
+    let here = rule.test === 'greatWork' ? ghostWorksInTown(state, town) : 0;
     for (const tile of ownedTiles(state, town)) {
       if (tileConditionHolds(tile, rule, undefined, undefined, state.turn, ground)) here += 1;
     }
@@ -3696,6 +3696,13 @@ export function countOf(
         }
       }
       return total;
+    }
+    case 'worksAndWondersHeld': {
+      const town = effect.within === 'city' ? city : undefined;
+      if (effect.within === 'city' && !town) return 0;
+      const works = countTilesInBorders(state, playerId, { test: 'greatWork' }, town);
+      if (cardActionRule(state, playerId, 'wondersAreWorks')) return works;
+      return works + (town ? town.buildings.filter(isWonder).length : wondersHeldBy(state, playerId));
     }
     case 'wonders': {
       // **Narrowed to the town, where the row says so** (`within: 'city'`, batch
@@ -4823,6 +4830,41 @@ function paysSomething(line: CardYieldLine): boolean {
   return VOICES.some((key) => line[key] !== 0);
 }
 
+export function ghostWorksInTown(state: GameState, city: City): number {
+  const wonders = city.buildings.filter(isWonder).length;
+  return wonders && cardActionRule(state, city.ownerId, 'wondersAreWorks') ? wonders : 0;
+}
+
+/** A wonder has no hex or base yield. Only card lines for a work can pay on it. */
+export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLine[] {
+  const wonders = city.buildings.filter(isWonder);
+  if (wonders.length === 0) return [];
+  const lines = [...cardTileLines(state, city.ownerId), ...scopedCardTileLines(state, city)].filter(
+    line => line.on.test === 'greatWork' && !line.perAdjacentMountain && !line.perNeighbour,
+  );
+  const flat = lines.filter(line => line.card !== undefined && VOICES.some(voice => line[voice] !== 0));
+  if (flat.length === 0) return [];
+  const base = Object.fromEntries(VOICES.map(voice => [voice, flat.reduce((sum, line) => sum + line[voice], 0)])) as Record<CityYieldKey, number>;
+  const result: CardYieldLine[] = [];
+  for (const wonder of wonders) {
+    const name = buildingDef(wonder).name;
+    for (const row of flat) {
+      const line = emptyLine(row.card!, `${row.source} · ${name}`);
+      for (const voice of VOICES) line[voice] = row[voice];
+      result.push(line);
+    }
+    // Each multiplier reads the same sum, including the Divine Proportion's flat line.
+    for (const row of lines) {
+      const percent = (row.percent ?? 0) + (row.wholePercent ?? 0);
+      if (percent === 0 || row.card === undefined) continue;
+      const line = emptyLine(row.card, `${row.source} · ${name}`);
+      for (const voice of VOICES) line[voice] = base[voice] * percent / 100;
+      result.push(line);
+    }
+  }
+  return result;
+}
+
 /**
  * Every flat yield this empire's cards pay **this city**: the town `pays`
  * shapes a scope admits, then every city-scoped `pays` count payout.
@@ -4916,6 +4958,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
   for (const line of raised) list.push(line);
   list.push(...targeted.rises);
+  if (ghostWorksInTown(state, city)) list.push(...wonderWorkYieldLines(state, city));
 
   return list;
 }
