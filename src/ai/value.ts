@@ -6298,6 +6298,11 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       ];
     }
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
+    if (occasion === 'buildingCompleted') {
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = Math.max(ordinaryBuildingPace(ctx) * horizon, forecast ?? 0);
+      return [{ label: `+ ${round(more)} more buildings finished over the horizon`, value: more }];
+    }
     if (forecast === undefined) {
       return [
         {
@@ -6903,18 +6908,28 @@ function pullOfSteps(ctx: ValueContext, steps: readonly CommissionStep[]): Value
  * **A building row's step toward the seat's open commissions** (bot batch BP6,
  * B12), for the production table: a world wonder is one wonder completed, and
  * a wonder or the Magnum Opus takes its cost in hammers put into a wonder (the
- * `wonderProduction` tally counts the hammers a town puts into either). `null`
- * for any other row, and for every row of a seat with no open commission.
+ * `wonderProduction` tally counts the hammers a town puts into either). An
+ * ordinary building counts once toward a goal for finished buildings.
  */
 export function buildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
   const def = buildingDef(id);
   const wonder = isWonder(id);
-  if (!wonder && def.endsTheGame !== true) return null;
+  if (!wonder && def.endsTheGame !== true) return ordinaryBuildingPullTerm(ctx, id);
   const steps: CommissionStep[] = [
     { occasion: 'wonderProduction', count: buildingProductionCost(id, ctx.state, ctx.playerId) },
   ];
   if (wonder) steps.push({ occasion: 'wonderCompleted', count: 1 });
   return pullOfSteps(ctx, steps);
+}
+
+const ORDINARY_BUILDING_PULL = new WeakMap<ValueContext, ValueTerm | null>();
+
+/** A built or bought ordinary building advances the same counted goal. */
+export function ordinaryBuildingPullTerm(ctx: ValueContext, id: BuildingId): ValueTerm | null {
+  if (isWonder(id) || buildingDef(id).endsTheGame === true) return null;
+  return onContext(ORDINARY_BUILDING_PULL, ctx, () =>
+    commissionPullTerm(ctx, { occasion: 'buildingCompleted', count: 1 }),
+  );
 }
 
 /**
@@ -7186,6 +7201,21 @@ function smoothedRate(record: number | null, fallback: number, ctx: ValueContext
   return (Math.max(0, record) + fallback * weight) / span;
 }
 
+const BUILDING_COMPLETION_PACE = new WeakMap<ValueContext, number>();
+
+/** Use recent ordinary buildings as an estimate. The board keeps no lifetime count. */
+function ordinaryBuildingPace(ctx: ValueContext): number {
+  return onContext(BUILDING_COMPLETION_PACE, ctx, () => {
+    const turns = recentWindow(ctx);
+    let recent = 0;
+    for (const town of citiesOf(ctx.state, ctx.playerId)) {
+      const ordinary = town.buildings.filter((id) => !isWonder(id) && buildingDef(id).endsTheGame !== true);
+      recent += stampedSince(town, ordinary, turns, ctx.state.turn);
+    }
+    return recent / turns;
+  });
+}
+
 /**
  * **How often this seat meets an occasion a commission counts**, per turn.
  *
@@ -7204,6 +7234,7 @@ function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): numbe
   // seat's towns keep now are its recent pace (`seasonPace`). The cautious
   // default is the floor.
   if (occasion === 'riteStarted') return Math.max(seasonPace(ctx).rate, fallback);
+  if (occasion === 'buildingCompleted') return Math.max(ordinaryBuildingPace(ctx), fallback);
   // **The production put into wonders** (Magisterial batch MG17, Commission:
   // The Wonder of the Age): no record, but the towns raising a wonder or the
   // Opus now are its pace. See `wonderHammerRate`.
@@ -7280,6 +7311,7 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Scientific batch S6: the charter technologies among them.
       return player.techsResearched.filter((id) => isTechId(id) && techDef(id).charter === true)
         .length;
+    case 'buildingCompleted':
     case 'buildingBoughtWithGold':
     case 'riteStarted':
     case 'foreignCityConverted':

@@ -671,8 +671,9 @@ describe('the schema, as landed', () => {
     // at Tier 0.
     // The generic set adds 20 rows, activates City Watches, and retires 12 dealt rows.
     // The General Summons, The Land Register and The Master Plan add three more.
-    expect(live).toBe(491);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(491);
+    // The Brick Kilns and The Building Programme add two more.
+    expect(live).toBe(493);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(493);
   });
 
   /**

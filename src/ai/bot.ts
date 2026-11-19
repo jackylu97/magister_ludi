@@ -6400,9 +6400,7 @@ function buildCandidates(
     // list, which is the null half of the acceptance.
     const race = raceTerm(ctx, { kind: 'building', id });
     if (race !== null) terms.push(race);
-    // **A step toward an open commission** (bot batch BP6, `docs/flags.md`
-    // (ooooooo) B12): a wonder row moves the goals that count wonders completed
-    // and the hammers put into one. `null` for every other row.
+    // Add the progress this building makes toward seated Commission goals.
     const pull = buildingPullTerm(ctx, id);
     if (pull !== null) terms.push(pull);
     const value = foldTerms(terms);

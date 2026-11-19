@@ -1183,6 +1183,20 @@
       "effects": [],
       "note": "The Cistern also gives food on worked desert tiles and irrigates the farms its town works."
     },
+    "theBrickKilns": {
+      "name": "The Brick Kilns",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The last load dries while the next wall goes up.",
+      "text": "Gains +1 science and +1 gold for your empire each time you finish a building, at most +20.",
+      "effects": [
+        { "kind": "pays", "where": "empire", "basis": "count", "count": "tally", "tally": "buildingCompleted", "to": "science", "amount": 1, "max": 20 },
+        { "kind": "pays", "where": "empire", "basis": "count", "count": "tally", "tally": "buildingCompleted", "to": "gold", "amount": 1, "max": 20 }
+      ]
+    },
     "theLandRegister": {
       "name": "Commission: The Land Register",
       "decks": [],
@@ -1299,6 +1313,21 @@
           "max": 7
         }
       ]
+    },
+    "theBuildingProgramme": {
+      "name": "Commission: The Building Programme",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The last crew finished the roof before winter.",
+      "text": "Goal: finish 12 buildings. Reward: every town gains +10% production.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "buildingCompleted", "count": 12 }],
+        "reward": [{ "lasting": [{ "kind": "percentYields", "yield": "production", "percent": 10 }] }]
+      }
     },
     "theMasterPlan": {
       "name": "Commission: The Master Plan",

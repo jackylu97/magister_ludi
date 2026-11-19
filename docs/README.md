@@ -854,6 +854,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   never be seated again. Private: nothing reads another empire. UI: the counter
   on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
+  - The Brick Kilns and The Building Programme count a building when a town
+    finishes it from its queue or buys it. Only seated cards count it. Wonders,
+    the Magnum Opus and free building grants give no progress.
   - Since Dominion batch D6 a counted goal may have a floor (`minPopulation`,
     `minTownsTaken`, read off the moment's `TallyFacts`) and keeps the towns it
     counted on its tally row (`OrderTally.people`, `.wonders`, `.town`).

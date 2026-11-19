@@ -3725,6 +3725,8 @@ export type TallyOccasion =
    * captured Granary adds nothing.
    */
   | 'publicWorkCompleted'
+  /** An ordinary building enters a town through queue completion or purchase. */
+  | 'buildingCompleted'
   /**
    * This empire **completed a technology** (Scientific batch S6, The
    * Astronomical Diaries). Written in `settleResearch` (`tech.ts`), the one
@@ -3812,6 +3814,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'warEnded',
   'sizeRecord',
   'publicWorkCompleted',
+  'buildingCompleted',
   'techCompleted',
   'charterTechCompleted',
   'goldPurchase',

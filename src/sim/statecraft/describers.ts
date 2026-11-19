@@ -1185,7 +1185,9 @@ function scalerGroupWords(parts: readonly ScalerPart[]): string {
   // none, so "in your capital" cannot be read as true of both.
   const places: { where: string; payouts: string[] }[] = [];
   for (const part of parts) {
-    const where = countPlace(part.line, 'empire').paidIn;
+    const where = part.line.tally === 'buildingCompleted' && part.line.where === 'empire'
+      ? ' for your empire'
+      : countPlace(part.line, 'empire').paidIn;
     const place = places.find((one) => one.where === where);
     if (place === undefined) places.push({ where, payouts: [payoutWords(part.line)] });
     else place.payouts.push(payoutWords(part.line));
@@ -1250,6 +1252,7 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   warEnded: 'you end a war',
   sizeRecord: 'one of your cities grows past its largest size',
   publicWorkCompleted: 'you finish a public work',
+  buildingCompleted: 'you finish a building',
   techCompleted: 'you complete a technology',
   charterTechCompleted: 'you complete a charter technology',
   // Batch R1, The Strongbox: a purchase of any kind with gold.
@@ -7450,6 +7453,7 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'public work you have finished',
     many: 'public works you have finished',
   },
+  buildingCompleted: { one: 'building you have finished', many: 'buildings you have finished' },
   // Scientific batch S6, The Astronomical Diaries. No growing card counts
   // charter technologies alone; the table is total.
   techCompleted: { one: 'technology you have completed', many: 'technologies you have completed' },
@@ -8417,6 +8421,7 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: 'public works',
     counter: 'public works finished',
   },
+  buildingCompleted: { verb: 'finish', one: 'building', many: 'buildings', counter: 'buildings finished' },
   // Scientific batch S6. The Royal Charter Commission counts charter
   // technologies; no commission counts every technology yet.
   techCompleted: { verb: 'complete', one: 'technology', many: 'technologies', counter: 'technologies completed' },

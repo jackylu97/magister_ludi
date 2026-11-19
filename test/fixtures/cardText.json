@@ -9609,6 +9609,16 @@
     "text": "you may build the Cistern: +2 food; the city counts as standing beside fresh water; the farms this city works are watered as if they stood beside a river; +1 food on every desert hex"
    }
   ],
+  "theBrickKilns": [
+   {
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 science and +1 gold for your empire each time you finish a building, up to +20 each",
+    "text": "Gains +1 science and +1 gold for your empire each time you finish a building, up to +20 each"
+   }
+  ],
   "theLandRegister": [
    {
     "raw": "[[concept:commission|Commission]]",
@@ -9645,6 +9655,16 @@
    {
     "raw": "+4% production and +4% gold per commission you have completed this game (at most +28% each)",
     "text": "+4% production and +4% gold per commission you have completed this game (at most +28% each)"
+   }
+  ],
+  "theBuildingProgramme": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: finish 12 buildings. Reward: +10% production in every city",
+    "text": "Goal: finish 12 buildings. Reward: +10% production in every city"
    }
   ],
   "theMasterPlan": [

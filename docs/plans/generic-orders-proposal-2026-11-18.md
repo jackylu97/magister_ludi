@@ -1418,3 +1418,20 @@ The bot estimates when each town will meet The Master Plan's goal from its curre
 Typecheck, all 12,087 core tests and the production build passed on the generic Orders branch.
 
 **The Old Foundations.** The data already sets a useful bound on this proposed card. Four Age I buildings can pay one gold upkeep each. Ten Age II buildings can pay two each, including four once-per-empire buildings. For example, a town with a Barracks, Library, Market and Smithy saves six gold a turn. A town with only a Granary and Monument saves zero. The card scales with the number of eligible buildings already built. These are examples from the cost rules, rather than observations of play. Check actual holdings in the next human playtest.
+
+## The Brick Kilns and The Building Programme, 2026-11-19
+
+Both cards count a building when a town finishes it from its queue or buys it.
+The same count covers a queue item finished by a windfall. Wonders, the Magnum
+Opus, free grants and capture give no progress. Each card keeps its own progress
+when unseated. The Brick Kilns caps each yield at +20. The Building Programme
+leaves its chair after twelve and gives +10% production to every current and
+future town.
+
+The bot estimates the completion rate from recent buildings in its towns. The
+board keeps the dates when buildings arrived. These dates cannot distinguish
+mid-game grants from paid construction, so the rate is an estimate. An ordinary
+building gains value for advancing a seated Building Programme in the bot's
+queue, gold and faith plans.
+
+Typecheck, all 12,090 core tests and the production build passed on this branch.
