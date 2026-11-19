@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { BREAKDOWN_WORDS, IN_PLAY_WORDS } from '../../src/ui/inPlayPieces';
+import { BREAKDOWN_WORDS, IN_PLAY_WORDS, VOICE_WORDS } from '../../src/ui/inPlayPieces';
 import { braceBody, uiSource } from './sourceHelpers';
 
 const SCREEN = uiSource('inPlayScreen.ts');
@@ -226,8 +226,16 @@ describe('the words', () => {
       ...strings(Object.values(IN_PLAY_WORDS.stacks)),
       ...strings(Object.values(BREAKDOWN_WORDS)),
       ...strings(Object.values(BREAKDOWN_WORDS.ledgerClass)),
+      ...strings(Object.values(BREAKDOWN_WORDS.favouring)),
     ];
     for (const sentence of sentences) expect(sentence, sentence).not.toMatch(/\d/);
+  });
+
+  it('names renown as the meters are named, and keeps the Ledger link to the six yields (stage 7)', () => {
+    expect(VOICE_WORDS.renown).toBe('renown');
+    expect(SCREEN).toContain("breakdown.voice !== 'happiness' && breakdown.voice !== 'authority' && breakdown.voice !== 'renown'");
+    // A section whose rows are another cut of the figure says so once, under its heading.
+    expect(SCREEN).toContain("if (section.note !== undefined) part.append(element('p', 'ip-bd-alone', section.note));");
   });
 
   it('calls the fifth stack Temporary, as the user renamed it', () => {

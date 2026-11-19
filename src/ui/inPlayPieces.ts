@@ -50,10 +50,11 @@ import { type LedgerClass, LEDGER_CLASSES } from '../sim/ledgerClass';
 import { explainLedger } from '../sim/ledgerFold';
 import { authorityOf, explainAuthority, explainHappiness, happinessOf } from '../sim/meters';
 import { readEmpire } from '../sim/readings';
+import { explainRenown, renownPerTurn } from '../sim/renown';
 import { roundYield } from '../sim/yieldFormat';
 import { buildingDef, type BuildingId } from '../sim/buildingData';
 import { tileOwnerCityId } from '../sim/cities';
-import { greatPersonDef, type GreatPersonId } from '../sim/greatPeopleData';
+import { FAMILIES, type Family, greatPersonDef, type GreatPersonId } from '../sim/greatPeopleData';
 import { leaderDef } from '../sim/leaderData';
 import { isMaliceId, maliceDef, type MaliceId } from '../sim/maliceData';
 import { beliefDef, type BeliefId, isRiteId } from '../sim/religionData';
@@ -587,7 +588,10 @@ export function allPieces(layout: InPlayLayout): InPlayPiece[] {
 
 /**
  * **The books on a board**: the six yields as the turn banks them
- * (`readEmpire`) and the two meters (`happinessOf`, `authorityOf`).
+ * (`readEmpire`), the two meters (`happinessOf`, `authorityOf`), and renown
+ * each turn (`renownPerTurn`, the fold of `explainRenown`'s recurring half,
+ * summed over every family; stage 7). The bots read the same nine channels
+ * (`deckReading`, `src/ai/value.ts`).
  *
  * A figure here is the books on the stamp's two boards (`cardImpactWorlds`),
  * one less the other. That is the fold of the card stamp's own list
@@ -608,6 +612,7 @@ export function booksOf(board: GameState, seat: number): CouncilFigures {
     faith: totals.faith,
     happiness: happinessOf(board, seat),
     authority: authorityOf(board, seat),
+    renown: renownPerTurn(board, seat),
   };
 }
 
@@ -760,6 +765,8 @@ export interface BreakdownRow {
 
 export interface BreakdownSection {
   heading: string;
+  /** A line under the heading, for a section whose rows are not added in. */
+  note?: string;
   rows: BreakdownRow[];
 }
 
@@ -783,6 +790,17 @@ export const BREAKDOWN_WORDS = {
   peopleAsk: 'What your people ask',
   realmAsks: 'What your realm asks',
   ledger: 'Open the Ledger',
+  /** Renown each turn, by the family of great people it favours (stage 7). */
+  byFamily: 'By family',
+  byFamilyNote: 'All your renown each turn, split by the great people it favours. Not added in again.',
+  favouring: {
+    scholar: 'Favouring scholars',
+    artist: 'Favouring artists',
+    engineer: 'Favouring engineers',
+    merchant: 'Favouring merchants',
+    general: 'Favouring generals',
+  } satisfies Record<Family, string>,
+  favouringNone: 'Favouring no family',
   close: 'Close',
   ledgerClass: {
     tiles: 'The land and its resources',
@@ -806,6 +824,7 @@ export const VOICE_WORDS: Readonly<Record<CouncilVoice, string>> = {
   faith: 'faith',
   happiness: 'happiness',
   authority: 'authority',
+  renown: 'renown',
 };
 
 /**
@@ -832,6 +851,27 @@ export function roundToTotal(amounts: readonly number[], target: number): number
 }
 
 /**
+ * Renown each turn on a board, summed by the family of great people each line
+ * favours: the recurring half of `explainRenown`, in `FAMILIES` order, then the
+ * lines that favour none. A family that earns nothing is left out.
+ */
+function renownByFamily(board: GameState, seat: number): [string, number][] {
+  const sums = new Map<Family | null, number>();
+  for (const line of explainRenown(board, seat)) {
+    if (!line.perTurn) continue;
+    sums.set(line.family, (sums.get(line.family) ?? 0) + line.amount);
+  }
+  const rows: [string, number][] = [];
+  for (const family of FAMILIES) {
+    const amount = sums.get(family) ?? 0;
+    if (Math.abs(amount) >= 1e-9) rows.push([BREAKDOWN_WORDS.favouring[family], amount]);
+  }
+  const none = sums.get(null) ?? 0;
+  if (Math.abs(none) >= 1e-9) rows.push([BREAKDOWN_WORDS.favouringNone, none]);
+  return rows;
+}
+
+/**
  * **Every source of one voice** (frame IH): the pieces in play that pay or cost
  * it, then what does not come from In play, so the sheet adds up to the
  * empire's figure.
@@ -839,7 +879,10 @@ export function roundToTotal(amounts: readonly number[], target: number): number
  * What does not come from In play is read on the board with none of it (the
  * "without" board of the totals line): the Ledger's classes for a yield
  * (`explainLedger`), the meter's own lines for happiness and authority
- * (`explainHappiness`, `explainAuthority`). Those rows and the line for
+ * (`explainHappiness`, `explainAuthority`), and for renown the recurring half
+ * of `explainRenown`, summed by the family each line favours (stage 7). For
+ * renown a last section splits the whole figure by family, which is where a
+ * card that moves renown from one family to another shows. Those rows and the line for
  * everything in play add up to the empire's figure, because the totals line is
  * the books with everything less the books with none.
  */
@@ -868,7 +911,9 @@ export function inPlayBreakdown(
   const worlds = cardImpactWorlds(state, seat, { kind: 'pieces', pieces: allPieces(layout) });
   const none = worlds?.without ?? state;
   const rest: { asks: boolean; label: string; amount: number }[] = [];
-  if (voice === 'happiness' || voice === 'authority') {
+  if (voice === 'renown') {
+    for (const [label, amount] of renownByFamily(none, seat)) rest.push({ asks: false, label, amount });
+  } else if (voice === 'happiness' || voice === 'authority') {
     const lines = voice === 'happiness' ? explainHappiness(none, seat) : explainAuthority(none, seat);
     for (const line of lines) {
       if (line.value === 0) continue;
@@ -895,6 +940,14 @@ export function inPlayBreakdown(
   if (notCards.length > 0) sections.push({ heading: BREAKDOWN_WORDS.notCards, rows: notCards });
   if (asks.length > 0) {
     sections.push({ heading: voice === 'authority' ? BREAKDOWN_WORDS.realmAsks : BREAKDOWN_WORDS.peopleAsk, rows: asks });
+  }
+  // Renown's family split, over everything: the rows are another way of
+  // cutting the same figure, so they are not added in again.
+  if (voice === 'renown') {
+    const families = renownByFamily(state, seat);
+    const split = roundToTotal(families.map(([, amount]) => amount), empire);
+    const rows: BreakdownRow[] = families.map(([label], index) => ({ label, amount: split[index]!, alone: true }));
+    if (rows.length > 0) sections.push({ heading: BREAKDOWN_WORDS.byFamily, note: BREAKDOWN_WORDS.byFamilyNote, rows });
   }
   return { voice, empire, sections, lit };
 }

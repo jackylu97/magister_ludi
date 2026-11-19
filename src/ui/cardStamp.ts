@@ -161,6 +161,14 @@ export interface StampReading {
   /** A grant with no countable figure — "heals 25", "gifts a piece". */
   note?: string;
   /**
+   * **Renown each turn** (stage 7 of the Council and In play board), rounded
+   * as a figure is, and absent when it rounds to nothing. Carried beside the
+   * figures rather than among them: the stamp's text register has no renown
+   * glyph, so the card's printed face does not draw it. The Council screen's
+   * plate and its live line read it (`orderLive.ts`).
+   */
+  renown?: number;
+  /**
    * **A charter's stamp** (Scientific batch S10): the name of the technology
    * the charter opened. The stamp then reads "Opened" over that name, dropped
    * like a rubber stamp. A charter pays nothing per turn and nothing on an
@@ -261,6 +269,7 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
   const cascade = emptyVoices();
   const occasion = emptyVoices();
   const meters = emptyMeters();
+  let renown = 0;
   let occasionWords: string | undefined;
   let note: string | undefined;
   let knockOnLabel: string | undefined;
@@ -277,6 +286,11 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
       if (line.meter !== undefined) meters[line.meter] += line.amount ?? 0;
       continue;
     }
+    // Renown each turn: its own figure, beside the stamp's (see `StampReading.renown`).
+    if (line.kind === 'renown') {
+      renown += line.amount ?? 0;
+      continue;
+    }
     for (const key of CITY_YIELD_KEYS) standing[key] += line[key];
     if (line.kind !== 'knockOn') continue;
     for (const key of CITY_YIELD_KEYS) cascade[key] += line[key];
@@ -289,6 +303,7 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
     knockOn,
   };
   if (knockOn.length > 0 && knockOnLabel !== undefined) reading.knockOnLabel = knockOnLabel;
+  if (roundYield(renown) !== 0) reading.renown = roundYield(renown);
   if (occasionWords !== undefined) reading.occasion = occasionWords;
   if (note !== undefined) reading.note = note;
   return reading;

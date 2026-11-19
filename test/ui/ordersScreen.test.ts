@@ -541,7 +541,10 @@ describe('the pay plate (frames PL and PM)', () => {
 
   it('picks the plate by the reading: figures, "+0" and the reason, or none', () => {
     const plate = braceBody(LIVE, 'function plateOfStamp(');
-    expect(plate).toContain("if (reading.figures.length > 0) return { kind: 'pays', figures: plateFigures(reading.figures) };");
+    expect(plate).toContain('if (reading.figures.length > 0 || reading.renown !== undefined) {');
+    expect(plate).toContain('const figures = plateFigures(reading.figures);');
+    // Renown each turn joins the figures, after them (stage 7).
+    expect(plate).toContain("if (reading.renown !== undefined) figures.push({ voice: 'renown', amount: reading.renown });");
     // A card that pays on an occasion has no plate, and so has a rule.
     expect(plate).toContain('if (!stampIsEmpty(reading)) return null;');
     expect(plate).toContain('if (!cardCanPay(card)) return null;');
@@ -587,8 +590,10 @@ describe('the totals line (frame N4), and the change a held card would make (fra
     expect(SCREEN).not.toContain("from './ledgerScreen'");
   });
 
-  it('puts the eight figures in the board’s order: the six yields, then happiness and authority', () => {
-    expect(COUNCIL_VOICES).toEqual(['food', 'production', 'gold', 'science', 'culture', 'faith', 'happiness', 'authority']);
+  it('puts the nine figures in the board’s order: the six yields, happiness and authority, then renown', () => {
+    // Renown each turn joined the line in stage 7 (the user, 2026-11-19: "lets
+    // add renown to the in-play and orders yield screen").
+    expect(COUNCIL_VOICES).toEqual(['food', 'production', 'gold', 'science', 'culture', 'faith', 'happiness', 'authority', 'renown']);
   });
 
   it('measures the change once when the chair under the card changes, never on a pointer move', () => {

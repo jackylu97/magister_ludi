@@ -8,8 +8,10 @@
  * `explainCardImpact` with the `council` subject, which is the empire's books
  * on the real board less the books on the same board with every chair empty,
  * no Doctrine and the government's law set aside. It is a labelled list and
- * the totals are its fold (rule 5), for the six yields and for happiness and
- * authority (its two meter lines).
+ * the totals are its fold (rule 5), for the six yields, for happiness and
+ * authority (its two meter lines), and for renown each turn (its renown line,
+ * stage 7: the user, 2026-11-19, "lets add renown to the in-play and orders
+ * yield screen").
  *
  * Every other figure on the screen is the same reading on another board:
  *
@@ -31,28 +33,31 @@
 
 import { type CardImpactLine, type CardImpactSheet, explainCardImpact, foldCardImpact } from '../sim/cardImpact';
 import type { MeterId } from '../sim/meters';
-import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
+import { CITY_YIELD_KEYS } from '../sim/resourceData';
 import type { GameState } from '../sim/state';
 import { roundYield } from '../sim/yieldFormat';
-import type { PlateFigure } from './orderFace';
+import type { PlateFigure, PlateVoice } from './orderFace';
 import { type StagedSlots, stagedState } from './statecraftStaging';
 
-/** One figure of the totals line: a yield or a meter. */
-export type CouncilVoice = CityYieldKey | MeterId;
+/** One figure of the totals line: a yield, a meter, or renown each turn. */
+export type CouncilVoice = PlateVoice;
 
 /** The two meters, after the six yields, in the order the top bar stands them. */
 const METERS: readonly MeterId[] = ['happiness', 'authority'];
 
-/** The eight figures of the totals line, in their order. */
-export const COUNCIL_VOICES: readonly CouncilVoice[] = [...CITY_YIELD_KEYS, ...METERS];
+/**
+ * The nine figures of the totals line, in their order: the six yields, the
+ * two meters, then renown each turn, summed over every family (stage 7).
+ */
+export const COUNCIL_VOICES: readonly CouncilVoice[] = [...CITY_YIELD_KEYS, ...METERS, 'renown'];
 
-/** A figure for each of the eight voices. */
+/** A figure for each of the nine voices. */
 export type CouncilFigures = Record<CouncilVoice, number>;
 
 /**
  * **An impact list's figures, exact**: the fold of its standing lines for the
- * six yields (`foldCardImpact`, knock-ons included, occasions left out) and
- * its meter lines for happiness and authority. Not rounded: a plate is a
+ * six yields (`foldCardImpact`, knock-ons included, occasions left out), its
+ * meter lines for happiness and authority, and its renown line. Not rounded: a plate is a
  * difference of two rounded totals, and rounding first would lose that.
  */
 export function foldImpactVoices(lines: readonly CardImpactLine[]): CouncilFigures {
@@ -60,8 +65,10 @@ export function foldImpactVoices(lines: readonly CardImpactLine[]): CouncilFigur
   const figures = {} as CouncilFigures;
   for (const key of CITY_YIELD_KEYS) figures[key] = yields[key];
   for (const meter of METERS) figures[meter] = 0;
+  figures.renown = 0;
   for (const line of lines) {
     if (line.kind === 'meter' && line.meter !== undefined) figures[line.meter] += line.amount ?? 0;
+    if (line.kind === 'renown') figures.renown += line.amount ?? 0;
   }
   return figures;
 }
@@ -71,7 +78,7 @@ export function explainCouncil(state: GameState, seat: number, sheet?: CardImpac
   return explainCardImpact(state, seat, { kind: 'council' }, sheet);
 }
 
-/** The totals line's eight figures, rounded once, as the line prints them. */
+/** The totals line's nine figures, rounded once, as the line prints them. */
 export function councilFigures(exact: Readonly<CouncilFigures>): CouncilFigures {
   const figures = {} as CouncilFigures;
   for (const voice of COUNCIL_VOICES) figures[voice] = roundYield(exact[voice]);

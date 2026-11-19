@@ -1730,9 +1730,19 @@ Eight root pages, all named in `vite.config.ts` inputs:
     books with everything on the screen less the books with none of it. A
     piece's plate rounds against its stack's total; the council's cards
     round against the Council screen's own line.
+  - **Renown each turn** is the ninth figure on both screens (stage 7; the
+    user, 2026-11-19: "cards should show additional renown that they
+    generate"): on the totals lines, after happiness and authority, and on
+    every plate that moves it. It is `renownPerTurn` (the fold of
+    `explainRenown`'s recurring half, summed over every family) with the
+    card or piece, less without it. The impact list carries it as its own
+    `renown` line, which pays in no yield. A one-time grant (a Triumph, a
+    completion) is not a rate and is not on it.
   - A total clicked lights the pieces that pay it and opens a sheet of every
     source, ending in what does not come from In play (the Ledger's classes,
-    or the meter's own lines), so it adds up to the empire's figure.
+    the meter's own lines, or for renown `explainRenown`'s recurring lines by
+    the family they favour), so it adds up to the empire's figure. The renown
+    sheet ends with the whole figure split by family, not added in again.
   - Its doors: the corner panel's fifth mark with the count, the link in the
     Council screen's head, and the I key. A wonder finished or a belief
     chosen since the seat last looked puts a dot on the door and sits on top

@@ -17,11 +17,14 @@ import { wonderPlateReading, wonderTriumphPairs } from '../../src/ui/wonderPlate
 import { isTechId } from '../../src/sim/techData';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { readEmpire } from '../../src/sim/readings';
+import { renownPerTurn } from '../../src/sim/renown';
 import {
+  BREAKDOWN_WORDS,
   IN_PLAY_STACKS,
   allPieces,
   arrivalsOnTop,
   createInPlayArrivals,
+  inPlayBreakdown,
   inPlayCount,
   inPlayLayout,
   piecesFigures,
@@ -104,6 +107,35 @@ describe('every figure is one reading by the card stamp’s method', () => {
     }
     expect(reading.total.happiness).toBeCloseTo(happinessOf(state, 0) - happinessOf(none, 0), 9);
     expect(reading.total.authority).toBeCloseTo(authorityOf(state, 0) - authorityOf(none, 0), 9);
+    // Renown each turn (stage 7): the fold the `renown` phase banks, over every family.
+    expect(reading.total.renown).toBeCloseTo(renownPerTurn(state, 0) - renownPerTurn(none, 0), 9);
+    expect(reading.books.renown).toBe(renownPerTurn(state, 0));
+  });
+
+  // The user, 2026-11-19: "lets add renown to the in-play and orders yield
+  // screen, cards should show additional renown that they generate".
+  it('shows renown each turn on a piece that pays it, and splits the sheet’s figure by family', () => {
+    const state = board();
+    const layout = inPlayLayout(state, 0);
+    const reading = readInPlay(state, 0, layout);
+    const entries = [...layout.government, ...layout.crest, ...layout.stacks.flatMap((stack) => stack.entries)];
+    for (const entry of entries) {
+      const own = reading.figures.get(entry.key);
+      if (own === undefined) continue;
+      const shown = reading.plates.get(entry.key)!.find((figure) => figure.voice === 'renown');
+      // A plate shows renown exactly when the piece moves it by a whole figure or more.
+      if (Math.abs(own.renown) >= 1) expect(shown, entry.key).toBeDefined();
+      if (own.renown === 0) expect(shown, entry.key).toBeUndefined();
+    }
+    const sheet = inPlayBreakdown(state, 0, layout, reading, 'renown');
+    expect(sheet.empire).toBe(Math.round(renownPerTurn(state, 0)));
+    const families = sheet.sections.find((section) => section.heading === BREAKDOWN_WORDS.byFamily);
+    if (sheet.empire !== 0) {
+      expect(families).toBeDefined();
+      // Another cut of the same figure: never added in again, and it adds up on its own.
+      for (const row of families!.rows) expect(row.alone, row.label).toBe(true);
+      expect(families!.rows.reduce((sum, row) => sum + row.amount, 0)).toBe(sheet.empire);
+    }
   });
 
   it('makes a piece’s figure what the totals line loses without it', () => {

@@ -510,7 +510,9 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     for (const section of breakdown.sections) {
       const part = element('div', 'ip-bd-section');
       part.append(element('h4', undefined, section.heading));
-      let aloneSaid = false;
+      // A section that says what its rows are says it once, under its heading.
+      if (section.note !== undefined) part.append(element('p', 'ip-bd-alone', section.note));
+      let aloneSaid = section.note !== undefined;
       for (const row of section.rows) {
         if (row.alone === true && !aloneSaid) {
           part.append(element('p', 'ip-bd-alone', BREAKDOWN_WORDS.aloneNote));
@@ -526,7 +528,8 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     }
     sheet.append(columns);
     const foot = element('div', 'ip-bd-foot');
-    if (breakdown.voice !== 'happiness' && breakdown.voice !== 'authority') {
+    // The Ledger holds the six yields only.
+    if (breakdown.voice !== 'happiness' && breakdown.voice !== 'authority' && breakdown.voice !== 'renown') {
       const ledger = element('button', 'ip-bd-link', `${BREAKDOWN_WORDS.ledger} →`) as HTMLButtonElement;
       ledger.type = 'button';
       const key = breakdown.voice as CityYieldKey;

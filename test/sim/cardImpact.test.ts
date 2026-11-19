@@ -56,6 +56,7 @@ import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
 import { authorityOf } from '../../src/sim/meters';
+import { renownPerTurn } from '../../src/sim/renown';
 import {
   type CardEffect,
   type CardId,
@@ -347,6 +348,30 @@ describe('a card that pays a meter', () => {
     } finally {
       restore();
     }
+  });
+
+  /**
+   * **Renown each turn is its own line** (stage 7 of the Council and In play
+   * board; the user, 2026-11-19: "cards should show additional renown that
+   * they generate"). The Laureate pays two renown a turn. The line is the
+   * difference of `renownPerTurn` on the two boards, summed over every family,
+   * and it pays in no voice, so the yields' fold does not move.
+   */
+  it('reports the card\'s renown each turn as its own line, read off the two boards', () => {
+    const { state } = bench();
+    const subject = { kind: 'order', id: 'theLaureate' } as const;
+    const lines = explainCardImpact(state, 0, subject);
+    const renown = lines.filter((line) => line.kind === 'renown');
+    expect(renown).toHaveLength(1);
+    expect(renown[0]!.source).toBe('Renown');
+    expect(renown[0]!.amount).toBe(2);
+    for (const key of CITY_YIELD_KEYS) expect(renown[0]![key]).toBe(0);
+    const worlds = cardImpactWorlds(state, 0, subject)!;
+    expect(renown[0]!.amount).toBe(renownPerTurn(worlds.with, 0) - renownPerTurn(worlds.without, 0));
+    // A card that pays no renown has no renown line.
+    expect(explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' }).some((line) => line.kind === 'renown')).toBe(false);
+    // The shared sheet changes no figure.
+    expect(explainCardImpact(state, 0, subject, cardImpactSheet(state, 0))).toEqual(lines);
   });
 
   /**

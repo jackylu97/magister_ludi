@@ -58,6 +58,14 @@
  *      silently would be claiming an Order pays science when what it pays is
  *      contentment.
  *
+ *   4b. **renown each turn** (stage 7 of the Council and In play board; the
+ *      user, 2026-11-19: "cards should show additional renown that they
+ *      generate"): the renown the empire earns each turn on the board with the
+ *      card, less on the board without it (`kind: 'renown'`). Read through
+ *      `renownPerTurn`, the fold of `explainRenown`'s recurring half and the
+ *      figure the `renown` phase banks, summed over every family. A one-time
+ *      grant (a Triumph, a completion) is not on it, because it is not a rate.
+ *
  * Four and five are the same meter twice and are held apart on purpose: line 4
  * is the *points the card pays* and is a figure on its face; line 5 is the yield
  * a tier those points crossed unlocked, and is the hover's business only.
@@ -158,6 +166,9 @@ import { ghostSeatUnderDoctrine } from './statecraft/council';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
 import { type MeterId, authorityOf, happinessOf } from './meters';
+// Renown each turn, the figure the `renown` phase banks (`explainRenown`'s
+// recurring half). `renown.ts` does not import this module, so the edge is one way.
+import { renownPerTurn } from './renown';
 // The town's own published list, remembered on the revision — the real board's
 // half of every ghost-diff on a screen (batch E2, `docs/audit/evaluations.md`
 // §3b). See `CardImpactSheet`.
@@ -202,8 +213,13 @@ import type { City } from './state';
  * `'meter'` is the other half of that same distinction and pays in no yield at
  * all: it is what the card puts into happiness or authority itself, in points,
  * and it is a figure on the card's face beside the yields.
+ *
+ * `'renown'` pays in no yield and in no meter: it is what the card changes about
+ * the renown the empire earns each turn, summed over every family. Renown is not
+ * a yield (no town banks it) and not a meter (nothing reads a tier off it), so
+ * it is its own kind and `foldCardImpact` never adds it to a voice.
  */
-type CardImpactKind = 'city' | 'empire' | 'meter' | 'knockOn' | 'occasion';
+type CardImpactKind = 'city' | 'empire' | 'meter' | 'renown' | 'knockOn' | 'occasion';
 
 /**
  * One reason a card changes what the realm makes — the shape the stamp is the
@@ -228,9 +244,10 @@ export interface CardImpactLine {
   meter?: MeterId;
   /**
    * The meter movement itself, in points — a card's own `+4` contentment or
-   * `+3` writ. `'meter'` only, and never one of the six voices: a meter is not
-   * a yield, nothing banks it, and folding it into `foldCardImpact` would put
-   * contentment into the treasury.
+   * `+3` writ — or, on a `'renown'` line, the change to renown each turn.
+   * `'meter'` and `'renown'` only, and never one of the six voices: neither is
+   * a yield, and folding one into `foldCardImpact` would put contentment or
+   * renown into the treasury.
    */
   amount?: number;
   /** The occasion's own words — "killing a barbarian unit". `'occasion'` only. */
@@ -1051,6 +1068,9 @@ const METER_WORD: Record<MeterId, string> = {
   authority: 'Authority',
 };
 
+/** What the renown line is called: the top bar's word for the pool. */
+const RENOWN_WORD = 'Renown';
+
 /** The two meters, in the order the top bar's chips stand and this list reads. */
 const METER_ORDER: readonly MeterId[] = ['happiness', 'authority'];
 
@@ -1181,6 +1201,8 @@ export interface CardImpactSheet {
   readonly percents: () => EmpirePercents;
   readonly empireLines: () => Map<string, CityYields>;
   readonly meter: (meter: MeterId) => number;
+  /** Renown each turn on this board (`renownPerTurn`). */
+  readonly renown: () => number;
   readonly cardSums: (city: City) => Map<string, CityYields>;
   readonly context: (city: City) => TileYieldContext | undefined;
   readonly tileAdds: (city: City, tile: Tile) => readonly TileYieldContribution[];
@@ -1191,6 +1213,7 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
   let percents: EmpirePercents | undefined;
   let empireLines: Map<string, CityYields> | undefined;
   const meters = new Map<MeterId, number>();
+  let renown: number | undefined;
   const sums = new Map<number, Map<string, CityYields>>();
   const contexts = new Map<number, TileYieldContext | undefined>();
   const tiles = new Map<string, readonly TileYieldContribution[]>();
@@ -1217,6 +1240,7 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
       }
       return held;
     },
+    renown: () => (renown ??= renownPerTurn(state, playerId)),
     // **The card's own flats out of the town's published list** (batch E2 for
     // the list, E3b for the selector), rather than a private walk of the same
     // evaluator: the real board's card lines are what `readCity` has already
@@ -1441,6 +1465,20 @@ function ghostDiffLines(
     const line = emptyLine(METER_WORD[meter], 'meter');
     line.meter = meter;
     line.amount = moved;
+    lines.push(line);
+  }
+
+  // 4b. Renown each turn (stage 7): the fold of `explainRenown`'s recurring
+  //     half on both boards, summed over every family, and the difference.
+  //     Exact rather than rounded to a tenth as the meters are: the In play
+  //     screen reads the same two folds and subtracts them the same way, so
+  //     the two readings agree to the last bit.
+  const renownMoved =
+    (isReal(held) ? shared!.renown() : renownPerTurn(held, playerId)) -
+    (isReal(without) ? shared!.renown() : renownPerTurn(without, playerId));
+  if (renownMoved !== 0) {
+    const line = emptyLine(RENOWN_WORD, 'renown');
+    line.amount = renownMoved;
     lines.push(line);
   }
 

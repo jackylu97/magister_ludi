@@ -5,7 +5,7 @@
  * Since stage 2 the totals are the whole council's impact list, folded
  * (`explainCouncil`), and a plate is a share of them (`councilPlate`). The
  * sweep over the card data is `councilFigures.test.ts`; these check the small
- * readings themselves: eight whole figures in the board's order, no change
+ * readings themselves: nine whole figures in the board's order, no change
  * between an arrangement and itself, a state left exactly as it was, and the
  * government's plate read by the same method as every other card's.
  */
@@ -19,16 +19,17 @@ import { stage } from '../../src/ui/statecraftStaging';
 import { found, game } from '../sim/statecraftHelpers';
 
 describe('the totals line of the Council screen', () => {
-  it('reads eight whole figures off a real board, in the board’s order', () => {
+  it('reads nine whole figures off a real board, in the board’s order, renown last', () => {
     const g = game();
     const figures = councilFigures(foldImpactVoices(explainCouncil(g.state, 0)));
     expect(Object.keys(figures)).toEqual([...COUNCIL_VOICES]);
+    expect(COUNCIL_VOICES[COUNCIL_VOICES.length - 1]).toBe('renown');
     for (const voice of COUNCIL_VOICES) expect(Number.isInteger(figures[voice]), voice).toBe(true);
   });
 
   it('rounds each figure once, as the line prints it', () => {
-    const exact = { food: 12.5, production: 2.4, gold: -3.5, science: 0, culture: 7.49, faith: 0, happiness: 1.6, authority: 0 };
-    expect(councilFigures(exact)).toEqual({ food: 13, production: 2, gold: -4, science: 0, culture: 7, faith: 0, happiness: 2, authority: 0 });
+    const exact = { food: 12.5, production: 2.4, gold: -3.5, science: 0, culture: 7.49, faith: 0, happiness: 1.6, authority: 0, renown: 4.6 };
+    expect(councilFigures(exact)).toEqual({ food: 13, production: 2, gold: -4, science: 0, culture: 7, faith: 0, happiness: 2, authority: 0, renown: 5 });
   });
 
   it('finds no change between an arrangement and itself, and leaves the state as it was', () => {

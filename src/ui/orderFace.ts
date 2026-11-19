@@ -107,7 +107,7 @@ import {
   orderDef,
   orderType,
 } from '../sim/statecraftData';
-import { meterMarkNode } from './meterMark';
+import { meterMarkNode, renownMarkNode } from './meterMark';
 import { slotMarkUrl } from './cardLine';
 import { BAND_NUMERAL, DECK_SUIT, GENERIC_WORD, RARITY_WORD, TYPE_INK, TYPE_WORD, deckWord } from './deckBadges';
 import { element } from './dom';
@@ -126,9 +126,15 @@ export type OrderFaceCardId = OrderId | DoctrineId;
  */
 export type OrderFaceId = OrderFaceCardId | GovernmentId;
 
-/** One figure on the pay plate: a yield or a meter, and its signed whole number. */
+/**
+ * What a plate figure measures: one of the six yields, one of the two meters,
+ * or renown each turn (stage 7 of the Council and In play board).
+ */
+export type PlateVoice = CityYieldKey | MeterId | 'renown';
+
+/** One figure on the pay plate: a yield, a meter or renown, and its signed whole number. */
 export interface PlateFigure {
-  voice: CityYieldKey | MeterId;
+  voice: PlateVoice;
   amount: number;
 }
 
@@ -780,8 +786,13 @@ function subscriptionNode(model: OrderFaceModel, state: OrderFaceState, linked: 
   return sub;
 }
 
-/** The mark of one plate voice: a yield's drawing, or a meter's. */
+/** The mark of one plate voice: a yield's drawing, a meter's, or renown's laurel. */
 function plateMarkNode(voice: PlateFigure['voice']): HTMLElement {
+  if (voice === 'renown') {
+    const mark = renownMarkNode();
+    mark.classList.add('meter-mark-inline');
+    return mark;
+  }
   if (voice === 'happiness' || voice === 'authority') {
     const mark = meterMarkNode(voice);
     mark.classList.add('meter-mark-inline');
