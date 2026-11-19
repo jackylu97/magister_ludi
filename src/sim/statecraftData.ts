@@ -4017,6 +4017,7 @@ export type CardRule =
    * triage's reading 8). Read in `musterCamps` (`barbarians.ts`).
    */
   | 'campMuster'
+  | 'siegeDamage'
   /**
    * **What the units this empire loses count toward its war weariness**
    * (Dominion batch D7, The Funeral Oration's half and The Glorious Dead's
@@ -7884,6 +7885,8 @@ export type CityRuleId =
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
+  /** Pay this declaration rider to the defending empire as well. */
+  eitherSide?: true;
   kind: 'windfallRider';
   occasion: WindfallOccasion;
   /** Scales the occasion's own payout, in whole percent. */
@@ -9232,6 +9235,7 @@ export const LEVY_USES: readonly LevyUse[] = [
  * so the refusal names the smallest town that would do.
  */
 export interface CardLevyEffect {
+  freeUpkeep?: true;
   kind: 'levy';
   use?: LevyUse;
   faithPerCitizen?: number;
@@ -10838,7 +10842,8 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
-  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number })
+  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number; toEveryTown?: CityScope })
+  | { grant: 'experience'; amount: number }
   | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
   | OnDraftForeignCard

@@ -28,7 +28,7 @@ import { describe, expect, it } from 'vitest';
 
 import { valueContext } from '../../../src/ai/bot';
 import { explainCard, scoreCard } from '../../../src/ai/council';
-import { foundCityAt, raiseFreeUnit } from '../../../src/sim/cities';
+import { foundCityAt, raiseFreeUnit, unitProductionCost } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
 import { razeCityAt } from '../../../src/sim/diplomacy';
@@ -63,6 +63,7 @@ import { settleResearchWindfall } from '../../../src/sim/tech';
 import { techDef } from '../../../src/sim/techData';
 import { type UnitTypeId } from '../../../src/sim/unitData';
 import { unitUpkeepOf } from '../../../src/sim/upkeep';
+import { fullMovement } from '../../../src/sim/units';
 import { resetVisibility } from '../../../src/sim/visibility';
 import { openWar } from '../../../src/sim/wars';
 import { newGame } from '../newGameHelpers';
@@ -233,6 +234,31 @@ describe('Dominion D5 — units gained', () => {
     expect(player.statecraft.orders).toEqual(['theSwordOfState', 'theCleruchy']);
   });
 
+  it('The Amabutho grants each Barracks town a free melee unit', () => {
+    const state = flat(false);
+    const capital = foundCityAt(state, 0, at(state, 1, 1))!;
+    const town = foundCityAt(state, 0, at(state, 9, 6))!;
+    town.buildings.push('barracks');
+    const player = seat(state, 0);
+    player.statecraft.pendingOrder = { options: ['dominionTheAmabutho'] };
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(unitsNear(state, capital, 'warrior')).toHaveLength(0);
+    expect(unitsNear(state, town, 'warrior').map((unit) => unit.freeUpkeep)).toEqual([true]);
+  });
+
+  it('The Citizen Phalanx lets a town of three spend one citizen for a free melee unit', () => {
+    const state = flat(false);
+    const town = foundCityAt(state, 0, at(state, 4, 4))!;
+    hold(state, 0, 'theCitizenPhalanx');
+    const levy = { type: 'levyCitizen', playerId: 0, cityId: town.id, use: 'muster' } as const;
+    town.population = 2;
+    expect(applyCommand(state, levy).ok).toBe(false);
+    town.population = 3;
+    expect(applyCommand(state, levy).ok).toBe(true);
+    expect(town.population).toBe(2);
+    expect(unitsNear(state, town, 'warrior').map((unit) => unit.freeUpkeep)).toEqual([true]);
+  });
+
   it('The King’s Levy raises its melee unit in the capital when drafted, and the levy raises the same unit', () => {
     // Batch R1 (the user, 2026-10-23: "add 'gain a melee unit in your
     // capital'"). The reading: the drafted unit is the unit the fifteen-turn
@@ -267,8 +293,8 @@ describe('Dominion D5 — new moments', () => {
     expect(raised[0]!.freeUpkeep).toBe(true);
   });
 
-  it('The Landsturm raises a unit in each town of five or more when a draft is passed', () => {
-    const state = flat();
+  it('The Landsturm raises a unit in each town of five or more when another empire declares war', () => {
+    const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 1, 1))!;
     const big = foundCityAt(state, 0, at(state, 6, 4))!;
     const small = foundCityAt(state, 0, at(state, 11, 7))!;
@@ -276,11 +302,15 @@ describe('Dominion D5 — new moments', () => {
     big.population = 5;
     small.population = 4;
     hold(state, 0, 'theLandsturm');
-    holdDraftOpen(state, 0);
-    expect(applyCommand(state, { type: 'skipOrderOffer', playerId: 0 }).ok).toBe(true);
+    foundCityAt(state, 1, at(state, 14, 2));
+    expect(applyCommand(state, { type: 'declareWar', playerId: 1, targetId: 0 }).ok).toBe(true);
     expect(unitsNear(state, capital, 'warrior')).toHaveLength(1);
     expect(unitsNear(state, big, 'warrior')).toHaveLength(1);
     expect(unitsNear(state, small, 'warrior')).toHaveLength(0);
+    state.turn += 19;
+    expect(windfallPayout(state, 0, 'declareWar').units).toHaveLength(0);
+    state.turn += 1;
+    expect(windfallPayout(state, 0, 'declareWar').units.length).toBeGreaterThan(0);
   });
 
   it('The Landsturm gives melee units +3 strength, doubled beside a great general', () => {
@@ -337,7 +367,7 @@ describe('Dominion D5 — new moments', () => {
     expect(player.gold).toBe(gold);
   });
 
-  it('The Longbowmen add +2 strength and +1 range to ranged units, and pay no culture for a shot', () => {
+  it('The Longbowmen add +4 strength to ranged units, and pay no culture for a shot', () => {
     // Batch DS2: +2 strength, not +4, and +1 range in place of the +5 culture
     // for each attack from range.
     const state = flat();
@@ -352,10 +382,10 @@ describe('Dominion D5 — new moments', () => {
     const line = view.attackerLines
       .filter((row) => row.source.includes('Longbowmen'))
       .reduce((sum, row) => sum + row.amount, 0);
-    expect(line).toBe(2);
+    expect(line).toBe(4);
     // The range is read by `cardUnitStat`, the one place combat asks it; a
     // unit that closes gains none.
-    expect(cardUnitStat(state, archer, 'range')).toBe(1);
+    expect(cardUnitStat(state, archer, 'range')).toBe(0);
     const warrior = createUnit(state, 0, 'warrior', 9, 7);
     expect(cardUnitStat(state, warrior, 'range')).toBe(0);
     const player = seat(state, 0);
@@ -399,6 +429,26 @@ describe('Dominion D5 — new moments', () => {
     touch(state);
     const payout = windfallPayout(state, 0, 'death', 0, 0, {});
     expect(payout.grants.map((grant) => [grant.yield, grant.amount])).toEqual([['culture', 50]]);
+  });
+
+  it('The Glorious Dead refund half a paid unit’s cost when it falls, and a free unit pays nothing', () => {
+    const state = flat();
+    const capital = foundCityAt(state, 1, at(state, 12, 6));
+    slot(state, 1, 'theGloriousDead');
+    slot(state, 0, 'dominionTheCompanionCavalry');
+    const cost = unitProductionCost(state, 1, 'warrior');
+    for (const [row, free] of [[3, false], [7, true]] as const) {
+      const defender = createUnit(state, 1, 'warrior', 6, row);
+      defender.hp = 1;
+      if (free) defender.freeUpkeep = true;
+      const attacker = createUnit(state, 0, 'warrior', 5, row);
+      const before = capital.hammerBasket;
+      touch(state);
+      expect(applyCombat(state, attacker.id, { col: 6, row }).ok).toBe(true);
+      expect(state.units.some((unit) => unit.id === defender.id)).toBe(false);
+      expect(capital.hammerBasket - before).toBe(free ? 0 : cost / 2);
+      expect(attacker.movesLeft).toBe(fullMovement(attacker, state));
+    }
   });
 
   it('Copying the Enemy banks a tenth of the technology toward an unbuilt unit, at the first such kill each turn', () => {
@@ -519,7 +569,7 @@ describe('Dominion D5 — words and the bot', () => {
     expect(words('theOpenMuster')).toContain('passing on an Order hand grants the best melee unit you can build in your capital');
     expect(words('theSack')).toContain('razing a city you captured');
     expect(words('theCleruchy')).toBe('Boon | On draft: a Settler joins you in your capital');
-    expect(words('theLongbowmen')).toBe('+2 combat strength for ranged units | ranged units: +1 range');
+    expect(words('theLongbowmen')).toBe('+4 combat strength for ranged units');
     expect(words('theStateForges')).toContain('the best melee unit you can build in your capital');
     expect(words('theMuralCrown')).toContain('for each great general you have gained this game');
     expect(words('valhalla')).toContain('+25 culture for each Monument');

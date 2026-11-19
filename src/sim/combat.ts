@@ -312,6 +312,7 @@ import {
   cityAt,
   settleProductionWindfall,
   settleRanksEarned,
+  unitProductionCost,
 } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
@@ -331,6 +332,7 @@ import {
   takesByWalking,
   tileMoveCost,
 } from './pathfind';
+import { siegeDamageBonus } from './statecraft/evaluator';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -2766,6 +2768,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 
   // 1 & 2 — the dice, and the damage they decide.
   let defenderDied = false;
+  let captured: WindfallOccasionFacts | undefined;
   if (forecast.plundersUnit) {
     // A laden caravan: destroyed where it stands, its cargo paid to the nearest
     // town the attacker holds. No roll, no counter — see `plundersUnit` on the
@@ -2800,6 +2803,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     );
     payBattleRiders(state, fromOwnerId, 'death', tile, {
       actor: caravan.type,
+      unitCost: caravan.freeUpkeep ? 0 : unitProductionCost(state, fromOwnerId, caravan.type),
       strength: fallenStrength(caravan),
     });
   } else if (!forecast.capturesUnit) {
@@ -2856,7 +2860,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
-        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+        captured = {
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,
@@ -2867,7 +2871,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // halved the population by the time the riders are composed, so the
           // caller is the only thing that still knows.
           population: sackedPopulation,
-        });
+        };
       }
     } else {
       const defender = target.unit!;
@@ -2963,6 +2967,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           );
           payBattleRiders(state, fallenOwner, 'death', tile, {
             actor: defender.type,
+            unitCost: defender.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, defender.type),
             strength: fallenStrength(defender),
             // The piece that was attacked: Songs of the Fallen's losing half.
             defending: true,
@@ -3005,12 +3010,16 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (defenderOwner !== undefined) recordWarLoss(state, fallenOwner, defenderOwner, 'unit');
     payBattleRiders(state, fallenOwner, 'death', tile, {
       actor: attacker.type,
+      unitCost: attacker.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, attacker.type),
       strength: fallenStrength(attacker),
     });
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
     if (defenderOwner !== undefined) {
+      if (target.unit && cardBehaviorRule(state, defenderOwner, 'moveAfterKill', target.unit.type)) {
+        target.unit.movesLeft = fullMovement(target.unit, state);
+      }
       // The **counter-attacker** is who to heal, where one is a piece at all:
       // a city that broke a charge is not a soldier and has no bar this rider
       // can fill.
@@ -3085,7 +3094,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // rather than admitted, so the card would have been a line that never fires.
     // Blitz names no class and still answers every piece, which is that
     // function's own rule for every row written before the filter existed.
-    if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
+    if (outcome.killed.length > 0 && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
       attacker.movesLeft = fullMovement(attacker, state);
     }
     if (firstOfTwo) attacker.firstAttackTurn = state.turn;
@@ -3145,14 +3154,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         townOwnerBefore = town.ownerId;
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
-        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+        captured = {
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,
           actor: attacker.type,
           // Read before the stones change hands, exactly as the wonder is.
           population: sacked,
-        });
+        };
       }
     }
 
@@ -3201,6 +3210,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       if (takenDefender) outcome.capturedUnitId = takenDefender.id;
     }
   }
+
+  // Let the conqueror enter the city before placing units granted by its capture.
+  if (captured !== undefined) payBattleRiders(state, attacker.ownerId, 'capture', tile, captured);
 
   // Against the Odds: the attacker is still standing, the thing it went at is
   // not, and the forecast said the other side was the stronger. Asked of
@@ -4012,7 +4024,8 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
       fields.set(city.ownerId, field);
     }
     if (underSiege(state, city, field)) {
-      const damage = Math.min(COMBAT.siegeDamagePerTurn, Math.max(0, city.hp - 1));
+      const bonus = siegeDamageBonus(state, city);
+      const damage = Math.min(Math.floor(COMBAT.siegeDamagePerTurn * (1 + bonus / 100)), Math.max(0, city.hp - 1));
       if (damage > 0) city.hp -= damage;
       report?.sieges.push({ cityId: city.id, ownerId: city.ownerId, damage });
       continue;

@@ -183,7 +183,10 @@ export function levyGrantFor(
     if (city.population < floorOf(row)) continue;
     if (best === undefined || rankWeight(row) > rankWeight(best)) best = row;
   }
-  if (best !== undefined) return best;
+  if (best !== undefined) {
+    const free = rows.some((row) => row.freeUpkeep && city.population >= floorOf(row));
+    return free ? { ...best, freeUpkeep: true } : best;
+  }
   for (const row of rows) {
     if (best === undefined || floorOf(row) < floorOf(best)) best = row;
   }
@@ -513,7 +516,8 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  */
 export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId): LevyReport {
   const plan = planLevy(state, city, use);
-  const rank = levyGrantFor(state, city.ownerId, city, use)?.rank;
+  const grant = levyGrantFor(state, city.ownerId, city, use);
+  const rank = grant?.rank;
   city.levy = { ...city.levy, turn: state.turn };
   loseCitizen(state, city);
   recordLevy(state, city);
@@ -541,6 +545,7 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
       {
         ...(trained ? {} : { untrained: true }),
         ...(rank !== undefined ? { rank } : {}),
+        free: grant?.freeUpkeep === true,
         levied: use,
       },
     );

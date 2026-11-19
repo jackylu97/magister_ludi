@@ -1330,45 +1330,20 @@ export function explainUnrestGate(city: City): CityYieldGate[] {
 }
 
 /**
- * **Step 13 of `docs/yields.md`, second half — the gate on the Opus**: one
- * line on production, or an empty list.
- *
- * `toward` must be a Magnum Opus (`BuildingDef.endsTheGame`, never a name).
- * Every reader that banks or forecasts the town's hammers passes the row at
- * the front of its queue, so the Opus at the front is stopped. Then the town
- * makes no production while either of these holds, asked in this order:
- *
- *   · **the siege** (Dominion batch D14, Circumvallation; that triage's
- *     reading 37): a rival holds the `opusSiege` rule and has a combat unit
- *     beside the town (`cardOpusSiegeBy`), and the town is under siege
- *     (`underSiege`, read off its owner's `siegeField`);
- *   · **the interdict** (Devotion batch DV7, The Interdict; that triage's
- *     reading 29): a rival holds the `opusInterdict` rule and the town follows
- *     a religion that rival is paid by (`cardOpusInterdictBy`).
- *
- * It is the unrest gate's kind of line for the unrest gate's reason: a −100%
- * line would only cancel the stage's other lines, so the staged figure is set
- * to nothing after both stages. The hammers are not banked anywhere else. The
- * line names the rival's card, so the town's own breakdown says why it makes
- * nothing (rule 5). When both hold, the siege names the line, so a town under
- * siege reads as it did before the interdict existed. One line either way,
- * because production is held at nothing once.
- *
- * The cheap questions come first. The siege field walks every unit in the
- * world, so it is built only for a town building the Opus with a holder of
- * the rule at its walls.
+ * A siege can stop production on any queue. An interdict applies only to the
+ * Magnum Opus. The gate names the first card that stops the town's production.
  */
 export function explainOpusGate(
   state: GameState,
   city: City,
   toward?: QueueItem | null,
 ): CityYieldGate[] {
-  if (!toward || toward.kind !== 'building' || !isBuildingId(toward.id)) return [];
-  if (buildingDef(toward.id).endsTheGame !== true) return [];
   const besieger = cardOpusSiegeBy(state, city);
   if (besieger !== null && underSiege(state, city, siegeField(state, city.ownerId))) {
     return [{ source: besieger.source, yield: 'production', card: besieger.card }];
   }
+  if (!toward || toward.kind !== 'building' || !isBuildingId(toward.id)) return [];
+  if (buildingDef(toward.id).endsTheGame !== true) return [];
   const interdict = cardOpusInterdictBy(state, city);
   if (interdict !== null) return [{ source: interdict.source, yield: 'production', card: interdict.card }];
   return [];

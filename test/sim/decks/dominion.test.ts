@@ -496,7 +496,7 @@ describe('the Dominion deck — its Doctrines', () => {
     for (const deck of SORTED_DECKS) expectSheetDoctrinesMatchData(deck);
   });
 
-  it('lists exactly the live rows on all six sheets, 98 in all', () => {
+  it('lists exactly the live rows on all six sheets, 99 in all', () => {
     let all = 0;
     for (const deck of SORTED_DECKS) {
       const live = DECK_FILE_DOCTRINES[deck].filter((id) => doctrineDef(id).retired !== true);
@@ -504,7 +504,7 @@ describe('the Dominion deck — its Doctrines', () => {
       expect(names, deck).toEqual(live.map((id) => doctrineDef(id).name).sort());
       all += names.length;
     }
-    expect(all).toBe(98);
+    expect(all).toBe(99);
   });
 
   it('builds the whole table: every sheet row has a data row, and the counts match', () => {
@@ -518,7 +518,7 @@ describe('the Dominion deck — its Doctrines', () => {
     }
     expect(counted('\\*\\*All\\*\\*')).toBe(String(SHEET.length));
     // The user's review of 2026-11-05 leaves these.
-    expect([1, 2, 3, 4].map((band) => SHEET.filter((row) => row.band === band).length)).toEqual([3, 4, 3, 3]);
+    expect([1, 2, 3, 4].map((band) => SHEET.filter((row) => row.band === band).length)).toEqual([4, 4, 3, 3]);
   });
 
   it('holds The Steppe Confederacy, the first Doctrine built (batch C3)', () => {

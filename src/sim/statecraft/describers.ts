@@ -608,6 +608,17 @@ function describeFold(
   out: CardClause[],
   subject: ClauseSubject,
 ): number {
+  const base = effects[at];
+  const extra = effects[at + 1];
+  if (base?.kind === 'windfallRider' && base.occasion === 'capture' && !base.capturedWonder &&
+      extra?.kind === 'windfallRider' && extra.capturedWonder && base.grant?.renown !== undefined) {
+    const { capturedWonder: _wonder, ...rest } = extra;
+    if (JSON.stringify(base) === JSON.stringify(rest)) {
+      describeEffect(base, out, subject);
+      out[out.length - 1]!.text += ', doubled if the city holds a wonder';
+      return 2;
+    }
+  }
   return (
     everyVoiceFold(effects, at, out, subject) ||
     sharedCountFold(effects, at, out, subject) ||
@@ -2897,6 +2908,7 @@ function describeEffect(
       // such phrase is left alone — which keeps a row written onto the wrong
       // occasion silent rather than wrong.
       const occasionSaid =
+        (effect.eitherSide && effect.occasion === 'declareWar' ? 'entering a war' : undefined) ??
         firstSaid ??
         paidSaid ??
         occasionWords(
@@ -3187,6 +3199,7 @@ function describeEffect(
             ? 'every city of yours'
             : grant.toEveryTown !== undefined
               ? cityScopeWords(grant.toEveryTown)
+              : grant.toCapital ? 'your capital'
               : effect.inTown === undefined
                 ? 'the city where it happens'
                 : 'that city';
@@ -4193,6 +4206,7 @@ function describeEffect(
     }
     case 'levy':
       describeLevy(effect, out);
+      if (effect.freeUpkeep) out.push({ text: 'the unit costs no upkeep' });
       return;
     case 'unlocksImprovement': {
       // Expansionist batch E4: the row a seated card opens, with what the row
@@ -4703,7 +4717,14 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
       case 'foreignCard':
         out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
+      case 'experience':
+        out.push(`${lead}each of your military units gains ${grant.amount} experience`);
+        break;
       case 'unit': {
+        if (grant.toEveryTown !== undefined) {
+          out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in ${cityScopeWords(grant.toEveryTown)}`);
+          break;
+        }
         const count = onDraftUnitCount(grant.count);
         if (count === 1) {
           out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
@@ -4804,6 +4825,10 @@ function slotFlavourWords(flavour: ChairType): PluralWords {
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
 function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  if (effect.count === 'defensiveBuildings' && effect.category !== undefined) {
+    const where = place || 'in this city';
+    return { one: `${effect.category} building or fortification ${where}`, many: `${effect.category} buildings or fortifications ${where}` };
+  }
   // **The filtered garrison** — Martial Law's field soldiers, said in the words
   // the filter uses everywhere else. Asked before the town table below, because
   // the filter *replaces* that entry's noun ("combat unit standing …") rather
@@ -6540,6 +6565,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
   },
   // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
   // a loss adds, and "nothing" at the whole cut.
+  siegeDamage: (percent) => `a city under siege by your units takes ${percent}% more siege damage`,
   unitLossWeariness: (percent) =>
     percent <= -100
       ? 'units you lose add nothing to war weariness'
@@ -8045,7 +8071,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // "Enemy" is an empire at war with you, the word the cards already use.
   shoreRaid:
     'at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it',
-  opusSiege: 'a rival city under siege by your units adds no production toward a Magnum Opus',
+  opusSiege: 'a rival city under siege by your units makes no production',
   // Scientific batch S1, the Galleass. What a blockade does, said once, because
   // a player has met it only on a heavy warship's own description.
   blockades:

@@ -260,10 +260,8 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     const { state, city } = board();
     council(state, 'theSultanate', [[SPEAR_MAKERS, 'military']]);
     const lines = cardProduction(state, city, 'unit', 'warrior');
-    // The Spear Makers pay +25% since batch DS2. 30% of 25 is 7.5, which
-    // rounds to 8.
-    expect(lines.find((line) => line.card === SPEAR_MAKERS)!.percent).toBe(25);
-    expect(lines.find((line) => line.card === 'theSultanate')!.percent).toBe(8);
+    expect(lines.find((line) => line.card === SPEAR_MAKERS)!.percent).toBe(40);
+    expect(lines.find((line) => line.card === 'theSultanate')!.percent).toBe(12);
   });
 
   it('raises strength in a fight, line by line', () => {

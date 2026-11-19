@@ -208,7 +208,8 @@ governments, so Tier IV opened at 29.
 | Doctrine | Decks | Tier | Offered with | Effect |
 |---|---|---|---|---|
 | The Steppe Confederacy | Dominion | I | tier 4 | +50% production toward mounted units. Mounted units gain +3 strength when attacking a wounded unit. |
-| The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
+| The Citizen Phalanx | Dominion | I | tier 4 | Towns of three or more citizens may spend a citizen to raise a melee unit. It costs no upkeep. |
+| The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them 25% more slowly. Buying them is unaffected. |
 | The Soldiers' Share | Dominion | I | tier 4 | Melee units gain +1 movement and +3 strength. |
 | The Laws of Lord Shang | Dominion | II | tier 10 | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
 | Centurions | Dominion | II | tier 10 | Each Elite unit gives +3 strength to your units beside it, and costs 1 less upkeep. |
@@ -217,7 +218,7 @@ governments, so Tier IV opened at 29.
 | The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority, including those you already hold. Towns you found from now on cost twice as much authority. |
 | Combined Arms | Dominion | III | tier 18 | Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee. |
 | The Strategoi | Dominion | III | tier 18 | +30% renown. Citadel yields and your great generals' strength aura are doubled. |
-| The Landsturm | Dominion | IV | tier 26 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
+| The Landsturm | Dominion | IV | tier 26 | When a war begins, each city of five or more citizens raises a melee unit, at most once every twenty turns. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
 | The Fortress Empire | Dominion | IV | tier 26 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
 | The Scourge of God | Dominion | IV | tier 26 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
 | Bound to the Soil | Expansionist | I | tier 4 | Workers gain +1 charge. Tended tiles gain +1 food. |
@@ -328,16 +329,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | Blooded Spears | 0 | ● | S | Military units gain +2 strength. |
-| Blood Brothers | 1 | ○ | S | A barbarian unit you kill joins your side. |
+| Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | Commission: Clear the Frontier | 1 | ● | S | Goal: clear 2 barbarian camps. Reward: choose a great general. |
 | The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
 | Sword and Plough | 0 | ● | P | Each city with a garrison gains +1 culture and +2 production. |
 | The Grain Tribute | 0 | ● | S | +1 food and +1 production in every city. |
 | The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. |
-| The Outriders | 0 | ● | S | Clearing a barbarian camp grants 10 production to every town. |
+| The Outriders | 0 | ● | S | Clearing a barbarian camp grants 20 production to every town. |
 | The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
 | The Gathering Host | 1 | ◆ | P | Gains +1 science and +1 culture each time you gain a military unit. |
-| The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
+| The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start as Veterans. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | Honours of the Legion | 1 | ◆ | S | Each time one of your units earns a rank, gain science and culture equal to its strength. |
 | The Pacified Marches | 1 | ◆ | P | +1 authority and +5 culture for each barbarian camp you have cleared, at most +8 and +40. |
@@ -346,60 +347,69 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
 | The General Staff | 1 | ● | P | Each Barracks gives +5 production and +2 general renown. |
 | Martial Law | 1 | ● | P | Each garrisoned unit grants its city +2 happiness and +4 food. |
-| The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
-| The Captive Craftsmen | 1 | ◆ | P | Gains +1 science and +1 production each time you pillage a hex. |
-| Siege Works | 2 | ● | S | Siege units gain +4 strength against towns. |
-| Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
+| The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking, and pillage without spending movement. |
+| The Captive Craftsmen | 1 | ◆ | P | Gains +2 science and +2 production each time you pillage a hex. |
+| Siege Works | 2 | ● | S | Siege units gain +1 movement and +4 strength against towns. |
+| Conquered Archives | 2 | ● | P | Captured cities gain +10 science and +10 culture. |
 | Stockpiles | 2 | ● | P | Cities gain +8 food per defensive building. |
-| Riders of the Steppe | 2 | ◆ | S | Pillaging costs your mounted units one less movement point. |
 | Spoils of War | 2 | ◆ | S | Pillaging a hex grants 50 gold and 15 culture. |
 | Hegemony | 2 | ○ | S | Towns you captured cost 1 less authority. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
-| The Citadel Works | 2 | ● | S | Citadels gain +5 science and +3 general renown. |
+| The Citadel Works | 2 | ● | S | Citadels gain +8 science and +8 general renown. |
 | Commission: Take the City | 2 | ◆ | S | Goal: capture a city of 8 or more citizens. Reward: each city you capture grants 250 science and 250 culture per age. |
-| Living off the Land | 2 | ● | S | Military units outside your territory cost no upkeep. |
 | The Serried Ranks | 2 | ○ | S | Melee units beside another melee unit gain +10 strength when defending. |
 | The Veterans' Roll | 2 | ◆ | P | +1% science and culture for every rank your units have earned this game, at most +30%. |
 | The Tactica | 2 | ◆ | S | Great generals give 1 experience each turn to units beside them. |
-| Spear-won Land | 2 | ◆ | P | +3% production and science for each town you have captured. |
-| The Longbowmen | 2 | ● | S | Ranged units gain +2 strength and +1 range. |
+| Spear-won Land | 2 | ◆ | P | +5% production and science for each town you have captured. |
+| The Longbowmen | 2 | ● | S | Ranged units gain +4 strength. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
-| The Siege Train | 3 | ◆ | S | Siege units gain +1 movement, and +5 strength when defending. |
-| Total War | 3 | ○ | S | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. |
-| The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to thirty times its population. |
-| The Drill Masters | 3 | ● | S | Units you gain start as Veterans. |
+| Total War | 3 | ○ | S | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. |
+| Commission: A Victor's Peace | 3 | ○ | S | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. |
+| The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to sixty times its population. |
+| The Drill Masters | 3 | ● | S | Garrisoned units gain 1 experience each turn. |
 | Up Through the Ranks | 3 | ◆ | S | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. |
-| The Regimental Schools | 3 | ● | P | Each garrisoned unit gives its town +3 science. |
+| The Regimental Schools | 3 | ● | P | Each garrisoned unit gives its town +6 science and +6 production. |
 | The Tagmata | 3 | ◆ | S | Veteran and Elite units gain +5 strength. |
 | Interior Lines | 3 | ◆ | S | Roads cost your units 40% less movement. |
-| The Bakufu | 3 | ◆ | P | A great general standing in a town gives it +25% science and culture. |
+| The Bakufu | 3 | ◆ | P | A town with a citadel gains +25% production, science and culture. |
 | Pax Romana | 3 | ○ | S | Towns you capture are pacified at once. |
 | The Mural Crown | 3 | ◆ | S | Gaining a great person grants 200 science and culture for each great general you have gained. |
 | Valhalla | 3 | ○ | S | When one of your units dies, gain 25 culture for each Monument in your empire. |
-| Commission: A Victor's Peace | 3 | ○ | S | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. |
-| Commission: Hold the Capitals | 4 | ○ | S | Goal: hold two rival capitals. Reward: a great general, and +25% production in every town for twenty turns. |
-| The Grand Army | 4 | ○ | P | Your capital gains +3 science and +3 culture for each military unit you have. |
+| Commission: Hold the Capital | 4 | ○ | S | Goal: hold a rival capital. Reward: a great general, and +25% production in every town for twenty turns. |
+| The Grand Army | 4 | ○ | P | Your capital gains +6 science and +6 culture for each military unit you have. |
 | The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
 | The Marshalate | 4 | ○ | P | Your great generals' aura gives +1 more strength for each great general you have gained this game, at most +5. |
-| The Proconsuls | 4 | ◆ | S | Captured towns with a garrison cost no authority. |
-| Commission: The Grand Campaign | 4 | ◆ | S | Goal: capture three cities. Reward: a great general, and science and culture equal to ten times their population. |
+| Circumvallation | 4 | ◆ | S | A town under siege by your units makes no production and takes twice the siege damage. |
+| The Proconsuls | 4 | ◆ | P | Captured towns gain +25% production and +25% gold. |
+| Commission: The Grand Campaign | 4 | ◆ | S | Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population. |
 | The Varangian Guard | 4 | ○ | S | Elite units may attack twice a turn. |
 | The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
 | The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
-| The Spear Makers | 0 | ● | S | +25% production toward military units. |
+| The Spear Makers | 0 | ● | S | +40% production toward military units. |
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
-| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. |
-| The Castle Demesne | 1 | ◆ | S | Citadels give +3 food and +3 production. |
+| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. |
+| The Castle Demesne | 1 | ◆ | S | Citadels give +5 food and +5 production. |
 | Commission: The First Province | 1 | ◆ | S | Goal: capture a town. Reward: towns you captured gain +5 food and +5 gold. |
-| The Naadam | 2 | ● | S | Pastures and camps gain +2 culture. |
+| The Naadam | 1 | ● | S | Pastures and camps gain +2 culture. |
 | The Taker of Cities | 2 | ◆ | S | Your units beside one of your great generals gain +5 strength against towns. |
-| The Tributary Kings | 3 | ◆ | P | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. |
-| Commission: The Border Fortress | 2 | ◆ | S | Goal: plant a citadel. Reward: citadels gain +2 food and +2 production. |
-| Commission: The Chosen Men | 3 | ◆ | S | Goal: have three units become Elite. Reward: your Elite units ignore enemy zone of control. |
+| The Tributary Kings | 3 | ◆ | P | Your capital gains +2 production and +2 gold for each citizen in your puppet towns. |
+| Commission: The Border Fortress | 2 | ◆ | S | Goal: plant a citadel. Reward: choose a great general. |
+| Commission: The Chosen Men | 3 | ◆ | S | Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control. |
 | The Limitanei | 3 | ○ | S | A garrisoned town works one more hex. |
-| Circumvallation | 4 | ◆ | S | While a rival town is under siege by your units, it adds no production toward a Magnum Opus. |
-| The Upstarts | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows more technologies than you. |
+| The Upstarts | 1 | ◆ | S | Your units gain +5 strength against an empire that knows more technologies than you. |
+| The Ver Sacrum | 0 | ○ | S | On draft: gain a Settler and a melee unit. |
+| The Amabutho | 2 | ◆ | S | On draft: every town with a Barracks gains a melee unit. |
+| The Field of Mars | 2 | ◆ | S | On draft: every military unit you have gains 4 experience. |
+| The Grass Crown | 2 | ◆ | S | Capturing a city grants 200 renown, favouring great generals, doubled if the city holds a wonder. |
+| The Melted Arms | 2 | ● | S | Killing a unit grants production equal to twice its strength in your capital. |
+| The Auxilia | 2 | ● | S | Capturing a city grants a melee unit in that city. It costs no upkeep. |
+| The Foederati | 1 | ◆ | S | Clearing a barbarian camp adds 2 citizens to your capital. |
+| Commission: The Decisive Battle | 2 | ◆ | S | Goal: kill 10 units. Reward: your military units gain +3 strength. |
+| The Mesta | 3 | ◆ | S | Worked pastures and camps give +4 food, +4 production and +4 gold. |
+| The Master of Soldiers | 3 | ◆ | S | On draft: choose a great general. |
+| The Companion Cavalry | 3 | ○ | S | A unit of yours that kills a unit regains its movement. |
+| The Castellans | 4 | ◆ | P | Towns gain +6 production for each military and defensive building. |
 
 ### Expansionist
 

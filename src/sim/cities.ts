@@ -209,7 +209,7 @@ import {
 // Dominion batch D8, from the evaluator for the same reason: the rule that
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
-import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
+import { cardBehaviorRule, cardUnitCostLines, cityScopeAdmits } from './statecraft/evaluator';
 // Batch DT16, from the evaluator for the same reason: whose hexes read the works
 // around them, for `refreshRingDerived`.
 import { cardHexLinesReadWorksBeside, lawIsCut } from './statecraft/evaluator';
@@ -5910,7 +5910,7 @@ export function realiseItem(
     options.bought !== undefined && cardActionRule(state, city.ownerId, 'boughtUnitsCountAsTrained');
   if (
     (options.bought === undefined || boughtCounts) &&
-    options.free !== true &&
+    (options.free !== true || options.levied === 'muster') &&
     options.untrained !== true
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
@@ -6668,14 +6668,24 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
       case 'greatPerson':
         grantGreatPersonOffer(state, player, grant.family ?? 'any');
         break;
+      case 'experience':
+        // Rank rewards can raise more units. Only units held at draft time gain experience.
+        for (const unit of state.units.filter((u) => u.ownerId === player.id && !isCivilian(unitDef(u.type)))) {
+          settleRanksEarned(state, unit, grantExperience(state, unit, grant.amount));
+        }
+        break;
       case 'unit': {
-        if (!capital) break;
+        const towns = grant.toEveryTown === undefined
+          ? (capital ? [capital] : [])
+          : citiesOf(state, player.id).filter((town) => cityScopeAdmits(state, town, grant.toEveryTown, player.id));
         // Choose the type before the first unit claims any strategic resources.
         const unit = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
         if (unit === null) break;
         const count = onDraftUnitCount(grant.count);
-        for (let n = 0; n < count; n++) {
-          if (raiseFreeUnit(state, capital, unit) === null) break;
+        for (const town of towns) {
+          for (let n = 0; n < count; n++) {
+            if (raiseFreeUnit(state, town, unit) === null) break;
+          }
         }
         break;
       }

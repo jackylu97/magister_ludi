@@ -488,7 +488,7 @@ describe('Dominion D10: citadels', () => {
     expect(meterPaid(cardAuthority(state, 0), ACROPOLIS)).toBe(2);
   });
 
-  it('The Castle Demesne: +3 food and +3 production on a citadel hex, and nothing on other hexes', () => {
+  it('The Castle Demesne: +5 food and +5 production on a citadel hex, and nothing on other hexes', () => {
     const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, DEMESNE);
@@ -496,7 +496,7 @@ describe('Dominion D10: citadels', () => {
     raiseImprovement(keep!, 'citadel', state.turn);
     raiseImprovement(field!, 'farm', state.turn);
     bumpRevision(state);
-    expect(hexPaid(state, keep!, DEMESNE)).toEqual({ food: 3, production: 3, culture: 0 });
+    expect(hexPaid(state, keep!, DEMESNE)).toEqual({ food: 5, production: 5, culture: 0 });
     expect(hexPaid(state, field!, DEMESNE)).toEqual({ food: 0, production: 0, culture: 0 });
   });
 });
@@ -513,6 +513,17 @@ describe('Dominion D10: towns', () => {
     // Reading 32: the Magnum Opus is a building, and a wonder is not.
     expect(buildPercent(state, city, item('building', 'theMagnumOpus'), SPARTAN)).toBe(-15);
     expect(buildPercent(state, city, item('building', WONDER_IDS[0]!), SPARTAN)).toBe(0);
+  });
+
+  it('The Castellans count each military building or fortification in the town once', () => {
+    const state = flat(false);
+    const capital = foundCityAt(state, 0, at(state, 2, 2));
+    const other = foundCityAt(state, 0, at(state, 12, 6));
+    slot(state, 'dominionTheCastellans');
+    capital.buildings.push('barracks', 'palisade');
+    bumpRevision(state);
+    expect(cityPaid(state, capital, 'dominionTheCastellans', 'production')).toBe(12);
+    expect(cityPaid(state, other, 'dominionTheCastellans', 'production')).toBe(0);
   });
 
   it('The Naadam: +2 culture on each pasture and camp hex, and no happiness', () => {
@@ -538,7 +549,7 @@ describe('Dominion D10: towns', () => {
     expect(meterPaid(cardHappiness(state, 0), NAADAM)).toBe(0);
   });
 
-  it('The Tributary Kings: the capital gains +1 production and +1 gold for each citizen in your puppets', () => {
+  it('The Tributary Kings: the capital gains +2 production and +2 gold for each citizen in your puppets', () => {
     const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
     const puppet = foundCityAt(state, 0, at(state, 9, 5))!;
@@ -548,8 +559,8 @@ describe('Dominion D10: towns', () => {
     annexed.population = 4;
     slot(state, TRIBUTARY);
     bumpRevision(state);
-    expect(cityPaid(state, capital, TRIBUTARY, 'production')).toBe(6);
-    expect(cityPaid(state, capital, TRIBUTARY, 'gold')).toBe(6);
+    expect(cityPaid(state, capital, TRIBUTARY, 'production')).toBe(12);
+    expect(cityPaid(state, capital, TRIBUTARY, 'gold')).toBe(12);
     // The tribute is the capital's: the puppet and the other town gain nothing.
     expect(cityPaid(state, puppet, TRIBUTARY, 'production')).toBe(0);
     expect(cityPaid(state, annexed, TRIBUTARY, 'gold')).toBe(0);
@@ -756,7 +767,7 @@ describe('Dominion D10: the deal', () => {
       [RANKS, 1, 'wildcard'],
       [PROVINCE, 1, 'wildcard'],
       [TAKE, 2, 'wildcard'],
-      [NAADAM, 2, 'civic'],
+      [NAADAM, 1, 'civic'],
       [TAKER, 2, 'military'],
       [ROLL, 2, 'economic'],
       [MARCH, 3, 'economic'],

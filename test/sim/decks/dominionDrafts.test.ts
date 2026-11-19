@@ -21,7 +21,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../../src/sim/cities';
-import { siegeField, underSiege } from '../../../src/sim/combat';
+import { healCities, siegeField, underSiege } from '../../../src/sim/combat';
 import { raidFromTheSea } from '../../../src/sim/improvements';
 import { type Tile, createMap, getTileAt, neighborTiles, raiseImprovement, tileHex, wrappedDistance } from '../../../src/sim/map';
 import { makeRng } from '../../../src/sim/rng';
@@ -389,9 +389,9 @@ describe('Dominion D14 — Circumvallation', () => {
     expect(def.type).toBe('military');
     expect(def.deferred).toBeUndefined();
     expect(orderIsDealt(CIRCUMVALLATION)).toBe(true);
-    expect(def.effects).toEqual([{ kind: 'rule', rule: 'opusSiege' }]);
+    expect(def.effects).toEqual([{ kind: 'rule', rule: 'opusSiege' }, { kind: 'rulePercent', rule: 'siegeDamage', percent: 100 }]);
     expect(words(CIRCUMVALLATION)).toBe(
-      'a rival city under siege by your units adds no production toward a Magnum Opus',
+      'a rival city under siege by your units makes no production | a city under siege by your units takes 100% more siege damage',
     );
   });
 
@@ -422,13 +422,28 @@ describe('Dominion D14 — Circumvallation', () => {
     expect(town.hammerBasket).toBe(basket);
   });
 
-  it('stops nothing toward any other row', () => {
+  it('stops production toward ordinary units too', () => {
     const { state, town } = besieged();
     slot(state, 0, CIRCUMVALLATION);
     town.queue = [{ kind: 'unit', id: 'warrior' }];
     bumpRevision(state);
-    expect(explainOpusGate(state, town, town.queue[0])).toEqual([]);
-    expect(production(state, town)).toBeGreaterThan(0);
+    expect(explainOpusGate(state, town, town.queue[0])).toHaveLength(1);
+    expect(production(state, town)).toBe(0);
+  });
+
+  it('doubles the siege damage and keeps the last hit point', () => {
+    const { state, town } = besieged();
+    const hp = town.hp;
+    healCities(state);
+    const ordinary = hp - town.hp;
+    expect(ordinary).toBeGreaterThan(0);
+    town.hp = hp;
+    slot(state, 0, CIRCUMVALLATION);
+    healCities(state);
+    expect(town.hp).toBe(hp - 2 * ordinary);
+    town.hp = 2;
+    healCities(state);
+    expect(town.hp).toBe(1);
   });
 
   it('stops nothing once the siege is broken', () => {

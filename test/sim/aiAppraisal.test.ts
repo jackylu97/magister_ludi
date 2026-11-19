@@ -3050,6 +3050,9 @@ describe('the whole deck, priced (batch H2)', () => {
     // divides it.
     const { state, player } = board();
     const ctx = valueContext(state, player);
+    const guardTown = state.cities.find((city) => city.ownerId === player.id)!;
+    createUnit(state, player.id, 'warrior', guardTown.col, guardTown.row);
+    bumpRevision(state);
     const elite = RULES.combat.ranks.ladder.elite;
     const point = (elite.strength / elite.experience) * ctx.ai.weights.military * (1 + ctx.threat);
     expect(scoreEffects([{ kind: 'drill', experience: 1, where: 'garrison' }], ctx)).toBe(point);
