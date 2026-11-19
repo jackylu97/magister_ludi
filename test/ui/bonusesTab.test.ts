@@ -29,6 +29,7 @@ import { bumpRevision } from '../../src/sim/state';
 import { isOrderId } from '../../src/sim/statecraftData';
 import { techDef } from '../../src/sim/techData';
 import { dealtAt, DEAL_STAGGER_MS } from '../../src/ui/cardDeal';
+import { beliefPicture } from '../../src/ui/beliefPictures';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { signedFigure } from '../../src/ui/figures';
 import {
@@ -377,15 +378,19 @@ describe('the drawing', () => {
     expect(stamps).toEqual(['headline:faith', 'headline:religion']);
   });
 
-  it('draws the gods, the beliefs and the holy city as tablets with a round window, and an empty place as a dashed tablet', () => {
+  it('draws the gods, the beliefs and the holy city as tablets with an arched window, and an empty place as a dashed tablet', () => {
     const { state } = faithTabsWorld();
     const model = bonusesTabModel(state, 0);
     const tab = draw(model, recorder(false).motion);
     for (const face of faces(tab)) {
       const tablet = ['god', 'follower', 'enhancer', 'otherFaith', 'holyCity'].includes(card(model, face.dataset.src!).kind);
       expect(face.className.split(' ').includes('is-tablet'), face.dataset.src).toBe(tablet);
-      // No vignette exists yet, so every window shows the drawn mark.
-      if (tablet) expect(byClass(face, 'faith-window')[0]!.dataset.picture).toBe('mark');
+      // A belief with a vignette shows it, and every other tablet shows the drawn mark.
+      if (tablet) {
+        const key = face.dataset.src!;
+        const painted = key.startsWith('card:') && beliefPicture(key.slice('card:'.length)).kind === 'painted';
+        expect(byClass(face, 'faith-window')[0]!.dataset.picture, key).toBe(painted ? 'painted' : 'mark');
+      }
     }
     for (const ghost of byClass(tab, 'is-ghost')) expect(ghost.className).toContain('is-tablet');
   });

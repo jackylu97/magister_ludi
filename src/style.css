@@ -14393,8 +14393,8 @@ button.faith-rite-chip:hover:not(.is-on) {
   color: var(--ink);
 }
 
-/* **A tablet** (the god, the belief, the holy city): arched at the top, a round
-   window in its ink, the name in the card's title face and the eyebrow under
+/* **A tablet** (the god, the belief, the holy city): arched at the top, an
+   arched picture window in its ink, the name in the card's title face and the eyebrow under
    it. Its figure stays at the foot, so a row of tablets lines its stamps up. */
 .faith-bonuses .faith-cards {
   grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
@@ -14445,26 +14445,30 @@ button.faith-rite-chip:hover:not(.is-on) {
   content: none;
 }
 
-/* The round window, 1:1: a vignette when one exists (`beliefPicture`), and
-   until then the drawn belief mark on paper, in the card's ink. */
+/* The picture window (the user, 2026-11-19: "the circle feels a bit awkward,
+   maybe an arch again?"): an arch across the tablet's width that follows the
+   tablet's own top, one thin line in the card's ink. It is square, so a 1:1
+   vignette shows whole but for the two top corners. With no vignette it
+   holds the drawn belief mark on paper and is shorter. */
 .faith-window {
   display: grid;
   flex: none;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 6px;
-  border: 1.5px solid var(--line-ink, var(--y-faith));
-  border-radius: 50%;
+  align-self: stretch;
+  aspect-ratio: 1;
+  margin: -6px -2px 8px;
+  border: 1px solid var(--line-ink, var(--y-faith));
+  border-radius: 50% 50% 3px 3px / 46% 46% 3px 3px;
   background: var(--parchment);
-  box-shadow:
-    0 0 0 3px var(--parchment),
-    0 0 0 4px var(--line-ink, var(--y-faith));
 }
 
 .faith-window[data-picture='painted'] {
   background-position: center;
   background-size: cover;
+}
+
+.faith-window[data-picture='mark'] {
+  aspect-ratio: 16 / 10;
 }
 
 .faith-window-mark {

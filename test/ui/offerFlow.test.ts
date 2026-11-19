@@ -105,7 +105,7 @@ describe('every statecraft offer carries a stamp', () => {
     expect(card).toContain('footnote: def.kernel');
     // Drawn as the great person card since Quiet Table's build stage 2, whose
     // seat the offer leaves empty.
-    expect(card).toContain('dress: () => greatPersonOfferFace(game.state, seat, id),');
+    expect(card).toContain('dress: () => greatPersonOfferFace(id),');
   });
 
   /**

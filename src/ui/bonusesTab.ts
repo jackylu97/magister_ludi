@@ -843,8 +843,8 @@ function cardBelief(card: BonusCard): string | null {
 }
 
 /**
- * **A tablet's round window**: the belief's vignette when one exists
- * (`beliefPicture`, none yet), and the drawn belief mark otherwise; the holy
+ * **A tablet's arched window**: the belief's vignette when one exists
+ * (`beliefPicture`), and the drawn belief mark otherwise; the holy
  * city's tablet wears the holy city's mark.
  */
 function windowNode(card: BonusCard): HTMLElement {
@@ -888,7 +888,7 @@ export function drawCard(card: BonusCard): { face: HTMLElement; stamp: HTMLEleme
   if (card.axis !== null) face.dataset.axis = card.axis;
   face.tabIndex = 0;
   if (tablet) {
-    // **A tablet** (Quiet Table, build stage 3): the round window, the name
+    // **A tablet** (Quiet Table, build stage 3): the arched window, the name
     // and the eyebrow under it, as the In play screen draws a belief.
     face.append(windowNode(card));
     face.append(element('h4', 'sc-card-name', card.name));

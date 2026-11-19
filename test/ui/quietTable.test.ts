@@ -29,7 +29,6 @@ import {
   GREAT_PERSON_CARD_HEIGHT_FALLBACK_EM,
   GREAT_PERSON_CARD_WORDS,
   GREAT_PERSON_NAME_SIZES,
-  greatPersonActLine,
 } from '../../src/ui/greatPersonCard';
 import { LEADER_STEP_WORDS } from '../../src/ui/leaderSelect';
 import { FAITH_HEAD_WORDS, FAITH_TABS } from '../../src/ui/religionScreen';
@@ -194,15 +193,12 @@ describe('build stage 2: the offers (the user: "yeah proceed")', () => {
     expect(HTML).toContain('class="statecraft-close ledger-close"');
   });
 
-  it('writes the great person card’s words plainly, and says what a person does when spent', () => {
+  it('writes the great person card’s words plainly, and does not say what a person does when spent', () => {
     for (const words of Object.values(GREAT_PERSON_CARD_WORDS.family)) expect(words).not.toMatch(/\d|—/);
-    expect(GREAT_PERSON_CARD_WORDS.act('Write a Treatise', 'Found an Academy')).toBe(
-      'When spent: Write a Treatise, or Found an Academy.',
-    );
-    const made = game();
-    expect(greatPersonActLine(made.state, 0, 'imhotep')).toContain('When spent: ');
-    // Through the describer, so the work's improvement is a keyword.
-    expect(uiSource('greatPersonCard.ts')).toContain("describeFamilyVerb(familyLayingWork(state, playerId, family), 'work')");
+    // The user, 2026-11-19: "we can cut the 'when spent' clause on the great people cards."
+    expect(uiSource('greatPersonCard.ts')).not.toContain('When spent:');
+    expect(uiSource('greatPersonCard.css')).not.toContain('.gp-act');
+    expect(uiSource('offerFaces.ts')).not.toContain('act:');
   });
 
   it('shows the new card and the backs in the flair gallery', () => {
@@ -237,7 +233,6 @@ describe('build stage 3 (the user: "lets proceed")', () => {
     expect(GP_CSS).not.toContain('--gp-text');
     const card = uiSource('greatPersonCard.ts');
     expect(braceBody(card, 'function measureRoster(')).toContain('LIVE_GREAT_PERSON_IDS');
-    expect(braceBody(card, 'function measureRoster(')).toContain('longestActLine(');
     // The name wraps, and steps down one size at most.
     expect(GREAT_PERSON_NAME_SIZES).toHaveLength(2);
     // The Reliquary's desk is the offer card's size.

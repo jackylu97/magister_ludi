@@ -238,17 +238,6 @@
   font-weight: 600;
 }
 
-/* What the person does when spent, on the offer. */
-.gp-act {
-  flex: none;
-  width: 100%;
-  margin-top: 0.4em;
-  font-size: 1.1em;
-  line-height: 1.25;
-  text-align: left;
-  color: var(--ink-soft, #56505a);
-}
-
 /* The stamp's seat. Empty on the offer; the Reliquary's figure, at rest. */
 .gp-seat {
   display: flex;

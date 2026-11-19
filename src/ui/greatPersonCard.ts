@@ -43,10 +43,7 @@
 import './greatPersonCard.css';
 
 import { DEVICE_BOX, DEVICE_DISC, orderFaceMarkUri } from '../art/orderFaceMarks';
-import { familyLayingWork } from '../sim/greatPeople';
 import { type Family, type GreatPersonId, LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../sim/greatPeopleData';
-import type { GameState } from '../sim/state';
-import { describeFamilyVerb } from '../sim/statecraft';
 import { element } from './dom';
 import { type GreatPersonFace, greatPersonCard } from './greatPersonFace';
 import { greatPersonPaintingUrl } from './greatPersonPaintings';
@@ -78,30 +75,12 @@ export const GREAT_PERSON_CARD_WORDS = {
   } satisfies Record<Family, string>,
   flavour: 'Flavour',
   noLegacy: 'They left no legacy.',
-  /** What a person on offer does when spent: the family's act, or its work. */
-  act: (act: string, work: string): string => `When spent: ${act}, or ${work}.`,
 } as const;
-
-/**
- * **What this person does when spent**, for the offer: the family's two verbs
- * through the describer (`describeFamilyVerb`), so the work's improvement is a
- * keyword. The work is the one this empire lays (`familyLayingWork`: The
- * Platonic Academy makes every work an academy).
- */
-export function greatPersonActLine(state: GameState, playerId: number, id: GreatPersonId): string {
-  const family = greatPersonDef(id).family;
-  return GREAT_PERSON_CARD_WORDS.act(
-    describeFamilyVerb(family, 'act'),
-    describeFamilyVerb(familyLayingWork(state, playerId, family), 'work'),
-  );
-}
 
 /** How a card is drawn. */
 export interface GreatPersonCardOptions {
   /** The card sits inside a control: a keyword is bold and not a link. */
   inControl?: boolean;
-  /** The line about what the person does when spent. The offer passes one. */
-  act?: string;
   /** A thumbnail: the tab, the window and the name, and nothing under them. */
   mini?: boolean;
 }
@@ -111,8 +90,10 @@ export interface GreatPersonCardOptions {
  * consistent card size"). Every great person card has the board's width and
  * one height, and its words are one size and wrap. The height is the tallest
  * the roster needs, measured once on the page (`greatPersonCardHeightEm`):
- * every live person's card is laid out with the longest "When spent" line
- * their family can print, and the tallest sets the height. No text shrinks to
+ * every live person's card is laid out, and the tallest sets the height.
+ * The card does not say what the person does when spent (the user,
+ * 2026-11-19: "we can cut the 'when spent' clause"); the unit's own panel
+ * says it when the person is on the board. No text shrinks to
  * fit; a long name wraps, and steps down one size only if it would take a
  * third line.
  */
@@ -220,11 +201,6 @@ export function dressGreatPersonCard(
     }
     inner.append(legacy);
 
-    if (options.act !== undefined) {
-      const act = element('span', 'gp-act');
-      setDescriptorText(act, options.act, { linked });
-      inner.append(act);
-    }
     inner.append(seat);
 
     const foot = element('div', 'gp-foot');
@@ -281,20 +257,8 @@ let measuredEm: number | null = null;
 let measuring = false;
 
 /**
- * **The longest "When spent" line a family can print**: its own act and work,
- * and the work as The Platonic Academy rewrites it (`familyLayingWork` may make
- * every work an academy), whichever is longer.
- */
-function longestActLine(family: Family): string {
-  const act = describeFamilyVerb(family, 'act');
-  const lines = ([family, 'scholar'] as const).map((work) => GREAT_PERSON_CARD_WORDS.act(act, describeFamilyVerb(work, 'work')));
-  return lines.reduce((long, line) => (line.length > long.length ? line : long));
-}
-
-/**
  * **Lays every live person's card out once**, off the screen, at the board's
- * width, with the longest act line their family can print, and answers the
- * tallest in em. The cards are built by `dressGreatPersonCard`, the one
+ * width, and answers the tallest in em. The cards are built by `dressGreatPersonCard`, the one
  * builder, so the measure is of the card the player sees.
  */
 function measureRoster(): number {
@@ -307,7 +271,7 @@ function measureRoster(): number {
     for (const id of LIVE_GREAT_PERSON_IDS) {
       const card = element('div');
       card.dataset.measure = 'true';
-      dressGreatPersonCard(card, greatPersonCard(id), { act: longestActLine(greatPersonDef(id).family) });
+      dressGreatPersonCard(card, greatPersonCard(id));
       probe.append(card);
       cards.push(card);
     }

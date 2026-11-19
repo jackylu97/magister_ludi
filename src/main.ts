@@ -4011,7 +4011,7 @@ async function boot(initial: Game | null): Promise<void> {
             // the person does when spent (`greatPersonOfferFace`). The fields
             // below are kept for the sheet's spoken name and for the tests that
             // read them; the card draws its own words.
-            dress: () => greatPersonOfferFace(game.state, seat, id),
+            dress: () => greatPersonOfferFace(id),
             notes: describeCard(id).map((clause) =>
               clause.deferred === true ? { text: clause.text, deferred: true } : { text: clause.text },
             ),

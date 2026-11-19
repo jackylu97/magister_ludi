@@ -1599,3 +1599,16 @@ round window (https://claude.ai/artifact/E4Pb6hTnFhVkRRmULvG6mR). I named four
 that read weakly at tablet size (Lord of the Sea, Lady of the Hunt, Desert
 Fathers, Lord of the Hoard). The user: "its fine, let's add these." All 23 go
 in as they are. The files are `public/art/splash/beliefs/<belief id>.jpg`.
+
+### After build stage 3: the great person card and the belief tablets (2026-11-19)
+
+The user saw the build (https://claude.ai/artifact/C5Ht1Xz1KHVetC9JLgooZp):
+"we can cut the 'when spent' clause on the great people cards. otherwise it
+looks great. Could we go with a different shape on the belief cards? the
+circle feels a bit awkward, maybe an arch again?"
+
+- **The great person card does not print "When spent".** The line is cut, not
+  moved to a hover. The unit's own panel says what the person can do when the
+  person is on the board.
+- **A belief tablet's picture window is an arch,** across the tablet's width,
+  following the tablet's own arched top. The 1:1 pictures stay as they are.

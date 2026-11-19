@@ -15,14 +15,12 @@
  */
 
 import type { GreatPersonId } from '../sim/greatPeopleData';
-import type { GameState } from '../sim/state';
 import type { OrderId } from '../sim/statecraftData';
 import { element } from './dom';
 import {
   GREAT_PERSON_CARD_WIDTH_EM,
   dressGreatPersonCard,
   fitGreatPersonCard,
-  greatPersonActLine,
   greatPersonCardHeightEm,
 } from './greatPersonCard';
 import { greatPersonCard } from './greatPersonFace';
@@ -80,16 +78,12 @@ export function greatPersonOfferShape(): OfferShape {
 }
 
 /**
- * **A great person on offer**, on the great person card, with what they do
- * when spent. No figure is ever printed on this hand: a legacy pays nothing
+ * **A great person on offer**, on the great person card. No figure is ever printed on this hand: a legacy pays nothing
  * until the person is spent (`showGreatPersonOffer`'s docblock), so the seat
  * stays empty.
  */
-export function greatPersonOfferFace(state: GameState, playerId: number, id: GreatPersonId): DressedFace {
+export function greatPersonOfferFace(id: GreatPersonId): DressedFace {
   const face = element('div');
-  const seat = dressGreatPersonCard(face, greatPersonCard(id), {
-    inControl: true,
-    act: greatPersonActLine(state, playerId, id),
-  });
+  const seat = dressGreatPersonCard(face, greatPersonCard(id), { inControl: true });
   return { face, seat, fit: () => fitGreatPersonCard(face) };
 }
