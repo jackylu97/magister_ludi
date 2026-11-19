@@ -44,7 +44,7 @@ describe('the march is re-asked on a played board (X7)', () => {
       // only thing that marks it as this arm's is the sentence it carries.
       const game = createGame(CONFIG);
       const stepper = createBotStepper(game, { warn: () => undefined });
-      const asked = new Map<string, number>();
+      const asked = new Map<string, { command: Command; refusal: string | null }[]>();
       let reissues = 0;
       let commands = 0;
       let seatTurns = 0;
@@ -63,8 +63,11 @@ describe('the march is re-asked on a played board (X7)', () => {
           // asked twice (2026-09-09, the X1d landing).
           const order = step.decision.command as { unitId?: number; settlerUnitId?: number };
           const unitId = order.unitId ?? order.settlerUnitId;
-          const key = `${step.turn}/${step.playerId}/${String(unitId)}`;
-          asked.set(key, (asked.get(key) ?? 0) + 1);
+          expect(unitId, step.decision.summary).toBeDefined();
+          const key = `${step.turn}/${step.playerId}/${unitId}`;
+          const orders = asked.get(key) ?? [];
+          orders.push({ command: step.decision.command, refusal: step.result.ok ? null : step.result.error });
+          asked.set(key, orders);
         }
       }
       // It fires: a sixty-turn game on a full map moves under its own columns.
@@ -72,11 +75,9 @@ describe('the march is re-asked on a played board (X7)', () => {
       // And never twice about one piece in one seat's turn — the sheet's bound,
       // asked of the commands rather than of the counter that enforces it.
       const budget = aiConfigFor(undefined, 0).driver.reaskPerTurn;
-      const worst = [...asked.entries()].sort((a, b) => b[1] - a[1])[0]!;
-      expect({ where: worst[0], asks: worst[1] <= budget }).toEqual({
-        where: worst[0],
-        asks: true,
-      });
+      for (const [where, orders] of asked) {
+        expect(orders.length, JSON.stringify({ where, orders })).toBeLessThanOrEqual(budget);
+      }
       // The command count does not run away with the empire: the arm can add at
       // most one order per marching piece per turn, and a seat marching that many
       // pieces would be a seat with nothing else to spend a turn on.

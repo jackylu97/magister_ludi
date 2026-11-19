@@ -450,16 +450,17 @@ export function startPlanRun(plan: SeatPlan): PlanRun {
 }
 
 /**
- * **The sitting that finishes a cut seat's turn on the real board**: the plan's
- * sitting as it stood at its last landed command, with the readings left to be
- * read again (`resumedSitting`, `bot.ts`), or a fresh sitting when nothing had
- * landed.
+ * Resume from the last accepted command. A re-ask spends its budget when the
+ * bot checks the march, so keep those marks even if the reducer refused its order.
  */
 export function liveSittingAfter(run: PlanRun): BotSitting {
   const playerId = run.plan.playerId;
-  if (run.resume === null) return botSitting(playerId);
+  const attempted = run.plan.steps[run.next - 1];
+  if (attempted === undefined) return botSitting(playerId);
+  const accepted = run.resume ?? sittingMarks(botSitting(playerId));
+  const marks = { ...accepted, reasked: attempted.marks.reasked };
   const first = run.plan.firstNewId;
-  return resumedSitting(playerId, run.resume, (id) => (id < first ? id : (run.ids.get(id) ?? null)));
+  return resumedSitting(playerId, marks, (id) => (id < first ? id : (run.ids.get(id) ?? null)));
 }
 
 /** What one step did on the real state. */
