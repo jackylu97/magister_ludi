@@ -1134,3 +1134,12 @@ user's words:
 - A finished wonder gets a full-screen moment: the lapis plate of frame A1,
   as a page in the news queue (decision 3). The stage 3 report lists what it
   needs in `main.ts`.
+
+**A wonder's picture windows (the user, 2026-11-18)**
+- The user will paint splash art for wonders at 16:9.
+- The full-screen wonder plate's picture window is exactly 16:9.
+- The picture window on the top piece of the Wonders stack is 2:1, not the
+  3:1 strip of stage 3. The user: "could we make the wonders card slightly
+  taller for the wonders stack? 3:1 is possibly too extreme, maybe 2:1
+  instead?" The piece grows taller to hold it. The window shows the centre
+  band of the same picture.
