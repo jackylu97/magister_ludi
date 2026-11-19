@@ -4508,6 +4508,8 @@ export class Renderer3D implements MapView {
       // shadow pass itself — `PaintedBoard.setBakeDetail`, through the hook
       // `rebuildBoard` bound — so a frame that has to rebake keeps the far LOD
       // on screen instead of flashing the near one.
+      // The ground paint test bakes its texture before the first frame that could draw it (off unless its switch is on).
+      this.paintedBoard?.groundPaintTest?.ready(this.renderer);
       this.paintedBoard?.updateDetail(pixels);
       this.paintedLook.setContactDetail(pixels);
       // The page's clock less the time the motion has rested (0 while the option is off).

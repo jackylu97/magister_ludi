@@ -17,9 +17,12 @@ import { VIEW3D } from './lookData';
 import { createSeaField, RIVER } from './seaField';
 import { createOrganicRivers, organicRiversFrom } from './organicRivers';
 import { createFreeCoast } from './freeCoast';
+import { createGroundPaintTest } from './groundPaintTest';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
+// The measuring test for the ground paint texture (`groundPaintTest.js`); off unless `test` is on.
+const GROUND_PAINT = VIEW3D.painted.groundTexture;
 function hash(a, b, n = 0) {
   let x = Math.imul(a + 53, 374761393) ^ Math.imul(b + 71, 668265263) ^ Math.imul(n + 1, 1274126177);
   x = Math.imul(x ^ (x >>> 13), 1274126177);
@@ -88,6 +91,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   });
   const fog = createPaintedFog(map.width, map.height);
   const relief = new PaintedRelief();
+  // The ground paint test: the far land is plain (no patch cut into it) and wears this material, which reads the
+  // paint from a texture. `groundPaintLands` are the near land's meshes of the middle copy, which the bake draws.
+  const groundPaint = GROUND_PAINT.test ? createGroundPaintTest(materials.mergedLand, period, map.height) : null;
+  const groundPaintLands = [];
+  let groundPaintShown = GROUND_PAINT.show, drawingPlainLand = false;
+  // Passed as a land piece's far geometry: under the test the texture carries that piece (a beach, a river bank), so
+  // the plain land gets no copy of it. Without the test it is `undefined`, and the far land gets its usual copy.
+  const inTexture = groundPaint ? false : undefined;
+  const landSource = (source, detail) => groundPaint && detail === 'far' && source === materials.mergedLand ? groundPaint.material : source;
   const CellArray = map.tiles.length <= 65536 ? Uint16Array : Float32Array;
   const ownedGeometry = new Set(), ownedMaterials = new Map(), depthMaterials = new Map();
   const pickMeshes = [], nearProps = [], farProps = [], visibilityBatches = [];
@@ -195,13 +207,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
 
   function showBatch(batch) {
-    const visible = batch.charted && (batch.detail === 'always' || (batch.detail === 'far') === drawingDistant);
+    const visible = batch.charted && (batch.detail === 'always' || (batch.detail === 'far') === (batch.plainLand ? drawingPlainLand : drawingDistant));
     for (const mesh of batch.meshes) mesh.visible = visible;
   }
   function applyDetail() {
     const distant = showingDistant && !bakingDetail;
-    if (drawingDistant === distant) return false;
-    drawingDistant = distant;
+    // The ground paint test can draw the plain land at every zoom; the shadow bake still takes the near land.
+    const plainLand = (showingDistant || (!!groundPaint && groundPaintShown)) && !bakingDetail;
+    if (drawingDistant === distant && drawingPlainLand === plainLand) return false;
+    drawingDistant = distant; drawingPlainLand = plainLand;
     for (const batch of visibilityBatches) showBatch(batch);
     return true;
   }
@@ -271,8 +285,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (!ownedMaterials.has(source)) {
       const material = paintedFogMaterial(source, fog, source === materials.mergedWater);
       material.defaultAttributeValues = {...material.defaultAttributeValues, ...SURFACE_DEFAULTS};
-      if (source === materials.mergedLand) deriveSurfaceUv(material);
-      ownedMaterials.set(source, material); sources.set(material, source);
+      if (source === materials.mergedLand || source === groundPaint?.material) deriveSurfaceUv(material);
+      // A worker's batch names the land's own material; the page puts the test's material on it again.
+      ownedMaterials.set(source, material); sources.set(material, source === groundPaint?.material ? materials.mergedLand : source);
     }
     return ownedMaterials.get(source);
   }
@@ -323,7 +338,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       if (surface) { placed.userData.paintedSurface = true; pickMeshes.push(placed); }
     }
     // Include both banks of shared river sectors, even across chunk/wrap edges.
-    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
+    const plainLand = !!groundPaint && detail !== 'always' && mesh.userData.paintedFamily === 'merged land';
+    if (plainLand && detail === 'near') groundPaintLands.push(mesh);
+    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false, plainLand,
       casts: !!mesh.userData.paintedCasts, order: [orderStep, orderRank, orderCount++] };
     visibilityBatches.push(batch); showBatch(batch);
   }
@@ -361,7 +378,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
     releaseAfterUpload(geometry);
-    const mesh = new T.Mesh(geometry, materialFor(source));
+    const mesh = new T.Mesh(geometry, materialFor(landSource(source, detail)));
     mesh.userData.paintedFamily = familyName(source, null);
     decorateMesh(mesh, source, source === materials.earth || source === materials.mergedLand || source === features.stone || source === features.shrub);
     if (detail === 'far') mesh.castShadow = mesh.userData.paintedCasts = false;
@@ -405,7 +422,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       const {geometry, source, matrix, color, count, detail, surface, mountainPick, base, castShadow} = batch;
       ownedGeometry.add(geometry);
       if (base) instanceBases.set(geometry, base);
-      const mesh = matrix ? new T.InstancedMesh(geometry, materialFor(source), count) : new T.Mesh(geometry, materialFor(source));
+      const mesh = matrix ? new T.InstancedMesh(geometry, materialFor(source), count) : new T.Mesh(geometry, materialFor(landSource(source, detail)));
       mesh.userData.paintedFamily = familyName(source, base);
       if (matrix) { mesh.instanceMatrix = matrix; mesh.instanceColor = color; mesh.computeBoundingSphere(); }
       else releaseAfterUpload(geometry);
@@ -436,7 +453,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       const surfaces = new Map(), farSurfaces = new Map(), props = new Map();
       let cell = 0, activeTile;
       function push(source, geometry, farGeometry, grade = NEVER, bucket = surfaces) {
-        if (bucket === surfaces && terrainMaterials.has(source) && !waterMaterials.has(source))
+        if (bucket === surfaces && terrainMaterials.has(source) && !waterMaterials.has(source) && farGeometry !== false)
           push(source, farGeometry || geometry.clone(), undefined, grade, farSurfaces);
         if (!geometry.getAttribute('position').count) { geometry.dispose(); return; }
         if (waterMaterials.has(source) && !geometry.userData.pigmentBaked) waterPainter.paint(geometry, activeTile);
@@ -493,17 +510,26 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         const beach = !isWater(t) && t.coast ? freeCoast.sand(t, top) : null;
         painter.paint(top, t);
         let farTop;
-        if (!isWater(t)) { const far = terrainMesh(t, { distant: true }); farTop = far[0]; far[1].dispose(); painter.paint(farTop, t); }
+        if (!isWater(t)) {
+          // The ground paint test: the far land takes the near grid (or the far one) and no patch cuts.
+          const far = terrainMesh(t, { distant: !groundPaint || GROUND_PAINT.grid === 'far' }); farTop = far[0]; far[1].dispose();
+          painter.paint(farTop, t, true, !!groundPaint);
+        }
         push(ground[['floodplain', 'oasis'].includes(t.feature) ? t.feature : t.terrain], top, farTop);
         push(materials.earth, skirt);
         // The sand of a free coast is sloped land, so it goes into the land's batch.
-        if (beach) push(ground.desert, beach);
+        if (beach) push(ground.desert, beach, inTexture);
         if (isWater(t) && t.coast) {
           const apron = coastApron(t);
           if (apron.getAttribute('position').count) {
             const sand = freeCoast.sand(t, apron);
-            for (const [land, part] of apronParts(t, apron)) { painter.paint(part, land, false); push(groundOf(land), part); }
-            if (sand) push(ground.desert, sand);
+            for (const [land, part] of apronParts(t, apron)) {
+              // The ground paint test: the plain land's copy of this ground takes no patch cuts either.
+              const plain = groundPaint ? part.clone() : undefined;
+              painter.paint(part, land, false); if (plain) painter.paint(plain, land, false, true);
+              push(groundOf(land), part, plain);
+            }
+            if (sand) push(ground.desert, sand, inTexture);
           }
           apron.dispose();
           // Rocks off the coast, each with a ring of foam on the water.
@@ -519,7 +545,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
           // Modelled banks are sloped land, so they go into the land's batch.
           const banks = riverRibbon.userData.banks; delete riverRibbon.userData.banks;
           push(water.river, riverRibbon);
-          if (banks) push(ground.desert, banks);
+          if (banks) push(ground.desert, banks, inTexture);
           // Small things along the river: reeds at the water's edge and stones on the bank.
           const reeds = organicRivers.reeds(t);
           if (reeds) push(features.reeds, reeds, undefined, CLUTTER);
@@ -621,7 +647,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
         if (farSurfaces.has(material)) {
           // The overview uses the exact same distant faces in larger spatial
           // batches. Close views and static shadow baking retain 6×6 chunks.
-          const key = paintedRegionKey(tiles[0].col, tiles[0].row);
+          // The ground paint test keeps the far land in the near land's chunks, so the two are culled alike.
+          const key = groundPaint ? `${Math.floor(tiles[0].col / 6)},${Math.floor(tiles[0].row / 6)}` : paintedRegionKey(tiles[0].col, tiles[0].row);
           if (!mapSurfaces.has(key)) { mapSurfaces.set(key, new Map()); mapSurfaceRanks.set(key, chunkIndex); }
           const batches = mapSurfaces.get(key);
           if (!batches.has(material)) batches.set(material, []);
@@ -723,6 +750,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       });
     },
     get shadowRevision() { return fog.shadowRevision; },
+    // The ground paint test, or null: bake the texture (once, or again at another density), and draw the plain land
+    // at every zoom or only where the far land was.
+    groundPaintTest: groundPaint && {
+      get info() { return groundPaint.info; },
+      get shown() { return groundPaintShown; },
+      ready(renderer) { if (!disposed && !groundPaint.info) groundPaint.bake(renderer, groundPaintLands); },
+      bake(renderer, density) { return disposed ? null : groundPaint.bake(renderer, groundPaintLands, density); },
+      show(on) { groundPaintShown = !!on; return applyDetail(); },
+    },
     tiles: { own: new Map(), shared: [] }, treedCells, resourceCells: [],
     bounds: { minX: 0, maxX: Math.sqrt(3) * (map.width - 1 + (map.height > 1 ? .5 : 0)), minZ: 0, maxZ: 1.5 * (map.height - 1) },
     wrapWidth: period, tileCount: map.tiles.length, instanceCount,
@@ -820,6 +856,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       for (const geometry of ownedGeometry) geometry.dispose();
       for (const material of ownedMaterials.values()) material.dispose();
       for (const material of depthMaterials.values()) material.dispose();
+      groundPaint?.dispose();
       fog.dispose(); group.clear();
     },
   };

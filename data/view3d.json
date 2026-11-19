@@ -1152,6 +1152,13 @@
       "workers": 4,
       "share": true
     },
+    "groundTexture": {
+      "test": false,
+      "show": false,
+      "texelsPerUnit": 32,
+      "grid": "near",
+      "anisotropy": 4
+    },
     "shadows": {
       "staticMapSize": 4096,
       "staticMapTiers": {
