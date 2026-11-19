@@ -735,6 +735,8 @@ MODELS=[
  ('ns-great-hut',court_hut),('ns-great-house',portico_house),('ns-house-3d',house_3d),('ns-house-3e',house_3e),('ns-house-3f',house_3f),('ns-hall-3',tower_hall),
  ('ns-hall-4',lantern_hall),('ns-house-4a',courtyard_house),
 ]
+if '--pillaged-works-only' in sys.argv:
+ MODELS=runpy.run_path(str(Path(__file__).with_name('build_pillaged_works.py')),init_globals=globals())['PILLAGED_MODELS']
 # `--only=ns-rack,ns-granary` writes those models and leaves every other file as it is.
 ONLY=next((a[7:].split(',') for a in sys.argv if a.startswith('--only=')),None)
 for name,author in MODELS:

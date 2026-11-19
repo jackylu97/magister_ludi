@@ -388,3 +388,7 @@ The player wants more arcane architecture on the existing painted board. Use the
 - On working land, make the equipment carry the detail. A hoist should still look like a hoist, a drying rack like a rack. Reserve the strongest silhouettes for civic buildings and great works.
 
 The pasture has an open shelter in Ages I and II and a larger shelter in Ages III and IV. The owner’s age selects it. The Stable is a separate military building inside a city. Completing a Stable currently has no city model.
+
+## Pillaged improvements, 2026-11-19
+
+The standing models are approved. Review damaged models separately before adding them to the play build. Multiple improvements can share a damage treatment. Keep an identifiable part of each building or machine in place so the player can tell what a worker will repair. The first comparison covers roof damage, broken lifting and cutting gear, and torn sails on land and water.
