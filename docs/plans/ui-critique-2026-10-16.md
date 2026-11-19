@@ -1070,3 +1070,7 @@ support both?"
 - **The Council screen supports drag and drop and click then click.**
 - Meter colours stay ink, as built, unless the user chooses the board's green
   and brown.
+
+- **Meter colours are ink** (the user, 2026-11-18: "yeah, ink is fine").
+  Happiness and authority print in ink on a card's plate and in parchment in
+  the screen's head, not in the board's green and brown.
