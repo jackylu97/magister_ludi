@@ -3928,8 +3928,8 @@ function projectIdleCommand(
     // arms of one question must not disagree about what a half-paid row is
     // worth: a switch parks the basket, and a town most of the way through a
     // conversion is a town with something nearly in hand.
-    const challenger = scoreOf(table.candidates, wanted);
-    const running = scoreOf(table.candidates, front);
+    const challenger = scoreOf(table.ranked, wanted);
+    const running = scoreOf(table.ranked, front);
     if (challenger !== null && running !== null) {
       const share = strandShare(state, player, city);
       if (share > 0 && challenger <= running + Math.abs(running) * share) continue;
@@ -5762,7 +5762,7 @@ function cityCommand(
     city,
     // The floor is what the town holds (`townShelf`, Expansionist batch E13),
     // which is what the reducer reads.
-    table.ranked.slice(0, Math.max(1, cityQueueFloor(townShelf(state, city)))),
+    table.ranked.slice(0, Math.max(1, cityQueueFloor(townShelf(state, city)))).map((row) => row.item),
   );
   if (queue.length === 0) return null;
   const behind = queue.slice(1);
@@ -5916,8 +5916,8 @@ function puppetRedecisionTable(
   const wanted = table.best;
   if (wanted === null || wanted.kind !== 'building') return null;
   if (sameItem(wanted, front)) return null;
-  const challenger = scoreOf(table.candidates, wanted);
-  const incumbent = scoreOf(table.candidates, front);
+  const challenger = scoreOf(table.ranked, wanted);
+  const incumbent = scoreOf(table.ranked, front);
   if (challenger === null || incumbent === null) return null;
   // The margin is taken off the incumbent's **magnitude**, so it defends a
   // conversion worth −3 exactly as hard as one worth +3. See
@@ -5959,13 +5959,11 @@ function strandShare(state: GameState, player: Player, city: City): number {
   return progress * weight;
 }
 
-/** One row of a scored table, found by the name the table printed it under. */
-function scoreOf(candidates: readonly BotCandidate[], item: QueueItem): number | null {
-  const name = itemName(item);
-  for (const row of candidates) {
-    if (row.label === name) return row.score;
-  }
-  return null;
+type RankedBuild = Pick<BuildCandidate, 'item' | 'score'>;
+
+/** A building and a project can have the same display name. Compare their queue identities. */
+function scoreOf(ranked: readonly RankedBuild[], item: QueueItem): number | null {
+  return ranked.find((row) => sameItem(row.item, item))?.score ?? null;
 }
 
 /**
@@ -5981,14 +5979,14 @@ function productionTable(
   player: Player,
   city: City,
   sitting?: BotSitting,
-): { best: QueueItem | null; ranked: QueueItem[]; candidates: BotCandidate[] } {
+): { best: QueueItem | null; ranked: RankedBuild[]; candidates: BotCandidate[] } {
   // **The opening book, ahead of the scoring** — the one hard-coded build in
   // this bot. See `openingScout`.
   const opening = openingScout(state, player, city);
   if (opening !== null) {
     return {
       best: opening,
-      ranked: [opening],
+      ranked: [{ item: opening, score: 0 }],
       candidates: [
         {
           label: itemName(opening),
@@ -6063,9 +6061,7 @@ function productionTable(
   // describing a different table from the queue it sent. Ties keep the roster's
   // own order, which is `candidates`' order and therefore a fact a replay
   // reproduces.
-  const ranked = [...pool]
-    .sort((a, b) => b.score - a.score)
-    .map((candidate) => candidate.item);
+  const ranked = [...pool].sort((a, b) => b.score - a.score);
   return { best: best.item, ranked, candidates: rows };
 }
 
@@ -10215,7 +10211,8 @@ function soldierCommand(
   const plan = campaignPlan(state, player, unit);
   // Every blow both arms weigh is filed here, so that a piece which ends up
   // digging in can still print what it looked at — a held blow is a decision.
-  const weighed: BotCandidate[] = [];
+  const strikes: StrikeReview = { candidates: [], deferredToRanged: false };
+  const weighed = strikes.candidates;
   // **The garrison of a town in unrest stays in the gate** (batch WC1,
   // `docs/flags.md` (rrrrrr) part 1: *"bots keep a garrison in a captured town
   // until it is pacified"*). Every march below already leaves a piece that is
@@ -10247,7 +10244,7 @@ function soldierCommand(
         unit,
         holdsWild,
         ai.military.wildAggression,
-        weighed,
+        strikes,
         campAssault(state, player, unit),
       );
   if (blow !== null) {
@@ -10277,7 +10274,7 @@ function soldierCommand(
     unit,
     holdsRival,
     ai.military.aggression,
-    weighed,
+    strikes,
     // **The siege appetite** (§13.3), and only while the force is actually at
     // the walls: a blow on the town this army is pushing on, or on a defender
     // standing beside it, clears `war.siegeExchange` instead. Everywhere else on
@@ -10350,14 +10347,13 @@ function soldierCommand(
   // **The held blow prints here.** A piece that stood down having declined a
   // deferred exchange has to say so, or the ranged deferral is exactly the
   // silent refusal a printed charge exists not to be.
-  const held = weighed.some((row) => row.terms.some((term) => term.label.includes('has not shot yet')));
   const stand = standDown(
     state,
     unit,
     holding !== null
       ? `Holds ${holding.name}, a town of ours in unrest, until it is pacified: a soldier inside ` +
         'settles it faster and keeps rebels from rising.'
-      : held
+      : strikes.deferredToRanged
         ? 'A bowman of ours can take the same target and has not shot yet, so this piece holds; ' +
           'no camp near a town worth marching on, and every town is held.'
         : 'No favourable blow next door, no camp near a town worth marching on, and every town is held.',
@@ -10385,6 +10381,12 @@ interface UnitTarget {
   candidates: BotCandidate[];
 }
 
+/** Keep both target scans so a unit that holds can explain the reason. */
+interface StrikeReview {
+  candidates: BotCandidate[];
+  deferredToRanged: boolean;
+}
+
 /**
  * An adjacent hex holding a target this piece would come off better against, or
  * `null`.
@@ -10395,10 +10397,8 @@ interface UnitTarget {
  * is restated here. "Better off" is the naive reading: the defender dies, or the
  * midpoint roll hurts them more than it hurts us.
  *
- * **Who counts as a target is the caller's**, and that is the whole of how the
- * peaceful bot and the warmonger share one function: `holdsWild` is the standing
- * arm and can never name a nation, `holdsRival` is the aggressive one and is
- * only ever passed by a seat whose `military.aggression` is above zero.
+ * The first scan checks barbarian targets. The second checks rivals at war
+ * with this seat. Both keep their candidates for the spectator.
  *
  * `aggression` loosens the exchange the piece will accept, and nothing else. At
  * 0 the rule is the one it always was — deal more than you take. At 1 any blow
@@ -10448,13 +10448,7 @@ function favourableBlow(
   unit: Unit,
   holds: (state: GameState, player: Player, tile: Tile) => boolean,
   aggression: number,
-  /**
-   * Where the rows it weighed are filed — the caller's table, so an arm that
-   * ends in a stand-down can still print the blows it looked at and declined.
-   * Without it the ranged deferral would be an invisible refusal, which is the
-   * one thing a printed charge exists not to be.
-   */
-  log: BotCandidate[] = [],
+  review: StrikeReview,
   /** The hexes a push is about, and the appetite they are weighed at. */
   siege?: { appetite: number; at: { col: number; row: number }; within: number },
 ): UnitTarget | null {
@@ -10462,7 +10456,7 @@ function favourableBlow(
   if (!here) return null;
   const ai = aiFor(player);
   const shoots = isRanged(unitDef(unit.type));
-  const tried = log;
+  const tried = review.candidates;
   const ordinary = Math.max(0, Math.min(1, aggression));
   const siegeHex = siege === undefined ? null : getTileAt(state.map, siege.at.col, siege.at.row);
   for (const near of mapRange(state.map, tileHex(here), unitDef(unit.type).range ?? 1)) {
@@ -10503,6 +10497,7 @@ function favourableBlow(
       { label: `${preview.damageToAttacker} damage taken`, value: preview.damageToAttacker, op: 'sub' },
     ];
     if (defer !== null) {
+      review.deferredToRanged = true;
       terms.push({
         label: `${unitLabel(defer)} can hit it and has not shot yet — the melee piece holds`,
         value: ai.military.rangedDeferral,

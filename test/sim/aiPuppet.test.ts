@@ -26,6 +26,7 @@ import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import type { QueueItem } from '../../src/sim/state';
 import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
+import { projectDef } from '../../src/sim/projectData';
 import { TECH_IDS } from '../../src/sim/techData';
 import { at, bareState } from './improvementHelpers';
 import aiJson from '../../data/ai.json';
@@ -176,6 +177,21 @@ describe('a puppet re-decides', () => {
       queue: [{ kind: 'project', id: 'tithes' }],
     });
     expect(puppetRedecision(state, state.players[0]!, puppet)).toBeNull();
+  });
+
+  it('compares a building and a project even when their display names match', () => {
+    const { state, puppet } = bench({
+      buildings: CHEAP_ROWS,
+      queue: [{ kind: 'project', id: 'tithes' }],
+    });
+    const project = projectDef('tithes');
+    const original = project.name;
+    try {
+      project.name = buildingDef('library').name;
+      expect(puppetRedecision(state, state.players[0]!, puppet)).toEqual({ kind: 'building', id: 'library' });
+    } finally {
+      project.name = original;
+    }
   });
 
   it('never abandons a building already in progress', () => {
