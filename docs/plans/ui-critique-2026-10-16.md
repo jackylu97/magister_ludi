@@ -1562,3 +1562,26 @@ alternate), made by `scripts/splashArt.py endings`. The first loss take is in
 ending page (frame A9 of the Quiet Table boards). Not built yet. The preview
 (https://claude.ai/artifact page "Ending Paintings Preview") also shows a
 second layout, the painting as the whole page, which the user has not ruled on.
+
+### The ending page is the painting, full screen (2026-11-19)
+
+The user saw both layouts with the real paintings
+(https://claude.ai/artifact/6DEcEGE33Y1H2EE9VeMRs3; source
+`scratchpad/endings/build.py`, function `big`) and chose the second: "ok the
+full screen is better. lets build that." This replaces frame A9's layout
+(painting in a window on a lapis page or dark cloth).
+
+- **The painting fills the window.** `endings/win.jpg` when the local player
+  closed the Great Work, `endings/loss.jpg` when another seat did. It covers
+  the window (centre crop) at every window shape.
+- **The words are on the foot of the painting, at the left,** over a dark
+  fade: the sun (a win) or the moon (a loss), the small line "The Great Work
+  is closed", the winner's name with "wins" in gilt italic, and one sentence.
+  The sentence is words only (hard rule 7): who closed the work and where,
+  and "The game is yours." or "The game is theirs."
+- **Three doors at the foot, at the right:** "Back to the title", "Look at the
+  board", and the next step in cinnabar, which opens the standings.
+- **The bead count and the standings table come after it,** on the screens
+  the game already has. They are not on this page.
+- **No painting, no change:** if the picture fails to load, the page shows the
+  lapis page (a win) or the dark cloth (a loss) behind the same words.
