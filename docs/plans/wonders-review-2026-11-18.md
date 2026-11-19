@@ -1107,3 +1107,21 @@ with age 2 right?"
 | 17 | The Alhambra | "yes" | As recommended. |
 | 18 | The Oracle Pits of Yin | "Yes, one time boon of 5 free rerolls" | As recommended. |
 | 19 | The Water Clock of Su Song | "yes, remove the wonder as retired" | As recommended. |
+
+## The user's third round (2026-11-19, in chat)
+
+"petra can move to age 2. 5 times the city's citizens. +10 each turn, +5 per
+turn in captured cities. Is there a famous building associated with the oracle
+pits? maybe just a famous chinese building form the period that had some
+religious significance?"
+
+- **Petra** moves to age 2.
+- **The Pyramid of the Sun:** the levy pays faith equal to five times the
+  city's citizens.
+- **The Library of Ashurbanipal:** +10 renown toward scholars each turn. Each
+  captured city you hold gives +5 renown toward scholars each turn, four times
+  that if the city has a wonder.
+- **The Oracle Pits of Yin:** the user wants a famous building in its place,
+  if one fits: a Chinese building of the period with religious meaning. The
+  effect stays (+1 culture on buildings that supply faith; a one-time stock of
+  five free rerolls). Open until the user picks a name.

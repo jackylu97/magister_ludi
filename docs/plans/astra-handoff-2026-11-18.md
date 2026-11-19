@@ -95,7 +95,14 @@ before BP13; audit items T1, T5 and T6; a persona for each leader.
   farthest zoom, the cut mesh at the closest zoom, with a switch back. The
   Claude session gates and lands it. Section 7 will name the commit.
 
-**Queued for Astra:**
+**Queued for Astra, first:**
+- **Use the texture at every zoom and stop drawing the cut land** (the user,
+  2026-11-19). The ruling and what the build must settle are in
+  `docs/flags.md`, "Ground paint texture: use the texture at every zoom". The
+  main question is sharpness at the closest zoom: show the user pictures
+  before you remove the switch back.
+
+**Queued for Astra, after that:**
 - Ground paint texture, stages 3 and 4. Plan and measurements:
   `docs/plans/ground-paint-texture-2026-11-18.md`. Rulings: `docs/flags.md`,
   "Rendering focus: the ground paint texture" and "Ground paint texture: build

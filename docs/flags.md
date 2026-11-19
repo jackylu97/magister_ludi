@@ -3023,3 +3023,32 @@ The user, while reviewing the wonder proposals:
   text.
 - Player-facing words stay plain (hard rule 7). The frame changes subjects and
   names, not the register.
+
+## Ground paint texture: use the texture at every zoom (2026-11-19)
+
+The user, after stages 1 and 2 landed: "lets not do the old cut models at
+all, lets just use the texture at all zoom levels."
+
+- The plain textured land is drawn at every zoom. The cut land (brush patches
+  cut into the mesh) is no longer drawn.
+- This is rendering work, so it belongs to Astra under the split of
+  2026-11-18 (`docs/plans/astra-handoff-2026-11-18.md`).
+- What the build must settle, from the stage 1 and 2 report
+  (`docs/plans/ground-paint-texture-2026-11-18.md`, Part 3):
+  - **Sharpness up close.** At 32 texels a unit the patch edges match the cut
+    land at 100 pixels a hex, are a little soft at 130 and plainly soft at
+    160. The closest zoom is about 249 pixels a hex. A sharp closest zoom
+    needs a denser texture near the camera, or the user's yes to a softer
+    look. Doubling the density over the whole map costs four times the
+    memory (about 228 MiB on the standard map) and is over the GPU's texture
+    limit on the Giant map, so a whole-map answer does not work there.
+  - **What still reads the cut land.** The pointer's pick, unit heights and
+    the sun's shadow bake read the cut land today. The report says the plain
+    land has the same surface, so they can move to it.
+  - **The wait for the bake.** Today the cut land is drawn until the bake ends
+    (about 1.5 s on the standard map, 9 s on the Giant map). Without it, the
+    board needs something to show in that time.
+  - **The switch back** (`painted.groundTexture.enabled: false`) should stay
+    until the user has played with the new look.
+- Expected gain at the closest zoom, from the measured table: about 8 to 9% of
+  a panning frame, plus the memory and load time of the cut land.
