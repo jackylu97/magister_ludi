@@ -15,3 +15,6 @@ gridsearch-results.json
 # champions are measurements, never sources — the winner is pasted into
 # data/ai.json by hand and lands as a balance change.
 .claude/scratch/
+
+# Full-size splash art sources stay on the machine (see public/art/splash/README.md).
+public/art/splash/masters/
