@@ -3,7 +3,7 @@ import type {PaintedBoardBatch, PaintedVegetationAssets, PaintedBoardMaterials} 
 type Binding = BufferGeometry | MeshStandardMaterial;
 // Opaque wire formats: only the pack/unpack pair interprets these packets.
 export interface PaintedKitPacket {readonly __kitPacket: unique symbol}
-export interface PaintedBatchPacket {readonly __batchPacket: unique symbol}
+export interface PaintedBatchPacket {readonly __batchPacket: unique symbol; order: [number, number, number]}
 export function packPaintedKit(assets: PaintedVegetationAssets, materials: PaintedBoardMaterials): {packet: PaintedKitPacket; bindings: Binding[]};
 export function unpackPaintedKit(packet: PaintedKitPacket): {assets: PaintedVegetationAssets; materials: PaintedBoardMaterials; bindings: Binding[]};
 export function packPaintedBatches(batches: PaintedBoardBatch[], bindings: Binding[]): PaintedBatchPacket[];

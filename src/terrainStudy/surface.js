@@ -18,6 +18,7 @@ const shapes = new Map();
 // mesh's own cache reads, and the board must then be built again.
 const STUDY_RIVER = {crest:.125, toe:RIVER_HALF_WIDTH, corner:.065, organic:false, clearance:0};
 let river = STUDY_RIVER, riverKey = 0;
+/** @param {{crest: number, toe: number, corner: number, organic?: boolean, clearance?: number} | null} style */
 export function setRiverStyle(style = null) {
  const next = style ? {crest:style.crest, toe:style.toe, corner:style.corner, organic:!!style.organic, clearance:style.clearance||0} : STUDY_RIVER;
  if (next.crest === river.crest && next.toe === river.toe && next.corner === river.corner

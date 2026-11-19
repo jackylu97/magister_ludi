@@ -15,7 +15,7 @@
     "test:render": "vitest run test/render",
     "test:ui": "vitest run test/ui",
     "test:stress": "TEST_TIER=all vitest run test/stress",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.painted-worker.json",
     "codex": "node scripts/codex.mjs",
     "evolve": "vite-node scripts/evolve.ts"
   },

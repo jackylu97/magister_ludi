@@ -106,6 +106,20 @@ describe('painted worker transfer', () => {
     expect(assets.broadleaf.geometry.attributes.position).toBe(livePosition);
   });
 
+  it('builds the same board on the page when workers are unavailable', async () => {
+    const {map, assets, materials} = fixture();
+    vi.stubGlobal('Worker', undefined);
+    try {
+      const {board, metrics} = await buildPaintedBoardAsync(map, assets, materials, true);
+      const reference = buildPaintedBoard(map, assets, materials, true);
+      owned.push(board, reference);
+      expect(metrics.mode).toBe('synchronous');
+      expect(fingerprint(board)).toEqual(fingerprint(reference));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('aborts pending CPU work and ignores late output', async () => {
     const {map,assets,materials} = fixture(), worker = fakeWorker(), controller = new AbortController();
     const pending = buildPaintedBoardAsync(map,assets,materials,true,{signal:controller.signal,workerFactory:() => worker});
