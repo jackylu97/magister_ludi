@@ -34,6 +34,12 @@
  * warning plus a *stop asking for that command this turn* — retrying an
  * identical refused command is the one way this loop could run forever.
  *
+ * Since stage C1 there is a second kind of refusal, and it is not a bug: a
+ * command a seat planned on its copy of the frozen board that the real board
+ * refuses because an earlier seat moved first. That is a **conflict**. It is
+ * not warned about; it stops the seat's plan, and the seat finishes its turn
+ * with a live sitting (`frozenBoard.ts`).
+ *
  * The single documented exception is `chooseGreatPerson`: the roster is shared
  * by every seat, and a hand naming somebody another empire has already called is
  * refused **and redrawn** by the reducer (the one refusal in the game that
@@ -43,22 +49,48 @@
  * Determinism
  * -----------
  * Nothing here rolls a die, reads a clock or asks a renderer anything. The seats
- * are walked in `realPlayers` order, each seat's commands come out of a pure
- * function of the state, and every one of them is appended to the log by
- * `dispatch` — so a save of a game against bots replays to the same board, and
- * a bot's whole game is in the file exactly as a human's is.
+ * are walked in `realPlayers` order, each seat's plan is a function of the
+ * frozen board and the seat, the plans are put to the real game in that order,
+ * and every accepted command is appended to the log by `dispatch` — so a save
+ * of a game against bots replays to the same board, and a bot's whole game is
+ * in the file exactly as a human's is. `frozenBoard.ts` says why the order in
+ * which the plans are made cannot change the log.
  */
 
 import { aiConfigFor } from './aiConfig';
-import { botSitting, nextBotCommand, valueContext } from './bot';
+import { type BotSitting, botSitting, nextBotCommand, valueContext } from './bot';
 import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
 import { answerPeaceOffer, answerProposal } from './diplomacy';
+import {
+  type Asked,
+  type CutReason,
+  type FrozenBoard,
+  type SeatGuards,
+  type SeatPlan,
+  type SittingAsk,
+  applyNextStep,
+  askTheBot,
+  freezeBoard,
+  freshGuards,
+  liveSittingAfter,
+  mergeSeatMemory,
+  planSeat,
+  runSitting,
+  startPlanRun,
+} from './frozenBoard';
 import type { Command, CommandResult } from '../sim/commands';
 import { proposalById } from '../sim/deals';
 import { type Game, dispatch } from '../sim/game';
-import { type GameState, hasEndedTurn, playerById, realPlayers, unitById } from '../sim/state';
+import { type GameState, hasEndedTurn, playerById, realPlayers } from '../sim/state';
 import { hasPeaceOffer } from '../sim/wars';
+
+/**
+ * The guards of one seat's loop live in `frozenBoard.ts` since stage C1, where
+ * the plan and the live sitting share them. Re-exported by name for the files
+ * that import them from here.
+ */
+export { type SentOrders, noteSentOrder, repeatsAnOrder, sentToAPiece } from './frozenBoard';
 
 /**
  * What a bot's accepted command is reported to, and it is one function on
@@ -72,8 +104,9 @@ export type BotReporter = (command: Command, result: CommandResult) => void;
 
 interface DriveOptions {
   /**
-   * Called after **every** command the driver puts to the reducer, accepted or
-   * refused, in order. The bot worker records these so the page can put the
+   * Called after **every** command the driver puts to the real game, accepted
+   * or refused, in order. The commands a plan sends to its own copy are not
+   * reported here. The bot worker records these so the page can put the
    * same commands to its own copy of the game (`replayBotAttempts`). Refusals
    * are included because one refusal changes the state: a great-person pick
    * whose name was taken redraws the hand (`applyChooseGreatPerson`), and the
@@ -85,10 +118,12 @@ interface DriveOptions {
   /** Where a refusal is said out loud. Defaults to `console.warn`. */
   warn?: (message: string, detail?: unknown) => void;
   /**
-   * The policy asked for each command. Defaults to `nextBotCommand`. It is an
-   * option so a test can drive the loop with a fixed policy: the test suite
-   * shares one module graph per worker (`isolate: false` in vite.config.ts),
-   * so replacing the bot module with `vi.mock` does not work there.
+   * The policy asked for each command. Defaults to the bot (`nextBotDecision`,
+   * whose command is `nextBotCommand`'s). It is an option so a test can drive
+   * the loop with a fixed policy: the test suite shares one module graph per
+   * worker (`isolate: false` in vite.config.ts), so replacing the bot module
+   * with `vi.mock` does not work there. A plan asks it on the seat's copy of
+   * the frozen board, so a policy must read the state it is handed.
    */
   decide?: typeof nextBotCommand;
 }
@@ -119,7 +154,12 @@ interface SeatDriveReport {
   playerId: number;
   /** Commands accepted, the seat's own `endTurn` included. */
   accepted: number;
-  /** Commands the reducer refused. Any number above zero is a bug. */
+  /**
+   * Commands the reducer refused that the policy proposed, on the seat's copy
+   * or on the live board. Any number above zero is a bug. A planned command
+   * the real board refused because an earlier seat moved first is not counted
+   * here: that is a conflict, and it is `cut`.
+   */
   refused: number;
   /**
    * Unit orders the bot asked for again, identical, while the piece was still
@@ -129,10 +169,25 @@ interface SeatDriveReport {
   repeated: number;
   /** True when the seat ended its turn. False is a stall the caller must see. */
   ended: boolean;
+  /** The commands in the seat's plan (`frozenBoard.ts`). Nought for `driveSeat` alone. */
+  planned: number;
+  /** How many of them landed on the real board. */
+  landed: number;
+  /** Why the plan stopped before its end, or `null`. A cut seat finished with a live sitting. */
+  cut: CutReason | null;
 }
 
 /**
  * Plays every seat that is not a person and has not ended its turn.
+ *
+ * **From a frozen board** (bot batch BP16, stage C1; `frozenBoard.ts`). The
+ * board is frozen once, before any seat moves. Each seat decides its whole
+ * sitting on its own copy of that board (a plan), and then the plans are put
+ * to the real game in seat order. A plan that meets a command the real board
+ * refuses, or one that would not mean what it meant on the copy, stops there,
+ * and the seat finishes its turn with a live sitting on the real board
+ * (`driveSeat`). Turns are simultaneous (hard rule 3), so no seat sees what
+ * another seat did this turn, unless its plan was cut.
  *
  * `realPlayers` is the register for "who counts" (CLAUDE.md), so the wild is
  * excluded by construction rather than by a hand-rolled `!barbarian` — the wild
@@ -141,23 +196,120 @@ interface SeatDriveReport {
  * them: they have nothing to act with, and the reducer already re-raises their
  * turn flag every resolution.
  *
- * Returns one report per seat it touched, in the order it touched them.
+ * Returns one report per seat it put to the board, in the order it put them.
  */
 export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveReport[] {
+  const seats = botSeatsToDrive(game.state);
+  if (seats.length === 0) return [];
+  const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
+  const board = freezeBoard(game.state);
+  // Every plan before any command lands, each on its own copy. The last seat
+  // takes the frozen copy itself, since nothing needs it after.
+  const plans = seats.map((playerId, index) =>
+    planSeat(board, playerId, { ask: askOf(options), warn }, index === seats.length - 1),
+  );
   const reports: SeatDriveReport[] = [];
-  for (const playerId of botSeatsToDrive(game.state)) {
-    // **Asked again at the seat's own moment.** The list is read before the
-    // first seat moves, and an earlier seat's turn can knock a later one out
-    // (its last town taken, its last unit killed). Elimination marks that
-    // seat's turn ended, so it has nothing to drive and its End Turn would be
-    // refused three times and warned about. The stepper's `nextSeat` asks the
-    // same question at the same point, so the two loops still drive the same
-    // seats. Found in batch C3's six-seat duel, where seat 3 falls on turn 108.
-    const player = playerById(game.state, playerId);
-    if (player === undefined || player.eliminated || hasEndedTurn(game.state, playerId)) continue;
-    reports.push(driveSeat(game, playerId, options));
+  for (const plan of plans) {
+    // **Asked again at the seat's own moment.** An earlier seat's commands can
+    // knock a later one out (its last town taken, its last unit killed).
+    // Elimination marks that seat's turn ended, so it has nothing to put: its
+    // plan is dropped, and its End Turn would be refused. The stepper asks the
+    // same question at the same point. Found in batch C3's six-seat duel,
+    // where seat 3 falls on turn 108.
+    const player = playerById(game.state, plan.playerId);
+    if (player === undefined || player.eliminated || hasEndedTurn(game.state, plan.playerId)) continue;
+    reports.push(putPlan(game, board, plan, options));
   }
   return reports;
+}
+
+/** The policy `planSeat` and `driveSeat` ask: the caller's, or the bot with its reasons. */
+function askOf(options: DriveOptions): SittingAsk {
+  const decide = options.decide;
+  if (decide === undefined) return askTheBot;
+  return (state, playerId, sitting) => {
+    const command = decide(state, playerId, sitting);
+    return command === null ? null : { command, decision: null };
+  };
+}
+
+/**
+ * Puts one seat's plan to the real game, then ends the seat's turn: with its
+ * End Turn when the plan ran to its end, or with a live sitting when it was
+ * cut. Every command sent here is reported to `attempt`, and every accepted
+ * one to `report`, as `driveSeat` reports them.
+ */
+function putPlan(game: Game, board: FrozenBoard, plan: SeatPlan, options: DriveOptions): SeatDriveReport {
+  const run = startPlanRun(plan);
+  const put = (command: Command): CommandResult => {
+    const result = dispatch(game, command);
+    options.attempt?.(command, result);
+    if (result.ok) options.report?.(command, result);
+    return result;
+  };
+  while (applyNextStep(game.state, run, put) !== null) {
+    // Each step lands, or is refused and cuts the plan after it.
+  }
+  mergeSeatMemory(game.state, board, run);
+  const landed = run.guards.accepted;
+  const seat =
+    run.cut === null
+      ? handOver(game, plan.playerId, options, run.guards)
+      : driveSeat(game, plan.playerId, options, run.guards, liveSittingAfter(run));
+  return {
+    ...seat,
+    refused: seat.refused + plan.refused,
+    repeated: seat.repeated + plan.repeated,
+    planned: plan.steps.length,
+    landed,
+    cut: run.cut,
+  };
+}
+
+/**
+ * The End Turn of a seat whose plan ran to its end: nothing is asked again.
+ * A seat that fell during its own turn has nothing to send.
+ */
+function handOver(game: Game, playerId: number, options: DriveOptions, guards: SeatGuards): SeatDriveReport {
+  const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
+  const refused = endTheTurn(game, playerId, options, guards);
+  if (refused !== null) warn(`[ai] seat ${playerId}: could not end its turn — ${refused}`);
+  return reportOf(playerId, guards, refused === null);
+}
+
+/**
+ * Sends the seat's End Turn. `null` when the turn is over (it landed, or the
+ * seat fell during its own turn and has nothing to send), or the reducer's
+ * reason when it was refused.
+ */
+function endTheTurn(game: Game, playerId: number, options: DriveOptions, guards: SeatGuards): string | null {
+  // **A seat that fell during its own turn** (bot batch BP4). Its last town or
+  // its last piece went in one of its own commands, and elimination marks its
+  // turn ended at once (`updateElimination`). Its turn is over, so there is
+  // nothing to send: an End Turn now would be refused three times and warned
+  // about. The stepper stops the same seat at the same point. Found in the
+  // six-seat duel digest, where seat 1 falls on turn 115.
+  if (hasEndedTurn(game.state, playerId)) return null;
+  const command: Command = { type: 'endTurn', playerId };
+  const ended = dispatch(game, command);
+  options.attempt?.(command, ended);
+  if (!ended.ok) return ended.error;
+  guards.accepted += 1;
+  options.report?.(command, ended);
+  return null;
+}
+
+function reportOf(playerId: number, guards: SeatGuards, ended: boolean): SeatDriveReport {
+  return {
+    playerId,
+    accepted: guards.accepted,
+    refused: guards.refused,
+    repeated: guards.repeated,
+    ended,
+    planned: 0,
+    landed: 0,
+    cut: null,
+  };
 }
 
 /**
@@ -280,9 +432,13 @@ export function answerAudience(game: Game, options: AudienceOptions): BotDecisio
 }
 
 /**
- * One seat, from its first decision to its `endTurn`.
+ * One seat, from its first decision to its `endTurn`, on the live board. Since
+ * stage C1 this is the live sitting that finishes a seat's turn after its plan
+ * was cut (`driveBots`), with the plan's guards carried on, and the loop that
+ * tests drive one seat with. The loop itself is `runSitting` (`frozenBoard.ts`),
+ * which a plan runs on its copy too.
  *
- * Three guards, and each one closes a different way this could hang:
+ * Four guards, and each one closes a different way this could hang:
  *
  *   · **A command budget** (`ai.driver.commandsPerSeat`). A bot whose valuation
  *     oscillates — march here, march back — is bounded by the movement it
@@ -302,150 +458,48 @@ export function answerAudience(game: Game, options: AudienceOptions): BotDecisio
  *     cannot see. The repeat is treated like a refusal: not sent, warned about,
  *     and the asking stops (`repeatsAnOrder`).
  */
-export function driveSeat(game: Game, playerId: number, options: DriveOptions = {}): SeatDriveReport {
+export function driveSeat(
+  game: Game,
+  playerId: number,
+  options: DriveOptions = {},
+  guards: SeatGuards = freshGuards(),
+  /**
+   * The sitting to go on with. A cut plan hands its own, as it stood at its
+   * last landed command (`liveSittingAfter`); every other caller gets a fresh one.
+   */
+  sitting: BotSitting = botSitting(playerId),
+): SeatDriveReport {
   const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
-  const report: SeatDriveReport = { playerId, accepted: 0, refused: 0, repeated: 0, ended: false };
   // **The seat's own sheet**, not a module global: a persona is a sparse
   // override of the whole configuration, the `driver` block included, so two
   // seats may be allowed different budgets in the same pass.
   const ai = aiConfigFor(playerById(game.state, playerId)?.persona, playerId);
-
-  // Keyed by the command's own JSON, which is exactly "the identical command":
-  // two `moveUnit`s to different hexes are two commands, and the same one twice
-  // is the loop this closes. Membership only — nothing iterates it.
-  const refusedCommands = new Set<string>();
-  // The unit orders accepted this turn, by the same key, each with its piece as
-  // the order left it. See `repeatsAnOrder`.
-  const sentOrders: SentOrders = new Map();
-  let redraws = 0;
   // **One sitting for the seat's whole turn** (batch 6 of
-  // `docs/bot-priorities.md`). The appraisal context — the empire's books, the
-  // shadow prices, the chains and the want book — is built by the first arm that
-  // asks for it and read by every arm after it, rather than rebuilt for each of
-  // the thirty or forty decisions a busy seat makes. Anything a mid-turn
-  // mutation invalidates is re-read from the state by the arm that needs it
-  // (`bankSpend` asks `purchaseError` and the treasury at the moment it fires);
-  // see `BotSitting` for the whole of that bargain.
-  const sitting = botSitting(playerId);
+  // `docs/bot-priorities.md`), the `sitting` argument. The appraisal context —
+  // the empire's books, the shadow prices, the chains and the want book — is
+  // built by the first arm that asks for it and read by every arm after it,
+  // rather than rebuilt for each of the thirty or forty decisions a busy seat
+  // makes. Anything a mid-turn mutation invalidates is re-read from the state
+  // by the arm that needs it (`bankSpend` asks `purchaseError` and the treasury
+  // at the moment it fires); see `BotSitting` for the whole of that bargain.
+  const ask = askOf(options);
+  const put = (command: Command): CommandResult => {
+    const result = dispatch(game, command);
+    options.attempt?.(command, result);
+    return result;
+  };
+  const report = options.report;
+  const landed = report === undefined ? undefined : (asked: Asked, result: CommandResult) => report(asked.command, result);
 
   for (let attempt = 0; attempt < Math.max(1, ai.driver.endTurnAttempts); attempt++) {
-    while (report.accepted + report.refused < ai.driver.commandsPerSeat) {
-      const command = (options.decide ?? nextBotCommand)(game.state, playerId, sitting);
-      if (command === null) break;
-      const key = JSON.stringify(command);
-      if (refusedCommands.has(key)) {
-        // The bot is still asking for something the rules refused. Nothing this
-        // loop can do about it; the End Turn attempt below will say whether the
-        // seat is stuck.
-        break;
-      }
-      if (repeatsAnOrder(sentOrders, game.state, command, key)) {
-        // The same order to the same piece, already accepted this turn, and the
-        // piece has not changed since. The policy is a pure function of the
-        // state, so it would keep asking; sending it again changes nothing and
-        // used to run the seat to its command budget. Stop asking, exactly as
-        // for a refusal, and say so.
-        report.repeated += 1;
-        warn(`[ai] seat ${playerId}: asked again for the same ${command.type} — ${key}`, command);
-        break;
-      }
-      // **The paper remembers** (X4). Read while the paper is still on the
-      // table — the decline takes the row off the register — and banked only if
-      // the reducer took the answer. The stepper does exactly this at its own
-      // dispatch, which is what keeps the two loops one game.
-      const refusal = pendingDealRefusal(game.state, command);
-      const result = dispatch(game, command);
-      options.attempt?.(command, result);
-      if (result.ok) {
-        if (refusal !== null) rememberDealRefusal(game.state, refusal);
-        noteSentOrder(sentOrders, game.state, command, key);
-        report.accepted += 1;
-        options.report?.(command, result);
-        continue;
-      }
-      // The one refusal that is not a bug: a great-person hand another seat has
-      // emptied is refused *and redrawn*, so asking again asks about a new hand.
-      if (command.type === 'chooseGreatPerson' && redraws < ai.driver.greatPersonRedraws) {
-        redraws += 1;
-        continue;
-      }
-      report.refused += 1;
-      refusedCommands.add(key);
-      warn(`[ai] seat ${playerId}: the reducer refused ${command.type} — ${result.error}`, command);
-    }
-
-    // **A seat that fell during its own turn** (bot batch BP4). Its last town
-    // or its last piece went in one of its own commands, and elimination marks
-    // its turn ended at once (`updateElimination`). Its turn is over, so there
-    // is nothing to send: an End Turn now would be refused three times and
-    // warned about. The stepper stops the same seat at the same point. Found in
-    // the six-seat duel digest, where seat 1 falls on turn 115.
-    if (hasEndedTurn(game.state, playerId)) {
-      report.ended = true;
-      return report;
-    }
-
-    const ended = dispatch(game, { type: 'endTurn', playerId });
-    options.attempt?.({ type: 'endTurn', playerId }, ended);
-    if (ended.ok) {
-      report.accepted += 1;
-      report.ended = true;
-      options.report?.({ type: 'endTurn', playerId }, ended);
-      return report;
-    }
+    runSitting(game.state, playerId, sitting, guards, ask, put, warn, landed);
+    const refused = endTheTurn(game, playerId, options, guards);
+    if (refused === null) return reportOf(playerId, guards, true);
     // Refused: something is still owed. One more pass of the loop above is the
     // answer, because `nextBotCommand` reads the very blocker that refused this.
     if (attempt + 1 >= Math.max(1, ai.driver.endTurnAttempts)) {
-      warn(`[ai] seat ${playerId}: could not end its turn — ${ended.error}`);
+      warn(`[ai] seat ${playerId}: could not end its turn — ${refused}`);
     }
   }
-  return report;
-}
-
-/**
- * The unit orders a seat has had accepted this turn: the command's JSON, mapped
- * to its piece's JSON as the order left it. One per seat per turn, held by
- * `driveSeat` on its stack and by the stepper on its `SeatRun`.
- */
-export type SentOrders = Map<string, string>;
-
-/**
- * Whether a command is an order to one piece. Only those are held to
- * `repeatsAnOrder`, because other commands repeat legitimately: two belief
- * drafts in one turn are both answered with option nought, and a town can be
- * handed the same queue again after its last item finished.
- */
-export function sentToAPiece(command: Command): boolean {
-  return 'unitId' in command || 'settlerUnitId' in command;
-}
-
-/**
- * Whether sending this order now would repeat one already accepted this turn:
- * the identical command, to a piece that is still exactly as that copy left it.
- *
- * The piece is part of the test because the same order can be a new decision
- * once the piece has changed: a worker pushed off its route by a swap and
- * re-sent to the same hex, or a soldier whose march was cut short. What cannot
- * be a new decision is the same order to the same piece in the same state.
- * That is the loop the browser performance audit of 2026-10-06 found (finding
- * 1): a dug-in warrior, jammed behind a friend, was sent the march it already
- * held about 390 times in one turn, and every copy was accepted and changed
- * nothing.
- */
-export function repeatsAnOrder(sent: SentOrders, state: GameState, command: Command, key: string): boolean {
-  const stamp = sent.get(key);
-  return stamp !== undefined && stamp === pieceStamp(state, command);
-}
-
-/** Remembers an accepted order to a piece, with the piece as it now stands. */
-export function noteSentOrder(sent: SentOrders, state: GameState, command: Command, key: string): void {
-  if (sentToAPiece(command)) sent.set(key, pieceStamp(state, command));
-}
-
-/** The named piece, printed; `null` once it is gone (founded, spent, killed). */
-function pieceStamp(state: GameState, command: Command): string {
-  let id: number | undefined;
-  if ('unitId' in command) id = command.unitId;
-  else if ('settlerUnitId' in command) id = command.settlerUnitId;
-  return JSON.stringify(id === undefined ? null : (unitById(state, id) ?? null));
+  return reportOf(playerId, guards, false);
 }

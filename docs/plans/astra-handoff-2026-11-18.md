@@ -202,5 +202,5 @@ Two meeting points to watch:
 
 | Work | Landed at | Notes |
 |---|---|---|
-| Bots stage C1 | not landed yet | |
+| Bots stage C1 | `80287b38` on `decks` (2026-11-19) | Gate at `598dd0ee`: typecheck 0, 519 files and 12,025 tests, digest and stepper slow tests 0, build 0. **New digest pins: duel `790d090f:340520`, standard `56726d32:1056345`** (these replace the pins in section 2). C1 costs about 8% more bot time on one thread and gives no speed until C2. To watch: bot towns fell 10% on 4 of 5 seeds, not clear of chance; the likely cause is that a settler does not see towns founded earlier in the same step. A known gap that C1 did not cause: when a bot's whole great-person hand is spent, the refused pick that redraws it is not in the log, so such a save would not replay. The report and the C2 sketch are in `docs/plans/performance-pass-2026-11-06.md`, "Stage C: parallel bots from a frozen board", and `docs/bot-priorities.md`, "The turn's bot step: plans on a frozen board". Bot work is Astra's from this commit. |
 | Ground paint texture, stages 1 and 2 | not landed yet | |

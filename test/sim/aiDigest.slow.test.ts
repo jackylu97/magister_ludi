@@ -1306,9 +1306,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * turns. No bot code changed. Duel `28801863:335754` -> `2fa80e05:339704`,
  * standard `c0770657:1035266` -> `040c052c:1045966`.
  */
+/**
+ * Re-cut for bots stage C1 (`docs/plans/performance-pass-2026-11-06.md`,
+ * "Stage C: parallel bots from a frozen board"). Every bot seat now plans its
+ * sitting on a copy of the board taken at the start of the turn's bot step, so
+ * a seat after the first no longer sees what earlier seats did in the same
+ * step. Bot play changes from turn 1. Duel `2fa80e05:339704` ->
+ * `790d090f:340520`, standard `040c052c:1045966` -> `56726d32:1056345`.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '2fa80e05:339704',
-  standard: '040c052c:1045966',
+  duel: '790d090f:340520',
+  standard: '56726d32:1056345',
 };
 
 /**

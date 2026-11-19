@@ -1404,6 +1404,14 @@ describe('the bot module', () => {
     // events that open a phase again, the tallies and the end check's switch.
     // The arms stay in `bot.ts`. It keeps nothing beside the state, so it is
     // not in `harnessMemory.ts`.
+    //
+    // Thirty since bot batch BP16, stage C1 (2026-11-18): `frozenBoard.ts`
+    // holds the frozen board each bot seat plans its turn on, the plan, the
+    // applier that puts a plan to the real game, and the guards of one seat's
+    // loop, which the plan and the live sitting share. The driver and the
+    // stepper both use it, so it can live in neither. It keeps nothing beside
+    // the state: a seat's memories from its copy are merged into the real
+    // state's (`mergeSeatMemory`), so it is not in `harnessMemory.ts`.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'armySupport.ts',
@@ -1418,6 +1426,7 @@ describe('the bot module', () => {
       'diplomacy.ts',
       'driver.ts',
       'focusRoll.ts',
+      'frozenBoard.ts',
       'ground.ts',
       'harnessMemory.ts',
       'musterRoll.ts',

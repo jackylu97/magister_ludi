@@ -10,6 +10,12 @@
  * "no warnings" check failed. The stepper's `nextSeat` already asked the
  * question at each seat's own moment; the driver asks it there too now.
  *
+ * Since bot batch BP16, stage C1, every seat plans its turn on its own copy of
+ * the frozen board (`frozenBoard.ts`) before any command lands, so a policy
+ * that changes the board it is handed changes only its copy. These tests knock
+ * a seat out on the real board instead, at the moment a command lands: through
+ * the driver's `attempt` hook, and between two of the stepper's steps.
+ *
  * The policy is a stub that goes in through the driver's own `decide` option,
  * for the reason `aiDriverRepeat.test.ts` gives.
  */
@@ -45,24 +51,42 @@ function knockOutSeatOne(state: GameState): void {
   updateElimination(state);
 }
 
+/**
+ * Seat 1 puts its first piece to sleep, once on each board it is asked about;
+ * every other ask is content.
+ */
+function seatOneSleepsOnce(): (state: GameState, playerId: number) => Command | null {
+  const asked = new WeakSet<GameState>();
+  return (state, playerId) => {
+    if (playerId !== 1 || asked.has(state)) return null;
+    asked.add(state);
+    const piece = state.units.find((unit) => unit.ownerId === 1);
+    if (piece === undefined) return null;
+    return { type: 'sleepUnit', playerId: 1, unitId: piece.id };
+  };
+}
+
 describe('a seat knocked out earlier in the same pass', () => {
   it('is not driven, and nothing is warned about', () => {
     const game = threeSeats();
-    const driven: number[] = [];
+    const asked: number[] = [];
     const warnings: string[] = [];
-    let knocked = false;
-    // The stub: seat 0's first ask knocks seat 1 out, then every seat is content.
-    const decide = (state: GameState, playerId: number): Command | null => {
-      if (!driven.includes(playerId)) driven.push(playerId);
-      if (playerId === 0 && !knocked) {
-        knocked = true;
-        knockOutSeatOne(state);
-      }
+    // Every seat is content; seat 0's End Turn knocks seat 1 out on the real
+    // board, as an earlier seat's last blow would.
+    const decide = (_state: GameState, playerId: number): Command | null => {
+      if (!asked.includes(playerId)) asked.push(playerId);
       return null;
     };
-    const reports = driveBots(game, { decide, warn: (message) => warnings.push(message) });
+    const reports = driveBots(game, {
+      decide,
+      warn: (message) => warnings.push(message),
+      attempt: (command) => {
+        if (command.type === 'endTurn' && command.playerId === 0) knockOutSeatOne(game.state);
+      },
+    });
     expect(game.state.players[1]!.eliminated).toBe(true);
-    expect(driven).toEqual([0, 2]);
+    // Every seat planned on the frozen board, but seat 1's plan was never put.
+    expect(asked).toEqual([0, 1, 2]);
     expect(reports.map((report) => report.playerId)).toEqual([0, 2]);
     expect(reports.every((report) => report.ended && report.refused === 0)).toBe(true);
     expect(warnings).toEqual([]);
@@ -74,19 +98,15 @@ describe('a seat knocked out earlier in the same pass', () => {
     // The six-seat duel digest met this on turn 115 after batch BP4: seat 1's
     // last piece fell in one of its own commands, elimination marked its turn
     // ended, and the driver then sent an End Turn the reducer refused.
-    const stub = () => {
-      let knocked = false;
-      return (state: GameState, playerId: number): Command | null => {
-        if (playerId === 1 && !knocked) {
-          knocked = true;
-          knockOutSeatOne(state);
-        }
-        return null;
-      };
-    };
     const viaDriver = threeSeats();
     const driverWarnings: string[] = [];
-    const reports = driveBots(viaDriver, { decide: stub(), warn: (message) => driverWarnings.push(message) });
+    const reports = driveBots(viaDriver, {
+      decide: seatOneSleepsOnce(),
+      warn: (message) => driverWarnings.push(message),
+      attempt: (command) => {
+        if (command.type === 'sleepUnit' && command.playerId === 1) knockOutSeatOne(viaDriver.state);
+      },
+    });
     expect(viaDriver.state.players[1]!.eliminated).toBe(true);
     expect(reports.map((report) => report.playerId)).toEqual([0, 1, 2]);
     expect(reports.every((report) => report.ended && report.refused === 0)).toBe(true);
@@ -95,15 +115,22 @@ describe('a seat knocked out earlier in the same pass', () => {
 
     const viaStepper = threeSeats();
     const stepperWarnings: string[] = [];
-    const stepperDecide = stub();
+    const policy = seatOneSleepsOnce();
     const stepper = createBotStepper(viaStepper, {
       decide: (state, playerId) => {
-        stepperDecide(state, playerId);
-        return null;
+        const command = policy(state, playerId);
+        return command === null
+          ? null
+          : { kind: 'unitOrder', command, subject: 'the stub', summary: 'Sleeps.', candidates: [] };
       },
       warn: (message) => stepperWarnings.push(message),
     });
-    stepper.playTurn();
+    for (let guard = 0; guard < 20; guard++) {
+      const step = stepper.step();
+      if (step === null) break;
+      if (step.decision.command.type === 'sleepUnit' && step.playerId === 1) knockOutSeatOne(viaStepper.state);
+      if (step.turnResolved) break;
+    }
     expect(stepperWarnings).toEqual([]);
     expect(stepper.stalled()).toBe(false);
     expect(snapshotState(viaStepper.state)).toBe(snapshotState(viaDriver.state));
@@ -112,26 +139,19 @@ describe('a seat knocked out earlier in the same pass', () => {
   it('is skipped by the stepper too, so the two loops reach the same board', () => {
     const viaDriver = threeSeats();
     const viaStepper = threeSeats();
-    const stub = () => {
-      let knocked = false;
-      return (state: GameState, playerId: number) => {
-        if (playerId === 0 && !knocked) {
-          knocked = true;
-          knockOutSeatOne(state);
-        }
-        return null;
-      };
-    };
-    const driverDecide = stub();
-    driveBots(viaDriver, { decide: driverDecide });
-    const stepperDecide = stub();
-    const stepper = createBotStepper(viaStepper, {
-      decide: (state, playerId) => {
-        stepperDecide(state, playerId);
-        return null;
+    driveBots(viaDriver, {
+      decide: () => null,
+      attempt: (command) => {
+        if (command.type === 'endTurn' && command.playerId === 0) knockOutSeatOne(viaDriver.state);
       },
     });
-    stepper.playTurn();
+    const stepper = createBotStepper(viaStepper, { decide: () => null });
+    for (let guard = 0; guard < 20; guard++) {
+      const step = stepper.step();
+      if (step === null) break;
+      if (step.decision.kind === 'endTurn' && step.playerId === 0) knockOutSeatOne(viaStepper.state);
+      if (step.turnResolved) break;
+    }
     expect(stepper.stalled()).toBe(false);
     expect(snapshotState(viaStepper.state)).toBe(snapshotState(viaDriver.state));
   });
