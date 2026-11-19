@@ -1245,3 +1245,17 @@ The user came back to the one-style board
   - keeping some of the modern design's flavour, not replacing it.
 - B, C and D stay rejected or unchosen. Nothing is built until the user picks
   from the new board.
+
+### The Council screen: show which chair a card acts on (2026-11-19)
+
+The user, in a comment on the Magisterial design pass (The Grand Vizier, "The
+card in your first Economic chair pays its yields twice"): "For cards with
+effects like this, could we add a highlight effect to the chair that it
+targets when slotted?"
+
+- When a seated card acts on another chair (it doubles, copies or changes the
+  card in a named chair), the chair it acts on is marked on the Council
+  screen. The mark also shows while the card is held over the council, so the
+  player sees the target before they seat it.
+- The target comes from the sim's own reading of the card (its `slotPosition`
+  or the same data the evaluator reads), never from a list of card names.

@@ -634,3 +634,56 @@ Each great person acts, then lays a work in the line beside the capital, then ad
 - Card text: a script read `data/decks/magisterial.json` and the Magisterial rows of `data/decks/common.json`, and printed each live row's text beside `describeCard`'s clauses (`src/sim/statecraft`).
 - Shapes: each "existing shape" names a `CardEffect` kind that a live row uses today. "To confirm" marks a field I did not trace in `statecraft/evaluator.ts`.
 - The page and this file are written by one script from one data file, in the session scratchpad: `deck-pass/magisterial-build.mjs` and `deck-pass/magisterial-data.mjs`.
+
+## The user's comments on the page (2026-11-19)
+
+The user commented on the review page and said: "look at my comments for the
+magisterial deck, please incorporate those changes." The comments below are
+the user's words. They are the spec.
+
+### Approved as proposed
+
+"great", "agree" or similar on: 12 The Open Door (cut), 18 The Senate Charter
+("Great, love this change"), 21 Commission: The Patron's Gallery, 22 The
+Quarter of Masters ("agree, this is actually a debuff in the late game, but i
+think this makes it a better card"), 23 The Golden Age, 24 The Learned Patron,
+25 The Unwritten Chapter, 28 The Lawgiver, 29 The Hall of Heroes, 30 The Mixed
+Constitution, 31 Commission: The Golden Bull, 32 The Masters' Domain, 33 The
+Garden Courts, 35 The Second Sitting, 36 The Divan, 37 The Privy Council, 38
+The Last Commission, 40 Commission: The Ideal City, 41 The Hall of Wonders, 42
+The Grand Retrospective, 43 The Nine Jewels, 44 The Jinshi, 45 The Magnaura, 46
+The Bourgs, 47 The Gobelins, 48 The Stele of Deeds.
+
+### Changed by the user
+
+| # | Card | The user's comment |
+|---|---|---|
+| 01 | The Court Painter | "let's remove this card, its not useful in tier 0 as great people are only unlocked in age 2" |
+| 03 | Master Masons | "lets remove, monuments are earned late in age 1." |
+| 04 | The Twelve Tables | "Buff: +2 production and +2 culture." |
+| 06 | Commission: The Roll of the Senate | "rework: hold 8 orders" |
+| 07 | The Guild of Masons | "remove altogether" |
+| 08 | The Keepers of Wonders | "wonders are a large investment. This needs more of a buff. How about: Each wonder gives +2 happiness and +1 to every yield (science, culture, food,production, faith)" |
+| 09 | The Ceremonial Guard | "completing a wonder grants 1 melee unit and 1 ranged unit. ('the best melee unit you can build' is redundant descriptor because units are automatically upgraded, no? this should probably be applied game-wide)" |
+| 10 | The Working Court | "too strong, keep as is" (the card stays as it is today) |
+| 11 | The Encyclopedia | "how about having this be a scaler. +1 science and +1 culture, each order, wonder and great person card you gain increases by +1/+1, no cap." |
+| 13 | Civic Granaries | "culture buildings grant +1 food and +2 production each." |
+| 14 | The Sed Festival | "how about just: boon, receive a great person draft" |
+| 15 | The Friends of Khufu | "how much production? Let's have it be available every 5 turns (same as the other levy actions) and give 25% of the wonder's value?" |
+| 17 | The Grand Vizier | "isn't the first chair generally a military card? This is actually a debuff, lets keep it as is." and "For cards with effects like this, could we add a highlight effect to the chair that it targets when slotted?" |
+| 20 | The Honoured Dead | "how about gains +8 science/production when you receive a great person" |
+| 26 | The Hanlin Academy | "lets buff this even further. Great people cost 20% less renown. +2 science on great people works." |
+| 27 | The Spirit Way | "i'm not sure if the synergy cards around this are plentiful enough. How about: Wonders count as great people works (they receive bonuses from cards that give yields to great people works, and also count as great people work towns)." |
+| 34 | Commission: The Paradise Garden | "lets rework: commission: have three great person works in one city. Reward: double yields on tiles with great person works." |
+| 39 | The Processional Way | "this might be too difficult (because cities can work three tiles out, this doesn't happen often organically). How about: tiles adjacent to two or more great person works receive +10 culture and +10 science" |
+
+### No comment
+
+02 The Cornerstone, 05 The Nomarchs, 16 The Unveiling and The Symposium, 19
+Letters Patent. These are open until the user rules.
+
+### A request for the interface
+
+From the comment on 17: when a card that acts on one chair (such as The Grand
+Vizier) is seated, the chair it acts on is highlighted. This is a Council
+screen change, recorded in `docs/plans/ui-critique-2026-10-16.md`.
