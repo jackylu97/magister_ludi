@@ -198,7 +198,9 @@ describe('the motion is not drawn under a screen over the board', () => {
 
   it('is answered by the page: opaque screens, then the dimming sheets, each once its opening fade has ended', () => {
     const main = readFileSync(new URL('../../src/main.ts', import.meta.url), 'utf8');
-    expect(main).toContain('const opaqueScreens = [statecraftOverlayEl, abacusOverlayEl, landingEl];');
+    // In play (stage 3 of the Council and In play board) is the Council
+    // screen's lampblack cloth over the whole window, so it is opaque too.
+    expect(main).toContain('const opaqueScreens = [statecraftOverlayEl, inPlayOverlayEl, abacusOverlayEl, landingEl];');
     // The star chart and every sheet on the shared frame but the loading sheet.
     expect(main).toContain("...document.querySelectorAll<HTMLElement>('.statecraft-overlay:not(.loading-overlay)')");
     expect(main).toMatch(/const dimmingScreens = \[\s*techOverlayEl,/);

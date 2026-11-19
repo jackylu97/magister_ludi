@@ -1267,7 +1267,44 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     // brought the piece.
     push(leader, CLASS_WORD.leader, unitDef(sheet.unit).effects ?? []);
   }
-  return list;
+  // A ghost board may set some entries aside, for the In play screen's
+  // readings (`setEffectsAside`). Never set on a board a command sees.
+  const aside = EFFECTS_SET_ASIDE.get(state)?.get(playerId);
+  return aside === undefined ? list : list.filter((entry) => !aside(entry));
+}
+
+/**
+ * **Boards on which some of a seat's effects are set aside, for a reading
+ * only** (the In play screen, stage 3 of the Council and In play board,
+ * `docs/plans/ui-critique-2026-10-16.md`).
+ *
+ * The card stamp (`cardImpact.ts`) measures a piece as the difference between
+ * the board with it and the board without it. Some pieces have no "without"
+ * that a copy of the state can show: a leader always plays both abilities, a
+ * malice holds its chair, a bead's cap and a fulfilled commission's lasting
+ * reward are read off records that other rules also count, and the founder's
+ * share follows the holy city. So the stamp builds a ghost board, marks it here
+ * with a test over the walk's entries, and the walk leaves those entries out
+ * of the ghost's list.
+ *
+ * The test runs on the finished list. So it is right for a source that no
+ * other source reads back (every source above that it is used for), and it
+ * would not undo a rule that changes how other sources are read, such as a
+ * card that reads the gods twice. The In play readings never set such a card
+ * aside.
+ *
+ * A `WeakMap` on the board object, as `LAW_SET_ASIDE` is. A ghost is a fresh
+ * object that no command and no turn ever sees, so a real board is never in it
+ * and no outcome can turn on it. Set it before the board is first read.
+ */
+const EFFECTS_SET_ASIDE = new WeakMap<GameState, Map<number, (entry: LiveCardEffect) => boolean>>();
+
+/** Marks a ghost board so the walk reads `playerId`'s seat without the entries `aside` names. */
+export function setEffectsAside(board: GameState, playerId: number, aside: (entry: LiveCardEffect) => boolean): void {
+  const seats = new Map(EFFECTS_SET_ASIDE.get(board) ?? []);
+  const before = seats.get(playerId);
+  seats.set(playerId, before === undefined ? aside : (entry) => before(entry) || aside(entry));
+  EFFECTS_SET_ASIDE.set(board, seats);
 }
 
 /**

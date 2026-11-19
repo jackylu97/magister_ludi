@@ -80,6 +80,7 @@
 
 import { diplomacyMarkDataUri, standingsMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { inPlayMarkDataUri } from '../art/inPlayMarks';
 import { seatInks } from '../art/seatInks';
 import { yieldMarkDataUri } from '../art/yieldMarks';
 import { turnsToFill } from '../sim/cities';
@@ -674,8 +675,13 @@ export function supplyFingerprint(rows: readonly CopyCount[], playerId: number):
   return `${playerId}|${rows.map((row) => `${row.id}:${row.spare}/${row.held}`).join(',')}`;
 }
 
-/** The four marks, in the board's order, and the screen each opens. */
-export const QUICK_BUTTONS = ['diplomacy', 'routes', 'faith', 'standings'] as const;
+/**
+ * The five marks, in the board's order, and the screen each opens. In play is
+ * the fifth (stage 3 of the Council and In play board, frame D1): its figure
+ * is how many pieces are in force, and a dot shows when a wonder or a belief
+ * has arrived since the seat last looked.
+ */
+export const QUICK_BUTTONS = ['diplomacy', 'routes', 'faith', 'inPlay', 'standings'] as const;
 export type QuickButton = (typeof QUICK_BUTTONS)[number];
 
 /** Each mark's name and key, as its title, its accessible name and its open row print them. */
@@ -683,8 +689,23 @@ export const QUICK_NAMES: Readonly<Record<QuickButton, { name: string; key: stri
   diplomacy: { name: 'Diplomacy', key: 'W', sheet: 'the Diplomacy sheet' },
   routes: { name: 'Routes', key: 'E', sheet: 'the trade routes' },
   faith: { name: 'Faith', key: 'H', sheet: 'the Faith sheet' },
+  inPlay: { name: 'In play', key: 'I', sheet: 'everything in force' },
   standings: { name: 'Standings', key: 'S', sheet: 'the standings sheet' },
 };
+
+/** The In play mark's figure and dot, read by `main.ts` (the screen's own count). */
+export interface InPlayDoorGlance {
+  /** How many pieces are in force. */
+  count: number;
+  /** A wonder or a belief arrived since the seat last looked. */
+  fresh: boolean;
+}
+
+/** The In play mark's words: "9 pieces in force", and the arrival when there is one. */
+export function inPlayDoorWords(glance: InPlayDoorGlance): string {
+  const pieces = `${glance.count} piece${glance.count === 1 ? '' : 's'} in force`;
+  return glance.fresh ? `${pieces}, something new has arrived` : pieces;
+}
 
 /**
  * A mark's title: its name and key, then what its figure means. "Routes (E):
@@ -727,8 +748,10 @@ interface EmpireDrawerOptions {
   openLeader: () => void;
   /** The age wager row's door: the wager's one standing way in. */
   openWager: () => void;
-  /** The four marks' doors: Diplomacy (W), Routes (E), Faith (H), Standings (S). */
+  /** The five marks' doors: Diplomacy (W), Routes (E), Faith (H), In play (I), Standings (S). */
   openQuick: Readonly<Record<QuickButton, () => void>>;
+  /** The In play mark's figure and dot. Absent, the mark shows no figure. */
+  inPlay?: () => InPlayDoorGlance;
   /**
    * A greyed door was pressed: says, in plain words, what opens it. `main.ts`
    * prints it on the guidance line, where the H and E keys print the same.
@@ -745,6 +768,8 @@ export interface EmpireDrawer {
   close(): void;
   /** Re-reads the seat, and rewrites what changed. Called with the rest of the HUD. */
   render(): void;
+  /** Repaints the In play mark alone: its dot went, or a flight landed on it. */
+  refreshInPlay(): void;
   /** Removes every listener. Registered in `gameDisposers`. */
   dispose(): void;
 }
@@ -757,6 +782,7 @@ const QUICK_MARKS: Readonly<Record<QuickButton, () => string>> = {
   diplomacy: () => diplomacyMarkDataUri(),
   routes: () => tradeMarkDataUri(),
   faith: () => yieldMarkDataUri('faith'),
+  inPlay: () => inPlayMarkDataUri('door'),
   standings: () => standingsMarkDataUri(),
 };
 
@@ -783,8 +809,10 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     diplomacy: requireElement<HTMLButtonElement>('quick-diplomacy'),
     routes: requireElement<HTMLButtonElement>('quick-routes'),
     faith: requireElement<HTMLButtonElement>('quick-faith'),
+    inPlay: requireElement<HTMLButtonElement>('quick-inPlay'),
     standings: requireElement<HTMLButtonElement>('quick-standings'),
   };
+  const inPlayFigure = requireElement('quick-inPlay-figure');
   const routesFigure = requireElement('quick-routes-figure');
   const routesNote = requireElement('quick-routes-note');
   const faithFigureEl = requireElement('quick-faith-figure');
@@ -1023,6 +1051,20 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     return true;
   }
 
+  /**
+   * The In play mark: its count and its dot. Painted with the rest of the row,
+   * and again on its own when the dot goes (`refreshInPlay`), which changes
+   * nothing in the state and so moves no revision.
+   */
+  function paintInPlay(): void {
+    const inPlay = options.inPlay?.() ?? null;
+    inPlayFigure.textContent = inPlay === null ? '' : String(inPlay.count);
+    quick.inPlay.classList.toggle('is-owed', inPlay?.fresh === true);
+    const inPlayWords = inPlay === null ? '' : inPlayDoorWords(inPlay);
+    quick.inPlay.title = quickTitle('inPlay', inPlayWords);
+    quick.inPlay.setAttribute('aria-label', quickLabel('inPlay', inPlayWords));
+  }
+
   function paintQuick(glance: EmpireGlance): void {
     const { faith, routes } = glance;
     gates = glance.gates;
@@ -1052,6 +1094,8 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
       quick.faith.title = quickTitle('faith', faith.words);
       quick.faith.setAttribute('aria-label', quickLabel('faith', faith.words));
     }
+
+    paintInPlay();
 
     quick.diplomacy.title = quickTitle('diplomacy');
     quick.diplomacy.setAttribute('aria-label', quickLabel('diplomacy'));
@@ -1104,6 +1148,7 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     toggle,
     close,
     render,
+    refreshInPlay: paintInPlay,
     dispose(): void {
       listening.abort();
       close();

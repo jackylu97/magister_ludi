@@ -246,6 +246,9 @@ export {
   musterPeriodicUnits,
   // Magisterial batch MG14: what drafting an Order pays in yields.
   onDraftPayout,
+  // Stage 3 of the Council and In play board: which buildings the realm's walk
+  // reads, so the In play screen's Wonders stack is that same set.
+  oneOfAKind,
   opusCityOf,
   payWindfallGrants,
   religionFounder,

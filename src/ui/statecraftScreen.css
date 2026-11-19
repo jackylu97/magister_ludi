@@ -85,6 +85,29 @@
   color: var(--vermilion-lit);
 }
 
+/* The link to In play (stage 3), beside the title: "In play · 9" and its key,
+   in the gilt of a link on the dark cloth, on the head's one centre line. */
+.council-inplay-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--y-gold-lit);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.council-inplay-link > span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
 /* The totals line (frame N4): one fine line of eight figures at the head's
    right, the six yields, a hairline, then happiness and authority. The card
    typeface, the yields' lit inks, a small mark each. No boxes and no bars. */
