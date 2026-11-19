@@ -55,9 +55,8 @@
  *     from the state's random stream, which earlier seats have moved on the
  *     real state. A choice by index from a different offer is a different
  *     choice, so the applier compares the offer first.
- *   - **a great person already called.** That refusal is the one that changes
- *     the state (the hand is redrawn, and the log does not hold refusals), so
- *     the applier asks the rule before it sends the command.
+ *   - **a great person already called.** Ask the live policy for its next
+ *     choice so it can take a remaining name or request a fresh offer.
  *
  * What does not stop a plan: a blow that came out differently (the roll is
  * drawn from the real state's stream at the moment the command lands), or a
@@ -150,7 +149,7 @@ export interface SeatGuards {
   refused: number;
   /** Unit orders asked for again to an unchanged piece. Any number above zero is a bug. */
   repeated: number;
-  /** Great-person hands refused and redrawn this turn. */
+  /** Redraws that used the extra allowance for contested great person choices. */
   redraws: number;
   /** Keyed by the command's own JSON, which is exactly "the identical command". Membership only. */
   refusedCommands: Set<string>;
@@ -194,7 +193,7 @@ export function* runSitting(
   // override of the whole configuration, the `driver` block included, so two
   // seats may be allowed different budgets in the same pass.
   const ai = aiConfigFor(playerById(state, playerId)?.persona, playerId);
-  while (guards.accepted + guards.refused < ai.driver.commandsPerSeat) {
+  while (guards.accepted + guards.refused - guards.redraws < ai.driver.commandsPerSeat) {
     const asked = ask(state, playerId, sitting);
     if (asked === null) break;
     const { command } = asked;
@@ -222,9 +221,8 @@ export function* runSitting(
       if (refusal !== null) rememberDealRefusal(state, refusal);
       noteSentOrder(guards.sentOrders, state, command, key);
       guards.accepted += 1;
-    } else if (command.type === 'chooseGreatPerson' && guards.redraws < ai.driver.greatPersonRedraws) {
-      // A refusal can replace the hand. Give the bot a chance to choose again.
-      guards.redraws += 1;
+      // A contested choice can leave the seat with another offer to answer.
+      if (result.greatPersonOfferRefreshed && guards.redraws < ai.driver.greatPersonRedraws) guards.redraws += 1;
     } else {
       guards.refused += 1;
       guards.refusedCommands.add(key);

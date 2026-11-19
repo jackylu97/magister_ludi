@@ -84,8 +84,7 @@
  * proposed — `foundingError`, `improvementError`, `buildError`, `previewCombat`,
  * `findPath`, `startRouteError`, the four `…ChoiceError`s. A refused command
  * from this bot is therefore a *bug*, not a strategy, and `driver.ts` warns
- * loudly on one. The one documented exception is `chooseGreatPerson`, where the
- * reducer's refusal legitimately redraws a hand another seat has emptied.
+ * loudly on one. Choosing a taken great person asks for a new offer.
  *
  * Why it lives outside `src/sim/`
  * -------------------------------
@@ -4461,12 +4460,8 @@ function cityIsThreatened(state: GameState, player: Player, city: City): boolean
  * zero-valued label with its number in the label — the shape batch 4 settled on
  * for a reading that informs a decision without joining its arithmetic.
  *
- * **The redraw is untouched.** `greatPersonChoiceError` is asked of every option
- * first (the roster is shared by every seat and resolved by log order, so a hand
- * can name somebody another empire already took), and when *every* option is
- * spent there is nothing legal to send: index 0 goes out precisely to trigger
- * the reducer's redraw — the one refusal in the game that mutates — exactly as
- * it did before this batch. The driver rides that out a bounded number of times.
+ * If every name has been taken, the bot picks the first to request a redraw.
+ * Otherwise it prices only the people it can still recruit.
  */
 function greatPersonDecision(
   state: GameState,
@@ -4505,7 +4500,7 @@ function greatPersonDecision(
     subject: seatName(state, player.id),
     summary:
       best === null
-        ? 'Every name in the hand is spent; sends the first anyway, which is what makes the reducer redraw.'
+        ? 'Every name has been taken. Request a redraw.'
         : `Calls ${greatPersonDef(options[picked]!).name} — worth ${round1(best)} a turn to this empire, ` +
           `the best of the ${candidates.length} names on the table.`,
     candidates,

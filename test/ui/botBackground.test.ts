@@ -276,7 +276,7 @@ describe('background bot drives', () => {
     }
   });
 
-  it.each([true, false])('rejects a reply after a refused great-person pick, roster exhausted: %s', async (exhausted) => {
+  it.each([true, false])('rejects an old bot reply after a contested great person choice, roster exhausted: %s', async (exhausted) => {
     const { twin, posted } = transport();
     const actual = game();
     const id = LIVE_GREAT_PERSON_IDS[0]!;
@@ -289,17 +289,17 @@ describe('background bot drives', () => {
     twin.prepare(actual);
     const played = twin.drive(() => actual);
     expect(posted).toHaveLength(1);
-    expect(dispatch(actual, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok).toBe(false);
+    const pick = { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 } as const;
+    expect(dispatch(actual, pick)).toMatchObject({ ok: true, greatPersonOfferRefreshed: expect.any(String) });
     expect(actual.state.players[0]!.greatPersonOffer?.options).not.toEqual([id]);
-    expect(actual.log).toEqual([]);
-    expect(actual.state.revision).toBe(before);
+    expect(actual.state.revision).toBeGreaterThan(before);
     if (exhausted) expect(actual.state.rng.state).toBe(random);
     const afterRedraw = snapshotState(actual.state);
 
     posted[0]!.finish();
     expect(await played).toBe('moved');
     expect(snapshotState(actual.state)).toBe(afterRedraw);
-    expect(actual.log).toEqual([]);
+    expect(actual.log).toEqual([pick]);
     twin.dispose();
   });
 

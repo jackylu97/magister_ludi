@@ -23,15 +23,13 @@
  * Determinism: the worker's copy is a structured clone of the page's state plus
  * the bots' harness memories (`harnessMemory.ts`), so the bots read exactly
  * what they would have read here. The page applies the commands in the order
- * the worker made them, refusals included (one refusal mutates; see
- * `DriveOptions.attempt`).
+ * the worker made them and checks each result, including refusals.
  */
 
 import type { BotDecision } from '../ai/decision';
 import { type AudienceOptions, type BotReporter, answerAudience, botSeatsToDrive, replayBotAttempts } from '../ai/driver';
 import { adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
 import type { Game } from '../sim/game';
-import { realPlayers } from '../sim/state';
 import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
 import type { BotPlanPriority } from './botPlanPool';
 import { readBotTuning } from './botPlanProtocol';
@@ -112,16 +110,9 @@ interface BotInput {
   turn: number;
   revision: number;
   randomState: number;
-  offers: string;
   botSeats: string;
   memory: string;
   tuning: string;
-}
-
-function personOffers(state: Game['state']): string {
-  // A refused pick of a taken great person can redraw an offer without
-  // adding a command to the log or changing the revision.
-  return JSON.stringify(realPlayers(state).map((player) => player.greatPersonOffer));
 }
 
 function botInput(
@@ -139,7 +130,6 @@ function botInput(
     turn: state.turn,
     revision: state.revision,
     randomState: state.rng.state,
-    offers: personOffers(state),
     botSeats: botSeatsToDrive(state).join(','),
     memory: JSON.stringify(memory),
     tuning: JSON.stringify(tuning),
@@ -152,7 +142,6 @@ function sameInput(input: BotInput, game: Game): boolean {
     input.logLength === game.log.length && input.turn === state.turn &&
     input.revision === state.revision && input.randomState === state.rng.state &&
     input.botSeats === botSeatsToDrive(state).join(',') &&
-    input.offers === personOffers(state) &&
     input.memory === JSON.stringify(readHarnessMemory(state)) &&
     input.tuning === JSON.stringify(readBotTuning(state));
 }

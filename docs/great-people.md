@@ -66,10 +66,9 @@ older than the cuts to 180 and to 58, so they do not describe the current rate.
 bag; each family's weight is a base thousand plus that family's share of what the
 empire's renown actually came from, so an empire that built libraries meets more
 scholars without ever being refused a general. Names are world-shared and
-consumed on the pick, resolved by log order — `chooseGreatPerson` is the
-reducer's one refusal that mutates, redrawing when another empire has already
-taken the name. A roster spent to the last name banks the renown rather than
-blocking the recruitment.
+consumed in command order. If another empire took the chosen name, the command
+redraws the offer. The save records this command and the player's next choice.
+If the roster is empty, the offer closes and the empire keeps its banked renown.
 
 **The odds** are on the Renown tab: the renown figure's hover card on the top
 bar, and the Reliquary it opens (batch GP1 of 2026-11-12).

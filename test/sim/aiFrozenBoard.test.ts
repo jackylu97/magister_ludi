@@ -16,7 +16,7 @@
  *     and the log replays;
  *   - a person's paper put to a bot is answered in the same turn;
  *   - a great person another seat called first stops the plan before the
- *     refusal that would redraw the hand;
+ *     command can redraw the offer;
  *   - a cut plan leaves no piece without orders that the uncut plan gave orders;
  *   - the stepper and the driver play the same short game.
  */

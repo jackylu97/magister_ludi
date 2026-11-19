@@ -3280,14 +3280,7 @@ async function boot(initial: Game | null): Promise<void> {
    * first chair every time a player picked a card.
    */
   function send(command: Command): CommandResult {
-    const picker = command.type === 'chooseGreatPerson' ? game.state.players[command.playerId] : undefined;
-    const offer = picker?.greatPersonOffer;
     const result = dispatch(game, command);
-    // Picking a person another seat took can replace the hand even though the command fails.
-    if (!result.ok && picker && picker.greatPersonOffer !== offer) {
-      botTwin.invalidate();
-      scheduleBotPreparation();
-    }
     controls.reportCommand(command, result);
     if (result.ok) controls.repaint();
     return result;
@@ -4005,12 +3998,10 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         const taken = offer.options[index];
-        // Checked (the offer-loop bug of 2026-08-30) — and the recruit is
-        // announced only when the reducer actually seated them: this arm can
-        // legitimately refuse-and-redraw when another seat took the name.
         const result = send({ type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
-        if (result.ok && taken !== undefined) announceRecruit(seat, taken);
+        else if (result.greatPersonOfferRefreshed) controls.guide(`☞ ${result.greatPersonOfferRefreshed}`);
+        else if (taken !== undefined) announceRecruit(seat, taken);
         statecraft?.refresh();
       },
       undefined,
@@ -4429,10 +4420,10 @@ async function boot(initial: Game | null): Promise<void> {
       // its capital would tick off the step asking the player to found theirs.
       // The reports underneath are not filtered: an age opening is news about
       // the world whoever caused it.
-      if (command.playerId === controls.localPlayerId()) {
+      if (!result.ok) return;
+      if (command.playerId === controls.localPlayerId() && !result.greatPersonOfferRefreshed) {
         tutorial.note({ kind: 'command', command: command.type });
       }
-      if (!result.ok) return;
       if (game.state.players[command.playerId]?.isHuman) {
         botTwin.invalidate();
         scheduleBotPreparation();

@@ -111,7 +111,7 @@ import { type DisbandReport, unitUpkeepOf } from './upkeep';
 import {
   greatPersonActAt,
   greatPersonActError,
-  greatPersonChoiceError,
+  greatPersonChoiceProblem,
   greatPersonPurchaseError,
   greatPersonWorkAt,
   greatPersonWorkError,
@@ -1394,21 +1394,7 @@ interface RenameReligionCommand extends PlayerCommand {
   name: string;
 }
 
-/**
- * Takes one of the names a filled renown bucket is offering.
- *
- * `chooseOrder`'s shape for the fifth time, refusal for refusal: an **index
- * rather than an id** (an index can only ever name something the player was
- * dealt), no reroll and no decline, and the End Turn blocker is what stops the
- * offer sitting on the empire forever.
- *
- * The **one** thing it does that its four siblings do not: the roster is shared
- * by the whole world, so a name another seat took in this same window is refused
- * — and the seat's offer is re-drawn on the spot rather than left unplayable.
- * See `greatPersonChoiceError` and the module docblock of `greatPeople.ts`.
- *
- * Turn-gated like every other act.
- */
+/** A choice names an index in the current offer. A taken name triggers a new draw. */
 interface ChooseGreatPersonCommand extends PlayerCommand {
   type: 'chooseGreatPerson';
   optionIndex: number;
@@ -1874,6 +1860,8 @@ export type CommandResult =
       disbanded?: DisbandReport[];
       starved?: StarvationReport[];
       guilds?: GuildReport[];
+      /** Explains why the player needs to choose again, even when the roster has run out. */
+      greatPersonOfferRefreshed?: string;
       proclaimed?: ProclamationReport;
       purged?: PurgeReport;
       planted?: HolySitePlanting;
@@ -4109,24 +4097,7 @@ function applyRenameReligion(state: GameState, command: RenameReligionCommand): 
   return ok();
 }
 
-/**
- * Calls a great person. See `ChooseGreatPersonCommand`, and `greatPeople.ts` for
- * the rules.
- *
- * `applyChooseOrder`'s split — the seat's two questions here, everything about
- * the *offer* delegated whole to `greatPersonChoiceError` — with one thing none
- * of its siblings has: **a refusal that mutates**. When the name was taken by a
- * faster seat this window, the offer this player is holding is unplayable, so it
- * is re-drawn before the refusal is returned.
- *
- * That is a deliberate exception to "a rejected command leaves the state
- * byte-identical", and it is the only one in the reducer. It is confined to
- * exactly one refusal (the contention clause, which no other seat's command can
- * provoke by accident), it is fully determined by the log (the redraw spends
- * `state.rng` at a point every replay reaches identically), and the alternative
- * is a seat holding a hand of spent names that can never end its turn. Every
- * other refusal below returns before a single line runs.
- */
+/** A redraw consumes randomness, so dispatch must record it for the save to replay. */
 function applyChooseGreatPerson(
   state: GameState,
   command: ChooseGreatPersonCommand,
@@ -4137,12 +4108,11 @@ function applyChooseGreatPerson(
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot call anybody`);
   }
 
-  const problem = greatPersonChoiceError(state, actor.id, command.optionIndex);
-  if (problem) {
-    // The one refusal that leaves the empire something to do. See the docblock;
-    // every other refusal in this file returns a byte-identical state.
-    if (problem.includes('already been called')) redrawGreatPersonOffer(state, actor);
-    return fail(problem);
+  const problem = greatPersonChoiceProblem(state, actor.id, command.optionIndex);
+  if (problem?.kind === 'invalid') return fail(problem.reason);
+  if (problem?.kind === 'taken') {
+    redrawGreatPersonOffer(state, actor);
+    return { ok: true, greatPersonOfferRefreshed: problem.reason };
   }
 
   settleGreatPersonChoice(state, actor, command.optionIndex);
@@ -4152,7 +4122,7 @@ function applyChooseGreatPerson(
 /**
  * Buys the recruitment, or the draft. See `PurchaseGreatPersonOfferCommand`.
  *
- * `applyChooseGreatPerson`'s shape minus its one oddity: the whole rule is
+ * The purchase rule is
  * `greatPersonPurchaseError`'s — which is also what the interface greys the
  * button with — and a refusal leaves the state byte-identical, because that gate
  * only ever *reads* the roster. The narrowed draft deals its hand inside the
