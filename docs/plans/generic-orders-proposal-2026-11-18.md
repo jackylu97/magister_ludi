@@ -1,5 +1,7 @@
 # The generic Orders: a candidate set of changes (2026-11-18)
 
+**Current state:** you approved this proposal on 2026-11-18 with ten comments. Section 7 applies them, section 8 is the build list, and `docs/decks/common.md` is the sheet of the final set. Sections 0 to 6 are kept as you approved them.
+
 **Status: a proposal. Nothing here is built, and no data changed.** The request is in `docs/flags.md`, "Generic Orders: a candidate set of changes (2026-11-18)". The user: *"they're weak at the moment and we havent givenmuch thought ot them. Aim for cards that would be generally useful for themes across all decks, please reference the card design skill we drafted."*
 
 The method is the `card-design` skill (`.claude/skills/card-design/`). The review page for a phone is a separate file; this document is the full reasoning.
@@ -1090,3 +1092,282 @@ The user's comments, card by card:
 | A3-1 (your scalers gain twice as much each time) | "add" | Added to the set. |
 
 Every other card of the set is approved as written.
+
+## 7. The set after the ruling (2026-11-18)
+
+Sections 0 to 6 are the proposal as you approved it, and they are kept as they were. This section applies your ten comments. Where it and the earlier sections disagree, this section and the sheet `docs/decks/common.md` are current.
+
+Your later word on numbers, 2026-11-18: *"no need to run bot games, we can fix the numbers later in playtesting if they're too hard."* So no number below was checked against a game. The numbers I am least sure of are marked "to tune in playtest" on the sheet.
+
+### 7.1 What changed
+
+| Card | Change |
+|---|---|
+| G1-6 The Brick Kilns | Now: "Gains +1 science and +1 gold for your empire each time you finish a building, at most +20." Both are paid to the empire as a flat sum, which is what the existing scaler shape does (The Strongbox pays the same way). No town is named. It is Civic now, by the type rule for an even card with a Civic half. |
+| G1-7 The Ever-Normal Granary | Cut. Tier I still holds ten cards with every role (below). The job it did, covering a seat's gap, has no card now; I do not think the band needs one. |
+| G2-2 The Public Peace | Now: "While you are at peace, every town gains +2 food and +1 happiness." One condition, one scope, two things paid. The Wayside Shrines and The Temple Storehouses are written the same way, so it stands as one effect. In the data it is one `conditionRule` over two lines (a `pays` line and a `happiness` line). It is Economic, as The Wayside Shrines is. |
+| G2-6 Commission: The Building Programme | The number stays 12. See 7.2. |
+| G3-3 Commission: The Master Plan | Now: "Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus." The reward is doubled because the goal is much harder. See 7.3. |
+| G3-5 The Building Trades | Cut. Replaced by G3-9 The Office of Works: "On draft: gain a great engineer draft." See 7.4. |
+| G0-9 The Wagon Trains | Added (was A0-1): "Settlers and workers gain +1 movement." |
+| G1-11 The Founders' Rights | Added (was A1-3), as you wrote it: "+3 authority. Cities you found start with one extra citizen." It has two effects and it stands, because you said "add". It reads as two short sentences about one thing, founding one more town. It is a rare, so a second clause is less of a reading cost than on a common. |
+| G2-8 The Personal Union | Added (was A2-1): "Cards that belong to two decks pay 50% more." |
+| G3-8 The Long Memory | Added (was A3-1): "Your scalers gain twice as much each time." |
+| G1-10 | Renamed The Builders' Lodge. The name does not collide with any card, building or great person. |
+
+The ids G1-7 and G3-5 are not used again. Keyword words ("Boon.", "Scaler.", "Charter.") are no longer written in a card's text: since batch DS8 the card frame prints the keyword from the data.
+
+### 7.2 How a commission counts progress (your question on G2-6)
+
+From the code (`src/sim/commissions.ts`, `recordScalingOccasion` in `src/sim/statecraft/draft.ts`, `src/ui/commissionGoal.ts`), there are two kinds of goal:
+
+- **A counted goal** ("clear 2 barbarian camps", "start two rites") counts a moment. The card has its own tally. **The tally rises only while the card is seated.** It is kept when the card is unseated, and it resumes when the card is seated again. The card face says so: "Not seated. Progress is kept and resumes when you seat it." Nothing that happened before the card took a chair counts.
+- **A reached goal** ("hold 1,500 gold", "hold ten Orders") reads a figure of the empire as it stands now. The whole empire counts, whenever it was built. The goal is checked only while the card is seated, at the end of the turn. A seat that already has the figure when it seats the card is paid that turn.
+
+So, for the three generic commissions:
+
+| Commission | Kind | What it means |
+|---|---|---|
+| G2-6 The Building Programme | counted | 12 buildings finished **while it is seated**. The number stays 12. A seat of eight towns in age 3 needs about 15 turns. To tune in playtest. |
+| G1-8 The Land Register | reached | 30 citizens in the empire as it stands. A seat that already has 30 is paid at once, so the number must be above what a seat has when Tier I opens. I read the five shared bot games before your word on numbers arrived: no bot seat had 30 citizens at turn 50 (the most was 21), and 13 of 30 had them at turn 75. So 30 is a goal for the end of Tier I. To tune in playtest. |
+| G3-3 The Master Plan | reached | Four towns of 20 or more citizens, as the empire stands. No study was made. To tune in playtest. |
+
+### 7.3 The Master Plan
+
+The goal is yours: four towns of 20 or more citizens. I did not check whether a seat can reach it in the band. The reward is +40% production toward the Magnum Opus, twice the first figure. +40% is the cap of each deck's own Opus card, so this is the strongest Opus card a seat can hold, for the hardest goal in the generic set. If playtest shows that almost no seat reaches it, lower the goal before you raise the reward.
+
+### 7.4 The Office of Works (the great engineer boon)
+
+**Text:** "On draft: gain a great engineer draft." Tier III, uncommon, Civic, Boon. It takes no chair.
+
+**The shape exists.** The on-draft grant of a great person (`onDraft: [{grant: 'greatPerson'}]`, The Wandering Muse) already takes a family, and `raiseOnDraft` (`src/sim/cities.ts`) passes it to `drawGreatPersonOffer`. The row is `onDraft: [{grant: 'greatPerson', family: 'engineer'}]`.
+
+What the player gets, as the game works today:
+
+- **An offer of great engineers,** the same hand a great person called by renown opens. Its size is the ordinary one: three names (`rules.offers.greatPerson`), or more if a card or legacy widens great-person offers.
+- **The names** are drawn from the engineers of the seat's age first, then the ages before it, then the ages after it, weighted as the ordinary draw is. There are 15 engineers in the data.
+- **It moves no renown.** The seat's renown pool stays where it was, and the family feed that weights later draws is not changed. I did not check whether the pick raises the price of the next rung; the commission rewards that grant a great person behave the same way, whichever it is.
+- **The pick blocks End Turn** until it is made, as every great-person offer does. That is an existing input, not a new one.
+
+Two edge cases, where the existing arm does something a player would dislike:
+
+1. **An offer is already waiting.** The on-draft arm keeps the waiting offer and the new grant does not land. The boon is lost.
+2. **Every engineer is taken.** The offer has no names, and the grant does not land.
+
+A commission's reward does better in both cases: `grantGreatPersonOffer` (`src/sim/greatPeople.ts`) fills the renown ladder to its next rung instead, so the person arrives after the waiting one is chosen. **I recommend the builder sends the on-draft grant through that routine.** It is a change of a few lines and it also fixes The Wandering Muse. It is the only work this card needs.
+
+### 7.5 The doublers
+
+The set now has four cards that act on other cards, and one that doubles a meter:
+
+| Tier | Card | What it raises |
+|---|---|---|
+| I | G1-10 The Builders' Lodge | card lines paid on a building, doubled |
+| II | G2-7 The Summer Palace | card lines paid to the capital, paid again in a second town |
+| II | G2-8 The Personal Union | shared cards, +50% |
+| III | G3-8 The Long Memory | what scalers gain, doubled |
+| III | G3-1 The Good Years | the spare-happiness bonus, doubled |
+
+- **All five stay rare.** A hand rolls the rarity first (60, 30, 10) and then picks a card of that rarity. So a band with two rares shows a rare on 10% of its looks, the same as a band with one. Adding The Personal Union and The Long Memory does not make doublers more common; it makes each one rarer.
+- **Tier II has three Wildcard cards** (the commission and two doublers) and the tier 10 governments have one Wildcard chair. A seat can run one of them at a time until the tier 18 government gives it two. That is a real limit and I think it is the right one.
+- **The Long Memory is dealt only to a seat that holds a scaler.** Without that gate it is a dead card in some seats. The game has this kind of gate already (cards marked "Needs a levy").
+- **The Personal Union needs seated shared cards.** A seat's pool holds 15 to 22 of them over a game. In Tier II a seat is shown a shared card on two drafts in eight, so it holds two or three by then. It is weak with one and strong with three.
+
+### 7.6 One thing you must still decide: The Summer Palace
+
+While I wrote the build list I found that **Scientific's Tier IV Doctrine The Two Capitals already does this**: "Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly." I missed it in the proposal, because I read the Orders of each deck and not the Doctrines.
+
+- The good part: the shape exists (the rule `secondCapital`), so The Summer Palace is a data row.
+- The problem: the generic card is that Doctrine's first half, two tiers earlier, with no drawback and for every seat. A Scientific seat that holds both gains nothing from the second.
+
+You approved G2-7 as written, so it is on the sheet. My recommendation is to change it to a card that is not the Doctrine: **"Cards that pay your capital pay 50% more."** That keeps the capital theme, costs a new narrowing on the card-line amplifier, and stacks with the Doctrine. The other choices are to keep it as it is, or to cut it and leave Tier II with one doubler.
+
+### 7.7 The final set
+
+| Id | Card | Tier | Rarity | Type | Keyword | Text | Needs | Mark |
+|---|---|---|---|---|---|---|---|---|
+| G0-1 | **The Palace School** | 0 | common | Civic |  | Your capital gains +2 science and +2 culture. | existing shape |  |
+| G0-2 | **The Royal Household** | 0 | common | Civic |  | Your capital gains +3 culture and +2 happiness. | existing shape |  |
+| G0-3 | **The Home Fields** | 0 | common | Economic |  | Resource tiles in your capital gain +1 food. | existing shape |  |
+| G0-4 | **First Fruits Feasts** | 0 | common | Civic |  | Improving a resource tile grants 5 culture. | existing shape |  |
+| G0-5 | **The Marchmen** | 0 | common | Military |  | Your units gain +3 strength against barbarians. | existing shape |  |
+| G0-6 | **Far Runners** | 0 | common | Military |  | All your units gain +1 sight. | existing shape |  |
+| G0-7 | **The Threshing Floor** | 0 | common | Economic |  | Your capital gains +1 production for every two citizens. | existing shape |  |
+| G0-8 | **Light Kit** | 0 | rare | Military |  | All your units gain +1 movement and +1 sight, and -2 combat strength. | existing shape |  |
+| G0-9 | **The Wagon Trains** | 0 | common | Military |  | Settlers and workers gain +1 movement. | existing shape | added |
+| G1-1 | **Common Festivals** | I | common | Civic |  | Every town gains +1 happiness. | existing shape |  |
+| G1-2 | **The Capital's Example** | I | common | Economic |  | Your other towns build buildings your capital already has 25% faster. | new shape |  |
+| G1-3 | **The Hall of Fame** | I | common | Civic |  | +30% renown in your capital. | existing shape |  |
+| G1-4 | **The Gilded Country** | I | common | Economic |  | Every tile that makes at least 1 gold gains 1 more. | new shape |  |
+| G1-5 | **Cistern Works** | I | common | Economic | Charter | Unlocks the Cistern: +2 food, and its town counts as standing on fresh water. | existing shape |  |
+| G1-6 | **The Brick Kilns** | I | uncommon | Civic | Scaler | Gains +1 science and +1 gold for your empire each time you finish a building, at most +20. | small extension | changed |
+| G1-8 | **Commission: The Land Register** | I | uncommon | Wildcard | Commission | Goal: have 30 citizens. Reward: every town gains +2 food and +2 production. | small extension |  |
+| G1-9 | **The Liturgies** | I | common | Economic | Boon | On draft: every town gains production equal to ten times its citizens. | small extension |  |
+| G1-10 | **The Builders' Lodge** | I | rare | Wildcard |  | Orders that add yields to buildings pay double. | new shape | renamed |
+| G1-11 | **The Founders' Rights** | I | rare | Civic |  | +3 authority. Cities you found start with one extra citizen. | existing shape | added |
+| G2-1 | **Local Clerks** | II | common | Civic |  | Gain +3 authority. | existing shape |  |
+| G2-2 | **The Public Peace** | II | common | Economic |  | While you are at peace, every town gains +2 food and +1 happiness. | existing shape | changed |
+| G2-3 | **The Town Watch** | II | common | Military |  | Your units gain +5 strength when defending in your territory. | existing shape |  |
+| G2-4 | **The Learned Embassy** | II | common | Civic | Boon | On draft: gain science equal to eight turns of your science. | small extension |  |
+| G2-5 | **The Royal Annals** | II | uncommon | Economic |  | +4% production and gold for each commission you have fulfilled this game, at most +28%. | existing shape |  |
+| G2-6 | **Commission: The Building Programme** | II | uncommon | Wildcard | Commission | Goal: finish 12 buildings. Reward: every town gains +10% production. | small extension | answered |
+| G2-7 | **The Summer Palace** | II | rare | Wildcard |  | Cards that pay your capital also pay your largest other town. | existing shape | flag |
+| G2-8 | **The Personal Union** | II | rare | Wildcard |  | Cards that belong to two decks pay 50% more. | small extension | added |
+| G3-1 | **The Good Years** | III | rare | Civic |  | Your bonus from spare happiness is doubled. | existing shape |  |
+| G3-2 | **City Watches** | III | common | Military |  | Your towns gain +8 defence. | existing shape |  |
+| G3-3 | **Commission: The Master Plan** | III | uncommon | Wildcard | Commission | Goal: hold four towns of 20 or more citizens. Reward: +40% production toward the Magnum Opus. | small extension | changed |
+| G3-4 | **The General Summons** | III | uncommon | Military | Boon | On draft: gain three of the best melee units you can build, in your capital. They cost no upkeep. | small extension |  |
+| G3-6 | **The Old Patterns** | III | uncommon | Economic |  | Towns build buildings of earlier ages 40% faster. | new shape |  |
+| G3-7 | **The Old Foundations** | III | common | Economic |  | Buildings of the first two ages cost no gold upkeep. | new shape |  |
+| G3-8 | **The Long Memory** | III | rare | Wildcard |  | Your scalers gain twice as much each time. | small extension | added |
+| G3-9 | **The Office of Works** | III | uncommon | Civic | Boon | On draft: gain a great engineer draft. | existing shape | added |
+| G4-1 | **The Grand Design** | IV | uncommon | Economic |  | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. | existing shape |  |
+| G4-2 | **The Last Walls** | IV | common | Military |  | The town raising your Magnum Opus gains +15 defence. | existing shape |  |
+| G4-3 | **The Great Raising** | IV | rare | Wildcard | Boon | On draft: every town finishes what it is building. Not wonders. | new shape |  |
+| G4-4 | **The Settled Realm** | IV | common | Civic |  | Every town gains +2 happiness. | existing shape |  |
+
+**Counts:**
+
+| Tier | Cards | Common | Uncommon | Rare | Military | Economic | Civic | Wildcard | No lasting chair |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 9 | 8 | 0 | 1 | 4 | 2 | 3 | 0 | 0 |
+| I | 10 | 6 | 2 | 2 | 0 | 4 | 4 | 2 | 3 |
+| II | 8 | 4 | 2 | 2 | 1 | 2 | 2 | 3 | 2 |
+| III | 8 | 2 | 4 | 2 | 2 | 2 | 2 | 2 | 3 |
+| IV | 4 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| **All** | **39** | **22** | **9** | **8** | **8** | **11** | **12** | **8** | **9** |
+
+### 7.8 The composition checks again, for the bands that changed
+
+- **Tier 0 (9 cards).** Four of nine are Military (The Marchmen, Far Runners, Light Kit, The Wagon Trains), but only The Marchmen is a combat card. Far Runners (sight), The Wagon Trains (movement for settlers and workers) and Light Kit (movement and sight for all, with a drawback) are close to each other. They do not have one job: one is sight, one is two unit classes, one is everything for a price. If the band feels like too much scouting in play, Far Runners is the one to drop.
+- **Tier I (10 cards).** Without The Ever-Normal Granary the band has: three utility answers (Common Festivals, Cistern Works, The Founders' Rights), three glue cards (The Capital's Example, The Hall of Fame, The Liturgies), three pay-offs (The Gilded Country, The Brick Kilns, The Land Register) and one doubler (The Builders' Lodge). Shapes: happiness, a production line, renown, a tile line, a charter, a scaler, a commission, a boon, a doubler, authority with a founding rider. No two cards share a job. It still has no Military card.
+- **Tier I and Tier II both give +3 authority** (The Founders' Rights, Local Clerks). They are in different bands, and a seat that takes both has two more towns. Your note of 2026-09-03 says authority is too plentiful, so watch this pair first.
+- **Tier II (8 cards).** Two utility answers (Local Clerks, The Town Watch), one peace card, one boon, one counter, one commission, two doublers. Three of the eight are Wildcard (7.5).
+- **Tier III (8 cards).** Two boons now (The General Summons, The Office of Works), one commission, two doublers, two wide-empire economy cards (The Old Patterns, The Old Foundations), one defence card. With The Building Trades gone, no generic card reads the buildings that stand; The Brick Kilns and The Building Programme still read the buildings finished.
+- **No linchpin, and every pay-off has a floor or a gate:** The Long Memory has its gate, and the other pay-offs are as in section 4.
+
+## 8. The build list
+
+For the builder. Take the groups in this order. The sheet `docs/decks/common.md` has each card's text; a row is done when its data text equals the sheet's Ability cell.
+
+Every new row goes in `data/decks/common.json` with `decks: []`, `line: "none"`, a band, a rarity, a `type`, a Flavour line and its text. `test/sim/decks/common.test.ts` asks for all of these.
+
+### 8.1 Group 1: shapes that exist today (24 cards, a JSON row each)
+
+| Id | Card | Effect, in the data's words | To check |
+|---|---|---|---|
+| G0-1 | The Palace School | `pays`, city, scope capital, science 2, culture 2 | |
+| G0-2 | The Royal Household | `pays`, city, scope capital, culture 3; `happiness` 2 | |
+| G0-3 | The Home Fields | `pays`, hex, on `hasResource`, scope capital, food 1 | that a hex line takes the capital scope (The Provincial Fair joins `on` and `scope`) |
+| G0-4 | First Fruits Feasts | `windfallRider`, occasion `improvementBuilt`, grant culture 5 | that the rider can be narrowed to a resource tile; if it cannot, this card moves to group 2 |
+| G0-5 | The Marchmen | `combatLine` 3, when `vsBarbarians` | |
+| G0-6 | Far Runners | `unitStat` sight 1 | |
+| G0-7 | The Threshing Floor | `pays`, city, scope capital, basis count, count `capitalPopulation`, per 2, to production | |
+| G0-8 | Light Kit | `unitStat` movement 1; `unitStat` sight 1; `combatLine` -2, when `always` | that a combat line may be negative (Total War's happiness line is, its combat line is not) |
+| G0-9 | The Wagon Trains | `unitStat` movement 1, class settler and worker | |
+| G1-1 | Common Festivals | `happiness` 1, per city | |
+| G1-3 | The Hall of Fame | `cityRenownPercent` 30, scope capital | |
+| G1-5 | Cistern Works | a charter that unlocks the building `cistern` (`unlocksBuilding`) | the building row has no faith and does not water the tiles beside the town; the sheet's text follows the row |
+| G1-11 | The Founders' Rights | `authority` 3; `foundingRider` with a citizen (The Seed Grain's row) | |
+| G2-1 | Local Clerks | `authority` 3 (the live row, 1 becomes 3) | |
+| G2-2 | The Public Peace | `conditionRule`, when `atPeace`, then `pays` city food 2 and `happiness` 1 per city | |
+| G2-3 | The Town Watch | `combatLine` 5, side defend, when `ownTerritory` | |
+| G2-5 | The Royal Annals | two `pays` lines, where empire, basis count, count `commissionsMet`, percent 4, stage empire, max 7, to production and to gold (the retired The Res Gestae's rows, with gold for culture) | |
+| G2-7 | The Summer Palace | `rule` `secondCapital` | section 7.6: it is the first half of the Doctrine The Two Capitals; wait for the user's choice |
+| G3-1 | The Good Years | `happinessTierBoost` | the field is `points`, not "doubled": write the points that double each step, and check `tierClamp` (20) in `data/rules.json` and that a penalty step is not raised |
+| G3-2 | City Watches | `cityStat` defence 8 (the live deferred row, rewritten) | |
+| G3-9 | The Office of Works | `onDraft: [{grant: 'greatPerson', family: 'engineer'}]` | section 7.4: send the on-draft grant through `grantGreatPersonOffer` so it is not lost |
+| G4-1 | The Grand Design | `pays`, city, scope `raisingOpus`, basis count, count `population`, per 2, to production | |
+| G4-2 | The Last Walls | `cityStat` defence 15, scope `raisingOpus` | |
+| G4-4 | The Settled Realm | `happiness` 2, per city | |
+
+### 8.2 Group 2: small extensions (8 extensions, 9 cards)
+
+Each adds one member to a list the game already has.
+
+1. **A tally of buildings finished** (`TallyOccasion`, written by `recordScalingOccasion`). Used by G1-6 The Brick Kilns (a scaler: two `pays` lines, where empire, count `tally`, max 20) and G2-6 The Building Programme (a counted goal of 12). A bought building counts. A wonder does not.
+2. **A commission figure: citizens in the empire** (`CommissionFigure`, measured in `commissionFigure`, `src/sim/commissions.ts`). Used by G1-8 The Land Register. Its reward is a lasting `pays` line in every town.
+3. **A commission figure: towns of at least a given size.** Used by G3-3 The Master Plan. The goal carries the size (20) and the count (4). Its reward is a lasting production bonus toward the Opus.
+4. **An on-draft grant paid to every town from its citizens.** The windfall grant has `toEveryTown` and `fromTownPopulation` (The Journeymen); the on-draft windfall (`OnDraftWindfall`) has `toCapital` only. Used by G1-9 The Liturgies.
+5. **An on-draft grant sized by a per-turn rate** (`fromRate`, as The Doctorate's grant). Used by G2-4 The Learned Embassy.
+6. **A count on the on-draft unit grant.** The Sword of State grants one `bestMelee`. Used by G3-4 The General Summons (three).
+7. **A selector on the card-type amplifier: a card that names two decks** (`cardTypeAmplifier` today selects a chair type). Used by G2-8 The Personal Union. It raises every number the seated shared cards give, as the tier-26 governments raise a type.
+8. **A meta rule that doubles what a scaler gains, and a deal gate "holds a scaler".** The rule joins `metaRule` beside `techCountsTwice`, read where `recordScalingOccasion` raises a tally. The gate joins `dealGateFor` (`src/sim/statecraft/draft.ts`) beside `needsLevy`. Used by G3-8 The Long Memory. A commission's tally is not doubled.
+
+### 8.3 Group 3: new shapes (5 entries, 6 cards)
+
+In the order I would build them: the cheapest first, and the two that share a filter together.
+
+**1. An age filter on a production line, and its sibling "the capital has it".** Cards: G3-6 The Old Patterns, G1-2 The Capital's Example.
+- *What it does.* A `productionBonus` row for buildings gains one of two narrowings. `earlierAges`: the building's age is below the seat's research age. `capitalHas`: the capital holds the building now, and the town is not the capital.
+- *Where it joins.* `cardProduction` in `src/sim/statecraft/evaluator.ts` (the reader of `productionBonus`).
+- *Words.* "Towns build buildings of earlier ages 40% faster." and "Your other towns build buildings your capital already has 25% faster." The second needs a clause for "your other towns".
+- *Yield sequence.* `productionBonus` lands at step 11 of `docs/yields.md` (multiplicative, production only, the city stage). No new row in the register.
+- *Edge cases.* A building with no age of its own (opened by a charter, or granted only): not an earlier-age building. A wonder and a project: never. A seat with one town: The Capital's Example pays nothing. The capital loses the building (a capture): the bonus stops at once. Under The Two Capitals: only the true capital counts.
+
+**2. A hex line that tests what the tile already makes.** Card: G1-4 The Gilded Country (and Holy Ground, if the user ever takes it).
+- *What it does.* A `pays` hex line with a new tile test: the tile's own fold of one yield, without this card's line, is at least 1.
+- *Where it joins.* The tile tests (`tileConditionHolds`) and the card tile lines (`cardTileLines`, `scopedCardTileLines`). The evaluator already has a notion of a test that reads the fold (`tileConditionReadsFold`); this test joins it.
+- *Words.* "Every tile that makes at least 1 gold gains 1 more."
+- *Yield sequence.* Step 2 (the hex), additive, row `pays` hex flat. The line must be folded after every other hex line, and the register should say so.
+- *Edge cases.* Its own +1 never counts toward the test. Two such cards on one yield cannot exist today; if a second is added, each must leave out both. A percentage on the hex is applied after it. A tile that makes gold only through another card: counts (this is the point of the card). An unworked tile: no line, as for every hex line. Rule 5: it is one labelled line in `explainTileYield`.
+
+**3. The card-line doubler narrowed to lines a building pays.** Card: G1-10 The Builders' Lodge.
+- *What it does.* A `cardYieldAmplifier` (percent 100) with a new narrowing: the amplified line's own condition names a building or a building category in the town (`hasBuilding`, `buildingsOfCategory`, a count of `buildingsOfKind`, or a "each X gives" row).
+- *Where it joins.* `cardYieldAmplifier`'s reader (the amplifier functions near `cardAmplifierFlat`), which today narrows by a hex test (`on`).
+- *Words.* "Orders that add yields to buildings pay double."
+- *Yield sequence.* The register's `cardYieldAmplifier` row: steps 2, 3 and 18, over the card lines of the fold it reads. No new row, but the row's text should name the new narrowing.
+- *Edge cases.* A building's own yields are never doubled. A Doctrine's line: the text says Orders, so no. A percentage line whose condition is a building (Enduring Institutions): doubled, unless the user rules otherwise. A one-off payout on finishing a building: not doubled (it is a moment, not a line on a building). Two doublers on one line (with The Personal Union, or The Grand Vizier): they add, they do not multiply, by the amplifier's own rule.
+
+**4. Building upkeep relief by age.** Card: G3-7 The Old Foundations.
+- *What it does.* Buildings of ages 1 and 2 cost no gold maintenance.
+- *Where it joins.* The building maintenance line of `explainEmpireGold` (`src/sim/empireGold.ts`), through a reader in the evaluator beside the unit upkeep readers (`cardUpkeepRebateLines`). It is a new effect kind or a new `where` on `upkeepRebate`.
+- *Words.* "Buildings of the first two ages cost no gold upkeep."
+- *Yield sequence.* Not in the town sequence. It changes one line of the empire's gold fold, and belongs in "Kinds that move a voice but not through this sequence".
+- *Edge cases.* It must be a labelled rebate line, not a smaller maintenance line (rule 5). A building with no age: not covered. Check first what building maintenance costs in age 4; if it is a few gold, cut the card instead.
+
+**5. An on-draft grant that finishes each town's front item.** Card: G4-3 The Great Raising.
+- *What it does.* When the card is drafted, each of the seat's towns completes the item at the front of its queue.
+- *Where it joins.* `raiseOnDraft` (`src/sim/cities.ts`), a new arm of `OnDraftGrant`, realised through `realiseItem` as a purchase is.
+- *Words.* "On draft: every town finishes what it is building. Not wonders."
+- *Yield sequence.* None.
+- *Edge cases.* A wonder, the Opus and a project at the front: left alone. An empty queue: nothing. A unit that cannot be placed: follow the purchase rule. Production already banked on the item: it is spent, not kept as overflow. Completion riders (a card that pays on a building finished) fire for each. The unit's escalation ladder rises as for a built unit, not as for a free one. A town in unrest or a puppet: follow the purchase rule.
+
+### 8.4 The present generic rows
+
+**Retire** (`retired: true`; the row keeps its text and effects, for saves):
+
+- Dealt today: `hearthStores`, `watchmen`, `restingCamps`, `localMarkets`, `theVillageScribe`, `publicGatherings`, `householdAltars`, `commonBoundaryStones`, `publicWells`, `civicPeace`, `publicHospitals`, `commonLedgers`.
+- Deferred, never dealt: `commonTools`, `roadCrews`, `roadMaintenance`, `emergencyStores`.
+
+**Change in place:**
+
+- `localClerks`: +1 authority becomes +3, and it gains the type Civic.
+- `cityWatches`: the deferred row becomes "Your towns gain +8 defence." with a `cityStat` line and the type Military.
+
+**Tests this touches:** `test/sim/decks/common.test.ts` lists the retired rows by id and expects each retired row to name two decks. Both must change. `docs/orders-and-doctrines.md` has a generic table under `test/sim/statecraftDocSync.test.ts`; it changes in the same batch.
+
+### 8.5 What a bot needs
+
+`src/ai/value.ts` prices a card. Today it prices a boon as a lump spread over the turns left (`onDraftWorth`), a commission as its reward (`explainCommission`), and an amplifier by the lines it would find (`amplifiedLines`). Each new thing needs an entry, or the bot values it at nothing:
+
+- **Boons.** The three new on-draft options (every town from its citizens, a per-turn rate, three units) need a price in the on-draft pricing (`magisterialDraftGrantWorth` and `draftedUnitWorth`). The Great Raising needs its own: the production each town's front item still lacks. The great engineer draft is priced already, as The Wandering Muse is.
+- **Commissions.** The two new figures (citizens, towns of a size) must be readable by the bot's reading of how far a goal is (`commissionProgress`), so that it does not seat The Master Plan with no town above ten. The counted goal needs a rate of buildings finished per turn, as `commissionMetRate` has for its own count.
+- **A commission's chair.** The bot should know that a commission holds a Wildcard chair and pays nothing until it is met.
+- **Doublers.** The Builders' Lodge: `amplifiedLines` must count the seated lines whose condition is a building. The Personal Union: count the seated shared cards and what they pay. The Long Memory: the gains its seated scalers still expect. The Summer Palace is priced as The Two Capitals is.
+- **The Royal Annals.** It reads commissions met; the bot has a rate for that (`commissionMetRate`), with a cautious default.
+- **Conditions.** The Public Peace should be priced by the share of turns the seat is at peace. The Good Years should be priced at nothing below 5 spare happiness.
+- **Defence cards.** Bots skip combat cards. The Town Watch, City Watches and The Last Walls will not be seated by a bot unless it knows it is being attacked. That is acceptable for now; say so in the batch report.
+- **The arena panel.** Any new bot knob appears on `arena.html` with no page edit (CLAUDE.md).
+
+### 8.6 Putting the sheet under a sync test
+
+`docs/decks/common.md` is written to be read by the test that reads the six deck sheets. The builder must:
+
+1. **Stop the generator.** `scripts/deckDocs.mjs` writes `docs/decks/common.md` (its last block, `writeSheet('docs/decks/common.md', ...)`). Remove that block, or the next run overwrites the sheet.
+2. **Read the tier tables** with the reader `test/sim/decks/dominion.test.ts` uses (five tier headings, a table each; the first five cells are Card, Rarity, Status, Ability, Type, as on every deck sheet). Move that reader to `test/sim/decks/sortedSheets.ts` so two test files can share it. The sheet has two more cells, Keyword and Id.
+3. **Check, in `test/sim/decks/common.test.ts`:** an `implemented` row's rarity, tier, text and type equal the data row's; a `modify` row has a data row; an `add` row has none; every generic data row that is not retired is on the sheet once; a retired row is on no table.
+4. **Check the Keyword cell** against `orderKeyword` for every row that has a data row.
+5. **Let generic rows carry a type.** `rowsListedOnSortedSheets` (`sortedSheets.ts`) lists the rows that may have a `type`. Add the generic rows that `common.md` lists, or a typed generic row fails the rule in `dominion.test.ts`.
+6. **The Id cell is not data.** The test ignores it. It is there so that comments and this proposal can cite a card.
+7. **As each card is built,** its Status changes from `add` or `modify` to `implemented`, and the counts table at the top of the sheet is recomputed.
