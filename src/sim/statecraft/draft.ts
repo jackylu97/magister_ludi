@@ -305,22 +305,8 @@ export interface SlottedOrder {
    */
   firePeriod?: number;
   /**
-   * **Order drafts rerolled while this card has sat in this chair** — the count
-   * `rerollsWhileSlotted` reads.
-   *
-   * Declared here and written by **nobody** until batch C1 builds the reroll
-   * verb (`docs/fewer-things-plan.md`): a save from before that batch and a save
-   * from after it serialise identically for every empire that has never
-   * rerolled, because absence is nought. It belongs to the chair for the count's
-   * own reason — the ruled sentence is *"while this Order is slotted"*.
-   *
-   * **Order drafts, and only Order drafts** — which is what this field has always
-   * said and what it still says now that a Doctrine draft and a great-person
-   * draft can be rerolled on the same faith ladder (schema 85, ruled 2026-09-07:
-   * item q). The Votive Tally sits in the chairs the Order draft fills and is
-   * written on that draft; a card that quietly began counting two more kinds of
-   * hand would be a different card from the one the player took. Its row says so
-   * in words.
+   * Each Order draft reroll adds one to every occupied chair. A missing count
+   * means zero. `rerollsWhileSlotted` reads this count for the seated card.
    */
   rerollsSeen?: number;
 }
