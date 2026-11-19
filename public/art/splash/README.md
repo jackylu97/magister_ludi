@@ -40,6 +40,16 @@ The painting then shows on the full-screen wonder plate and on the wonder's
 piece on the In play screen. A wonder without a painting shows the engraved
 stand-in. Leaders, ages and beliefs are not wired yet.
 
+## The ending paintings
+
+The two ending paintings are wired. The ending page of the Opus close
+(`src/ui/opusClose.ts`) covers the whole window with one of them, cut from the
+centre: `win.jpg` for the seat that closed the Great Work, `loss.jpg` for every
+other seat. `src/ui/endingPaintings.ts` names the two files, and a test fails
+if the list and the folder disagree. The lower third of the page is under a
+dark fade, with the words at the left and the doors at the right, so keep the
+subject of a painting out of its lower third.
+
 ## How a great person's portrait gets into the game
 
 The great person card (the offer and the Reliquary) has an arched picture

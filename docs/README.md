@@ -1391,6 +1391,18 @@ earned).
 - The Opus's completion mints the **golden bead**, closes the age, and
   `winnerId` = **the empire that raised it**. Beads gate the door; the finished
   work decides the game.
+- **The Opus close** (`src/ui/opusClose.ts`) is what every seat sees then. It
+  opens on the **ending page**: one painting over the whole window
+  (`endings/win.jpg` for the seat that closed the work, `endings/loss.jpg` for
+  the others; `src/ui/endingPaintings.ts`), with the sun or the moon, "The
+  Great Work is closed", the winner's name with "wins", and one sentence (the
+  standings' own line, `victoryHead`, with the verb "closed"). If the painting
+  does not load, the page shows deep lapis (a win) or the dark cloth (a loss)
+  behind the same words. The page waits for one of three doors:
+  - "See the Abacus" (Enter or Space): the Abacus page, where the golden bead
+    lights on the winner's rod and slides home; then the standings rise.
+  - "Look at the board" (Escape): the close comes down and the game goes on.
+  - "Back to the title": the standings' own path to the landing.
 
 ## The bots
 
@@ -1473,7 +1485,7 @@ Eight root pages, all named in `vite.config.ts` inputs:
 | `compendium.html` | every entry generated from data rows and the sim's own describers; stable `kind:id` anchors; also mounts as the in-game "?" |
 | `mapgen.html` | the generator's experimental loop, every tunable live |
 | `pieces.html` · `flair.html` | the piece gallery and every drawn mark with live sliders (**a new visual asset joins `flair.html` in the pass that ships it**) |
-| `abacus.html` | the bead rods; `?stage=bead`, `screen` or `close` mounts the game's bead page, Abacus screen or Opus close, and `?abacusPlaces=8` cuts 8 places on a rod (look-dev only) |
+| `abacus.html` | the bead rods; `?stage=bead`, `screen` or `close` mounts the game's bead page, Abacus screen or Opus close (`&ending=loss` for the loss, `&painting=missing` for the page without its painting, `&hold=1` for the Abacus page held after the bead lands), and `?abacusPlaces=8` cuts 8 places on a rod (look-dev only) |
 
 - `src/render3d/` is the default renderer (Three.js ortho toon diorama,
   procedural primitives only; tunables in `data/view3d.json`). `src/render/` is

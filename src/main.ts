@@ -1138,9 +1138,9 @@ let pendingWonders: {
   triumph: TriumphAward | null;
 }[] = [];
 /**
- * The Opus close (batch SS7, `opusClose.ts`): the two beats and the Abacus page
- * that a game closed by the Magnum Opus ends on, before the standings. Held
- * here for the age plate's reason.
+ * The Opus close (batch SS7, `opusClose.ts`): the painted ending page and the
+ * Abacus page that a game closed by the Magnum Opus ends on, before the
+ * standings. Held here for the age plate's reason.
  */
 let opusClose: OpusClose | null = null;
 
@@ -3204,13 +3204,16 @@ async function boot(initial: Game | null): Promise<void> {
 
   /**
    * The Opus close (batch SS7, `opusClose.ts`): raised by `onVictory` for a game
-   * the Magnum Opus closed. When its beats end, or a key cuts them short, the
-   * standings rise.
+   * the Magnum Opus closed. It opens on the painted ending page. "See the
+   * Abacus" runs the Abacus page, and when its beats end, or a key cuts them
+   * short, the standings rise. "Back to the title" is the standings' own path
+   * to the landing (`showLanding`).
    */
   opusClose = createOpusClose({
     overlay: opusCloseOverlayEl,
     onOpen: () => screens.opening('opusClose'),
     onFinished: () => victory?.open(),
+    toTitle: () => showLanding(),
   });
   gameDisposers.push(() => opusClose?.dispose());
 
@@ -4684,10 +4687,11 @@ async function boot(initial: Game | null): Promise<void> {
       const player = game.state.players[playerId];
       if (!player) return;
       // **A game the Magnum Opus closed ends on the Opus close** (batch SS7):
-      // nigredo, albedo and the Abacus page, and then the standings, which the
-      // close raises itself. It is raised for every seat, as the sheet is.
+      // the painted ending page, the Abacus page, and then the standings, which
+      // the close raises itself. It is raised for every seat, as the sheet is,
+      // and the seat reading it decides the painting: the win or the loss.
       if (opusClose && wonByOpus(game.state)) {
-        opusClose.play(opusCloseReading(game.state, abacusRows()));
+        opusClose.play(opusCloseReading(game.state, abacusRows(), controls.localPlayerId()));
         return;
       }
       // Any other win: two volumes, one moment, `reportTriumphs`' own split: the

@@ -204,8 +204,13 @@ export function deckWords(lines: readonly ScoreLine[]): string {
  *   the winner (the board's two readings).
  * - Won by being the last empire left: the same two sentences with "is the last
  *   empire standing".
+ *
+ * `verb` is the word for what the winner did to the work. The standings say
+ * "finished". The ending page of the Opus close (`opusClose.ts`) says "closed",
+ * to match its line "The Great Work is closed". Both pages use this function,
+ * so the winner, the work, the town and the last sentence are the same on both.
  */
-export function victoryHead(state: GameState, playerId: number): VictoryHead {
+export function victoryHead(state: GameState, playerId: number, verb: 'finished' | 'closed' = 'finished'): VictoryHead {
   const winnerId = state.winnerId;
   const work = opusName();
   if (winnerId === null) {
@@ -231,7 +236,7 @@ export function victoryHead(state: GameState, playerId: number): VictoryHead {
   return {
     won: true,
     parts: [
-      { text: `${who} finished ` },
+      { text: `${who} ${verb} ` },
       { text: work, work: true },
       { text: city === null ? `. ${whose}` : ` in ${city.name}. ${whose}` },
     ],
