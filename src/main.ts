@@ -70,8 +70,10 @@ import type { Renderer3D } from './render3d/renderer3d';
 import type { PaintedBuildReport } from './render3d/paintedBoardAsync.js';
 import { probeGraphics } from './render3d/canvasSetup';
 import {
+  type TileOwnerLine,
   describeImprovement,
   describeOccupant,
+  describeOwner,
   describeTile,
   describeSurvey,
   describeWater,
@@ -577,6 +579,7 @@ const infoSeed = requireElement<HTMLElement>('info-seed');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoWater = requireElement<HTMLElement>('info-water');
+const infoOwner = requireElement<HTMLElement>('info-owner');
 const infoFounding = requireElement<HTMLElement>('info-founding');
 const infoSite = requireElement<HTMLElement>('info-site');
 const infoYields = requireElement<HTMLElement>('info-yields');
@@ -1860,6 +1863,16 @@ function setInfoRow(
   else value.replaceChildren(...nodes);
 }
 
+/** The owner line as nodes: a swatch in the holder's ink, then the name. `null` for free ground. */
+function ownerNodes(owner: TileOwnerLine | null): Node[] | null {
+  if (owner === null) return null;
+  const swatch = document.createElement('i');
+  swatch.className = 'info-owner-ink';
+  swatch.setAttribute('aria-hidden', 'true');
+  swatch.style.background = owner.ink;
+  return [swatch, document.createTextNode(owner.name)];
+}
+
 /**
  * Every row of the readout *except* the terrain, taken off the card.
  *
@@ -1872,6 +1885,7 @@ function clearInfoRows(): void {
   for (const row of [
     infoFeature,
     infoWater,
+    infoOwner,
     infoFounding,
     infoSite,
     infoYields,
@@ -2778,6 +2792,8 @@ async function boot(initial: Game | null): Promise<void> {
       // than a clause on the terrain: "Grassland (hills)" is what the ground
       // *is*, and coast and fresh water are facts about what is next to it.
       setInfoRow(infoWater, describeWater(game.state, hover.tile));
+      // Who holds the hex (Quiet Table, build stage 1): no row on free ground.
+      setInfoRow(infoOwner, ownerNodes(describeOwner(game.state, seat, hover.tile)));
       // The settler lens's row, and the lens is the *placement* half of the
       // condition — asked of `boardLens` rather than of the menu, for the reason
       // the faith card asks it that way: picking a settler up raises this lens

@@ -40,6 +40,7 @@
  * Data is data: every string arrives as a text node (`turnSplash.ts`'s rule).
  */
 
+import { COURT_MARKS, courtMarkDataUri } from '../art/courtMarks';
 import { element } from './dom';
 
 /** What a caller asks. `cancelLabel` is the only thing with a default. */
@@ -52,14 +53,24 @@ export interface ConfirmRequest {
   confirmLabel: string;
   /** The harmless button's word. "Cancel" when the caller does not care. */
   cancelLabel?: string;
+  /** What follows, one short line each, printed as a list under the body. */
+  points?: readonly string[];
+  /**
+   * A grave act (Declare war, version A, Quiet Table build stage 1): the
+   * confirm is the war red with the blade mark, and **Enter does not
+   * confirm** (`confirmAnswer`). Focus is on the harmless answer as always.
+   */
+  tone?: 'war';
 }
 
 /** The request with every default filled in — what the card actually draws. */
 interface ConfirmFace {
   title: string;
   body: string;
+  points: readonly string[];
   confirmLabel: string;
   cancelLabel: string;
+  tone: 'plain' | 'war';
 }
 
 /**
@@ -75,8 +86,10 @@ export function confirmFace(request: ConfirmRequest): ConfirmFace {
   return {
     title: request.title,
     body: request.body,
+    points: request.points ?? [],
     confirmLabel: request.confirmLabel,
     cancelLabel: cancel !== undefined && cancel.length > 0 ? cancel : 'Cancel',
+    tone: request.tone ?? 'plain',
   };
 }
 
@@ -90,9 +103,13 @@ type ConfirmAnswer = 'confirm' | 'cancel';
  * Pure, and separate from the listener, because the asymmetry is the whole
  * design: Escape is *not* a second way to say yes here, unlike the Triumph
  * sheet where both keys proceed. See the module docblock.
+ *
+ * A grave question (`tone: 'war'`) takes no Enter at all: the key falls to
+ * the focused button, which is the harmless one, so a reflex Enter keeps the
+ * peace.
  */
-export function confirmAnswer(key: string): ConfirmAnswer | null {
-  if (key === 'Enter') return 'confirm';
+export function confirmAnswer(key: string, tone: 'plain' | 'war' = 'plain'): ConfirmAnswer | null {
+  if (key === 'Enter') return tone === 'war' ? null : 'confirm';
   if (key === 'Escape') return 'cancel';
   return null;
 }
@@ -150,10 +167,22 @@ export interface ConfirmCard {
   dispose(): void;
 }
 
+/** The blade mark of Declare war (`courtMarks.ts`), for the grave confirm. Text-coloured. */
+export function bladeMark(): HTMLElement {
+  const node = element('span', 'court-mark is-war');
+  node.setAttribute('aria-hidden', 'true');
+  node.style.setProperty('--court-mark', `url("${courtMarkDataUri('war')}")`);
+  node.style.setProperty('--court-mark-w', `${COURT_MARKS.war.width}px`);
+  node.style.setProperty('--court-mark-h', `${COURT_MARKS.war.height}px`);
+  return node;
+}
+
 export function createConfirmCard(container: HTMLElement): ConfirmCard {
   const gate = createConfirmGate();
   /** Where focus goes back to once the question is answered. */
   let restoreFocus: HTMLElement | null = null;
+  /** The tone of the question on the card, for the keys. */
+  let tone: 'plain' | 'war' = 'plain';
 
   function takeDown(): void {
     container.replaceChildren();
@@ -176,9 +205,14 @@ export function createConfirmCard(container: HTMLElement): ConfirmCard {
   function render(face: ConfirmFace): void {
     container.replaceChildren();
 
-    const card = element('div', 'confirm-card');
+    const card = element('div', face.tone === 'war' ? 'confirm-card is-war' : 'confirm-card');
     card.append(element('h2', 'confirm-title', face.title));
     card.append(element('p', 'confirm-body', face.body));
+    if (face.points.length > 0) {
+      const list = element('ul', 'confirm-points');
+      for (const point of face.points) list.append(element('li', undefined, point));
+      card.append(list);
+    }
 
     const foot = element('div', 'confirm-foot');
 
@@ -192,9 +226,10 @@ export function createConfirmCard(container: HTMLElement): ConfirmCard {
     foot.append(cancel);
 
     const confirm = document.createElement('button');
-    confirm.className = 'btn btn-primary confirm-yes';
+    confirm.className = face.tone === 'war' ? 'btn btn-primary confirm-yes is-war' : 'btn btn-primary confirm-yes';
     confirm.type = 'button';
-    confirm.textContent = face.confirmLabel;
+    if (face.tone === 'war') confirm.append(bladeMark());
+    confirm.append(face.confirmLabel);
     confirm.addEventListener('click', () => settle('confirm'));
     foot.append(confirm);
 
@@ -209,7 +244,14 @@ export function createConfirmCard(container: HTMLElement): ConfirmCard {
   // blocking surface so Escape here never also backs something out there.
   function onKeyDown(event: KeyboardEvent): void {
     if (!gate.isOpen) return;
-    const answer = confirmAnswer(event.key);
+    const answer = confirmAnswer(event.key, tone);
+    // A grave card's Enter is the focused button's own press, and nobody
+    // else's: the board never sees it, and the default (the harmless answer,
+    // where focus starts) is left to happen.
+    if (event.key === 'Enter' && tone === 'war') {
+      event.stopPropagation();
+      return;
+    }
     if (answer === null) return;
     event.preventDefault();
     event.stopPropagation();
@@ -224,7 +266,9 @@ export function createConfirmCard(container: HTMLElement): ConfirmCard {
       // `ask` keeps whatever the first one was going to return focus to.
       if (!gate.isOpen) restoreFocus = active && active !== document.body ? active : null;
       gate.open(onConfirm);
-      render(confirmFace(request));
+      const face = confirmFace(request);
+      tone = face.tone;
+      render(face);
     },
     close(): void {
       settle('cancel');

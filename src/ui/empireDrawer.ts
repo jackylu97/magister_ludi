@@ -847,6 +847,20 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
   const listening = new AbortController();
   const { signal } = listening;
 
+  // The commission chips under the card are as wide as it (`#hud-commissions`
+  // in `style.css`). The card grows when a figure in its row of marks is long
+  // (Quiet Table, fourth pass, frame 7), so its drawn width is written to the
+  // root for the chips to read. A card that is not drawn (the city screen)
+  // measures nothing and leaves the last width in place.
+  const sizing =
+    typeof ResizeObserver === 'function'
+      ? new ResizeObserver(() => {
+          const width = corner.getBoundingClientRect().width;
+          if (width > 0) document.documentElement.style.setProperty('--empire-corner-w', `${width}px`);
+        })
+      : undefined;
+  sizing?.observe(corner);
+
   /** False while the card is not drawn at all, as on the city screen. */
   function shown(): boolean {
     return panel.getClientRects().length > 0;
@@ -864,6 +878,16 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     // Asked before the rows are hidden: once they are, the browser has already
     // moved the keyboard off whatever was inside them.
     const heldKeyboard = drawer.contains(document.activeElement);
+    // The open card keeps the width it had closed (Quiet Table, fourth pass,
+    // frame 7). The closed row of marks sizes the card, and the open rows do
+    // not, so without this the card would narrow as it opens. Read before the
+    // classes change, while the closed layout still stands.
+    if (next) {
+      const width = corner.getBoundingClientRect().width;
+      if (width > 0) corner.style.width = `${width}px`;
+    } else {
+      corner.style.removeProperty('width');
+    }
     open = next;
     drawer.hidden = !next;
     corner.classList.toggle('is-open', next);
@@ -1151,6 +1175,7 @@ export function createEmpireDrawer(options: EmpireDrawerOptions): EmpireDrawer {
     refreshInPlay: paintInPlay,
     dispose(): void {
       listening.abort();
+      sizing?.disconnect();
       close();
       drawnState = null;
       drawnSupply = '';

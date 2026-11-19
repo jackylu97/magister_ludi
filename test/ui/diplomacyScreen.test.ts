@@ -51,6 +51,7 @@ import {
 } from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
 import {
+  WAR_CONFIRM_WORDS,
   declareConfirm,
   diplomacyRows,
   metDiplomacyRows,
@@ -328,7 +329,7 @@ describe('the sentences', () => {
   });
 
   it('asks the confirm card a question with a verb on it, never "OK"', () => {
-    const request = declareConfirm('Bors');
+    const request = declareConfirm('Bors', { deals: 2, proposals: 0, routes: 1 });
     expect(request.title).toContain('Bors');
     expect(request.confirmLabel).toBe('Declare war');
     // Escape and Cancel mean no, so the harmless answer says what it protects.
@@ -336,6 +337,21 @@ describe('the sentences', () => {
     // No numbers in player prose (hard rule 7): the truce's length is on the
     // row's own countdown, not in a sentence.
     expect(/\d/.test(request.body)).toBe(false);
+    // Version A (Quiet Table, build stage 1): what follows, read off the sim,
+    // one line each and only what applies; a grave card, so Enter does not confirm.
+    expect(request.tone).toBe('war');
+    expect(request.points).toEqual([
+      WAR_CONFIRM_WORDS.deals,
+      WAR_CONFIRM_WORDS.routes,
+      WAR_CONFIRM_WORDS.borders,
+      WAR_CONFIRM_WORDS.peace,
+    ]);
+    for (const point of request.points ?? []) expect(/\d/.test(point), point).toBe(false);
+    expect(declareConfirm('Bors', { deals: 0, proposals: 1, routes: 0 }).points).toEqual([
+      WAR_CONFIRM_WORDS.proposals,
+      WAR_CONFIRM_WORDS.borders,
+      WAR_CONFIRM_WORDS.peace,
+    ]);
   });
 });
 
@@ -377,7 +393,9 @@ describe('the wiring that spans files', () => {
     // about where the card lives.
     // `row.people` and not `row.name`: a war is declared on a *country*
     // (`seatPeople`, `docs/flags.md` (ppppp)), and the card reads "the Inca".
-    expect(screen).toContain('askConfirm(declareConfirm(row.people)');
+    expect(screen).toContain('askConfirm(declareConfirm(row.people, row.war)');
+    // What follows comes from the sim's own reading, never a guess here.
+    expect(screen).toContain('war: warConsequences(state, seat, id),');
   });
 
   it('asks the audience through an option, and never imports the bot', () => {

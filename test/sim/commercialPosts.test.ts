@@ -15,7 +15,7 @@ import {
 import { type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { cityHoldsPost, cityPostPays, foreignPostCities, postSince } from '../../src/sim/routes';
 import { RULES } from '../../src/sim/rulesData';
-import { cityRouteYields, explainRouteSenderYield, foldRouteYield } from '../../src/sim/trade';
+import { cityRouteYields, explainRouteSenderYield, foldRouteYield, routesBetween } from '../../src/sim/trade';
 import { cardCombatLines, cardHappiness, explainCardCityYields } from '../../src/sim/statecraft';
 import { closeWar, openWar } from '../../src/sim/wars';
 import { at, bareState } from './improvementHelpers';
@@ -151,6 +151,11 @@ describe('a trading post belongs to one empire', () => {
     // A declaration ends the route and sweeps it (`cancelRoutesBetween` goes
     // through `endRoute`, which is where a post would be dropped if war could
     // drop one). Entrenched Interests' second sentence is that it cannot.
+    // The caravan a war would send home is the one running between the two,
+    // either way round (`routesBetween`, the Declare war card's reading).
+    expect(routesBetween(state, 0, 1).map((unit) => unit.id)).toEqual([trader.id]);
+    expect(routesBetween(state, 1, 0).map((unit) => unit.id)).toEqual([trader.id]);
+    expect(routesBetween(state, 0, 0)).toEqual([]);
     openWar(state, 0, 1);
     trader.trade!.reached = true;
     expect(

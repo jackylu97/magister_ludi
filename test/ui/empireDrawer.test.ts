@@ -804,7 +804,7 @@ describe('the stylesheet', () => {
     return css.slice(at, css.indexOf('}', at));
   };
 
-  it('sizes the card from the pennant: 272 wide, 16 px from the left, 12 px under the bar', () => {
+  it('sizes the card from the pennant: at least 272 wide, 16 px from the left, 12 px under the bar', () => {
     // Batch SS2c: the pennant is one value, and the card's width, its top
     // part's height and its text edge follow it.
     expect(css).toContain('--empire-banner-w: 56px;');
@@ -814,7 +814,13 @@ describe('the stylesheet', () => {
     const corner = rule('.empire-corner');
     expect(corner).toContain('top: calc(var(--topbar-h) + 12px);');
     expect(corner).toContain('left: 16px;');
-    expect(corner).toContain('width: var(--empire-panel-w);');
+    // Quiet Table, fourth pass, frame 7: a floor, not a fixed width. A long
+    // figure in the row of marks widens the card; nothing else does.
+    expect(corner).toContain('min-width: var(--empire-panel-w);');
+    expect(corner).not.toMatch(/\n  width:/);
+    expect(rule('.empire-top')).toContain('width: 0;\n  min-width: 100%;');
+    expect(rule('.empire-drawer')).toContain('width: 0;\n  min-width: 100%;');
+    expect(rule('.empire-corner.is-open .empire-quick')).toContain('width: 0;\n  min-width: 100%;');
     expect(corner).toContain('flex-direction: column;');
     // The two lines: two 36 px lines (24 + 4 + a 4 px bar + 4) 4 apart inside
     // 8 px of padding, 92 px, shorter than the pennant's column.
@@ -867,8 +873,18 @@ describe('the stylesheet', () => {
     expect(css).toContain('.empire-line:hover .empire-line-title,\n.empire-line:hover .empire-line-arrow {\n  text-decoration-color: var(--ink);');
     expect(rule('.empire-bar.is-research .empire-bar-fill')).toContain('var(--lapis)');
     expect(rule('.empire-bar.is-draft .empire-bar-fill')).toContain('var(--grape)');
-    // Five marks since In play joined (stage 3): its door is wide enough for its count.
-    expect(rule('.empire-quick')).toContain('grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 54px 44px;');
+    // Five marks since In play joined (stage 3): its door is wide enough for its
+    // count. Routes and Faith are as wide as their figures and share what is left
+    // (Quiet Table, fourth pass, frame 7), in smaller type with less gap.
+    expect(rule('.empire-quick')).toContain('grid-template-columns: 44px auto auto minmax(54px, max-content) 44px;');
+    expect(rule('.quick-button')).toContain('gap: 4px;');
+    expect(rule('.quick-button')).toContain('padding: 0 6px;');
+    expect(rule('.quick-button')).toContain('font-size: var(--size-note);');
+    // The open rows keep their type, and the open card keeps its closed width.
+    expect(rule('.empire-corner.is-open .quick-button')).toContain('font-size: var(--size-label);');
+    const drawerSource = uiSource('empireDrawer.ts');
+    expect(drawerSource).toContain('if (width > 0) corner.style.width = `${width}px`;');
+    expect(drawerSource).toContain("corner.style.removeProperty('width');");
     expect(rule('.quick-figure.is-free')).toContain('color: var(--teal);');
     expect(rule('.quick-figure.is-met')).toContain('color: var(--y-faith);');
     expect(rule('.quick-line')).toContain('height: 2px;');

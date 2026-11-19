@@ -3647,7 +3647,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const report of result.commissions) {
       if (report.playerId !== localPlayerId) continue;
       const paid = report.lines.length > 0 ? `: ${report.lines.join(', ')}` : '';
-      announce(`✓ ${report.name} fulfilled${paid}`, { openStatecraft: true });
+      // An Order the seat holds: the plain seal leads the line (Quiet Table).
+      announce(`✓ ${report.name} fulfilled${paid}`, { openStatecraft: true, mark: 'held', news: report.name });
     }
   }
 

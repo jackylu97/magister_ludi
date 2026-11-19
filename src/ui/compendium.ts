@@ -122,6 +122,7 @@ import {
   describeCard,
   describeFamilyVerb,
   describeTraitLines,
+  EMPIRE_BUILDING_WORDS,
   ref,
   stripRefs,
   tileConditionWords,
@@ -1459,8 +1460,10 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // asking for this shelf, and nothing else on the page would say which rows
   // those are. The limit follows as its own sentence, and it says "normally",
   // because a card can lift it.
+  // The class's sentence links to the Concepts page that says what one is
+  // (the user, 2026-11-19: "make sure the tech tree and compendium note this").
   if (def.empireBuilding === true) {
-    clauses.push({ text: 'An empire building.', note: true });
+    clauses.push({ text: EMPIRE_BUILDING_WORDS.entry, note: true });
   }
   if (def.oncePerEmpire === true) {
     clauses.push({

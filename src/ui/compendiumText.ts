@@ -296,6 +296,24 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: a wonder\'s effect belongs to the city that holds it, so if that city is captured, the effect changes owner too. Completing a wonder awards renown and sometimes an immediate bonus. If another player finishes a wonder you were building at the front of your queue, the production you had invested is refunded as gold at a reduced rate.',
     ],
   ),
+  // The user, 2026-11-19: "lets label these as empire buildings everywhere in
+  // the game. That name makes it clearer that it's one per empire. Make sure
+  // the tech tree and compendium note this and it's easy to tell what they
+  // are." The building's own page and the technology chart's unlock lines link
+  // here, and the first paragraph is what the keyword's tooltip shows. Which
+  // buildings count is the row's own mark (`BuildingDef.empireBuilding`).
+  written(
+    'concept',
+    'empireBuilding',
+    'Empire buildings',
+    'one of each for every empire',
+    '▣',
+    [
+      'An empire building is a building your empire may normally have only one of. You build it in one of your towns, as you build anything else. It is not a wonder: every other empire may build its own.',
+      'If you lose the town that holds an empire building, you lose the building too. A captured town keeps its buildings, so whoever takes the town holds it. An empire building costs more production the more towns you hold.',
+      'Cards that say "empire building" mean these buildings, and a few cards let you build more than one. The technology chart marks each one where it is unlocked, and its own page in this book says so.',
+    ],
+  ),
   written(
     'concept',
     'greatPeople',

@@ -22,6 +22,7 @@
  */
 
 import { CITY_MARK_IDS, cityMark, cityMarkDataUri } from '../art/cityMarks';
+import { AGE_MARK, BEAD_MARK, HELD_MARK, TRIUMPH_MARK, newsMarkDataUri } from '../art/newsMarks';
 import {
   diplomacyMarkDataUri,
   standingsMarkDataUri,
@@ -148,6 +149,25 @@ export function drawMarkFamilies(into: HTMLElement): void {
   rankMarkFamily(into);
   charterSealFamily(into);
   marginaliaFamily(into);
+  newsFamily(into);
+}
+
+/**
+ * **The news marks** (`src/art/newsMarks.ts`): the bead, an age, a Triumph,
+ * and the plain seal of a held thing (Quiet Table, build stage 1), which a
+ * toast draws at thirteen pixels.
+ */
+function newsFamily(into: HTMLElement): void {
+  const grid = markGrid(
+    block(
+      into,
+      'News — src/art/newsMarks.ts',
+      'The marks that lead a line of news. The held seal is a ring and a dot, kept plain so a toast keeps its size.',
+    ),
+  );
+  for (const [id, mark] of [['bead', BEAD_MARK], ['age', AGE_MARK], ['triumph', TRIUMPH_MARK], ['held', HELD_MARK]] as const) {
+    markCell(grid, id, newsMarkDataUri(mark), mark.note);
+  }
 }
 
 /**

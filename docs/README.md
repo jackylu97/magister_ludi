@@ -1797,6 +1797,43 @@ Eight root pages, all named in `vite.config.ts` inputs:
   turn after the yields and the meters, as `RENOWN_FIGURE_GLYPH`
   (`figures.ts`), a private-use character the yield printer draws as the
   laurel. Nothing else in the game prints that character.
+- **Quiet Table, build stage 1** (`docs/plans/ui-critique-2026-10-16.md`;
+  the board is `docs/plans/mockups/scholars-study/quiet-table-third-pass/`):
+  - every parchment sheet's head (`.statecraft-head`) is ruled with ink over
+    a gilt hairline, and its × (`.statecraft-close`) is the technology
+    screen's control in ink. The Council and In play keep their own dark head;
+  - buttons: plain (`.btn`, an ink edge), primary (`.btn-primary`, cinnabar
+    with a hard ink shadow), quiet (`.btn-quiet`, the paper's edge);
+  - a toast about a held thing leads with a plain seal, a ring and a dot at
+    thirteen pixels (`HELD_MARK`, mark kind `held`);
+  - the hex card names who holds the hex (`describeOwner`), and says nothing
+    of free ground;
+  - the caravans' four tabs are filter chips with today's words;
+  - Declare war is a solid war red button with the blade, and its confirm
+    card names what follows (`warConsequences`); Enter does not confirm it;
+  - the technology hint is the user's own words, "click a technology to
+    research it · shift-click to queue";
+  - the corner panel is at least 272 px wide and grows when a figure in its
+    row of marks is long (fourth pass, frame 7). Only that row sizes it; the
+    open card keeps its closed width, and the commission chips read the drawn
+    width (`--empire-corner-w`, written by `empireDrawer.ts`).
+- **Empire buildings** (the user, 2026-11-19: "lets label these as empire
+  buildings everywhere in the game"). The buildings an empire may normally
+  hold only one of are "empire buildings"; "great house" was the old name.
+  Which rows count is the row's own mark (`BuildingDef.empireBuilding`,
+  `isEmpireBuilding`). The words are `EMPIRE_BUILDING_WORDS` in
+  `statecraft/describers.ts`: the technology chart's hover card prints the
+  label under the name (a keyword to the Concepts page
+  `concept:empireBuilding`) and the node's face fills the building's block;
+  each one's Compendium page and the buildings shelf's lead say what one is;
+  its In play piece says "Empire building, with" its town, and its row in the
+  city screen's build list carries the small-caps word, as a wonder's does.
+- **A unit refused only for want of supply stays in the build list, greyed**
+  (the user, 2026-11-19), with the requirement and its counts under it, the
+  same counts as the corner panel's Supply section. Every other refusal folds
+  into "Not yet" as before. "Only supply" is the sim's answer: `buildError`
+  asked again with `ignoreResourceRequirement` (`unitRowGate`), and a town too
+  small for the unit is a second bar (`greyedForSupply`, `cityPanel.ts`).
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

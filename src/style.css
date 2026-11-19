@@ -2187,6 +2187,24 @@ body {
   mask-position: center;
 }
 
+/* The hex card's owner line (Quiet Table, build stage 1): a small square in
+   the holder's ink before the name, as the standings draw a seat. */
+.info-owner-ink {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: 0;
+}
+
+/* The seal of a held thing is drawn at thirteen pixels inside the usual slot,
+   so the line keeps its height (Quiet Table, build stage 1). */
+.news-mark.is-held:not(.is-glyph):not(.is-empty) {
+  -webkit-mask-size: 13px 13px;
+  mask-size: 13px 13px;
+}
+
 /* Red ink marks only the name that is new (the Main board). */
 .news-word {
   color: var(--rubric);
@@ -2741,7 +2759,8 @@ button.log-entry:active {
 .btn {
   flex: 1;
   padding: 6px 10px;
-  border: 1px solid var(--edge);
+  /* Plain (the kit, frame a10): parchment with an ink edge and no shadow. */
+  border: 1px solid var(--ink);
   border-radius: var(--paper-radius);
   background: var(--parchment);
   color: var(--ink);
@@ -2750,17 +2769,19 @@ button.log-entry:active {
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.25;
-  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
 
+/* Primary (the kit): the next step, in cinnabar, with a heavier ink edge and a
+   hard ink shadow of three pixels. */
 .btn-primary {
-  border-color: var(--ink);
+  border: 2px solid var(--ink);
   background: var(--cinnabar);
   color: var(--parchment);
   font-size: var(--size-ui);
-  padding: 7px 10px;
+  padding: 6px 10px;
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
 .btn-second {
@@ -2769,7 +2790,9 @@ button.log-entry:active {
   color: var(--parchment);
 }
 
+/* Quiet (the kit): the paper's soft edge, for the answer that is not the step. */
 .btn-quiet {
+  border-color: var(--edge);
   background: var(--parchment);
   color: var(--ink);
 }
@@ -3279,7 +3302,12 @@ kbd {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  width: var(--empire-panel-w);
+  /* At least the pennant's width, and wider when the row of marks needs it
+     (Quiet Table, fourth pass, frame 7: "120/160" for faith did not fit at a
+     fixed width). Only the closed row of marks sizes the card: the top part and
+     the open part take the width they are given (below), and the open card
+     keeps the width it had closed (`setOpen` in `empireDrawer.ts`). */
+  min-width: var(--empire-panel-w);
   border: 1px solid var(--edge);
   border-radius: var(--paper-radius);
   background: var(--parchment);
@@ -3299,6 +3327,10 @@ kbd {
    everywhere. */
 .empire-top {
   display: flex;
+  /* Zero wide for the card's own sizing, then as wide as the card: a long
+     technology name is cut as before rather than widening the card. */
+  width: 0;
+  min-width: 100%;
   cursor: pointer;
 }
 
@@ -3748,16 +3780,19 @@ kbd {
 }
 
 /* --- the four marks ---------------------------------------------------------
-   Diplomacy, Routes, Faith and Standings, with no words at rest: the cells are
-   44, flexible, flexible and 44 px wide and 36 high, so the two plain marks are
-   square and the two figures share the middle. The name, the note and the key
+   Diplomacy, Routes, Faith and Standings, with no words at rest: the two plain
+   marks are 44 px square cells, and the two figures share the middle, each as
+   wide as it needs (the row is 36 px high). The name, the note and the key
    are hidden here; the title and the accessible name say them. */
 /* Five marks since the In play door joined them (the Council and In play
    board's D1): Diplomacy and Standings at the ends, Routes and Faith sharing
    what is left, and In play wide enough for its mark and its count. */
+/* Quiet Table, fourth pass, frame 7: Routes and Faith are as wide as their
+   figures and share any room that is left, and In play is at least 54 px, so
+   a long figure widens the card instead of running into its neighbours. */
 .empire-quick {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 54px 44px;
+  grid-template-columns: 44px auto auto minmax(54px, max-content) 44px;
   border-top: 1px solid var(--rule);
 }
 
@@ -3766,15 +3801,15 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   height: 36px;
-  padding: 0;
+  padding: 0 6px;
   border: 0;
   background: none;
   color: var(--ink);
   font-family: var(--face-num);
-  font-size: var(--size-label);
+  font-size: var(--size-note);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -3913,6 +3948,9 @@ kbd {
 .empire-corner.is-open .empire-quick {
   display: flex;
   flex-direction: column;
+  /* The open rows take the card's width and do not set it (see `.empire-top`). */
+  width: 0;
+  min-width: 100%;
   border-top-color: var(--ink);
 }
 
@@ -3921,6 +3959,8 @@ kbd {
   justify-content: flex-start;
   gap: 0;
   padding: 0 12px 0 calc(var(--empire-axis) - 8px);
+  /* The smaller type is the closed row's only. */
+  font-size: var(--size-label);
 }
 
 .empire-corner.is-open .quick-button + .quick-button {
@@ -3990,6 +4030,12 @@ kbd {
   top: 4px;
   right: auto;
   left: calc(var(--empire-axis) + 2px);
+}
+
+.empire-drawer {
+  /* The open part takes the card's width and does not set it (see `.empire-top`). */
+  width: 0;
+  min-width: 100%;
 }
 
 .empire-drawer[hidden] {
@@ -4182,7 +4228,9 @@ kbd {
   top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 8px);
   left: 16px;
   z-index: 11;
-  width: var(--empire-panel-w);
+  /* As wide as the card above them. The card grows with a long figure, so its
+     drawn width is written by `empireDrawer.ts`; the floor is the default. */
+  width: var(--empire-corner-w, var(--empire-panel-w));
 }
 
 #hud-commissions[hidden] {
@@ -8981,6 +9029,14 @@ p.city-trade-link {
   color: var(--y-gold-lit);
 }
 
+/* An empire building: the same block, filled (the user, 2026-11-19). The hover
+   card says the name in words. */
+.tech-mark.is-building.is-empire {
+  border-color: var(--y-gold-lit);
+  background: var(--y-gold-lit);
+  color: var(--ink);
+}
+
 .tech-unlock-name {
   flex: 1;
   font-size: 11.5px;
@@ -9419,6 +9475,16 @@ p.city-trade-link {
 .info-card.is-night .info-card-mark.is-trait {
   border-color: rgba(200, 144, 31, 0.75);
   color: var(--y-gold-lit);
+}
+
+/* "Empire building" under an unlocked building's name (the user, 2026-11-19):
+   a line of its own, in at the name's edge, so the name is never cut for it. */
+.info-card-gifts li.info-card-gift-kind {
+  display: block;
+  padding-left: 21px;
+  margin-top: -2px;
+  font-size: var(--size-note);
+  line-height: 1.3;
 }
 
 .info-card-gifts li.info-card-trait-words {
@@ -12144,13 +12210,33 @@ p.city-trade-link {
   }
 }
 
+/* A sheet head at the quiet level (Quiet Table, build stage 1; the kit,
+   frame a10): an ink rule over a gilt hairline, on every sheet that builds on
+   `modalShell.ts`. The ink is the head's own border; the gilt is a hairline
+   drawn under it with a gap of two pixels. The two dark sheets (the Council and
+   In play) keep their own gilt rule and draw no hairline. */
 .statecraft-head {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 16px;
   padding-bottom: 12px;
-  /* A sheet head is ruled off by a hairline (the Main board), not a thick ink line. */
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--ink);
+}
+
+.statecraft-head::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  border-bottom: 1px solid var(--gilt);
+  pointer-events: none;
+}
+
+#statecraft-overlay .statecraft-head::after,
+#inplay-overlay .statecraft-head::after {
+  content: none;
 }
 
 .statecraft-head-titles {
@@ -12178,22 +12264,25 @@ p.city-trade-link {
   color: var(--ink-faint);
 }
 
+/* The sheet's × (the kit, frame a10): the technology screen's own control,
+   `.tech-close`, in the paper's ink. Same size, edge and glyph; the chart's
+   is parchment on the night sky, this one is ink on parchment. */
 .statecraft-close {
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  /* The paper's edge, as the Main board draws a sheet's ×. */
-  border: 1px solid var(--edge);
-  border-radius: var(--paper-radius);
-  background: var(--table);
-  font-size: var(--size-name);
+  width: 26px;
+  height: 26px;
+  border: var(--border-thin) solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 15px;
   line-height: 1;
   color: var(--ink);
   cursor: pointer;
 }
 
 .statecraft-close:hover {
-  background: var(--parchment);
+  border-color: var(--gilt);
+  color: var(--rubric);
 }
 
 .statecraft-body {
@@ -16087,6 +16176,47 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin-top: 16px;
 }
 
+/* What follows, one line each (`ConfirmRequest.points`): left aligned, so a
+   list of consequences reads as a list. */
+.confirm-points {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  line-height: 1.45;
+  text-align: left;
+}
+
+/* A grave card (Declare war, version A; Quiet Table, build stage 1): an ink
+   edge, a band of war red along the top, and the confirm in the war red with
+   the blade. It is a darker red than the cinnabar of an ordinary next step. */
+.confirm-card.is-war {
+  width: min(400px, 100%);
+  border-color: var(--ink);
+  border-top: 4px solid var(--war-red);
+  text-align: left;
+}
+
+.confirm-card.is-war .confirm-foot {
+  justify-content: space-between;
+}
+
+.confirm-card.is-war .confirm-foot .btn {
+  flex: none;
+}
+
+.btn.btn-primary.is-war,
+.btn.is-war-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: var(--ink);
+  background: var(--war-red);
+  color: var(--parchment);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .confirm-overlay,
   .confirm-card {
@@ -16597,79 +16727,56 @@ button.faith-rite-chip:hover:not(.is-on) {
   font-weight: 500;
 }
 
-/* --- the index's cut tabs ------------------------------------------------
-   Steps of parchment along the head of the page, each with an ink edge and a
-   gilt inner edge; the open one is bound into the leaf (its bottom border is
-   the paper's own colour, so the ink rule breaks under it) and its hedera
-   turns vermilion. */
+/* --- the index's filters ---------------------------------------------------
+   The light touch (Quiet Table, build stage 1; frame a3): the four cut tabs
+   are filter chips, with today's words and counts. A chip is a mono pill with
+   the paper's edge; the open one is ink with parchment type. Only the look
+   changed: they are still the tabs they were, one open at a time. */
 .trade-index {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   margin: 14px 0 0;
-  padding: 0 6px;
-  border-bottom: var(--border-thin) solid var(--ink);
+  padding: 0 2px;
 }
 
 .trade-tab {
   appearance: none;
   display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  margin-bottom: calc(var(--border-thin) * -1);
-  padding: 7px 14px 6px;
-  border: 1.5px solid var(--ink);
-  border-bottom: 0;
-  border-radius: 3px 3px 0 0;
-  background: var(--table);
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: transparent;
   color: var(--ink-soft);
-  font: 500 var(--size-note)/1 var(--face-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 500 var(--size-note) / 1.4 var(--face-num);
+  letter-spacing: 0;
+  white-space: nowrap;
   cursor: pointer;
-  /* The gilt inner edge, and the shadow of the leaf beneath it. */
-  box-shadow:
-    inset 0 2px 0 var(--gilt),
-    inset 0 -3px 0 rgba(29, 26, 32, 0.08);
-  transform: translateY(2px);
 }
 
-/* The hedera, reversed so the two tabs' leaves face outward. It is a printed
-   ornament rather than a marker: the *count* says what is behind the tab. */
-.trade-tab::before {
-  content: '❧';
-  display: inline-block;
-  font-family: var(--face-display);
-  font-size: var(--size-label);
-  letter-spacing: 0;
-  color: var(--ink-faint);
-  transform: scaleX(-1);
+.trade-tab:hover {
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .trade-tab-n {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
   color: var(--ink-faint);
 }
 
 .trade-tab[aria-selected='true'] {
-  padding: 9px 16px 7px;
-  border-width: var(--border-thin);
-  border-bottom: var(--border-thin) solid var(--parchment);
-  background: var(--parchment);
-  color: var(--ink);
-  box-shadow: inset 0 2px 0 var(--gilt);
-  transform: none;
-}
-
-.trade-tab[aria-selected='true']::before {
-  color: var(--vermilion);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
 }
 
 .trade-tab[aria-selected='true'] .trade-tab-n {
-  color: var(--ink-soft);
+  color: var(--parchment);
+  opacity: 0.75;
 }
 
 .trade-tab:focus-visible {

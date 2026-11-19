@@ -18,7 +18,7 @@
  *     which the critique asked for: a live region read "fisheye A bead" aloud.
  */
 
-import { AGE_MARK, BEAD_MARK, TRIUMPH_MARK, newsMarkDataUri } from '../art/newsMarks';
+import { AGE_MARK, BEAD_MARK, HELD_MARK, TRIUMPH_MARK, newsMarkDataUri } from '../art/newsMarks';
 import { inPlayMarkDataUri } from '../art/inPlayMarks';
 import { renownMarkDataUri } from '../art/meterMarks';
 import { yieldMarkDataUri } from '../art/yieldMarks';
@@ -43,6 +43,8 @@ function markUri(kind: NewsMarkKind): string {
       return yieldMarkDataUri('culture');
     case 'wonder':
       return inPlayMarkDataUri('wonder');
+    case 'held':
+      return newsMarkDataUri(HELD_MARK);
   }
 }
 
@@ -55,6 +57,7 @@ const MARK_INK: Readonly<Record<NewsMarkKind, string>> = {
   bead: '--lapis',
   culture: '--y-cul',
   wonder: '--lapis',
+  held: '--deep-gilt',
 };
 
 /**

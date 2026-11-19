@@ -57,6 +57,22 @@ export const AGE_MARK: NewsMarkDrawing = {
   ],
 };
 
+/**
+ * **The seal of a held thing** (Quiet Table, build stage 1; the kit, frame
+ * a10): a ring and a dot, for a line of news about something the seat holds
+ * (an Order, a Doctrine, a wonder, a belief). Plain on purpose: the user, on
+ * the board's detailed seal, "make the icon smaller, so the toast isn't so
+ * large ... the icon doesn't need so much detail". The toast draws it at
+ * thirteen pixels inside the mark's usual slot, so the toast keeps its size.
+ */
+export const HELD_MARK: NewsMarkDrawing = {
+  note: 'a plain seal: a ring and a dot',
+  paths: [
+    stroke('M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z'),
+    { d: 'M8.7 12a3.3 3.3 0 1 0 6.6 0a3.3 3.3 0 1 0 -6.6 0Z', fill: true, width: 0 },
+  ],
+};
+
 /** The arch: a Triumph. */
 export const TRIUMPH_MARK: NewsMarkDrawing = {
   note: 'a triumphal arch',

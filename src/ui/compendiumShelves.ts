@@ -89,6 +89,8 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'A building is a permanent addition to one city. You add it to that city’s build queue, its production pays for it over several turns, and once finished it stays for the rest of the game — a captured city keeps everything that was built in it.',
     'Buildings are how a city gets better at something: extra yields every turn, faster production of one kind of thing, stronger defence, wider sight, or renown that attracts great people.',
     'Each entry below gives a building’s production cost, what it pays every turn, what it costs the treasury every turn to keep, any other effect it has, and the technology that unlocks it. The buildings that cost upkeep are the institutions — the ones that earn renown — and the older the technology behind one, the cheaper it is to run. Wonders are on their own shelf, and a wonder costs nothing to keep.',
+    // The user, 2026-11-19: empire buildings are named and explained in the book.
+    'Some buildings are [[concept:empireBuilding|empire buildings]]: your empire may normally have only one of each. If you lose the town that holds one, you lose the building too. Their entries below say so.',
   ]),
   wonder: lead('wonder', 'About wonders', '✶', [
     'A wonder is a building only one player in the whole game can have. You build it the way you build anything else, but if a rival finishes it first yours is cancelled — so a wonder is a race, and worth starting early in a city with strong production.',

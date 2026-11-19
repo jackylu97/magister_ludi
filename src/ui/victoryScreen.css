@@ -24,6 +24,12 @@
   border-bottom: 0;
 }
 
+/* The quiet head's rule (the kit) runs under the line and the doors here, so
+   the head itself draws no hairline. */
+#victory-overlay .standings-sheet-head::after {
+  content: none;
+}
+
 #victory-overlay .standings-sheet-head .statecraft-title {
   font-size: 34px;
 }
@@ -34,13 +40,25 @@
 }
 
 .standings-head {
+  position: relative;
   flex: none;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--rule);
+  /* The quiet head's ink rule over a gilt hairline (Quiet Table, the kit). */
+  border-bottom: 1px solid var(--ink);
+}
+
+.standings-head::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  border-bottom: 1px solid var(--gilt);
+  pointer-events: none;
 }
 
 .standings-line {

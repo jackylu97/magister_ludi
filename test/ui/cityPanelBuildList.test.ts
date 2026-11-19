@@ -31,7 +31,7 @@ import {
   playerById,
 } from '../../src/sim/state';
 import type { OrderId } from '../../src/sim/statecraftData';
-import { buildError, isUnlocked, requiredResource, upgradeTargetForType } from '../../src/sim/tech';
+import { buildError, isUnlocked, upgradeTargetForType } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, isNaval, unitDef } from '../../src/sim/unitData';
 import {
@@ -41,6 +41,7 @@ import {
   buildListModel,
   buildingNeverHere,
   chipLedgerRows,
+  greyedForSupply,
   mainYieldOf,
   queueWithFront,
   unitRowShown,
@@ -183,12 +184,35 @@ describe('a row this town can never build or buy is hidden', () => {
 // --- "Not yet" ------------------------------------------------------------------
 
 describe('a row blocked for a reason the player can fix folds under “Not yet”', () => {
-  it('folds a unit with no spare horses, with the requirement as its reason', () => {
+  it('keeps a unit refused only for want of supply in the list, greyed (the user, 2026-11-19)', () => {
+    // "could we gray out units we have access to, but can't because we don't
+    // have supply? the other rules for unavailable builds can stay in the
+    // dropdown". The horseman has no spare horses and nothing else bars it.
     const { state, city } = developed();
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
-    const horseman = units.notYet.find(({ row }) => row.id === 'horseman');
-    expect(horseman?.reason).toEqual({ kind: 'resource', resources: requiredResource('unit', 'horseman') });
-    expect(units.rows.some((row) => row.id === 'horseman')).toBe(false);
+    const horseman = units.rows.find((row) => row.kind === 'unit' && row.id === 'horseman');
+    expect(horseman).toMatchObject({ enabled: false, wantsResource: true, tooSmall: false });
+    expect(greyedForSupply(horseman!)).toBe(true);
+    expect(units.notYet.some(({ row }) => row.id === 'horseman')).toBe(false);
+    // "Only supply" is the sim's answer: refused as it stands, and taken with
+    // the resource clause set aside.
+    expect(buildError(state, 0, 'unit', 'horseman', city)).not.toBeNull();
+    expect(buildError(state, 0, 'unit', 'horseman', city, { ignoreResourceRequirement: true })).toBeNull();
+    // Its price is a dash too: the purchase gate refuses it in the queue's words.
+    if (horseman?.kind !== 'unit') throw new Error('no horseman row');
+    expect(horseman.cells[0]!.look).toMatchObject({ look: 'none', refusal: horseman.blocked });
+    // The requirement and its counts are on a line under the row.
+    const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
+    expect(list).toContain("return reason === null ? null : reasonLine(reason, 'refusal-line is-row wanting');");
+    expect(uiSource('cityPanel.ts')).toContain('if (reason !== null && !buyable && !greyedForSupply(row)) notYet.push({ row, reason });');
+  });
+
+  it('folds every other refusal as before, a unit too small for its town included', () => {
+    const { state, city } = developed();
+    const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
+    for (const { row } of units.notYet) expect(greyedForSupply(row), row.name).toBe(false);
+    const small = units.rows.find((row) => row.kind === 'unit' && row.id === 'horseman')!;
+    expect(greyedForSupply({ ...small, tooSmall: true } as BuildListRow)).toBe(false);
   });
 
   it('folds a unit the town is too small for, said in plain words', () => {

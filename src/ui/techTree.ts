@@ -157,7 +157,7 @@
  * after its name, on the chart, in the plan strip and in the drawer.
  */
 
-import { buildingDef, isWonder } from '../sim/buildingData';
+import { buildingDef, isEmpireBuilding, isWonder } from '../sim/buildingData';
 import { signedYield } from '../sim/yieldFormat';
 import { buildingProductionCost, unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
@@ -192,7 +192,7 @@ import {
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { isInUnitLine, unitDef } from '../sim/unitData';
 import { orderDef } from '../sim/statecraftData';
-import { describeTraitLines } from '../sim/statecraft';
+import { describeTraitLines, EMPIRE_BUILDING_WORDS } from '../sim/statecraft';
 import {
   charterOpening,
   charterSealNode,
@@ -1021,7 +1021,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     for (const building of shownBuildings) {
       const def = buildingDef(building);
       const row = element('li');
-      row.append(element('span', 'tech-mark is-building', '▣'));
+      // An empire building wears the block filled (the user, 2026-11-19: "make
+      // sure the tech tree notes this"). The face has no room for the label
+      // beside a long name and its price, so the label is on the hover card.
+      const empire = isEmpireBuilding(building);
+      row.append(element('span', empire ? 'tech-mark is-building is-empire' : 'tech-mark is-building', '▣'));
       row.append(element('span', 'tech-unlock-name', def.name));
       // Its price, for *this* player — the column the unlocking tech stands in
       // has already climbed by the time a late node is read (`docs/production-costs.md`).
@@ -1298,6 +1302,17 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const note = giftNote(gift, state, playerId);
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
+      // **An empire building says so** (the user, 2026-11-19: "lets label these
+      // as empire buildings everywhere in the game ... make sure the tech tree
+      // and compendium note this"). A line of its own under the name, as a
+      // trait's words are, so a long name is not cut to make room. The label is
+      // a keyword: the Concepts page says what one is. Which rows count is the
+      // row's own mark (`isEmpireBuilding`).
+      if (gift.kind === 'building' && isEmpireBuilding(gift.id)) {
+        const kind = element('li', 'info-card-gift-kind');
+        kind.append(keywordNode(EMPIRE_BUILDING_WORDS.keyword, EMPIRE_BUILDING_WORDS.label));
+        list?.append(kind);
+      }
     }
 
     if (def.flavor) box.append(element('p', 'info-card-flavor', def.flavor));

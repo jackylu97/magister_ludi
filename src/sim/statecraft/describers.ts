@@ -1114,6 +1114,32 @@ export const CARD_KEYWORD_WORDS: Readonly<Record<CardKeyword, string>> = {
   faithHouse: 'Faith house',
 };
 
+/**
+ * **The words for an empire building** (the user, 2026-11-19: "lets label
+ * these as empire buildings everywhere in the game. That name makes it clearer
+ * that it's one per empire. Make sure the tech tree and compendium note this
+ * and it's easy to tell what they are."). "Great house" was the old name.
+ *
+ * Which buildings count is the row's own mark, `BuildingDef.empireBuilding`
+ * (`isEmpireBuilding`), never a list of names. The technology chart's unlock
+ * lines print `label`, the city screen's build list prints `eyebrow`, a
+ * building's Compendium page prints `entry`, and the In play screen's pieces
+ * print `inTown`. The Concepts page the keyword links
+ * to (`concept:empireBuilding`, `src/ui/compendiumText.ts`) says the rest.
+ */
+export const EMPIRE_BUILDING_WORDS = {
+  /** The label beside a building's name. */
+  label: 'Empire building',
+  /** The city screen's build list: the small-caps word after the name, as a wonder's is. */
+  eyebrow: 'empire building',
+  /** The keyword the label links to, on a surface that can follow a link. */
+  keyword: 'concept:empireBuilding',
+  /** The class's sentence on the building's own page. The limit is its own sentence. */
+  entry: '[[concept:empireBuilding|An empire building]]. If you lose the town that holds it, you lose the building too.',
+  /** An In play piece's line: which kind of thing it is, and where it stands. */
+  inTown: (town: string): string => `Empire building, with ${town}`,
+} as const;
+
 /** A keyword as the mark a card prints: `[[concept:scaler|Scaler]]`. */
 export function keywordMark(keyword: CardKeyword): string {
   return ref('concept', keyword, CARD_KEYWORD_WORDS[keyword]);

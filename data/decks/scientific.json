@@ -1431,7 +1431,7 @@
       "line": "none",
       "rarity": "common",
       "type": "economic",
-      "flavor": "Each great house keeps fields of its own, and its town eats from them.",
+      "flavor": "Each empire building keeps fields of its own, and its town eats from them.",
       "text": "Each empire building gives its town +2 food and +2 production.",
       "effects": [
         {
@@ -1682,7 +1682,7 @@
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
-      "flavor": "Every great house adds its name to the crown's.",
+      "flavor": "Every empire building adds its name to the crown's.",
       "text": "+5% production and culture for each empire building you hold.",
       "effects": [
         {

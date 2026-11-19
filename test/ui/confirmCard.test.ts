@@ -51,6 +51,9 @@ describe('confirmFace', () => {
     expect(face.cancelLabel).toBe('Cancel');
     expect(face.confirmLabel).toBe('Disband');
     expect(face.title).toBe('Disband the Warrior?');
+    // A plain card lists nothing and is not grave.
+    expect(face.points).toEqual([]);
+    expect(face.tone).toBe('plain');
   });
 
   it('keeps a caller’s own words for the harmless answer', () => {
@@ -66,6 +69,13 @@ describe('confirmAnswer', () => {
     expect(confirmAnswer('Escape')).toBe('cancel');
     expect(confirmAnswer(' ')).toBeNull();
     expect(confirmAnswer('y')).toBeNull();
+  });
+
+  // Declare war, version A (Quiet Table, build stage 1): Enter does not confirm a grave act.
+  it('takes no Enter on a grave question, and Escape still means no', () => {
+    expect(confirmAnswer('Enter', 'war')).toBeNull();
+    expect(confirmAnswer('Escape', 'war')).toBe('cancel');
+    expect(confirmAnswer('Enter', 'plain')).toBe('confirm');
   });
 });
 

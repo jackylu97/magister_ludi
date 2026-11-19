@@ -339,6 +339,8 @@ export {
   describeTechRules,
   describeTraitLines,
   effectLine,
+  // The user, 2026-11-19: the name, the label and the sentence for an empire building.
+  EMPIRE_BUILDING_WORDS,
   grantWords,
   idleReasonWords,
   indefinite,

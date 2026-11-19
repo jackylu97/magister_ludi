@@ -38,7 +38,8 @@
   gap: 18px;
   height: 80px;
   padding: 18px 64px 14px 24px;
-  border-bottom: 1px solid var(--rule);
+  /* The quiet head's ink rule and gilt hairline are the shared head's
+     (`.statecraft-head`, the kit). */
 }
 
 #diplomacy-overlay .dp-titles {
@@ -355,15 +356,11 @@
   text-underline-offset: 3px;
 }
 
+/* In the folded line the war button is smaller, and still solid. */
 #diplomacy-overlay .dp-fold .dp-btn.is-quiet-war {
   margin-left: auto;
   height: 24px;
-  padding: 0 4px;
-  border-color: transparent;
-  background: transparent;
-  text-decoration: underline;
-  text-decoration-color: var(--edge);
-  text-underline-offset: 3px;
+  padding: 0 10px;
 }
 
 /* The drawer's ×, drawn only while the column is a drawer. */
@@ -887,9 +884,21 @@ button.dp-chip:hover {
   font-size: var(--size-label);
 }
 
+/* Declare war (version A; Quiet Table, build stage 1): a solid button in the
+   war red with the blade, an ink edge, set apart from Propose. A darker red
+   than the cinnabar of an ordinary next step, so it never reads as the step. */
 #diplomacy-overlay .dp-btn.is-war {
   width: auto;
-  color: var(--war-red);
+  border: 1.5px solid var(--ink);
+  background: var(--war-red);
+  color: var(--parchment);
+  font-weight: 600;
+}
+
+#diplomacy-overlay .dp-btn.is-war:disabled {
+  border-color: var(--edge);
+  background: var(--table);
+  color: var(--ink-line);
 }
 
 /* A court mark (`src/art/courtMarks.ts`): the picture masks the ink of the
