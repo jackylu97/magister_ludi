@@ -1422,3 +1422,13 @@ religious significance?"
 - Which drafts faith can reroll today (The Oracle Pits of Yin).
 - The size of The Library of Ashurbanipal's renown and of Machu Picchu's mountain gold in every city. Both need a game run.
 - The history in the candidates is from my own knowledge. I ran no web check, and I named a source game only where I am sure of it.
+
+## The user's fourth round of comments (2026-11-19)
+
+| On | The user's comment | Result |
+|---|---|---|
+| The Weiyang Palace | "Great, go with this one." | Accepted for age 2. The other four candidates (The Ishtar Gate, The Apadana, The Great Stupa, The Parthenon) have no comment and are rejected. |
+| Question 27, a building for The Oracle Pits of Yin | "find an age 1 wonder that fits the theme, it doesn't have to be chinese." | The effect moves to a famous age 1 structure of any culture. The name "The Oracle Pits of Yin" leaves. |
+| Question 26, technologies | "sounds good. Don't change pyramids, it was on stonecraft before, no?" | The recommended technologies stand, except that The Pyramids stays on Stonecraft (it is on Stonecraft today). |
+| Question 24, The Iron Pillar | "Yes, go with recommendation" | Every building of the production category; every hex of yours with a strategic resource you can see, improved or not. |
+| Question 21, The Pyramid of the Sun | "only the city with the wonder" | Only the city that holds the wonder may levy for faith. |
