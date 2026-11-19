@@ -1366,3 +1366,30 @@ What follows:
   kept, and the cards turned over one by one.
 - **Setup: one face, not two.** More weight on the chosen leader's portrait.
 - **The combat forecast stays at the bottom left,** where it is today.
+
+### Quiet Table: build stage 1 (2026-11-19)
+
+The user approved a first build while the fourth pass is drawn ("yeah
+great!"). It holds only what the user has approved on the third-pass board
+(`docs/plans/mockups/scholars-study/quiet-table-third-pass/`) and needs no new
+art:
+
+1. **The kit** (frame a10): the sheet head at the quiet level (the ink rule
+   over a gilt hairline) with the × on every sheet that builds on the modal
+   shell; the button styles; a toast about a held thing carries a small plain
+   seal (a ring and a dot) and keeps today's toast size; no painting in any
+   toast; one HUD element keeps no icon (the dispatch).
+2. **The hex tooltip** shows who owns the tile when it is owned, and no line
+   when it is not.
+3. **The technology hint** reads "click a technology to research it" in place
+   of "click a star to aim". The rest of the line is made as plain.
+4. **Working sheets** (frame a3): the light touch on the caravans sheet, with
+   today's tab words kept.
+5. **Declare war, version A** (frame a11): a solid dark red button set apart
+   from Propose, then a sheet that names what follows. Enter does not confirm.
+6. **The title screen's tag line** is "a game for the ages".
+
+Not in this stage: the great person card and the Reliquary (stage 2), the
+Order draft, the city screen, diplomacy, faith, setup, the unit panel, the HUD
+overflow fix (all wait for the fourth pass), the age plate on the ribbon and
+the endings (they wait for paintings or their own stage).
