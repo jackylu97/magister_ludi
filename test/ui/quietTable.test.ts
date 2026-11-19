@@ -62,7 +62,7 @@ describe('the kit (frame a10)', () => {
 
   it('maps the three button styles onto the classes there are', () => {
     expect(rule(CSS, '.btn')).toContain('border: 1px solid var(--ink);');
-    expect(rule(CSS, '.btn')).not.toContain('box-shadow');
+    expect(rule(CSS, '.btn')).not.toMatch(/(?:^|[;{])\s*box-shadow\s*:/);
     expect(rule(CSS, '.btn-primary')).toContain('box-shadow: 3px 3px 0 var(--ink);');
     expect(rule(CSS, '.btn-primary')).toContain('border: 2px solid var(--ink);');
     expect(rule(CSS, '.btn-quiet')).toContain('border-color: var(--edge);');

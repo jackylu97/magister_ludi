@@ -320,8 +320,8 @@ describe('techGifts', () => {
 
   it('reports a node that hands over nothing at all', () => {
     expect(unlockDataProblems()).toEqual([]);
-    const mining = techDef('mining').unlocks;
-    const buildings = mining.buildings;
+    const mining = techDef('mining');
+    const originalUnlocks = mining.unlocks;
     const authored = improvementDef('mine').requiresTech;
     const chop = chopDef('forest')!;
     // **And copper's reveal since batch R3**, which is a third gift on the same
@@ -330,7 +330,7 @@ describe('techGifts', () => {
     const copperTech = resourceDef('copper').requiresTech;
     try {
       delete (improvementDef('mine') as { requiresTech?: unknown }).requiresTech;
-      delete mining.buildings;
+      mining.unlocks = { ...originalUnlocks, buildings: [] };
       // The forest clearing and copper reveal still give Mining two gifts.
       expect(techGifts('mining')).toHaveLength(2);
       expect(unlockDataProblems()).toEqual([]);
@@ -343,7 +343,7 @@ describe('techGifts', () => {
       );
     } finally {
       (improvementDef('mine') as { requiresTech?: unknown }).requiresTech = authored;
-      mining.buildings = buildings;
+      mining.unlocks = originalUnlocks;
       chop.tech = 'mining';
       (resourceDef('copper') as { requiresTech?: unknown }).requiresTech = copperTech;
     }

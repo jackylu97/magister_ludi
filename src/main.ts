@@ -1864,13 +1864,13 @@ function setInfoRow(
 }
 
 /** The owner line as nodes: a swatch in the holder's ink, then the name. `null` for free ground. */
-function ownerNodes(owner: TileOwnerLine | null): Node[] | null {
-  if (owner === null) return null;
+function ownerNodes(ownerLine: TileOwnerLine | null): Node[] | null {
+  if (ownerLine === null) return null;
   const swatch = document.createElement('i');
   swatch.className = 'info-owner-ink';
   swatch.setAttribute('aria-hidden', 'true');
-  swatch.style.background = owner.ink;
-  return [swatch, document.createTextNode(owner.name)];
+  swatch.style.background = ownerLine.ink;
+  return [swatch, document.createTextNode(ownerLine.name)];
 }
 
 /**
