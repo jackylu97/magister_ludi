@@ -3053,3 +3053,23 @@ all, lets just use the texture at all zoom levels."
     until the user has played with the new look.
 - Expected gain at the closest zoom, from the measured table: about 8 to 9% of
   a panning frame, plus the memory and load time of the cut land.
+
+## Religion names: short names that sound like a religion (2026-11-19)
+
+The user, on the faith screen mock-up: "could we do a naming pass, lets make
+these religion names way shorter. They can be proper nouns that just sound
+arcane/cool, or reference obscure religions from history". Then, on the first
+list of candidates (`docs/plans/religion-names-2026-11-19.md`): "i like the
+direction for the religion names a lot, but i'd prefer if they sounded like
+the name of a religion, not a specific god."
+
+- A religion's name is short: one or two words.
+- It reads as the name of a religion, a sect, a school or a mystery, not as
+  the name of one god or of a place.
+- It may be a real, obscure and extinct tradition from any culture, or an
+  invented name that sounds like one. No living faith.
+- **This replaces part of the ruling of 2026-08-27** ("keep religions fluid /
+  not tied to historical world religions", with the code's "never a fixed
+  roster"). A fixed list of names is now allowed. The names are still not the
+  world religions that people practise.
+- Nothing is built until the user has chosen the names.
