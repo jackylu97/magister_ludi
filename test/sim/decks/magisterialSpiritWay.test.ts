@@ -131,7 +131,7 @@ describe('The Spirit Way and The Paradise Garden', () => {
     const doubled = foldTile(tile, cityContext(state, city));
     expect(before.culture).toBeGreaterThan(0);
     expect(doubled.culture).toBe(2 * before.culture);
-    damageImprovement(tile);
+    damageImprovement(tile, state.turn);
     bumpRevision(state);
     expect(foldTile(tile, cityContext(state, city)).culture).toBeLessThan(doubled.culture);
     expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);

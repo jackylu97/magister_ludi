@@ -1214,3 +1214,42 @@ Across 30 selections, unit rebuilds fell from 30 to zero. Measured unit and over
 The turn handover clears old unit animations before starting new ones. When all pieces are at rest, the 3D renderer now lets the next dirty frame check the units. It previously rebuilt all units immediately, even on a board with no animation to clear. An active walk, a retained walker or faller, or a glow still restores the unit layer immediately. If a new glow needs drawn instances before the next frame, it checks the current unit fingerprint first.
 
 Focused tests call the renderer with idle and active animation states. They count unit rebuilds and check that the next frame still draws. The time saved by this change alone has not been measured. The separate bot scheduling and visible-board measurements are in the turn-start section of `docs/plans/performance-pass-2026-11-06.md`.
+
+## Pillaged improvements, 2026-11-19
+
+The game and art gallery use the same effect. The ash covers the damaged work and
+stays until repair. The embers appear on visible land improvements during the
+raid turn. Fishing sites use a surface mark. The renderer shares one set of
+particle geometry and one material across the board's three wrap copies. The
+camera can discard copies outside the view. The sea reflection skips ash and
+fire. Particle positions change in the yield-light shader on the board's
+existing clock. A new turn releases the fire geometry. Ash geometry is reused
+until the set of visible damaged tiles changes.
+
+The table compares ash alone with the same board and the same ash plus fire.
+The test ran in a local WebKit window on the M4 at 1040 by 730 CSS pixels and
+device pixel ratio 2. Each case used three paired samples, with the order
+alternating. Each sample included 20 warm-up and 96 measured display callbacks.
+The table gives the median of the three results. Display interval measures time
+between browser animation callbacks. CPU time counts only frames the game
+submitted. The board draws less often when the camera rests. All times are
+milliseconds. Each pair gives ash alone first and ash plus fire second.
+
+| Visible land sites in the scene | Camera | Display interval, median | Display interval, 95th percentile | CPU submission, median | Draw calls |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 3 | Still | 17 / 16 | 26 / 28 | 3 / 4 | 166 / 167 |
+| 3 | Pan | 21 / 23 | 27 / 27 | 4 / 4 | 151 / 152 |
+| 180 | Still | 16 / 16 | 29 / 28 | 3 / 3 | 159 / 160 |
+| 180 | Pan | 18 / 20 | 30 / 25 | 3 / 4 | 144 / 145 |
+
+The 180 sites include land outside the camera. The normal scene submitted 90
+extra triangles for fire. The stress scene submitted 4,778. Each added one
+draw call, including when the water reflection was active. Before this pass,
+the ordinary scene submitted two extra draws and 180 extra triangles at rest.
+These are frame measurements on one machine. They exclude the first-time cost
+of loading the models and creating the textures.
+
+To reproduce the views, open
+`flair.html?review=scene&view=ages&age=4&pieces=only&pillage=embers&frameStudy=1`.
+Add `&raids=many&seat=1` for the stress case. Switch between Ash and Ash and
+embers, keep the scene clock running, and pan with the same camera settings.
