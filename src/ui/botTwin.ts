@@ -27,11 +27,11 @@
  * `DriveOptions.attempt`).
  */
 
-import { aiTuning } from '../ai/aiConfig';
 import type { BotDecision } from '../ai/decision';
 import { type AudienceOptions, type BotReporter, answerAudience, botSeatsToDrive, replayBotAttempts } from '../ai/driver';
-import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
+import { adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
 import type { Game } from '../sim/game';
+import { realPlayers } from '../sim/state';
 import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
 import { readBotTuning } from './botPlanProtocol';
 
@@ -93,7 +93,7 @@ export function applyTwinReply(
 }
 
 /** Builds the request both questions share. Posting it is the structured clone. */
-function requestFor(game: Game, id: number): Omit<BotWorkerRequest & { kind: 'drive' }, 'kind'> {
+function requestFor(game: Game, id: number) {
   return {
     id,
     config: game.config,
@@ -120,14 +120,10 @@ interface BotInput {
 function personOffers(state: Game['state']): string {
   // A refused pick of a taken great person can redraw an offer without
   // adding a command to the log or changing the revision.
-  return JSON.stringify(state.players.map((player) => player.greatPersonOffer));
+  return JSON.stringify(realPlayers(state).map((player) => player.greatPersonOffer));
 }
 
-function tuningPrint(state: Game['state']): string {
-  return JSON.stringify([aiTuning(), state.players.map(({ id }) => aiTuning({ playerId: id }))]);
-}
-
-function botInput(game: Game, memory: HarnessMemory): BotInput {
+function botInput(game: Game, { memory, tuning }: ReturnType<typeof requestFor>): BotInput {
   const { state } = game;
   return {
     game,
@@ -139,7 +135,7 @@ function botInput(game: Game, memory: HarnessMemory): BotInput {
     offers: personOffers(state),
     botSeats: botSeatsToDrive(state).join(','),
     memory: JSON.stringify(memory),
-    tuning: tuningPrint(state),
+    tuning: JSON.stringify(tuning),
   };
 }
 
@@ -151,13 +147,17 @@ function sameInput(input: BotInput, game: Game): boolean {
     input.botSeats === botSeatsToDrive(state).join(',') &&
     input.offers === personOffers(state) &&
     input.memory === JSON.stringify(readHarnessMemory(state)) &&
-    input.tuning === tuningPrint(state);
+    input.tuning === JSON.stringify(readBotTuning(state));
 }
 
 interface PreparedDrive {
   input: BotInput;
   reply: Promise<BotWorkerReply | null>;
+  postedAt: number;
 }
+
+const MIN_DRIVE_DEADLINE_MS = 60;
+const MAX_STALE_WAIT_MS = 80;
 
 export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
   const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
@@ -172,6 +172,7 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
   let runningBackground: PreparedDrive | null = null;
   let queued: Game | null = null;
   let backgroundAvailable = true;
+  let lastDriveMs = 0;
   const waiting = new Map<number, (reply: BotWorkerReply | null) => void>();
 
   /** Resolves every request still waiting with "no answer", and drops the worker. */
@@ -272,8 +273,16 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
 
   function askDrive(game: Game, report: boolean): PreparedDrive {
     const request = requestFor(game, nextId++);
-    const input = botInput(game, request.memory);
-    return { input, reply: ask({ kind: 'drive', ...request }, report) };
+    const input = botInput(game, request);
+    const postedAt = performance.now();
+    const started = generation;
+    const reply = ask({ kind: 'drive', ...request }, report);
+    void reply.then((result) => {
+      if (generation === started && result?.kind === 'driven') {
+        lastDriveMs = performance.now() - postedAt;
+      }
+    });
+    return { input, reply, postedAt };
   }
 
   function takePrepared(game: Game): PreparedDrive | null {
@@ -284,8 +293,30 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
       if (runningBackground === work) runningBackground = null;
       return work;
     }
-    interruptBackground();
     return null;
+  }
+
+  /** A short wait can keep the coordinator and its seat workers warm. */
+  function waitForBackground(): Promise<void> | null {
+    const work = runningBackground;
+    if (work === null || waiting.size === 0) return null;
+    const age = performance.now() - work.postedAt;
+    const deadline = Math.max(MIN_DRIVE_DEADLINE_MS, lastDriveMs * 2);
+    const wait = Math.min(MAX_STALE_WAIT_MS, deadline - age);
+    if (wait <= 0) {
+      interruptBackground();
+      return null;
+    }
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (runningBackground === work) interruptBackground();
+        resolve();
+      }, wait);
+      void work.reply.then(() => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
   }
 
   function interruptBackground(): void {
@@ -298,6 +329,7 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
 
   function cancel(): void {
     generation += 1;
+    lastDriveMs = 0;
     invalidate();
     runningBackground = null;
     if (waiting.size > 0) fail('cancelled', false);
@@ -321,7 +353,13 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
       const started = generation;
       foreground += 1;
       try {
-        const work = takePrepared(game) ?? askDrive(game, true);
+        let work = takePrepared(game);
+        if (work === null) {
+          const waitingForWorker = waitForBackground();
+          if (waitingForWorker !== null) await waitingForWorker;
+          if (generation !== started || getGame() !== game) return 'cancelled';
+          work = askDrive(game, true);
+        }
         const reply = await work.reply;
         if (generation !== started || getGame() !== game) return 'cancelled';
         if (!sameInput(work.input, game)) return 'moved';
@@ -350,7 +388,7 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
       try {
         const { seatId, askerId, dealId } = audienceOptions;
         const request = requestFor(game, nextId++);
-        const input = botInput(game, request.memory);
+        const input = botInput(game, request);
         const reply = await ask({
           kind: 'audience',
           ...request,

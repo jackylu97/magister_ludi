@@ -3838,3 +3838,41 @@ turn advanced to turn 2, and Next action added the next decision.
 Typecheck, all 12,073 core tests in 520 files, and the production build passed
 with the Council layout from `99854d70`. Both 120-turn bot digests kept their
 original values. The six slow decision and spectator tests also passed.
+
+## Parallel bot planning in the game, 2026-11-19
+
+The game worker now hands frozen-board plans to a pool of seat workers. The coordinator still resolves conflicts, runs any remaining live decisions and applies commands in the original seat order. If a worker fails, the coordinator discards the group and plans from the same frozen board before it dispatches a command. One bot seat or a browser without usable nested workers uses the existing serial planner. The arena and tuner already run several whole games at once. They keep that allocation.
+
+A seat worker receives the global and per-seat tuning. Its reply to the ordinary game omits the card scores and candidate explanations that only the spectator displays. The spectator uses the same command runner and still gets the full decision at each step.
+
+**Browser parity.** Chromium 156 and native WebKit each handled 15 nested requests for five bot seats over three turns. The comparisons included attempted and accepted commands, the command log, bot memory and the saved game state before and after turn resolution. Every comparison matched. Core coverage also checks reversed and shuffled replies, incomplete replies, worker failure and timeout.
+
+**Timing.** The first sample used six Node workers. On seed 42, two turns from the turn-90 snapshot took 9.93 seconds in serial and 9.03 with workers. Two turns from turn 120 took 12.84 seconds in serial and 16.22 with workers. The pool still returned full explanations. These short samples had concurrent load.
+
+A second run used the browser pool through three Node workers with compact replies. Each pair started from the same Standard seed-42 snapshot. Execution order alternated. Times below are milliseconds for the whole bot step. Turn 90 includes first-use startup in one worker sample.
+
+| Start | Four serial samples | Four worker samples |
+|---|---|---|
+| Turn 90 | 1188, 639, 588, 591 | 954, 582, 418, 352 |
+| Turn 120 | 1194, 1168, 1075, 1032 | 885, 773, 747, 720 |
+
+All eight pairs matched on state, logs, warnings and bot memories. Two additional three-turn games matched on save replay. The three-worker measurements favour parallel planning on these two boards. Opening turns can cost more than serial play, especially while the workers load, and the results do not establish a general late-game speedup on other machines. The reproduction notes are in `/private/tmp/webciv-c2-node-evidence/NOTES.md`.
+
+## Preparing bots during the human turn, 2026-11-19
+
+The game starts a private bot turn when play begins and after a turn resolves. It also schedules a fresh one after a group of human orders. The commands stay in the worker until the human passes the normal End Turn checks. A diplomatic audience takes priority. Suspending, loading or replacing the game cancels old replies before they can reach the board.
+
+The game reuses a complete result or waits for a matching request that is still running. The check includes the game and state, turn, command log, revision, RNG, eligible seats, great-person offers, bot memory and tuning. A refused pick of a great person can change the hand without advancing either the log or RNG. The test includes that case. After a human changes a simulation input, the first implementation treats every seat as potentially affected and starts over on the updated board. It does not try to prove that a distant player's action was irrelevant to one seat.
+
+On a fresh End Turn request, a nearly finished but stale calculation can finish briefly so the coordinator and seat workers stay warm. Its output is discarded. This wait uses the recent drive time and has an 80 ms limit. An audience or a game cancellation interrupts immediately.
+
+**Browser measurements.** Chromium 156 and native WebKit each ran 12 scripted turns on a Duel map with one human and five bot seats, seed 42. Preparing during the human turn and planning only at End Turn produced identical attempts, logs, game states and bot memories. There were 168 commands in the final log. Rendering and human turn resolution were outside the timed section.
+
+| State when End Turn was pressed | Chromium | Native WebKit |
+|---|---:|---:|
+| Matching result ready, two presses | 0.5 and 1.9 ms | 1 and 2 ms |
+| Matching request still running | 30.7 and 53.3 ms | 49 and 57 ms |
+| Human had just changed the board, old work still running | 71 and 91 ms | 84 and 101 ms |
+| Same last case, on-demand control | 44 and 50 ms | 49 and 71 ms |
+
+An initial implementation immediately closed the old worker on that last input. It took 184 to 212 ms in Chromium and 369 to 388 ms in WebKit. The bounded wait kept the warm pool for all four ordinary presses. A deliberately delayed stale response still triggered a restart after about 80 ms. The early-game measurements show the advantage when the player has given the worker time to finish, and the cost of acting just before End Turn. The scripts and raw results are in `/private/tmp/webciv-bp17-warm.5r3OAf`.

@@ -1,6 +1,6 @@
 import { type PersonaOverride, aiTuning, setAiTuning } from '../ai/aiConfig';
 import { type FrozenBoard, type SeatPlan, planSeat } from '../ai/frozenBoard';
-import type { GameState } from '../sim/state';
+import { type GameState, realPlayers } from '../sim/state';
 
 export interface BotTuning {
   global: PersonaOverride | null;
@@ -10,7 +10,7 @@ export interface BotTuning {
 export function readBotTuning(state: GameState): BotTuning {
   return {
     global: aiTuning(),
-    seats: state.players.map(({ id }) => [id, aiTuning({ playerId: id })]),
+    seats: realPlayers(state).map(({ id }) => [id, aiTuning({ playerId: id })]),
   };
 }
 

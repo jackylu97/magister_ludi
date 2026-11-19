@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { aiTuning, setAiTuning } from '../../src/ai/aiConfig';
 import { answerAudience, driveBots } from '../../src/ai/driver';
@@ -7,6 +7,7 @@ import { markMusterTurn } from '../../src/ai/musterRoll';
 import type { Command } from '../../src/sim/commands';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { LIVE_GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
+import { bumpRevision } from '../../src/sim/state';
 import { type BotWorkerReply, type BotWorkerRequest, answerBotWorker } from '../../src/ui/bot.worker';
 import { createBotTwin } from '../../src/ui/botTwin';
 import { createGame } from '../sim/newGameHelpers';
@@ -121,27 +122,133 @@ describe('background bot drives', () => {
     twin.dispose();
   });
 
-  it('gives End Turn priority over a stale drive that is still running', async () => {
+  it('keeps the worker warm when a stale drive finishes within the short wait', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     const { twin, posted, workers } = transport();
-    const actual = game();
-    const expected = game();
-    twin.prepare(actual);
-    expect(dispatch(actual, sleepOrder(actual)).ok).toBe(true);
-    expect(dispatch(expected, sleepOrder(expected)).ok).toBe(true);
-    twin.invalidate();
+    try {
+      const actual = game();
+      const expected = game();
+      twin.prepare(actual);
+      expect(dispatch(actual, sleepOrder(actual)).ok).toBe(true);
+      expect(dispatch(expected, sleepOrder(expected)).ok).toBe(true);
+      twin.invalidate();
 
-    const played = twin.drive(() => actual);
-    expect(workers).toEqual({ started: 2, ended: 1 });
-    expect(posted).toHaveLength(2);
-    expect(posted[1]!.request.logLength).toBe(1);
-    posted[0]!.finish();
-    await Promise.resolve();
-    expectSameGame(actual, expected);
-    posted[1]!.finish();
-    expect(await played).toBe('applied');
-    driveBots(expected, quiet);
-    expectSameGame(actual, expected);
-    twin.dispose();
+      const played = twin.drive(() => actual);
+      await vi.advanceTimersByTimeAsync(30);
+      expect(posted).toHaveLength(1);
+      expect(workers).toEqual({ started: 1, ended: 0 });
+
+      posted[0]!.finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(posted).toHaveLength(2);
+      expect(posted[1]!.request.logLength).toBe(1);
+      expect(workers).toEqual({ started: 1, ended: 0 });
+      expectSameGame(actual, expected);
+
+      posted[1]!.finish();
+      expect(await played).toBe('applied');
+      driveBots(expected, quiet);
+      expectSameGame(actual, expected);
+    } finally {
+      twin.dispose();
+      vi.useRealTimers();
+    }
+  });
+
+  it('starts fresh work after the hard limit even when the last drive was slow', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const { twin, posted, workers } = transport();
+    try {
+      const actual = game();
+      const expected = game();
+      twin.prepare(actual);
+      await vi.advanceTimersByTimeAsync(120);
+      posted[0]!.finish();
+      await vi.advanceTimersByTimeAsync(0);
+      twin.invalidate();
+      twin.prepare(actual);
+      expect(dispatch(actual, sleepOrder(actual)).ok).toBe(true);
+      expect(dispatch(expected, sleepOrder(expected)).ok).toBe(true);
+      twin.invalidate();
+
+      const played = twin.drive(() => actual);
+      await vi.advanceTimersByTimeAsync(79);
+      expect(posted).toHaveLength(2);
+      expect(workers).toEqual({ started: 1, ended: 0 });
+      await vi.advanceTimersByTimeAsync(1);
+      expect(workers).toEqual({ started: 2, ended: 1 });
+      expect(posted).toHaveLength(3);
+      expect(posted[2]!.request.logLength).toBe(1);
+
+      posted[1]!.finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expectSameGame(actual, expected);
+      posted[2]!.finish();
+      expect(await played).toBe('applied');
+      driveBots(expected, quiet);
+      expectSameGame(actual, expected);
+    } finally {
+      twin.dispose();
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets an audience interrupt a stale drive during the short wait', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const { twin, posted, workers } = transport();
+    try {
+      const actual = game();
+      const expected = game();
+      twin.prepare(actual);
+      expect(dispatch(actual, sleepOrder(actual)).ok).toBe(true);
+      expect(dispatch(expected, sleepOrder(expected)).ok).toBe(true);
+      twin.invalidate();
+
+      const played = twin.drive(() => actual);
+      expect(posted).toHaveLength(1);
+      const audience = twin.audience(() => actual, { seatId: 1, askerId: 0 });
+      expect(workers).toEqual({ started: 2, ended: 1 });
+      expect(posted[1]!.request.kind).toBe('audience');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(posted[2]!.request.kind).toBe('drive');
+
+      posted[1]!.finish();
+      expect(await audience).toBeNull();
+      expectSameGame(actual, expected);
+      posted[2]!.finish();
+      expect(await played).toBe('applied');
+      driveBots(expected, quiet);
+      expectSameGame(actual, expected);
+    } finally {
+      twin.dispose();
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels the wait immediately when the game is suspended', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    const { twin, posted, workers } = transport();
+    try {
+      const actual = game();
+      const expected = game();
+      twin.prepare(actual);
+      expect(dispatch(actual, sleepOrder(actual)).ok).toBe(true);
+      expect(dispatch(expected, sleepOrder(expected)).ok).toBe(true);
+      twin.invalidate();
+
+      const played = twin.drive(() => actual);
+      expect(workers).toEqual({ started: 1, ended: 0 });
+      twin.cancel();
+      expect(workers).toEqual({ started: 1, ended: 1 });
+      expect(await played).toBe('cancelled');
+      posted[0]!.finish();
+      await vi.advanceTimersByTimeAsync(100);
+      expect(posted).toHaveLength(1);
+      expectSameGame(actual, expected);
+    } finally {
+      twin.dispose();
+      vi.useRealTimers();
+    }
   });
 
   it.each([true, false])('rejects a reply after a refused great-person pick, roster exhausted: %s', async (exhausted) => {
@@ -150,6 +257,7 @@ describe('background bot drives', () => {
     const id = LIVE_GREAT_PERSON_IDS[0]!;
     actual.state.players[0]!.greatPersonOffer = { options: [id] };
     actual.state.recruited = exhausted ? [...LIVE_GREAT_PERSON_IDS] : [id];
+    bumpRevision(actual.state);
     const before = actual.state.revision;
     const random = actual.state.rng.state;
 
@@ -230,6 +338,7 @@ describe('background bot drives', () => {
     for (const g of [actual, expected]) {
       g.state.players[0]!.gold = 10;
       g.state.players[1]!.gold = 200;
+      bumpRevision(g.state);
       expect(dispatch(g, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { gold: 1 }, take: { gold: 100 } }).ok).toBe(true);
     }
     const options = { seatId: 1, askerId: 0, dealId: actual.state.dealProposals[0]!.id, ...quiet };
@@ -253,6 +362,7 @@ describe('background bot drives', () => {
     const actual = game();
     actual.state.players[0]!.gold = 10;
     actual.state.players[1]!.gold = 200;
+    bumpRevision(actual.state);
     expect(dispatch(actual, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { gold: 1 }, take: { gold: 100 } }).ok).toBe(true);
     const old = snapshotState(actual.state);
     const reply = twin.audience(() => actual, { seatId: 1, askerId: 0, dealId: actual.state.dealProposals[0]!.id });

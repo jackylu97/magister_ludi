@@ -4342,9 +4342,7 @@ async function boot(initial: Game | null): Promise<void> {
     window.clearTimeout(prepareTimer);
     prepareTimer = window.setTimeout(() => {
       prepareTimer = 0;
-      if (!endTurnWorking && game.state.winnerId === null && botSeatsToDrive(game.state).length > 0) {
-        botTwin.prepare(game);
-      }
+      if (!endTurnWorking) botTwin.prepare(game);
     }, 250);
   }
   /** True only during the first call of `controls.endTurn` in `endTurnBehindTheBots`. */
