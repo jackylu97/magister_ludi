@@ -1,3 +1,4 @@
+import { expectSameArray } from './geometryArrayHelpers';
 import {describe,expect,it} from 'vitest';
 import {BufferAttribute,BufferGeometry,PlaneGeometry} from 'three';
 import {indexGeometry} from '../../src/terrainStudy/indexGeometry.js';
@@ -38,7 +39,7 @@ describe('exact painted vertex indexing',()=>{
     indexGeometry(source);
     expect(source.index!.array).toBeInstanceOf(Uint32Array);
     const restored=source.toNonIndexed();
-    expect(restored.getAttribute('position').array).toEqual(expected);
+    expectSameArray(restored.getAttribute('position').array, expected, 'position');
     expect(indexGeometry(source)).toBe(source);
     restored.dispose();source.dispose();geometry.dispose();
   });

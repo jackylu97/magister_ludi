@@ -19,13 +19,13 @@ import { describe, expect, it } from 'vitest';
 import { valueContext } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
 import { cardStampChair, explainCardStamp, extraChairsWorth } from '../../src/ai/value';
-import type { Game } from '../../src/sim/game';
 import { type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
 import { isOrderId } from '../../src/sim/statecraftData';
 import { cardsToPrice } from './aiCardStampHelpers';
+import { playedGameFixture } from './grownGameHelpers';
 import { createGame } from './newGameHelpers';
 
-function played(): Game {
+const played = playedGameFixture(() => {
   const game = createGame({
     seed: 20260831,
     sizeName: 'duel',
@@ -37,7 +37,7 @@ function played(): Game {
   });
   while (game.state.turn <= 30) driveBots(game, { warn: () => {} });
   return game;
-}
+});
 
 /** A sitting's context for a seat, and one built with no sitting. */
 function contexts(state: GameState, player: Player) {

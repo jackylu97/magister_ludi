@@ -10,6 +10,7 @@
  * relief, the fog, the clearing), the bake's steps, and the trip through the
  * board workers.
  */
+import { expectSameArray } from './geometryArrayHelpers';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   BoxGeometry, type BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, InstancedMesh, Mesh, MeshStandardMaterial, Raycaster,
@@ -67,8 +68,16 @@ const family = (board: PaintedBoard, name: string) => meshes(board).filter(mesh 
 const cutLand = (board: PaintedBoard) => family(board, 'merged land').filter(mesh => mesh.userData['paintedSurface']);
 const plainLand = (board: PaintedBoard) => family(board, 'plain land');
 const triangles = (list: Mesh[]) => list.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute('position').count) / 3, 0);
-const bytes = (geometry: BufferGeometry): string => [...Object.entries(geometry.attributes), ['index', geometry.index] as const]
-  .map(([name, attribute]) => attribute ? `${name}:${Array.from((attribute as BufferAttribute).array as ArrayLike<number>).join(',')}` : '').join('|');
+/** Compare the attribute order, index and exact bytes without formatting each number as text. */
+function expectSameGeometry(actual: BufferGeometry, expected: BufferGeometry): void {
+  const attributes = Object.keys(expected.attributes);
+  expect(Object.keys(actual.attributes)).toEqual(attributes);
+  for (const name of attributes) {
+    expectSameArray(actual.getAttribute(name).array, expected.getAttribute(name).array, name);
+  }
+  expect(actual.index === null).toBe(expected.index === null);
+  if (actual.index && expected.index) expectSameArray(actual.index.array, expected.index.array, 'index');
+}
 
 /**
  * A renderer that records what the bake draws: which target, how many meshes,
@@ -190,8 +199,9 @@ describe('the board with a plain land', () => {
     // The cut land is the present near land under another band name, and it is still what the pointer picks.
     const near = land(batches(before), 'near'), cut = land(batches(after), 'cut');
     expect(cut.length).toBe(near.length);
-    cut.forEach((batch, i) => expect(bytes(batch.geometry)).toBe(bytes(near[i]!.geometry)));
-    expect(after.pickMeshes.map(mesh => bytes(mesh.geometry))).toEqual(before.pickMeshes.map(mesh => bytes(mesh.geometry)));
+    cut.forEach((batch, i) => expectSameGeometry(batch.geometry, near[i]!.geometry));
+    expect(after.pickMeshes).toHaveLength(before.pickMeshes.length);
+    after.pickMeshes.forEach((mesh, i) => expectSameGeometry(mesh.geometry, before.pickMeshes[i]!.geometry));
     // No far land: the plain land, one batch for each cut land chunk.
     expect(land(batches(after), 'far')).toHaveLength(0);
     expect(land(batches(after), 'plain')).toHaveLength(cut.length);
