@@ -194,6 +194,50 @@ determinations."* The determinations are made.
   `test/sim/wonders.test.ts` pins twenty-seven rows.
 - The build changes bot play, so it cuts the digest pins (section 5).
 
+### 3.7 The Dominion and Magisterial deck passes (ready)
+
+The user, 2026-11-19: *"yes, add them to the handoff doc."* Both decks had a
+design pass. The user ruled on every change, in comments that the two files
+keep word for word.
+
+- **Dominion:** `docs/plans/dominion-design-pass-2026-11-19.md`, last section
+  "Ready for the build". 46 entries: 38 are data only, 7 need a small
+  extension, 1 needs a new shape (The Field of Mars). The deck goes from 73 to
+  82 Orders and from 13 to 14 Doctrines. Nothing waits on the user.
+- **Magisterial:** `docs/plans/magisterial-design-pass-2026-11-19.md`, section
+  "Ready for the build". 41 changes and 7 rows to retire: 29 are data only, 10
+  need a small extension, 2 need a new shape. The deck goes from 64 to 67
+  Orders and stays at 17 Doctrines. Nothing waits on the user.
+  - Build its main batch first.
+  - Change 34 (The Paradise Garden's reward) and change 27 (The Spirit Way)
+    come **after the wonders rework** (section 3.6), because they use the
+    doubling line that The Mausoleum adds. The Spirit Way is its own batch:
+    the section gives its rules (a "ghost work" for each wonder) and every
+    reader that must learn them.
+- **A wording batch across all decks:** card text says "a melee unit" or "a
+  ranged unit", not "the best melee unit you can build". The rule does not
+  change (a grant still picks the strongest unit of the class the empire can
+  build then); it is stated once in the keyword tooltip. The Magisterial file
+  lists where the phrase lives: 11 live card texts, 8 places in
+  `statecraft/describers.ts`, the card text fixture, and lines of the approved
+  generic set and wonders.
+- Each "Ready for the build" section ends with points for the builder to check
+  in the code. Treat them as checks, not as facts.
+- Every new card needs a flavour line (a `flavor` field, labelled Flavour).
+  None is written. Ask the user who writes them, or leave the field empty and
+  list the cards.
+- Numbers are "to tune in playtest". Do not run bot games to size them.
+- A card whose text does not fit a shape is deferred and annotated, never bent
+  into a near fit.
+
+**A suggested order for all the card work** (each step cuts the digest pins):
+1. the generic Orders (3.5);
+2. the wonders rework (3.6);
+3. Dominion;
+4. Magisterial, main batch;
+5. Magisterial change 34 and The Spirit Way;
+6. the wording batch, last, so it also covers the new cards.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open

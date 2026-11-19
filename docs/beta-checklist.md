@@ -69,6 +69,18 @@ section. When an item is done, mark it `[x]` and give the commit.
   - Older open items go with it: per-leader bot personas, and the name of a
     seat with no leader.
   - Do it after the deck polish, because a leader's theme depends on the cards.
+  - **Leaders to rework** (the user, 2026-11-19): nine of the thirteen.
+    - [ ] Emperor Taizong
+    - [ ] Akhenaten
+    - [ ] Al-Ma'mun
+    - [ ] Mithridates VI
+    - [ ] Joan of Arc
+    - [ ] Hypatia
+    - [ ] Zheng He
+    - [ ] Hildegard of Bingen
+    - [ ] Modu Chanyu
+  - Not on the user's list, so they stay as they are unless the pass finds a
+    reason: Pachacuti, Mansa Musa, Nezahualcoyotl, Ibn Battuta.
 
 ## Interface
 
