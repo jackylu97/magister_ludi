@@ -1087,20 +1087,14 @@ function meterTotal(state: GameState, playerId: number, meter: MeterId): number 
   return meter === 'happiness' ? happinessOf(state, playerId) : authorityOf(state, playerId);
 }
 
-/**
- * A meter movement, **at the precision a meter is read at**: one tenth, which is
- * `signedFigure`'s rule on the top bar's own chips.
- *
- * Not fastidiousness. Happiness folds a list carrying fractional terms — a
- * demand line multiplied by a `meterRule` factor, a court's share of one — so the
- * difference between two folds is subject to IEEE addition, and Festival Days'
- * four contentment arrives here as `3.9999999999999996`. Rounded at the reading
- * rather than at the printer because a card's stamp is not the only thing that
- * will ever ask this list what a card pays, and a figure that is four everywhere
- * but in one caller's string is the drift that costs an afternoon.
- */
+/** Keep fractional meter changes in the ledger. A subtraction of two meter
+ * totals can leave a rounding error at a whole or tenth (for example, four
+ * points of happiness). Snap only within the precision of those totals. */
 function meterMoved(from: number, to: number): number {
-  return Math.round((to - from) * 10) / 10;
+  const delta = to - from;
+  const tenth = Math.round(delta * 10) / 10;
+  const precision = Number.EPSILON * Math.max(1, Math.abs(from), Math.abs(to));
+  return Math.abs(delta - tenth) <= precision ? tenth : delta;
 }
 
 /**
@@ -1478,9 +1472,7 @@ function ghostDiffLines(
 
   // 4b. Renown each turn (stage 7): the fold of `explainRenown`'s recurring
   //     half on both boards, summed over every family, and the difference.
-  //     Exact rather than rounded to a tenth as the meters are: the In play
-  //     screen reads the same two folds and subtracts them the same way, so
-  //     the two readings agree to the last bit.
+  //     The In Play screen also reads the difference between these two folds.
   const renownMoved =
     (isReal(held) ? shared!.renownPerTurn() : renownPerTurn(held, playerId)) -
     (isReal(without) ? shared!.renownPerTurn() : renownPerTurn(without, playerId));
