@@ -2518,11 +2518,11 @@ export function assignCitizens(state: GameState, city: City): void {
   // the overwhelmingly common outcome is the same citizens on the same hexes, so
   // announcing unconditionally would throw the empire's happiness away once a
   // town for nothing. The list is short and sorted by tile index by
-  // `writeAssignment`, so the comparison is exact and costs a string.
+  // `writeAssignment`, so we can compare the coordinates in order.
   //
   // Any other helper whose write is idempotent turn to turn keeps the same
   // discipline; this is the one the profile named.
-  const before = assignmentPrint(city);
+  const before = city.workedTiles;
   const balanced = CITIES.citizenWeights;
   writeAssignment(state, city, chooseCitizens(state, city, balanced));
   const lean = citizenLean(city);
@@ -2535,7 +2535,10 @@ export function assignCitizens(state: GameState, city: City): void {
     const fallback = city.workedTiles;
     weights = CITIES.citizenFocusWeights[lean];
     writeAssignment(state, city, chooseCitizens(state, city, weights));
-    if (foldCity(state, city).food < foodUpkeep(city)) {
+    // If both choices put every citizen on the same tile, the fallback can
+    // only affect the weights used for the avoid-growth swaps below.
+    const needsFoodCheck = city.avoidGrowth === true || !sameAssignment(fallback, city.workedTiles);
+    if (needsFoodCheck && foldCity(state, city).food < foodUpkeep(city)) {
       city.workedTiles = fallback;
       weights = balanced;
     }
@@ -2550,19 +2553,12 @@ export function assignCitizens(state: GameState, city: City): void {
   if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
     capFoodSurplus(state, city, weights);
   }
-  if (assignmentPrint(city) !== before) bumpEconomy(state);
+  if (!sameAssignment(before, city.workedTiles)) bumpEconomy(state);
 }
 
-/**
- * One town's worked list as a string, for the comparison above and nothing else.
- *
- * Sorted by tile index before it is stored (`writeAssignment`), so two prints
- * are equal exactly when the same citizens stand on the same hexes.
- */
-function assignmentPrint(city: City): string {
-  let print = '';
-  for (const seat of city.workedTiles) print += `${seat.col},${seat.row};`;
-  return print;
+/** writeAssignment stores a new sorted list, so equal coordinates mean the same citizens stayed in place. */
+function sameAssignment(a: City['workedTiles'], b: City['workedTiles']): boolean {
+  return a.length === b.length && a.every((cell, i) => cell.col === b[i]!.col && cell.row === b[i]!.row);
 }
 
 /**
@@ -2770,8 +2766,14 @@ function chooseCitizens(
   // food upkeep is per citizen (`foodUpkeep`).
   const cap = Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city);
 
-  const assignable = new Map<number, Tile>();
-  for (const tile of candidates) assignable.set(index(tile), tile);
+  // writeAssignment sorts by tile index. If every tile fits, pins and scores
+  // cannot change the stored assignment.
+  if (candidates.length <= cap) return candidates;
+
+  const assignable = new Set<number>();
+  if (city.lockedTiles.length > 0) {
+    for (const tile of candidates) assignable.add(index(tile));
+  }
 
   const taken = new Set<number>();
   const worked: Tile[] = [];
@@ -2787,22 +2789,18 @@ function chooseCitizens(
     worked.push(tile);
   }
 
-  // The owner's context, so a citizen is sent to the tile a renewal has made
-  // the best one — the turn the renewal lands, not the turn after.
-  const ctx = cityContext(state, city);
-  const scores = new Map<number, number>();
-  for (const tile of candidates) {
-    scores.set(index(tile), yieldScore(foldTile(tile, ctx), weights));
-  }
-  candidates.sort((a, b) => {
-    const ia = index(a);
-    const ib = index(b);
-    return scores.get(ib)! - scores.get(ia)! || ia - ib;
-  });
+  if (worked.length === cap) return worked;
 
+  const ctx = cityContext(state, city);
+  const ranked = [];
   for (const tile of candidates) {
+    const at = index(tile);
+    if (taken.has(at)) continue;
+    ranked.push({ tile, at, score: yieldScore(foldTile(tile, ctx), weights) });
+  }
+  ranked.sort((a, b) => b.score - a.score || a.at - b.at);
+  for (const { tile } of ranked) {
     if (worked.length >= cap) break;
-    if (taken.has(index(tile))) continue;
     worked.push(tile);
   }
   return worked;
