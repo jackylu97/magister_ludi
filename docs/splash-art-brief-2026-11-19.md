@@ -141,7 +141,7 @@ Parameter names and default values change between Midjourney versions. I describ
 | Ages | 16:9 | 4 | A 720 by 405 px window on a lapis ribbon over the map, when the world's age changes. | The age numeral and name are printed over the bottom third of the window. Keep the bottom third dark and simple. | `ages/age1.jpg` to `age4.jpg` | 1 |
 | Endings | 16:9 | 2 | A 496 by 279 px window. The win is on a lapis page with the sun mark. The loss is on dark cloth with the moon mark. | Centre the subject. The loss is a dusk picture. | Proposed: `endings/win.jpg`, `endings/loss.jpg` | 1 |
 | Leaders | 3:4 | 16 | Setup and diplomacy, up to 330 by 440 px. Smaller copies of 132 px and 48 px. A 28 px circle in lists. | Head in the upper middle. Plain sky behind the head, so that the small circle shows a face. | `leaders/<leader id>.jpg`, for example `pachacuti.jpg` | 2 |
-| Great people | 5:6, arched top | 78 (20 first) | The great person card in the offer and in the Reliquary, 150 by 180 px. | The top of the window is a round arch. Keep the head below the top fifth. Keep the two top corners empty. | Proposed: `greatPeople/<person id>.jpg` | 3 |
+| Great people | 5:6, arched top | 78 (20 first) | The great person card in the offer and in the Reliquary, 150 by 180 px. | The top of the window is a round arch. Keep the head below the top fifth. Keep the two top corners empty. | Proposed: `people/<person id>.jpg` | 3 |
 | Governments | 3:1 | 13 | A banner of 330 by 110 px on the government's card. | Long and thin, and small. Three to five large shapes along a level horizon. | Proposed: `governments/<government id>.jpg` | 4 |
 | Beliefs | 1:1, shown round | 56 (23 first) | A round vignette on a belief tablet. The fourth mock-up shows it at 62 px. The older plan said 120 px. | One object in the centre. The circle cuts all four corners. | `beliefs/<belief id>.jpg` | 5 |
 | Title | 21:9 | 1 | The top of the title screen, full width (1000 by 412 in the mock-up). The title and "a game for the ages" are printed on the left. | Keep the left 45% simple and a little dark. Put the subject on the right. | Proposed: `title/title.jpg` | When convenient |
@@ -612,7 +612,7 @@ These are the best known people of ages II to IV, across the five families: 5 sc
 
 #### Imhotep (`person-imhotep`)
 
-Scholar, age II. Architect of the Step Pyramid, about 2650 BC. Later statuettes show him seated with a papyrus roll. File: `greatPeople/imhotep.jpg`.
+Scholar, age II. Architect of the Step Pyramid, about 2650 BC. Later statuettes show him seated with a papyrus roll. File: `people/imhotep.jpg`.
 
 ```text
 Imhotep, an Egyptian royal architect and priest of the Old Kingdom, a lean man of about fifty with brown skin and a shaved head, a plain white linen robe from the chest down, a papyrus roll open in his hands, low behind him the step pyramid of Saqqara in cream limestone, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -620,7 +620,7 @@ Imhotep, an Egyptian royal architect and priest of the Old Kingdom, a lean man o
 
 #### Aristotle (`person-aristotle`)
 
-Scholar, age III. Greek philosopher, 384 to 322 BC. Ancient busts show a short beard and a broad forehead. File: `greatPeople/aristotle.jpg`.
+Scholar, age III. Greek philosopher, 384 to 322 BC. Ancient busts show a short beard and a broad forehead. File: `people/aristotle.jpg`.
 
 ```text
 Aristotle, a Greek philosopher of the fourth century BC, a man of about fifty-five with a short grey beard and short hair, a cream wool cloak draped over one shoulder, a scroll in one hand, low behind him a shaded colonnade and a garden walk in Athens, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -628,7 +628,7 @@ Aristotle, a Greek philosopher of the fourth century BC, a man of about fifty-fi
 
 #### Archimedes (`person-archimedes`)
 
-Scholar, age III. Mathematician of Syracuse, about 287 to 212 BC. No reliable likeness. File: `greatPeople/archimedes.jpg`.
+Scholar, age III. Mathematician of Syracuse, about 287 to 212 BC. No reliable likeness. File: `people/archimedes.jpg`.
 
 ```text
 Archimedes, a Greek mathematician of Syracuse in the third century BC, an old man with a white beard and a sun-browned face, a plain tunic and cloak, bent over a tray of sand in which he has drawn circles with a stick, low behind him the harbour wall of Syracuse and the sea, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -636,7 +636,7 @@ Archimedes, a Greek mathematician of Syracuse in the third century BC, an old ma
 
 #### Ibn Sīnā (`person-ibnSina`)
 
-Scholar, age III in the data. Persian physician and philosopher, 980 to 1037. No portrait from life. File: `greatPeople/ibnSina.jpg`.
+Scholar, age III in the data. Persian physician and philosopher, 980 to 1037. No portrait from life. File: `people/ibnSina.jpg`.
 
 ```text
 Ibn Sina, a Persian physician and philosopher of the eleventh century, a man of about forty-five with a full dark beard, a white turban and a blue-grey robe, a thick bound book open in his hands, two glazed medicine jars beside him, low behind him a brick courtyard with pointed arches, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -644,7 +644,7 @@ Ibn Sina, a Persian physician and philosopher of the eleventh century, a man of 
 
 #### al-Khwārizmī (`person-alKhwarizmi`)
 
-Scholar, age IV. Mathematician at the House of Wisdom in Baghdad, about 780 to 850. No likeness exists. File: `greatPeople/alKhwarizmi.jpg`.
+Scholar, age IV. Mathematician at the House of Wisdom in Baghdad, about 780 to 850. No likeness exists. File: `people/alKhwarizmi.jpg`.
 
 ```text
 al-Khwarizmi, a mathematician of ninth-century Baghdad, a man of about fifty with a grey-streaked beard, a white turban and an ochre robe, a brass astrolabe held up in one hand and a sheet with plain geometric diagrams in the other, low behind him the brick walls and round gate of Baghdad with date palms, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -652,7 +652,7 @@ al-Khwarizmi, a mathematician of ninth-century Baghdad, a man of about fifty wit
 
 #### Homer (`person-homer`)
 
-Artist, age II. The poet of the Iliad and the Odyssey. He is a figure of legend; the ancient busts are imagined. File: `greatPeople/homer.jpg`.
+Artist, age II. The poet of the Iliad and the Odyssey. He is a figure of legend; the ancient busts are imagined. File: `people/homer.jpg`.
 
 ```text
 Homer, the blind poet of early Greece, an old man with a long white beard, closed eyes and a cloth band around his head, a simple wool cloak, a small wooden lyre held against his chest, low behind him a rocky Aegean shore with one ship with a square sail, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -660,7 +660,7 @@ Homer, the blind poet of early Greece, an old man with a long white beard, close
 
 #### Sappho (`person-sappho`)
 
-Artist, age II. Poet of Lesbos, about 630 to 570 BC. No likeness from life. File: `greatPeople/sappho.jpg`.
+Artist, age II. Poet of Lesbos, about 630 to 570 BC. No likeness from life. File: `people/sappho.jpg`.
 
 ```text
 Sappho, a Greek poet of the island of Lesbos in the sixth century BC, a woman of about thirty-five with olive skin and dark hair bound up with a ribbon, a long pleated linen dress and a violet cloak, a long-armed lyre in her hands, low behind her olive trees on a hillside above the sea, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -668,7 +668,7 @@ Sappho, a Greek poet of the island of Lesbos in the sixth century BC, a woman of
 
 #### Enheduanna (`person-enheduanna`)
 
-Artist, age II. High priestess at Ur, about 2285 to 2250 BC, and the first author known by name. A carved disc of her time shows her in a tiered robe and a round cap. File: `greatPeople/enheduanna.jpg`.
+Artist, age II. High priestess at Ur, about 2285 to 2250 BC, and the first author known by name. A carved disc of her time shows her in a tiered robe and a round cap. File: `people/enheduanna.jpg`.
 
 ```text
 Enheduanna, high priestess of the moon god at Ur in ancient Sumer, a dignified woman of about forty with brown skin and long dark hair, a round cap with a rolled brim, a long robe of tiered wool fringes, a clay tablet and a reed stylus in her hands, low behind her the great stepped brick ziggurat of Ur, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -676,7 +676,7 @@ Enheduanna, high priestess of the moon god at Ur in ancient Sumer, a dignified w
 
 #### Murasaki Shikibu (`person-murasakiShikibu`)
 
-Artist, age IV. Court lady of Heian Japan, about 973 to 1014 or later, author of The Tale of Genji. No portrait from life. File: `greatPeople/murasakiShikibu.jpg`.
+Artist, age IV. Court lady of Heian Japan, about 973 to 1014 or later, author of The Tale of Genji. No portrait from life. File: `people/murasakiShikibu.jpg`.
 
 ```text
 Murasaki Shikibu, a court lady and author of Heian Japan about the year 1000, a woman of about thirty-five with very long straight black hair down her back, many layered silk robes in soft colours with wide sleeves, a writing brush in her hand over a low desk with paper, low behind her the wooden veranda of a temple above a lake with a pale daytime moon, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -684,7 +684,7 @@ Murasaki Shikibu, a court lady and author of Heian Japan about the year 1000, a 
 
 #### Rūmī (`person-rumi`)
 
-Artist, age IV. Persian poet who lived in Konya, 1207 to 1273. Pictures of him are later. File: `greatPeople/rumi.jpg`.
+Artist, age IV. Persian poet who lived in Konya, 1207 to 1273. Pictures of him are later. File: `people/rumi.jpg`.
 
 ```text
 Rumi, a Persian poet and teacher of the thirteenth century in Konya, an old man with a grey beard and gentle eyes, a large pale turban and a wide-sleeved brown robe, a reed flute in one hand, low behind him a brick building with a cone-shaped dome and a walled garden, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -692,7 +692,7 @@ Rumi, a Persian poet and teacher of the thirteenth century in Konya, an old man 
 
 #### Vitruvius (`person-vitruvius`)
 
-Engineer, age III. Roman architect and author, first century BC. No likeness exists. File: `greatPeople/vitruvius.jpg`.
+Engineer, age III. Roman architect and author, first century BC. No likeness exists. File: `people/vitruvius.jpg`.
 
 ```text
 Vitruvius, a Roman architect and military engineer of the first century BC, a man of about sixty with short grey hair, clean-shaven, a plain tunic and a dark red cloak, bronze dividers in one hand and a scroll in the other, low behind him a Roman building site with stone arches and a wooden crane, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -700,7 +700,7 @@ Vitruvius, a Roman architect and military engineer of the first century BC, a ma
 
 #### al-Jazarī (`person-alJazari`)
 
-Engineer, age IV. Engineer at the Artuqid court of Diyarbakır, 1136 to 1206, author of a book of machines. No likeness exists. File: `greatPeople/alJazari.jpg`.
+Engineer, age IV. Engineer at the Artuqid court of Diyarbakır, 1136 to 1206, author of a book of machines. No likeness exists. File: `people/alJazari.jpg`.
 
 ```text
 al-Jazari, a court engineer of the twelfth century in upper Mesopotamia, a man of about fifty with a dark beard, a white turban and a green robe with the sleeves rolled, fitting a brass gear to a small water clock in the shape of an elephant, low behind him a city wall of black basalt with a round tower, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -708,7 +708,7 @@ al-Jazari, a court engineer of the twelfth century in upper Mesopotamia, a man o
 
 #### Mimar Sinan (`person-mimarSinan`)
 
-Engineer, age IV. Chief architect of the Ottoman court, about 1490 to 1588. File: `greatPeople/mimarSinan.jpg`.
+Engineer, age IV. Chief architect of the Ottoman court, about 1490 to 1588. File: `people/mimarSinan.jpg`.
 
 ```text
 Mimar Sinan, chief architect of the Ottoman court in the sixteenth century, an old man with a long white beard, a large white turban and a dark red kaftan, a pair of compasses in one hand, low behind him a great mosque with one wide central dome and slim minarets, part of it in wooden scaffolding, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -716,7 +716,7 @@ Mimar Sinan, chief architect of the Ottoman court in the sixteenth century, an o
 
 #### Ea-nāṣir (`person-eaNasir`)
 
-Merchant, age II. Copper merchant of Ur, about 1750 BC. A customer's letter of complaint to him is the oldest that we have. File: `greatPeople/eaNasir.jpg`.
+Merchant, age II. Copper merchant of Ur, about 1750 BC. A customer's letter of complaint to him is the oldest that we have. File: `people/eaNasir.jpg`.
 
 ```text
 Ea-nasir, a copper merchant of the city of Ur in the eighteenth century BC, a well-fed man of about forty-five with a dark trimmed beard and a round cap, a fringed wool robe wrapped over one shoulder, a small clay tablet in one hand, a stack of round copper ingots beside him, low behind him the mud-brick courtyard of a merchant's house, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -724,7 +724,7 @@ Ea-nasir, a copper merchant of the city of Ur in the eighteenth century BC, a we
 
 #### Zhang Qian (`person-zhangQian`)
 
-Merchant, age III. Envoy of Han China who opened the road to the west, from 138 BC. No portrait from life. File: `greatPeople/zhangQian.jpg`.
+Merchant, age III. Envoy of Han China who opened the road to the west, from 138 BC. No portrait from life. File: `people/zhangQian.jpg`.
 
 ```text
 Zhang Qian, an envoy of Han China in the second century BC, a lean sun-browned man of about forty with a thin beard, hair in a topknot under a small cap, a dark belted robe with wide sleeves, the tall staff of an envoy with three tufts of yak hair in his hand, low behind him a desert road below snow mountains, one horse and two tiny camels, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -732,7 +732,7 @@ Zhang Qian, an envoy of Han China in the second century BC, a lean sun-browned m
 
 #### Marco Polo (`person-marcoPolo`)
 
-Merchant, age IV. Merchant of Venice, 1254 to 1324. No portrait from life. File: `greatPeople/marcoPolo.jpg`.
+Merchant, age IV. Merchant of Venice, 1254 to 1324. No portrait from life. File: `people/marcoPolo.jpg`.
 
 ```text
 Marco Polo, a Venetian merchant of the late thirteenth century, a sun-browned man of about forty with a short beard, a soft red cap and a long travelling gown with a fur lining, a small sealed bundle of silk under one arm, low behind him a caravan of tiny camels on a road through dry hills, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -740,7 +740,7 @@ Marco Polo, a Venetian merchant of the late thirteenth century, a sun-browned ma
 
 #### Hannibal (`person-hannibal`)
 
-General, age III. General of Carthage, 247 to about 183 BC. No certain likeness. File: `greatPeople/hannibal.jpg`.
+General, age III. General of Carthage, 247 to about 183 BC. No certain likeness. File: `people/hannibal.jpg`.
 
 ```text
 Hannibal, a general of Carthage in the third century BC, a North African man of about thirty-five with a short dark beard and curly hair, a bronze breastplate and a dark red cloak, a plain bronze helmet under one arm, low behind him a high snowy mountain pass with two tiny war elephants in a marching column, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -748,7 +748,7 @@ Hannibal, a general of Carthage in the third century BC, a North African man of 
 
 #### Boudica (`person-boudica`)
 
-General, age III. Queen of the Iceni, died in 60 or 61. A Roman author, a century later, describes a tall woman with long tawny hair, a gold neck ring and a many-coloured tunic. File: `greatPeople/boudica.jpg`.
+General, age III. Queen of the Iceni, died in 60 or 61. A Roman author, a century later, describes a tall woman with long tawny hair, a gold neck ring and a many-coloured tunic. File: `people/boudica.jpg`.
 
 ```text
 Boudica, queen of the Iceni of Britain in the first century, a tall woman of about forty with very long tawny-red hair, a heavy twisted gold neck ring, a checked tunic of several colours under a thick dark cloak closed with a brooch, a spear held upright at her side below shoulder height, low behind her open heath and the wicker side of a light war chariot, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -756,7 +756,7 @@ Boudica, queen of the Iceni of Britain in the first century, a tall woman of abo
 
 #### Subutai (`person-subutai`)
 
-General, age IV. General of the Mongol empire, about 1175 to 1248. No portrait from life. File: `greatPeople/subutai.jpg`.
+General, age IV. General of the Mongol empire, about 1175 to 1248. No portrait from life. File: `people/subutai.jpg`.
 
 ```text
 Subutai, a Mongol general of the thirteenth century, a weathered man of about sixty with a thin grey beard, a fur-trimmed felt hat, a blue robe that closes at the side under a coat of small laced armour plates, low behind him wide grassland with a few tiny riders, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -764,7 +764,7 @@ Subutai, a Mongol general of the thirteenth century, a weathered man of about si
 
 #### Tomoe Gozen (`person-tomoeGozen`)
 
-General, age IV. A woman warrior of the Genpei War, about 1184, known from The Tale of the Heike. She may be legend. File: `greatPeople/tomoeGozen.jpg`.
+General, age IV. A woman warrior of the Genpei War, about 1184, known from The Tale of the Heike. She may be legend. File: `people/tomoeGozen.jpg`.
 
 ```text
 Tomoe Gozen, a woman warrior of twelfth-century Japan, a strong woman of about twenty-eight with a pale face and long black hair tied low at the back, laced Japanese armour of the period in red and dark blue with large square shoulder guards, a long curved sword at her hip, low behind her dark pines and a river plain, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
@@ -1286,7 +1286,7 @@ flat gouache painting on grained paper, simplified hard-edged planes of colour, 
 | Wonders (done) | `16:9` | 34 | `art-masters/wonders/` | `public/art/splash/wonders/<id>.jpg` |
 | Ages, endings | `16:9` | 4 + 2 | `art-masters/ages/`, `art-masters/endings/` | `ages/age1.jpg` to `age4.jpg`; `endings/win.jpg`, `loss.jpg` |
 | Leaders | `3:4` | 16 | `art-masters/leaders/` | `leaders/<id>.jpg` |
-| Great people | `5:6` | 78 (20 first) | `art-masters/greatPeople/` | `greatPeople/<id>.jpg` |
+| Great people | `5:6` | 78 (20 first) | `art-masters/people/` | `people/<id>.jpg` |
 | Governments | `3:1` | 13 | `art-masters/governments/` | `governments/<id>.jpg` |
 | Beliefs | `1:1` | 56 (23 first) | `art-masters/beliefs/` | `beliefs/<id>.jpg` |
 | Title | `21:9` | 1 | `art-masters/title/` | `title/title.jpg` |
