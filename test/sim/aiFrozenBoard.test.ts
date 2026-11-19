@@ -23,7 +23,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { botSeatsToDrive, driveBots } from '../../src/ai/driver';
+import { botSeatsToDrive, driveBots, driveBotsAsync } from '../../src/ai/driver';
+import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import {
   type SeatPlan,
   applyNextStep,
@@ -362,5 +363,48 @@ describe('the stepper and the driver', () => {
     expect(JSON.stringify(walked.log)).toBe(JSON.stringify(driven.log));
     expect(snapshotState(walked.state)).toBe(snapshotState(driven.state));
     expect(snapshotState(replay(driven.config, driven.log))).toBe(snapshotState(driven.state));
+  });
+});
+
+
+describe('worker seat planning', () => {
+  it.each([[0, 1, 2, 3], [3, 2, 1, 0], [2, 0, 3, 1]])(
+    'applies replies in seat order when the first reply is seat %i',
+    async (...order) => {
+      const serial = createGame(FOUR);
+      const parallel = createGame(FOUR);
+      const expected: Command[] = [];
+      const actual: Command[] = [];
+      const reports = driveBots(serial, { attempt: (command) => expected.push(command) });
+      const workerReports = await driveBotsAsync(parallel, async (board, seats) => {
+        expect(seats).toHaveLength(order.length);
+        return order.map((index) => {
+          const copy = structuredClone(board);
+          return structuredClone(planSeat(copy, seats[index]!, {}, true));
+        });
+      }, { attempt: (command) => actual.push(command) });
+
+      expect(actual).toEqual(expected);
+      expect(workerReports).toEqual(reports);
+      expect(parallel.log).toEqual(serial.log);
+      expect(snapshotState(parallel.state)).toBe(snapshotState(serial.state));
+      expect(readHarnessMemory(parallel.state)).toEqual(readHarnessMemory(serial.state));
+    },
+  );
+
+  it('replans every seat after an incomplete response and reports commands once', async () => {
+    const serial = createGame(FOUR);
+    const parallel = createGame(FOUR);
+    const reports = driveBots(serial);
+    const warnings: string[] = [];
+    const actual = await driveBotsAsync(parallel, async (board, seats) => {
+      return [planSeat(structuredClone(board), seats[0]!, {}, true)];
+    }, { warn: (message) => warnings.push(message) });
+
+    expect(warnings).toHaveLength(1);
+    expect(actual).toEqual(reports);
+    expect(parallel.log).toEqual(serial.log);
+    expect(snapshotState(parallel.state)).toBe(snapshotState(serial.state));
+    expect(readHarnessMemory(parallel.state)).toEqual(readHarnessMemory(serial.state));
   });
 });
