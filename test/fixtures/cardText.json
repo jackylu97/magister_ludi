@@ -9637,6 +9637,16 @@
     "text": "+4% production and +4% gold per commission you have completed this game (at most +28% each)"
    }
   ],
+  "theGeneralSummons": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep",
+    "text": "On draft: your capital raises up to 3 of the best melee units you can build. They cost no upkeep"
+   }
+  ],
   "theOfficeOfWorks": [
    {
     "raw": "[[concept:boon|Boon]]",

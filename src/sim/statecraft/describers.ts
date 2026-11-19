@@ -96,6 +96,7 @@ import {
   STATECRAFT,
   isOrderId,
   orderDef,
+  onDraftUnitCount,
   orderKeyword,
   scalerShape,
   type RenownShareRows,
@@ -4643,9 +4644,18 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
       case 'foreignCard':
         out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
-      case 'unit':
-        out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
+      case 'unit': {
+        const count = onDraftUnitCount(grant.count);
+        if (count === 1) {
+          out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
+        } else {
+          const units = grant.unit === 'bestMelee'
+            ? 'of the best melee units you can build'
+            : `${ref('unit', grant.unit, unitDef(grant.unit).name)} units`;
+          out.push(`${lead}your capital raises up to ${count} ${units}. They cost no upkeep`);
+        }
         break;
+      }
       default: {
         const unhandled: never = grant;
         void unhandled;

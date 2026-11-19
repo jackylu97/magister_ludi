@@ -843,6 +843,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Public Peace | 2 | ● | S | While you are at peace, every town gains +2 food and +1 happiness. |
 | The Town Watch | 2 | ● | S | Your units gain +5 strength when defending in your territory. |
 | The Royal Annals | 2 | ◆ | P | +4% production and gold for each commission you have fulfilled this game, at most +28%. |
+| The General Summons | 3 | ◆ | S | On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep. |
 | The Office of Works | 3 | ◆ | S | On draft: gain a great engineer draft. |
 | The Grand Design | 4 | ◆ | P | The town raising your Magnum Opus gains +1 production for every two citizens in your empire. |
 | The Last Walls | 4 | ● | S | The town raising your Magnum Opus gains +15 defence. |

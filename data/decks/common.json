@@ -1285,6 +1285,18 @@
         }
       ]
     },
+    "theGeneralSummons": {
+      "name": "The General Summons",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The call goes out to every district.",
+      "text": "On draft: your capital raises up to three of the best melee units you can build. They cost no upkeep.",
+      "onDraft": [{ "grant": "unit", "unit": "bestMelee", "count": 3 }],
+      "effects": []
+    },
     "theOfficeOfWorks": {
       "name": "The Office of Works",
       "decks": [],

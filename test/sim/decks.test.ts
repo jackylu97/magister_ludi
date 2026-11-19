@@ -670,8 +670,9 @@ describe('the schema, as landed', () => {
     // is a new Devotion row at Tier I, and The Country Fair a new shared row
     // at Tier 0.
     // The generic set adds 20 rows, activates City Watches, and retires 12 dealt rows.
-    expect(live).toBe(488);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(488);
+    // The General Summons adds one more dealt generic Order.
+    expect(live).toBe(489);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(489);
   });
 
   /**

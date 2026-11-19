@@ -397,6 +397,7 @@ import {
   isOrderId,
   countedTypeOf,
   orderDef,
+  onDraftUnitCount,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
@@ -3734,7 +3735,7 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit': {
-        const piece = draftedUnitWorth(grant.unit, ctx);
+        const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx);
         once += piece.once;
         rate += piece.rate;
         break;
@@ -3781,16 +3782,20 @@ export function boonTurns(ctx: ValueContext): number {
  *     the best melee unit the seat can build now (`bestMeleeFor`), as the grant
  *     resolves it, and nothing when there is none.
  */
-function draftedUnitWorth(unit: UnitTypeId | 'bestMelee', ctx: ValueContext): { once: number; rate: number } {
+function draftedUnitWorth(
+  unit: UnitTypeId | 'bestMelee',
+  count: number,
+  ctx: ValueContext,
+): { once: number; rate: number } {
   const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
-    return { once: 0, rate: routes.open.pay.total };
+    return { once: 0, rate: routes.open.pay.total * Math.min(count, routes.free) };
   }
   const hammers = unitProductionCost(ctx.state, ctx.playerId, type);
-  return { once: explainYields({ production: hammers }, ctx).total, rate: 0 };
+  return { once: count * explainYields({ production: hammers }, ctx).total, rate: 0 };
 }
 
 /**

@@ -10819,9 +10819,15 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
-  | Extract<CompletionGrant, { grant: 'unit' | 'greatPerson' }>
+  | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number })
+  | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
   | OnDraftForeignCard;
+
+/** The number of units an on-draft grant attempts to raise. */
+export function onDraftUnitCount(count?: number): number {
+  return count === undefined ? 1 : Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+}
 
 /**
  * **A yield paid once when the card is drafted** (Magisterial batch MG14, The

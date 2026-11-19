@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt } from '../../../src/sim/cities';
+import { bestMeleeFor, foundCityAt, spawnTileFor } from '../../../src/sim/cities';
 import { previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
 import { bumpRevision, createUnit, type GameState } from '../../../src/sim/state';
@@ -102,5 +102,48 @@ describe('Generic Order effects', () => {
       ok: true,
       defenderLines: expect.arrayContaining([{ source: 'Order · Light Kit', amount: -2 }]),
     });
+  });
+});
+
+describe('The General Summons', () => {
+  it('raises three free units through the ordinary placement rules', () => {
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 3, 5));
+    const player = state.players[0]!;
+    const type = bestMeleeFor(state, 0)!;
+    player.statecraft.pendingOrder = { options: ['theGeneralSummons'] };
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    const units = state.units.filter((unit) => unit.ownerId === 0);
+    expect(units).toHaveLength(3);
+    expect(units.every((unit) => unit.type === type && unit.freeUpkeep === true)).toBe(true);
+    expect(new Set(units.map((unit) => `${unit.col},${unit.row}`)).size).toBe(3);
+  });
+
+  it.each([0, 1])('fills only the %i free spaces beside a crowded capital', (freeSpaces) => {
+    const state = bareState();
+    const capital = foundCityAt(state, 0, at(state, 3, 5));
+    const type = bestMeleeFor(state, 0)!;
+    let tile = spawnTileFor(state, capital, type);
+    while (tile) {
+      createUnit(state, 0, type, tile.col, tile.row);
+      tile = spawnTileFor(state, capital, type);
+    }
+    const available = state.units.splice(state.units.length - freeSpaces);
+    const before = state.units.length;
+    const player = state.players[0]!;
+    player.statecraft.pendingOrder = { options: ['theGeneralSummons'] };
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    const raised = state.units.slice(before);
+    expect(raised.map(({ col, row }) => [col, row])).toEqual(available.map(({ col, row }) => [col, row]));
+    expect(raised.every((unit) => unit.freeUpkeep === true)).toBe(true);
+    expect(player.statecraft.orders).toContain('theGeneralSummons');
+  });
+
+  it('grants no units when there is no capital', () => {
+    const state = bareState();
+    const player = state.players[0]!;
+    player.statecraft.pendingOrder = { options: ['theGeneralSummons'] };
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(state.units.filter((unit) => unit.ownerId === 0)).toHaveLength(0);
   });
 });

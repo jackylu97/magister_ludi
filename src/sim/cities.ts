@@ -127,6 +127,7 @@ import {
   type FirstKind,
   type LevyUse,
   type OnDraftWindfall,
+  onDraftUnitCount,
   type OrderId,
   type WindfallOccasion,
   governmentDef,
@@ -6619,9 +6620,17 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
       case 'greatPerson':
         grantGreatPersonOffer(state, player, grant.family ?? 'any');
         break;
-      case 'unit':
-        if (capital) raiseFreeUnit(state, capital, grant.unit);
+      case 'unit': {
+        if (!capital) break;
+        // Choose the type before the first unit claims any strategic resources.
+        const unit = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
+        if (unit === null) break;
+        const count = onDraftUnitCount(grant.count);
+        for (let n = 0; n < count; n++) {
+          if (raiseFreeUnit(state, capital, unit) === null) break;
+        }
         break;
+      }
       case 'windfall':
         windfalls.push(grant);
         break;

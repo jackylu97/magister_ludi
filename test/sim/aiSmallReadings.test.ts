@@ -140,6 +140,7 @@ describe('a Boon', () => {
     expect(type).toBeDefined();
     const lump = explainYields({ production: unitProductionCost(state, 0, type) }, ctx).total;
     expect(onDraftWorth('theSwordOfState' as OrderId, ctx)).toBeCloseTo(lump / boonTurns(ctx), 8);
+    expect(onDraftWorth('theGeneralSummons' as OrderId, ctx)).toBeCloseTo(3 * lump / boonTurns(ctx), 8);
   });
 
   it('prices The First Caravan’s trader at the route it would run, and nothing with no slot free', () => {
