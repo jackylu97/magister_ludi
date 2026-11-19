@@ -1259,3 +1259,14 @@ targets when slotted?"
   player sees the target before they seat it.
 - The target comes from the sim's own reading of the card (its `slotPosition`
   or the same data the evaluator reads), never from a list of card names.
+
+### Renown on a card's printed face (2026-11-19)
+
+After renown landed on the Council and In play screens, the user: "card's
+printed face yes, #2 yes."
+
+- A card's printed face shows the renown it pays each turn wherever card text
+  is printed: draft offers, the Reliquary, the faith screen, the Compendium.
+  It uses the laurel, as the plates do.
+- The split of renown by family stays in the In play breakdown only. A card
+  that only moves renown between families shows no figure on its plate.
