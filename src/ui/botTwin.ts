@@ -33,6 +33,7 @@ import { type AudienceOptions, type BotReporter, answerAudience, botSeatsToDrive
 import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
 import type { Game } from '../sim/game';
 import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
+import { readBotTuning } from './botPlanProtocol';
 
 /** How a drive in the worker ended. Only `applied` means the bots have played. */
 export type TwinOutcome = 'applied' | 'moved' | 'diverged' | 'unavailable' | 'cancelled';
@@ -99,6 +100,7 @@ function requestFor(game: Game, id: number): Omit<BotWorkerRequest & { kind: 'dr
     state: game.state,
     logLength: game.log.length,
     memory: readHarnessMemory(game.state),
+    tuning: readBotTuning(game.state),
   };
 }
 

@@ -15,6 +15,7 @@ import type { BotDecision } from './decision';
 import { answerPeaceOffer, answerProposal } from './diplomacy';
 import {
   type CutReason,
+  type FrozenBoard,
   type SeatPlan,
   type SeatGuards,
   type SittingAsk,
@@ -157,6 +158,37 @@ export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveRepo
   return finish(runBotTurn(game, { ...options, ask: askOf(options) }));
 }
 
+/** A planner reads the frozen board and returns one plan for each requested seat. */
+export type SeatPlanner = (board: FrozenBoard, seats: readonly number[]) => Promise<SeatPlan[]>;
+
+/** The coordinator owns this game until the promise settles. It applies all plans in seat order. */
+export async function driveBotsAsync(
+  game: Game,
+  planner: SeatPlanner,
+  options: DriveOptions = {},
+): Promise<SeatDriveReport[]> {
+  const seats = botSeatsToDrive(game.state);
+  if (seats.length === 0) return [];
+  // A custom decision function cannot be sent to another thread.
+  if (seats.length === 1 || options.decide) return driveBots(game, options);
+
+  const board = freezeBoard(game.state);
+  let plans: SeatPlan[];
+  try {
+    const answers = await planner(board, seats);
+    const bySeat = new Map(answers.map((plan) => [plan.playerId, plan]));
+    if (answers.length !== seats.length || !seats.every((id) => bySeat.has(id))) {
+      throw new Error('The planner returned a different set of bot seats.');
+    }
+    plans = seats.map((id) => bySeat.get(id)!);
+  } catch (error) {
+    (options.warn ?? console.warn)('Bot planning failed. Planning this turn on the coordinator.', error);
+    // No command has reached the game. Replan from the same frozen board.
+    return finish(applyBotPlans(game, board, seats, options));
+  }
+  return finish(applyBotPlans(game, board, seats, options, plans));
+}
+
 function askOf(options: DriveOptions): SittingAsk {
   const decide = options.decide;
   if (decide === undefined) return askTheBot;
@@ -169,14 +201,22 @@ function askOf(options: DriveOptions): SittingAsk {
 /** Freeze once per pass. A seat can plan just before its first step because it still sees the frozen board. */
 export function* runBotTurn(game: Game, options: TurnOptions = {}): TurnSteps {
   const seats = botSeatsToDrive(game.state);
-  const reports: SeatDriveReport[] = [];
-  if (seats.length === 0) return reports;
-  const board = freezeBoard(game.state);
+  if (seats.length === 0) return [];
+  return yield* applyBotPlans(game, freezeBoard(game.state), seats, options);
+}
 
+function* applyBotPlans(
+  game: Game,
+  board: FrozenBoard,
+  seats: readonly number[],
+  options: TurnOptions,
+  workerPlans?: readonly SeatPlan[],
+): TurnSteps {
+  const reports: SeatDriveReport[] = [];
   const planFor = (playerId: number, index: number): SeatPlan =>
     planSeat(board, playerId, options, index === seats.length - 1);
-  // The game prepares every plan before dispatch. A paused spectator only needs the next seat.
-  const prepared = options.planOnDemand ? undefined : seats.map(planFor);
+  // A paused spectator requests one seat at a time. Other callers prepare all seats before dispatch.
+  const prepared = workerPlans ?? (options.planOnDemand ? undefined : seats.map(planFor));
   for (const [index, playerId] of seats.entries()) {
     // An earlier seat can eliminate a rival before its first command.
     const player = playerById(game.state, playerId);
