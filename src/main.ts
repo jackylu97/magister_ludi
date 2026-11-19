@@ -3261,9 +3261,14 @@ async function boot(initial: Game | null): Promise<void> {
    * first chair every time a player picked a card.
    */
   function send(command: Command): CommandResult {
+    const picker = command.type === 'chooseGreatPerson' ? game.state.players[command.playerId] : undefined;
+    const offer = picker?.greatPersonOffer;
     const result = dispatch(game, command);
-    // Only on acceptance, inside both halves: a refused command changes nothing
-    // (hard rule 1), so there is nothing to tell and nothing to redraw.
+    // Picking a person another seat took can replace the hand even though the command fails.
+    if (!result.ok && picker && picker.greatPersonOffer !== offer) {
+      botTwin.invalidate();
+      scheduleBotPreparation();
+    }
     controls.reportCommand(command, result);
     if (result.ok) controls.repaint();
     return result;
@@ -4328,6 +4333,20 @@ async function boot(initial: Game | null): Promise<void> {
    */
   const botTwin = createBotTwin();
   gameDisposers.push(() => botTwin.dispose());
+  let backgroundPlansEnabled = false;
+  let prepareTimer = 0;
+
+  /** Group quick orders together so the worker receives the last board in the group. */
+  function scheduleBotPreparation(): void {
+    if (!backgroundPlansEnabled) return;
+    window.clearTimeout(prepareTimer);
+    prepareTimer = window.setTimeout(() => {
+      prepareTimer = 0;
+      if (!endTurnWorking && game.state.winnerId === null && botSeatsToDrive(game.state).length > 0) {
+        botTwin.prepare(game);
+      }
+    }, 250);
+  }
   /** True only during the first call of `controls.endTurn` in `endTurnBehindTheBots`. */
   let botsToTheWorker = false;
 
@@ -4377,6 +4396,10 @@ async function boot(initial: Game | null): Promise<void> {
         tutorial.note({ kind: 'command', command: command.type });
       }
       if (!result.ok) return;
+      if (game.state.players[command.playerId]?.isHuman) {
+        botTwin.invalidate();
+        scheduleBotPreparation();
+      }
       if(result.warDeclared?.onId===controls.localPlayerId()) {
         const {byId,onId}=result.warDeclared;
         warDispatch?.enqueue({byId,onId,turn:game.state.turn,name:seatName(game.state,byId),people:seatPeople(game.state,byId)});
@@ -4570,6 +4593,7 @@ async function boot(initial: Game | null): Promise<void> {
       // set off have finished (see `scheduleHandOver`), and a tab closed in that
       // second would otherwise have lost the turn.
       autosave.save(game, Date.now());
+      scheduleBotPreparation();
       // And the Ledger's curve takes its reading, at the same clean moment and
       // for a related reason: this is the one instant where the six totals are
       // the turn that just resolved rather than a turn being played. One sample
@@ -5479,9 +5503,11 @@ async function boot(initial: Game | null): Promise<void> {
       // comes. A human seat, or a paper no longer on the table, is still `null`.
       if (!botTwin.available) return answer(answerAudience(game, options));
       const asked = game;
-      return botTwin.audience(() => game, options).then((decision) =>
-        decision === undefined || game !== asked ? null : answer(decision),
-      );
+      return botTwin.audience(() => game, options).then((decision) => {
+        if (decision === undefined || game !== asked) return null;
+        scheduleBotPreparation();
+        return answer(decision);
+      });
     },
     /**
      * *"What would make this work?"* and its mirror — a pure read of the empire
@@ -6146,6 +6172,8 @@ async function boot(initial: Game | null): Promise<void> {
     // which of those steps were taken forty turns ago — see `Tutorial.resume`).
     if (next === null) beginOpening();
     else tutorial.resume();
+    backgroundPlansEnabled = true;
+    scheduleBotPreparation();
     report();
     // The name follows the game, so an export straight after a load offers the
     // file the player recognises rather than the house default.
@@ -6426,7 +6454,10 @@ async function boot(initial: Game | null): Promise<void> {
     endTurnRaf = 0;
     endTurnTimer = 0;
     endTurnWorking = false;
-    // An End Turn waiting on the bot worker drops its reply when it arrives.
+    backgroundPlansEnabled = false;
+    window.clearTimeout(prepareTimer);
+    prepareTimer = 0;
+    botTwin.cancel();
     endTurnGeneration += 1;
   }
   gameDisposers.push(cancelPendingEndTurn);
@@ -6469,4 +6500,6 @@ async function boot(initial: Game | null): Promise<void> {
   // meets the pamphlet here first, and dismissing it begins the sequence.
   if (initial === null) beginOpening();
   else tutorial.resume();
+  backgroundPlansEnabled = true;
+  scheduleBotPreparation();
 }

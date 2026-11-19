@@ -14,9 +14,8 @@
  *   · no `Worker` in this environment (the node tests), or the worker could not
  *     be built: `available` is false and the caller drives synchronously;
  *   · the worker threw or crashed: the reply is `unavailable`;
- *   · the page's log moved while the worker thought (the player ordered
- *     something): the reply is `moved` and nothing is applied, because the
- *     bots answered a board that is no longer there;
+ *   · the game or the bot's inputs changed while the worker thought: the
+ *     reply is `moved` and nothing is applied;
  *   · a replayed command came out differently on the page: `diverged`. That
  *     would mean the two copies were not the same game. It is warned about, and
  *     the caller drives whatever is left synchronously.
@@ -28,9 +27,10 @@
  * `DriveOptions.attempt`).
  */
 
-import { type AudienceOptions, type BotReporter, answerAudience, replayBotAttempts } from '../ai/driver';
+import { aiTuning } from '../ai/aiConfig';
 import type { BotDecision } from '../ai/decision';
-import { adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
+import { type AudienceOptions, type BotReporter, answerAudience, botSeatsToDrive, replayBotAttempts } from '../ai/driver';
+import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from '../ai/harnessMemory';
 import type { Game } from '../sim/game';
 import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
 
@@ -40,6 +40,12 @@ export type TwinOutcome = 'applied' | 'moved' | 'diverged' | 'unavailable' | 'ca
 interface BotTwin {
   /** False when there is no worker to ask; the caller then plays the bots on its own thread. */
   readonly available: boolean;
+  /** Prepares a drive on a copy. Only `drive` can apply its reply. */
+  prepare(game: Game): void;
+  /** Drops the prepared reply and any request queued behind it. */
+  invalidate(): void;
+  /** Cancels pending replies before they can reach a suspended game. */
+  cancel(): void;
   /**
    * Plays every bot seat's turn in the worker and applies the commands to
    * `getGame()`. `getGame` is asked again when the reply arrives: a different
@@ -96,21 +102,84 @@ function requestFor(game: Game, id: number): Omit<BotWorkerRequest & { kind: 'dr
   };
 }
 
+interface BotInput {
+  game: Game;
+  state: Game['state'];
+  logLength: number;
+  turn: number;
+  revision: number;
+  randomState: number;
+  offers: string;
+  botSeats: string;
+  memory: string;
+  tuning: string;
+}
+
+function personOffers(state: Game['state']): string {
+  // A refused pick of a taken great person can redraw an offer without
+  // adding a command to the log or changing the revision.
+  return JSON.stringify(state.players.map((player) => player.greatPersonOffer));
+}
+
+function tuningPrint(state: Game['state']): string {
+  return JSON.stringify([aiTuning(), state.players.map(({ id }) => aiTuning({ playerId: id }))]);
+}
+
+function botInput(game: Game, memory: HarnessMemory): BotInput {
+  const { state } = game;
+  return {
+    game,
+    state,
+    logLength: game.log.length,
+    turn: state.turn,
+    revision: state.revision,
+    randomState: state.rng.state,
+    offers: personOffers(state),
+    botSeats: botSeatsToDrive(state).join(','),
+    memory: JSON.stringify(memory),
+    tuning: tuningPrint(state),
+  };
+}
+
+function sameInput(input: BotInput, game: Game): boolean {
+  const { state } = game;
+  return input.game === game && input.state === state &&
+    input.logLength === game.log.length && input.turn === state.turn &&
+    input.revision === state.revision && input.randomState === state.rng.state &&
+    input.botSeats === botSeatsToDrive(state).join(',') &&
+    input.offers === personOffers(state) &&
+    input.memory === JSON.stringify(readHarnessMemory(state)) &&
+    input.tuning === tuningPrint(state);
+}
+
+interface PreparedDrive {
+  input: BotInput;
+  reply: Promise<BotWorkerReply | null>;
+}
+
 export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
   const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
   let worker: Worker | null = null;
   let disposed = false;
   let nextId = 1;
+  let generation = 0;
+  let foreground = 0;
+  // Only a matching prepared reply can be claimed. An invalidated drive can
+  // still be running, so keep only the latest game to read when it finishes.
+  let prepared: PreparedDrive | null = null;
+  let runningBackground: PreparedDrive | null = null;
+  let queued: Game | null = null;
+  let backgroundAvailable = true;
   const waiting = new Map<number, (reply: BotWorkerReply | null) => void>();
 
   /** Resolves every request still waiting with "no answer", and drops the worker. */
-  function fail(reason: string): void {
+  function fail(reason: string, report = runningBackground === null): void {
     if (worker !== null) {
       worker.onmessage = worker.onerror = worker.onmessageerror = null;
       worker.terminate();
     }
     worker = null;
-    if (waiting.size > 0 && reason !== 'disposed') warn(`[bots] the bot worker stopped (${reason}); the bots play on the page instead`);
+    if (waiting.size > 0 && report) warn(`[bots] the bot worker stopped (${reason}); the bots play on the page instead`);
     // A copy of the entries: each resolver deletes nothing, but a caller's
     // continuation may post a new request before this loop ends.
     const resolvers = [...waiting.values()];
@@ -147,7 +216,7 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
   }
 
   /** Posts a request and waits for its reply; `null` when there is no usable reply. */
-  function ask(request: BotWorkerRequest): Promise<BotWorkerReply | null> {
+  function ask(request: BotWorkerRequest, report = true): Promise<BotWorkerReply | null> {
     const target = start();
     if (target === null) return Promise.resolve(null);
     return new Promise((resolve) => {
@@ -156,10 +225,80 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
         target.postMessage(request);
       } catch (error) {
         waiting.delete(request.id);
-        warn('[bots] could not send the game to the bot worker', error);
+        if (report) warn('[bots] could not send the game to the bot worker', error);
         resolve(null);
       }
     });
+  }
+
+  function invalidate(): void {
+    prepared = null;
+    queued = null;
+  }
+
+  function prepareQueued(): void {
+    if (foreground > 0 || runningBackground !== null || queued === null) return;
+    const game = queued;
+    queued = null;
+    prepare(game);
+  }
+
+  function prepare(game: Game): void {
+    if (disposed || !backgroundAvailable || game.state.winnerId !== null) return;
+    if (botSeatsToDrive(game.state).length === 0) return;
+    if (prepared !== null && sameInput(prepared.input, game)) return;
+    prepared = null;
+    if (foreground > 0 || runningBackground !== null) {
+      queued = game;
+      return;
+    }
+    const work = askDrive(game, false);
+    prepared = work;
+    runningBackground = work;
+    void work.reply.then((result) => {
+      if (runningBackground !== work) return;
+      runningBackground = null;
+      if (result?.kind !== 'driven') {
+        if (prepared === work) prepared = null;
+        // Let the next actual drive or audience use the normal fallback.
+        backgroundAvailable = false;
+        queued = null;
+      }
+      prepareQueued();
+    });
+  }
+
+  function askDrive(game: Game, report: boolean): PreparedDrive {
+    const request = requestFor(game, nextId++);
+    const input = botInput(game, request.memory);
+    return { input, reply: ask({ kind: 'drive', ...request }, report) };
+  }
+
+  function takePrepared(game: Game): PreparedDrive | null {
+    const work = prepared;
+    invalidate();
+    if (work !== null && sameInput(work.input, game)) {
+      // The same request is now foreground work. An audience must leave it alone.
+      if (runningBackground === work) runningBackground = null;
+      return work;
+    }
+    interruptBackground();
+    return null;
+  }
+
+  function interruptBackground(): void {
+    if (runningBackground === null) return;
+    // A worker cannot interrupt a synchronous planner. Drop it only when a
+    // foreground request would otherwise have to wait for stale work.
+    runningBackground = null;
+    if (waiting.size > 0) fail('background drive cancelled', false);
+  }
+
+  function cancel(): void {
+    generation += 1;
+    invalidate();
+    runningBackground = null;
+    if (waiting.size > 0) fail('cancelled', false);
   }
 
   // Started now rather than on the first End Turn, so the worker has loaded the
@@ -171,49 +310,76 @@ export function createBotTwin(options: BotTwinOptions = {}): BotTwin {
       return worker !== null || start() !== null;
     },
 
+    prepare,
+    invalidate,
+    cancel,
+
     async drive(getGame, report) {
       const game = getGame();
-      const reply = await ask({ kind: 'drive', ...requestFor(game, nextId++) });
-      if (getGame() !== game) return 'cancelled';
-      if (reply === null) return 'unavailable';
-      if (reply.kind === 'failed') {
-        warn(`[bots] the bot worker failed: ${reply.message}`);
-        return 'unavailable';
+      const started = generation;
+      foreground += 1;
+      try {
+        const work = takePrepared(game) ?? askDrive(game, true);
+        const reply = await work.reply;
+        if (generation !== started || getGame() !== game) return 'cancelled';
+        if (!sameInput(work.input, game)) return 'moved';
+        if (reply === null) return 'unavailable';
+        if (reply.kind === 'failed') {
+          warn(`[bots] the bot worker failed: ${reply.message}`);
+          return 'unavailable';
+        }
+        if (reply.kind !== 'driven') return 'unavailable';
+        backgroundAvailable = true;
+        const outcome = applyTwinReply(game, reply, report);
+        if (outcome === 'diverged') warn('[bots] a bot command came out differently on the page than in the worker');
+        return outcome;
+      } finally {
+        foreground -= 1;
+        prepareQueued();
       }
-      if (reply.kind !== 'driven') return 'unavailable';
-      const outcome = applyTwinReply(game, reply, report);
-      if (outcome === 'diverged') warn('[bots] a bot command came out differently on the page than in the worker');
-      return outcome;
     },
 
     async audience(getGame, audienceOptions) {
       const game = getGame();
-      const { seatId, askerId, dealId } = audienceOptions;
-      const reply = await ask({
-        kind: 'audience',
-        ...requestFor(game, nextId++),
-        seatId,
-        askerId,
-        ...(dealId === undefined ? {} : { dealId }),
-      });
-      if (getGame() !== game) return undefined;
-      if (reply !== null && reply.kind === 'answered') {
-        const outcome = applyTwinReply(game, reply, audienceOptions.report);
-        if (outcome === 'applied') return reply.decision;
-        if (outcome === 'diverged') {
-          warn('[bots] an answer came out differently on the page than in the worker');
-          return reply.decision;
+      const started = generation;
+      invalidate();
+      interruptBackground();
+      foreground += 1;
+      try {
+        const { seatId, askerId, dealId } = audienceOptions;
+        const request = requestFor(game, nextId++);
+        const input = botInput(game, request.memory);
+        const reply = await ask({
+          kind: 'audience',
+          ...request,
+          seatId,
+          askerId,
+          ...(dealId === undefined ? {} : { dealId }),
+        });
+        if (generation !== started || getGame() !== game) return undefined;
+        if (reply !== null && reply.kind === 'answered' && sameInput(input, game)) {
+          backgroundAvailable = true;
+          const outcome = applyTwinReply(game, reply, audienceOptions.report);
+          if (outcome === 'applied') return reply.decision;
+          if (outcome === 'diverged') {
+            warn('[bots] an answer came out differently on the page than in the worker');
+            return reply.decision;
+          }
+        } else if (reply !== null && reply.kind === 'failed') {
+          warn(`[bots] the bot worker failed: ${reply.message}`);
         }
-      } else if (reply !== null && reply.kind === 'failed') {
-        warn(`[bots] the bot worker failed: ${reply.message}`);
+        // No usable answer from the worker: ask here, on the board as it now stands.
+        return answerAudience(game, audienceOptions);
+      } finally {
+        foreground -= 1;
+        prepareQueued();
       }
-      // No usable answer from the worker: ask here, on the board as it now stands.
-      return answerAudience(game, audienceOptions);
     },
 
     dispose() {
       disposed = true;
-      fail('disposed');
+      cancel();
+      fail('disposed', false);
     },
   };
 }
