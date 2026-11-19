@@ -676,3 +676,45 @@ Close to the eye, though over the rule:
 - Whether bots offer deals often enough for Cleopatra's second ability.
 - The three code points in "For the builder".
 - Whether a portrait in the wonder paintings' style reads well at 3:4: no portrait was drawn.
+
+## The user's comments on the page (2026-11-19)
+
+The user commented on the review page ("ok i commented on the leader page").
+The comments below are the user's words. They are the spec. A leader or a line
+with no comment is not yet ruled.
+
+| Leader | On | The user's comment |
+|---|---|---|
+| Alexander the Great | ability two, The Alexandrias (a capture grants a Settler) | "Change: training a military unit gives science equal to half the unit's strength." |
+| Alexander the Great | the building, The Gymnasium | "Basilikoi: +2 culture, +1 science and culture on all strategic resources in the city, unlocks with the barracks." and "counts as a military building" |
+| Genghis Khan | the building, The Horde Camp | "what does the horde camp do? A better effect for genghis khan: trade routes from this city can travel twice as far. +30% production towards mounted units, counts as a military building." |
+| Genghis Khan | the colours (sky blue, bone) | "should the colors change?" |
+| Joan of Arc | ability two, The Maid (buy units with faith; they start as Veterans) | "lets revert: units killed spread their faith, your units gain strength in cities that follow your religion." |
+| Joan of Arc | the building, The Sainte-Chapelle | "keep it as it was." |
+| Mehmed the Conqueror | ability one, The Enderun (military buildings give +2 science each) | "Barracks give +1 science, an additional +1 for every great scholar or great general you've recruited this game." |
+| Mehmed the Conqueror | the building, The Külliye | "change: +2 science, +2 faith, +1 happiness." |
+| Qin Shi Huang | the leader | "this design is great." |
+| Isabella of Castile | the leader | "what does jayavarman look like? i dont like isabella as a pick." |
+| Nezahualcoyotl | ability one, The Dikes | "cities with an aqueduct gain +1 science and +1 production on farms. Aqueducts arrive late so this should be stronger." |
+| Cyrus the Great | ability one, The Cyrus Cylinder | "revise: cities connected by road gain +1 happiness and +2 culture for every civic and wildcard slot in your government." |
+| Cyrus the Great | the improvement, The Paradise Garden | "that's so good. let's say +1 happiness and +1 culture and counts as a great person work." |
+| Cleopatra | the leader | "great, i like her kit." |
+| Cleopatra | the building, The Museion | "let's buff this to +2 science for every great person called." |
+| Cleopatra | ability two, The Queen's Alliances | "lets make this +4 gold and +2 culture per age." |
+| Lorenzo de' Medici | ability one, The Medici Bank | "let's change this to +1 renown for every 8 gold per turn you earn." |
+| Lorenzo de' Medici | ability two, Florins | "lets change this to: gain 10% production towards wonders for every gold building in a city." |
+| Lorenzo de' Medici | the building, The Bottega | "+5 renown towards great engineers and great artists (+10 total). +2 production for every luxury resource or great work in this city." |
+| Hatshepsut | the leader | "not needed" |
+| Harun al-Rashid | ability one, The Storehouse of Wisdom | "+1 science and +1 faith on faith and science buildings. (these can be multiplied by orders)." |
+| Justinian | ability two, One Faith, One Empire | "+2 happiness and +5 production on holy sites." |
+| Justinian | the building, The Basilica | "+3 faith and +3 city defense. +20% production towards wonders if the city has a holy site (should unlock in age 2, counts as a defensive building and a faith building)." |
+| Sejong the Great | ability two, The Royal Lectures | "Each time you complete a technology, gain an extra turn of renown." |
+| Sejong the Great | the building, The Hall of Worthies | "Rework: +5 renown towards scholars. +4 science." |
+
+What follows:
+- **Out:** Isabella of Castile and Hatshepsut.
+- **Approved as designed:** Qin Shi Huang; Cleopatra with two changes.
+- **A design is wanted for Jayavarman VII** (Expansionist + Devotion).
+- **No comment yet:** Saladin, Augustus, Ashoka, Pachacuti, Mansa Musa, and the
+  lines of the others that have no row above. The user edited Justinian and
+  did not comment on Ashoka, so the Devotion + Magisterial pick is open.
