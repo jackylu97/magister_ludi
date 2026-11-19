@@ -2974,3 +2974,16 @@ need for now"
 4. **The Council screen supports both** real drag and drop and click then
    click.
 5. **No lower resolution while the camera moves**, for now.
+
+## Generic Orders: a candidate set of changes (2026-11-18)
+
+The user: "can you start a fable subagent for suggesting a candidate set of
+changes for the generic orders? they're weak at the moment and we havent
+givenmuch thought ot them. Aim for cards that would be generally useful for
+themes across all decks, please reference the card design skill we drafted."
+
+- A proposal only: candidate changes to the generic Orders (the cards every
+  seat can be dealt, whatever its two decks). Nothing is built until the user
+  picks.
+- The method is the `card-design` skill (`.claude/skills/card-design/`).
+- The proposal goes in `docs/plans/generic-orders-proposal-2026-11-18.md`.
