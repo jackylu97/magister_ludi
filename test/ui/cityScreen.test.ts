@@ -905,16 +905,14 @@ describe('the city mode and the camera', () => {
   /**
    * One `viewport.addEventListener('<name>', …)` block, as written.
    *
-   * The opener is matched loosely because the wheel's is broken across lines
-   * for its options object, and the block ends at whichever top-level close
-   * comes first — `});` for an inline handler, `);` for one with options after
-   * it.
+   * The wheel handler spans several lines. Pointer handlers can pass an
+   * options object on the closing line. Stop before the next function in both cases.
    */
   function listener(name: string): string {
     const opener = new RegExp(`viewport\\.addEventListener\\(\\s*'${name}'`);
     const at = controls.search(opener);
     if (at < 0) throw new Error(`controls.ts has no ${name} listener`);
-    const ends = ['\n  });', '\n  );']
+    const ends = ['\n  });', '\n  }, {', '\n  );']
       .map((mark) => controls.indexOf(mark, at))
       .filter((index) => index > 0);
     if (ends.length === 0) throw new Error(`controls.ts: the ${name} listener never closes`);
