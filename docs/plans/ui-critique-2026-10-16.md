@@ -1221,3 +1221,27 @@ show additional renown that they generate".
   sim's own renown list (`explainRenown`), never from a second sum.
 - A one-time renown grant (a Triumph, a completion) is not a per-turn figure
   and is not shown here.
+
+### One style for the whole game: Quiet Table is the base (2026-11-19)
+
+The user came back to the one-style board
+(https://claude.ai/artifact/PcZtdfdNKYZHgfdnZ1wJKv, file
+`scratchpad/onestyle/one-style-options.html`; option A is "Quiet Table", B
+"The Whole Deck", C "Cut-Paper Tarot", D "The Magister's Table"):
+
+> "the quiet table feels the closest to what i want. Could we iterate on that
+> design… With the splash art spots in mind, could we do a pass with
+> incorporating the arcane look to the rest of the game, while keeping some of
+> the flavor of the modern design?"
+
+- **Quiet Table (option A) is the base** for the screens that still wear the
+  older modern look.
+- The next board iterates on it with three things in mind:
+  - the screens that are built in the arcane look (the Council, In play, the
+    wonder plate with its ribbon, the age plate);
+  - the user's gouache paintings and the places splash art could go (leaders,
+    ages, great people, the title screen, the ending, governments, capital
+    taken and elimination);
+  - keeping some of the modern design's flavour, not replacing it.
+- B, C and D stay rejected or unchosen. Nothing is built until the user picks
+  from the new board.
