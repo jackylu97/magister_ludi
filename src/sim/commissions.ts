@@ -94,6 +94,7 @@ import { refitSlots, settleCouncilFit } from './statecraft/council';
 import {
   countCitiesAdmitted,
   countTilesInBorders,
+  ghostWorksInTown,
   ordersHeldCount,
   tradePartnerSeats,
 } from './statecraft/evaluator';
@@ -327,7 +328,7 @@ export function commissionFigure(
       let best = 0;
       for (const city of citiesOf(state, playerId)) {
         if (townWonders(city) < (floor ?? 0)) continue;
-        best = Math.max(best, townWorksWorked(state, city));
+        best = Math.max(best, townWorksWorked(state, city, floor));
       }
       return best;
     }
@@ -409,8 +410,8 @@ function townWonders(city: City): number {
  * (`isGreatPersonWork`), asked of each hex in `City.workedTiles`, so a work
  * counts whoever laid it, and a Holy Site counts.
  */
-function townWorksWorked(state: GameState, city: City): number {
-  let worked = 0;
+export function townWorksWorked(state: GameState, city: City, wondersReserved = 0): number {
+  let worked = Math.max(0, ghostWorksInTown(state, city) - wondersReserved);
   for (const cell of city.workedTiles) {
     const work = getTileAt(state.map, cell.col, cell.row)?.improvement;
     if (work !== undefined && isGreatPersonWork(work)) worked += 1;
@@ -433,7 +434,7 @@ export function worksTownFor(
 ): City | null {
   for (const city of citiesOf(state, playerId)) {
     if (townWonders(city) < (wondersAtLeast ?? 0)) continue;
-    if (townWorksWorked(state, city) >= works) return city;
+    if (townWorksWorked(state, city, wondersAtLeast) >= works) return city;
   }
   return null;
 }

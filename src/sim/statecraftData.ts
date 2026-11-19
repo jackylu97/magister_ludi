@@ -2470,6 +2470,8 @@ export type CountKind =
    * reason — it is the same sweep, asked of different ground.
    */
   | 'wonders'
+  /** Count each held wonder and each physical great-person work once. */
+  | 'worksAndWondersHeld'
   /**
    * Hexes this empire has **explored** — Eratosthenes' well and stick, and
    * Zhang Qian's road west.
@@ -4689,6 +4691,8 @@ export type ActionRuleId =
    * empires' sight redrawn. Peace or war does not matter.
    */
   | 'worksPullRivalHexes'
+  /** Each wonder can receive and count as a work without occupying a hex. */
+  | 'wondersAreWorks'
   /**
    * **A tended work costs this empire's workers no charge** (batch DT12, The
    * Wildwood Compact; the triage's reading 41). "Tended" is the row's own marker

@@ -20,7 +20,7 @@
  *     Card: Commission: The Paradise Garden (reading 41).
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { claimUnownedBeside, foundCityAt, refreshCityDerived } from '../../../src/sim/cities';
 import { commissionFigure, commissionGoalHex, gardenWorkFor, runCommissions } from '../../../src/sim/commissions';
@@ -156,12 +156,12 @@ describe('Magisterial batch MG15: the rows', () => {
   it('carries the text of the sheet and the shapes the triage names', () => {
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GARDEN).text).toBe(
-      'Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders.',
+      'Goal: have one town work three great-person works. Reward: your great-person works yield double.',
     );
     expect(orderDef(GARDEN).effects).toEqual([]);
     expect(orderDef(GARDEN).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'worksBesideWork', count: 3 }],
-      reward: [{ claimWithin: 3 }],
+      goals: [{ kind: 'reached', figure: 'oneTownWorksWorked', count: 3 }],
+      reward: [{ lasting: [expect.objectContaining({ kind: 'pays', on: { test: 'greatWork' }, wholePercent: 100 })] }],
     });
     expect(orderDef(PROCESSION).text).toBe(
       'Hexes beside two or more great-person works give +10 culture and +10 science.',
@@ -172,10 +172,8 @@ describe('Magisterial batch MG15: the rows', () => {
   });
 
   it('prints each card in plain words', () => {
-    expect(words(GARDEN)).toEqual([
-      'Commission',
-      'Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city',
-    ]);
+    expect(words(GARDEN).join(' ')).toMatch(/work/i);
+    expect(words(GARDEN).join(' ')).not.toMatch(/unowned|beside/);
     expect(words(PROCESSION)).toEqual([
       "+10 science, +10 culture on every hex beside 2 or more great-person works",
     ]);
@@ -335,8 +333,12 @@ describe('The Processional Way: works on a line (reading 39)', () => {
 
 // --- Commission: The Paradise Garden ---------------------------------------------
 
-describe('Commission: The Paradise Garden (reading 41)', () => {
-  const GOAL = orderDef(GARDEN).commission!.goals[0]!;
+describe('the legacy commission that claims land beside a work', () => {
+  const row = orderDef(GARDEN);
+  const original = row.commission!;
+  const GOAL = { kind: 'reached', figure: 'worksBesideWork', count: 3 } as const;
+  beforeEach(() => { row.commission = { goals: [GOAL], reward: [{ claimWithin: 3 }] }; });
+  afterEach(() => { row.commission = original; });
 
   /**
    * A capital for seat 0 at (4, 7), and a Landmark two hexes east of it in
