@@ -49,7 +49,7 @@ import {
 } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { cellCenter, wrapWidth } from '../../src/render3d/layout';
-import { VIEW3D, contrastRatio, playerPieceColor } from '../../src/render3d/lookData';
+import { VIEW3D, contrastRatio, playerPieceColor, shade } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   badgeAnchors,
@@ -83,7 +83,7 @@ import {
 } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { closeWar, openWar } from '../../src/sim/wars';
-import { culledWhileInView, frustumOver, layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
+import { culledWhileInView, frustumOver, instanceInk, layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
 import { newGame } from '../sim/newGameHelpers';
 
 /**
@@ -1446,14 +1446,15 @@ describe('the routed wash', () => {
     const routedInk = unitColor(game, routed!);
     const meshes = layerMeshes(layer.group);
 
-    // The rim: plain ink, and one bucket per ink, so idle and routed each get
-    // their own.
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
-    expect(rims).toHaveLength(2);
-    const rimColors = rims
-      .map((m) => (m.material as MeshBasicMaterial).color.getHex())
-      .sort((a, b) => a - b);
-    expect(rimColors).toEqual([idleInk, routedInk].sort((a, b) => a - b));
+    expect(rims).toHaveLength(1);
+    const rim = rims[0]!;
+    expect(instanceInk(rim, 0)).toBe(idleInk);
+    expect(instanceInk(rim, 1)).toBe(routedInk);
+    layer.setBadgeSelection(null, routed!.id);
+    expect(instanceInk(rim, 1)).toBe(shade(routedInk, VIEW3D.badges.selectedRimShade));
+    layer.setBadgeSelection(routed!.id, null);
+    expect(instanceInk(rim, 1)).toBe(routedInk);
 
     // The disc: a texture atlas cell, not ink, so it cannot be washed without
     // greying out its print — both units share the exact one material

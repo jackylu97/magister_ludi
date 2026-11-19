@@ -27,9 +27,8 @@
  *              every pixel that survives the cutout is fully opaque.
  *   the rim    a flat annulus (`discRing` in `geometry.ts`) in the *player's*
  *              colour. Geometry rather than more texture, because it is the one
- *              part that changes per player: as geometry the whole board's rims
- *              batch into one draw per player, where a coloured ring baked into
- *              the atlas would need one atlas per player.
+ *              part that changes per player. The rims share a draw and use
+ *              instance colours, so selecting a unit only changes its rim.
  *
  * The parchment reaches a little way under the rim (`paperOverlap`), so the
  * disc's antialiased edge is covered by an opaque band rather than fringing
@@ -37,8 +36,7 @@
  *
  * Draw cost is flat in the number of units: one instanced draw per badge class
  * standing on the board (at most twenty, sharing one material and one texture)
- * plus one per player colour for the rims. A hundred units and three units cost
- * the same.
+ * plus one bucket for the rims. Each bucket has one mesh per wrap copy.
  *
  * In the world, but not under the interface
  * -----------------------------------------
@@ -2737,8 +2735,7 @@ export function badgeDiscFlags(): {
  *
  * It costs one more 512 × 384 canvas and one more draw call on a board that has
  * barbarians on screen, and nothing at all on one that has not — the wild's
- * bucket is only created when something asks for it, which is the same property
- * that makes the selected unit's brighter rim free.
+ * bucket exists only when a visible barbarian needs a badge.
  *
  * Unlit and alpha-tested rather than blended, for the same reason the unit
  * billboards are (see `sprites3d.ts`): a cutout writes depth and sorts with

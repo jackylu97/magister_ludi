@@ -42,15 +42,16 @@ import {
 } from '../../src/render3d/board3d';
 import type { FogLevels } from '../../src/render3d/fog3d';
 import { atlasQuad, discRing } from '../../src/render3d/geometry';
-import { RENDER_ORDER } from '../../src/render3d/instances';
+import { INSTANCE_WRITES, RENDER_ORDER, resetInstanceWrites } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
-import { VIEW3D } from '../../src/render3d/lookData';
+import { VIEW3D, shade } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   badgeAnchors,
   banneredTownCells,
   hpBarFillWidth,
   placePiece,
+  unitColor,
   unitStackIndices,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -64,8 +65,8 @@ import {
   createUnit,
 } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../../src/sim/unitData';
-import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
-import { layerMeshes, worldMatrices, wrapCopiesOf, WRAP_COPIES } from './unitLayerHelpers';
+import { EXPLORED, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { instanceInk, layerMeshes, worldMatrices, wrapCopiesOf, WRAP_COPIES } from './unitLayerHelpers';
 import { newGame } from '../sim/newGameHelpers';
 
 /**
@@ -834,10 +835,10 @@ describe('badges in the units layer', () => {
       selected,
     );
     const meshes = layerMeshes(layer.group);
-    return { board, layer, meshes };
+    return { board, game, layer, meshes };
   }
 
-  it('draws a disc and a rim for every unit, batched by badge and by player', () => {
+  it('draws one shared rim batch and batches discs by badge class', () => {
     // Five units wearing three badges, all one player: three disc buckets, one
     // rim bucket. The whole point of the split — badge cost is flat in the unit
     // count and grows only with the variety on the board.
@@ -950,12 +951,47 @@ describe('badges in the units layer', () => {
     board.dispose();
   });
 
-  it('splits the selected unit’s rim into its own brighter bucket', () => {
-    const { board, layer, meshes } = build(['warrior', 'archer'], 1);
-    const rims = meshes.filter((m) => m.geometry === board.badgeRim);
-    // One bucket for the selection's lifted ink, one for everybody else.
-    expect(rims).toHaveLength(2);
-    expect(rims.map((m) => worldMatrices(layer.group, m).length).sort()).toEqual([3, 3]);
+  it('updates only the old and new rim colours across all wrap copies', () => {
+    const { board, game, layer, meshes } = build(['warrior', 'archer', 'catapult'], 1);
+    const rims = meshes.filter((mesh) => mesh.geometry === board.badgeRim);
+    expect(rims).toHaveLength(1);
+    const rim = rims[0]!;
+    const attribute = rim.instanceColor!;
+    const discs = meshes.filter((mesh) => BADGE_CELLS.some((id) => board.badgeIcons[id] === mesh.geometry));
+    const children = [...layer.group.children];
+    const matrixVersion = rim.instanceMatrix.version;
+    const ink = unitColor(game, game.units[0]!);
+    const selectedInk = shade(ink, BADGE.selectedRimShade);
+    expect(instanceInk(rim, 0)).toBe(selectedInk);
+    expect(instanceInk(rim, 1)).toBe(ink);
+    expect(instanceInk(rim, 2)).toBe(ink);
+
+    layer.setHoveredUnitId(1);
+    const hoverWidths = meshes
+      .find((mesh) => mesh.geometry.userData.unitOutlineSource === board.pieces.melee.geometry.uuid)!
+      .geometry.getAttribute('unitOutlineWidth');
+    expect(hoverWidths.getX(0)).toBeCloseTo(VIEW3D.units.hoverOutlineWidth);
+
+    resetInstanceWrites();
+    layer.setBadgeSelection(1, 3);
+
+    expect(layer.group.children).toEqual(children);
+    expect(rim.instanceMatrix.version).toBe(matrixVersion);
+    expect(hoverWidths.getX(0)).toBeCloseTo(VIEW3D.units.hoverOutlineWidth);
+    expect(INSTANCE_WRITES).toEqual({ matrix: 0, tint: 2 });
+    expect(attribute.updateRanges).toEqual([{ start: 0, count: 3 }, { start: 6, count: 3 }]);
+    expect(discs.every((mesh) => mesh.instanceColor === null)).toBe(true);
+    const copies = wrapCopiesOf(layer.group, rim);
+    expect(copies).toHaveLength(WRAP_COPIES);
+    for (const copy of copies) {
+      expect(copy.instanceColor).toBe(attribute);
+      expect(instanceInk(copy, 0)).toBe(ink);
+      expect(instanceInk(copy, 1)).toBe(ink);
+      expect(instanceInk(copy, 2)).toBe(selectedInk);
+    }
+
+    layer.setBadgeSelection(3, null);
+    expect(instanceInk(rim, 2)).toBe(ink);
     layer.dispose();
     board.dispose();
   });
@@ -975,7 +1011,7 @@ describe('badges in the units layer', () => {
    * The three colours moved on 2026-09-08 — the red is the *disc* now and the
    * rim carries none of it (`test/render/pieces3d.test.ts`, "the wild's red")
    * — but what this holds is the shape of the treatment, not the tones: two
-   * atlases, two rims, and neither of them a nation's.
+   * atlases and two inks.
    */
   it('prints the wild’s badge on its own atlas, and rims it in a colour no seat can take', () => {
     const game = newGame({
@@ -1024,12 +1060,15 @@ describe('badges in the units layer', () => {
     expect(discMaterials).toContain(badges.material);
     expect(discMaterials).toContain(badges.wildMaterial);
 
-    // And two rims: the seat's own ink, and the wild's parchment — which is a
-    // colour no seat tincture can take, so the two can never collide.
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
-    expect(rims).toHaveLength(2);
-    const rimColors = rims.map((m) => (m.material as MeshBasicMaterial).color.getHex());
-    expect(rimColors).toContain(BADGE.wildRimColor);
+    expect(rims).toHaveLength(1);
+    const rim = rims[0]!;
+    expect(instanceInk(rim, 0)).toBe(unitColor(game, game.units[0]!));
+    expect(instanceInk(rim, 1)).toBe(BADGE.wildRimColor);
+    layer.setBadgeSelection(null, game.units[1]!.id);
+    expect(instanceInk(rim, 1)).toBe(shade(BADGE.wildRimColor, BADGE.selectedRimShade));
+    layer.setBadgeSelection(game.units[1]!.id, null);
+    expect(instanceInk(rim, 1)).toBe(BADGE.wildRimColor);
     expect(VIEW3D.players.fallbackOrder).not.toContain(BADGE.wildRimColor);
     // The paper is the half that says "not a seat" — it is most of a roundel's
     // area — and the ink is the half that keeps the mark on it readable; the
@@ -1042,7 +1081,7 @@ describe('badges in the units layer', () => {
   });
 
   it('takes a unit’s badge off the board when the unit is hidden for a walk', () => {
-    const { board, layer, meshes } = build(['warrior']);
+    const { board, game, layer, meshes } = build(['warrior']);
     const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior)!;
     const rim = meshes.find((m) => m.geometry === board.badgeRim)!;
     const matrix = new Matrix4();
@@ -1061,11 +1100,41 @@ describe('badges in the units layer', () => {
       }
     }
 
+    layer.setBadgeSelection(null, 1);
+    expect(xScale(rim, 0)).toBe(0);
     layer.restore(1);
+    expect(instanceInk(rim, 0)).toBe(shade(unitColor(game, game.units[0]!), BADGE.selectedRimShade));
     // Back at full size, and at the diameter the data asks for: the badge is
     // built from a unit-sized quad and scaled by the instance matrix.
     expect(Math.abs(xScale(disc, 0))).toBeCloseTo(badgeDiameter(), 6);
     layer.dispose();
+    board.dispose();
+  });
+
+  it('skips a rim behind fog and lifts it when the unit is drawn again', () => {
+    const { board, game, layer } = build(['warrior', 'archer']);
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const badges = fakeBadges();
+    const levels = game.map.tiles.map<number>(() => EXPLORED);
+    const [visible, fogged] = game.units;
+    levels[tileIndex(game.map, visible!.col, visible!.row)] = VISIBLE;
+    layer.build(game, board, materials, new Quaternion(), false, null, badges, null, levels);
+    const rim = layerMeshes(layer.group).find((mesh) => mesh.geometry === board.badgeRim)!;
+    expect(rim.count).toBe(1);
+
+    resetInstanceWrites();
+    layer.setBadgeSelection(null, fogged!.id);
+    expect(INSTANCE_WRITES).toEqual({ matrix: 0, tint: 0 });
+    expect(rim.instanceColor!.updateRanges).toEqual([]);
+
+    levels[tileIndex(game.map, fogged!.col, fogged!.row)] = VISIBLE;
+    layer.build(game, board, materials, new Quaternion(), false, null, badges, fogged!.id, levels);
+    const rebuilt = layerMeshes(layer.group).find((mesh) => mesh.geometry === board.badgeRim)!;
+    expect(rebuilt.count).toBe(2);
+    expect(instanceInk(rebuilt, 1)).toBe(shade(unitColor(game, fogged!), BADGE.selectedRimShade));
+
+    layer.dispose();
+    materials.dispose();
     board.dispose();
   });
 
