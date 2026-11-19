@@ -1253,3 +1253,10 @@ To reproduce the views, open
 `flair.html?review=scene&view=ages&age=4&pieces=only&pillage=embers&frameStudy=1`.
 Add `&raids=many&seat=1` for the stress case. Switch between Ash and Ash and
 embers, keep the scene clock running, and pan with the same camera settings.
+
+A separate CPU check timed the effect layer with the gallery map already
+prepared. The first mine raid in a fresh Node process took 20.6 ms. The median
+across eleven newly constructed layers was 2.6 ms for the mine and 3.1 ms to
+add the farm, pasture and fishing site together. Expiring the fire took 0.02 ms
+at the median. This measures CPU setup alone. Browser texture uploads and the
+rest of the board redraw are outside this timing.
