@@ -9,7 +9,7 @@
  * helpers let a test talk about the buffers it cares about without counting
  * each wrap copy as a separate bucket.
  */
-import { Frustum, InstancedMesh, Matrix4, type Object3D, Sphere, Vector3 } from 'three';
+import { Color, Frustum, InstancedMesh, Matrix4, type MeshBasicMaterial, type Object3D, Sphere, Vector3 } from 'three';
 
 import { DioramaCamera } from '../../src/render3d/camera3d';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -30,6 +30,13 @@ export function layerMeshes(group: Object3D): InstancedMesh[] {
     out.push(child);
   }
   return out;
+}
+
+/** The hex colour that an unlit mesh draws for one instance. */
+export function instanceInk(mesh: InstancedMesh, index: number): number {
+  const tint = new Color();
+  mesh.getColorAt(index, tint);
+  return tint.multiply((mesh.material as MeshBasicMaterial).color).getHex();
 }
 
 /** Every object drawing `mesh`'s buffers, west to east. */

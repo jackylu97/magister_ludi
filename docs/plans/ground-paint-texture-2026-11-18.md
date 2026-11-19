@@ -384,3 +384,11 @@ Unchanged by construction: the pick meshes and the samplers stay on the cut land
   2. The cut land's floating beach and bank pieces under terraces on coastal and river hills (`decks` as it is). Fixing them changes the cut land's picture.
   3. The budget: 256 MiB keeps the Giant map near full density; a smaller one lowers its band and its memory.
 
+
+## Close zoom comparison, 2026-11-19
+
+The comparison used the shipped renderer at its minimum camera distance. Native WebKit on the Apple GPU and Chromium with SwiftShader drew the same gallery coastline, river and hills, with seed 23 and a 1920 × 1440 drawing buffer. Each hex spanned 249.4 render pixels. The board texture covered the close view for these captures only.
+
+At 32 texels per world unit the transition from sand to grass and the edges of the river banks look softer than the cut mesh. At 64 those edges track the reference more closely in both engines. In the full WebKit river frame, 7.55% of pixels differed from the cut frame by more than two RGB levels at 32, and 3.85% at 64. These percentages include variation between repeated renders.
+
+The memory tradeoff depends on map size. On the 26 × 18 gallery board the atlas used 6.6 MiB at 32 and 26.3 MiB at 64. The atlas planner on the Apple GPU gives 57.0 and 228.1 MiB respectively for Standard. On Giant, the 256 MiB budget limits both requests to about 30.9 texels per world unit. These are figures for the atlas alone. The close-zoom switch stays in the play build pending the visual decision. If close zoom needs 64 on Giant, detail confined to the visible area is worth testing.

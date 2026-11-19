@@ -12,6 +12,8 @@ interface Loop { loop(): void; syncStateLayers(): void }
 
 function fixture() {
   const sync = vi.fn();
+  const setBadgeSelection = vi.fn();
+  const rebuildUnits = vi.fn();
   const view = { pan: vi.fn(), zoomByFactor: vi.fn(), stepPan: () => false, camera: { right: 1, left: -1 } };
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
@@ -21,7 +23,8 @@ function fixture() {
     view, paintedBoard: null, paintedLook: null,
     canvas: { clientWidth: 800, clientHeight: 600 },
     renderer: { render: vi.fn(), info: { render: { calls: 0, triangles: 0 } } },
-    units: { setHoveredUnitId: vi.fn() },
+    units: { setHoveredUnitId: vi.fn(), setBadgeSelection },
+    selectedUnitId: null, rebuildUnits,
     scene: {}, frameListener: null,
     syncStateLayers: sync, applyLight: vi.fn(), cityFocusAnchor: () => null,
     rebuildOverlays(this: { redraw(): void }) { this.redraw(); },
@@ -29,7 +32,7 @@ function fixture() {
   const runtime = Object.assign(Object.create(Renderer3D.prototype), data) as Renderer3D;
   const frame = (): void => (runtime as unknown as Loop).loop();
   const drawn = (): number => (data.renderer as { render: ReturnType<typeof vi.fn> }).render.mock.calls.length;
-  return { runtime, sync, frame, drawn };
+  return { runtime, sync, frame, drawn, setBadgeSelection, rebuildUnits };
 }
 
 describe('a camera frame draws without re-reading the state', () => {
@@ -54,6 +57,22 @@ describe('a camera frame draws without re-reading the state', () => {
     for (let i = 0; i < 5; i++) { f.runtime.setHover(tile(i)); f.frame(); }
     expect(f.drawn()).toBe(5);
     expect(f.sync).not.toHaveBeenCalled();
+  });
+
+  it('selection patches badge rims and draws a frame without rebuilding units', () => {
+    const f = fixture();
+    f.runtime.setSelectedUnitId(4);
+    f.frame();
+    f.runtime.setSelectedUnitId(4);
+    f.frame();
+    f.runtime.setSelectedUnitId(7);
+    f.frame();
+    f.runtime.setSelectedUnitId(null);
+    f.frame();
+    expect(f.setBadgeSelection.mock.calls).toEqual([[null, 4], [4, 7], [7, null]]);
+    expect(f.rebuildUnits).not.toHaveBeenCalled();
+    expect(f.sync).not.toHaveBeenCalled();
+    expect(f.drawn()).toBe(3);
   });
 
   it('invalidate, the verb a command calls, runs the sweep once and then idles', () => {

@@ -82,6 +82,7 @@
 
 import {
   BufferGeometry,
+  DynamicDrawUsage,
   type Material,
   Group,
   InstancedBufferAttribute,
@@ -235,6 +236,7 @@ interface Bucket {
   tints: Tint[];
   /** Whether any `add` on this bucket asked for a tint. */
   tinted: boolean;
+  dynamicTint: boolean;
   mesh: InstancedMesh | null;
   shell: InstancedMesh | null;
   ghost: InstancedMesh | null;
@@ -481,6 +483,8 @@ export class InstanceCollector {
       order?: number;
       opacity?: number;
       tint?: Tint;
+      /** Upload only changed tint ranges after the first draw. */
+      dynamicTint?: boolean;
       vertexColors?: boolean;
       material?: Material;
       /** Opt a custom surface into real shadows and the ordinary unit shell. */
@@ -527,6 +531,7 @@ export class InstanceCollector {
     const order = options.order ?? null;
     const opacity = options.opacity ?? 1;
     const vertexColors = options.vertexColors ?? false;
+    const dynamicTint = !custom && options.dynamicTint === true;
 
     let id = this.geometryIds.get(geometry);
     if (id === undefined) {
@@ -538,7 +543,7 @@ export class InstanceCollector {
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
       `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${order ?? 'auto'}|` +
-      `${opacity}|${vertexColors ? 1 : 0}|${materialId}|${ghostId}|${litMaterial ? 1 : 0}|${options.unitOutline ? 1 : 0}`;
+      `${opacity}|${vertexColors ? 1 : 0}|${materialId}|${ghostId}|${litMaterial ? 1 : 0}|${options.unitOutline ? 1 : 0}|${dynamicTint ? 1 : 0}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
@@ -564,7 +569,8 @@ export class InstanceCollector {
         // away from greying out every roundel on it. `setWash` refuses these
         // buckets from the other end; this is the half that makes sure there is
         // nothing there to write to. See `Bucket.material`.
-        tinted: this.forceTint && (!custom || litMaterial),
+        tinted: dynamicTint || (this.forceTint && (!custom || litMaterial)),
+        dynamicTint,
         mesh: null,
         shell: null,
         ghost: null,
@@ -727,8 +733,14 @@ export class InstanceCollector {
           values[i * 3 + 1] = tint[1];
           values[i * 3 + 2] = tint[2];
         }
-        mesh.instanceColor = new InstancedBufferAttribute(values, 3);
-        mesh.instanceColor.needsUpdate = true;
+        const attribute = new InstancedBufferAttribute(values, 3);
+        if (bucket.dynamicTint) {
+          attribute.setUsage(DynamicDrawUsage);
+          // The first upload sends the whole buffer, including edits made before the first draw.
+          attribute.onUpload(() => attribute.clearUpdateRanges());
+        }
+        attribute.needsUpdate = true;
+        mesh.instanceColor = attribute;
       }
       // Without `copyMeshes` the buffer holds all three wrap copies, so the
       // mesh's bounding sphere would span three map widths: culling is off
@@ -1001,6 +1013,12 @@ export class InstanceCollector {
     writeWash(bucket.shell, null, handle, washFactor(outlineInk(bucket), target, mix, shade));
   }
 
+  /** Replaces a mutable body tint without touching its matrices or other passes. */
+  static setTint(handle: InstanceHandle, tint: Tint): void {
+    const bucket = (handle as HandleImpl).bucket;
+    if (bucket.dynamicTint) writeWash(bucket.mesh, null, handle, tint);
+  }
+
   /** Patches only this piece's wrap copies; hovering never rebuilds a bucket. */
   static setUnitOutline(handle: InstanceHandle, hovered: boolean): void {
     const shell = (handle as HandleImpl).bucket.shell;
@@ -1153,6 +1171,9 @@ function writeWash(
     values[at + 1] = g * factor[1];
     values[at + 2] = b * factor[2];
     INSTANCE_WRITES.tint += 1;
+  }
+  if (color.usage === DynamicDrawUsage) {
+    color.addUpdateRange(handle.start * color.itemSize, handle.count * color.itemSize);
   }
   color.needsUpdate = true;
 }

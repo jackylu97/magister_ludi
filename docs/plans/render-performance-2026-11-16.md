@@ -1195,3 +1195,16 @@ The ruling: `docs/flags.md`, "After rendering pass five (2026-11-18)", items 2, 
 ### Not changed: the guide's spotlight
 
 `tutorial-breathe` grows the ring's `outline-offset` from 2 to 6 px. A transform cannot do that with the same look: it can only grow the ring in proportion to the hole, and the hole is any size and shape (a piece's circle, a control's rectangle). The scale would have to come from the code for each hole, and the ring would thicken on a narrow hole. The larger cost is elsewhere: the dim round the hole is the same element's 9999 px `box-shadow`, so each breath paints the whole window's dim again. Moving the ring to a pseudo-element with its own layer (`will-change`) would keep the look and limit each breath's paint to the ring. That is a proposal, not built.
+
+## Unit selection on a crowded board, 2026-11-19
+
+Changing the selected unit now updates the colours of the previous and new badge rims. All wrap copies use the same colour buffer. The renderer still updates the selection ring and route overlay. Movement, ownership and visibility changes keep their existing rebuild path.
+
+The test scene used 444 units, six seats and an 80 × 52 map. Each browser rendered the real unit and overlay layers at 850 × 600. After 12 warmup selections, the test alternated between two visible units 30 times. These are synchronous selection times. They exclude the rest of the painted board and are not whole-game frame times.
+
+| Browser | Previous median | New median | Previous 95th percentile | New 95th percentile |
+|---|---:|---:|---:|---:|
+| Chromium | 4.3 ms | Below 0.1 ms timer resolution | 16.1 ms | 0.1 ms |
+| Native WebKit | 4 ms | Below 1 ms timer resolution | 6 ms | 1 ms |
+
+Across 30 selections, unit rebuilds fell from 30 to zero. Measured unit and overlay buffer uploads fell from 7,837,920 bytes to 6,480 bytes. Of those 6,480 bytes, 720 updated badge colours and 5,760 updated overlay geometry. Both browsers produced identical before and after pixels in the final frame. The separate check using 240 selections without a GPU measured a median of 4.53 ms before and 0.014 ms after.

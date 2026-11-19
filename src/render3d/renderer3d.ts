@@ -2935,14 +2935,8 @@ export class Renderer3D implements MapView {
 
   setSelectedUnitId(id: number | null): void {
     if (this.selectedUnitId === id) return;
+    this.units.setBadgeSelection(this.selectedUnitId, id);
     this.selectedUnitId = id;
-    // The selected unit's badge rim brightens with it, and the badges live in
-    // the units layer, so the selection has to reach it. Rebuilding the whole
-    // layer for one rim sounds extravagant and is not: it is a few dozen
-    // matrices, it happens on a click rather than on a frame, and the
-    // alternative — patching one instance's colour in place — would mean
-    // teaching the collector about mutable per-instance ink for one highlight.
-    this.rebuildUnits();
     this.rebuildOverlays();
   }
 

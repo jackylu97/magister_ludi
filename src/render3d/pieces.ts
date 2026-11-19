@@ -153,7 +153,7 @@
  * unit per wrap copy is a rounding error against a board that is already built.
  */
 
-import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
+import { Color, Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
 
 import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
@@ -193,6 +193,7 @@ import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
 import {
   type InstanceHandle,
+  type Tint,
   InstanceCollector,
   RENDER_ORDER,
   disposeInstancedGroup,
@@ -1011,6 +1012,12 @@ export function banneredTownCells(state: GameState, seat: number | null): Set<nu
   return cells;
 }
 
+/** Rim ink is stored as a linear colour so it matches a material made from the same hex. */
+function badgeRimTint(ink: number, selected: boolean): Tint {
+  const { r, g, b } = new Color(selected ? shade(ink, BADGE.selectedRimShade) : ink);
+  return [r, g, b];
+}
+
 export class UnitLayer {
   readonly group = new Group();
 
@@ -1022,6 +1029,7 @@ export class UnitLayer {
    */
   private handles = new Map<number, InstanceHandle[]>();
   private bodies = new Map<number, InstanceHandle>();
+  private badgeRims = new Map<number, { handle: InstanceHandle; ink: number }>();
   private hoveredUnitId: number | null = null;
   /**
    * The wash each body's outline shell rests in, by unit id: the routed fade,
@@ -1049,8 +1057,8 @@ export class UnitLayer {
    * if it failed). Badges are drawn for every unit in both styles: the model
    * class is what stands on the tile and the badge is what says which unit it
    * is, so a board without them is a board of anonymous tokens. `selectedUnitId`
-   * only brightens one rim; it is part of the build rather than an overlay
-   * because a badge belongs to its unit, and the layer is cheap to rebuild.
+   * gives a new rim its current colour. Later selections update the existing
+   * instance colours so a pick does not rebuild the unit layer.
    *
    * `icons` is the *tile* atlas (`badges3d.ts`'s `TileIcons`, the same one the
    * lens prints yield glyphs and resource roundels from), asked for one more
@@ -1356,12 +1364,8 @@ export class UnitLayer {
    * The tag over a piece: an atlas-carrying parchment disc and the ring of
    * player colour around it, both turned to face the fixed camera.
    *
-   * Two instances rather than one because they batch differently and that is
-   * the whole reason badges cost nothing per unit — see the `badges3d.ts`
-   * docblock. The disc keys on the model class (one bucket per class, all eight
-   * sharing a texture and a material), the rim keys on the player's ink (one
-   * bucket per player). A board with fifty units and six classes draws the same
-   * eight badge meshes as a board with six.
+   * The disc batches by badge class and atlas. All rims share an unlit
+   * material and take their ink from the instance colour.
    *
    * **The wild is the one seat whose badge is not a seat colour.** A barbarian
    * warrior standing next to your own was reading as another empire's piece
@@ -1373,10 +1377,8 @@ export class UnitLayer {
    * `isBarbarian`, the sim's register for that seat (CLAUDE.md's `realPlayers`
    * rule, read from the other end), never of the seat's colour or its name.
    *
-   * It costs nothing per unit for the reason everything else here does: the
-   * material and the rim ink are both already part of the bucket key, so the
-   * wild's pieces batch among themselves exactly as a nation's do, and a world
-   * with no barbarians in it collects no wild bucket at all.
+   * The wild's discs use their own atlas. Their rims share the same batch
+   * as everyone else's.
    *
    * Not `onTop`. A badge is a thing standing in the diorama and has to be hidden
    * by whatever hides its unit; the lift is what clears the sculpt's own head.
@@ -1417,37 +1419,24 @@ export class UnitLayer {
       ),
     );
 
-    // The selected unit's rim is lifted a step toward white. Cheap in the exact
-    // sense that matters: it is a different *colour*, so it lands in its own
-    // bucket and costs one extra draw for the one selected unit, and nothing at
-    // all on a board with no selection.
-    //
-    // The wild's rim is darkened parchment rather than its seat ink — the ink
-    // is the disc now, and a ring of the same red round it would be a ring
-    // nobody could see. It still takes the selection lift, and a pale rim is the
-    // ground that lift reads best on: a barbarian a player has clicked on is
-    // still the piece in hand, and a selection that only worked on your own
-    // units would be the kind of hole nobody notices until they are trying to
-    // read a stack.
+    // Barbarians use the parchment rim. Other units use their current piece ink,
+    // including the faded colour of a trader on a route.
     const ink = wild ? BADGE.wildRimColor : unitColor(state, unit);
-    const rimColor = selected ? shade(ink, BADGE.selectedRimShade) : ink;
     const front = anchor
       .clone()
       .addScaledVector(new Vector3(0, 0, 1).applyQuaternion(faceCamera), RIM_NUDGE);
-    slots.push(
-      collector.add(
-        geometry.badgeRim,
-        [rimColor],
-        new Matrix4().compose(front, faceCamera, size),
-        // The rim is drawn just before its disc, always. With the same draw
-        // order the two were sorted by distance, bucket against bucket, so on
-        // some pieces the disc's paper covered the inner part of the rim and
-        // on others it did not: thin rims and thick rims on one board (the
-        // user, 2026-11-13: "some of the banner strokes are thick while others
-        // are thin"). Still inside the badge's own step, so no ring comes between.
-        { overlay: true, opacity: 1, order: RENDER_ORDER.badge - (VIEW3D.visualTest.northStar ? .4 : 0) },
-      ),
+    const rim = collector.add(
+      geometry.badgeRim,
+      [0xffffff],
+      new Matrix4().compose(front, faceCamera, size),
+      // Draw the rim before its disc so the paper covers the inner edge evenly.
+      {
+        overlay: true, opacity: 1, order: RENDER_ORDER.badge - (VIEW3D.visualTest.northStar ? .4 : 0),
+        tint: badgeRimTint(ink, selected), dynamicTint: true,
+      },
     );
+    slots.push(rim);
+    this.badgeRims.set(unit.id, { handle: rim, ink });
     // Both of a seat's colours (the user, 2026-11-13: unit icons "should have
     // both leader colors"): a second, thinner ring in the seat's trim, just
     // inside the rim. It is the rim's own ring, made smaller, a second nudge
@@ -1681,6 +1670,14 @@ export class UnitLayer {
     return this.drawCallCount;
   }
 
+  /** Restores the old rim and lifts the new one. Each colour is shared by all wrap copies. */
+  setBadgeSelection(previous: number | null, selected: number | null): void {
+    const oldRim = previous === null ? undefined : this.badgeRims.get(previous);
+    if (oldRim) InstanceCollector.setTint(oldRim.handle, badgeRimTint(oldRim.ink, false));
+    const newRim = selected === null ? undefined : this.badgeRims.get(selected);
+    if (newRim) InstanceCollector.setTint(newRim.handle, badgeRimTint(newRim.ink, true));
+  }
+
   setHoveredUnitId(unitId: number | null): void {
     if (unitId === this.hoveredUnitId) return;
     const old = this.bodies.get(this.hoveredUnitId!);
@@ -1782,6 +1779,7 @@ export class UnitLayer {
     else disposeInstancedGroup(this.group);
     this.handles.clear();
     this.bodies.clear();
+    this.badgeRims.clear();
     this.restingShell.clear();
     this.spriteUnits.clear();
   }
