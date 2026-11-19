@@ -2,6 +2,13 @@
 
 A review of every wonder in the game, and proposals for new wonders that fit the arcane theme. This is a design note. It changes no data and no code.
 
+## The user's ruling (2026-11-19)
+
+- The user read the first page and ruled on the proposals: *"lets go with wonders that are not solely european, i want a diverse set from other cultures"*.
+- The user then set the frame: *"lets assume the game is set in a fantasy world where all the magisters from around the world are playing this game, in some kind of mystical cabal"* (recorded in `docs/flags.md`, last section).
+- Part 3 below follows both rulings. The proposed set draws on many cultures, with at most one European or Greco-Roman wonder in each age. Each wonder stands on what it meant to the adepts of its own tradition. No wonder is tested against what Renaissance Europe knew.
+- Every existing wonder stays. The Terracotta Army, The Walls of Uruk and The Great Mosque of Djenné are fine as they are. Petra, Angkor Wat, Chichen Itza and Machu Picchu are weak, and each gets a better effect (see its direction), not removal.
+
 ## How this was made
 
 - The effect text is the game's own. A script read `compendiumSections()` (`src/ui/compendium.ts`), which prints each row through `describeBuildingRow`, and wrote the lines out. Nothing in the effect columns is a paraphrase.
@@ -341,163 +348,252 @@ A review of every wonder in the game, and proposals for new wonders that fit the
 
 - Chart the Stars gives +1 movement while embarked, the same clause as The Great Lighthouse. The two add together.
 
-## Existing wonders that serve the theme
+## Existing wonders that serve the arcane theme
 
 | Wonder | Why it fits |
 |---|---|
-| The Oracle | Delphi was the best-known oracle in every classical author. Its effect (more cards in each draft) is a good match. |
-| Stonehenge | Geoffrey of Monmouth wrote that Merlin moved the stones from Ireland, and Inigo Jones surveyed it for James I in 1620. |
-| The Great Ziggurat | The tower of Belus in Herodotus, which scholars read as the Tower of Babel. Its mix of science and faith fits. |
-| The Pyramids, The Hanging Gardens, The Colossus, The Mausoleum, The Statue of Zeus, The Temple of Artemis, The Great Lighthouse | The seven wonders of the ancient lists. Maarten van Heemskerck drew the set in 1572, and every scholar knew them from Pliny and Strabo. |
-| The Great Library | The lost library of Alexandria was the model for every Renaissance collector. |
-| The House of Wisdom | The source of the Arabic science that Europe translated. It pairs well with a School of Toledo. |
-| Hagia Sophia | The great church of Constantinople, lost in 1453 within living memory of the game's magistrates. |
-| The Water Clock of Su Song | Unknown in Europe at the time, but an astronomical clock is the right kind of object for this game. |
+| The Oracle | A house of divination. Its effect (more cards in each draft) is a good match. |
+| Stonehenge | A ring of stones set to the sun at midsummer and midwinter: a calendar keeper's work. |
+| The Great Ziggurat | A temple tower where priests watched the sky. Its mix of science and faith fits. |
+| Chichen Itza | Its pyramid counts the days of the year in its steps, and its round tower was built for watching Venus. The rite effect fits, but it is too small. |
+| The Water Clock of Su Song | An astronomical clock tower with a turning sphere of the heavens. |
+| The House of Wisdom | A house of translators, astronomers and alchemists. |
+| The Great Library | The library that tried to hold every book. |
+| The Great Mosque of Djenné, Hagia Sophia, Angkor Wat, Notre-Dame | Great houses of faith. They serve the faith systems more than the arcane ones, and that is right for them. |
 | The Magnum Opus | The centre of the theme. |
 
-- Not known to a Renaissance scholar, or hardly known: The Terracotta Army (found in 1974), Machu Picchu (1911), Petra (1812), The Walls of Uruk (1850s), Angkor Wat, Chichen Itza, The Great Mosque of Djenné (the present building is from 1907). They are good wonders of the world, but they are not part of the magistrate's own myths.
+- Every existing wonder stays. The Terracotta Army, The Walls of Uruk and The Great Mosque of Djenné are fine as they are. Petra, Angkor Wat, Chichen Itza and Machu Picchu are weak, and each gets a better effect (see its direction), not removal.
 
 ## Part 3: proposed wonders
 
 - Each has one effect and at most one condition, as the card-design skill asks.
-- 8 of 14 use an existing effect shape. 5 need one new option on an existing kind. 1 needs a new shape.
-- 2 depend on the wager system, which is due for a rework: The Sibyl's Cave and The Vault of Rosenkreuz.
+- 10 of 16 use an existing effect shape. 5 need one new option on an existing kind. 1 needs a new shape.
+- 2 depend on the wager system, which is due for a rework: The Oracle Pits of Yin and The Observatory of Ulugh Beg.
 - No name is used by a building, Order, belief, great person, wager or bead in `data/`.
+- Each entry says what the place meant in its own tradition, then which kind of magister would seek it and for what knowledge.
+- Every proposal is a real place, a real work, or a place from a real tradition's legend. A legend is labelled as one. Nothing is invented here.
+- No proposal is a place of worship in use today.
 - The shape notes say "confirm" where I read the type and not the evaluator.
 
 ### Age 1
 
-#### The Tower of Babel
-
-- What it was (legendary): Genesis says that all people built one tower to reach heaven, and that their one language was broken for it. Bruegel painted it in 1563 and Athanasius Kircher wrote a whole book on its size in 1679.
-- Proposed effect: **When you finish a wonder, gain +40 culture.**
-- Shape: Existing shape. `windfallRider` on the `completion` occasion, limited to wonders. Confirm that the rider can filter by category.
-- Site: A city beside fresh water.
-- Picture: A spiral tower half built, seen from above as Bruegel drew it, with cranes on every level and cloud around the top.
-- Note: Culture buys drafts, and the first drafts cost 12 to 38, so each wonder is worth about one early draft. The figure must fall in value as the game goes on, which suits an age 1 wonder.
-
-#### Solomon's Temple
-
-- What it was (real and lost): The Books of Kings give its measures, and nothing of it survived. Juan Bautista Villalpando printed a full reconstruction between 1596 and 1604, and scholars treated the plan as one given by God.
-- Proposed effect: **+1 choice in every great person offer.**
-- Shape: Existing shape. `offerRider` with `offer: greatPerson`.
-- Site: None.
-- Picture: A square court with two bronze pillars at the door, drawn as a strict architect's plan in the style of Villalpando.
-- Note: The roster already has Bezalel, who built the Tabernacle.
-
 #### The Pillars of Seth
 
-- What it was (legendary): Josephus wrote that the children of Seth cut all they knew into two pillars, one of brick and one of stone, so that it would outlast a flood and a fire. Writers on Hermes and on the first builders repeated the story for centuries.
+- Culture and period: Jewish tradition, ancient Near East; told of the time before the Flood. Legendary.
+- In its own tradition: Josephus wrote that the children of Seth cut all they knew of the heavens into two pillars, one of brick and one of stone, so that the knowledge would outlast a flood and a fire. The story is about saving knowledge from the end of an age.
+- Sought by: The keeper of records, who fears that an age will end and take its knowledge with it. They come to learn what to write down and what to write it on.
 - Proposed effect: **When you enter a new age, the technology you are researching is finished.**
 - Shape: Existing kind, needs one new option. The `tech` grant exists on completion only. This needs the same grant on the age-entry moment (`ageEntered` is already an announced occasion).
 - Site: None.
 - Picture: Two tall pillars cut with signs, one of red brick and one of grey stone, standing in water after a flood.
-- Note: It pays three times in a game. That is strong, so the figure could become a share of the technology in place of all of it.
+- Note: Kept from the first list. It pays three times in a game, so the figure could become a share of the technology in place of all of it.
+
+#### The Temple of Thoth
+
+- Culture and period: Ancient Egypt; Khemenu (Hermopolis), from the Old Kingdom. Real, now a ruin.
+- In its own tradition: Khemenu was the city of Thoth, the god of writing, counting, the moon and magic, and its priests told how the world began there. Egyptian stories speak of a Book of Thoth that held every spell; the book is legendary.
+- Sought by: The scribe-priest and the alchemist. They come for the words that give a thing its true name, and for the first book of spells.
+- Proposed effect: **This city gains science equal to half of its faith.**
+- Shape: Existing shape. `pays` with `where: city` and `basis: share`. Confirm that the pair is live in the register in `docs/yields.md`.
+- Site: A city beside fresh water.
+- Picture: A hall of papyrus columns at night, an ibis-headed figure writing on a palette, and the moon above the roof.
+- Note: This takes the effect proposed for The Emerald Tablet. The temple is the home of the same tradition, and it is a place and not a text.
+
+#### The Oracle Pits of Yin
+
+- Culture and period: Shang China; about 1250 to 1050 BCE. Real.
+- In its own tradition: At Yin, the last Shang capital, diviners put questions for the king to his ancestors. They heated ox bones and turtle shells until they cracked, read the cracks, and cut the question and the answer into the bone. The bones were then stored in pits, and they are the oldest Chinese writing we have.
+- Sought by: The diviner. They come to learn how to put a question so that the answer can be checked later.
+- Proposed effect: **You are dealt one more wager to choose from in each age.**
+- Shape: Existing kind, needs one new option. `offerRider` has no wager scope. It needs one. **Depends on wagers.**
+- Site: None.
+- Picture: A diviner holding a hot bronze point to a turtle shell, cracks spreading, and a pit of stacked shells behind.
+- Note: Depends on wagers. Hold it until the wager rework is settled. This takes the effect proposed for The Sibyl's Cave: a question put to the future, with the answer written down and kept.
+
+#### Chavín de Huántar
+
+- Culture and period: Chavín, the Andes; about 1200 to 500 BCE. Real, now a ruin.
+- In its own tradition: A temple in a high valley of Peru that drew pilgrims from the coast and the forest. Under it run dark stone galleries with water channels that roar, and at their centre stands the Lanzón, a carved stone god. Priests used shell trumpets and the dark to lead visitors through the rites.
+- Sought by: The mystic and the master of rites. They come to learn how sound, water and the dark can change a person who walks through them.
+- Proposed effect: **Your rites cost 25% less faith.**
+- Shape: Existing kind, needs one new option. `effectAmplifier` has `riteDuration` and no target for the price of a rite. It needs one.
+- Site: A city next to a mountain.
+- Picture: A narrow stone passage lit by one torch, ending at a tall carved stone with fangs, and a priest with a shell trumpet.
+- Note: This takes the effect proposed for The Telesterion of Eleusis: a house of secret rites. Chichen Itza makes rites longer and this makes them cheaper, so the two work together.
 
 ### Age 2
 
 #### The Pillars of Hercules
 
-- What it was (real place, legendary marker): The two rocks at the Strait of Gibraltar, where Hercules was said to have written "no further" at the end of the world. Charles V took "Plus Ultra" (further still) as his motto, and Francis Bacon put ships sailing between the pillars on the title page of his Novum Organum in 1620.
+- Culture and period: Phoenician and Greek; classical antiquity. Real place, legendary marker.
+- In its own tradition: The two rocks at the Strait of Gibraltar. Phoenician sailors kept a temple of Melqart near them at Gades, and the Greeks said that Hercules set the rocks there to mark the end of the world.
+- Sought by: The navigator and the maker of maps. They come to learn what is beyond the last mark on the chart.
 - Proposed effect: **Your ships may cross the open ocean.**
 - Shape: Existing shape. `grantsAbility` with `oceanGoing`, the door that The Astrolabe opens in age 4.
 - Site: A coastal city.
 - Picture: Two pillars on two headlands with a banner between them, and one small ship sailing out through the gap.
-- Note: This opens the ocean two ages early for one empire. I could not judge how much that is worth on each map type without a game run.
+- Note: Kept from the first list. This opens the ocean two ages early for one empire. I could not judge how much that is worth on each map type without a game run.
 
-#### The Emerald Tablet
+#### The Stelae of Aksum
 
-- What it was (legendary): A short text said to be cut in green stone by Hermes Trismegistus and found in his tomb. Latin Europe had it from Arabic by the twelfth century, and alchemists read its line "as above, so below" as the rule of their whole art.
-- Proposed effect: **This city gains science equal to half of its faith.**
-- Shape: Existing shape. `pays` with `where: city` and `basis: share`. Confirm that the pair is live in the register in `docs/yields.md`.
+- Culture and period: The Kingdom of Aksum, Ethiopia; third and fourth centuries CE. Real.
+- In its own tradition: Aksum was a trading kingdom between Rome and India that struck its own gold coin. Its kings raised single stones up to 33 metres tall over their tombs, each carved as a tower of many floors with a false door at the foot for the dead.
+- Sought by: The merchant-magister and the keeper of the royal dead. They come to learn how a kingdom of traders makes its name last in one stone.
+- Proposed effect: **+2 gold and +2 faith on every trade route you send to a foreign city.**
+- Shape: Existing shape. `pays` with `where: route` and an `admits` test on the crossing (The Champagne Fairs uses the same test for domestic routes).
 - Site: None.
-- Picture: A green slab held up by an old man in a tomb, with the sun and the moon above it and their images below.
-- Note: It joins faith to research, which is the theme in one line. It rewards one holy town full of faith buildings.
+- Picture: A field of tall thin stones carved like towers, one fallen and broken, with a caravan passing in front.
+- Note: This takes the effect proposed for The Court of Prester John. It is the least arcane of the set: its subject is trade and the royal dead. With six to eight routes it pays 24 to 32 yield a turn.
 
-#### The Sibyl's Cave
+#### The Academy of Gundeshapur
 
-- What it was (real place, legendary prophet): The cave at Cumae where the Sibyl wrote her prophecies on leaves. Rome kept her books and read them in a crisis. Renaissance scholars held the Sibyls to be pagan prophets, and Michelangelo painted five of them on the Sistine ceiling.
-- Proposed effect: **You are dealt one more wager to choose from in each age.**
-- Shape: Existing kind, needs one new option. `offerRider` has no wager scope. It needs one. **Depends on wagers.**
+- Culture and period: Sasanian Persia; third to seventh century CE. Real; its size is disputed.
+- In its own tradition: A royal city of the Sasanian kings where Persian, Greek, Syriac and Indian medicine and astronomy met. Tradition gives it a hospital, a library and a school. Historians now think later writers made it larger than it was, but its doctors did serve the first Abbasid caliphs.
+- Sought by: The physician and the translator. They come for the medicine of four peoples in one room.
+- Proposed effect: **A technology that an empire you have met already knows costs you 15% less research.**
+- Shape: Existing kind, needs one new option. A research discount on chosen technologies exists (The Court of Rudolf II). The test "known by an empire you have met" is new.
 - Site: None.
-- Picture: A cave mouth with a hundred openings, an old woman at a tripod, and leaves with writing blown across the floor.
-- Note: Depends on wagers. Hold it until the wager rework is settled.
+- Picture: A courtyard where four scholars in four kinds of dress read from four books at one table, under a Persian arch.
+- Note: This takes the effect proposed for The School of Toledo. Gundeshapur did the same work (gathering the learning of other peoples) eight centuries earlier. It serves the empire that is behind in research.
 
-#### The Telesterion of Eleusis
+#### The Schools of Taxila
 
-- What it was (real): The hall near Athens where the Mysteries of Demeter were held for about a thousand years. Those who took part swore not to say what they saw, and readers of Cicero and Plutarch took it as the model of every secret rite.
-- Proposed effect: **Your rites cost 25% less faith.**
-- Shape: Existing kind, needs one new option. `effectAmplifier` has `riteDuration` and no target for the price of a rite. It needs one.
+- Culture and period: Gandhara, ancient India; about 500 BCE to 450 CE. Real, now a ruin.
+- In its own tradition: Takshashila was a city of teachers. Students came from across India to live in a master's house and learn the Vedas, medicine, law, archery and the reading of signs. Indian tradition names the grammarian Pāṇini, the minister Chanakya and the Buddha's doctor Jīvaka among them.
+- Sought by: The student of any art. They come to find the one teacher who knows it best and to live in that teacher's house.
+- Proposed effect: **+1 choice in every great person offer.**
+- Shape: Existing shape. `offerRider` with `offer: greatPerson`.
 - Site: None.
-- Picture: A dark square hall full of columns, a single torch, and a crowd in white seen from behind.
-- Note: If this is built, Chichen Itza should lose its rite clause, so that two wonders do not do one job.
+- Picture: A teacher under a tree with students around him, one with a bow and one with a palm-leaf book, and a stupa on the hill behind.
+- Note: This takes the effect proposed for Solomon's Temple. A city that tradition credits with so many masters is a good home for a wider choice of great people.
 
 ### Age 3
 
+#### Nalanda
+
+- Culture and period: Buddhist India; fifth century to about 1200 CE. Real, now a ruin.
+- In its own tradition: A Buddhist monastery in Bihar that became the greatest school in Asia, with thousands of monks and students from China, Korea, Tibet and Java. Tibetan accounts say that its library, the Dharmaganja, had three buildings and that one of them rose nine storeys.
+- Sought by: The logician and the monk-scholar. They come to debate at the gate, where a keeper tests each visitor before he lets them in, and to read in the library.
+- Proposed effect: **When you recruit a great person, gain +100 science.**
+- Shape: Existing kind, needs one new option. `windfallRider` has no occasion for a great person recruited. The moment is already announced (`greatPersonRecruited` in `occasions.ts`), so it needs one new occasion and no new kind.
+- Site: None.
+- Picture: Rows of red brick courts and cells seen from above, with one tall library tower and monks carrying books.
+- Note: This takes the effect proposed for Salomon's House, sized for age 3, where a seat makes about 106 science a turn. Nalanda is a ruin and a museum, not a place of worship today.
+
+#### The Maragheh Observatory
+
+- Culture and period: Ilkhanid Persia; founded 1259. Real, now a ruin.
+- In its own tradition: The Mongol ruler Hülegü wanted better star tables for his astrologers, and he paid Naṣīr al-Dīn al-Ṭūsī to build an observatory on a hill at Maragheh. Astronomers came from Syria to China, and its library was said to hold 400,000 books. Its new models of the planets replaced parts of Ptolemy.
+- Sought by: The astronomer and the court astrologer. They come for better tables of the planets, and for the geometry that makes them.
+- Proposed effect: **This city makes 50% more renown.**
+- Shape: Existing shape. `cityRenownPercent`.
+- Site: None.
+- Picture: A hilltop with a great wall quadrant and brass rings, scholars in Persian and Chinese dress, and a Mongol rider waiting.
+- Note: This takes the effect proposed for The Studiolo. It rewards a city that already holds wonders and empire buildings, since each pays renown where it stands.
+
+#### The Hall of Light
+
+- Culture and period: Tang China; built 688 CE. Real, destroyed.
+- In its own tradition: The Mingtang was the hall where, in the oldest books, a true ruler matched his acts to the seasons and the stars. Nobody knew its real shape, and scholars argued about it for a thousand years. Empress Wu Zetian built one at Luoyang about 90 metres tall, square below for the earth and round above for heaven. It burned in 695 and she built it again.
+- Sought by: The geomancer and the keeper of the calendar. They come to learn the right shape for a hall that joins heaven, earth and the ruler.
+- Proposed effect: **When you finish a wonder, gain +120 culture.**
+- Shape: Existing shape. `windfallRider` on the `completion` occasion, limited to wonders. Confirm that the rider can filter by category.
+- Site: Your capital.
+- Picture: A huge hall with a square base and a round upper floor under a gold roof, a phoenix on top, and tiny courtiers below.
+- Note: This takes the effect proposed for The Tower of Babel, sized for age 3, where a seat makes about 83 culture a turn. The hall was itself a monument about the right to build monuments.
+
 #### The Brazen Head
 
-- What it was (legendary): A head of brass that could answer any question, said to be the work of Gerbert of Aurillac, of Albertus Magnus or of Roger Bacon. In the best-known story it said "Time is, Time was, Time is past" and broke while its maker slept.
+- Culture and period: Medieval Latin Europe; told of the tenth to thirteenth centuries. Legendary.
+- In its own tradition: A head of brass that could answer any question, said to be the work of Gerbert of Aurillac, of Albertus Magnus or of Roger Bacon. In the best-known story it said "Time is, Time was, Time is past" and broke while its maker slept.
+- Sought by: The maker of automata. They come to learn how to build a thing that answers, and how not to sleep through the answer.
 - Proposed effect: **Each Order hand you pass counts twice toward rarer cards.**
 - Shape: Needs a new shape. New rule: a multiplier on the banked skips that `rarityOdds()` reads (`statecraft/draft.ts`). Small, but no card shape does it today.
 - Site: None.
 - Picture: A brass head on a workbench with its mouth open, a friar asleep at the table, and an hourglass run out.
-- Note: Roger Bacon is in the roster. The effect rewards patience in the draft, which fits a head that speaks only once.
-
-#### The Court of Prester John
-
-- What it was (legendary): A letter of about 1165 described a Christian priest-king in the East, with a mirror that showed him every province and a fountain that kept men young. Portuguese captains still looked for him in Ethiopia in the 1490s.
-- Proposed effect: **+2 gold and +2 faith on every trade route you send to a foreign city.**
-- Shape: Existing shape. `pays` with `where: route` and an `admits` test on the crossing (The Champagne Fairs uses the same test for domestic routes).
-- Site: None.
-- Picture: A king with a crown and a cross on a throne of gems, and behind him a great round mirror with small towns in it.
-- Note: It pays the empire that sends caravans out to find him. With six to eight routes that is 24 to 32 yield a turn in age 3.
-
-#### The School of Toledo
-
-- What it was (real, with a legend): In the twelfth century, translators at Toledo put Arabic and Greek science into Latin, Ptolemy's Almagest among it. Legend then made the city a school of magic, and "the art of Toledo" came to mean necromancy.
-- Proposed effect: **A technology that an empire you have met already knows costs you 15% less research.**
-- Shape: Existing kind, needs one new option. A research discount on chosen technologies exists (The Court of Rudolf II). The test "known by an empire you have met" is new.
-- Site: None.
-- Picture: A room of desks where a scholar in a turban reads aloud and a monk writes, with a cave door half open behind them.
-- Note: A wonder for the empire that is behind in research, which no wonder serves now.
+- Note: Kept from the first list. Roger Bacon is in the roster. The effect rewards patience in the draft, which fits a head that speaks only once.
 
 ### Age 4
 
-#### Salomon's House
+#### The Observatory of Ulugh Beg
 
-- What it was (imaginary): Francis Bacon's New Atlantis of 1627 describes a college on a hidden island that studies "the causes and secret motions of things". The founders of the Royal Society took it as their model.
-- Proposed effect: **When you recruit a great person, gain +300 science.**
-- Shape: Existing kind, needs one new option. `windfallRider` has no occasion for a great person recruited. The moment is already announced (`greatPersonRecruited` in `occasions.ts`), so it needs one new occasion and no new kind.
-- Site: A coastal city.
-- Picture: An island college with towers, furnaces and deep caves in one cut-away view, and a ship arriving.
-- Note: A seat makes about 494 science a turn in age 4, so each great person is worth a little over half a turn of research. The Order named The Royal Society already exists; the names are different and they would work together.
+- Culture and period: Timurid Samarkand, Central Asia; built in the 1420s. Real, now a ruin.
+- In its own tradition: Ulugh Beg, grandson of Timur and ruler of Samarkand, was an astronomer first. He built a round observatory of three floors around a stone arc 40 metres in radius, and his school measured 1,018 stars again, the first full new catalogue since Ptolemy. He was murdered in 1449 and the building was torn down.
+- Sought by: The astronomer. They come to measure every star again and trust no older book.
+- Proposed effect: **On completion, a glass bead is yours.**
+- Shape: Existing shape. The `bead` grant on completion, as on Chart the Stars. It needs one new bead row. **Depends on wagers.**
+- Site: A city with a University (the "needs standing here" rule).
+- Picture: A round tiled building cut open to show a huge curved stone track going down into the rock, with one man taking a sighting.
+- Note: This takes the effect proposed for The Vault of Rosenkreuz. A bead is one seventh of the door to the Magnum Opus, so this is a powerful wonder with a condition. The worth of a bead depends on how many the wagers give, so set it after the wager rework.
+
+#### The Libraries of Timbuktu
+
+- Culture and period: Mali and Songhai, West Africa; fifteenth and sixteenth centuries. Real.
+- In its own tradition: Timbuktu sat where the Niger meets the desert roads, and its scholar families built private libraries of law, astronomy, medicine and poetry, copied by hand and handed down. The scholar Ahmad Baba owned 1,600 books and said that his was a small collection.
+- Sought by: The jurist, the copyist and the collector of books. They come by caravan to buy what no other city has.
+- Proposed effect: **+3 science and +3 culture in every city where one of your trade routes ends.**
+- Shape: Existing shape. `pays` with `where: city` and the scope `routeEndsHere` (the Bank uses the same scope).
+- Site: None.
+- Picture: A mud-brick room with open chests of loose-leaf books in leather cases, a scholar reading, and camels at the door.
+- Note: New effect. It pays an empire of caravans in knowledge. This is about the family libraries and not the mosques, which are places of worship today.
+
+#### The Stone of the Five Suns
+
+- Culture and period: Mexica (Aztec), Mesoamerica; carved about 1502 to 1520. Real.
+- In its own tradition: A basalt disc 3.6 metres wide from the centre of Tenochtitlan. It shows the four worlds that ended before ours, each with its own sun, around the face of the fifth, with the twenty day signs in a ring. It is not a working calendar. Scholars think it was a stage for rites.
+- Sought by: The keeper of the calendar and the reader of days. They come to learn how many worlds ended before this one, and on which day this one will.
+- Proposed effect: **When you finish a technology, gain +25 faith.**
+- Shape: Existing shape. `windfallRider` on the `tech` occasion, with a flat faith grant.
+- Site: None.
+- Picture: A great carved disc painted red and blue, laid flat on a platform before a twin temple, with a lake city behind.
+- Note: New effect. It turns research into faith, the reverse of The Temple of Thoth. A seat makes about 128 faith a turn in age 4, so the figure needs a check against how often a technology falls.
 
 #### The Theatre of Memory
 
-- What it was (real, never finished): Giulio Camillo built a wooden theatre for the King of France in the 1530s. A person on its stage was meant to see all knowledge set out in seven rising rows under the seven planets.
+- Culture and period: Renaissance Italy and France; the 1530s. Real, never finished.
+- In its own tradition: Giulio Camillo built a wooden theatre for the King of France. A person on its stage was meant to see all knowledge set out in seven rising rows under the seven planets.
+- Sought by: The master of memory. They come to hold all knowledge in the mind at one time, each thing in its place.
 - Proposed effect: **Your Orders are sealed for 2 turns in place of 5.**
 - Shape: Existing shape. `metaRule` with the rule `sealTurns`. Two Orders already use it.
 - Site: None.
 - Picture: A small wooden half-circle of seven steps covered in painted signs, with one man on the stage looking up at it.
-- Note: It lets a seat change its council for each new plan. That is worth most in age 4, when a seat has 8 to 11 chairs.
+- Note: Kept from the first list. It lets a seat change its council for each new plan, which is worth most with 8 to 11 chairs.
 
-#### The Studiolo
+### The whole set by culture area and age
 
-- What it was (real): Francesco I de' Medici had a small room with no windows built in the Palazzo Vecchio between 1570 and 1572. Painted panels for the four elements hid his cabinets of stones, metals and alchemical work.
-- Proposed effect: **This city makes 50% more renown.**
-- Shape: Existing shape. `cityRenownPercent`.
-- Site: None.
-- Picture: A narrow vaulted room lined with painted doors, one door open on shelves of glass, coral and ore.
-- Note: It rewards a city that already holds wonders and empire buildings, since each of those pays renown where it stands.
+- Proposed wonders are in bold.
 
-#### The Vault of Rosenkreuz
+| Culture area | Age 1 | Age 2 | Age 3 | Age 4 | Now | Proposed |
+|---|---|---|---|---|---|---|
+| Europe and Greco-Roman | The Temple of Artemis; Stonehenge; The Great Lighthouse; The Oracle | The Mausoleum; The Theatre of Dionysus; The Colossus; **The Pillars of Hercules** | The Great Library; The Statue of Zeus; Hagia Sophia; The Circus Maximus; **The Brazen Head** | Notre-Dame; **The Theatre of Memory** | 12 | 3 |
+| Ancient Near East | The Hanging Gardens; The Walls of Uruk; The Great Ziggurat; **The Pillars of Seth** |   | Petra |   | 4 | 1 |
+| Egypt and Africa | The Pyramids; **The Temple of Thoth** | **The Stelae of Aksum** | The Great Mosque of Djenné | **The Libraries of Timbuktu** | 2 | 3 |
+| Islamic world |   |   |   | The House of Wisdom; The Alhambra | 2 | 0 |
+| Persia and Central Asia |   | **The Academy of Gundeshapur** | **The Maragheh Observatory** | **The Observatory of Ulugh Beg** | 0 | 3 |
+| India |   | **The Schools of Taxila** | **Nalanda** |   | 0 | 2 |
+| China and East Asia | **The Oracle Pits of Yin** |   | The Terracotta Army; The Forbidden City; The Great Wall; The Water Clock of Su Song; **The Hall of Light** |   | 4 | 2 |
+| Southeast Asia |   |   | Angkor Wat |   | 1 | 0 |
+| Mesoamerica and the Andes | **Chavín de Huántar** |   | Chichen Itza | Machu Picchu; **The Stone of the Five Suns** | 2 | 2 |
 
-- What it was (legendary): A pamphlet of 1614, the Fama Fraternitatis, told of the seven-sided tomb of Christian Rosenkreuz, opened after 120 years and still lit by a lamp that burned no oil. It set off a search across Europe for his hidden brotherhood.
-- Proposed effect: **On completion, a glass bead is yours.**
-- Shape: Existing shape. The `bead` grant on completion, as on Chart the Stars. It needs one new bead row. **Depends on wagers.**
-- Site: A city with a Cathedral (the "needs standing here" rule).
-- Picture: A seven-sided vault with a round altar, a bright lamp in the roof, and a door just broken open.
-- Note: A bead is one seventh of the door to the Magnum Opus, so this is a powerful wonder with a condition. The worth of a bead depends on how many the wagers give, so set it after the wager rework.
+- The Great Lighthouse and The Great Library stood in Egypt and were Greek works, so they are counted as Greco-Roman. The Temple of Artemis and The Mausoleum stood in Anatolia and are counted the same way.
+- The Libraries of Timbuktu, The Maragheh Observatory and The Observatory of Ulugh Beg also belong to the Islamic world. They are counted once, under their region.
+- Southeast Asia has no proposal. Angkor Wat is there now. The best candidate for the theme, Borobudur, is a place of Buddhist worship today, so I left it out.
+- Today 12 of the 27 wonders are European or Greco-Roman. With the 16 proposals the count is 15 of 43.
+
+### Dropped from the first list
+
+| Proposal | Why it was dropped, and where its effect went |
+|---|---|
+| The Tower of Babel | It is the same tower as The Great Ziggurat, which the game has. Its effect went to The Hall of Light. |
+| Solomon's Temple | The Temple Mount is holy ground to three living faiths. Its effect went to The Schools of Taxila. |
+| The Emerald Tablet | A text and not a place. Its effect went to The Temple of Thoth, the home of the same tradition. |
+| The Sibyl's Cave | Greco-Roman, and age 2 keeps one such wonder. Its effect went to The Oracle Pits of Yin. |
+| The Telesterion of Eleusis | Greco-Roman, for the same reason. Its effect went to Chavín de Huántar. |
+| The Court of Prester John | A legend told in Europe about a king in Africa or Asia. Its effect went to The Stelae of Aksum, the real kingdom that the legend was later tied to. |
+| The School of Toledo | Age 3 keeps one European wonder, The Brazen Head. Its effect went to The Academy of Gundeshapur. |
+| Salomon's House | European, and age 4 keeps The Theatre of Memory. Its effect went to Nalanda. |
+| The Studiolo | European, for the same reason. Its effect went to The Maragheh Observatory. |
+| The Vault of Rosenkreuz | European, for the same reason. Its effect went to The Observatory of Ulugh Beg. |
 
 ## What I could not determine
 
