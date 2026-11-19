@@ -349,7 +349,7 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     }
   });
 
-  it('The Grand Campaign pays ten times the citizens of the three towns it counted', () => {
+  it('The Grand Campaign pays forty times the citizens of the three towns it counted', () => {
     const state = flat();
     foundCityAt(state, 0, at(state, 2, 2));
     foundCityAt(state, 1, at(state, 18, 10));
@@ -366,7 +366,7 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     expect(commissionGoalMeasure(state, 0, 'dominionTheGrandCampaign' as OrderId, 'population')).toBe(9);
     seat(state, 0).statecraft.pendingOrder = { options: [] };
     const reports = runCommissions(state);
-    expect(reports[0]!.lines).toEqual(expect.arrayContaining(['+90 science', '+90 culture']));
+    expect(reports[0]!.lines).toEqual(expect.arrayContaining(['+360 science', '+360 culture']));
   });
 
   it('The Captured Marvel counts another empire’s original capital or a world wonder, and not your own capital', () => {
@@ -604,7 +604,7 @@ describe('Dominion D6 — words and the bot', () => {
     expect(words('dominionTakeTheCity')).toContain(
       'Reward: capturing a city grants +250 science for each age you have reached',
     );
-    expect(words('dominionTheGrandCampaign')).toContain("science equal to 10 times those cities' total population");
+    expect(words('dominionTheGrandCampaign')).toContain("science equal to 40 times those cities' total population");
     // Since Dominion batch D11 an institution. The D6 words are pinned by the
     // borrowed reward above.
     expect(words('dominionTheCapturedMarvel')).toContain(

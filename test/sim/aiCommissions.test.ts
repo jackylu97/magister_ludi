@@ -265,10 +265,8 @@ describe('a commission is priced as its reward, discounted by the wait (D16)', (
     expect(oneTown).toBeGreaterThan(0);
     expect(rewardOf(id, ctx)).toBe(oneTown);
 
-    // The Border Fortress pays on citadels, and a seat with none reads one hex.
     const fortress = 'dominionTheBorderFortress' as OrderId;
-    const hex = orderDef(fortress).commission!.reward[0]!.lasting![0]! as CardPaysEffect;
-    expect(scoreEffects([hex], ctx)).toBe(0);
+    expect(orderDef(fortress).commission!.reward).toEqual([{ greatPerson: 'general' }]);
     expect(rewardOf(fortress, ctx)).toBeGreaterThan(0);
   });
 
@@ -433,7 +431,7 @@ describe('a stand-in price for each shape of D11 to D15, off its own knob (D16)'
     bumpRevision(state);
     const ctx = valueContext(state, player);
     expect(scoreEffects([effect], ctx)).toBe(
-      3 * ctx.ai.weights.military * (1 + ctx.threat) * DOMINION.vsMoreTechs,
+      5 * ctx.ai.weights.military * (1 + ctx.threat) * DOMINION.vsMoreTechs,
     );
   });
 

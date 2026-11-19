@@ -654,8 +654,8 @@
   ],
   "theLandsturm": [
    {
-    "raw": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens",
-    "text": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens"
+    "raw": "entering a war (at most once every 20 turns) grants the best melee unit you can build in every city of 5 or more citizens",
+    "text": "entering a war (at most once every 20 turns) grants the best melee unit you can build in every city of 5 or more citizens"
    },
    {
     "raw": "+3 combat strength for melee units",
@@ -672,8 +672,8 @@
     "text": "military units cost no gold in maintenance"
    },
    {
-    "raw": "-50% production toward military units, after the town's own bonuses",
-    "text": "-50% production toward military units, after the town's own bonuses"
+    "raw": "-25% production toward military units, after the town's own bonuses",
+    "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
   "theLawsOfLordShang": [
@@ -1496,6 +1496,16 @@
    {
     "raw": "completing a wonder grants a great person to call",
     "text": "completing a wonder grants a great person to call"
+   }
+  ],
+  "theCitizenPhalanx": [
+   {
+    "raw": "a town of at least 3 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
+    "text": "a town of at least 3 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
+   },
+   {
+    "raw": "the unit costs no upkeep",
+    "text": "the unit costs no upkeep"
    }
   ]
  },
@@ -3260,8 +3270,8 @@
   ],
   "theOutriders": [
    {
-    "raw": "clearing a barbarian camp grants +10 production to every city",
-    "text": "clearing a barbarian camp grants +10 production to every city"
+    "raw": "clearing a barbarian camp grants +20 production to every city",
+    "text": "clearing a barbarian camp grants +20 production to every city"
    }
   ],
   "theGarrisonCaptains": [
@@ -3294,8 +3304,8 @@
   ],
   "drillManuals": [
    {
-    "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
-    "text": "units you gain in every city with a Barracks start with 2 experience"
+    "raw": "units you gain in every city with a [[building:barracks|Barracks]] start as Veterans",
+    "text": "units you gain in every city with a Barracks start as Veterans"
    }
   ],
   "dominionMarchDiscipline": [
@@ -3550,6 +3560,10 @@
    {
     "raw": "mounted units may move after attacking",
     "text": "mounted units may move after attacking"
+   },
+   {
+    "raw": "mounted units pillage without spending movement",
+    "text": "mounted units pillage without spending movement"
    }
   ],
   "theCaptiveCraftsmen": [
@@ -3558,8 +3572,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +1 production in your capital and +1 science each time you pillage a hex",
-    "text": "Gains +1 production in your capital and +1 science each time you pillage a hex"
+    "raw": "Gains +2 production in your capital and +2 science each time you pillage a hex",
+    "text": "Gains +2 production in your capital and +2 science each time you pillage a hex"
    }
   ],
   "theSatraps": [
@@ -3612,6 +3626,10 @@
    {
     "raw": "+4 combat strength for siege units when attacking cities",
     "text": "+4 combat strength for siege units when attacking cities"
+   },
+   {
+    "raw": "siege units: +1 movement",
+    "text": "siege units: +1 movement"
    }
   ],
   "dominionTheWarChest": [
@@ -3638,8 +3656,8 @@
   ],
   "conqueredArchives": [
    {
-    "raw": "+6 science, +6 culture in every captured city",
-    "text": "+6 science, +6 culture in every captured city"
+    "raw": "+10 science, +10 culture in every captured city",
+    "text": "+10 science, +10 culture in every captured city"
    }
   ],
   "stockpiles": [
@@ -3878,12 +3896,12 @@
   ],
   "dominionTheCitadelWorks": [
    {
-    "raw": "+5 science on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+5 science on every hex with a Citadel"
+    "raw": "+8 science on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+8 science on every hex with a Citadel"
    },
    {
-    "raw": "+3 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
-    "text": "+3 renown per turn per hex with a Citadel in your borders, favouring generals"
+    "raw": "+8 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
+    "text": "+8 renown per turn per hex with a Citadel in your borders, favouring generals"
    }
   ],
   "dominionTheRelayStations": [
@@ -3974,18 +3992,14 @@
   ],
   "spearWonLand": [
    {
-    "raw": "+3% production and +3% science per city you have captured this game",
-    "text": "+3% production and +3% science per city you have captured this game"
+    "raw": "+5% production and +5% science per city you have captured this game",
+    "text": "+5% production and +5% science per city you have captured this game"
    }
   ],
   "theLongbowmen": [
    {
-    "raw": "+2 combat strength for ranged units",
-    "text": "+2 combat strength for ranged units"
-   },
-   {
-    "raw": "ranged units: +1 range",
-    "text": "ranged units: +1 range"
+    "raw": "+4 combat strength for ranged units",
+    "text": "+4 combat strength for ranged units"
    }
   ],
   "theStateForges": [
@@ -4134,16 +4148,8 @@
   ],
   "totalWar": [
    {
-    "raw": "+5 combat strength for military units",
-    "text": "+5 combat strength for military units"
-   },
-   {
-    "raw": "military units: +1 movement",
-    "text": "military units: +1 movement"
-   },
-   {
-    "raw": "-3 happiness in every city",
-    "text": "-3 happiness in every city"
+    "raw": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city",
+    "text": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city"
    }
   ],
   "dominionAVictorsPeace": [
@@ -4164,8 +4170,8 @@
   ],
   "theVictoryMint": [
    {
-    "raw": "capturing a city grants gold equal to 30 times its population",
-    "text": "capturing a city grants gold equal to 30 times its population"
+    "raw": "capturing a city grants gold equal to 60 times its population",
+    "text": "capturing a city grants gold equal to 60 times its population"
    }
   ],
   "theBoardOfOrdnance": [
@@ -4176,8 +4182,8 @@
   ],
   "theDrillMasters": [
    {
-    "raw": "units you gain start as Veterans",
-    "text": "units you gain start as Veterans"
+    "raw": "your combat units standing in one of your cities gain 1 experience at the end of every turn",
+    "text": "your combat units standing in one of your cities gain 1 experience at the end of every turn"
    }
   ],
   "upThroughTheRanks": [
@@ -4194,8 +4200,8 @@
   ],
   "theRegimentalSchools": [
    {
-    "raw": "+3 science in every city per combat unit standing there",
-    "text": "+3 science in every city per combat unit standing there"
+    "raw": "+6 science and +6 production in every city per combat unit standing there",
+    "text": "+6 science and +6 production in every city per combat unit standing there"
    }
   ],
   "theTagmata": [
@@ -4240,8 +4246,8 @@
   ],
   "theBakufu": [
    {
-    "raw": "+25% science and +25% culture in every city with a great general standing in it",
-    "text": "+25% science and +25% culture in every city with a great general standing in it"
+    "raw": "+25% production, +25% science and +25% culture in every city with a [[improvement:citadel|Citadel]]",
+    "text": "+25% production, +25% science and +25% culture in every city with a Citadel"
    }
   ],
   "paxRomana": [
@@ -4288,8 +4294,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call",
-    "text": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call"
+    "raw": "Goal: hold 1 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call",
+    "text": "Goal: hold 1 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call"
    }
   ],
   "dominionSpolia": [
@@ -4316,8 +4322,8 @@
   ],
   "dominionTheGrandArmy": [
    {
-    "raw": "+3 science and +3 culture in your capital per military unit in the field",
-    "text": "+3 science and +3 culture in your capital per military unit in the field"
+    "raw": "+6 science and +6 culture in your capital per military unit in the field",
+    "text": "+6 science and +6 culture in your capital per military unit in the field"
    }
   ],
   "dominionTheAnnexedProvinces": [
@@ -4346,8 +4352,12 @@
   ],
   "dominionCircumvallation": [
    {
-    "raw": "a rival city under siege by your units adds no production toward a Magnum Opus",
-    "text": "a rival city under siege by your units adds no production toward a Magnum Opus"
+    "raw": "a rival city under siege by your units makes no production",
+    "text": "a rival city under siege by your units makes no production"
+   },
+   {
+    "raw": "a city under siege by your units takes 100% more siege damage",
+    "text": "a city under siege by your units takes 100% more siege damage"
    }
   ],
   "dominionTheGrandCoalition": [
@@ -4362,8 +4372,8 @@
   ],
   "dominionTheProconsuls": [
    {
-    "raw": "the authority a captured city with a unit standing in it costs is 0",
-    "text": "the authority a captured city with a unit standing in it costs is 0"
+    "raw": "+25% production and +25% gold in every captured city",
+    "text": "+25% production and +25% gold in every captured city"
    }
   ],
   "dominionTheGrandCampaign": [
@@ -4372,8 +4382,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population",
-    "text": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population"
+    "raw": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 40 times those cities' total population, and culture equal to 40 times those cities' total population",
+    "text": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 40 times those cities' total population, and culture equal to 40 times those cities' total population"
    }
   ],
   "dominionTheCapturedMarvel": [
@@ -4418,8 +4428,8 @@
   ],
   "theSpearMakers": [
    {
-    "raw": "+25% production toward military units",
-    "text": "+25% production toward military units"
+    "raw": "+40% production toward military units",
+    "text": "+40% production toward military units"
    }
   ],
   "theDefiantKingdom": [
@@ -4474,6 +4484,10 @@
    {
     "raw": "towns you lose add nothing to war weariness",
     "text": "towns you lose add nothing to war weariness"
+   },
+   {
+    "raw": "losing a unit grants production equal to 50% of its production cost to your capital",
+    "text": "losing a unit grants production equal to 50% of its production cost to your capital"
    }
   ],
   "theChampionsPortion": [
@@ -4484,8 +4498,8 @@
   ],
   "theCastleDemesne": [
    {
-    "raw": "+3 food, +3 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+3 food, +3 production on every hex with a Citadel"
+    "raw": "+5 food, +5 production on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +5 production on every hex with a Citadel"
    }
   ],
   "theSpartanDiscipline": [
@@ -4544,8 +4558,8 @@
   ],
   "theTributaryKings": [
    {
-    "raw": "+1 production and +1 gold in your capital per citizen living in a puppet of yours",
-    "text": "+1 production and +1 gold in your capital per citizen living in a puppet of yours"
+    "raw": "+2 production and +2 gold in your capital per citizen living in a puppet of yours",
+    "text": "+2 production and +2 gold in your capital per citizen living in a puppet of yours"
    }
   ],
   "dominionManTheWalls": [
@@ -4576,8 +4590,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: spend 1 great person on a [[improvement:citadel|Citadel]]. Reward: +2 food, +2 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "Goal: spend 1 great person on a Citadel. Reward: +2 food, +2 production on every hex with a Citadel"
+    "raw": "Goal: spend 1 great person on a [[improvement:citadel|Citadel]]. Reward: a great general to call",
+    "text": "Goal: spend 1 great person on a Citadel. Reward: a great general to call"
    }
   ],
   "dominionTheChosenMen": [
@@ -4586,8 +4600,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control",
-    "text": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control"
+    "raw": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control and all units that are an Elite: +1 movement",
+    "text": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control and all units that are an Elite: +1 movement"
    }
   ],
   "dominionHarryTheBorder": [
@@ -4614,8 +4628,8 @@
   ],
   "theUpstarts": [
    {
-    "raw": "+3 combat strength for military units against an empire that knows more technologies than you",
-    "text": "+3 combat strength for military units against an empire that knows more technologies than you"
+    "raw": "+5 combat strength for military units against an empire that knows more technologies than you",
+    "text": "+5 combat strength for military units against an empire that knows more technologies than you"
    }
   ],
   "smallholdings": [
@@ -10199,6 +10213,102 @@
    {
     "raw": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus",
     "text": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus"
+   }
+  ],
+  "dominionTheVerSacrum": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[unit:settler|Settler]] joins you in your capital",
+    "text": "On draft: a Settler joins you in your capital"
+   },
+   {
+    "raw": "On draft: the best melee unit you can build joins you in your capital",
+    "text": "On draft: the best melee unit you can build joins you in your capital"
+   }
+  ],
+  "dominionTheAmabutho": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: the best melee unit you can build joins you in every city with a [[building:barracks|Barracks]]",
+    "text": "On draft: the best melee unit you can build joins you in every city with a Barracks"
+   }
+  ],
+  "dominionTheFieldOfMars": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: each of your military units gains 4 experience",
+    "text": "On draft: each of your military units gains 4 experience"
+   }
+  ],
+  "dominionTheGrassCrown": [
+   {
+    "raw": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder",
+    "text": "capturing a city grants +200 renown, favouring a great general, doubled if the city holds a wonder"
+   }
+  ],
+  "dominionTheMeltedArms": [
+   {
+    "raw": "killing a unit grants production equal to 2 times its strength to your capital",
+    "text": "killing a unit grants production equal to 2 times its strength to your capital"
+   }
+  ],
+  "dominionTheAuxilia": [
+   {
+    "raw": "capturing a city grants the best melee unit you can build",
+    "text": "capturing a city grants the best melee unit you can build"
+   }
+  ],
+  "dominionTheFoederati": [
+   {
+    "raw": "clearing a barbarian camp gives your capital 2 more citizens",
+    "text": "clearing a barbarian camp gives your capital 2 more citizens"
+   }
+  ],
+  "dominionTheDecisiveBattle": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units",
+    "text": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units"
+   }
+  ],
+  "dominionTheMesta": [
+   {
+    "raw": "+4 food, +4 production, +4 gold on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+4 food, +4 production, +4 gold on every hex with a Pasture or Camp"
+   }
+  ],
+  "dominionTheMasterOfSoldiers": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great general to call",
+    "text": "On draft: you gain a great general to call"
+   }
+  ],
+  "dominionTheCompanionCavalry": [
+   {
+    "raw": "a unit that kills gets its movement back for the rest of the turn",
+    "text": "a unit that kills gets its movement back for the rest of the turn"
+   }
+  ],
+  "dominionTheCastellans": [
+   {
+    "raw": "+6 production in every city per military building or fortification there",
+    "text": "+6 production in every city per military building or fortification there"
    }
   ]
  },

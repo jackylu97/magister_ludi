@@ -49,6 +49,7 @@ import {
 } from '../../../src/sim/state';
 import {
   cardZocIgnored,
+  cardUnitStat,
   cityScopeAdmits,
   deckPoolOf,
   explainCardPercentYields,
@@ -329,6 +330,8 @@ describe('Dominion D11 — Commission: The Chosen Men', () => {
     // The rule is read off the piece, not its type.
     expect(cardZocIgnored(state, 0, elite)).toBe(true);
     expect(cardZocIgnored(state, 0, veteran)).toBe(false);
+    expect(cardUnitStat(state, elite, 'movement')).toBe(1);
+    expect(cardUnitStat(state, veteran, 'movement')).toBe(0);
     expect(moveProfile(state, elite).ignoresZoc).toBe(true);
     expect(moveProfile(state, veteran).ignoresZoc).toBeUndefined();
   });
@@ -345,7 +348,7 @@ describe('Dominion D11 — Commission: The Chosen Men', () => {
 });
 
 describe('Dominion D11 — Commission: The Border Fortress', () => {
-  it('counts a great person spent on a citadel while seated, and nothing else; then citadels give +2 food and +2 production', () => {
+  it('counts a great person spent on a citadel while seated, and nothing else; then offers a great general', () => {
     expect(orderDef(FORTRESS).commission?.goals).toEqual([
       { kind: 'counted', occasion: 'greatPersonSpent', count: 1, work: 'citadel' },
     ]);
@@ -360,15 +363,16 @@ describe('Dominion D11 — Commission: The Border Fortress', () => {
     const hex = at(state, capital.col + 1, capital.row);
     const general = createUnit(state, 0, 'greatPerson', hex.col, hex.row, GENERAL);
     bumpRevision(state);
+    seat(state, 0).techsResearched.push('epicPoetry');
     expect(hexPaid(state, hex, FORTRESS)).toEqual({ food: 0, production: 0 });
     greatPersonWorkAt(state, seat(state, 0), general, hex);
     expect(hex.improvement).toBe('citadel');
     expect(tallyOf(sc, FORTRESS)).toBe(1);
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual([FORTRESS]);
-    expect(reports[0]!.lines).toEqual([]);
+    expect(seat(state, 0).greatPersonOffer).toBeDefined();
     bumpRevision(state);
-    expect(hexPaid(state, hex, FORTRESS)).toEqual({ food: 2, production: 2 });
+    expect(hexPaid(state, hex, FORTRESS)).toEqual({ food: 0, production: 0 });
   });
 });
 

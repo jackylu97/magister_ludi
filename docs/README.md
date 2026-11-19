@@ -970,7 +970,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     of it. A deficit is never moved, and a town in unrest moves nothing.
   - A production percentage can join the **empire stage** (`stage: 'empire'`),
     so it multiplies what the town's own bonuses made (The Marian Reforms'
-    half speed).
+    25% reduction).
   - A hex test asks whether a **fortified military unit** of the empire stands
     on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
     the `fortifiedUnits` count counts those units inside a town's borders. A write
@@ -1058,9 +1058,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `resetMovement` carries it.
   - The `opusSiege` behaviour rule (Circumvallation) is read in the *rival's*
     town: `explainOpusGate` (`yields/town.ts`), the second gate of step 13 in
-    `docs/yields.md`, holds production at nothing while the town builds a
-    Magnum Opus, is `underSiege`, and a holder that can lay a siege has a
-    combat unit beside it (`cardOpusSiegeBy`). The line names the card, and
+    `docs/yields.md`, stops production while
+    the town is `underSiege` and a holder that can lay a siege has a
+    combat unit beside it (`cardOpusSiegeBy`). The town takes double siege damage. The line names the card, and
     the city panel prints it.
   - The `vsMoreTechs` combat condition (The Upstarts) mirrors `vsFewerTechs`
     through `knowsMoreTechs` (`rivals.ts`), and never holds against the wild.

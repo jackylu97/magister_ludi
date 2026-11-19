@@ -5,7 +5,7 @@
  * This file checks the `vsMoreTechs` combat condition, the mirror of
  * Scientific's `vsFewerTechs`, read through `knowsMoreTechs` (`rivals.ts`):
  *
- *   · +3 strength for the holder's military units in a fight with an empire
+ *   · +5 strength for the holder's military units in a fight with an empire
  *     that knows more technologies, in attack and in defence, and against
  *     that empire's towns;
  *   · nothing against an empire level with the holder or behind it;
@@ -116,7 +116,7 @@ describe('Dominion D15 — The Upstarts', () => {
     expect(def.effects).toEqual([
       {
         kind: 'combatLine',
-        amount: 3,
+        amount: 5,
         side: 'both',
         when: { test: 'vsMoreTechs' },
         class: { category: 'military' },
@@ -125,10 +125,10 @@ describe('Dominion D15 — The Upstarts', () => {
     const words = describeCard(UPSTARTS)
       .map((clause) => stripRefs(clause.text))
       .join(' | ');
-    expect(words).toBe('+3 combat strength for military units against an empire that knows more technologies than you');
+    expect(words).toBe('+5 combat strength for military units against an empire that knows more technologies than you');
   });
 
-  it('adds +3 in a fight with an empire that knows more technologies, attacking and defending', () => {
+  it('adds +5 in a fight with an empire that knows more technologies, attacking and defending', () => {
     const state = flat();
     slot(state, 0, UPSTARTS);
     const mine = createUnit(state, 0, 'warrior', 4, 4);
@@ -137,8 +137,8 @@ describe('Dominion D15 — The Upstarts', () => {
     expect(strength(state, mine, 5, 4, 'attacker')).toBe(0);
     // The rival ahead by one: the line, on both sides of the fight.
     learn(state, 1, ...spareTechs(state, 1));
-    expect(strength(state, mine, 5, 4, 'attacker')).toBe(3);
-    expect(strength(state, theirs, 4, 4, 'defender')).toBe(3);
+    expect(strength(state, mine, 5, 4, 'attacker')).toBe(5);
+    expect(strength(state, theirs, 4, 4, 'defender')).toBe(5);
     // The rival's own lines carry no such thing.
     expect(strength(state, theirs, 4, 4, 'attacker')).toBe(0);
     // The holder ahead again: no line.
@@ -146,13 +146,13 @@ describe('Dominion D15 — The Upstarts', () => {
     expect(strength(state, mine, 5, 4, 'attacker')).toBe(0);
   });
 
-  it('adds +3 against the towns of an empire that knows more technologies', () => {
+  it('adds +5 against the towns of an empire that knows more technologies', () => {
     const state = flat();
     slot(state, 0, UPSTARTS);
     foundCityAt(state, 1, at(state, 5, 4));
     const mine = createUnit(state, 0, 'warrior', 4, 4);
     learn(state, 1, ...spareTechs(state, 1));
-    expect(strength(state, mine, 5, 4, 'attacker')).toBe(3);
+    expect(strength(state, mine, 5, 4, 'attacker')).toBe(5);
   });
 
   it('never pays against the barbarians, who are not an empire', () => {
@@ -186,7 +186,7 @@ describe('Dominion D15 — The Upstarts', () => {
     const soldier = createUnit(state, 0, 'warrior', 3, 4);
     expect(lines(soldier)).toBe(0);
     slot(state, 0, UPSTARTS);
-    expect(lines(soldier)).toBe(3);
+    expect(lines(soldier)).toBe(5);
     expect(lines(ship)).toBe(0);
   });
 });

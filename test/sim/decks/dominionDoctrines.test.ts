@@ -960,8 +960,8 @@ describe('batch DT1: the offer’s tiers', () => {
     }
   });
 
-  it('holds thirteen live rows across the four tiers', () => {
-    expect([4, 10, 18, 26].map((tier) => dominion(tier).length)).toEqual([3, 4, 3, 3]);
+  it('holds fourteen live rows across the four tiers', () => {
+    expect([4, 10, 18, 26].map((tier) => dominion(tier).length)).toEqual([4, 4, 3, 3]);
   });
 });
 

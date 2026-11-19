@@ -202,7 +202,7 @@ import {
 // Magisterial batch MG17: what an act pays, read through the act's own seams,
 // so the act this bot prices and the act the reducer banks are one figure.
 import { actGainOf, agedActFactor, greatPersonBag } from '../sim/greatPeople';
-import { holdsRank, rankStrength } from '../sim/ranks';
+import { experienceOf, holdsRank, ranksReached, rankStrength } from '../sim/ranks';
 import {
   cityHoldsPost,
   cityPostPays,
@@ -323,6 +323,9 @@ import {
   cardRareWeight,
   cardRulePercent,
   effectsOfKind,
+  garrisonedUnitIds,
+  unitIdsNearGenerals,
+  cardBehaviorRule,
   groundFactsFor,
   helpings,
   oneOfAKind,
@@ -447,6 +450,7 @@ import {
   isUnitTypeId,
   unitDef,
   unitMaxHp,
+  unitStampStrength,
 } from '../sim/unitData';
 import { explainBuildingUpkeep, unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
@@ -2476,6 +2480,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // board gives: the inner effects at full price when the empire's own walk
       // already carries them, and nothing when it does not. A card whose gate is
       // shut is a card doing nothing today, which is what the evaluator says.
+      if (effect.when.test === 'atWar') return warIntent(ctx) * scoreEffects(effect.then, ctx);
       return conditionIsLive(effect.when, ctx) ? scoreEffects(effect.then, ctx) : 0;
     case 'purchaseRider': {
       // **A rider on the faith bank alone** (Devotion batch DV3, The Offering
@@ -2676,19 +2681,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // first in batch E13). See `workAgeWorth`.
       return workAgeWorth(effect, ctx);
     case 'drill': {
-      // **Experience is strength paid in instalments** (Dominion batch D1). A
-      // point of experience is priced at what the rank ladder pays for it: the
-      // top rank's strength over the experience it takes to reach (an Elite's
-      // six over ten points). A drill hands every unit it reaches that many
-      // points each time it fires, so the price is `combatLine`'s, scaled by
-      // the points a turn. That the drill reaches part of the army and that the
-      // ladder stops at Elite are both left out, which is the same rough price
-      // `unitStat` gives a point of a piece's own quality.
+      if (cardBehaviorRule(ctx.state, ctx.playerId, 'noExperience')) return 0;
+      // A drill pays only units in reach that can still improve their rank.
       const top = RULES.combat.ranks.ladder.elite;
       const perPoint = top.experience > 0 ? top.strength / top.experience : 0;
       const every = Math.max(1, Math.floor(effect.every ?? 1));
+      const reached = effect.where === 'garrison'
+        ? garrisonedUnitIds(ctx.state, ctx.playerId)
+        : unitIdsNearGenerals(ctx.state, ctx.playerId);
+      const trainees = ctx.state.units.filter((unit) => reached.has(unit.id) && !holdsRank(unit, 'elite')).length;
       return (
-        ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
+        trainees * ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
       );
     }
     case 'surplusToProduction': {
@@ -2806,7 +2809,7 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     case 'shoreRaid':
       return shoreRaidWorth(ctx);
     case 'opusSiege':
-      return opusSiegeWorth(ctx);
+      return opusSiegeWorth(ctx) + warIntent(ctx) * ctx.ai.score.dominion.opusSiege;
 
     // --- Expansionist batches E9 and E12, and batch DT12 (knobs in
     // `score.expansionist`, batch E13) ---------------------------------------
@@ -3771,9 +3774,35 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit': {
-        const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx);
-        once += piece.once;
-        rate += piece.rate;
+        const towns = grant.toEveryTown === undefined
+          ? [capitalCityOf(ctx.state, ctx.playerId)]
+          : citiesOf(ctx.state, ctx.playerId).filter((town) => cityScopeAdmits(ctx.state, town, grant.toEveryTown, ctx.playerId));
+        for (const town of towns) {
+          if (town === undefined) continue;
+          const piece = draftedUnitWorth(grant.unit, onDraftUnitCount(grant.count), ctx, town);
+          once += piece.once;
+          rate += piece.rate;
+        }
+        break;
+      }
+      case 'experience': {
+        if (cardBehaviorRule(ctx.state, ctx.playerId, 'noExperience')) break;
+        const top = RULES.combat.ranks.ladder.elite;
+        for (const unit of ctx.state.units) {
+          if (unit.ownerId !== ctx.playerId || !isCombatant(unitDef(unit.type))) continue;
+          const before = experienceOf(unit);
+          const gain = Math.min(grant.amount, Math.max(0, top.experience - before));
+          rate += gain * top.strength / top.experience * ctx.ai.weights.military;
+          const strength = Math.max(0, unitDef(unit.type).combatStrength + unitStampStrength(unit));
+          for (const rank of ranksReached(before, before + gain)) {
+            for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'windfallRider')) {
+              if (effect.occasion !== 'rankEarned' || (effect.rank && effect.rank !== rank) || !effect.grant) continue;
+              const grant = effect.grant;
+              const amount = grant.fromOccasion === 'strength' ? (grant.amount ?? 0) * strength : grant.amount;
+              once += firingPoints(windfallGrantWorth({ ...grant, amount }, ctx));
+            }
+          }
+        }
         break;
       }
       case 'greatPerson':
@@ -3828,13 +3857,14 @@ function draftedUnitWorth(
   unit: UnitTypeId | 'bestMelee',
   count: number,
   ctx: ValueContext,
+  capital = capitalCityOf(ctx.state, ctx.playerId),
 ): { once: number; rate: number } {
-  const capital = capitalCityOf(ctx.state, ctx.playerId);
   if (capital === undefined) return { once: 0, rate: 0 };
   const type = unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   const placed = countDraftUnitPlacements(ctx.state, capital, type, count);
   if (placed === 0) return { once: 0, rate: 0 };
+  if (unitDef(type).foundsCity) return { once: 0, rate: placed * ctx.ai.weights.city };
   if (unitDef(type).category === 'trader') {
     const routes = ctx.routes;
     if (routes.free <= 0 || routes.open === null) return { once: 0, rate: 0 };
@@ -4281,6 +4311,8 @@ function ruleRewriteValue(
       // how often a town is taken (`occasionRate`'s capture reading), because
       // the bot does not forecast how long its towns will stay in unrest.
       return share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
+    case 'siegeDamage':
+      return share * warIntent(ctx) * ctx.ai.score.dominion.opusSiege;
     case 'campMuster':
       // **Not priced** (Dominion batch D7, The Hunting Grounds). More raiders
       // near home are a cost and a supply of kills at once, and the bot
@@ -5856,6 +5888,7 @@ function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['
     case 'riteCost':
     case 'pacificationRate':
     case 'campMuster':
+    case 'siegeDamage':
     case 'townLossWeariness':
     case 'unitCost':
     case 'charterTechCost':
@@ -9480,6 +9513,11 @@ function occasionMeasureForecast(
   /** The towns a rider is narrowed to, read for the rite's town (batch DV9). */
   inTown?: true | CityScope,
 ): number | null {
+  if (occasion === 'death' && measure === 'unitCost') {
+    const troops = ctx.state.units.filter((unit) => unit.ownerId === ctx.playerId && isCombatant(unitDef(unit.type)));
+    if (troops.length === 0) return 0;
+    return troops.reduce((sum, unit) => sum + (unit.freeUpkeep ? 0 : unitProductionCost(ctx.state, ctx.playerId, unit.type)), 0) / troops.length;
+  }
   if (occasion === 'postEstablished' && measure === 'population') return postTownPopulation(ctx);
   // **Devotion batch DV9**: the citizens of the town a rite is started in (The
   // Psalter), and of the town a conversion turns (The Mass Baptisms).

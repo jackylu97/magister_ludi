@@ -2284,6 +2284,7 @@ export interface Unit {
    *      anyway (no unlock tech) and is marked so the rule does not depend on
    *      that staying true;
    *   5. `claimDiscoveryAt` — a ruin's escort.
+   *   6. A levy with free upkeep passes `free: true` to `realiseItem`.
    *
    * A **completion** of a queued unit and a **purchase** deliberately do not
    * write it: those are pieces an empire paid for, and they go on the payroll

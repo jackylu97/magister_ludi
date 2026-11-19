@@ -3906,7 +3906,7 @@ export function countOf(
       // Expansionist batch E12).
       let total = 0;
       for (const id of townBuildings(state, city)) {
-        if (isFortification(id)) total += 1;
+        if (isFortification(id) || buildingDef(id).category === effect.category) total += 1;
       }
       return total;
     }
@@ -10110,6 +10110,7 @@ export interface WindfallPayout {
  * caller is the only thing that still knows.
  */
 export interface WindfallOccasionFacts {
+  warDefender?: true;
   vsBarbarians?: boolean;
   /**
    * **Whose piece did it** — the type of the unit whose act opened the occasion,
@@ -10474,6 +10475,7 @@ export function windfallPayout(
    */
   const rides = (effect: CardWindfallRiderEffect, card: CardId): boolean => {
     if (effect.occasion !== occasion) return false;
+    if (facts.warDefender && !effect.eitherSide) return false;
     // The occasion narrowed by who was on the other side of it. A rider that
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
@@ -10798,8 +10800,8 @@ export function windfallPayout(
     if (grant.citizens !== undefined && grant.citizens > 0) {
       const named = facts.townId === undefined ? undefined : cityById(state, facts.townId);
       const towns =
-        grant.toEveryTown !== undefined
-          ? grantTowns(state, playerId, { toEveryTown: grant.toEveryTown })
+        grant.toEveryTown !== undefined || grant.toCapital === true
+          ? grantTowns(state, playerId, grant)
           : named !== undefined && named.ownerId === playerId
             ? [named]
             : [];
@@ -11674,7 +11676,7 @@ function grantsOnlyPayout(grants: WindfallPayout['grants']): WindfallPayout {
  * The ids of this empire's units standing in one of its towns, as `garrisonOf`
  * reads a garrison: fighting units on the town's own hex.
  */
-function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
+export function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
   const ids = new Set<number>();
   for (const city of citiesOf(state, playerId)) {
     for (const unit of garrisonOf(state, city)) ids.add(unit.id);
@@ -11688,7 +11690,7 @@ function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
  * A great general is recognised the way `generalAuraLines` (`combat.ts`)
  * recognises one: a great-person piece whose person is of the general family.
  */
-function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
+export function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
   const generals: { col: number; row: number }[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
@@ -11719,6 +11721,7 @@ function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
 
 /** One row of this empire's law that lets a levy buy something. See `cardLevyGrants`. */
 export interface LevyGrant {
+  freeUpkeep?: true;
   use: LevyUse;
   card: CardId;
   source: string;
@@ -11750,6 +11753,7 @@ export function cardLevyGrants(state: GameState, playerId: number, city: City): 
       continue;
     }
     const grant: LevyGrant = { use, card, source };
+    if (effect.freeUpkeep) grant.freeUpkeep = true;
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
     if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
     if (effect.rank !== undefined) grant.rank = effect.rank;
@@ -12771,17 +12775,35 @@ export interface OpusSiege {
  * (`underSiege`) lives in `combat.ts`, which this module does not import.
  */
 export function cardOpusSiegeBy(state: GameState, city: City): OpusSiege | null {
+  if (!opusSiegeInForce(state)) return null;
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return null;
   for (const player of realPlayers(state)) {
     if (player.id === city.ownerId) continue;
     const row = effectsOfKind(state, player.id, 'rule').find(({ effect }) => effect.rule === 'opusSiege');
     if (row === undefined) continue;
-    if (!techsGrant(player.techsResearched, 'siege')) continue;
-    if (!combatUnitBeside(state, player.id, centre)) continue;
+    if (!canBesiegeFrom(state, player, centre)) continue;
     return { playerId: player.id, card: row.card, source: row.source };
   }
   return null;
+}
+
+function canBesiegeFrom(state: GameState, player: Player, centre: Tile): boolean {
+  return techsGrant(player.techsResearched, 'siege') && combatUnitBeside(state, player.id, centre);
+}
+
+/** A shared siege applies the largest damage bonus among its participating empires once. */
+export function siegeDamageBonus(state: GameState, city: City): number {
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return 0;
+  let highest = 0;
+  for (const player of realPlayers(state)) {
+    if (player.id === city.ownerId) continue;
+    const lines = cardRulePercent(state, player.id, 'siegeDamage');
+    if (lines.length === 0 || !canBesiegeFrom(state, player, centre)) continue;
+    highest = Math.max(highest, lines.reduce((sum, line) => sum + line.percent, 0));
+  }
+  return highest;
 }
 
 /**
