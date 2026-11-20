@@ -134,7 +134,7 @@ import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
 import { beadMarkNode } from './newsMark';
 import { type Popover, createPopover } from './popover';
-import { tradeLedger } from './tradeScreen';
+import { routeSlots, usedRouteSlots } from '../sim/trade';
 import { YIELD_GLYPH, yieldMarkNode } from './yieldMark';
 import { element } from './dom';
 
@@ -488,17 +488,7 @@ export function turnLineOf(state: GameState, localPlayerId: number): TurnLine {
   return { turn, age, left, waiting, spoken };
 }
 
-/**
- * The routes figure the corner panel's Routes mark carries, with no DOM: the
- * routes running against the routes the empire's markets allow, out of
- * `tradeLedger`, the same ledger the trade sheet prints. The mark prints it
- * short; `routesSpoken` says it in full.
- *
- * Kept apart from `bankFigures` because asking for it costs a flood of the
- * empire's territory (`tradeLedger` asks `explainEmpireGold`), and since batch
- * SS2b the bar itself has no routes figure: the corner panel asks once a
- * refresh, and the bar does not ask at all (`topBarCost.test.ts`).
- */
+/** The Routes button shows how many routes are running and how many the empire can run. */
 interface RouteFigures {
   /** "1/3": routes running, against the routes the empire's markets allow. */
   routes: string;
@@ -508,11 +498,12 @@ interface RouteFigures {
 }
 
 export function routeFigures(state: GameState, playerId: number): RouteFigures {
-  const ledger = tradeLedger(state, playerId);
+  const used = usedRouteSlots(state, playerId);
+  const slots = routeSlots(state, playerId);
   return {
-    routes: `${figure(ledger.used)}/${figure(ledger.slots)}`,
-    routesSpoken: `Trade: ${figure(ledger.used)} of ${figure(ledger.slots)} routes running`,
-    routeSpare: ledger.used < ledger.slots,
+    routes: `${figure(used)}/${figure(slots)}`,
+    routesSpoken: `Trade: ${figure(used)} of ${figure(slots)} routes running`,
+    routeSpare: used < slots,
   };
 }
 

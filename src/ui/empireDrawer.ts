@@ -43,8 +43,7 @@
  * figures and names, and the rows. The research bar and the star chart agree
  * because both go through `researchProgress` at the star chart's own rate.
  *
- * The figures are the game's own readings. Routes is `routeFigures` (which
- * reads `tradeLedger`, the trade sheet's ledger), asked once a refresh. Faith
+ * The Routes button reads the running route count and capacity from the simulation. Faith
  * is the faith banked, with `explainNextRung`'s price beside it while the next
  * god has one, and its sentence is `nextRungWords`. The faith dot is the purchase
  * gate's own answer for a prophet (`purchaseError`), and the prophet's price is

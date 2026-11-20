@@ -268,27 +268,28 @@ describe('the four empire gold lines are asked once', () => {
     expect(ledger.total).toBe(fold);
   });
 
-  it('asks once a refresh for the corner panel’s routes figure, and not at all for the bar', () => {
-    // **Re-aimed by batch SS2b.** The claim was about the top bar's routes card
-    // (re-aimed there by batch R2 from the Trade screen's left column). The
-    // card left the bar with the Trade tab; the routes figure is the corner
-    // panel's Routes mark now, and the treasury's four lines are the trade
-    // sheet's. The rule is unchanged: one flood of the empire's territory per
-    // reading, never two.
+  it('includes the building and legacy slots in the visible route count', () => {
+    const state = empire(2);
+    state.cities[0]!.buildings.push('market');
+    state.players[0]!.legacies.push({ id: 'ibnMajid', age: 4 });
+    bumpRevision(state);
+    const ledger = tradeLedger(state, 0);
+    expect([ledger.used, ledger.slots]).toEqual([0, 2]);
+    expect(empireGlance(state, 0)!.routes).toEqual({
+      text: '0/2', words: 'Trade: 0 of 2 routes running', free: true,
+    });
+  });
+
+  it('shows route capacity on the HUD without reading the trade income lines', () => {
     const state = empire(12);
-    // The corner panel's whole reading of the seat asks for the lines once,
-    // through `routeFigures` and `tradeLedger`'s own default parameter. The
-    // empire's reading (`readEmpire`) asks once more for its gold total, but
-    // that is remembered on the revision and shared by the whole HUD: with it
-    // taken, as every refresh takes it for the bar's yields, the corner adds
-    // exactly one ask.
+    // The cold HUD reads the empire's income once for its visible yield totals.
     const cold = counting(empireGold, 'explainEmpireGold', () => empireGlance(state, 0));
-    expect(cold.count).toBe(2);
+    expect(cold.count).toBe(1);
     bumpRevision(state);
     readEmpire(state, 0);
     const warm = counting(empireGold, 'explainEmpireGold', () => empireGlance(state, 0));
-    expect(warm.count).toBe(1);
-    expect(counting(empireGold, 'explainEmpireGold', () => routeFigures(state, 0)).count).toBe(1);
+    expect(warm.count).toBe(0);
+    expect(counting(empireGold, 'explainEmpireGold', () => routeFigures(state, 0)).count).toBe(0);
     // The bar prints renown and beads only, so its render asks for no ledger.
     expect(counting(empireGold, 'explainEmpireGold', () => bankFigures(state, 0)).count).toBe(0);
     const render = declaration('    render(): void {', 'topBar.ts');
@@ -296,12 +297,6 @@ describe('the four empire gold lines are asked once', () => {
     expect(render).not.toContain('tabFigures(');
     expect(render).not.toContain('routeFigures(');
     expect(render).not.toContain('tradeLedger(');
-    // The routes reading never asks for the lines itself: `tradeLedger`'s own
-    // default parameter is the single ask, which the two tests above pin.
-    const routes = declaration('export function routeFigures(', 'topBar.ts');
-    expect(routes).toContain('const ledger = tradeLedger(state, playerId);');
-    expect(routes).not.toContain('explainEmpireGold(');
-    expect(routes).not.toContain('empireGold(');
     // The routes card is gone from the bar.
     expect(source('topBar.ts')).not.toContain('function routesCard(');
     // And the Trade sheet has stopped asking altogether.
