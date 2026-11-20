@@ -168,11 +168,9 @@ import {
   cardYieldsOnlyAmplifier,
   cardBehaviorRule,
   cityScopeAdmits,
-  cityScopeWords,
   combatLineAmount,
-  combatSideWords,
-  filterWords,
-} from './statecraft';
+} from './statecraft/evaluator';
+import { cityScopeWords, combatSideWords, filterWords } from './statecraft/describers';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { lawIsCut, townBuildings } from './statecraft/evaluator';
 import { type City, type GameState, type Unit, citiesOf, playerById } from './state';

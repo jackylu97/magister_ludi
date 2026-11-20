@@ -27,15 +27,13 @@ import { CITY_YIELD_KEYS, type ResourceId } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
   type CardYieldLine,
+  type EmpireRates,
   cardEmpireIncomeShares,
   explainCardEmpireYields,
   heldReligions,
-  recordScalingOccasion,
-} from '../statecraft';
-// The front-row reading the `wonderProduction` tally asks (Magisterial batch
-// MG4). Straight from its layer, as `combat.ts` takes `isRaisingOpus`; this
-// file already reads the same module through the index above.
-import { type EmpireRates, isRaisingWonderOrOpus } from '../statecraft/evaluator';
+  isRaisingWonderOrOpus,
+} from '../statecraft/evaluator';
+import { recordScalingOccasion } from '../statecraft/draft';
 import {
   type City,
   type GameState,

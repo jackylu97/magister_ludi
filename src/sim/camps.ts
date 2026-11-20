@@ -47,11 +47,10 @@ import { getTileAt, mapRange, tileHex, wrappedDistance } from './map';
 import {
   cardActionRule,
   payWindfallGrants,
-  recordScalingOccasion,
-  settleCultureWindfall,
   windfallPayout,
   type WindfallPayout,
-} from './statecraft';
+} from './statecraft/evaluator';
+import { recordScalingOccasion, settleCultureWindfall } from './statecraft/draft';
 import type { Cell } from './pathfind';
 import { RULES } from './rulesData';
 import { type BarbarianCamp, type City, type GameState, playerById } from './state';

@@ -346,14 +346,15 @@ import {
   cardUnitStat,
   heldReligions,
   payWindfallGrants,
-  recordScalingOccasion,
-  settleCultureWindfall,
   windfallPayout,
   windfallPayoutIsEmpty,
+} from './statecraft/evaluator';
+import { recordScalingOccasion, settleCultureWindfall } from './statecraft/draft';
+import {
   // Bot batch BP7: a wonder's chair follows the town it stands in.
   buildingOpensChairs,
   refitSlots,
-} from './statecraft';
+} from './statecraft/council';
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
 import { cardBehaviorRuleFor, cardTraderShielded } from './statecraft/evaluator';

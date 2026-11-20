@@ -70,14 +70,8 @@ import { type Tile, getTileAt, neighborTiles, tileHex } from './map';
 import { isPassable } from './pathfind';
 import type { CityYieldKey } from './resourceData';
 import { nextFloat } from './rng';
-import {
-  cardOfferRule,
-  draftSettledBy,
-  offerSize,
-  payWindfallGrants,
-  settleCultureWindfall,
-  windfallPayout,
-} from './statecraft';
+import { cardOfferRule, payWindfallGrants, windfallPayout } from './statecraft/evaluator';
+import { draftSettledBy, offerSize, settleCultureWindfall } from './statecraft/draft';
 import {
   type City,
   type DiscoveryOffer,

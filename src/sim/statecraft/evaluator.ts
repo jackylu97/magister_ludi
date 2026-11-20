@@ -51,8 +51,7 @@ import {
 // building's package starts from it (batch R2b, `explainBuildingPackage`).
 import { explainBuildingYield, foldCity, queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
-// The hex fold, for the harvest (Dominion batch D7, War Feeds Itself). A
-// function-level cycle: the hex layer reads the card lines through the index.
+// War Feeds Itself reads the harvest here. The tile yield calculation also reads card effects.
 import { foldTile, yieldContextFor } from '../yields/hex';
 import { signedPlain as signed } from '../yieldFormat';
 import {
@@ -240,9 +239,7 @@ import {
 } from '../statecraftData';
 import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
-// The empire's live share of a piece's maximum health — iron's ten points (R2).
-// A function-level edge: that module re-enters this one through the index, and
-// nothing at either top level calls across.
+// Resource effects also read card effects. Both modules call each other only inside functions.
 import { unitHealthBonus } from '../resourceEffects';
 // A luxury's lines on one building, for the building's package (batch R2b).
 // The same function-level edge as the line above.
@@ -258,10 +255,8 @@ import {
   leaderDef,
 } from '../leaderData';
 import { beadCapEffects } from '../beads';
-// A function-level cycle, beside the one through `../cities`: `tech.ts` reads
-// the card lines through the index, and Copying the Enemy's share reads the
-// price of a technology. Nothing at the top level of either file calls the
-// other.
+// Copying the Enemy reads a technology's cost. Research also reads card effects.
+// Both modules defer these calls until a game is running.
 import { explainTechCost, foldTechCost, techChainOf } from '../tech';
 // Feature B's readings (Scientific batch S3). A leaf, so no cycle.
 import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';

@@ -93,13 +93,11 @@ import type { Truce, WarState } from "./wars";
 import type { DealProposal, DealState } from "./deals";
 import {
   type PlayerStatecraft,
-  cardBirthTimedEffects,
-  cardExtraCharges,
-  cardUnitStamp,
   newPlayerStatecraft,
   recordScalingOccasion,
-  refitSlots,
-} from "./statecraft";
+} from './statecraft/draft';
+import { cardBirthTimedEffects, cardExtraCharges, cardUnitStamp } from './statecraft/evaluator';
+import { refitSlots } from './statecraft/council';
 // The faith-spent moment's riders (batch R1). A function-level cycle, as the
 // `resourceEffects.ts` import below already is: `cities.ts` imports this
 // module, and nothing here reads it while modules load.

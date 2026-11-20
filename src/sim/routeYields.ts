@@ -53,7 +53,7 @@ import {
 } from './routes';
 import { slateMemo } from './slate';
 import type { City, GameState, Unit } from './state';
-import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
+import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Commerce batch T3: the card that makes a home route pay its origin a copy.
 import { cardReturnLeg, townBuildings } from './statecraft/evaluator';

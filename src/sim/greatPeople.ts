@@ -113,15 +113,17 @@ import {
   cardAmplifier,
   cardOfferFamily,
   cardWorkDiscount,
-  offerSize,
-  openWaitingOrderOffer,
   payWindfallGrants,
-  recordScalingOccasion,
-  settleCultureWindfall,
   spendableGold,
   windfallPayout,
   windfallPayoutIsEmpty,
-} from './statecraft';
+} from './statecraft/evaluator';
+import {
+  offerSize,
+  openWaitingOrderOffer,
+  recordScalingOccasion,
+  settleCultureWindfall,
+} from './statecraft/draft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { hasAbility, settleResearchWindfall } from './tech';
 import { highestAge } from './techData';

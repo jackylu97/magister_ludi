@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
  *
  * Several modules document a *function-level* cycle and claim it is safe:
  * `meters.ts` ↔ `cities.ts`, `resourceEffects.ts` ↔ `cities.ts`, `tech.ts` ↔
- * `cities.ts`, `statecraft.ts` ↔ `cities.ts`, `religion.ts` ↔ `cities.ts` (the
+ * `cities.ts`, `statecraft/evaluator.ts` ↔ `cities.ts`, `religion.ts` ↔ `cities.ts` (the
  * standing stones' free rung, 2026-09-06), and `startPositions.ts` →
  * `cities.ts` (closed by `mapgen → resources → startPositions`). Each claim
  * rests on the same thing: nothing reads a *value* from the other module while
@@ -35,8 +35,7 @@ import { describe, expect, it, vi } from 'vitest';
 // `statecraft.ts` along them (`docs/audit/evaluations.md` §4b step 9). They are
 // exactly the case this was made a glob for: `yields/town.ts` imports
 // `cities.ts` back for the territory, `statecraft/evaluator.ts` sits on the same
-// function-level cycles its parent did, and the index that re-exports the three
-// is itself a module that can be pulled in first.
+// function-level cycles its parent did, and the test can load the public index first.
 const SIM_MODULES = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts']);
 
 describe('module load order', () => {

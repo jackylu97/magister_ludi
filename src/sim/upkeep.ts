@@ -98,7 +98,7 @@ import {
   cardUpkeepWaiverLines,
   foldCardRulePercent,
   upkeepWaived,
-} from './statecraft';
+} from './statecraft/evaluator';
 import type { GameState, Unit } from './state';
 
 /**

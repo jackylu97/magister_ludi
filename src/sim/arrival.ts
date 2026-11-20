@@ -60,7 +60,7 @@ import {
   playerById,
   removeUnit,
 } from './state';
-import { cardBehaviorRule } from './statecraft';
+import { cardBehaviorRule } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { cardTraderShielded, townShelf } from './statecraft/evaluator';
 import { layRoadUnder } from './roads';

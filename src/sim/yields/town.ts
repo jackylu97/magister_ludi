@@ -54,7 +54,7 @@ import {
   cardProduction,
   cardYieldConversions,
   unitMatches,
-} from '../statecraft';
+} from '../statecraft/evaluator';
 import { type City, type GameState, type QueueItem, capitalCityOf, playerById } from '../state';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield, readTileYield } from '../terrainData';
 import { isUnitTypeId } from '../unitData';

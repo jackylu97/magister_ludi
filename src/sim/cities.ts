@@ -169,24 +169,11 @@ import {
   cardRulePercent,
   cityHasFreshwater,
   cardProjectPays,
-  doctrineBagFor,
-  drawDoctrineOffer,
   forgetTheLaw,
   cardPurchaseRiders,
   foldCardRulePercent,
   payWindfallGrants,
-  // Magisterial batch MG14: a card entering the collection as a pick does,
-  // the random card from a deck the seat does not hold, and the yields a
-  // card pays on the draft. Called inside functions only, like the rest of
-  // this list.
-  addToCollection,
-  drawForeignCard,
   onDraftPayout,
-  type OrderChoice,
-  payCardDrafted,
-  recordScalingOccasion,
-  recordWorldScalingOccasion,
-  settleCultureWindfall,
   spendableGold,
   tileConditionHolds,
   type WindfallOccasionFacts,
@@ -194,12 +181,23 @@ import {
   windfallPayout,
   // Bot batch BP7: a wonder that opens a chair for whoever holds it.
   countsWondersForChairs,
-  buildingOpensChairs,
-  refitSlots,
-} from './statecraft';
-// Dominion batch D1's readers, straight from the evaluator: the experience a
-// unit is gained with, and the empty-payout check the rank's riders use. The
-// same function-level edge the index above already is.
+} from './statecraft/evaluator';
+import {
+  doctrineBagFor,
+  drawDoctrineOffer,
+  // Magisterial batch MG14: a card entering the collection as a pick does,
+  // the random card from a deck the seat does not hold, and the yields a
+  // card pays on the draft. Called inside functions only, like the rest of
+  // this list.
+  addToCollection,
+  drawForeignCard,
+  type OrderChoice,
+  payCardDrafted,
+  recordScalingOccasion,
+  recordWorldScalingOccasion,
+  settleCultureWindfall,
+} from './statecraft/draft';
+import { buildingOpensChairs, refitSlots } from './statecraft/council';
 import {
   cardBirthExperience,
   heldReligions,

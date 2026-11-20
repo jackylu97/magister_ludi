@@ -164,12 +164,11 @@ import {
 import { atWar } from './wars';
 import {
   cardActionRule,
-  cardRouteSlots,
   cardRulePercent,
   payWindfallGrants,
-  settleCultureWindfall,
   windfallPayout,
-} from './statecraft';
+} from './statecraft/evaluator';
+import { cardRouteSlots, settleCultureWindfall } from './statecraft/draft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Commerce batch T3: the card that makes a home route pay its origin a copy.
 // Batch DT7: the card behind a ban, by name, for the refusal's sentence.

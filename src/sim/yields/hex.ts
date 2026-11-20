@@ -38,7 +38,7 @@ import {
   tileConditionHolds,
   tileConditionReadsFold,
   tileConditionReadsThreshold,
-} from '../statecraft';
+} from '../statecraft/evaluator';
 import { HEX_MARK_IDS, RULES } from '../rulesData';
 // The ground facts (Expansionist batch E3; Dominion batch D7), straight from
 // the evaluator rather than through the `statecraft.ts` index, so the build

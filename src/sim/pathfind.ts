@@ -137,7 +137,7 @@ import {
   cardRulePercent,
   cardZocIgnored,
   foldCardRulePercent,
-} from './statecraft';
+} from './statecraft/evaluator';
 import { type GameState, type Unit, playerById } from './state';
 import { slateShadow } from './slate';
 import { atWar } from './wars';
@@ -1508,8 +1508,7 @@ export function transitField(state: GameState, ownerId: number): TransitField {
  * `withFieldsHeld` opens the scope, and the bot opens it around each decision
  * (`nextBotDecision`, `src/ai/bot.ts`). Inside it each field is swept once for
  * each board and seat, and kept until the outermost scope closes. Outside it,
- * nothing is kept, so a command, a phase and the interface sweep fresh as
- * before.
+ * a caller gets fresh fields. The movement range also opens a scope for its swap checks.
  *
  * **Why the kept field is the fresh one.** A field is a function of the board
  * object it is asked of and the seat: `state.units`, `state.cities`,
@@ -2503,11 +2502,15 @@ export function findPathAround(
  * in a tooltip, and by the same arithmetic a forest is.
  */
 export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
+  const start = getTileAt(state.map, unit.col, unit.row);
+  if (!start || unit.movesLeft <= 0) return [];
+  // Each swap checks two routes on the same board as the movement range.
+  return withFieldsHeld(() => reachableFrom(state, unit, start));
+}
+
+function reachableFrom(state: GameState, unit: Unit, start: Tile): ReachableTile[] {
   const { map } = state;
   const results: ReachableTile[] = [];
-  const start = getTileAt(map, unit.col, unit.row);
-  if (!start || unit.movesLeft <= 0) return results;
-
   const budget = unit.movesLeft;
   // `findPath`'s reason: one table lookup for the whole sweep, and the same
   // profile the executor will spend the points with.

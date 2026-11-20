@@ -77,7 +77,7 @@ import {
   cardEmpireRenownShares,
   cardRenownLines,
   cardRulePercent,
-} from './statecraft';
+} from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { cardBuildingRenown, townShelf } from './statecraft/evaluator';
 import type { RenownShareRows } from './statecraftData';

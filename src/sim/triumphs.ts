@@ -54,7 +54,7 @@ import { landRegions } from './resources';
 import { connectedCities } from './roads';
 import type { RenownGrant } from './renown';
 import { settleRenownWindfall } from './renown';
-import { cardAmplifier } from './statecraft';
+import { cardAmplifier } from './statecraft/evaluator';
 import {
   type City,
   type EarnedTriumph,

@@ -56,7 +56,7 @@
 
 import { getTileAt } from './map';
 import type { GameState, Unit } from './state';
-import { cardUnitStat } from './statecraft';
+import { cardUnitStat } from './statecraft/evaluator';
 import {
   type UnitCategory,
   isCivilian,
