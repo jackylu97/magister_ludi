@@ -372,7 +372,7 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
     why: 'built: buying refuses a building the town has built, and a row needs one built',
   },
   'religion.ts › placeRelicError': { reads: 1, why: 'built: whether an act has placed a relic here' },
-  'renown.ts › explainCityRenown': { reads: 1, why: 'shelf: its callers with an empire hand `townShelf`' },
+  'renown.ts › explainCityRenown': { reads: 2, why: 'shelf: the building and legacy renown both use the shelf that the caller supplies' },
   'score.ts › explainScore': { reads: 1, why: 'built: the score' },
   'state.ts › addBuilding': { reads: 2, why: 'built: the one writer' },
   'state.ts › buildingBank': { reads: 1, why: 'built: how a building was paid for' },

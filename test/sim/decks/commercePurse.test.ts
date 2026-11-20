@@ -125,7 +125,7 @@ describe('Letters of Credit: buying below zero', () => {
       price,
     });
     seat(state, 0, LETTERS);
-    expect(purchaseGate(state, 0, city.id, GRANARY, 'gold')).toEqual({ refusal: null, shortfall: null, price });
+    expect(purchaseGate(state, 0, city.id, GRANARY, 'gold')).toEqual({ refusal: null, shortfall: null, price, delivery: GRANARY });
     const result = applyCommand(state, buy(city, GRANARY));
     expect(result.ok, result.ok ? '' : result.error).toBe(true);
     expect(playerById(state, 0)!.gold).toBe(-price);

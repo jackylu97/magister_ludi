@@ -4512,8 +4512,8 @@ async function boot(initial: Game | null): Promise<void> {
   let botsToTheWorker = false;
 
   const controls = createGameControls({
-    citizenDots: saveStorage.getItem('webciv.citizenDots') !== 'off',
     signal,
+    citizenDots: saveStorage.getItem('webciv.citizenDots') !== 'off',
     viewport: viewportEl,
     renderer,
     getGame: () => game,

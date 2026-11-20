@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 import { nextBotDecision } from '../../src/ai/bot';
 import { stepAsideFor } from '../../src/ai/wants';
 import { foundCityAt } from '../../src/sim/cities';
+import { siegeField, underSiege } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import { type BotDecision } from '../../src/ai/decision';
 import { snapshotState } from '../../src/sim/game';
@@ -268,13 +269,26 @@ describe('the bot keeps its land pieces off the water', () => {
     expect(step).toBeNull();
   });
 
-  it('steps aside onto land when there is any', () => {
+  it('keeps the garrison in place for an adjacent purchase and steps onto land under siege', () => {
     const { state, city } = hemmedTown();
     const centre = at(state.map, city.col, city.row);
     const base = tileHex(centre);
     const land = getTile(state.map, { q: base.q, r: base.r - 1 })!;
     land.terrain = 'grassland';
     bumpRevision(state);
+    const buyer = playerById(state, 0)!;
+    const item = { kind: 'unit', id: 'warrior' } as const;
+    expect(stepAsideFor(state, buyer, city, item, 'gold')).toBeNull();
+
+    playerById(state, 1)!.techsResearched.push('siegecraft');
+    for (const side of [-1, 1]) {
+      const coast = along(state.map, centre, side);
+      createUnit(state, 1, 'trireme', coast.col, coast.row);
+    }
+    const across = getTile(state.map, { q: base.q, r: base.r - 2 })!;
+    createUnit(state, 1, 'warrior', across.col, across.row);
+    bumpRevision(state);
+    expect(underSiege(state, city, siegeField(state, 0))).toBe(true);
     const step = stepAsideFor(state, playerById(state, 0)!, city, { kind: 'unit', id: 'warrior' }, 'gold');
     expect(step).not.toBeNull();
     expect(isWaterTerrain(at(state.map, step!.col, step!.row).terrain)).toBe(false);

@@ -10948,6 +10948,42 @@
   ]
  },
  "building": {
+  "schoolOfMieza": [],
+  "hallOfWorthies": [],
+  "basilica": [
+   {
+    "raw": "+20% production toward wonders, in every city with [[building:basilica|The Basilica]] working a [[improvement:holySite|Holy Site]]",
+    "text": "+20% production toward wonders, in every city with The Basilica working a Holy Site"
+   }
+  ],
+  "bottega": [
+   {
+    "raw": "The Bottega gives +3 renown per turn toward great artists",
+    "text": "The Bottega gives +3 renown per turn toward great artists"
+   },
+   {
+    "raw": "+2 production per hex carrying a luxury resource or carrying a great person's work in this city",
+    "text": "+2 production per hex carrying a luxury resource or carrying a great person's work in this city"
+   }
+  ],
+  "houseOfFire": [
+   {
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
+   }
+  ],
+  "kulliye": [
+   {
+    "raw": "+1 happiness",
+    "text": "+1 happiness"
+   }
+  ],
+  "relayYam": [
+   {
+    "raw": "your trade routes reach 100% further, in every city with [[building:relayYam|The Yam]]",
+    "text": "your trade routes reach 100% further, in every city with The Yam"
+   }
+  ],
   "monument": [
    {
     "raw": "+1 authority capacity",
@@ -11639,8 +11675,8 @@
   ],
   "postStation": [
    {
-    "raw": "+20% production in every city with [[building:postStation|The Post Station]] joined to your capital by road",
-    "text": "+20% production in every city with The Post Station joined to your capital by road"
+    "raw": "+20% production in every city with [[building:postStation|The Commandery]] joined to your capital by road",
+    "text": "+20% production in every city with The Commandery joined to your capital by road"
    }
   ],
   "hordeCamp": [],
@@ -11736,8 +11772,8 @@
   ],
   "museion": [
    {
-    "raw": "+1 science per great person you have called",
-    "text": "+1 science per great person you have called"
+    "raw": "+2 science per great person you have called",
+    "text": "+2 science per great person you have called"
    }
   ],
   "rupertsbergScriptorium": [
@@ -11843,8 +11879,12 @@
  "greatPerson": {
   "imhotep": [
    {
-    "raw": "+10% production toward wonders",
-    "text": "+10% production toward wonders"
+    "raw": "+15% production toward wonders",
+    "text": "+15% production toward wonders"
+   },
+   {
+    "raw": "+3 science per wonder you hold",
+    "text": "+3 science per wonder you hold"
    }
   ],
   "ahmes": [
@@ -11855,96 +11895,108 @@
   ],
   "kidinnu": [
    {
-    "raw": "+15% science in your capital",
-    "text": "+15% science in your capital"
+    "raw": "+4 science and +15% science in your capital",
+    "text": "+4 science and +15% science in your capital"
    }
   ],
   "enheduanna": [
    {
-    "raw": "+1 culture in every city with a [[building:shrine|Shrine]]",
-    "text": "+1 culture in every city with a Shrine"
+    "raw": "+1 culture, +1 faith in every city with a [[building:shrine|Shrine]]",
+    "text": "+1 culture, +1 faith in every city with a Shrine"
    }
   ],
   "homer": [
    {
-    "raw": "+2 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]] and production on a [[improvement:citadel|Citadel]]",
-    "text": "+2 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel"
+    "raw": "+3 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]], production on a [[improvement:citadel|Citadel]] and faith on a [[improvement:holySite|Holy Site]]",
+    "text": "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House, production on a Citadel and faith on a Holy Site"
    }
   ],
   "sinLeqiUnninni": [
    {
-    "raw": "+50% production toward [[building:amphitheater|Amphitheaters]]",
-    "text": "+50% production toward Amphitheaters"
+    "raw": "+50% production toward buildings that supply culture",
+    "text": "+50% production toward buildings that supply culture"
+   },
+   {
+    "raw": "Each building that supplies culture gains +1 renown per turn",
+    "text": "Each building that supplies culture gains +1 renown per turn"
    }
   ],
   "ilimilku": [
    {
-    "raw": "+1 production, +1 culture in every coastal city",
-    "text": "+1 production, +1 culture in every coastal city"
+    "raw": "+2 production, +2 culture in every coastal city",
+    "text": "+2 production, +2 culture in every coastal city"
    }
   ],
   "senenmut": [
    {
-    "raw": "+10% production toward buildings",
-    "text": "+10% production toward buildings"
+    "raw": "+6 production in every city with a mountain hex inside its borders",
+    "text": "+6 production in every city with a mountain hex inside its borders"
    }
   ],
   "amenhotepSonOfHapu": [
    {
-    "raw": "+15% production toward wonders, in your capital",
-    "text": "+15% production toward wonders, in your capital"
+    "raw": "+4 production and +15% production toward wonders, in your capital",
+    "text": "+4 production and +15% production toward wonders, in your capital"
    }
   ],
   "bezalel": [
    {
-    "raw": "+1 production in every city with a [[building:temple|Temple]]",
-    "text": "+1 production in every city with a Temple"
+    "raw": "+1 production and +1 faith in every city per [[building:temple|Temple]] there",
+    "text": "+1 production and +1 faith in every city per Temple there"
    }
   ],
   "eaNasir": [
    {
-    "raw": "-1 production, +3 gold on every hex with a [[improvement:mine|Mine]]",
-    "text": "-1 production, +3 gold on every hex with a Mine"
+    "raw": "+2 gold on every hex with a [[improvement:mine|Mine]]",
+    "text": "+2 gold on every hex with a Mine"
+   },
+   {
+    "raw": "-2 happiness",
+    "text": "-2 happiness"
    }
   ],
   "kushim": [
    {
-    "raw": "+1 gold in every city with a [[building:granary|Granary]]",
-    "text": "+1 gold in every city with a Granary"
+    "raw": "+2 gold in every city with a [[building:granary|Granary]]",
+    "text": "+2 gold in every city with a Granary"
    }
   ],
   "assurIdi": [
    {
-    "raw": "+1 gold in every city but your capital",
-    "text": "+1 gold in every city but your capital"
+    "raw": "+2 gold in every city but your capital",
+    "text": "+2 gold in every city but your capital"
    }
   ],
   "lamassi": [
    {
     "raw": "+1 gold on every hex with a [[improvement:pasture|Pasture]]",
     "text": "+1 gold on every hex with a Pasture"
+   },
+   {
+    "raw": "+2 gold on every trade route you send",
+    "text": "+2 gold on every trade route you send"
    }
   ],
   "ahmoseSonOfEbana": [
    {
-    "raw": "+10% combat strength for melee units",
-    "text": "+10% combat strength for melee units"
+    "raw": "+3 combat strength for melee units",
+    "text": "+3 combat strength for melee units"
+   },
+   {
+    "raw": "killing a unit grants +10 gold",
+    "text": "killing a unit grants +10 gold"
    }
   ],
   "piyamaradu": [
    {
-    "raw": "+3 combat strength outside your territory",
-    "text": "+3 combat strength outside your territory"
-   },
-   {
-    "raw": "-2 authority capacity",
-    "text": "-2 authority capacity"
+    "raw": "+3 combat strength when defending",
+    "text": "+3 combat strength when defending"
    }
   ],
   "sinuhe": [
    {
-    "raw": "all units: +5 healing per turn",
-    "text": "all units: +5 healing per turn"
+    "raw": "all units: +10 healing per turn",
+    "text": "all units: +10 healing per turn"
    }
   ],
   "deborah": [
@@ -11959,14 +12011,14 @@
     "text": "+3 culture in your capital"
    },
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
+    "raw": "+3 happiness",
+    "text": "+3 happiness"
    }
   ],
   "epicurus": [
    {
-    "raw": "-15% happiness demanded per citizen, in every city of 10 or more citizens",
-    "text": "-15% happiness demanded per citizen, in every city of 10 or more citizens"
+    "raw": "-15% happiness demanded per citizen, in every city of 8 or more citizens",
+    "text": "-15% happiness demanded per citizen, in every city of 8 or more citizens"
    }
   ],
   "aristotle": [
@@ -12003,12 +12055,8 @@
   ],
   "hypatia": [
    {
-    "raw": "+10% science in every city",
-    "text": "+10% science in every city"
-   },
-   {
-    "raw": "lost the first turn your happiness goes negative",
-    "text": "lost the first turn your happiness goes negative"
+    "raw": "while your happiness is zero or higher: +10% science in every city",
+    "text": "while your happiness is zero or higher: +10% science in every city"
    }
   ],
   "zhangHeng": [
@@ -12029,26 +12077,26 @@
     "text": "+10% culture in every city"
    },
    {
-    "raw": "-5 happiness in your capital",
-    "text": "-5 happiness in your capital"
+    "raw": "-3 happiness in your capital",
+    "text": "-3 happiness in your capital"
    }
   ],
   "simaQian": [
    {
-    "raw": "+1 culture in every city per age that has closed",
-    "text": "+1 culture in every city per age that has closed"
+    "raw": "gaining a great person grants +80 culture",
+    "text": "gaining a great person grants +80 culture"
    }
   ],
   "phidias": [
    {
-    "raw": "+3 culture per wonder you hold",
-    "text": "+3 culture per wonder you hold"
+    "raw": "+5 culture per wonder you hold",
+    "text": "+5 culture per wonder you hold"
    }
   ],
   "liBing": [
    {
-    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] beside fresh water, in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct"
+    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] beside fresh water",
+    "text": "+1 production on every hex with a Farm beside fresh water"
    }
   ],
   "heroOfAlexandria": [
@@ -12063,8 +12111,8 @@
     "text": "Aqueducts supply +1 happiness"
    },
    {
-    "raw": "[[building:granary|Granaries]] supply +1 happiness",
-    "text": "Granaries supply +1 happiness"
+    "raw": "[[building:publicBath|Public Baths]] supply +1 happiness",
+    "text": "Public Baths supply +1 happiness"
    }
   ],
   "eupalinos": [
@@ -12087,8 +12135,8 @@
   ],
   "hippalus": [
    {
-    "raw": "+1 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
-    "text": "+1 gold on every hex with a Fishing Boat"
+    "raw": "+2 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+2 gold on every hex with a Fishing Boat"
    }
   ],
   "crassus": [
@@ -12103,12 +12151,12 @@
   ],
   "pytheas": [
    {
-    "raw": "trader units: +1 sight",
-    "text": "trader units: +1 sight"
-   },
-   {
     "raw": "your trade units cannot be attacked or plundered",
     "text": "your trade units cannot be attacked or plundered"
+   },
+   {
+    "raw": "+3 gold on every trade route that ends in another empire’s city",
+    "text": "+3 gold on every trade route that ends in another empire’s city"
    }
   ],
   "hannibal": [
@@ -12123,12 +12171,8 @@
   ],
   "hanXin": [
    {
-    "raw": "+2 combat strength beside fresh water",
-    "text": "+2 combat strength beside fresh water"
-   },
-   {
-    "raw": "+2 combat strength on the coast",
-    "text": "+2 combat strength on the coast"
+    "raw": "+4 combat strength beside fresh water",
+    "text": "+4 combat strength beside fresh water"
    }
   ],
   "gaiusMarius": [
@@ -12139,8 +12183,8 @@
   ],
   "boudica": [
    {
-    "raw": "+4 combat strength when defending inside your territory",
-    "text": "+4 combat strength when defending inside your territory"
+    "raw": "+8 combat strength when defending inside your territory",
+    "text": "+8 combat strength when defending inside your territory"
    },
    {
     "raw": "lost when the age it was earned in closes",
@@ -12189,8 +12233,12 @@
   ],
   "aryabhata": [
    {
-    "raw": "+1 faith in every city per building there that [[concept:supplies|supplies]] science",
-    "text": "+1 faith in every city per building there that supplies science"
+    "raw": "Each building that supplies science gains +1 faith",
+    "text": "Each building that supplies science gains +1 faith"
+   },
+   {
+    "raw": "Each building that supplies science gains +1 renown per turn",
+    "text": "Each building that supplies science gains +1 renown per turn"
    }
   ],
   "murasakiShikibu": [
@@ -12238,6 +12286,10 @@
    }
   ],
   "villardDeHonnecourt": [
+   {
+    "raw": "+15% production toward buildings",
+    "text": "+15% production toward buildings"
+   },
    {
     "raw": "+15% production toward wonders",
     "text": "+15% production toward wonders"
@@ -12295,8 +12347,8 @@
   ],
   "elCid": [
    {
-    "raw": "+6 combat strength in a city you captured",
-    "text": "+6 combat strength in a city you captured"
+    "raw": "+6 combat strength inside the borders of a city you captured",
+    "text": "+6 combat strength inside the borders of a city you captured"
    }
   ],
   "mimarSinan": [
@@ -12307,8 +12359,8 @@
   ],
   "paracelsus": [
    {
-    "raw": "+15% science and -1 happiness in every city",
-    "text": "+15% science and -1 happiness in every city"
+    "raw": "+20% science and -1 happiness in every city",
+    "text": "+20% science and -1 happiness in every city"
    }
   ],
   "tychoBrahe": [
@@ -12319,24 +12371,20 @@
   ],
   "johnDee": [
    {
-    "raw": "+1 card in every offer of every kind",
-    "text": "+1 card in every offer of every kind"
+    "raw": "when spent, open 2 free Order drafts",
+    "text": "when spent, open 2 free Order drafts"
    }
   ],
   "copernicus": [
    {
-    "raw": "+4 science in every city",
-    "text": "+4 science in every city"
+    "raw": "your [[building:observatory|Observatories]] pay +100%, counted after every other bonus on them",
+    "text": "your Observatories pay +100%, counted after every other bonus on them"
    }
   ],
   "christineDePizan": [
    {
-    "raw": "+3 culture in your capital",
-    "text": "+3 culture in your capital"
-   },
-   {
-    "raw": "+1 authority capacity",
-    "text": "+1 authority capacity"
+    "raw": "+3 culture per public work you hold",
+    "text": "+3 culture per public work you hold"
    }
   ],
   "durer": [
@@ -12373,8 +12421,8 @@
   ],
   "taqiAlDin": [
    {
-    "raw": "+20% science in your capital",
-    "text": "+20% science in your capital"
+    "raw": "+3 science in every city with a [[building:workshop|Workshop]]",
+    "text": "+3 science in every city with a Workshop"
    }
   ],
   "vaucanson": [
@@ -12429,14 +12477,14 @@
   ],
   "cosimoDeMedici": [
    {
-    "raw": "+1 culture per 100 gold you have spent buying",
-    "text": "+1 culture per 100 gold you have spent buying"
+    "raw": "+1 culture per 100 gold you have spent buying (at most +60 culture)",
+    "text": "+1 culture per 100 gold you have spent buying (at most +60 culture)"
    }
   ],
   "gustavusAdolphus": [
    {
-    "raw": "+15% combat strength for ranged units",
-    "text": "+15% combat strength for ranged units"
+    "raw": "+3 combat strength for ranged units",
+    "text": "+3 combat strength for ranged units"
    },
    {
     "raw": "siege units: +1 movement",
@@ -12455,14 +12503,594 @@
   ],
   "yiSunSin": [
    {
-    "raw": "+5 combat strength for ships",
-    "text": "+5 combat strength for ships"
+    "raw": "+3 food in every coastal city",
+    "text": "+3 food in every coastal city"
+   },
+   {
+    "raw": "+3 combat strength for ships",
+    "text": "+3 combat strength for ships"
    }
   ],
   "lautaro": [
    {
     "raw": "+5 combat strength against mounted units",
     "text": "+5 combat strength against mounted units"
+   }
+  ],
+  "thales": [
+   {
+    "raw": "+2 science in every coastal city",
+    "text": "+2 science in every coastal city"
+   },
+   {
+    "raw": "+1 gold on every hex with a [[improvement:plantation|Plantation]]",
+    "text": "+1 gold on every hex with a Plantation"
+   }
+  ],
+  "tapputi": [
+   {
+    "raw": "+1 gold, +2 science on every hex carrying a luxury resource",
+    "text": "+1 gold, +2 science on every hex carrying a luxury resource"
+   }
+  ],
+  "panini": [
+   {
+    "raw": "+2 science in your capital",
+    "text": "+2 science in your capital"
+   },
+   {
+    "raw": "completing a technology grants +30 culture",
+    "text": "completing a technology grants +30 culture"
+   }
+  ],
+  "luBan": [
+   {
+    "raw": "+15% production toward buildings",
+    "text": "+15% production toward buildings"
+   },
+   {
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
+   }
+  ],
+  "theodorusOfSamos": [
+   {
+    "raw": "+3 production in every city with a [[building:smithy|Smithy]]",
+    "text": "+3 production in every city with a Smithy"
+   }
+  ],
+  "hanno": [
+   {
+    "raw": "+2 gold in every coastal city",
+    "text": "+2 gold in every coastal city"
+   },
+   {
+    "raw": "founding a city grants +60 gold",
+    "text": "founding a city grants +60 gold"
+   }
+  ],
+  "fanLi": [
+   {
+    "raw": "buildings cost −15% to buy",
+    "text": "buildings cost −15% to buy"
+   }
+  ],
+  "harkhuf": [
+   {
+    "raw": "+2 gold per unique luxury",
+    "text": "+2 gold per unique luxury"
+   }
+  ],
+  "fuHao": [
+   {
+    "raw": "+3 combat strength inside your territory",
+    "text": "+3 combat strength inside your territory"
+   },
+   {
+    "raw": "+2 faith in every city with a unit standing in it",
+    "text": "+2 faith in every city with a unit standing in it"
+   }
+  ],
+  "sunTzu": [
+   {
+    "raw": "military units: +1 sight",
+    "text": "military units: +1 sight"
+   },
+   {
+    "raw": "+4 combat strength against a wounded unit",
+    "text": "+4 combat strength against a wounded unit"
+   }
+  ],
+  "virgil": [
+   {
+    "raw": "+2 culture in every city",
+    "text": "+2 culture in every city"
+   },
+   {
+    "raw": "founding a city grants +100 culture",
+    "text": "founding a city grants +100 culture"
+   }
+  ],
+  "kalidasa": [
+   {
+    "raw": "+3 culture on every trade route you send",
+    "text": "+3 culture on every trade route you send"
+   },
+   {
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
+   }
+  ],
+  "wangXizhi": [
+   {
+    "raw": "+1 culture per building in your cities that [[concept:supplies|supplies]] science",
+    "text": "+1 culture per building in your cities that supplies science"
+   }
+  ],
+  "caiYan": [
+   {
+    "raw": "+4 culture per great person called by another empire",
+    "text": "+4 culture per great person called by another empire"
+   }
+  ],
+  "juliusCaesar": [
+   {
+    "raw": "capturing a city grants +200 gold",
+    "text": "capturing a city grants +200 gold"
+   },
+   {
+    "raw": "capturing a city grants +200 culture",
+    "text": "capturing a city grants +200 culture"
+   }
+  ],
+  "zhugeLiang": [
+   {
+    "raw": "+3 combat strength for ranged units",
+    "text": "+3 combat strength for ranged units"
+   },
+   {
+    "raw": "+2 food in every city with a unit standing in it",
+    "text": "+2 food in every city with a unit standing in it"
+   }
+  ],
+  "trungTrac": [
+   {
+    "raw": "+6 combat strength when defending against an empire with more cities than you",
+    "text": "+6 combat strength when defending against an empire with more cities than you"
+   }
+  ],
+  "luBuwei": [
+   {
+    "raw": "+2 authority capacity",
+    "text": "+2 authority capacity"
+   },
+   {
+    "raw": "gain culture equal to 10% of your gold gained per turn",
+    "text": "gain culture equal to 10% of your gold gained per turn"
+   }
+  ],
+  "caiLun": [
+   {
+    "raw": "+2 science in every city per [[building:library|Library]] there",
+    "text": "+2 science in every city per Library there"
+   },
+   {
+    "raw": "+1 culture in every city per [[building:library|Library]] there",
+    "text": "+1 culture in every city per Library there"
+   }
+  ],
+  "mariaHebraea": [
+   {
+    "raw": "+1 science on every hex with a [[improvement:mine|Mine]]",
+    "text": "+1 science on every hex with a Mine"
+   }
+  ],
+  "liBai": [
+   {
+    "raw": "+1 culture on every hex beside a river or beside a mountain",
+    "text": "+1 culture on every hex beside a river or beside a mountain"
+   }
+  ],
+  "dante": [
+   {
+    "raw": "gain culture equal to 25% of your faith gained per turn",
+    "text": "gain culture equal to 25% of your faith gained per turn"
+   }
+  ],
+  "ferdowsi": [
+   {
+    "raw": "+4 culture on every hex carrying a great person's work",
+    "text": "+4 culture on every hex carrying a great person's work"
+   }
+  ],
+  "michelangelo": [
+   {
+    "raw": "+3 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+3 culture on every hex with a Quarry"
+   },
+   {
+    "raw": "+15% production toward wonders",
+    "text": "+15% production toward wonders"
+   }
+  ],
+  "ibnAlHaytham": [
+   {
+    "raw": "your [[building:library|Libraries]] pay +100%, counted after every other bonus on them",
+    "text": "your Libraries pay +100%, counted after every other bonus on them"
+   }
+  ],
+  "ibnKhaldun": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   },
+   {
+    "raw": "+2 science per spare authority",
+    "text": "+2 science per spare authority"
+   }
+  ],
+  "brahmagupta": [
+   {
+    "raw": "+1 gold in every city per building there that [[concept:supplies|supplies]] science",
+    "text": "+1 gold in every city per building there that supplies science"
+   }
+  ],
+  "belisarius": [
+   {
+    "raw": "+4 combat strength when attacking cities",
+    "text": "+4 combat strength when attacking cities"
+   },
+   {
+    "raw": "capturing a city grants a [[concept:grantedUnit|melee unit]]",
+    "text": "capturing a city grants a melee unit"
+   }
+  ],
+  "gajahMada": [
+   {
+    "raw": "+4 combat strength for military units",
+    "text": "+4 combat strength for military units"
+   },
+   {
+    "raw": "while you are at peace: -3 happiness",
+    "text": "while you are at peace: -3 happiness"
+   }
+  ],
+  "amina": [
+   {
+    "raw": "every city: +5 city defence",
+    "text": "every city: +5 city defence"
+   },
+   {
+    "raw": "+3 gold in every city with a [[building:stoneWalls|Stone Walls]]",
+    "text": "+3 gold in every city with a Stone Walls"
+   }
+  ],
+  "tlacaelel": [
+   {
+    "raw": "killing a unit grants +50 faith",
+    "text": "killing a unit grants +50 faith"
+   },
+   {
+    "raw": "killing a unit grants +50 culture",
+    "text": "killing a unit grants +50 culture"
+   }
+  ],
+  "gutenberg": [
+   {
+    "raw": "+2 science, +2 culture in every city with a [[building:printingHouse|Printing House]]",
+    "text": "+2 science, +2 culture in every city with a Printing House"
+   },
+   {
+    "raw": "+50% production toward [[building:printingHouse|Printing Houses]]",
+    "text": "+50% production toward Printing Houses"
+   }
+  ],
+  "jangYeongSil": [
+   {
+    "raw": "+1 food, +1 science on every hex with a [[improvement:farm|Farm]] beside fresh water",
+    "text": "+1 food, +1 science on every hex with a Farm beside fresh water"
+   }
+  ],
+  "ibnMajid": [
+   {
+    "raw": "+1 trade route",
+    "text": "+1 trade route"
+   },
+   {
+    "raw": "your trade routes by sea pay +50%",
+    "text": "your trade routes by sea pay +50%"
+   }
+  ],
+  "fatimaAlFihri": [
+   {
+    "raw": "buildings that supply science or faith cost −30% to buy",
+    "text": "buildings that supply science or faith cost −30% to buy"
+   }
+  ],
+  "hippocrates": [
+   {
+    "raw": "+15% food surplus stored toward growth",
+    "text": "+15% food surplus stored toward growth"
+   }
+  ],
+  "anaximander": [
+   {
+    "raw": "+1 science per foreign city you have sighted",
+    "text": "+1 science per foreign city you have sighted"
+   }
+  ],
+  "baudhayana": [
+   {
+    "raw": "+2 science in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 science in every city with a Shrine"
+   }
+  ],
+  "peseshet": [
+   {
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
+   },
+   {
+    "raw": "+1 food in every city",
+    "text": "+1 food in every city"
+   }
+  ],
+  "solon": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   },
+   {
+    "raw": "+2 science in your capital",
+    "text": "+2 science in your capital"
+   }
+  ],
+  "hesiod": [
+   {
+    "raw": "+1 food and +1 culture in every city per public work standing there",
+    "text": "+1 food and +1 culture in every city per public work standing there"
+   }
+  ],
+  "aesop": [
+   {
+    "raw": "when spent, gain 3 free rerolls",
+    "text": "when spent, gain 3 free rerolls"
+   },
+   {
+    "raw": "when spent, open 1 free Order draft",
+    "text": "when spent, open 1 free Order draft"
+   }
+  ],
+  "exekias": [
+   {
+    "raw": "+2 culture on every trade route you send",
+    "text": "+2 culture on every trade route you send"
+   }
+  ],
+  "telesilla": [
+   {
+    "raw": "every city: +5 city defence",
+    "text": "every city: +5 city defence"
+   },
+   {
+    "raw": "+2 culture in every city with a unit standing in it",
+    "text": "+2 culture in every city with a unit standing in it"
+   }
+  ],
+  "thutmoseTheSculptor": [
+   {
+    "raw": "+2 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+2 culture on every hex with a Quarry"
+   }
+  ],
+  "mandrocles": [
+   {
+    "raw": "all units: +1 movement while embarked",
+    "text": "all units: +1 movement while embarked"
+   },
+   {
+    "raw": "+1 production in every coastal city",
+    "text": "+1 production in every coastal city"
+   }
+  ],
+  "ineni": [
+   {
+    "raw": "+1 production on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+1 production on every hex with a Quarry"
+   }
+  ],
+  "sunshuAo": [
+   {
+    "raw": "+3 food in every city on fresh water",
+    "text": "+3 food in every city on fresh water"
+   }
+  ],
+  "colaeus": [
+   {
+    "raw": "+1 gold per foreign city you have sighted",
+    "text": "+1 gold per foreign city you have sighted"
+   }
+  ],
+  "wenamun": [
+   {
+    "raw": "+1 production, +1 gold on every hex with a [[improvement:lumbermill|Lumbermill]]",
+    "text": "+1 production, +1 gold on every hex with a Lumbermill"
+   }
+  ],
+  "iddinMarduk": [
+   {
+    "raw": "+1 gold on every hex with a [[improvement:farm|Farm]], in your capital",
+    "text": "+1 gold on every hex with a Farm, in your capital"
+   }
+  ],
+  "leonidas": [
+   {
+    "raw": "+4 combat strength when defending while fortified",
+    "text": "+4 combat strength when defending while fortified"
+   }
+  ],
+  "djehuty": [
+   {
+    "raw": "+4 combat strength when attacking cities",
+    "text": "+4 combat strength when attacking cities"
+   }
+  ],
+  "artemisia": [
+   {
+    "raw": "+1 combat strength for ships",
+    "text": "+1 combat strength for ships"
+   },
+   {
+    "raw": "+1 production on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+1 production on every hex with a Fishing Boat"
+   }
+  ],
+  "tomyris": [
+   {
+    "raw": "+3 combat strength for mounted units",
+    "text": "+3 combat strength for mounted units"
+   },
+   {
+    "raw": "+1 faith on every hex with a [[improvement:pasture|Pasture]]",
+    "text": "+1 faith on every hex with a Pasture"
+   }
+  ],
+  "euclid": [
+   {
+    "raw": "+30% production toward [[building:library|Libraries]]",
+    "text": "+30% production toward Libraries"
+   },
+   {
+    "raw": "+30% production toward [[building:university|Universities]]",
+    "text": "+30% production toward Universities"
+   },
+   {
+    "raw": "+30% production toward [[building:observatory|Observatories]]",
+    "text": "+30% production toward Observatories"
+   }
+  ],
+  "banZhao": [
+   {
+    "raw": "+3 science in your capital",
+    "text": "+3 science in your capital"
+   },
+   {
+    "raw": "+1 authority capacity",
+    "text": "+1 authority capacity"
+   }
+  ],
+  "sophocles": [
+   {
+    "raw": "[[building:amphitheater|Amphitheaters]] supply +1 happiness",
+    "text": "Amphitheaters supply +1 happiness"
+   },
+   {
+    "raw": "+1 culture in every city with an [[building:amphitheater|Amphitheater]]",
+    "text": "+1 culture in every city with an Amphitheater"
+   }
+  ],
+  "tiruvalluvar": [
+   {
+    "raw": "+2 culture on every hex with a [[improvement:plantation|Plantation]]",
+    "text": "+2 culture on every hex with a Plantation"
+   }
+  ],
+  "auvaiyar": [
+   {
+    "raw": "while you are at peace: +3 culture in every city",
+    "text": "while you are at peace: +3 culture in every city"
+   }
+  ],
+  "heronOfAlexandria": [
+   {
+    "raw": "+1 science per building in your cities that [[concept:supplies|supplies]] production",
+    "text": "+1 science per building in your cities that supplies production"
+   }
+  ],
+  "apollodorus": [
+   {
+    "raw": "+2 production in every city joined to your capital by road",
+    "text": "+2 production in every city joined to your capital by road"
+   }
+  ],
+  "sostratus": [
+   {
+    "raw": "+2 production, +2 gold in every city with a [[building:harbour|Harbour]]",
+    "text": "+2 production, +2 gold in every city with a Harbour"
+   }
+  ],
+  "zhengGuo": [
+   {
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]], in every city without fresh water",
+    "text": "+1 food on every hex with a Farm, in every city without fresh water"
+   }
+  ],
+  "pasion": [
+   {
+    "raw": "+1 gold per 50 gold in the treasury (at most +20 gold)",
+    "text": "+1 gold per 50 gold in the treasury (at most +20 gold)"
+   }
+  ],
+  "widowQing": [
+   {
+    "raw": "+4 gold per improved strategic resource",
+    "text": "+4 gold per improved strategic resource"
+   }
+  ],
+  "yarhai": [
+   {
+    "raw": "+2 trade routes",
+    "text": "+2 trade routes"
+   }
+  ],
+  "sangHongyang": [
+   {
+    "raw": "+10% gold in every city with a [[building:market|Market]]",
+    "text": "+10% gold in every city with a Market"
+   }
+  ],
+  "moduChanyu": [
+   {
+    "raw": "+3 combat strength for mounted units",
+    "text": "+3 combat strength for mounted units"
+   },
+   {
+    "raw": "+20% production toward mounted units",
+    "text": "+20% production toward mounted units"
+   }
+  ],
+  "chanakya": [
+   {
+    "raw": "all units cost no gold in maintenance while standing in one of your cities",
+    "text": "all units cost no gold in maintenance while standing in one of your cities"
+   },
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   }
+  ],
+  "liQingzhao": [
+   {
+    "raw": "+4 culture per unique luxury",
+    "text": "+4 culture per unique luxury"
+   }
+  ],
+  "hildegardOfBingen": [
+   {
+    "raw": "+2 food, +2 production, +2 science, +2 culture, +2 faith in every city with a [[building:cathedral|Cathedral]]",
+    "text": "+2 food, +2 production, +2 science, +2 culture, +2 faith in every city with a Cathedral"
+   }
+  ],
+  "brunelleschi": [
+   {
+    "raw": "+25% production toward buildings and +25% production toward wonders, in your capital",
+    "text": "+25% production toward buildings and +25% production toward wonders, in your capital"
+   }
+  ],
+  "guoShoujing": [
+   {
+    "raw": "+2 food, +2 gold in every city joined to your capital by road",
+    "text": "+2 food, +2 gold in every city joined to your capital by road"
    }
   ]
  },
@@ -12543,31 +13171,21 @@
   "militantOrders": []
  },
  "leader": {
-  "pachacuti": [
+  "alexanderTheGreat": [
    {
-    "raw": "+1 happiness and +1 production in every city joined to your capital by road",
-    "text": "+1 happiness and +1 production in every city joined to your capital by road"
+    "raw": "+3 combat strength when attacking",
+    "text": "+3 combat strength when attacking"
    },
    {
-    "raw": "+1 gold on every hex with a [[improvement:farm|Farm]] beside a mountain, once for each mountain",
-    "text": "+1 gold on every hex with a Farm beside a mountain, once for each mountain"
+    "raw": "capturing a city heals every one of your units",
+    "text": "capturing a city heals every one of your units"
+   },
+   {
+    "raw": "for military units alone, gaining a unit grants science equal to 50% of its strength",
+    "text": "for military units alone, gaining a unit grants science equal to 50% of its strength"
    }
   ],
-  "taizong": [
-   {
-    "raw": "+3 combat strength for melee units",
-    "text": "+3 combat strength for melee units"
-   },
-   {
-    "raw": "melee units: +1 movement",
-    "text": "melee units: +1 movement"
-   },
-   {
-    "raw": "+1 happiness and +15% culture in every city with a unit standing in it",
-    "text": "+1 happiness and +15% culture in every city with a unit standing in it"
-   }
-  ],
-  "modu": [
+  "genghisKhan": [
    {
     "raw": "mounted units: +1 movement on grassland and plains",
     "text": "mounted units: +1 movement on grassland and plains"
@@ -12581,38 +13199,12 @@
     "text": "pillaging pays +50%"
    },
    {
-    "raw": "+1 production, +1 faith on every hex with a [[improvement:pasture|Pasture]]",
-    "text": "+1 production, +1 faith on every hex with a Pasture"
-   }
-  ],
-  "akhenaten": [
-   {
-    "raw": "+20% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+20% production toward wonders, in every city with a Holy Site"
+    "raw": "your trade units cannot be attacked or plundered",
+    "text": "your trade units cannot be attacked or plundered"
    },
    {
-    "raw": "+1 faith on every hex with a [[improvement:farm|Farm]] beside fresh water",
-    "text": "+1 faith on every hex with a Farm beside fresh water"
-   }
-  ],
-  "almamun": [
-   {
-    "raw": "+1 science per 5 faith gained per turn",
-    "text": "+1 science per 5 faith gained per turn"
-   },
-   {
-    "raw": "+2 food in every city per faith or science building",
-    "text": "+2 food in every city per faith or science building"
-   }
-  ],
-  "mithridates": [
-   {
-    "raw": "+2 combat strength against an empire with more cities than you",
-    "text": "+2 combat strength against an empire with more cities than you"
-   },
-   {
-    "raw": "+2 food on every hex with a [[improvement:plantation|Plantation]] or [[improvement:camp|Camp]]",
-    "text": "+2 food on every hex with a Plantation or Camp"
+    "raw": "+3 gold on every trade route you send",
+    "text": "+3 gold on every trade route you send"
    }
   ],
   "joan": [
@@ -12627,6 +13219,86 @@
    {
     "raw": "+4 combat strength inside cities that follow your religion",
     "text": "+4 combat strength inside cities that follow your religion"
+   }
+  ],
+  "mehmedTheConqueror": [
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]]",
+    "text": "+1 science in every city with a Barracks"
+   },
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]] per great scholar you have gained this game",
+    "text": "+1 science in every city with a Barracks per great scholar you have gained this game"
+   },
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]] per great general you have gained this game",
+    "text": "+1 science in every city with a Barracks per great general you have gained this game"
+   },
+   {
+    "raw": "+5 combat strength when attacking cities",
+    "text": "+5 combat strength when attacking cities"
+   },
+   {
+    "raw": "capturing a city grants science equal to 30 times its population",
+    "text": "capturing a city grants science equal to 30 times its population"
+   }
+  ],
+  "qinShiHuang": [
+   {
+    "raw": "+25% production toward wonders and +25% production toward buildings, in every city with a unit standing in it",
+    "text": "+25% production toward wonders and +25% production toward buildings, in every city with a unit standing in it"
+   },
+   {
+    "raw": "+1 production in every city per 3 citizens there",
+    "text": "+1 production in every city per 3 citizens there"
+   }
+  ],
+  "pachacuti": [
+   {
+    "raw": "+1 happiness and +1 production in every city joined to your capital by road",
+    "text": "+1 happiness and +1 production in every city joined to your capital by road"
+   },
+   {
+    "raw": "+1 gold on every hex with a [[improvement:farm|Farm]] beside a mountain, once for each mountain",
+    "text": "+1 gold on every hex with a Farm beside a mountain, once for each mountain"
+   }
+  ],
+  "jayavarmanVII": [
+   {
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:farm|Farm]] beside fresh water, for each public work standing in its town",
+    "text": "+1 food, +1 faith on every hex with a Farm beside fresh water, for each public work standing in its town"
+   },
+   {
+    "raw": "+1 culture and +1 faith per 4 citizens",
+    "text": "+1 culture and +1 faith per 4 citizens"
+   }
+  ],
+  "nezahualcoyotl": [
+   {
+    "raw": "+1 production, +1 science on every hex with a [[improvement:farm|Farm]], in every city with an [[building:aqueduct|Aqueduct]]",
+    "text": "+1 production, +1 science on every hex with a Farm, in every city with an Aqueduct"
+   },
+   {
+    "raw": "+1 culture in your capital per 2 citizens there",
+    "text": "+1 culture in your capital per 2 citizens there"
+   }
+  ],
+  "cyrusTheGreat": [
+   {
+    "raw": "+1 happiness in every city joined to your capital by road",
+    "text": "+1 happiness in every city joined to your capital by road"
+   },
+   {
+    "raw": "+1 culture in every city joined to your capital by road per Order in a civic chair",
+    "text": "+1 culture in every city joined to your capital by road per Order in a civic chair"
+   },
+   {
+    "raw": "+1 culture in every city joined to your capital by road per Order in a wildcard chair",
+    "text": "+1 culture in every city joined to your capital by road per Order in a wildcard chair"
+   },
+   {
+    "raw": "new cities start with a [[unit:worker|Worker]] standing in them, free of upkeep",
+    "text": "new cities start with a Worker standing in them, free of upkeep"
    }
   ],
   "mansaMusa": [
@@ -12647,56 +13319,70 @@
     "text": "+2 gold, +2 faith on every trade route that ends in a city with a Holy Site"
    }
   ],
-  "zhengHeOfMing": [
+  "cleopatra": [
    {
-    "raw": "ships: +2 movement",
-    "text": "ships: +2 movement"
+    "raw": "+2 science on every trade route you send",
+    "text": "+2 science on every trade route you send"
    },
    {
-    "raw": "ships: +1 sight",
-    "text": "ships: +1 sight"
+    "raw": "+2 science on every trade route that ends in another empire’s city",
+    "text": "+2 science on every trade route that ends in another empire’s city"
    },
    {
-    "raw": "+2 gold, +1 culture on every trade route sent from every coastal city",
-    "text": "+2 gold, +1 culture on every trade route sent from every coastal city"
+    "raw": "+4 gold in your capital per active deal for each age reached",
+    "text": "+4 gold in your capital per active deal for each age reached"
    },
    {
-    "raw": "+2 gold, +1 culture on every trade route that ends in a coastal city",
-    "text": "+2 gold, +1 culture on every trade route that ends in a coastal city"
+    "raw": "+2 culture in your capital per active deal for each age reached",
+    "text": "+2 culture in your capital per active deal for each age reached"
    }
   ],
-  "nezahualcoyotl": [
+  "lorenzoDeMedici": [
    {
-    "raw": "+1 culture in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 culture in every city with an Aqueduct"
+    "raw": "+1 renown per turn per 8 gold your empire makes a turn",
+    "text": "+1 renown per turn per 8 gold your empire makes a turn"
    },
    {
-    "raw": "+1 production on every hex with a [[improvement:farm|Farm]], in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 production on every hex with a Farm, in every city with an Aqueduct"
-   },
-   {
-    "raw": "+1 culture in your capital per 2 citizens there",
-    "text": "+1 culture in your capital per 2 citizens there"
+    "raw": "+10% production toward wonders per gold building",
+    "text": "+10% production toward wonders per gold building"
    }
   ],
-  "hypatiaOfAlexandria": [
+  "harunAlRashid": [
    {
-    "raw": "+25% renown",
-    "text": "+25% renown"
+    "raw": "+1 science and +1 faith in every city per faith building there",
+    "text": "+1 science and +1 faith in every city per faith building there"
    },
    {
-    "raw": "the works on every hex carrying a great person's work pay +50%",
-    "text": "the works on every hex carrying a great person's work pay +50%"
+    "raw": "+1 science and +1 faith in every city per science building there",
+    "text": "+1 science and +1 faith in every city per science building there"
+   },
+   {
+    "raw": "completing a technology grants faith equal to 20% of the science it cost you",
+    "text": "completing a technology grants faith equal to 20% of the science it cost you"
    }
   ],
-  "hildegard": [
+  "justinian": [
    {
-    "raw": "+20% culture in every city while it is keeping a rite",
-    "text": "+20% culture in every city while it is keeping a rite"
+    "raw": "completing a wonder grants faith equal to the production it paid",
+    "text": "completing a wonder grants faith equal to the production it paid"
    },
    {
-    "raw": "+2 culture and +2 production in every city per faith building there",
-    "text": "+2 culture and +2 production in every city per faith building there"
+    "raw": "+5 production on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+5 production on every hex with a Holy Site"
+   },
+   {
+    "raw": "+2 happiness per hex worked in your cities",
+    "text": "+2 happiness per hex worked in your cities"
+   }
+  ],
+  "sejongTheGreat": [
+   {
+    "raw": "+1 science and +1 culture in every city per 4 citizens there",
+    "text": "+1 science and +1 culture in every city per 4 citizens there"
+   },
+   {
+    "raw": "completing a technology grants 3 turns of renown",
+    "text": "completing a technology grants 3 turns of renown"
    }
   ],
   "ibnBattutaOfTangier": [
@@ -12711,6 +13397,98 @@
   ]
  },
  "leaderAbility": {
+  "unbrokenCharge": [
+   {
+    "raw": "+3 combat strength when attacking",
+    "text": "+3 combat strength when attacking"
+   },
+   {
+    "raw": "capturing a city heals every one of your units",
+    "text": "capturing a city heals every one of your units"
+   }
+  ],
+  "royalArmy": [
+   {
+    "raw": "for military units alone, gaining a unit grants science equal to 50% of its strength",
+    "text": "for military units alone, gaining a unit grants science equal to 50% of its strength"
+   }
+  ],
+  "steppeRidersOfMongolia": [
+   {
+    "raw": "mounted units: +1 movement on grassland and plains",
+    "text": "mounted units: +1 movement on grassland and plains"
+   },
+   {
+    "raw": "mounted archers: +1 movement on grassland and plains",
+    "text": "mounted archers: +1 movement on grassland and plains"
+   },
+   {
+    "raw": "pillaging pays +50%",
+    "text": "pillaging pays +50%"
+   }
+  ],
+  "paxMongolica": [
+   {
+    "raw": "your trade units cannot be attacked or plundered",
+    "text": "your trade units cannot be attacked or plundered"
+   },
+   {
+    "raw": "+3 gold on every trade route you send",
+    "text": "+3 gold on every trade route you send"
+   }
+  ],
+  "theVoices": [
+   {
+    "raw": "killing a unit grants +8 faith",
+    "text": "killing a unit grants +8 faith"
+   },
+   {
+    "raw": "killing a unit spreads your religion to every city within 4 hexes",
+    "text": "killing a unit spreads your religion to every city within 4 hexes"
+   }
+  ],
+  "theMaid": [
+   {
+    "raw": "+4 combat strength inside cities that follow your religion",
+    "text": "+4 combat strength inside cities that follow your religion"
+   }
+  ],
+  "enderun": [
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]]",
+    "text": "+1 science in every city with a Barracks"
+   },
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]] per great scholar you have gained this game",
+    "text": "+1 science in every city with a Barracks per great scholar you have gained this game"
+   },
+   {
+    "raw": "+1 science in every city with a [[building:barracks|Barracks]] per great general you have gained this game",
+    "text": "+1 science in every city with a Barracks per great general you have gained this game"
+   }
+  ],
+  "greatBombard": [
+   {
+    "raw": "+5 combat strength when attacking cities",
+    "text": "+5 combat strength when attacking cities"
+   },
+   {
+    "raw": "capturing a city grants science equal to 30 times its population",
+    "text": "capturing a city grants science equal to 30 times its population"
+   }
+  ],
+  "greatWorksOfQin": [
+   {
+    "raw": "+25% production toward wonders and +25% production toward buildings, in every city with a unit standing in it",
+    "text": "+25% production toward wonders and +25% production toward buildings, in every city with a unit standing in it"
+   }
+  ],
+  "registeredHouseholds": [
+   {
+    "raw": "+1 production in every city per 3 citizens there",
+    "text": "+1 production in every city per 3 citizens there"
+   }
+  ],
   "qhapaqNan": [
    {
     "raw": "+1 happiness and +1 production in every city joined to your capital by road",
@@ -12721,6 +13499,154 @@
    {
     "raw": "+1 gold on every hex with a [[improvement:farm|Farm]] beside a mountain, once for each mountain",
     "text": "+1 gold on every hex with a Farm beside a mountain, once for each mountain"
+   }
+  ],
+  "hospitalsOfTheKing": [
+   {
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:farm|Farm]] beside fresh water, for each public work standing in its town",
+    "text": "+1 food, +1 faith on every hex with a Farm beside fresh water, for each public work standing in its town"
+   }
+  ],
+  "greatCityOfAngkor": [
+   {
+    "raw": "+1 culture and +1 faith per 4 citizens",
+    "text": "+1 culture and +1 faith per 4 citizens"
+   }
+  ],
+  "theDikes": [
+   {
+    "raw": "+1 production, +1 science on every hex with a [[improvement:farm|Farm]], in every city with an [[building:aqueduct|Aqueduct]]",
+    "text": "+1 production, +1 science on every hex with a Farm, in every city with an Aqueduct"
+   }
+  ],
+  "flowerAndSong": [
+   {
+    "raw": "+1 culture in your capital per 2 citizens there",
+    "text": "+1 culture in your capital per 2 citizens there"
+   }
+  ],
+  "cyrusCylinder": [
+   {
+    "raw": "+1 happiness in every city joined to your capital by road",
+    "text": "+1 happiness in every city joined to your capital by road"
+   },
+   {
+    "raw": "+1 culture in every city joined to your capital by road per Order in a civic chair",
+    "text": "+1 culture in every city joined to your capital by road per Order in a civic chair"
+   },
+   {
+    "raw": "+1 culture in every city joined to your capital by road per Order in a wildcard chair",
+    "text": "+1 culture in every city joined to your capital by road per Order in a wildcard chair"
+   }
+  ],
+  "kingsGardeners": [
+   {
+    "raw": "new cities start with a [[unit:worker|Worker]] standing in them, free of upkeep",
+    "text": "new cities start with a Worker standing in them, free of upkeep"
+   }
+  ],
+  "goldOfWangara": [
+   {
+    "raw": "+2 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
+    "text": "+2 gold on every hex with a Mine or Camp"
+   },
+   {
+    "raw": "+1 gold on every desert hex",
+    "text": "+1 gold on every desert hex"
+   }
+  ],
+  "theHajj": [
+   {
+    "raw": "+2 gold, +2 faith on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route sent from every city with a Holy Site"
+   },
+   {
+    "raw": "+2 gold, +2 faith on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route that ends in a city with a Holy Site"
+   }
+  ],
+  "booksFromTheShips": [
+   {
+    "raw": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city",
+    "text": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city"
+   }
+  ],
+  "queensAlliances": [
+   {
+    "raw": "+4 gold in your capital per active deal for each age reached",
+    "text": "+4 gold in your capital per active deal for each age reached"
+   },
+   {
+    "raw": "+2 culture in your capital per active deal for each age reached",
+    "text": "+2 culture in your capital per active deal for each age reached"
+   }
+  ],
+  "mediciBank": [
+   {
+    "raw": "+1 renown per turn per 8 gold your empire makes a turn",
+    "text": "+1 renown per turn per 8 gold your empire makes a turn"
+   }
+  ],
+  "florins": [
+   {
+    "raw": "+10% production toward wonders per gold building",
+    "text": "+10% production toward wonders per gold building"
+   }
+  ],
+  "storehouseOfWisdom": [
+   {
+    "raw": "+1 science and +1 faith in every city per faith building there",
+    "text": "+1 science and +1 faith in every city per faith building there"
+   },
+   {
+    "raw": "+1 science and +1 faith in every city per science building there",
+    "text": "+1 science and +1 faith in every city per science building there"
+   }
+  ],
+  "learnedCourt": [
+   {
+    "raw": "completing a technology grants faith equal to 20% of the science it cost you",
+    "text": "completing a technology grants faith equal to 20% of the science it cost you"
+   }
+  ],
+  "surpassedSolomon": [
+   {
+    "raw": "completing a wonder grants faith equal to the production it paid",
+    "text": "completing a wonder grants faith equal to the production it paid"
+   }
+  ],
+  "oneFaithOneEmpire": [
+   {
+    "raw": "+5 production on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+5 production on every hex with a Holy Site"
+   },
+   {
+    "raw": "+2 happiness per hex worked in your cities",
+    "text": "+2 happiness per hex worked in your cities"
+   }
+  ],
+  "correctSounds": [
+   {
+    "raw": "+1 science and +1 culture in every city per 4 citizens there",
+    "text": "+1 science and +1 culture in every city per 4 citizens there"
+   }
+  ],
+  "royalLectures": [
+   {
+    "raw": "completing a technology grants 3 turns of renown",
+    "text": "completing a technology grants 3 turns of renown"
+   }
+  ],
+  "guestAtEveryCourt": [
+   {
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
+   }
+  ],
+  "theRihla": [
+   {
+    "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
+    "text": "the first reroll of each hand of Orders, Doctrines or great people costs nothing"
    }
   ],
   "theMandate": [
@@ -12795,42 +13721,6 @@
     "text": "+2 food on every hex with a Plantation or Camp"
    }
   ],
-  "theVoices": [
-   {
-    "raw": "killing a unit grants +8 faith",
-    "text": "killing a unit grants +8 faith"
-   },
-   {
-    "raw": "killing a unit spreads your religion to every city within 4 hexes",
-    "text": "killing a unit spreads your religion to every city within 4 hexes"
-   }
-  ],
-  "theMaid": [
-   {
-    "raw": "+4 combat strength inside cities that follow your religion",
-    "text": "+4 combat strength inside cities that follow your religion"
-   }
-  ],
-  "goldOfWangara": [
-   {
-    "raw": "+2 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
-    "text": "+2 gold on every hex with a Mine or Camp"
-   },
-   {
-    "raw": "+1 gold on every desert hex",
-    "text": "+1 gold on every desert hex"
-   }
-  ],
-  "theHajj": [
-   {
-    "raw": "+2 gold, +2 faith on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold, +2 faith on every trade route sent from every city with a Holy Site"
-   },
-   {
-    "raw": "+2 gold, +2 faith on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold, +2 faith on every trade route that ends in a city with a Holy Site"
-   }
-  ],
   "treasureFleet": [
    {
     "raw": "ships: +2 movement",
@@ -12856,22 +13746,6 @@
     "deferred": true
    }
   ],
-  "theDikes": [
-   {
-    "raw": "+1 culture in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 culture in every city with an Aqueduct"
-   },
-   {
-    "raw": "+1 production on every hex with a [[improvement:farm|Farm]], in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 production on every hex with a Farm, in every city with an Aqueduct"
-   }
-  ],
-  "flowerAndSong": [
-   {
-    "raw": "+1 culture in your capital per 2 citizens there",
-    "text": "+1 culture in your capital per 2 citizens there"
-   }
-  ],
   "theMuseion": [
    {
     "raw": "+25% renown",
@@ -12894,18 +13768,6 @@
    {
     "raw": "+2 culture and +2 production in every city per faith building there",
     "text": "+2 culture and +2 production in every city per faith building there"
-   }
-  ],
-  "guestAtEveryCourt": [
-   {
-    "raw": "you have one more wildcard chair",
-    "text": "you have one more wildcard chair"
-   }
-  ],
-  "theRihla": [
-   {
-    "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
-    "text": "the first reroll of each hand of Orders, Doctrines or great people costs nothing"
    }
   ]
  },

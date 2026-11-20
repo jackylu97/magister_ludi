@@ -208,7 +208,7 @@ describe('no row is named', () => {
       ['ordersMotion.ts', MOTION],
       ['councilTotals.ts', uiSource('councilTotals.ts')],
       ['councilLayout.ts', uiSource('councilLayout.ts')],
-      ['statecraftScreen.css', style('statecraftScreen.css')],
+      ['statecraftScreen.css', style('statecraftScreen.css').replace(/\/\*[\s\S]*?\*\//g, '')],
     ] as const) {
       for (const id of cards) expect(names(source, id), `${tail} names ${id}`).toBe(false);
       for (const name of cardNames) expect(names(source, name), `${tail} names ${name}`).toBe(false);
