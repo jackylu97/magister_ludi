@@ -143,6 +143,11 @@
           "presentedFps": 22.0,
           "boardFps": 22.4,
           "maxPresentationGapMs": 100.0
+        },
+        "firstMoveTrace": {
+          "handlerMs": 40.7,
+          "programQueriesOver4ms": [],
+          "minorGcOver4ms": []
         }
       },
       {
@@ -175,6 +180,11 @@
           "presentedFps": 25.7,
           "boardFps": 25.7,
           "maxPresentationGapMs": 100.0
+        },
+        "firstMoveTrace": {
+          "handlerMs": 20.5,
+          "programQueriesOver4ms": [],
+          "minorGcOver4ms": []
         }
       },
       {
@@ -207,6 +217,14 @@
           "presentedFps": 28.2,
           "boardFps": 25.7,
           "maxPresentationGapMs": 100.1
+        },
+        "firstMoveTrace": {
+          "handlerMs": 36.9,
+          "programQueriesOver4ms": [
+            11.0,
+            9.9
+          ],
+          "minorGcOver4ms": []
         }
       },
       {
@@ -239,6 +257,13 @@
           "presentedFps": 24.1,
           "boardFps": 22.2,
           "maxPresentationGapMs": 100.0
+        },
+        "firstMoveTrace": {
+          "handlerMs": 21.3,
+          "programQueriesOver4ms": [],
+          "minorGcOver4ms": [
+            24.1
+          ]
         }
       }
     ]
