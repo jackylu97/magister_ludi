@@ -1034,8 +1034,8 @@
   ],
   "theLaurionLeases": [
    {
-    "raw": "a hex carrying a resource costs 50% less to buy",
-    "text": "a hex carrying a resource costs 50% less to buy"
+    "raw": "a hex carrying a resource costs 75% less to buy",
+    "text": "a hex carrying a resource costs 75% less to buy"
    }
   ],
   "theDelianLeague": [
@@ -5922,6 +5922,12 @@
     "raw": "a town working several of them asks less of your peace — not built yet",
     "text": "a town working several of them asks less of your peace — not built yet",
     "deferred": true
+   }
+  ],
+  "commerceOpenMarket": [
+   {
+    "raw": "Everything you buy with gold costs 20% less",
+    "text": "Everything you buy with gold costs 20% less"
    }
   ],
   "commerceSaltTithes": [

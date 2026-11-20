@@ -220,7 +220,7 @@ blank for the balance pass.
 | `generalAuraRange` | 2 | How far a great general’s standing aura reaches while the piece is alive. |  |
 | `generalAuraStrength` | 3 | Strength every friendly soldier inside that aura fights with. |  |
 | `citadelClaimRadius` | 1 | How far a citadel claims ground around itself, in hexes. |  |
-| `offerPriceGold` | 1000 | What a great-person draft costs in gold under Merchant Princes. It fills the threshold early. |  |
+| `offerGoldPerRenown` | 10 | Gold per point of the next renown threshold, before purchase discounts. |  |
 | `offerPriceFaith` | 750 | The same out of the faith bank, under Sacred Patronage. The price is flat: it does not rise. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
 | `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |

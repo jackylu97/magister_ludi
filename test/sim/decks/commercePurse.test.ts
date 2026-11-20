@@ -19,11 +19,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt, tilePurchaseError } from '../../../src/sim/cities';
+import { foundCityAt, tilePurchaseError, tilePurchasePrice } from '../../../src/sim/cities';
 import { type Command, applyCommand } from '../../../src/sim/commands';
 import { greatPersonOfferPrice, greatPersonPurchaseError } from '../../../src/sim/greatPeople';
 import { explainEmpireGold } from '../../../src/sim/empireGold';
 import { contributeError, explainPurchaseCost, purchaseGate } from '../../../src/sim/purchase';
+import { renownThreshold } from '../../../src/sim/renown';
+import { purchaseDiscountLines } from '../../../src/sim/purchaseDiscount';
 import { RULES } from '../../../src/sim/rulesData';
 import {
   type City,
@@ -98,6 +100,43 @@ function buy(city: City, item: { kind: 'unit' | 'building'; id: string }, curren
 
 const GRANARY = { kind: 'building', id: 'granary' } as const;
 
+describe('The Open Market', () => {
+  it('discounts each gold purchase and charges the displayed great-person price', () => {
+    const { state, city } = town();
+    const player = state.players[0]!;
+    player.greatPeopleRecruited = 2;
+    player.renownPool = 17;
+    seat(state, 0, MERCHANT_PRINCES);
+    const hex = { col: 6, row: 4 };
+    const prices = () => [
+      explainPurchaseCost(state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'gold')!.total,
+      explainPurchaseCost(state, 0, city.id, GRANARY, 'gold')!.total,
+      tilePurchasePrice(state, 0, city.id, hex),
+      tradeContext(state, 0).reading.price,
+      greatPersonOfferPrice(state, 0, 'gold'),
+    ];
+    const base = prices();
+    expect(base[4]).toBe(10 * renownThreshold(state, player));
+    seat(state, 0, 'commerceOpenMarket');
+    expect(prices()).toEqual(base.map(price => Math.floor(price * 80 / 100)));
+    expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(RULES.greatPeople.offerPriceFaith);
+    setGold(state, greatPersonOfferPrice(state, 0, 'gold'));
+    expect(applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'gold' }).ok).toBe(true);
+    expect(player.gold).toBe(0);
+    expect(player.greatPersonOffer).toBeDefined();
+  });
+
+  it('caps stacked discounts and preserves a larger individual discount', () => {
+    const price = (rates: number[]) => 100 + purchaseDiscountLines(
+      100, rates.map(percent => ({ source: 'Discount', percent })),
+    ).reduce((sum, line) => sum + line.amount, 0);
+    expect(price([-20, -20])).toBe(60);
+    expect(price([-40, -20])).toBe(50);
+    expect(price([-75, -20])).toBe(25);
+    expect(price([-75, -20, 10])).toBe(35);
+  });
+});
+
 // --- Letters of Credit --------------------------------------------------------
 
 describe('Letters of Credit: buying below zero', () => {
@@ -153,7 +192,7 @@ describe('Letters of Credit: buying below zero', () => {
   it('lets a great-person draft be bought on credit', () => {
     const { state } = town();
     seat(state, 0, MERCHANT_PRINCES);
-    const price = greatPersonOfferPrice('gold');
+    const price = greatPersonOfferPrice(state, 0, 'gold');
     setGold(state, price - 100);
     expect(greatPersonPurchaseError(state, 0, 'gold')).toContain(`needs ${price} gold and has`);
     seat(state, 0, LETTERS);

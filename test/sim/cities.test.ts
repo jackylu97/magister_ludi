@@ -3300,7 +3300,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 40 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

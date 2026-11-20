@@ -90,6 +90,7 @@
  * Drawing them is a page of `append` calls that fail loudly or not at all.
  */
 
+import { foldUnitCost } from '../sim/cities';
 import { type GameState, playerById } from '../sim/state';
 import { FAMILY_EMBLEM, type GreatPersonFace, greatPersonCard, greatPersonStamp } from './greatPersonFace';
 import { FAMILIES, type Family, type GreatPersonId, isGreatPersonId } from '../sim/greatPeopleData';
@@ -101,7 +102,7 @@ import {
   OFFER_PURCHASE_IDS,
   type OfferPurchaseId,
   greatPersonOfferBank,
-  greatPersonOfferPrice,
+  explainGreatPersonOfferPrice,
   greatPersonPurchaseError,
   greatPersonPurchaseOpen,
 } from '../sim/greatPeople';
@@ -352,6 +353,7 @@ interface ReliquaryCall {
    * interface is set in the mono and the words are not.
    */
   figure: string;
+  priceBreakdown: string;
   /** The line beneath: what it deals, or the reducer's refusal. */
   note: string;
   /** True when the law is open and the bank is not. Greyed, never hidden. */
@@ -401,10 +403,12 @@ export function reliquaryCalls(state: GameState, playerId: number): ReliquaryCal
     const words = CALL_WORDS[purchase];
     const glyph = YIELD_GLYPH[greatPersonOfferBank(purchase)];
     const problem = greatPersonPurchaseError(state, playerId, purchase);
+    const price = explainGreatPersonOfferPrice(state, playerId, purchase);
     calls.push({
       purchase,
       label: words.verb,
-      figure: `${greatPersonOfferPrice(purchase)}${glyph}`,
+      figure: `${foldUnitCost(price)}${glyph}`,
+      priceBreakdown: price.map(line => `${line.source}: ${line.amount}`).join('\n'),
       note: problem ?? words.note,
       disabled: problem !== null,
     });
@@ -892,7 +896,7 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       const figure = element('span', 'offer-answer-figure');
       setYieldText(figure, call.figure);
       button.append(figure);
-      button.title = call.note;
+      button.title = `${call.note}\n${call.priceBreakdown}`;
       button.disabled = call.disabled;
       button.addEventListener('click', () => options.onCall?.(call.purchase));
       line.append(button);

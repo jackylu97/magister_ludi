@@ -34,24 +34,24 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 10 | 0 | 0 | 10 | 0 |
+| Tier 0 | 11 | 0 | 0 | 11 | 0 |
 | Tier I | 13 | 0 | 0 | 13 | 1 |
 | Tier II | 20 | 0 | 0 | 20 | 1 |
 | Tier III | 16 | 0 | 0 | 16 | 0 |
 | Tier IV | 10 | 1 | 0 | 11 | 0 |
-| **All** | **69** | **1** | **0** | **70** | **2** |
+| **All** | **70** | **1** | **0** | **71** | **2** |
 | Shared | 16 | 2 | 0 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 1 | 6 | 3 | 0 |
+| Tier 0 | 1 | 7 | 3 | 0 |
 | Tier I | 0 | 8 | 5 | 0 |
 | Tier II | 2 | 7 | 9 | 2 |
 | Tier III | 0 | 9 | 5 | 2 |
 | Tier IV | 0 | 6 | 3 | 2 |
-| **All** | **3** | **36** | **25** | **6** |
+| **All** | **3** | **37** | **25** | **6** |
 | Shared | 4 | 7 | 6 | 1 |
 
 Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 and 11 across Tiers 0 to IV. By type they are 2 Military, 35 Economic, 25 Civic and 6 Wildcard.
@@ -60,6 +60,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Open Market** | rare | implemented | Everything you buy with gold costs 20% less. | Economic |
 | **Market Day** | common | implemented | Your capital gains +1 gold for every citizen. | Economic |
 | **The Emporia** | common | implemented | Improved luxury hexes gain +1 food and +1 production. | Economic |
 | **The Mineral Trade** | common | implemented | Mines and quarries gain +1 gold. | Economic |
@@ -78,7 +79,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 | Doctrine | Build | Text |
 |---|---|---|
 | **The Apoikia** | engine | Settlers and workers cost half as much gold to buy. |
-| **The Laurion Leases** | goods | Hexes with a resource cost half as much gold to buy. |
+| **The Laurion Leases** | goods | Hexes with a resource cost a quarter as much gold to buy. |
 | **The Delian League** | far trade | Your coastal towns cost 1 less authority and gain +3 production. |
 
 **Orders:**

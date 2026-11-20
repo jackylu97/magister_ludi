@@ -13600,7 +13600,7 @@ export interface CardPurchaseLine {
 export function cardPurchaseRiders(
   state: GameState,
   playerId: number,
-  kind: 'unit' | 'building' | 'route',
+  kind: 'unit' | 'building' | 'route' | 'tile' | 'greatPerson',
   type?: UnitTypeId,
   /**
    * The town the price is being asked in — `applyRiders` (`purchase.ts`) always
@@ -13629,12 +13629,9 @@ export function cardPurchaseRiders(
     // so a soldier bought with gold pays in full under The Offering Chests.
     if (effect.currency !== undefined && effect.currency !== currency) continue;
     const on = effect.on ?? 'unit';
-    // **A route is named or it is not reached** (batch C7). `'all'` is the two
-    // roster kinds and deliberately not the road: the three live rows that say
-    // it were written about things with a production cost and a shelf, and
-    // letting them reprice a caravan's hire would be changing live cards by a
-    // side effect. See `CardPurchaseRiderEffect.on`.
-    if (kind === 'route' ? on !== 'route' : on !== 'all' && on !== kind) continue;
+    // Existing rows use 'all' for units and buildings. Only 'everyPurchase' reaches every counter.
+    const roster = kind === 'unit' || kind === 'building';
+    if (on !== 'everyPurchase' && on !== kind && !(on === 'all' && roster)) continue;
     if (kind === 'unit' && (type === undefined || !unitMatches(type, effect.class))) continue;
     // **Which shelf**, and only ever of a building: "religious spearmen" is not
     // a sentence, so a row naming a category is silent on every unit whatever

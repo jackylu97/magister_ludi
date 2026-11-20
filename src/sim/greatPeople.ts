@@ -46,7 +46,9 @@
  * its offer. The log records both commands so replay repeats the same draw.
  */
 
+import { purchaseDiscountLines } from './purchaseDiscount';
 import {
+  foldUnitCost,
   capitalCityOf,
   cityAt,
   claimTile,
@@ -107,6 +109,7 @@ import { happinessOf } from './meters';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import {
   cardActionRule,
+  cardPurchaseRiders,
   cardAmplifier,
   cardOfferFamily,
   cardWorkDiscount,
@@ -531,7 +534,7 @@ interface OfferPurchaseDef {
   currency: OfferCurrency;
   /** The card clause that opens this purchase. */
   rule: ActionRuleId;
-  price: () => number;
+  price: (state: GameState, player: Player) => { source: string; amount: number };
   /** Narrows the draw to one family. Absent deals from the whole roster. */
   family?: Family;
   /**
@@ -556,19 +559,25 @@ const OFFER_PURCHASES: Record<OfferPurchaseId, OfferPurchaseDef> = {
   gold: {
     currency: 'gold',
     rule: 'buyGreatPersonWithGold',
-    price: () => PEOPLE.offerPriceGold,
+    price: (state, player) => {
+      const renown = renownThreshold(state, player);
+      return {
+        source: `${renown} renown × ${PEOPLE.offerGoldPerRenown} gold`,
+        amount: PEOPLE.offerGoldPerRenown * renown,
+      };
+    },
     ladder: true,
   },
   faith: {
     currency: 'faith',
     rule: 'buyGreatPersonWithFaith',
-    price: () => PEOPLE.offerPriceFaith,
+    price: () => ({ source: 'Recruitment price', amount: PEOPLE.offerPriceFaith }),
     ladder: true,
   },
   scholarDraft: {
     currency: 'faith',
     rule: 'buyScholarDraftWithFaith',
-    price: () => PEOPLE.scholarDraftFaith,
+    price: () => ({ source: 'Scholar draft price', amount: PEOPLE.scholarDraftFaith }),
     family: 'scholar',
     ladder: false,
   },
@@ -580,8 +589,20 @@ function isOfferPurchaseId(value: unknown): value is OfferPurchaseId {
 }
 
 /** What this purchase costs this empire, out of the bank its row names. */
-export function greatPersonOfferPrice(purchase: OfferPurchaseId): number {
-  return Math.max(0, Math.floor(OFFER_PURCHASES[purchase].price()));
+export function explainGreatPersonOfferPrice(state: GameState, playerId: number, purchase: OfferPurchaseId) {
+  const player = state.players[playerId]!;
+  const def = OFFER_PURCHASES[purchase];
+  const base = def.price(state, player);
+  const lines = [base];
+  if (def.currency === 'gold') {
+    const riders = cardPurchaseRiders(state, playerId, 'greatPerson', undefined, undefined, undefined, 'gold');
+    lines.push(...purchaseDiscountLines(base.amount, riders));
+  }
+  return lines;
+}
+
+export function greatPersonOfferPrice(state: GameState, playerId: number, purchase: OfferPurchaseId): number {
+  return foldUnitCost(explainGreatPersonOfferPrice(state, playerId, purchase));
 }
 
 /** Which bank this purchase charges. The interface's coin, and the refusal's. */
@@ -658,7 +679,7 @@ export function greatPersonPurchaseError(
       ? 'every great person in the world has already been called'
       : `every great ${def.family} in the world has already been called`;
   }
-  const price = greatPersonOfferPrice(purchase);
+  const price = greatPersonOfferPrice(state, player.id, purchase);
   const held = def.currency === 'gold' ? player.gold : player.faithPool;
   // Gold may go below zero under Letters of Credit (Commerce batch T6, the
   // triage's reading 25), through the one helper the three gold gates ask.
@@ -714,11 +735,11 @@ export function purchaseGreatPersonOfferAt(
     // refused — costs an empire nothing rather than everything.
     const offer = drawGreatPersonOffer(state, player, def.family);
     if (offer.options.length === 0) return null;
-    chargeBank(state, player, def.currency, greatPersonOfferPrice(purchase));
+    chargeBank(state, player, def.currency, greatPersonOfferPrice(state, player.id, purchase));
     player.greatPersonOffer = offer;
     return offer;
   }
-  chargeBank(state, player, def.currency, greatPersonOfferPrice(purchase));
+  chargeBank(state, player, def.currency, greatPersonOfferPrice(state, player.id, purchase));
   const owed = Math.max(0, renownThreshold(state, player) - player.renownPool);
   return settleRenownWindfall(state, player, [{ family: null, amount: owed }]);
 }

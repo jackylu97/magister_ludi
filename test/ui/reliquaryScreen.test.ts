@@ -622,8 +622,9 @@ describe('the calls at the foot', () => {
     // wall. It is its own field since ruling (r) gave the calls the offer
     // sheet's decorated face, where the words and the figure are two lines.
     expect(call.label).not.toMatch(/\d/);
-    expect(call.figure).toContain(String(greatPersonOfferPrice('gold')));
+    expect(call.figure).toContain(String(greatPersonOfferPrice(state, 0, 'gold')));
     expect(call.figure).toContain(YIELD_GLYPH[greatPersonOfferBank('gold')]);
+    expect(call.priceBreakdown).toContain('renown ×');
     // And the note is the interface's plain words, with no figure in them.
     expect(call.note).not.toMatch(/\d/);
   });
@@ -641,14 +642,14 @@ describe('the calls at the foot', () => {
 
   it('greys a call the bank cannot cover, carrying the reducer’s own sentence', () => {
     const state = commonwealth();
-    state.players[0]!.gold = greatPersonOfferPrice('gold') - 1;
+    state.players[0]!.gold = greatPersonOfferPrice(state, 0, 'gold') - 1;
     const call = reliquaryCalls(state, 0)[0]!;
     expect(call.disabled).toBe(true);
     // Not a sentence composed here: the string the command would have failed with.
     expect(call.note).toBe(greatPersonPurchaseError(state, 0, 'gold'));
     // The price is still on the button — a mechanism nobody can see is a
     // mechanism nobody can plan around.
-    expect(call.figure).toContain(String(greatPersonOfferPrice('gold')));
+    expect(call.figure).toContain(String(greatPersonOfferPrice(state, 0, 'gold')));
   });
 
   it('greys it again while a hand is already waiting, rather than dealing a second', () => {

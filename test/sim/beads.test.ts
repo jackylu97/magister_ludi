@@ -15,7 +15,7 @@
  * the record; and the threshold opens the Magnum Opus at the figure the bench
  * cut for a world with no deeds in it.
  *
- * The schema **pin** lives here (37) because this pass is what moved it.
+ * The Bead Race requires save schema version 37 or later.
  */
 
 import { describe, expect, it } from "vitest";

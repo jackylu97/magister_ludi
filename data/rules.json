@@ -410,7 +410,7 @@
     "generalAuraRange": 2,
     "generalAuraStrength": 3,
     "citadelClaimRadius": 1,
-    "offerPriceGold": 1000,
+    "offerGoldPerRenown": 10,
     "offerPriceFaith": 750,
     "scholarDraftFaith": 1000
   },
@@ -433,6 +433,7 @@
     "militaryPercent": 50,
     "columnRate": 1.31,
     "uniqueCostBreakeven": 4,
+    "purchaseDiscountCap": 50,
     "goldPerHammer": 4,
     "faithPerHammer": 2,
     "culturePerHammer": 1,

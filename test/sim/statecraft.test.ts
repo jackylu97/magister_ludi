@@ -3648,7 +3648,7 @@ describe("the governments’ deferred halves, built", () => {
       "law does not let",
     );
 
-    const price = greatPersonOfferPrice("gold");
+    const price = greatPersonOfferPrice(g.state, 0, "gold");
     const before = player.gold;
     expect(
       applyCommand(g.state, {
@@ -3692,7 +3692,7 @@ describe("the governments’ deferred halves, built", () => {
       "purchaseGreatPersonOffer needs",
     );
 
-    const price = greatPersonOfferPrice("scholarDraft");
+    const price = greatPersonOfferPrice(g.state, 0, "scholarDraft");
     expect(price).toBe(RULES.greatPeople.scholarDraftFaith);
     const faith = player.faithPool;
     const renown = player.renownPool;
@@ -3736,7 +3736,7 @@ describe("the governments’ deferred halves, built", () => {
     const player = playerById(g.state, 0)!;
     player.statecraft.doctrines.push("theAcademyOfDeeds" as never);
     bumpRevision(g.state);
-    player.faithPool = greatPersonOfferPrice("scholarDraft") - 1;
+    player.faithPool = greatPersonOfferPrice(g.state, 0, "scholarDraft") - 1;
     const before = snapshotState(g.state);
     expect(
       applyCommand(g.state, {

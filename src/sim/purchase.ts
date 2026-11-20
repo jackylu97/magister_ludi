@@ -69,6 +69,7 @@
  * effect wearing the first one's name.
  */
 
+import { purchaseDiscountLines } from './purchaseDiscount';
 import {
   type City,
   type GameState,
@@ -802,28 +803,8 @@ function explainCulturePrice(
 }
 
 /**
- * Folds every purchase rider that admits this **item** into **one** line on the
- * price, carrying the difference it makes to the running figure.
- *
- * Summed then applied once (Entry XVII's discipline at the scale of a price
- * tag), floored once, and named after the cards that did it so the screen can
- * print the reason. Nothing is appended when no card speaks, which is every
- * purchase in most games — the list is then byte-identical to the one this
- * returned before `purchaseRider` existed.
- *
- * It takes the whole item rather than a unit type because a rider may now ride
- * on a building (`CardPurchaseRiderEffect.on`), and *which kind of thing is
- * being bought* is the one question a `UnitFilter` cannot answer.
- *
- * **And the town speaks too** (the charters, 2026-09-04). The Assay House is the
- * first thing in the game that discounts a price because of where the purchase
- * is being made, and it lands *in this fold* rather than as a second
- * multiplication afterwards: the empire's law and the town's assayers are two
- * riders on one occasion, they add before they multiply, and the one line they
- * produce names both. That is the promise `explainPurchaseCost`'s docblock made
- * about a per-city discount — it changes this function and nothing that calls
- * it. Read through `buildingEffects.ts`, so nothing here has heard of an assay
- * house.
+ * Town and empire discounts apply to the same base price. The explanation
+ * lists each source and shows when the combined discount reaches its limit.
  */
 function applyRiders(
   state: GameState,
@@ -859,19 +840,8 @@ function applyRiders(
   // What the town holds (`townShelf`, Expansionist batch E12).
   const built = city ? buildingPurchaseDiscount(townShelf(state, city)) : [];
   if (riders.length === 0 && built.length === 0) return;
-  let percent = 0;
-  for (const rider of riders) percent += rider.percent;
-  for (const line of built) percent += line.amount;
-  if (percent === 0) return;
-  const running = foldUnitCost(lines);
-  const priced = Math.max(0, Math.floor((running * (100 + percent)) / 100));
-  if (priced === running) return;
-  lines.push({
-    source:
-      `${[...riders.map((rider) => rider.source), ...built.map((line) => line.source)].join(' + ')}` +
-      ` (${percent > 0 ? '+' : ''}${percent}%)`,
-    amount: priced - running,
-  });
+  const modifiers = [...riders, ...built.map(line => ({ source: line.source, percent: line.amount }))];
+  lines.push(...purchaseDiscountLines(foldUnitCost(lines), modifiers));
 }
 
 /**

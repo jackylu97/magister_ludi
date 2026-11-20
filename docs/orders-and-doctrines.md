@@ -246,7 +246,7 @@ governments, so Tier IV opened at 29.
 | The Inward Roads | Expansionist | IV | tier 26 | Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires. |
 | Arcadia | Expansionist | IV | tier 26 | Needs tended land. Your tended tiles also count as improved for every card. |
 | The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
-| The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost half as much gold to buy. |
+| The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost a quarter as much gold to buy. |
 | The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |
 | The Grand Canal | Commerce | II | tier 10 | Each of your domestic routes carries half of its origin's surplus food to its destination. |
 | The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
@@ -495,6 +495,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
+| The Open Market | 0 | ○ | S | Everything you buy with gold costs 20% less. |
 | Salt Tithes | 0 | ● | P | +3 gold for each different luxury you have improved. |
 | Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture for each empire you have met. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |

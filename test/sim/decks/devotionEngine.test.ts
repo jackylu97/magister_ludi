@@ -276,7 +276,7 @@ describe('Devotion batch DV3: the record of faith spent', () => {
     bumpRevision(state);
     const before = player.faithSpent;
     purchaseGreatPersonOfferAt(state, player, 'faith');
-    expect(spentSince(player, before)).toBe(greatPersonOfferPrice('faith'));
+    expect(spentSince(player, before)).toBe(greatPersonOfferPrice(state, 0, 'faith'));
   });
 
   it('does not count gold, which keeps its own record', () => {

@@ -60,6 +60,7 @@
  * city again next turn for the same debt.
  */
 
+import { purchaseDiscountLines } from './purchaseDiscount';
 import {
   type BuildingId,
   type BuildingSize,
@@ -171,6 +172,7 @@ import {
   doctrineBagFor,
   drawDoctrineOffer,
   forgetTheLaw,
+  cardPurchaseRiders,
   foldCardRulePercent,
   payWindfallGrants,
   // Magisterial batch MG14: a card entering the collection as a pick does,
@@ -7301,13 +7303,8 @@ interface TilePriceLine {
  *      bought. Added *after* the rounding, deliberately: the escalation is a
  *      flat surcharge on a habit, not part of the price of the ground, and
  *      rounding it in would make the first purchase silently free.
- *   4. **Luxuries** — furs' `borderCost` discount, the same −10% it takes off a
- *      culture border tile, on a line that names the reason. Land is land: an
- *      empire whose trappers know the country gets it cheaper both ways.
- *   5. **The deck** — Chartered Companies' fifteen percent off a deed, Royal
- *      Surveyors' quarter, one line each and named. Last because a charter is a
- *      fact about the empire buying rather than about the ground bought, and
- *      because a share is taken of everything above it.
+ *   4. Resource and card discounts apply to the same subtotal. Each source
+ *      adds a line. A final line shows when the combined discount reaches its limit.
  *
  * A cell outside the city, or one this function is asked about before the city
  * exists, still gets a price — this evaluator prices ground and refuses nothing.
@@ -7344,54 +7341,12 @@ export function explainTilePurchase(
     });
   }
 
-  const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
-  for (const line of resourceRulePercent(state, playerId, 'borderCost')) {
-    // Per luxury rather than on the folded percentage, so the tag can name the
-    // furs. Floored on the *subtotal* each time it is applied, which for the one
-    // such luxury this game has is exactly the summed reading `borderCostFor`
-    // uses; a second one would want the fold, and this is where that edit goes.
-    const discount = subtotal - Math.max(1, Math.floor(subtotal * (1 + line.percent / 100)));
-    if (discount === 0) continue;
-    lines.push({ source: `${line.source} · ${line.percent}%`, amount: -discount });
-  }
-
-  // **And the deck's own discount, as lines of this list** — Chartered
-  // Companies' fifteen percent, Royal Surveyors' quarter. It was applied to the
-  // *fold* until 2026-09-06, outside the list the docblock calls the price, so a
-  // player reading four lines that added to 95 was charged 71 and nothing said
-  // why. A card is a reason like a luxury is a reason, so it is a line like a
-  // luxury is a line.
-  //
-  // The percentages **sum before one multiplication** (`foldCardRulePercent`,
-  // the same rule the payroll's rebate obeys) and the one product is then shared
-  // out in the cards' own order so the parts sum to it exactly. Rounded per
-  // share with the remainder on the last, because a tile price is one of the
-  // game's deliberate integers and a tag reading "−7.5" would be a price nobody
-  // can pay. Floored at 1 for the reason the luxury's line is: free land is not
-  // a discount, it is a different game.
-  // The hex goes in beside the empire, so a rate that names hexes (The Laurion
-  // Leases, batch DT6) is asked of this one.
-  const charters = cardRulePercent(
-    state,
-    playerId,
-    'tilePurchase',
-    undefined,
-    getTileAt(state.map, cell.col, cell.row),
-  );
-  const percent = foldCardRulePercent(charters);
-  if (percent !== 0) {
-    const before = lines.reduce((sum, line) => sum + line.amount, 0);
-    const change = Math.max(1, Math.floor((before * (100 + percent)) / 100)) - before;
-    let paid = 0;
-    for (let i = 0; i < charters.length; i++) {
-      const line = charters[i]!;
-      const share =
-        i === charters.length - 1 ? change - paid : Math.round((change * line.percent) / percent);
-      paid += share;
-      if (share === 0) continue;
-      lines.push({ source: `${line.source} · ${line.percent}%`, amount: share });
-    }
-  }
+  const modifiers = [
+    ...resourceRulePercent(state, playerId, 'borderCost'),
+    ...cardRulePercent(state, playerId, 'tilePurchase', undefined, getTileAt(state.map, cell.col, cell.row)),
+    ...cardPurchaseRiders(state, playerId, 'tile', undefined, city, undefined, 'gold'),
+  ];
+  lines.push(...purchaseDiscountLines(foldTilePrice(lines), modifiers, 1));
 
   return lines;
 }

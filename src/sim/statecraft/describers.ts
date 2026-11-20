@@ -3960,6 +3960,11 @@ function describeEffect(
       // kind of unit and cannot name a building at all, so `on` supplies the
       // noun and `class` narrows it only where narrowing means anything.
       const on = effect.on ?? 'unit';
+      if (on === 'everyPurchase') {
+        const bank = effect.currency === undefined ? '' : ` with ${effect.currency}`;
+        out.push({ text: `Everything you buy${bank} costs ${Math.abs(percent)}% ${percent < 0 ? 'less' : 'more'}` });
+        return;
+      }
       // **Which shelf**, where the building half names one (The Tithe's
       // religious houses). `CardProductionBonusEffect.buildingCategory`'s own
       // phrase, so a card that discounts culture houses at the counter and a

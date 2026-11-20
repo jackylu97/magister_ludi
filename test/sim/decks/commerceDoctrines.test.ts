@@ -720,14 +720,14 @@ describe('The Laurion Leases (batch DT6)', () => {
     return { state, city, seam, hidden, plain };
   }
 
-  it('halves the price of a hex with a resource, as a labelled line of the list', () => {
+  it('charges a quarter of the price of a hex with a resource, as a labelled line of the list', () => {
     const { state, city, seam } = ground();
     const before = tilePurchasePrice(state, 0, city.id, seam);
     hold(state, 'theLaurionLeases');
     const lines = explainTilePurchase(state, 0, city.id, seam);
     const named = lines.filter((line) => line.source.includes('The Laurion Leases'));
     expect(named).toHaveLength(1);
-    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before / 2));
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before / 4));
     expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(foldTilePrice(lines));
   });
 
@@ -753,7 +753,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     const lines = explainTilePurchase(state, 0, city.id, hidden);
     const discount = lines.filter((line) => line.source.includes('The Laurion Leases'));
     expect(discount).toHaveLength(1);
-    expect(foldTilePrice(lines)).toBe(Math.floor((foldTilePrice(lines) - discount[0]!.amount) / 2));
+    expect(foldTilePrice(lines)).toBe(Math.floor((foldTilePrice(lines) - discount[0]!.amount) / 4));
   });
 
   it('is silent to a caller with no hex in hand', () => {
@@ -762,7 +762,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     expect(cardRulePercent(state, 0, 'tilePurchase')).toEqual([]);
   });
 
-  it('sums with a discount on every hex before one multiplication', () => {
+  it('keeps the larger individual discount when another discount applies', () => {
     const { state, city, seam, plain } = ground();
     const before = { seam: tilePurchasePrice(state, 0, city.id, seam), plain: tilePurchasePrice(state, 0, city.id, plain) };
     lent.push(
@@ -770,7 +770,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     );
     hold(state, 'theApoikia');
     hold(state, 'theLaurionLeases');
-    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before.seam * 0.4));
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before.seam * 0.25));
     expect(tilePurchasePrice(state, 0, city.id, plain)).toBe(Math.floor(before.plain * 0.9));
   });
 
@@ -791,7 +791,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     player.tilesPurchased = 5;
     state.turn = 20;
     bumpRevision(state);
-    const everywhere: CardEffect = { kind: 'rulePercent', rule: 'tilePurchase', percent: -50 };
+    const everywhere: CardEffect = { kind: 'rulePercent', rule: 'tilePurchase', percent: -75 };
     const narrow = doctrineDef('theLaurionLeases').effects;
     const whole = scoreEffects([everywhere], valueContext(state, player));
     const part = scoreEffects(narrow, valueContext(state, player));

@@ -502,7 +502,7 @@ describe('The Laurion Leases', () => {
     const ring = RULES.cities.tilePurchase.ringBase[0]!;
     const passing = owned.filter((tile) => tile.resource !== undefined).length / owned.length;
     expect(passing).toBeGreaterThan(0);
-    expect(scoreEffects([row], ctx)).toBeCloseTo(explainLump({ gold: 0.5 * ring * passing }, ctx).total * rate, 10);
+    expect(scoreEffects([row], ctx)).toBeCloseTo(explainLump({ gold: 0.75 * ring * passing }, ctx).total * rate, 10);
   });
 });
 

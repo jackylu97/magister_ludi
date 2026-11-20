@@ -9518,12 +9518,12 @@ interface CardPurchaseRiderEffect {
    * board and returns, and no bank names it — so the three cards in play that
    * say `'all'` were written about the roster and repricing their owners' routes
    * would be changing live cards by a side effect. A row that means a route says
-   * so.
+   * so. `everyPurchase` also includes hexes, caravans and great-person offers.
    *
    * `class` is not asked of a route, exactly as it is not asked of a building:
    * the row writes `{}` and the filter is skipped.
    */
-  on?: 'unit' | 'building' | 'route' | 'all';
+  on?: 'unit' | 'building' | 'route' | 'all' | 'everyPurchase';
   /** Signed whole percent off the price. `-25` is the Ziggurat's quarter. */
   percent: number;
   /**

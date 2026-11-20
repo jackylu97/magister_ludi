@@ -1,5 +1,26 @@
 {
   "orders": {
+    "commerceOpenMarket": {
+      "name": "The Open Market",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Every stall posts its price.",
+      "text": "Everything you buy with gold costs 20% less.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "on": "everyPurchase",
+          "class": {},
+          "currency": "gold",
+          "percent": -20
+        }
+      ]
+    },
     "commerceSaltTithes": {
       "name": "Salt Tithes",
       "decks": [
@@ -3112,12 +3133,12 @@
       "band": 1,
       "line": "none",
       "flavor": "The city sold the right to dig, and never the hill.",
-      "text": "Hexes with a resource cost half as much gold to buy.",
+      "text": "Hexes with a resource cost a quarter as much gold to buy.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "tilePurchase",
-          "percent": -50,
+          "percent": -75,
           "tile": {
             "test": "hasResource"
           }

@@ -164,7 +164,7 @@ const deferred = (): OrderId[] =>
   COMMERCE.filter((id) => !isLive(id) && orderDef(id).retired !== true);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries ninety-three rows, every one of them a Commerce card', () => {
+  it('keeps every private Commerce row in the Commerce file', () => {
     // Sixty after C1; C2 adds the six the sheet proposed and nobody had written
     // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
     // Districts, The Capital Arsenal, Foreign Procurement). C3 adds one more,
@@ -198,7 +198,8 @@ describe('the Commerce deck is one deck', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retires nine
     // live rows, which stay in the file for saves. Batch DS4 adds two Tier 0
     // rows, The Pack Trail and The First Caravan, so 111 rows become 113.
-    expect(COMMERCE.length).toBe(113);
+    // The Open Market adds one live Tier 0 row.
+    expect(COMMERCE.length).toBe(114);
     expect(retired().length).toBe(43);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
@@ -262,10 +263,10 @@ describe('the Commerce deck is one deck', () => {
     // at Tier IV: 8 / 13 / 20 / 16 / 11.
     // Batch DS4 adds two rows at Tier 0 (The Pack Trail, The First Caravan):
     // 10 / 13 / 20 / 16 / 11.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([17, 22, 36, 23, 15]);
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([18, 22, 36, 23, 15]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      10, 13, 20, 16, 11,
+      11, 13, 20, 16, 11,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -389,7 +390,7 @@ describe('a live Commerce row is a card', () => {
     // Strongbox, The Merchant Guilds).
     // **Batch DS1**: sixty-eight. Nine live rows are retired.
     // **Batch DS4**: seventy. The Pack Trail and The First Caravan are new.
-    expect(live().length).toBe(70);
+    expect(live().length).toBe(71);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -513,6 +514,7 @@ describe('a live Commerce row is a card', () => {
       'percentYields',
       'periodic',
       'productionBonus',
+      'purchaseRider',
       'renown',
       'routeRider',
       'rule',
@@ -1042,15 +1044,15 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch DS1 retires nine of the sheet's cards and six shared cards.
     // Batch DS4 adds The Pack Trail and The First Caravan. Batch R1 adds the
     // shared The Country Fair.
-    expect(sheet).toHaveLength(70);
+    expect(sheet).toHaveLength(71);
     expect(shared).toHaveLength(18);
   });
 
-  it('types every listed row, 70 of this file and 18 shared, and nothing else of this file', () => {
+  it('types every listed row, 71 of this file and 18 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
     // Batch DS1 retires nine. Batch DS4 adds two.
-    expect(LISTED).toHaveLength(70);
+    expect(LISTED).toHaveLength(71);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -1110,7 +1112,10 @@ describe('a seeded draft for a Commerce figure', () => {
         expect(orderIsDealt(id), id).toBe(true);
         // Never a deferred row, never a charter waiting on its building.
         expect(
-          def.effects.length > 0 || def.charter !== undefined || def.commission !== undefined,
+          def.effects.length > 0 ||
+            def.charter !== undefined ||
+            def.commission !== undefined ||
+            (def.onDraft?.length ?? 0) > 0,
           id,
         ).toBe(true);
       }

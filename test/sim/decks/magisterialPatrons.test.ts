@@ -355,7 +355,7 @@ describe('Sacred Patronage', () => {
     // says. What rises is the renown each later great person needs.
     const result = applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'faith' });
     expect(result.ok, result.ok ? '' : result.error).toBe(true);
-    expect(player.faithPool).toBe(10_000 - greatPersonOfferPrice('faith'));
+    expect(player.faithPool).toBe(10_000 - greatPersonOfferPrice(state, 0, 'faith'));
     expect(player.greatPersonOffer).toBeDefined();
   });
 });

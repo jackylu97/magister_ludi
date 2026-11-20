@@ -675,8 +675,9 @@ describe('the schema, as landed', () => {
     // The Liturgies and The Learned Embassy add two more.
     // Ten final Orders complete the generic set.
     // The Dominion and Magisterial revisions add twelve more live Orders between them.
-    expect(live).toBe(517);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(517);
+    // The Open Market adds one live Commerce Order.
+    expect(live).toBe(518);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(518);
   });
 
   /**

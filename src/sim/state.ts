@@ -607,8 +607,11 @@ import {
  *
  * v249 changes the religion name draw, roster offers, Great Work yields and
  * the placement of purchased units. Old command logs use different outcomes.
+ *
+ * v250 changes Commerce offers and purchase prices, lumber mill yields and
+ * the sites that can take a terrace. Replaying an older game would change its outcome.
  */
-export const SCHEMA_VERSION = 249;
+export const SCHEMA_VERSION = 250;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
