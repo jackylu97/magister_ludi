@@ -635,6 +635,28 @@ abilities and its building.
 - Whether The Great City and The Hall of Worthies stay at these figures after
   the arithmetic above.
 
+## The user's last rulings on the readings (2026-11-20)
+
+"1. school of mieza is great. 2. lets use order, i added that as a nerf 3.
+let's make it for every 4 citizens. 4. +5 scholar renown is fine i think, i
+want one leader who's playstyle is grabbing as many scholars as possible"
+
+**This section overrules the one above where they differ.** Nothing in the
+leader pass waits on the user now.
+
+- **Alexander's building is The School of Mieza.**
+- **Cyrus, The Cyrus Cylinder:** cities joined to your capital by road gain +1
+  happiness, and +1 culture for every Order seated in a Civic or Wildcard
+  chair of your government. An empty chair pays nothing: the user chose
+  "order" over "slot" as a nerf. The count is cards seated in chairs of those
+  two types (`slottedOrdersOfSlot`), so the new chair count is not needed. The
+  happiness clause stays (the user did not withdraw it).
+- **Jayavarman VII, The Great City:** +1 culture and +1 faith for every 4
+  citizens in your empire. 120 citizens in Æra III pay +30 and +30.
+- **Sejong, The Hall of Worthies:** stays one in each city at +5 scholar
+  renown and +4 science. The user wants a leader whose way to play is to call
+  as many scholars as possible.
+
 ## Record: 1. The structure
 
 This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, "Leaders: a more mainstream roster, one for each pair of decks"). Nothing here is built or ruled. You choose; the build follows your choice.

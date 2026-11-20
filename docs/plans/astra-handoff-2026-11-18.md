@@ -311,8 +311,9 @@ reasoning; they are not the spec.
   "The user's rulings on the readings (2026-11-20)" before sections 1, 2 and
   4: it overrules them where they differ (eleven lines changed, among them all
   of Jayavarman VII's abilities and building, Lorenzo's caps, Cleopatra's
-  deals and Sejong's Hall). Three points in its "Still open" list wait for the
-  user. The great person Cosimo de' Medici is replaced by Jacques Cœur (in the
+  deals and Sejong's Hall). The short section after it, "The user's last rulings on the
+  readings", closes its open points and overrules it in turn. Nothing in the
+  leader pass waits on the user. The great person Cosimo de' Medici is replaced by Jacques Cœur (in the
   great people pass).
 - **The great person named Ibn Battuta** is renamed Ibn Jubayr (great people
   change C25), since the leader keeps the name.
