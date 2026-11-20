@@ -25,3 +25,4 @@ docs pass's fence. Read one only when a comment sends you to it.
 | `wager-worksheet.md` | the cut/keep list and bench behind `docs/wager.md`; a docblock citing "`docs/wager.md` §1–§11" means **this file's** numbered sections |
 | `webgl-audit-2026-10-06.md` | the 3D renderer's GPU memory, per-frame work, shadow rig and context-loss handling, after the September painted-performance passes |
 | `s3-encapsulation-2026-11-07.md` | where the Doctrine build's logic lives, which groups of `value.ts`, `evaluator.ts`, `draft.ts` and `bot.ts` hold together, and the moves and merges of stage 3 of the performance pass |
+| [Yield calculation frequency](yield-calculation-frequency-2026-11-20.md) | why a city crossing refreshed the top bar, where yields are calculated, and which calls the input benchmark counts |

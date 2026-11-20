@@ -1,0 +1,9 @@
+# When to sample the walking pose
+
+Keep the current timing. A temporary renderer sampled the walking model after board updates and before shadow updates. It used the same path, clock and easing function. Sampling 4.0 to 5.5 ms later increased the first-frame displacement from 0.04–0.23 to 0.12–0.73 CSS pixels. Across eight moves, neither timing reached one CSS pixel on the first draw. Both reached it on the same subsequent draw in every comparison. [Frame measurements](walking-pose-2026-11-20.json)
+
+Four fresh Chrome profiles ran the turn 120 pikeman and swordsman moves on Apple M4 Metal. They used normal resolution with bot preparation enabled. The renderers ran in the order original, later, later, original. Each real move recorded the two possible sample times on the same frames. After the move, the original animation function evaluated the route at each recorded time. This comparison controls for different amounts of CPU work and different gaps between frames. [Fixed actions](../../../scripts/input-latency/turn120-city-actions.json)
+
+All 271 submitted walking positions matched the original horizontal path at the chosen time within 0.000000001 world units. The resting model stayed hidden during each walk and returned on the correct destination. All four profiles declined to draw a test walk into hidden ground. Seven moves reached the threshold on the second draw. One reached it on the third. These are submitted board frames. The captures do not identify the monitor scanout of the moving model. [Checks and per-move results](walking-pose-2026-11-20.json)
+
+The repeated Dawnreach move identifies a separate place to test. The yield strip recalculated 17 cities between walking frames after the unit passed through the city. [Mid-turn HUD measurements](midturn-latency-2026-11-20.md)

@@ -1,0 +1,322 @@
+{
+  "baseRevision": "d77c22c5",
+  "fixtureSha256": "d4c94d9b86025e090e4cbada41453cae1277f5551d7375f79b1406d8cfdc6c96",
+  "environment": {
+    "seat": 0,
+    "turn": 120,
+    "units": 489,
+    "cities": 74,
+    "pixelRatio": 1.5,
+    "buffer": [
+      2205,
+      1189
+    ],
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "hardwareConcurrency": 10,
+    "visibility": "visible"
+  },
+  "method": "Fresh headless Metal profiles with bot preparation on. The variant samples the same walk after updating board layers, just before updating shadows and drawing. The original samples at frame entry. Scratch code captured both sample timestamps in each frame. After each walk, the original animation sampler evaluated the route at both recorded times. Each drawn horizontal position had to match its variant to within 1e-9 world units.",
+  "actions": "turn120-city-actions.json",
+  "runs": [
+    {
+      "mode": "early",
+      "walks": [
+        {
+          "unit": 1293,
+          "path": [
+            {
+              "col": 53,
+              "row": 26
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.23,
+          "firstDrawLateCssPx": 0.73,
+          "firstDrawActualCssPx": 0.23,
+          "firstDrawSampleGapMs": 4.7,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 41.6,
+          "checkedWalkingDraws": 10,
+          "arrivalTile": [
+            53,
+            26
+          ],
+          "restoredAtDestination": true
+        },
+        {
+          "unit": 818,
+          "path": [
+            {
+              "col": 53,
+              "row": 28
+            },
+            {
+              "col": 52,
+              "row": 27
+            },
+            {
+              "col": 52,
+              "row": 26
+            },
+            {
+              "col": 52,
+              "row": 25
+            },
+            {
+              "col": 52,
+              "row": 24
+            },
+            {
+              "col": 51,
+              "row": 24
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.04,
+          "firstDrawLateCssPx": 0.12,
+          "firstDrawActualCssPx": 0.04,
+          "firstDrawSampleGapMs": 4.2,
+          "earlyFirstVisibleDraw": 3,
+          "lateFirstVisibleDraw": 3,
+          "actualFirstVisibleDraw": 3,
+          "releaseToVisibleDrawMs": 47.7,
+          "checkedWalkingDraws": 58,
+          "arrivalTile": [
+            51,
+            24
+          ],
+          "restoredAtDestination": true
+        }
+      ],
+      "fogRefusedAt": [
+        0,
+        0
+      ]
+    },
+    {
+      "mode": "late",
+      "walks": [
+        {
+          "unit": 1293,
+          "path": [
+            {
+              "col": 53,
+              "row": 26
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.08,
+          "firstDrawLateCssPx": 0.52,
+          "firstDrawActualCssPx": 0.52,
+          "firstDrawSampleGapMs": 5.5,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 41.7,
+          "checkedWalkingDraws": 10,
+          "arrivalTile": [
+            53,
+            26
+          ],
+          "restoredAtDestination": true
+        },
+        {
+          "unit": 818,
+          "path": [
+            {
+              "col": 53,
+              "row": 28
+            },
+            {
+              "col": 52,
+              "row": 27
+            },
+            {
+              "col": 52,
+              "row": 26
+            },
+            {
+              "col": 52,
+              "row": 25
+            },
+            {
+              "col": 52,
+              "row": 24
+            },
+            {
+              "col": 51,
+              "row": 24
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.11,
+          "firstDrawLateCssPx": 0.23,
+          "firstDrawActualCssPx": 0.23,
+          "firstDrawSampleGapMs": 4.0,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 37.8,
+          "checkedWalkingDraws": 57,
+          "arrivalTile": [
+            51,
+            24
+          ],
+          "restoredAtDestination": true
+        }
+      ],
+      "fogRefusedAt": [
+        0,
+        0
+      ]
+    },
+    {
+      "mode": "late",
+      "walks": [
+        {
+          "unit": 1293,
+          "path": [
+            {
+              "col": 53,
+              "row": 26
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.17,
+          "firstDrawLateCssPx": 0.72,
+          "firstDrawActualCssPx": 0.72,
+          "firstDrawSampleGapMs": 5.4,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 45.1,
+          "checkedWalkingDraws": 10,
+          "arrivalTile": [
+            53,
+            26
+          ],
+          "restoredAtDestination": true
+        },
+        {
+          "unit": 818,
+          "path": [
+            {
+              "col": 53,
+              "row": 28
+            },
+            {
+              "col": 52,
+              "row": 27
+            },
+            {
+              "col": 52,
+              "row": 26
+            },
+            {
+              "col": 52,
+              "row": 25
+            },
+            {
+              "col": 52,
+              "row": 24
+            },
+            {
+              "col": 51,
+              "row": 24
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.11,
+          "firstDrawLateCssPx": 0.25,
+          "firstDrawActualCssPx": 0.25,
+          "firstDrawSampleGapMs": 4.9,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 40,
+          "checkedWalkingDraws": 58,
+          "arrivalTile": [
+            51,
+            24
+          ],
+          "restoredAtDestination": true
+        }
+      ],
+      "fogRefusedAt": [
+        0,
+        0
+      ]
+    },
+    {
+      "mode": "early",
+      "walks": [
+        {
+          "unit": 1293,
+          "path": [
+            {
+              "col": 53,
+              "row": 26
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.1,
+          "firstDrawLateCssPx": 0.45,
+          "firstDrawActualCssPx": 0.1,
+          "firstDrawSampleGapMs": 4.5,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 38.1,
+          "checkedWalkingDraws": 10,
+          "arrivalTile": [
+            53,
+            26
+          ],
+          "restoredAtDestination": true
+        },
+        {
+          "unit": 818,
+          "path": [
+            {
+              "col": 53,
+              "row": 28
+            },
+            {
+              "col": 52,
+              "row": 27
+            },
+            {
+              "col": 52,
+              "row": 26
+            },
+            {
+              "col": 52,
+              "row": 25
+            },
+            {
+              "col": 52,
+              "row": 24
+            },
+            {
+              "col": 51,
+              "row": 24
+            }
+          ],
+          "firstDrawEarlyCssPx": 0.07,
+          "firstDrawLateCssPx": 0.17,
+          "firstDrawActualCssPx": 0.07,
+          "firstDrawSampleGapMs": 4.4,
+          "earlyFirstVisibleDraw": 2,
+          "lateFirstVisibleDraw": 2,
+          "actualFirstVisibleDraw": 2,
+          "releaseToVisibleDrawMs": 38.5,
+          "checkedWalkingDraws": 58,
+          "arrivalTile": [
+            51,
+            24
+          ],
+          "restoredAtDestination": true
+        }
+      ],
+      "fogRefusedAt": [
+        0,
+        0
+      ]
+    }
+  ]
+}

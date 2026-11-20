@@ -1,0 +1,1441 @@
+{
+  "gameRevision": "d77c22c5",
+  "fixtureSha256": "d4c94d9b86025e090e4cbada41453cae1277f5551d7375f79b1406d8cfdc6c96",
+  "inputs": [
+    {
+      "kind": "select",
+      "unit": 818,
+      "x": 833,
+      "y": 434
+    },
+    {
+      "kind": "select",
+      "unit": 999,
+      "x": 882,
+      "y": 477
+    },
+    {
+      "kind": "select",
+      "unit": 818,
+      "x": 833,
+      "y": 434
+    },
+    {
+      "kind": "select",
+      "unit": 999,
+      "x": 882,
+      "y": 477
+    },
+    {
+      "kind": "select",
+      "unit": 1293,
+      "x": 784,
+      "y": 353
+    },
+    {
+      "kind": "move",
+      "unit": 1293,
+      "x": 833,
+      "y": 296,
+      "target": {
+        "col": 54,
+        "row": 26
+      }
+    },
+    {
+      "kind": "select",
+      "unit": 818,
+      "x": 833,
+      "y": 434
+    },
+    {
+      "kind": "move",
+      "unit": 818,
+      "x": 931,
+      "y": 295,
+      "target": {
+        "col": 55,
+        "row": 26
+      }
+    }
+  ],
+  "environment": {
+    "seat": 0,
+    "turn": 120,
+    "units": 489,
+    "cities": 74,
+    "pixelRatio": 1.5,
+    "buffer": [
+      2205,
+      1189
+    ],
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "hardwareConcurrency": 10,
+    "visibility": "visible"
+  },
+  "method": "Real Chrome pointer events. Each mode starts a fresh Chrome process. Modes ran on/off, then off/on. Times below are milliseconds unless labelled otherwise. A confirmed worker interval measures elapsed coordinator time, including waits for seat workers.",
+  "runs": [
+    {
+      "mode": "on",
+      "workerRequests": [
+        {
+          "id": 1,
+          "mainThreadPostMs": 1.6,
+          "coordinatorElapsedMs": 1534.1
+        },
+        {
+          "id": 2,
+          "mainThreadPostMs": 2.4,
+          "coordinatorElapsedMs": 623.8
+        },
+        {
+          "id": 3,
+          "mainThreadPostMs": 1.9,
+          "coordinatorElapsedMs": 615.4
+        }
+      ],
+      "interactions": [
+        {
+          "input": 1,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 4,
+          "releaseQueue": 1.2,
+          "pressToDraw": 35.6,
+          "releaseToDraw": 30.6,
+          "unattributed": 3,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 5.9,
+            "overlays": 0.4,
+            "range": 2,
+            "swap": 2,
+            "landing checks": 0.6,
+            "board layers": 8.7,
+            "HUD": 3.3,
+            "board frame": 1.4,
+            "board draw": 1.8
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 3.3,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 2,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 1.6,
+          "releaseQueue": 0.3,
+          "pressToDraw": 20.7,
+          "releaseToDraw": 18.7,
+          "unattributed": 7,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 4,
+            "range": 0.3,
+            "swap": 0.2,
+            "landing checks": 0.1,
+            "overlays": 0.1,
+            "HUD": 2.1,
+            "board layers": 1.4,
+            "board frame": 1.4,
+            "board draw": 1.5
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 3,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1.6,
+          "releaseQueue": 0.6,
+          "pressToDraw": 23,
+          "releaseToDraw": 21,
+          "unattributed": 3.2,
+          "exclusive": {
+            "controls": 0.6,
+            "picking": 5.6,
+            "range": 0.3,
+            "swap": 1.1,
+            "landing checks": 0.4,
+            "overlays": 0.1,
+            "HUD": 2.6,
+            "board layers": 3.5,
+            "board frame": 1.1,
+            "board draw": 1.9
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.6,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 4,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 1.2,
+          "releaseQueue": 1.2,
+          "pressToDraw": 20.5,
+          "releaseToDraw": 19.5,
+          "unattributed": 7.9,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 3.2,
+            "overlays": 0.2,
+            "range": 0.2,
+            "swap": 0.3,
+            "HUD": 2.1,
+            "board layers": 0.9,
+            "board frame": 1.5,
+            "board draw": 1.8
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 5,
+          "kind": "select",
+          "unit": 1293,
+          "pressQueue": 0.7,
+          "releaseQueue": 0.8,
+          "pressToDraw": 20.3,
+          "releaseToDraw": 19.3,
+          "unattributed": 6.8,
+          "exclusive": {
+            "controls": 0.7,
+            "picking": 3,
+            "range": 0.5,
+            "swap": 0.2,
+            "overlays": 0.1,
+            "HUD": 2.2,
+            "board layers": 1.9,
+            "board frame": 1.5,
+            "board draw": 1.6
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.2,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 6,
+          "kind": "move",
+          "unit": 1293,
+          "pressQueue": 0.5,
+          "releaseQueue": 0.6,
+          "pressToDraw": 46.4,
+          "releaseToDraw": 45.4,
+          "unattributed": 4.1,
+          "exclusive": {
+            "controls": 0.8,
+            "picking": 1.2,
+            "route": 0.3,
+            "commit": 1.0,
+            "reducer": 0.4,
+            "move rules": 0.3,
+            "walk rules": 0.7,
+            "visibility": 2.4,
+            "HUD": 7.5,
+            "start walk": 0.6,
+            "range": 0.2,
+            "overlays": 0.3,
+            "walking pose": 0.4,
+            "board layers": 5.1,
+            "moving shadows": 0.1,
+            "board frame": 10.2,
+            "board draw": 8.7,
+            "landing checks": 0.4,
+            "economy readings": 0.1
+          },
+          "inclusive": {
+            "applyCommand": 3.9,
+            "updatePanel": 6.1,
+            "syncStateLayers": 5.1,
+            "recomputeMarchSight": 2.4
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 33.6,
+              "cssPx": 0.17
+            },
+            {
+              "afterRelease": 45.4,
+              "cssPx": 6.85
+            }
+          ],
+          "workerOverlap": []
+        },
+        {
+          "input": 7,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1,
+          "releaseQueue": 1.5,
+          "pressToDraw": 20.5,
+          "releaseToDraw": 19.4,
+          "unattributed": 2.4,
+          "exclusive": {
+            "controls": 0.1,
+            "picking": 5.0,
+            "range": 0.4,
+            "swap": 1.0,
+            "landing checks": 0.8,
+            "overlays": 0.1,
+            "HUD": 2.5,
+            "board frame": 1.4,
+            "board layers": 2.8,
+            "board draw": 1.4
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.5,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": [
+            {
+              "id": 2,
+              "coordinatorElapsedMs": 19.4,
+              "mainThreadPostMs": 0
+            }
+          ]
+        },
+        {
+          "input": 8,
+          "kind": "move",
+          "unit": 818,
+          "pressQueue": 1.2,
+          "releaseQueue": 0.9,
+          "pressToDraw": 36.4,
+          "releaseToDraw": 35.4,
+          "unattributed": 16.8,
+          "exclusive": {
+            "controls": 0.4,
+            "picking": 0.6,
+            "route": 0.5,
+            "reducer": 0.2,
+            "walk rules": 0.1,
+            "landing checks": 0.5,
+            "visibility": 0.6,
+            "commit": 0.1,
+            "start walk": 0.3,
+            "range": 0.1,
+            "overlays": 0.2,
+            "walking pose": 0.1,
+            "board frame": 4.3,
+            "board layers": 3.1,
+            "board draw": 3,
+            "HUD": 3.6
+          },
+          "inclusive": {
+            "applyCommand": 1.2,
+            "updatePanel": 4,
+            "syncStateLayers": 3.1,
+            "recomputeMarchSight": 0.6
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 22.1,
+              "cssPx": 0.39
+            },
+            {
+              "afterRelease": 35.4,
+              "cssPx": 2.16
+            }
+          ],
+          "workerOverlap": [
+            {
+              "id": 2,
+              "coordinatorElapsedMs": 35.4,
+              "mainThreadPostMs": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "off",
+      "workerRequests": [],
+      "interactions": [
+        {
+          "input": 1,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1.4,
+          "releaseQueue": 0.7,
+          "pressToDraw": 41.4,
+          "releaseToDraw": 39.4,
+          "unattributed": 3.6,
+          "exclusive": {
+            "controls": 0.7,
+            "picking": 8.4,
+            "overlays": 0.4,
+            "range": 2.5,
+            "swap": 3.2,
+            "landing checks": 1.1,
+            "board layers": 10,
+            "HUD": 4.1,
+            "board frame": 2.0,
+            "board draw": 2.7
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 4.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 2,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 1.3,
+          "releaseQueue": 1.1,
+          "pressToDraw": 17.7,
+          "releaseToDraw": 16.7,
+          "unattributed": 1.4,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 5.8,
+            "overlays": 0.4,
+            "range": 0.4,
+            "landing checks": 0.1,
+            "swap": 0.1,
+            "HUD": 2.5,
+            "board layers": 1.2,
+            "board frame": 1.6,
+            "board draw": 1.8
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.5,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 3,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1,
+          "releaseQueue": 0.6,
+          "pressToDraw": 19.1,
+          "releaseToDraw": 18.1,
+          "unattributed": 1.3,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 6.1,
+            "range": 0.4,
+            "landing checks": 0.5,
+            "swap": 0.9,
+            "overlays": 0.1,
+            "HUD": 2.1,
+            "board frame": 1.4,
+            "board layers": 3.1,
+            "board draw": 1.4
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 4,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 0.4,
+          "releaseQueue": 1.1,
+          "pressToDraw": 17,
+          "releaseToDraw": 17,
+          "unattributed": 6,
+          "exclusive": {
+            "controls": 0.1,
+            "picking": 3.8,
+            "range": 0.2,
+            "swap": 0.2,
+            "overlays": 0.1,
+            "HUD": 1.7,
+            "board layers": 0.9,
+            "board frame": 1.6,
+            "board draw": 1.3
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 1.7,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 5,
+          "kind": "select",
+          "unit": 1293,
+          "pressQueue": 1.4,
+          "releaseQueue": 1.2,
+          "pressToDraw": 18,
+          "releaseToDraw": 17,
+          "unattributed": 5.9,
+          "exclusive": {
+            "controls": 0.4,
+            "picking": 2.6,
+            "range": 0.4,
+            "landing checks": 0.1,
+            "swap": 0.1,
+            "HUD": 1.9,
+            "board layers": 1.1,
+            "board frame": 1.3,
+            "board draw": 2
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 1.9,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 6,
+          "kind": "move",
+          "unit": 1293,
+          "pressQueue": 1.2,
+          "releaseQueue": 1.1,
+          "pressToDraw": 38.4,
+          "releaseToDraw": 37.4,
+          "unattributed": 3.8,
+          "exclusive": {
+            "controls": 0.8,
+            "picking": 0.9,
+            "route": 0.2,
+            "commit": 0.8,
+            "reducer": 0.2,
+            "move rules": 0.2,
+            "walk rules": 0.6,
+            "visibility": 1.7,
+            "HUD": 6.4,
+            "start walk": 0.5,
+            "overlays": 0.4,
+            "range": 0.1,
+            "board frame": 8.4,
+            "walking pose": 0.2,
+            "board layers": 4.6,
+            "board draw": 6.4,
+            "landing checks": 0.1
+          },
+          "inclusive": {
+            "applyCommand": 2.8,
+            "updatePanel": 5.2,
+            "syncStateLayers": 4.6,
+            "recomputeMarchSight": 1.7
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 26.9,
+              "cssPx": 0.13
+            },
+            {
+              "afterRelease": 37.4,
+              "cssPx": 4.4
+            }
+          ],
+          "workerOverlap": []
+        },
+        {
+          "input": 7,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1.1,
+          "releaseQueue": 0.8,
+          "pressToDraw": 22.8,
+          "releaseToDraw": 21.8,
+          "unattributed": 2.4,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 6.6,
+            "range": 0.6,
+            "swap": 1.7,
+            "landing checks": 0.6,
+            "overlays": 0.1,
+            "HUD": 2.9,
+            "board layers": 3,
+            "board frame": 1.5,
+            "board draw": 1.4
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.9,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 8,
+          "kind": "move",
+          "unit": 818,
+          "pressQueue": 0.6,
+          "releaseQueue": 0.4,
+          "pressToDraw": 36.4,
+          "releaseToDraw": 35.5,
+          "unattributed": 16.9,
+          "exclusive": {
+            "controls": 0.5,
+            "picking": 0.7,
+            "route": 0.2,
+            "landing checks": 0.2,
+            "commit": 0.3,
+            "reducer": 0.1,
+            "walk rules": 0.2,
+            "visibility": 0.6,
+            "start walk": 0.3,
+            "range": 0.1,
+            "overlays": 0.2,
+            "board layers": 3,
+            "board frame": 4,
+            "board draw": 3.1,
+            "HUD": 4.5,
+            "walking pose": 0.2
+          },
+          "inclusive": {
+            "applyCommand": 1.1,
+            "updatePanel": 4.5,
+            "syncStateLayers": 3.0,
+            "recomputeMarchSight": 0.6
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 21.7,
+              "cssPx": 0.41
+            },
+            {
+              "afterRelease": 35.5,
+              "cssPx": 2.22
+            }
+          ],
+          "workerOverlap": []
+        }
+      ]
+    },
+    {
+      "mode": "off",
+      "workerRequests": [],
+      "interactions": [
+        {
+          "input": 1,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1.3,
+          "releaseQueue": 1,
+          "pressToDraw": 36.4,
+          "releaseToDraw": 35.4,
+          "unattributed": 2.6,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 8,
+            "overlays": 0.4,
+            "range": 1.8,
+            "landing checks": 0.8,
+            "swap": 2.1,
+            "board layers": 11,
+            "HUD": 3.4,
+            "board frame": 1.8,
+            "board draw": 2.2
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 3.4,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 2,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 1,
+          "releaseQueue": 0.7,
+          "pressToDraw": 19.9,
+          "releaseToDraw": 18.9,
+          "unattributed": 6.3,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 4.6,
+            "range": 0.3,
+            "landing checks": 0.1,
+            "swap": 0.1,
+            "overlays": 0.2,
+            "HUD": 2.2,
+            "board frame": 1.4,
+            "board layers": 1.2,
+            "board draw": 1.5
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.2,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 3,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 0.7,
+          "releaseQueue": 0.4,
+          "pressToDraw": 21.5,
+          "releaseToDraw": 20.5,
+          "unattributed": 3.9,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 6.1,
+            "range": 0.3,
+            "swap": 1.1,
+            "landing checks": 0.4,
+            "HUD": 2.4,
+            "board layers": 2.8,
+            "board frame": 1.3,
+            "board draw": 1.6
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.4,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 4,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 0.5,
+          "releaseQueue": 1.1,
+          "pressToDraw": 19.1,
+          "releaseToDraw": 19.1,
+          "unattributed": 8.1,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 3.8,
+            "range": 0.3,
+            "landing checks": 0.1,
+            "overlays": 0.1,
+            "HUD": 2.1,
+            "board layers": 0.9,
+            "board frame": 1.1,
+            "board draw": 1.3
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 5,
+          "kind": "select",
+          "unit": 1293,
+          "pressQueue": 1,
+          "releaseQueue": 0.9,
+          "pressToDraw": 20.3,
+          "releaseToDraw": 19.3,
+          "unattributed": 9.1,
+          "exclusive": {
+            "controls": 0.4,
+            "picking": 2.4,
+            "range": 0.2,
+            "landing checks": 0.1,
+            "swap": 0.1,
+            "overlays": 0.1,
+            "HUD": 1.7,
+            "board layers": 1.5,
+            "board frame": 1.4,
+            "board draw": 1.4
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 1.7,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 6,
+          "kind": "move",
+          "unit": 1293,
+          "pressQueue": 1.2,
+          "releaseQueue": 0.9,
+          "pressToDraw": 41.8,
+          "releaseToDraw": 40.8,
+          "unattributed": 8.0,
+          "exclusive": {
+            "controls": 0.7,
+            "picking": 0.9,
+            "commit": 0.9,
+            "reducer": 0.2,
+            "route": 0.1,
+            "move rules": 0.2,
+            "walk rules": 0.5,
+            "visibility": 1.7,
+            "HUD": 6.6,
+            "start walk": 0.5,
+            "range": 0.2,
+            "overlays": 0.3,
+            "walking pose": 0.3,
+            "board layers": 4,
+            "board frame": 8.1,
+            "board draw": 6.4,
+            "landing checks": 0.3
+          },
+          "inclusive": {
+            "applyCommand": 2.7,
+            "updatePanel": 5.6,
+            "syncStateLayers": 4,
+            "recomputeMarchSight": 1.7
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 30.2,
+              "cssPx": 0.53
+            },
+            {
+              "afterRelease": 40.8,
+              "cssPx": 5.88
+            }
+          ],
+          "workerOverlap": []
+        },
+        {
+          "input": 7,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 0.8,
+          "releaseQueue": 0.4,
+          "pressToDraw": 22.3,
+          "releaseToDraw": 21.2,
+          "unattributed": 3.2,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 5.8,
+            "range": 0.7,
+            "landing checks": 0.8,
+            "swap": 1.2,
+            "HUD": 2.5,
+            "board layers": 3.1,
+            "board frame": 1.5,
+            "board draw": 1.7
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.5,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 8,
+          "kind": "move",
+          "unit": 818,
+          "pressQueue": 0.7,
+          "releaseQueue": 0.4,
+          "pressToDraw": 36.3,
+          "releaseToDraw": 35.2,
+          "unattributed": 16.5,
+          "exclusive": {
+            "controls": 0.4,
+            "picking": 0.6,
+            "route": 0.3,
+            "landing checks": 0.4,
+            "reducer": 0.2,
+            "walk rules": 0.1,
+            "visibility": 0.6,
+            "commit": 0.1,
+            "start walk": 0.2,
+            "overlays": 0.3,
+            "walking pose": 0.2,
+            "board layers": 3.4,
+            "board frame": 4.4,
+            "board draw": 3.3,
+            "HUD": 3.8
+          },
+          "inclusive": {
+            "applyCommand": 1.1,
+            "updatePanel": 4.1,
+            "syncStateLayers": 3.4,
+            "recomputeMarchSight": 0.6
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 22.4,
+              "cssPx": 0.41
+            },
+            {
+              "afterRelease": 35.2,
+              "cssPx": 2.24
+            }
+          ],
+          "workerOverlap": []
+        }
+      ]
+    },
+    {
+      "mode": "on",
+      "workerRequests": [
+        {
+          "id": 1,
+          "mainThreadPostMs": 2.1,
+          "coordinatorElapsedMs": 2059.7
+        },
+        {
+          "id": 2,
+          "mainThreadPostMs": 2.1,
+          "coordinatorElapsedMs": 838.5
+        },
+        {
+          "id": 3,
+          "mainThreadPostMs": 2.3,
+          "coordinatorElapsedMs": 794.0
+        }
+      ],
+      "interactions": [
+        {
+          "input": 1,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1.5,
+          "releaseQueue": 0.9,
+          "pressToDraw": 38,
+          "releaseToDraw": 36.1,
+          "unattributed": 2.9,
+          "exclusive": {
+            "controls": 0.3,
+            "picking": 7.2,
+            "overlays": 0.6,
+            "range": 2.0,
+            "swap": 2.8,
+            "landing checks": 0.9,
+            "board layers": 10.7,
+            "HUD": 4,
+            "board frame": 1.7,
+            "board draw": 2.1
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 4.0,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": [
+            {
+              "id": 1,
+              "coordinatorElapsedMs": 36.1,
+              "mainThreadPostMs": 0
+            }
+          ]
+        },
+        {
+          "input": 2,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 1.1,
+          "releaseQueue": 1.2,
+          "pressToDraw": 16.9,
+          "releaseToDraw": 16,
+          "unattributed": 3.6,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 4,
+            "range": 0.4,
+            "swap": 0.1,
+            "overlays": 0.2,
+            "HUD": 2.2,
+            "board frame": 1.5,
+            "board layers": 1.1,
+            "board draw": 1.5
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.2,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 3,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 0.4,
+          "releaseQueue": 1.1,
+          "pressToDraw": 18.9,
+          "releaseToDraw": 18.9,
+          "unattributed": 1.6,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 6.1,
+            "range": 0.3,
+            "landing checks": 0.7,
+            "swap": 0.6,
+            "overlays": 0.2,
+            "HUD": 2.1,
+            "board layers": 3.2,
+            "board frame": 1.3,
+            "board draw": 1.5
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.1,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 4,
+          "kind": "select",
+          "unit": 999,
+          "pressQueue": 0.9,
+          "releaseQueue": 0.6,
+          "pressToDraw": 16.2,
+          "releaseToDraw": 15.2,
+          "unattributed": 4.8,
+          "exclusive": {
+            "controls": 0.9,
+            "picking": 3.2,
+            "range": 0.2,
+            "swap": 0.2,
+            "overlays": 0.2,
+            "HUD": 1.8,
+            "board layers": 0.9,
+            "board frame": 1.1,
+            "board draw": 1.3
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 1.8,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 5,
+          "kind": "select",
+          "unit": 1293,
+          "pressQueue": 0.7,
+          "releaseQueue": 0.4,
+          "pressToDraw": 17.4,
+          "releaseToDraw": 16.4,
+          "unattributed": 7.2,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 2.5,
+            "range": 0.3,
+            "swap": 0.2,
+            "overlays": 0.1,
+            "HUD": 1.6,
+            "board layers": 1.1,
+            "board frame": 1.3,
+            "board draw": 1.5
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 1.6,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": []
+        },
+        {
+          "input": 6,
+          "kind": "move",
+          "unit": 1293,
+          "pressQueue": 1.1,
+          "releaseQueue": 1,
+          "pressToDraw": 41.8,
+          "releaseToDraw": 40.8,
+          "unattributed": 3.3,
+          "exclusive": {
+            "controls": 0.5,
+            "picking": 0.9,
+            "route": 0.4,
+            "commit": 1.0,
+            "reducer": 0.4,
+            "walk rules": 0.6,
+            "move rules": 0.1,
+            "visibility": 2.1,
+            "HUD": 9.2,
+            "start walk": 0.5,
+            "overlays": 0.4,
+            "range": 0.1,
+            "walking pose": 0.3,
+            "board layers": 4.4,
+            "board frame": 8.7,
+            "board draw": 6.7,
+            "landing checks": 0.2
+          },
+          "inclusive": {
+            "applyCommand": 3.4,
+            "updatePanel": 7.7,
+            "syncStateLayers": 4.4,
+            "recomputeMarchSight": 2.1
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 27.9,
+              "cssPx": 0.11
+            },
+            {
+              "afterRelease": 40.8,
+              "cssPx": 5.32
+            }
+          ],
+          "workerOverlap": []
+        },
+        {
+          "input": 7,
+          "kind": "select",
+          "unit": 818,
+          "pressQueue": 1,
+          "releaseQueue": 0.8,
+          "pressToDraw": 23.3,
+          "releaseToDraw": 22.2,
+          "unattributed": 0.9,
+          "exclusive": {
+            "controls": 0.2,
+            "picking": 7.6,
+            "range": 0.6,
+            "swap": 1.7,
+            "landing checks": 0.7,
+            "overlays": 0.1,
+            "HUD": 2.9,
+            "board layers": 3.6,
+            "board frame": 1.5,
+            "board draw": 1.6
+          },
+          "inclusive": {
+            "applyCommand": 0,
+            "updatePanel": 2.9,
+            "syncStateLayers": 0,
+            "recomputeMarchSight": 0
+          },
+          "economyReadingCalls": 17,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [],
+          "workerOverlap": [
+            {
+              "id": 2,
+              "coordinatorElapsedMs": 22.2,
+              "mainThreadPostMs": 0
+            }
+          ]
+        },
+        {
+          "input": 8,
+          "kind": "move",
+          "unit": 818,
+          "pressQueue": 0.7,
+          "releaseQueue": 1.1,
+          "pressToDraw": 33,
+          "releaseToDraw": 32,
+          "unattributed": 8.6,
+          "exclusive": {
+            "controls": 0.4,
+            "picking": 0.8,
+            "swap": 0.1,
+            "route": 0.3,
+            "reducer": 0.1,
+            "move rules": 0.1,
+            "landing checks": 0.5,
+            "walk rules": 0.1,
+            "visibility": 0.8,
+            "commit": 0.2,
+            "start walk": 0.3,
+            "range": 0.1,
+            "overlays": 0.3,
+            "board frame": 5.3,
+            "board layers": 3.6,
+            "board draw": 4.2,
+            "HUD": 4.9,
+            "walking pose": 0.2
+          },
+          "inclusive": {
+            "applyCommand": 1.4,
+            "updatePanel": 5.2,
+            "syncStateLayers": 3.6,
+            "recomputeMarchSight": 0.8
+          },
+          "economyReadingCalls": 24,
+          "cityOrEmpireYieldRecalculations": 0,
+          "walkDraws": [
+            {
+              "afterRelease": 18.7,
+              "cssPx": 0.11
+            },
+            {
+              "afterRelease": 32.0,
+              "cssPx": 1.48
+            }
+          ],
+          "workerOverlap": [
+            {
+              "id": 2,
+              "coordinatorElapsedMs": 32,
+              "mainThreadPostMs": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "alternateMove": {
+    "actions": [
+      {
+        "kind": "select",
+        "unit": 1293,
+        "x": 784,
+        "y": 353
+      },
+      {
+        "kind": "select",
+        "unit": 818,
+        "x": 833,
+        "y": 421
+      },
+      {
+        "kind": "select",
+        "unit": 1293,
+        "x": 784,
+        "y": 353
+      },
+      {
+        "kind": "select",
+        "unit": 818,
+        "x": 833,
+        "y": 421
+      },
+      {
+        "kind": "select",
+        "unit": 1293,
+        "x": 784,
+        "y": 353
+      },
+      {
+        "kind": "move",
+        "unit": 1293,
+        "x": 735,
+        "y": 297,
+        "target": {
+          "col": 53,
+          "row": 26
+        }
+      },
+      {
+        "kind": "select",
+        "unit": 818,
+        "x": 833,
+        "y": 421
+      },
+      {
+        "kind": "move",
+        "unit": 818,
+        "x": 539,
+        "y": 164,
+        "target": {
+          "col": 51,
+          "row": 24
+        }
+      }
+    ],
+    "route": [
+      [
+        54,
+        28
+      ],
+      [
+        53,
+        28
+      ],
+      [
+        52,
+        27
+      ],
+      [
+        52,
+        26
+      ],
+      [
+        52,
+        25
+      ],
+      [
+        52,
+        24
+      ],
+      [
+        51,
+        24
+      ]
+    ],
+    "reason": "In offline replay the economy stamp advanced twice during advanceAlongPath. The swordsman entered Dawnreach at (53,28) and left it on the next step. The city can read its garrison. No new tiles were charted.",
+    "captures": [
+      {
+        "botPreparation": "off",
+        "releaseToVisibleStepMs": 39.2,
+        "exclusiveYieldRecalculationMs": 6.3,
+        "modelDisplacementCssPx": [
+          0.14,
+          1.17
+        ],
+        "tipDismissedBeforeAction": [
+          7
+        ],
+        "inclusiveSpansMs": {
+          "applyCommand": 2.5,
+          "updatePanel": 11.5
+        },
+        "cityBreakdowns": 17,
+        "empireLineBreakdowns": 1,
+        "insideYieldStrip": null
+      },
+      {
+        "botPreparation": "on",
+        "releaseToVisibleStepMs": 43.2,
+        "exclusiveYieldRecalculationMs": 8.5,
+        "modelDisplacementCssPx": [
+          0.11,
+          1.39
+        ],
+        "tipDismissedBeforeAction": [
+          7
+        ],
+        "inclusiveSpansMs": {
+          "applyCommand": 2.5,
+          "updatePanel": 13.5,
+          "civYields.render": 9.7
+        },
+        "cityBreakdowns": 17,
+        "empireLineBreakdowns": 1,
+        "insideYieldStrip": {
+          "explainCity": 17,
+          "explainEmpireLines": 1
+        }
+      }
+    ]
+  }
+}

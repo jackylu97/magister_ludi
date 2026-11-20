@@ -1,0 +1,182 @@
+{
+  "fixtureSha256": "d4c94d9b86025e090e4cbada41453cae1277f5551d7375f79b1406d8cfdc6c96",
+  "turn": 120,
+  "actionFile": "scripts/input-latency/turn120-city-actions.json",
+  "prerequisite": {
+    "type": "moveUnit",
+    "playerId": 0,
+    "unitId": 1293,
+    "target": {
+      "col": 53,
+      "row": 26
+    }
+  },
+  "command": {
+    "type": "moveUnit",
+    "playerId": 0,
+    "unitId": 818,
+    "target": {
+      "col": 51,
+      "row": 24
+    }
+  },
+  "unit": {
+    "id": 818,
+    "ownerId": 0,
+    "type": "swordsman",
+    "col": 54,
+    "row": 28,
+    "hp": 110,
+    "movesLeft": 2,
+    "hasAttacked": false,
+    "fortifiedTurns": 2
+  },
+  "city": {
+    "id": 16,
+    "name": "Dawnreach",
+    "ownerId": 0
+  },
+  "method": [
+    "Apply both commands with applyCommand. Take the baseline after the prerequisite. Ignore selection actions in the headless simulation.",
+    "Record economyStamp after each arrival in advanceAlongPath. Clone the state at each step and again after the command. Discard the slate before reading each clone.",
+    "Compare exact serialized readings against the baseline, including contribution order and labels. Numbers shown below are rounded to eight decimal places."
+  ],
+  "coverage": {
+    "cities": 74,
+    "realSeats": 6,
+    "mapTiles": 4160,
+    "citiesCompared": "Full explainCity for every city.",
+    "seatsCompared": "explainEmpireLines, foldEmpireRates, cold readEmpire, explainHappiness and explainAuthority for every real player.",
+    "tilesCompared": "Ordered explainTileYield contributions for every tile. Use cityContext for claimed tiles and yieldContextFor for each real seat on unclaimed tiles."
+  },
+  "boundaries": [
+    {
+      "event": "baseline",
+      "col": 54,
+      "row": 28,
+      "economyStamp": 0,
+      "values": "baseline"
+    },
+    {
+      "event": "step",
+      "col": 53,
+      "row": 28,
+      "economyStamp": 1,
+      "values": "inside"
+    },
+    {
+      "event": "step",
+      "col": 52,
+      "row": 27,
+      "economyStamp": 2,
+      "values": "baseline"
+    },
+    {
+      "event": "step",
+      "col": 52,
+      "row": 26,
+      "economyStamp": 2,
+      "values": "baseline"
+    },
+    {
+      "event": "step",
+      "col": 52,
+      "row": 25,
+      "economyStamp": 2,
+      "values": "baseline"
+    },
+    {
+      "event": "step",
+      "col": 52,
+      "row": 24,
+      "economyStamp": 2,
+      "values": "baseline"
+    },
+    {
+      "event": "step",
+      "col": 51,
+      "row": 24,
+      "economyStamp": 2,
+      "values": "baseline"
+    },
+    {
+      "event": "commandEnd",
+      "col": 51,
+      "row": 24,
+      "economyStamp": 2,
+      "values": "baseline"
+    }
+  ],
+  "values": {
+    "baseline": {
+      "dawnreachFlats": {
+        "production": 92.25,
+        "science": 32.5
+      },
+      "seat0Rates": {
+        "productionPerTurn": 1130.7,
+        "sciencePerTurn": 493.65
+      },
+      "seat0Totals": {
+        "production": 1130.7,
+        "science": 512.05
+      }
+    },
+    "inside": {
+      "dawnreachFlats": {
+        "production": 104.25,
+        "science": 44.5
+      },
+      "seat0Rates": {
+        "productionPerTurn": 1143.18,
+        "sciencePerTurn": 505.65
+      },
+      "seat0Totals": {
+        "production": 1143.18,
+        "science": 524.05
+      }
+    }
+  },
+  "changedCityLines": [
+    {
+      "cityStep": 3,
+      "sourceBeforeAndAfter": "Order · The Regimental Schools · ×1",
+      "sourceInside": "Order · The Regimental Schools · ×2",
+      "yield": "science",
+      "valueBeforeAndAfter": 6,
+      "valueInside": 12
+    },
+    {
+      "cityStep": 3,
+      "sourceBeforeAndAfter": "Order · The Regimental Schools · ×1",
+      "sourceInside": "Order · The Regimental Schools · ×2",
+      "yield": "production",
+      "valueBeforeAndAfter": 6,
+      "valueInside": 12
+    },
+    {
+      "cityStep": 3,
+      "sourceBeforeAndAfter": "Order · The Regimental Schools · The Arthashastra · ×1",
+      "sourceInside": "Order · The Regimental Schools · The Arthashastra · ×2",
+      "yield": "science",
+      "valueBeforeAndAfter": 6,
+      "valueInside": 12
+    },
+    {
+      "cityStep": 3,
+      "sourceBeforeAndAfter": "Order · The Regimental Schools · The Arthashastra · ×1",
+      "sourceInside": "Order · The Regimental Schools · The Arthashastra · ×2",
+      "yield": "production",
+      "valueBeforeAndAfter": 6,
+      "valueInside": 12
+    }
+  ],
+  "unchangedThroughout": [
+    "Every tile contribution list, every direct empire line and every happiness and authority contribution list. Seat 0 happiness was -31.9 and authority was -13.",
+    "All city and empire readings outside Dawnreach and seat 0. All other seat 0 rates and aggregate yield totals."
+  ],
+  "changedSerializedStateFieldsAtCommandEnd": [
+    "revision",
+    "units"
+  ]
+}

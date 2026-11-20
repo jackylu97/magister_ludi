@@ -1,0 +1,10 @@
+[
+  {"kind":"select","unit":1293,"x":784,"y":353},
+  {"kind":"select","unit":818,"x":833,"y":421},
+  {"kind":"select","unit":1293,"x":784,"y":353},
+  {"kind":"select","unit":818,"x":833,"y":421},
+  {"kind":"select","unit":1293,"x":784,"y":353},
+  {"kind":"move","unit":1293,"x":735,"y":297,"target":{"col":53,"row":26}},
+  {"kind":"select","unit":818,"x":833,"y":421},
+  {"kind":"move","unit":818,"x":539,"y":164,"target":{"col":51,"row":24}}
+]
