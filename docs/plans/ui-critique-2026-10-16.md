@@ -1775,3 +1775,9 @@ sentence "An empire building. If you lose the town that holds it, you lose the
 building too.": "text not needed here". The sentence is cut from the row. A
 chip's hover card still says "empire building", and the Compendium explains
 the class.
+
+### The age plate: a shadow behind the words (2026-11-20)
+
+The deeds on the painted age plate had less contrast on a bright painting. The
+user: "soft dark shadow sounds fine". The words on the painting's foot carry a
+soft dark text shadow.

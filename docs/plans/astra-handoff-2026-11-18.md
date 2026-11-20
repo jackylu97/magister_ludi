@@ -279,8 +279,8 @@ two differ. A row the user did not comment on is approved as its table shows.
   grants on spending (Aesop, John Dee). Each is a design decision under
   CLAUDE.md: say which you add. A row that fits no shape is deferred and
   annotated, never bent.
-- **Open with the user:** S12 (the ratings) and Deborah. Neither blocks the
-  rest.
+- **Open with the user:** S12 (the ratings). It does not block the rest.
+  Deborah stays as she is (ruled 2026-11-20).
 - **The card:** `greatPersonCard.ts` no longer prints "When spent". Portraits
   are in `public/art/splash/people/`, one a row id; a new row needs no
   picture.
