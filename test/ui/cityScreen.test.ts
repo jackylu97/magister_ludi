@@ -211,18 +211,39 @@ describe('the framed city and the rails that flank it', () => {
 });
 
 describe("the panel's controls", () => {
-  it('sets Buy Tiles in the same voice as a build row — no shouting', () => {
+  it('sets Buy Tiles in the panel’s voice of controls — no shouting', () => {
+    // The face and the weight of a build row, sentence case, no tracking. Since
+    // 2026-11-20 it stands alone at the bottom centre of the screen, so it is
+    // the kit's plain button at the kit's size rather than a build row's.
     expect(declaration('.city-buy-tiles', 'text-transform')).toBe('none');
     expect(declaration('.city-buy-tiles', 'font-family')).toBe(
       declaration('.city-buildable', 'font-family'),
     );
-    expect(declaration('.city-buy-tiles', 'font-size')).toBe(
-      declaration('.city-buildable', 'font-size'),
-    );
     expect(declaration('.city-buy-tiles', 'font-weight')).toBe(
       declaration('.city-buildable', 'font-weight'),
     );
+    expect(declaration('.city-buy-tiles', 'font-size')).toBe('var(--size-ui)');
     expect(declaration('.city-buy-tiles', 'letter-spacing')).toBe('normal');
+  });
+
+  it('stands Buy tiles at the bottom centre of the screen, its own control (2026-11-20)', () => {
+    // The user: "let's have buy tiles appear at the bottom-center as its own
+    // button/interface". The dock takes the pointer; the mode does not.
+    expect(declaration('.city-buy-dock', 'position')).toBe('absolute');
+    expect(declaration('.city-buy-dock', 'left')).toBe('50%');
+    expect(declaration('.city-buy-dock', 'bottom')).toBe('14px');
+    expect(declaration('.city-buy-dock', 'transform')).toBe('translateX(-50%)');
+    expect(declaration('.city-buy-dock', 'pointer-events')).toBe('auto');
+    // The caption stands in the dock, over the button, rather than on its own.
+    expect(declaration('.city-board-caption', 'position')).toBe('static');
+    const dock = fn('cityPanel.ts', 'renderBuyDock');
+    expect(dock).toContain('const caption = renderBoardCaption(city);');
+    expect(dock).toContain('setBuyMode(!isBuyMode());');
+    expect(dock).toContain('tileBuyingError(state, localPlayerId(), city.id)');
+    expect(dock.indexOf('dock.append(caption)')).toBeLessThan(dock.indexOf('dock.append(row)'));
+    expect(fn('cityPanel.ts', 'render')).toContain('container.append(renderBuyDock(city));');
+    // And the panel no longer carries the button.
+    expect(fn('cityPanel.ts', 'renderBorders')).not.toContain('city-buy-tiles');
   });
 
   it('leaves no uppercased control anywhere on the panel', () => {
@@ -322,8 +343,24 @@ describe('the city mode', () => {
     expect(declaration('.city-band h2', 'text-overflow')).toBe('ellipsis');
     expect(declaration('.city-band h2', 'max-width')).toBe('11em');
     expect(css()).not.toContain('.city-band .city-faith-head');
-    expect(declaration('.city-title > .city-size', 'flex')).toBe('0 0 auto');
+    expect(declaration('.city-head-facts', 'flex')).toBe('0 0 auto');
     expect(declaration('.city-band .city-yields', 'flex')).toBe('0 0 auto');
+  });
+
+  it('sets health and defence larger and centred in the head, with Size gone (2026-11-20)', () => {
+    // The user: "this text feels awkward, it should probably be bigger and
+    // centered. Size is unneeded in the top bar". The town's size is the
+    // Citizens line's.
+    const head = fn('cityPanel.ts', 'renderBand');
+    expect(head).not.toContain('Size ${city.population}');
+    expect(head).toContain("const hp = headFact('Health', `${city.hp}/${cityMaxHp(city, city, state)}`);");
+    expect(head).toContain('facts.append(hp, renderDefenceFigure(city));');
+    expect(declaration('.city-head-facts', 'align-items')).toBe('center');
+    expect(declaration('.city-title', 'align-items')).toBe('center');
+    // The figure a size larger than the label, in the tabular mono.
+    expect(declaration('.city-head-fact-figure', 'font-size')).toBe('var(--size-name)');
+    expect(declaration('.city-head-fact-figure', 'font-family')).toBe('var(--face-num)');
+    expect(declaration('.city-head-fact-word', 'font-size')).toBe('var(--size-label)');
   });
 
   it('rules the head the kit’s way: ink over a gilt hairline, the name’s first letter in red', () => {
@@ -469,9 +506,13 @@ describe('the city mode', () => {
     expect(defence).toContain('info.bind(defence, () => renderDefense(city));');
     expect(defence).toContain("anchors.set('defence', defence);");
     expect(fn('cityPanel.ts', 'renderBand')).toContain('title.append(renderDefenceFigure(city));');
-    expect(fn('cityPanel.ts', 'renderFaithCard')).toContain(
-      "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
-    );
+    // Every faith with a claim on the town is in view under the Faith row's
+    // first line since 2026-11-20 (it was one click deeper, behind "Every faith
+    // here"): the user asked that the list "clarify the name of your religion
+    // and other religions present in the city".
+    const faith = fn('cityPanel.ts', 'renderFaithCard');
+    expect(faith).toContain('const every = renderFollowers(city);');
+    expect(faith).not.toContain("'Every faith here'");
     for (const printer of [
       'function renderDefense(',
       'function renderBuilt(',
@@ -480,9 +521,11 @@ describe('the city mode', () => {
     ]) {
       expect(`${printer}: ${text.includes(printer)}`).toBe(`${printer}: true`);
     }
-    // A `<details>` and not a class that hides things: the platform's own
-    // disclosure opens on Enter and announces itself as expandable.
-    expect(text).toContain("element('details', 'city-disc')");
+    // The rows themselves are buttons with `aria-expanded` over a region, and
+    // the folds inside a row (the rites, "Not yet") are the platform's own
+    // `<details>`, which opens on Enter and announces itself as expandable.
+    expect(fn('cityPanel.ts', 'renderFolds')).toContain("element('button', 'city-fold-head')");
+    expect(faith).toContain("element('details', 'city-not-yet')");
   });
 
   /**
@@ -645,10 +688,13 @@ describe('the city mode', () => {
     // The eyebrow over a group prints on the All tab only (a single-shelf tab
     // is named by the lit tab), and takes the shelf's own word rather than a
     // fresh spelling of "wonders".
-    // Since batch UX7 the Faith shelf's eyebrow is the summary of its fold.
+    // Since batch UX7 the Faith shelf's eyebrow is the summary of its fold, and
+    // since 2026-11-20 the first group's eyebrow stands in the list's head, on
+    // the line that carries the price columns' heads.
     const list = fn('cityPanel.ts', 'renderBuildables');
-    expect(list).toContain("} else if (tab === 'all') {");
+    expect(list).toContain("} else if (tab === 'all' && shelf !== first) {");
     expect(list).toContain("grid.append(element('h4', 'city-shelf-head', shelf.word));");
+    expect(list).toContain("head.append(element('h4', 'city-shelf-head', first?.word ?? ''));");
     expect(list).toContain("summary.append(element('span', 'city-shelf-head', shelf.word));");
     // A shelf with nothing on it is never filed, so no eyebrow stands over
     // nothing.
@@ -838,19 +884,21 @@ describe('what the panel says at the foot of a list', () => {
     expect(text).toContain('A ringed hex is a tile this city works');
   });
 
-  it('says what a gold price is, and leaves the treasury to the band and the column heading', () => {
+  it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {
     // The 2026-08-27 ruling kept the treasury off this caption because the top
     // bar showed it a hand's width above. The top bar has stood down in a town
     // since 2026-09-03, and the user ruled on 2026-10-12 that the treasury shows
-    // on the city screen (batch UX5). It is in the band and in the price
-    // column's heading ("you have 437 gold"), so the caption under the list does
-    // not print it a third time: it says what a gold price is.
+    // on the city screen (batch UX5). Since 2026-11-20 it heads the gold price
+    // column (the gold mark and the gold), so the caption under the list does
+    // not print it again: it says what a gold price is.
     const text = source('cityPanel.ts');
     expect(text).not.toContain('in the treasury');
     const list = fn('cityPanel.ts', 'renderBuildables');
     expect(list).toContain('Gold prices are the full cost, at ${RULES.production.goldPerHammer}');
     expect(list).toContain('however much has been built');
-    expect(list).toContain('priceHeadElement(ordinary.map(held))');
+    expect(list).toContain('for (const bank of columns) head.append(priceColumnHead(held(bank)));');
+    // "Buy outright · full price" is gone (the user: "this line is extraneous").
+    expect(text).not.toContain('priceHeadElement');
     // The head's bank line went with the simpler city screen (the fourth-pass
     // frame: "the build list says 'you have 555 gold', and the Faith row holds
     // the faith").

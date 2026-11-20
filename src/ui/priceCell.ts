@@ -211,6 +211,29 @@ interface PriceCellOptions {
   mark?: string | null;
   /** The reason a dash stands for, read to a screen reader in place of the dash. */
   reason?: string | null;
+  /**
+   * Draw a price the bank cannot pay yet as the same chip as one it can, with
+   * the figure in the wanting red and no "need" line under it. The city
+   * screen's build list and its Faith row ask for this (the user, 2026-11-20:
+   * "instead of 'need X' just highlight the cost in red, no need to show how
+   * much more is needed"); the faith sheet keeps its labelled cells.
+   */
+  chip?: boolean;
+}
+
+/**
+ * What a screen reader and a hover are told about a chip the bank cannot pay
+ * yet: the price, and that it cannot be paid yet, without how much is missing.
+ */
+export function priceChipShortSpoken(
+  look: PriceLook,
+  options: Pick<PriceCellOptions, 'name' | 'label' | 'spokenLabel'>,
+): string {
+  const amount = `${look.price} ${BANK_UNIT[look.bank]}`;
+  const label = options.label ?? options.spokenLabel;
+  return label === undefined
+    ? `${options.name} costs ${amount} to buy outright; you cannot pay that yet`
+    : `${label} ${options.name} for ${amount}: you cannot pay that yet`;
 }
 
 /**
@@ -254,7 +277,7 @@ export function priceCellSpoken(
  */
 export function priceCellElement(look: PriceLook, options: PriceCellOptions): HTMLElement {
   const labelled = options.label !== undefined;
-  const classes = `is-${look.bank}${labelled ? ' is-labelled' : ''}`;
+  const classes = `is-${look.bank}${labelled ? ' is-labelled' : ''}${options.chip === true ? ' is-chip' : ''}`;
   const text = labelled
     ? priceLabelText(options.label!, look.bank, look.price)
     : priceFigureText(look.bank, look.price);
@@ -270,6 +293,18 @@ export function priceCellElement(look: PriceLook, options: PriceCellOptions): HT
     const onBuy = options.onBuy;
     if (onBuy !== undefined) button.addEventListener('click', () => onBuy());
     return button;
+  }
+  if (look.look === 'short' && options.chip === true) {
+    // The chip, as a `buy` cell draws it, but not a control: the figure is red
+    // and the words say it cannot be paid yet.
+    const cell = element('span', `price-cell is-short ${classes}`);
+    const figure = element('span', 'price-cell-figure wanting');
+    setYieldText(figure, text);
+    figure.setAttribute('aria-hidden', 'true');
+    const words = priceChipShortSpoken(look, options);
+    cell.title = words;
+    cell.append(figure, element('span', 'sr-only', words));
+    return cell;
   }
   if (look.look === 'short') {
     const cell = element('span', `price-cell is-short ${classes}`);

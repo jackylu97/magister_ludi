@@ -129,8 +129,9 @@ describe('the fortify readout is points, never a percentage', () => {
 describe('the city sheet', () => {
   it('reads its hit points as hp / cityMaxHp, with the ledger on hover', () => {
     // On hover in the panel's own card since batch UX7, not a native tooltip.
+    // Since 2026-11-20 the head says "Health" with the figure a size larger.
     const text = source('cityPanel.ts');
-    expect(text).toMatch(/\$\{city\.hp\}\/\$\{cityMaxHp\(city, city, state\)\} hp/);
+    expect(text).toMatch(/headFact\('Health', `\$\{city\.hp\}\/\$\{cityMaxHp\(city, city, state\)\}`\)/);
     expect(text).toMatch(/noteOn\(hp, maxHpLedger\(city, state\)\)/);
   });
 

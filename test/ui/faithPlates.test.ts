@@ -281,8 +281,13 @@ describe('cityFaithHeadline', () => {
    */
   it('is drawn as the Faith row’s first line, the faith’s name in its founder’s ink', () => {
     const panel = sourceOf('cityPanel.ts');
-    expect(panel).toContain("card.append(faithHeadlineNode(head, element('p', 'city-faith-headline')));");
+    expect(panel).toContain(
+      "card.append(faithHeadlineNode(head, element('p', 'city-faith-headline'), ours));",
+    );
     expect(panel).toContain("name.style.setProperty('--seat-ink', head.founderColor);");
+    // The seat's own faith is "your religion" on the line (2026-11-20); its full
+    // name is in the list under it.
+    expect(panel).toContain('ours ? FAITH_ROW_WORDS.inLine : head.name');
     expect(panel).not.toContain('const belief = renderFaithHeadline(city);');
     // And the block under it keeps every word it had.
     expect(panel).toContain('function renderFollowers(');

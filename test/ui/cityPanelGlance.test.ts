@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { channelSurplus, foundCityAt, growthSurplus, refreshCityDerived } from '../../src/sim/cities';
 import { startRouteAt } from '../../src/sim/trade';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { happinessOf } from '../../src/sim/meters';
+import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { readCity } from '../../src/sim/readings';
 import { riteTurnsFor } from '../../src/sim/religion';
 import { resourceDef } from '../../src/sim/resourceData';
@@ -96,18 +96,42 @@ describe('what a town is short of', () => {
     expect(chips(state, city)).toEqual([]);
   });
 
-  it('says Idle when nothing is queued, and points at the build list', () => {
+  it('says nothing in the head when nothing is queued (the user, 2026-11-20: "Idle" is unneeded)', () => {
+    // The work panel says "Nothing queued" where the work is.
     const state = bench();
     const city = town(state, 0, 5, 5);
     city.queue = [];
     bumpRevision(state);
-    expect(chips(state, city)).toEqual([
-      expect.objectContaining({ id: 'idle', label: 'Idle', target: 'buildList' }),
-    ]);
-    // A puppet chooses for itself, so it is never told it is idle.
-    city.puppet = true;
+    expect(chips(state, city)).toEqual([]);
+    expect(braceBody(uiSource('cityPanel.ts'), 'function renderProduction(')).toContain(
+      "box.append(element('p', 'city-prod-idle', 'Nothing queued'));",
+    );
+  });
+
+  it('says Authority overdrawn when the empire uses more authority than it has, and points at Borders', () => {
+    // The user: "'unhappy' and whatever the term is for lacking authority is
+    // fine". The words are the ones the Borders hover and the tile gate use.
+    const state = bench();
+    const capital = town(state, 0, 2, 2);
+    capital.queue = [{ kind: 'unit', id: 'warrior' }];
     bumpRevision(state);
-    expect(chips(state, city).map((chip) => chip.id)).not.toContain('idle');
+    expect(authorityOf(state, 0)).toBeGreaterThanOrEqual(0);
+    expect(chips(state, capital).map((chip) => chip.id)).not.toContain('authority');
+    // Each town founded uses authority; found towns until the empire is overdrawn.
+    for (const [col, row] of [[6, 2], [10, 2], [14, 2], [2, 7], [6, 7], [10, 7], [14, 7]] as const) {
+      if (authorityOf(state, 0) < 0) break;
+      town(state, 0, col, row);
+    }
+    expect(authorityOf(state, 0)).toBeLessThan(0);
+    expect(chips(state, capital)).toContainEqual(
+      expect.objectContaining({ id: 'authority', label: 'Authority overdrawn', target: 'borders' }),
+    );
+  });
+
+  it('has a chip only for unhappiness, the authority shortfall, unrest, siege and starving', () => {
+    const body = braceBody(uiSource('cityPanel.ts'), 'export function shortOfChips(');
+    const ids = [...body.matchAll(/id: '([a-z]+)',/g)].map((match) => match[1]).sort();
+    expect(ids).toEqual(['authority', 'siege', 'starving', 'unhappy', 'unrest']);
   });
 
   it('says Starving when the town eats more than it makes, and points at Focus', () => {
@@ -170,8 +194,8 @@ describe('what a town is short of', () => {
       figure: turnsLabel(pacificationTurnsLeft(state, city)),
       target: 'unrest',
     });
-    // Idle too, after it.
-    expect(said.map((chip) => chip.id)).toEqual(['unrest', 'idle']);
+    // And no Idle chip after it, although nothing is queued.
+    expect(said.map((chip) => chip.id)).toEqual(['unrest']);
   });
 
   it('says Unhappy when the empire is unhappy, and points at the Growth row', () => {

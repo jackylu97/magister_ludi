@@ -32,10 +32,12 @@ import { hasAbility } from '../../src/sim/tech';
 import {
   CITY_FOLD_WORDS,
   type CityFoldRow,
+  FAITH_ROW_WORDS,
   cityFoldRows,
   keptFold,
   townBuildingGroups,
 } from '../../src/ui/cityPanel';
+import { priceChipShortSpoken } from '../../src/ui/priceCell';
 import type { RiteOption } from '../../src/ui/controls';
 import { riteTeacherName } from '../../src/ui/religionScreen';
 import { riteOfferText } from '../../src/ui/riteOffer';
@@ -355,7 +357,8 @@ describe('every command the panel sent before is still sent by the same control'
       ['function renderLevy(', "type: 'levyCitizen',", 'a levy line'],
       ['function dismissControl(', "type: 'dismissSpecialist',", 'Dismiss'],
       ['function renderFaithCard(', 'performRite(city.id, row.id);', 'a rite’s price'],
-      ['function renderBorders(', 'setBuyMode(!isBuyMode());', 'Buy tiles'],
+      // Buy tiles moved to the bottom centre by the user's ruling of 2026-11-20.
+      ['function renderBuyDock(', 'setBuyMode(!isBuyMode());', 'Buy tiles'],
       ['function renderLeave(', "leave.addEventListener('click', onClose);", 'the ×'],
       ['function renderRoutes(', "all.addEventListener('click', () => onOpenTrade());", 'All routes'],
       ['function renderFaithCard(', "link.addEventListener('click', () => openRites(city.id));", 'the faith sheet link'],
@@ -368,17 +371,95 @@ describe('every command the panel sent before is still sent by the same control'
     // The town steps (‹ ›) are sliced: their return type has braces of its own.
     const steps = PANEL.slice(PANEL.indexOf('function stepButtons('), PANEL.indexOf('function renderShortOf('));
     expect(steps).toContain("button.addEventListener('click', () => open(target));");
-    // And the caravans' line still opens the trade sheet.
-    expect(braceBody(PANEL, 'function renderBuildables(')).toContain(
-      "link.addEventListener('click', () => onOpenTrade());",
-    );
+    // The caravans' line in the build list was cut by the user's ruling of
+    // 2026-11-20 ("this line is unneeded (caravans)"); it opened the trade
+    // sheet, which All routes (above) still opens.
+    expect(braceBody(PANEL, 'function renderBuildables(')).not.toContain('onOpenTrade');
   });
 
-  it('moves the way out to the head, and puts nothing of the panel at the foot but the board caption', () => {
+  it('moves the way out to the head, and puts nothing of the panel at the foot but Buy tiles', () => {
     expect(braceBody(PANEL, 'function renderBand(')).toContain('band.append(renderLeave());');
     const render = braceBody(PANEL, '  function render(): void {');
     expect(render).not.toContain('renderLeave()');
-    expect(render).toContain('if (caption) container.append(caption);');
-    expect(rule('.city-board-caption')).toContain('bottom: 14px;');
+    expect(render).toContain('container.append(renderBuyDock(city));');
+    expect(rule('.city-buy-dock')).toContain('bottom: 14px;');
+    // The caption stands in the dock, over the button.
+    expect(rule('.city-board-caption')).toContain('position: static;');
+  });
+});
+
+// --- the user's comments on the built screen (2026-11-20) -------------------------
+
+describe('the second step: the user’s comments on the built screen', () => {
+  it('draws every price as one chip, its figure and mark on one line, centred on its row', () => {
+    const list = braceBody(PANEL, 'function renderBuildables(');
+    expect(list).toContain('chip: true,');
+    expect(braceBody(PANEL, 'function renderFaithCard(')).toContain('chip: true,');
+    const chip = rule('.city-mode .price-cell.is-chip');
+    expect(chip).toContain('width: var(--city-chip-w);');
+    expect(chip).toContain('flex-direction: row;');
+    expect(chip).toContain('align-self: center;');
+    expect(chip).toContain('height: 24px;');
+    expect(rule('.city-mode')).toContain('--city-chip-w: 66px;');
+  });
+
+  it('draws a price the bank cannot pay yet as the same chip, its figure red, with no "need" line', () => {
+    const cell = uiSource('priceCell.ts');
+    const chip = cell.slice(
+      cell.indexOf("if (look.look === 'short' && options.chip === true) {"),
+      cell.indexOf("if (look.look === 'short') {\n    const cell = element('span', `price-cell is-short ${classes}`);\n    const figure"),
+    );
+    expect(chip).toContain("element('span', 'price-cell-figure wanting')");
+    expect(chip).toContain('cell.title = words;');
+    expect(chip).not.toContain('price-cell-need');
+    expect(
+      priceChipShortSpoken({ look: 'short', bank: 'gold', price: 196, need: 116 }, { name: 'Settler' }),
+    ).toBe('Settler costs 196 gold to buy outright; you cannot pay that yet');
+    // The row's hover card says it the same way: red, and what the seat holds.
+    const line = braceBody(PANEL, 'function buyLine(');
+    expect(line).toContain("if (look.look === 'short') line.classList.add('wanting');");
+    expect(PANEL).not.toContain('priceNeedText');
+  });
+
+  it('gives every row one cell in each price column, the dash where that bank does not sell it', () => {
+    const list = braceBody(PANEL, 'function renderBuildables(');
+    expect(list).toContain('for (const bank of columns) {');
+    expect(list).toContain('line.append(cell === undefined ? unsoldCell() : priceCell(row, cell));');
+    expect(list).toContain("const cell = element('span', 'price-cell is-none is-chip is-unsold');");
+    expect(PANEL).not.toContain('emptyPriceCellElement');
+  });
+
+  it('heads each price column with the bank’s mark and what the seat holds, in line with its chips', () => {
+    const list = braceBody(PANEL, 'function renderBuildables(');
+    expect(list).toContain('for (const bank of columns) head.append(priceColumnHead(held(bank)));');
+    expect(list).toContain('cell.append(yieldMarkNode(bank, true), bankHeldElement(bank, amount));');
+    expect(rule('.city-price-head')).toContain('width: var(--city-chip-w);');
+    // The tabs sit directly over the list's head, and nothing between them.
+    const tabs = list.indexOf('box.append(tabs);');
+    const head = list.indexOf("const head = element('div', 'city-price-heads');");
+    expect(tabs).toBeGreaterThan(-1);
+    expect(head).toBeGreaterThan(tabs);
+    expect(list.slice(tabs, head)).not.toContain('grid.append(');
+    expect(list).not.toContain('Buy outright · full price');
+  });
+
+  it('calls the seat’s own faith "your religion", and lists every faith in the town, yours first', () => {
+    expect(FAITH_ROW_WORDS).toEqual({ yours: 'Your religion', inLine: 'your religion', none: 'No religion' });
+    const followers = braceBody(PANEL, 'function renderFollowers(');
+    expect(followers).toContain("if (row.ours) who.append(element('span', 'city-faith-yours', FAITH_ROW_WORDS.yours));");
+    expect(followers).toContain('`${figure(row.following)}/${figure(row.population)}`');
+    expect(followers).toContain("line.append(element('span', 'city-faith-who', FAITH_ROW_WORDS.none));");
+    // The shut row says "your religion" too, where it named the faith.
+    expect(PANEL).toContain('summary: banner.ours ? FAITH_ROW_WORDS.inLine : banner.name,');
+  });
+
+  it('keeps the focus chips in one row with even gaps at the wider panel', () => {
+    expect(rule('.city-focus-choices')).toContain('justify-content: space-between;');
+    expect(rule('.city-focus-choice')).toContain('white-space: nowrap;');
+    expect(rule('.city-rail.is-left')).toContain('width: 286px;');
+    expect(rule('.city-rail.is-right')).toContain('width: 400px;');
+    // The Buy tiles button left the panel.
+    expect(braceBody(PANEL, 'function renderTownRail(')).not.toContain('city-buy-tiles');
+    expect(braceBody(PANEL, 'function renderBorders(')).not.toContain('setBuyMode');
   });
 });
