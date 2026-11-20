@@ -159,6 +159,7 @@
 
 import { buildingDef, isEmpireBuilding, isWonder } from '../sim/buildingData';
 import { signedYield } from '../sim/yieldFormat';
+import { readEmpire } from '../sim/readings';
 import { buildingProductionCost, unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -169,7 +170,6 @@ import { abilityConcept, abilityNote, renewalNote, techRuleClauses } from './tec
 import {
   availableTechs,
   dequeueResearchError,
-  playerScience,
   prereqsMet,
   queueTurns,
   researchError,
@@ -811,7 +811,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    */
   let pass: Pass | null = null;
 
-  /** Opens a render. The one place `playerScience` is called on this screen. */
+  /** Every displayed estimate uses the same city science total as the empire drawer. */
   function beginPass(): Pass {
     const { state } = getGame();
     const playerId = localPlayerId();
@@ -821,7 +821,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       state,
       playerId,
       player,
-      rate: playerScience(state, playerId),
+      rate: readEmpire(state, playerId).cityScience,
       plan,
       ended: hasEndedTurn(state, playerId),
       lead: chartLead(state, playerId),

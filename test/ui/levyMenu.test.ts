@@ -144,8 +144,11 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
     const command: Command = { type: 'levyCitizen', playerId: 0, cityId: city.id, use: 'rite', rite: FASTING };
     expect(dispatch(g, command).ok).toBe(true);
     expect(cityRite(g.state, city)).toBe(FASTING);
-    const body = uiSource('cityPanel.ts');
-    expect(body).toContain('renderLevyMenuBody(model, (use, rite) => {');
+    // The city panel sends the rite the confirm was pressed for, and the use
+    // of the line the confirm is for.
+    const body = braceBody(uiSource('cityPanel.ts'), 'function renderLevy(');
+    expect(body).toContain('renderLevyConfirm(');
+    expect(body).toContain('use: line.use,');
     expect(body).toContain('...(rite === undefined ? {} : { rite }),');
   });
 
@@ -170,13 +173,22 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
     expect(model.lines[0]!.blocked).toBe('You know no rite that can be performed across your empire');
   });
 
-  it('opens the list from the line, and spends the citizen only from a rite', () => {
-    const body = braceBody(uiSource('levyMenu.ts'), 'export function renderLevyMenuBody(');
-    expect(body).toContain('list.hidden = true;');
-    expect(body).toContain('list.hidden = !list.hidden;');
-    expect(body).toContain('renderRiteList(line.rites, (rite) => onChoose(line.use, rite))');
-    // Pressing the rite line itself sends nothing: a command must name a rite.
+  it('lists the rites in the rite line’s confirm, and spends the citizen only from a rite', () => {
+    // Since 2026-11-20 a levy is sent from a confirm under its button
+    // (`renderLevyConfirm`). The rite line's confirm lists the rites and has no
+    // "Levy" button: a command must name a rite.
+    const body = braceBody(uiSource('levyMenu.ts'), 'export function renderLevyConfirm(');
+    expect(body).toContain(
+      'if (line.rites !== undefined) box.append(renderRiteList(line.rites, (rite) => onConfirm(rite)));',
+    );
     expect(body).toContain('if (line.rites === undefined) {');
+    expect(body).toContain("const levy = element('button', 'btn btn-primary btn-tiny city-levy-send', 'Levy');");
+    expect(body).toContain("levy.addEventListener('click', () => onConfirm());");
+    expect(body).toContain("cancel.addEventListener('click', () => onCancel());");
+    // And it says what the levy costs before it is sent.
+    expect(body).toContain("box.append(element('p', 'city-levy-cost', model.cost));");
+    const list = braceBody(uiSource('levyMenu.ts'), 'function renderRiteList(');
+    expect(list).toContain('choose.disabled = entry.blocked !== null;');
   });
 
   it('reads the rite’s words from a leaf, so the menu does not import the controls', () => {
@@ -200,26 +212,29 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
 describe('the city panel wiring', () => {
   const PANEL = uiSource('cityPanel.ts');
 
-  it('opens the levy menu from its own fold row', () => {
-    // The simpler city screen (the fourth-pass frame: "The levy menu: opens
-    // from its row, as today's menu"). The row is drawn when the seat's cards
-    // grant a levy, and its body is the menu itself.
-    const body = braceBody(PANEL, 'function foldBody(');
-    expect(body).toContain("case 'levy':");
-    expect(body).toContain('return renderLevy(city);');
-    expect(braceBody(PANEL, 'function renderLevy(')).toContain(
-      'return renderLevyMenuBody(model, (use, rite) => {',
-    );
-    expect(braceBody(PANEL, 'export function cityFoldRows(')).toContain(
-      'const levy = levyMenuModel(state, seat, city);',
-    );
-    // The growth meter and the citizens' line no longer carry it.
+  it('stands the levies under the focus chips, in view, and no longer in a fold row', () => {
+    // The user, 2026-11-20: "lets move the levies to the top, and give it a
+    // different UX than a dropdown so it doesn't disappear with the rest of the
+    // menus". One button a levy line; a town with no levy shows nothing.
+    const rail = braceBody(PANEL, 'function renderTownRail(');
+    expect(rail).toContain('const levy = renderLevy(city);');
+    expect(rail).toContain('if (levy) clocks.append(levy);');
+    const levy = braceBody(PANEL, 'function renderLevy(');
+    expect(levy).toContain('const model = levyMenuModel(state, localPlayerId(), city);');
+    expect(levy).toContain('if (model === null) return null;');
+    expect(levy).toContain('for (const line of model.lines) {');
+    expect(braceBody(PANEL, 'function foldBody(')).not.toContain('renderLevy');
+    expect(braceBody(PANEL, 'export function cityFoldRows(')).not.toContain('levyMenuModel');
+    // The growth meter and the citizens' line do not carry it.
     expect(braceBody(PANEL, 'function renderGrowth(')).not.toContain('renderLevy(city)');
     expect(braceBody(PANEL, 'function renderCitizens(')).not.toContain('levy');
   });
 
   it('says why a greyed levy is greyed on a line, never only in a tooltip', () => {
-    expect(PANEL).toContain("if (model.disabled) return refusalLineElement(model.title, 'row');");
+    // A line that cannot be chosen keeps its button, with the reason as its
+    // note; when no line can be chosen the reason is a line under the buttons.
+    expect(PANEL).toContain("if (model.disabled) box.append(refusalLineElement(model.title, 'row'));");
+    expect(PANEL).toContain('noteOn(button, line.blocked ?? `${line.figure} · ${line.source}`);');
     expect(uiSource('levyMenu.ts')).not.toMatch(/\.title = /);
   });
 

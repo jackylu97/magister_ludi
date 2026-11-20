@@ -55,7 +55,7 @@
  * in-flight pan. The player's hand always wins.
  */
 
-import { Matrix4, OrthographicCamera, Quaternion, Vector3 } from 'three';
+import { Matrix4, OrthographicCamera, Quaternion, Vector3, type Vector3Like } from 'three';
 
 import { VIEW3D } from './lookData';
 
@@ -109,6 +109,7 @@ export class DioramaCamera {
   private aspect = 1;
   private viewportWidth = 1;
   private viewportHeight = 1;
+  private readonly projectedPoint = new Vector3();
 
   /** Unit vector from target toward the eye, shared by drawing and picking. */
   readonly eyeDirection: Vector3;
@@ -557,7 +558,18 @@ export class DioramaCamera {
     return this.target.x + delta;
   }
 
-  // --- unprojection --------------------------------------------------------
+  // --- projection and picking ---------------------------------------------
+
+  /** Use the same CSS viewport as screenRay. Callers can keep the result while projecting another point. */
+  projectPoint(point: Vector3Like): { x: number; y: number; ndcX: number; ndcY: number } {
+    const ndc = this.projectedPoint.copy(point).project(this.camera);
+    return {
+      x: (ndc.x * 0.5 + 0.5) * this.viewportWidth,
+      y: (-ndc.y * 0.5 + 0.5) * this.viewportHeight,
+      ndcX: ndc.x,
+      ndcY: ndc.y,
+    };
+  }
 
   /**
    * The world ray under a viewport position, in CSS pixels from the top-left.

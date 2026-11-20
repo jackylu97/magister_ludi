@@ -6,16 +6,17 @@
  * ladder of system d, that fog hides it, and that the key picks one system.
  */
 import { afterEach, describe, expect, it } from 'vitest';
+import type { InstancedBufferGeometry, Mesh } from 'three';
 
 import { VIEW3D } from '../../src/render3d/lookData';
 import {
   PaintedYieldLightLayer, YIELD_LIGHT_KINDS, YIELD_LIGHT_SHOWS, type YieldLightHex, yieldLightCount, yieldLightHex, yieldLightSplit,
 } from '../../src/render3d/paintedYieldLight';
 import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt, tileIndex, type GameMap } from '../../src/sim/map';
+import { createMap, getTileAt, raiseImprovement, tileIndex, type GameMap } from '../../src/sim/map';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 // @ts-expect-error No declarations for the shared study geometry.
-import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
+import { prepareTerrainMap, riverStyle, setRiverStyle } from '../../src/terrainStudy/surface.js';
 import { newGame } from '../sim/newGameHelpers';
 
 const light = VIEW3D.visualTest.yieldLight;
@@ -38,7 +39,24 @@ function fixture(shape?: (state: ReturnType<typeof newGame>) => void) {
   const prepared = prepareTerrainMap(state.map, { wrap: true }) as GameMap;
   const layer = new PaintedYieldLightLayer(); cleanups.push(() => layer.dispose());
   const build = (): void => layer.build(state, prepared, state.visibility[0]!, 0, Math.sqrt(3) * state.map.width);
-  return { state, layer, build };
+  return { state, layer, prepared, build };
+}
+
+function checkAgainstNewLayer(f: ReturnType<typeof fixture>, prepared = f.prepared): void {
+  const reference = new PaintedYieldLightLayer();
+  try {
+    reference.showcase = f.layer.showcase;
+    reference.forcedStep = f.layer.forcedStep;
+    for (const layer of [f.layer, reference]) layer.build(f.state, prepared, f.state.visibility[0]!, 0, Math.sqrt(3) * prepared.width);
+    expect(f.layer.shown).toEqual(reference.shown);
+    expect(f.layer.counts).toEqual(reference.counts);
+    const geometry = (layer: PaintedYieldLightLayer) => (layer.group.children[0] as Mesh<InstancedBufferGeometry> | undefined)?.geometry;
+    const actual = geometry(f.layer), fresh = geometry(reference);
+    expect(actual?.instanceCount).toBe(fresh?.instanceCount);
+    for (const key of ['aAt', 'aSeed', 'aSize', 'aTint']) {
+      expect(actual?.getAttribute(key).array).toEqual(fresh?.getAttribute(key).array);
+    }
+  } finally { reference.dispose(); }
 }
 
 // The user, 2026-11-16: "We should add motes based on total yields on a tile, and the mote colors should depend on which
@@ -118,6 +136,56 @@ describe('the colours of a hex\'s motes', () => {
 });
 
 describe('the yield light layer', () => {
+  it('keeps mote positions, order and ink correct when visible yields or study settings change', () => {
+    light.show = 'd';
+    const f = fixture(), cell = tileIndex(f.state.map, 2, 2), tile = f.state.map.tiles[cell]!;
+    raiseImprovement(tile, 'farm', 1);
+    light.thresholds = [3, 7, 10];
+    checkAgainstNewLayer(f);
+    expect(f.layer.shown.has(cell)).toBe(true);
+    f.state.visibility[0]![cell] = EXPLORED;
+    checkAgainstNewLayer(f);
+    expect(f.layer.shown.has(cell)).toBe(false);
+    f.state.visibility[0]![cell] = VISIBLE;
+    f.layer.showcase = new Map([[cell, example(2, [{ kind: 'gold', share: 1 }])]]);
+    checkAgainstNewLayer(f);
+    raiseImprovement(tile, 'academy', 2);
+    f.layer.forcedStep = 3;
+    f.layer.showcase = new Map([[cell, example(2, [{ kind: 'science', share: .7 }, { kind: 'faith', share: .3 }])]]);
+    checkAgainstNewLayer(f);
+    const outer = light.outer, radius = light.d.washRadius;
+    try {
+      light.outer *= .7;
+      checkAgainstNewLayer(f);
+      light.d.washRadius *= .8;
+      checkAgainstNewLayer(f);
+    } finally { light.outer = outer; light.d.washRadius = radius; }
+  });
+
+  it('samples new ground when a hill, river, coast or prepared map changes', () => {
+    light.show = 'd';
+    const f = fixture(), cell = tileIndex(f.state.map, 2, 2);
+    f.layer.showcase = new Map([[cell, example(3, [{ kind: 'food', share: 1 }])]]);
+    checkAgainstNewLayer(f);
+    const tile = f.prepared.tiles[cell]!;
+    tile.hills = true;
+    checkAgainstNewLayer(f);
+    tile.feature = 'oasis';
+    checkAgainstNewLayer(f);
+    tile.riverEdges = 4;
+    checkAgainstNewLayer(f);
+    Object.assign(tile, { riverCarve: { bank: .2, depth: .06, segments: [0, -.8, .1, 1, 0, .8, .1, 1] } });
+    checkAgainstNewLayer(f);
+    Object.assign(tile, { coast: { under: .05, segments: [0, -.8, 1, 0, .25, 0, .8, 1, 0, .25] } });
+    checkAgainstNewLayer(f);
+    const style = riverStyle();
+    try {
+      setRiverStyle({ crest: 0, toe: 0, corner: .0008, organic: true, clearance: .25 });
+      checkAgainstNewLayer(f);
+      checkAgainstNewLayer(f, prepareTerrainMap(f.state.map, { wrap: true }) as GameMap);
+    } finally { setRiverStyle(style); }
+  });
+
   it('draws only on land the seat sees now, and never on a town', () => {
     // Every grassland hex passes here, so the fog and the town are the only things that can hide one.
     light.thresholds = [1, 7, 10]; light.show = 'd';

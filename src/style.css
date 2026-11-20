@@ -6381,14 +6381,212 @@ body:has(.city-mode:not([hidden])) #hud-context {
   min-width: 0;
 }
 
-.city-faith-yours {
-  display: block;
+/* "Religious followers" over the list, and "Rite" over the rite the town
+   keeps, which stands under a thin rule, apart from the followers (the user,
+   2026-11-20: "give it som visual separation from the first half of the
+   tab"). Both in the label's voice. */
+.city-faith-list-head,
+.city-faith-rites-head {
+  margin: 6px 0 2px;
   font-family: var(--face-name);
   font-size: var(--size-label);
   font-weight: 500;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
+}
+
+.city-faith-rites {
+  margin-top: 8px;
+  padding-top: 2px;
+  border-top: 1px solid var(--rule);
+}
+
+/* --- chips for the things in a town (the user, 2026-11-20) ------------------
+   "lets have the items here be chips that are hoverable for their effects":
+   the Buildings, Empire buildings, Wonders and Specialists rows, the
+   consecration and the trading post. A chip's hover card says what the thing
+   does; the keyboard reaches it too. Chips wrap, and a long name wraps at a
+   space inside its chip rather than being cut. */
+.city-item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.city-item-chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.35;
+  white-space: normal;
+  cursor: default;
+}
+
+.city-item-chip:hover,
+.city-item-chip:focus-visible {
+  border-color: var(--ink);
+  background: #fffdf4;
+}
+
+.city-item-chip:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: 1px;
+}
+
+/* A wonder's chip carries the gilt edge the wonders wear elsewhere. */
+.city-item-chip.is-wonder {
+  border-color: var(--gilt);
+}
+
+/* The consecration: a fact about the town's faith, in faith's ink. */
+.city-item-chip.is-patron {
+  color: var(--y-faith);
+}
+
+/* A family of specialists: its figures in the mono. */
+.city-item-chip.is-specialist {
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- the Trade routes row as a table (the user, 2026-11-20) ----------------
+   The head line: the trading post's chip, the empire's route count and "All
+   routes". Under it one row a route, where it goes on the left and what it
+   pays on the right; a long list scrolls inside the row. */
+.city-routes-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 2px 0 4px;
+}
+
+.city-routes-count {
+  flex: 1 1 auto;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  color: var(--ink-soft);
+}
+
+.city-routes-list {
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-line) transparent;
+  border-top: 1px solid var(--rule);
+}
+
+.city-route-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.city-route-place {
+  min-width: 0;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  color: var(--ink);
+}
+
+.city-route-pays {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* A route that set out from here pays at its other end: the quieter ink. */
+.city-route-row.is-outbound .city-route-pays {
+  color: var(--ink-soft);
+}
+
+/* --- the levies, under the focus chips (the user, 2026-11-20) --------------
+   "lets move the levies to the top, and give it a different UX than a
+   dropdown": one button a levy, and a press opens a small confirm under the
+   buttons with what it gives and what it costs. */
+.city-levy {
+  margin-top: 9px;
+}
+
+.city-levy-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.city-levy-button {
+  padding: 3px 9px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-note);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.city-levy-button:hover:not(.is-blocked) {
+  background: #fffdf4;
+}
+
+.city-levy-button.is-chosen {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+/* A levy that cannot be chosen now: the button stays, quiet, and its note
+   says why. */
+.city-levy-button.is-blocked {
+  border-color: var(--edge);
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.city-levy-confirm {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: #fffaf0;
+}
+
+.city-levy-confirm .city-levy-row {
+  border-bottom: 0;
+  padding-top: 0;
+}
+
+.city-levy-label {
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.city-levy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .city-faith .city-faith-count {
@@ -6956,8 +7154,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* The trades (ledger Entry XLVIII), in the Specialists row: one line a
-   family, what it pays on the left and its Dismiss on the right. Absent
-   entirely until a town has a guild — see `renderSpecialists`. */
+   family, its chip (what it pays) on the left and its Dismiss on the right.
+   Absent entirely until a town has a guild — see `renderSpecialists`. */
 .city-specialist {
   display: flex;
   align-items: center;
@@ -6965,13 +7163,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
   gap: 8px;
   margin: 0;
   padding: 3px 0;
-}
-
-.city-specialist-name {
-  font-family: var(--face-num);
-  font-size: var(--size-label);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
 }
 
 /* Why the citizens moved: a footnote to the row above it, in the running face
@@ -7141,14 +7332,15 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin-top: 9px;
 }
 
-/* Four chips across the panel's width, each as wide as its word: at 230 px
-   four equal columns cut "Production". The spare room goes between them, so
-   the row still spans the panel and reads as one control. */
+/* Four chips, each as wide as its word, from the left with an ordinary gap
+   (the user, 2026-11-20: "could we have them left aligned, just make sure the
+   chips don't overflow"). They wrap to a second line rather than run past the
+   panel, which happens only if a label would otherwise be cut. */
 .city-focus-choices {
-  display: grid;
-  grid-template-columns: repeat(4, auto);
-  justify-content: space-between;
-  gap: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 4px;
   margin-top: 5px;
 }
 
@@ -8083,14 +8275,11 @@ p.city-trade-link {
   color: var(--ink-soft);
 }
 
-/* --- the levy (batch L) -----------------------------------------------------
-   The short menu the "Levy a citizen" row opens, set like the rites above: each
-   line is a choice on the left, its exact figure in tabular mono on the right,
-   and the granting card's name under it in the copy face. The cost line closes
-   the menu in the meter's small mono. */
-.city-levy-menu {
-  margin-top: 2px;
-}
+/* --- the levy's confirm (batch L) -------------------------------------------
+   Set like the rites above: the levy's name on the left, its exact figure in
+   tabular mono on the right, and the granting card's name under it in the copy
+   face; for the rite line, the rites to choose from. The cost line closes it
+   in the meter's small mono. */
 .city-levy-row {
   display: grid;
   grid-template-columns: 1fr auto;

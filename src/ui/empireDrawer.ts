@@ -107,7 +107,7 @@ import {
 } from '../sim/state';
 import { hasStatecraftOffer, nextDraftCost, ref, stripRefs } from '../sim/statecraft';
 import { GOVERNMENT_TIERS } from '../sim/statecraftData';
-import { availableTechs, playerScience, researchPlan } from '../sim/tech';
+import { availableTechs, researchPlan } from '../sim/tech';
 import { type TechId, UNIT_UNLOCK_TECH, techDef } from '../sim/techData';
 import { routeSlots, usedRouteSlots } from '../sim/trade';
 import { UNIT_TYPE_IDS, type UnitTypeId, caravanTypeId, unitDef } from '../sim/unitData';
@@ -284,7 +284,7 @@ interface EmpireGlance {
 
 /** Research, read the way the star chart's `renderStatus` reads it. */
 export function researchGlance(state: GameState, player: Player): ResearchGlance {
-  const rate = playerScience(state, player.id);
+  const rate = readEmpire(state, player.id).cityScience;
   const current = player.researching;
   if (current === null) {
     const choosing = availableTechs(state, player.id).length > 0;

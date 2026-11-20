@@ -1766,3 +1766,12 @@ don't shrink as you go down", and "lets revert the government card size."
   has the same width and height as the one above it. Today each strip lower in
   the stack is drawn a little narrower.
 - The offer's change stands: no "With the cards you keep" label.
+
+### The city screen, third step: one comment (2026-11-20)
+
+Pictures: https://claude.ai/artifact/R34bKD8NPHTSkrXeeHpsWm. The user: "one
+small comment, looks great". On the Empire buildings row, under the chips, the
+sentence "An empire building. If you lose the town that holds it, you lose the
+building too.": "text not needed here". The sentence is cut from the row. A
+chip's hover card still says "empire building", and the Compendium explains
+the class.

@@ -273,8 +273,8 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   Trained Bands, Watch and Ward). Cards marked "Needs a levy"
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy, Order or Doctrine. Refusals are `levyError`, and `levyLineError` is its
-  half with no rite named; the city panel's "Levy a citizen" menu is
-  `src/ui/levyMenu.ts`, and the rite line opens a list of rites under it. Bots
+  half with no rite named; the city panel's levy buttons and their confirm are
+  `src/ui/levyMenu.ts`, and the rite line's confirm lists the rites. Bots
   levy too: see **The bots**.
 - **A town's reach and its mountains** (Expansionist batch E3). How far a
   town's citizens reach is `workRadiusOf`: the rule book's work radius, and one
@@ -2042,8 +2042,9 @@ Eight root pages, all named in `vite.config.ts` inputs:
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The
   user, on the third pass: "this is too cluttered, could you make it a bit
   simpler and less overwhelming for new players?" The user's comments on the
-  built screen (2026-11-20, "The city screen as built") are in it too. All of
-  it is `src/ui/cityPanel.ts`:
+  built screen (2026-11-20, "The city screen as built") and on its second step
+  (2026-11-20, "The city screen, second step") are in it too. All of it is
+  `src/ui/cityPanel.ts`:
   - **the panels** are the frame's widths: the town panel 286 px and the work
     panel 400 px. `data/view3d.json`'s `cityFrameBiasPx` (57, half their
     difference) and `cityFrameInsetPx` (742, both widths and the four 14 px
@@ -2061,17 +2062,38 @@ Eight root pages, all named in `vite.config.ts` inputs:
     The next citizen and the next tile are each meter's hover; where the
     citizens are ("8 on land · 2 specialists · 1 idle") is the Citizens line's
     hover, and an idle citizen also shows beside the count. The four focus
-    chips fit one row with even gaps;
+    chips start at the left with a 4 px gap and wrap to a second line rather
+    than run past the panel;
+  - **the levies** stand under the focus chips whenever the seat's cards grant
+    one (`renderLevy`); a town with no levy shows nothing there. There is one
+    button a levy line. A press opens a confirm under the buttons
+    (`renderLevyConfirm` in `src/ui/levyMenu.ts`) with what the levy gives and
+    what it costs in citizens; "Levy" sends the same `levyCitizen` command the
+    old menu sent, and the rite line lists the rites instead. Cancel, Escape or
+    a press anywhere else shuts the confirm. A line that cannot be chosen is a
+    button that does nothing, with the reason as its note, and when no line can
+    be chosen the reason is also a line under the buttons;
   - **the fold rows** under them hold the rest: Buildings, Empire buildings,
-    Wonders, Specialists, Faith, Trade routes and Levy a citizen. A town shows
-    a row only when it has something in it (`cityFoldRows`); a shut row says
-    one fact ("6", "1 ready", "a rite, 9 turns"); one row is open at a time,
-    and the open row is the panel's own state, kept when the next town has the
-    same row (`keptFold`). The Faith row opens on the faith the seat holds,
-    what the town follows (the seat's own faith is "your religion"), every
-    religion in the town with its share (yours first, by name), the rite it
-    keeps and the rites it may start, and folds the rites behind one line when
-    none can be started here. The Levy row's body is the levy menu;
+    Wonders, Specialists, Faith and Trade routes. A town shows a row only when
+    it has something in it (`cityFoldRows`); a shut row says one fact ("6",
+    "1 ready", "a rite, 9 turns"); one row is open at a time, and the open row
+    is the panel's own state, kept when the next town has the same row
+    (`keptFold`). In the Buildings, Empire buildings, Wonders and Specialists
+    rows each thing is a chip. A building's chip shows its row card
+    (`buildingCard` with `standing`: what it pays and its clauses, without the
+    "would add" lines) on hover or keyboard focus; a consecration is its own
+    chip with the belief's clauses; a family of specialists is a chip with its
+    guild bar as the hover, and its Dismiss beside it. The Trade routes row is
+    a table: the trading post's chip, the route count and "All routes" on one
+    line, then one row a route, where it goes on the left and what it pays on
+    the right (`cityRouteRows`' `figures`, the trade sheet's reading), in a
+    list that scrolls past 220 px. The Faith row opens on the faith the seat
+    holds, what the town follows (the seat's own faith is "your religion"),
+    then "Religious followers": every religion in the town with its share,
+    yours first, and the ✶ beside your religion's name is the only mark that
+    it is yours. The rite the town keeps, the rites it may start and the link
+    to the Faith sheet stand under a thin rule and a "Rite" label, and the
+    rites fold behind one line when none can be started here;
   - **the work panel** is one panel: what is being built, the queue, the tabs,
     and directly under them the build list (the gear on each row, no
     pictures). Over each price column is its bank's mark and what the seat

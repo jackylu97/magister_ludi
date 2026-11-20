@@ -255,6 +255,15 @@ interface CityRouteRow {
   outbound: boolean;
   /** "← Ur · +3🌾 +2⚙" (pays here) or "→ Nippur" (pays there). */
   text: string;
+  /** The town at the route's other end, by its shown name. */
+  place: string;
+  /**
+   * What the route pays this seat, as the trade sheet prints it
+   * (`routeReading`): the destination's fold for a route inside the empire,
+   * the sender's for one that ends abroad. "nothing yet" for a route worth
+   * nothing so far. The city screen's Trade routes row prints it on the right.
+   */
+  figures: string;
 }
 
 /**
@@ -279,11 +288,16 @@ export function cityRouteRows(state: GameState, city: City): CityRouteRow[] {
     if (unit.ownerId !== city.ownerId) continue;
     const pair = routeCities(state, unit);
     if (!pair) continue;
+    if (route.from !== city.id && route.to !== city.id) continue;
+    // What it pays the seat, read as the trade sheet reads it (`routeReading`).
+    const figures = routeReading(state, unit)?.figures ?? 'nothing yet';
     if (route.from === city.id) {
-      rows.push({ outbound: true, text: `→ ${cityDisplayName(state, pair.to)}` });
-    } else if (route.to === city.id) {
-      const figures = routeFigures(foldRouteYield(explainRouteYield(state, unit)));
-      rows.push({ outbound: false, text: `← ${cityDisplayName(state, pair.from)} · ${figures}` });
+      const place = cityDisplayName(state, pair.to);
+      rows.push({ outbound: true, text: `→ ${place}`, place, figures });
+    } else {
+      const place = cityDisplayName(state, pair.from);
+      const here = routeFigures(foldRouteYield(explainRouteYield(state, unit)));
+      rows.push({ outbound: false, text: `← ${place} · ${here}`, place, figures });
     }
   }
   return rows;

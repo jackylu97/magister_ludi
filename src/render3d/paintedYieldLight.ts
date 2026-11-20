@@ -46,11 +46,11 @@ import {
 } from 'three';
 
 import { improvementDef } from '../sim/improvementData';
-import type { GameMap } from '../sim/map';
+import type { GameMap, Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { VISIBLE } from '../sim/visibility';
 // @ts-expect-error The surface module is plain JavaScript with no declaration file.
-import { centre, onTileTop, surfaceHeight } from '../terrainStudy/surface.js';
+import { centre, hillMounds, onTileTop, riverStyleKey, surfaceHeight } from '../terrainStudy/surface.js';
 import { type FogLevels, levelAt } from './fog3d';
 import { hashUnit } from './hash';
 import { seenTileYields } from './lens3d';
@@ -377,11 +377,24 @@ export function createPaintedMotes(motes: readonly PaintedMote[]) {
   return mesh;
 }
 
+type PreparedTile = Tile & { shoreEdges?: number; joinedEdges?: number; coast?: object; riverCarve?: object };
+type GroundSamples = {
+  shape: string;
+  coast?: object;
+  riverCarve?: object;
+  mounds?: object;
+  motes: { x: number; y: number; z: number }[];
+  washes: number[];
+};
+
 export class PaintedYieldLightLayer {
   readonly group = new Group();
   private readonly material: ShaderMaterial;
   private geometry: InstancedBufferGeometry | null = null;
   private meshes: Mesh[] = [];
+  private ground = new WeakMap<Tile, GroundSamples>();
+  private groundMap: GameMap | null = null;
+  private groundSettings = '';
   /** The quads of the last build, by what they are. For tests and for the cost report. */
   readonly counts = { hexes: 0, motes: 0, glows: 0, pools: 0, glints: 0, shapes: 0, washes: 0 };
   /** The size of the largest mote of the last build, in hex units. For tests. */
@@ -405,9 +418,26 @@ export class PaintedYieldLightLayer {
     this.material = paintedLightMaterial();
   }
 
+  /** The board supplies new coast, river and mound data when it prepares the ground. Terrace cuts change mesh indices only. */
+  private groundAt(tile: PreparedTile): GroundSamples {
+    const shape = [tile.col, tile.row, tile.terrain, tile.hills, tile.feature === 'oasis', tile.riverEdges, tile.shoreEdges, tile.joinedEdges].join('/');
+    const mounds = tile.hills && tile.feature !== 'oasis' ? hillMounds(tile) : undefined;
+    const previous = this.ground.get(tile);
+    if (previous && previous.shape === shape && previous.coast === tile.coast && previous.riverCarve === tile.riverCarve && previous.mounds === mounds) return previous;
+    const samples: GroundSamples = { shape, coast: tile.coast, riverCarve: tile.riverCarve, mounds, motes: [], washes: [] };
+    this.ground.set(tile, samples);
+    return samples;
+  }
+
   /** `prepared` is the board's own map, whose tiles carry the ground's heights. `period` is the wrap width in world units. */
   build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number): void {
     this.clear();
+    const settings = [riverStyleKey(), LIGHT.inner, LIGHT.outer, LIGHT.d.washRadius].join('/');
+    if (this.groundMap !== prepared || this.groundSettings !== settings) {
+      this.ground = new WeakMap();
+      this.groundMap = prepared;
+      this.groundSettings = settings;
+    }
     const show = LIGHT.show as YieldLightShow;
     if (show !== 'a' && show !== 'b' && show !== 'c' && show !== 'd') return;
     const width = state.map.width;
@@ -449,6 +479,7 @@ export class PaintedYieldLightLayer {
       }
       if (show === 'd') {
         const D = LIGHT.d, step = Math.min(3, first.step) - 1, wash = D.wash[step]!;
+        const ground = this.groundAt(tile);
         // A great person's work fills its hex with a tall model, so its motes start at roof height.
         const lift = original.improvement && improvementDef(original.improvement).greatPerson ? D.greatLift : 0;
         if (wash > 0) {
@@ -457,9 +488,9 @@ export class PaintedYieldLightLayer {
           const spots: [number, number, number, number][] = tile.hills
             ? [[0, 0, .62, .55], ...[0, 1, 2, 3, 4, 5].map((d): [number, number, number, number] => [Math.cos(d * Math.PI / 3 + .5) * .34, Math.sin(d * Math.PI / 3 + .5) * .34, .5, .34])]
             : [[0, 0, 1, 1]];
-          for (const [x, z, scale, share] of spots) {
+          for (const [index, [x, z, scale, share]] of spots.entries()) {
             const radius = D.washRadius * scale;
-            const y = Math.max(...[[0, 0], [radius * .4, 0], [-radius * .4, 0], [0, radius * .4], [0, -radius * .4]].map(([dx, dz]) => surfaceHeight(tile, x + dx!, z + dz!) as number));
+            const y = ground.washes[index] ??= Math.max(...[[0, 0], [radius * .4, 0], [-radius * .4, 0], [0, radius * .4], [0, -radius * .4]].map(([dx, dz]) => surfaceHeight(tile, x + dx!, z + dz!) as number));
             push({ x: c.x + x, y: y + LIGHT.lift, z: c.z + z, size: radius, type: WASH, kind, phase: h(1250), rnd: h(1251), strength: D.washStrength * wash * share }, colour);
           }
           this.counts.washes++;
@@ -469,8 +500,13 @@ export class PaintedYieldLightLayer {
         const count = D.motes[step]!;
         for (const entry of yieldLightSplit(hex.parts, count)) for (let k = 0; k < entry.count; k++, i++) {
           // Hashed places and starts, so two colours are mixed over the hex and not in two groups.
-          const n = 1300 + i * 11, p = place(n);
-          push({ x: c.x + p.x, y: (surfaceHeight(tile, p.x, p.z) as number) + .05 + lift, z: c.z + p.z, size: D.moteSize[step]!, type: MATTE, kind: YIELD_LIGHT_KINDS.indexOf(entry.kind),
+          const n = 1300 + i * 11;
+          let p = ground.motes[i];
+          if (!p) {
+            const { x, z } = place(n);
+            p = ground.motes[i] = { x, y: surfaceHeight(tile, x, z) as number, z };
+          }
+          push({ x: c.x + p.x, y: p.y + .05 + lift, z: c.z + p.z, size: D.moteSize[step]!, type: MATTE, kind: YIELD_LIGHT_KINDS.indexOf(entry.kind),
             phase: (h(n + 5) * count + h(n + 1)) / count, rnd: h(n + 2), strength: D.moteOpacity }, colours[entry.kind]);
           this.counts.motes++; this.largestMote = Math.max(this.largestMote, D.moteSize[step]!);
         }
@@ -527,5 +563,5 @@ export class PaintedYieldLightLayer {
     this.largestMote = 0;
   }
 
-  dispose(): void { this.clear(); this.material.dispose(); }
+  dispose(): void { this.clear(); this.ground = new WeakMap(); this.groundMap = null; this.material.dispose(); }
 }
