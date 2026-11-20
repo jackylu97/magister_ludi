@@ -10,6 +10,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { footprintOf } from './aiCardStampHelpers';
 import { valueContext } from '../../src/ai/bot';
 import { rankWorkSites } from '../../src/ai/plan';
 import {
@@ -730,8 +731,8 @@ describe('The Apostolic Camera', () => {
   it('reads a seat with a religion at the towns it can still turn, at what its beliefs pay', () => {
     const { state, player, towns } = board([8]);
     state.wars = [];
-    religionAt(state, towns[0]!, ['titheHouses']);
-    foreignTown(state, 20, 9);
+    const faith = religionAt(state, towns[0]!, ['titheHouses']);
+    const abroad = foreignTown(state, 20, 9);
     const ctx = valueContext(state, player);
     const row = doctrineDef(CARD).effects;
     // Tithe Houses pays +1 gold per three citizens, so the seat's mean town of 8 pays
@@ -739,7 +740,16 @@ describe('The Apostolic Camera', () => {
     // turns, so on average half of it over the horizon. The religion's pace is far above
     // one town in sixty turns, so the one known town is the cap.
     expect(scoreEffects(row, ctx)).toBeCloseTo(0.5 * 2 * voiceWeight(ctx, 'gold'), 8);
-    // The old reading was nought: there is no follower abroad yet.
+    expect(scoreEffects(row, { ...ctx, today: true })).toBe(0);
+    expect(footprintOf(ctx, CARD, row[0]!)).toBe(0);
+
+    abroad.followers = { [faith.id]: abroad.population };
+    bumpRevision(state);
+    const following = valueContext(state, player);
+    const gold = 3 * voiceWeight(following, 'gold');
+    expect(scoreEffects(row, { ...following, today: true })).toBeCloseTo(gold, 8);
+    expect(scoreEffects(row, following)).toBeCloseTo(gold, 8);
+    expect(footprintOf(following, CARD, row[0]!)).toBeGreaterThan(0);
   });
 
   it('adds what one more town abroad pays to a lump that would turn it', () => {

@@ -6129,12 +6129,8 @@ export function mirrorRowFor(
     const def = unitDef(id);
     if (def.modelClass !== mirrors.modelClass) continue;
     if (def.purchase !== undefined || def.retired === true) continue;
-    // A row that **awaits a technology** the tree does not yet have (the
-    // cataphract, `UnitDef.awaitsTech`) is not one the age has taught anybody:
-    // `isUnlocked` cannot refuse it, because no node gates it, and without this
-    // clause the mirror answered "a strength-22 cataphract" from the first turn
-    // of the game (found landing batch B2, 2026-09-08). The day its node lands
-    // and the marker goes, it joins the walk like any other row.
+    // A unit waiting for a future technology has no unlock in the current tree.
+    // The availability check below handles a leader's own units, including the Cataphract.
     if (def.awaitsTech === true) continue;
     if (!isUnlocked(state, playerId, 'unit', id)) continue;
     if (def.combatStrength <= strength) continue;

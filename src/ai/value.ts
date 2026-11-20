@@ -11318,13 +11318,15 @@ function followerLinesAbroadWorth(ctx: ValueContext): number {
   for (const line of explainFollowerLinesAbroad(ctx.state, ctx.playerId)) {
     for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + line[voice];
   }
+  const now = valueOfYields(bag, ctx);
+  if (ctx.today === true) return now;
   // The towns this seat's faith is expected to turn over the horizon, at most the towns
   // it knows of to turn, so a seat with a religion and no followers abroad yet does not
   // read the card at nothing (batch DT19b). Each pays from the turn it turns, so the
   // mean over the horizon is half of them. A seat paid by no religion reads nothing.
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const more = Math.min(conversionRate(ctx) * horizon, turnableTowns(ctx).length) / 2;
-  return valueOfYields(bag, ctx) + more * followerLinesInOneTown(ctx);
+  return now + more * followerLinesInOneTown(ctx);
 }
 
 /**
