@@ -11,6 +11,7 @@ painting shows are in `docs/splash-art.md`.
 | `endings/` | The ending page's painting: `win.jpg` and `loss.jpg`, written by `scripts/splashArt.py endings` | 16:9 | made from the master, at most 1600 wide | `win.jpg`, `loss.jpg` |
 | `beliefs/` | One vignette a belief, written by `scripts/splashArt.py beliefs` | 1:1 | made from the master, 480 x 480 | the belief's id, for example `sacredFire.jpg` |
 | `people/` | One portrait a great person, written by `scripts/splashArt.py people` | 5:6 | made from the master, 720 x 864 | the person's id, for example `imhotep.jpg` |
+| `governments/` | One banner painting a government | 3:1 | 990 x 330 | the government's id, for example `imperium.jpg` |
 
 - Use JPEG (quality about 85) or WebP for the files in this folder. Keep
   each under about 600 KB; the game loads them in the browser.
@@ -92,6 +93,28 @@ no portrait shows their family's emblem in the window.
 
 The portrait then shows in the window of that person's card, in the offer and
 in the Reliquary.
+
+## How a government's painting gets into the game
+
+A government is shown as a banner (`src/ui/governmentBanner.ts`): on the
+government offer and on the Council screen's government seat. The banner has
+a picture window of 3:1. On the offer the window is 330 x 110; on the Council
+screen it is the width of the government's column, about 180 x 60. No
+painting exists yet, so every window shows the drawn mark: the engraved seal
+with the crown, with the government's name and tier beside it.
+
+1. Make the painting 3:1, at 990 x 330 or larger. The window shows the whole
+   picture, cut from the centre if the shape is a little off.
+2. The government's name and tier sit at the foot of the window, over a dark
+   fade that covers about the lower half. Keep the subject in the upper half.
+3. Save it as `governments/<government id>.jpg` (JPEG, quality about 85). The
+   ids are in the table at the foot of this page.
+4. Add the id to the list in `src/ui/governmentPaintings.ts`. A test
+   (`test/ui/governmentPaintings.test.ts`) fails if the list and the folder
+   disagree.
+
+The painting then shows in the window of that government's banner, on the
+offer and on the Council screen.
 
 ## How a leader's portrait gets into the game
 
@@ -192,3 +215,24 @@ still change them. The Water Clock of Su Song is being retired.
 | `hypatiaOfAlexandria.jpg` | Hypatia |
 | `hildegard.jpg` | Hildegard of Bingen |
 | `ibnBattutaOfTangier.jpg` | Ibn Battuta |
+
+## Government ids
+
+The thirteen governments a game can offer. Four more rows are retired and are
+never offered, so they need no painting.
+
+| File name | Government |
+|---|---|
+| `chiefdom.jpg` | Chiefdom |
+| `councilOfElders.jpg` | Council of Elders |
+| `warChief.jpg` | War Chief |
+| `priestKing.jpg` | Priest-King |
+| `republic.jpg` | Republic |
+| `tyranny.jpg` | Tyranny |
+| `aristocracy.jpg` | Aristocracy |
+| `merchantLeague.jpg` | Merchant League |
+| `imperium.jpg` | Imperium |
+| `divineMandate.jpg` | Divine Mandate |
+| `theEstates.jpg` | The Estates |
+| `theSultanate.jpg` | The Sultanate |
+| `theCuria.jpg` | The Curia |

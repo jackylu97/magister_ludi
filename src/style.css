@@ -11141,6 +11141,74 @@ p.city-trade-link {
   width: var(--offer-card, 220px);
 }
 
+/* --- a stacked hand: the government banners (frame 7) --------------------------
+   One row under another, each the width `stackedSpread` measured, with the
+   board's narrow margins (`STACKED_PAD_X` in `offerCard.ts`). A chosen row
+   does not rise: it wears the board's gilt ring and lighter paper. A row turns
+   over about its long axis, which reads better than a wide turn. */
+.offer-sheet.is-dressed.is-stacked {
+  padding: 14px 16px 14px;
+}
+
+.offer-options[data-stack] {
+  margin-top: 16px;
+}
+
+.offer-options[data-stack] .offer-row {
+  grid-template-columns: minmax(0, var(--offer-card, 856px));
+  gap: 10px;
+}
+
+.offer-options[data-stack] .offer-option {
+  --gov-width: var(--offer-card, 856px);
+}
+
+.offer-options[data-stack] .offer-option:hover,
+.offer-options[data-stack] .offer-option.is-chosen {
+  transform: none;
+}
+
+.offer-options[data-stack] .offer-option:hover > :first-child {
+  border-color: var(--ink);
+}
+
+.offer-options[data-stack] .offer-option.is-chosen > :first-child {
+  outline: none;
+  border-color: var(--ink);
+  background: #fffaf0;
+  box-shadow: 0 0 0 2px var(--gilt-bright, #e8c35e);
+}
+
+/* The keyboard's ring stays on a chosen row too. */
+.offer-options[data-stack] .offer-option:focus-visible > :first-child {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.offer-options[data-stack] .card-back.offer-back::after {
+  width: auto;
+  height: 62%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .offer-options[data-stack] .offer-option.is-dealing {
+    animation-name: banner-deal;
+  }
+
+  .offer-options[data-stack] .offer-option.is-dealing > .card-back {
+    transform: rotateX(180deg);
+  }
+}
+
+@keyframes banner-deal {
+  from {
+    transform: rotateX(180deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+
 .offer-option {
   display: grid;
   gap: 6px;

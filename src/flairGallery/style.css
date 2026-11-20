@@ -1054,19 +1054,24 @@ body {
   padding-bottom: 12px;
 }
 
-/* A government's chairs, as the middle of its card shows them, under its name. */
-.face-government {
+/* The government banner (`governmentBanner.ts`): the offer's rows one under
+   another, at the width the slider sets, then the Council's narrow cards on
+   the Council's dark cloth. */
+.face-banners {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 170px;
-  padding: 10px 8px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: 8px;
-  background: var(--parchment);
-  font-family: var(--face-name);
-  font-size: 13px;
+  gap: 10px;
+  padding: 6px 0 16px;
+}
+
+.face-banner-cloth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 24px;
+  border-radius: 6px;
+  background: radial-gradient(130% 110% at 50% 0, #2b2631, var(--lampblack) 55%, #161318);
 }
 
 /* A collection card's width, so the stacked row wraps as it does in the game. */

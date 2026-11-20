@@ -132,12 +132,14 @@ import {
   doctrineDef,
   isCharter,
   isDoctrineId,
+  isGovernmentId,
   isOrderId,
   orderDef,
   orderType,
 } from '../sim/statecraftData';
 import { STAMP_TIMING, stampCountAt } from './cardStamp';
 import { chairWord } from './chairs';
+import { dressGovernmentBanner, fitGovernmentBanner, governmentBannerNode } from './governmentBanner';
 import { type CouncilLayout, COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from './councilLayout';
 import {
   type CouncilFigures,
@@ -1033,11 +1035,17 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   // --- the register: the government, and the Doctrines tucked under it -------
 
   /**
-   * The government column: the government as a full card with its own plate
+   * The government column: the government on its banner with its own plate
    * (`governmentLive`), and each Doctrine tucked under it with its plate
    * (`doctrineLive`). Each plate is the card's share of the totals, as every
    * chair's is. The government and a strip lift their full faces after the
    * pause.
+   *
+   * **The banner** (Quiet Table, frame 7: "The same banner can head the
+   * government card on the Council screen later"): the banner window heads
+   * the card, then the rules, the chairs this council has (`slotTypesOf`) and
+   * the plate (`governmentBanner.ts`). It is the column's width, the full
+   * column or the narrow one (`COUNCIL_FRAME.government`).
    */
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined, ties: ChairTies): HTMLElement {
     const column = element('section', 'council-gov');
@@ -1050,8 +1058,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const plate: OrderFacePlate | null = law.plate;
     const card = element('div', 'council-gov-card');
     const face = element('div');
-    dressOrderFace(face, sc.government, { where: 'played', plate });
-    if (screenLayout.government < COUNCIL_FRAME.government.wide) face.dataset.compact = 'narrow';
+    dressGovernmentBanner(face, sc.government, { form: 'seat', layout: slotTypesOf(sc), plate });
     face.dataset.card = sc.government;
     card.append(face);
     card.dataset.preview = 'register';
@@ -1478,8 +1485,12 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // once the card fonts have loaded.
     const faces = [...body.querySelectorAll<HTMLElement>('.orders-table .order-face, .council-gov-card .order-face')];
     for (const face of faces) fitOrderFace(face);
+    // The government's banner fits its name the same way.
+    const banners = [...body.querySelectorAll<HTMLElement>('.council-gov-card .gov-banner')];
+    for (const banner of banners) fitGovernmentBanner(banner);
     void document.fonts?.ready.then(() => {
       for (const face of faces) if (face.isConnected) fitOrderFace(face);
+      for (const banner of banners) if (banner.isConnected) fitGovernmentBanner(banner);
     });
     const fan = body.querySelector<HTMLElement>('.council-fan-cards');
     if (fan !== null) layFan(fan);
@@ -1914,12 +1925,28 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     hidePreview();
   }
 
-  /** Shows the full face of `card` beside its source. */
+  /**
+   * Shows the full face of `card` beside its source. The government lifts its
+   * banner, larger than the column holds it.
+   */
   function liftNow(source: HTMLElement, card: string, kind: 'hand' | 'chair' | 'register'): void {
     const state: OrderFaceState = previewStates.get(card) ?? { where: 'hand', plate: null };
+    const place = kind === 'hand' ? 'above' : 'beside';
+    if (isGovernmentId(card)) {
+      const sc = playerById(options.getState(), options.getPlayerId())?.statecraft;
+      const { banner } = governmentBannerNode(card, {
+        form: 'seat',
+        ...(sc === undefined ? {} : { layout: slotTypesOf(sc) }),
+        plate: state.plate ?? null,
+        inControl: true,
+      });
+      banner.classList.add('is-lifted');
+      preview = showPreview(layerHost, source.getBoundingClientRect(), banner, place);
+      fitGovernmentBanner(banner);
+      return;
+    }
     const face = orderFaceNode(card as OrderId, { ...state, inControl: true });
     face.setAttribute('data-lifted', '');
-    const place = kind === 'hand' ? 'above' : 'beside';
     preview = showPreview(layerHost, source.getBoundingClientRect(), face, place);
     fitOrderFace(face);
   }

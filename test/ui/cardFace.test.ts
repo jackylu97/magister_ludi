@@ -399,8 +399,8 @@ describe('the flair gallery', () => {
     // The lit and the refusing states the council puts on a chair.
     expect(faces).toContain("lit.button.classList.add('sc-slot-open');");
     expect(faces).toContain("dim.button.classList.add('sc-slot-refuses');");
-    // A government's chairs, as its card draws them.
-    expect(faces).toContain('offerChairsNode(offerChairsOf(id))');
+    // A government, on its banner, with its chairs as the banner draws them.
+    expect(faces).toContain("const { banner } = governmentBannerNode(id, { form: 'seat' });");
     // The Civic chair's mark joins the chair marks, which the marks page walks.
     expect(gallery('marks.ts')).toContain('for (const [id, mark] of Object.entries(SLOT_MARKS))');
   });

@@ -16,8 +16,8 @@
  * **The council** (batch C2b) is drawn the same way: the chairs are the
  * Statecraft screen's own (`chairNode` and `emptyChairNode`, `chairs.ts`), in
  * the four types, with the lit and the refusing states the screen puts on them
- * while a card is in hand, and each government's chairs are the government
- * card's own drawing (`offerChairsNode`).
+ * while a card is in hand. A government is drawn on its banner, the offer's
+ * and the Council's own (`governmentBannerNode`, `governmentBanner.ts`).
  */
 
 import { describeCard } from '../sim/statecraft';
@@ -47,9 +47,11 @@ import { leaderFaces, leaderPortraitNode } from '../ui/leaderSelect';
 import { fitGreatPersonCard, greatPersonCardNode, greatPersonPicture } from '../ui/greatPersonCard';
 import { greatPersonCard } from '../ui/greatPersonFace';
 import { scalerStartFace } from '../ui/scalerValue';
-import { chairNode, chairWord, emptyChairNode, offerChairsOf } from '../ui/chairs';
+import { chairNode, chairWord, emptyChairNode } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
-import { type OfferOption, offerChairsNode, suitHandCard } from '../ui/offerCard';
+import { type OfferOption, suitHandCard } from '../ui/offerCard';
+import { fitGovernmentBanner, fitGovernmentHand, governmentBannerNode } from '../ui/governmentBanner';
+import { wonderPaintingUrl } from '../ui/wonderPaintings';
 import {
   INK_IDS,
   type InkId,
@@ -356,26 +358,71 @@ function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
   }
   council.append(states);
 
-  const governments = block(
-    into,
-    'A government’s chairs — offerChairsNode, offerCard.ts',
-    'What the middle of a government card shows, for every government a seat can be offered: one small chair for each chair it lays out, in its type’s ink, and the mix in words.',
-  );
-  const row = element('div', 'face-council');
-  for (const id of GOVERNMENT_IDS) {
-    const def = governmentDef(id);
-    if (def.retired === true) continue;
-    const cell = element('div', 'face-government');
-    cell.append(element('b', undefined, def.name));
-    cell.append(offerChairsNode(offerChairsOf(id)));
-    row.append(cell);
-  }
-  governments.append(row);
-
+  drawGovernmentBanners(into);
   drawGreatPeople(into);
   drawOfferBacks(into);
   drawLeaderPortraits(into);
   drawFaithTablets(into);
+}
+
+/**
+ * **The government banner** (`governmentBanner.ts`; Quiet Table, frame 7),
+ * through the game's own builder. The offer's row for one tier, the first
+ * with a stand-in painting so the painted window can be seen before any
+ * government has its own, then the Council's narrow card for every government
+ * a seat can hold, on the Council's dark cloth.
+ */
+function drawGovernmentBanners(into: HTMLElement): void {
+  const banners = block(
+    into,
+    'The government banner: governmentBanner.ts',
+    'The form a government wears on the offer and on the Council screen: a 3:1 window with the government’s painting, or the engraved seal with the crown while it has none; its rules; its chairs in their types’ inks and marks; and the figure. The first row shows a wonder painting as a stand-in. The cards under the rows are the Council’s seat form, for every government a seat can hold.',
+  );
+  const knobs = controls(banners);
+  const live = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
+  const tiers = [...new Set(live.map((id) => governmentDef(id).tier))];
+  const rows = element('div', 'face-banners');
+  const cloth = element('div', 'face-banner-cloth');
+  banners.append(rows, cloth);
+  let width = 856;
+  let tier = tiers.find((one) => one > 0) ?? tiers[0] ?? 0;
+  const redraw = (): void => {
+    rows.replaceChildren();
+    rows.style.setProperty('--gov-width', `${width}px`);
+    live
+      .filter((id) => governmentDef(id).tier === tier)
+      .forEach((id, index) => {
+        const { banner } = governmentBannerNode(id, {
+          form: 'row',
+          ...(index === 0 ? { picture: { kind: 'painted' as const, url: wonderPaintingUrl('forbiddenCity') ?? '' } } : {}),
+        });
+        rows.append(banner);
+      });
+    const hand = [...rows.querySelectorAll<HTMLElement>('.gov-banner')];
+    for (const banner of hand) fitGovernmentBanner(banner);
+    // One size for the hand, as the offer fits it.
+    fitGovernmentHand(hand);
+  };
+  slider(knobs, 'row width', { min: 560, max: 900, step: 4, value: width }, (v) => `${v}px`, (v) => {
+    width = v;
+    redraw();
+  });
+  select(
+    knobs,
+    'tier',
+    tiers.map((one) => [String(one), `tier ${one}`] as const),
+    String(tier),
+    (value) => {
+      tier = Number(value);
+      redraw();
+    },
+  );
+  redraw();
+  for (const id of live) {
+    const { banner } = governmentBannerNode(id, { form: 'seat' });
+    cloth.append(banner);
+    fitGovernmentBanner(banner);
+  }
 }
 
 /**

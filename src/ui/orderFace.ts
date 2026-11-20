@@ -618,9 +618,10 @@ function suitGroup(paths: (typeof SEAL_MARK)['paths'], at: SuitPlacement, classN
 /**
  * **The device**: the glory of rays (left out when the card pays nothing
  * now), the hatched disc and its double ring, then the suit with its cut
- * shadow, offset down and to the right in ink.
+ * shadow, offset down and to the right in ink. The government banner draws
+ * the same device as its fallback mark (`governmentBanner.ts`).
  */
-function deviceNode(suits: readonly SuitId[], rays: boolean): SVGSVGElement {
+export function deviceNode(suits: readonly SuitId[], rays: boolean): SVGSVGElement {
   const root = svg('svg', { viewBox: `0 0 ${DEVICE_BOX} ${DEVICE_BOX}`, 'aria-hidden': 'true' }, 'of-device');
   if (rays) root.append(svg('path', { d: DEVICE_RAYS }, 'of-rays'));
   root.append(svg('circle', { cx: 50, cy: 50, r: DEVICE_DISC.r }, 'of-disc'));

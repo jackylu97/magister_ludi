@@ -470,6 +470,13 @@ interface Offer {
    * lays out (`dressedSpread`). The callers' table is `OFFER_FACE_SHAPES`.
    */
   shape?: OfferShape;
+  /**
+   * **The drawn faces stand one under another**, each a row the sheet's width:
+   * the government banners (frame 7, "Three banners"). A banner is wider than
+   * it is tall, so a hand of them is a column, laid out by `stackedSpread`.
+   * The deal, the choice and the take are the same as for any drawn face.
+   */
+  stacked?: boolean;
   /** The verb on the take button: "Take" when absent, "Swear" for a government. */
   takeVerb?: string;
   /**
@@ -805,6 +812,56 @@ export function dressedSpread(
   };
 }
 
+/**
+ * The lengths of a stacked hand, the stylesheet's (`.offer-sheet.is-stacked`,
+ * `.offer-options[data-stack]`): the sheet's side margin, the gap between two
+ * rows, and the air between the head and the first row. A chosen row does not
+ * rise, so it needs no room above it.
+ */
+const STACKED_PAD_X = 16;
+const STACKED_GAP = 10;
+const STACKED_TOP = 16;
+
+/**
+ * **The spread of a stacked hand** (`Offer.stacked`, the government banners):
+ * one row under another, each the shape's width, or less when the window has
+ * no room for the width or for every row's height. The sheet is the board's:
+ * the rows and a narrow margin either side. A row's height here is its
+ * designed one; a row with a long rule grows, and the sheet scrolls before
+ * anything is cut.
+ */
+export function stackedSpread(
+  count: number,
+  stage: OfferStage,
+  shape: OfferShape,
+): { count: number; sheet: number; card: number; height: number; total: number } {
+  const rows = Math.max(1, Math.round(count));
+  const room = stage.width - OVERLAY_PAD * 2 - STACKED_PAD_X * 2;
+  const budget =
+    stage.height -
+    OVERLAY_PAD * 2 -
+    DRESSED_HEAD -
+    STACKED_TOP -
+    DRESSED_FOOT -
+    DRESSED_SLACK -
+    STACKED_GAP * (rows - 1);
+  const card = Math.round(
+    clamp(
+      shape.width * DRESSED_MIN_SHARE,
+      Math.min(shape.width, Math.floor(room), Math.floor(budget / (rows * shape.ratio))),
+      shape.width,
+    ),
+  );
+  const height = Math.round(card * shape.ratio);
+  return {
+    count: rows,
+    sheet: Math.min(stage.width - OVERLAY_PAD * 2, card + STACKED_PAD_X * 2),
+    card,
+    height,
+    total: OVERLAY_PAD * 2 + DRESSED_HEAD + STACKED_TOP + rows * height + STACKED_GAP * (rows - 1) + DRESSED_FOOT,
+  };
+}
+
 /** What the caller is told when the sheet is put away or brought back. */
 interface OfferCardOptions {
   /**
@@ -1064,7 +1121,7 @@ export function createOfferCard(
    * the last one that should be allowed to fall off the bottom of a shrunk
    * window.
    */
-  let spreadOf: { count: number; shape: OfferShape | null } | null = null;
+  let spreadOf: { count: number; shape: OfferShape | null; stacked: boolean } | null = null;
   /** The card the take button would take: the first until the player chooses another. */
   let chosen = 0;
   /**
@@ -1088,8 +1145,9 @@ export function createOfferCard(
     if (!spreadOf) return;
     const stage = { width: window.innerWidth, height: window.innerHeight };
     if (spreadOf.shape !== null) {
-      // A hand of drawn faces keeps their proportion (`dressedSpread`).
-      const dressed = dressedSpread(spreadOf.count, stage, spreadOf.shape);
+      // A hand of drawn faces keeps their proportion (`dressedSpread`), and a
+      // stacked hand stands its rows one under another (`stackedSpread`).
+      const dressed = (spreadOf.stacked ? stackedSpread : dressedSpread)(spreadOf.count, stage, spreadOf.shape);
       container.style.setProperty('--offer-count', String(dressed.count));
       container.style.setProperty('--offer-sheet', `${dressed.sheet}px`);
       container.style.setProperty('--offer-card', `${dressed.card}px`);
@@ -1512,9 +1570,15 @@ export function createOfferCard(
           option.suit !== undefined ||
           option.chairs !== undefined,
       );
+    // A stacked hand (the government banners) is a column of rows.
+    const stacked = dressed && offer.stacked === true;
     if (dressed) {
       list.dataset.face = 'dressed';
       sheet.classList.add('is-dressed');
+      if (stacked) {
+        list.dataset.stack = 'true';
+        sheet.classList.add('is-stacked');
+      }
     } else if (tarot) list.dataset.face = 'tarot';
 
     /**
@@ -1650,6 +1714,7 @@ export function createOfferCard(
     spreadOf = {
       count: Math.max(1, offer.options.length),
       shape: dressed ? (offer.shape ?? { width: 220, ratio: 1.23 }) : null,
+      stacked,
     };
     applySpread();
     const row = element('div', 'offer-row');
