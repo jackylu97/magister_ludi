@@ -1,0 +1,381 @@
+{
+  "date": "2026-11-19",
+  "source": {
+    "candidateCommit": "ace68cad",
+    "baseline": "Same worktree and settings. Vite replaced only paintedYieldLight.ts with its earlier source.",
+    "baselineFileSha256": "4c35103ef10720af1b612a7a25f2bbd432c0bdedfe60d2bcb8b675d55ddf6d8c",
+    "candidateFileSha256": "261ba93dc7caf0b402e53835031ddba34f71679e030c972cc09bb13a375c1cd1"
+  },
+  "cpu": {
+    "environment": "Apple M4, Node 26.7.0, one process at nice 15, no WebGL or browser. The full test suite was starting during this final recording.",
+    "method": "Each pair rebuilt the original and candidate layers for the same state and prepared map. Alternate which runs first. Discard eight warm-up pairs, retain forty measured pairs. Cold-build percentiles cover twelve new layers per version. Each duration includes filtering, current yields, placing lights, creating CPU geometry, wrap bounds and replacing old meshes.",
+    "fixture": "Both fixtures use the seed 999 playtest configuration, with wrapped terrain, organic rivers and the free coastline. The opening run alternates actual seat sight with a one-column extension. The turn-120 run cycles the initial state and snapshots after each of the three accepted commands. The layer was rebuilt deliberately for every sample.",
+    "comparison": "Byte equality uses the index, full vertex and instance attributes including position, size, seed, tint and order, instance count and wrap offsets. The digest also covers visible yield readings and light counts. Each listed digest matched both versions.",
+    "fixtures": [
+      {
+        "name": "seed999-opening",
+        "coldMs": {
+          "baseline": {
+            "p50": 0.204,
+            "p95": 0.381
+          },
+          "candidate": {
+            "p50": 0.207,
+            "p95": 0.416
+          }
+        },
+        "repeatMs": {
+          "baseline": {
+            "p50": 0.372,
+            "p95": 0.509
+          },
+          "candidate": {
+            "p50": 0.282,
+            "p95": 0.409
+          }
+        },
+        "states": [
+          {
+            "turn": 1,
+            "watched": 61,
+            "hexes": 2,
+            "motes": 6,
+            "digest": "8e438b10a6295239916a795958b714f19ad347c452e9bf153d2819f845bfec73"
+          },
+          {
+            "turn": 1,
+            "watched": 70,
+            "hexes": 2,
+            "motes": 6,
+            "digest": "8e438b10a6295239916a795958b714f19ad347c452e9bf153d2819f845bfec73"
+          }
+        ]
+      },
+      {
+        "name": "seed999-turn120",
+        "coldMs": {
+          "baseline": {
+            "p50": 10.304,
+            "p95": 13.363
+          },
+          "candidate": {
+            "p50": 9.589,
+            "p95": 13.604
+          }
+        },
+        "repeatMs": {
+          "baseline": {
+            "p50": 9.44,
+            "p95": 16.974
+          },
+          "candidate": {
+            "p50": 2.558,
+            "p95": 4.952
+          }
+        },
+        "states": [
+          {
+            "turn": 120,
+            "watched": 704,
+            "hexes": 122,
+            "motes": 654,
+            "digest": "e2968bd13f3b03b57c68f14df7ec36ef73df4ea61b1a26363b3761ee9a8469a4"
+          },
+          {
+            "turn": 120,
+            "watched": 679,
+            "hexes": 119,
+            "motes": 642,
+            "digest": "d691cf8dfa319c17ae5f87279042a08c6264dc8ef6bd3618a9eb75117c835610"
+          },
+          {
+            "turn": 120,
+            "watched": 679,
+            "hexes": 119,
+            "motes": 642,
+            "digest": "d691cf8dfa319c17ae5f87279042a08c6264dc8ef6bd3618a9eb75117c835610"
+          },
+          {
+            "turn": 120,
+            "watched": 674,
+            "hexes": 119,
+            "motes": 642,
+            "digest": "d691cf8dfa319c17ae5f87279042a08c6264dc8ef6bd3618a9eb75117c835610"
+          }
+        ]
+      }
+    ]
+  },
+  "game": {
+    "environment": {
+      "turn": 120,
+      "fogSeat": 0,
+      "cityCount": 86,
+      "units": 520,
+      "seen": 679,
+      "ratio": 1.5,
+      "device": 2,
+      "rect": [
+        0,
+        42,
+        1470,
+        793
+      ],
+      "drawing": [
+        2205,
+        1189
+      ],
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+      "seed": 999,
+      "chrome": "156.0.8078.48",
+      "refreshHz": 60,
+      "viewportCss": [
+        1470,
+        835
+      ],
+      "url": "?light=day"
+    },
+    "method": "The native window used the normal game UI and trusted CDP inputs. A left-click selected the unit. A right-click targeted the tile. Each emitted move command, selected ID and target matched. The command-to-draw measurement starts at handleRightClick and ends when a requestAnimationFrame observer sees a new board draw. A draw marks CPU submission. The walk FPS counts distinct board draws inside the scheduled animation interval, including its initial wait. Fractional FPS can exceed refresh very slightly over these short intervals. Median subsequent frame gaps describe the motion after it appeared. No GPU readbacks ran during input. CPU profiles and phase timing hooks ran in both versions.",
+    "sharedLoad": "One isolated Chrome window and Vite server. Both exited with status 0. The host one-minute load ranged from 4.0 to 4.5 at the start of these runs.",
+    "baseline": [
+      {
+        "unit": 1000,
+        "target": [
+          54,
+          31
+        ],
+        "accepted": true,
+        "inputHash": "f7c665dde7f155",
+        "loadAtStart": 4.5,
+        "loadAtEnd": 4.5,
+        "walkDurationMs": 319.6,
+        "boardFramesDuringWalk": 16,
+        "boardFpsDuringWalk": 50.1,
+        "rightClickToFirstBoardDrawMs": 99.8,
+        "walkStartToFirstBoardDrawMs": 82.5,
+        "gapMedianAfterFirstBoardDrawMs": 16.8,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 9.4,
+        "stagesMs": {
+          "applyCommand": [
+            10.1
+          ],
+          "updatePanel": [
+            24.6
+          ],
+          "syncStateLayers": [
+            26.3
+          ],
+          "rebuildPaintedWorks": [
+            19.3,
+            0.4
+          ],
+          "rebuildUnits": [
+            2.6
+          ],
+          "Worker.postMessage": [
+            2.1
+          ]
+        }
+      },
+      {
+        "unit": 1147,
+        "target": [
+          50,
+          27
+        ],
+        "accepted": true,
+        "inputHash": "d08b6923111b4b",
+        "loadAtStart": 4.5,
+        "loadAtEnd": 4.1,
+        "walkDurationMs": 479.7,
+        "boardFramesDuringWalk": 29,
+        "boardFpsDuringWalk": 60.5,
+        "rightClickToFirstBoardDrawMs": 28.1,
+        "walkStartToFirstBoardDrawMs": 22.7,
+        "gapMedianAfterFirstBoardDrawMs": 16.5,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 0,
+        "stagesMs": {
+          "applyCommand": [
+            2.2
+          ],
+          "updatePanel": [
+            8.6
+          ],
+          "syncStateLayers": [
+            4.6
+          ],
+          "rebuildPaintedWorks": [
+            0.6
+          ],
+          "rebuildUnits": [
+            3.1
+          ],
+          "Worker.postMessage": [
+            2.4
+          ]
+        }
+      },
+      {
+        "unit": 759,
+        "target": [
+          55,
+          32
+        ],
+        "accepted": true,
+        "inputHash": "a5a15c034b716d",
+        "loadAtStart": 4.1,
+        "loadAtEnd": 4.1,
+        "walkDurationMs": 159.6,
+        "boardFramesDuringWalk": 8,
+        "boardFpsDuringWalk": 50.1,
+        "rightClickToFirstBoardDrawMs": 48.7,
+        "walkStartToFirstBoardDrawMs": 44.7,
+        "gapMedianAfterFirstBoardDrawMs": 16.5,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 6.9,
+        "stagesMs": {
+          "applyCommand": [
+            1.6
+          ],
+          "updatePanel": [
+            24.3
+          ],
+          "syncStateLayers": [
+            11
+          ],
+          "rebuildPaintedWorks": [
+            8.2
+          ],
+          "rebuildUnits": [
+            1.9
+          ],
+          "Worker.postMessage": [
+            2.5
+          ]
+        }
+      }
+    ],
+    "candidate": [
+      {
+        "unit": 1000,
+        "target": [
+          54,
+          31
+        ],
+        "accepted": true,
+        "inputHash": "f7c665dde7f155",
+        "loadAtStart": 4.0,
+        "loadAtEnd": 4.2,
+        "walkDurationMs": 319.0,
+        "boardFramesDuringWalk": 12,
+        "boardFpsDuringWalk": 37.6,
+        "rightClickToFirstBoardDrawMs": 159.8,
+        "walkStartToFirstBoardDrawMs": 143.1,
+        "gapMedianAfterFirstBoardDrawMs": 16.6,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 4.3,
+        "stagesMs": {
+          "applyCommand": [
+            9.7
+          ],
+          "updatePanel": [
+            63.1
+          ],
+          "syncStateLayers": [
+            28.6
+          ],
+          "rebuildPaintedWorks": [
+            16.7,
+            1.5
+          ],
+          "rebuildUnits": [
+            6.5
+          ],
+          "Worker.postMessage": [
+            6.1
+          ]
+        }
+      },
+      {
+        "unit": 1147,
+        "target": [
+          50,
+          27
+        ],
+        "accepted": true,
+        "inputHash": "d08b6923111b4b",
+        "loadAtStart": 4.2,
+        "loadAtEnd": 4.4,
+        "walkDurationMs": 479.8,
+        "boardFramesDuringWalk": 29,
+        "boardFpsDuringWalk": 60.4,
+        "rightClickToFirstBoardDrawMs": 21.1,
+        "walkStartToFirstBoardDrawMs": 17.8,
+        "gapMedianAfterFirstBoardDrawMs": 16.7,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 0,
+        "stagesMs": {
+          "applyCommand": [
+            1.7
+          ],
+          "updatePanel": [
+            6
+          ],
+          "syncStateLayers": [
+            3.6
+          ],
+          "rebuildPaintedWorks": [
+            0.4
+          ],
+          "rebuildUnits": [
+            2.3
+          ],
+          "Worker.postMessage": [
+            1.8
+          ]
+        }
+      },
+      {
+        "unit": 759,
+        "target": [
+          55,
+          32
+        ],
+        "accepted": true,
+        "inputHash": "a5a15c034b716d",
+        "loadAtStart": 4.4,
+        "loadAtEnd": 4.7,
+        "walkDurationMs": 159.7,
+        "boardFramesDuringWalk": 8,
+        "boardFpsDuringWalk": 50.1,
+        "rightClickToFirstBoardDrawMs": 53.8,
+        "walkStartToFirstBoardDrawMs": 47.4,
+        "gapMedianAfterFirstBoardDrawMs": 16.5,
+        "shadowBakes": 0,
+        "cpuSamplesRichLightMs": 3.4,
+        "stagesMs": {
+          "applyCommand": [
+            3.2
+          ],
+          "updatePanel": [
+            28
+          ],
+          "syncStateLayers": [
+            7.7
+          ],
+          "rebuildPaintedWorks": [
+            4
+          ],
+          "rebuildUnits": [
+            2.7
+          ],
+          "Worker.postMessage": [
+            4.9
+          ]
+        }
+      }
+    ]
+  }
+}
