@@ -99,27 +99,24 @@ import { type MeterStep, RULES } from './rulesData';
 import { slateMemo } from './slate';
 import type { CardId } from './statecraftData';
 import {
+  type CityCostRows,
   cardAmplifier,
   cardAmplifierFlat,
   cardAuthority,
   cardBuildingHappiness,
   cardCityCostRows,
   cardHappiness,
+  cardMeterFlag,
   cardMeterRule,
+  cardProspectCityCost,
   cardRuleIsScoped,
   cardRulePercent,
   cardTierBoost,
   foldCardRulePercent,
-} from './statecraft';
+  townBuildings,
+  townShelf,
+} from './statecraft/evaluator';
 import { type City, type GameState, playerById } from './state';
-// Expansionist batch E5, straight from the evaluator rather than through the
-// index above: the build splits a re-export across a cycle into chunks it warns
-// about.
-import { cardMeterFlag } from './statecraft/evaluator';
-// Expansionist batch E12: what a town holds, a card's grants included.
-import { townBuildings, townShelf } from './statecraft/evaluator';
-// Batch DT1: the founding preview's reading of the `cityCost` rows.
-import { type CityCostRows, cardProspectCityCost } from './statecraft/evaluator';
 import { eraNumeral, highestAge } from './techData';
 import { explainWeariness } from './weariness';
 

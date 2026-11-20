@@ -466,20 +466,18 @@ import {
   cardUnlocksUnit,
   charterOpensUnit,
   cityScopeAdmits,
+  payWindfallGrants,
+  windfallPayout,
+} from './statecraft/evaluator';
+import {
   cityScopeWords,
   // The article rule, borrowed rather than rewritten: "needs **a** Library" and
   // "in **an** Amphitheater" must agree, and a second vowel test in this file is
   // exactly how the two would come apart. See `indefinite`.
   indefinite,
-  payWindfallGrants,
-  recordScalingOccasion,
-  settleCultureWindfall,
   stripRefs,
-  windfallPayout,
-} from './statecraft';
-// Dominion batch D8, straight from the evaluator rather than through the
-// index, which re-exports across a cycle: the rule that stops an empire
-// founding cities.
+} from './statecraft/describers';
+import { recordScalingOccasion, settleCultureWindfall } from './statecraft/draft';
 import { cardBehaviorRule } from './statecraft/evaluator';
 // Scientific batch S9, from the evaluator for the same reason: the piece's
 // own rules on an upgrade (The Field Refits, The Model Army), and the figures

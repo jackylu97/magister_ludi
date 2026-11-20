@@ -127,15 +127,9 @@ import {
   slottedOrderCount,
   wondersHeldBy,
 } from './state';
-import {
-  type CardClause,
-  cardBeadOccasions,
-  describeEffects,
-  ref,
-  religionFounder,
-  settleCultureWindfall,
-  stripRefs,
-} from './statecraft';
+import { type CardClause, describeEffects, ref, stripRefs } from './statecraft/describers';
+import { cardBeadOccasions, religionFounder } from './statecraft/evaluator';
+import { settleCultureWindfall } from './statecraft/draft';
 import { settleResearchWindfall } from './tech';
 import {
   BUILDING_UNLOCK_TECH,

@@ -42,7 +42,7 @@ import { tributeLines } from './deals';
 // `statecraft.ts`, which reads `cities.ts`, so the import adds no shape of cycle
 // the file did not already have and nothing here is called at load.
 import { foldRulePercent, resourceConnectionPercent } from './resourceEffects';
-import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule, cardBuildingUpkeepRebateLines } from './statecraft';
+import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule, cardBuildingUpkeepRebateLines } from './statecraft/evaluator';
 import type { CardId } from './statecraftData';
 import {
   explainBuildingUpkeep,

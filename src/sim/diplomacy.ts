@@ -62,12 +62,10 @@ import {
 import {
   // Bot batch BP7: a razed town takes its wonder's chair with it.
   buildingOpensChairs,
-  payWindfallGrants,
-  recordScalingOccasion,
   refitSlots,
-  settleCultureWindfall,
-  windfallPayout,
-} from './statecraft';
+} from './statecraft/council';
+import { payWindfallGrants, windfallPayout } from './statecraft/evaluator';
+import { recordScalingOccasion, settleCultureWindfall } from './statecraft/draft';
 // Batch DT7: the two bans in the deal and war gates.
 import { cardFaithfulPeace, cardHoldingRule } from './statecraft/evaluator';
 import { settleResearchWindfall } from './tech';

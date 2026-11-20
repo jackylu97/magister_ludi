@@ -61,10 +61,10 @@ import {
   cardCityRuleAt,
   cardRulePercent,
   payWindfallGrants,
-  settleCultureWindfall,
   windfallPayout,
   windfallPayoutIsEmpty,
-} from './statecraft';
+} from './statecraft/evaluator';
+import { settleCultureWindfall } from './statecraft/draft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { townShelf } from './statecraft/evaluator';
 import { settleResearchWindfall } from './tech';

@@ -121,26 +121,21 @@ import {
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { type HexMarkId, RULES } from './rulesData';
 import { cardThatOpensImprovement, orderDef } from './statecraftData';
-// Expansionist batch E4, straight from the evaluator rather than through the
-// index: the index re-exports across a cycle, and the build splits such
-// re-exports into chunks it warns about.
-import { timedEffectIsLive, worksBeyondReach } from './statecraft/evaluator';
-// Dominion batch D14, The Longships: how many hexes a ship raids, for the same
-// reason as the line above.
-import { cardShoreRaids } from './statecraft/evaluator';
 import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
   cardActionRule,
   cardBehaviorRule,
+  cardShoreRaids,
   cardUnlocksImprovement,
   farmWaterOf,
   payWindfallGrants,
-  recordScalingOccasion,
-  settleCultureWindfall,
   windfallPayout,
   windfallPayoutIsEmpty,
-} from './statecraft';
+  timedEffectIsLive,
+  worksBeyondReach,
+} from './statecraft/evaluator';
+import { recordScalingOccasion, settleCultureWindfall } from './statecraft/draft';
 import {
   type City,
   type GameState,

@@ -50,7 +50,7 @@
  */
 
 import { buildingCityStat, foldBuildingCityStat } from './buildingEffects';
-import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
+import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Devotion batch DV5: The Confessors' rule and the `follows` town scope it
 // asks. The same function-level edge as the line above.

@@ -138,20 +138,22 @@ import {
   cardPressureSources,
   cardRulePercent,
   cardRivalPressurePercent,
+  heldReligions,
+  payWindfallGrants,
+  religionFounder,
+  timedEffectIsLive,
+  windfallPayout,
+  windfallPayoutIsEmpty,
+} from './statecraft/evaluator';
+import {
   doctrineBagFor,
   drawDoctrineOffer,
   drawOrderOffer,
   drawWithoutReplacement,
-  heldReligions,
   offerSize,
-  payWindfallGrants,
   recordScalingOccasion,
-  religionFounder,
   settleCultureWindfall,
-  timedEffectIsLive,
-  windfallPayout,
-  windfallPayoutIsEmpty,
-} from './statecraft';
+} from './statecraft/draft';
 // The one reader of a card row's clauses for "which card teaches this verb",
 // asked by `riteTeachingCard`. Straight from the evaluator, as `levies.ts`
 // imports its readings, so the index needs no new line.

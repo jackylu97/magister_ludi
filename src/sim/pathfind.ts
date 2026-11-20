@@ -137,7 +137,7 @@ import {
   cardRulePercent,
   cardZocIgnored,
   foldCardRulePercent,
-} from './statecraft';
+} from './statecraft/evaluator';
 import { type GameState, type Unit, playerById } from './state';
 import { slateShadow } from './slate';
 import { atWar } from './wars';
