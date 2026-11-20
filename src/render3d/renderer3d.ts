@@ -674,6 +674,7 @@ export class Renderer3D implements MapView {
   private frameDirty = true;
   /** The canvas was created for the painted look. See the constructor. */
   private readonly paintedCanvas: boolean;
+  private sharpBoard: boolean;
   /** Removes the device-pixel-ratio listener `resize` last armed. */
   private unwatchPixelRatio: () => void = () => undefined;
   /**
@@ -709,11 +710,12 @@ export class Renderer3D implements MapView {
    * and the painted look needs none of the multisampling, depth or stencil the
    * toon look draws with. See `canvasAttributes`.
    */
-  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number; painted?: boolean; closeGround?: boolean } = {}) {
+  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number; painted?: boolean; closeGround?: boolean; sharpBoard?: boolean } = {}) {
     this.canvas = canvas;
     this.closeGroundEnabled = options.closeGround ?? (typeof location !== 'undefined' &&
       new URLSearchParams(location.search).get('closeGround') === '1');
     this.paintedCanvas = options.painted === true;
+    this.sharpBoard = options.sharpBoard === true;
     this.view = new DioramaCamera(options.minFrustum);
     this.renderer = new WebGLRenderer({ canvas, ...canvasAttributes(this.paintedCanvas) });
     // After three's own listeners, which are added in its constructor: by the
@@ -1312,6 +1314,15 @@ export class Renderer3D implements MapView {
    */
   setMotionRest(on: boolean): void { this.motionRest = on; this.noteActivity(); }
   get motionRestOn(): boolean { return this.motionRest; }
+
+  get sharpBoardEnabled(): boolean { return this.sharpBoard; }
+
+  /** Resize the board and its effects together when the player changes the display setting. */
+  setSharpBoard(enabled: boolean): void {
+    if (enabled === this.sharpBoard) return;
+    this.sharpBoard = enabled;
+    this.resize();
+  }
 
   /** The player gave input: a resting motion starts again on the next display frame. */
   noteActivity(): void { this.lastActivity = performance.now(); }
@@ -3600,9 +3611,10 @@ export class Renderer3D implements MapView {
     const deviceRatio = window.devicePixelRatio || 1;
     // The toon look's cap of 2 is the frozen fallback's own; the painted game's
     // cap and pixel budget are rows of `data/view3d.json`.
+    const canvasSettings = VIEW3D.painted.canvas;
+    const paintedRatio = this.sharpBoard ? canvasSettings.sharpPixelRatio : canvasSettings.maxPixelRatio;
     this.renderer.setPixelRatio(drawingBufferRatio(width, height, deviceRatio,
-      this.paintedCanvas || this.paintedLook ? VIEW3D.painted.canvas.maxPixelRatio : 2,
-      VIEW3D.painted.canvas.pixelBudget));
+      this.paintedCanvas || this.paintedLook ? paintedRatio : 2, canvasSettings.pixelBudget));
     // Heard again if the window moves to a screen with another scale, which
     // does not always fire a `resize`. Re-armed here, so it tracks the ratio
     // this resize just read.

@@ -2507,6 +2507,24 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
+    const sharpRow = document.createElement('div');
+    sharpRow.className = 'row check';
+    const sharp = document.createElement('input');
+    sharp.type = 'checkbox';
+    sharp.id = 'sharp-board';
+    sharp.checked = renderer.sharpBoardEnabled;
+    const sharpLabel = document.createElement('label');
+    sharpLabel.htmlFor = sharp.id;
+    sharpLabel.textContent = 'Sharp board';
+    sharpLabel.title = 'Draw finer detail on high-resolution displays.';
+    sharpRow.append(sharp, sharpLabel);
+    menuExtrasEl.append(sharpRow);
+    sharp.onchange = () => {
+      renderer.setSharpBoard(sharp.checked);
+      const url = new URL(location.href);
+      if (sharp.checked) url.searchParams.set('sharp', '1'); else url.searchParams.delete('sharp');
+      history.replaceState(null, '', url);
+    };
     // The option to stop the board's motion when idle (the user, 2026-11-17:
     // "Motion stopping after a few seconds is fine"). Off by default. It is
     // kept in the URL as `rest`, the way the time of day keeps `light`, so a
@@ -2651,7 +2669,10 @@ async function createRenderer(
     // Loaded here rather than at the top of the file, so the landing page does
     // not wait for three.js and the renderer before it can show the title.
     const { Renderer3D } = await import('./render3d/renderer3d');
-    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), { painted: mode === 'painted' });
+    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), {
+      painted: mode === 'painted',
+      sharpBoard: new URLSearchParams(location.search).get('sharp') === '1',
+    });
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(daylightChoice());
