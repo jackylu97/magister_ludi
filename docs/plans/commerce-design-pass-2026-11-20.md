@@ -997,3 +997,91 @@ Five questions change the build. Each has my recommended answer.
 3. **May a route run at Tier 0, before Currency?** Recommended: yes, for the one caravan of The First Caravan (02). You ruled on 2026-10-21 that route cards come at Tier II, and on 2026-11-10 you added two route cards at Tier 0. Today those two pay nothing in their own tier. If the answer is no, I would move The Pack Trail and The First Caravan to Tier I.
 4. **Should the pass fix the rarity mix of each tier?** Recommended: yes. Tiers III and IV have no common, and Tier IV has nine rares. Eleven changes move a rarity (02, 05, 24, 25, 28, 29, 30, 31, 34, 41, 42). They can be approved as a group.
 5. **May Tier 0 hold a rare that changes a rule?** Recommended: yes. The Silent Trade (04) is not a plain yield, which the rule of 2026-11-10 asks of a Tier 0 card. You approved Blood Brothers and The Ver Sacrum at Tier 0 in the Dominion pass on 2026-11-19. If the answer is no, the card moves to Tier I, where it is worth less.
+
+## The user's first rulings (2026-11-20, comments on the page)
+
+Page: https://claude.ai/artifact/BY9EkS9pwYUzfXGrXKPmdM. The user then asked:
+"take a look at my comments on the commerce deck, do another pass?" The user
+commented on every change, 01 to 49, and on the five questions. The words are
+quoted whole.
+
+### On the pass as a whole
+
+- On section 2, the new notes: "overall the changes here are good, but I don't
+  know if they fix the core problem, that comerce is almost entirely built
+  around trade routes and earning gold. maybe we need to include a few more
+  customs house synergies, tile yield effects, or interactions with the other
+  decks?"
+- On note G, the sea (tested and set aside in round one): "this is
+  interesting, i think we could do with some more sea cards."
+
+So round two has four directions from the user: **customs houses, yields on
+hexes, interactions with the other decks, and the sea.**
+
+### The questions
+
+| Question | The user's words | Result |
+|---|---|---|
+| 1 Do deals stay a quantity that cards read? | "yes" | Yes. |
+| 2 May a boon carry a timed drawback? | "yes" | Yes. |
+| 3 May a route run at Tier 0, before Currency? | "02 is fine" | Yes, for The First Caravan (02) only. |
+| 4 Should the pass fix the rarity mix of each tier? | "yes" | Yes. |
+| 5 May Tier 0 hold a rare that changes a rule? | "yes" | Yes. |
+
+### The changes
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 01 | The Pack Trail | "isn't currency in age 2? this should move to tier 2" and "this is too contingent on drawing 02, i think we still move it." | Moves to Tier II. Not a Tier 0 card. |
+| 02 | The First Caravan | "great" | Approved. |
+| 03 | The Mineral Trade | "great" | Approved. |
+| 04 | The Silent Trade | "i think barbarians are too important to the flow of the game. lets find a new rare in its place." | Rejected. **A new Tier 0 rare is owed.** |
+| 05 | Private Patronage | "sure" and "this seems too strong for tier 1, no? Lets move this to tier 2." | Approved, and it moves to Tier II. |
+| 06 | Financed Industry | "Already strong, keep it as is." | Kept as it is today. (Change 21 cut Bills of Exchange because 06 took its job at 30%; check 21 still holds with 06 unchanged.) |
+| 07 | Letters of Credit | "let's make this 30% less gold for 15 turns." | On draft: gain 400 gold. Your towns make 30% less gold for fifteen turns. |
+| 08 | Civic Receipts | "great" | Approved. |
+| 09 | The Market Writ | "this is too strong, maybe it could read +1 authority and +1 happiness for every two markets in your empire. Authority needs to be a limiting factor for growth." | +1 authority and +1 happiness for every two Markets in your empire. |
+| 10 | The Staple Right | "great" | Approved. |
+| 11 | The Planters' Charter | "great" | Approved. |
+| 12 | The Ten Thousand | "great" | Approved. |
+| 13 | Commission: The Trade Mission | "great" | Approved. |
+| 14 | The Factors' Houses | "great" | Approved. |
+| 15 | The League of Cities | "I don't like too many cards that lower authority on a per-city level. Let's add a common that reads: +1 authority for every 3 active trade routes, and do something more interesting here." | Rejected as proposed. **Two things owed:** a new common, "+1 authority for every 3 active trade routes", and a more interesting League of Cities. |
+| 16 | The Spice Exchange | "sure" | Approved. |
+| 17 | Corner the Market | "sure" | Approved. |
+| 18 | The Treaty Ports | "sure" | Approved. |
+| 19 | Houses of Account | "how about: +1 happiness and +2 renown" | The user's line: +1 happiness and +2 renown (on what the card pays for; keep the card's own subject). |
+| 20 | The Customs Houses | "have it read +8 science and +8 culture on the customs house, so that it can be affected by modifiers. thus it must be worked to get the benefit." | Each customs house gains +8 science and +8 culture on its hex. It must be worked, and hex modifiers multiply it. |
+| 21 | Bills of Exchange | "sure" | Cut (see the note on 06). |
+| 22 | Mining Districts | "sure" | Approved. |
+| 23 | Strategic Exports | "sure" | Approved. |
+| 24 | Foreign Procurement | "sure" | Approved. |
+| 25 | Names in Stone | "sure" | Approved. |
+| 26 | The Tea Horse Road | "lets make it for every 6 hexes they travel, this sounds very strong" | Your trade routes give +1 gold and +1 culture for every six hexes they travel. |
+| 27 | The Tiraz | "sure" | Approved. |
+| 28 | The Admiralty of Trade | "sure" | Approved. |
+| 29 | The Scholars' Roads | "sure" | Approved. |
+| 30 | The Chartered Metropolis | "sure" | Approved. |
+| 31 | The Endowment | "sure" | Approved. |
+| 32 | The Bourse | "sure" | Approved. |
+| 33 | The Customs Service | "sure" | Cut. |
+| 34 | The Champagne Fairs | "Sure. Could we have an indicator of how many turns are left for this to trigger?" | Approved. **UI:** the seated card shows the turns left until it next pays. |
+| 35 | Merchant Princes | "great" and "they need to be quite expensive" | Approved at Tier III. The gold price of a great person is high; state the price and its climb. |
+| 36 | The Cloth Halls | "sure" | Approved. |
+| 37 | The Stipendium | "sure" | Approved. |
+| 38 | The Merchant Works | "sure" | Cut. |
+| 39 | Bought and Paid For | "Sure, the finished card should read what percentage it's currently at." | Approved. **UI:** the seated card prints its current percentage. |
+| 40 | The Grain Barges | "sure" | Approved. |
+| 41 | The Trade Winds | "sure" | Approved. |
+| 42 | The World's Exchange | "sure" | Approved. |
+| 43 | The World's Fair | "sure" | Approved. |
+| 44 | The Great Loan | "sure" | Approved. |
+| 45 | The Feitorias | "sure" | Approved. |
+| 46 | The Laurion Leases | "sure" | Approved. |
+| 47 | The Sogdian Colonies | "sure" | Approved. |
+| 48 | The Muda | "sure" | Approved. |
+| 49 | The Colleganza | "sure, but once a luxury is lent, it can't be further lent." | Approved, with the rule: a luxury that has been lent cannot be lent on. |
+
+The count: 39 approved as proposed, 7 with the user's text (01, 05, 07, 09, 19,
+20, 26; 49 adds a rule), 1 kept as today (06), 2 rejected with a replacement
+owed (04, 15).
