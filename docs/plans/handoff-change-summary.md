@@ -117,3 +117,11 @@ The military surcharge applies to the unit’s price after the size and technolo
 ### Merchant Princes and recruitment
 
 Merchant Princes now requires the Great Person recruitment ability before it accepts gold. In a browser game before Epic Poetry, the Reliquary disabled the purchase and named the missing research. Sending the command directly left the game state and command log unchanged. After Epic Poetry, the same 197-renown threshold cost 1,576 gold with The Open Market and opened three names. A separate game with the retired recruitment Doctrine prepared in the test produced the same offer size and charge.
+
+### Results from five paired bot games
+
+Across 30 seats, mean science per turn in the Arena fell from 10.89 to 6.15 at turn 50 and from 121.65 to 94.97 at turn 100. Across matched seats, the median change was 17 turns later for Age II and 2 turns later for the first settler built or bought. The first war came 7 turns later in the median game pair. By the end of the runs, 18 of 30 seats had reached Age IV, down from 25.
+
+Three of the five pairs reached turn 150 in both builds. Across those 18 seats, mean units per player, including civilians, changed from 78.06 to 78.39. Median science fell from 611.31 to 483.01, but mean science rose from 1,073.76 to 1,459.11. One player on seed 20260832 reached 15,399.71 science per turn. The study gives the per-seed figures, the science measure and the turn of each victory. [Full balance study](benchmarks/base-economy-2026-11-20.md)
+
+A replay of that seat reproduced the turn-150 reading. It held 30 towns and 293 citizens. Money at Work supplied 85 science to each town and The Curia added 26 more. Together they supplied 3,330 science before percentages. Population supplied 73.25. This interaction explains why lowering the base rate can slow early research while leaving room for a large late-game payout.

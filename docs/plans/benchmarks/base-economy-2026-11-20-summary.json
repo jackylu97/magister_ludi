@@ -1,0 +1,581 @@
+{
+  "setup": {
+    "baseline": "4825d475",
+    "candidate": "d3a2ff0e",
+    "map": "standard, 80 \u00d7 52",
+    "seeds": [
+      20260831,
+      20260832,
+      20260833,
+      20260834,
+      20260835
+    ],
+    "personaOrder": [
+      "balanced",
+      "wide",
+      "tall",
+      "zealot",
+      "warmonger",
+      "balanced"
+    ],
+    "turnLimit": 150,
+    "barbarians": true,
+    "pairing": "same seed and seat",
+    "normalizedConfigs": "see per-seed file"
+  },
+  "checkpoints": {
+    "50": {
+      "science": {
+        "availableSeats": {
+          "before": 30,
+          "after": 30
+        },
+        "allAvailableMean": {
+          "before": 10.887,
+          "after": 6.146
+        },
+        "pairedSeats": 30,
+        "beforeMedian": 9.175,
+        "afterMedian": 5.375,
+        "beforeMean": 10.887,
+        "afterMean": 6.146,
+        "meanChange": -4.741,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": 16.633,
+            "afterMean": 8.492,
+            "meanChange": -8.142
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 9.35,
+            "afterMean": 6.838,
+            "meanChange": -2.513
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 6.808,
+            "afterMean": 5.254,
+            "meanChange": -1.554
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 8.342,
+            "afterMean": 4.625,
+            "meanChange": -3.717
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 13.3,
+            "afterMean": 5.521,
+            "meanChange": -7.779
+          }
+        ]
+      },
+      "units": {
+        "availableSeats": {
+          "before": 30,
+          "after": 30
+        },
+        "allAvailableMean": {
+          "before": 13.433,
+          "after": 9.867
+        },
+        "pairedSeats": 30,
+        "beforeMedian": 14.0,
+        "afterMedian": 10.0,
+        "beforeMean": 13.433,
+        "afterMean": 9.867,
+        "meanChange": -3.567,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": 15.833,
+            "afterMean": 9.667,
+            "meanChange": -6.167
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 13.5,
+            "afterMean": 11,
+            "meanChange": -2.5
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 11.667,
+            "afterMean": 8.333,
+            "meanChange": -3.333
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 10.667,
+            "afterMean": 8.833,
+            "meanChange": -1.833
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 15.5,
+            "afterMean": 11.5,
+            "meanChange": -4
+          }
+        ]
+      }
+    },
+    "100": {
+      "science": {
+        "availableSeats": {
+          "before": 30,
+          "after": 30
+        },
+        "allAvailableMean": {
+          "before": 121.647,
+          "after": 94.97
+        },
+        "pairedSeats": 30,
+        "beforeMedian": 109.9,
+        "afterMedian": 70.9375,
+        "beforeMean": 121.647,
+        "afterMean": 94.97,
+        "meanChange": -26.677,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": 229.992,
+            "afterMean": 111.043,
+            "meanChange": -118.949
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 111.66,
+            "afterMean": 128.066,
+            "meanChange": 16.406
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 78.808,
+            "afterMean": 67.267,
+            "meanChange": -11.542
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 74.098,
+            "afterMean": 61.456,
+            "meanChange": -12.642
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 113.677,
+            "afterMean": 107.017,
+            "meanChange": -6.659
+          }
+        ]
+      },
+      "units": {
+        "availableSeats": {
+          "before": 30,
+          "after": 30
+        },
+        "allAvailableMean": {
+          "before": 33.867,
+          "after": 30.833
+        },
+        "pairedSeats": 30,
+        "beforeMedian": 31.0,
+        "afterMedian": 30.5,
+        "beforeMean": 33.867,
+        "afterMean": 30.833,
+        "meanChange": -3.033,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": 34.167,
+            "afterMean": 30.5,
+            "meanChange": -3.667
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 34.833,
+            "afterMean": 27.167,
+            "meanChange": -7.667
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 35.333,
+            "afterMean": 31,
+            "meanChange": -4.333
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 33,
+            "afterMean": 35,
+            "meanChange": 2
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 32,
+            "afterMean": 30.5,
+            "meanChange": -1.5
+          }
+        ]
+      }
+    },
+    "150": {
+      "science": {
+        "availableSeats": {
+          "before": 24,
+          "after": 18
+        },
+        "allAvailableMean": {
+          "before": 1152.3,
+          "after": 1459.113
+        },
+        "pairedSeats": 18,
+        "beforeMedian": 611.30635,
+        "afterMedian": 483.00625,
+        "beforeMean": 1073.755,
+        "afterMean": 1459.113,
+        "meanChange": 385.359,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": null,
+            "afterMean": null,
+            "meanChange": null
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 1022.58,
+            "afterMean": 3063.144,
+            "meanChange": 2040.563
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 957.659,
+            "afterMean": 795.188,
+            "meanChange": -162.471
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 1241.025,
+            "afterMean": 519.009,
+            "meanChange": -722.016
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 1387.937,
+            "afterMean": null,
+            "meanChange": null
+          }
+        ]
+      },
+      "units": {
+        "availableSeats": {
+          "before": 24,
+          "after": 18
+        },
+        "allAvailableMean": {
+          "before": 82.083,
+          "after": 78.389
+        },
+        "pairedSeats": 18,
+        "beforeMedian": 74.0,
+        "afterMedian": 64.5,
+        "beforeMean": 78.056,
+        "afterMean": 78.389,
+        "meanChange": 0.333,
+        "bySeed": [
+          {
+            "seed": 20260831,
+            "beforeMean": null,
+            "afterMean": null,
+            "meanChange": null
+          },
+          {
+            "seed": 20260832,
+            "beforeMean": 89,
+            "afterMean": 75.333,
+            "meanChange": -13.667
+          },
+          {
+            "seed": 20260833,
+            "beforeMean": 70,
+            "afterMean": 74.5,
+            "meanChange": 4.5
+          },
+          {
+            "seed": 20260834,
+            "beforeMean": 75.167,
+            "afterMean": 85.333,
+            "meanChange": 10.167
+          },
+          {
+            "seed": 20260835,
+            "beforeMean": 94.167,
+            "afterMean": null,
+            "meanChange": null
+          }
+        ]
+      }
+    }
+  },
+  "events": {
+    "age1": {
+      "before": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 1.0,
+        "meanObserved": 1,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "after": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 1.0,
+        "meanObserved": 1,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "paired": {
+        "bothObserved": 30,
+        "meanTurnChangeWhenBothObserved": 0,
+        "medianTurnChangeWhenBothObserved": 0.0,
+        "beforeOnly": 0,
+        "afterOnly": 0
+      }
+    },
+    "age2": {
+      "before": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 44.5,
+        "meanObserved": 48.4,
+        "byTurn": {
+          "50": 20,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "after": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 63.0,
+        "meanObserved": 63.5,
+        "byTurn": {
+          "50": 5,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "paired": {
+        "bothObserved": 30,
+        "meanTurnChangeWhenBothObserved": 15.1,
+        "medianTurnChangeWhenBothObserved": 17.0,
+        "beforeOnly": 0,
+        "afterOnly": 0
+      }
+    },
+    "age3": {
+      "before": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 83.5,
+        "meanObserved": 86.633,
+        "byTurn": {
+          "50": 0,
+          "100": 25,
+          "150": 30
+        }
+      },
+      "after": {
+        "observed": 29,
+        "unreached": 1,
+        "medianObserved": 94,
+        "meanObserved": 94.828,
+        "byTurn": {
+          "50": 0,
+          "100": 20,
+          "150": 29
+        }
+      },
+      "paired": {
+        "bothObserved": 29,
+        "meanTurnChangeWhenBothObserved": 8.276,
+        "medianTurnChangeWhenBothObserved": 4,
+        "beforeOnly": 1,
+        "afterOnly": 0
+      }
+    },
+    "age4": {
+      "before": {
+        "observed": 25,
+        "unreached": 5,
+        "medianObserved": 126,
+        "meanObserved": 123.28,
+        "byTurn": {
+          "50": 0,
+          "100": 2,
+          "150": 25
+        }
+      },
+      "after": {
+        "observed": 18,
+        "unreached": 12,
+        "medianObserved": 129.0,
+        "meanObserved": 126.889,
+        "byTurn": {
+          "50": 0,
+          "100": 0,
+          "150": 18
+        }
+      },
+      "paired": {
+        "bothObserved": 15,
+        "meanTurnChangeWhenBothObserved": 2.133,
+        "medianTurnChangeWhenBothObserved": -3,
+        "beforeOnly": 10,
+        "afterOnly": 3
+      }
+    },
+    "firstSettler": {
+      "before": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 14.5,
+        "meanObserved": 15.533,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "after": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 16.0,
+        "meanObserved": 16.8,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "paired": {
+        "bothObserved": 30,
+        "meanTurnChangeWhenBothObserved": 1.267,
+        "medianTurnChangeWhenBothObserved": 2.0,
+        "beforeOnly": 0,
+        "afterOnly": 0
+      }
+    },
+    "firstBuiltOrPurchasedSettler": {
+      "before": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 15.5,
+        "meanObserved": 16.133,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "after": {
+        "observed": 30,
+        "unreached": 0,
+        "medianObserved": 17.5,
+        "meanObserved": 17.767,
+        "byTurn": {
+          "50": 30,
+          "100": 30,
+          "150": 30
+        }
+      },
+      "paired": {
+        "bothObserved": 30,
+        "meanTurnChangeWhenBothObserved": 1.633,
+        "medianTurnChangeWhenBothObserved": 2.0,
+        "beforeOnly": 0,
+        "afterOnly": 0
+      }
+    },
+    "firstWar": {
+      "before": {
+        "observed": 5,
+        "unreached": 0,
+        "medianObserved": 56,
+        "meanObserved": 68.6,
+        "byTurn": {
+          "50": 1,
+          "100": 4,
+          "150": 5
+        }
+      },
+      "after": {
+        "observed": 5,
+        "unreached": 0,
+        "medianObserved": 77,
+        "meanObserved": 74,
+        "byTurn": {
+          "50": 0,
+          "100": 5,
+          "150": 5
+        }
+      },
+      "paired": {
+        "bothObserved": 5,
+        "meanTurnChangeWhenBothObserved": 5.4,
+        "medianTurnChangeWhenBothObserved": 7,
+        "beforeOnly": 0,
+        "afterOnly": 0
+      }
+    }
+  },
+  "diagnostics": {
+    "before": {
+      "completedTurns": [
+        142,
+        150,
+        150,
+        150,
+        150
+      ],
+      "earlyVictories": 1,
+      "stalls": 0,
+      "invalidOrders": 0,
+      "repeatOrders": 0,
+      "warnings": 0,
+      "rejectedRealAttempts": 213,
+      "firstSettlerSources": {
+        "production": 28,
+        "grant": 2
+      }
+    },
+    "after": {
+      "completedTurns": [
+        144,
+        150,
+        150,
+        150,
+        141
+      ],
+      "earlyVictories": 2,
+      "stalls": 0,
+      "invalidOrders": 0,
+      "repeatOrders": 0,
+      "warnings": 0,
+      "rejectedRealAttempts": 180,
+      "firstSettlerSources": {
+        "production": 27,
+        "grant": 3
+      }
+    }
+  }
+}

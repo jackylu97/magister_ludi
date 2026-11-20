@@ -1,0 +1,5167 @@
+{
+  "seed": 20260832,
+  "completedTurn": 150,
+  "seat": 5,
+  "persona": "balanced",
+  "arenaScience": 15399.711,
+  "townSubtotal": 15376.911000000002,
+  "standingContributionToArenaRate": 22.799999999997453,
+  "empireOnly": [
+    {
+      "source": "Caravan to Brightwater \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Brightwater \u00b7 Building \u00b7 Printing House",
+      "science": 2,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Larkspur \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Larkspur \u00b7 Building \u00b7 Printing House",
+      "science": 2,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Aldermarch \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Dawnreach \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Seat 5 3 \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Brightwater \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Brightwater \u00b7 Building \u00b7 Printing House",
+      "science": 2,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Seat 5 3 \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Seat 5 3 \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Seat 5 3 \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Brightwater \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Brightwater \u00b7 Building \u00b7 Printing House",
+      "science": 2,
+      "origin": "route"
+    },
+    {
+      "source": "Caravan to Seat 5 3 \u00b7 a foreign market",
+      "science": 1,
+      "origin": "route"
+    },
+    {
+      "source": "Belief \u00b7 The Scriptoria \u00b7 \u00d75",
+      "science": 5,
+      "origin": "card",
+      "card": "theScriptoria"
+    },
+    {
+      "source": "Empire stage \u00b7 \u00d71.20",
+      "science": 4.800000000000001,
+      "origin": "stage",
+      "factor": 1.2
+    }
+  ],
+  "totalIncludingEmpireOrders": 15405.711000000001,
+  "cities": [
+    {
+      "id": 15,
+      "name": "Cinderhold",
+      "capital": true,
+      "population": 20,
+      "science": 2540.544,
+      "flatScience": 827,
+      "stageSums": {
+        "city": 156,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 5,
+          "step": 1
+        },
+        {
+          "source": "Wonder \u00b7 The Mausoleum",
+          "science": 14,
+          "card": "mausoleum",
+          "step": 2
+        },
+        {
+          "source": "Grassland",
+          "science": 14,
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Wonder \u00b7 The Great Ziggurat \u00b7 shrine",
+          "science": 2,
+          "card": "greatZiggurat",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Grand Army \u00b7 \u00d771",
+          "science": 426,
+          "card": "dominionTheGrandArmy",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d76",
+          "science": 6,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (12 turns left) \u00b7 \u00d749",
+          "science": 49,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Grand Army",
+          "science": 128,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Seat 6 8 \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Seat 6 8 \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Palace",
+          "science": 1,
+          "step": 7
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "The Great Ziggurat",
+          "science": 2,
+          "building": "greatZiggurat",
+          "step": 8
+        },
+        {
+          "source": "Chart the Stars",
+          "science": 2,
+          "building": "chartTheStars",
+          "step": 8
+        },
+        {
+          "source": "The Library of Ashurbanipal",
+          "science": 2,
+          "building": "libraryOfAshurbanipal",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        },
+        {
+          "source": "The Alchemical Society",
+          "science": 20,
+          "building": "alchemicalSociety",
+          "step": 8
+        },
+        {
+          "source": "The Turning Heavens",
+          "science": 2,
+          "building": "theTurningHeavens",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Forum",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "forum"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "name": "Kestrel",
+      "capital": false,
+      "population": 16,
+      "science": 730.968,
+      "flatScience": 229,
+      "stageSums": {
+        "city": 166,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Wonder \u00b7 The Great Ziggurat \u00b7 shrine",
+          "science": 2,
+          "card": "greatZiggurat",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d75",
+          "science": 5,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (10 turns left) \u00b7 \u00d728",
+          "science": 28,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "2 scholars",
+          "science": 4,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "The Alchemical Society",
+          "science": 16,
+          "building": "alchemicalSociety",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        },
+        {
+          "source": "Observatory",
+          "science": 2,
+          "building": "observatory",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Building \u00b7 Observatory",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "observatory"
+        },
+        {
+          "source": "Building \u00b7 Observatory \u00b7 observatory + mountain in its borders",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "observatory"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 684,
+      "name": "Seat 6 1",
+      "capital": false,
+      "population": 17,
+      "science": 699.846,
+      "flatScience": 219.25,
+      "stageSums": {
+        "city": 166,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 4.25,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d75",
+          "science": 5,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (11 turns left) \u00b7 \u00d725",
+          "science": 25,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "The Alchemical Society",
+          "science": 17,
+          "building": "alchemicalSociety",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        },
+        {
+          "source": "Observatory",
+          "science": 2,
+          "building": "observatory",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Building \u00b7 Observatory",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "observatory"
+        },
+        {
+          "source": "Building \u00b7 Observatory \u00b7 observatory + mountain in its borders",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "observatory"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 247,
+      "name": "Thornfield",
+      "capital": false,
+      "population": 18,
+      "science": 529.884,
+      "flatScience": 179.5,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 4.5,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Wonder \u00b7 The Great Ziggurat \u00b7 shrine",
+          "science": 2,
+          "card": "greatZiggurat",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d76",
+          "science": 6,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (11 turns left) \u00b7 \u00d719",
+          "science": 19,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 976,
+      "name": "Seat 6 13",
+      "capital": false,
+      "population": 8,
+      "science": 513.648,
+      "flatScience": 174,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 723,
+      "name": "Seat 6 5",
+      "capital": false,
+      "population": 10,
+      "science": 488.556,
+      "flatScience": 165.5,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.5,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (12 turns left) \u00b7 \u00d716",
+          "science": 16,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "2 scholars",
+          "science": 4,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 947,
+      "name": "Seat 6 11",
+      "capital": false,
+      "population": 12,
+      "science": 487.08,
+      "flatScience": 165,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 3,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d74",
+          "science": 4,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 337,
+      "name": "Vaelport",
+      "capital": false,
+      "population": 14,
+      "science": 479.7,
+      "flatScience": 162.5,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 3.5,
+          "step": 1
+        },
+        {
+          "source": "Wonder \u00b7 The Great Ziggurat \u00b7 shrine",
+          "science": 2,
+          "card": "greatZiggurat",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d74",
+          "science": 4,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (13 turns left) \u00b7 \u00d717",
+          "science": 17,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 685,
+      "name": "Seat 6 2",
+      "capital": false,
+      "population": 8,
+      "science": 472.32,
+      "flatScience": 160,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 763,
+      "name": "Seat 6 6",
+      "capital": false,
+      "population": 8,
+      "science": 457.56,
+      "flatScience": 155,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Rite \u00b7 Omen Reading (12 turns left) \u00b7 \u00d715",
+          "science": 15,
+          "card": "omenReading",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 923,
+      "name": "Seat 6 8",
+      "capital": false,
+      "population": 15,
+      "science": 445.599,
+      "flatScience": 160.75,
+      "stageSums": {
+        "city": 131,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 3.75,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d75",
+          "science": 5,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 711,
+      "name": "Seat 6 4",
+      "capital": false,
+      "population": 11,
+      "science": 445.014,
+      "flatScience": 150.75,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.75,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d72",
+          "science": 4,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 4,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 1,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        },
+        {
+          "source": "University",
+          "science": 6,
+          "building": "university",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1135,
+      "name": "Seat 6 15",
+      "capital": false,
+      "population": 11,
+      "science": 430.254,
+      "flatScience": 145.75,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Kestrel \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Kestrel \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 837,
+      "name": "Seat 6 7",
+      "capital": false,
+      "population": 11,
+      "science": 424.35,
+      "flatScience": 143.75,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 by sea +50%",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 938,
+      "name": "Seat 6 9",
+      "capital": false,
+      "population": 11,
+      "science": 424.35,
+      "flatScience": 143.75,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 by sea +50%",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 686,
+      "name": "Seat 6 3",
+      "capital": false,
+      "population": 11,
+      "science": 418.446,
+      "flatScience": 141.75,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1038,
+      "name": "Seat 6 14",
+      "capital": false,
+      "population": 8,
+      "science": 413.28,
+      "flatScience": 140,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Caravan from Cinderhold \u00b7 Building \u00b7 Printing House",
+          "science": 2,
+          "step": 6
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1251,
+      "name": "Seat 6 24",
+      "capital": false,
+      "population": 6,
+      "science": 412.056,
+      "flatScience": 145.5,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 1.5,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 390,
+      "name": "Yarrowfell",
+      "capital": false,
+      "population": 8,
+      "science": 410.328,
+      "flatScience": 139,
+      "stageSums": {
+        "city": 146,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Coast",
+          "science": 1,
+          "step": 2
+        },
+        {
+          "source": "Wonder \u00b7 The Great Ziggurat \u00b7 shrine",
+          "science": 2,
+          "card": "greatZiggurat",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        },
+        {
+          "source": "Printing House",
+          "science": 2,
+          "building": "printingHouse",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Building \u00b7 Printing House",
+          "yield": "science",
+          "percent": 10,
+          "stage": "city",
+          "card": "printingHouse"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1250,
+      "name": "Seat 6 23",
+      "capital": false,
+      "population": 6,
+      "science": 406.392,
+      "flatScience": 143.5,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.5,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1463,
+      "name": "Seat 6 25",
+      "capital": false,
+      "population": 3,
+      "science": 387.276,
+      "flatScience": 136.75,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "City centre",
+          "science": 4,
+          "step": 1
+        },
+        {
+          "source": "The town itself",
+          "science": 0.75,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 946,
+      "name": "Seat 6 10",
+      "capital": false,
+      "population": 10,
+      "science": 383.736,
+      "flatScience": 135.5,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2.5,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d73",
+          "science": 3,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1136,
+      "name": "Seat 6 16",
+      "capital": false,
+      "population": 7,
+      "science": 378.78,
+      "flatScience": 133.75,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "1 scholar",
+          "science": 2,
+          "step": 5
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 948,
+      "name": "Seat 6 12",
+      "capital": false,
+      "population": 5,
+      "science": 377.364,
+      "flatScience": 133.25,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.25,
+          "step": 1
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Legacy \u00b7 Tycho Brahe \u00b7 The Immortals",
+          "science": 2,
+          "card": "tychoBrahe",
+          "step": 2
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1167,
+      "name": "Seat 6 19",
+      "capital": false,
+      "population": 8,
+      "science": 373.824,
+      "flatScience": 132,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1220,
+      "name": "Seat 6 20",
+      "capital": false,
+      "population": 8,
+      "science": 373.824,
+      "flatScience": 132,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 2,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1243,
+      "name": "Seat 6 22",
+      "capital": false,
+      "population": 7,
+      "science": 373.116,
+      "flatScience": 131.75,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Building \u00b7 Gurdwara \u00b7 \u00d72",
+          "science": 2,
+          "card": "gurdwara",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1231,
+      "name": "Seat 6 21",
+      "capital": false,
+      "population": 7,
+      "science": 367.452,
+      "flatScience": 129.75,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.75,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1156,
+      "name": "Seat 6 17",
+      "capital": false,
+      "population": 5,
+      "science": 366.036,
+      "flatScience": 129.25,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1.25,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    },
+    {
+      "id": 1166,
+      "name": "Seat 6 18",
+      "capital": false,
+      "population": 4,
+      "science": 365.328,
+      "flatScience": 129,
+      "stageSums": {
+        "city": 136,
+        "empire": 20
+      },
+      "flatLines": [
+        {
+          "source": "The town itself",
+          "science": 1,
+          "step": 1
+        },
+        {
+          "source": "Order \u00b7 Money at Work \u00b7 \u00d785",
+          "science": 85,
+          "card": "moneyAtWork",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Endowment \u00b7 \u00d73",
+          "science": 6,
+          "card": "theEndowment",
+          "step": 3
+        },
+        {
+          "source": "Order \u00b7 The Privy Council \u00b7 The Endowment",
+          "science": 6,
+          "card": "thePrivyCouncil",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 Money at Work",
+          "science": 26,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Endowment",
+          "science": 2,
+          "card": "theCuria",
+          "step": 3
+        },
+        {
+          "source": "Library",
+          "science": 3,
+          "building": "library",
+          "step": 8
+        }
+      ],
+      "percents": [
+        {
+          "source": "Happiness",
+          "yield": "science",
+          "percent": 40,
+          "stage": "empire",
+          "meter": "happiness"
+        },
+        {
+          "source": "Authority",
+          "yield": "science",
+          "percent": -20,
+          "stage": "empire",
+          "meter": "authority"
+        },
+        {
+          "source": "Belief \u00b7 The Vigil \u00b7 keeping a rite",
+          "yield": "science",
+          "percent": 15,
+          "stage": "city",
+          "card": "courtAugurs"
+        },
+        {
+          "source": "Order \u00b7 The Pandects \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 25,
+          "stage": "city",
+          "card": "thePandects"
+        },
+        {
+          "source": "Order \u00b7 The Polymath's Study \u00b7 \u00d75",
+          "yield": "science",
+          "percent": 40,
+          "stage": "city",
+          "card": "thePolymathsStudy"
+        },
+        {
+          "source": "Order \u00b7 The Boule \u00b7 \u00d714",
+          "yield": "science",
+          "percent": 28,
+          "stage": "city",
+          "card": "theBoule"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Pandects",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Polymath's Study",
+          "yield": "science",
+          "percent": 12,
+          "stage": "city",
+          "card": "theCuria"
+        },
+        {
+          "source": "Government \u00b7 The Curia \u00b7 The Boule",
+          "yield": "science",
+          "percent": 8,
+          "stage": "city",
+          "card": "theCuria"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3512 @@
+{
+  "before": [
+    {
+      "seed": 20260831,
+      "config": {
+        "seed": 20260831,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 142,
+      "winnerId": 0,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 33,
+        "refused": 15
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (22, 35)": 1,
+        "proposeDeal: The Seat 1 have wine only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "attack: You are not at war with the Seat 1": 1,
+        "moveUnit: No unit with id 956": 1,
+        "attack: You are not at war with the Seat 3": 1,
+        "attack: You are not at war with the Seat 2": 1,
+        "attack: Nothing to attack on (27, 40)": 1,
+        "attack: Nothing to attack on (49, 4)": 1,
+        "moveUnit: Unit 518 cannot stop on (28, 40)": 1,
+        "acceptDeal: The Seat 4 have no cotton to lend": 1,
+        "attack: Nothing to attack on (55, 19)": 1,
+        "acceptDeal: The Seat 1 have wine only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "moveUnit: You are not at war with the Seat 3 \u2014 their land is closed to your armies": 1,
+        "acceptDeal: The Seat 1 have no marble to lend": 1,
+        "attack: Nothing to attack on (28, 41)": 1
+      },
+      "acceptedCommands": 10883,
+      "firstWar": {
+        "turn": 111,
+        "seats": [
+          2,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            39,
+            63,
+            87
+          ],
+          "firstSettler": {
+            "turn": 9,
+            "id": 36,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 9,
+            "id": 36,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 31.8,
+              "units": 19,
+              "eliminated": false
+            },
+            "100": {
+              "science": 441.59999999999997,
+              "units": 28,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            37,
+            64,
+            90
+          ],
+          "firstSettler": {
+            "turn": 7,
+            "id": 27,
+            "source": "grant",
+            "command": "chooseOrder"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 71,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 20,
+              "units": 22,
+              "eliminated": false
+            },
+            "100": {
+              "science": 397.8,
+              "units": 65,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            53,
+            78,
+            109
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 18.5,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 204.75,
+              "units": 26,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            42,
+            83,
+            127
+          ],
+          "firstSettler": {
+            "turn": 13,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 13,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 11.5,
+              "units": 16,
+              "eliminated": false
+            },
+            "100": {
+              "science": 142,
+              "units": 33,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            59,
+            117,
+            null
+          ],
+          "firstSettler": {
+            "turn": 20,
+            "id": 106,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 20,
+            "id": 106,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.5,
+              "units": 9,
+              "eliminated": false
+            },
+            "100": {
+              "science": 11.5,
+              "units": 20,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            56,
+            80,
+            118
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 12.5,
+              "units": 17,
+              "eliminated": false
+            },
+            "100": {
+              "science": 182.3,
+              "units": 33,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 411
+    },
+    {
+      "seed": 20260832,
+      "config": {
+        "seed": 20260832,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 47,
+        "refused": 39
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (61, 40)": 1,
+        "moveUnit: Unit 502 cannot stop on (35, 22)": 1,
+        "attack: Nothing to attack on (57, 28)": 1,
+        "moveUnit: Unit 594 cannot stop on (35, 21)": 1,
+        "attack: Nothing to attack on (48, 33)": 1,
+        "attack: No unit with id 577": 1,
+        "moveUnit: No unit with id 595": 1,
+        "attack: You are not at war with the Seat 4": 1,
+        "plantHolySite: The world has all the religions it will hold": 1,
+        "moveUnit: Your Legionary there has not the movement to trade places": 2,
+        "proposeDeal: You are at war with the Seat 5 \u2014 terms belong in a peace": 2,
+        "attack: Nothing to attack on (58, 28)": 1,
+        "fortify: No unit with id 592": 1,
+        "moveUnit: Unit 578 cannot stop on (15, 24)": 1,
+        "moveUnit: No unit with id 857": 1,
+        "attack: Nothing to attack on (16, 25)": 1,
+        "attack: Nothing to attack on (14, 24)": 1,
+        "moveUnit: No unit with id 520": 1,
+        "moveUnit: Unit 826 cannot stop on (15, 24)": 1,
+        "attack: You are not at war with the Seat 2": 2,
+        "purchaseItem: Warrior has been replaced by the Swordsman": 1,
+        "moveUnit: No unit with id 1002": 1,
+        "attack: Nothing to attack on (26, 20)": 1,
+        "attack: Nothing to attack on (25, 17)": 1,
+        "moveUnit: Unit 909 cannot stop on (49, 27)": 1,
+        "attack: Nothing to attack on (35, 18)": 1,
+        "moveUnit: Unit 1550 cannot stop on (9, 24)": 1,
+        "moveUnit: Unit 923 cannot stop on (42, 20)": 1,
+        "attack: Nothing to attack on (35, 23)": 1,
+        "attack: You are not at war with the Seat 1": 1,
+        "fortify: No unit with id 1345": 1,
+        "moveUnit: Unit 308 cannot stop on (41, 19)": 1,
+        "attack: Nothing to attack on (26, 18)": 1,
+        "attack: Nothing to attack on (26, 17)": 1,
+        "moveUnit: Unit 1375 cannot stop on (8, 22)": 1,
+        "moveUnit: You are not at war with the Seat 2 \u2014 their land is closed to your armies": 1
+      },
+      "acceptedCommands": 14749,
+      "firstWar": {
+        "turn": 48,
+        "seats": [
+          0,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            70,
+            134,
+            null
+          ],
+          "firstSettler": {
+            "turn": 21,
+            "id": 115,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 21,
+            "id": 115,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 2.5,
+              "units": 3,
+              "eliminated": false
+            },
+            "100": {
+              "science": 15,
+              "units": 12,
+              "eliminated": false
+            },
+            "150": {
+              "science": 70.4,
+              "units": 26,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            39,
+            96,
+            118
+          ],
+          "firstSettler": {
+            "turn": 12,
+            "id": 51,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 12,
+            "id": 51,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 7.5,
+              "units": 18,
+              "eliminated": false
+            },
+            "100": {
+              "science": 59.39999999999999,
+              "units": 37,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1863.1020000000003,
+              "units": 95,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            38,
+            72,
+            104
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 62,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 62,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 11,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 133.95999999999998,
+              "units": 26,
+              "eliminated": false
+            },
+            "150": {
+              "science": 257.82750000000004,
+              "units": 61,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            45,
+            83,
+            136
+          ],
+          "firstSettler": {
+            "turn": 8,
+            "id": 33,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 8,
+            "id": 33,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4.5,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 112.80000000000001,
+              "units": 23,
+              "eliminated": false
+            },
+            "150": {
+              "science": 468.79750000000007,
+              "units": 76,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            42,
+            76,
+            124
+          ],
+          "firstSettler": {
+            "turn": 11,
+            "id": 46,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 11,
+            "id": 46,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 18,
+              "units": 16,
+              "eliminated": false
+            },
+            "100": {
+              "science": 167,
+              "units": 80,
+              "eliminated": false
+            },
+            "150": {
+              "science": 936.825,
+              "units": 176,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            45,
+            71,
+            117
+          ],
+          "firstSettler": {
+            "turn": 13,
+            "id": 57,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 13,
+            "id": 57,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 12.6,
+              "units": 21,
+              "eliminated": false
+            },
+            "100": {
+              "science": 181.79999999999998,
+              "units": 31,
+              "eliminated": false
+            },
+            "150": {
+              "science": 2538.528,
+              "units": 100,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 564
+    },
+    {
+      "seed": 20260833,
+      "config": {
+        "seed": 20260833,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 36,
+        "refused": 48,
+        "taken": 1
+      },
+      "rejectedAttempts": {
+        "foundCity: (49, 29) is 2 tile(s) from the nearest city; 4 required": 1,
+        "attack: You are not at war with the Seat 1": 7,
+        "attack: Nothing to attack on (23, 13)": 1,
+        "fortify: No unit with id 434": 1,
+        "purchaseItem: Warrior has been replaced by the Swordsman": 1,
+        "acceptDeal: The Seat 2 have no tea to lend": 3,
+        "attack: No unit with id 640": 1,
+        "attack: Nothing to attack on (49, 36)": 1,
+        "fortify: No unit with id 627": 1,
+        "moveUnit: Unit 422 cannot stop on (24, 32)": 1,
+        "fortify: No unit with id 675": 1,
+        "attack: Nothing to attack on (24, 33)": 1,
+        "moveUnit: No unit with id 729": 1,
+        "fortify: No unit with id 616": 1,
+        "moveUnit: No unit with id 444": 1,
+        "attack: Nothing to attack on (39, 5)": 1,
+        "moveUnit: No unit with id 658": 1,
+        "attack: Nothing to attack on (45, 17)": 1,
+        "attack: You are not at war with the Seat 2": 1,
+        "attack: Nothing to attack on (49, 34)": 2,
+        "moveUnit: Unit 622 cannot stop on (46, 27)": 1,
+        "fortify: No unit with id 586": 1,
+        "attack: Nothing to attack on (48, 28)": 1,
+        "attack: Nothing to attack on (48, 34)": 1,
+        "attack: Nothing to attack on (41, 10)": 1,
+        "acceptDeal: The Seat 3 have no jade to lend": 1,
+        "moveUnit: Unit 571 cannot stop on (48, 28)": 1,
+        "moveUnit: Unit 1104 cannot stop on (41, 10)": 1,
+        "attack: Nothing to attack on (48, 29)": 1,
+        "moveUnit: No unit with id 1054": 1,
+        "moveUnit: Unit 571 cannot stop on (46, 27)": 1,
+        "attack: Nothing to attack on (46, 28)": 1,
+        "attack: Nothing to attack on (46, 29)": 1,
+        "moveUnit: No path from (35, 2) to (51, 20)": 1,
+        "attack: Nothing to attack on (45, 23)": 1,
+        "moveUnit: Seat 1 6 is another empire's city \u2014 take it by force": 2,
+        "moveUnit: You are not at war with the Seat 2 \u2014 their land is closed to your armies": 1,
+        "attack: Nothing to attack on (62, 23)": 1
+      },
+      "acceptedCommands": 11253,
+      "firstWar": {
+        "turn": 72,
+        "seats": [
+          3,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            38,
+            65,
+            111
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 66,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 66,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9.35,
+              "units": 18,
+              "eliminated": false
+            },
+            "100": {
+              "science": 113.14999999999999,
+              "units": 43,
+              "eliminated": false
+            },
+            "150": {
+              "science": 360.771,
+              "units": 59,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            50,
+            95,
+            126
+          ],
+          "firstSettler": {
+            "turn": 21,
+            "id": 111,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 21,
+            "id": 111,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.5,
+              "units": 8,
+              "eliminated": false
+            },
+            "100": {
+              "science": 107.80000000000001,
+              "units": 32,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1539.405,
+              "units": 72,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            50,
+            94,
+            133
+          ],
+          "firstSettler": {
+            "turn": 25,
+            "id": 136,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 25,
+            "id": 136,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.5,
+              "units": 9,
+              "eliminated": false
+            },
+            "100": {
+              "science": 75.5,
+              "units": 26,
+              "eliminated": false
+            },
+            "150": {
+              "science": 595.9586999999999,
+              "units": 72,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            65,
+            101,
+            null
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 88,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 88,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.999999999999999,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 44,
+              "units": 31,
+              "eliminated": false
+            },
+            "150": {
+              "science": 247.985,
+              "units": 65,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            59,
+            101,
+            142
+          ],
+          "firstSettler": {
+            "turn": 24,
+            "id": 132,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 24,
+            "id": 132,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5,
+              "units": 14,
+              "eliminated": false
+            },
+            "100": {
+              "science": 42.9,
+              "units": 47,
+              "eliminated": false
+            },
+            "150": {
+              "science": 626.654,
+              "units": 80,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            67,
+            91,
+            126
+          ],
+          "firstSettler": {
+            "turn": 23,
+            "id": 123,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 23,
+            "id": 123,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 8.5,
+              "units": 10,
+              "eliminated": false
+            },
+            "100": {
+              "science": 89.5,
+              "units": 33,
+              "eliminated": false
+            },
+            "150": {
+              "science": 2375.1815999999994,
+              "units": 72,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 598
+    },
+    {
+      "seed": 20260834,
+      "config": {
+        "seed": 20260834,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 24,
+        "refused": 64
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (34, 15)": 1,
+        "moveUnit: Unit 524 cannot stop on (26, 11)": 1,
+        "acceptDeal: That offer is no longer on the table": 1,
+        "attack: Nothing to attack on (29, 12)": 3,
+        "attack: Nothing to attack on (28, 13)": 3,
+        "attack: Nothing to attack on (29, 14)": 1,
+        "moveUnit: Unit 454 cannot stop on (27, 12)": 1,
+        "moveUnit: Unit 465 cannot stop on (29, 12)": 1,
+        "moveUnit: No unit with id 450": 1,
+        "attack: No unit with id 291": 1,
+        "moveUnit: No unit with id 452": 1,
+        "moveUnit: Unit 415 cannot stop on (28, 13)": 1,
+        "attack: No unit with id 454": 1,
+        "moveUnit: Unit 481 cannot stop on (28, 13)": 1,
+        "fortify: No unit with id 614": 1,
+        "attack: You are not at war with the Seat 2": 1,
+        "attack: No unit with id 488": 1,
+        "attack: No unit with id 554": 1,
+        "attack: No unit with id 465": 1,
+        "attack: Nothing to attack on (26, 13)": 1,
+        "moveUnit: No unit with id 597": 1,
+        "moveUnit: No unit with id 603": 1,
+        "attack: Nothing to attack on (29, 10)": 1,
+        "attack: Nothing to attack on (33, 8)": 1,
+        "foundCity: (54, 29) is 2 tile(s) from the nearest city; 4 required": 1,
+        "attack: Nothing to attack on (23, 14)": 1,
+        "attack: Nothing to attack on (43, 20)": 1,
+        "attack: Nothing to attack on (25, 10)": 2,
+        "attack: Nothing to attack on (22, 10)": 2,
+        "attack: Nothing to attack on (23, 10)": 2,
+        "attack: Nothing to attack on (40, 19)": 3,
+        "attack: No unit with id 558": 1,
+        "attack: Nothing to attack on (33, 6)": 1,
+        "attack: No unit with id 415": 1,
+        "acceptDeal: The Seat 6 have no silk to lend": 2,
+        "moveUnit: Unit 1101 cannot stop on (23, 9)": 1,
+        "attack: Nothing to attack on (34, 33)": 1,
+        "attack: Nothing to attack on (23, 9)": 2,
+        "attack: Nothing to attack on (59, 46)": 3,
+        "moveUnit: No unit with id 804": 1,
+        "attack: Nothing to attack on (46, 28)": 1,
+        "attack: Nothing to attack on (12, 4)": 1,
+        "attack: Nothing to attack on (24, 8)": 1,
+        "attack: No unit with id 508": 1,
+        "attack: No unit with id 1101": 1,
+        "attack: Nothing to attack on (23, 28)": 1,
+        "proposeDeal: The Seat 1 have whales only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "moveUnit: Unit 434 cannot stop on (56, 19)": 1,
+        "moveUnit: Unit 610 cannot stop on (35, 28)": 1,
+        "moveUnit: No unit with id 494": 1,
+        "attack: Nothing to attack on (34, 29)": 1
+      },
+      "acceptedCommands": 11912,
+      "firstWar": {
+        "turn": 56,
+        "seats": [
+          2,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            43,
+            89,
+            143
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 62,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 62,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 11.55,
+              "units": 15,
+              "eliminated": false
+            },
+            "100": {
+              "science": 61.5,
+              "units": 32,
+              "eliminated": false
+            },
+            "150": {
+              "science": 221,
+              "units": 54,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            44,
+            94,
+            134
+          ],
+          "firstSettler": {
+            "turn": 17,
+            "id": 77,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 17,
+            "id": 77,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 8.5,
+              "units": 13,
+              "eliminated": false
+            },
+            "100": {
+              "science": 78.6,
+              "units": 31,
+              "eliminated": false
+            },
+            "150": {
+              "science": 652.9200000000001,
+              "units": 85,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            49,
+            98,
+            null
+          ],
+          "firstSettler": {
+            "turn": 33,
+            "id": 204,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 33,
+            "id": 204,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.5,
+              "units": 4,
+              "eliminated": false
+            },
+            "100": {
+              "science": 49,
+              "units": 30,
+              "eliminated": false
+            },
+            "150": {
+              "science": 53.5,
+              "units": 24,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            41,
+            111,
+            143
+          ],
+          "firstSettler": {
+            "turn": 11,
+            "id": 41,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 11,
+            "id": 41,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9,
+              "units": 5,
+              "eliminated": false
+            },
+            "100": {
+              "science": 44.55,
+              "units": 30,
+              "eliminated": false
+            },
+            "150": {
+              "science": 859.1400000000001,
+              "units": 90,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            43,
+            99,
+            null
+          ],
+          "firstSettler": {
+            "turn": 7,
+            "id": 25,
+            "source": "grant",
+            "command": "chooseOrder"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 67,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.5,
+              "units": 16,
+              "eliminated": false
+            },
+            "100": {
+              "science": 43,
+              "units": 52,
+              "eliminated": false
+            },
+            "150": {
+              "science": 110,
+              "units": 82,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            43,
+            74,
+            123
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 82,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 82,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 8,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 167.94000000000003,
+              "units": 23,
+              "eliminated": false
+            },
+            "150": {
+              "science": 5549.591399999998,
+              "units": 116,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 726
+    },
+    {
+      "seed": 20260835,
+      "config": {
+        "seed": 20260835,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 38,
+        "taken": 2,
+        "refused": 47
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (10, 35)": 1,
+        "attack: Nothing to attack on (25, 21)": 1,
+        "moveUnit: No unit with id 696": 1,
+        "attack: Nothing to attack on (46, 41)": 1,
+        "attack: Nothing to attack on (49, 46)": 1,
+        "moveUnit: No unit with id 598": 1,
+        "moveUnit: No unit with id 661": 1,
+        "moveUnit: No unit with id 508": 1,
+        "moveUnit: Unit 972 cannot stop on (43, 45)": 1,
+        "moveUnit: No unit with id 665": 1,
+        "moveUnit: You are not at war with the Seat 3 \u2014 their land is closed to your armies": 1,
+        "moveUnit: Unit 1031 cannot stop on (47, 30)": 1,
+        "moveUnit: Unit 601 cannot stop on (28, 23)": 1,
+        "attack: Nothing to attack on (45, 29)": 1,
+        "attack: You are not at war with the Seat 1": 2,
+        "moveUnit: Unit 756 cannot stop on (39, 29)": 1,
+        "attack: Nothing to attack on (39, 30)": 1,
+        "moveUnit: Unit 1379 cannot stop on (39, 34)": 1,
+        "attack: Nothing to attack on (38, 27)": 1,
+        "sleepUnit: Unit 1285 does not belong to player 5": 1,
+        "moveUnit: Unit 1437 cannot stop on (38, 33)": 1,
+        "foundCity: (21, 30) is 2 tile(s) from the nearest city; 4 required": 1,
+        "attack: You are not at war with the Seat 3": 1,
+        "moveUnit: No unit with id 1420": 1,
+        "moveUnit: Unit 1491 cannot stop on (37, 35)": 1,
+        "buyRoute: A trade route costs 255 gold; Seat 6 has 109": 1,
+        "moveUnit: Unit 1361 cannot stop on (50, 24)": 1,
+        "moveUnit: No path from (42, 29) to (49, 25)": 1,
+        "moveUnit: Your Horseman there has not the movement to trade places": 1,
+        "moveUnit: Unit 1196 cannot stop on (40, 35)": 1,
+        "moveUnit: Unit 1596 cannot stop on (50, 24)": 1,
+        "moveUnit: Unit 1204 cannot stop on (51, 24)": 1,
+        "moveUnit: Unit 982 cannot stop on (47, 31)": 1,
+        "attack: Nothing to attack on (44, 30)": 1,
+        "moveUnit: Unit 236 cannot stop on (51, 32)": 1,
+        "acceptDeal: The Seat 2 have no gems to lend": 2,
+        "attack: Nothing to attack on (44, 29)": 1,
+        "moveUnit: You are not at war with the Seat 2 \u2014 their land is closed to your armies": 1,
+        "attack: Nothing to attack on (46, 30)": 1,
+        "moveUnit: Unit 1683 cannot stop on (46, 28)": 1,
+        "attack: You are not at war with the Seat 2": 1,
+        "moveUnit: Unit 1473 cannot stop on (44, 26)": 1,
+        "moveUnit: Unit 385 cannot stop on (46, 31)": 1,
+        "moveUnit: Unit 1379 cannot stop on (39, 45)": 1,
+        "moveUnit: Unit 1685 cannot stop on (48, 26)": 1
+      },
+      "acceptedCommands": 14695,
+      "firstWar": {
+        "turn": 56,
+        "seats": [
+          1,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            38,
+            88,
+            150
+          ],
+          "firstSettler": {
+            "turn": 13,
+            "id": 50,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 13,
+            "id": 50,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 10,
+              "units": 10,
+              "eliminated": false
+            },
+            "100": {
+              "science": 57.5,
+              "units": 23,
+              "eliminated": false
+            },
+            "150": {
+              "science": 170.04999999999998,
+              "units": 58,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            62,
+            77,
+            134
+          ],
+          "firstSettler": {
+            "turn": 11,
+            "id": 37,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 11,
+            "id": 37,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 12.6,
+              "units": 18,
+              "eliminated": false
+            },
+            "100": {
+              "science": 128.7,
+              "units": 39,
+              "eliminated": false
+            },
+            "150": {
+              "science": 2913.66275,
+              "units": 109,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            55,
+            67,
+            118
+          ],
+          "firstSettler": {
+            "turn": 16,
+            "id": 65,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 65,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 14,
+              "units": 16,
+              "eliminated": false
+            },
+            "100": {
+              "science": 112,
+              "units": 40,
+              "eliminated": false
+            },
+            "150": {
+              "science": 2397.409799999999,
+              "units": 141,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            38,
+            73,
+            126
+          ],
+          "firstSettler": {
+            "turn": 12,
+            "id": 44,
+            "source": "production",
+            "command": "chooseDiscovery"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 12,
+            "id": 44,
+            "source": "production",
+            "command": "chooseDiscovery"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 22.8,
+              "units": 14,
+              "eliminated": false
+            },
+            "100": {
+              "science": 132.440625,
+              "units": 27,
+              "eliminated": false
+            },
+            "150": {
+              "science": 511.22999999999996,
+              "units": 80,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            38,
+            81,
+            140
+          ],
+          "firstSettler": {
+            "turn": 11,
+            "id": 39,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 11,
+            "id": 39,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 11.4,
+              "units": 18,
+              "eliminated": false
+            },
+            "100": {
+              "science": 100.62,
+              "units": 40,
+              "eliminated": false
+            },
+            "150": {
+              "science": 730.94,
+              "units": 125,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            64,
+            84,
+            103
+          ],
+          "firstSettler": {
+            "turn": 16,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9,
+              "units": 17,
+              "eliminated": false
+            },
+            "100": {
+              "science": 150.8,
+              "units": 23,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1604.3280000000002,
+              "units": 52,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 827
+    }
+  ],
+  "after": [
+    {
+      "seed": 20260831,
+      "config": {
+        "seed": 20260831,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 144,
+      "digestAt120": "3d5e6a4a:1046763",
+      "winnerId": 0,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 28,
+        "refused": 23
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (43, 36)": 1,
+        "attack: Nothing to attack on (43, 42)": 1,
+        "moveUnit: Unit 438 cannot stop on (55, 34)": 1,
+        "acceptDeal: The Seat 1 have no salt to lend": 1,
+        "acceptDeal: The Seat 3 have salt only on loan, and a borrowed luxury cannot be lent to another empire": 2,
+        "acceptDeal: The Seat 4 have no cotton to lend": 2,
+        "moveUnit: Unit 780 cannot stop on (30, 26)": 1,
+        "acceptDeal: The Seat 6 have no wine to lend": 1,
+        "attack: Nothing to attack on (50, 15)": 1,
+        "attack: Nothing to attack on (51, 29)": 1,
+        "moveUnit: Unit 923 cannot stop on (36, 49)": 1,
+        "moveUnit: Unit 593 cannot stop on (51, 12)": 1,
+        "foundCity: (30, 48) is 3 tile(s) from the nearest city; 4 required": 1,
+        "foundCity: (29, 49) belongs to player 0": 1,
+        "attack: Nothing to attack on (30, 27)": 1,
+        "attack: Nothing to attack on (52, 11)": 1,
+        "attack: Nothing to attack on (53, 9)": 1,
+        "attack: Nothing to attack on (43, 17)": 2,
+        "moveUnit: Unit 1265 cannot stop on (27, 33)": 1,
+        "attack: Nothing to attack on (41, 19)": 1
+      },
+      "acceptedCommands": 10108,
+      "firstWar": {
+        "turn": 99,
+        "seats": [
+          0,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            63,
+            92,
+            123
+          ],
+          "firstSettler": {
+            "turn": 11,
+            "id": 42,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 11,
+            "id": 42,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 3.3,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 150.48,
+              "units": 36,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            63,
+            112,
+            null
+          ],
+          "firstSettler": {
+            "turn": 19,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 19,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.875,
+              "units": 3,
+              "eliminated": false
+            },
+            "100": {
+              "science": 43.50000000000001,
+              "units": 21,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            77,
+            80,
+            108
+          ],
+          "firstSettler": {
+            "turn": 21,
+            "id": 102,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 21,
+            "id": 102,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 3.5,
+              "units": 7,
+              "eliminated": false
+            },
+            "100": {
+              "science": 203.225,
+              "units": 32,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            71,
+            102,
+            143
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9.075000000000001,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 95.75,
+              "units": 19,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            93,
+            121,
+            null
+          ],
+          "firstSettler": {
+            "turn": 19,
+            "id": 87,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 19,
+            "id": 87,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 21.799999999999997,
+              "units": 39,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            49,
+            71,
+            122
+          ],
+          "firstSettler": {
+            "turn": 7,
+            "id": 27,
+            "source": "grant",
+            "command": "chooseOrder"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 23,
+            "id": 116,
+            "source": "production",
+            "command": "chooseDiscovery"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 24.200000000000003,
+              "units": 13,
+              "eliminated": false
+            },
+            "100": {
+              "science": 151.50000000000003,
+              "units": 36,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 562
+    },
+    {
+      "seed": 20260832,
+      "config": {
+        "seed": 20260832,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "digestAt120": null,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 46,
+        "refused": 49
+      },
+      "rejectedAttempts": {
+        "moveUnit: Unit 215 cannot stop on (36, 24)": 1,
+        "moveUnit: Unit 350 cannot stop on (36, 23)": 1,
+        "moveUnit: Unit 400 cannot stop on (35, 19)": 1,
+        "attack: You are not at war with the Seat 4": 1,
+        "moveUnit: Unit 470 cannot stop on (33, 26)": 1,
+        "moveUnit: Unit 534 cannot stop on (35, 24)": 1,
+        "attack: Nothing to attack on (50, 42)": 1,
+        "attack: Nothing to attack on (14, 19)": 1,
+        "attack: Nothing to attack on (33, 14)": 1,
+        "attack: Nothing to attack on (39, 26)": 1,
+        "moveUnit: No unit with id 446": 1,
+        "moveUnit: Unit 610 cannot stop on (53, 16)": 1,
+        "acceptDeal: The Seat 4 have no silver to lend": 1,
+        "attack: Nothing to attack on (22, 17)": 1,
+        "attack: Nothing to attack on (23, 17)": 1,
+        "moveUnit: Your War Chariot there has not the movement to trade places": 1,
+        "attack: No unit with id 645": 1,
+        "purchaseItem: Warrior has been replaced by the Swordsman": 3,
+        "moveUnit: Unit 610 cannot stop on (47, 0)": 1,
+        "fortify: No unit with id 649": 1,
+        "moveUnit: No unit with id 326": 1,
+        "moveUnit: No unit with id 673": 1,
+        "moveUnit: Unit 644 cannot stop on (38, 28)": 1,
+        "attack: Nothing to attack on (43, 30)": 1,
+        "fortify: No unit with id 819": 1,
+        "acceptDeal: The Seat 3 have no coral to lend": 1,
+        "attack: You are not at war with the Seat 1": 3,
+        "moveUnit: No unit with id 674": 1,
+        "moveUnit: Unit 330 cannot stop on (38, 27)": 1,
+        "levyCitizen: Seat 6 2 can levy again in 4 turns": 1,
+        "attack: No unit with id 437": 1,
+        "attack: No unit with id 350": 1,
+        "attack: No unit with id 534": 1,
+        "acceptDeal: The Seat 3 have silk only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "moveUnit: Unit 825 cannot stop on (39, 30)": 1,
+        "attack: Nothing to attack on (44, 33)": 1,
+        "fortify: No unit with id 902": 1,
+        "attack: Nothing to attack on (43, 32)": 1,
+        "moveUnit: No unit with id 821": 1,
+        "moveUnit: No unit with id 820": 1,
+        "attack: Nothing to attack on (10, 20)": 1,
+        "acceptDeal: The Seat 4 have no dyes to lend": 1,
+        "moveUnit: No unit with id 1291": 1,
+        "acceptDeal: The Seat 1 have sugar only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "attack: You are not at war with the Seat 3": 1
+      },
+      "acceptedCommands": 11747,
+      "firstWar": {
+        "turn": 55,
+        "seats": [
+          0,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            46,
+            98,
+            null
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 64,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9,
+              "units": 14,
+              "eliminated": false
+            },
+            "100": {
+              "science": 47.75,
+              "units": 21,
+              "eliminated": false
+            },
+            "150": {
+              "science": 180.14999999999998,
+              "units": 48,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            78,
+            101,
+            null
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 55,
+            "source": "production",
+            "command": "chooseDiscovery"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 55,
+            "source": "production",
+            "command": "chooseDiscovery"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4.95,
+              "units": 15,
+              "eliminated": false
+            },
+            "100": {
+              "science": 73.25,
+              "units": 22,
+              "eliminated": false
+            },
+            "150": {
+              "science": 128,
+              "units": 49,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            52,
+            87,
+            138
+          ],
+          "firstSettler": {
+            "turn": 16,
+            "id": 71,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 71,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9,
+              "units": 6,
+              "eliminated": false
+            },
+            "100": {
+              "science": 63.731249999999996,
+              "units": 18,
+              "eliminated": false
+            },
+            "150": {
+              "science": 560.8000000000001,
+              "units": 53,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            61,
+            79,
+            122
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 61,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 61,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 9.25,
+              "units": 8,
+              "eliminated": false
+            },
+            "100": {
+              "science": 174.25,
+              "units": 16,
+              "eliminated": false
+            },
+            "150": {
+              "science": 577.3500000000003,
+              "units": 107,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            62,
+            78,
+            120
+          ],
+          "firstSettler": {
+            "turn": 10,
+            "id": 37,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 10,
+            "id": 37,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.25,
+              "units": 14,
+              "eliminated": false
+            },
+            "100": {
+              "science": 171.75,
+              "units": 57,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1532.8500000000001,
+              "units": 70,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            63,
+            89,
+            113
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 15,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 3.5749999999999997,
+              "units": 9,
+              "eliminated": false
+            },
+            "100": {
+              "science": 237.6675,
+              "units": 29,
+              "eliminated": false
+            },
+            "150": {
+              "science": 15399.711,
+              "units": 125,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 615
+    },
+    {
+      "seed": 20260833,
+      "config": {
+        "seed": 20260833,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "digestAt120": null,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 26,
+        "refused": 24,
+        "taken": 1
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (24, 38)": 1,
+        "attack: Nothing to attack on (46, 16)": 1,
+        "attack: No unit with id 582": 1,
+        "moveUnit: No unit with id 460": 1,
+        "moveUnit: No unit with id 674": 1,
+        "moveUnit: You are not at war with the Seat 4 \u2014 their land is closed to your armies": 1,
+        "attack: Nothing to attack on (54, 23)": 1,
+        "moveUnit: Unit 719 cannot stop on (42, 8)": 1,
+        "moveUnit: Unit 529 cannot stop on (43, 14)": 1,
+        "attack: You are not at war with the Seat 4": 2,
+        "moveUnit: Unit 958 cannot stop on (33, 15)": 1,
+        "moveUnit: You are not at war with the Seat 1 \u2014 their land is closed to your armies": 1,
+        "moveUnit: Unit 725 cannot stop on (39, 38)": 1,
+        "moveUnit: Unit 1041 cannot stop on (38, 39)": 1,
+        "moveUnit: Unit 1059 cannot stop on (38, 13)": 1,
+        "attack: Nothing to attack on (29, 9)": 1,
+        "attack: Nothing to attack on (29, 29)": 1,
+        "acceptDeal: The Seat 1 have furs only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "attack: You are not at war with the Seat 1": 2,
+        "attack: You are not at war with the Seat 2": 1,
+        "moveUnit: Unit 1253 cannot stop on (29, 39)": 1,
+        "foundCity: (29, 39) is 2 tile(s) from the nearest city; 4 required": 1
+      },
+      "acceptedCommands": 11471,
+      "firstWar": {
+        "turn": 88,
+        "seats": [
+          0,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            45,
+            100,
+            null
+          ],
+          "firstSettler": {
+            "turn": 16,
+            "id": 70,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 70,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 3.575,
+              "units": 7,
+              "eliminated": false
+            },
+            "100": {
+              "science": 35.775,
+              "units": 20,
+              "eliminated": false
+            },
+            "150": {
+              "science": 98.60000000000002,
+              "units": 54,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            63,
+            95,
+            141
+          ],
+          "firstSettler": {
+            "turn": 20,
+            "id": 100,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 20,
+            "id": 100,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.75,
+              "units": 9,
+              "eliminated": false
+            },
+            "100": {
+              "science": 68.625,
+              "units": 38,
+              "eliminated": false
+            },
+            "150": {
+              "science": 302.79999999999995,
+              "units": 94,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            74,
+            118,
+            null
+          ],
+          "firstSettler": {
+            "turn": 30,
+            "id": 169,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 30,
+            "id": 169,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.75,
+              "units": 10,
+              "eliminated": false
+            },
+            "100": {
+              "science": 27,
+              "units": 12,
+              "eliminated": false
+            },
+            "150": {
+              "science": 103.95,
+              "units": 41,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            50,
+            101,
+            138
+          ],
+          "firstSettler": {
+            "turn": 22,
+            "id": 115,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 22,
+            "id": 115,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6,
+              "units": 3,
+              "eliminated": false
+            },
+            "100": {
+              "science": 53.900000000000006,
+              "units": 35,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1118.1551875000002,
+              "units": 67,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            65,
+            94,
+            130
+          ],
+          "firstSettler": {
+            "turn": 19,
+            "id": 94,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 19,
+            "id": 94,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 3.5,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 129.8,
+              "units": 44,
+              "eliminated": false
+            },
+            "150": {
+              "science": 2574.3749999999995,
+              "units": 129,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            63,
+            79,
+            134
+          ],
+          "firstSettler": {
+            "turn": 15,
+            "id": 63,
+            "source": "grant",
+            "command": "chooseOrder"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 17,
+            "id": 78,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4.949999999999999,
+              "units": 10,
+              "eliminated": false
+            },
+            "100": {
+              "science": 88.5,
+              "units": 37,
+              "eliminated": false
+            },
+            "150": {
+              "science": 573.248,
+              "units": 62,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 427
+    },
+    {
+      "seed": 20260834,
+      "config": {
+        "seed": 20260834,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 150,
+      "digestAt120": null,
+      "winnerId": null,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 37,
+        "refused": 51
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (34, 12)": 1,
+        "attack: Nothing to attack on (52, 37)": 1,
+        "attack: Nothing to attack on (29, 1)": 1,
+        "attack: A Worker is taken by walking onto it, not shot at": 2,
+        "moveUnit: Unit 495 cannot stop on (36, 36)": 1,
+        "attack: Nothing to attack on (36, 34)": 1,
+        "attack: Nothing to attack on (35, 33)": 1,
+        "attack: Nothing to attack on (34, 33)": 1,
+        "attack: Nothing to attack on (35, 34)": 1,
+        "moveUnit: Your Warrior there has not the movement to trade places": 1,
+        "moveUnit: No unit with id 519": 1,
+        "attack: No unit with id 432": 1,
+        "acceptDeal: The Seat 4 have olives only on loan, and a borrowed luxury cannot be lent to another empire": 1,
+        "attack: Nothing to attack on (33, 30)": 1,
+        "moveUnit: Unit 448 cannot stop on (42, 14)": 1,
+        "attack: You are not at war with the Seat 4": 3,
+        "moveUnit: Unit 485 cannot stop on (42, 14)": 1,
+        "attack: Nothing to attack on (38, 6)": 1,
+        "moveUnit: Unit 580 cannot stop on (43, 14)": 1,
+        "attack: No unit with id 545": 1,
+        "moveUnit: Unit 489 cannot stop on (42, 46)": 1,
+        "moveUnit: No unit with id 817": 1,
+        "purchaseItem: Warrior costs 72 gold; Seat 6 has 41": 1,
+        "moveUnit: Unit 344 cannot stop on (41, 13)": 1,
+        "moveUnit: No unit with id 953": 1,
+        "attack: No unit with id 557": 1,
+        "moveUnit: Unit 485 cannot stop on (41, 16)": 1,
+        "acceptDeal: The Seat 2 have wine only on loan, and a borrowed luxury cannot be lent to another empire": 2,
+        "moveUnit: No unit with id 699": 1,
+        "buyRoute: A trade route costs 105 gold; Seat 6 has 52": 1,
+        "moveUnit: You are not at war with the Seat 4 \u2014 their land is closed to your armies": 1,
+        "moveUnit: Unit 90 cannot stop on (47, 21)": 1,
+        "purchaseItem: Swordsman has been replaced by the Legionary": 1,
+        "acceptDeal: The Seat 4 have no wine to lend": 1,
+        "attack: No unit with id 493": 1,
+        "acceptDeal: The Seat 2 have no dyes to lend": 1,
+        "moveUnit: Unit 1379 cannot stop on (55, 38)": 1,
+        "moveUnit: No unit with id 484": 1,
+        "buyRoute: A trade route costs 165 gold; Seat 6 has 96": 1,
+        "attack: No unit with id 1404": 1,
+        "acceptDeal: The Seat 2 have coral only on loan, and a borrowed luxury cannot be lent to another empire": 2,
+        "attack: Nothing to attack on (52, 50)": 1,
+        "attack: Nothing to attack on (43, 18)": 1,
+        "acceptDeal: The Seat 2 have coffee only on loan, and a borrowed luxury cannot be lent to another empire": 2,
+        "moveUnit: No unit with id 1307": 1
+      },
+      "acceptedCommands": 12144,
+      "firstWar": {
+        "turn": 51,
+        "seats": [
+          0,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            53,
+            null,
+            null
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 81,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 81,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 2,
+              "units": 4,
+              "eliminated": false
+            },
+            "100": {
+              "science": 4.4,
+              "units": 13,
+              "eliminated": false
+            },
+            "150": {
+              "science": 7,
+              "units": 26,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            77,
+            97,
+            131
+          ],
+          "firstSettler": {
+            "turn": 16,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 16,
+            "id": 63,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.25,
+              "units": 10,
+              "eliminated": false
+            },
+            "100": {
+              "science": 111.60000000000001,
+              "units": 33,
+              "eliminated": false
+            },
+            "150": {
+              "science": 585.3599999999999,
+              "units": 75,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            69,
+            91,
+            128
+          ],
+          "firstSettler": {
+            "turn": 29,
+            "id": 164,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 29,
+            "id": 164,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.75,
+              "units": 8,
+              "eliminated": false
+            },
+            "100": {
+              "science": 84,
+              "units": 39,
+              "eliminated": false
+            },
+            "150": {
+              "science": 1685.355,
+              "units": 192,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            55,
+            91,
+            131
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.75,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 75.60000000000002,
+              "units": 39,
+              "eliminated": false
+            },
+            "150": {
+              "science": 303.9,
+              "units": 57,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            42,
+            85,
+            141
+          ],
+          "firstSettler": {
+            "turn": 7,
+            "id": 24,
+            "source": "grant",
+            "command": "chooseOrder"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 80,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4.25,
+              "units": 16,
+              "eliminated": false
+            },
+            "100": {
+              "science": 63.45,
+              "units": 65,
+              "eliminated": false
+            },
+            "150": {
+              "science": 405.2125,
+              "units": 127,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            67,
+            119,
+            null
+          ],
+          "firstSettler": {
+            "turn": 24,
+            "id": 124,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 24,
+            "id": 124,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4.75,
+              "units": 3,
+              "eliminated": false
+            },
+            "100": {
+              "science": 29.68625,
+              "units": 21,
+              "eliminated": false
+            },
+            "150": {
+              "science": 127.22500000000001,
+              "units": 35,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 437
+    },
+    {
+      "seed": 20260835,
+      "config": {
+        "seed": 20260835,
+        "sizeName": "standard",
+        "players": [
+          {
+            "name": "Seat 1",
+            "color": "#d4502e",
+            "isHuman": false
+          },
+          {
+            "name": "Seat 2",
+            "color": "#1f8a85",
+            "isHuman": false,
+            "persona": "wide"
+          },
+          {
+            "name": "Seat 3",
+            "color": "#6a4c93",
+            "isHuman": false,
+            "persona": "tall"
+          },
+          {
+            "name": "Seat 4",
+            "color": "#c9a227",
+            "isHuman": false,
+            "persona": "zealot"
+          },
+          {
+            "name": "Seat 5",
+            "color": "#3c6e47",
+            "isHuman": false,
+            "persona": "warmonger"
+          },
+          {
+            "name": "Seat 6",
+            "color": "#8a5a44",
+            "isHuman": false
+          }
+        ],
+        "barbarians": true
+      },
+      "dimensions": [
+        80,
+        52
+      ],
+      "lastCompleted": 141,
+      "digestAt120": null,
+      "winnerId": 1,
+      "stalled": false,
+      "invalidOrders": 0,
+      "repeatedOrders": 0,
+      "warningCount": 0,
+      "warnings": [],
+      "cutReasons": {
+        "offer": 32,
+        "refused": 33
+      },
+      "rejectedAttempts": {
+        "attack: Nothing to attack on (40, 18)": 1,
+        "moveUnit: Unit 189 cannot stop on (57, 31)": 1,
+        "attack: Nothing to attack on (57, 31)": 1,
+        "moveUnit: No unit with id 593": 1,
+        "attack: No unit with id 560": 1,
+        "moveUnit: Unit 816 cannot stop on (39, 12)": 1,
+        "moveUnit: Unit 340 cannot stop on (62, 31)": 1,
+        "attack: Nothing to attack on (61, 28)": 1,
+        "attack: Nothing to attack on (62, 30)": 1,
+        "moveUnit: No path from (56, 34) to (63, 27)": 1,
+        "attack: Nothing to attack on (62, 31)": 1,
+        "attack: Nothing to attack on (62, 29)": 2,
+        "moveUnit: No unit with id 340": 1,
+        "moveUnit: Unit 311 cannot stop on (61, 25)": 1,
+        "moveUnit: Your Swordsman there has not the movement to trade places": 1,
+        "fortify: No unit with id 508": 1,
+        "moveUnit: No path from (59, 25) to (60, 20)": 1,
+        "attack: Nothing to attack on (63, 32)": 1,
+        "foundCity: (42, 11) belongs to player 0": 1,
+        "moveUnit: Seat 1 8 is another empire's city \u2014 take it by force": 1,
+        "moveUnit: Unit 531 cannot stop on (48, 28)": 1,
+        "attack: Nothing to attack on (53, 24)": 1,
+        "attack: Nothing to attack on (62, 26)": 1,
+        "attack: Nothing to attack on (62, 28)": 1,
+        "moveUnit: Unit 1323 cannot stop on (28, 23)": 1,
+        "attack: You are not at war with the Seat 3": 1,
+        "attack: Nothing to attack on (59, 24)": 1,
+        "moveUnit: Unit 216 cannot stop on (26, 25)": 1,
+        "attack: No unit with id 312": 1,
+        "attack: Nothing to attack on (46, 31)": 2,
+        "attack: No unit with id 539": 1
+      },
+      "acceptedCommands": 11765,
+      "firstWar": {
+        "turn": 77,
+        "seats": [
+          3,
+          4
+        ]
+      },
+      "seats": [
+        {
+          "id": 0,
+          "persona": "balanced",
+          "openingSettlers": [
+            1
+          ],
+          "ageEntry": [
+            1,
+            51,
+            99,
+            null
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 74,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 74,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.75,
+              "units": 6,
+              "eliminated": false
+            },
+            "100": {
+              "science": 38.5,
+              "units": 26,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 1,
+          "persona": "wide",
+          "openingSettlers": [
+            3
+          ],
+          "ageEntry": [
+            1,
+            60,
+            81,
+            111
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 51,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 51,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.625000000000001,
+              "units": 11,
+              "eliminated": false
+            },
+            "100": {
+              "science": 237.40499999999997,
+              "units": 43,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "persona": "tall",
+          "openingSettlers": [
+            5
+          ],
+          "ageEntry": [
+            1,
+            66,
+            77,
+            110
+          ],
+          "firstSettler": {
+            "turn": 18,
+            "id": 75,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 18,
+            "id": 75,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 6.25,
+              "units": 12,
+              "eliminated": false
+            },
+            "100": {
+              "science": 224.7,
+              "units": 29,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 3,
+          "persona": "zealot",
+          "openingSettlers": [
+            7
+          ],
+          "ageEntry": [
+            1,
+            72,
+            108,
+            null
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 52,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5,
+              "units": 8,
+              "eliminated": false
+            },
+            "100": {
+              "science": 33.5,
+              "units": 23,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 4,
+          "persona": "warmonger",
+          "openingSettlers": [
+            9
+          ],
+          "ageEntry": [
+            1,
+            65,
+            92,
+            null
+          ],
+          "firstSettler": {
+            "turn": 14,
+            "id": 53,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 14,
+            "id": 53,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 5.5,
+              "units": 13,
+              "eliminated": false
+            },
+            "100": {
+              "science": 50,
+              "units": 34,
+              "eliminated": false
+            }
+          }
+        },
+        {
+          "id": 5,
+          "persona": "balanced",
+          "openingSettlers": [
+            11
+          ],
+          "ageEntry": [
+            1,
+            90,
+            113,
+            null
+          ],
+          "firstSettler": {
+            "turn": 19,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "firstBuiltOrPurchasedSettler": {
+            "turn": 19,
+            "id": 86,
+            "source": "production",
+            "command": "endTurn"
+          },
+          "checkpoints": {
+            "50": {
+              "science": 4,
+              "units": 19,
+              "eliminated": false
+            },
+            "100": {
+              "science": 58,
+              "units": 28,
+              "eliminated": false
+            }
+          }
+        }
+      ],
+      "seconds": 292
+    }
+  ]
+}
