@@ -225,6 +225,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   there; everything else sells for gold at `goldPerHammer` × the full production
   cost. **A city buys one unit per class per turn** (military-gold, civilian-gold,
   faith), by absolute stamp. Buildings are uncounted.
+  - A purchased unit takes its free city slot. If that slot is full, the
+    city needs a legal adjacent tile and must be free of siege. The game
+    checks in map neighbour order before payment and applies arrival effects.
   - **A wonder is not for sale** unless one of four lifts opens a bank for it,
     each a clause of the one refusal in `purchaseError`: the Valley of Kings
     in its own town and The Pious Masons for a wonder at least half built
@@ -1091,8 +1094,8 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   moment's lump (`drainConversions`, `religion.ts`; Pentecost). The last three
   hand a presser down to `payWindfallGrants`, because the evaluator may not
   import `religion.ts`.
-- Religions are **fluid, never historical** — the name is generated at founding
-  from the pantheon's axes. The cap is ⌈2/3 × real players⌉.
+- A founding draws one unused name. It prefers the pantheon’s axes, then uses
+  the rest of the roster. The cap is ⌈2/3 × real players⌉.
 - **The clergy**: the prophet (two charges; founding, a further holy site, or a
   belief takes both; a proclamation or an empire rite takes one), the apostle
   (two charges; proclaim, heal, place a relic), the inquisitor (purge, plus a

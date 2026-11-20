@@ -16,6 +16,8 @@
  * see the difference.
  */
 
+import religionNamePlan from "../../docs/plans/religion-names-2026-11-19.md?raw";
+import { cloneRng, nextFloat } from "../../src/sim/rng";
 import BUILDINGS_RAW from "../../data/buildings.json";
 import TECHS_RAW from "../../data/techs.json";
 import STATECRAFT_RAW from "../../data/statecraft.json";
@@ -315,6 +317,15 @@ function keep(state: GameState, playerId: number, id: BeliefId): void {
 describe("the religion table", () => {
   it("has no problems to report", () => {
     expect(religionDataProblems(TECH_IDS)).toEqual([]);
+  });
+
+  it("keeps the chosen names in the order approved for each axis", () => {
+    const table = religionNamePlan.split("## Ready for the build")[1]!.split("**No name")[0]!;
+    const rows = [...table.matchAll(/^\| ([a-z]+) \| (.+) \|$/gm)].flatMap(([, axis, names]) =>
+      names!.split(", ").map(name => ({ name, axis })),
+    );
+    expect(rows).toHaveLength(59);
+    expect(RELIGION.names.roster).toEqual(rows);
   });
 
   it("gives every belief a description the screen can print", () => {
@@ -2322,13 +2333,55 @@ describe("founding a religion", () => {
     const two = foundReligion(b.state, playerById(b.state, 0)!);
     expect(one.name).toBe(two.name);
     expect(one.name.length).toBeGreaterThan(0);
-    // Made out of the pantheon it was founded on: a hearth god names a hearth
-    // faith, whichever pattern the generator picked.
-    const hearth = RELIGION.names.epithets.hearth ?? [];
-    expect(hearth.some((word) => one.name.includes(word))).toBe(true);
+    expect(RELIGION.names.roster.find(row => row.name === one.name)?.axis).toBe("hearth");
     // The pantheon is a **copy**: a fourth god later does not rename the faith.
     keep(a.state, 0, "starReaders");
     expect(one.pantheon).toEqual(["keeperOfTheHearth"]);
+  });
+
+  it("uses one draw per founding and falls back after an axis runs out", () => {
+    const { state } = createGame({
+      seed: 11,
+      sizeName: "standard",
+      players: Array.from({ length: RULES.game.maxPlayers }, (_, id) => ({ name: String(id), color: "#ff0000" })),
+    });
+    const drawn: string[] = [];
+    const hearth = RELIGION.names.roster.filter(row => row.axis === "hearth").map(row => row.name);
+    for (let id = 0; id < maxReligions(state); id++) {
+      keep(state, id, "keeperOfTheHearth");
+      expect(foundReligionError(state, id)).toBeNull();
+      const rng = cloneRng(state.rng);
+      nextFloat(rng);
+      const { name } = foundReligion(state, playerById(state, id)!);
+      expect(state.rng).toEqual(rng);
+      expect(hearth.includes(name)).toBe(id < hearth.length);
+      drawn.push(name);
+    }
+    expect(new Set(drawn).size).toBe(8);
+  });
+
+  it("skips a player's chosen name and draws from every matching axis in roster order", () => {
+    const { state } = game();
+    keep(state, 0, "keeperOfTheHearth");
+    const first = foundReligion(state, playerById(state, 0)!);
+    const second = playerById(state, 1)!;
+    keep(state, 1, "keeperOfTheHearth");
+    keep(state, 1, "starReaders");
+    const pool = RELIGION.names.roster.filter(row => row.axis === "hearth" || row.axis === "sky");
+    const roll = nextFloat(cloneRng(state.rng));
+    const taken = pool[Math.floor(roll * pool.length)]!.name;
+    first.name = "  " + taken.toUpperCase() + "  ";
+    const free = pool.filter(row => row.name !== taken);
+    expect(foundReligion(state, second).name).toBe(free[Math.floor(roll * free.length)]!.name);
+  });
+
+  it("uses the full roster for a neutral pantheon", () => {
+    const { state } = game();
+    keep(state, 0, BELIEF_IDS.find(id => beliefDef(id).axis === "none")!);
+    const rng = cloneRng(state.rng);
+    const expected = RELIGION.names.roster[Math.floor(nextFloat(rng) * RELIGION.names.roster.length)]!;
+    expect(foundReligion(state, playerById(state, 0)!).name).toBe(expected.name);
+    expect(state.rng).toEqual(rng);
   });
 
   it("founds, plants and opens TWO drafts in one act — and blocks End Turn", () => {
@@ -4811,6 +4864,7 @@ describe("the Knights Templar", () => {
   /** A founder with a holy site, a town to buy in, and a full faith bank. */
   function order(enhancer: BeliefId[] = ["holyOrder"]) {
     const g = game();
+    dryField(g.state);
     const seat = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     siteAt(g.state, seat, 6, 6);

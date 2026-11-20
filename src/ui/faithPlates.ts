@@ -94,15 +94,7 @@ const NEUTRAL_INK = 'var(--ink-faint)';
 /** The banner mark, the same one the card and the city panel put beside a name. */
 const MAJORITY_MARK = '✶';
 
-/**
- * A religion's device: the first letter of its name, article stripped.
- *
- * "the Grain Cult" is G and "the Way of the Hearth" is W — the initial of the
- * word that actually distinguishes one faith from another, because every name
- * the generator makes starts with "the" and a board of Ts would be no mark at
- * all. Falls back to the first character of whatever is left, so a renamed faith
- * ("Ω") still gets a plate rather than an empty one.
- */
+/** Use the first letter after any leading "the" in a player's chosen name. */
 export function religionDevice(name: string): string {
   const trimmed = name.trim().replace(/^the\s+/i, '');
   const letter = /[\p{L}\p{N}]/u.exec(trimmed)?.[0] ?? trimmed[0] ?? '?';
