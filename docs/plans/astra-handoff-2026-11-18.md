@@ -279,8 +279,8 @@ two differ. A row the user did not comment on is approved as its table shows.
   grants on spending (Aesop, John Dee). Each is a design decision under
   CLAUDE.md: say which you add. A row that fits no shape is deferred and
   annotated, never bent.
-- **Open with the user:** S12 (the ratings) and Deborah. Neither blocks the
-  rest.
+- **Open with the user:** S12 (the ratings). It does not block the rest.
+  Deborah stays as she is (ruled 2026-11-20).
 - **The card:** `greatPersonCard.ts` no longer prints "When spent". Portraits
   are in `public/art/splash/people/`, one a row id; a new row needs no
   picture.
@@ -307,11 +307,14 @@ reasoning; they are not the spec.
 - **Six code points to check before you build** are in "For the builder". If
   one does not hold, say so before you bend a kit: a line that fits no shape
   is deferred and annotated.
-- **Readings the user has not confirmed.** They are the plan's recommended
-  readings, and they stand unless the user changes them: Jayavarman VII's kit
-  as section 2 gives it; Lorenzo's bank capped at +40 renown; Cyrus's culture
-  paid in the capital only; one Paradise Garden in each city; the great person
-  Cosimo de' Medici replaced by Jacques Cœur (in the great people pass).
+- **The user ruled on the readings on 2026-11-20.** Read the plan's section
+  "The user's rulings on the readings (2026-11-20)" before sections 1, 2 and
+  4: it overrules them where they differ (eleven lines changed, among them all
+  of Jayavarman VII's abilities and building, Lorenzo's caps, Cleopatra's
+  deals and Sejong's Hall). The short section after it, "The user's last rulings on the
+  readings", closes its open points and overrules it in turn. Nothing in the
+  leader pass waits on the user. The great person Cosimo de' Medici is replaced by Jacques Cœur (in the
+  great people pass).
 - **The great person named Ibn Battuta** is renamed Ibn Jubayr (great people
   change C25), since the leader keeps the name.
 - **UI that is already built:** the setup's leader step ("Choose your
