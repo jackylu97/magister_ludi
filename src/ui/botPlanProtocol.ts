@@ -1,5 +1,5 @@
 import { type PersonaOverride, aiTuning, setAiTuning } from '../ai/aiConfig';
-import { type FrozenBoard, type SeatPlan, planSeat } from '../ai/frozenBoard';
+import { type FrozenBoard, type SeatPlan, askForCommands, planSeat } from '../ai/frozenBoard';
 import { type GameState, realPlayers } from '../sim/state';
 
 export interface BotTuning {
@@ -52,15 +52,13 @@ export type BotPlanReply =
 export function answerBotPlan(request: BotPlanRequest): BotPlanReply {
   const restore = installBotTuning(request.tuning);
   try {
+    const ask = request.includeDecisions === false ? askForCommands() : undefined;
     const seats = request.seats.map((playerId, index) => {
       const warnings: PlanWarning[] = [];
       const plan = planSeat(request.board, playerId, {
+        ask,
         warn: (message, detail) => warnings.push({ message, detail }),
       }, index === request.seats.length - 1);
-      // The normal game uses commands, marks and memories. The spectator keeps the reasons.
-      if (request.includeDecisions === false) {
-        for (const step of plan.steps) step.decision = null;
-      }
       return { plan, warnings };
     });
     return { kind: 'planned', id: request.id, seats };

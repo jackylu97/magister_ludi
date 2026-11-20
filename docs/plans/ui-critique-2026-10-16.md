@@ -1637,3 +1637,10 @@ for age I.
 - **A missing painting** falls back to the lapis age page the game has today.
 - Next in the queue, in this order: diplomacy layout B with the strip of
   courts, the simpler city screen, the government banners, the title screen.
+
+### Diplomacy layout B as built: unmet courts are hidden (2026-11-19)
+
+The user saw the build (https://claude.ai/artifact/Rtsfz6gPJrpH4fYWk6QPZF),
+where a court not yet met was a blank mark and the head read "9 of 11 courts
+met": "just hide them fully. this looks good to me." A court the seat has not
+met is not on the strip, and the head says only how many courts are met.

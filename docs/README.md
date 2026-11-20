@@ -475,8 +475,8 @@ Reference: **`docs/units.md`** (the roster; generated) and
   weariness is one cost line in the happiness list (`explainHappiness`), at
   `happinessPerPoint` (1) a point, and weariness touches nothing else. The
   `settleDiplomacy` phase prunes losses that have left the window. Every figure
-  is `rules.war.weariness`. The foreign courts screen shows the line on that
-  empire's table, and the Compendium has a concept entry.
+  is `rules.war.weariness`. The foreign courts screen shows the line in that
+  court's "Standing and deals" drawer, and the Compendium has a concept entry.
 - **Units earn ranks in combat** (batch WC3, `src/sim/ranks.ts`; reference
   `docs/war-diplomacy.md` §6b). A blow is a fight when it is struck at a unit
   that is not a civilian or at a town whose walls still stand; each side that
@@ -1940,6 +1940,43 @@ Eight root pages, all named in `vite.config.ts` inputs:
     "Them", with the unit's name under each, and each side's health bar
     under its unit with the health after the blow. The card is wider while
     it shows a forecast, and the strength lines wrap rather than cut.
+- **The diplomacy screen: layout B with the strip of courts**
+  (`docs/plans/ui-critique-2026-10-16.md`, fourth pass; frames
+  `frame-2-strip` and `frame-2-drawer` in
+  `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/`;
+  `src/ui/diplomacyScreen.ts` and `.css`). One sheet on the modal shell, with
+  the kit's head ("Foreign courts", the turn and how many courts are met) and
+  three parts, left to right:
+  - **the strip of courts** (`courtStrip`): one small square mark for every
+    other real player at the table (`diplomaticSeats`: never the barbarians,
+    never the fallen), in seat order. A met court shows its picture, a war
+    red dot at war, a deep gilt dot in a truce, and a cinnabar dot while an
+    offer of theirs waits; the chosen court is ringed in ink. A court not yet
+    met is a blank, faded mark that cannot be chosen and says only "Not met
+    yet" (the met ruling of 2026-09-03). The strip is a list box: the chosen
+    court holds the tab stop, the arrow keys move between met courts
+    (`stripStep`), Enter or a click chooses, and a hover label names the
+    court. It scrolls when the courts do not fit, so eleven fit at any size;
+  - **the chosen court**: the setup step's 3:4 portrait window
+    (`leaderPortraitNode`; a portrait from `leaderPortraits.ts`, none yet,
+    or the seat's charge on its ink), as tall as the sheet allows. The name,
+    the people and where you stand sit over its foot, with the slip of the
+    court's last words under them (the envoy's answer, a counter, or "Here
+    is what I propose." while their offer is open);
+  - **the desk**: the act tabs (Exchange, Peace terms), one tray a side with
+    the gold in hand and the chips, "On the table" (the deal, one column a
+    side, each clause with a ×, and "Clear the table"), the two questions,
+    and the foot: Declare war (the kit's solid war red, not at war), then
+    "Standing and deals" with the count of deals in force and a dot when an
+    offer waits, and Propose (cinnabar). Their offer opens on the table with
+    Accept, Decline, "Change the terms" and "Back to your paper" in place of
+    the questions.
+  - **"Standing and deals"** opens a drawer over the desk
+    (`standingAndDeals`): the relation, both borders and the war weariness
+    line, the deals in force with their turns left, the offers waiting for
+    your answer (Read opens one on the table) and your own offers (Withdraw).
+    Its × and Escape close it back to the trays. Every command the screen
+    sends is the same as before.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

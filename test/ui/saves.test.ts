@@ -15,7 +15,7 @@
  * browser — a file picker, a download — are in `savesPanel.ts` and are not here.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { type GameConfig, SCHEMA_VERSION, hasEndedTurn } from '../../src/sim/state';
 import {
@@ -243,7 +243,7 @@ describe('writeSave', SLOW, () => {
     const payload = makeSavePayload(playedGame(), 'Rome', 5);
     await writeSave(storage, namedSlotId('Rome'), payload);
     const stored = storage.map.get(storageKey(namedSlotId('Rome')))!;
-    expect(stored.startsWith(SAVE_PACK_PREFIX)).toBe(true);
+    expect(stored.slice(stored.indexOf('\n') + 1).startsWith(SAVE_PACK_PREFIX)).toBe(true);
     expect(await unpackSave(stored)).toBe(JSON.stringify(payload));
     expect(await readSaveText(storage, namedSlotId('Rome'))).toBe(JSON.stringify(payload));
     // Plain JSON passes through, so an older slot or an imported file reads.
@@ -282,9 +282,7 @@ describe('writeSave', SLOW, () => {
     expect(storage.map.size).toBe(0);
   });
 
-  it('leaves neither key behind when the label record cannot be written', async () => {
-    // A packed slot with no label could not be listed, so a half-written pair
-    // is removed whole and reported as a storage failure.
+  it('leaves an empty slot empty when the browser refuses its pending label', async () => {
     const inner = fakeStorage();
     const storage: SaveStorage = {
       ...inner,
@@ -299,6 +297,177 @@ describe('writeSave', SLOW, () => {
     const result = await writeSave(storage, AUTOSAVE_SLOT, makeSavePayload(playedGame(), 'A', 0));
     expect(result.ok === false && result.reason).toBe('storage');
     expect(inner.map.size).toBe(0);
+  });
+
+  it('keeps the old save if the browser refuses its replacement label', async () => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    const first = makeSavePayload(game, 'First', 5);
+    await writeSave(storage, QUICKSAVE_SLOT, first);
+    const before = [...storage.map];
+    const set = storage.setItem;
+    storage.setItem = (key, value) => {
+      if (key === metaKey(QUICKSAVE_SLOT)) throw new DOMException('QuotaExceededError');
+      set(key, value);
+    };
+    expect(await writeSave(storage, QUICKSAVE_SLOT, { ...first, name: 'Next' }))
+      .toMatchObject({ ok: false, reason: 'storage' });
+    expect([...storage.map]).toEqual(before);
+    expect(listSaves(storage)).toMatchObject([{ name: 'First' }]);
+    expect(await loadSlot(storage, QUICKSAVE_SLOT)).toMatchObject({ ok: true, game: { log: first.log } });
+  });
+
+  it('leaves an empty slot empty when its payload write fails', async () => {
+    const storage = fakeStorage();
+    const set = storage.setItem;
+    storage.setItem = (key, value) => {
+      if (key === storageKey(QUICKSAVE_SLOT)) throw new DOMException('QuotaExceededError');
+      set(key, value);
+    };
+    expect(await writeSave(storage, QUICKSAVE_SLOT, makeSavePayload(playedGame(), 'First', 5)))
+      .toMatchObject({ ok: false, reason: 'storage' });
+    expect(listSaves(storage)).toEqual([]);
+    expect(storage.map.size).toBe(0);
+  });
+
+  it.each(['plain', 'packed', 'current'])('keeps the last %s save if its replacement and cache repair fail', async (format) => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    const first = makeSavePayload(game, 'First', 5);
+    const json = JSON.stringify(first);
+    const bodyKey = storageKey(QUICKSAVE_SLOT);
+    const labelKey = metaKey(QUICKSAVE_SLOT);
+    if (format === 'plain') {
+      storage.setItem(bodyKey, json);
+    } else {
+      expect((await writeSave(storage, QUICKSAVE_SLOT, first)).ok).toBe(true);
+      if (format === 'packed') {
+        const framed = storage.getItem(bodyKey)!;
+        const legacy = framed.slice(framed.indexOf('\n') + 1);
+        expect(legacy.startsWith(SAVE_PACK_PREFIX)).toBe(true);
+        storage.setItem(bodyKey, legacy);
+      }
+    }
+    const previousBody = storage.getItem(bodyKey);
+    const set = storage.setItem;
+    storage.setItem = (key, value) => {
+      if (key === bodyKey || (key === labelKey && !value.startsWith('!'))) throw new DOMException('QuotaExceededError');
+      set(key, value);
+    };
+    endTurns(game, 1);
+    const newer = makeSavePayload(game, 'Next', 6);
+    expect(await writeSave(storage, QUICKSAVE_SLOT, newer)).toMatchObject({ ok: false, reason: 'storage' });
+    expect(storage.getItem(bodyKey)).toBe(previousBody);
+    expect(listSaves(storage)).toMatchObject([{ name: 'First', savedAt: 5 }]);
+    expect(await readSaveText(storage, QUICKSAVE_SLOT)).toBe(json);
+    expect(await loadSlot(storage, QUICKSAVE_SLOT)).toMatchObject({ ok: true, game: { log: JSON.parse(json).log } });
+    storage.setItem = set;
+    expect((await writeSave(storage, QUICKSAVE_SLOT, newer)).ok).toBe(true);
+    expect(readSlot(storage, QUICKSAVE_SLOT)?.name).toBe('Next');
+  });
+
+  it('uses the committed label if the separate cache cannot be updated', async () => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    expect((await writeSave(storage, QUICKSAVE_SLOT, makeSavePayload(game, 'First', 5))).ok).toBe(true);
+    const set = storage.setItem;
+    storage.setItem = (key, value) => {
+      if (key === metaKey(QUICKSAVE_SLOT) && !value.startsWith('!')) throw new DOMException('QuotaExceededError');
+      set(key, value);
+    };
+    endTurns(game, 1);
+    const newer = makeSavePayload(game, 'Next', 4);
+    expect((await writeSave(storage, QUICKSAVE_SLOT, newer)).ok).toBe(true);
+    expect(listSaves(storage)).toMatchObject([{ name: 'Next', savedAt: 4 }]);
+    expect(await loadSlot(storage, QUICKSAVE_SLOT)).toMatchObject({ ok: true, game: { log: game.log } });
+    storage.setItem = set;
+    expect((await writeSave(storage, QUICKSAVE_SLOT, newer)).ok).toBe(true);
+    const reads = vi.spyOn(storage, 'getItem');
+    expect(listSaves(storage)).toMatchObject([{ name: 'Next' }]);
+    expect(reads.mock.calls).toEqual([[metaKey(QUICKSAVE_SLOT)]]);
+  });
+
+  it('replaces an equal-sized save when its slot uses the entire storage quota', async () => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    const first = makeSavePayload(game, 'Alpha', 1);
+    const newer = { ...first, name: 'Bravo', savedAt: 2 };
+    // Plain storage gives the two saves identical lengths on every platform.
+    vi.stubGlobal('CompressionStream', undefined);
+    try {
+      expect((await writeSave(storage, QUICKSAVE_SLOT, first)).ok).toBe(true);
+      const used = () => Array.from(storage.map, ([key, value]) => key.length + value.length).reduce((a, b) => a + b, 0);
+      const quota = used();
+      const set = storage.setItem;
+      storage.setItem = (key, value) => {
+        const before = storage.map.get(key);
+        const need = used() + value.length + (before === undefined ? key.length : -before.length);
+        if (need > quota) throw new DOMException('QuotaExceededError');
+        set(key, value);
+      };
+      expect((await writeSave(storage, QUICKSAVE_SLOT, newer)).ok).toBe(true);
+      expect(used()).toBe(quota);
+      expect(listSaves(storage)).toMatchObject([{ name: 'Bravo', savedAt: 2 }]);
+      expect(await readSaveText(storage, QUICKSAVE_SLOT)).toBe(JSON.stringify(newer));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('publishes overlapping saves in request order while another slot can finish', async () => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    const original = Response.prototype.arrayBuffer;
+    let release!: () => void;
+    const holdFirst = new Promise<void>(resolve => { release = resolve; });
+    let finished!: () => void;
+    const secondPacked = new Promise<void>(resolve => { finished = resolve; });
+    const packing = vi.spyOn(Response.prototype, 'arrayBuffer')
+      .mockImplementationOnce(async function (this: Response) {
+        await holdFirst;
+        return original.call(this);
+      }).mockImplementationOnce(async function (this: Response) {
+        const value = await original.call(this);
+        finished();
+        return value;
+      });
+    try {
+      const first = writeSave(storage, QUICKSAVE_SLOT, makeSavePayload(game, 'Earlier', 20));
+      endTurns(game, 1);
+      const second = writeSave(storage, QUICKSAVE_SLOT, makeSavePayload(game, 'Later', 10));
+      await secondPacked;
+      const other = await writeSave(storage, AUTOSAVE_SLOT, makeSavePayload(game, 'Other', 30));
+      expect(other.ok).toBe(true);
+      expect(listSaves(storage).map(s => s.name)).toEqual(['Other']);
+      release();
+      expect((await Promise.all([first, second])).every(result => result.ok)).toBe(true);
+      expect(readSlot(storage, QUICKSAVE_SLOT)?.name).toBe('Later');
+      expect((await loadSlot(storage, QUICKSAVE_SLOT))).toMatchObject({ ok: true, game: { log: game.log } });
+    } finally {
+      release();
+      packing.mockRestore();
+    }
+  });
+
+  it('keeps an unfinished write from restoring a deleted slot', async () => {
+    const storage = fakeStorage();
+    const payload = makeSavePayload(playedGame(), 'Deleted', 5);
+    const writing = writeSave(storage, QUICKSAVE_SLOT, payload);
+    deleteSave(storage, QUICKSAVE_SLOT);
+    const next = writeSave(storage, QUICKSAVE_SLOT, { ...payload, name: 'New' });
+    expect((await writing).ok).toBe(false);
+    expect((await next).ok).toBe(true);
+    expect(listSaves(storage)).toMatchObject([{ name: 'New' }]);
+  });
+
+  it('leaves the slot intact if the request cannot be serialized', async () => {
+    const storage = fakeStorage();
+    const original = makeSavePayload(playedGame(), 'Original', 5);
+    await writeSave(storage, QUICKSAVE_SLOT, original);
+    const broken = { ...original, loop: {} };
+    broken.loop = broken;
+    expect(await writeSave(storage, QUICKSAVE_SLOT, broken)).toMatchObject({ ok: false, reason: 'serialize' });
+    expect(await readSaveText(storage, QUICKSAVE_SLOT)).toBe(JSON.stringify(original));
   });
 });
 

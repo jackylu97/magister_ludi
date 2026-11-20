@@ -9,7 +9,7 @@
  */
 
 import { aiConfigFor } from './aiConfig';
-import { type BotSitting, botSitting, nextBotCommand, valueContext } from './bot';
+import { type BotSitting, type nextBotCommand, botSitting, valueContext } from './bot';
 import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
 import { answerPeaceOffer, answerProposal } from './diplomacy';
@@ -20,6 +20,7 @@ import {
   type SeatGuards,
   type SittingAsk,
   applyNextStep,
+  askForCommands,
   askTheBot,
   freezeBoard,
   freshGuards,
@@ -153,7 +154,7 @@ function finish<T>(steps: Generator<BotStep, T>): T {
 }
 
 export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveReport[] {
-  return finish(runBotTurn(game, { ...options, ask: askOf(options) }));
+  return finish(runBotTurn(game, { ...options, ask: askForCommands(options.decide) }));
 }
 
 /** A planner reads the frozen board and returns one plan for each requested seat. */
@@ -171,7 +172,7 @@ export async function driveBotsAsync(
   if (seats.length === 1 || options.decide) return driveBots(game, options);
 
   const board = freezeBoard(game.state);
-  let plans: SeatPlan[];
+  let plans: SeatPlan[] | undefined;
   try {
     const answers = await planner(board, seats);
     const bySeat = new Map(answers.map((plan) => [plan.playerId, plan]));
@@ -182,18 +183,8 @@ export async function driveBotsAsync(
   } catch (error) {
     (options.warn ?? console.warn)('Bot planning failed. Planning this turn on the coordinator.', error);
     // No command has reached the game. Replan from the same frozen board.
-    return finish(applyBotPlans(game, board, seats, options));
   }
-  return finish(applyBotPlans(game, board, seats, options, plans));
-}
-
-function askOf(options: DriveOptions): SittingAsk {
-  const decide = options.decide;
-  if (decide === undefined) return askTheBot;
-  return (state, playerId, sitting) => {
-    const command = decide(state, playerId, sitting);
-    return command === null ? null : { command, decision: null };
-  };
+  return finish(applyBotPlans(game, board, seats, { ...options, ask: askForCommands() }, plans));
 }
 
 /** Freeze once per pass. A seat can plan just before its first step because it still sees the frozen board. */
@@ -460,5 +451,5 @@ export function driveSeat(
   guards: SeatGuards = freshGuards(),
   sitting: BotSitting = botSitting(playerId),
 ): SeatDriveReport {
-  return finish(finishSeat(game, playerId, sitting, guards, { ...options, ask: askOf(options) }));
+  return finish(finishSeat(game, playerId, sitting, guards, { ...options, ask: askForCommands(options.decide) }));
 }

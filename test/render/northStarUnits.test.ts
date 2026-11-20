@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShaderLib, type MeshStandardMaterial, type WebGLRenderer } from 'three';
 import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
 import { buildNorthStarUnit, northStarUnitModel, overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
@@ -7,7 +7,12 @@ import { NORTH_STAR_UNITS } from '../../src/terrainStudy/northStarAssets.js';
 
 const kits: PaintedUnitKit[] = [];
 const make = (): PaintedUnitKit => { const kit = new PaintedUnitKit(() => {}); kits.push(kit); return kit; };
-afterEach(() => { for (const kit of kits.splice(0)) kit.dispose(); overrideNorthStarUnit('swordsman', (NORTH_STAR_UNITS as Record<string, string>).swordsman ?? null); });
+afterEach(() => {
+  for (const kit of kits.splice(0)) kit.dispose();
+  for (const type of ['swordsman', 'warrior']) {
+    overrideNorthStarUnit(type, (NORTH_STAR_UNITS as Record<string, string>)[type] ?? null);
+  }
+});
 
 describe('north-star unit pieces', () => {
   // The north-star unit models are switched off (`NORTH_STAR_UNIT_MODELS` is false: the user chose small changes to
@@ -36,6 +41,36 @@ describe('north-star unit pieces', () => {
     // The piece of today has parts in the seat's second colour too (its plinth, bands and crest).
     expect(model.trimmed).toBe(true);
     expect(new Set(model.geometry.getAttribute('paintedOwner').array)).toEqual(new Set([0, 1, 2]));
+  });
+
+  it.each(['warrior', 'swordsman'] as const)('keeps separate rotations when %s uses the shared sculpture first', (first) => {
+    const kit = make();
+    overrideNorthStarUnit('warrior', 'ns-swordsman', 0.4);
+    overrideNorthStarUnit('swordsman', 'ns-swordsman', 1.2);
+    const firstPose = kit.resolve({ type: first });
+    const warrior = kit.resolve({ type: 'warrior' })!;
+    const swordsman = kit.resolve({ type: 'swordsman' })!;
+    expect(firstPose).toBe(first === 'warrior' ? warrior : swordsman);
+    expect(warrior.yaw).toBe(0.4);
+    expect(swordsman.yaw).toBe(1.2);
+    expect(warrior.geometry).toBe(swordsman.geometry);
+    const dispose = vi.spyOn(warrior.geometry, 'dispose');
+
+    overrideNorthStarUnit('warrior', 'ns-swordsman', 0);
+    const updated = kit.resolve({ type: 'warrior' })!;
+    expect(updated.yaw).toBe(0);
+    expect(warrior.yaw).toBe(0.4);
+    expect(updated.geometry).toBe(warrior.geometry);
+    expect(kit.resolve({ type: 'warrior' })).toBe(updated);
+    expect(kit.resolve({ type: 'swordsman' })).toBe(swordsman);
+
+    overrideNorthStarUnit('warrior', 'ns-swordsman');
+    const defaultPose = kit.resolve({ type: 'warrior' })!;
+    overrideNorthStarUnit('warrior', null);
+    expect(defaultPose.yaw).toBe(kit.resolve({ type: 'warrior' })!.yaw);
+    kit.dispose();
+    kit.dispose();
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 
   it('builds a model the unit layer can place: a size like the pieces of today, a floor at zero and contacts under the base', () => {

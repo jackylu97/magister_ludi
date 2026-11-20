@@ -727,13 +727,16 @@ describe('the treaty desk (batch SS6)', () => {
     expect(diplomacyRows(state, 1)[0]!.waiting).toBe(0);
   });
 
-  it('draws the paper\'s clauses through termItems, and Read opens their offer on the paper', () => {
+  it('draws the table\'s clauses through termItems, and Read opens their offer on the table', () => {
     const screen = uiSource('diplomacyScreen.ts');
     expect(screen).toContain("termItems(state, draft.give), 'give', draft)");
     expect(screen).toContain("termItems(state, draft.take), 'take', draft)");
     expect(screen).toContain('removeTerm(draft[half], item.key)');
-    expect(screen).toContain("reading = { seatId: row.playerId, paper: proposal.id };");
-    expect(screen).toContain("reading = { seatId: row.playerId, paper: 'peace' };");
+    // Read, in the Standing and deals drawer, opens the offer the line names:
+    // a bargain by its id, or their peace (`standingAndDeals`' `paper`).
+    expect(screen).toContain('reading = { seatId: row.playerId, paper: item.paper };');
+    expect(screen).toContain("waiting.push({ paper: 'peace', head, text });");
+    expect(screen).toContain('waiting.push({ paper: proposal.id, head, text });');
     // The gold field reads its figure the way the old fields did.
     expect(screen).toContain('const amount = readAmount(input.value);');
   });
