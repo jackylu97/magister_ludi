@@ -1,0 +1,374 @@
+{
+  "hardware": {
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "pixelRatio": 1.5,
+    "drawingBuffer": [
+      2205,
+      1189
+    ]
+  },
+  "fixture": {
+    "map": "standard",
+    "seed": 999,
+    "turn": 120,
+    "cities": 74,
+    "units": 489,
+    "schema": 249
+  },
+  "selection": {
+    "method": "Chrome received real clicks. A development build recorded the click handler and the first board draw observed after it returned. Each run alternated four selections of each of the same two units. Background bot planning was enabled throughout. The control used the old selection handler on the same renderer. The forest change and route counter were present in both.",
+    "pieces": [
+      {
+        "unit": 818,
+        "type": "swordsman",
+        "coordinatesCss": {
+          "x": 833,
+          "y": 434
+        }
+      },
+      {
+        "unit": 999,
+        "type": "warrior",
+        "coordinatesCss": {
+          "x": 882,
+          "y": 477
+        }
+      }
+    ],
+    "runs": [
+      {
+        "run": "base-1",
+        "modelPicks": 32,
+        "handlerMs": [
+          52,
+          16.4,
+          45.8,
+          15.7,
+          43.1,
+          15.8,
+          44.5,
+          15.3
+        ],
+        "clickToBoardDrawMs": [
+          74.8,
+          24.2,
+          65.6,
+          23.8,
+          62.2,
+          23.6,
+          63.6,
+          23.9
+        ],
+        "longestBrowserTaskMs": 69
+      },
+      {
+        "run": "new-1",
+        "modelPicks": 24,
+        "handlerMs": [
+          35.6,
+          13.5,
+          30.9,
+          12.9,
+          27.6,
+          12.4,
+          28.7,
+          11.8
+        ],
+        "clickToBoardDrawMs": [
+          56.4,
+          21.3,
+          50.7,
+          21.3,
+          47.7,
+          21.1,
+          49.9,
+          20.3
+        ],
+        "longestBrowserTaskMs": 52
+      },
+      {
+        "run": "new-2",
+        "modelPicks": 24,
+        "handlerMs": [
+          33.7,
+          13.6,
+          29.8,
+          12.8,
+          30.4,
+          12.8,
+          29.7,
+          11.6
+        ],
+        "clickToBoardDrawMs": [
+          54.2,
+          21.8,
+          50.2,
+          21.6,
+          50.3,
+          20.8,
+          50.0,
+          19.6
+        ],
+        "longestBrowserTaskMs": 52
+      },
+      {
+        "run": "base-2",
+        "modelPicks": 32,
+        "handlerMs": [
+          51.2,
+          14.6,
+          45.4,
+          15.3,
+          42.9,
+          14.2,
+          43.7,
+          14.4
+        ],
+        "clickToBoardDrawMs": [
+          73.0,
+          21.9,
+          64.6,
+          23.0,
+          62.0,
+          21.6,
+          63.2,
+          22.8
+        ],
+        "longestBrowserTaskMs": 68
+      }
+    ]
+  },
+  "movesWithBotPlanning": {
+    "method": "Four loads of the same current-rules board, enabled, disabled, disabled, enabled. The same unit moves to the same free tile in each run. The worker post is timed relative to the right-click handler start. These small samples do not isolate GPU or worker time.",
+    "runs": [
+      {
+        "run": "on-a",
+        "unit": 1293,
+        "destination": [
+          54,
+          26
+        ],
+        "clickHandlerMs": 17.6,
+        "clickToBoardDrawMs": 86.9,
+        "workerPostStartedAfterClickMs": [
+          368.6
+        ]
+      },
+      {
+        "run": "off-a",
+        "unit": 1293,
+        "destination": [
+          54,
+          26
+        ],
+        "clickHandlerMs": 13,
+        "clickToBoardDrawMs": 58.8,
+        "workerPostStartedAfterClickMs": []
+      },
+      {
+        "run": "off-b",
+        "unit": 1293,
+        "destination": [
+          54,
+          26
+        ],
+        "clickHandlerMs": 11.2,
+        "clickToBoardDrawMs": 54.7,
+        "workerPostStartedAfterClickMs": []
+      },
+      {
+        "run": "on-b",
+        "unit": 1293,
+        "destination": [
+          54,
+          26
+        ],
+        "clickHandlerMs": 12,
+        "clickToBoardDrawMs": 102.1,
+        "workerPostStartedAfterClickMs": [
+          627.9
+        ]
+      }
+    ]
+  },
+  "forest": {
+    "method": "The same renderer switched conservative batch culling on and off at a fixed clock. Readback of one pixel waited for the GPU before recording elapsed time. Each zoom has 36 frames per mode over four short paired pans. Six full-buffer comparisons per board include wrap edges and shadow updates.",
+    "boards": [
+      {
+        "board": "current",
+        "schema": 249,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "changedPixels": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "controlRepeatChangedPixels": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "timingsMs": [
+          {
+            "radius": 7,
+            "modes": [
+              {
+                "on": false,
+                "frames": 36,
+                "submit": 9.4,
+                "complete": 35.1,
+                "draws": 323,
+                "triangles": 2217233
+              },
+              {
+                "on": true,
+                "frames": 36,
+                "submit": 9,
+                "complete": 31.9,
+                "draws": 317,
+                "triangles": 2119271
+              }
+            ]
+          },
+          {
+            "radius": 14,
+            "modes": [
+              {
+                "on": false,
+                "frames": 36,
+                "submit": 9.9,
+                "complete": 39.3,
+                "draws": 563,
+                "triangles": 2660777
+              },
+              {
+                "on": true,
+                "frames": 36,
+                "submit": 10.4,
+                "complete": 40.2,
+                "draws": 557,
+                "triangles": 2600207
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "board": "archived",
+        "schema": 245,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "changedPixels": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "controlRepeatChangedPixels": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "timingsMs": [
+          {
+            "radius": 7,
+            "modes": [
+              {
+                "on": false,
+                "frames": 36,
+                "submit": 2.3,
+                "complete": 29.5,
+                "draws": 341,
+                "triangles": 2391438
+              },
+              {
+                "on": true,
+                "frames": 36,
+                "submit": 2.6,
+                "complete": 28.3,
+                "draws": 335,
+                "triangles": 2293476
+              }
+            ]
+          },
+          {
+            "radius": 14,
+            "modes": [
+              {
+                "on": false,
+                "frames": 36,
+                "submit": 3.8,
+                "complete": 36,
+                "draws": 618,
+                "triangles": 3447543
+              },
+              {
+                "on": true,
+                "frames": 36,
+                "submit": 3.9,
+                "complete": 33.9,
+                "draws": 598,
+                "triangles": 2982798
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "routeCounter": {
+    "method": "The two values matched the trade ledger on 29 real and modified board readings, including the Market and A\u1e25mad legacy capacity effects. Timings use paired CPU samples of the HUD on the archived boards.",
+    "times": [
+      {
+        "seed": 42,
+        "turn": 90,
+        "metric": "cpu",
+        "original": 1.7894999999999999,
+        "candidate": 0.9470000000000001,
+        "medianPaired": 0.20400000000000001,
+        "pairsFaster": 8,
+        "pairs": 10
+      },
+      {
+        "seed": 42,
+        "turn": 120,
+        "metric": "cpu",
+        "original": 2.899,
+        "candidate": 2.119,
+        "medianPaired": 0.8504999999999999,
+        "pairsFaster": 8,
+        "pairs": 10
+      },
+      {
+        "seed": 999,
+        "turn": 90,
+        "metric": "cpu",
+        "original": 1.085,
+        "candidate": 0.6839999999999999,
+        "medianPaired": 0.39649999999999996,
+        "pairsFaster": 8,
+        "pairs": 10
+      },
+      {
+        "seed": 999,
+        "turn": 120,
+        "metric": "cpu",
+        "original": 1.46,
+        "candidate": 0.5834999999999999,
+        "medianPaired": 0.9135,
+        "pairsFaster": 10,
+        "pairs": 10
+      }
+    ]
+  }
+}
