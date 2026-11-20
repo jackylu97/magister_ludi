@@ -1079,3 +1079,47 @@ A builder follows this list once the third review is done. Each number is an ent
 
 - The rule you stated for tended works: a tended work is clearly better than the plain improvement on the same ground. It reverses the design doc's older line that a tended work yields less than an improvement.
 - In round two I advised that root-crop grounds give +1 food only, and that The Great Colonies at a fifth was under the bar. You raised both figures.
+
+## The user's ruling for round four (2026-11-20): wild land leaves; new improvements stay
+
+After round three I advised dropping wild land as a direction (85 sources
+outside the deck pay an improved hex and one pays a wild hex; the theme needed
+a second economy and the return of Arcadia). The user had asked: "i'm feeling
+more skeptical that the wild land is a good direction for the expansionist
+deck, what do you think? i think the core themes are already fun, and we can
+find more cards to flesh out its current direction, maybe add a few auxiliary
+themes to make up for the card count".
+
+The ruling, in the user's words: "let's do this: i like the idea of adding new
+improvements where previously improvements couldn't be built. i.e. fish traps
+allows you to build improvements on coast tiles where you couldn't previously.
+keeps are very fun because they're a new way to interact with the land. let's
+add a few more of these, and get rid of cards like old song. some ideas off
+the top of my head: an improvement that can only be built in desert, one for
+tundra, an improvement that can only be built adjacent to certain combinations
+of terrains (not prescriptive, just a direction). public works, levies,
+settling and roads are great directions. i agree with your auxiliary themes
+too. The frontier seems weaker to me. Lets do a fourth pass with these
+directions, try to add a few that make the auxiliary directions synergize with
+the deck at large."
+
+What follows:
+- **"Wild" and "tended" leave the deck as keywords.** No third state of land.
+  The works become ordinary improvements that a card opens: they count as
+  improved for every card, belief, great person, wonder and leader.
+- **A new theme: improvements where none could be built.** Fish traps on
+  coast and lake hexes and the keep are the models: "a new way to interact
+  with the land". More of these: one that can be built only in desert, one
+  only in tundra, one only beside a certain combination of terrains. These
+  are directions, not a list.
+- **Cards "like old song" go:** the cards that pay a hex for being left
+  without an improvement (The Old Songs, The Standing Woods, The Garden of the
+  World, The Long Tending, The Wildwood Compact, The Garden Peoples as
+  reworked, and change 38 to 44 of round three).
+- **The core, to flesh out:** public works, levies, settling and roads.
+- **Auxiliary themes, agreed:** the high country and fresh water. **The
+  frontier** (outposts, claims, keeps as a claims theme) "seems weaker": it is
+  not a theme. The keep itself stays, as a new improvement.
+- **New cards should tie the auxiliary themes to the deck at large.**
+- Every ruling of rounds one to three that does not depend on wild or tended
+  land stands.
