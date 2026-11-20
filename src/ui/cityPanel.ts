@@ -5277,20 +5277,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * The body of the Empire buildings row: the town's empire buildings as chips,
-   * then what an empire building is, in the class's own sentence
-   * (`EMPIRE_BUILDING_WORDS.entry`), whose keyword opens the Concepts page. The
-   * user, 2026-11-19: "That name makes it clearer that it's one per empire.
-   * Make sure ... it's easy to tell what they are."
+   * The body of the Empire buildings row: the town's empire buildings as chips.
+   * The row prints no sentence about what an empire building is (the user,
+   * 2026-11-20, on that sentence: "text not needed here"). Each chip's hover
+   * card says "empire building" over the name, and the Compendium explains
+   * the class.
    */
   function renderEmpireBuildings(city: City): HTMLElement | null {
     const { empire } = townBuildingGroups(city);
     if (empire.length === 0) return null;
     const box = element('div', 'city-built');
     box.append(buildingChips(city, empire));
-    const what = element('p', 'city-fold-note');
-    setDescriptorText(what, EMPIRE_BUILDING_WORDS.entry);
-    box.append(what);
     return box;
   }
 

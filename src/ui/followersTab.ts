@@ -681,7 +681,9 @@ function drawFollows(model: FollowersModel): HTMLElement {
     const name = element('span', 'faith-follower-name');
     name.append(element('b', 'faith-follower-town', town.name));
     if (town.follower?.majority === true) {
-      const mark = element('span', 'faith-follower-majority', '✶');
+      // A dot, not a star: the town's name already carries a star when it is
+      // the capital, and two stars side by side read as one mark doubled.
+      const mark = element('span', 'faith-follower-majority', '●');
       mark.title = `Most of ${town.name} follows your faith`;
       name.append(mark);
     }
