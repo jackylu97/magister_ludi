@@ -1021,7 +1021,11 @@ export function resumedSitting(
   orders(marks.escortOrders, sitting.escortOrders);
   orders(marks.guardOrders, sitting.guardOrders);
   each(marks.steppedBack, sitting.steppedBack);
-  for (const phase of marks.closed) sitting.closed.add(phase);
+  // A cut plan rebuilds its purchase priorities on the live board. An earlier
+  // seat can make a purchase worthwhile without changing this seat's balance.
+  for (const phase of marks.closed) {
+    if (phase !== 'spending') sitting.closed.add(phase);
+  }
   return sitting;
 }
 

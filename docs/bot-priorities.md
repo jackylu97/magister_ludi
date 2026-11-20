@@ -42,10 +42,11 @@ It shows the original scores and the command sent to the real board.
    what it meant on the copy: a new id with no mapping, a different count of
    new ids, a choice from an offer that is not the offer the copy held, or a
    great person another seat called first. The seat then finishes its turn with
-   a live sitting on the real board. It carries on the budget,
-   the orders the plan landed, and the plan's marks at its last landed command
-   (the pieces and towns already asked, the re-aims spent, the phases closed;
-   `resumedSitting`), and reads the board again.
+   a live sitting on the real board. It resumes with the remaining command budget
+   in `resumedSitting`. It keeps the orders already given, the pieces and towns
+   already checked, and the research changes already used. It reopens spending
+   once because it reads new purchase priorities from the live board. All other
+   phases keep their previous status.
 5. **Memories.** The seat's war windows and focus rows from its copy join the
    real state's (`mergeSeatMemory`) after its plan, before any live sitting.
 6. **End Turn.** A plan that ran to its end sends the seat's End Turn and asks

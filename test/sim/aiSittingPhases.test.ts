@@ -19,7 +19,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { botSitting, nextBotDecision } from '../../src/ai/bot';
+import { botSitting, nextBotDecision, resumedSitting, sittingMarks } from '../../src/ai/bot';
 import type { BotDecision } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
 import { SITTING_PHASES, phaseTally, setSittingEndCheck } from '../../src/ai/sittingPhases';
@@ -95,6 +95,14 @@ describe('a phase is asked until it has nothing more to do', () => {
 });
 
 describe('an event opens its phase again', () => {
+  it('rechecks spending once after a cut plan resumes with new purchase priorities', () => {
+    const frozen = botSitting(2);
+    SITTING_PHASES.forEach((phase) => frozen.closed.add(phase));
+    const live = resumedSitting(2, sittingMarks(frozen), (id) => id);
+    expect([...live.closed]).toEqual(SITTING_PHASES.filter((phase) => phase !== 'spending'));
+    expect(frozen.closed.has('spending')).toBe(true);
+  });
+
   it('asks the spending phase again after the purse moved, and not before', () => {
     const { state } = openingAtTurn24();
     const sitting = botSitting(0);
