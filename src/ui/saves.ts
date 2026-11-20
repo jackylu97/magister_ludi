@@ -65,10 +65,11 @@
  * promise. The JSON text is taken before the first await, so the save is the
  * game as it was when `writeSave` was called.
  *
- * Each slot also has a small label record under `SAVE_META_PREFIX`, written
- * with it. The load list and the landing screen read only those (`readSlot`),
- * so showing the shelf never parses or unpacks a whole save. A slot from an
- * older build that has no label record is read the old way, by parsing it.
+ * Each current slot stores a short shelf label, a newline and the packed game in
+ * one value. A single setItem replaces the entire value at the existing key.
+ * The shelf normally reads the separate small label under SAVE_META_PREFIX.
+ * A pending label tells the shelf to read the header left by the last complete
+ * write. Older packed and plain slots still use their original readers.
  */
 
 import type { Command } from '../sim/commands';
@@ -109,6 +110,11 @@ export const SAVE_META_PREFIX = 'magisterludi:save-meta:';
 
 /** Marks a slot stored gzipped and base64-encoded. JSON can never start with it. */
 export const SAVE_PACK_PREFIX = 'ml-gz1:';
+
+/** The label and the packed or plain payload share a storage entry. */
+const SLOT_HEADER = 'ml-slot1:';
+/** A pending cache contains the previous JSON label with its opening brace replaced. */
+const LABEL_PENDING = '!';
 
 /** The rolling slot the end of every turn overwrites. */
 export const AUTOSAVE_SLOT = 'autosave';
@@ -342,14 +348,19 @@ async function packSave(json: string): Promise<string> {
  * imported file) comes back unchanged. Throws if a packed text is damaged.
  */
 export async function unpackSave(text: string): Promise<string> {
+  if (text.startsWith(SLOT_HEADER)) {
+    const end = text.indexOf('\n', SLOT_HEADER.length);
+    if (end === -1) throw new Error('The saved slot has no payload.');
+    text = text.slice(end + 1);
+  }
   if (!text.startsWith(SAVE_PACK_PREFIX)) return text;
   const bytes = fromBase64(text.slice(SAVE_PACK_PREFIX.length));
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new Response(stream).text();
 }
 
-/** The label record for a payload: the fields `readSlot` used to parse out of the save. */
-function metaOf(payload: SavePayload, chars: number): SaveMeta {
+/** Copy the shelf fields before the game can advance during compression. */
+function metaOf(payload: SavePayload): Omit<SaveMeta, 'chars'> {
   const config = payload.config;
   const leader = config.players?.[0]?.leader;
   return {
@@ -362,76 +373,109 @@ function metaOf(payload: SavePayload, chars: number): SaveMeta {
     sizeName: config.sizeName,
     seats: config.players.length,
     ...(typeof leader === 'string' ? { leader } : {}),
-    chars,
   };
 }
 
-/**
- * Puts a payload in a slot, or says why it could not.
- *
- * Every way this fails is a way it fails *in the browser the player is actually
- * using* — a full quota, a private window that refuses to persist anything, a
- * game long enough to trip the cap — and none of them is a reason to take the
- * game down. So it resolves to a sentence instead of throwing, and the caller
- * decides how loudly to say it (the autosaver says it once; a menu press says it
- * every time, because the player pressed the button).
- *
- * The payload is turned into JSON before the first await, so a game that keeps
- * playing while the text is packed does not change what is saved. The slot and
- * its label record are written together; if the label cannot be written the
- * slot is removed too, because a packed slot with no label cannot be listed.
- */
+interface SlotWrites { last?: Promise<WriteResult> }
+const pendingWrites = new WeakMap<SaveStorage, Map<string, SlotWrites>>();
+
+function storageFailure(): WriteResult {
+  return { ok: false, reason: 'storage', error: 'The browser would not store this save — its storage may be full or blocked.' };
+}
+
+/** Capture the label with the log. Packing can overlap, but writes to the same slot publish in order. */
 export async function writeSave(
   storage: SaveStorage,
   slotId: string,
   payload: SavePayload,
 ): Promise<WriteResult> {
   let json: string;
+  let label: Omit<SaveMeta, 'chars'>;
   try {
     json = JSON.stringify(payload);
+    label = metaOf(payload);
   } catch {
-    return {
-      ok: false,
-      reason: 'serialize',
-      error: 'This game could not be turned into a save file.',
-    };
+    return { ok: false, reason: 'serialize', error: 'This game could not be turned into a save file.' };
   }
-  let stored: string;
-  try {
-    stored = await packSave(json);
-  } catch {
-    stored = json;
-  }
-  if (stored.length > MAX_SAVE_CHARS) {
-    return {
-      ok: false,
-      reason: 'size',
-      error: `This game is too large to save in the browser (${Math.round(stored.length / 1024)} kB).`,
-    };
-  }
-  try {
-    storage.setItem(storageKey(slotId), stored);
-    try {
-      storage.setItem(metaKey(slotId), JSON.stringify(metaOf(payload, stored.length)));
-    } catch (error) {
-      storage.removeItem(storageKey(slotId));
-      storage.removeItem(metaKey(slotId));
-      throw error;
+  const packed = packSave(json).catch(() => json);
+  const slots = pendingWrites.get(storage) ?? new Map<string, SlotWrites>();
+  pendingWrites.set(storage, slots);
+  const queue = slots.get(slotId) ?? {};
+  slots.set(slotId, queue);
+  const previous = queue.last;
+  const publish = async (cacheLabel: boolean): Promise<WriteResult> => {
+    await previous;
+    const stored = await packed;
+    if (slots.get(slotId) !== queue) {
+      return { ok: false, reason: 'storage', error: 'This save was deleted before it finished.' };
     }
+    if (stored.length > MAX_SAVE_CHARS) {
+      return {
+        ok: false,
+        reason: 'size',
+        error: `This game is too large to save in the browser (${Math.round(stored.length / 1024)} kB).`,
+      };
+    }
+    return replaceSlot(storage, slotId, JSON.stringify({ ...label, chars: stored.length }), stored, cacheLabel);
+  };
+
+  // Browser tabs have separate queues. Take the shared lock before compression finishes.
+  // Without a shared lock the header stays authoritative across tabs.
+  const shared = typeof Storage !== 'undefined' && storage instanceof Storage;
+  const locks = shared ? globalThis.navigator?.locks : undefined;
+  const result = locks
+    ? Promise.resolve(locks.request(SAVE_KEY_PREFIX + slotId, () => publish(true))).catch(() => publish(false))
+    : publish(!shared);
+  queue.last = result;
+  try {
+    return await result;
+  } finally {
+    if (queue.last === result && slots.get(slotId) === queue) slots.delete(slotId);
+  }
+}
+
+/** Keep the previous payload until the browser accepts its replacement at the same key. */
+function replaceSlot(
+  storage: SaveStorage, slotId: string, label: string, stored: string, cacheLabel: boolean,
+): WriteResult {
+  const key = metaKey(slotId);
+  let previous: string | null;
+  try {
+    previous = storage.getItem(key);
+    // A legacy packed save needs its previous label until its first framed write succeeds.
+    // Replacing the first character keeps this marker within the existing label's quota.
+    const oldLabel = previous?.trimStart();
+    const pending = oldLabel?.startsWith('{') || oldLabel?.startsWith(LABEL_PENDING)
+      ? LABEL_PENDING + oldLabel.slice(1) : LABEL_PENDING;
+    storage.setItem(key, pending);
   } catch {
-    // Quota, or a browser that refuses storage outright. Both arrive as a throw
-    // and neither is distinguishable from the other portably, so one sentence
-    // covers them and it names the two things a player can do about it.
-    return {
-      ok: false,
-      reason: 'storage',
-      error: 'The browser would not store this save — its storage may be full or blocked.',
-    };
+    return storageFailure();
+  }
+  try {
+    storage.setItem(storageKey(slotId), SLOT_HEADER + label + '\n' + stored);
+  } catch {
+    if (cacheLabel) {
+      try {
+        if (previous === null) storage.removeItem(key);
+        else storage.setItem(key, previous);
+      } catch {
+        // The pending marker still describes how to read the previous save.
+      }
+    }
+    return storageFailure();
+  }
+  if (cacheLabel) {
+    try {
+      storage.setItem(key, label);
+    } catch {
+      // The new save is complete. Its header supplies the label until the next successful cache write.
+    }
   }
   return { ok: true, bytes: stored.length };
 }
 
 export function deleteSave(storage: SaveStorage, slotId: string): void {
+  pendingWrites.get(storage)?.delete(slotId);
   storage.removeItem(storageKey(slotId));
   storage.removeItem(metaKey(slotId));
 }
@@ -444,25 +488,20 @@ export async function readSaveText(storage: SaveStorage, slotId: string): Promis
 
 // --- reading the shelf ------------------------------------------------------
 
-/**
- * Reads a slot's label without replaying it, and without reading the save.
- *
- * The label comes from the slot's `SaveMeta` record. A slot written before
- * label records existed has none, and is read the old way, by parsing its JSON
- * whole. A packed slot with no label cannot be described without unpacking it,
- * and is left off the list (`writeSave` never leaves one behind).
- *
- * Returns `null` for anything it cannot describe — absent, unparseable, or from
- * another version — because this feeds a *list*, and a list is not the place to
- * argue with a file. The argument happens in `loadSave` when the player picks
- * one, which is where a sentence about versions is worth reading. A slot too
- * broken to describe is simply not offered.
- */
+/** Normally only the small cache is read. An interrupted write can recover from the
+ * committed header, the previous packed label, or a legacy plain JSON payload. */
 export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null {
   const meta = storage.getItem(metaKey(slotId));
-  if (meta !== null) return slotFromMeta(slotId, meta);
+  if (meta !== null && !meta.startsWith(LABEL_PENDING)) return slotFromMeta(slotId, meta);
   const json = storage.getItem(storageKey(slotId));
-  if (json === null || json.startsWith(SAVE_PACK_PREFIX)) return null;
+  if (json === null) return null;
+  if (json.startsWith(SLOT_HEADER)) {
+    const end = json.indexOf('\n', SLOT_HEADER.length);
+    return end === -1 ? null : slotFromMeta(slotId, json.slice(SLOT_HEADER.length, end));
+  }
+  if (json.startsWith(SAVE_PACK_PREFIX)) {
+    return meta === null ? null : slotFromMeta(slotId, '{' + meta.slice(1));
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
