@@ -1101,26 +1101,22 @@ export function declareConfirm(name: string, war: WarConsequences): ConfirmReque
 
 // --- the strip of courts (layout B) -----------------------------------------
 
-/**
- * The strip's words. The hover label of a court the seat has not met says
- * only that: the met ruling of 2026-09-03 keeps who they are off this sheet.
- */
+/** The strip's words. */
 export const STRIP_WORDS = {
   label: 'Courts',
-  unmet: 'Not met yet',
 } as const;
 
 /**
  * One court on the strip of courts (Quiet Table, fourth pass, frame 2: "love
- * this, great"). The strip shows every other empire still at the table, so a
- * player can see how many courts there are. `row` is `null` for a court this
- * seat has not met: the strip draws that one as a blank, faded mark that
- * cannot be chosen, and the desk never draws it.
+ * this, great"). The strip shows the courts this seat has met and no others
+ * (the user, 2026-11-19, on a blank mark for an unmet court: "just hide them
+ * fully"). A court not yet met is not on the strip, is not counted in the
+ * head, and the desk never draws it.
  */
 export interface StripCourt {
   playerId: number;
-  /** The court's row, or `null` when this seat has not met it. */
-  row: DiplomacyRow | null;
+  /** The court's row. */
+  row: DiplomacyRow;
   /** What the hover label and a screen reader say about the mark. */
   label: string;
 }
@@ -1137,8 +1133,7 @@ function lowerFirst(text: string): string {
  * sentence when there is one: "Akhenaten · at war since turn 41".
  */
 export function courtStrip(state: GameState, seat: number): StripCourt[] {
-  return diplomacyRows(state, seat).map((row) => {
-    if (!row.met) return { playerId: row.playerId, row: null, label: STRIP_WORDS.unmet };
+  return diplomacyRows(state, seat).filter((row) => row.met).map((row) => {
     const note = rosterNote(row);
     const parts = [row.name, lowerFirst(row.status)];
     if (note !== null) parts.push(lowerFirst(note.replace(/\.$/, '')));
@@ -1153,8 +1148,7 @@ export function courtStrip(state: GameState, seat: number): StripCourt[] {
  * court the strip hides.
  */
 export function chosenCourt(strip: readonly StripCourt[], selectedId: number | null): DiplomacyRow | null {
-  const met = strip.filter((court) => court.row !== null);
-  return (met.find((court) => court.playerId === selectedId) ?? met[0])?.row ?? null;
+  return (strip.find((court) => court.playerId === selectedId) ?? strip[0])?.row ?? null;
 }
 
 /**
@@ -1164,7 +1158,7 @@ export function chosenCourt(strip: readonly StripCourt[], selectedId: number | n
  * ends. The strip does not wrap round. Moving does not choose: Enter does.
  */
 export function stripStep(strip: readonly StripCourt[], fromId: number | null, key: string): number | null {
-  const met = strip.filter((court) => court.row !== null).map((court) => court.playerId);
+  const met = strip.map((court) => court.playerId);
   if (met.length === 0) return null;
   const at = fromId === null ? -1 : met.indexOf(fromId);
   switch (key) {
@@ -1183,10 +1177,6 @@ export function stripStep(strip: readonly StripCourt[], fromId: number | null, k
   }
 }
 
-/** The fact line in the sheet's head: "turn 101 · 9 of 11 courts met". */
-export function courtsMetLine(strip: readonly StripCourt[]): { met: number; of: number } {
-  return { met: strip.filter((court) => court.row !== null).length, of: strip.length };
-}
 
 // --- the drawer: standing and deals -----------------------------------------
 
@@ -1601,17 +1591,16 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
   /**
    * The fact line in the sheet's head: the turn, and how many of the courts
-   * at the table this seat has met ("turn 101 · 9 of 11 courts met"). Figures
+   * this seat has met ("turn 101 · 9 courts met"). It does not say how many
+   * courts there are in all. Figures
    * in mono, words in small capitals, as the board draws it.
    */
   function paintFacts(state: GameState, strip: readonly StripCourt[]): void {
     const line = overlay.querySelector<HTMLElement>('.dp-facts');
     if (!line) return;
-    const { met, of } = courtsMetLine(strip);
+    const met = strip.length;
     const parts: (string | HTMLElement)[] = ['turn ', element('b', '', figure(state.turn))];
-    if (of > 0) {
-      parts.push(' · ', element('b', '', figure(met)), ' of ', element('b', '', figure(of)), of === 1 ? ' court met' : ' courts met');
-    }
+    if (met > 0) parts.push(' · ', element('b', '', figure(met)), met === 1 ? ' court met' : ' courts met');
     line.replaceChildren(...parts);
   }
 
@@ -1630,9 +1619,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   /**
    * One court on the strip: its picture, small and square, with a dot for war
    * (the war red) or a truce (deep gilt), and a cinnabar dot when an offer of
-   * theirs waits for your answer. The chosen court is ringed in ink. A court
-   * not yet met is a blank, faded mark that cannot be chosen, and its label
-   * says only that.
+   * theirs waits for your answer. The chosen court is ringed in ink.
    *
    * The strip is a list box: the chosen court holds the one tab stop, the
    * arrow keys move between met courts (`stripStep`), and Enter or a click
@@ -1640,16 +1627,6 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    */
   function drawCourt(court: StripCourt, chosenId: number | null): HTMLElement {
     const row = court.row;
-    if (row === null) {
-      const blank = element('span', 'dp-court is-unmet');
-      blank.setAttribute('role', 'option');
-      blank.setAttribute('aria-selected', 'false');
-      blank.setAttribute('aria-disabled', 'true');
-      blank.setAttribute('aria-label', court.label);
-      blank.addEventListener('pointerenter', () => showTip(blank, court.label));
-      blank.addEventListener('pointerleave', hideTip);
-      return blank;
-    }
     const active = row.playerId === chosenId;
     const node = button(`dp-court is-${row.relation}${active ? ' is-sel' : ''}`, '');
     node.setAttribute('role', 'option');

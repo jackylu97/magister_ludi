@@ -59,11 +59,9 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import {
   DRAWER_WORDS,
-  STRIP_WORDS,
   WAR_CONFIRM_WORDS,
   chosenCourt,
   courtStrip,
-  courtsMetLine,
   dealPanel,
   declareConfirm,
   diplomacyRows,
@@ -540,12 +538,14 @@ function meet(state: GameState, ids: number[]): void {
 }
 
 describe('the strip of courts', () => {
-  it('lists exactly the other real players, in seat order, and never the wild', () => {
+  it('lists exactly the other real players this seat has met, in seat order, and never the wild', () => {
     const state = table(3, true);
     const others = (seat: number): number[] =>
       realPlayers(state).filter((player) => player.id !== seat).map((player) => player.id);
+    meet(state, others(0));
     expect(courtStrip(state, 0).map((court) => court.playerId)).toEqual(others(0));
-    expect(courtStrip(state, 1).map((court) => court.playerId)).toEqual(others(1));
+    // Seat 1 has met nobody, so its strip is empty.
+    expect(courtStrip(state, 1)).toEqual([]);
     const wild = state.players.find((player) => player.barbarian)!;
     expect(courtStrip(state, 0).some((court) => court.playerId === wild.id)).toBe(false);
     // A fallen empire has no court to treat with (`diplomaticSeats`).
@@ -555,38 +555,31 @@ describe('the strip of courts', () => {
 
   it('holds eleven courts at a full table, each once', () => {
     const state = table(12);
+    meet(state, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     const ids = courtStrip(state, 0).map((court) => court.playerId);
     expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(new Set(ids).size).toBe(11);
   });
 
-  it('draws a court not yet met as a blank mark that says nothing about who it is', () => {
+  it('leaves a court not yet met off the strip (the user: "just hide them fully")', () => {
     const state = table(3);
-    const strip = courtStrip(state, 0);
-    expect(strip.map((court) => court.row)).toEqual([null, null]);
-    for (const court of strip) {
-      expect(court.label).toBe(STRIP_WORDS.unmet);
-      expect(court.label).not.toContain('Seat');
-    }
-    expect(chosenCourt(strip, 1)).toBeNull();
-    expect(courtsMetLine(strip)).toEqual({ met: 0, of: 2 });
+    expect(courtStrip(state, 0)).toEqual([]);
+    expect(chosenCourt(courtStrip(state, 0), 1)).toBeNull();
     // A war is a meeting (the relation clause), and the mark says so.
     state.turn = 41;
     openWar(state, 1, 0);
     const after = courtStrip(state, 0);
-    expect(after[0]!.row?.playerId).toBe(1);
-    expect(after[0]!.label).toBe(`${after[0]!.row!.name} · at war since turn 41`);
-    expect(after[1]!.row).toBeNull();
-    expect(courtsMetLine(after)).toEqual({ met: 1, of: 2 });
+    expect(after.map((court) => court.playerId)).toEqual([1]);
+    expect(after[0]!.label).toBe(`${after[0]!.row.name} · at war since turn 41`);
+    // The head counts the courts met and never says how many there are in all.
+    const screen = uiSource('diplomacyScreen.ts');
+    expect(braceBody(screen, '  function paintFacts(')).toContain('const met = strip.length;');
+    expect(screen).not.toContain('is-unmet');
   });
 
-  it('draws an unmet court as a mark that cannot be chosen, and a met one as an option', () => {
+  it('draws a court as an option on the strip', () => {
     const screen = uiSource('diplomacyScreen.ts');
     const court = braceBody(screen, '  function drawCourt(');
-    const blank = court.slice(court.indexOf('if (row === null) {'), court.indexOf('const active ='));
-    expect(blank).toContain("element('span', 'dp-court is-unmet')");
-    expect(blank).toContain("blank.setAttribute('aria-disabled', 'true');");
-    expect(blank).not.toContain('click');
     expect(court).toContain("node.setAttribute('role', 'option');");
     expect(court).toContain('node.tabIndex = active ? 0 : -1;');
     expect(court).toContain("node.addEventListener('click', () => choose(row.playerId));");
@@ -624,8 +617,8 @@ describe('the strip of courts', () => {
     const state = table(5);
     meet(state, [1, 3, 4]);
     const strip = courtStrip(state, 0);
-    expect(strip.map((court) => court.row !== null)).toEqual([true, false, true, true]);
-    // Down skips the court not yet met; the strip does not wrap round.
+    expect(strip.map((court) => court.playerId)).toEqual([1, 3, 4]);
+    // The court not yet met is not on the strip; the strip does not wrap round.
     expect(stripStep(strip, 1, 'ArrowDown')).toBe(3);
     expect(stripStep(strip, 3, 'ArrowRight')).toBe(4);
     expect(stripStep(strip, 4, 'ArrowDown')).toBe(4);

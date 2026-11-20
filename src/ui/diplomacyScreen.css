@@ -202,22 +202,13 @@
     0 0 0 4px var(--ink);
 }
 
-.dp-court:hover:not(.is-sel):not(.is-unmet) {
+.dp-court:hover:not(.is-sel) {
   box-shadow: 0 0 0 2px var(--parchment), 0 0 0 3px var(--ink-line);
 }
 
 .dp-court:focus-visible {
   outline: 1.5px dashed var(--ink);
   outline-offset: 5px;
-}
-
-/* A court this seat has not met: a blank, faded mark. Who it is stays off the
-   sheet (the met ruling). */
-.dp-court.is-unmet {
-  border: 1px dashed var(--ink);
-  background: var(--table);
-  opacity: 0.35;
-  cursor: default;
 }
 
 /* The dots, as the board draws them: war in the war red, a truce in deep
