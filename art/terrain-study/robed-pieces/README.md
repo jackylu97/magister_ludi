@@ -12,3 +12,9 @@ Open [the Blender scene](robed-pieces.blend) to edit both pieces. Each piece has
 - [Archer GLB](archer.glb) and [spearman GLB](spearman.glb)
 
 The Blender scene supplies the wood grain. The GLBs use plain material colours. [The Blender script](build.py) recreates the scene and exports both pieces.
+
+## Faceted revision
+
+The [revised Blender scene](faceted/robed-pieces.blend) uses large, flat robe panels. The archer's hood ends at the cheeks. One diagonal fold crosses under the chin. The spearman's shield sits in front of a single cut in the robe.
+
+The [archer](faceted/archer.glb) has 478 exported triangles, down from 14,454. The [spearman](faceted/spearman.glb) has 646, down from 20,306. [Studio render](faceted/studio.png) · [Higher-angle render](faceted/high-angle.png) · [Blender script](faceted/build.py)
