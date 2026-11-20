@@ -137,7 +137,7 @@ import {
   unitShellWash,
   unitGhostColor,
 } from './pieces';
-import { type WorldPoint, pickBadge, pickTile } from './picking';
+import { type BadgeAnchor, type WorldPoint, pickBadge, pickTile } from './picking';
 import { type RevealStats, RevealView } from './reveal3d';
 import { UnitSprites } from './sprites3d';
 import { type TileTint, TintLayer } from './tint3d';
@@ -546,6 +546,7 @@ export class Renderer3D implements MapView {
   private map: GameMap | null = null;
   private hover: HoverInfo | null = null;
   private selectedUnitId: number | null = null;
+  private badgeTargets: { playerId: number; anchors: BadgeAnchor[] } | null = null;
   private reachable: readonly CellRef[] = [];
   /** Tiles the selected unit could attack. See `setAttackable`. */
   private attackable: readonly CellRef[] = [];
@@ -568,6 +569,7 @@ export class Renderer3D implements MapView {
   private siteRadius: readonly CellRef[] = [];
   /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
   private lensView: LensView = NO_LENS;
+  private lensDirty = false;
   /** Move mode armed in the UI: draw the selection ring live. See the setter. */
   private moveMode = false;
 
@@ -2233,6 +2235,7 @@ export class Renderer3D implements MapView {
    * ordinary command.
    */
   setGameState(state: GameState | null): void {
+    this.badgeTargets = null;
     const force = state !== this.state || state?.map !== this.map;
     this.state = state;
     if (!state) {
@@ -2597,6 +2600,7 @@ export class Renderer3D implements MapView {
   }
 
   private rebuildUnits(): void {
+    this.badgeTargets = null;
     if (!this.state) return;
     this.units.build(
       this.state,
@@ -2931,6 +2935,12 @@ export class Renderer3D implements MapView {
     this.redraw();
   }
 
+  /** Several commands or board layers can change the same yield before a frame draws it. */
+  private markLensDirty(): void {
+    this.lensDirty = true;
+    this.redraw();
+  }
+
   /**
    * Rebuilds the lens layer. Called when the lens changes, when the state is
    * replaced, and — through the signatures in `loop` — when a border moves or a
@@ -2938,6 +2948,7 @@ export class Renderer3D implements MapView {
    * frame; see the docblock in `lens3d.ts`.
    */
   private rebuildLens(): void {
+    this.lensDirty = false;
     this.lens.build(
       this.state,
       this.lensView,
@@ -3154,18 +3165,10 @@ export class Renderer3D implements MapView {
     this.rebuildLens();
   }
 
-  /**
-   * Told once per accepted command. See `MapView.noteStateChanged`.
-   *
-   * Every board fingerprint the frame loop already reads is a fact about a
-   * tile's improvement, feature or owner; a card or belief's hex `pays`
-   * effect moves none of those, so this is the seam that catches it. Cheap to
-   * over-call — a command that touched nothing the yields lens draws still
-   * only costs one lens rebuild, and it happens on a command rather than a
-   * frame.
-   */
+  /** A command can move a unit or change a tile yield without changing the tile itself. */
   noteStateChanged(): void {
-    if (this.lensView.yields) this.rebuildLens();
+    this.badgeTargets = null;
+    if (this.lensView.yields) this.markLensDirty();
   }
 
   /**
@@ -3339,12 +3342,16 @@ export class Renderer3D implements MapView {
     // not a target: until the icons rasterise, a click is the tile contract.
     if (!this.state || !this.badges || this.unitBadgesVisible === false) return null;
 
-    const anchors = badgeAnchors(this.state, playerId, (type, unit) =>
-      this.paintedUnits?.resolve(unit, terrainUnder(this.state!.map, unit))?.height ?? unitVisualHeight(type, this.sprites),
-      this.paintedUnits,
-    );
+    // The board fixes the badge centres. The current camera still projects every pick.
+    if (this.badgeTargets?.playerId !== playerId) {
+      const anchors = badgeAnchors(this.state, playerId, (type, unit) =>
+        this.paintedUnits?.resolve(unit, terrainUnder(this.state!.map, unit))?.height ?? unitVisualHeight(type, this.sprites),
+        this.paintedUnits,
+      );
+      this.badgeTargets = { playerId, anchors };
+    }
     return pickBadge(
-      anchors,
+      this.badgeTargets.anchors,
       screenX,
       screenY,
       (point) => this.projectPoint(point),
@@ -3377,6 +3384,8 @@ export class Renderer3D implements MapView {
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
+    // The lens can occlude a body even if the pointer arrives before the next frame.
+    if (this.lensDirty) this.rebuildLens();
     const candidates: UnitModelCandidate[] = this.units.modelCandidates();
     for (const [unitId, group] of this.walkers) group.traverse(object => {
       if (object instanceof Mesh && object.userData.unitBody) candidates.push({unitId, object});
@@ -4197,6 +4206,7 @@ export class Renderer3D implements MapView {
    * frame, then draw. What the UI calls after a command. See `stateDirty`.
    */
   invalidate(): void {
+    this.badgeTargets = null;
     this.stateDirty = true;
   }
 
@@ -4254,7 +4264,7 @@ export class Renderer3D implements MapView {
     // see CLAUDE.md's `explainTileYield` trap) changes the yield printed on its
     // tile, and `RevealStats.cells` is exactly "how many props flipped this
     // pass" — zero on the steady state, so this costs nothing most frames.
-    if (revealed && revealed.cells > 0 && this.lensView.yields) this.rebuildLens();
+    if (revealed && revealed.cells > 0 && this.lensView.yields) this.markLensDirty();
     // Any tile that changed level can add or remove a piece, a town, a border
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
@@ -4301,15 +4311,15 @@ export class Renderer3D implements MapView {
       this.clearGround();
       // A new city changes where the next one may go: the settler lens is
       // showing exactly that rule and would otherwise keep the old answer.
-      if (founded && this.lensView.mode === 'settler') this.rebuildLens();
+      if (founded && this.lensView.mode === 'settler') this.markLensDirty();
       // And a new town is a new source in the tide *and* new ground for the
       // wash to cover, which is the faith lens's own reason to follow this.
-      if (founded && this.lensView.mode === 'faith') this.rebuildLens();
+      if (founded && this.lensView.mode === 'faith') this.markLensDirty();
       // A farm or a mine finished, or a wood felled, changed what this ground
       // *makes* — the same two fingerprints that just cleared its dressing —
       // so the yield glyphs follow them exactly as the settler lens follows a
       // founding.
-      if (this.lensView.yields) this.rebuildLens();
+      if (this.lensView.yields) this.markLensDirty();
     }
     // A turned pitch reaches the flags and the town marks, which are billboards,
     // and stops there: the painted stones are geometry and do not face anybody,
@@ -4326,17 +4336,17 @@ export class Renderer3D implements MapView {
       this.rebuildImprovements(force);
       // A holy site raised or pillaged is the strongest term in the tide and the
       // one thing this lens rings — see `addFaithWash`.
-      if (this.lensView.mode === 'faith') this.rebuildLens();
+      if (this.lensView.mode === 'faith') this.markLensDirty();
       // A pillage, a great work planted, or an improvement that does not clear
       // clutter (the block above only catches the ones that do) all change a
       // tile's yield the same way a farm does.
-      if (this.lensView.yields) this.rebuildLens();
+      if (this.lensView.yields) this.markLensDirty();
       // The quieter pins fade on a hex the seat has improved (switch 6).
-      else if (this.lensView.resources && visualOn('pins')) this.rebuildLens();
+      else if (this.lensView.resources && visualOn('pins')) this.markLensDirty();
     }
     // A reveal technology or a surveyed vein can change resource models without
     // changing an improvement. The same update also follows in-place fog edits.
-    if (worksChanged && this.lensView.yields) this.rebuildLens();
+    if (worksChanged && this.lensView.yields) this.markLensDirty();
     // A lasting mark or a finished wonder changes what the ground pays with no
     // other fingerprint moving (Expansionist batch E3). Kept current whether or
     // not the yields lens is up, so raising it later is not stale for a frame.
@@ -4344,7 +4354,7 @@ export class Renderer3D implements MapView {
       const land = signLandYields(this.state);
       if (land !== this.landYieldsSignature) {
         this.landYieldsSignature = land;
-        if (this.lensView.yields) this.rebuildLens();
+        if (this.lensView.yields) this.markLensDirty();
       }
     }
     // Roads are ground too, and follow the fog for the same reason: they survive
@@ -4365,7 +4375,7 @@ export class Renderer3D implements MapView {
       // out since the last frame has to reach it too, or the board keeps ringing
       // a hex there is no longer anything on. The settler lens's own rules, two
       // blocks down, are the same idea against a different fingerprint.
-      if (this.lensView.mode === 'explorer') this.rebuildLens();
+      if (this.lensView.mode === 'explorer') this.markLensDirty();
     }
     // The tide, which moves in a phase and shows up on no other fingerprint: a
     // town converted, a citizen turned, a proclamation lit or run out. Only the
@@ -4376,30 +4386,30 @@ export class Renderer3D implements MapView {
       const religions = signReligion(this.state);
       if (religions !== this.religionSignature) {
         this.religionSignature = religions;
-        if (this.lensView.mode === 'faith') this.rebuildLens();
+        if (this.lensView.mode === 'faith') this.markLensDirty();
       }
     }
     if (this.state && (terrainChanged || fogChanged('territory') || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
-      if (this.lensView.mode === 'settler') this.rebuildLens();
+      if (this.lensView.mode === 'settler') this.markLensDirty();
       // The faith wash is painted on the ground a town *owns*, so a border that
       // moved changed which hexes it covers.
-      if (this.lensView.mode === 'faith') this.rebuildLens();
+      if (this.lensView.mode === 'faith') this.markLensDirty();
       // Ownership changes the context a hex is evaluated in — CLAUDE.md's "an
       // owned tile is always evaluated with its owner's context" — so a border
       // moving (or a tile bought) can change the number printed on it even
       // though nothing on the ground itself moved.
-      if (this.lensView.yields) this.rebuildLens();
+      if (this.lensView.yields) this.markLensDirty();
     }
     // The lens draws nothing on Terra Incognita, so the ground it covers moved —
     // and its roundels and settle pennants are billboards, so a turned pitch is
     // the same question asked about the camera instead of the fog.
     if ((fogMoved || facingTurned) && this.lensView.mode === 'none' && !this.lensView.yields) {
       // Nothing is up but the roundels; they are scoped by fog too.
-      if (this.lensView.resources) this.rebuildLens();
+      if (this.lensView.resources) this.markLensDirty();
     } else if (fogMoved || facingTurned) {
-      this.rebuildLens();
+      this.markLensDirty();
     }
     this.visibilitySignatures = visibility;
   }
@@ -4552,6 +4562,7 @@ export class Renderer3D implements MapView {
     const refreshState = this.stateDirty;
     this.stateDirty = false;
     if (refreshState) this.syncStateLayers();
+    if (this.lensDirty) this.rebuildLens();
     // The sync may have rebuilt the unit layer, which lays every shell back at
     // rest. Writing the glows again keeps this frame from showing a flicker.
     if (hadGlows && refreshState) this.stepGlows(now);

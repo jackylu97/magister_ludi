@@ -4,7 +4,7 @@ import { BoardGeometry, unitSculpt } from '../../src/render3d/board3d';
 import { MoveAnimations3D } from '../../src/render3d/animation3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
-import { UnitLayer, unitColor, unitTrimColor } from '../../src/render3d/pieces';
+import { UnitLayer, badgeAnchors, terrainUnder, unitColor, unitTrimColor } from '../../src/render3d/pieces';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -32,6 +32,7 @@ interface MotionHarness {
   removeFaller(id: number): void;
   setUnitBadgesVisible(visible: boolean): void;
   pickUnitBadge(x: number, y: number, playerId: number): number | null;
+  noteStateChanged(): void;
 }
 
 /** Exercise the real mesh builders without creating a WebGL context. */
@@ -100,18 +101,34 @@ describe('unit motion uses the resting art and pigments', () => {
   it('switches at the shoreline in both directions, restores the instance, and keeps sea deaths afloat', () => {
     const f = fixture(true), from = { col: 4, row: 3 }, to = { col: 4, row: 4 };
     const animations = new MoveAnimations3D();
-    Object.assign(f.runtime, { animations, units: f.layer });
+    const material = new MeshBasicMaterial();
+    cleanup.push(() => material.dispose());
+    Object.assign(f.runtime, {
+      animations, units: f.layer, badges: {material, wildMaterial: material, materialFor: () => material},
+      lensView: {yields: false},
+      projectPoint: (p: {x: number; z: number}) => ({x: p.x * 100, y: p.z * 100}),
+      badgeRimOffset: () => ({x: .2, y: 0, z: 0}),
+    });
+    const centre = () => badgeAnchors(f.state, 1, (_type, unit) =>
+      f.kit!.resolve(unit, terrainUnder(f.state.map, unit))!.height, f.kit)[1]!;
+    const pick = (anchor: ReturnType<typeof centre>) => f.runtime.pickUnitBadge(anchor.x * 100, anchor.z * 100, 1);
     for (const embarking of [true, false]) {
       f.runtime.clearWalkers(); animations.clear();
       for (const tile of f.state.map.tiles) tile.terrain = tile.row >= 4 ? 'coast' : 'grassland';
       const start = embarking ? from : to, end = embarking ? to : from;
+      const oldBadge = centre();
+      expect(pick(oldBadge)).toBe(f.unit.id);
       f.unit.col = end.col; f.unit.row = end.row; f.build();
+      f.runtime.noteStateChanged();
+      const restingBadge = centre();
       f.layer.hide(f.unit.id);
       animations.start(f.unit.id, start, [end], 0);
       f.runtime.spawnWalker(f.unit.id, embarking ? 'grassland' : 'coast');
       const duration = animations.remainingMs(0);
       for (const progress of [.2, .8]) {
         expect(f.runtime.stepAnimations(duration * progress)).toBe(true);
+        expect(pick(oldBadge)).toBeNull();
+        expect(pick(restingBadge)).toBe(f.unit.id);
         const water = progress < .5 ? !embarking : embarking;
         const expected = f.kit!.resolve(f.unit, water ? 'coast' : 'grassland')!;
         const group = f.walkers.get(f.unit.id)!;

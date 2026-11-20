@@ -1,8 +1,8 @@
-import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+import { InstancedMesh, MeshBasicMaterial, OrthographicCamera, Quaternion, Vector3 } from 'three';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { layerVisibility } from '../../src/render3d/layerVisibility';
-import { badgeAnchors, signUnits, UnitLayer } from '../../src/render3d/pieces';
+import { badgeAnchors, signUnits, UnitLayer, unitVisualHeight } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { signCities, signTerritory, signCityCells } from '../../src/render3d/cities3d';
@@ -140,6 +140,48 @@ describe('incremental renderer updates', () => {
     expect(calls.units).toHaveBeenCalledTimes(2);
     expect(drawsBadge()).toBe(true);
     expect(canPickBadge()).toBe(true);
+  });
+  it('reuses badge positions across pointer samples and projects them through the current view', () => {
+    const {state, unit, runtime} = fixture();
+    const camera = new OrthographicCamera(-12, 12, 8, -8, 0.1, 150);
+    camera.position.set(4, 25, 18);
+    camera.lookAt(4, 0, 3);
+    camera.updateMatrixWorld();
+    const canvas = {clientWidth: 840, clientHeight: 560};
+    Object.assign(runtime, {view: {camera, facing: camera.quaternion}, canvas});
+    const samples = (seat: number) => badgeAnchors(state, seat, type => unitVisualHeight(type, null));
+    const hit = (anchor: ReturnType<typeof samples>[number], seat: number) => {
+      const p = new Vector3(anchor.x, anchor.y, anchor.z).project(camera);
+      return runtime.pickUnitBadge((p.x + 1) * canvas.clientWidth / 2, (1 - p.y) * canvas.clientHeight / 2, seat);
+    };
+    const initial = samples(0);
+    const scans = vi.spyOn(state.units, Symbol.iterator);
+    expect(hit(initial[0]!, 0)).toBe(unit.id);
+    expect(scans).toHaveBeenCalledTimes(4);
+    scans.mockClear();
+    camera.zoom = 1.8;
+    camera.updateProjectionMatrix();
+    canvas.clientWidth = 660;
+    for (let sample = 0; sample < 20; sample++) {
+      for (const anchor of initial) expect(hit(anchor, 0)).toBe(unit.id);
+    }
+    expect(scans).not.toHaveBeenCalled();
+
+    unit.col++;
+    const trader = createUnit(state, 0, 'trader', unit.col, unit.row);
+    const ally = createUnit(state, 1, 'worker', 9, 3);
+    runtime.noteStateChanged();
+    const moved = samples(0);
+    expect(moved.map(anchor => anchor.unitId)).toEqual([unit.id, unit.id, unit.id]);
+    expect(hit(initial[1]!, 0)).toBeNull();
+    expect(hit(moved[1]!, 0)).toBe(unit.id);
+    for (const anchor of samples(1)) expect(hit(anchor, 1)).toBe(ally.id);
+
+    unit.col = 8; unit.row = 5;
+    runtime.invalidate();
+    const freed = samples(0);
+    expect(freed.map(anchor => anchor.unitId)).toEqual([trader.id, trader.id, trader.id]);
+    for (const anchor of freed) expect(hit(anchor, 0)).toBe(trader.id);
   });
   it('forces presentation refresh for a different state on the same map', () => {
     const f = fixture(), loaded: GameState = {...f.state, players: structuredClone(f.state.players)};

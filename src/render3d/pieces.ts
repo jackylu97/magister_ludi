@@ -760,16 +760,12 @@ export function badgeAnchors(
   // The click on the hex answers instead, and the roundel over the plate is the
   // new tag (`ui/cityBanners.ts`, "The garrison row").
   const bannered = banneredTownCells(state, playerId);
-  // A caravan tucked under a piece is not drawn, so it has no badge to aim at
-  // either — a click target on empty air is worse than none. See
-  // `coveredTraders`; the hex answers instead, exactly as it does for a piece
-  // whose roundel the town's banner is carrying.
-  const hidden = coveredTraders(state);
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
-    if (hidden.has(unit.id)) continue;
-    if (bannered.has(tileIndex(state.map, unit.col, unit.row))) continue;
-    const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0, paintedKit?.resolve(unit, terrainUnder(state.map, unit)));
+    // A covered trader has no stack position or badge.
+    const index = stackIndex.get(unit.id);
+    if (index === undefined || bannered.has(tileIndex(state.map, unit.col, unit.row))) continue;
+    const placement = placePiece(state.map, unit, index, paintedKit?.resolve(unit, terrainUnder(state.map, unit)));
     const y = placement.position.y + badgeCenterY(visualHeight(unit.type, unit));
     for (const dx of [-period, 0, period]) {
       anchors.push({
@@ -1168,11 +1164,6 @@ export class UnitLayer {
     // seats are — see `banneredTownCells` and the docblock's "The one piece that
     // wears no badge".
     const bannered = banneredTownCells(state, seat);
-    // The caravans under somebody's boots, resolved once for the build — the
-    // same reading the fan tally above counted with and the badge hit test aims
-    // with. See `coveredTraders`.
-    const covered = coveredTraders(state);
-
     for (const unit of state.units) {
       // Out of sight. The stack tally above still counted it, and that is right:
       // where a piece stands in its tile's fan is a fact about the tile, so a
@@ -1187,9 +1178,10 @@ export class UnitLayer {
       // every unit's `col`, `row` and `type`, all three of which `signUnits`
       // already hashes, so the rebuild that draws the cart again is the same
       // one that moved the boots off it.
-      if (covered.has(unit.id)) continue;
+      const index = stackIndex.get(unit.id);
+      if (index === undefined) continue;
       const painted = paintedKit?.resolve(unit, terrainUnder(map, unit));
-      const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0, painted);
+      const placement = placePiece(map, unit, index, painted);
       const slots: InstanceHandle[] = [];
       this.handles.set(unit.id, slots);
       const spriteMaterial = painted ? null : sprites?.materialFor(unit.type) ?? null;

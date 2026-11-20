@@ -5,11 +5,22 @@
  * every frame (WebGL audit 2026-10-06, finding 4). These tests drive the real
  * frame loop with WebGL stubbed out and count the sweeps.
  */
-import { Group } from 'three';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Group, InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { DeathAnimations3D, MoveAnimations3D } from '../../src/render3d/animation3d';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { TraitGlows } from '../../src/render3d/traitGlow';
+import type { TileIcons } from '../../src/render3d/badges3d';
+import { BoardGeometry } from '../../src/render3d/board3d';
+import { LensLayer, NO_LENS } from '../../src/render3d/lens3d';
+import { MaterialLibrary } from '../../src/render3d/toon';
+import { applyCommand } from '../../src/sim/commands';
+import { foundCityAt } from '../../src/sim/cities';
+import { createMap, raiseImprovement } from '../../src/sim/map';
+import { layRoad } from '../../src/sim/roads';
+import { slotLayout } from '../../src/sim/statecraftData';
+import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 interface Loop { loop(): void; syncStateLayers(): void }
 
@@ -45,7 +56,7 @@ function fixture(state: unknown = null) {
   const frame = (): void => (runtime as unknown as Loop).loop();
   const drawn = (): number => (data.renderer as { render: ReturnType<typeof vi.fn> }).render.mock.calls.length;
   return {
-    runtime, sync, frame, drawn, setBadgeSelection, clearHidden, isDrawing, rebuildUnits,
+    runtime, sync, frame, drawn, view, setBadgeSelection, clearHidden, isDrawing, rebuildUnits,
     animations, deaths, glows, walkers, fallers, walkerModels, remove,
   };
 }
@@ -114,6 +125,80 @@ describe('a camera frame draws without re-reading the state', () => {
     f.frame();
     expect(f.sync).toHaveBeenCalledOnce();
     expect(f.drawn()).toBe(1);
+  });
+
+  it('draws the final yield glyphs once for multiple Council commands and board changes', () => {
+    const state = newGame({seed: 4, sizeName: 'duel', players: [
+      {name: 'A', color: '#a00', isHuman: true}, {name: 'B', color: '#00a', isHuman: true},
+    ]});
+    state.map = createMap({width: 12, height: 8, terrain: 'grassland'});
+    state.units = []; state.cities = []; state.camps = [];
+    state.tileOwner = Array(state.map.tiles.length).fill(null);
+    resetVisibility(state);
+    const field = state.map.tiles[4 * 12 + 6]!;
+    foundCityAt(state, 0, state.map.tiles[4 * 12 + 5]!);
+    layRoad(field, 0);
+    state.visibility[0]!.fill(2);
+    const council = state.players[0]!.statecraft;
+    council.government = 'councilOfElders';
+    council.slots = slotLayout(council.government).map(() => null);
+    const cards = ['lightKit', 'marketGardens', 'lettersOfMarque', 'fieldAcademies'] as const;
+    council.orders.push(...cards);
+
+    const f = fixture(state);
+    const geometry = new BoardGeometry(), materials = new MaterialLibrary(4, 0);
+    const layer = new LensLayer(), reference = new LensLayer();
+    const atlas = new MeshBasicMaterial();
+    const icons = {material: atlas, standingMaterial: atlas} as unknown as TileIcons;
+    const facing = new Quaternion();
+    const lens = {...NO_LENS, yields: true, yieldCells: [{col: field.col, row: field.row}]};
+    Object.assign(f.view, {facing});
+    Object.assign(f.runtime, {
+      map: state.map, fogSeat: 0, lens: layer, lensView: NO_LENS, geometry, materials, icons,
+      applyFog: vi.fn(), applyReveal: vi.fn(), rebuildImprovements: vi.fn(), rebuildCities: vi.fn(),
+      rebuildTerritory: vi.fn(), rebuildRoads: vi.fn(), rebuildSites: vi.fn(),
+    });
+    onTestFinished(() => { layer.dispose(); reference.dispose(); geometry.dispose(); materials.dispose(); atlas.dispose(); });
+    const builds = vi.spyOn(layer, 'build');
+    const instances = (value: LensLayer) => value.group.children.flatMap(mesh => mesh instanceof InstancedMesh
+      ? [{shape: mesh.geometry.uuid, x: mesh.position.x, count: mesh.count, transforms: Array.from(mesh.instanceMatrix.array)}]
+      : []);
+    const expectCurrent = (seat: number) => {
+      reference.build(state, lens, geometry, materials, icons, facing, state.visibility[seat]!);
+      expect(instances(layer)).toEqual(instances(reference));
+    };
+    f.runtime.setLens(lens);
+    expectCurrent(0);
+    const initial = instances(layer);
+    builds.mockClear();
+    for (const [slotIndex, cardId] of cards.entries()) {
+      const result = applyCommand(state, {type: 'slotOrder', playerId: 0, cardId, slotIndex});
+      expect(result.ok, JSON.stringify(result)).toBe(true);
+      f.runtime.noteStateChanged();
+    }
+    f.runtime.noteStateChanged();
+    f.runtime.invalidate();
+    expect(builds).not.toHaveBeenCalled();
+    f.frame();
+    expect(builds).toHaveBeenCalledOnce();
+    expectCurrent(0);
+    expect(instances(layer)).not.toEqual(initial);
+    f.frame();
+    expect(builds).toHaveBeenCalledOnce();
+
+    foundCityAt(state, 0, state.map.tiles[12 + 9]!);
+    f.runtime.noteStateChanged();
+    raiseImprovement(field, 'farm', state.turn);
+    f.runtime.noteStateChanged();
+    f.frame();
+    expect(builds).toHaveBeenCalledTimes(2);
+    expectCurrent(0);
+    f.runtime.noteStateChanged();
+    f.runtime.setFogSeat(1);
+    expect(builds).toHaveBeenCalledTimes(3);
+    expectCurrent(1);
+    f.frame();
+    expect(builds).toHaveBeenCalledTimes(3);
   });
 });
 
