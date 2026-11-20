@@ -131,19 +131,11 @@ describe('techGifts', () => {
       ['improvement', 'lumbermill'],
       ['ability', 'siege'],
     ]);
-    // Bronzeworking hands over three buildings — the barracks and the funeral
-    // games from the Age I sinks, and the Walls of Uruk from the wonders — and
-    // all of them come after the spearman. Two *abilities* follow: the jungle
-    // chop, which the chop table surfaces on whatever tech it names (2026-08-27,
-    // user: "that should probably be in bronzeworking"), and the religion pass's
-    // rite (Blessing of Arms). Both sort with the verbs at the end.
-    // The **reveal** left this list in the re-cut of 2026-09-02: iron is named
-    // by Iron Working now, which is what the worksheet means by "gates this
-    // line". Bronzeworking keeps the spear, the buildings and the verbs — two
-    // buildings since 2026-09-07, not three: batch D retired the Funeral Games,
-    // and the walk reads the live lists now, so a retired row is not a gift.
+    // Bronzeworking unlocks the Spearman, Barracks, School of Mieza and Walls of Uruk.
+    // Clearing jungle and the Blessing of Arms follow the buildings.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
+      'building',
       'building',
       'building',
       'ability',

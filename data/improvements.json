@@ -23,32 +23,6 @@
     "tech": "prospecting"
   },
   "improvements": {
-    "paradiseGarden": {
-      "name": "The Paradise Garden",
-      "emoji": "🌿",
-      "chargeCost": 1,
-      "requiresTech": "agriculture",
-      "unlockedByLeader": true,
-      "countsAsGreatWork": true,
-      "onePerTown": true,
-      "happiness": 1,
-      "yields": {
-        "food": 0,
-        "production": 0,
-        "gold": 0,
-        "culture": 1
-      },
-      "validTerrain": [],
-      "freshwaterTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "requiresHills": false,
-      "clearsClutter": true
-    },
     "farm": {
       "name": "Farm",
       "emoji": "🌱",
@@ -734,6 +708,32 @@
       ],
       "requiresHills": false,
       "watersBeside": true,
+      "clearsClutter": true
+    },
+    "paradiseGarden": {
+      "name": "The Paradise Garden",
+      "emoji": "🌿",
+      "chargeCost": 1,
+      "requiresTech": "agriculture",
+      "unlockedByLeader": true,
+      "countsAsGreatWork": true,
+      "onePerTown": true,
+      "happiness": 1,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "culture": 1
+      },
+      "validTerrain": [],
+      "freshwaterTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": false,
       "clearsClutter": true
     }
   }

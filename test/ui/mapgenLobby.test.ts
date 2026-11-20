@@ -122,7 +122,7 @@ describe('the mapgen lobby', () => {
   it('seats that one figure on the ground its own bias asks for', () => {
     // The page's whole claim: the world on the canvas is the world this roster
     // would have played. Same call, same seats, same chooser.
-    const seated = 'mithridates';
+    const seated = 'qinShiHuang';
     const lobby = withSeatSet(emptyLobby(2), 0, seated);
     const roster = rosterFor(lobby, INK);
     const seats: StartSeat[] = roster.map((spec) => ({ leader: spec.leader }));

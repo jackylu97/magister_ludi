@@ -4885,12 +4885,9 @@ describe("the Knights Templar", () => {
 
   const TEMPLAR: PurchasableItem = { kind: "unit", id: "knightsTemplar" };
 
-  it("measures no row that awaits a technology, and sells nothing with no horse taught", () => {
-    // The cataphract carries `awaitsTech` and no node gates it, so `isUnlocked`
-    // cannot refuse it; the mirror must, or an order called on the first turn
-    // would ride out a strength-22 cataphract (found landing batch B2).
+  it("excludes another leader's mounted units and sells nothing before the first mount opens", () => {
     const { g, seat } = order();
-    expect(unitDef("cataphract").awaitsTech).toBe(true);
+    expect(unitDef("cataphract").unlockedByLeader).toBe(true);
     expect(mirrorRowFor(g.state, 0, "knightsTemplar")).toBe("chariot");
     // And an empire the age has taught no horse at all has nothing to mirror:
     // the price is null and the bank refuses rather than selling one cheap.

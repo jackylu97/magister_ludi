@@ -942,7 +942,10 @@
               "basis": "count",
               "to": "gold",
               "amount": 4,
-              "count": "activeDealAges"
+              "count": "activeDealAges",
+              "scope": {
+                "test": "trueCapital"
+              }
             },
             {
               "kind": "pays",
@@ -950,7 +953,10 @@
               "basis": "count",
               "to": "culture",
               "amount": 2,
-              "count": "activeDealAges"
+              "count": "activeDealAges",
+              "scope": {
+                "test": "trueCapital"
+              }
             }
           ]
         }

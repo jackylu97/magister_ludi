@@ -418,7 +418,6 @@ describe('strategic resources gate production', () => {
       'phalanx',
       'legionary',
       'horseArcher',
-      'cataphract',
       'warElephant',
       'fireLance',
     ]);

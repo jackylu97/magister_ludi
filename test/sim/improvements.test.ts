@@ -167,7 +167,7 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names ten worker improvements, six works, four tended works, three card works, and recognises its own ids', () => {
+  it('lists all improvements and recognises their ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
     // the first ten are what a worker's charge buys, the last six are what a
     // *work's* hand plants (`docs/great-people.md`, and the holy site the
@@ -218,6 +218,7 @@ describe('the improvement table', () => {
       // Surveyors' Charter opens. Niter Beds, opened by Chemistry, stood here
       // until batch DS6 removed the row.
       'qanat',
+      'paradiseGarden',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -2276,7 +2277,7 @@ describe('explainTileYield', () => {
         continue;
       }
       expect(paid, id).toBeGreaterThan(0);
-      if (id === 'citadel') expect(entry!.production).toBe(2);
+      if (id === 'citadel') expect(entry!.production).toBe(3);
       expect(def.name.length, id).toBeGreaterThan(0);
     }
   });

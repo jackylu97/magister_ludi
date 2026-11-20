@@ -94,10 +94,10 @@ const said = (id: string): string[] => describeCard(id as never).map((clause) =>
 const COUNT: CardPaysEffect = { kind: 'pays', where: 'empire', basis: 'count', count: 'publicWorks' };
 
 describe('the Expansionist batch E11: the public works', () => {
-  it('marks exactly the six public works, and no wonder, empire building, Lighthouse or Workshop', () => {
-    // The register (reading 30): the marker is on the rows, so a seventh row
-    // marked in the data would fail here until the triage says so.
+  it('marks exactly the seven public works, and no wonder, empire building, Lighthouse or Workshop', () => {
+    // The House of Fire is the Khmer unique public work.
     expect(BUILDING_IDS.filter(isPublicWork)).toEqual([
+      'houseOfFire',
       'granary',
       'aqueduct',
       'watermill',
@@ -220,7 +220,7 @@ describe('the Expansionist batch E11: The Public Good (the publicWorks count)', 
     for (const line of explainCardPercentYields(state, home)) {
       if (line.card === 'thePublicGood') expect(line.stage).toBe('empire');
     }
-    // Five towns of six public works are thirty, and the card stops at 25.
+    // Five towns can hold thirty-five public works. The card stops at 25.
     const works = BUILDING_IDS.filter(isPublicWork);
     const others = [town(state, 8, 2, 3), town(state, 14, 2, 3), town(state, 2, 8, 3), town(state, 8, 8, 3)];
     for (const city of [home, ...others]) {
@@ -229,7 +229,7 @@ describe('the Expansionist batch E11: The Public Good (the publicWorks count)', 
       }
     }
     bumpRevision(state);
-    expect(countOf(state, 0, 'thePublicGood' as OrderId, COUNT)).toBe(30);
+    expect(countOf(state, 0, 'thePublicGood' as OrderId, COUNT)).toBe(35);
     expect(percent('science')).toBe(25);
     expect(percent('culture')).toBe(25);
   });

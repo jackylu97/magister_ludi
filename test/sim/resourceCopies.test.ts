@@ -431,7 +431,6 @@ describe('a row that accepts either of two resources', () => {
       'knight',
       'phalanx',
       'horseArcher',
-      'cataphract',
     ]);
     // And the reading is the list form everywhere, single rows included.
     expect(requiredResourcesOf(unitDef('longswordsman'))).toEqual(['iron']);

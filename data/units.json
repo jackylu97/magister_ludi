@@ -1,194 +1,5 @@
 {
   "units": {
-    "hwacha": {
-      "name": "Hwacha",
-      "category": "military",
-      "movement": 1,
-      "sight": 2,
-      "maxHp": 110,
-      "combatStrength": 40,
-      "rangedStrength": 48,
-      "range": 2,
-      "size": "engine",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "modelClass": "siege",
-      "glyph": "E",
-      "combatLines": [
-        {
-          "label": "Against units",
-          "amount": 10,
-          "side": "attack",
-          "vsKind": "ranged",
-          "vsCity": false
-        }
-      ],
-      "column": 10,
-      "unlockedByLeader": true
-    },
-    "condottiere": {
-      "name": "Condottiere",
-      "category": "military",
-      "movement": 2,
-      "sight": 2,
-      "maxHp": 120,
-      "combatStrength": 55,
-      "size": "heavy",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "requiresResource": "iron",
-      "modelClass": "melee",
-      "glyph": "L",
-      "column": 10,
-      "unlockedByLeader": true,
-      "effects": [
-        {
-          "kind": "purchaseRider",
-          "class": {
-            "type": "condottiere"
-          },
-          "currency": "gold",
-          "on": "unit",
-          "percent": -40
-        }
-      ]
-    },
-    "sparabara": {
-      "name": "Sparabara",
-      "requiresResource": [
-        "obsidian",
-        "copper"
-      ],
-      "category": "military",
-      "movement": 2,
-      "sight": 2,
-      "maxHp": 110,
-      "combatStrength": 30,
-      "size": "line",
-      "combatLines": [
-        {
-          "label": "Against mounted",
-          "amount": 10,
-          "vsModelClass": "mounted"
-        },
-        {
-          "label": "When defending",
-          "amount": 5,
-          "side": "defend"
-        }
-      ],
-      "upgradesTo": "spearWall",
-      "modelClass": "melee",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "glyph": "L",
-      "column": 4,
-      "unlockedByLeader": true
-    },
-    "ballistaElephant": {
-      "name": "Ballista Elephant",
-      "category": "military",
-      "movement": 3,
-      "sight": 2,
-      "maxHp": 130,
-      "combatStrength": 50,
-      "size": "heavy",
-      "requiresResource": "ivory",
-      "modelClass": "mounted",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "glyph": "D",
-      "combatLines": [
-        {
-          "label": "Against cities",
-          "amount": 8,
-          "side": "attack",
-          "vsCity": true
-        }
-      ],
-      "column": 7,
-      "unlockedByLeader": true,
-      "range": 2,
-      "rangedStrength": 50
-    },
-    "qinCrossbowman": {
-      "name": "Qin Crossbowman",
-      "category": "military",
-      "movement": 2,
-      "sight": 2,
-      "maxHp": 100,
-      "combatStrength": 20,
-      "rangedStrength": 31,
-      "range": 2,
-      "size": "light",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "upgradesTo": "compositeBowman",
-      "modelClass": "ranged",
-      "glyph": "M",
-      "column": 4,
-      "unlockedByLeader": true
-    },
-    "janissary": {
-      "name": "Janissary",
-      "category": "military",
-      "movement": 2,
-      "sight": 2,
-      "maxHp": 120,
-      "combatStrength": 55,
-      "size": "heavy",
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "requiresResource": "iron",
-      "modelClass": "melee",
-      "glyph": "L",
-      "column": 10,
-      "unlockedByLeader": true,
-      "effects": [
-        {
-          "kind": "unitStamp",
-          "class": {
-            "type": "janissary"
-          },
-          "rank": "veteran"
-        }
-      ]
-    },
-    "hypaspist": {
-      "name": "Hypaspist",
-      "category": "military",
-      "movement": 3,
-      "sight": 2,
-      "maxHp": 100,
-      "combatStrength": 35,
-      "size": "line",
-      "requiresResource": [
-        "obsidian",
-        "copper"
-      ],
-      "foundsCity": false,
-      "haltsGrowth": false,
-      "minCityPop": 0,
-      "upgradesTo": "legionary",
-      "modelClass": "melee",
-      "glyph": "X",
-      "column": 4,
-      "unlockedByLeader": true,
-      "combatLines": [
-        {
-          "label": "Against cities",
-          "amount": 5,
-          "side": "attack",
-          "vsCity": true
-        }
-      ]
-    },
     "warrior": {
       "name": "Warrior",
       "category": "military",
@@ -1012,10 +823,6 @@
           "vsKind": "ranged"
         }
       ],
-      "requiresResource": [
-        "horses",
-        "camels"
-      ],
       "modelClass": "mounted",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -1657,6 +1464,184 @@
       "modelClass": "worker",
       "glyph": "R",
       "note": "It has crossed everything there is to cross and knows whom to pay. Nobody robs it, and it comes home richer than it left."
+    },
+    "hypaspist": {
+      "name": "Hypaspist",
+      "category": "military",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 35,
+      "size": "line",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "legionary",
+      "modelClass": "melee",
+      "glyph": "X",
+      "column": 4,
+      "unlockedByLeader": true,
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 5,
+          "side": "attack",
+          "vsCity": true
+        }
+      ]
+    },
+    "janissary": {
+      "name": "Janissary",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 55,
+      "size": "heavy",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "melee",
+      "glyph": "L",
+      "column": 10,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "class": {
+            "type": "janissary"
+          },
+          "rank": "veteran"
+        }
+      ]
+    },
+    "qinCrossbowman": {
+      "name": "Qin Crossbowman",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 20,
+      "rangedStrength": 31,
+      "range": 2,
+      "size": "light",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "compositeBowman",
+      "modelClass": "ranged",
+      "glyph": "M",
+      "column": 4,
+      "unlockedByLeader": true
+    },
+    "ballistaElephant": {
+      "name": "Ballista Elephant",
+      "category": "military",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 130,
+      "combatStrength": 50,
+      "size": "heavy",
+      "modelClass": "mounted",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "D",
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 8,
+          "side": "attack",
+          "vsCity": true
+        }
+      ],
+      "column": 7,
+      "unlockedByLeader": true,
+      "range": 2,
+      "rangedStrength": 50
+    },
+    "sparabara": {
+      "name": "Sparabara",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 30,
+      "size": "line",
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 10,
+          "vsModelClass": "mounted"
+        },
+        {
+          "label": "When defending",
+          "amount": 5,
+          "side": "defend"
+        }
+      ],
+      "upgradesTo": "spearWall",
+      "modelClass": "melee",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "L",
+      "column": 4,
+      "unlockedByLeader": true
+    },
+    "condottiere": {
+      "name": "Condottiere",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 55,
+      "size": "heavy",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "melee",
+      "glyph": "L",
+      "column": 10,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "type": "condottiere"
+          },
+          "currency": "gold",
+          "on": "unit",
+          "percent": -40
+        }
+      ]
+    },
+    "hwacha": {
+      "name": "Hwacha",
+      "category": "military",
+      "movement": 1,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 40,
+      "rangedStrength": 48,
+      "range": 2,
+      "size": "engine",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "siege",
+      "glyph": "E",
+      "combatLines": [
+        {
+          "label": "Against units",
+          "amount": 10,
+          "side": "attack",
+          "vsKind": "ranged",
+          "vsCity": false
+        }
+      ],
+      "column": 10,
+      "unlockedByLeader": true
     }
   }
 }

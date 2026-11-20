@@ -32,23 +32,26 @@ No new quests, deck-unlock systems, currencies or chosen secondary attributes. C
 
 ## Leader pools
 
-| Leader | Decks | Intended distinction |
+| Leader | Decks | Gameplay |
 |---|---|---|
-| Pachacuti | Expansionist + Commerce | Mountain agriculture and connected settlements |
-| Taizong | Dominion + Magisterial | Armies, garrisons and the imperial court |
-| Modu Chanyu | Dominion + Devotion | Pastoral faith, mobile war and raiding |
-| Akhenaten | Devotion + Magisterial | Religious construction and monuments |
-| Al-Ma'mun | Devotion + Scientific | Religious institutions sustaining scholarship |
-| Mithridates | Dominion + Expansionist | A compact, developed kingdom resisting larger empires |
-| Joan of Arc | Dominion + Devotion | Conversion and warfare reinforcing one another |
-| Mansa Musa | Commerce + Devotion | Commercial wealth and religious destinations |
-| Zheng He | Commerce + Magisterial | Voyages, coastal networks and imperial prestige |
-| Nezahualcoyotl | Expansionist + Scientific | Hydraulic engineering and populous cities; tentative |
-| Hypatia | Scientific + Magisterial | Scholars and great works |
-| Hildegard | Devotion + Magisterial | Rites, cultural communities and sacred institutions |
-| Ibn Battuta | Rainbow: all six | Adapting a varied collection through an extra chair and free redraw |
+| Alexander the Great | Dominion + Expansionist | Attacks, captures and science from gaining soldiers. |
+| Genghis Khan | Dominion + Commerce | Mounted movement, pillage and protected trade routes. |
+| Joan of Arc | Dominion + Devotion | Kills, faith and fighting in territory that follows the same religion. |
+| Mehmed the Conqueror | Dominion + Scientific | Barracks, scholars, generals and attacks on cities. |
+| Qin Shi Huang | Dominion + Magisterial | Garrisons, wonders and production from population. |
+| Pachacuti | Expansionist + Commerce | Road connections, mountain farms and gold. |
+| Jayavarman VII | Expansionist + Devotion | Public works, freshwater farms and empire population. |
+| Nezahualcoyotl | Expansionist + Scientific | Aqueducts and farms, with culture from the capital. |
+| Cyrus the Great | Expansionist + Magisterial | Road connections, occupied Civic and Wildcard chairs, and worker-built great works. |
+| Mansa Musa | Commerce + Devotion | Mining, camps, desert yields and Holy Site routes. |
+| Cleopatra | Commerce + Scientific | Science from trade, deals and great people. |
+| Lorenzo de' Medici | Commerce + Magisterial | Net gold income, local gold buildings, works and great people. |
+| Harun al-Rashid | Devotion + Scientific | Buildings that pay faith or science, and research. |
+| Justinian | Devotion + Magisterial | Wonders, faith and worked Holy Sites. |
+| Sejong the Great | Scientific + Magisterial | Local population, research and scholar renown. |
+| Ibn Battuta | Rainbow: all six | Draws from every deck and gains an extra chair and a free redraw. |
 
-Shared pairs are intentional. Modu and Joan should use the same pool differently because of their leader abilities, map investments and choices. Do not author a bespoke third pool for each pair.
+The fifteen paired leaders each draw from a different pair of decks. Ibn Battuta draws from all six.
 
 ## Availability and offer rules
 

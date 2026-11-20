@@ -129,7 +129,7 @@ blow read the same plan.
 Generated — do not hand-edit anything below this line except the **Notes**
 column, which is carried through every regeneration.
 
-### Military — 38 rows
+### Military — 46 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -152,6 +152,7 @@ column, which is carried through every regeneration.
 | Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | Bronze Panoply | Spear Wall | needs improved Obsidian or Copper |  |
 | Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Longswordsman | needs improved Iron |  |
 | Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 151 | — | The Saddle | — | needs improved Horses or Camels |  |
+| Cataphract | mounted | 42 | — | — | 4 | 120 | 2 | heavy | 151 | — | — | Knight | — |  |
 | Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Pikeman | — |  |
 | War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 151 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 583 | — | Alchemy | — | needs improved Niter |  |
@@ -162,7 +163,7 @@ column, which is carried through every regeneration.
 | Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 19 | — | — | Spear Wall | — |  |
 | Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
 | The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | — |  |
-| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | — |  |
+| Keshig | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | — |  |
 | The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | — |  |
 | The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Legionary | — |  |
 | Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 151 | — | — | — | — |  |
@@ -171,6 +172,13 @@ column, which is carried through every regeneration.
 | The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 445 | — | — | — | — |  |
 | The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
 | The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 61 | — | — | Longswordsman | — |  |
+| Hypaspist | melee | 35 | — | — | 3 | 100 | 2 | line | 46 | — | — | Legionary | — |  |
+| Janissary | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | — | — | — |  |
+| Qin Crossbowman | ranged | 20 | 31 | 2 | 2 | 100 | 2 | light | 33 | — | — | Composite Bowman | — |  |
+| Ballista Elephant | mounted | 50 | 50 | 2 | 3 | 130 | 2 | heavy | 151 | — | — | — | — |  |
+| Sparabara | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | — | Spear Wall | — |  |
+| Condottiere | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | — | — | — |  |
+| Hwacha | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 391 | — | — | — | — |  |
 
 ### Naval — 14 rows
 
@@ -232,6 +240,7 @@ trench). This is the whole of the naval triangle in the simulation.
 | Frigate | Fragile hull | −10 | defending · melee only |
 | Frigate | Bombardment | +20 | attacking · vs cities |
 | Phalanx | Against mounted | +10 | always · vs mounted |
+| Cataphract | Against ranged | +5 | always · ranged only |
 | Spear Wall | Against mounted | +10 | always · vs mounted |
 | War Elephant | Against cities | +8 | attacking · vs cities |
 | Fubing | Against mounted | +10 | always · vs mounted |
@@ -239,6 +248,11 @@ trench). This is the whole of the naval triangle in the simulation.
 | The Scythed Chariot | Against foot | +3 | always · vs melee |
 | The Gendarme | Against cities | +10 | attacking · vs cities |
 | The Alexandrian Galley | Against ranged ships | +10 | always · vs navalRanged |
+| Hypaspist | Against cities | +5 | attacking · vs cities |
+| Ballista Elephant | Against cities | +8 | attacking · vs cities |
+| Sparabara | Against mounted | +10 | always · vs mounted |
+| Sparabara | When defending | +5 | defending |
+| Hwacha | Against units | +10 | attacking · vs pieces · ranged only |
 
 ### The figures (`data/rules.json`)
 

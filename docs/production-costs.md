@@ -226,7 +226,7 @@ reading for a once-per-empire row.
 | `tambo` | The Tambo | large | 8 | 397 |
 | `qollqa` | The Qollqa | large | 11 | 893 |
 | `examinationCourt` | The Examination Court | large | 5 | 176 |
-| `postStation` | The Post Station | large | 11 | 893 |
+| `postStation` | The Commandery | large | 11 | 893 |
 | `hordeCamp` | The Horde Camp | medium | 5 | 117 |
 | `obelisk` | The Obelisk | small | 2 | 39 |
 | `sunCourt` | The Sun Court | large | 8 | 397 |
@@ -244,6 +244,13 @@ reading for a once-per-empire row.
 | `rupertsbergScriptorium` | The Scriptorium of Rupertsberg | large | 8 | 397 |
 | `funduq` | The Funduq | large | 8 | 397 |
 | `cathedralSchool` | Cathedral School | medium | 6 | 154 |
+| `schoolOfMieza` | The School of Mieza | small | 2 | 39 |
+| `hallOfWorthies` | The Hall of Worthies | medium | 5 | 117 |
+| `basilica` | The Basilica | medium | 5 | 117 |
+| `bottega` | The Bottega | medium | 8 | 264 |
+| `houseOfFire` | The House of Fire | medium | 4 | 89 |
+| `kulliye` | The Külliye | medium | 7 | 202 |
+| `relayYam` | The Yam | medium | 6 | 154 |
 
 ### Wonders
 
@@ -343,7 +350,7 @@ stays whole. See `docs/trade.md`.
 | `fubing` | Fubing | light | 2 | 19 |
 | `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 151 |
 | `whistlingArrow` | The Whistling Arrow | heavy | 3 | 51 |
-| `xiongnuHorseArcher` | Xiongnu Horse Archer | heavy | 7 | 151 |
+| `xiongnuHorseArcher` | Keshig | heavy | 7 | 151 |
 | `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 445 |
 | `khopesh` | The Khopesh | line | 4 | 46 |
 | `camelArcher` | Camel Archer | heavy | 7 | 151 |
@@ -356,3 +363,11 @@ stays whole. See `docs/trade.md`.
 | `alexandrianGalley` | The Alexandrian Galley | line | 5 | 61 |
 | `canoness` | The Canoness | free | 8 | 0 |
 | `rihlaCaravan` | The Rihla Caravan | engine | 5 | 67 |
+| `hypaspist` | Hypaspist | line | 4 | 46 |
+| `janissary` | Janissary | heavy | 10 | 340 |
+| `qinCrossbowman` | Qin Crossbowman | light | 4 | 33 |
+| `ballistaElephant` | Ballista Elephant | heavy | 7 | 151 |
+| `sparabara` | Sparabara | line | 4 | 46 |
+| `condottiere` | Condottiere | heavy | 10 | 340 |
+| `hwacha` | Hwacha | engine | 10 | 391 |
+| `cataphract` | Cataphract | heavy | 7 | 151 |

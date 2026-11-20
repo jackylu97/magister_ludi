@@ -1999,6 +1999,9 @@ describe('the unit roster carries the combat data the rules need', () => {
         'whistlingArrow',
         'xiongnuHorseArcher',
         'camelArcher',
+        'ballistaElephant',
+        'qinCrossbowman',
+        'hwacha',
       ].sort(),
     );
   });

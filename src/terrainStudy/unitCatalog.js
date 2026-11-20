@@ -54,6 +54,13 @@ export const leaderUnitArtSpecs={
  // The Chartered Company's soldiers (a shared deck charter): placeholder art at
  // the longswordsman's rank until it is drawn.
  companyGuard:{line:'infantry',rank:3,variant:'company-coat'},
+ hypaspist:{line:'infantry',rank:1,variant:'shield-infantry'},
+ janissary:{line:'infantry',rank:3,variant:'veteran-infantry'},
+ qinCrossbowman:{line:'ranged',rank:1,variant:'qin-crossbow'},
+ ballistaElephant:{line:'elephant',rank:0,variant:'elephant-ballista'},
+ sparabara:{line:'polearm',rank:1,variant:'wicker-shield'},
+ condottiere:{line:'infantry',rank:3,variant:'mercenary-sword'},
+ hwacha:{line:'siege',rank:1,variant:'rocket-cart'},
 };
 export const unitLines=Object.fromEntries(Object.entries(originalUnitLines).map(([line,spec])=>[line,{
  ...spec,types:[...spec.types,...Object.entries(leaderUnitArtSpecs).filter(([,art])=>art.line===line).map(([id])=>id)],

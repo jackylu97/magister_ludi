@@ -350,13 +350,7 @@ describe('a row shipped ahead of its age', () => {
     const port = foundCityAt(state, 0, at(state, 5, 4));
     state.players[0]!.gold = 9999;
     const waiting = UNIT_TYPE_IDS.filter((id) => unitDef(id).awaitsTech === true);
-    // Four rows wear the marker, and the fourth is not a hull: tree revision 4
-    // (2026-09-02) gave The Saddle the *horseman* and left the cataphract with
-    // no node at all. Batch U9 retired that row outright (the user, 2026-09-10:
-    // "we replaced cataphracts with horsemen"), so it keeps the marker and the
-    // retirement answers first — which is why the sentence is read off the row
-    // rather than written once for all four.
-    expect(waiting.sort()).toEqual(['cataphract', 'corvette', 'frigate', 'shipOfTheLine'].sort());
+    expect(waiting.sort()).toEqual(['corvette', 'frigate', 'shipOfTheLine'].sort());
     for (const id of waiting) {
       const sentence =
         unitDef(id).retired === true

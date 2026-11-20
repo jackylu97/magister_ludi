@@ -51,8 +51,8 @@ Crimson, Teal and Lapis faction colours remain available.
 The original only had king and sage variants; the military identifiers are new
 adaptations in that family. All twelve representatives, including the cavalry
 sword, five great-person family variants and war elephant, are accepted for this
-integration baseline. The leader integration expands the inventory from 44 to
-61 data IDs; it adds no sculpts and approves no new variants.
+integration baseline. The inventory now covers 70 unit IDs. The seven November additions have
+review entries and use the base models for now.
 
 The first production unit review is approved. The next review implements the
 six remaining infantry variants around the same pawn: swordsman, legionary,
@@ -70,35 +70,40 @@ explicitly; appending a leader alternative must not turn it into the next tier.
 The twelve example IDs, their order and their readiness remain unchanged. Every
 entry below has `ready: false`, including alternatives whose base is represented.
 
-The current leader sheet assigns thirteen units. Four earlier alternatives remain
-in unit data for saved-game coverage but are not assigned by the current sheet.
-“Parked” below describes that roster status, not a separate art approval.
-“Charter” marks a unit a deck card opens rather than a leader: Numidian Cavalry,
-from a Commerce charter, borrows the horseman's rank, and the Company Guard, from
-the shared charter The Chartered Company, borrows the longswordsman's, until each
-has art of its own.
+The sixteen current leaders each have a unique unit. Justinian’s Cataphract already
+has a place on the original cavalry line. The table below tracks additions to
+the original roster. Parked units stay available to saved games, and charter
+units come from cards. The seven new alternatives have a line and rank for
+preview placement. Their individual sculpts still need art review.
 
 | ID | Line | Rank | Variant | Roster |
 | --- | --- | --- | --- | --- |
 | `slinger` | `ranged` | 1 | `sling` | active |
 | `fubing` | `polearm` | 0 | `militia-spear` | parked |
-| `tangCavalry` | `cavalry` | 2 | `lamellar-lance` | active |
+| `tangCavalry` | `cavalry` | 2 | `lamellar-lance` | parked |
 | `whistlingArrow` | `mountedRanged` | 0 | `whistling-bow` | parked |
 | `xiongnuHorseArcher` | `mountedRanged` | 1 | `steppe-bow` | active |
 | `chanyuGuard` | `cavalry` | 3 | `household-guard` | parked |
-| `khopesh` | `infantry` | 1 | `sickle-sword` | active |
+| `khopesh` | `infantry` | 1 | `sickle-sword` | parked |
 | `camelArcher` | `mountedRanged` | 1 | `camel-bow` | active |
-| `ponticPeltast` | `polearm` | 0 | `javelin-shield` | active |
+| `ponticPeltast` | `polearm` | 0 | `javelin-shield` | parked |
 | `scythedChariot` | `cavalry` | 0 | `scythed-carriage` | parked |
 | `gendarme` | `cavalry` | 3 | `heavy-lance` | active |
 | `mandekalu` | `cavalry` | 1 | `quilted-mail` | active |
-| `treasureShip` | `navalHeavy` | 2 | `treasure-rig` | active |
+| `treasureShip` | `navalHeavy` | 2 | `treasure-rig` | parked |
 | `eagleWarrior` | `infantry` | 1 | `eagle-headdress` | active |
 | `alexandrianGalley` | `navalLight` | 2 | `lookout-galley` | active |
-| `canoness` | `faith` | 2 | `choir-book` | active |
+| `canoness` | `faith` | 2 | `choir-book` | parked |
 | `rihlaCaravan` | `trader` | 0 | `journey-wagon` | active |
 | `numidianCavalry` | `cavalry` | 1 | `light-horse` | charter |
 | `companyGuard` | `infantry` | 3 | `company-coat` | charter |
+| `hypaspist` | `infantry` | 1 | `shield-infantry` | active |
+| `janissary` | `infantry` | 3 | `veteran-infantry` | active |
+| `qinCrossbowman` | `ranged` | 1 | `qin-crossbow` | active |
+| `ballistaElephant` | `elephant` | 0 | `elephant-ballista` | active |
+| `sparabara` | `polearm` | 1 | `wicker-shield` | active |
+| `condottiere` | `infantry` | 3 | `mercenary-sword` | active |
+| `hwacha` | `siege` | 1 | `rocket-cart` | active |
 
 Ranks identify visual positions within a line, not technology columns or a new
 gameplay upgrade chain. The slinger shares the bowman's early ranged rank but
@@ -171,9 +176,9 @@ uses `primitive-civilian-revised.png`, `primitive-scout-hood.png`,
 New-batch evidence: `primitive-cavalry-sword.png`, `primitive-war-elephant-slim.png`,
 five `primitive-great-*.png` family views and `primitive-new-pieces.png`.
 
-`test/render/paintedUnitCatalog.test.ts` checks the current 61-ID inventory,
+`test/render/paintedUnitCatalog.test.ts` checks the current 70-ID inventory,
 unchanged original ranks/examples, explicit unready leader variants, naval rank
-equivalence, and this table against the current thirteen-unit leader sheet.
+equivalence, and this table against the sixteen active leaders.
 
 ## Remaining unit art
 
