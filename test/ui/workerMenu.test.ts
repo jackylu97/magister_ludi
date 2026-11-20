@@ -15,13 +15,15 @@
 
 import { describe, expect, it } from 'vitest';
 import { foundCityAt, refreshCityDerived, tileOwnerPlayerId } from '../../src/sim/cities';
-import { type Tile, tileNeighbors } from '../../src/sim/map';
+import { applyCommand } from '../../src/sim/commands';
+import { repairImprovementError } from '../../src/sim/improvements';
+import { type Tile, damageImprovement, raiseImprovement, tileNeighbors } from '../../src/sim/map';
 import { foundReligion } from '../../src/sim/religion';
 import { type City, type GameState, type Unit, bumpRevision, createUnit, playerById } from '../../src/sim/state';
 import { emptyTileYield } from '../../src/sim/terrainData';
 import { improvementOptionsFor } from '../../src/ui/controls';
 import { YIELD_GLYPH, yieldDeltaFigures } from '../../src/ui/figures';
-import { improvementChangeWords, improvementHint } from '../../src/ui/unitPanel';
+import { improvementChangeWords, improvementHint, workerImprovementRows } from '../../src/ui/unitPanel';
 import { at, bareState } from '../sim/improvementHelpers';
 
 /** A town for seat 0 at (5, 5), and a hex beside it inside its borders. */
@@ -102,6 +104,61 @@ describe('the worker lists only what the empire has unlocked', () => {
     const { state } = townAndHex();
     const worker = workerOn(state, at(state, 5, 5));
     expect(listed(state, worker)).toEqual([]);
+  });
+});
+
+describe('worker actions on damaged improvements', () => {
+  it.each([0, 1])('offers to repair an owned farm with %i charges', (charges) => {
+    const { state, hex } = townAndHex();
+    state.turn = 8;
+    raiseImprovement(hex, 'farm', 2);
+    damageImprovement(hex, state.turn);
+    const worker = workerOn(state, hex);
+    worker.chargesLeft = charges;
+    const options = improvementOptionsFor(state, worker);
+    const rows = workerImprovementRows(state, worker, options);
+    expect(rows.repair).toBe('farm');
+    expect(options.some(build => build.id === 'farm')).toBe(true);
+    expect(rows.builds).toEqual(options.filter(build => build.id !== 'farm'));
+    expect(repairImprovementError(state, worker.id)).toBeNull();
+    expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    expect(hex.improvement).toBe('farm');
+    expect(hex.improvedOn).toBe(2);
+    expect(state.units).toContain(worker);
+    expect(worker.chargesLeft).toBe(charges);
+    expect(worker.movesLeft).toBe(0);
+  });
+
+  it('offers a charged rebuild for a damaged Outpost within reach of the border', () => {
+    const state = bareState(16, 10);
+    foundCityAt(state, 0, at(state, 2, 5));
+    const hex = at(state, 5, 5);
+    raiseImprovement(hex, 'outpost', 1);
+    damageImprovement(hex, 2);
+    state.turn = 3;
+    const worker = workerOn(state, hex);
+    expect(tileOwnerPlayerId(state, hex.col, hex.row)).toBeNull();
+    const rows = () => workerImprovementRows(state, worker, improvementOptionsFor(state, worker));
+    expect(rows().builds.some(build => build.id === 'outpost')).toBe(false);
+
+    const council = playerById(state, 0)!.statecraft;
+    council.orders.push('outposts');
+    council.slots.push({ card: 'outposts', sealedUntil: state.turn });
+    bumpRevision(state);
+    const { repair, builds } = rows();
+    expect(repair).toBeUndefined();
+    expect(repairImprovementError(state, worker.id)).toContain('not in your territory');
+    const outpost = builds.find(option => option.id === 'outpost')!;
+    expect(outpost.blocked).toBeNull();
+    expect(outpost.charges).toBe(1);
+    const charges = worker.chargesLeft!;
+    expect(applyCommand(state, { type: 'buildImprovement', playerId: 0, unitId: worker.id, improvement: outpost.id }).ok).toBe(true);
+    expect(hex.improvement).toBe('outpost');
+    expect(hex.improvedOn).toBe(state.turn);
+    expect(hex.damagedImprovement).toBeUndefined();
+    expect(tileOwnerPlayerId(state, hex.col, hex.row)).toBe(0);
+    expect(worker.chargesLeft).toBe(charges - outpost.charges);
+    expect(worker.movesLeft).toBe(0);
   });
 });
 

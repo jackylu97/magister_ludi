@@ -333,7 +333,7 @@ describe('the sequence the bar audit copies is still the renderer\'s', () => {
 
   it('compares the fingerprint on every drawn frame and rebuilds when it moved', () => {
     expect(source).toMatch(
-      /signUnits\(this\.state\) !== this\.unitsSignature\)\) \{\s*\n\s*this\.setHoveredUnitId\(null\);\s*\n\s*this\.rebuildUnits\(\);/,
+      /signUnits\(this\.state, this\.fogSeat\) !== this\.unitsSignature\)\) \{\s*\n\s*this\.setHoveredUnitId\(null\);\s*\n\s*this\.rebuildUnits\(\);/,
     );
   });
 

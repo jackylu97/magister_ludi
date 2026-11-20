@@ -46,7 +46,7 @@ import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
 import { inZoneOfControl, pathTurns } from '../sim/pathfind';
-import { cityAt } from '../sim/cities';
+import { cityAt, tileOwnerPlayerId } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
 import { isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
@@ -526,6 +526,16 @@ export function workChargeWords(charges: number): string {
   return charges === 1 ? 'Spend a charge' : `Spend ${charges} charges`;
 }
 
+/** Show free repair on owned ground. A damaged site outside the borders can still qualify for a new build. */
+export function workerImprovementRows(state: GameState, unit: Unit, builds: ImprovementOption[]): {
+  repair?: ImprovementId;
+  builds: ImprovementOption[];
+} {
+  const damaged = getTileAt(state.map, unit.col, unit.row)?.damagedImprovement;
+  if (!damaged || tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId) return { builds };
+  return { repair: damaged.id, builds: builds.filter((build) => build.id !== damaged.id) };
+}
+
 /**
  * A build row's plain-text form (`UnitAction.hint`): what the build spends and
  * the change to the hex's yield, "Spend a charge: farm on this tile · +2🌾
@@ -953,18 +963,17 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
      */
     const canSurvey = buildsImprovements(unit) || isExplorer(unitDef(unit.type));
     if (buildsImprovements(unit)) {
-      const damaged = getTileAt(getGame().state.map, unit.col, unit.row)?.damagedImprovement;
-      if (damaged) {
+      const { repair, builds } = workerImprovementRows(getGame().state, unit, improvementOptions());
+      if (repair) {
         const blocked = repairImprovementBlocker();
         actions.push({
-          label: `Repair ${improvementDef(damaged.id).name}`,
+          label: `Repair ${improvementDef(repair).name}`,
           blocked: blocked === undefined ? 'No unit selected' : blocked,
           hint: 'Restore this work. Uses the remaining movement and costs no charge.',
           run: onRepairImprovement,
         });
       }
-      for (const option of improvementOptions()) {
-        if (option.id === damaged?.id) continue;
+      for (const option of builds) {
         const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
         if (delta) {

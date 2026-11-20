@@ -75,7 +75,7 @@
  */
 
 import { aiConfigFor } from './aiConfig';
-import { type BotSitting, type SittingMarks, botSitting, nextBotDecision, resumedSitting, sittingMarks } from './bot';
+import { type BotSitting, type SittingMarks, botSitting, nextBotCommand, nextBotDecision, resumedSitting, sittingMarks } from './bot';
 import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
 import { type FocusChoice, adoptFocusRoll, copyFocusRoll } from './focusRoll';
@@ -309,6 +309,14 @@ export const askTheBot: SittingAsk = (state, playerId, sitting) => {
   const decision = nextBotDecision(state, playerId, sitting);
   return decision === null ? null : { command: decision.command, decision };
 };
+
+/** Ordinary games need only the command. Release its score tree before recording the step. */
+export function askForCommands(decide = nextBotCommand): SittingAsk {
+  return (state, playerId, sitting) => {
+    const command = decide(state, playerId, sitting);
+    return command === null ? null : { command, decision: null };
+  };
+}
 
 /**
  * **One seat's sitting on its own copy of the frozen board.**
