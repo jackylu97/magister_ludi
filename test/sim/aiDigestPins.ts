@@ -1323,11 +1323,13 @@ import { digestOfState, type Played } from './aiDigestHelpers';
  * Version 248 changes the Dominion and Magisterial draft pools and wonder unlocks.
  * These games also use the revised chair valuations and unit grants.
  * Version 249 changes unit purchases, Great Person recruitment, and religion names.
+ * A bot now checks purchases again when it resumes an incomplete plan. It also
+ * counts only existing foreign followers when pricing the Camera's current income.
  * Both six-seat games reached turn 120 without a rejected order or a stalled turn.
  */
 const DIGESTS = {
-  duel: 'e9001772:371184',
-  standard: '5b4d3a8a:1071661',
+  duel: '025552e7:374088',
+  standard: 'de75ccf0:1058730',
 };
 
 /** Check driver errors before comparing the state digest. */
